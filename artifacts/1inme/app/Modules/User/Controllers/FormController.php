@@ -63,10 +63,28 @@ class FormController extends Controller
     {
         $projects = workspace_owner()->projects()->orderBy('name')->get();
         $domains  = Domain::availableTo($request->user())->get();
+
+        $groups = \App\Modules\User\Services\FormTemplateCatalog::grouped();
+        $templatesFlat = [];
+        foreach ($groups as $catKey => $templates) {
+            foreach ($templates as $key => $tpl) {
+                $templatesFlat[] = [
+                    'key'      => $key,
+                    'label'    => $tpl['label'],
+                    'desc'     => $tpl['desc'],
+                    'icon'     => $tpl['icon'],
+                    'category' => $catKey,
+                ];
+            }
+        }
+
         return view('user.forms.create', [
-            'projects'        => $projects,
-            'domains'         => $domains,
-            'defaultDomainId' => $domains->firstWhere('is_primary', true)?->id,
+            'projects'           => $projects,
+            'domains'            => $domains,
+            'defaultDomainId'    => $domains->firstWhere('is_primary', true)?->id,
+            'templateGroups'     => $groups,
+            'templateCategories' => \App\Modules\User\Services\FormTemplateCatalog::categories(),
+            'templatesFlat'      => $templatesFlat,
         ]);
     }
 
@@ -77,7 +95,7 @@ class FormController extends Controller
             'description' => 'nullable|string|max:1000',
             'project_id' => ['nullable', \Illuminate\Validation\Rule::exists('projects', 'id')->where('user_id', workspace_owner_id())],
             'domain_id' => ['nullable', $this->availableDomainRule($request->user())],
-            'template' => 'nullable|in:contact,lead,survey,registration,feedback,blank',
+            'template' => ['nullable', \Illuminate\Validation\Rule::in(\App\Modules\User\Services\FormTemplateCatalog::keys())],
         ]);
 
         $template = $data['template'] ?? 'contact';
@@ -745,36 +763,11 @@ class FormController extends Controller
 
     protected function templateFields(string $template): array
     {
-        return match ($template) {
-            'lead' => [
-                ['id' => 'name', 'type' => 'text', 'label' => 'Full Name', 'required' => true],
-                ['id' => 'email', 'type' => 'email', 'label' => 'Work Email', 'required' => true],
-                ['id' => 'phone', 'type' => 'phone', 'label' => 'Phone', 'required' => false],
-                ['id' => 'company', 'type' => 'text', 'label' => 'Company', 'required' => false],
-                ['id' => 'budget', 'type' => 'select', 'label' => 'Budget', 'options' => ['< $1k', '$1k–$5k', '$5k–$25k', '$25k+'], 'required' => false],
-                ['id' => 'notes', 'type' => 'textarea', 'label' => 'Tell us about your project', 'rows' => 4],
-            ],
-            'survey' => [
-                ['id' => 'satisfaction', 'type' => 'rating', 'label' => 'How satisfied are you?', 'max' => 5, 'required' => true],
-                ['id' => 'recommend', 'type' => 'scale', 'label' => 'How likely are you to recommend us?', 'min' => 0, 'max' => 10, 'required' => true],
-                ['id' => 'comments', 'type' => 'textarea', 'label' => 'Any additional feedback?', 'rows' => 4],
-            ],
-            'registration' => [
-                ['id' => 'name', 'type' => 'text', 'label' => 'Full Name', 'required' => true],
-                ['id' => 'email', 'type' => 'email', 'label' => 'Email', 'required' => true],
-                ['id' => 'event_date', 'type' => 'date', 'label' => 'Preferred Date', 'required' => true],
-                ['id' => 'attendees', 'type' => 'number', 'label' => 'Number of Attendees', 'min' => 1, 'required' => true],
-                ['id' => 'consent', 'type' => 'consent', 'label' => 'I agree to the terms and privacy policy', 'required' => true],
-            ],
-            'feedback' => [
-                ['id' => 'rating', 'type' => 'rating', 'label' => 'Rate your experience', 'max' => 5, 'required' => true],
-                ['id' => 'category', 'type' => 'radio', 'label' => 'What is this about?', 'options' => ['Bug', 'Suggestion', 'Compliment', 'Other'], 'required' => true],
-                ['id' => 'message', 'type' => 'textarea', 'label' => 'Your message', 'required' => true, 'rows' => 4],
-                ['id' => 'email', 'type' => 'email', 'label' => 'Email (optional)', 'required' => false],
-            ],
-            'blank' => [],
-            default => Form::defaultFields(),
-        };
+        if (\App\Modules\User\Services\FormTemplateCatalog::isValid($template)) {
+            return \App\Modules\User\Services\FormTemplateCatalog::fieldsFor($template);
+        }
+
+        return Form::defaultFields();
     }
 
     /* ---------------------- public-side handlers ---------------------- */
