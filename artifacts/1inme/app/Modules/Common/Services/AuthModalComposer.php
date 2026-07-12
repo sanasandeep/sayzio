@@ -23,8 +23,10 @@ class AuthModalComposer
     public function compose(View $view): void
     {
         $view->with([
-            'mobileLoginEnabled'  => AuthMethods::mobileLoginEnabled(),
-            'allowedCountryCodes' => AuthMethods::allowedCountryCodes(),
+            'mobileLoginEnabled'   => AuthMethods::mobileLoginEnabled(),
+            'emailPasswordEnabled' => AuthMethods::emailPasswordEnabled(),
+            'emailOtpEnabled'      => AuthMethods::emailOtpEnabled(),
+            'allowedCountryCodes'  => AuthMethods::allowedCountryCodes(),
         ]);
     }
 }
