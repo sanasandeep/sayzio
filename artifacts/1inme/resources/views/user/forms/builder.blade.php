@@ -110,14 +110,14 @@
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
             {{-- LEFT: field type palette --}}
             <aside class="lg:col-span-3">
-                <div class="card-premium p-4 lg:sticky lg:top-4" x-data="{ search: '' }">
+                <div class="card-premium p-4 lg:sticky lg:top-4 lg:max-h-[calc(100vh-2rem)] lg:overflow-y-auto lg:custom-scrollbar" x-data="{ search: '' }">
                     <h4 class="text-xs font-bold uppercase tracking-wider mb-2" style="color: var(--text-faint);">Add a field</h4>
                     <div class="relative mb-2">
                         <i class="fas fa-search absolute left-2.5 top-1/2 -translate-y-1/2 text-[10px]" style="color: var(--text-faint);"></i>
                         <input type="text" x-model.debounce.100ms="search" placeholder="Search fields…"
                                class="theme-input w-full text-xs pl-7 py-1.5" style="font-size:0.7rem;">
                     </div>
-                    <div class="space-y-1 max-h-[68vh] overflow-y-auto pr-0.5 custom-scrollbar">
+                    <div class="space-y-1 pr-0.5">
                         <template x-for="(meta, type) in types" :key="type">
                             <button type="button" @click="addField(type)"
                                     x-show="!search || meta.label.toLowerCase().includes(search.toLowerCase()) || type.toLowerCase().includes(search.toLowerCase())"
