@@ -95,6 +95,15 @@
                         <input type="hidden" :name="`fields[${i}][addons][${j}][price]`" :value="ad.price ?? 0">
                     </span>
                 </template>
+                {{-- Repeatable section settings (section fields only) --}}
+                <template x-if="f.type === 'section'">
+                    <div>
+                        <input type="hidden" :name="`fields[${i}][repeatable]`" :value="f.repeatable ? 1 : 0">
+                        <input type="hidden" :name="`fields[${i}][repeat_add_label]`" :value="f.repeat_add_label || ''">
+                        <input type="hidden" :name="`fields[${i}][repeat_min]`" :value="f.repeat_min || ''">
+                        <input type="hidden" :name="`fields[${i}][repeat_max]`" :value="f.repeat_max || ''">
+                    </div>
+                </template>
             </div>
         </template>
 
@@ -148,7 +157,7 @@
                                         <i class="fas fa-grip-vertical text-xs handle" style="color: var(--text-faint); cursor: grab;"></i>
                                         <i class="fas fa-layer-group text-blue-400 text-xs"></i>
                                         <div class="flex-1 min-w-0">
-                                            <div class="text-[10px] uppercase tracking-wider font-bold" style="color: var(--text-faint);">Section</div>
+                                            <div class="text-[10px] uppercase tracking-wider font-bold flex items-center gap-1.5" style="color: var(--text-faint);">Section <template x-if="f.repeatable"><span class="text-[8px] px-1.5 py-0.5 rounded font-bold" style="background: rgba(99,102,241,0.18); color: #818cf8;">REPEATABLE</span></template></div>
                                             <div class="text-sm font-bold" style="color: var(--text-primary);" x-text="f.label || '(untitled section)'"></div>
                                         </div>
                                         <button type="button" @click.stop="addFieldToSection(f.id)" class="text-[10px] px-2.5 py-1.5 rounded-lg font-semibold" style="background: rgba(92,131,255,0.12); color: #3d6bff;">
@@ -555,6 +564,34 @@
                                     </div>
                                 </div>
                             </template>
+
+                            {{-- Repeatable group settings (section fields only) --}}
+                            <div x-show="fields[selectedIndex].type === 'section'" class="pt-3 mt-1" style="border-top: 1px solid var(--border-glass);">
+                                <label class="flex items-center gap-2 text-xs cursor-pointer" style="color: var(--text-secondary);">
+                                    <input type="checkbox" x-model="fields[selectedIndex].repeatable" class="rounded text-blue-500">
+                                    <span class="font-medium">Make this group repeatable</span>
+                                </label>
+                                <template x-if="fields[selectedIndex].repeatable">
+                                    <div class="mt-3 space-y-2.5">
+                                        <div>
+                                            <label class="block text-[10px] font-medium mb-1" style="color: var(--text-muted);">Add button label</label>
+                                            <input type="text" x-model="fields[selectedIndex].repeat_add_label" class="theme-input w-full text-xs" placeholder="Add another">
+                                        </div>
+                                        <div class="grid grid-cols-2 gap-2">
+                                            <div>
+                                                <label class="block text-[10px] font-medium mb-1" style="color: var(--text-muted);">Min copies</label>
+                                                <input type="number" min="1" x-model.number="fields[selectedIndex].repeat_min" class="theme-input w-full text-xs" placeholder="1">
+                                            </div>
+                                            <div>
+                                                <label class="block text-[10px] font-medium mb-1" style="color: var(--text-muted);">Max copies <span style="color: var(--text-faint);">(blank = no limit)</span></label>
+                                                <input type="number" min="1" x-model.number="fields[selectedIndex].repeat_max" class="theme-input w-full text-xs" placeholder="—">
+                                            </div>
+                                        </div>
+                                        <p class="text-[10px]" style="color: var(--text-faint);">Visitors can add/remove copies of this group when filling the form. Min/max are enforced server-side.</p>
+                                        <p class="text-[10px] text-amber-400"><i class="fas fa-triangle-exclamation mr-0.5"></i> File, signature, and pricing fields inside a repeatable group are skipped on submit.</p>
+                                    </div>
+                                </template>
+                            </div>
 
                             {{-- Section assignment (group fields into one card) --}}
                             <div x-show="fields[selectedIndex].type !== 'section' && sectionOptions.length > 0" class="pt-3 mt-1" style="border-top: 1px solid var(--border-glass);">

@@ -73,7 +73,25 @@
                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 py-3 border-b" style="border-color: var(--border-subtle);">
                     <dt class="text-xs font-semibold uppercase tracking-wider" style="color: var(--text-faint);">{{ str_replace('_', ' ', $k) }}</dt>
                     <dd class="sm:col-span-2 text-sm" style="color: var(--text-primary);">
-                        @if(is_array($v) && !empty($v['_pricing']))
+                        @if(is_array($v) && !empty($v['_repeatable_group']))
+                            @foreach(array_values($v['copies'] ?? []) as $repIdx => $repCopy)
+                                <div class="mb-2 p-3 rounded-lg" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass);">
+                                    <div class="text-[10px] font-bold uppercase tracking-wider mb-2" style="color: var(--text-faint);">Copy {{ $repIdx + 1 }}</div>
+                                    @foreach((array) $repCopy as $ck => $cv)
+                                        <div class="flex gap-2 text-xs mb-1 flex-wrap">
+                                            <span class="font-medium shrink-0" style="color: var(--text-muted);">{{ str_replace('_', ' ', $ck) }}:</span>
+                                            @if(is_array($cv))
+                                                <span style="color: var(--text-primary);">{{ implode(', ', array_map('strval', $cv)) }}</span>
+                                            @elseif(is_bool($cv))
+                                                <span style="color: var(--text-primary);">{{ $cv ? 'Yes' : 'No' }}</span>
+                                            @else
+                                                <span style="color: var(--text-primary);">{{ $cv }}</span>
+                                            @endif
+                                        </div>
+                                    @endforeach
+                                </div>
+                            @endforeach
+                        @elseif(is_array($v) && !empty($v['_pricing']))
                             @php
                                 $pcur = $v['currency'] ?? 'USD';
                                 $fmtCents = fn ($c) => number_format(((int) $c) / 100, 2) . ' ' . $pcur;

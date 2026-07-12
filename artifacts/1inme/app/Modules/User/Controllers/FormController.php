@@ -369,6 +369,21 @@ class FormController extends Controller
                 $row['price_options'] = $this->cleanPriceList($f['price_options'] ?? []);
                 $row['addons']        = $this->cleanPriceList($f['addons'] ?? []);
             }
+            // Repeatable section config — persisted only for section fields.
+            if ($type === 'section') {
+                $row['repeatable'] = filter_var($f['repeatable'] ?? false, FILTER_VALIDATE_BOOL);
+                if ($row['repeatable']) {
+                    $addLabel = mb_substr(trim((string) ($f['repeat_add_label'] ?? 'Add another')), 0, 60);
+                    $row['repeat_add_label'] = $addLabel ?: 'Add another';
+                    // Cap to 10 — the UI cannot render more than 10 copies.
+                    $rm = isset($f['repeat_min']) && is_numeric($f['repeat_min']) ? min(10, max(1, (int) $f['repeat_min'])) : 1;
+                    $rM = isset($f['repeat_max']) && is_numeric($f['repeat_max']) && (int) $f['repeat_max'] > 0
+                        ? min(10, (int) $f['repeat_max']) : null;
+                    if ($rM !== null && $rM < $rm) $rM = $rm;
+                    $row['repeat_min'] = $rm;
+                    if ($rM !== null) $row['repeat_max'] = $rM;
+                }
+            }
             $clean[] = $row;
         }
 
@@ -718,13 +733,41 @@ class FormController extends Controller
     public function exportSubmissions(Request $request, Form $form): StreamedResponse
     {
         $this->authorizeForm($request, $form);
-        $headers = collect($form->fields ?? [])->whereNotIn('type', ['heading', 'paragraph', 'divider', 'page_break', 'section'])->pluck('id')->all();
+        // Build export header ids: standard non-structural fields, plus repeatable sections.
+        // New submissions store repeatable data under the section id as {_repeatable_group,copies}.
+        // Old submissions (created before the section was made repeatable) still store values under
+        // child field ids. We track child ids per repeatable section so we can fall back gracefully.
+        $fields = $form->fields ?? [];
+        $repeatableSectionIdsForExport = []; // sectionId => true
+        $repeatableSectionChildIds = [];     // sectionId => [childId, ...]
+        foreach ($fields as $ef) {
+            if (($ef['type'] ?? null) === 'section' && !empty($ef['repeatable']) && !empty($ef['id'])) {
+                $repeatableSectionIdsForExport[(string) $ef['id']] = true;
+                $repeatableSectionChildIds[(string) $ef['id']] = [];
+            }
+        }
+        foreach ($fields as $ef) {
+            $parent = (string) ($ef['parent'] ?? '');
+            if ($parent !== '' && isset($repeatableSectionChildIds[$parent]) && !empty($ef['id'])) {
+                $repeatableSectionChildIds[$parent][] = (string) $ef['id'];
+            }
+        }
+        $headers = collect($fields)->filter(function ($f) use ($repeatableSectionIdsForExport) {
+            $t = $f['type'] ?? 'text';
+            if (in_array($t, ['heading', 'paragraph', 'divider', 'page_break'])) return false;
+            // Non-repeatable sections are structural wrappers only; skip them.
+            if ($t === 'section') return !empty($f['repeatable']);
+            // Children of repeatable sections: data lives under the parent section id; exclude them.
+            $parent = (string) ($f['parent'] ?? '');
+            if ($parent !== '' && isset($repeatableSectionIdsForExport[$parent])) return false;
+            return true;
+        })->pluck('id')->all();
         $filename = 'form-' . $form->slug . '-' . now()->format('Ymd-His') . '.csv';
 
-        return response()->streamDownload(function () use ($form, $headers) {
+        return response()->streamDownload(function () use ($form, $headers, $repeatableSectionIdsForExport, $repeatableSectionChildIds) {
             $h = fopen('php://output', 'w');
             fputcsv($h, array_merge(['submitted_at', 'ip'], $headers));
-            $form->submissions()->completed()->orderBy('id')->chunk(500, function ($rows) use ($h, $headers) {
+            $form->submissions()->completed()->orderBy('id')->chunk(500, function ($rows) use ($h, $headers, $repeatableSectionIdsForExport, $repeatableSectionChildIds) {
                 foreach ($rows as $row) {
                     $line = [$row->created_at?->toIso8601String(), $row->ip];
                     foreach ($headers as $key) {
@@ -740,6 +783,37 @@ class FormController extends Controller
                             }
                             $total = number_format(((int) ($val['total_cents'] ?? 0)) / 100, 2);
                             $val   = implode(' + ', $parts) . ' = ' . $total . ' ' . $cur;
+                        } elseif (isset($repeatableSectionIdsForExport[$key])) {
+                            // Repeatable section column. Two possible shapes:
+                            // (a) New submission: {_repeatable_group:true, copies:[{fieldId:val,...},...]}
+                            // (b) Legacy submission (before repeatable was enabled): child values
+                            //     stored under their own field ids — data[$key] is empty/missing.
+                            //     Fall back to collecting child field values as a single copy.
+                            if (is_array($val) && !empty($val['_repeatable_group'])) {
+                                $rParts = [];
+                                foreach (array_values($val['copies'] ?? []) as $rci => $rcopy) {
+                                    $copyLabel = '[Copy ' . ($rci + 1) . ']';
+                                    $fieldParts = [];
+                                    foreach ((array) $rcopy as $rck => $rcv) {
+                                        $flat = is_array($rcv) ? implode(', ', $rcv) : ($rcv === null ? '' : (string) $rcv);
+                                        if ($flat === '') continue;
+                                        $fieldParts[] = ucfirst(str_replace('_', ' ', (string) $rck)) . ': ' . $flat;
+                                    }
+                                    $rParts[] = $copyLabel . ' ' . implode(' | ', $fieldParts);
+                                }
+                                $val = implode(' || ', $rParts);
+                            } else {
+                                // Legacy shape: collect values from child field ids directly.
+                                $childIds = $repeatableSectionChildIds[$key] ?? [];
+                                $fieldParts = [];
+                                foreach ($childIds as $cid) {
+                                    $cv = $row->data[$cid] ?? '';
+                                    $flat = is_array($cv) ? implode(', ', $cv) : ($cv === null ? '' : (string) $cv);
+                                    if ($flat === '') continue;
+                                    $fieldParts[] = $flat;
+                                }
+                                $val = implode(' | ', $fieldParts);
+                            }
                         } elseif (is_array($val)) {
                             $val = implode(', ', $val);
                         }
@@ -965,14 +1039,71 @@ class FormController extends Controller
             return back()->withInput()->withErrors(['_captcha' => $captchaError]);
         }
 
+        // Pre-identify repeatable sections and their supported child fields so
+        // we can collect structured copies from the rep_{id}[idx][fieldId] inputs.
+        $repeatableSecIds = [];
+        foreach ($form->fields ?? [] as $f) {
+            if (($f['type'] ?? null) === 'section' && !empty($f['repeatable']) && !empty($f['id'])) {
+                $repeatableSecIds[(string) $f['id']] = true;
+            }
+        }
+        $repSecChildren = [];
+        // Excluded types that cannot live inside a repeatable group at collect time.
+        $repExcluded = ['file', 'signature', 'pricing', 'heading', 'paragraph', 'divider', 'page_break', 'section', 'hidden'];
+        foreach ($form->fields ?? [] as $f) {
+            $fParent = (string) ($f['parent'] ?? '');
+            if ($fParent !== '' && isset($repeatableSecIds[$fParent])
+                && !in_array($f['type'] ?? 'text', $repExcluded, true)) {
+                $repSecChildren[$fParent][] = $f;
+            }
+        }
+
         $files = [];
         $data  = [];
         foreach ($form->fields ?? [] as $field) {
             $type = $field['type'] ?? 'text';
             $id = $field['id'] ?? null;
+
+            // Repeatable section: collect structured copies from rep_{id}[idx][childId] inputs.
+            if ($type === 'section' && $id && !empty($field['repeatable'])) {
+                $repKey    = 'rep_' . $id;
+                $rawCopies = $request->input($repKey, []);
+                if (!is_array($rawCopies)) $rawCopies = [];
+                $copies = [];
+                foreach (array_values($rawCopies) as $copyData) {
+                    if (!is_array($copyData)) continue;
+                    $copy = [];
+                    foreach ($repSecChildren[$id] ?? [] as $child) {
+                        $cid   = (string) ($child['id'] ?? '');
+                        $ctype = $child['type'] ?? 'text';
+                        if ($cid === '') continue;
+                        if ($ctype === 'consent') {
+                            $copy[$cid] = filter_var($copyData[$cid] ?? false, FILTER_VALIDATE_BOOL);
+                        } elseif ($ctype === 'checkbox') {
+                            $copy[$cid] = array_values(array_filter(
+                                (array) ($copyData[$cid] ?? []),
+                                fn ($v) => is_scalar($v)
+                            ));
+                        } else {
+                            $raw = $copyData[$cid] ?? null;
+                            $copy[$cid] = is_scalar($raw) ? (string) $raw : null;
+                        }
+                    }
+                    $copies[] = $copy;
+                }
+                if (!empty($copies)) {
+                    $data[$id] = ['_repeatable_group' => true, 'copies' => $copies];
+                }
+                continue;
+            }
+
             // Pricing fields are handled below from the computed breakdown so the
             // stored value is the readable line-items, not a raw option index.
             if (!$id || in_array($type, ['heading', 'paragraph', 'divider', 'page_break', 'section', 'pricing'])) continue;
+
+            // Children of repeatable sections were already collected above.
+            $fParent = (string) ($field['parent'] ?? '');
+            if ($fParent !== '' && isset($repeatableSecIds[$fParent])) continue;
 
             if ($type === 'file' && $request->hasFile($id)) {
                 // Vault submissions under the form OWNER's quota — visitors are
@@ -1239,10 +1370,55 @@ class FormController extends Controller
     {
         $rules = ['_hp' => ['nullable', 'string', 'max:200']];
         $messages = [];
+
+        // Pre-identify repeatable sections so children can be routed to wildcard keys.
+        $repeatableSectionIds = [];
+        foreach ($form->fields ?? [] as $f) {
+            if (($f['type'] ?? null) === 'section' && !empty($f['repeatable']) && !empty($f['id'])) {
+                $repeatableSectionIds[(string) $f['id']] = $f;
+            }
+        }
+
         foreach ($form->fields ?? [] as $field) {
             $type = $field['type'] ?? 'text';
             $id = $field['id'] ?? null;
-            if (!$id || in_array($type, ['heading', 'paragraph', 'divider', 'page_break', 'section'])) continue;
+            if (!$id || in_array($type, ['heading', 'paragraph', 'divider', 'page_break'])) continue;
+
+            // Repeatable sections: add array-count rules; non-repeatable sections skip.
+            if ($type === 'section') {
+                if (empty($field['repeatable'])) continue;
+                $sMin = max(1, (int) ($field['repeat_min'] ?? 1));
+                $sMax = isset($field['repeat_max']) ? (int) $field['repeat_max'] : null;
+                $repKey = 'rep_' . $id;
+                // One-question (oneq) layout degrades repeatable groups to a single fixed copy
+                // (index 0). We cannot enforce min/max counts there because the UI never renders
+                // multiple copies. Skip count rules for oneq; child-field rules still apply below.
+                $isOneq = ($form->settings['layout'] ?? 'standard') === 'oneq';
+                if ($isOneq) {
+                    $rules[$repKey] = ['nullable', 'array'];
+                } else {
+                    // Use 'required' (not 'nullable') when min >= 1 so a client cannot simply
+                    // omit the rep_* key and bypass the minimum copy enforcement.
+                    $arrayRules = [$sMin >= 1 ? 'required' : 'nullable', 'array', "min:$sMin"];
+                    if ($sMax) $arrayRules[] = "max:$sMax";
+                    $rules[$repKey] = $arrayRules;
+                }
+                continue;
+            }
+
+            // Children of repeatable sections are validated under wildcard keys.
+            $parent = $field['parent'] ?? null;
+            if ($parent !== null && isset($repeatableSectionIds[(string) $parent])) {
+                $repParent = 'rep_' . $parent;
+                $stack = $this->buildFieldRuleStack($field);
+                $rules["{$repParent}.*.$id"] = $stack;
+                if (!empty($field['error_message'])) {
+                    $messages["{$repParent}.*.$id.required"] = $field['error_message'];
+                }
+                continue;
+            }
+
+            // Non-section, non-repeatable-child — existing flat handling below.
 
             $req = !empty($field['required']);
             $base = $req ? 'required' : 'nullable';
@@ -1407,6 +1583,92 @@ class FormController extends Controller
 
     /** @var array<string,string> */
     protected array $customMessages = [];
+
+    /**
+     * Build a Laravel validation rule stack for a single form field definition.
+     * Shared between flat-field and repeatable-group-child validation.
+     * Excluded types (file, signature, pricing, hidden) return ['nullable'].
+     */
+    protected function buildFieldRuleStack(array $field): array
+    {
+        $type  = $field['type'] ?? 'text';
+        $req   = !empty($field['required']);
+        $base  = $req ? 'required' : 'nullable';
+        $minL  = isset($field['min_length']) ? (int) $field['min_length'] : null;
+        $maxL  = isset($field['max_length']) ? (int) $field['max_length'] : null;
+        $minN  = isset($field['min']) && $field['min'] !== '' ? $field['min'] : null;
+        $maxN  = isset($field['max']) && $field['max'] !== '' ? $field['max'] : null;
+        $pat   = $this->sanitizeRegex($field['pattern'] ?? null);
+        $stack = [$base];
+
+        switch ($type) {
+            case 'email':
+                $stack[] = 'email';
+                $stack[] = 'max:' . ($maxL ?: 255);
+                if ($minL) $stack[] = "min:$minL";
+                break;
+            case 'url':
+                $stack[] = 'url';
+                $stack[] = 'max:' . ($maxL ?: 500);
+                if ($minL) $stack[] = "min:$minL";
+                break;
+            case 'phone':
+                $stack[] = 'string';
+                $stack[] = 'max:' . ($maxL ?: 40);
+                if ($minL) $stack[] = "min:$minL";
+                if ($pat) $stack[] = 'regex:/' . str_replace('/', '\/', $pat) . '/';
+                break;
+            case 'number':
+                $stack[] = 'numeric';
+                if ($minN !== null) $stack[] = "min:$minN";
+                if ($maxN !== null) $stack[] = "max:$maxN";
+                break;
+            case 'date':
+                $stack[] = 'date';
+                break;
+            case 'time':
+                $stack[] = 'date_format:H:i';
+                break;
+            case 'rating':
+                $stack = [$base, 'integer', 'min:0', 'max:' . (int) ($field['max'] ?? 5)];
+                break;
+            case 'scale':
+                $stack = [$base, 'integer', 'min:' . (int) ($field['min'] ?? 0), 'max:' . (int) ($field['max'] ?? 10)];
+                break;
+            case 'select':
+            case 'radio':
+                $stack[] = 'string';
+                $stack[] = 'max:255';
+                if (!empty($field['options'])) {
+                    $stack[] = 'in:' . implode(',', array_map(fn ($o) => str_replace(',', '\,', (string) $o), $field['options']));
+                }
+                break;
+            case 'checkbox':
+                $stack = $req ? ['required', 'array', 'min:1'] : ['nullable', 'array'];
+                break;
+            case 'textarea':
+                $stack[] = 'string';
+                $stack[] = 'max:' . ($maxL ?: 10000);
+                if ($minL) $stack[] = "min:$minL";
+                break;
+            case 'consent':
+                $stack = $req ? ['accepted'] : ['nullable'];
+                break;
+            case 'file':
+            case 'signature':
+            case 'pricing':
+            case 'hidden':
+                $stack = ['nullable'];
+                break;
+            default: // 'text' and unknown
+                $stack[] = 'string';
+                $stack[] = 'max:' . ($maxL ?: 1000);
+                if ($minL) $stack[] = "min:$minL";
+                if ($pat) $stack[] = 'regex:/' . str_replace('/', '\/', $pat) . '/';
+                break;
+        }
+        return $stack;
+    }
 
     /**
      * Verify the captcha token for the submitted form.
@@ -1660,7 +1922,17 @@ class FormController extends Controller
             if (!empty($n['email']['enabled']) && !empty($n['email']['to'])) {
                 $body = "New submission on {$form->title}\n\n";
                 foreach ($submission->data as $k => $v) {
-                    if (is_array($v) && !empty($v['_pricing'])) {
+                    if (is_array($v) && !empty($v['_repeatable_group'])) {
+                        $copyLines = [];
+                        foreach (array_values($v['copies'] ?? []) as $rci => $rcopy) {
+                            $copyLines[] = '  Copy ' . ($rci + 1) . ':';
+                            foreach ((array) $rcopy as $rck => $rcv) {
+                                $flat = is_array($rcv) ? implode(', ', $rcv) : ($rcv === null ? '' : (string) $rcv);
+                                $copyLines[] = '    ' . ucfirst(str_replace('_', ' ', (string) $rck)) . ': ' . $flat;
+                            }
+                        }
+                        $line = implode("\n", $copyLines);
+                    } elseif (is_array($v) && !empty($v['_pricing'])) {
                         $cur   = $v['currency'] ?? 'USD';
                         $parts = [];
                         if (!empty($v['option']['label'])) $parts[] = $v['option']['label'];
@@ -1778,7 +2050,7 @@ class FormController extends Controller
             if (count($lines) >= 2) break;
             $k = (string) $key;
             if ($k === '' || str_starts_with($k, '_')) continue; // honeypot / internal
-            if (is_array($value) && !empty($value['_pricing'])) continue; // structured pricing handled elsewhere
+            if (is_array($value) && (!empty($value['_pricing']) || !empty($value['_repeatable_group']))) continue; // structured values
 
             $flat = is_array($value)
                 ? implode(', ', array_filter(array_map(fn ($x) => is_scalar($x) ? (string) $x : '', $value)))
