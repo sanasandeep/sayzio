@@ -276,6 +276,10 @@ args = "e2e-form-rep-old"
 task = "workflow.run"
 args = "e2e-form-rep-copy-error"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-form-builder-panel-scroll"
+
 [[workflows.workflow]]
 name = "e2e"
 author = "agent"
@@ -987,6 +991,17 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "bash artifacts/1inme/tests/Browser/run-validation.sh form-repeatable-copy-error.spec.ts"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-form-builder-panel-scroll"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "bash artifacts/1inme/tests/Browser/run-validation.sh form-builder-panel-scroll-reset.spec.ts"
 
 [workflows.workflow.metadata]
 isValidation = true
