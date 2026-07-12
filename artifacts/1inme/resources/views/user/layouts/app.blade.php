@@ -498,7 +498,8 @@
                     'referrals_view' => WP::userCan('referrals.view'),
                 ];
             @endphp
-            <nav class="flex-1 py-4 overflow-y-auto overflow-x-hidden sidebar-nav-scroll" :class="sidebarMode === 'icons' ? 'px-2' : 'px-3'">
+            <nav class="flex-1 relative overflow-hidden">
+            <div class="absolute inset-0 overflow-y-auto overflow-x-hidden sidebar-nav-scroll py-4" :class="sidebarMode === 'icons' ? 'px-2' : 'px-3'">
                 {{-- ========== TOP LEVEL — most-used destinations stay visible ========== --}}
                 <a href="{{ route('user.dashboard') }}"
                    class="sidebar-link {{ request()->routeIs('user.dashboard') ? 'active' : '' }}"
@@ -1060,6 +1061,7 @@
                 </div>
                 @endif
 
+            </div>{{-- /.sidebar-nav-scroll --}}
             </nav>
 
             <div class="mx-3 mb-3" x-show="sidebarMode === 'full'" x-cloak x-transition.opacity>

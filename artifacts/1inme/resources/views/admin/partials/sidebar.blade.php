@@ -27,7 +27,8 @@
         </template>
     </div>
 
-    <nav class="flex-1 py-4 overflow-y-auto overflow-x-hidden sidebar-nav-scroll"
+    <nav class="flex-1 relative overflow-hidden">
+    <div class="absolute inset-0 overflow-y-auto overflow-x-hidden sidebar-nav-scroll py-4"
          :class="sidebarMode === 'icons' ? 'px-2' : 'px-3'">
 
         {{-- ============ Overview ============ --}}
@@ -585,6 +586,7 @@
             <span class="nav-label">Branding</span>
             <span class="sidebar-tooltip">Branding</span>
         </a>
+    </div>{{-- /.sidebar-nav-scroll --}}
     </nav>
 
     @php $__switchUser = !session('impersonate_user_id') && auth()->guard('admin')->user()?->hasUserAccount(); @endphp
