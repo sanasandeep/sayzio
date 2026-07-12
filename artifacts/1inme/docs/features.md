@@ -6,13 +6,18 @@ Sayzio platform: each link type (grouped by the product categories shown in the
 surfaces, the AI engine, billing, and the cross-surface artifacts (web app,
 REST API, mobile app, marketing site, slide deck).
 
-It complements two sibling docs and intentionally does **not** duplicate them:
+It complements several sibling docs and intentionally does **not** duplicate them:
 
 - **Developer REST API reference** — endpoint-by-endpoint contract:
   [`api.md`](./api.md). Throughout this catalog, REST coverage is summarized and
   cross-linked rather than re-listed.
 - **End-user guide & FAQ** — plain-language "what / why / how":
   [`knowledge-base.md`](./knowledge-base.md).
+- **Ask Zio training doc** — customer-facing AI assistant training (user point of
+  view only): [`chatbot-training.md`](./chatbot-training.md).
+- **Claude training doc** — comprehensive technical training for internal AI
+  assistants (all features + API surface + internal systems):
+  [`claude-training.md`](./claude-training.md).
 - **AI credit billing internals** — [`billing-ai-credit-audit.md`](./billing-ai-credit-audit.md).
 
 > **Parity legend.** Each feature notes where it is available:

@@ -35,7 +35,10 @@ of *what it is*, *why you'd use it*, and *how to use it* step by step. A large
 19. [18+ adult content](#19-adult-content)
 20. [AI tools: AI Note Summarizer, Knowledge Bases, Persona Generator, AI Agents, AI Chat, Chat Widgets, AI Growth Coach, Account Assistant](#20-ai-tools)
 21. [Tools: Forms, Contact cards, Contacts & Dialer, Scan a card or brochure, Files, Resume, Calendar](#21-tools)
-22. [Restaurant menu & orders](#22-restaurant-menu--orders)
+22. [Restaurant menu, Store & Service Booking](#22-restaurant-menu-store--service-booking)
+   - [22a. Restaurant menu](#22a-restaurant-menu)
+   - [22b. Store (order-request storefront)](#22b-store-order-request-storefront)
+   - [22c. Service Booking (appointment requests)](#22c-service-booking-appointment-requests)
 23. [Inbox & messages](#23-inbox--messages)
 24. [Notifications & digests](#24-notifications--digests)
 25. [Organizing your work: Projects, Workspaces, Team, Client portals](#25-organizing-your-work)
@@ -975,7 +978,9 @@ link with PDF download. Find it under **Resume / Portfolio**.
 
 ---
 
-## 22. Restaurant menu & orders
+## 22. Restaurant menu, Store & Service Booking
+
+### 22a. Restaurant menu
 
 **What it is.** A dedicated digital-menu page type for restaurants and cafes, with
 optional table-side ordering. It has its own builder (it doesn't use the block
@@ -1006,6 +1011,65 @@ tapping **Place Order**.
 **Mobile.** The restaurant menu has a full native builder in the Sayzio mobile app
 too — including coupon entry and the live estimated bill — so there's no need to
 switch to the web.
+
+---
+
+### 22b. Store (order-request storefront)
+
+**What it is.** A product catalog page where visitors browse, place orders, and
+leave their contact details — the owner then fulfills orders offline. There is
+**no online payment**, **no tax**, and **no coupon codes** (unlike the Restaurant
+Menu). It has its own dedicated builder.
+
+**Why use it.** Great for small shops, home businesses, local sellers, and anyone
+who wants a clean "catalog + order request" page without needing a full ecommerce
+setup.
+
+**How to use it (owner).**
+1. Create a **Store** link.
+2. Build **Categories**, then add **Products** (name, description, price, photo).
+3. Set your currency, accent color, and a WhatsApp number (optional — Sayzio can
+   build a `wa.me` link so you're notified there when an order arrives).
+4. Toggle **Accepting orders** on/off to pause the store when needed.
+5. When orders arrive, manage them in the **Order Requests Dashboard**, moving each
+   from **New → Accepted → Packing → Ready → Completed / Cancelled**. The order
+   total is the simple sum of the line items.
+
+**Visitor experience.** Visitors browse categories and products, enter their name,
+contact details, and an optional note, and submit an order. No account or payment
+is required. You receive an in-app notification and email alert.
+
+**Mobile.** The store builder and order requests dashboard have full native parity
+in the Sayzio mobile app.
+
+---
+
+### 22c. Service Booking (appointment requests)
+
+**What it is.** An appointment-request page where visitors browse your services
+and request a time slot. You review and confirm (or decline) bookings from a
+dashboard. **No payment is collected** — any pricing shown is for reference only.
+It has its own dedicated builder.
+
+**Why use it.** Ideal for freelancers, coaches, therapists, personal trainers,
+and any service provider who wants a simple "here's what I offer, book a slot"
+page without needing a third-party scheduling tool.
+
+**How to use it (owner).**
+1. Create a **Service Booking** link.
+2. Add **Services** (name, description, duration, price/rate — display only).
+3. Set your **weekly availability** (which days and hours you're open for each
+   service) and any blocked-off dates.
+4. When booking requests come in, manage them in the **Bookings Dashboard**:
+   confirm or decline each request and add notes. Visitors receive a
+   confirmation or decline notification.
+
+**Visitor experience.** Visitors pick a service, choose from the available slots
+on a calendar, enter their name and contact details, and submit the request. They
+see a clear "request sent — awaiting confirmation" status after submitting.
+
+**Mobile.** The service booking builder and bookings dashboard have full native
+parity in the Sayzio mobile app.
 
 ---
 

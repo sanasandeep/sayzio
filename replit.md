@@ -2,7 +2,7 @@
 
 "Sayzio" is a pnpm workspace monorepo for a link-management SaaS platform. It lets creators, businesses, and individuals create, manage, track, and brand links, biolinks (mini-websites), and QR codes — with deep customization, detailed analytics, and tracking.
 
-Docs: exhaustive feature catalog in `artifacts/1inme/docs/features.md`; end-user guide in `docs/knowledge-base.md`; REST API reference in `docs/api.md`.
+Docs: exhaustive feature catalog in `artifacts/1inme/docs/features.md`; end-user guide in `artifacts/1inme/docs/knowledge-base.md`; REST API reference in `artifacts/1inme/docs/api.md`; Ask Zio training (customer-facing) in `artifacts/1inme/docs/chatbot-training.md`; Claude training (comprehensive technical) in `artifacts/1inme/docs/claude-training.md`.
 
 # User Preferences
 
