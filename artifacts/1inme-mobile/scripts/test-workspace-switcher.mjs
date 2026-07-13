@@ -10,9 +10,12 @@
 //   2. Each workspace's ACCENT COLOUR (ws.color, falling back to the theme
 //      primary) tints the icon chip — a dropped fallback would crash on a
 //      colourless workspace or lose the brand tint.
-//   3. The edit GEAR (which opens the native workspace-edit screen) only
+//   3. The edit GEAR (which opens the native rename/restyle editor) only
 //      renders for owners (is_owner === true). Showing it to a non-owner
-//      would dangle a control the server rejects.
+//      would dangle a control the server rejects with 403. Because the gear
+//      is guarded by the LIVE query row's is_owner, a workspaces refetch that
+//      flips is_owner to false (ownership transferred/downgraded away) drops
+//      the gear immediately — proven in section 4.
 //
 // Following the convention in test-quick-contact.mjs / test-citation-href.mjs
 // we don't spin up a full RN renderer: we (a) lift the REAL
@@ -170,10 +173,10 @@ assert.ok(
 );
 
 // ---------------------------------------------------------------------------
-// 3. The settings gear ONLY renders for owners (is_owner === true).
-//    We confirm every `name="settings"` Feather in each file sits inside an
+// 3. The edit gear ONLY renders for owners (is_owner === true).
+//    We confirm every `name="edit-2"` Feather in each file sits inside an
 //    `<owner>.is_owner ? ( … ) : null` guard, and that there are no ungated
-//    settings gears left behind.
+//    edit gears left behind.
 // ---------------------------------------------------------------------------
 function assertGearOwnerGated(src, ownerExpr, label) {
   const gearCount = (src.match(/name="edit-2"/g) ?? []).length;
@@ -200,17 +203,68 @@ function assertGearOwnerGated(src, ownerExpr, label) {
 assertGearOwnerGated(drawerSrc, "ws.is_owner", "DrawerSidebar");
 assertGearOwnerGated(screenSrc, "item.is_owner", "Workspaces screen");
 
-// The gear must open the native workspace-edit screen (owner-only in-app edit
-// + delete), not deep-link out to the web settings page.
+// The gear must open the native rename/restyle editor for that workspace, not
+// attempt an unsupported action. The drawer routes through editWorkspace(id)
+// (which pushes /workspace-edit); the screen pushes /workspace-edit directly.
 assert.ok(
-  /editWorkspace\(ws\.id\)/.test(drawerSrc),
-  "the drawer gear must open the native workspace-edit screen for that workspace",
+  /onPress=\{\(\) => editWorkspace\(ws\.id\)\}/.test(drawerSrc),
+  "the drawer gear must open the workspace editor for that workspace (editWorkspace(ws.id))",
 );
 assert.ok(
-  /router\.push\(`\/workspace-edit\?id=\$\{item\.id\}/.test(screenSrc),
-  "the Workspaces screen gear must open the native workspace-edit screen for that workspace",
+  /const editWorkspace = \(id: number\) => \{[\s\S]*?\/workspace-edit\?id=\$\{id\}/.test(drawerSrc),
+  "the drawer editWorkspace() must navigate to the /workspace-edit screen",
+);
+assert.ok(
+  /router\.push\(`\/workspace-edit\?id=\$\{item\.id\}`/.test(screenSrc),
+  "the Workspaces screen gear must open the /workspace-edit screen for that workspace",
 );
 
+// ---------------------------------------------------------------------------
+// 4. TRANSITION CASE — a workspaces refetch that flips is_owner to false
+//    (ownership transferred/downgraded away from the user) must drop the gear.
+//    The gear is a plain ternary on the LIVE query row's is_owner, so we lift
+//    that exact guard token from the shipped source and evaluate it against a
+//    row that WAS owned (is_owner:true → gear) and the same row after a refetch
+//    reports is_owner:false (→ null, no gear). A row that was never owned
+//    (is_owner absent) must also yield no gear.
+// ---------------------------------------------------------------------------
+function assertGearFollowsLiveRow(src, rowVar, label) {
+  const guardRe = new RegExp(`\\{\\s*(${rowVar}\\.is_owner)\\s*\\?`);
+  const m = src.match(guardRe);
+  assert.ok(
+    m,
+    `${label}: the gear must be guarded by the live row's is_owner (found no \`{${rowVar}.is_owner ? …}\`)`,
+  );
+  const guardExpr = m[1]; // e.g. "ws.is_owner" — lifted verbatim from source
+
+  const evalGuard = (row) =>
+    runExtractedCall(
+      `(${rowVar}) => Boolean(${guardExpr})`,
+      {},
+      `${label} gear guard`,
+      { test: "test-workspace-switcher" },
+    )(row);
+
+  assert.equal(
+    evalGuard({ is_owner: true }),
+    true,
+    `${label}: an owned row must show the edit gear`,
+  );
+  assert.equal(
+    evalGuard({ is_owner: false }),
+    false,
+    `${label}: a refetch reporting is_owner=false (demoted owner) must drop the gear`,
+  );
+  assert.equal(
+    evalGuard({}),
+    false,
+    `${label}: a row that reports no is_owner (never owned) must show no gear`,
+  );
+}
+
+assertGearFollowsLiveRow(drawerSrc, "ws", "DrawerSidebar");
+assertGearFollowsLiveRow(screenSrc, "item", "Workspaces screen");
+
 console.log(
-  "ok — workspace switcher (icon mapping + colour fallback + owner-gated gear on drawer & screen)",
+  "ok — workspace switcher (icon mapping + colour fallback + owner-gated gear that drops on a refetch flipping is_owner false, on drawer & screen)",
 );
