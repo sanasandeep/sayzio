@@ -280,6 +280,10 @@ args = "e2e-form-rep-copy-error"
 task = "workflow.run"
 args = "e2e-form-builder-panel-scroll"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "demo-login-button"
+
 [[workflows.workflow]]
 name = "e2e"
 author = "agent"
@@ -1002,6 +1006,17 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "bash artifacts/1inme/tests/Browser/run-validation.sh form-builder-panel-scroll-reset.spec.ts"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "demo-login-button"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/scripts run check:demo-login-button"
 
 [workflows.workflow.metadata]
 isValidation = true

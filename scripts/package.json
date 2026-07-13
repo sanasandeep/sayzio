@@ -19,6 +19,7 @@
     "check:alpine-line-comments": "tsx ./src/check-alpine-line-comments.ts",
     "check:view-guards": "tsx ./src/check-view-guards.ts",
     "check:demo-login-email": "tsx ./src/check-demo-login-email.ts",
+    "check:demo-login-button": "tsx ./src/check-demo-login-button-pattern.ts",
     "check:mobile-auth-providers": "tsx ./src/check-mobile-auth-providers.ts",
     "check:auth-screen-gradient": "tsx ./src/check-auth-screen-gradient.ts",
     "check:fontawesome-loader": "tsx ./src/check-fontawesome-loader.ts",

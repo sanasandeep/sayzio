@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 import { expect, test, type Page } from "@playwright/test";
 
 import { DEMO_LOGIN_EMAIL } from "./demo-account";
+import { loginAsDemo } from "./login-as-demo";
 
 const ARTIFACT_ROOT = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -104,48 +105,6 @@ echo 'FORM_ID='.$form->id;
     throw new Error("Form seed did not echo FORM_ID; output was:\n" + out);
   }
   return Number(m[1]);
-}
-
-/**
- * Authenticate as the non-prod demo account (`AuthController::demoLogin`).
- *
- * We do NOT depend on a `form[action$="/user/demo-login"]` element being present
- * in the login markup: whether that button renders is environment/data driven,
- * so relying on it makes the login step silently brittle ("demo-login form not
- * found"). Instead we replicate exactly what the demo-login endpoint needs — a
- * same-session CSRF token POSTed to `/user/demo-login` — by reading the `_token`
- * that the login page's own forms already carry and submitting a synthesized
- * form. This is the identical mechanism run-validation.sh's warm step uses to
- * authenticate, so it works regardless of which login buttons are rendered.
- */
-async function loginAsDemo(page: Page): Promise<void> {
-  await page.goto("/user/login");
-  await Promise.all([
-    page.waitForResponse(
-      (r) =>
-        r.url().endsWith("/user/demo-login") &&
-        r.request().method() === "POST",
-      { timeout: 90_000 },
-    ),
-    page.evaluate(() => {
-      const tokenInput = document.querySelector<HTMLInputElement>(
-        'input[name="_token"]',
-      );
-      if (!tokenInput || !tokenInput.value) {
-        throw new Error("CSRF _token not found on /user/login");
-      }
-      const form = document.createElement("form");
-      form.method = "POST";
-      form.action = "/user/demo-login";
-      const token = document.createElement("input");
-      token.type = "hidden";
-      token.name = "_token";
-      token.value = tokenInput.value;
-      form.appendChild(token);
-      document.body.appendChild(form);
-      form.submit();
-    }),
-  ]);
 }
 
 /**
