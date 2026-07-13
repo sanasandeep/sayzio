@@ -76,10 +76,17 @@
         </a>
 
         @php
-            $isOwnerOrAdmin = (int) $currentWs->owner_user_id === auth()->id()
-                || (auth()->user()->hasPermission('user.workspaces.access_any'))
+            $isOwner = (int) $currentWs->owner_user_id === auth()->id()
+                || auth()->user()->hasPermission('user.workspaces.access_any');
+            $isOwnerOrAdmin = $isOwner
                 || (optional(auth()->user()->membershipFor($currentWs))->role === 'admin');
         @endphp
+        @if($isOwner)
+            <a href="{{ route('user.workspaces.settings', $currentWs) }}"
+               class="block px-3 py-2 text-sm hover:bg-black/5" style="color: var(--text-primary);">
+                <i class="fas fa-gear mr-2 opacity-70"></i> Workspace settings
+            </a>
+        @endif
         @if($isOwnerOrAdmin)
             <a href="{{ route('user.workspaces.audit.index') }}"
                class="block px-3 py-2 text-sm hover:bg-black/5" style="color: var(--text-primary);">

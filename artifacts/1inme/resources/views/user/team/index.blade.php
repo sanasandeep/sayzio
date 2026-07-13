@@ -21,6 +21,13 @@
             </p>
         </div>
         <div class="flex items-center gap-2">
+            @if(!empty($isOwner))
+                <a href="{{ route('user.workspaces.settings', $workspace) }}"
+                   class="px-3 py-2 rounded-lg text-sm font-semibold border glass-hover"
+                   style="border-color: var(--border-strong); color: var(--text-primary);">
+                    <i class="fas fa-gear mr-1"></i> Workspace settings
+                </a>
+            @endif
             @if(!empty($canEditRoles))
                 <a href="{{ route('user.team.roles.index') }}"
                    class="px-3 py-2 rounded-lg text-sm font-semibold border glass-hover"

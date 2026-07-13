@@ -284,6 +284,7 @@ Route::prefix('user')->name('user.')->group(function () {
             ->middleware('throttle:6,60')
             ->name('workspaces.request-access');
         Route::post('workspaces/{workspace}/switch',           [\App\Modules\User\Controllers\WorkspaceController::class, 'switch']) ->name('workspaces.switch');
+        Route::get ('workspaces/{workspace}/settings',         [\App\Modules\User\Controllers\WorkspaceController::class, 'settings'])->name('workspaces.settings');
         Route::put ('workspaces/{workspace}',                  [\App\Modules\User\Controllers\WorkspaceController::class, 'update']) ->name('workspaces.update');
         Route::put ('workspaces/{workspace}/post-approval',    [\App\Modules\User\Controllers\WorkspaceController::class, 'updatePostApproval'])->name('workspaces.post-approval.update');
         Route::delete('workspaces/{workspace}',                [\App\Modules\User\Controllers\WorkspaceController::class, 'destroy'])->name('workspaces.destroy');

@@ -65,18 +65,48 @@ class WorkspaceController extends Controller
         return redirect()->route('user.dashboard')->with('success', "Workspace '{$ws->name}' created.");
     }
 
-    /** Owner-only: rename a workspace they own. */
+    /** Owner-only: show the workspace settings page. */
+    public function settings(Request $request, Workspace $workspace)
+    {
+        $user = $request->user();
+        abort_unless((int) $workspace->owner_user_id === $user->id, 403);
+        $ownedCount = $user->ownedWorkspaces()->count();
+        return view('user.workspaces.settings', [
+            'workspace'  => $workspace,
+            'ownedCount' => $ownedCount,
+        ]);
+    }
+
+    /** Owner-only: rename a workspace and/or update its appearance. */
     public function update(Request $request, Workspace $workspace)
     {
         $user = $request->user();
         abort_unless((int) $workspace->owner_user_id === $user->id, 403);
-        $data = $request->validate(['name' => 'required|string|max:120']);
+        $data = $request->validate([
+            'name'  => 'required|string|max:120',
+            'icon'  => ['nullable', 'string', Rule::in(array_keys(Workspace::ICON_CHOICES))],
+            'color' => ['nullable', 'string', Rule::in(Workspace::COLOR_CHOICES)],
+        ]);
         $previousName = $workspace->name;
-        $workspace->update(['name' => $data['name']]);
+
+        $settings = $workspace->settings ?? [];
+        $appearance = $settings['appearance'] ?? [];
+        if (!empty($data['icon'])) {
+            $appearance['icon'] = $data['icon'];
+        }
+        if (!empty($data['color'])) {
+            $appearance['color'] = $data['color'];
+        }
+        $settings['appearance'] = $appearance;
+
+        $workspace->update([
+            'name'     => $data['name'],
+            'settings' => $settings,
+        ]);
         WorkspaceActivityRecorder::record($workspace, 'workspace.update', 'workspace', $workspace->id, $workspace->name, route('user.team.index'), [
             'from_name' => $previousName, 'to_name' => $data['name'],
         ]);
-        return back()->with('success', 'Workspace renamed.');
+        return back()->with('success', 'Workspace settings saved.');
     }
 
     /**
