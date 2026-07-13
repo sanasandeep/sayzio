@@ -1,0 +1,195 @@
+kind = "web"
+previewPath = "/"
+title = "1INME"
+version = "1.0.0"
+
+[[services]]
+localPort = 5000
+name = "web"
+paths = ["/"]
+
+# Dev startup builds the Vite/Tailwind v4 assets if the @vite() manifest at
+# public/build/manifest.json is missing, then runs a Vite WATCHER alongside the
+# PHP server so Blade edits refresh the CSS live.
+#
+# WHY A WATCHER (Task #2422): `php artisan serve` only serves the pre-built
+# public/build assets — it does not rebuild them. So mid-session, editing a Blade
+# file's Tailwind classes/colors used to leave the preview on stale CSS until a
+# manual `pnpm run build`. We now run `vite build --watch` concurrently with the
+# server (via the `concurrently` dev dependency); Tailwind v4 registers every
+# `@source` glob (including `../**/*.blade.php`) as a watched file, so saving a
+# Blade file triggers an incremental rebuild and new utilities appear in the
+# preview automatically. `--kill-others` ties the two processes' lifecycles
+# together so a crash of either tears the workflow down cleanly for restart.
+#
+# REMOVED/RENAMED CLASSES (Task #2427): Tailwind v4's watch candidate set is
+# ADDITIVE — a class scanned once survives every later incremental rebuild until
+# the watcher process restarts. So deleting/renaming a Tailwind class in a Blade
+# file mid-session leaves its old utility rule lingering in the served CSS (the
+# rendered page is still correct, but the dead rule confuses styling debugging).
+# To flush it we don't run a single long-lived watcher; we run the `build:watch:cycle`
+# npm script, which loops `timeout 60 vite build --watch` — every 60s the watcher
+# is torn down and a fresh one starts, and that fresh process scans `@source`
+# from scratch so removed/renamed classes drop out of the candidate set, while
+# new classes still appear live (incremental within a cycle, or via the next
+# cycle's initial build). The cycle sets VITE_KEEP_OUTDIR=1 so vite.config.js
+# turns OFF emptyOutDir for the watch: each restart's initial build would
+# otherwise blank public/build for ~1-2s and 500 the page on a missing @vite
+# manifest — with it the prior build's hashed assets stay until the fresh build
+# overwrites the manifest, so the periodic restart is gap-free.
+#
+# WATCHDOG / CRASH-LOOP GUARD (Task #3440): `--kill-others` only tears the
+# workflow down when the tailwind CHILD PROCESS actually exits. But the cycle is
+# a `while true` loop, so it never exits on its own — a healthy cycle just runs
+# vite for the ~60s window, gets TERMed by `timeout`, and loops. Problem: if vite
+# starts crashing IMMEDIATELY every cycle (bad config, missing bin, port held),
+# the loop busy-spins forever — the tailwind process stays alive but rebuilds
+# nothing, so concurrently never fires --kill-others and the preview silently
+# serves stale CSS behind a live PHP server. So build:watch:cycle now
+# distinguishes a normal timeout cycle (ran the full window → resilient, keep
+# looping) from a crash loop (vite exited in <10s): after 5 consecutive fast
+# exits it bails with a non-zero exit, which lets concurrently --kill-others tear
+# down the PHP server too and trigger a clean Replit workflow auto-restart with a
+# fresh Tailwind watcher, instead of stranding a style-less orphan.
+#
+# STALE VIEW CACHE NOTE: Tailwind's content scan also reads Laravel's compiled-
+# blade cache (storage/framework/views/*.php) via an `@source` in
+# resources/css/app.css. If those cached files hold pre-sweep class tokens (e.g.
+# retired purple), Tailwind regenerates them back into the CSS — and in watch
+# mode its candidate set is ADDITIVE (a token scanned once survives every later
+# rebuild until the watcher restarts), and it enumerates the @source files at
+# config time, BEFORE any in-process hook could clear them. So we wipe the
+# compiled-blade cache HERE — `rm -f storage/framework/views/*.php` — before the
+# Vite watcher launches, guaranteeing its first (and only) scan of that directory
+# sees nothing stale. Laravel lazily recompiles views on the next request, and
+# from then on the cache only ever holds tokens for the current Blade source, so
+# it can never feed stale tokens back into the CSS mid-session. (The cold-start
+# `php artisan view:clear` above still runs only when the manifest is missing;
+# this unconditional rm also covers warm restarts where the manifest exists.)
+#
+# READINESS PROBE NOTE: the Replit dev readiness probe is hard-wired to poll the
+# preview path "/" — it ignores [services.development.health.startup].path (verified:
+# zero "/up" hits in the dev log when that was set) — and enforces a tight per-response
+# latency bound, so it rejects the home page's ~1s warm / ~3-5s cold Blade render and
+# tears down the otherwise-healthy server. The fix is the dev-only DevStartupProbe
+# middleware (app/Modules/Common/Middleware), which answers "/" with an instant 200
+# splash for WINDOW_MS after boot. It keys off the boot timestamp written below into
+# storage/framework/cache/dev_boot_ms; the real home page serves normally once the
+# window elapses, and the middleware is a no-op in production.
+#
+# PORT RECLAIM NOTE: on workflow restart a previous `php artisan serve` process may
+# still hold port 5000, causing `Address already in use` which kills the concurrently
+# group and strands a style-less orphan server. We reclaim the port before binding:
+# `pkill` targets our specific artisan command (no-op if absent); `fuser -k` evicts
+# any remaining process; both are followed by `|| true` / `;true` so the step never
+# aborts the run when nothing was listening.
+[services.development]
+run = '''cd /home/runner/workspace/artifacts/1inme && { [ -f public/build/manifest.json ] || { php artisan view:clear && pnpm --dir /home/runner/workspace/artifacts/1inme run build; }; } && rm -f storage/framework/views/*.php && mkdir -p storage/framework/cache && date +%s%3N > storage/framework/cache/dev_boot_ms && { pkill -f "artisan serve --host=0.0.0.0 --port=5000" 2>/dev/null; fuser -k 5000/tcp 2>/dev/null; true; } && pnpm exec concurrently --kill-others --names tailwind,serve "pnpm --dir /home/runner/workspace/artifacts/1inme run build:watch:cycle" "PHP_CLI_SERVER_WORKERS=10 php -d upload_max_filesize=20M -d post_max_size=25M -d memory_limit=256M artisan serve --host=0.0.0.0 --port=5000 --no-reload"'''
+
+[services.development.env]
+PORT = "5000"
+
+# Production build compiles the Vite/Tailwind v4 assets (resources/css/app.css +
+# resources/js/app.js) so the @vite() manifest at public/build/manifest.json
+# resolves at runtime — the Blade views no longer load the Tailwind CDN.
+# `php artisan view:clear` runs BEFORE the asset build so Tailwind never scans a
+# stale compiled-blade cache and regenerates retired classes into the CSS (see
+# .agents/memory/tailwind-scans-compiled-views.md). The trailing view:clear stays
+# to leave a clean compiled-view cache after deploy.
+[services.production.build]
+args = ["sh", "-c", "pnpm install --frozen-lockfile && (cd artifacts/1inme && php artisan view:clear) && pnpm --dir artifacts/1inme run build && cd artifacts/1inme && composer install --no-dev --optimize-autoloader --no-interaction && php artisan config:clear && php artisan route:clear && php artisan view:clear"]
+
+# Deploy migration policy (Task #1679): KEEP SERVING on migrate failure.
+# `php artisan migrate --force` runs first; if it fails we fall back to
+# `php artisan db:reconcile-migrations --force`, which heals orphaned
+# (applied-but-unrecorded) migrations left by interrupted runs over the distant
+# RDS, then applies the rest — additively, never dropping tables. If that still
+# fails we log a loud "::1inme:: DEPLOY MIGRATION FAILED" marker + the pending
+# list to stderr but STILL boot the web server, trading a possibly-incomplete
+# schema for avoiding full downtime. The startup health check below uses "/up"
+# (Laravel's built-in health route: instant 200 with NO DB/schema dependency) —
+# NOT the home page "/", whose ~3-5s cold Blade render exceeds the autoscale
+# startup probe's latency bound and fails the promote (a "failed" build with no
+# build-phase logs), and NOT "/up/schema" (which 503s on drift). This keeps the
+# probe fast AND still lets a partial schema boot without failing the deploy.
+# Proactive detection of the resulting drift is handled in-app: the hourly
+# db:check-pending-migrations command alerts admins (in-app + email), the admin
+# dashboard shows a banner, and GET /up/schema returns 503 for external
+# monitoring.
+#
+# SCHEDULER / QUEUE NOTE (Task #3960): the Replit production run previously
+# started ONLY migrations + the web server, so NO scheduled job ever ticked on
+# the published app — no hourly db:check-pending-migrations alerts, no
+# reviews:sync/contacts:sync, and crucially no every-minute
+# `queue:work --stop-when-empty` drain, meaning queued emails/notifications
+# were never delivered from the Replit deployment (the EC2 kit handles this via
+# sayzio-scheduler.timer + sayzio-queue.service, so only Replit was affected).
+# Fix: a backgrounded supervised loop runs `php artisan schedule:work` alongside
+# the web server. schedule:work fires `schedule:run` every minute, which
+# executes every job declared in routes/schedules/*.php — including the queue
+# drain that sends queued mail. The loop restarts schedule:work if it ever
+# exits (logging a "::1inme:: schedule:work exited" marker to stderr), and its
+# normal output goes to storage/logs/scheduler.log so deployment logs stay
+# readable. The subshell survives the shell's `exec` (it stays a child of the
+# same PID), and if it somehow dies the web server keeps serving — scheduling
+# degrades, the site does not. CAVEAT: on Autoscale deployments the whole
+# container (scheduler included) suspends when there is no HTTP traffic, so
+# ticks only happen while the machine is awake; a Reserved VM deployment (or a
+# separate Scheduled Deployment running `php artisan schedule:run`) removes
+# that gap if strict cadence is ever needed.
+#
+# APP_URL NOTE (live-domain launch): the committed .env keeps the dev value
+# (http://localhost:5000). In production, absolute URLs (sitemap, OG tags,
+# emails, /blogs/feed.json URLs consumed by the marketing site) are generated
+# from APP_URL, so the run command derives it at boot when no deployment
+# secret provides one: an explicit non-localhost APP_URL env/secret always
+# wins; otherwise prefer a canonical brand domain (sayzio.app, then 1in.me)
+# that REPLIT_DOMAINS says this deployment actually serves; otherwise the
+# first REPLIT_DOMAINS entry (the *.replit.app host before custom domains are
+# attached); last resort sayzio.app. Laravel's Dotenv is immutable, so the
+# exported process env beats the committed .env value (same mechanism that
+# already makes APP_ENV=production below win over .env's APP_ENV=local).
+# Keep the brand-domain preference in lockstep with
+# PlatformHosts::PLATFORM_DOMAINS (sayzio.app primary, 1in.me secondary).
+#
+# BOOT-TIME HOME-CACHE WARM NOTE (Task #3990): the scheduled `home:warm-caches`
+# job keeps the home-page caches warm every 4 minutes while the app is running,
+# but on Autoscale the container (scheduler included) sleeps with no traffic and
+# a fresh deploy/restart starts with cold caches — so the very first visitor
+# after a wake-up or restart still paid the full ~4s+ rebuild over the distant
+# RDS. A second backgrounded subshell now runs the warmer ONCE at boot: it
+# first waits (up to ~30s) for the web server's instant "/up" health route to
+# answer so the warm never competes with server startup or the deploy health
+# probe, then runs `php artisan home:warm-caches` (output to
+# storage/logs/scheduler.log alongside the scheduler's). Best-effort by design:
+# success/failure is only logged (a "::1inme:: boot home:warm-caches" stderr
+# marker) and never blocks or kills the web server — on failure the request
+# path's lazy rebuild remains the fallback, exactly as before. The wait loop
+# also caps out and warms anyway if "/up" never answers (e.g. curl missing),
+# keeping it harmless in every environment. The EC2 kit mirrors this with a
+# post-deploy warm in deploy/ec2/deploy.sh (see ec2-migration-kit-lockstep.md).
+#
+# STATIC-ASSET ROUTER NOTE: the web server is PHP's built-in server pointed at
+# ../server.php (NOT public/index.php directly). We use `php -S` rather than
+# `php artisan serve` because artisan serve spawns a child php -S that strips all
+# env vars except a small allow-list (see artisan-serve-env-passthrough.md),
+# which would break DB_*/runtime config in production. But pointing php -S
+# straight at public/index.php makes Laravel's front controller the router for
+# EVERY request, so static assets (/branding/*.png, /images/*.png, /build/*.css)
+# get swallowed by the framework and returned as HTML — breaking every image and
+# stylesheet in production (dev worked only because artisan serve has its own
+# static-aware router). server.php restores that behaviour: it streams real files
+# under public/ as-is (correct Content-Type) and hands everything else to
+# index.php. See .agents/memory/prod-php-server-static-router.md.
+[services.production.run]
+args = ["sh", "-c", '''cd artifacts/1inme && case "${APP_URL:-}" in ""|*localhost*|*127.0.0.1*) apphost=""; for d in $(printf %s "${REPLIT_DOMAINS:-}" | tr "," " "); do case "$d" in sayzio.app|1in.me) apphost="$d"; break;; esac; done; [ -n "$apphost" ] || apphost="${REPLIT_DOMAINS%%,*}"; [ -n "$apphost" ] || apphost="sayzio.app"; export APP_URL="https://$apphost"; echo "::1inme:: APP_URL derived as $APP_URL (from REPLIT_DOMAINS=${REPLIT_DOMAINS:-<unset>})" >&2;; esac; { php artisan migrate --force; mst=$?; if [ "$mst" -ne 0 ]; then echo "::1inme:: migrate --force exited $mst — attempting self-healing reconcile of orphaned migrations..." >&2; php artisan db:reconcile-migrations --force; mst=$?; fi; if [ "$mst" -ne 0 ]; then echo "::1inme:: DEPLOY MIGRATION FAILED (exit=$mst) — database schema may be incomplete (missing tables/columns); workspace-backed and other pages may 500. Investigate immediately. Pending migrations:" >&2; php artisan migrate:status 2>&1 | grep -i pending >&2 || true; fi; } ; mkdir -p storage/logs; ( while :; do php artisan schedule:work >> storage/logs/scheduler.log 2>&1; ec=$?; echo "::1inme:: schedule:work exited (exit=$ec) — restarting in 5s" >&2; sleep 5; done ) & ( i=0; until curl -fsS -m 2 http://127.0.0.1:5000/up >/dev/null 2>&1 || [ "$i" -ge 15 ]; do i=$((i+1)); sleep 2; done; if php artisan home:warm-caches >> storage/logs/scheduler.log 2>&1; then echo "::1inme:: boot home:warm-caches completed — home caches are warm" >&2; else echo "::1inme:: boot home:warm-caches failed (exit=$?) — first visitor may hit a cold home render (lazy rebuild still applies)" >&2; fi ) & exec php -d variables_order=EGPCS -d upload_max_filesize=20M -d post_max_size=25M -d memory_limit=256M -S 0.0.0.0:5000 -t public server.php''']
+
+[services.production.run.env]
+PORT = "5000"
+PHP_CLI_SERVER_WORKERS = "10"
+APP_ENV = "production"
+APP_DEBUG = "false"
+DB_PERSISTENT = "false"
+
+[services.production.health.startup]
+path = "/up"
