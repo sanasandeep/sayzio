@@ -305,6 +305,10 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::delete('team/members/{member}',                 [\App\Modules\User\Controllers\TeamController::class, 'removeMember'])->name('team.members.remove');
         Route::post  ('team/members/{member}/suspend',         [\App\Modules\User\Controllers\TeamController::class, 'suspend'])    ->name('team.members.suspend');
         Route::post  ('team/members/{member}/reactivate',      [\App\Modules\User\Controllers\TeamController::class, 'reactivate']) ->name('team.members.reactivate');
+        // Member-initiated self-leave — any non-owner seat can drop their own
+        // membership without going through an owner. Deliberately NOT gated by
+        // the owner/admin controller guard used by the routes above.
+        Route::post  ('team/leave',                            [\App\Modules\User\Controllers\TeamController::class, 'leave'])     ->name('team.leave');
 
         // ---- Roles & Permissions (Owner + Admin) ----
         Route::get   ('team/roles',                            [\App\Modules\User\Controllers\WorkspaceRolesController::class, 'index']) ->name('team.roles.index');

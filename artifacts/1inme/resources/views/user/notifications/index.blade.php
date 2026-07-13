@@ -72,6 +72,14 @@
                             <a href="{{ route('user.team.index') }}" class="inline-flex items-center gap-1 mt-1 text-xs font-semibold text-blue-600 hover:underline">
                                 <i class="fas fa-users-gear"></i> Manage team access
                             </a>
+                        @elseif($n->type === 'workspace_member_left')
+                            <p class="text-sm" style="color: var(--text-primary);">
+                                <span class="font-semibold">{{ $d['user_name'] ?? 'A teammate' }}</span>
+                                left <span class="font-semibold">{{ $d['workspace_name'] ?? 'your workspace' }}</span>@if(!empty($d['reassigned'])) — their {{ $d['reassigned'] }} item{{ $d['reassigned'] == 1 ? '' : 's' }} moved to you@endif.
+                            </p>
+                            <a href="{{ route('user.team.index') }}" class="inline-flex items-center gap-1 mt-1 text-xs font-semibold text-blue-600 hover:underline">
+                                <i class="fas fa-users"></i> View team
+                            </a>
                         @elseif($n->type === 'task_assigned')
                             <p class="text-sm" style="color: var(--text-primary);">
                                 <span class="font-semibold">{{ $d['assigner'] ?? 'Someone' }}</span>

@@ -59,7 +59,7 @@ class UserNotification extends Model
         }
 
         // Type-derived destinations for notifications that don't store a URL.
-        if ($type === 'workspace_access_request') {
+        if ($type === 'workspace_access_request' || $type === 'workspace_member_left') {
             return route('user.team.index');
         }
 

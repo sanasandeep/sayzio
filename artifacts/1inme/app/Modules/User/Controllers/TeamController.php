@@ -5,6 +5,7 @@ namespace App\Modules\User\Controllers;
 use App\Http\Controllers\Controller;
 use App\Mail\WorkspaceInviteMailable;
 use App\Modules\User\Models\User;
+use App\Modules\User\Models\UserNotification;
 use App\Modules\User\Models\Workspace;
 use App\Modules\User\Models\WorkspaceInvite;
 use App\Modules\User\Models\WorkspaceMember;
@@ -12,6 +13,7 @@ use App\Modules\User\Services\SensitiveActionLogger;
 use App\Modules\User\Services\TwoFactorPolicy;
 use App\Modules\User\Services\WorkspaceActivityRecorder;
 use App\Modules\User\Services\WorkspaceContentReassigner;
+use App\Modules\User\Services\WorkspaceContext;
 use App\Modules\User\Services\WorkspacePermissions;
 use App\Services\AI\AiResourceShareService;
 use Illuminate\Http\Request;
@@ -343,6 +345,81 @@ class TeamController extends Controller
             $msg = "Seat removed and {$owned} item" . ($owned === 1 ? '' : 's') . ' reassigned.';
         }
         return back()->with('success', $msg);
+    }
+
+    /**
+     * Member-initiated "leave workspace". Unlike removeMember (owner/admin
+     * driven), this lets any non-owner seat drop their own membership
+     * without waiting for an owner. Runs OUTSIDE the owner/admin gate: it
+     * resolves the active workspace directly and only checks that the caller
+     * is a non-owner member. Their content is reassigned to the owner so
+     * nothing is orphaned, they're moved back to their personal workspace,
+     * and the owner gets an in-app notification.
+     */
+    public function leave(Request $request)
+    {
+        $ws   = app('current_workspace');
+        $user = $request->user();
+
+        // The owner can't abandon their own workspace — they must transfer
+        // ownership or delete it. (There's no seat row for the owner anyway.)
+        if ((int) $ws->owner_user_id === (int) $user->id) {
+            return back()->with('error',
+                "You own this workspace, so you can't leave it. Transfer ownership or delete the workspace instead.");
+        }
+
+        $member = $user->membershipFor($ws);
+        if (!$member) {
+            return back()->with('error', "You're not a member of this workspace.");
+        }
+
+        $userId = (int) $user->id;
+        $role   = $member->role;
+
+        // Reassign anything they authored to the owner so the workspace
+        // isn't left with authorless links/posts/forms.
+        $owned = $this->reassigner->totalForMember($ws, $userId);
+        if ($owned > 0) {
+            $this->reassigner->reassign($ws, $userId, (int) $ws->owner_user_id);
+        }
+
+        $member->delete();
+
+        WorkspaceActivityRecorder::record(
+            $ws, 'member.leave', 'member', $userId,
+            $user->email ?: ('user#' . $userId),
+            route('user.team.index'),
+            ['user_id' => $userId, 'role' => $role, 'reassigned' => $owned],
+            $user,
+        );
+
+        // Let the owner know, in-app, that someone left.
+        UserNotification::create([
+            'user_id'    => (int) $ws->owner_user_id,
+            'type'       => 'workspace_member_left',
+            'data'       => [
+                'user_id'        => $userId,
+                'user_name'      => $user->name,
+                'user_email'     => $user->email,
+                'workspace_id'   => $ws->id,
+                'workspace_name' => $ws->name,
+                'role'           => $role,
+                'reassigned'     => $owned,
+                'message'        => "{$user->name} left {$ws->name}."
+                                    . ($owned > 0
+                                        ? " Their {$owned} item" . ($owned === 1 ? '' : 's') . ' moved to you.'
+                                        : ''),
+            ],
+            'created_at' => now(),
+            'emailed_at' => null,
+        ]);
+
+        // Send them back to their personal workspace.
+        $personal = $user->ensureDefaultWorkspace();
+        app(WorkspaceContext::class)->set($personal);
+
+        return redirect()->route('user.dashboard')
+            ->with('success', "You've left {$ws->name}.");
     }
 
     protected function sendInviteEmail(WorkspaceInvite $invite): void

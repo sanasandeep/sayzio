@@ -94,6 +94,17 @@
             </a>
         @endif
 
+        @if(!$isOwner && !$currentWs->is_personal && auth()->user()->membershipFor($currentWs))
+            <form method="POST" action="{{ route('user.team.leave') }}"
+                  onsubmit="return confirm('Leave {{ $currentWs->name }}? You\'ll lose access to this workspace and be moved back to your personal one. Anything you created here transfers to the owner.');">
+                @csrf
+                <button type="submit"
+                        class="w-full text-left px-3 py-2 text-sm hover:bg-black/5 text-red-500">
+                    <i class="fas fa-arrow-right-from-bracket mr-2 opacity-70"></i> Leave workspace
+                </button>
+            </form>
+        @endif
+
         @if($canCreateWs)
             <button type="button" @click.stop="creating = !creating"
                     class="w-full text-left px-3 py-2 text-sm hover:bg-black/5" style="color: var(--text-primary);">
