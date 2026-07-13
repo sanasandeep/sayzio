@@ -75,23 +75,7 @@
                             <div>
                                 <label class="block text-sm font-medium mb-1.5" style="color: var(--text-muted);">Billing country</label>
                                 @php
-                                    $countries = [
-                                        '' => '— Not set (defaults to USD pricing)',
-                                        'IN' => 'India (₹ INR)',
-                                        'US' => 'United States ($ USD)',
-                                        'GB' => 'United Kingdom ($ USD)',
-                                        'CA' => 'Canada ($ USD)',
-                                        'AU' => 'Australia ($ USD)',
-                                        'DE' => 'Germany ($ USD)',
-                                        'FR' => 'France ($ USD)',
-                                        'NL' => 'Netherlands ($ USD)',
-                                        'SG' => 'Singapore ($ USD)',
-                                        'AE' => 'United Arab Emirates ($ USD)',
-                                        'BR' => 'Brazil ($ USD)',
-                                        'MX' => 'Mexico ($ USD)',
-                                        'JP' => 'Japan ($ USD)',
-                                        'OTHER' => 'Other (everywhere else, $ USD)',
-                                    ];
+                                    $countries = \App\Support\BillingCountries::options();
                                 @endphp
                                 <select name="country" class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white focus:ring-2 focus:ring-blue-500/40 outline-none">
                                     @foreach($countries as $code => $label)
