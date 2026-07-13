@@ -316,7 +316,7 @@
                      style="position:absolute;z-index:999;left:0;right:0;top:100%;max-height:200px;overflow-y:auto;background:var(--card-bg,#1e1e2e);border:1px solid var(--border-color,rgba(255,255,255,0.1));border-radius:0.375rem;box-shadow:0 4px 12px rgba(0,0,0,0.3);">
                     <template x-for="c in filtered" :key="c">
                         <div @mousedown.prevent="select(c)"
-                             :class="c === value ? 'bg-purple-600/20 text-purple-300' : 'hover:bg-white/5'"
+                             :class="c === value ? 'bg-blue-600/20 text-blue-300' : 'hover:bg-white/5'"
                              style="padding:0.45rem 0.75rem;cursor:pointer;font-size:0.875rem;"
                              x-text="c"></div>
                     </template>
@@ -331,7 +331,7 @@
                 $curSym = $curSymbols[$curCode] ?? $curCode;
             @endphp
             <div style="display:flex; align-items:center; gap:0;">
-                <span style="display:flex; align-items:center; padding:0 0.75rem; border:1px solid var(--form-accent,#8b5cf6); border-right:0; border-radius:var(--form-radius-sm,6px) 0 0 var(--form-radius-sm,6px); font-weight:600; font-size:0.9rem; background:rgba(139,92,246,0.08); color:var(--form-accent,#8b5cf6); height:2.75rem;">{{ $curSym }}</span>
+                <span style="display:flex; align-items:center; padding:0 0.75rem; border:1px solid var(--form-accent,#3b82f6); border-right:0; border-radius:var(--form-radius-sm,6px) 0 0 var(--form-radius-sm,6px); font-weight:600; font-size:0.9rem; background:rgba(59,130,246,0.08); color:var(--form-accent,#3b82f6); height:2.75rem;">{{ $curSym }}</span>
                 <input type="number" id="f_{{ $id }}" name="{{ $id }}" class="form-input" placeholder="{{ $placeholder ?: '0.00' }}" value="{{ $oldVal }}"
                        min="0" step="0.01"
                        style="border-radius:0 var(--form-radius-sm,6px) var(--form-radius-sm,6px) 0 !important; flex:1;"
@@ -341,16 +341,16 @@
 
         @case('yes_no')
             <div class="form-radio-group" style="display:flex; gap:0.75rem;">
-                <label style="display:flex; align-items:center; gap:0.5rem; flex:1; padding:0.6rem 1rem; border:1px solid var(--form-accent,#8b5cf6); border-radius:var(--form-radius-sm,6px); cursor:pointer; transition:background 0.15s;"
-                       :style="f_{{ $id }}_val === 'yes' ? 'background:rgba(139,92,246,0.12)' : ''"
+                <label style="display:flex; align-items:center; gap:0.5rem; flex:1; padding:0.6rem 1rem; border:1px solid var(--form-accent,#3b82f6); border-radius:var(--form-radius-sm,6px); cursor:pointer; transition:background 0.15s;"
+                       :style="f_{{ $id }}_val === 'yes' ? 'background:rgba(59,130,246,0.12)' : ''"
                        x-data x-on:click="document.getElementById('f_{{ $id }}_yes').checked=true; window.f_{{ $id }}_val='yes'">
-                    <input type="radio" id="f_{{ $id }}_yes" name="{{ $id }}" value="yes" @checked(old($id)==='yes') @if($required) required @endif style="accent-color:var(--form-accent,#8b5cf6);">
+                    <input type="radio" id="f_{{ $id }}_yes" name="{{ $id }}" value="yes" @checked(old($id)==='yes') @if($required) required @endif style="accent-color:var(--form-accent,#3b82f6);">
                     <span style="font-weight:600;">✓ Yes</span>
                 </label>
-                <label style="display:flex; align-items:center; gap:0.5rem; flex:1; padding:0.6rem 1rem; border:1px solid var(--form-accent,#8b5cf6); border-radius:var(--form-radius-sm,6px); cursor:pointer; transition:background 0.15s;"
-                       :style="f_{{ $id }}_val === 'no' ? 'background:rgba(139,92,246,0.12)' : ''"
+                <label style="display:flex; align-items:center; gap:0.5rem; flex:1; padding:0.6rem 1rem; border:1px solid var(--form-accent,#3b82f6); border-radius:var(--form-radius-sm,6px); cursor:pointer; transition:background 0.15s;"
+                       :style="f_{{ $id }}_val === 'no' ? 'background:rgba(59,130,246,0.12)' : ''"
                        x-data x-on:click="document.getElementById('f_{{ $id }}_no').checked=true; window.f_{{ $id }}_val='no'">
-                    <input type="radio" id="f_{{ $id }}_no" name="{{ $id }}" value="no" @checked(old($id)==='no') @if($required) required @endif style="accent-color:var(--form-accent,#8b5cf6);">
+                    <input type="radio" id="f_{{ $id }}_no" name="{{ $id }}" value="no" @checked(old($id)==='no') @if($required) required @endif style="accent-color:var(--form-accent,#3b82f6);">
                     <span style="font-weight:600;">✗ No</span>
                 </label>
             </div>
@@ -365,18 +365,18 @@
                     @php $ioLabel = $io['label'] ?? ''; $ioUrl = $io['url'] ?? ''; @endphp
                     <label style="position:relative; cursor:pointer; border-radius:var(--form-radius-sm,6px); overflow:hidden; border:2px solid transparent; transition:border-color 0.15s;"
                            x-data="{ checked: @js(old($id) === $ioLabel) }"
-                           :style="checked ? 'border-color:var(--form-accent,#8b5cf6)' : 'border:2px solid rgba(0,0,0,0.12)'">
+                           :style="checked ? 'border-color:var(--form-accent,#3b82f6)' : 'border:2px solid rgba(0,0,0,0.12)'">
                         <input type="radio" name="{{ $id }}" value="{{ $ioLabel }}" @checked(old($id) === $ioLabel) @if($required) required @endif
                                x-model="checked" style="position:absolute; opacity:0; width:0; height:0;" @change="checked=!checked">
                         @if($ioUrl)
                             <img src="{{ $ioUrl }}" alt="{{ $ioLabel }}" style="width:100%; height:100px; object-fit:cover; display:block;">
                         @else
-                            <div style="width:100%; height:100px; background:rgba(139,92,246,0.08); display:flex; align-items:center; justify-content:center;">
+                            <div style="width:100%; height:100px; background:rgba(59,130,246,0.08); display:flex; align-items:center; justify-content:center;">
                                 <i class="far fa-image" style="font-size:1.5rem; opacity:0.4;"></i>
                             </div>
                         @endif
                         <div style="padding:0.4rem 0.5rem; font-size:0.78rem; font-weight:500; text-align:center;">{{ $ioLabel }}</div>
-                        <div x-show="checked" style="position:absolute; top:0.3rem; right:0.3rem; width:1.1rem; height:1.1rem; border-radius:50%; background:var(--form-accent,#8b5cf6); display:flex; align-items:center; justify-content:center;">
+                        <div x-show="checked" style="position:absolute; top:0.3rem; right:0.3rem; width:1.1rem; height:1.1rem; border-radius:50%; background:var(--form-accent,#3b82f6); display:flex; align-items:center; justify-content:center;">
                             <i class="fas fa-check" style="font-size:0.5rem; color:#fff;"></i>
                         </div>
                     </label>
@@ -396,7 +396,7 @@
             <div x-data="rankingField(@js($rankOld ?: $rankOpts), @js($id))" x-init="init()">
                 <ul id="rank_{{ $id }}" style="list-style:none; padding:0; margin:0; display:flex; flex-direction:column; gap:0.4rem;">
                     <template x-for="(item, idx) in items" :key="item">
-                        <li style="display:flex; align-items:center; gap:0.6rem; padding:0.5rem 0.75rem; border:1px solid var(--form-accent,#8b5cf6); border-radius:var(--form-radius-sm,6px); cursor:grab; background:var(--form-bg,#fff); user-select:none;"
+                        <li style="display:flex; align-items:center; gap:0.6rem; padding:0.5rem 0.75rem; border:1px solid var(--form-accent,#3b82f6); border-radius:var(--form-radius-sm,6px); cursor:grab; background:var(--form-bg,#fff); user-select:none;"
                             :draggable="true"
                             @dragstart="dragStart(idx)"
                             @dragover.prevent="dragOver(idx)"
@@ -423,13 +423,13 @@
             <div x-data="{ val: {{ (float) $slOld }} }" style="padding:0.25rem 0;">
                 <div style="display:flex; justify-content:space-between; font-size:0.78rem; opacity:0.6; margin-bottom:0.4rem;">
                     <span>{{ $slMin }}{{ $slUnit }}</span>
-                    <span style="font-weight:700; color:var(--form-accent,#8b5cf6);" x-text="val + '{{ $slUnit }}'"></span>
+                    <span style="font-weight:700; color:var(--form-accent,#3b82f6);" x-text="val + '{{ $slUnit }}'"></span>
                     <span>{{ $slMax }}{{ $slUnit }}</span>
                 </div>
                 <input type="range" id="f_{{ $id }}" name="{{ $id }}" class="form-range"
                        min="{{ $slMin }}" max="{{ $slMax }}" step="{{ $slStep }}"
                        x-model.number="val"
-                       style="width:100%; accent-color:var(--form-accent,#8b5cf6);"
+                       style="width:100%; accent-color:var(--form-accent,#3b82f6);"
                        @if($required) required @endif>
             </div>
             @break

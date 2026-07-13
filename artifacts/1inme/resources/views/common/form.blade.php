@@ -812,9 +812,9 @@
                         </div>
                     @endif
                     @if($captchaProvider === 'math' && $mathQuestion)
-                        <div style="margin-top:1.25rem; padding:1rem; border-radius:var(--form-radius-sm,6px); border:1px solid rgba(139,92,246,0.2); background:rgba(139,92,246,0.04);">
+                        <div style="margin-top:1.25rem; padding:1rem; border-radius:var(--form-radius-sm,6px); border:1px solid rgba(59,130,246,0.2); background:rgba(59,130,246,0.04);">
                             <label style="display:block; font-size:0.82rem; font-weight:600; margin-bottom:0.5rem; color:inherit;">
-                                <i class="fas fa-calculator" style="margin-right:0.3rem; color:var(--form-accent,#8b5cf6);"></i>
+                                <i class="fas fa-calculator" style="margin-right:0.3rem; color:var(--form-accent,#3b82f6);"></i>
                                 {{ $mathQuestion['question'] }}
                             </label>
                             <input type="number" name="_math_answer" class="form-input" placeholder="Your answer" required
