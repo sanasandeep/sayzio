@@ -2,11 +2,11 @@
 @section('title', 'Profile')
 
 @section('settings-content')
-<div class="max-w-2xl">
-    <h1 class="text-2xl font-bold text-white mb-6">Profile Settings</h1>
+<div>
+    <h1 class="text-2xl font-bold mb-6" style="color: var(--text-strong);">Profile Settings</h1>
 
     @if(session('force_handle_rename'))
-        <div class="rounded-xl px-4 py-3 mb-4 bg-amber-500/10 border border-amber-500/40 text-amber-100 text-sm">
+        <div class="rounded-xl px-4 py-3 mb-6 bg-amber-500/10 border border-amber-500/40 text-amber-100 text-sm">
             <div class="flex items-start gap-3">
                 <i class="fas fa-triangle-exclamation mt-0.5"></i>
                 <div>
@@ -34,78 +34,105 @@
         </div>
     @endif
 
-    <div class="glass rounded-2xl p-6 mb-6">
-        <h2 class="text-lg font-semibold text-white mb-4">Personal Information</h2>
-        <form method="POST" action="{{ route('user.profile.update') }}" enctype="multipart/form-data">
-            @csrf @method('PUT')
-            <div class="space-y-4">
-                <div>
-                    <label class="block text-sm font-medium text-white/60 mb-1.5">Name</label>
-                    <input type="text" name="name" value="{{ old('name', $user->name) }}" required
-                           class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/20 focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/40 outline-none transition-all">
-                    @error('name')<p class="mt-1 text-sm text-red-400">{{ $message }}</p>@enderror
+    <form method="POST" action="{{ route('user.profile.update') }}" enctype="multipart/form-data">
+        @csrf @method('PUT')
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+            {{-- Left column: Personal Information + Notifications --}}
+            <div class="lg:col-span-2 space-y-6">
+
+                {{-- Personal Information --}}
+                <div class="glass rounded-2xl p-6">
+                    <h2 class="text-base font-semibold mb-4" style="color: var(--text-strong);">Personal Information</h2>
+                    <div class="space-y-4">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium mb-1.5" style="color: var(--text-muted);">Name</label>
+                                <input type="text" name="name" value="{{ old('name', $user->name) }}" required
+                                       class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/20 focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/40 outline-none transition-all">
+                                @error('name')<p class="mt-1 text-sm text-red-400">{{ $message }}</p>@enderror
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium mb-1.5" style="color: var(--text-muted);">Email</label>
+                                <input type="email" name="email" value="{{ old('email', $user->email) }}" required
+                                       class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/20 focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/40 outline-none transition-all">
+                                @error('email')<p class="mt-1 text-sm text-red-400">{{ $message }}</p>@enderror
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium mb-1.5" style="color: var(--text-muted);">Phone</label>
+                                <input type="text" name="phone" value="{{ old('phone', $user->phone) }}"
+                                       class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/20 focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/40 outline-none transition-all">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium mb-1.5" style="color: var(--text-muted);">Billing country</label>
+                                @php
+                                    $countries = [
+                                        '' => '— Not set (defaults to USD pricing)',
+                                        'IN' => 'India (₹ INR)',
+                                        'US' => 'United States ($ USD)',
+                                        'GB' => 'United Kingdom ($ USD)',
+                                        'CA' => 'Canada ($ USD)',
+                                        'AU' => 'Australia ($ USD)',
+                                        'DE' => 'Germany ($ USD)',
+                                        'FR' => 'France ($ USD)',
+                                        'NL' => 'Netherlands ($ USD)',
+                                        'SG' => 'Singapore ($ USD)',
+                                        'AE' => 'United Arab Emirates ($ USD)',
+                                        'BR' => 'Brazil ($ USD)',
+                                        'MX' => 'Mexico ($ USD)',
+                                        'JP' => 'Japan ($ USD)',
+                                        'OTHER' => 'Other (everywhere else, $ USD)',
+                                    ];
+                                @endphp
+                                <select name="country" class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white focus:ring-2 focus:ring-blue-500/40 outline-none">
+                                    @foreach($countries as $code => $label)
+                                        @if($code === 'OTHER')
+                                            @continue
+                                        @endif
+                                        <option value="{{ $code }}" {{ old('country', $user->country) === $code ? 'selected' : '' }} class="bg-[#0d0818]">{{ $label }}</option>
+                                    @endforeach
+                                </select>
+                                <p class="text-[11px] mt-1" style="color: var(--text-subtle, rgba(255,255,255,0.30));">Used to determine your billing currency.</p>
+                                @error('country')<p class="mt-1 text-sm text-red-400">{{ $message }}</p>@enderror
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium mb-1.5" style="color: var(--text-muted);">Timezone</label>
+                                <select name="timezone" class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white focus:ring-2 focus:ring-blue-500/40 outline-none">
+                                    @foreach($timezones as $tz)
+                                        <option value="{{ $tz }}" {{ \App\Support\PlatformTimezone::resolve($user->timezone) === $tz ? 'selected' : '' }} class="bg-[#0d0818]">{{ $tz }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium mb-1.5" style="color: var(--text-muted);">Language</label>
+                                <select name="language" class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white focus:ring-2 focus:ring-blue-500/40 outline-none">
+                                    <option value="en" {{ $user->language == 'en' ? 'selected' : '' }} class="bg-[#0d0818]">English</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
-                <div>
-                    <label class="block text-sm font-medium text-white/60 mb-1.5">Email</label>
-                    <input type="email" name="email" value="{{ old('email', $user->email) }}" required
-                           class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/20 focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/40 outline-none transition-all">
-                    @error('email')<p class="mt-1 text-sm text-red-400">{{ $message }}</p>@enderror
-                </div>
-
-                <div>
-                    <label class="block text-sm font-medium text-white/60 mb-1.5">Phone</label>
-                    <input type="text" name="phone" value="{{ old('phone', $user->phone) }}"
-                           class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/20 focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/40 outline-none transition-all">
-                </div>
-
-                <div>
-                    <label class="block text-sm font-medium text-white/60 mb-1.5">Billing country</label>
-                    @php
-                        $countries = [
-                            '' => '— Not set (defaults to USD pricing)',
-                            'IN' => 'India (₹ INR)',
-                            'US' => 'United States ($ USD)',
-                            'GB' => 'United Kingdom ($ USD)',
-                            'CA' => 'Canada ($ USD)',
-                            'AU' => 'Australia ($ USD)',
-                            'DE' => 'Germany ($ USD)',
-                            'FR' => 'France ($ USD)',
-                            'NL' => 'Netherlands ($ USD)',
-                            'SG' => 'Singapore ($ USD)',
-                            'AE' => 'United Arab Emirates ($ USD)',
-                            'BR' => 'Brazil ($ USD)',
-                            'MX' => 'Mexico ($ USD)',
-                            'JP' => 'Japan ($ USD)',
-                            'OTHER' => 'Other (everywhere else, $ USD)',
-                        ];
-                    @endphp
-                    <select name="country" class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white focus:ring-2 focus:ring-blue-500/40 outline-none">
-                        @foreach($countries as $code => $label)
-                            @if($code === 'OTHER')
-                                @continue
-                            @endif
-                            <option value="{{ $code }}" {{ old('country', $user->country) === $code ? 'selected' : '' }} class="bg-[#0d0818]">{{ $label }}</option>
-                        @endforeach
-                    </select>
-                    <p class="text-[11px] text-white/30 mt-1">Used to determine which currency you'll be billed in. Switching country updates your next invoice's currency.</p>
-                    @error('country')<p class="mt-1 text-sm text-red-400">{{ $message }}</p>@enderror
-                </div>
-
-                <div class="border-t border-white/10 pt-4">
-                    <h3 class="text-sm font-semibold text-white mb-1">Billing address &amp; tax ID</h3>
-                    <p class="text-[11px] text-white/40 mb-3">Used to calculate the right tax on your invoices and to print
-                        on your tax invoice PDF. GSTIN is for Indian businesses; VATIN is for EU/UK businesses claiming
-                        reverse-charge.</p>
+                {{-- Billing Address & Tax ID --}}
+                <div class="glass rounded-2xl p-6">
+                    <h2 class="text-base font-semibold mb-1" style="color: var(--text-strong);">Billing Address &amp; Tax ID</h2>
+                    <p class="text-xs mb-4" style="color: var(--text-muted);">Used to calculate tax on your invoices and to print on your tax invoice PDF. GSTIN is for Indian businesses; VATIN is for EU/UK businesses claiming reverse-charge.</p>
                     <div class="space-y-3" data-billing-address>
                         <div class="grid grid-cols-2 gap-3">
                             <div>
-                                <label class="block text-xs text-white/50 mb-1">Country (ISO-2)</label>
+                                <label class="block text-xs mb-1" style="color: var(--text-muted);">Country (ISO-2)</label>
                                 <input type="text" name="billing_country" maxlength="2" value="{{ old('billing_country', $billing->country ?? $user->country) }}"
                                        class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white uppercase outline-none focus:ring-2 focus:ring-blue-500/40">
                             </div>
                             <div>
-                                <label class="block text-xs text-white/50 mb-1">State / region</label>
+                                <label class="block text-xs mb-1" style="color: var(--text-muted);">State / region</label>
                                 <select name="billing_region" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white outline-none focus:ring-2 focus:ring-blue-500/40">
                                     <option value="" class="bg-[#0d0818]">— None / N/A —</option>
                                     <optgroup label="India" class="bg-[#0d0818]">
@@ -148,73 +175,10 @@
                     </div>
                 </div>
 
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-sm font-medium text-white/60 mb-1.5">Timezone</label>
-                        <select name="timezone" class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white focus:ring-2 focus:ring-blue-500/40 outline-none">
-                            @foreach($timezones as $tz)
-                                <option value="{{ $tz }}" {{ \App\Support\PlatformTimezone::resolve($user->timezone) === $tz ? 'selected' : '' }} class="bg-[#0d0818]">{{ $tz }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-white/60 mb-1.5">Language</label>
-                        <select name="language" class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white focus:ring-2 focus:ring-blue-500/40 outline-none">
-                            <option value="en" {{ $user->language == 'en' ? 'selected' : '' }} class="bg-[#0d0818]">English</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div class="border-t border-white/10 pt-4">
-                    <h3 class="text-sm font-semibold text-white mb-3">Public Profile</h3>
+                {{-- Notifications --}}
+                <div class="glass rounded-2xl p-6">
+                    <h2 class="text-base font-semibold mb-4" style="color: var(--text-strong);">Notifications</h2>
                     <div class="space-y-3">
-                        <div>
-                            <label class="block text-sm font-medium text-white/60 mb-1.5">Handle (used in the Creators directory)</label>
-                            <input type="text" name="handle" value="{{ old('handle', $user->handle) }}" placeholder="your_handle"
-                                   class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/20 focus:ring-2 focus:ring-blue-500/40 outline-none">
-                            @error('handle')<p class="mt-1 text-sm text-red-400">{{ $message }}</p>@enderror
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-white/60 mb-1.5">Bio</label>
-                            <textarea name="bio" rows="3" maxlength="500" class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/20 focus:ring-2 focus:ring-blue-500/40 outline-none">{{ old('bio', $user->bio) }}</textarea>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-white/60 mb-1.5">What best describes you?</label>
-                            <select name="persona" class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white focus:ring-2 focus:ring-blue-500/40 outline-none">
-                                <option value="" class="bg-[#0d0818]">Prefer not to say</option>
-                                @foreach(\App\Modules\User\Services\PersonaCatalog::all() as $p)
-                                    <option value="{{ $p['slug'] }}" {{ old('persona', $user->persona) === $p['slug'] ? 'selected' : '' }} class="bg-[#0d0818]">{{ $p['label'] }}</option>
-                                @endforeach
-                            </select>
-                            <p class="text-[11px] text-white/30 mt-1">Helps us recommend the right templates and blocks for your page.</p>
-                            @error('persona')<p class="mt-1 text-sm text-red-400">{{ $message }}</p>@enderror
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-white/60 mb-1.5">Avatar</label>
-                            @if($user->avatar)<img src="{{ $user->avatar }}" class="w-16 h-16 rounded-full mb-2 object-cover"/>@endif
-                            <input type="file" name="avatar" accept="image/*" class="text-white/70 text-sm"/>
-                        </div>
-                        @php $canPublicProfile = $user->planFeatureEnabled('creator_profile_public'); @endphp
-                        <label class="flex items-center gap-2 text-sm {{ $canPublicProfile ? 'text-white/70' : 'text-white/40' }}">
-                            <input type="checkbox" name="discoverable" value="1"
-                                {{ $user->discoverable ? 'checked' : '' }}
-                                @if(!$canPublicProfile) disabled @endif
-                                class="w-4 h-4">
-                            Show me in the public Creators directory at /creators
-                            @if(!$canPublicProfile)
-                                <a href="{{ route('user.upgrade') }}" class="ml-1 text-[11px] uppercase tracking-wider text-blue-400 hover:underline">Upgrade to unlock</a>
-                            @endif
-                        </label>
-                        <label class="flex items-center gap-2 text-sm text-white/70">
-                            <input type="checkbox" name="allow_followers" value="1" {{ ($user->allow_followers ?? true) ? 'checked' : '' }} class="w-4 h-4">
-                            Allow other people to follow me
-                        </label>
-                    </div>
-                </div>
-
-                <div class="border-t border-white/10 pt-4">
-                    <h3 class="text-sm font-semibold text-white mb-3">Notifications</h3>
-                    <div class="space-y-2">
                         <label class="flex items-center gap-2 text-sm text-white/70">
                             <input type="checkbox" name="notify_new_follower" value="1" {{ $user->notify_new_follower ? 'checked' : '' }} class="w-4 h-4">
                             Email me when someone follows me
@@ -243,7 +207,7 @@
                                 $prefHour = (int) old('digest_preferred_hour', $user->digest_preferred_hour ?? 9);
                             @endphp
                             <div class="mt-4 pl-1">
-                                <label class="block text-sm font-medium text-white/60 mb-1.5">
+                                <label class="block text-sm font-medium mb-1.5" style="color: var(--text-muted);">
                                     Send my daily digest at
                                 </label>
                                 <div class="flex items-center gap-3">
@@ -295,43 +259,193 @@
                                 title="Digest email preview"
                                 sandbox=""
                                 class="block w-full bg-white"
-                                style="height: 520px; border: 0;"
+                                style="height: 480px; border: 0;"
                                 srcdoc="{{ $digestPreviewHtml }}"
                             ></iframe>
                         </div>
                     </div>
                 </div>
 
-                <button type="submit" class="px-6 py-2.5 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition-all hover:shadow-lg hover:shadow-blue-500/20">
-                    Save Changes
-                </button>
-            </div>
-        </form>
-    </div>
+            </div>{{-- /left column --}}
 
-    <div class="glass rounded-2xl p-6 mb-6">
-        <h2 class="text-lg font-semibold text-white mb-1">Preview your daily digest</h2>
-        <p class="text-sm text-white/50 mb-4">Send yourself a sample email using your current pending updates. Nothing in your real digest queue is changed.</p>
-        <form method="POST" action="{{ route('user.profile.digest.sample') }}">
-            @csrf
-            <button type="submit" class="px-5 py-2 bg-white/5 border border-white/15 text-white rounded-xl font-medium hover:bg-white/10 transition-all">
-                <i class="fas fa-paper-plane mr-1.5 text-blue-300"></i>
-                Send sample digest
+            {{-- Right column: Avatar + Public Profile --}}
+            <div class="space-y-6">
+
+                {{-- Avatar Upload --}}
+                <div class="glass rounded-2xl p-6" x-data="{
+                    fileName: '',
+                    previewSrc: {{ $user->avatar ? ('\''. $user->avatar .'\'') : 'null' }},
+                    pick() {
+                        this.$refs.avatarInput.click();
+                    },
+                    onChange(e) {
+                        const f = e.target.files && e.target.files[0];
+                        if (!f) return;
+                        this.fileName = f.name;
+                        const reader = new FileReader();
+                        reader.onload = (ev) => { this.previewSrc = ev.target.result; };
+                        reader.readAsDataURL(f);
+                    }
+                }">
+                    <h2 class="text-base font-semibold mb-4" style="color: var(--text-strong);">Photo</h2>
+
+                    <div class="flex flex-col items-center gap-4">
+                        {{-- Avatar preview circle --}}
+                        <div class="relative">
+                            <template x-if="previewSrc">
+                                <img :src="previewSrc" class="w-24 h-24 rounded-full object-cover ring-2 ring-white/10" alt="Avatar preview">
+                            </template>
+                            <template x-if="!previewSrc">
+                                <div class="w-24 h-24 rounded-full bg-white/8 border-2 border-dashed border-white/20 flex items-center justify-center">
+                                    <i class="fas fa-user text-3xl text-white/20"></i>
+                                </div>
+                            </template>
+                            {{-- Upload overlay badge --}}
+                            <button type="button" @click="pick()"
+                                    class="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-blue-600 hover:bg-blue-500 border-2 border-white/10 flex items-center justify-center transition-colors shadow-lg"
+                                    title="Change photo">
+                                <i class="fas fa-camera text-white text-xs"></i>
+                            </button>
+                        </div>
+
+                        {{-- Hidden real file input --}}
+                        <input type="file" name="avatar" accept="image/*"
+                               x-ref="avatarInput"
+                               @change="onChange($event)"
+                               class="hidden">
+
+                        {{-- Upload button --}}
+                        <button type="button" @click="pick()"
+                                class="profile-upload-btn inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all">
+                            <i class="fas fa-arrow-up-from-bracket text-sm"></i>
+                            <span x-text="previewSrc ? 'Change photo' : 'Upload avatar'"></span>
+                        </button>
+
+                        {{-- Selected file name --}}
+                        <p x-show="fileName" x-text="fileName"
+                           class="text-xs text-white/50 text-center truncate max-w-full px-2"
+                           style="display:none;"></p>
+
+                        <p class="text-[11px] text-center" style="color: var(--text-subtle, rgba(255,255,255,0.30));">
+                            JPG, PNG or GIF &middot; Max 2 MB
+                        </p>
+                    </div>
+                </div>
+
+                {{-- Public Profile --}}
+                <div class="glass rounded-2xl p-6">
+                    <h2 class="text-base font-semibold mb-4" style="color: var(--text-strong);">Public Profile</h2>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium mb-1.5" style="color: var(--text-muted);">Handle</label>
+                            <input type="text" name="handle" value="{{ old('handle', $user->handle) }}" placeholder="your_handle"
+                                   class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/20 focus:ring-2 focus:ring-blue-500/40 outline-none">
+                            <p class="text-[11px] mt-1" style="color: var(--text-subtle, rgba(255,255,255,0.30));">Used in the Creators directory.</p>
+                            @error('handle')<p class="mt-1 text-sm text-red-400">{{ $message }}</p>@enderror
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-1.5" style="color: var(--text-muted);">Bio</label>
+                            <textarea name="bio" rows="3" maxlength="500" class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/20 focus:ring-2 focus:ring-blue-500/40 outline-none resize-none">{{ old('bio', $user->bio) }}</textarea>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-1.5" style="color: var(--text-muted);">What best describes you?</label>
+                            <select name="persona" class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white focus:ring-2 focus:ring-blue-500/40 outline-none">
+                                <option value="" class="bg-[#0d0818]">Prefer not to say</option>
+                                @foreach(\App\Modules\User\Services\PersonaCatalog::all() as $p)
+                                    <option value="{{ $p['slug'] }}" {{ old('persona', $user->persona) === $p['slug'] ? 'selected' : '' }} class="bg-[#0d0818]">{{ $p['label'] }}</option>
+                                @endforeach
+                            </select>
+                            <p class="text-[11px] mt-1" style="color: var(--text-subtle, rgba(255,255,255,0.30));">Helps us recommend the right templates.</p>
+                            @error('persona')<p class="mt-1 text-sm text-red-400">{{ $message }}</p>@enderror
+                        </div>
+
+                        <div class="border-t border-white/10 pt-4 space-y-3">
+                            @php $canPublicProfile = $user->planFeatureEnabled('creator_profile_public'); @endphp
+                            <label class="flex items-start gap-2 text-sm {{ $canPublicProfile ? 'text-white/70' : 'text-white/40' }}">
+                                <input type="checkbox" name="discoverable" value="1"
+                                    {{ $user->discoverable ? 'checked' : '' }}
+                                    @if(!$canPublicProfile) disabled @endif
+                                    class="w-4 h-4 mt-0.5 shrink-0">
+                                <span>
+                                    Show me in the public Creators directory at /creators
+                                    @if(!$canPublicProfile)
+                                        <a href="{{ route('user.upgrade') }}" class="ml-1 text-[11px] uppercase tracking-wider text-blue-400 hover:underline">Upgrade</a>
+                                    @endif
+                                </span>
+                            </label>
+                            <label class="flex items-center gap-2 text-sm text-white/70">
+                                <input type="checkbox" name="allow_followers" value="1" {{ ($user->allow_followers ?? true) ? 'checked' : '' }} class="w-4 h-4">
+                                Allow other people to follow me
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+            </div>{{-- /right column --}}
+
+        </div>{{-- /grid --}}
+
+        {{-- Save button --}}
+        <div class="mt-6">
+            <button type="submit" class="px-6 py-2.5 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition-all hover:shadow-lg hover:shadow-blue-500/20">
+                Save Changes
             </button>
-        </form>
-    </div>
+        </div>
 
-    <div class="glass rounded-2xl p-6">
-        <h2 class="text-lg font-semibold text-white mb-1">Sign-in security</h2>
-        <p class="text-sm text-white/50 mb-4">Your account is protected by one-time codes — there's no password to manage.</p>
-        <div class="flex items-start gap-3 rounded-xl px-4 py-3" style="background: rgba(61,107,255,0.08); border: 1px solid rgba(61,107,255,0.20);">
-            <i class="fas fa-shield-alt text-blue-400 mt-0.5"></i>
-            <div class="text-sm text-white/70">
-                Each time you sign in, we send a fresh 6-digit code to your email{{ auth()->user()->mobile ? ' or mobile number' : '' }}. Keep your contact details up to date above so you can always receive it.
+    </form>
+
+    {{-- Secondary cards: sample digest + sign-in security --}}
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+
+        <div class="glass rounded-2xl p-6">
+            <h2 class="text-base font-semibold mb-1" style="color: var(--text-strong);">Preview your daily digest</h2>
+            <p class="text-sm text-white/50 mb-4">Send yourself a sample email using your current pending updates. Nothing in your real digest queue is changed.</p>
+            <form method="POST" action="{{ route('user.profile.digest.sample') }}">
+                @csrf
+                <button type="submit" class="px-5 py-2 bg-white/5 border border-white/15 text-white rounded-xl font-medium hover:bg-white/10 transition-all">
+                    <i class="fas fa-paper-plane mr-1.5 text-blue-300"></i>
+                    Send sample digest
+                </button>
+            </form>
+        </div>
+
+        <div class="glass rounded-2xl p-6">
+            <h2 class="text-base font-semibold mb-1" style="color: var(--text-strong);">Sign-in security</h2>
+            <p class="text-sm text-white/50 mb-4">Your account is protected by one-time codes — there's no password to manage.</p>
+            <div class="flex items-start gap-3 rounded-xl px-4 py-3" style="background: rgba(61,107,255,0.08); border: 1px solid rgba(61,107,255,0.20);">
+                <i class="fas fa-shield-alt text-blue-400 mt-0.5"></i>
+                <div class="text-sm text-white/70">
+                    Each time you sign in, we send a fresh 6-digit code to your email{{ auth()->user()->mobile ? ' or mobile number' : '' }}. Keep your contact details up to date above so you can always receive it.
+                </div>
             </div>
         </div>
+
     </div>
+
 </div>
+
+@push('styles')
+<style>
+    .profile-upload-btn {
+        background: rgba(var(--color-primary-rgb, 37,99,235), 0.12);
+        border: 1px solid rgba(var(--color-primary-rgb, 37,99,235), 0.30);
+        color: var(--color-primary-400, #60a5fa);
+    }
+    .profile-upload-btn:hover {
+        background: rgba(var(--color-primary-rgb, 37,99,235), 0.22);
+        border-color: rgba(var(--color-primary-rgb, 37,99,235), 0.50);
+    }
+    html.light-mode .profile-upload-btn {
+        background: rgba(37,99,235,0.08);
+        border-color: rgba(37,99,235,0.25);
+        color: #1d4ed8;
+    }
+    html.light-mode .profile-upload-btn:hover {
+        background: rgba(37,99,235,0.15);
+    }
+</style>
+@endpush
+
 @push('scripts')
 <script>
 (function () {
