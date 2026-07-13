@@ -89,6 +89,9 @@
         "check:demo-allowlist": [
             "@php artisan demo:check-allowlist"
         ],
+        "check:mail-direct-sends": [
+            "@php artisan mail:check-direct-sends"
+        ],
         "check:mobile-docs-parity": [
             "@php artisan parity:check-mobile-docs"
         ],

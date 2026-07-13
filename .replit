@@ -296,6 +296,10 @@ args = "e2e-mobile-workspaces-crud"
 task = "workflow.run"
 args = "e2e-otp-login"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "mail-direct-sends"
+
 [[workflows.workflow]]
 name = "e2e"
 author = "agent"
@@ -1062,6 +1066,17 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "bash artifacts/1inme/tests/Browser/run-validation.sh otp-login-flow.spec.ts"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "mail-direct-sends"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd artifacts/1inme && composer check:mail-direct-sends"
 
 [workflows.workflow.metadata]
 isValidation = true
