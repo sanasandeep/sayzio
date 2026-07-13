@@ -2176,14 +2176,19 @@ class FormController extends Controller
         $to = array_values(array_filter($to, fn ($e) => filter_var($e, FILTER_VALIDATE_EMAIL)));
         if (empty($to)) return;
 
-        $build = function ($m) use ($to, $subject, $replyTo) {
-            $m->to($to)->subject($subject);
-            if ($replyTo) $m->replyTo($replyTo);
-        };
+        $opts = [
+            'subject' => $subject,
+            'body'    => $body,
+            'format'  => 'text',
+            'user'    => $userId,
+        ];
+        if ($replyTo) $opts['reply_to'] = $replyTo;
 
         if (! $configId) {
             // No config selected → use application default mailer.
-            \Illuminate\Support\Facades\Mail::raw($body, $build);
+            foreach ($to as $recipient) {
+                \App\Modules\Common\Services\Emailer::send('form.notification', $recipient, [], $opts);
+            }
             return;
         }
 
@@ -2226,15 +2231,19 @@ class FormController extends Controller
             return;
         }
 
-        config(['mail.mailers.' . $mailerKey => $smtpConfig]);
         $fromEmail = $meta['from_email'] ?? config('mail.from.address');
         $fromName  = $meta['from_name']  ?? config('mail.from.name');
 
+        $opts['mailer'] = $mailerKey;
+        $opts['mailer_config'] = $smtpConfig;
+        if ($fromEmail) {
+            $opts['from'] = ['address' => $fromEmail, 'name' => $fromName ?? ''];
+        }
+
         try {
-            \Illuminate\Support\Facades\Mail::mailer($mailerKey)->raw($body, function ($m) use ($build, $fromEmail, $fromName) {
-                if ($fromEmail) $m->from($fromEmail, $fromName ?? '');
-                $build($m);
-            });
+            foreach ($to as $recipient) {
+                \App\Modules\Common\Services\Emailer::send('form.notification', $recipient, [], $opts);
+            }
         } finally {
             // Purge the runtime mailer config so the next request / queue job in
             // a long-running worker does not see leaked credentials. Also forget

@@ -617,12 +617,12 @@ class SitePageController extends Controller
         $recipient = AppSetting::get('contact_recipient_email');
         if ($recipient) {
             try {
-                Mail::raw(
-                    "New contact message from {$msg->name} <{$msg->email}>\n\nSubject: {$msg->subject}\n\n{$msg->message}",
-                    function ($m) use ($recipient, $msg) {
-                        $m->to($recipient)->subject('[Sayzio Contact] ' . $msg->subject);
-                    }
-                );
+                \App\Modules\Common\Services\Emailer::send('contact.relay', $recipient, [
+                    'sender_name'  => $msg->name,
+                    'sender_email' => $msg->email,
+                    'subject'      => $msg->subject,
+                    'message'      => $msg->message,
+                ], ['related' => $msg]);
             } catch (\Throwable $e) {
                 \Log::warning('Contact email failed: ' . $e->getMessage());
             }

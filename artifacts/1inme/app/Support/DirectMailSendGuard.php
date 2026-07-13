@@ -66,20 +66,6 @@ class DirectMailSendGuard
         'Services/Billing/CompanyMailSettings.php',          // per-company SMTP verify + send
         'Modules/Admin/Controllers/MailSettingsController.php', // admin "test email" button
         'Modules/Api/Controllers/MailSettingsController.php',   // mobile-admin "test email"
-
-        // --- Deliberate bulk / direct broadcast senders ------------------
-        'Modules/Admin/Controllers/NewsletterController.php',   // admin newsletter blast
-        'Modules/Admin/Controllers/Blog/CommentController.php', // blog comment notifications
-        'Modules/Admin/Controllers/UserManagementController.php', // admin -> user message
-        'Modules/User/Controllers/SubscriberController.php',    // creator -> subscribers compose/send
-        'Modules/User/Controllers/CreatorPostController.php',   // creator post -> followers
-        'Modules/User/Controllers/FormController.php',          // form-submission notifications
-        'Modules/User/Controllers/InboxController.php',         // inbox reply send
-        'Modules/User/Controllers/ClientPortalController.php',  // client-portal invite/notice
-        'Modules/Api/Controllers/ClientPortalController.php',   // client-portal (mobile API)
-        'Modules/Common/Controllers/SitePageController.php',    // contact-form relay
-        'Modules/User/Services/InboxForwarder.php',             // inbox forwarding
-        'Modules/User/Services/Inbox/InboxReplyDispatcher.php', // inbox reply dispatcher
     ];
 
     /**

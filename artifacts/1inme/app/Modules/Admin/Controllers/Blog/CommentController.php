@@ -154,14 +154,10 @@ class CommentController extends Controller
             }
             if ($c->author_email) {
                 $url = $c->post ? route('site.blogs.show', $c->post->slug) . '#comment-' . $c->id : url('/');
-                Mail::html(
-                    '<p>Hi ' . e($c->author_name ?: 'there') . ',</p>' .
-                    '<p>Your comment has been approved and is now live.</p>' .
-                    '<p><a href="' . e($url) . '">View your comment</a></p>',
-                    function ($m) use ($c) {
-                        $m->to($c->author_email)->subject('Your comment was approved');
-                    }
-                );
+                \App\Modules\Common\Services\Emailer::send('blog.comment_approved', $c->author_email, [
+                    'name' => e($c->author_name ?: 'there'),
+                    'url'  => e($url),
+                ], ['related' => $c->post]);
             }
         } catch (\Throwable $e) {
             Log::warning('Blog approval notify failed', ['error' => $e->getMessage()]);
@@ -190,15 +186,12 @@ class CommentController extends Controller
             }
             if ($original->author_email) {
                 $url = $original->post ? route('site.blogs.show', $original->post->slug) . '#comment-' . $reply->id : url('/');
-                Mail::html(
-                    '<p>Hi ' . e($original->author_name ?: 'there') . ',</p>' .
-                    '<p><strong>' . e($reply->author_name) . '</strong> replied to your comment:</p>' .
-                    '<blockquote style="border-left:3px solid #7c3aed;padding-left:12px;color:#374151;">' . nl2br(e($reply->body)) . '</blockquote>' .
-                    '<p><a href="' . e($url) . '">View the reply</a></p>',
-                    function ($m) use ($original) {
-                        $m->to($original->author_email)->subject('New reply on your blog comment');
-                    }
-                );
+                \App\Modules\Common\Services\Emailer::send('blog.comment_reply', $original->author_email, [
+                    'name'         => e($original->author_name ?: 'there'),
+                    'reply_author' => e($reply->author_name),
+                    'reply_body'   => nl2br(e($reply->body)),
+                    'url'          => e($url),
+                ], ['related' => $original->post]);
             }
         } catch (\Throwable $e) {
             Log::warning('Blog reply notify failed', ['error' => $e->getMessage()]);

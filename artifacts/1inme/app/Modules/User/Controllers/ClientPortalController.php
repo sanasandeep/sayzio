@@ -179,11 +179,15 @@ class ClientPortalController extends Controller
             // Client-facing send: route through the workspace's default billing
             // company SMTP when configured, otherwise the platform mailer.
             $companyMail = CompanyMailSettings::forWorkspaceDefault($clientPortal->workspace_id);
+            $opts = [
+                'subject' => $subject,
+                'body'    => $body,
+                'format'  => 'text',
+            ];
             if ($companyMail) {
-                $companyMail->sendRaw($data['email'], $subject, $body);
-            } else {
-                Mail::raw($body, fn ($m) => $m->to($data['email'])->subject($subject));
+                $opts = array_merge($opts, $companyMail->emailOpts());
             }
+            \App\Modules\Common\Services\Emailer::send('client_portal.magic_link', $data['email'], [], $opts);
         } catch (\Throwable $e) {
             // Best-effort — link is still usable from the owner UI.
         }

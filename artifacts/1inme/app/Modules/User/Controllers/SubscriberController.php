@@ -226,9 +226,14 @@ class SubscriberController
                             ->html(nl2br(e($validated['body'])));
                         $mailer->send($email);
                     } else {
-                        \Illuminate\Support\Facades\Mail::html(nl2br(e($validated['body'])), function ($m) use ($sub, $validated, $fromName, $fromAddress) {
-                            $m->to($sub->email)->subject($validated['subject'] ?? 'Update')->from($fromAddress, $fromName);
-                        });
+                        \App\Modules\Common\Services\Emailer::send('subscriber.broadcast', $sub->email, [], [
+                            'subject'          => $validated['subject'] ?? 'Update',
+                            'body'             => nl2br(e($validated['body'])),
+                            'format'           => 'html',
+                            'from'             => ['address' => $fromAddress, 'name' => $fromName],
+                            'user'             => $user,
+                            'throw_on_failure' => true,
+                        ]);
                     }
                     $sentCount++;
                 } catch (\Exception $e) {

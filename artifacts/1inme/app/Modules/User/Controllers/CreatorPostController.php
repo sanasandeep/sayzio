@@ -659,9 +659,14 @@ class CreatorPostController extends Controller
 
             if ($mode === 'instant') {
                 try {
-                    \Mail::raw("{$creator->name}: {$message}", function ($m) use ($follower) {
-                        $m->to($follower->email)->subject('New activity from a creator you follow');
-                    });
+                    \App\Modules\Common\Services\Emailer::send('follower.instant_update', $follower->email, [
+                        'creator_name' => $creator->name,
+                        'message'      => $message,
+                    ], [
+                        'user'             => $follower,
+                        'related'          => $post,
+                        'throw_on_failure' => true,
+                    ]);
                     $notif->emailed_at = now();
                     $notif->save();
                 } catch (\Throwable $e) {}

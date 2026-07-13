@@ -573,15 +573,12 @@ class UserManagementController extends Controller
             return;
         }
         try {
-            $loginUrl = route('user.login');
-            $body = "An account has been created for you on " . config('app.name') . ".\n\n"
-                . "Email: {$user->email}\n"
-                . "Temporary password: {$plainPassword}\n\n"
-                . "Sign in here: {$loginUrl}\n"
-                . "Please change your password after your first sign-in.";
-            \Illuminate\Support\Facades\Mail::raw($body, function ($m) use ($user) {
-                $m->to($user->email)->subject('Your new ' . config('app.name') . ' account');
-            });
+            \App\Modules\Common\Services\Emailer::send('account.credentials', $user->email, [
+                'app_name'  => config('app.name'),
+                'email'     => $user->email,
+                'password'  => $plainPassword,
+                'login_url' => route('user.login'),
+            ], ['user' => $user]);
         } catch (\Throwable $e) {
             \Illuminate\Support\Facades\Log::info('Account credentials email skipped: ' . $e->getMessage());
         }

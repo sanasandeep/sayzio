@@ -263,11 +263,13 @@ class NewsletterController extends Controller
         $bodyHtml    = $validated['body_html'];
 
         try {
-            Mail::html($bodyHtml, function ($m) use ($admin, $subject, $fromAddress, $fromName) {
-                $m->to($admin->email)
-                  ->subject($subject)
-                  ->from($fromAddress, $fromName);
-            });
+            \App\Modules\Common\Services\Emailer::send('newsletter.test', $admin->email, [], [
+                'subject' => $subject,
+                'body'    => $bodyHtml,
+                'format'  => 'html',
+                'from'    => ['address' => $fromAddress, 'name' => $fromName],
+                'user'    => $admin,
+            ]);
         } catch (\Throwable $e) {
             Log::warning('Newsletter test send failed', [
                 'admin_id' => $admin->id,
