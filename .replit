@@ -300,6 +300,10 @@ args = "e2e-otp-login"
 task = "workflow.run"
 args = "mail-direct-sends"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-otp-login-whatsapp"
+
 [[workflows.workflow]]
 name = "e2e"
 author = "agent"
@@ -1077,6 +1081,17 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "cd artifacts/1inme && composer check:mail-direct-sends"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-otp-login-whatsapp"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "bash artifacts/1inme/tests/Browser/run-validation.sh otp-login-whatsapp-flow.spec.ts"
 
 [workflows.workflow.metadata]
 isValidation = true
