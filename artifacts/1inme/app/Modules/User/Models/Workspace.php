@@ -65,6 +65,21 @@ class Workspace extends Model
     }
 
     /**
+     * The stored appearance icon key (one of ICON_CHOICES keys), or the
+     * automatic personal/team default when the user never picked one.
+     * Unlike iconSymbol() this returns the platform-agnostic key so
+     * non-web clients (mobile) can map it to their own icon set.
+     */
+    public function iconKey(): string
+    {
+        $chosen = $this->appearanceSetting('icon');
+        if ($chosen !== null && isset(self::ICON_CHOICES[$chosen])) {
+            return $chosen;
+        }
+        return $this->is_personal ? 'user' : 'users';
+    }
+
+    /**
      * Font Awesome class for this workspace's icon. Falls back to the
      * automatic personal/team icon when the user never picked one.
      */

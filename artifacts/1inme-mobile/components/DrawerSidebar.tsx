@@ -6,6 +6,7 @@ import {
   AccessibilityInfo,
   Alert,
   Image,
+  Linking,
   Platform,
   Pressable,
   ScrollView,
@@ -35,7 +36,8 @@ import {
   useWebFocusRing,
 } from "@/lib/webFocusRing";
 import type { ThemePref } from "@/lib/secure";
-import type { Workspace } from "@/lib/api/workspaces";
+import { workspaceFeatherIcon, type Workspace } from "@/lib/api/workspaces";
+import { getBaseUrl } from "@/lib/api";
 
 const DRAWER_WIDTH_FRAC = 0.78;
 const MAX_DRAWER_W = 320;
@@ -198,9 +200,17 @@ function WorkspaceSwitcherBlock({
   colors: ReturnType<typeof useColors>;
   isDark: boolean;
 }) {
-  const { workspaces, activeWorkspace, switchWorkspace } = useWorkspace();
+  const { workspaces, activeWorkspace, switchWorkspace, refresh } = useWorkspace();
   const [open, setOpen] = useState(false);
   const [switching, setSwitching] = useState<number | null>(null);
+
+  // Pull the freshest name/icon/colour whenever the switcher is opened, so a
+  // rename or restyle done on the web reflects here without a force-refresh.
+  const toggleOpen = () =>
+    setOpen((v) => {
+      if (!v) refresh();
+      return !v;
+    });
 
   const wsColor = activeWorkspace?.color ?? colors.primary;
 
@@ -254,7 +264,7 @@ function WorkspaceSwitcherBlock({
           ]}
         >
           <Feather
-            name={activeWorkspace.is_personal ? "user" : "users"}
+            name={workspaceFeatherIcon(activeWorkspace)}
             size={13}
             color="#fff"
           />
@@ -327,7 +337,7 @@ function WorkspaceSwitcherBlock({
                   ]}
                 >
                   <Feather
-                    name={ws.is_personal ? "user" : "users"}
+                    name={workspaceFeatherIcon(ws)}
                     size={10}
                     color="#fff"
                   />
@@ -357,6 +367,25 @@ function WorkspaceSwitcherBlock({
                 ) : isActive ? (
                   <Feather name="check" size={12} color={colors.primary} />
                 ) : null}
+                {ws.is_owner ? (
+                  <Pressable
+                    onPress={() => openWorkspaceSettings(ws.id)}
+                    hitSlop={8}
+                    style={({ pressed }) => [
+                      styles.wsGear,
+                      { backgroundColor: pressed ? colors.muted : "transparent" },
+                    ]}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Workspace settings for ${ws.name}`}
+                    {...WEB_FOCUS_RING_PROPS}
+                  >
+                    <Feather
+                      name="settings"
+                      size={13}
+                      color={colors.mutedForeground}
+                    />
+                  </Pressable>
+                ) : null}
               </Pressable>
             );
           })}
@@ -364,6 +393,12 @@ function WorkspaceSwitcherBlock({
       )}
     </View>
   );
+}
+
+/** Open the web workspace settings page (rename / restyle / delete). */
+function openWorkspaceSettings(id: number) {
+  const webBase = getBaseUrl().replace(/\/api\/?$/, "");
+  Linking.openURL(`${webBase}/user/workspaces/${id}/settings`).catch(() => {});
 }
 
 function ThemeToggleBlock({
@@ -1002,6 +1037,14 @@ const styles = StyleSheet.create({
   },
   wsRowName: {
     fontSize: 13,
+  },
+  wsGear: {
+    width: 26,
+    height: 26,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 8,
+    flexShrink: 0,
   },
   themeBlock: {
     paddingHorizontal: 16,

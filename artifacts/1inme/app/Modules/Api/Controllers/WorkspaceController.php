@@ -28,6 +28,9 @@ class WorkspaceController extends Controller
                 'slug'       => $w->slug ?? null,
                 'is_personal'=> (bool) ($w->is_personal ?? false),
                 'owner_user_id' => $w->owner_user_id,
+                'is_owner'   => (int) $w->owner_user_id === (int) $userId,
+                'icon'       => $w->iconKey(),
+                'color'      => $w->iconColor(),
                 'created_at' => optional($w->created_at)->toIso8601String(),
             ])->values()->all();
         return $this->ok(['items' => $items]);

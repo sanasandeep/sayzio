@@ -4,6 +4,7 @@ import { Stack, useRouter } from "expo-router";
 import {
   ActivityIndicator,
   FlatList,
+  Linking,
   Pressable,
   RefreshControl,
   StyleSheet,
@@ -13,7 +14,17 @@ import {
 
 import { EmptyState } from "@/components/EmptyState";
 import { useColors } from "@/hooks/useColors";
-import { listWorkspaces, type Workspace } from "@/lib/api/workspaces";
+import { getBaseUrl } from "@/lib/api";
+import {
+  listWorkspaces,
+  workspaceFeatherIcon,
+  type Workspace,
+} from "@/lib/api/workspaces";
+
+function openWorkspaceSettings(id: number) {
+  const webBase = getBaseUrl().replace(/\/api\/?$/, "");
+  Linking.openURL(`${webBase}/user/workspaces/${id}/settings`).catch(() => {});
+}
 
 export default function WorkspacesScreen() {
   const colors = useColors();
@@ -42,12 +53,15 @@ export default function WorkspacesScreen() {
               ]}
             >
               <View
-                style={[styles.iconWrap, { backgroundColor: colors.primary + "1c" }]}
+                style={[
+                  styles.iconWrap,
+                  { backgroundColor: (item.color ?? colors.primary) + "26" },
+                ]}
               >
                 <Feather
-                  name={item.is_personal ? "user" : "users"}
+                  name={workspaceFeatherIcon(item)}
                   size={18}
-                  color={colors.primary}
+                  color={item.color ?? colors.primary}
                 />
               </View>
               <View style={{ flex: 1, gap: 2 }}>
@@ -59,6 +73,20 @@ export default function WorkspacesScreen() {
                   {item.slug ? ` • ${item.slug}` : ""}
                 </Text>
               </View>
+              {item.is_owner ? (
+                <Pressable
+                  onPress={() => openWorkspaceSettings(item.id)}
+                  hitSlop={8}
+                  style={({ pressed }) => [
+                    styles.gear,
+                    { backgroundColor: pressed ? colors.muted : "transparent" },
+                  ]}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Workspace settings for ${item.name}`}
+                >
+                  <Feather name="settings" size={17} color={colors.mutedForeground} />
+                </Pressable>
+              ) : null}
               <Feather name="chevron-right" size={18} color={colors.mutedForeground} />
             </Pressable>
           )}
@@ -101,6 +129,13 @@ const styles = StyleSheet.create({
   },
   name: { fontFamily: "SpaceGrotesk_600SemiBold", fontSize: 15 },
   sub: { fontFamily: "SpaceGrotesk_400Regular", fontSize: 12 },
+  gear: {
+    width: 34,
+    height: 34,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 999,
+  },
   footer: {
     fontFamily: "SpaceGrotesk_400Regular",
     fontSize: 12,
