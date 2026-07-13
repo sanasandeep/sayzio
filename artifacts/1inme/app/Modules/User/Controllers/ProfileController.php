@@ -222,24 +222,26 @@ class ProfileController extends Controller
         // present so the Invoices PDF still has a snapshot.
         $billingValidated = $request->validate([
             'billing_country'      => ['nullable', 'string', 'size:2'],
-            'billing_region'       => ['nullable', 'string', 'max:8'],
+            'billing_region'       => ['nullable', 'string', 'max:100'],
             'billing_postal_code'  => ['nullable', 'string', 'max:16'],
             'billing_city'         => ['nullable', 'string', 'max:100'],
             'billing_line1'        => ['nullable', 'string', 'max:255'],
             'billing_line2'        => ['nullable', 'string', 'max:255'],
             'business_name'        => ['nullable', 'string', 'max:255'],
             'tax_id'               => ['nullable', 'string', 'max:32'],
-            'tax_id_kind'          => ['nullable', 'string', Rule::in(['GSTIN', 'VATIN', 'NONE'])],
+            'tax_id_kind'          => ['nullable', 'string', Rule::in(['GSTIN', 'VATIN', 'OTHER', 'NONE'])],
+            'tax_id_label'         => ['nullable', 'string', 'max:100'],
         ]);
 
         $taxId = strtoupper(trim((string) ($billingValidated['tax_id'] ?? '')));
         $taxIdKind = $billingValidated['tax_id_kind'] ?? null;
+        $taxIdLabel = trim((string) ($billingValidated['tax_id_label'] ?? ''));
         // If a tax-id is supplied the kind MUST be declared explicitly. We reject
         // ambiguous combos so the tax engine can rely on `tax_id_kind` to decide
         // reverse-charge eligibility — otherwise a buyer could paste a VATIN
         // string and silently zero out their VAT.
         if ($taxId !== '' && (!$taxIdKind || $taxIdKind === 'NONE')) {
-            return back()->withErrors(['tax_id_kind' => 'Select the tax-id type (GSTIN or VATIN) when providing a number.'])->withInput();
+            return back()->withErrors(['tax_id_kind' => 'Select the tax-id type (GSTIN, VATIN, or Other) when providing a number.'])->withInput();
         }
         // Storing a billing address requires a country (taxes are jurisdiction-keyed).
         $effectiveCountry = strtoupper((string) ($billingValidated['billing_country'] ?? $user->country ?? ''));
@@ -255,13 +257,17 @@ class ProfileController extends Controller
         if ($taxId !== '' && $taxIdKind === 'VATIN' && !Vatin::isValid($taxId)) {
             return back()->withErrors(['tax_id' => 'That VAT number is not in a recognised format.'])->withInput();
         }
+        // Preserve case for free-text region names; uppercase only for IN/US state codes.
+        $rawRegion = trim((string) ($billingValidated['billing_region'] ?? ''));
+        $savedRegion = $rawRegion === '' ? null
+            : (in_array($effectiveCountry, ['IN', 'US'], true) ? strtoupper($rawRegion) : $rawRegion);
 
         if (!empty($billingValidated['billing_country']) || $taxId !== '') {
             BillingAddress::updateOrCreate(
                 ['user_id' => $user->id],
                 [
                     'country'       => strtoupper((string) ($billingValidated['billing_country'] ?? $user->country ?? '')) ?: null,
-                    'region'        => strtoupper((string) ($billingValidated['billing_region'] ?? '')) ?: null,
+                    'region'        => $savedRegion,
                     'postal_code'   => $billingValidated['billing_postal_code'] ?? null,
                     'city'          => $billingValidated['billing_city'] ?? null,
                     'line1'         => $billingValidated['billing_line1'] ?? null,
@@ -269,6 +275,7 @@ class ProfileController extends Controller
                     'business_name' => $billingValidated['business_name'] ?? null,
                     'tax_id'        => $taxId ?: null,
                     'tax_id_kind'   => $taxId ? ($taxIdKind ?: 'NONE') : null,
+                    'tax_id_label'  => ($taxIdKind === 'OTHER' && $taxId !== '') ? ($taxIdLabel ?: null) : null,
                 ]
             );
         }

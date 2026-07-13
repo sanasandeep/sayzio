@@ -126,31 +126,47 @@
                 </div>
 
                 {{-- Billing Address & Tax ID --}}
+                @php
+                    $billingCountryInit = old('billing_country', $billing->country ?? $user->country) ?? '';
+                    $taxKindInit = old('tax_id_kind', $billing->tax_id_kind ?: 'NONE');
+                @endphp
                 <div class="glass rounded-2xl p-6">
                     <h2 class="text-base font-semibold mb-1" style="color: var(--text-strong);">Billing Address &amp; Tax ID</h2>
                     <p class="text-xs mb-4" style="color: var(--text-muted);">Used to calculate tax on your invoices and to print on your tax invoice PDF. GSTIN is for Indian businesses; VATIN is for EU/UK businesses claiming reverse-charge.</p>
-                    <div class="space-y-3" data-billing-address>
+                    <div class="space-y-3" data-billing-address
+                         x-data="{ billingCountry: @js($billingCountryInit), taxKind: @js($taxKindInit) }">
                         <div class="grid grid-cols-2 gap-3">
                             <div>
                                 <label class="block text-xs mb-1" style="color: var(--text-muted);">Country (ISO-2)</label>
-                                <input type="text" name="billing_country" maxlength="2" value="{{ old('billing_country', $billing->country ?? $user->country) }}"
+                                <input type="text" name="billing_country" maxlength="2"
+                                       value="{{ $billingCountryInit }}"
+                                       @input="billingCountry = $event.target.value.toUpperCase()"
                                        class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white uppercase outline-none focus:ring-2 focus:ring-blue-500/40">
                             </div>
                             <div>
                                 <label class="block text-xs mb-1" style="color: var(--text-muted);">State / region</label>
-                                <select name="billing_region" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white outline-none focus:ring-2 focus:ring-blue-500/40">
-                                    <option value="" class="bg-[#0d0818]">— None / N/A —</option>
-                                    <optgroup label="India" class="bg-[#0d0818]">
-                                        @foreach($inStates as $code => $label)
-                                            <option value="{{ $code }}" {{ old('billing_region', $billing->region) === $code ? 'selected' : '' }} class="bg-[#0d0818]">IN-{{ $code }} · {{ $label }}</option>
-                                        @endforeach
-                                    </optgroup>
-                                    <optgroup label="United States" class="bg-[#0d0818]">
-                                        @foreach($usStates as $code => $label)
-                                            <option value="{{ $code }}" {{ old('billing_region', $billing->region) === $code ? 'selected' : '' }} class="bg-[#0d0818]">US-{{ $code }} · {{ $label }}</option>
-                                        @endforeach
-                                    </optgroup>
-                                </select>
+                                {{-- Dropdown for India / US; free-text for every other country --}}
+                                <template x-if="billingCountry === 'IN' || billingCountry === 'US'">
+                                    <select name="billing_region" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white outline-none focus:ring-2 focus:ring-blue-500/40">
+                                        <option value="" class="bg-[#0d0818]">— None / N/A —</option>
+                                        <optgroup label="India" class="bg-[#0d0818]">
+                                            @foreach($inStates as $code => $label)
+                                                <option value="{{ $code }}" {{ old('billing_region', $billing->region ?? '') === $code ? 'selected' : '' }} class="bg-[#0d0818]">IN-{{ $code }} · {{ $label }}</option>
+                                            @endforeach
+                                        </optgroup>
+                                        <optgroup label="United States" class="bg-[#0d0818]">
+                                            @foreach($usStates as $code => $label)
+                                                <option value="{{ $code }}" {{ old('billing_region', $billing->region ?? '') === $code ? 'selected' : '' }} class="bg-[#0d0818]">US-{{ $code }} · {{ $label }}</option>
+                                            @endforeach
+                                        </optgroup>
+                                    </select>
+                                </template>
+                                <template x-if="billingCountry !== 'IN' && billingCountry !== 'US'">
+                                    <input type="text" name="billing_region" maxlength="100"
+                                           placeholder="State / region (optional)"
+                                           value="{{ old('billing_region', $billing->region ?? '') }}"
+                                           class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white outline-none focus:ring-2 focus:ring-blue-500/40">
+                                </template>
                             </div>
                         </div>
                         <div class="grid grid-cols-2 gap-3">
@@ -166,17 +182,28 @@
                         <input type="text" name="business_name" placeholder="Registered business name (optional)" value="{{ old('business_name', $billing->business_name) }}" maxlength="255"
                                class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white outline-none focus:ring-2 focus:ring-blue-500/40">
                         <div class="grid grid-cols-3 gap-3">
-                            <select name="tax_id_kind" data-tax-kind class="px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white outline-none focus:ring-2 focus:ring-blue-500/40">
-                                @php $currentKind = old('tax_id_kind', $billing->tax_id_kind ?: 'NONE'); @endphp
+                            @php $currentKind = old('tax_id_kind', $billing->tax_id_kind ?: 'NONE'); @endphp
+                            <select name="tax_id_kind" data-tax-kind x-model="taxKind"
+                                    class="px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white outline-none focus:ring-2 focus:ring-blue-500/40">
                                 <option value="NONE"  {{ $currentKind === 'NONE'  ? 'selected' : '' }} class="bg-[#0d0818]">No tax ID</option>
                                 <option value="GSTIN" {{ $currentKind === 'GSTIN' ? 'selected' : '' }} class="bg-[#0d0818]">GSTIN (India)</option>
                                 <option value="VATIN" {{ $currentKind === 'VATIN' ? 'selected' : '' }} class="bg-[#0d0818]">VATIN (EU / UK)</option>
+                                <option value="OTHER" {{ $currentKind === 'OTHER' ? 'selected' : '' }} class="bg-[#0d0818]">Other</option>
                             </select>
                             <input type="text" name="tax_id" data-tax-id placeholder="Tax ID number" value="{{ old('tax_id', $billing->tax_id) }}" maxlength="32"
                                    class="col-span-2 px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white uppercase outline-none focus:ring-2 focus:ring-blue-500/40">
                         </div>
+                        {{-- Free-text label for "Other" tax ID type --}}
+                        <template x-if="taxKind === 'OTHER'">
+                            <input type="text" name="tax_id_label"
+                                   placeholder="Tax ID type name (e.g. ABN, EIN, PAN…)"
+                                   value="{{ old('tax_id_label', $billing->tax_id_label ?? '') }}"
+                                   maxlength="100"
+                                   class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white outline-none focus:ring-2 focus:ring-blue-500/40">
+                        </template>
                         <p class="text-[11px]" data-tax-feedback></p>
                         @error('tax_id')<p class="mt-1 text-sm text-red-400">{{ $message }}</p>@enderror
+                        @error('tax_id_kind')<p class="mt-1 text-sm text-red-400">{{ $message }}</p>@enderror
                     </div>
                 </div>
 
@@ -530,7 +557,7 @@
         function check() {
             const kind = kindEl.value;
             const v = (idEl.value || '').toUpperCase().trim();
-            if (!v || kind === 'NONE') { fb.textContent = ''; fb.className = 'text-[11px]'; return; }
+            if (!v || kind === 'NONE' || kind === 'OTHER') { fb.textContent = ''; fb.className = 'text-[11px]'; return; }
             let ok = false, msg = '';
             if (kind === 'GSTIN') {
                 ok = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][0-9A-Z]Z[0-9A-Z]$/.test(v);
