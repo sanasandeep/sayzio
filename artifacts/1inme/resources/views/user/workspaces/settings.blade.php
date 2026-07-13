@@ -32,6 +32,12 @@
         </a>
     </div>
 
+    @if(!empty($autoSwitched))
+        <div class="mb-4 p-3 rounded bg-blue-100 text-blue-800 text-sm flex items-start gap-2">
+            <i class="fas fa-circle-info mt-0.5"></i>
+            <span>You're now editing <strong>{{ $workspace->name }}</strong>. Your active workspace has been switched to it, so the sidebar and the rest of the app now match this page.</span>
+        </div>
+    @endif
     @if(session('success'))
         <div class="mb-4 p-3 rounded bg-green-100 text-green-800 text-sm">{{ session('success') }}</div>
     @endif

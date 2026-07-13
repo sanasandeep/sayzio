@@ -70,10 +70,33 @@ class WorkspaceController extends Controller
     {
         $user = $request->user();
         abort_unless((int) $workspace->owner_user_id === $user->id, 403);
+
+        // The settings page is reachable by direct URL, so the workspace being
+        // configured may differ from whatever workspace is currently active in
+        // the sidebar/header. Auto-switch the active context to the workspace
+        // being edited so the switcher and every workspace-scoped surface line
+        // up with the page — otherwise the owner edits one workspace while the
+        // rest of the UI still points at another.
+        // Read the workspace the request resolved to via SetActiveWorkspace
+        // (bound in the container) rather than the injected context instance —
+        // WorkspaceContext is not a shared singleton, so this controller's copy
+        // has an empty cache and would report "no active workspace" every time.
+        $previous = app()->bound('current_workspace') ? app('current_workspace') : null;
+        $autoSwitched = !$previous || (int) $previous->id !== (int) $workspace->id;
+        if ($autoSwitched) {
+            $this->ctx->set($workspace);
+            // Keep the owner binding in step for any workspace-scoped partials
+            // shared with the layout (SetActiveWorkspace already ran with the
+            // old workspace before this controller resolved).
+            app()->instance('workspace_owner', $user);
+            $request->attributes->set('current_workspace', $workspace);
+        }
+
         $ownedCount = $user->ownedWorkspaces()->count();
         return view('user.workspaces.settings', [
-            'workspace'  => $workspace,
-            'ownedCount' => $ownedCount,
+            'workspace'    => $workspace,
+            'ownedCount'   => $ownedCount,
+            'autoSwitched' => $autoSwitched,
         ]);
     }
 
