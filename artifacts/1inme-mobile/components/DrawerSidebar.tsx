@@ -6,7 +6,6 @@ import {
   AccessibilityInfo,
   Alert,
   Image,
-  Linking,
   Platform,
   Pressable,
   ScrollView,
@@ -201,8 +200,17 @@ function WorkspaceSwitcherBlock({
   isDark: boolean;
 }) {
   const { workspaces, activeWorkspace, switchWorkspace, refresh } = useWorkspace();
+  const { closeDrawer } = useDrawer();
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [switching, setSwitching] = useState<number | null>(null);
+
+  // Owners edit a workspace (rename + icon/colour) on the native edit screen.
+  const editWorkspace = (id: number) => {
+    setOpen(false);
+    closeDrawer();
+    setTimeout(() => router.push(`/workspace-edit?id=${id}` as never), 50);
+  };
 
   // Pull the freshest name/icon/colour whenever the switcher is opened, so a
   // rename or restyle done on the web reflects here without a force-refresh.
@@ -369,18 +377,18 @@ function WorkspaceSwitcherBlock({
                 ) : null}
                 {ws.is_owner ? (
                   <Pressable
-                    onPress={() => openWorkspaceSettings(ws.id)}
+                    onPress={() => editWorkspace(ws.id)}
                     hitSlop={8}
                     style={({ pressed }) => [
                       styles.wsGear,
                       { backgroundColor: pressed ? colors.muted : "transparent" },
                     ]}
                     accessibilityRole="button"
-                    accessibilityLabel={`Workspace settings for ${ws.name}`}
+                    accessibilityLabel={`Edit workspace ${ws.name}`}
                     {...WEB_FOCUS_RING_PROPS}
                   >
                     <Feather
-                      name="settings"
+                      name="edit-2"
                       size={13}
                       color={colors.mutedForeground}
                     />
@@ -393,12 +401,6 @@ function WorkspaceSwitcherBlock({
       )}
     </View>
   );
-}
-
-/** Open the web workspace settings page (rename / restyle / delete). */
-function openWorkspaceSettings(id: number) {
-  const webBase = getBaseUrl().replace(/\/api\/?$/, "");
-  Linking.openURL(`${webBase}/user/workspaces/${id}/settings`).catch(() => {});
 }
 
 function ThemeToggleBlock({

@@ -4,7 +4,6 @@ import { Stack, useRouter } from "expo-router";
 import {
   ActivityIndicator,
   FlatList,
-  Linking,
   Pressable,
   RefreshControl,
   StyleSheet,
@@ -14,17 +13,11 @@ import {
 
 import { EmptyState } from "@/components/EmptyState";
 import { useColors } from "@/hooks/useColors";
-import { getBaseUrl } from "@/lib/api";
 import {
   listWorkspaces,
   workspaceFeatherIcon,
   type Workspace,
 } from "@/lib/api/workspaces";
-
-function openWorkspaceSettings(id: number) {
-  const webBase = getBaseUrl().replace(/\/api\/?$/, "");
-  Linking.openURL(`${webBase}/user/workspaces/${id}/settings`).catch(() => {});
-}
 
 export default function WorkspacesScreen() {
   const colors = useColors();
@@ -75,16 +68,16 @@ export default function WorkspacesScreen() {
               </View>
               {item.is_owner ? (
                 <Pressable
-                  onPress={() => openWorkspaceSettings(item.id)}
+                  onPress={() => router.push(`/workspace-edit?id=${item.id}` as never)}
                   hitSlop={8}
                   style={({ pressed }) => [
                     styles.gear,
                     { backgroundColor: pressed ? colors.muted : "transparent" },
                   ]}
                   accessibilityRole="button"
-                  accessibilityLabel={`Workspace settings for ${item.name}`}
+                  accessibilityLabel={`Edit workspace ${item.name}`}
                 >
-                  <Feather name="settings" size={17} color={colors.mutedForeground} />
+                  <Feather name="edit-2" size={16} color={colors.mutedForeground} />
                 </Pressable>
               ) : null}
               <Feather name="chevron-right" size={18} color={colors.mutedForeground} />
@@ -100,7 +93,7 @@ export default function WorkspacesScreen() {
           ListFooterComponent={
             (q.data?.length ?? 0) > 0 ? (
               <Text style={[styles.footer, { color: colors.mutedForeground }]}>
-                Create or rename workspaces from the web app — that flow needs the team-billing modal.
+                Tap the edit icon to rename or restyle a workspace you own. Creating new workspaces and deleting them happens on the web app.
               </Text>
             ) : null
           }

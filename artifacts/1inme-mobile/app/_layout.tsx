@@ -157,6 +157,7 @@ function RootLayoutNav() {
         name="events/checkin/[linkId]"
         options={{ title: "Door check-in", headerShown: false }}
       />
+      <Stack.Screen name="workspace-edit" options={{ title: "Edit workspace" }} />
       <Stack.Screen name="whatsapp-verify" options={{ title: "Verify WhatsApp" }} />
       <Stack.Screen name="identifiers" options={{ title: "Linked emails & phones" }} />
       <Stack.Screen name="coming-soon" options={{ title: "Coming soon" }} />

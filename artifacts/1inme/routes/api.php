@@ -1000,6 +1000,7 @@ Route::prefix('v1')->group(function () {
 
         // Workspaces
         Route::get('/workspaces',                 [WorkspaceController::class, 'index']);
+        Route::patch('/workspaces/{id}',          [WorkspaceController::class, 'update'])->whereNumber('id');
         Route::get('/workspaces/{id}/members',    [WorkspaceController::class, 'members'])->whereNumber('id');
 
         // Workspace tracking pixels (Meta / TikTok / Google Ads). Used by
