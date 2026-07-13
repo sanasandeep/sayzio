@@ -258,7 +258,7 @@
         .form-pricing-options { display: flex; flex-direction: column; gap: 0.5rem; }
         .form-pricing-option { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; cursor: pointer; padding: 0.75rem 0.9rem; border-radius: var(--form-radius-sm); border: 1px solid {{ $theme === 'light' ? '#e2e8f0' : 'rgba(255,255,255,0.1)' }}; transition: all 0.15s; }
         .form-pricing-option:hover { border-color: var(--form-accent); }
-        .form-pricing-option.is-selected { border-color: var(--form-accent); background: {{ $theme === 'light' ? 'rgba(99,102,241,0.06)' : 'rgba(61,107,255,0.12)' }}; }
+        .form-pricing-option.is-selected { border-color: var(--form-accent); background: {{ $theme === 'light' ? 'rgba(59,130,246,0.06)' : 'rgba(61,107,255,0.12)' }}; }
         .form-pricing-option-main { display: flex; align-items: center; gap: 0.55rem; }
         .form-pricing-option input, .form-pricing-addon input { accent-color: var(--form-accent); }
         .form-pricing-option-price { font-weight: 700; white-space: nowrap; }
@@ -269,7 +269,7 @@
         .form-pricing-addon-main { display: flex; align-items: center; gap: 0.55rem; }
         .form-pricing-addon-price { white-space: nowrap; opacity: 0.8; }
         .form-pricing-subtotal { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; font-size: 0.85rem; padding-top: 0.5rem; border-top: 1px solid {{ $theme === 'light' ? '#e2e8f0' : 'rgba(255,255,255,0.1)' }}; }
-        .form-pricing-grand { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-top: 1.25rem; padding: 0.85rem 1rem; border-radius: var(--form-radius-sm); background: {{ $theme === 'light' ? 'rgba(99,102,241,0.06)' : 'rgba(61,107,255,0.12)' }}; border: 1px solid var(--form-accent); font-size: 1rem; }
+        .form-pricing-grand { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-top: 1.25rem; padding: 0.85rem 1rem; border-radius: var(--form-radius-sm); background: {{ $theme === 'light' ? 'rgba(59,130,246,0.06)' : 'rgba(61,107,255,0.12)' }}; border: 1px solid var(--form-accent); font-size: 1rem; }
         .form-pricing-grand strong { font-size: 1.15rem; }
         .form-pricing-grand.oneq-total { margin-top: 0; }
 
