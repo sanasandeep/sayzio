@@ -23,6 +23,7 @@ class EmailLog extends Model
         'subject',
         'body',
         'format',
+        'transport',
         'status',
         'error',
         'user_id',

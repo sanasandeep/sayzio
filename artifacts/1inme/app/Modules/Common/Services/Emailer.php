@@ -295,6 +295,8 @@ class Emailer
             Log::warning("Emailer::dispatch failed [{$key}]: " . $error);
         }
 
+        $opts['transport'] = self::effectiveTransport($mailerName);
+
         $log = self::writeLog($key, $to, $subject, $body, $format, $status, $error, $opts);
 
         // Opt-in: callers that must NOT proceed on a silent transport failure
@@ -333,6 +335,7 @@ class Emailer
                 'subject'      => $subject !== '' ? mb_substr($subject, 0, 255) : null,
                 'body'         => $body, // capped by EmailLog's body mutator
                 'format'       => $format,
+                'transport'    => self::normalizeTransport($opts['transport'] ?? null),
                 'status'       => $status,
                 'error'        => $error,
                 'user_id'      => self::normalizeUserId($opts['user'] ?? null),
@@ -387,6 +390,37 @@ class Emailer
 
         $opts['cc'] = $out;
         return $opts;
+    }
+
+    /**
+     * Resolve the effective mail transport/driver for a send, so the admin log
+     * can flag black-holed non-delivering sends (log/array). Resolves the
+     * per-send mailer override when present, otherwise the configured default.
+     * Best-effort: never let a config read break a send.
+     */
+    private static function effectiveTransport(?string $mailerName): ?string
+    {
+        try {
+            $mailer = $mailerName ?: (string) config('mail.default');
+            if ($mailer === '') {
+                return null;
+            }
+            $transport = config("mail.mailers.{$mailer}.transport");
+
+            return self::normalizeTransport(is_string($transport) && $transport !== '' ? $transport : $mailer);
+        } catch (\Throwable $e) {
+            return null;
+        }
+    }
+
+    /** Cap the stored transport string to the column width. */
+    private static function normalizeTransport($transport): ?string
+    {
+        if (!is_string($transport) || $transport === '') {
+            return null;
+        }
+
+        return mb_substr($transport, 0, 32);
     }
 
     private static function normalizeUserId($user): ?int
