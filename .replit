@@ -288,6 +288,10 @@ args = "demo-login-button"
 task = "workflow.run"
 args = "e2e-mobile-workspace-owner-gear"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-mobile-workspaces-crud"
+
 [[workflows.workflow]]
 name = "e2e"
 author = "agent"
@@ -1035,6 +1039,17 @@ args = "pnpm --filter @workspace/1inme-mobile run test:workspace-owner-gear-refr
 
 [workflows.workflow.metadata]
 isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-mobile-workspaces-crud"
+author = "agent"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/1inme-mobile run test:workspaces-crud-e2e"
 
 [agent]
 stack = "PNPM_WORKSPACE"

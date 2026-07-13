@@ -26,6 +26,7 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { IdleLockWarning } from "@/components/IdleLockWarning";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
+import { WorkspaceProvider } from "@/contexts/WorkspaceContext";
 import { useColors } from "@/hooks/useColors";
 import { useWebFocusRing } from "@/hooks/useWebFocusRing";
 import { getBaseUrl } from "@/lib/api";
@@ -198,7 +199,9 @@ export default function RootLayout() {
                   <DeepLinkRouter />
                   <ShareIntentHandler />
                   <ActivityWatcher>
-                    <RootLayoutNav />
+                    <WorkspaceProvider>
+                      <RootLayoutNav />
+                    </WorkspaceProvider>
                     <PushRegistrar />
                     <IdleLockWarning />
                   </ActivityWatcher>
