@@ -9,6 +9,8 @@ import {
   type Page,
 } from "@playwright/test";
 
+import { loginAsDemoAdmin } from "./login-as-demo-admin";
+
 // Regression guard for the sidebar find-bar fix (commit 44b3bf0cc) on the ADMIN
 // back-office layout.
 //
@@ -123,42 +125,6 @@ echo 'SEED_OK';
 }
 
 /**
- * Log in through the non-prod admin demo-login route. We build the POST from the
- * admin login page's CSRF token and wait only for the demo-login POST response,
- * not the heavy post-login render, so the suite isn't blocked.
- */
-async function loginAsAdmin(page: Page): Promise<void> {
-  await page.goto("/admin/login", { timeout: 120_000 });
-  await Promise.all([
-    page.waitForResponse(
-      (r) =>
-        r.url().endsWith("/admin/demo-login") &&
-        r.request().method() === "POST",
-      { timeout: 90_000 },
-    ),
-    page.evaluate(() => {
-      const token =
-        document.querySelector<HTMLInputElement>('input[name="_token"]')
-          ?.value ??
-        document
-          .querySelector<HTMLMetaElement>('meta[name="csrf-token"]')
-          ?.getAttribute("content") ??
-        "";
-      const form = document.createElement("form");
-      form.method = "POST";
-      form.action = "/admin/demo-login";
-      const input = document.createElement("input");
-      input.type = "hidden";
-      input.name = "_token";
-      input.value = token;
-      form.appendChild(input);
-      document.body.appendChild(form);
-      form.submit();
-    }),
-  ]);
-}
-
-/**
  * Open the admin dashboard and wait until the desktop sidebar has rendered with
  * its top-level "Dashboard" link visible. A cold authenticated render over the
  * distant RDS is slow, so give it real headroom.
@@ -184,7 +150,7 @@ test.describe("admin sidebar find-bar fix", () => {
     seedFixtures();
     sharedContext = await browser.newContext();
     const page = await sharedContext.newPage();
-    await loginAsAdmin(page);
+    await loginAsDemoAdmin(page);
     await page.close();
   });
 

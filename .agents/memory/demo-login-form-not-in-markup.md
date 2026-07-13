@@ -34,6 +34,14 @@ NOT re-add a copy-pasted inline `loginAsDemo` (the `form[action$="/user/demo-log
 button-first version is what silently broke ~22 specs with "demo-login form not
 found"). If a spec needs to settle before navigating (rare — see
 `biolink-block-live-preview.spec.ts`), add a `waitForLoadState` at the call site,
-not a new login helper. NB the admin equivalent (`loginAsDemoAdmin` in
-`home-showcase-editor-preview.spec.ts`, POSTing `/admin/demo-login`) is a
-separate endpoint and was intentionally left on its own button-first flow.
+not a new login helper.
+
+**Admin equivalent (now migrated):** the admin demo-login (`/admin/demo-login`,
+a separate endpoint) has its own shared helper `tests/Browser/login-as-demo-admin.ts`
+(exports `loginAsDemoAdmin(page)`), mirroring the user pattern: it reads the
+`_token` from `/admin/login` (`input[name="_token"]`, falling back to the
+`csrf-token` meta) and POSTs a synthesized form, independent of any rendered
+admin demo button. Both `home-showcase-editor-preview.spec.ts` and
+`admin-sidebar-findbar.spec.ts` import it; do NOT re-add a button-first
+`form[action$="/admin/demo-login"]` flow (that silently fails in fresh envs with
+"admin demo-login form not found").
