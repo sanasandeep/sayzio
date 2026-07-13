@@ -20,15 +20,15 @@ use Illuminate\Console\Command;
  * guard pairs `demo:check-allowlist` with DemoAllowlistDriftTest.
  *
  * Exit codes:
- *   0 — every app/ mail send goes through Emailer or is a documented exception,
- *       and no allowlist entry is stale.
+ *   0 — every scanned mail send goes through Emailer or is a documented
+ *       exception, and no allowlist entry is stale.
  *   1 — drift: an unallowlisted direct sender and/or a stale allowlist entry.
  */
 class CheckDirectMailSends extends Command
 {
     protected $signature = 'mail:check-direct-sends';
 
-    protected $description = 'Fail when an app/ file sends mail directly via the Mail facade / Notification::route(\'mail\') outside the documented allowlist.';
+    protected $description = 'Fail when a scanned file (app/, routes/, database/) sends mail directly via the Mail facade / Notification::route(\'mail\') outside the documented allowlist.';
 
     public function handle(): int
     {
@@ -36,13 +36,13 @@ class CheckDirectMailSends extends Command
         $stale = DirectMailSendGuard::staleEntries();
 
         if (empty($offenders) && empty($stale)) {
-            $this->info('OK — every app/ mail send flows through the Emailer pipeline or is a documented exception, and no allowlist entry is stale.');
+            $this->info('OK — every scanned mail send flows through the Emailer pipeline or is a documented exception, and no allowlist entry is stale.');
 
             return self::SUCCESS;
         }
 
         if (! empty($offenders)) {
-            $this->error('Outbound-mail bypass — ' . count($offenders) . ' app/ file(s) send mail directly via the Mail facade / Notification::route(\'mail\'):');
+            $this->error('Outbound-mail bypass — ' . count($offenders) . ' file(s) send mail directly via the Mail facade / Notification::route(\'mail\'):');
             $this->newLine();
             foreach ($offenders as $offender) {
                 $this->line("  <fg=yellow>{$offender}</>");

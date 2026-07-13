@@ -30,7 +30,15 @@ use SplFileInfo;
  * `mail:check-direct-sends` artisan command
  * ({@see \App\Console\Commands\CheckDirectMailSends}) share ONE definition and
  * can never drift apart. No database is required — it walks the PHP files under
- * app/ only.
+ * every root in {@see self::SCAN_ROOTS} (app/, routes/, database/).
+ *
+ * Why more than app/: mail can also be sent from closure route handlers and
+ * scheduled jobs in `routes/` (incl. `routes/schedules/*.php`) and from
+ * `database/seeders/` — none of which live under app/. A raw facade send
+ * in one of those spots would slip past an app/-only scan entirely and could
+ * open a real relay in non-production, the exact failure mode this guard exists
+ * to prevent. Artisan commands invoked from those spots already live under
+ * app/Console/, so app/ + routes/ + database/ covers the executable surface.
  */
 class DirectMailSendGuard
 {
@@ -45,7 +53,20 @@ class DirectMailSendGuard
     ];
 
     /**
-     * Files (relative to app/) that are permitted to send mail directly.
+     * Project roots (relative to base_path()) that are scanned for direct
+     * mail sends. Extend this list if a new executable root that can send mail
+     * appears; keep the ALLOWLIST paths base_path()-relative to match.
+     */
+    public const SCAN_ROOTS = [
+        'app',
+        'routes',
+        'database',
+    ];
+
+    /**
+     * Files (relative to base_path(), i.e. prefixed with their scan root such
+     * as `app/…`, `routes/…`, or `database/…`) that are permitted to send mail
+     * directly.
      *
      * ONLY add a path here after confirming the new sender genuinely cannot go
      * through the Emailer pipeline (e.g. an SMTP connection-verify probe or a
@@ -55,42 +76,51 @@ class DirectMailSendGuard
      */
     public const ALLOWLIST = [
         // --- The pipeline itself (the safe path) -------------------------
-        'Modules/Common/Services/Emailer.php',        // the central send pipeline
+        'app/Modules/Common/Services/Emailer.php',        // the central send pipeline
         // NOTE: App\Listeners\LogOutboundEmail only LISTENS to MessageSent and
         // writes an activity-log row — it never sends mail — so it is
         // deliberately absent here (its doc comment mentions Mail::send in
         // prose, which the paren-requiring SEND_PATTERNS correctly ignore).
 
         // --- SMTP connection-verify / "send a test email" surfaces -------
-        'Services/Integrations/MailSettings.php',            // admin SMTP verify probe
-        'Services/Billing/CompanyMailSettings.php',          // per-company SMTP verify + send
-        'Modules/Admin/Controllers/MailSettingsController.php', // admin "test email" button
-        'Modules/Api/Controllers/MailSettingsController.php',   // mobile-admin "test email"
+        'app/Services/Integrations/MailSettings.php',            // admin SMTP verify probe
+        'app/Services/Billing/CompanyMailSettings.php',          // per-company SMTP verify + send
+        'app/Modules/Admin/Controllers/MailSettingsController.php', // admin "test email" button
+        'app/Modules/Api/Controllers/MailSettingsController.php',   // mobile-admin "test email"
     ];
 
     /**
-     * Walk app/ and return the relative paths of files that send mail directly
-     * yet are NOT on {@see self::ALLOWLIST}. Empty array === clean.
+     * Walk every root in {@see self::SCAN_ROOTS} and return the base_path()-
+     * relative paths of files that send mail directly yet are NOT on
+     * {@see self::ALLOWLIST}. Empty array === clean.
      *
      * @return list<string> sorted relative paths
      */
     public static function offenders(): array
     {
-        $appPath = app_path();
+        $basePath = base_path();
         $allowlist = array_flip(self::ALLOWLIST);
 
         $offenders = [];
 
-        foreach (self::phpFiles($appPath) as $file) {
-            $absolute = $file->getPathname();
-            $relative = str_replace('\\', '/', ltrim(substr($absolute, strlen($appPath)), '/\\'));
+        foreach (self::SCAN_ROOTS as $root) {
+            $rootPath = $basePath . DIRECTORY_SEPARATOR . $root;
 
-            if (! self::sendsMailDirectly((string) file_get_contents($absolute))) {
+            if (! is_dir($rootPath)) {
                 continue;
             }
 
-            if (! isset($allowlist[$relative])) {
-                $offenders[] = $relative;
+            foreach (self::phpFiles($rootPath) as $file) {
+                $absolute = $file->getPathname();
+                $relative = str_replace('\\', '/', ltrim(substr($absolute, strlen($basePath)), '/\\'));
+
+                if (! self::sendsMailDirectly((string) file_get_contents($absolute))) {
+                    continue;
+                }
+
+                if (! isset($allowlist[$relative])) {
+                    $offenders[] = $relative;
+                }
             }
         }
 
@@ -108,12 +138,12 @@ class DirectMailSendGuard
      */
     public static function staleEntries(): array
     {
-        $appPath = app_path();
+        $basePath = base_path();
 
         $stale = [];
 
         foreach (self::ALLOWLIST as $relative) {
-            $absolute = $appPath . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $relative);
+            $absolute = $basePath . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $relative);
 
             if (! is_file($absolute)) {
                 $stale[] = "{$relative} (file no longer exists)";

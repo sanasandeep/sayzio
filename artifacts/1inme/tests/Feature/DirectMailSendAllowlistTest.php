@@ -31,7 +31,9 @@ use Tests\TestCase;
  * `mail:check-direct-sends` command share ONE definition and can't drift. This
  * test asserts drift is caught in the regular DB-backed run too, not only by
  * the fast standalone validation command. It needs no database — it walks the
- * PHP files under app/ only.
+ * PHP files under every root in DirectMailSendGuard::SCAN_ROOTS (app/, routes/,
+ * database/), so a raw send in a closure route, a scheduled job, or a seeder is
+ * caught just like one in app/.
  */
 class DirectMailSendAllowlistTest extends TestCase
 {
@@ -42,7 +44,7 @@ class DirectMailSendAllowlistTest extends TestCase
         $this->assertSame(
             [],
             $offenders,
-            "The following app/ file(s) send mail directly via the Mail facade / "
+            "The following scanned file(s) send mail directly via the Mail facade / "
             . "Notification::route('mail') and bypass the Emailer safety pipeline:\n\n  "
             . implode("\n  ", $offenders)
             . "\n\nRoute new mail through App\\Modules\\Common\\Services\\Emailer. If a "
