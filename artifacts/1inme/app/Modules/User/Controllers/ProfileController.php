@@ -198,6 +198,25 @@ class ProfileController extends Controller
         $previousHandle = $user->handle;
         $user->update($validated);
 
+        // Keep the personal workspace name in sync with the profile name,
+        // but only while it still carries the auto-generated default (so a
+        // workspace the user deliberately renamed is never clobbered). The
+        // default is derived exactly as User::ensureDefaultWorkspace() does.
+        if ($user->name !== $previousName) {
+            $personal = $user->ownedWorkspaces()->where('is_personal', true)->first();
+            if ($personal) {
+                $autoDefaults = [
+                    (($previousName ?: ('User ' . $user->id))) . "'s workspace",
+                    'User ' . $user->id . "'s workspace",
+                ];
+                if (in_array($personal->name, $autoDefaults, true)) {
+                    $personal->update([
+                        'name' => ($user->name ?: ('User ' . $user->id)) . "'s workspace",
+                    ]);
+                }
+            }
+        }
+
         // Persist billing address + tax-id when the form sent any of
         // those fields. We store an empty row when only the country is
         // present so the Invoices PDF still has a snapshot.
