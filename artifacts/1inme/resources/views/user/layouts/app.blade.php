@@ -422,7 +422,7 @@
     </style>
     @stack('styles')
 </head>
-<body class="min-h-screen" style="color: var(--text-primary);">
+<body class="min-h-screen" data-app-layout style="color: var(--text-primary);">
     <div class="bg-mesh"><span class="bloom bloom-pink"></span></div>
     <div class="particles" id="particles"></div>
 
