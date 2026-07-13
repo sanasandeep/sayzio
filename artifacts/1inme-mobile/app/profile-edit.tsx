@@ -11,6 +11,7 @@ import {
 } from "react-native";
 
 import { Button } from "@/components/Button";
+import { PhoneField } from "@/components/PhoneField";
 import { TextField } from "@/components/TextField";
 import { useColors } from "@/hooks/useColors";
 import { getProfile, updateProfile, type ProfilePayload } from "@/lib/api/profile";
@@ -107,11 +108,10 @@ export default function ProfileEdit() {
           style={{ minHeight: 100, paddingVertical: 12, textAlignVertical: "top" }}
           error={errors.bio}
         />
-        <TextField
+        <PhoneField
           label="Phone"
           value={form.phone ?? ""}
-          onChangeText={(t) => set("phone", t)}
-          keyboardType="phone-pad"
+          onChange={(v) => set("phone", v)}
           error={errors.phone}
         />
         <TextField

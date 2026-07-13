@@ -144,7 +144,7 @@ class ProfileController extends Controller
                     $fail('That email address is not available.');
                 }
             }],
-            'phone' => 'nullable|string|max:20',
+            'phone' => 'nullable|string|max:30',
             'timezone' => 'required|string',
             'language' => 'required|string|in:en',
             'handle' => ['nullable', 'string', 'max:60', 'regex:/^[a-z0-9_-]+$/i', Rule::unique('users')->ignore($user->id), new \App\Modules\Admin\Rules\NotBannedName()],

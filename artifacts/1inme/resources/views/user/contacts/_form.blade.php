@@ -1,4 +1,5 @@
 @php
+    use App\Support\CountryDialCodes;
     $contact     = $contact ?? null;
     $phoneLabels = $phoneLabels ?? ['Mobile','Work','Home','Other'];
     $emailLabels = $emailLabels ?? ['Personal','Work','Other'];
@@ -6,6 +7,7 @@
     $emails      = $contact ? $contact->emails->all() : [];
     if (empty($phones)) $phones = [(object)['label'=>'Mobile','value'=>$prefillPhone ?? '']];
     if (empty($emails)) $emails = [(object)['label'=>'Personal','value'=>'']];
+    $dialCountries = CountryDialCodes::all();
 @endphp
 
 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -40,14 +42,23 @@
     <label class="block text-xs font-semibold mb-1.5" style="color:var(--text-muted);">Phones</label>
     <div id="phones-list" class="space-y-2">
         @foreach($phones as $i => $p)
+            @php [$_ccDial, $_ccNum] = CountryDialCodes::parse($p->value ?? ''); @endphp
             <div class="flex gap-2 phone-row">
                 <select name="phones[{{ $i }}][label]" class="px-2 py-2 rounded-lg text-xs w-28" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.10);color:var(--text-primary);">
                     @foreach($phoneLabels as $l)
                         <option value="{{ $l }}" @selected($p->label === $l)>{{ $l }}</option>
                     @endforeach
                 </select>
-                <input type="tel" name="phones[{{ $i }}][value]" value="{{ $p->value }}" placeholder="+1 555 0100"
-                       class="flex-1 px-3 py-2 rounded-lg text-sm" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.10);color:var(--text-primary);">
+                {{-- Country code + number split --}}
+                <div class="flex flex-1 rounded-lg overflow-hidden" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.10);">
+                    <select class="phone-cc-select px-1.5 py-2 text-xs border-r border-white/10 shrink-0 bg-transparent focus:outline-none cursor-pointer" style="color:var(--text-primary);">
+                        @foreach($dialCountries as $c)
+                            <option value="{{ $c['dial'] }}" @selected($_ccDial === $c['dial'])>{{ $c['flag'] }} {{ $c['dial'] }}</option>
+                        @endforeach
+                    </select>
+                    <input type="tel" class="phone-num-input flex-1 px-2 py-2 text-sm bg-transparent focus:outline-none" style="color:var(--text-primary);" value="{{ $_ccNum }}" placeholder="555 0100">
+                </div>
+                <input type="hidden" name="phones[{{ $i }}][value]" value="{{ $p->value }}" class="phone-value-hidden">
                 <button type="button" onclick="this.closest('.phone-row').remove()" class="px-3 rounded-lg text-xs" style="background:rgba(239,68,68,.10);color:#ef4444;border:1px solid rgba(239,68,68,.20)"><i class="fas fa-times"></i></button>
             </div>
         @endforeach
@@ -96,32 +107,76 @@
     <input type="file" name="photo" accept="image/*" class="text-xs" style="color:var(--text-muted);">
 </div>
 
+<style>
+html.light-mode #phones-list .phone-cc-select,
+html.light-mode #phones-list .phone-num-input { color: #1e1e2e !important; }
+html.light-mode #phones-list .flex { background: rgba(0,0,0,.04) !important; border-color: rgba(0,0,0,.12) !important; }
+html.light-mode #phones-list .border-white\/10 { border-color: rgba(0,0,0,.12) !important; }
+</style>
+
 <script>
 (function () {
+    var DIAL_CODES = @json($dialCountries);
+
+    function parseDial(val) {
+        val = (val || '').trim();
+        if (!val) return ['+1', ''];
+        if (val[0] !== '+') return ['+1', val];
+        var sorted = DIAL_CODES.map(function (c) { return c.dial; })
+            .filter(function (d, i, arr) { return arr.indexOf(d) === i; })
+            .sort(function (a, b) { return b.length - a.length; });
+        for (var i = 0; i < sorted.length; i++) {
+            if (val.startsWith(sorted[i])) {
+                return [sorted[i], val.slice(sorted[i].length).trimStart()];
+            }
+        }
+        return ['+1', val];
+    }
+
+    function combinePhone(row) {
+        var cc  = row.querySelector('.phone-cc-select');
+        var num = row.querySelector('.phone-num-input');
+        var hid = row.querySelector('.phone-value-hidden');
+        if (!cc || !num || !hid) return;
+        var n = num.value.trim();
+        hid.value = n ? (cc.value + ' ' + n) : '';
+    }
+
+    document.getElementById('phones-list').addEventListener('change', function (e) {
+        var row = e.target.closest('.phone-row');
+        if (row) combinePhone(row);
+    });
+    document.getElementById('phones-list').addEventListener('input', function (e) {
+        var row = e.target.closest('.phone-row');
+        if (row && e.target.classList.contains('phone-num-input')) combinePhone(row);
+    });
+
     // Per-list monotonically increasing counter so newly-added rows always
     // get a unique array index (otherwise PHP overwrites duplicates).
-    const counters = {};
+    var counters = {};
     function nextIdx(listId) {
         if (counters[listId] === undefined) {
-            const list = document.getElementById(listId);
-            let max = -1;
-            list.querySelectorAll('[name]').forEach(el => {
-                const m = el.name.match(/\[(\d+)\]/);
+            var list = document.getElementById(listId);
+            var max = -1;
+            list.querySelectorAll('[name]').forEach(function (el) {
+                var m = el.name.match(/\[(\d+)\]/);
                 if (m) max = Math.max(max, parseInt(m[1], 10));
             });
             counters[listId] = max + 1;
         }
         return counters[listId]++;
     }
-    document.querySelectorAll('[data-add-row]').forEach(btn => {
-        btn.addEventListener('click', () => {
-            const listId = btn.dataset.addRow;
-            const list   = document.getElementById(listId);
-            const tpl    = list.querySelector('div').cloneNode(true);
-            const idx    = nextIdx(listId);
-            tpl.querySelectorAll('input,select').forEach(el => {
-                el.name = el.name.replace(/\[\d+\]/, '['+idx+']');
-                if (el.tagName === 'INPUT') el.value = '';
+
+    document.querySelectorAll('[data-add-row]').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            var listId = btn.dataset.addRow;
+            var list   = document.getElementById(listId);
+            var tpl    = list.querySelector('div').cloneNode(true);
+            var idx    = nextIdx(listId);
+            tpl.querySelectorAll('input,select').forEach(function (el) {
+                if (el.name) el.name = el.name.replace(/\[\d+\]/, '['+idx+']');
+                if (el.tagName === 'INPUT' && el.type !== 'hidden') el.value = '';
+                if (el.type === 'hidden') el.value = '';
             });
             list.appendChild(tpl);
         });

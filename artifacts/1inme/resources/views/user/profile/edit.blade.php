@@ -64,8 +64,13 @@
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
                                 <label class="block text-sm font-medium mb-1.5" style="color: var(--text-muted);">Phone</label>
-                                <input type="text" name="phone" value="{{ old('phone', $user->phone) }}"
-                                       class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/20 focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/40 outline-none transition-all">
+                                @include('common.partials.phone-input', [
+                                    'phoneInputName'  => 'phone',
+                                    'phoneInputValue' => old('phone', $user->phone ?? ''),
+                                    'phoneInputId'    => 'profile-phone',
+                                    'phoneInputSize'  => 'lg',
+                                    'phoneInputClass' => 'w-full',
+                                ])
                             </div>
                             <div>
                                 <label class="block text-sm font-medium mb-1.5" style="color: var(--text-muted);">Billing country</label>
