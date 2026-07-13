@@ -1,7 +1,7 @@
 @extends('user.layouts.settings')
 @section('title', 'Notification preferences')
 @section('settings-content')
-<div class="max-w-3xl mx-auto px-4 py-8">
+<div>
     <div class="flex items-center justify-between mb-6">
         <div>
             <h1 class="text-2xl font-bold" style="color: var(--text-primary);">Notification preferences</h1>

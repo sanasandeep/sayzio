@@ -1,7 +1,7 @@
 @extends('user.layouts.settings')
 @section('title', 'Creator Profile')
 @section('settings-content')
-<div class="max-w-3xl mx-auto px-4 py-8">
+<div>
     <div class="flex items-start justify-between gap-3 mb-6 flex-wrap">
         <div>
             <h1 class="text-2xl font-bold" style="color: var(--text-primary);">Creator Profile</h1>
@@ -57,7 +57,7 @@
     @endif
 
     {{-- ── Main editor ──────────────────────────────────── --}}
-    <form action="{{ route('user.creator-profile.update') }}" method="POST" enctype="multipart/form-data" class="space-y-6">
+    <form action="{{ route('user.creator-profile.update') }}" method="POST" enctype="multipart/form-data" class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
         @csrf
 
         {{-- Hero --}}
@@ -360,7 +360,7 @@
             </label>
         </fieldset>
 
-        <div class="flex justify-end gap-2">
+        <div class="flex justify-end gap-2 lg:col-span-2">
             <a href="{{ route('user.posts.index') }}" class="text-xs font-semibold px-4 py-2 rounded-lg" style="background: var(--bg-card); border: 1px solid var(--border-soft); color: var(--text-primary);">
                 Manage posts
             </a>

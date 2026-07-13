@@ -2,7 +2,7 @@
 @section('title', 'Integrations')
 
 @section('settings-content')
-<div class="max-w-7xl mx-auto" x-data="{ tab: '{{ $activeTab }}' }">
+<div x-data="{ tab: '{{ $activeTab }}' }">
     @include('user.partials.page-hero', [
         'title'    => 'Integrations',
         'subtitle' => 'Reusable third-party configurations — payment gateways, SMS senders, and email mailers. Save once, attach anywhere.',

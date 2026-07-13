@@ -8,7 +8,7 @@
     $__can = fn($p) => $__user && $__ws ? $__user->canInWorkspace($__ws, $p) : false;
     $__canEdit = $__can('settings.edit');
 @endphp
-<div class="max-w-4xl mx-auto">
+<div>
     <div class="flex items-center justify-between mb-6">
         <div>
             <h1 class="text-2xl font-bold text-white">Custom Domains</h1>

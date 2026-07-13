@@ -3,7 +3,7 @@
 @section('title', 'Devices & sessions')
 
 @section('settings-content')
-<div class="max-w-4xl mx-auto">
+<div>
     @include('user.partials.page-hero', [
         'title' => 'Devices & sessions',
         'subtitle' => 'Every browser and app currently signed into your account. Revoke anything you don\'t recognise.',

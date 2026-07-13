@@ -1,7 +1,7 @@
 @extends('user.layouts.settings')
 @section('title', 'Request a badge')
 @section('settings-content')
-<div class="max-w-3xl mx-auto px-4 py-8">
+<div>
     <div class="mb-6">
         <h1 class="text-2xl font-bold" style="color: var(--text-primary);">Account badges</h1>
         <p class="text-sm mt-1" style="color: var(--text-muted);">Request a badge for your account. Our team reviews every request.</p>
@@ -31,7 +31,8 @@
     {{-- Give a badge (Task #3045): a creator passes on a badge they hold to
          another account, found by handle. Only badges the creator currently
          holds are offered; ownership is re-verified server-side on submit. --}}
-    <div class="rounded-2xl border p-5 mb-8" style="background: var(--bg-card); border-color: var(--border-soft);">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start mb-8">
+    <div class="rounded-2xl border p-5" style="background: var(--bg-card); border-color: var(--border-soft);">
         <h2 class="text-sm font-bold mb-1" style="color: var(--text-primary);">Give a badge</h2>
         <p class="text-xs mb-4" style="color: var(--text-muted);">Pass one of your badges to another account by their handle. They'll be notified, and your name is recorded as the giver.</p>
 
@@ -105,7 +106,7 @@
     @endpush
     @endonce
 
-    <div class="rounded-2xl border p-5 mb-8" style="background: var(--bg-card); border-color: var(--border-soft);">
+    <div class="rounded-2xl border p-5" style="background: var(--bg-card); border-color: var(--border-soft);">
         <h2 class="text-sm font-bold mb-4" style="color: var(--text-primary);">Request a badge</h2>
         <form method="POST" action="{{ route('user.badge-requests.store') }}" x-data="{ mode: '{{ old('custom_name') ? 'custom' : 'existing' }}' }">
             @csrf
@@ -145,6 +146,7 @@
 
             <button type="submit" class="px-5 py-2.5 rounded-lg text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 transition">Submit request</button>
         </form>
+    </div>
     </div>
 
     <h2 class="text-sm font-bold mb-3" style="color: var(--text-primary);">Your requests</h2>

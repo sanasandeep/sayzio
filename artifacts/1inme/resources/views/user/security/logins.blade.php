@@ -3,7 +3,7 @@
 @section('title', 'Recent logins')
 
 @section('settings-content')
-<div class="max-w-4xl mx-auto px-4 py-8">
+<div>
     <div class="mb-6">
         <h1 class="text-2xl font-semibold" style="color: var(--text-strong);">Recent logins</h1>
         <p class="text-sm mt-1" style="color: var(--text-muted);">

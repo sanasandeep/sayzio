@@ -2,7 +2,7 @@
 @section('title', 'Connected Apps')
 
 @section('settings-content')
-<div class="max-w-7xl mx-auto">
+<div>
     @include('user.partials.page-hero', [
         'title'    => 'Connected Apps',
         'subtitle' => 'Connect your CRM and analytics tools. Push new leads, subscribers and form submissions out automatically, pull CRM contacts back into Sayzio, and forward click events to Google Analytics.',

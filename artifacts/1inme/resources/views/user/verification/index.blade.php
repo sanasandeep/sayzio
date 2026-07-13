@@ -3,7 +3,7 @@
 
 @section('settings-content')
 @include('user.partials._plan_lock', ['feature' => 'verification_eligible', 'kind' => 'flag', 'label' => 'Verified-creator badge'])
-<div class="max-w-5xl mx-auto">
+<div>
     <div class="flex items-center justify-between mb-6 flex-wrap gap-3">
         <div>
             <h1 class="text-2xl font-bold" style="color: var(--text-primary);">Verification</h1>

@@ -1,7 +1,7 @@
 @extends('user.layouts.settings')
 @section('title', 'Contact privacy')
 @section('settings-content')
-<div class="max-w-3xl mx-auto px-4 py-8">
+<div>
     <div class="mb-6">
         <h1 class="text-2xl font-bold" style="color: var(--text-primary);">Contact privacy</h1>
         <p class="text-sm mt-1" style="color: var(--text-muted);">
