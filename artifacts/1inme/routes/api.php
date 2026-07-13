@@ -1267,6 +1267,7 @@ Route::prefix('v1')->group(function () {
         // Team / staff (active workspace)
         Route::get   ('/team',                     [\App\Modules\Api\Controllers\TeamController::class, 'index']);
         Route::post  ('/team/invite',              [\App\Modules\Api\Controllers\TeamController::class, 'invite'])->middleware('throttle:30,1');
+        Route::patch ('/team/members/{member}',    [\App\Modules\Api\Controllers\TeamController::class, 'updateMember'])->whereNumber('member');
         Route::delete('/team/invites/{invite}',    [\App\Modules\Api\Controllers\TeamController::class, 'revokeInvite'])->whereNumber('invite');
         Route::delete('/team/members/{member}',    [\App\Modules\Api\Controllers\TeamController::class, 'removeMember'])->whereNumber('member');
 

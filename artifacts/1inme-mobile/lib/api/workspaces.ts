@@ -166,3 +166,93 @@ export async function listWorkspaceMembers(id: number): Promise<WorkspaceMember[
   );
   return res.data.items;
 }
+
+/** The five collaborator roles the web team screen exposes, in seniority order. */
+export type WorkspaceRole = "admin" | "editor" | "replier" | "analyst" | "viewer";
+
+export type WorkspaceInvite = {
+  id: number;
+  email: string;
+  role: string;
+  expires_at: string | null;
+  created_at: string | null;
+};
+
+/**
+ * Full team payload for a *specific* workspace (members + pending invites +
+ * seat usage + whether the caller may manage it). Mirrors the web Team screen.
+ */
+export type WorkspaceTeam = {
+  workspace: { id: number; name: string; is_personal: boolean };
+  members: WorkspaceMember[];
+  pending_invites: WorkspaceInvite[];
+  used_seats: number;
+  max_seats: number;
+  can_manage: boolean;
+};
+
+/**
+ * The REST TeamController's `/team*` endpoints all accept an explicit
+ * `?workspace_id=` override (defaulting to the active workspace otherwise), so
+ * these helpers manage teammates for any workspace the caller owns/admins —
+ * exactly what the per-workspace members screen (reached from workspace-edit)
+ * needs, independent of which workspace is currently active.
+ */
+export async function getWorkspaceTeam(workspaceId: number): Promise<WorkspaceTeam> {
+  const res = await apiFetch<{ data: WorkspaceTeam }>(
+    `/team?workspace_id=${workspaceId}`,
+  );
+  return res.data;
+}
+
+/**
+ * Invite a teammate by email. Enforced server-side against the plan / team-
+ * billing seat cap: when the workspace is out of seats the API responds with
+ * `error.code = "seat_limit"`, which {@link handlePlanLockedError} surfaces as
+ * an upgrade prompt (same treatment as the workspace-create cap).
+ */
+export async function inviteWorkspaceMember(
+  workspaceId: number,
+  input: { email: string; role: WorkspaceRole },
+): Promise<WorkspaceInvite> {
+  const res = await apiFetch<{ data: { invite: WorkspaceInvite } }>(
+    `/team/invite?workspace_id=${workspaceId}`,
+    { method: "POST", body: JSON.stringify(input) },
+  );
+  return res.data.invite;
+}
+
+/** Owner/Admin: change a member's role. Returns the re-serialized member. */
+export async function updateWorkspaceMemberRole(
+  workspaceId: number,
+  memberId: number,
+  role: WorkspaceRole,
+): Promise<WorkspaceMember> {
+  const res = await apiFetch<{ data: { member: WorkspaceMember } }>(
+    `/team/members/${memberId}?workspace_id=${workspaceId}`,
+    { method: "PATCH", body: JSON.stringify({ role }) },
+  );
+  return res.data.member;
+}
+
+/** Owner/Admin: revoke a pending invite. */
+export async function revokeWorkspaceInvite(
+  workspaceId: number,
+  inviteId: number,
+): Promise<void> {
+  await apiFetch<unknown>(
+    `/team/invites/${inviteId}?workspace_id=${workspaceId}`,
+    { method: "DELETE" },
+  );
+}
+
+/** Owner/Admin: remove a member from the workspace. */
+export async function removeWorkspaceMember(
+  workspaceId: number,
+  memberId: number,
+): Promise<void> {
+  await apiFetch<unknown>(
+    `/team/members/${memberId}?workspace_id=${workspaceId}`,
+    { method: "DELETE" },
+  );
+}

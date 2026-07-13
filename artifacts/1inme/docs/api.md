@@ -1129,8 +1129,11 @@ Operates on the active workspace.
 | ------ | --------------------------------- | ---- | -------------------------------- |
 | GET    | `/team`                           | yes  | List members + invites.          |
 | POST   | `/team/invite`                    | yes  | Invite a teammate. Throttle: 30/min. |
+| PATCH  | `/team/members/{member}`          | yes  | Change a member's role (`admin`, `editor`, `replier`, `analyst`, `viewer`). |
 | DELETE | `/team/invites/{invite}`          | yes  | Revoke an invite.                |
 | DELETE | `/team/members/{member}`          | yes  | Remove a member.                 |
+
+All `/team*` endpoints accept an optional `workspace_id` (query or body) to target a specific workspace instead of the active one; the caller must own or be an Admin of it.
 
 ## Client portals
 

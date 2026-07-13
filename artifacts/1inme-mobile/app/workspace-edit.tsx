@@ -282,7 +282,43 @@ export default function WorkspaceEditScreen() {
           )}
         </Pressable>
 
-        {/* Advanced settings live on the web (delete, members, approvals). */}
+        {/* Manage teammates natively: invite by email, change roles and remove
+            members without leaving the app. Team workspaces only — the personal
+            workspace can't have collaborators. */}
+        {!workspace.is_personal ? (
+          <Pressable
+            onPress={() =>
+              router.push(
+                `/workspace-members?id=${workspace.id}&name=${encodeURIComponent(workspace.name)}` as never,
+              )
+            }
+            style={[
+              styles.memberLink,
+              {
+                backgroundColor: colors.card,
+                borderColor: colors.border,
+                borderRadius: colors.radius,
+              },
+            ]}
+            accessibilityRole="button"
+            accessibilityLabel="Manage members and invites"
+          >
+            <View style={[styles.memberIcon, { backgroundColor: colors.primary + "1c" }]}>
+              <Feather name="users" size={16} color={colors.primary} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.memberTitle, { color: colors.foreground }]}>
+                Members & invites
+              </Text>
+              <Text style={[styles.memberSub, { color: colors.mutedForeground }]}>
+                Invite teammates, change roles and remove members.
+              </Text>
+            </View>
+            <Feather name="chevron-right" size={18} color={colors.mutedForeground} />
+          </Pressable>
+        ) : null}
+
+        {/* Advanced settings live on the web (approvals, billing seats). */}
         <Pressable
           onPress={() => openWebSettings(workspace.id)}
           style={styles.webLink}
@@ -390,6 +426,22 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: "#fff",
   },
+  memberLink: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    padding: 14,
+    borderWidth: 1,
+  },
+  memberIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 999,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  memberTitle: { fontFamily: "SpaceGrotesk_600SemiBold", fontSize: 14 },
+  memberSub: { fontFamily: "SpaceGrotesk_400Regular", fontSize: 12, marginTop: 2 },
   webLink: {
     flexDirection: "row",
     alignItems: "center",
