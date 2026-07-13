@@ -292,6 +292,10 @@ args = "e2e-mobile-workspace-owner-gear"
 task = "workflow.run"
 args = "e2e-mobile-workspaces-crud"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-otp-login"
+
 [[workflows.workflow]]
 name = "e2e"
 author = "agent"
@@ -1050,6 +1054,17 @@ isValidation = true
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "pnpm --filter @workspace/1inme-mobile run test:workspaces-crud-e2e"
+
+[[workflows.workflow]]
+name = "e2e-otp-login"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "bash artifacts/1inme/tests/Browser/run-validation.sh otp-login-flow.spec.ts"
+
+[workflows.workflow.metadata]
+isValidation = true
 
 [agent]
 stack = "PNPM_WORKSPACE"
