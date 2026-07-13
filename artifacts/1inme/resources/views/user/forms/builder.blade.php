@@ -491,7 +491,7 @@
                                                     <input type="text" x-model="po.label" :title="po.label" placeholder="Label" class="theme-input flex-1 min-w-0 text-xs">
                                                     <button type="button" @click="removePriceOption(j)" class="text-rose-400 shrink-0 px-1" title="Remove"><i class="fas fa-times"></i></button>
                                                 </div>
-                                                <input type="number" min="0" step="0.01" x-model.number="po.price" placeholder="0.00" class="theme-input w-full text-xs">
+                                                <input type="text" inputmode="decimal" x-model.number="po.price" placeholder="0.00" class="theme-input w-full text-xs">
                                             </div>
                                         </template>
                                     </div>
@@ -508,7 +508,7 @@
                                                     <input type="text" x-model="ad.label" :title="ad.label" placeholder="Label" class="theme-input flex-1 min-w-0 text-xs">
                                                     <button type="button" @click="removeAddon(j)" class="text-rose-400 shrink-0 px-1" title="Remove"><i class="fas fa-times"></i></button>
                                                 </div>
-                                                <input type="number" min="0" step="0.01" x-model.number="ad.price" placeholder="0.00" class="theme-input w-full text-xs">
+                                                <input type="text" inputmode="decimal" x-model.number="ad.price" placeholder="0.00" class="theme-input w-full text-xs">
                                             </div>
                                         </template>
                                     </div>
@@ -539,14 +539,14 @@
                                     {{-- number: price per unit (× quantity entered) --}}
                                     <div x-show="fields[selectedIndex].type === 'number'">
                                         <label class="block text-[10px] font-medium mb-1" style="color: var(--text-muted);">Price per unit</label>
-                                        <input type="number" min="0" step="0.01" x-model.number="fields[selectedIndex].price" class="theme-input w-full text-xs" placeholder="0.00">
+                                        <input type="text" inputmode="decimal" x-model.number="fields[selectedIndex].price" class="theme-input w-full text-xs" placeholder="0.00">
                                         <p class="text-[10px] mt-1" style="color: var(--text-faint);">Multiplied by the quantity the visitor enters.</p>
                                     </div>
 
                                     {{-- consent: flat add-on when ticked --}}
                                     <div x-show="fields[selectedIndex].type === 'consent'">
                                         <label class="block text-[10px] font-medium mb-1" style="color: var(--text-muted);">Add-on price</label>
-                                        <input type="number" min="0" step="0.01" x-model.number="fields[selectedIndex].price" class="theme-input w-full text-xs" placeholder="0.00">
+                                        <input type="text" inputmode="decimal" x-model.number="fields[selectedIndex].price" class="theme-input w-full text-xs" placeholder="0.00">
                                         <p class="text-[10px] mt-1" style="color: var(--text-faint);">Added to the total when the visitor ticks this box.</p>
                                     </div>
 
@@ -559,7 +559,7 @@
                                         <template x-for="opt in (fields[selectedIndex].options || [])" :key="opt">
                                             <div class="flex items-center gap-2">
                                                 <span class="text-[11px] flex-1 truncate" style="color: var(--text-secondary);" x-text="opt"></span>
-                                                <input type="number" min="0" step="0.01"
+                                                <input type="text" inputmode="decimal"
                                                        :value="(fields[selectedIndex].option_prices && fields[selectedIndex].option_prices[opt]) || ''"
                                                        @input="setOptionPrice(opt, $event.target.value)"
                                                        class="theme-input w-24 text-xs" placeholder="0.00">
@@ -696,12 +696,12 @@ function formBuilder(initial) {
             // once on load. Hidden inputs convert back to cents on submit.
             (this.fields || []).forEach(f => {
                 if (f.price_cents != null && f.price == null) {
-                    f.price = (Number(f.price_cents) || 0) / 100;
+                    f.price = Number(((Number(f.price_cents) || 0) / 100).toFixed(2));
                 }
                 if (f.option_prices && typeof f.option_prices === 'object') {
                     const dollars = {};
                     Object.keys(f.option_prices).forEach(k => {
-                        dollars[k] = (Number(f.option_prices[k]) || 0) / 100;
+                        dollars[k] = Number(((Number(f.option_prices[k]) || 0) / 100).toFixed(2));
                     });
                     f.option_prices = dollars;
                 }
