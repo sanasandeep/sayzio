@@ -214,7 +214,7 @@ export default function StatsScreen() {
                 <Text style={{ color: colors.mutedForeground, fontSize: 12, marginTop: 4, marginBottom: 12 }}>
                   Upgrade your plan to download CSV exports.
                 </Text>
-                <Button label="Upgrade plan" onPress={() => Linking.openURL(getBaseUrl() + "/pricing")} />
+                <Button label="Upgrade plan" onPress={() => router.push("/upgrade")} />
               </View>
             )}
           </>
