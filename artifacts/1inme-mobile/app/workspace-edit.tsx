@@ -18,7 +18,9 @@ import { EmptyState } from "@/components/EmptyState";
 import { useColors } from "@/hooks/useColors";
 import { useWorkspace } from "@/contexts/WorkspaceContext";
 import { getBaseUrl } from "@/lib/api";
+import { showAlert } from "@/lib/webAlert";
 import {
+  deleteWorkspace,
   updateWorkspace,
   workspaceFeatherIcon,
   WORKSPACE_COLOR_CHOICES,
@@ -51,7 +53,16 @@ export default function WorkspaceEditScreen() {
     workspace?.color ?? WORKSPACE_COLOR_CHOICES[0],
   );
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // The owner's personal workspace can never be deleted, and neither can their
+  // last remaining workspace — both mirror the web guard. Hiding the button
+  // when we already know it would be rejected keeps the UI honest (the server
+  // still enforces it either way).
+  const ownedCount = workspaces.filter((w) => w.is_owner).length;
+  const canDelete =
+    !!workspace && workspace.is_owner && !workspace.is_personal && ownedCount > 1;
 
   // Only the owner may edit; the switcher/list already hide the entry point for
   // non-owners, but guard here too in case the screen is reached directly.
@@ -100,6 +111,43 @@ export default function WorkspaceEditScreen() {
     } finally {
       setSaving(false);
     }
+  };
+
+  const performDelete = async () => {
+    if (!workspace || deleting) return;
+    setDeleting(true);
+    setError(null);
+    try {
+      await deleteWorkspace(workspace.id);
+      // Drop the deleted workspace from every list surface, then let the
+      // WorkspaceContext re-pick an active workspace (falls back to personal).
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["workspaces"] }),
+        queryClient.invalidateQueries({ queryKey: ["workspaces-list"] }),
+      ]);
+      refresh();
+      router.back();
+    } catch (e) {
+      const msg =
+        e && typeof e === "object" && typeof (e as { message?: unknown }).message === "string"
+          ? (e as { message: string }).message
+          : "Couldn't delete workspace. Please try again.";
+      setError(msg);
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const onDelete = () => {
+    if (!canDelete || deleting) return;
+    showAlert(
+      `Delete "${workspace.name}"?`,
+      "This permanently removes the workspace, its members and pending invites. Anything created inside it may become inaccessible. This cannot be undone.",
+      [
+        { text: "Cancel", style: "cancel" },
+        { text: "Delete", style: "destructive", onPress: () => void performDelete() },
+      ],
+    );
   };
 
   return (
@@ -246,6 +294,52 @@ export default function WorkspaceEditScreen() {
             More settings on the web
           </Text>
         </Pressable>
+
+        {/* Danger zone: delete a team workspace you own. Hidden for the
+            personal workspace and when this is the owner's only workspace,
+            both of which the server rejects too. */}
+        {canDelete ? (
+          <View
+            style={[
+              styles.dangerZone,
+              { borderColor: colors.destructive ?? "#ef4444", borderRadius: colors.radius },
+            ]}
+          >
+            <Text style={[styles.dangerTitle, { color: colors.destructive ?? "#ef4444" }]}>
+              Delete workspace
+            </Text>
+            <Text style={[styles.dangerBody, { color: colors.mutedForeground }]}>
+              Permanently removes this workspace, its members and pending invites. This can't be undone.
+            </Text>
+            <Pressable
+              onPress={onDelete}
+              disabled={deleting}
+              style={[
+                styles.deleteBtn,
+                {
+                  backgroundColor: colors.destructive ?? "#ef4444",
+                  borderRadius: colors.radius,
+                  opacity: deleting ? 0.7 : 1,
+                },
+              ]}
+              accessibilityRole="button"
+              accessibilityLabel="Delete workspace"
+            >
+              {deleting ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <>
+                  <Feather name="trash-2" size={15} color="#fff" />
+                  <Text style={styles.deleteText}>Delete workspace</Text>
+                </>
+              )}
+            </Pressable>
+          </View>
+        ) : !workspace.is_personal ? (
+          <Text style={[styles.dangerHint, { color: colors.mutedForeground }]}>
+            You can't delete your only workspace. Create another first.
+          </Text>
+        ) : null}
       </ScrollView>
     </View>
   );
@@ -304,4 +398,31 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   webLinkText: { fontFamily: "SpaceGrotesk_500Medium", fontSize: 13 },
+  dangerZone: {
+    borderWidth: 1,
+    padding: 16,
+    gap: 10,
+    marginTop: 4,
+  },
+  dangerTitle: { fontFamily: "SpaceGrotesk_700Bold", fontSize: 15 },
+  dangerBody: { fontFamily: "SpaceGrotesk_400Regular", fontSize: 12, lineHeight: 18 },
+  deleteBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingVertical: 13,
+    marginTop: 4,
+  },
+  deleteText: {
+    fontFamily: "SpaceGrotesk_600SemiBold",
+    fontSize: 15,
+    color: "#fff",
+  },
+  dangerHint: {
+    fontFamily: "SpaceGrotesk_400Regular",
+    fontSize: 12,
+    textAlign: "center",
+    marginTop: 4,
+  },
 });

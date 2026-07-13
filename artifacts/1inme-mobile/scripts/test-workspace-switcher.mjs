@@ -10,7 +10,7 @@
 //   2. Each workspace's ACCENT COLOUR (ws.color, falling back to the theme
 //      primary) tints the icon chip — a dropped fallback would crash on a
 //      colourless workspace or lose the brand tint.
-//   3. The settings GEAR (which deep-links to the web settings page) only
+//   3. The edit GEAR (which opens the native workspace-edit screen) only
 //      renders for owners (is_owner === true). Showing it to a non-owner
 //      would dangle a control the server rejects.
 //
@@ -176,15 +176,15 @@ assert.ok(
 //    settings gears left behind.
 // ---------------------------------------------------------------------------
 function assertGearOwnerGated(src, ownerExpr, label) {
-  const gearCount = (src.match(/name="settings"/g) ?? []).length;
+  const gearCount = (src.match(/name="edit-2"/g) ?? []).length;
   assert.ok(
     gearCount >= 1,
-    `${label}: expected at least one settings gear to be present`,
+    `${label}: expected at least one edit gear to be present`,
   );
 
   const escaped = ownerExpr.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   const guarded = new RegExp(
-    `${escaped}\\s*\\?\\s*\\([\\s\\S]*?name="settings"[\\s\\S]*?\\)\\s*:\\s*null`,
+    `${escaped}\\s*\\?\\s*\\([\\s\\S]*?name="edit-2"[\\s\\S]*?\\)\\s*:\\s*null`,
     "g",
   );
   const guardedCount = (src.match(guarded) ?? []).length;
@@ -192,7 +192,7 @@ function assertGearOwnerGated(src, ownerExpr, label) {
   assert.equal(
     guardedCount,
     gearCount,
-    `${label}: every settings gear must be gated behind \`${ownerExpr} ? (…) : null\` ` +
+    `${label}: every edit gear must be gated behind \`${ownerExpr} ? (…) : null\` ` +
       `(found ${gearCount} gear(s) but only ${guardedCount} owner-gated)`,
   );
 }
@@ -200,15 +200,15 @@ function assertGearOwnerGated(src, ownerExpr, label) {
 assertGearOwnerGated(drawerSrc, "ws.is_owner", "DrawerSidebar");
 assertGearOwnerGated(screenSrc, "item.is_owner", "Workspaces screen");
 
-// The gear must deep-link to the web workspace settings page (owner-only web
-// flow), not attempt an unsupported in-app edit.
+// The gear must open the native workspace-edit screen (owner-only in-app edit
+// + delete), not deep-link out to the web settings page.
 assert.ok(
-  /openWorkspaceSettings\(ws\.id\)/.test(drawerSrc),
-  "the drawer gear must open the web workspace settings for that workspace",
+  /editWorkspace\(ws\.id\)/.test(drawerSrc),
+  "the drawer gear must open the native workspace-edit screen for that workspace",
 );
 assert.ok(
-  /openWorkspaceSettings\(item\.id\)/.test(screenSrc),
-  "the Workspaces screen gear must open the web workspace settings for that workspace",
+  /router\.push\(`\/workspace-edit\?id=\$\{item\.id\}/.test(screenSrc),
+  "the Workspaces screen gear must open the native workspace-edit screen for that workspace",
 );
 
 console.log(

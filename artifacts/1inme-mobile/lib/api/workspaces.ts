@@ -124,6 +124,42 @@ export async function updateWorkspace(
   return res.data.item;
 }
 
+/**
+ * Owner-only create. Mirrors the web workspace-switcher "New workspace" flow;
+ * the server enforces the plan's `max_workspaces` cap and, when the owner is
+ * over it, responds 402 with `error.code = "plan_upgrade_required"` and a
+ * recommended plan in `error.details` (surfaced by the caller). On success the
+ * new (team) workspace is returned so the switcher can add + activate it.
+ */
+export async function createWorkspace(input: {
+  name: string;
+  icon?: string | null;
+  color?: string | null;
+}): Promise<Workspace> {
+  const res = await apiFetch<{ data: { item: Workspace } }>("/workspaces", {
+    method: "POST",
+    body: JSON.stringify({
+      name: input.name,
+      icon: input.icon ?? null,
+      color: input.color ?? null,
+    }),
+  });
+  return res.data.item;
+}
+
+/**
+ * Owner-only delete. Mirrors the web workspace-settings delete: the personal
+ * workspace and the owner's last workspace are protected server-side (422).
+ * Returns the refreshed workspace list so the switcher can drop the deleted
+ * entry and re-pick an active workspace immediately.
+ */
+export async function deleteWorkspace(id: number): Promise<Workspace[]> {
+  const res = await apiFetch<{ data: { items: Workspace[] } }>(`/workspaces/${id}`, {
+    method: "DELETE",
+  });
+  return res.data.items;
+}
+
 export async function listWorkspaceMembers(id: number): Promise<WorkspaceMember[]> {
   const res = await apiFetch<{ data: { items: WorkspaceMember[] } }>(
     `/workspaces/${id}/members`,

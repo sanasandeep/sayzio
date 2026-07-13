@@ -8,6 +8,7 @@ use App\Modules\User\Models\WorkspaceMember;
 use App\Modules\User\Services\WorkspaceActivityRecorder;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
 class WorkspaceController extends Controller
@@ -52,6 +53,63 @@ class WorkspaceController extends Controller
                 'created_at' => optional($w->created_at)->toIso8601String(),
             ])->values()->all();
         return $this->ok(['items' => $items]);
+    }
+
+    /**
+     * Create a new (team) workspace — owner-only, capped by the plan's
+     * `max_workspaces` feature. Mirrors the web {@see \App\Modules\User\Controllers\WorkspaceController::store()}:
+     * same validation, same `settings.appearance` persistence, and the same
+     * plan-limit guard. Over the cap we return a plan-gated 402 carrying the
+     * cheapest plan that raises the limit, so the mobile app can route the
+     * owner straight to the recommended plan on its /upgrade screen (the
+     * native billing/entitlement path that replaces the web team-billing
+     * modal). Returns the serialized workspace so the switcher can refresh.
+     */
+    public function store(Request $request)
+    {
+        $user = $request->user();
+
+        $data = $request->validate([
+            'name'  => 'required|string|max:120',
+            'icon'  => ['nullable', 'string', Rule::in(array_keys(Workspace::ICON_CHOICES))],
+            'color' => ['nullable', 'string', Rule::in(Workspace::COLOR_CHOICES)],
+        ]);
+
+        $max   = (int) $user->getPlanFeature('max_workspaces', 1);
+        $owned = $user->ownedWorkspaces()->count();
+        if ($max !== -1 && $owned >= $max) {
+            return $this->planGate(
+                "Your plan allows at most {$max} workspace(s). Upgrade to add more.",
+                'max_workspaces',
+                $user,
+                402,
+                'plan_upgrade_required',
+                $owned,
+            );
+        }
+
+        // Persist the chosen symbol + colour into the generic settings JSON
+        // (no dedicated columns), only when the owner actually picked one;
+        // otherwise the workspace falls back to its automatic icon.
+        $settings = [];
+        if (!empty($data['icon']) || !empty($data['color'])) {
+            $settings['appearance'] = array_filter([
+                'icon'  => $data['icon'] ?? null,
+                'color' => $data['color'] ?? null,
+            ]);
+        }
+
+        // Workspaces created from the switcher are team workspaces; the
+        // personal one is auto-created at registration and is the only
+        // is_personal=true row the user owns.
+        $ws = $user->ownedWorkspaces()->create([
+            'name'        => $data['name'],
+            'slug'        => Str::slug($data['name']) . '-' . Str::random(4),
+            'is_personal' => false,
+            'settings'    => $settings ?: null,
+        ]);
+
+        return $this->created(['item' => $this->present($ws->fresh(), (int) $user->id)]);
     }
 
     public function members(Request $request, int $id)
@@ -121,5 +179,47 @@ class WorkspaceController extends Controller
         ]);
 
         return $this->ok(['item' => $this->present($workspace->fresh(), (int) $userId)]);
+    }
+
+    /**
+     * Owner-only: delete a workspace they own. Mirrors the web
+     * {@see \App\Modules\User\Controllers\WorkspaceController::destroy()} —
+     * the personal workspace can never be deleted, and an owner must always
+     * keep at least one workspace, so their last one is protected too.
+     * Members and pending invites are cleared first. Returns the refreshed
+     * workspace list so the switcher can drop the deleted entry and pick a
+     * new active workspace immediately.
+     */
+    public function destroy(Request $request, int $id)
+    {
+        $user      = $request->user();
+        $workspace = Workspace::find($id);
+        if (!$workspace) return $this->notFound('Workspace not found');
+        if ((int) $workspace->owner_user_id !== (int) $user->id) {
+            return $this->forbidden('Only the workspace owner can delete it');
+        }
+        if ($workspace->is_personal) {
+            return $this->fail('Your personal workspace cannot be deleted.', 422);
+        }
+        if ($user->ownedWorkspaces()->count() <= 1) {
+            return $this->fail('You cannot delete your only workspace.', 422);
+        }
+
+        $workspace->members()->delete();
+        $workspace->invites()->delete();
+        $workspace->delete();
+
+        $memberWorkspaceIds = WorkspaceMember::where('user_id', $user->id)->pluck('workspace_id');
+        $items = Workspace::whereIn('id', $memberWorkspaceIds)
+            ->orWhere('owner_user_id', $user->id)
+            ->orderBy('id')
+            ->get()
+            ->unique('id')
+            ->values()
+            ->map(fn ($w) => $this->present($w, (int) $user->id))
+            ->values()
+            ->all();
+
+        return $this->ok(['items' => $items]);
     }
 }
