@@ -60,7 +60,7 @@ class HomeController extends Controller
             // to rebuild from the file cache. The pricing partial wraps $plans
             // in collect(...) so a plain array is rendered identically to the
             // live Collection returned on the cache-miss path.
-            $key = HomePageCache::ANON_PAYLOAD_PREFIX . $currency;
+            $key = HomePageCache::anonPayloadKey($currency);
             $json = Cache::get($key);
             if (is_string($json) && ($decoded = json_decode($json, true)) !== null) {
                 $payload = $decoded;

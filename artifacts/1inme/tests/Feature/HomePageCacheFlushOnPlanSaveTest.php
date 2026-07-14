@@ -90,15 +90,18 @@ class HomePageCacheFlushOnPlanSaveTest extends TestCase
     private function seedAnonPayloads(): void
     {
         foreach (HomePageCache::CURRENCIES as $currency) {
-            Cache::put(HomePageCache::ANON_PAYLOAD_PREFIX . $currency, '{"stale":true}', 600);
+            Cache::put(HomePageCache::anonPayloadKey($currency), '{"stale":true}', 600);
         }
     }
 
     private function assertAnonPayloadsFlushed(): void
     {
+        // anonPayloadKey() re-resolves the CURRENT catalogue version, so this
+        // also holds after a flush bumped the version (the new-version keys
+        // start empty and the old-version keys were forgotten).
         foreach (HomePageCache::CURRENCIES as $currency) {
             $this->assertNull(
-                Cache::get(HomePageCache::ANON_PAYLOAD_PREFIX . $currency),
+                Cache::get(HomePageCache::anonPayloadKey($currency)),
                 "Home anon payload for {$currency} should be flushed by the plan save."
             );
         }

@@ -34,7 +34,10 @@ use Illuminate\Support\Facades\Cache;
  */
 class HomePageCache
 {
-    /** Anonymous home payload cache key prefix; suffixed with the currency. */
+    /**
+     * Anonymous home payload cache key prefix; suffixed with the plan
+     * catalogue version + currency (see {@see anonPayloadKey()}).
+     */
     public const ANON_PAYLOAD_PREFIX = 'home:anon:payload:';
 
     /** Featured blog-post carousel rows (plain attribute arrays). */
@@ -72,6 +75,13 @@ class HomePageCache
      */
     public static function warm(): array
     {
+        // Capture the plan-catalogue version BEFORE building anything: if an
+        // admin plan save flushes (and bumps the version) while this run is
+        // mid-build, every plan-bearing write below lands on the retired
+        // version's keys — readers on the bumped version take a clean miss
+        // and rebuild fresh, so a warm run can never re-shadow a plan edit.
+        $planVersion = PricingPageCache::version();
+
         // Each section is fault-isolated: a failure in one builder must not
         // abort the later warms in the same run (visitors still fall back to
         // the lazy request-path rebuild for whatever stayed cold).
@@ -90,7 +100,7 @@ class HomePageCache
                 $payload = self::buildPayload(null, null, false, $currency);
                 $encoded = json_encode($payload);
                 if ($encoded !== false) {
-                    Cache::put(self::ANON_PAYLOAD_PREFIX . $currency, $encoded, self::WARM_TTL);
+                    Cache::put(self::anonPayloadKey($currency, $planVersion), $encoded, self::WARM_TTL);
                     $summary['payload_currencies'][] = $currency;
                 }
             } catch (\Throwable $e) {
@@ -135,7 +145,7 @@ class HomePageCache
         // plan/price queries either; admin plan edits land within one
         // warm cadence.
         try {
-            $counts = PricingPageCache::warm(self::WARM_TTL);
+            $counts = PricingPageCache::warm(self::WARM_TTL, $planVersion);
             $summary['pricing_plans'] = $counts['plans'];
             $summary['pricing_packages'] = $counts['packages'];
         } catch (\Throwable $e) {
@@ -156,13 +166,27 @@ class HomePageCache
     public static function flushAnonPayloads(): void
     {
         try {
+            $version = PricingPageCache::version();
             foreach (self::CURRENCIES as $currency) {
-                Cache::forget(self::ANON_PAYLOAD_PREFIX . $currency);
+                Cache::forget(self::anonPayloadKey($currency, $version));
             }
         } catch (\Throwable $e) {
             // Cache layer unavailable — the payload will simply be rebuilt
             // lazily (or overwritten by the next warm run).
         }
+    }
+
+    /**
+     * The versioned anonymous-payload cache key for a currency. The plan
+     * catalogue version suffix (shared with PricingPageCache, bumped on
+     * every plan flush) is what makes a concurrent warm run unable to
+     * resurrect pre-edit prices: the warmer pins its writes to the version
+     * captured before it started building, while readers always use the
+     * current version.
+     */
+    public static function anonPayloadKey(string $currency, ?int $version = null): string
+    {
+        return self::ANON_PAYLOAD_PREFIX . ($version ?? PricingPageCache::version()) . ':' . $currency;
     }
 
     /**

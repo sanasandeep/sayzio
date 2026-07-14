@@ -91,7 +91,7 @@ class PricingPageCacheFlushOnPlanSaveTest extends TestCase
 
         // Warm the pricing catalogue cache with the OLD value.
         $this->get('/pricing')->assertOk();
-        $this->assertNotNull(Cache::get(PricingPageCache::CATALOG_CACHE_KEY));
+        $this->assertNotNull(Cache::get(PricingPageCache::catalogKey()));
 
         // Admin edits the plan's monthly coin grant to a distinctive value.
         $resp = $this->actingAs($admin, 'admin')->put(
@@ -101,7 +101,7 @@ class PricingPageCacheFlushOnPlanSaveTest extends TestCase
         $resp->assertSessionHasNoErrors();
 
         // The cached catalogue was invalidated by the save…
-        $this->assertNull(Cache::get(PricingPageCache::CATALOG_CACHE_KEY));
+        $this->assertNull(Cache::get(PricingPageCache::catalogKey()));
 
         // …and the very next /pricing render shows the new value.
         $page = $this->get('/pricing');
@@ -117,22 +117,22 @@ class PricingPageCacheFlushOnPlanSaveTest extends TestCase
     {
         $plan = $this->makePlan();
         $this->get('/pricing')->assertOk();
-        $this->assertNotNull(Cache::get(PricingPageCache::CATALOG_CACHE_KEY));
+        $this->assertNotNull(Cache::get(PricingPageCache::catalogKey()));
 
         $request = Request::create('/admin/plans', 'POST', $this->updatePayload($plan));
         app(PlanWriter::class)->createFromRequest($request);
 
-        $this->assertNull(Cache::get(PricingPageCache::CATALOG_CACHE_KEY));
+        $this->assertNull(Cache::get(PricingPageCache::catalogKey()));
     }
 
     public function test_plan_writer_duplicate_flushes_cached_catalog(): void
     {
         $plan = $this->makePlan();
         $this->get('/pricing')->assertOk();
-        $this->assertNotNull(Cache::get(PricingPageCache::CATALOG_CACHE_KEY));
+        $this->assertNotNull(Cache::get(PricingPageCache::catalogKey()));
 
         app(PlanWriter::class)->duplicate($plan);
 
-        $this->assertNull(Cache::get(PricingPageCache::CATALOG_CACHE_KEY));
+        $this->assertNull(Cache::get(PricingPageCache::catalogKey()));
     }
 }

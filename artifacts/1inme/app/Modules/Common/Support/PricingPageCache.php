@@ -29,8 +29,46 @@ use Illuminate\Support\Facades\Cache;
  */
 class PricingPageCache
 {
-    /** Plan + coin-package catalogue (attribute arrays + prices relation). */
+    /**
+     * Plan + coin-package catalogue (attribute arrays + prices relation).
+     * Key PREFIX only — the stored key is suffixed with the monotonic
+     * catalogue version (see {@see catalogKey()}).
+     */
     public const CATALOG_CACHE_KEY = 'pricing:catalog:v1';
+
+    /**
+     * Monotonic plan-catalogue version, bumped by {@see flush()}. Both the
+     * /pricing catalogue key and the homepage anonymous plan-teaser keys are
+     * suffixed with it, which closes the flush-vs-warm race: the scheduled
+     * warmer captures the version BEFORE it starts building, so if an admin
+     * plan save lands mid-run the warmer's writes go to the now-retired
+     * version's keys (harmless garbage that expires with its TTL) and every
+     * reader — already on the bumped version — takes a clean miss and
+     * rebuilds fresh instead of being re-shadowed by pre-edit data.
+     */
+    public const CATALOG_VERSION_KEY = 'pricing:catalog:ver';
+
+    /**
+     * Current catalogue version (>= 1). Falls back to 1 when the cache
+     * layer is unavailable, matching the read paths' live-query fallbacks.
+     */
+    public static function version(): int
+    {
+        try {
+            return max(1, (int) Cache::get(self::CATALOG_VERSION_KEY, 1));
+        } catch (\Throwable $e) {
+            return 1;
+        }
+    }
+
+    /**
+     * The versioned catalogue cache key. Pass an explicit version (as the
+     * warmer does, captured before building) to pin writes to that version.
+     */
+    public static function catalogKey(?int $version = null): string
+    {
+        return self::CATALOG_CACHE_KEY . ':' . ($version ?? self::version());
+    }
 
     /** TTL for lazily rebuilt cache on the request path (seconds). */
     public const TTL = 300;
@@ -65,7 +103,7 @@ class PricingPageCache
     public static function catalog(): array
     {
         try {
-            $payload = Cache::remember(self::CATALOG_CACHE_KEY, self::TTL, fn () => self::buildCatalog());
+            $payload = Cache::remember(self::catalogKey(), self::TTL, fn () => self::buildCatalog());
         } catch (\Throwable $e) {
             $payload = self::buildCatalog();
         }
@@ -102,12 +140,18 @@ class PricingPageCache
      * copy. Called by the scheduled warmer; safe to call any time (it only
      * writes fresher data). Returns row counts for the warm-run summary.
      *
+     * The warmer passes $version captured BEFORE any building started: if a
+     * plan save flushes (and bumps the version) while this build is in
+     * flight, the write below lands on the retired version's key and can
+     * never re-shadow the edit for readers on the new version.
+     *
      * @return array{plans:int,packages:int}
      */
-    public static function warm(int $ttl): array
+    public static function warm(int $ttl, ?int $version = null): array
     {
+        $version ??= self::version();
         $payload = self::buildCatalog();
-        Cache::put(self::CATALOG_CACHE_KEY, $payload, $ttl);
+        Cache::put(self::catalogKey($version), $payload, $ttl);
 
         return [
             'plans'    => count($payload['plans']),
@@ -130,7 +174,17 @@ class PricingPageCache
     public static function flush(): void
     {
         try {
-            Cache::forget(self::CATALOG_CACHE_KEY);
+            $current = self::version();
+
+            // Drop the current-version keys so readers miss immediately...
+            Cache::forget(self::catalogKey($current));
+
+            // ...and bump the version so any warm run that started building
+            // BEFORE this flush (with pre-edit data) writes to the retired
+            // version's keys instead of resurrecting stale prices. Stored
+            // forever: it's a tiny int and letting it expire could briefly
+            // point readers back at an unexpired retired-version entry.
+            Cache::forever(self::CATALOG_VERSION_KEY, $current + 1);
         } catch (\Throwable $e) {
             // Cache layer unavailable — reads already fall back to live queries.
         }
