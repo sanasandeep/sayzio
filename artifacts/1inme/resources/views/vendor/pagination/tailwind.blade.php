@@ -4,26 +4,28 @@
         <div class="flex justify-between flex-1 sm:hidden">
             @if ($paginator->onFirstPage())
                 <span class="relative inline-flex items-center px-3 py-2 text-xs font-medium rounded-lg cursor-default opacity-40"
-                      style="background: rgba(124,58,237,0.06); color: var(--text-faint); border: 1px solid rgba(124,58,237,0.10);">
+                      style="background: rgba(61,107,255,0.06); color: var(--text-faint); border: 1px solid rgba(61,107,255,0.10);">
                     {!! __('pagination.previous') !!}
                 </span>
             @else
                 <a href="{{ $paginator->previousPageUrl() }}"
-                   class="relative inline-flex items-center px-3 py-2 text-xs font-medium rounded-lg transition-colors hover:text-violet-300"
-                   style="background: rgba(124,58,237,0.08); color: var(--text-primary); border: 1px solid rgba(124,58,237,0.16);">
+                   class="relative inline-flex items-center px-3 py-2 text-xs font-medium rounded-lg transition-colors"
+                   style="background: rgba(61,107,255,0.08); color: var(--text-primary); border: 1px solid rgba(61,107,255,0.16);"
+                   onmouseover="this.style.color='var(--accent-light)'" onmouseout="this.style.color='var(--text-primary)'">
                     {!! __('pagination.previous') !!}
                 </a>
             @endif
 
             @if ($paginator->hasMorePages())
                 <a href="{{ $paginator->nextPageUrl() }}"
-                   class="relative inline-flex items-center px-3 py-2 ml-2 text-xs font-medium rounded-lg transition-colors hover:text-violet-300"
-                   style="background: rgba(124,58,237,0.08); color: var(--text-primary); border: 1px solid rgba(124,58,237,0.16);">
+                   class="relative inline-flex items-center px-3 py-2 ml-2 text-xs font-medium rounded-lg transition-colors"
+                   style="background: rgba(61,107,255,0.08); color: var(--text-primary); border: 1px solid rgba(61,107,255,0.16);"
+                   onmouseover="this.style.color='var(--accent-light)'" onmouseout="this.style.color='var(--text-primary)'">
                     {!! __('pagination.next') !!}
                 </a>
             @else
                 <span class="relative inline-flex items-center px-3 py-2 ml-2 text-xs font-medium rounded-lg cursor-default opacity-40"
-                      style="background: rgba(124,58,237,0.06); color: var(--text-faint); border: 1px solid rgba(124,58,237,0.10);">
+                      style="background: rgba(61,107,255,0.06); color: var(--text-faint); border: 1px solid rgba(61,107,255,0.10);">
                     {!! __('pagination.next') !!}
                 </span>
             @endif
@@ -53,13 +55,14 @@
                     @if ($paginator->onFirstPage())
                         <span aria-disabled="true" aria-label="{{ __('pagination.previous') }}"
                               class="relative inline-flex items-center justify-center w-9 h-9 text-xs rounded-lg cursor-default opacity-30"
-                              style="background: rgba(124,58,237,0.04); color: var(--text-faint); border: 1px solid rgba(124,58,237,0.08);">
+                              style="background: rgba(61,107,255,0.04); color: var(--text-faint); border: 1px solid rgba(61,107,255,0.08);">
                             <i class="fas fa-chevron-left text-[10px]"></i>
                         </span>
                     @else
                         <a href="{{ $paginator->previousPageUrl() }}" rel="prev" aria-label="{{ __('pagination.previous') }}"
-                           class="relative inline-flex items-center justify-center w-9 h-9 text-xs rounded-lg transition-all hover:text-violet-300"
-                           style="background: rgba(124,58,237,0.08); color: var(--text-primary); border: 1px solid rgba(124,58,237,0.16);">
+                           class="relative inline-flex items-center justify-center w-9 h-9 text-xs rounded-lg transition-all"
+                           style="background: rgba(61,107,255,0.08); color: var(--text-primary); border: 1px solid rgba(61,107,255,0.16);"
+                           onmouseover="this.style.color='var(--accent-light)'" onmouseout="this.style.color='var(--text-primary)'">
                             <i class="fas fa-chevron-left text-[10px]"></i>
                         </a>
                     @endif
@@ -79,13 +82,14 @@
                                 @if ($page == $paginator->currentPage())
                                     <span aria-current="page"
                                           class="relative inline-flex items-center justify-center w-9 h-9 text-xs font-bold rounded-lg cursor-default"
-                                          style="background: linear-gradient(135deg, #7c3aed, #a855f7); color: #fff; border: 1px solid rgba(168,85,247,0.5); box-shadow: 0 4px 12px rgba(124,58,237,0.3);">
+                                          style="background: linear-gradient(135deg, #5c83ff, #3d6bff); color: #fff; border: 1px solid rgba(61,107,255,0.5); box-shadow: 0 4px 12px rgba(61,107,255,0.3);">
                                         {{ $page }}
                                     </span>
                                 @else
                                     <a href="{{ $url }}" aria-label="{{ __('Go to page :page', ['page' => $page]) }}"
-                                       class="relative inline-flex items-center justify-center w-9 h-9 text-xs font-medium rounded-lg transition-all hover:text-violet-300"
-                                       style="background: rgba(124,58,237,0.06); color: var(--text-dimmed); border: 1px solid rgba(124,58,237,0.12);">
+                                       class="relative inline-flex items-center justify-center w-9 h-9 text-xs font-medium rounded-lg transition-all"
+                                       style="background: rgba(61,107,255,0.06); color: var(--text-dimmed); border: 1px solid rgba(61,107,255,0.12);"
+                                       onmouseover="this.style.color='var(--accent-light)'" onmouseout="this.style.color='var(--text-dimmed)'">
                                         {{ $page }}
                                     </a>
                                 @endif
@@ -96,14 +100,15 @@
                     {{-- Next --}}
                     @if ($paginator->hasMorePages())
                         <a href="{{ $paginator->nextPageUrl() }}" rel="next" aria-label="{{ __('pagination.next') }}"
-                           class="relative inline-flex items-center justify-center w-9 h-9 text-xs rounded-lg transition-all hover:text-violet-300"
-                           style="background: rgba(124,58,237,0.08); color: var(--text-primary); border: 1px solid rgba(124,58,237,0.16);">
+                           class="relative inline-flex items-center justify-center w-9 h-9 text-xs rounded-lg transition-all"
+                           style="background: rgba(61,107,255,0.08); color: var(--text-primary); border: 1px solid rgba(61,107,255,0.16);"
+                           onmouseover="this.style.color='var(--accent-light)'" onmouseout="this.style.color='var(--text-primary)'">
                             <i class="fas fa-chevron-right text-[10px]"></i>
                         </a>
                     @else
                         <span aria-disabled="true" aria-label="{{ __('pagination.next') }}"
                               class="relative inline-flex items-center justify-center w-9 h-9 text-xs rounded-lg cursor-default opacity-30"
-                              style="background: rgba(124,58,237,0.04); color: var(--text-faint); border: 1px solid rgba(124,58,237,0.08);">
+                              style="background: rgba(61,107,255,0.04); color: var(--text-faint); border: 1px solid rgba(61,107,255,0.08);">
                             <i class="fas fa-chevron-right text-[10px]"></i>
                         </span>
                     @endif

@@ -78,4 +78,32 @@ class Admin extends Authenticatable
     {
         return $this->userAccount() !== null;
     }
+
+    /**
+     * Resolve the best available avatar URL for this admin, or return an
+     * empty string when no photo exists (so the caller can fall back to
+     * the initial-letter badge).
+     *
+     * Priority:
+     *  1. The admin's own `avatar` column (set by the admin profile editor).
+     *  2. The bridged user account's resolved avatar (uploaded photo, Google
+     *     OAuth photo, or Gravatar) — only when a user account is linked.
+     *  3. Empty string → caller shows the initial-letter badge.
+     */
+    public function resolveAvatarUrl(): string
+    {
+        if (!empty($this->avatar)) {
+            return (string) $this->avatar;
+        }
+
+        $user = $this->userAccount();
+        if ($user !== null) {
+            $url = $user->resolveAvatarUrl();
+            if (!empty($url)) {
+                return $url;
+            }
+        }
+
+        return '';
+    }
 }

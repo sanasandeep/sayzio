@@ -635,9 +635,19 @@
     <div class="px-3 py-3" style="border-top: 1px solid var(--border-strong);">
         <div class="flex items-center gap-3"
              :class="sidebarMode === 'icons' ? 'justify-center' : ''">
-            <div class="w-9 h-9 rounded-lg flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
+            @php $adminAvatarUrl = auth()->guard('admin')->user()?->resolveAvatarUrl(); @endphp
+            <div class="w-9 h-9 rounded-lg flex-shrink-0 overflow-hidden relative"
                  style="background: linear-gradient(135deg,#5c83ff,#3d6bff);">
-                {{ strtoupper(substr(auth()->guard('admin')->user()->name ?? 'A', 0, 1)) }}
+                @if($adminAvatarUrl)
+                    <img src="{{ $adminAvatarUrl }}"
+                         alt="{{ auth()->guard('admin')->user()->name ?? 'Admin' }}"
+                         class="w-full h-full object-cover"
+                         onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+                    <span class="w-full h-full flex items-center justify-center text-white text-xs font-bold absolute inset-0"
+                          style="display:none;">{{ strtoupper(substr(auth()->guard('admin')->user()->name ?? 'A', 0, 1)) }}</span>
+                @else
+                    <span class="w-full h-full flex items-center justify-center text-white text-xs font-bold">{{ strtoupper(substr(auth()->guard('admin')->user()->name ?? 'A', 0, 1)) }}</span>
+                @endif
             </div>
             <div class="flex-1 min-w-0 user-info">
                 <p class="text-xs font-semibold truncate" style="color: var(--text-primary);">{{ auth()->guard('admin')->user()->name ?? 'Admin' }}</p>
