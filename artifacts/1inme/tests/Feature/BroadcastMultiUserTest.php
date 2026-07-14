@@ -241,4 +241,31 @@ class BroadcastMultiUserTest extends TestCase
         $this->assertSame(5, $broadcast->recipients_count);
         $this->assertSame($target, $broadcast->target_value);
     }
+
+    public function test_history_badge_truncates_long_target_with_full_tooltip(): void
+    {
+        $users  = User::factory()->count(3)->create(['status' => 'active']);
+        $target = $users->pluck('email')->implode(', ')
+            . ', ' . str_repeat('very-long-padding-address@example.com, ', 8)
+            . $users->first()->email;
+
+        $admin = $this->admin();
+        $this->sendBroadcast($admin, ['target_value' => $target]);
+
+        $broadcast = NotificationBroadcast::latest('id')->first();
+        $this->assertNotNull($broadcast);
+
+        $resp = $this->actingAs($admin, 'admin')->get(route('admin.notifications.index'));
+        $resp->assertOk();
+
+        $rawTarget  = $broadcast->target_kind . ': ' . $broadcast->target_value;
+        $badgeLabel = \Illuminate\Support\Str::limit($rawTarget, 60);
+
+        // The badge shows only the truncated label (60 chars + ellipsis)…
+        $this->assertStringContainsString(e($badgeLabel), $resp->getContent());
+        // …while the full target list is preserved in the title tooltip.
+        $this->assertStringContainsString('title="' . e($rawTarget) . '"', $resp->getContent());
+        // The raw list must never be rendered as visible badge text.
+        $this->assertStringNotContainsString('>' . e($rawTarget) . '<', $resp->getContent());
+    }
 }
