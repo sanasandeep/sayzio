@@ -123,7 +123,14 @@ class AdminAccessController extends Controller
                 ->all();
         }
 
-        $rows = collect($paginator->items())->map(function (User $u) use ($adminsByEmail, $protectedEmails) {
+        // Id-keyed protected entries (email-less accounts) on this page.
+        $protectedUserIds = ProtectedAccount::query()
+            ->whereIn('user_id', collect($paginator->items())->pluck('id')->all())
+            ->pluck('user_id')
+            ->flip()
+            ->all();
+
+        $rows = collect($paginator->items())->map(function (User $u) use ($adminsByEmail, $protectedEmails, $protectedUserIds) {
             $key = strtolower(trim((string) $u->email));
             $linked = $adminsByEmail[$key] ?? null;
             return [
@@ -136,7 +143,7 @@ class AdminAccessController extends Controller
                 'plan'         => $u->plan?->name,
                 'is_admin'     => $linked !== null,
                 'admin_status' => $linked?->status,
-                'is_protected' => isset($protectedEmails[$key]),
+                'is_protected' => isset($protectedEmails[$key]) || isset($protectedUserIds[$u->id]),
             ];
         })->all();
 

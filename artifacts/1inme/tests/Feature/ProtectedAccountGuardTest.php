@@ -612,4 +612,117 @@ class ProtectedAccountGuardTest extends TestCase
             $response->assertDontSee('>' . $action . '<', false);
         }
     }
+
+    // ---------------------------------------------------------------
+    // Id-keyed protection (accounts without an email)
+    // ---------------------------------------------------------------
+
+    public function test_id_keyed_entry_protects_an_email_less_user(): void
+    {
+        $user = $this->makeUser(['email' => null]);
+
+        $this->assertFalse(ProtectedAccount::isProtected($user));
+
+        ProtectedAccount::create([
+            'email'   => null,
+            'user_id' => $user->id,
+            'locked'  => false,
+            'label'   => 'Mobile-only',
+        ]);
+
+        $this->assertTrue(ProtectedAccount::isProtected($user));
+        $this->assertTrue(ProtectedAccount::isProtectedUserId($user->id));
+    }
+
+    public function test_superadmin_can_protect_an_email_less_user_by_id(): void
+    {
+        $operator = $this->makeSuperAdmin();
+        $user = $this->makeUser(['email' => null]);
+
+        $this->actingAs($operator, 'admin')
+            ->post('/admin/protected-accounts', [
+                'user_id' => $user->id,
+                'label'   => 'WhatsApp-only',
+            ])
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('protected_accounts', [
+            'user_id' => $user->id,
+            'email'   => null,
+        ]);
+        $this->assertTrue(ProtectedAccount::isProtected($user->fresh()));
+    }
+
+    public function test_protecting_by_id_a_user_with_an_email_stores_an_email_keyed_entry(): void
+    {
+        $operator = $this->makeSuperAdmin();
+        $user = $this->makeUser(['email' => 'Has.Email@Example.com']);
+
+        $this->actingAs($operator, 'admin')
+            ->post('/admin/protected-accounts', [
+                'user_id' => $user->id,
+            ])
+            ->assertRedirect();
+
+        // Keyed by email so a linked back-office Admin is covered too.
+        $this->assertDatabaseHas('protected_accounts', [
+            'email'   => 'has.email@example.com',
+            'user_id' => null,
+        ]);
+        $this->assertTrue(ProtectedAccount::isProtected($user->fresh()));
+    }
+
+    public function test_store_requires_email_or_user_id(): void
+    {
+        $operator = $this->makeSuperAdmin();
+
+        $this->actingAs($operator, 'admin')
+            ->post('/admin/protected-accounts', ['label' => 'Nothing'])
+            ->assertSessionHasErrors(['email', 'user_id']);
+    }
+
+    public function test_id_protected_email_less_user_survives_destructive_attempts(): void
+    {
+        $operator = $this->makeSuperAdmin();
+        $user = $this->makeUser(['email' => null, 'status' => 'active']);
+        $link = $this->makeLinkFor($user);
+
+        ProtectedAccount::create([
+            'user_id' => $user->id,
+            'locked'  => false,
+            'label'   => 'Mobile-only',
+        ]);
+
+        // Hard delete.
+        $this->actingAs($operator, 'admin')
+            ->delete('/admin/users/' . $user->id)
+            ->assertRedirect();
+        $this->assertUserPersistedIntact($user, [$link->id]);
+
+        // Suspend.
+        $this->actingAs($operator, 'admin')
+            ->post('/admin/users/' . $user->id . '/suspend', ['reason' => 'spam'])
+            ->assertRedirect();
+        $this->assertUserPersistedIntact($user, [$link->id]);
+
+        $final = $user->fresh();
+        $this->assertSame('active', $final->status);
+        $this->assertNull($final->suspended_at);
+    }
+
+    public function test_superadmin_can_remove_an_id_keyed_entry(): void
+    {
+        $operator = $this->makeSuperAdmin();
+        $user = $this->makeUser(['email' => null]);
+        $entry = ProtectedAccount::create([
+            'user_id' => $user->id,
+            'locked'  => false,
+        ]);
+
+        $this->actingAs($operator, 'admin')
+            ->delete('/admin/protected-accounts/' . $entry->id)
+            ->assertRedirect();
+
+        $this->assertFalse(ProtectedAccount::isProtectedUserId($user->id));
+    }
 }

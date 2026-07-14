@@ -92,7 +92,13 @@ class UserManagementController extends Controller
             ->map(fn ($e) => strtolower(trim((string) $e)))
             ->flip();
 
-        return view('admin.users.index', compact('users', 'plans', 'badges', 'adminAccounts', 'canManageAdminAccess', 'protectedEmails'));
+        // Id-keyed protected entries (email-less accounts) on this page.
+        $protectedUserIds = ProtectedAccount::query()
+            ->whereIn('user_id', collect($users->items())->pluck('id')->all())
+            ->pluck('user_id')
+            ->flip();
+
+        return view('admin.users.index', compact('users', 'plans', 'badges', 'adminAccounts', 'canManageAdminAccess', 'protectedEmails', 'protectedUserIds'));
     }
 
     public function show(Request $request, User $user)
