@@ -43,6 +43,7 @@ class AddonController extends Controller
 
     public function edit(Addon $addon)
     {
+        $addon->load('prices');
         $plans = Plan::ordered()->get();
         $attachedPlanIds = $addon->plans()->pluck('plans.id')->all();
         return view('admin.addons.edit', compact('addon', 'plans', 'attachedPlanIds'));

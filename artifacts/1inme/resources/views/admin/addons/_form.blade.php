@@ -47,6 +47,35 @@
         </select>
     </div>
 
+    @if($addon->exists)
+        @php
+            $currentPrices = [];
+            foreach ($addon->prices as $priceRow) {
+                $currentPrices[$priceRow->currency . '|' . $priceRow->billing_cycle] = (int) $priceRow->amount_minor_units;
+            }
+            $formatCurrentPrice = function (string $currency, string $cycle) use ($currentPrices) {
+                $key = $currency . '|' . $cycle;
+                if (!array_key_exists($key, $currentPrices)) {
+                    return '—';
+                }
+                $symbol = $currency === 'INR' ? '₹' : '$';
+                return $symbol . number_format($currentPrices[$key] / 100, 2);
+            };
+        @endphp
+        <div class="border-t border-white/10 pt-5">
+            <h3 class="text-sm font-medium text-white/80 mb-1">Current prices</h3>
+            <p class="text-[11px] text-white/40 mb-3">Read-only — what's currently saved in the price table. Edit the fields below and save to change these.</p>
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                @foreach([['USD','monthly','USD Monthly'],['USD','annual','USD Annual'],['INR','monthly','INR Monthly'],['INR','annual','INR Annual']] as [$curCurrency, $curCycle, $curLabel])
+                    <div class="rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2.5">
+                        <div class="text-[10px] uppercase tracking-wider text-white/40">{{ $curLabel }}</div>
+                        <div class="text-sm text-white/80 font-medium mt-0.5">{{ $formatCurrentPrice($curCurrency, $curCycle) }}</div>
+                    </div>
+                @endforeach
+            </div>
+        </div>
+    @endif
+
     <div class="border-t border-white/10 pt-5">
         <h3 class="text-sm font-medium text-white/80 mb-1">Pricing per country</h3>
         <p class="text-[11px] text-white/40 mb-3">USD is shown to everyone by default. INR is shown to users whose billing country is India. The two amounts are independent — no FX conversion. <span class="text-white/30">Enter amounts as <strong>integer minor units</strong> — e.g. <code>999</code> = $9.99, <code>82900</code> = ₹829.</span></p>
