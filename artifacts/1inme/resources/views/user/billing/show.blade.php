@@ -83,6 +83,20 @@
               Next renewal:
               {{ \Carbon\Carbon::parse($subscription->current_period_end)->toFormattedDateString() }}
             </div>
+            @php
+              $planFeatures = (array) ($subscription->plan->features ?? []);
+              $coinGrant = $subscription->billing_cycle === 'yearly'
+                  ? (int) ($planFeatures['included_coins_yearly'] ?? 0)
+                  : (int) ($planFeatures['included_coins_monthly'] ?? 0);
+            @endphp
+            @if ($coinGrant > 0)
+              <div class="text-muted mt-1">
+                <i class="fa-solid fa-coins me-1"></i>
+                Included coins: <strong>{{ number_format($coinGrant) }}</strong>
+                per {{ $subscription->billing_cycle === 'yearly' ? 'year' : 'month' }}
+                — you'll receive {{ number_format($coinGrant) }} coins on your next renewal.
+              </div>
+            @endif
             @if ($subscription->cancel_at_period_end)
               <div class="text-danger mt-1">Will cancel at end of current period.</div>
             @elseif (!empty($scheduledDowngradePlan))
