@@ -34,7 +34,7 @@
         default => 'text-blue-400',
     };
 @endphp
-<div class="flex items-start gap-2.5 p-3 rounded-xl border {{ $noteWrap }} {{ $noteText }} text-xs leading-relaxed">
-    <i class="{{ $noteIcon }} {{ $noteIconC }} mt-0.5 shrink-0 text-[13px]"></i>
+<div class="help-note-callout help-note-callout--{{ $noteType }} flex items-start gap-2.5 p-3 rounded-xl border {{ $noteWrap }} {{ $noteText }} text-xs leading-relaxed">
+    <i class="{{ $noteIcon }} {{ $noteIconC }} help-note-icon mt-0.5 shrink-0 text-[13px]"></i>
     <div class="min-w-0 space-y-1">{!! $body !!}</div>
 </div>

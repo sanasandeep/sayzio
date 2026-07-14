@@ -75,6 +75,17 @@
         html.light-mode .logout-btn { border-color: #cbd5e1; color: #475569; }
         html.light-mode .logout-btn:hover { background: rgba(239,68,68,.08); border-color: rgba(239,68,68,.40); color: #dc2626; }
 
+        /* ---- Help-note callout: light-mode text/icon legibility overrides ---- */
+        html.light-mode .help-note-callout--info { color: #1e40af; border-color: rgba(59,130,246,.30); background-color: rgba(59,130,246,.07); }
+        html.light-mode .help-note-callout--info .help-note-icon { color: #2563eb; }
+        html.light-mode .help-note-callout--info a { color: #1d4ed8; }
+        html.light-mode .help-note-callout--warn { color: #78350f; border-color: rgba(245,158,11,.30); background-color: rgba(245,158,11,.07); }
+        html.light-mode .help-note-callout--warn .help-note-icon { color: #b45309; }
+        html.light-mode .help-note-callout--warn a { color: #92400e; }
+        html.light-mode .help-note-callout--tip { color: #064e3b; border-color: rgba(16,185,129,.30); background-color: rgba(16,185,129,.07); }
+        html.light-mode .help-note-callout--tip .help-note-icon { color: #059669; }
+        html.light-mode .help-note-callout--tip a { color: #065f46; }
+
         .sidebar-tooltip {
             position: absolute; left: calc(100% + 8px); top: 50%; transform: translateY(-50%);
             padding: 4px 10px; border-radius: 8px;
