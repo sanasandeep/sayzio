@@ -6,6 +6,13 @@
     <h1 class="text-2xl font-bold text-white mb-2">Linked identifiers</h1>
     <p class="text-sm text-white/60 mb-6">Every email, phone number, and social account that can sign in to this Sayzio account.</p>
 
+    @if (empty($user->email))
+        <div class="mb-4 p-3 rounded-xl bg-blue-500/10 border border-blue-500/30 text-blue-200 text-sm">
+            <i class="fas fa-envelope text-[10px] mr-1"></i>
+            Your account doesn't have an email address yet. Add and verify one below — it becomes the email on your account and unlocks email-based features.
+        </div>
+    @endif
+
     @if (session('success'))<div class="mb-4 p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-200 text-sm">{{ session('success') }}</div>@endif
     @if (session('error'))<div class="mb-4 p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-200 text-sm">{{ session('error') }}</div>@endif
     @if (session('status'))<div class="mb-4 p-3 rounded-xl bg-blue-500/10 border border-blue-500/30 text-blue-200 text-sm">{{ session('status') }}</div>@endif

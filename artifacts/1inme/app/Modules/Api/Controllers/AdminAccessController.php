@@ -314,6 +314,17 @@ class AdminAccessController extends Controller
             return $this->fail('That is not a valid admin role.', 422, 'invalid_admin_role');
         }
 
+        // Back-office accounts are keyed by email. A mobile/WhatsApp-only
+        // sign-up has no users.email yet — the user must add + verify an
+        // email (Linked identifiers) before they can be promoted.
+        if (trim((string) $user->email) === '') {
+            return $this->fail(
+                'This user has no email address on file. Ask them to add and verify an email in Account Settings first, then grant admin access.',
+                422,
+                'user_email_required'
+            );
+        }
+
         $linked = $user->adminAccount();
 
         if ($linked) {
