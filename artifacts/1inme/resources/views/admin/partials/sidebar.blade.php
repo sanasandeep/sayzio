@@ -159,7 +159,7 @@
         <a href="{{ route('admin.event-categories.index') }}"
            class="sidebar-link {{ request()->routeIs('admin.event-categories.*') ? 'active' : '' }}"
            style="--nav-tint:#f59e0b; --nav-tint-soft:rgba(245,158,11,0.12);">
-            <div class="nav-icon-wrap"><i class="fas fa-calendar-star"></i></div>
+            <div class="nav-icon-wrap"><i class="fas fa-calendar-days"></i></div>
             <span class="nav-label">Event Categories</span>
             <span class="sidebar-tooltip">Event Categories</span>
         </a>

@@ -139,7 +139,7 @@
                     $eventIsOnline = !empty($event->settings['is_online'] ?? false);
                     $catIcon = $eventCategory !== ''
                         ? \App\Modules\User\Support\EventCategories::icon($eventCategory)
-                        : 'fa-calendar-star';
+                        : 'fa-calendar-days';
                     $catGradient = \App\Modules\User\Support\EventCategories::gradient($eventCategory);
 
                     $tiers = $event->eventTicketTiers->sortBy('price_cents')->values();
