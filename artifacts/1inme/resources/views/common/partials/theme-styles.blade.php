@@ -58,7 +58,9 @@
         --text-muted: #94a3b8;
         --text-dimmed: #64748b;
         --text-faint: #475569;
+        --text-subtle: rgba(255,255,255,0.30);
         --text-label: #94a3b8;
+        --color-primary-400: #5c83ff;
         --sidebar-link: #94a3b8;
         --sidebar-link-hover-bg: rgba(255,255,255,0.05);
         --sidebar-link-hover-text: #ffffff;
@@ -117,6 +119,7 @@
         --text-muted: #4b5675;
         --text-dimmed: #5e6884;
         --text-faint: #6b7491;
+        --text-subtle: rgba(7,20,55,0.40);
         --text-label: #5e6884;
         --sidebar-link: #4b5675;
         --sidebar-link-hover-bg: #f9f9f9;

@@ -9,6 +9,7 @@ import {
   type Page,
 } from "@playwright/test";
 
+import { DEMO_LOGIN_EMAIL } from "./demo-account";
 import { loginAsDemoAdmin } from "./login-as-demo-admin";
 
 // Regression guard for the sidebar find-bar fix (commit 44b3bf0cc) on the ADMIN
@@ -103,10 +104,10 @@ $role = Role::firstOrCreate(
   ['slug' => 'super-admin'],
   ['name' => 'Super Admin', 'guard' => 'admin']
 );
-$a = Admin::where('email', 'sayzioapp@gmail.com')->first();
+$a = Admin::where('email', '${DEMO_LOGIN_EMAIL}')->first();
 if (!$a) {
   $a = Admin::create([
-    'name' => 'Admin', 'email' => 'sayzioapp@gmail.com',
+    'name' => 'Admin', 'email' => '${DEMO_LOGIN_EMAIL}',
     'password' => Hash::make('password'), 'role_id' => $role->id,
     'status' => 'active',
   ]);

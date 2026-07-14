@@ -32,6 +32,11 @@ pnpm install --frozen-lockfile
 # scan once clears that transient crash; a real violation (exit 1) still fails
 # fast on the first run and is never retried away.
 run_guard() {
+  # Call sites use the form `run_guard run <script>` (mirroring the underlying
+  # `pnpm run <script>`) so post-merge.sh keeps the literal `run check:...`
+  # wiring that check-view-guards.test.ts pins in lockstep with the combined
+  # check:view-guards runner and the pre-push hook.
+  if [ "$1" = "run" ]; then shift; fi
   local script="$1"
   local code=0
   # `|| code=$?` keeps the failing command "tested" so `set -e` does not abort
@@ -48,9 +53,9 @@ run_guard() {
 }
 
 echo "running blade/alpine attribute guards..."
-run_guard check:alpine-line-comments
-run_guard check:blade-json-in-attr
-run_guard check:blade-comment-echo
+run_guard run check:alpine-line-comments
+run_guard run check:blade-json-in-attr
+run_guard run check:blade-comment-echo
 
 # Apply the api-server's drizzle schema. We use the NON-force `push` on purpose:
 # drizzle.config.ts restricts drizzle-kit to the dedicated `drizzle` Postgres
