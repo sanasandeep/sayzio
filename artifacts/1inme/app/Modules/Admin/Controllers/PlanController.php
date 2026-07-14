@@ -25,8 +25,8 @@ class PlanController extends Controller
         // legacy plans are kept for historical subscribers but listed in a
         // separate, collapsed section so the main editor shows exactly the
         // active lineup.
-        $plans = Plan::withCount('users')->where('is_archived', false)->ordered()->get();
-        $archivedPlans = Plan::withCount('users')->where('is_archived', true)->ordered()->get();
+        $plans = Plan::withCount('users')->with('prices')->where('is_archived', false)->ordered()->get();
+        $archivedPlans = Plan::withCount('users')->with('prices')->where('is_archived', true)->ordered()->get();
 
         // Recent CSV imports (undo history). The single most-recent un-reverted
         // one is the only revertable entry (see revertImport()).
