@@ -220,6 +220,7 @@ class DatabaseSeeder extends Seeder
         $this->call(BgTemplateSeeder::class);
         $this->call(BgPatternTemplatesSeeder::class);
         $this->call(LightBgTemplatesSeeder::class);
+        $this->call(ClassicGradientBgTemplatesSeeder::class);
 
         // Fully-loaded showcase/demo account (sana@sayzio.app) — every link
         // type, every biolink widget, and every other feature surface
