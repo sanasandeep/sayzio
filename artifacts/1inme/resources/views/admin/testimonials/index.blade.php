@@ -102,7 +102,7 @@
                         </td>
                         <td class="px-4 py-3 align-top">
                             @if(($t->source ?? 'admin') === 'public')
-                                <span class="px-2 py-0.5 rounded-md text-[11px] font-medium bg-purple-500/15 text-purple-200">Public</span>
+                                <span class="px-2 py-0.5 rounded-md text-[11px] font-medium bg-primary-500/15 text-primary-200">Public</span>
                             @else
                                 <span class="px-2 py-0.5 rounded-md text-[11px] font-medium bg-white/5 text-white/50">Admin</span>
                             @endif

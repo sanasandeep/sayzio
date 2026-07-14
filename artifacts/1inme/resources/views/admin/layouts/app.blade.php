@@ -14,7 +14,7 @@
     @include('common.partials.theme-styles')
     <style>
         /* ============ Shared sidebar shell (mirrors user layout v3) ============ */
-        .sidebar-v2 { transition: width 0.35s cubic-bezier(0.4,0,0.2,1), transform 0.35s cubic-bezier(0.4,0,0.2,1); }
+        .sidebar-v2 { transition: width 0.35s cubic-bezier(0.4,0,0.2,1), transform 0.35s cubic-bezier(0.4,0,0.2,1); overflow: hidden; }
         .main-content-v2 { transition: margin-left 0.35s cubic-bezier(0.4,0,0.2,1); }
 
         .sidebar-v2 .nav-label,
@@ -106,7 +106,7 @@
 
     <div class="flex h-screen relative z-10 overflow-hidden"
          x-data="{
-            sidebarMode: localStorage.getItem('1inme_admin_sidebar') || 'full',
+            sidebarMode: (function(){ var v = localStorage.getItem('1inme_admin_sidebar'); return (v === 'full' || v === 'icons') ? v : 'full'; })(),
             mobileMenu: false,
             isDesktop: window.innerWidth >= 1024,
             init() {
@@ -115,13 +115,14 @@
                 mq.addEventListener('change', (e) => { this.isDesktop = e.matches; });
             },
             setSidebar(mode) {
+                if (mode !== 'full' && mode !== 'icons') mode = 'full';
                 this.sidebarMode = mode;
                 localStorage.setItem('1inme_admin_sidebar', mode);
             },
             get sidebarWidth() {
                 if (this.sidebarMode === 'full')  return 260;
                 if (this.sidebarMode === 'icons') return 72;
-                return 0;
+                return 260;
             }
          }">
 
