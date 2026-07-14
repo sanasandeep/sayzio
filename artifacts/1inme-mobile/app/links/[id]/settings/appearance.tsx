@@ -1,5 +1,6 @@
 import { Stack, useLocalSearchParams } from "expo-router";
 
+import { BgPresetPicker } from "@/components/BgPresetPicker";
 import { SettingsForm } from "@/components/SettingsForm";
 
 export default function AppearanceSettings() {
@@ -23,6 +24,7 @@ export default function AppearanceSettings() {
           { key: "accent_color", label: "Accent color", hint: "#hex" },
           { key: "background_image", label: "Background image URL", kind: "url" },
         ]}
+        extra={<BgPresetPicker linkId={Number(id)} />}
       />
     </>
   );

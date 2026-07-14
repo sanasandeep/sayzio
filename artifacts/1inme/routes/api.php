@@ -745,6 +745,9 @@ Route::prefix('v1')->group(function () {
         // per-user `locked` flag. Declared before the {id}/blocks routes
         // since it carries no link id.
         Route::get   ('/block-catalog',                     [BiolinkBlockController::class, 'catalog']);
+        // Background preset catalog for the Appearance "Presets" picker
+        // (mobile parity for the web preset gallery). Static, user-agnostic.
+        Route::get   ('/bg-presets',                        [BiolinkBlockController::class, 'bgPresets']);
         Route::get   ('/links/{id}/blocks',                 [BiolinkBlockController::class, 'index'])->whereNumber('id');
         Route::post  ('/links/{id}/blocks',                 [BiolinkBlockController::class, 'store'])->whereNumber('id');
         Route::patch ('/links/{id}/blocks/{blockId}',       [BiolinkBlockController::class, 'update'])->whereNumber('id')->whereNumber('blockId');

@@ -41,6 +41,65 @@ class BgPresetCatalog
         return $p ? $p['css'] : null;
     }
 
+    /**
+     * Catalog shaped for the REST API / mobile app.
+     *
+     * React Native can't render arbitrary CSS background strings, so each
+     * preset also carries a `colors` array — the color stops extracted from
+     * its CSS in source order — which the mobile client feeds into a
+     * LinearGradient swatch approximation. The raw `css` string is included
+     * for web-based clients that can render it directly.
+     *
+     * @return array{groups: list<array{key: string, label: string}>, presets: list<array{key: string, group: string, label: string, css: string, colors: list<string>}>}
+     */
+    public static function forApi(): array
+    {
+        $groups = [];
+        foreach (self::GROUPS as $key => $label) {
+            $groups[] = ['key' => $key, 'label' => $label];
+        }
+
+        $presets = [];
+        foreach (self::$presets as $key => $p) {
+            $presets[] = [
+                'key'    => $key,
+                'group'  => $p['group'],
+                'label'  => $p['label'],
+                'css'    => $p['css'],
+                'colors' => self::extractColors($p['css']),
+            ];
+        }
+
+        return ['groups' => $groups, 'presets' => $presets];
+    }
+
+    /**
+     * Pull the color stops out of a CSS background string in source order.
+     * Handles #hex and rgb()/rgba() notations; consecutive duplicates are
+     * collapsed so simple "background-color + gradient of same start color"
+     * presets don't repeat their first stop.
+     *
+     * @return list<string>
+     */
+    private static function extractColors(string $css): array
+    {
+        preg_match_all(
+            '/#[0-9a-fA-F]{3,8}\b|(?:rgba?|hsla?)\(\s*[\d.]+\s*,\s*[\d.]+%?\s*,\s*[\d.]+%?\s*(?:,\s*[\d.]+\s*)?\)/',
+            $css,
+            $m
+        );
+
+        $out = [];
+        foreach ($m[0] as $color) {
+            $norm = strtolower(preg_replace('/\s+/', '', $color));
+            if ($out !== [] && end($out) === $norm) {
+                continue;
+            }
+            $out[] = $norm;
+        }
+        return $out;
+    }
+
     /** @var array<string, array{group: string, label: string, css: string}> */
     private static array $presets = [
         'gradient_zero' => ['group' => 'gradients', 'label' => 'Gradient 1', 'css' => 'background-color: #4158D0;background-image: linear-gradient(43deg, #4158D0 0%, #C850C0 46%, #FFCC70 100%)'],

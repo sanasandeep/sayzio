@@ -268,6 +268,7 @@ A passed bearer token is honored for the visibility checks on the `show` route.
 | Method | Path                                  | Auth | Description                                                  |
 | ------ | ------------------------------------- | ---- | ----------------------------------------------------------- |
 | GET    | `/block-catalog`                      | yes  | Block-type palette (categories + picker types, per-user `locked` flag). |
+| GET    | `/bg-presets`                         | yes  | Background preset catalog for the Appearance "Presets" picker (groups + presets with `key`, `label`, `css`, parsed `colors`). |
 | GET    | `/links/{id}/blocks`                  | yes  | List blocks on a biolink.                                   |
 | POST   | `/links/{id}/blocks`                  | yes  | Create a block (seeds first-paint defaults).               |
 | PATCH  | `/links/{id}/blocks/{blockId}`        | yes  | Update a block (clears the placeholder flag on first save). |
