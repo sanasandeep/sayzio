@@ -257,6 +257,12 @@ const ALLOWLIST: AllowEntry[] = [
       "Calendar accent-color picker is a multi-color categorical user-choice palette (not the brand accent); the default stays brand blue #3d6bff.",
   },
   {
+    path: "artifacts/1inme-mobile/lib/api/workspaces.ts",
+    kind: "file",
+    reason:
+      "WORKSPACE_COLOR_CHOICES is a categorical workspace-color swatch palette kept in lockstep with the server's Workspace::COLOR_CHOICES (PATCH validation uses Rule::in), not the brand accent.",
+  },
+  {
     path: "artifacts/1inme-mobile/lib/paidPage.ts",
     kind: "file",
     reason: "Categorical paid-page template palette mirror (multi-color choices).",
