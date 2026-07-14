@@ -288,6 +288,10 @@ args = "e2e-bg-preset-live"
 task = "workflow.run"
 args = "e2e-bg-tpl-live"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-bg-branches"
+
 [[workflows.workflow]]
 name = "e2e"
 author = "agent"
@@ -1230,6 +1234,17 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "bash artifacts/1inme/tests/Browser/run-validation.sh biolink-bg-template-live-preview.spec.ts"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-bg-branches"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd artifacts/1inme && bash tests/Browser/run-validation.sh biolink-bg-branches-public-render.spec.ts"
 
 [workflows.workflow.metadata]
 isValidation = true
