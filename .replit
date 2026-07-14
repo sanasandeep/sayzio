@@ -256,6 +256,90 @@ args = "claude-training-api-index"
 task = "workflow.run"
 args = "doc-constants"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "store-booking-e2e"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "form-template-keys"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-sidebar-findbar"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-form-rep-old"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-form-rep-copy-error"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-form-builder-panel-scroll"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "demo-login-button"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-mobile-workspace-owner-gear"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-mobile-workspaces-crud"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-otp-login"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "mail-direct-sends"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-otp-login-whatsapp"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-otp-login-mobile-disallowed"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-otp-login-whatsapp-errors"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-otp-login-whatsapp-unknown"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-otp-login-whatsapp-resend"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-otp-signup-whatsapp-paused"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-otp-signup-email-paused"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-password-toggle"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-otp-login-whatsapp-different"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-password-toggle-auth"
+
 [[workflows.workflow]]
 name = "e2e"
 author = "agent"
@@ -912,6 +996,237 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "pnpm --filter @workspace/scripts run check:doc-constants"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "store-booking-e2e"
+author = "agent"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "bash artifacts/1inme/tests/Browser/run-validation.sh store-order.spec.ts service-booking-request.spec.ts"
+
+[[workflows.workflow]]
+name = "form-template-keys"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/scripts run check:form-template-keys"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-sidebar-findbar"
+author = "agent"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd artifacts/1inme && bash tests/Browser/run-validation.sh sidebar-findbar.spec.ts"
+
+[[workflows.workflow]]
+name = "e2e-form-rep-old"
+author = "agent"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "bash artifacts/1inme/tests/Browser/run-validation.sh form-repeatable-old-input.spec.ts"
+
+[[workflows.workflow]]
+name = "e2e-form-rep-copy-error"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "bash artifacts/1inme/tests/Browser/run-validation.sh form-repeatable-copy-error.spec.ts"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-form-builder-panel-scroll"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "bash artifacts/1inme/tests/Browser/run-validation.sh form-builder-panel-scroll-reset.spec.ts"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "demo-login-button"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/scripts run check:demo-login-button"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-mobile-workspace-owner-gear"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/1inme-mobile run test:workspace-owner-gear-refresh-e2e"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-mobile-workspaces-crud"
+author = "agent"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/1inme-mobile run test:workspaces-crud-e2e"
+
+[[workflows.workflow]]
+name = "e2e-otp-login"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "bash artifacts/1inme/tests/Browser/run-validation.sh otp-login-flow.spec.ts"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "mail-direct-sends"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd artifacts/1inme && composer check:mail-direct-sends"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-otp-login-whatsapp"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "bash artifacts/1inme/tests/Browser/run-validation.sh otp-login-whatsapp-flow.spec.ts"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-otp-login-mobile-disallowed"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "bash artifacts/1inme/tests/Browser/run-validation.sh otp-login-mobile-disallowed-code.spec.ts"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-otp-login-whatsapp-errors"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "bash artifacts/1inme/tests/Browser/run-validation.sh otp-login-whatsapp-error-paths.spec.ts"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-otp-login-whatsapp-unknown"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "bash artifacts/1inme/tests/Browser/run-validation.sh otp-login-whatsapp-unknown-number.spec.ts"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-otp-login-whatsapp-resend"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "bash artifacts/1inme/tests/Browser/run-validation.sh otp-login-whatsapp-resend.spec.ts"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-otp-signup-whatsapp-paused"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "bash artifacts/1inme/tests/Browser/run-validation.sh otp-signup-whatsapp-paused.spec.ts"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-otp-signup-email-paused"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "bash artifacts/1inme/tests/Browser/run-validation.sh otp-signup-email-paused.spec.ts"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-password-toggle"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "bash artifacts/1inme/tests/Browser/run-validation.sh password-toggle.spec.ts"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-otp-login-whatsapp-different"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "bash artifacts/1inme/tests/Browser/run-validation.sh otp-login-whatsapp-different-number.spec.ts"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-password-toggle-auth"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "bash artifacts/1inme/tests/Browser/run-validation.sh password-toggle-authenticated.spec.ts"
 
 [workflows.workflow.metadata]
 isValidation = true
