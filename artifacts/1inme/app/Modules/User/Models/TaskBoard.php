@@ -71,11 +71,33 @@ class TaskBoard extends Model
     public static function uniqueSlug(string $base): string
     {
         $base = Str::slug(Str::limit($base, 50, '')) ?: Str::random(8);
-        $slug = $base;
-        $i = 1;
-        while (static::query()->withoutGlobalScope('workspace')->where('slug', $slug)->exists()) {
-            $slug = $base . '-' . (++$i);
+
+        // Fetch every colliding slug in ONE query and pick the next free
+        // suffix locally. The previous probe-one-slug-at-a-time loop was
+        // O(collisions) round-trips: every account gets a "My Tasks" board,
+        // so on a busy database a single sign-up was issuing hundreds of
+        // sequential `exists` queries (minutes over a remote DB) just to
+        // find the next "my-tasks-N".
+        $taken = static::query()
+            ->withoutGlobalScope('workspace')
+            ->where(function ($q) use ($base) {
+                $q->where('slug', $base)->orWhere('slug', 'like', $base . '-%');
+            })
+            ->pluck('slug')
+            ->all();
+
+        if (!in_array($base, $taken, true)) {
+            return $base;
         }
-        return $slug;
+
+        $max = 1;
+        $prefixLen = strlen($base) + 1;
+        foreach ($taken as $slug) {
+            $suffix = substr($slug, $prefixLen);
+            if ($suffix !== '' && ctype_digit($suffix)) {
+                $max = max($max, (int) $suffix);
+            }
+        }
+        return $base . '-' . ($max + 1);
     }
 }
