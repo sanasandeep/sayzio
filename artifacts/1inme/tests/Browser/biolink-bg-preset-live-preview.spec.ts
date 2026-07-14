@@ -23,7 +23,13 @@ const test = base.extend({
   },
 });
 
-const ALIAS = "e2e-bg-tpl-live-preview";
+const ALIAS = "e2e-bg-preset-live-preview";
+
+// First catalog entry (BgPresetCatalog 'gradient_zero'): a 43deg linear
+// gradient. The computed body background-image on the public page must
+// contain this angle once the draft preview applies the preset.
+const PRESET_LABEL = "Gradient 1";
+const PRESET_CSS_MARKER = "linear-gradient(43deg";
 
 const ARTIFACT_ROOT = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -46,19 +52,16 @@ function runTinkerSeed(php: string): string {
 }
 
 /**
- * Seed the demo user + a plain color-background biolink, and report the id of
- * the first two active bg templates so the spec can click a *specific* thumb
- * and assert the preview shows exactly that template's slug.
+ * Seed the demo user + a plain color-background biolink so the draft change
+ * to a background preset is unambiguous.
  */
-function seedFixture(): { linkId: number; tplId: number; tplSlug: string } {
+function seedFixture(): { linkId: number } {
   const php = `
 use App\\Modules\\User\\Models\\User;
 use App\\Modules\\User\\Models\\Link;
 use App\\Modules\\User\\Models\\Plan;
-use App\\Modules\\Admin\\Models\\BgTemplate;
 use App\\Modules\\User\\Services\\WorkspaceContext;
 use Illuminate\\Support\\Facades\\Hash;
-use Illuminate\\Support\\Facades\\DB;
 
 $u = User::where('email', '${DEMO_LOGIN_EMAIL}')->first();
 if (!$u) {
@@ -76,7 +79,7 @@ $bio = Link::withoutGlobalScope('workspace')->where('alias', '${ALIAS}')->first(
 if (!$bio) {
   $bio = Link::create([
     'user_id' => $u->id, 'workspace_id' => $ws?->id, 'type' => 'biolink',
-    'alias' => '${ALIAS}', 'title' => 'E2E BG Template Live Preview', 'is_active' => true,
+    'alias' => '${ALIAS}', 'title' => 'E2E BG Preset Live Preview', 'is_active' => true,
   ]);
 } else {
   $bio->user_id = $u->id; $bio->workspace_id = $ws?->id;
@@ -86,20 +89,18 @@ $s = $bio->settings ?? [];
 $b = $s['biolink'] ?? [];
 $b['background_type'] = 'color';
 $b['background_color'] = '#111827';
-unset($b['bg_template_id']);
+unset($b['bg_preset_key']);
 $s['biolink'] = $b;
 $bio->settings = $s;
 $bio->save();
 
-$tpl = BgTemplate::where('is_active', true)->orderBy('id')->first();
-
-echo 'LINKID=' . $bio->id . ' TPLID=' . $tpl->id . ' TPLSLUG=' . $tpl->slug;
+echo 'LINKID=' . $bio->id;
 `.trim();
 
   const out = runTinkerSeed(php);
-  const m = out.match(/LINKID=(\d+) TPLID=(\d+) TPLSLUG=([a-z0-9\-]+)/);
+  const m = out.match(/LINKID=(\d+)/);
   if (!m) throw new Error("Seed failed, output:\n" + out);
-  return { linkId: Number(m[1]), tplId: Number(m[2]), tplSlug: m[3] };
+  return { linkId: Number(m[1]) };
 }
 
 function findPreviewFrame(page: Page): Frame | null {
@@ -113,22 +114,11 @@ function findPreviewFrame(page: Page): Frame | null {
 
 test.describe.configure({ mode: "serial" });
 
-let fixture: { linkId: number; tplId: number; tplSlug: string };
+let fixture: { linkId: number };
 
 test.beforeAll(async ({ browser }) => {
-  // Seeding goes through tinker over a distant RDS — keep it out of the
-  // per-test timeout budget. When the fixture was pre-seeded externally the
-  // ids can be injected via env to skip tinker entirely.
-  if (
-    process.env.E2E_BGTPL_LINKID &&
-    process.env.E2E_BGTPL_TPLID &&
-    process.env.E2E_BGTPL_TPLSLUG
-  ) {
-    fixture = {
-      linkId: Number(process.env.E2E_BGTPL_LINKID),
-      tplId: Number(process.env.E2E_BGTPL_TPLID),
-      tplSlug: process.env.E2E_BGTPL_TPLSLUG,
-    };
+  if (process.env.E2E_BGPRESET_LINKID) {
+    fixture = { linkId: Number(process.env.E2E_BGPRESET_LINKID) };
   } else {
     fixture = seedFixture();
   }
@@ -142,13 +132,13 @@ test.afterAll(async () => {
   await sharedContext?.close();
 });
 
-test("clicking a background template updates the live phone preview without saving", async ({
+test("clicking a background preset swatch updates the live phone preview without saving", async ({
   page,
 }) => {
   // Cold first navigation to the heavy appearance editor over the distant RDS
   // can eat most of the default 60s budget before the iframe even mounts.
   test.setTimeout(180_000);
-  const { linkId, tplId, tplSlug } = fixture;
+  const { linkId } = fixture;
 
   await page.goto(`/user/links/${linkId}/settings/appearance`, {
     waitUntil: "domcontentloaded",
@@ -160,37 +150,31 @@ test("clicking a background template updates the live phone preview without savi
     .poll(() => findPreviewFrame(page) !== null, { timeout: 60_000 })
     .toBe(true);
 
-  // Switch the background type to "Template".
-  const templateTab = page
-    .locator('button:has-text("Template")')
-    .first();
-  await templateTab.waitFor({ state: "visible", timeout: 30_000 });
-  await templateTab.click();
+  // Switch the background type to "Presets".
+  const presetsTab = page.locator('button:has-text("Presets")').first();
+  await presetsTab.waitFor({ state: "visible", timeout: 30_000 });
+  await presetsTab.click();
 
-  // Click the specific seeded template thumb (hidden radio inside a label).
-  // The background card partial can render more than once on the page
-  // (desktop + duplicated pane) — scope to the first instance.
-  const radio = page
-    .locator(`input[type="radio"][name="bg_template_id"][value="${tplId}"]`)
-    .first();
-  await radio.waitFor({ state: "attached", timeout: 30_000 });
+  // Click the first preset swatch (default "gradients" group). The background
+  // card partial can render more than once on the page — scope to the first
+  // visible instance.
+  const swatch = page.locator(`button[title="${PRESET_LABEL}"]`).first();
+  await swatch.waitFor({ state: "visible", timeout: 30_000 });
+
   // Register the response listener BEFORE clicking so the debounced draft
-  // push (500ms) can never race past us, then click the wrapping label
-  // (the radio itself is visually hidden).
+  // push (500ms) can never race past us.
   const draftPush = page.waitForResponse(
     (r) =>
       r.url().includes("/preview-draft") && r.request().method() === "POST",
     { timeout: 30_000 },
   );
-  await radio.evaluate((el) => (el.closest("label") as HTMLElement).click());
-  await expect(radio).toBeChecked();
+  await swatch.click();
 
-  // The draft push should fire and reload the iframe with _draft=1; the
-  // reloaded public page must contain the template's bg layer.
   const resp = await draftPush;
   expect(resp.ok()).toBe(true);
 
-  // Wait for the iframe to reload in draft mode and render the template layer.
+  // Wait for the iframe to reload in draft mode and render the preset
+  // background on the public page's body.
   await expect
     .poll(
       async () => {
@@ -198,8 +182,9 @@ test("clicking a background template updates the live phone preview without savi
         if (!frame || !frame.url().includes("_draft=1")) return false;
         try {
           return await frame.evaluate(
-            (slug) => !!document.querySelector(`.bg-template-${slug}`),
-            tplSlug,
+            (marker) =>
+              getComputedStyle(document.body).backgroundImage.includes(marker),
+            PRESET_CSS_MARKER,
           );
         } catch {
           return false; // navigating

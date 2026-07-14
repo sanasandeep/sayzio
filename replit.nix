@@ -9,16 +9,18 @@
     pkgs.xorg.libX11
     pkgs.systemdLibs
     pkgs.libgbm
+    pkgs.gtk3
+    pkgs.at-spi2-core
+    pkgs.at-spi2-atk
     pkgs.alsa-lib
     pkgs.cairo
     pkgs.pango
-    pkgs.libxkbcommon
     pkgs.mesa
+    pkgs.libxkbcommon
     pkgs.libdrm
     pkgs.expat
-    pkgs.cups
     pkgs.dbus
-    pkgs.at-spi2-atk
+    pkgs.cups
     pkgs.atk
     pkgs.nspr
     pkgs.nss

@@ -135,4 +135,5 @@
 - [WhatsApp/mobile-only signup accounts](whatsapp-signup-mobile-only-accounts.md) — email-null signup needs nullable users.email; user-count oracle must dedupe users vs linked_identifiers mirror; while-exists slug loops are O(n) queries per signup.
 - [Shared password-field partial](password-field-partial-rollout.md) — all password inputs use the eye-toggle partial; never put `@blur` in @include args (Blade compiles it), no-Alpine pages get inline JS toggle.
 - [withToken() default-header leak in mixed tests](withtoken-default-header-leak.md) — withToken persists as a default header onto later web requests in the same test; flushHeaders() before session-based asserts.
+- [Catalog CSS strings need trailing ';' when emitted in Blade](css-string-emission-trailing-semicolon.md) — raw multi-decl CSS mid-rule silently drops its last property + the next declaration.
 - [Playwright Chromium system libs](playwright-chromium-system-libs.md) — fresh envs mass-fail every browser spec on missing shared libs; install the chromium dep set + libgbm + systemdLibs, verify via ldd.

@@ -217,7 +217,10 @@
                 @foreach($bgPresets as $presetId => $preset)
                 <button type="button"
                         x-show="(presetGroup === '{{ $preset['group'] }}') && (!presetSearch || '{{ strtolower($preset['label']) }}'.includes(presetSearch.toLowerCase()))"
-                        @click="selectedKey = selectedKey === '{{ $presetId }}' ? '' : '{{ $presetId }}'"
+                        {{-- $dispatch bubbles a synthetic change event up to the form so the
+                             live draft-preview push fires (the hidden bg_preset_key input is
+                             updated via :value binding, which emits no input/change events). --}}
+                        @click="selectedKey = selectedKey === '{{ $presetId }}' ? '' : '{{ $presetId }}'; $nextTick(() => $dispatch('change'))"
                         :class="selectedKey === '{{ $presetId }}' ? 'ring-2 ring-blue-400 ring-offset-1 ring-offset-transparent' : ''"
                         class="rounded-md overflow-hidden relative transition-all hover:scale-[1.08] hover:z-10 hover:shadow-lg"
                         style="{{ $preset['css'] }}; width:100%; aspect-ratio:9/14; border:1px solid var(--border-glass); background-size: cover; background-position: center;"
