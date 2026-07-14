@@ -16,117 +16,149 @@ use Illuminate\Database\Seeder;
  * units (cents/paise) under the 'monthly' billing cycle slot, which
  * is the convention CoinPackageController uses so the
  * PricingResolver can look prices back up at checkout.
+ *
+ * Lineup v2 (AI-credit formula)
+ * ─────────────────────────────
+ * 1 coin = $0.80 of AI credits + 20% platform margin → $0.96/coin customer price.
+ * INR rate: ₹90/$1 → ₹86.40/coin. Tax is NOT baked in; checkout adds GST/VAT on top.
+ * Old v1 packages are archived (not deleted) so purchase history references survive.
  */
 class CoinPackagesSeeder extends Seeder
 {
+    /**
+     * Slugs that belong to the previous (v1) lineup. On each seeder run these
+     * are moved to archived+inactive so they stop appearing in the shop, but
+     * their rows (and any linked purchase records) are never deleted.
+     */
+    private const LEGACY_SLUGS = [
+        'starter-pack',
+        'mini-pack',
+        'value-pack',
+        'creator-pack',
+        'growth-pack',
+        'pro-pack',
+        'mega-pack',
+        'ultimate-pack',
+    ];
+
     public function run(): void
     {
+        // ── Step 1: archive the v1 lineup ────────────────────────────────────
+        // Only touches rows that are still active/unarchived so repeated runs
+        // are idempotent and admin overrides (e.g. manually re-activating one)
+        // are NOT clobbered — we only ever move status in the "retire" direction.
+        CoinPackage::whereIn('slug', self::LEGACY_SLUGS)
+            ->where(function ($q) {
+                $q->where('status', '!=', 'inactive')
+                  ->orWhere('is_archived', false);
+            })
+            ->update(['status' => 'inactive', 'is_archived' => true]);
+
+        // ── Step 2: seed the v2 lineup ────────────────────────────────────────
+        // Formula: $0.96/coin (USD cents) · ₹86.40/coin (INR paise).
+        // No bonus coins, no compare-at (original) prices per spec.
         $packages = [
             [
-                'slug' => 'starter-pack',
-                'name' => 'Starter Pack',
-                'description' => 'A small top-up to try out coin-priced add-ons and one-off boosts.',
+                'slug'        => 'ai-credits-10',
+                'name'        => 'Micro Pack',
+                'description' => '10 coins — a small top-up to try AI-powered features.',
+                'coin_amount' => 10,
+                'sort_order'  => 10,
+                'prices'      => ['USD' => 960, 'INR' => 86400],
+            ],
+            [
+                'slug'        => 'ai-credits-50',
+                'name'        => 'Starter Pack',
+                'description' => '50 coins for occasional AI tasks and one-off boosts.',
+                'coin_amount' => 50,
+                'sort_order'  => 20,
+                'prices'      => ['USD' => 4800, 'INR' => 432000],
+            ],
+            [
+                'slug'        => 'ai-credits-100',
+                'name'        => 'Basic Pack',
+                'description' => '100 coins — a comfortable reserve for regular AI use.',
                 'coin_amount' => 100,
-                'bonus_coins' => 0,
-                'sort_order' => 10,
-                'prices' => ['USD' => 199, 'INR' => 16900],
-                'original' => ['USD' => 249, 'INR' => 20900],
+                'sort_order'  => 30,
+                'prices'      => ['USD' => 9600, 'INR' => 864000],
             ],
             [
-                'slug' => 'mini-pack',
-                'name' => 'Mini Pack',
-                'description' => 'A little more headroom for occasional boosts and small unlocks.',
+                'slug'        => 'ai-credits-250',
+                'name'        => 'Standard Pack',
+                'description' => '250 coins for creators who rely on AI features daily.',
                 'coin_amount' => 250,
-                'bonus_coins' => 15,
-                'sort_order' => 15,
-                'prices' => ['USD' => 449, 'INR' => 37900],
-                'original' => ['USD' => 549, 'INR' => 45900],
+                'sort_order'  => 40,
+                'prices'      => ['USD' => 24000, 'INR' => 2160000],
             ],
             [
-                'slug' => 'value-pack',
-                'name' => 'Value Pack',
-                'description' => 'Most popular. A balanced bundle for steady users with a small bonus.',
+                'slug'        => 'ai-credits-500',
+                'name'        => 'Plus Pack',
+                'description' => '500 coins — solid headroom for active AI-assisted workflows.',
                 'coin_amount' => 500,
-                'bonus_coins' => 50,
-                'sort_order' => 20,
-                'prices' => ['USD' => 899, 'INR' => 74900],
-                'original' => ['USD' => 1099, 'INR' => 89900],
+                'sort_order'  => 50,
+                'prices'      => ['USD' => 48000, 'INR' => 4320000],
             ],
             [
-                'slug' => 'creator-pack',
-                'name' => 'Creator Pack',
-                'description' => 'For active creators running boosts and unlocks every week.',
-                'coin_amount' => 1200,
-                'bonus_coins' => 200,
-                'sort_order' => 30,
-                'prices' => ['USD' => 1999, 'INR' => 169900],
-                'original' => ['USD' => 2499, 'INR' => 209900],
+                'slug'        => 'ai-credits-1000',
+                'name'        => 'Pro Pack',
+                'description' => '1,000 coins for power users running frequent AI campaigns.',
+                'coin_amount' => 1000,
+                'sort_order'  => 60,
+                'prices'      => ['USD' => 96000, 'INR' => 8640000],
             ],
             [
-                'slug' => 'growth-pack',
-                'name' => 'Growth Pack',
-                'description' => 'Scaling up — a healthy reserve for sustained campaigns and AI credits.',
+                'slug'        => 'ai-credits-2000',
+                'name'        => 'Growth Pack',
+                'description' => '2,000 coins for teams scaling their AI-driven content.',
                 'coin_amount' => 2000,
-                'bonus_coins' => 350,
-                'sort_order' => 35,
-                'prices' => ['USD' => 2999, 'INR' => 249900],
-                'original' => ['USD' => 3699, 'INR' => 309900],
+                'sort_order'  => 70,
+                'prices'      => ['USD' => 192000, 'INR' => 17280000],
             ],
             [
-                'slug' => 'pro-pack',
-                'name' => 'Pro Pack',
-                'description' => 'A bulk pack for teams and power users — better per-coin value.',
-                'coin_amount' => 3000,
-                'bonus_coins' => 600,
-                'sort_order' => 40,
-                'prices' => ['USD' => 4499, 'INR' => 374900],
-                'original' => ['USD' => 5499, 'INR' => 459900],
+                'slug'        => 'ai-credits-3500',
+                'name'        => 'Scale Pack',
+                'description' => '3,500 coins — the sweet spot for high-volume AI usage.',
+                'coin_amount' => 3500,
+                'sort_order'  => 80,
+                'prices'      => ['USD' => 336000, 'INR' => 30240000],
             ],
             [
-                'slug' => 'mega-pack',
-                'name' => 'Mega Pack',
-                'description' => 'Best value. A large reserve with the biggest bonus percentage.',
-                'coin_amount' => 8000,
-                'bonus_coins' => 2000,
-                'sort_order' => 50,
-                'prices' => ['USD' => 9999, 'INR' => 829900],
-                'original' => ['USD' => 12999, 'INR' => 1079900],
+                'slug'        => 'ai-credits-5000',
+                'name'        => 'Power Pack',
+                'description' => '5,000 coins for agencies running continuous AI pipelines.',
+                'coin_amount' => 5000,
+                'sort_order'  => 90,
+                'prices'      => ['USD' => 480000, 'INR' => 43200000],
             ],
             [
-                'slug' => 'ultimate-pack',
-                'name' => 'Ultimate Pack',
-                'description' => 'For agencies and heavy automation — the deepest reserve and biggest savings.',
-                'coin_amount' => 20000,
-                'bonus_coins' => 6000,
-                'sort_order' => 60,
-                'prices' => ['USD' => 19999, 'INR' => 1659900],
-                'original' => ['USD' => 27999, 'INR' => 2299900],
+                'slug'        => 'ai-credits-10000',
+                'name'        => 'Enterprise Pack',
+                'description' => '10,000 coins — maximum reserve for enterprise-scale AI automation.',
+                'coin_amount' => 10000,
+                'sort_order'  => 100,
+                'prices'      => ['USD' => 960000, 'INR' => 86400000],
             ],
         ];
 
         foreach ($packages as $row) {
             $prices = $row['prices'];
-            $original = $row['original'] ?? [];
-            unset($row['prices'], $row['original']);
+            unset($row['prices']);
 
             // firstOrCreate keeps this seeder idempotent — admin edits
-            // to existing packages survive re-runs of `db:seed`.
+            // to existing v2 packages survive re-runs of `db:seed`.
             $pkg = CoinPackage::firstOrCreate(
                 ['slug' => $row['slug']],
-                array_merge($row, ['status' => 'active', 'is_archived' => false]),
+                array_merge($row, [
+                    'bonus_coins' => 0,
+                    'status'      => 'active',
+                    'is_archived' => false,
+                ]),
             );
 
             foreach ($prices as $currency => $minor) {
                 $this->seedPriceIfMissing($pkg, $currency, 'monthly', $minor);
             }
-
-            // Sample original ("compare-at") prices so the strike-off
-            // discount look is visible on a fresh install. Stored under the
-            // dedicated `compare` slot; display-only (checkout charges the
-            // live price).
-            foreach ($original as $currency => $minor) {
-                $this->seedPriceIfMissing($pkg, $currency, CoinPackage::COMPARE_CYCLE, $minor);
-            }
+            // No compare-at (original) prices for the v2 lineup per spec.
         }
     }
 
