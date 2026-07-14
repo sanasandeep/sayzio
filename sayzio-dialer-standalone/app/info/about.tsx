@@ -6,6 +6,7 @@ import {
   type FounderBlock,
   type InfoSection,
 } from "@/components/InfoPage";
+import { getBaseUrl } from "@/lib/api";
 import { fetchAboutContent } from "@/lib/api/siteContent";
 
 const INTRO =
@@ -37,6 +38,7 @@ const FOUNDER: FounderBlock = {
   eyebrow: "Meet the founder",
   name: "Sandeep Sana",
   role: "Founder & CEO",
+  photo: `${getBaseUrl()}/images/marketing/about/founder.png`,
   bio: "Guided by this belief, Sandeep Sana, Founder & CEO of Sayzio, has dedicated more than 16 years to building digital products that empower businesses and creators. His journey from developer to entrepreneur led to the creation of Sayzio, an all-in-one platform that helps users build their digital identity, engage audiences, and unlock new growth opportunities. Through innovation and a relentless focus on user needs, he continues to shape solutions that make online success more accessible to everyone.",
 };
 
@@ -44,11 +46,6 @@ const FALLBACK_EEFIND: EefindBlock = {
   eyebrow: "Part of EEFind",
   heading: "Built by EEFind Private Limited",
   body: 'Sayzio is a brand and product of EEFIND PVT LTD (EEFind Private Limited) — an aggregator marketplace on a mission to be "The All in One App for everything essential." From groceries home-delivered by neighbourhood stores to trusted home help like carpentry, plumbing and home cleaning, EEFind brings everyday essentials together in one place. Their promise sums up the philosophy Sayzio is built on: "We are not in a hurry to deliver in 10 mins. We drive safe."',
-  stats: [
-    { value: "4,000+", label: "Products" },
-    { value: "2,000+", label: "Merchants" },
-    { value: "35+", label: "Cities live" },
-  ],
   address: "8 Amrutha Nilayam, Banjara Hills, Hyderabad, Telangana 500034",
   email: "support@eefind.com",
   whatsapp: "+91 81210 57755",

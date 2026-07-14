@@ -155,16 +155,32 @@ export default function Verify() {
     );
   }
 
+  // Derive tinted brand gradient stops for the screen background wash so the
+  // verify step matches the login screen. Uses the theme-aware brandGradient
+  // tokens so colors adapt to dark mode; dark mode gets more opacity (0x40 =
+  // 25%) since the near-black base makes lighter tints less visible, light mode
+  // uses 0x2e (18%) for a soft wash that keeps legibility intact.
+  const bgAlpha = colors.scheme === "dark" ? "40" : "2e";
+  const bgGradientColors = colors.brandGradient.map(
+    (c) => `${c}${bgAlpha}`,
+  ) as unknown as [string, string, string];
+
   return (
-    <View style={{ flex: 1, backgroundColor: "#0b0e1a" }}>
+    <View style={[styles.root, { backgroundColor: colors.background }]}>
       <LinearGradient
-        colors={["#0b0e1a", "#080b14", "#070a12"]}
+        colors={bgGradientColors}
+        start={{ x: 0.0, y: 0.0 }}
+        end={{ x: 1.0, y: 1.0 }}
         style={StyleSheet.absoluteFill}
       />
+
       <ScrollView
         contentContainerStyle={[
           styles.scroll,
-          { paddingBottom: insets.bottom + 32 + webBottom },
+          {
+            paddingTop: insets.top + 24,
+            paddingBottom: insets.bottom + 32 + webBottom,
+          },
         ]}
         keyboardShouldPersistTaps="handled"
       >
@@ -274,6 +290,7 @@ export default function Verify() {
 }
 
 const styles = StyleSheet.create({
+  root: { flex: 1 },
   scroll: { padding: 24 },
   h1: {
     fontFamily: "SpaceGrotesk_700Bold",

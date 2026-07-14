@@ -30,6 +30,13 @@ lib/secure, verify.tsx, shared components, etc.) fails the `dialer-sync`,
    script).
 6. Re-baseline: `pnpm --filter @workspace/scripts run check:dialer-sync:accept`.
 
+**Status (July 2026 full re-sync):** `contexts/AuthContext.tsx` is now relation
+`identical` (the demoLogin role adaptation is gone), the login screen matches
+the main app (password login, MandatoryNameModal name gate, no demo buttons),
+and the pre-existing drift backlog (verify/about/InfoPage/siteContent/etc.) was
+cleared. Remaining `adapted` entries: about.tsx, InfoPage.tsx, (auth)/index.tsx,
+app/_layout.tsx, (tabs)/_layout.tsx, oauth-callback.tsx.
+
 **Gotcha — the standalone lags behind prior admin-removal.** When you finally
 `cp` a current AuthContext over, pre-existing un-synced drift surfaces as NEW
 typecheck errors, because the old standalone was internally consistent with the

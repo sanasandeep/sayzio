@@ -17,6 +17,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { BrandWordmark } from "@/components/Brand";
 import { Button } from "@/components/Button";
+import { MandatoryNameModal } from "@/components/MandatoryNameModal";
 import { RegistrationPausedNotice } from "@/components/RegistrationPausedNotice";
 import { SocialMergePrompt } from "@/components/SocialMergePrompt";
 import { TextField } from "@/components/TextField";
@@ -48,9 +49,11 @@ const SOCIALS: {
   { id: "linkedin", label: "LinkedIn", icon: "logo-linkedin", color: "#0a66c2" },
 ];
 
-// LinkedIn goes through the web /user/social-oauth/{provider}/login route
-// via an in-app browser session. Google uses the native expo-auth-session flow.
-const WEB_BROWSER_PROVIDERS = new Set<SocialProvider>(["linkedin"]);
+// LinkedIn and Google (when no native client ID is compiled in) go through the
+// web /user/social-oauth/{provider}/login route via an in-app browser session.
+// When a native Google client ID IS configured, the native expo-auth-session
+// flow takes precedence over the web-browser path for Google only.
+const WEB_BROWSER_PROVIDERS = new Set<SocialProvider>(["google", "linkedin"]);
 
 const HAS_GOOGLE_NATIVE =
   !!process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID ||
@@ -88,7 +91,7 @@ export default function AuthLanding() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const auth = useAuth();
-  const { sendOtp, demoLogin, socialLogin } = auth;
+  const { sendOtp, socialLogin, loginWithPassword } = auth;
 
   // When the OAuth return screen sends users here to fall back to email
   // (?method=email), default to the email tab and focus the field so the
@@ -111,7 +114,11 @@ export default function AuthLanding() {
     const idToken = googleResponse.params?.id_token;
     if (!idToken) return;
     socialLogin({ provider: "google", id_token: idToken })
-      .then(async () => {
+      .then(async ({ needsName }) => {
+        if (needsName) {
+          setShowNameModal(true);
+          return;
+        }
         await redirectAfterAuth(router);
         maybeOfferBiometricEnrollment(auth);
       })
@@ -147,6 +154,10 @@ export default function AuthLanding() {
   // Set to the provider name when a social sign-in hits an account conflict
   // (`identity_taken`); drives the inline "merge accounts?" prompt.
   const [mergeProvider, setMergeProvider] = useState<string | null>(null);
+  const [showNameModal, setShowNameModal] = useState(false);
+  const [loginMethod, setLoginMethod] = useState<"otp" | "password">("password");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
   // Login-method policy: email is always available; WhatsApp (mobile) login
   // is behind an admin toggle with an allowed-country-code list. Default to
@@ -245,15 +256,23 @@ export default function AuthLanding() {
     }
   };
 
-  const onDemo = async () => {
-    setBusy("demo-user");
+  const onLoginWithPw = async () => {
+    const email = identifier.trim();
+    if (!email) { setError("Enter your email"); return; }
+    const pw = password.trim();
+    if (!pw) { setError("Enter your password"); return; }
+    setBusy("pw-login");
     setError(null);
     try {
-      await demoLogin();
+      await loginWithPassword({ email, password: pw });
       await redirectAfterAuth(router);
       maybeOfferBiometricEnrollment(auth);
     } catch (e) {
-      setError((e as ApiError)?.message ?? "Demo unavailable");
+      const err = e as ApiError;
+      let msg = err?.message ?? "Sign-in failed";
+      if (err?.status === 401 || err?.status === 422) msg = "Incorrect email or password.";
+      if (err?.status === 429) msg = "Too many attempts — wait a minute and try again.";
+      setError(msg);
     } finally {
       setBusy(null);
     }
@@ -262,16 +281,12 @@ export default function AuthLanding() {
   const onSocial = async (provider: SocialProvider) => {
     setError(null);
 
-    // Google: native flow via expo-auth-session — POSTs id_token to
-    // /auth/social directly, no backend OAuth round-trip needed.
-    if (provider === "google") {
-      if (!HAS_GOOGLE_NATIVE || !googleRequest) {
-        const msg =
-          "Google sign-in isn't configured for this build. Add EXPO_PUBLIC_GOOGLE_CLIENT_ID (or platform-specific EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID / EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID) to enable it.";
-        if (Platform.OS === "web") setError(msg);
-        else showAlert("Sign in", msg);
-        return;
-      }
+    // Google: native flow (expo-auth-session) takes precedence when a native
+    // client ID is compiled into the build — it POSTs the id_token directly to
+    // /auth/social with no backend round-trip. When no native client ID is
+    // present we fall through to the web-browser flow below, which uses the
+    // same /user/social-oauth/{provider}/login round-trip as LinkedIn.
+    if (provider === "google" && HAS_GOOGLE_NATIVE && googleRequest) {
       setBusy("social-google");
       try {
         await googlePrompt();
@@ -342,10 +357,14 @@ export default function AuthLanding() {
     );
   }
 
-  // Brand gradient wash — always dark treatment (auth screens match intro).
-  // 0x40 = 25% opacity, visible over the near-black intro base.
+  // Brand gradient wash — theme-aware treatment shared across the whole auth
+  // funnel (login, verify, OAuth return, cancel-change). Dark mode uses 0x40
+  // (25%) since the near-black intro base makes lighter tints less visible;
+  // light mode uses 0x2e (18%) for a soft wash. It is layered over the dark
+  // intro base below so the login landing still matches the onboarding slides.
+  const bgAlpha = colors.scheme === "dark" ? "40" : "2e";
   const bgGradientColors = colors.brandGradient.map(
-    (c) => `${c}40`,
+    (c) => `${c}${bgAlpha}`,
   ) as unknown as [string, string, string];
 
   return (
@@ -422,6 +441,8 @@ export default function AuthLanding() {
                       setChannel(c);
                       setIdentifier("");
                       setError(null);
+                      setLoginMethod("otp");
+                      setPassword("");
                     }}
                     style={[
                       styles.tab,
@@ -457,17 +478,77 @@ export default function AuthLanding() {
           keyboardType={channel === "email" ? "email-address" : "phone-pad"}
           value={identifier}
           onChangeText={setIdentifier}
-          error={error ?? undefined}
+          error={loginMethod === "otp" ? (error ?? undefined) : undefined}
         />
 
+        {channel === "email" && loginMethod === "password" ? (
+          <>
+            <View style={{ height: 12 }} />
+            <TextField
+              label="Password"
+              placeholder="Your password"
+              secureTextEntry={!showPassword}
+              autoCapitalize="none"
+              autoCorrect={false}
+              value={password}
+              onChangeText={setPassword}
+              error={error ?? undefined}
+              trailing={
+                <Pressable
+                  onPress={() => setShowPassword((v) => !v)}
+                  accessibilityLabel={showPassword ? "Hide password" : "Show password"}
+                  accessibilityRole="button"
+                  accessibilityState={{ checked: showPassword }}
+                  hitSlop={8}
+                >
+                  <Feather
+                    name={showPassword ? "eye-off" : "eye"}
+                    size={18}
+                    color={colors.mutedForeground}
+                  />
+                </Pressable>
+              }
+            />
+          </>
+        ) : null}
+
         <View style={{ height: 12 }} />
-        <Button
-          label="Send code"
-          variant="cta"
-          onPress={onSendOtp}
-          loading={busy === "otp"}
-          disabled={!!busy && busy !== "otp"}
-        />
+        {channel === "email" && loginMethod === "password" ? (
+          <Button
+            label="Sign in"
+            variant="cta"
+            onPress={onLoginWithPw}
+            loading={busy === "pw-login"}
+            disabled={!!busy && busy !== "pw-login"}
+          />
+        ) : (
+          <Button
+            label="Send code"
+            variant="cta"
+            onPress={onSendOtp}
+            loading={busy === "otp"}
+            disabled={!!busy && busy !== "otp"}
+          />
+        )}
+
+        {channel === "email" ? (
+          <Pressable
+            {...WEB_FOCUS_RING_PROPS}
+            onPress={() => {
+              setLoginMethod((m) => (m === "otp" ? "password" : "otp"));
+              setError(null);
+              setPassword("");
+            }}
+            hitSlop={8}
+            style={{ alignItems: "center", paddingVertical: 8 }}
+          >
+            <Text style={[styles.methodToggle, { color: colors.primary }]}>
+              {loginMethod === "otp"
+                ? "Sign in with password instead"
+                : "Get a one-time code instead"}
+            </Text>
+          </Pressable>
+        ) : null}
 
         <View style={styles.divider}>
           <View style={[styles.line, { backgroundColor: colors.border }]} />
@@ -478,11 +559,7 @@ export default function AuthLanding() {
         </View>
 
         <View style={styles.socialGrid}>
-          {SOCIALS.filter(
-            (s) =>
-              (s.id === "google" && HAS_GOOGLE_NATIVE) ||
-              WEB_BROWSER_PROVIDERS.has(s.id),
-          ).map((s) => {
+          {SOCIALS.filter((s) => WEB_BROWSER_PROVIDERS.has(s.id)).map((s) => {
             const isBusy = busy === `social-${s.id}`;
             const disabled = !!busy && !isBusy;
             return (
@@ -522,22 +599,6 @@ export default function AuthLanding() {
           />
         ) : null}
 
-        <View style={{ height: 28 }} />
-
-        <Text style={[styles.section, { color: colors.mutedForeground }]}>
-          Just exploring?
-        </Text>
-        <View style={styles.demoRow}>
-          <Button
-            label="Demo as user"
-            variant="secondary"
-            onPress={() => onDemo()}
-            loading={busy === "demo-user"}
-            disabled={!!busy && busy !== "demo-user"}
-            style={{ flex: 1 }}
-          />
-        </View>
-
         <View style={{ height: 24 }} />
         <View style={styles.infoLinks}>
           <Pressable {...WEB_FOCUS_RING_PROPS} onPress={() => router.push("/info/about")} hitSlop={8}>
@@ -576,6 +637,15 @@ export default function AuthLanding() {
           By continuing you agree to our Terms and Privacy Policy.
         </Text>
       </ScrollView>
+
+      <MandatoryNameModal
+        visible={showNameModal}
+        onSaved={async () => {
+          setShowNameModal(false);
+          await redirectAfterAuth(router);
+          maybeOfferBiometricEnrollment(auth);
+        }}
+      />
     </View>
   );
 }
@@ -637,7 +707,11 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
     marginBottom: 12,
   },
-  demoRow: { flexDirection: "row", gap: 12 },
+  methodToggle: {
+    fontFamily: "SpaceGrotesk_500Medium",
+    fontSize: 13,
+    textDecorationLine: "underline",
+  },
   infoLinks: {
     flexDirection: "row",
     flexWrap: "wrap",

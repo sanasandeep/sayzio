@@ -23,7 +23,7 @@
       "source": "app/info/about.tsx",
       "relation": "adapted",
       "note": "standalone copy keeps the contacts/dialer mentions the main app removed when its dialer surfaces were dropped",
-      "sourceSha256": "a5e1fd9fa50f7cb339c5550a8d7561deec86deebdf328f58d8434940efd60ea5"
+      "sourceSha256": "b6fd811db31480c85ed551d95042c14a5f94ad9a134fd04816568cba3fcafd91"
     },
     {
       "standalone": "app/info/help.tsx",
@@ -70,7 +70,7 @@
       "source": "components/InfoPage.tsx",
       "relation": "adapted",
       "note": "standalone keeps the plain static InfoPage; the main app added react-native-reanimated scroll-reveal entrance animations (via ./ScrollReveal + useReducedMotion) that the standalone does not depend on",
-      "sourceSha256": "e1e5600409ec4c9f41dff992c2f67a66192193ce40d30a40b7e83b987c8240b6"
+      "sourceSha256": "0eac898c9618f158b9f10ffe577ef956950835f65f1864a7f87bedb6d3bba1e7"
     },
     {
       "standalone": "components/MandatoryNameModal.tsx",
@@ -119,9 +119,7 @@
     {
       "standalone": "contexts/AuthContext.tsx",
       "source": "contexts/AuthContext.tsx",
-      "relation": "adapted",
-      "note": "demoLogin accepts an optional role (\"user\"|\"admin\"|\"super_admin\", default \"user\") to power the standalone (auth)/index.tsx \"Demo as admin\" button; otherwise identical (no impersonation stash — that was broken, half-added drift referencing storage exports the standalone never had)",
-      "sourceSha256": "bd6c9322b7c0ed75f1ffde73d8192fc00e6301e43a7409344fe2cd8591e2d2f4"
+      "relation": "identical"
     },
     {
       "standalone": "contexts/ThemeContext.tsx",
@@ -221,7 +219,7 @@
       "standalone": "app/(auth)/index.tsx",
       "source": "app/(auth)/index.tsx",
       "relation": "adapted",
-      "sourceSha256": "ab98aed5063ae5a2999d0617584ec4d7c10ab87b855b35cf5fadb459d643eb73",
+      "sourceSha256": "0748f27f33308f1625c2148348265fcb8fc9bf131d940031285d30d61c26a101",
       "note": "dev-only missing-env alert text reworded (no monorepo path); also omits the intro-style reanimated AnimatedBlob decorative background the main app adds, because the standalone deliberately does not depend on react-native-reanimated (same policy as the static InfoPage entry); everything else must match the main app"
     },
     {
@@ -235,21 +233,21 @@
       "standalone": "app/_layout.tsx",
       "source": "app/_layout.tsx",
       "relation": "adapted",
-      "note": "root providers trimmed to what the dialer needs (no VoiceAssistant, DeepLinkRouter, ErrorBoundary, ImpersonationBanner, IdleLockWarning, KeyboardProvider, RevenueCat/SubscriptionProvider, push registration, @workspace/api-client-react wiring); mounts useContactAutoSync; Stack.Screen list only carries dialer-relevant routes (search/dialer-profile/call/contacts/info/oauth-callback) — new main-app-only screens (calendars, brand-kits, delivery-projects, marketing-strategist, etc.) are not dialer surfaces and intentionally omitted",
-      "sourceSha256": "bc336ce2152cabebccb589d6bb83ad8329ca3143fc09d144df29d5ea04558b1d"
+      "note": "root providers trimmed to what the dialer needs (no VoiceAssistant, DeepLinkRouter, ErrorBoundary, ImpersonationBanner, IdleLockWarning, KeyboardProvider, RevenueCat/SubscriptionProvider, push registration, @workspace/api-client-react wiring); mounts useContactAutoSync; Stack.Screen list only carries dialer-relevant routes (search/dialer-profile/call/contacts/info/oauth-callback) \u2014 new main-app-only screens (calendars, brand-kits, delivery-projects, marketing-strategist, etc.) are not dialer surfaces and intentionally omitted",
+      "sourceSha256": "e9683e9f5ea62fac3bc9ce356e53b698271f3b8c994ec6bf05167e5a6d36e282"
     },
     {
       "standalone": "app/oauth-callback.tsx",
       "source": "app/oauth-callback.tsx",
       "relation": "adapted",
-      "sourceSha256": "80dc2a8694bb246dfea59bb79dba0b589f8e4c9e1a046ddf1278b8f57738176d",
+      "sourceSha256": "63ea63af3a730239191f0badc2f7c736cc3772128faf7b89c400aafb73029c02",
       "note": "Connected-Apps OAuth completion branch removed (standalone has no connected-apps screen); session handling must match"
     },
     {
       "standalone": "app/(tabs)/_layout.tsx",
       "source": "app/(tabs)/_layout.tsx",
       "relation": "adapted",
-      "sourceSha256": "920c0d38ef18d47bf26fc70e919f968e3764f654c2897acd3b12d7de5f72e78e",
+      "sourceSha256": "c5a11f49dd279d2b6d5f2cd403a53da873bd6499c228778b044ff2047874f5a1",
       "note": "different tab set: Dialer / Contacts / Caller ID / Events (+ header search button + nearby-event badge) instead of the main-app tabs"
     },
     {
@@ -275,11 +273,11 @@
     },
     {
       "path": "app/(tabs)/dialer.tsx",
-      "note": "dialer keypad screen (with suggestions empty-state); the main app removed its app/dialer.tsx — this standalone is now the sole home of the mobile dialer surface"
+      "note": "dialer keypad screen (with suggestions empty-state); the main app removed its app/dialer.tsx \u2014 this standalone is now the sole home of the mobile dialer surface"
     },
     {
       "path": "app/(tabs)/contacts.tsx",
-      "note": "contacts list screen; the main app removed its app/contacts/ screens — device import goes through lib/deviceContacts.ts"
+      "note": "contacts list screen; the main app removed its app/contacts/ screens \u2014 device import goes through lib/deviceContacts.ts"
     },
     {
       "path": "app/dialer-profile.tsx",
@@ -339,7 +337,7 @@
     },
     {
       "path": "lib/eventsLocation.ts",
-      "note": "Single saved 'my location' anchoring Events near-me filtering + nearby-event alerts, set via device GPS or the shared MapPickerModal (the dialer's existing location-picker UI) — one location concept in this app, not a separate store; the main app has no equivalent single-location concept"
+      "note": "Single saved 'my location' anchoring Events near-me filtering + nearby-event alerts, set via device GPS or the shared MapPickerModal (the dialer's existing location-picker UI) \u2014 one location concept in this app, not a separate store; the main app has no equivalent single-location concept"
     },
     {
       "path": "app/(tabs)/events.tsx",
@@ -347,7 +345,7 @@
     },
     {
       "path": "app/events/[alias].tsx",
-      "note": "Event detail/RSVP/buy/interest screen adapted from the main app's app/events/[alias].tsx to this app's auth context field names (user.display_name) and colors; adds an in-app RsvpWebViewModal (embeds the existing public /{alias}/rsvp page) for non-ticketed events since there is no JSON RSVP API — otherwise the same hashtags/gallery/info-sections/interest UI"
+      "note": "Event detail/RSVP/buy/interest screen adapted from the main app's app/events/[alias].tsx to this app's auth context field names (user.display_name) and colors; adds an in-app RsvpWebViewModal (embeds the existing public /{alias}/rsvp page) for non-ticketed events since there is no JSON RSVP API \u2014 otherwise the same hashtags/gallery/info-sections/interest UI"
     },
     {
       "path": "hooks/useNearbyEventAlerts.ts",

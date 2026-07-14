@@ -235,7 +235,7 @@ export const setAutoShortenEnabled = (v: boolean) =>
 // AsyncStorage (not SecureStore): the payload is non-sensitive JSON that can
 // exceed SecureStore's small per-item size limits on native.
 // ---------------------------------------------------------------------------
-const ONBOARDING_SLIDES_CACHE_KEY = "1inme.onboarding.slides.cache.v1";
+const ONBOARDING_SLIDES_CACHE_KEY = "1inme.onboarding.slides.cache.v2";
 
 // Minimal structural shape we validate before trusting a cached entry, kept
 // intentionally loose so additive API fields never invalidate the cache.
