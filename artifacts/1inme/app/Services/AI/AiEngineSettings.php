@@ -62,6 +62,35 @@ class AiEngineSettings
     public const KEY_ASK_COACH_PROMPT  = 'ai.ask_coach.system_prompt';
     public const KEY_ASK_COACH_PLANS   = 'ai.ask_coach.enabled_plans';
 
+    // Behavior controls
+    public const KEY_ASK_COACH_TONE            = 'ai.ask_coach.behavior.tone';
+    public const KEY_ASK_COACH_RESPONSE_LENGTH = 'ai.ask_coach.behavior.response_length';
+    public const KEY_ASK_COACH_REPLY_LANGUAGE  = 'ai.ask_coach.behavior.reply_language';
+    public const KEY_ASK_COACH_TEMPERATURE     = 'ai.ask_coach.behavior.temperature';
+
+    // Usage limits
+    public const KEY_ASK_COACH_PLAN_CAPS         = 'ai.ask_coach.limits.plan_caps';
+    public const KEY_ASK_COACH_COOLDOWN          = 'ai.ask_coach.limits.cooldown_seconds';
+    public const KEY_ASK_COACH_CREDIT_MULTIPLIER = 'ai.ask_coach.limits.credit_multiplier';
+
+    // Content controls
+    public const KEY_ASK_COACH_BANNED_TOPICS   = 'ai.ask_coach.content.banned_topics';
+    public const KEY_ASK_COACH_GREETING        = 'ai.ask_coach.content.greeting';
+    public const KEY_ASK_COACH_FALLBACK_MSG    = 'ai.ask_coach.content.fallback_message';
+    public const KEY_ASK_COACH_ESCALATION_NOTE = 'ai.ask_coach.content.escalation_note';
+
+    // Model & data settings
+    public const KEY_ASK_COACH_MAX_TOKENS           = 'ai.ask_coach.model.max_tokens';
+    public const KEY_ASK_COACH_SNAPSHOT_CATEGORIES  = 'ai.ask_coach.model.snapshot_categories';
+
+    /** Default max tokens when not admin-overridden. */
+    public const DEFAULT_ASK_COACH_MAX_TOKENS = 600;
+    /** Default temperature when not admin-overridden. */
+    public const DEFAULT_ASK_COACH_TEMPERATURE = 0.4;
+
+    /** All snapshot category slugs the admin can toggle. */
+    public const ASK_COACH_SNAPSHOT_CATEGORIES = ['links', 'analytics', 'audience', 'billing', 'events'];
+
     public const DEFAULT_ASK_COACH_PROMPT = <<<'PROMPT'
 You are Sayzio Coach, a calm, concise self-support assistant for the user
 who is chatting with you. The user is signed in to Sayzio and is asking
@@ -141,6 +170,265 @@ PROMPT;
             ->whereIn('slug', $allow)
             ->orderBy('monthly_price')
             ->first();
+    }
+
+    // ── Ask Coach — behavior controls ────────────────────────────────
+
+    /** Tone preset: friendly|professional|concise|playful. Empty = default (friendly). */
+    public static function askCoachTone(): string
+    {
+        $v = AppSetting::get(self::KEY_ASK_COACH_TONE);
+        $valid = ['friendly', 'professional', 'concise', 'playful'];
+        return (is_string($v) && in_array($v, $valid, true)) ? $v : 'friendly';
+    }
+
+    public static function setAskCoachTone(?string $tone): void
+    {
+        $valid = ['friendly', 'professional', 'concise', 'playful'];
+        AppSetting::put(self::KEY_ASK_COACH_TONE, (is_string($tone) && in_array($tone, $valid, true)) ? $tone : null);
+    }
+
+    /** Response length hint: short|medium|long. Empty = default (medium). */
+    public static function askCoachResponseLength(): string
+    {
+        $v = AppSetting::get(self::KEY_ASK_COACH_RESPONSE_LENGTH);
+        $valid = ['short', 'medium', 'long'];
+        return (is_string($v) && in_array($v, $valid, true)) ? $v : 'medium';
+    }
+
+    public static function setAskCoachResponseLength(?string $len): void
+    {
+        $valid = ['short', 'medium', 'long'];
+        AppSetting::put(self::KEY_ASK_COACH_RESPONSE_LENGTH, (is_string($len) && in_array($len, $valid, true)) ? $len : null);
+    }
+
+    /** Preferred reply language. 'match_user' = auto-detect (default). */
+    public static function askCoachReplyLanguage(): string
+    {
+        $v = AppSetting::get(self::KEY_ASK_COACH_REPLY_LANGUAGE);
+        return (is_string($v) && trim($v) !== '') ? trim($v) : 'match_user';
+    }
+
+    public static function setAskCoachReplyLanguage(?string $lang): void
+    {
+        AppSetting::put(self::KEY_ASK_COACH_REPLY_LANGUAGE, is_string($lang) ? trim($lang) : null);
+    }
+
+    /** Temperature for Coach chat completions (0.0–1.5). */
+    public static function askCoachTemperature(): float
+    {
+        $v = AppSetting::get(self::KEY_ASK_COACH_TEMPERATURE);
+        return ($v !== null && is_numeric($v))
+            ? max(0.0, min(1.5, (float) $v))
+            : self::DEFAULT_ASK_COACH_TEMPERATURE;
+    }
+
+    public static function setAskCoachTemperature(?float $t): void
+    {
+        AppSetting::put(self::KEY_ASK_COACH_TEMPERATURE, $t !== null ? round(max(0.0, min(1.5, $t)), 2) : null);
+    }
+
+    // ── Ask Coach — usage limits ──────────────────────────────────────
+
+    /**
+     * Per-plan message caps. Returns a map of plan_slug =>
+     * ['period' => 'daily'|'monthly', 'cap' => int].
+     * An empty cap means unlimited for that plan.
+     *
+     * @return array<string, array{period:string,cap:int}>
+     */
+    public static function askCoachPlanCaps(): array
+    {
+        $val = AppSetting::get(self::KEY_ASK_COACH_PLAN_CAPS);
+        if (!is_array($val)) return [];
+        $out = [];
+        foreach ($val as $slug => $cfg) {
+            if (!is_string($slug) || $slug === '' || !is_array($cfg)) continue;
+            $period = in_array($cfg['period'] ?? '', ['daily', 'monthly'], true) ? $cfg['period'] : 'daily';
+            $cap = max(0, (int) ($cfg['cap'] ?? 0));
+            if ($cap > 0) {
+                $out[$slug] = ['period' => $period, 'cap' => $cap];
+            }
+        }
+        return $out;
+    }
+
+    /** @param array<string, array{period:string,cap:int}> $caps */
+    public static function setAskCoachPlanCaps(array $caps): void
+    {
+        $clean = [];
+        foreach ($caps as $slug => $cfg) {
+            if (!is_string($slug) || $slug === '' || !is_array($cfg)) continue;
+            $period = in_array($cfg['period'] ?? '', ['daily', 'monthly'], true) ? $cfg['period'] : 'daily';
+            $cap = max(0, (int) ($cfg['cap'] ?? 0));
+            if ($cap > 0) {
+                $clean[$slug] = ['period' => $period, 'cap' => $cap];
+            }
+        }
+        AppSetting::put(self::KEY_ASK_COACH_PLAN_CAPS, $clean ?: null);
+    }
+
+    /** Per-user cooldown between messages in seconds. 0 = no cooldown. */
+    public static function askCoachCooldownSeconds(): int
+    {
+        return max(0, (int) AppSetting::get(self::KEY_ASK_COACH_COOLDOWN, 0));
+    }
+
+    public static function setAskCoachCooldownSeconds(int $secs): void
+    {
+        AppSetting::put(self::KEY_ASK_COACH_COOLDOWN, max(0, $secs) ?: null);
+    }
+
+    /**
+     * Credit-cost multiplier applied on top of the per-plan coin rate.
+     * 1.0 = no surcharge (default). 1.5 = 50% surcharge on base coin cost.
+     */
+    public static function askCoachCreditMultiplier(): float
+    {
+        $v = AppSetting::get(self::KEY_ASK_COACH_CREDIT_MULTIPLIER);
+        return ($v !== null && is_numeric($v)) ? max(1.0, (float) $v) : 1.0;
+    }
+
+    public static function setAskCoachCreditMultiplier(?float $m): void
+    {
+        AppSetting::put(self::KEY_ASK_COACH_CREDIT_MULTIPLIER, ($m !== null && $m > 1.0) ? round($m, 2) : null);
+    }
+
+    // ── Ask Coach — content controls ──────────────────────────────────
+
+    /**
+     * Banned topic keywords/phrases. When any keyword appears in the user's
+     * message the Coach politely declines instead of calling the model.
+     *
+     * @return list<string>
+     */
+    public static function askCoachBannedTopics(): array
+    {
+        $val = AppSetting::get(self::KEY_ASK_COACH_BANNED_TOPICS);
+        if (!is_array($val)) return [];
+        return array_values(array_filter(array_map('trim', array_map('strval', $val))));
+    }
+
+    public static function setAskCoachBannedTopics(array $topics): void
+    {
+        $clean = array_values(array_filter(array_map('trim', array_map('strval', $topics))));
+        AppSetting::put(self::KEY_ASK_COACH_BANNED_TOPICS, $clean ?: null);
+    }
+
+    /** Custom greeting shown as the first message in a new chat. Empty = no greeting. */
+    public static function askCoachGreeting(): string
+    {
+        $v = AppSetting::get(self::KEY_ASK_COACH_GREETING);
+        return is_string($v) ? trim($v) : '';
+    }
+
+    public static function setAskCoachGreeting(?string $msg): void
+    {
+        AppSetting::put(self::KEY_ASK_COACH_GREETING, (is_string($msg) && trim($msg) !== '') ? trim($msg) : null);
+    }
+
+    /** Custom fallback message when Coach can't answer. Empty = platform default. */
+    public static function askCoachFallbackMessage(): string
+    {
+        $v = AppSetting::get(self::KEY_ASK_COACH_FALLBACK_MSG);
+        return (is_string($v) && trim($v) !== '') ? trim($v) : '';
+    }
+
+    public static function setAskCoachFallbackMessage(?string $msg): void
+    {
+        AppSetting::put(self::KEY_ASK_COACH_FALLBACK_MSG, (is_string($msg) && trim($msg) !== '') ? trim($msg) : null);
+    }
+
+    /**
+     * Optional note appended to decline messages pointing users to support.
+     * Empty = no escalation note.
+     */
+    public static function askCoachEscalationNote(): string
+    {
+        $v = AppSetting::get(self::KEY_ASK_COACH_ESCALATION_NOTE);
+        return (is_string($v) && trim($v) !== '') ? trim($v) : '';
+    }
+
+    public static function setAskCoachEscalationNote(?string $note): void
+    {
+        AppSetting::put(self::KEY_ASK_COACH_ESCALATION_NOTE, (is_string($note) && trim($note) !== '') ? trim($note) : null);
+    }
+
+    // ── Ask Coach — model & data settings ────────────────────────────
+
+    /** Max tokens for Coach completions. Falls back to DEFAULT_ASK_COACH_MAX_TOKENS. */
+    public static function askCoachMaxTokens(): int
+    {
+        $v = AppSetting::get(self::KEY_ASK_COACH_MAX_TOKENS);
+        return ($v !== null && is_numeric($v)) ? max(100, min(4000, (int) $v)) : self::DEFAULT_ASK_COACH_MAX_TOKENS;
+    }
+
+    public static function setAskCoachMaxTokens(?int $n): void
+    {
+        AppSetting::put(self::KEY_ASK_COACH_MAX_TOKENS, ($n !== null) ? max(100, min(4000, $n)) : null);
+    }
+
+    /**
+     * Enabled snapshot categories. Empty list = all categories on (default).
+     * See ASK_COACH_SNAPSHOT_CATEGORIES for the full set.
+     *
+     * @return list<string>
+     */
+    public static function askCoachSnapshotCategories(): array
+    {
+        $val = AppSetting::get(self::KEY_ASK_COACH_SNAPSHOT_CATEGORIES);
+        if (!is_array($val)) return [];
+        return array_values(array_filter(
+            array_map('strval', $val),
+            fn($s) => in_array($s, self::ASK_COACH_SNAPSHOT_CATEGORIES, true)
+        ));
+    }
+
+    public static function setAskCoachSnapshotCategories(array $cats): void
+    {
+        $clean = array_values(array_filter(
+            array_map('strval', $cats),
+            fn($s) => in_array($s, self::ASK_COACH_SNAPSHOT_CATEGORIES, true)
+        ));
+        AppSetting::put(self::KEY_ASK_COACH_SNAPSHOT_CATEGORIES, $clean ?: null);
+    }
+
+    /**
+     * Build the behavior directive block appended to the system prompt
+     * based on the current tone/length/language settings.
+     */
+    public static function askCoachBehaviorDirectives(): string
+    {
+        $parts = [];
+
+        $toneMap = [
+            'friendly'     => 'Adopt a warm, friendly, encouraging tone.',
+            'professional' => 'Adopt a professional, formal, and neutral tone.',
+            'concise'      => 'Be extremely concise — prioritize brevity over detail.',
+            'playful'      => 'Use a light, playful, and upbeat tone while staying helpful.',
+        ];
+        $tone = self::askCoachTone();
+        if (isset($toneMap[$tone]) && $tone !== 'friendly') {
+            $parts[] = $toneMap[$tone];
+        }
+
+        $lengthMap = [
+            'short'  => 'Keep responses very short — max ~60 words, no lists.',
+            'medium' => '',
+            'long'   => 'You may give longer, more detailed answers — up to ~300 words — when a thorough explanation helps.',
+        ];
+        $length = self::askCoachResponseLength();
+        if (!empty($lengthMap[$length])) {
+            $parts[] = $lengthMap[$length];
+        }
+
+        $lang = self::askCoachReplyLanguage();
+        if ($lang !== 'match_user' && $lang !== '') {
+            $parts[] = "Always reply in language code: {$lang}.";
+        }
+
+        if (!$parts) return '';
+        return "\n\nBehavior directives:\n- " . implode("\n- ", $parts);
     }
 
     /** Fallback chat model used when a feature has no mapping yet. */

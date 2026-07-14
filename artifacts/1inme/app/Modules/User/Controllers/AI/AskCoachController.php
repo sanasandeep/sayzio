@@ -223,6 +223,20 @@ class AskCoachController extends Controller
             'workspace_id' => $this->workspaceId(),
             'title'        => 'New chat',
         ]);
+
+        // Emit the admin-configured greeting as the first assistant message
+        // in the new thread so users see it on their first visit.
+        $greeting = AiEngineSettings::askCoachGreeting();
+        if ($greeting !== '') {
+            AskCoachMessage::create([
+                'thread_id' => $thread->id,
+                'role'      => 'assistant',
+                'content'   => $greeting,
+                'meta'      => ['is_greeting' => true],
+            ]);
+            $thread->forceFill(['last_message_at' => now()])->save();
+        }
+
         return redirect()->route('user.ai.ask-coach.thread', $thread->id);
     }
 
@@ -253,6 +267,13 @@ class AskCoachController extends Controller
             'mind_ids'         => $mindIds,
             'include_platform' => $includePlatform,
         ]);
+
+        // Pre-flight guards: cooldown, plan cap, banned topics.
+        // These fire before any message is persisted and before the
+        // SSE branch so both paths benefit from the same enforcement.
+        if ($response = $this->checkPreflightErrors($request, $user, $data['message'])) {
+            return $response;
+        }
 
         // Branch into the SSE variant when the client opts in. Web UI
         // and mobile screen both use this so words land as they're
@@ -285,13 +306,15 @@ class AskCoachController extends Controller
         // prompt and spend are identical to today's behavior.
         $kb = $this->resolveKb($user, $mindIds, $includePlatform, $data['message']);
 
-        $systemPrompt = $this->appendKbContext(AiEngineSettings::askCoachSystemPrompt(), $kb['kbContext']);
+        $systemPrompt = $this->appendKbContext($this->buildSystemPrompt(), $kb['kbContext']);
         $messages = array_merge(
             [['role' => 'system', 'content' => $systemPrompt]],
             $recent->map(fn($m) => ['role' => $m->role, 'content' => $m->content])->all(),
         );
 
-        $model = AiEngineSettings::featureModel('ask_coach');
+        $model        = AiEngineSettings::featureModel('ask_coach');
+        $temperature  = AiEngineSettings::askCoachTemperature();
+        $maxTokens    = AiEngineSettings::askCoachMaxTokens();
 
         // 2) Native OpenAI function-calling loop. Let the model itself
         //    decide which (if any) data tools to pull, instead of the
@@ -309,12 +332,12 @@ class AskCoachController extends Controller
         $usedFallback = false;
 
         try {
-            $tools = $this->tools->functionDefinitions();
+            $tools = $this->filteredFunctionDefinitions();
             for ($i = 0; $i < self::MAX_TOOL_ITERATIONS; $i++) {
                 $out = $this->ai->chat($user, $model, $messages, [
                     'feature'     => 'ask_coach.chat',
-                    'temperature' => 0.4,
-                    'max_tokens'  => 600,
+                    'temperature' => $temperature,
+                    'max_tokens'  => $maxTokens,
                     'reason'      => 'Ask Coach: data-aware reply',
                     'tools'       => $tools,
                 ]);
@@ -391,7 +414,7 @@ class AskCoachController extends Controller
             // exception), not just exceptions, so the persisted meta
             // accurately reflects which path produced the answer.
             $usedFallback = true;
-            $picks = $this->tools->pickToolsForQuestion($data['message']);
+            $picks = $this->filteredPickTools($data['message']);
             $invocations = []; $citations = []; $insights = []; $actions = [];
             foreach ($picks as $tool) {
                 $r = $this->tools->run($tool, $user);
@@ -404,7 +427,7 @@ class AskCoachController extends Controller
                 }
             }
 
-            $fallbackPrompt = AiEngineSettings::askCoachSystemPrompt();
+            $fallbackPrompt = $this->buildSystemPrompt();
             if ($invocations) {
                 $fallbackPrompt .= "\n\nSnapshots from the user's data (read-only, do not invent values beyond these):\n";
                 foreach ($invocations as $inv) {
@@ -420,8 +443,8 @@ class AskCoachController extends Controller
             try {
                 $out = $this->ai->chat($user, $model, $fallbackMessages, [
                     'feature'     => 'ask_coach.chat',
-                    'temperature' => 0.4,
-                    'max_tokens'  => 600,
+                    'temperature' => $temperature,
+                    'max_tokens'  => $maxTokens,
                     'reason'      => 'Ask Coach: data-aware reply (fallback)',
                 ]);
                 $totalCredits += (int) ($out['credits_spent'] ?? 0);
@@ -429,18 +452,21 @@ class AskCoachController extends Controller
                 if ($e instanceof InsufficientCoinsForAiException) throw $e;
                 Log::warning('Ask Coach AI call failed: ' . $e->getMessage());
                 $threadModel->forceFill(['last_message_at' => $now])->save();
-                return back()->with('error', 'Coach could not reply right now. Please try again.');
+                $fallbackMsg = AiEngineSettings::askCoachFallbackMessage()
+                    ?: 'Coach could not reply right now. Please try again.';
+                return back()->with('error', $fallbackMsg);
             }
         }
 
         // 4) Persist the assistant turn with everything the renderer
         //    needs to redraw the message after a page reload.
+        $multiplierSurcharge = $this->applyCreditMultiplierSurcharge($user, $totalCredits);
         AskCoachMessage::create([
             'thread_id'  => $threadModel->id,
             'role'       => 'assistant',
             'content'    => $out['content'],
             'meta'       => [
-                'credits_spent' => $totalCredits + $kb['creditsSpent'],
+                'credits_spent' => $totalCredits + $multiplierSurcharge + $kb['creditsSpent'],
                 'model'         => $out['model'] ?? null,
                 'tools_used'    => array_values(array_unique($picks)),
                 'citations'     => array_merge($citations, $kb['citations']),
@@ -481,7 +507,7 @@ class AskCoachController extends Controller
         // Pick + run the read-only tools, build the prompt — same
         // shape as the non-streaming branch above, just hoisted so we
         // can flush meta in the closing "done" frame.
-        $picks = $this->tools->pickToolsForQuestion($message);
+        $picks = $this->filteredPickTools($message);
         $invocations = []; $citations = []; $insights = []; $actions = [];
         foreach ($picks as $tool) {
             $r = $this->tools->run($tool, $user);
@@ -507,7 +533,7 @@ class AskCoachController extends Controller
             ->reverse()
             ->values();
 
-        $systemPrompt = AiEngineSettings::askCoachSystemPrompt();
+        $systemPrompt = $this->buildSystemPrompt();
         if ($invocations) {
             $systemPrompt .= "\n\nSnapshots from the user's data (read-only, do not invent values beyond these):\n";
             foreach ($invocations as $inv) {
@@ -521,7 +547,10 @@ class AskCoachController extends Controller
             $recent->map(fn($m) => ['role' => $m->role, 'content' => $m->content])->all(),
         );
 
-        $response = new StreamedResponse(function () use ($user, $messages, $threadModel, $picks, $citations, $insights, $actions, $message, $kbCitations, $kbCredits, $mindsUsed) {
+        $streamTemperature = AiEngineSettings::askCoachTemperature();
+        $streamMaxTokens   = AiEngineSettings::askCoachMaxTokens();
+
+        $response = new StreamedResponse(function () use ($user, $messages, $threadModel, $picks, $citations, $insights, $actions, $message, $kbCitations, $kbCredits, $mindsUsed, $streamTemperature, $streamMaxTokens) {
             $emit = function (string $event, array $data): void {
                 echo "event: {$event}\n";
                 echo 'data: ' . json_encode($data, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) . "\n\n";
@@ -538,8 +567,8 @@ class AskCoachController extends Controller
                     $messages,
                     [
                         'feature'     => 'ask_coach.chat',
-                        'temperature' => 0.4,
-                        'max_tokens'  => 600,
+                        'temperature' => $streamTemperature,
+                        'max_tokens'  => $streamMaxTokens,
                         'reason'      => 'Ask Coach: streamed reply',
                     ],
                     function (string $delta) use ($emit) {
@@ -552,16 +581,20 @@ class AskCoachController extends Controller
             } catch (\RuntimeException $e) {
                 Log::warning('Ask Coach stream failed: ' . $e->getMessage());
                 $threadModel->forceFill(['last_message_at' => now()])->save();
-                $emit('error', ['code' => 'ai_unavailable', 'message' => 'Coach could not reply right now. Please try again.']);
+                $fallbackMsg = AiEngineSettings::askCoachFallbackMessage()
+                    ?: 'Coach could not reply right now. Please try again.';
+                $emit('error', ['code' => 'ai_unavailable', 'message' => $fallbackMsg]);
                 return;
             }
 
+            $baseCredits      = (int) $out['credits_spent'];
+            $surcharge        = $this->applyCreditMultiplierSurcharge($user, $baseCredits);
             $assistant = AskCoachMessage::create([
                 'thread_id'  => $threadModel->id,
                 'role'       => 'assistant',
                 'content'    => $out['content'],
                 'meta'       => [
-                    'credits_spent' => (int) $out['credits_spent'] + $kbCredits,
+                    'credits_spent' => $baseCredits + $surcharge + $kbCredits,
                     'model'         => $out['model'] ?? null,
                     'tools_used'    => $picks,
                     'citations'     => array_merge($citations, $kbCitations),
@@ -767,6 +800,188 @@ class AskCoachController extends Controller
         if ($user && !\App\Services\AI\AiPlanAccess::featureAllowed($user, 'ask_coach')) {
             abort(403, 'Ask Coach is not available on your current plan.');
         }
+    }
+
+    // ── Admin settings — runtime enforcement ──────────────────────
+
+    /**
+     * Run pre-flight checks (cooldown, plan cap, banned topics) before
+     * any message is written. Returns a response to short-circuit the
+     * request, or null when all checks pass.
+     */
+    protected function checkPreflightErrors(Request $request, $user, string $message): mixed
+    {
+        // Cooldown — per-user gap between messages
+        $cooldown = AiEngineSettings::askCoachCooldownSeconds();
+        if ($cooldown > 0) {
+            $lastAt = AskCoachMessage::query()
+                ->whereHas('thread', fn($q) => $q->where('user_id', $user->id))
+                ->where('role', 'user')
+                ->latest()
+                ->value('created_at');
+            if ($lastAt) {
+                $elapsed = (int) \Carbon\Carbon::parse($lastAt)->diffInSeconds(now());
+                if ($elapsed < $cooldown) {
+                    $remaining = $cooldown - $elapsed;
+                    return $this->preflightError(
+                        $request,
+                        "Please wait {$remaining} second(s) before sending another message.",
+                        'cooldown'
+                    );
+                }
+            }
+        }
+
+        // Per-plan message cap (daily or monthly)
+        $caps = AiEngineSettings::askCoachPlanCaps();
+        if ($caps) {
+            $slug = ($user->plan_id && $user->plan) ? (string) $user->plan->slug : 'free';
+            if (isset($caps[$slug])) {
+                $capCfg = $caps[$slug];
+                $since  = $capCfg['period'] === 'monthly' ? now()->startOfMonth() : now()->startOfDay();
+                $count  = AskCoachMessage::query()
+                    ->whereHas('thread', fn($q) => $q->where('user_id', $user->id))
+                    ->where('role', 'user')
+                    ->where('created_at', '>=', $since)
+                    ->count();
+                if ($count >= $capCfg['cap']) {
+                    $resetLabel = $capCfg['period'] === 'monthly' ? 'next month' : 'tomorrow';
+                    return $this->preflightError(
+                        $request,
+                        "You have reached your {$capCfg['period']} message limit of {$capCfg['cap']}. Coach will be available again {$resetLabel}.",
+                        'plan_cap'
+                    );
+                }
+            }
+        }
+
+        // Banned topics — keyword-match the user's message
+        $banned = AiEngineSettings::askCoachBannedTopics();
+        if ($banned) {
+            $lower = mb_strtolower($message);
+            foreach ($banned as $topic) {
+                if (mb_stripos($lower, mb_strtolower($topic)) !== false) {
+                    $decline = "I'm sorry, that topic is outside what I can help with here.";
+                    $note    = AiEngineSettings::askCoachEscalationNote();
+                    if ($note !== '') $decline .= ' ' . $note;
+                    return $this->preflightError($request, $decline, 'banned_topic');
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /** Return the appropriate error response for a pre-flight failure. */
+    protected function preflightError(Request $request, string $message, string $code): mixed
+    {
+        if ($this->wantsStream($request) || $request->wantsJson()) {
+            return response()->json(['error' => ['message' => $message, 'code' => $code]], 422);
+        }
+        return back()->with('error', $message);
+    }
+
+    /**
+     * Build the system prompt for the current turn, combining the
+     * admin-configured base prompt with any behavior directives (tone,
+     * length, language) from the settings.
+     */
+    protected function buildSystemPrompt(): string
+    {
+        $base       = AiEngineSettings::askCoachSystemPrompt();
+        $directives = AiEngineSettings::askCoachBehaviorDirectives();
+        return $base . $directives;
+    }
+
+    /**
+     * Map of data snapshot category slugs → the underlying tool names
+     * they cover. Used to filter the tool registry based on admin toggles.
+     */
+    protected const SNAPSHOT_CATEGORY_TOOLS = [
+        'links'     => ['biolinks', 'links'],
+        'analytics' => ['analytics'],
+        'audience'  => ['audience'],
+        'billing'   => ['payments', 'account'],
+        'events'    => ['event_lookup'],
+    ];
+
+    /**
+     * Resolve the set of tool names currently enabled by the admin's
+     * snapshot-category toggles. An empty setting means all categories
+     * are on (the platform default).
+     *
+     * @return list<string>
+     */
+    protected function enabledTools(): array
+    {
+        $categories = AiEngineSettings::askCoachSnapshotCategories();
+        if (empty($categories)) {
+            return array_keys($this->tools->tools());
+        }
+        $enabled = [];
+        foreach ($categories as $cat) {
+            foreach (self::SNAPSHOT_CATEGORY_TOOLS[$cat] ?? [] as $tool) {
+                $enabled[] = $tool;
+            }
+        }
+        return array_values(array_unique($enabled));
+    }
+
+    /**
+     * Return only the function definitions for enabled snapshot categories.
+     * Passed to the native tool-calling loop so the model never requests
+     * data from a disabled category.
+     */
+    protected function filteredFunctionDefinitions(): array
+    {
+        $enabled = $this->enabledTools();
+        return array_values(array_filter(
+            $this->tools->functionDefinitions(),
+            fn($def) => in_array($def['function']['name'], $enabled, true)
+        ));
+    }
+
+    /**
+     * Keyword-router picks filtered to only enabled snapshot categories.
+     * Used by the SSE stream path and the native-tool-calling fallback.
+     *
+     * @return list<string>
+     */
+    protected function filteredPickTools(string $question): array
+    {
+        $enabled = $this->enabledTools();
+        $picked  = $this->tools->pickToolsForQuestion($question);
+        $filtered = array_values(array_filter($picked, fn($t) => in_array($t, $enabled, true)));
+        // If filtering zeroed out all picks (disabled cats covered everything),
+        // return an empty list rather than the default fallback so we don't
+        // inadvertently invoke a disabled category.
+        return $filtered;
+    }
+
+    /**
+     * Charge the admin-configured credit multiplier surcharge on top of
+     * the base coin cost already collected by OpenAiService. Returns the
+     * surcharge amount (0 when no surcharge applies or the debit fails).
+     */
+    protected function applyCreditMultiplierSurcharge($user, int $baseCredits): int
+    {
+        $multiplier = AiEngineSettings::askCoachCreditMultiplier();
+        if ($multiplier <= 1.0 || $baseCredits <= 0) return 0;
+
+        $surcharge = (int) ceil($baseCredits * ($multiplier - 1.0));
+        if ($surcharge <= 0) return 0;
+
+        try {
+            app(\App\Services\Billing\WalletService::class)->debit($user, $surcharge, [
+                'feature' => 'ask_coach.multiplier_surcharge',
+                'reason'  => 'Coach admin credit multiplier surcharge',
+            ]);
+        } catch (\Throwable $e) {
+            Log::warning('Ask Coach multiplier surcharge debit failed: ' . $e->getMessage());
+            return 0;
+        }
+
+        return $surcharge;
     }
 
     /**
