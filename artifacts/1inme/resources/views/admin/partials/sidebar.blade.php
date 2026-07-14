@@ -85,6 +85,24 @@
             <span class="sidebar-tooltip">Protected accounts</span>
         </a>
 
+        <a href="{{ route('admin.badges.index') }}"
+           class="sidebar-link {{ request()->routeIs('admin.badges.*') ? 'active' : '' }}"
+           style="--nav-tint:#6366f1; --nav-tint-soft:rgba(99,102,241,0.12);">
+            <div class="nav-icon-wrap"><i class="fas fa-certificate"></i></div>
+            <span class="nav-label">Account badges</span>
+            <span class="sidebar-tooltip">Account badges</span>
+        </a>
+
+        @if(auth('admin')->user()?->hasPermission('badge_requests.review'))
+            <a href="{{ route('admin.badge-requests.index') }}"
+               class="sidebar-link {{ request()->routeIs('admin.badge-requests.*') ? 'active' : '' }}"
+               style="--nav-tint:#f59e0b; --nav-tint-soft:rgba(245,158,11,0.12);">
+                <div class="nav-icon-wrap"><i class="fas fa-award"></i></div>
+                <span class="nav-label">Badge requests</span>
+                <span class="sidebar-tooltip">Badge requests</span>
+            </a>
+        @endif
+
         <a href="{{ route('admin.privacy-requests.index') }}"
            class="sidebar-link {{ request()->routeIs('admin.privacy-requests.*') ? 'active' : '' }}"
            style="--nav-tint:#10b981; --nav-tint-soft:rgba(16,185,129,0.12);">
