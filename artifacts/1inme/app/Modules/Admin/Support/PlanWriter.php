@@ -382,12 +382,7 @@ class PlanWriter
     public function uniqueSlug(string $name): string
     {
         $base = Str::slug($name);
-        $slug = $base;
-        $i = 2;
-        while (Plan::where('slug', $slug)->exists()) {
-            $slug = $base . '-' . $i++;
-        }
-        return $slug;
+        return \App\Support\UniqueSuffix::resolve(Plan::query(), $base);
     }
 
     /**

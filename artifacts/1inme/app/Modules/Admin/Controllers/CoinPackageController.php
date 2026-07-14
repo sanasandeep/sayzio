@@ -145,11 +145,6 @@ class CoinPackageController extends Controller
     private function uniqueSlug(string $name): string
     {
         $base = Str::slug($name);
-        $slug = $base;
-        $i = 2;
-        while (CoinPackage::where('slug', $slug)->exists()) {
-            $slug = $base . '-' . $i++;
-        }
-        return $slug;
+        return \App\Support\UniqueSuffix::resolve(CoinPackage::query(), $base);
     }
 }

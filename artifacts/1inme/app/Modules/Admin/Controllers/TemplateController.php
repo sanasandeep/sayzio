@@ -679,11 +679,9 @@ class TemplateController extends Controller
     private function uniqueSlug(string $modelClass, string $base, ?int $ignoreId = null): string
     {
         $base = Str::slug($base) ?: 'template';
-        $slug = $base;
-        $i = 1;
-        while ($modelClass::where('slug', $slug)->when($ignoreId, fn($q) => $q->where('id', '!=', $ignoreId))->exists()) {
-            $slug = $base . '-' . (++$i);
-        }
-        return $slug;
+        return \App\Support\UniqueSuffix::resolve(
+            $modelClass::query()->when($ignoreId, fn ($q) => $q->where('id', '!=', $ignoreId)),
+            $base
+        );
     }
 }

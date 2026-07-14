@@ -520,11 +520,6 @@ protected $fillable = [
     public static function uniqueSlug(string $base): string
     {
         $base = Str::slug(Str::limit($base, 50, '')) ?: Str::random(8);
-        $slug = $base;
-        $i = 1;
-        while (static::where('slug', $slug)->exists()) {
-            $slug = $base . '-' . (++$i);
-        }
-        return $slug;
+        return \App\Support\UniqueSuffix::resolve(static::query(), $base);
     }
 }

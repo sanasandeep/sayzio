@@ -21,12 +21,10 @@ class BlogCategory extends Model
     public static function uniqueSlug(string $base, ?int $ignoreId = null): string
     {
         $slug = Str::slug($base) ?: 'category';
-        $candidate = $slug;
-        $i = 2;
-        while (static::where('slug', $candidate)->when($ignoreId, fn ($q) => $q->where('id', '!=', $ignoreId))->exists()) {
-            $candidate = $slug . '-' . $i++;
-        }
-        return $candidate;
+        return \App\Support\UniqueSuffix::resolve(
+            static::query()->when($ignoreId, fn ($q) => $q->where('id', '!=', $ignoreId)),
+            $slug
+        );
     }
 
     public function posts()
