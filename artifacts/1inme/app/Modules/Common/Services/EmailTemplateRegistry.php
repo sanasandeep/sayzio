@@ -1313,6 +1313,26 @@ class EmailTemplateRegistry
                     'message' => ['label' => 'Message body', 'sample' => 'Hi, I wanted to ask...'],
                 ],
             ],
+            'contact.inbox_reply' => [
+                'category' => 'system',
+                'label' => 'Contact inbox reply',
+                'description' => 'An admin reply to a visitor message submitted through the contact form, sent from the Contact Inbox.',
+                'format' => 'html',
+                'body_type' => 'view',
+                'view' => 'emails.contact-inbox-reply',
+                'subject' => '{{reply_subject}}',
+                'variables' => [
+                    'recipient_name'   => ['label' => 'Sender name', 'sample' => 'Alex Rivera'],
+                    'reply_subject'    => ['label' => 'Reply subject', 'sample' => 'Re: Question about pricing'],
+                    'reply_body'       => ['label' => 'Reply body', 'sample' => 'Thanks for reaching out! Here is the answer to your question.'],
+                    'original_message' => ['label' => 'Original message body', 'sample' => 'Hi, I wanted to ask about pricing...'],
+                    'app_name'         => ['label' => 'Application name', 'sample' => 'Sayzio'],
+                ],
+                'sample_view' => [
+                    'reply_body'       => 'Thanks for reaching out! Here is the answer to your question.',
+                    'original_message' => 'Hi, I wanted to ask about pricing...',
+                ],
+            ],
         ];
     }
 

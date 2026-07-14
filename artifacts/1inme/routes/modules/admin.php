@@ -456,6 +456,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::get('/', [\App\Modules\Admin\Controllers\ContactInboxController::class, 'index'])->middleware(CheckPermission::class . ':settings.manage')->name('index');
             Route::post('{message}/read', [\App\Modules\Admin\Controllers\ContactInboxController::class, 'markRead'])->middleware(CheckPermission::class . ':settings.manage')->name('read');
             Route::post('{message}/archive', [\App\Modules\Admin\Controllers\ContactInboxController::class, 'archive'])->middleware(CheckPermission::class . ':settings.manage')->name('archive');
+            Route::post('{message}/reply', [\App\Modules\Admin\Controllers\ContactInboxController::class, 'reply'])->middleware(CheckPermission::class . ':settings.manage')->name('reply');
             Route::delete('{message}', [\App\Modules\Admin\Controllers\ContactInboxController::class, 'destroy'])->middleware(CheckPermission::class . ':settings.manage')->name('destroy');
         });
 
