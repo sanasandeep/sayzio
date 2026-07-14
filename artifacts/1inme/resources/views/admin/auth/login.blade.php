@@ -82,7 +82,12 @@
 
                         <div>
                             <label class="block text-xs font-semibold uppercase tracking-wider mb-1.5" style="color: var(--text-dimmed);">Password</label>
-                            <input type="password" name="password" required placeholder="Enter your password" class="theme-input w-full">
+                            @include('common.partials.password-field', [
+                                'name' => 'password',
+                                'required' => true,
+                                'placeholder' => 'Enter your password',
+                                'autocomplete' => 'current-password',
+                            ])
                             @error('password')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
                         </div>
 

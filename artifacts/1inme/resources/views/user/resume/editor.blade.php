@@ -528,10 +528,15 @@
                         </div>
                         <div class="resume-field" x-show="publishing.visibility === 'password'">
                             <label x-text="publishing.has_password ? 'Replace password (leave blank to keep current)' : 'Set a password'"></label>
-                            <input class="resume-input" type="password" maxlength="200"
-                                   placeholder="••••••••"
-                                   x-model="publishing.password_input"
-                                   @blur="savePublishing()">
+                            @include('common.partials.password-field', [
+                                'name' => 'resume_password',
+                                'autocomplete' => 'new-password',
+                                'placeholder' => '••••••••',
+                                'maxlength' => 200,
+                                'xModel' => 'publishing.password_input',
+                                'onBlur' => 'savePublishing()',
+                                'inputClass' => 'resume-input',
+                            ])
                         </div>
                     </div>
 

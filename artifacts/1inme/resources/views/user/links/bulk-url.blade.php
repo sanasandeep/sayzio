@@ -109,8 +109,13 @@
                             <span class="text-sm text-white/70"><i class="fas fa-shield-alt mr-1.5 text-blue-400"></i>Password-protect every link</span>
                         </label>
                         <div x-show="passwordProtect" class="mt-2 ml-7">
-                            <input type="password" name="password" placeholder="Shared password"
-                                   class="w-full max-w-xs bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm text-white placeholder-white/20 focus:ring-2 focus:ring-blue-500/40 outline-none">
+                            @include('common.partials.password-field', [
+                                'name' => 'password',
+                                'placeholder' => 'Shared password',
+                                'autocomplete' => 'new-password',
+                                'wrapClass' => 'max-w-xs',
+                                'inputClass' => 'w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm text-white placeholder-white/20 focus:ring-2 focus:ring-blue-500/40 outline-none',
+                            ])
                         </div>
                     </div>
 

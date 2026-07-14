@@ -80,9 +80,12 @@
                 </div>
                 <div>
                     <label class="block text-xs font-medium mb-1" style="color: var(--text-muted);">Secret key <span style="color: var(--text-faint);">(server-only — never sent to the browser)</span></label>
-                    <input type="password" name="secret_key" class="theme-input w-full text-xs font-mono"
-                           placeholder="{{ !empty($captcha['secret_key']) ? '••••••••••••••••••••' : 'Paste your secret key here' }}"
-                           autocomplete="new-password">
+                    @include('common.partials.password-field', [
+                        'name' => 'secret_key',
+                        'placeholder' => !empty($captcha['secret_key']) ? '••••••••••••••••••••' : 'Paste your secret key here',
+                        'autocomplete' => 'new-password',
+                        'inputClass' => 'theme-input w-full text-xs font-mono',
+                    ])
                     @if(!empty($captcha['secret_key']))
                         <p class="text-[10px] mt-1" style="color: var(--text-faint);">A secret key is already saved. Leave blank to keep the existing one.</p>
                         <label class="flex items-center gap-1.5 mt-1 text-[11px] cursor-pointer" style="color: #f87171;">

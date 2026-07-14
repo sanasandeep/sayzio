@@ -4,7 +4,7 @@
   ._pw-wrap input::-ms-clear { display: none !important; }
 </style>
 @endonce
-<div x-data="{ _pwShow: false }" class="_pw-wrap relative">
+<div x-data="{ _pwShow: false }" class="_pw-wrap relative {{ $wrapClass ?? '' }}">
     <input
         :type="_pwShow ? 'text' : 'password'"
         name="{{ $name }}"
@@ -12,9 +12,15 @@
         placeholder="{{ $placeholder ?? '' }}"
         autocomplete="{{ $autocomplete ?? 'current-password' }}"
         @if(!empty($required)) required @endif
+        @if(!empty($autofocus)) autofocus @endif
         @isset($value) value="{{ $value }}" @endisset
+        @isset($minlength) minlength="{{ $minlength }}" @endisset
+        @isset($maxlength) maxlength="{{ $maxlength }}" @endisset
+        @isset($spellcheck) spellcheck="{{ $spellcheck ? 'true' : 'false' }}" @endisset
+        @isset($xModel) x-model="{{ $xModel }}" @endisset
+        @isset($onBlur) x-on:blur="{{ $onBlur }}" @endisset
         class="{{ $inputClass ?? 'theme-input w-full' }}"
-        style="padding-right: 2.5rem;"
+        style="padding-right: 2.5rem;{{ isset($inputStyle) ? ' ' . $inputStyle : '' }}"
     >
     <button
         type="button"

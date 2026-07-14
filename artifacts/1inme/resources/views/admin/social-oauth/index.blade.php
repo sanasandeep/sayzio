@@ -98,10 +98,14 @@
                                     <span class="text-emerald-300/70 normal-case tracking-normal">— saved</span>
                                 @endif
                             </label>
-                            <input type="password" name="client_secret" value=""
-                                   autocomplete="new-password" spellcheck="false"
-                                   placeholder="{{ $p['has_admin_secret'] ? '•••••••• (leave blank to keep)' : ($p['env_secret_set'] ? 'Using env var '.$p['client_secret_env'] : 'Paste the OAuth Client Secret') }}"
-                                   class="w-full rounded-lg bg-white/[0.04] border border-white/10 px-3 py-2 text-sm text-white/90 font-mono placeholder:text-white/25 focus:border-indigo-400/50 focus:outline-none">
+                            @include('common.partials.password-field', [
+                                'name' => 'client_secret',
+                                'value' => '',
+                                'autocomplete' => 'new-password',
+                                'spellcheck' => false,
+                                'placeholder' => $p['has_admin_secret'] ? '•••••••• (leave blank to keep)' : ($p['env_secret_set'] ? 'Using env var '.$p['client_secret_env'] : 'Paste the OAuth Client Secret'),
+                                'inputClass' => 'w-full rounded-lg bg-white/[0.04] border border-white/10 px-3 py-2 text-sm text-white/90 font-mono placeholder:text-white/25 focus:border-indigo-400/50 focus:outline-none',
+                            ])
                         </div>
                     </div>
 

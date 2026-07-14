@@ -83,12 +83,23 @@
                     <div class="space-y-4">
                         <div>
                             <label class="block text-xs font-semibold uppercase tracking-wider mb-1.5" style="color: var(--text-dimmed);">New Password</label>
-                            <input type="password" name="password" required autofocus placeholder="Min 8 characters" class="theme-input w-full">
+                            @include('common.partials.password-field', [
+                                'name' => 'password',
+                                'required' => true,
+                                'autofocus' => true,
+                                'placeholder' => 'Min 8 characters',
+                                'autocomplete' => 'new-password',
+                            ])
                             <p class="mt-1 text-xs text-red-400" data-err="password" @if(!$errors->has('password')) hidden @endif>{{ $errors->first('password') }}</p>
                         </div>
                         <div>
                             <label class="block text-xs font-semibold uppercase tracking-wider mb-1.5" style="color: var(--text-dimmed);">Confirm Password</label>
-                            <input type="password" name="password_confirmation" required placeholder="Repeat password" class="theme-input w-full">
+                            @include('common.partials.password-field', [
+                                'name' => 'password_confirmation',
+                                'required' => true,
+                                'placeholder' => 'Repeat password',
+                                'autocomplete' => 'new-password',
+                            ])
                             <p class="mt-1 text-xs text-red-400" data-err="password_confirmation" hidden></p>
                         </div>
                         <button type="submit" class="btn-primary w-full justify-center py-2.5 text-sm">

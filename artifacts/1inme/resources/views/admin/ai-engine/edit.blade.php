@@ -43,9 +43,12 @@
             @if($hasKey)
                 <p class="text-xs text-white/60 mb-2">Stored: <span class="font-mono text-amber-300">{{ $maskedKey }}</span></p>
             @endif
-            <input type="password" name="openai_api_key" autocomplete="off"
-                   placeholder="{{ $hasKey ? 'Paste a new key to replace' : 'sk-…' }}"
-                   class="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-sm text-white">
+            @include('common.partials.password-field', [
+                'name' => 'openai_api_key',
+                'autocomplete' => 'off',
+                'placeholder' => $hasKey ? 'Paste a new key to replace' : 'sk-…',
+                'inputClass' => 'w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-sm text-white',
+            ])
             @if($hasKey)
                 <label class="mt-2 inline-flex items-center gap-2 text-xs text-white/60">
                     <input type="hidden" name="clear_openai_api_key" value="0">
@@ -256,8 +259,13 @@
                         <label class="inline-flex items-center gap-1 text-xs text-red-300"><input type="checkbox" name="clear_whisper_api_key" value="1"> clear</label>
                     </div>
                 @endif
-                <input type="password" name="whisper_api_key" placeholder="{{ $hasWhisperKey ? 'Replace key…' : 'sk-…' }}" autocomplete="new-password"
-                       class="mt-1 w-full bg-white/5 border border-white/10 rounded px-3 py-2 text-white text-sm">
+                @include('common.partials.password-field', [
+                    'name' => 'whisper_api_key',
+                    'placeholder' => $hasWhisperKey ? 'Replace key…' : 'sk-…',
+                    'autocomplete' => 'new-password',
+                    'wrapClass' => 'mt-1',
+                    'inputClass' => 'w-full bg-white/5 border border-white/10 rounded px-3 py-2 text-white text-sm',
+                ])
                 <div class="flex flex-wrap items-center gap-2 mt-2">
                     <button type="button" onclick="testVoiceKey(this, 'whisper')"
                             class="px-3 py-1.5 bg-white/10 hover:bg-white/20 border border-white/15 text-white rounded-lg text-xs font-medium">
@@ -286,8 +294,13 @@
                         <label class="inline-flex items-center gap-1 text-xs text-red-300"><input type="checkbox" name="clear_elevenlabs_api_key" value="1"> clear</label>
                     </div>
                 @endif
-                <input type="password" name="elevenlabs_api_key" placeholder="{{ $hasElevenKey ? 'Replace key…' : 'xi-…' }}" autocomplete="new-password"
-                       class="mt-1 w-full bg-white/5 border border-white/10 rounded px-3 py-2 text-white text-sm">
+                @include('common.partials.password-field', [
+                    'name' => 'elevenlabs_api_key',
+                    'placeholder' => $hasElevenKey ? 'Replace key…' : 'xi-…',
+                    'autocomplete' => 'new-password',
+                    'wrapClass' => 'mt-1',
+                    'inputClass' => 'w-full bg-white/5 border border-white/10 rounded px-3 py-2 text-white text-sm',
+                ])
                 <div class="flex flex-wrap items-center gap-2 mt-2">
                     <button type="button" onclick="testVoiceKey(this, 'elevenlabs')"
                             class="px-3 py-1.5 bg-white/10 hover:bg-white/20 border border-white/15 text-white rounded-lg text-xs font-medium">
@@ -374,9 +387,12 @@
             @else
                 <p class="text-xs text-amber-300/80 mb-2">No token configured — AI Artistic QR is in preview / disabled mode.</p>
             @endif
-            <input type="password" name="replicate_api_key" autocomplete="off"
-                   placeholder="{{ $hasStoredReplicateKey ? 'Paste a new token to replace' : 'r8_…' }}"
-                   class="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-sm text-white">
+            @include('common.partials.password-field', [
+                'name' => 'replicate_api_key',
+                'autocomplete' => 'off',
+                'placeholder' => $hasStoredReplicateKey ? 'Paste a new token to replace' : 'r8_…',
+                'inputClass' => 'w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-sm text-white',
+            ])
             @if($hasStoredReplicateKey)
                 <label class="mt-2 inline-flex items-center gap-2 text-xs text-white/60">
                     <input type="hidden" name="clear_replicate_api_key" value="0">

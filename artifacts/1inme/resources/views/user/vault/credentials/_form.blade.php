@@ -16,7 +16,13 @@
     </label>
     <label class="block">
         <span class="text-xs uppercase tracking-wider" style="color: var(--text-faint);">Password {{ isset($item) ? '(leave blank to keep)' : '*' }}</span>
-        <input type="password" name="password" autocomplete="new-password" value="" class="mt-1 w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm">
+        @include('common.partials.password-field', [
+            'name' => 'password',
+            'autocomplete' => 'new-password',
+            'value' => '',
+            'wrapClass' => 'mt-1',
+            'inputClass' => 'w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm',
+        ])
     </label>
     <label class="block md:col-span-2">
         <span class="text-xs uppercase tracking-wider" style="color: var(--text-faint);">Notes</span>

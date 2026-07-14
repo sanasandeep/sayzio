@@ -72,9 +72,12 @@
                 @if($hasValue)
                     <p class="text-xs text-white/60 mb-1">Stored: <span class="font-mono text-amber-300">{{ $masked }}</span></p>
                 @endif
-                <input type="password" name="api_key" autocomplete="new-password"
-                       placeholder="{{ $hasValue ? 'Paste a new key to replace' : 'AIza…' }}"
-                       class="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-sm text-white">
+                @include('common.partials.password-field', [
+                    'name' => 'api_key',
+                    'autocomplete' => 'new-password',
+                    'placeholder' => $hasValue ? 'Paste a new key to replace' : 'AIza…',
+                    'inputClass' => 'w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-sm text-white',
+                ])
                 <p class="text-[11px] text-white/30 mt-1">Encrypted at rest. Never displayed back.</p>
                 @if($hasValue)
                     <label class="mt-2 inline-flex items-center gap-2 text-xs text-white/60">

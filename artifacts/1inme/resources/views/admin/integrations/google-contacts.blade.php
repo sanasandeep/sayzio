@@ -97,9 +97,12 @@
                 @if($hasSecret)
                     <p class="text-xs text-white/60 mb-1">Stored: <span class="font-mono text-amber-300">{{ $maskedSecret }}</span></p>
                 @endif
-                <input type="password" name="client_secret" autocomplete="new-password"
-                       placeholder="{{ $hasSecret ? 'Paste a new secret to replace' : 'GOCSPX-…' }}"
-                       class="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-sm text-white">
+                @include('common.partials.password-field', [
+                    'name' => 'client_secret',
+                    'autocomplete' => 'new-password',
+                    'placeholder' => $hasSecret ? 'Paste a new secret to replace' : 'GOCSPX-…',
+                    'inputClass' => 'w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-sm text-white',
+                ])
                 @if($hasSecret)
                     <label class="mt-2 inline-flex items-center gap-2 text-xs text-white/60">
                         <input type="hidden" name="clear_client_secret" value="0">

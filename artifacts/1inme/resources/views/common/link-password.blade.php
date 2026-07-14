@@ -9,6 +9,8 @@
         <link rel="icon" type="image/png" href="{{ $link->favicon }}">
     @endif
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+    @include('common.partials.fontawesome')
+    <script defer src="{{ asset('js/vendor/alpine.min.js') }}"></script>
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Space Grotesk', system-ui, sans-serif; background: #0a0612; }
@@ -34,8 +36,15 @@
 
             <form method="POST" action="{{ route('redirect.handle', $link->alias) }}">
                 @csrf
-                <input type="password" name="password" placeholder="Enter password"
-                       class="w-full rounded-[0.625rem] px-3.5 py-2.5 text-sm text-white placeholder-white/30 mb-4 outline-none transition-all" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.06);" required autofocus>
+                @include('common.partials.password-field', [
+                    'name' => 'password',
+                    'placeholder' => 'Enter password',
+                    'required' => true,
+                    'autofocus' => true,
+                    'wrapClass' => 'mb-4',
+                    'inputClass' => 'w-full rounded-[0.625rem] px-3.5 py-2.5 text-sm text-white placeholder-white/30 outline-none transition-all',
+                    'inputStyle' => 'background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.06);',
+                ])
                 <button type="submit" class="w-full py-2.5 rounded-[0.625rem] text-sm font-semibold text-white transition-all" style="background: linear-gradient(135deg, #5c83ff, #3d6bff); box-shadow: 0 4px 16px rgba(61,107,255,0.25);">Continue</button>
             </form>
         </div>

@@ -15,8 +15,14 @@
         @error('passphrase')<div class="text-red-300 text-sm">{{ $message }}</div>@enderror
         <label class="block">
             <span class="text-xs uppercase tracking-wider" style="color: var(--text-faint);">Passphrase (min 8 chars)</span>
-            <input type="password" name="passphrase" required minlength="8" autocomplete="new-password"
-                   class="mt-1 w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm">
+            @include('common.partials.password-field', [
+                'name' => 'passphrase',
+                'required' => true,
+                'minlength' => 8,
+                'autocomplete' => 'new-password',
+                'wrapClass' => 'mt-1',
+                'inputClass' => 'w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm',
+            ])
         </label>
         <button class="px-5 py-2 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-sm font-semibold">
             <i class="fas fa-download mr-1"></i> Download encrypted export

@@ -481,8 +481,13 @@
                                     <span class="text-white/30">(advanced — prefer "Connect with {{ $meta['label'] }}" above)</span>
                                 @endif
                             </label>
-                            <input type="password" name="access_token" autocomplete="off" spellcheck="false" placeholder="paste long-lived token"
-                                   class="theme-input w-full">
+                            @include('common.partials.password-field', [
+                                'name' => 'access_token',
+                                'autocomplete' => 'off',
+                                'spellcheck' => false,
+                                'placeholder' => 'paste long-lived token',
+                                'inputClass' => 'theme-input w-full',
+                            ])
                             <p class="text-[11px] mt-1" style="color: var(--text-faint);">
                                 @if($oauthReady)
                                     Manual fallback for cases where you already have a long-lived token from another tool.

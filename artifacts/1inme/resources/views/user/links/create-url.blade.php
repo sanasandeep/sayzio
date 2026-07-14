@@ -135,8 +135,13 @@
                             <span class="text-sm text-white/60">Password protect this link</span>
                         </label>
                         <div x-show="passwordProtect" class="ml-7">
-                            <input type="password" name="password" placeholder="Enter password"
-                                   class="w-full max-w-xs bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm text-white placeholder-white/20 focus:ring-2 focus:ring-blue-500/40 outline-none">
+                            @include('common.partials.password-field', [
+                                'name' => 'password',
+                                'placeholder' => 'Enter password',
+                                'autocomplete' => 'new-password',
+                                'wrapClass' => 'max-w-xs',
+                                'inputClass' => 'w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm text-white placeholder-white/20 focus:ring-2 focus:ring-blue-500/40 outline-none',
+                            ])
                         </div>
                         <div>
                             <label class="block text-sm text-white/60 mb-1.5">Expiration Date</label>
