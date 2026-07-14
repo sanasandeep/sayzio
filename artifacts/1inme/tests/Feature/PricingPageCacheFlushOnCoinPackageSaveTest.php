@@ -77,7 +77,7 @@ class PricingPageCacheFlushOnCoinPackageSaveTest extends TestCase
         AppSetting::put(\App\Services\Billing\WalletService::FEATURE_KEY, true);
 
         $this->get('/pricing')->assertOk();
-        $this->assertNotNull(Cache::get(PricingPageCache::CATALOG_CACHE_KEY));
+        $this->assertNotNull(Cache::get(PricingPageCache::catalogKey()));
     }
 
     public function test_admin_coin_package_update_flushes_cache_and_pricing_shows_new_name(): void
@@ -94,7 +94,7 @@ class PricingPageCacheFlushOnCoinPackageSaveTest extends TestCase
         $resp->assertSessionHasNoErrors();
 
         // The cached catalogue was invalidated by the save…
-        $this->assertNull(Cache::get(PricingPageCache::CATALOG_CACHE_KEY));
+        $this->assertNull(Cache::get(PricingPageCache::catalogKey()));
 
         // …and the very next /pricing render shows the new name.
         $page = $this->get('/pricing');
@@ -120,7 +120,7 @@ class PricingPageCacheFlushOnCoinPackageSaveTest extends TestCase
         );
         $resp->assertSessionHasNoErrors();
 
-        $this->assertNull(Cache::get(PricingPageCache::CATALOG_CACHE_KEY));
+        $this->assertNull(Cache::get(PricingPageCache::catalogKey()));
     }
 
     public function test_admin_coin_package_archive_flushes_cached_catalog(): void
@@ -133,7 +133,7 @@ class PricingPageCacheFlushOnCoinPackageSaveTest extends TestCase
             ->post('/admin/coin-packages/' . $pkg->id . '/archive')
             ->assertSessionHasNoErrors();
 
-        $this->assertNull(Cache::get(PricingPageCache::CATALOG_CACHE_KEY));
+        $this->assertNull(Cache::get(PricingPageCache::catalogKey()));
     }
 
     public function test_admin_coin_package_destroy_flushes_cached_catalog(): void
@@ -146,7 +146,7 @@ class PricingPageCacheFlushOnCoinPackageSaveTest extends TestCase
             ->delete('/admin/coin-packages/' . $pkg->id)
             ->assertSessionHasNoErrors();
 
-        $this->assertNull(Cache::get(PricingPageCache::CATALOG_CACHE_KEY));
+        $this->assertNull(Cache::get(PricingPageCache::catalogKey()));
         $this->assertNull(CoinPackage::find($pkg->id));
     }
 }
