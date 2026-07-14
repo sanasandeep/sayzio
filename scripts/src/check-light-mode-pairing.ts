@@ -467,6 +467,38 @@ export const TARGETS: Target[] = [
       },
     ],
   },
+  // -------------------------------------------------------------------------
+  // Admin pages. These extend admin.layouts.app, which @includes the shared
+  // theme system (common/partials/theme-styles.blade.php), so they participate
+  // in the html.light-mode toggle exactly like the user/marketing pages above.
+  // Today their dark styling flows through Tailwind utility classes (which the
+  // sitewide light-mode remap handles) with page-local `html.light-mode`
+  // overrides where needed (e.g. the master-password banner tones) — so they
+  // currently carry NO unpaired base color rules. They are configured here so
+  // any FUTURE page-local `<style>` rule that sets a dark `color` /
+  // `border-color` without its light pair hard-fails this guard instead of
+  // silently shipping a washed-out light-mode surface on a high-stakes admin
+  // screen.
+  {
+    page: "artifacts/1inme/resources/views/admin/master-password/index.blade.php",
+    label: "admin master-password page",
+    allowlist: [],
+  },
+  {
+    page: "artifacts/1inme/resources/views/admin/users/index.blade.php",
+    label: "admin users index",
+    allowlist: [],
+  },
+  {
+    page: "artifacts/1inme/resources/views/admin/mail-settings/index.blade.php",
+    label: "admin mail settings page",
+    allowlist: [],
+  },
+  {
+    page: "artifacts/1inme/resources/views/admin/auth-settings/index.blade.php",
+    label: "admin auth settings page",
+    allowlist: [],
+  },
 ];
 
 function makeIsAllowed(allowlist: AllowEntry[]) {
