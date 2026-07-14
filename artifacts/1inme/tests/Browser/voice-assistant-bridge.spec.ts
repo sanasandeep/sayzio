@@ -12,6 +12,7 @@ import {
 
 import { DEMO_LOGIN_EMAIL } from "./demo-account";
 import { loginAsDemo } from "./login-as-demo";
+import { loginAsDemoAdmin } from "./login-as-demo-admin";
 
 // All tests share a single logged-in browser context (the demo-login route is
 // rate-limited at throttle:5,1, so a login per test would trip the limit). Each
@@ -83,6 +84,48 @@ echo 'VOICE_OK';
   });
   if (!out.includes("VOICE_OK")) {
     throw new Error("Voice fixture seed failed, output:\n" + out);
+  }
+}
+
+/**
+ * Idempotently ensure the demo ADMIN exists and is active so the admin
+ * demo-login route (`/admin/demo-login`, non-prod only) can log the shared
+ * context onto the admin guard. The admin layout is the surface that still
+ * hosts the floating voice widget (the user layout suppresses it via
+ * voiceFloating=false since the Zio-panel merge). Mirrors the seeding in
+ * admin-sidebar-findbar.spec.ts.
+ */
+function seedDemoAdminFixture(): void {
+  const php = `
+use App\\Modules\\Admin\\Models\\Admin;
+use App\\Modules\\Admin\\Models\\Role;
+use Illuminate\\Support\\Facades\\Hash;
+
+$role = Role::firstOrCreate(
+  ['slug' => 'super-admin'],
+  ['name' => 'Super Admin', 'guard' => 'admin']
+);
+$a = Admin::where('email', '${DEMO_LOGIN_EMAIL}')->first();
+if (!$a) {
+  $a = Admin::create([
+    'name' => 'Admin', 'email' => '${DEMO_LOGIN_EMAIL}',
+    'password' => Hash::make('password'), 'role_id' => $role->id,
+    'status' => 'active',
+  ]);
+}
+$a->status = 'active';
+if (!$a->role_id) { $a->role_id = $role->id; }
+$a->save();
+
+echo 'ADMIN_OK';
+`.trim();
+
+  const out = execFileSync("php", ["artisan", "tinker", "--execute=" + php], {
+    cwd: ARTIFACT_ROOT,
+    encoding: "utf8",
+  });
+  if (!out.includes("ADMIN_OK")) {
+    throw new Error("Demo admin fixture seed failed, output:\n" + out);
   }
 }
 
@@ -473,5 +516,59 @@ test.describe("voice assistant — client_action / voice-action bridge", () => {
     await expect(page.getByText("voice-search-arrived")).toBeVisible({
       timeout: 30_000,
     });
+  });
+
+  test("the floating panel renders with a light surface in light mode", async ({
+    page,
+  }) => {
+    // The floating mic/panel is suppressed on user pages since the Zio-panel
+    // merge (the user layout includes the partial with voiceFloating=false);
+    // the ADMIN layout is the surface that still hosts the floating widget.
+    // The admin layout's @auth resolves the demo user's existing web session
+    // (the shared context is already web-logged-in), so we only need to add
+    // the admin-guard session and open an admin page.
+    seedDemoAdminFixture();
+    await loginAsDemoAdmin(page);
+    await page.goto("/admin", { timeout: 120_000 });
+    await page.waitForFunction(
+      () => {
+        const el = document.querySelector('[x-data^="voiceAssistant"]');
+        const w = window as unknown as { Alpine?: unknown };
+        return Boolean(el && w.Alpine);
+      },
+      undefined,
+      { timeout: 120_000 },
+    );
+
+    // Open the panel via the Alpine component so the .va-panel div is visible.
+    await page.evaluate(() => {
+      const el = document.querySelector('[x-data^="voiceAssistant"]')!;
+      const A = (window as unknown as {
+        Alpine: { $data: (e: Element) => { panelOpen: boolean } };
+      }).Alpine;
+      A.$data(el).panelOpen = true;
+    });
+    await expect(page.locator(".va-panel")).toBeVisible({ timeout: 10_000 });
+
+    // Engage light mode — the same toggle the site's theme system uses.
+    await page.evaluate(() =>
+      document.documentElement.classList.add("light-mode"),
+    );
+
+    // The .va-panel html.light-mode override sets background:#ffffff.
+    await expect
+      .poll(
+        () =>
+          page
+            .locator(".va-panel")
+            .evaluate((el) => getComputedStyle(el).backgroundColor),
+        { timeout: 10_000 },
+      )
+      .toBe("rgb(255, 255, 255)");
+
+    // The mic button is still present and the panel is still open in light mode.
+    await expect(
+      page.locator(".va-panel").locator(".va-tab-btn").first(),
+    ).toBeVisible();
   });
 });
