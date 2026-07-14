@@ -52,6 +52,7 @@ class PlanController extends Controller
     public function archive(Plan $plan)
     {
         $plan->update(['is_archived' => !$plan->is_archived]);
+        \App\Modules\Common\Support\PricingPageCache::flush();
         return back()->with('success', $plan->is_archived
             ? 'Plan archived. Existing subscribers continue, but new signups can no longer pick it.'
             : 'Plan restored.');
@@ -100,6 +101,7 @@ class PlanController extends Controller
         }
 
         $plan->delete();
+        \App\Modules\Common\Support\PricingPageCache::flush();
         return redirect()->route('admin.plans.index')->with('success', 'Plan deleted successfully.');
     }
 
@@ -253,6 +255,10 @@ class PlanController extends Controller
 
         $skipped = $result['errorCount'] + $result['unknownCount'];
 
+        if ($updated > 0 || $created > 0) {
+            \App\Modules\Common\Support\PricingPageCache::flush();
+        }
+
         // Only record an undo point when something actually changed. Reverting
         // restores every updated plan's prior state AND deletes any plan this
         // import created (tracked via the `created` flag in the change log).
@@ -330,6 +336,8 @@ class PlanController extends Controller
                 'reverted_by_name' => $admin?->name,
             ])->save();
         });
+
+        \App\Modules\Common\Support\PricingPageCache::flush();
 
         return redirect()->route('admin.plans.index')
             ->with('success', 'Reverted the last import. Plans were restored to their previous values.');

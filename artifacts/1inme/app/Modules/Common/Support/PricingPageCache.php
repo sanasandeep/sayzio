@@ -114,4 +114,19 @@ class PricingPageCache
             'packages' => count($payload['packages']),
         ];
     }
+
+    /**
+     * Drop the cached catalogue so the next /pricing request rebuilds it
+     * from the database. Called from admin plan write paths (PlanWriter)
+     * so plan edits (prices, features, coin grants) are visible to
+     * visitors immediately instead of waiting for the TTL / warm cadence.
+     */
+    public static function flush(): void
+    {
+        try {
+            Cache::forget(self::CATALOG_CACHE_KEY);
+        } catch (\Throwable $e) {
+            // Cache layer unavailable — reads already fall back to live queries.
+        }
+    }
 }

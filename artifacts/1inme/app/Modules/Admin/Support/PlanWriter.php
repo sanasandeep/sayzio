@@ -3,6 +3,7 @@
 namespace App\Modules\Admin\Support;
 
 use App\Modules\Admin\Models\Plan;
+use App\Modules\Common\Support\PricingPageCache;
 use App\Modules\Common\Support\PlanFormCatalogue;
 use App\Modules\User\Models\BiolinkBlock;
 use App\Modules\User\Support\IntegrationConfigRegistry;
@@ -49,6 +50,7 @@ class PlanWriter
         }
         $plan->addons()->sync($addonIds);
         $this->syncPriceTable($plan, $minor);
+        PricingPageCache::flush();
 
         return $plan;
     }
@@ -79,6 +81,7 @@ class PlanWriter
         }
         $plan->addons()->sync($addonIds);
         $this->syncPriceTable($plan, $minor);
+        PricingPageCache::flush();
 
         return $plan;
     }
@@ -114,6 +117,8 @@ class PlanWriter
             $newPrice->priceable_id = $clone->id;
             $newPrice->save();
         }
+
+        PricingPageCache::flush();
 
         return $clone;
     }
