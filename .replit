@@ -276,6 +276,10 @@ args = "e2e-sidebar-label-clip"
 task = "workflow.run"
 args = "e2e-voice-bridge"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-bg-preset-public"
+
 [[workflows.workflow]]
 name = "e2e"
 author = "agent"
@@ -1188,6 +1192,17 @@ args = "bash artifacts/1inme/tests/Browser/run-validation.sh voice-assistant-bri
 
 [workflows.workflow.metadata]
 isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-bg-preset-public"
+author = "agent"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd artifacts/1inme && bash tests/Browser/run-validation.sh biolink-bg-preset-public-render.spec.ts"
 
 [agent]
 stack = "PNPM_WORKSPACE"

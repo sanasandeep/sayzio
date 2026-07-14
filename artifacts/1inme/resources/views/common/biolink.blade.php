@@ -289,7 +289,11 @@
             @elseif($bgType === 'gradient')
                 background: {{ $bgGradient }};
             @elseif($bgType === 'preset' && $bgPresetCss)
-                {!! $bgPresetCss !!}
+                {{-- Always terminate the inlined preset CSS: many catalog entries have no
+                     trailing semicolon, and without one the following declaration
+                     (min-height) glues onto the preset's last declaration, silently
+                     invalidating both in the browser. --}}
+                {!! rtrim($bgPresetCss, "; \t\n\r") !!};
             @elseif($bgType === 'preset')
                 background-color: {{ $bgFallbackColor }};
             @elseif($bgType === 'image' && $bgImage)
