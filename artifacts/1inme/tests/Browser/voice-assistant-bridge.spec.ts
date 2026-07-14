@@ -570,5 +570,95 @@ test.describe("voice assistant — client_action / voice-action bridge", () => {
     await expect(
       page.locator(".va-panel").locator(".va-tab-btn").first(),
     ).toBeVisible();
+
+    // ---- Representative TEXT colours must be readable on the white panel ----
+    // The panel's dark-mode text colours are Tailwind utilities (text-white/*)
+    // that would render white-on-white in light mode without the .va-panel
+    // html.light-mode overrides. Assert each representative element's computed
+    // color is dark (not white/near-white) so a future dark-hardcoded text
+    // colour inside the panel can't silently regress. "Readable" = the text's
+    // relative luminance is well below white's (a saturated dark blue like
+    // rgb(29,78,216) passes; white/near-white greys fail).
+    const readableColor = async (selector: string): Promise<void> => {
+      await expect
+        .poll(
+          () =>
+            page
+              .locator(selector)
+              .first()
+              .evaluate((el) => getComputedStyle(el).color),
+          { timeout: 10_000, message: `${selector} color in light mode` },
+        )
+        .toMatch(/^rgba?\((\d+), (\d+), (\d+)/);
+      const color = await page
+        .locator(selector)
+        .first()
+        .evaluate((el) => getComputedStyle(el).color);
+      const m = /^rgba?\((\d+), (\d+), (\d+)/.exec(color);
+      expect(m, `${selector} computed color parses: ${color}`).not.toBeNull();
+      const lum = [Number(m![1]), Number(m![2]), Number(m![3])]
+        .map((c) => {
+          const s = c / 255;
+          return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
+        })
+        .reduce((acc, ch, i) => acc + ch * [0.2126, 0.7152, 0.0722][i]!, 0);
+      expect(
+        lum < 0.45,
+        `${selector} must be readable (dark, luminance < 0.45) on the white light-mode panel, got ${color} (luminance ${lum.toFixed(3)})`,
+      ).toBe(true);
+    };
+
+    // The empty-state hint is visible while there are no messages/status.
+    await expect(page.locator(".va-hint")).toBeVisible();
+    await readableColor(".va-hint");
+
+    // Seed a transcript + status through the Alpine component (the same state
+    // a real turn produces) so the bubble and status elements render.
+    await page.evaluate(() => {
+      const el = document.querySelector('[x-data^="voiceAssistant"]')!;
+      const A = (window as unknown as {
+        Alpine: {
+          $data: (e: Element) => {
+            messages: { role: string; content: string }[];
+            status: string;
+            tab: string;
+            caps: unknown;
+          };
+        };
+      }).Alpine;
+      const d = A.$data(el);
+      d.messages = [
+        { role: "user", content: "how many clicks today?" },
+        { role: "assistant", content: "You had 42 clicks today." },
+      ];
+      d.status = "Thinking…";
+    });
+    await expect(page.locator(".va-bubble-user")).toBeVisible();
+    await expect(page.locator(".va-bubble-ai")).toBeVisible();
+    await expect(page.locator(".va-status")).toBeVisible();
+    await readableColor(".va-bubble-user");
+    await readableColor(".va-bubble-ai");
+    await readableColor(".va-status");
+
+    // Capabilities tab: seed caps directly (no network) and check a group
+    // heading is readable too.
+    await page.evaluate(() => {
+      const el = document.querySelector('[x-data^="voiceAssistant"]')!;
+      const A = (window as unknown as {
+        Alpine: { $data: (e: Element) => { tab: string; caps: unknown } };
+      }).Alpine;
+      const d = A.$data(el);
+      d.caps = {
+        tools: {
+          links: [
+            { name: "list_links", description: "List your links.", destructive: false },
+          ],
+        },
+        limitations: ["I can't change billing details."],
+      };
+      d.tab = "caps";
+    });
+    await expect(page.locator(".va-caps-group")).toBeVisible();
+    await readableColor(".va-caps-group");
   });
 });

@@ -519,6 +519,20 @@ export const TARGETS: Target[] = [
     allowlist: [],
   },
   {
+    // The floating voice-assistant panel partial (included by the admin/user
+    // layouts). Its dark-mode base colors are Tailwind utility classes on the
+    // markup; the partial's own <style> block carries ONLY html.light-mode
+    // overrides scoped under .va-panel. Any FUTURE base CSS color rule added
+    // to that <style> block (e.g. a new capabilities entry type, a coins-spent
+    // breakdown row, or a new confirmation chip variant) without its
+    // html.light-mode pair hard-fails here instead of silently rendering
+    // dark-on-white — the panel already regressed to a dark surface in light
+    // mode once, which is what motivated this entry.
+    page: "artifacts/1inme/resources/views/partials/voice-assistant.blade.php",
+    label: "floating voice-assistant panel",
+    allowlist: [],
+  },
+  {
     // The company-identity page ships only html.light-mode overrides in its
     // @push('styles') block (no dark base color/border-color rules in <style>),
     // so there are no base rules for the guard to check pairs against. All
