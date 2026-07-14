@@ -4,6 +4,9 @@ import { fileURLToPath } from "node:url";
 
 import { expect, test, type Locator, type Page } from "@playwright/test";
 
+import { DEMO_LOGIN_EMAIL } from "./demo-account";
+import { loginAsDemo } from "./login-as-demo";
+
 // Regression guard for the show/hide password toggle rendered by the shared
 // partial resources/views/common/partials/password-field.blade.php.
 //
@@ -15,7 +18,7 @@ import { expect, test, type Locator, type Page } from "@playwright/test";
 // fine, and only fails when a real browser evaluates the bindings. This spec
 // clicks the actual toggle in Chromium and asserts the observable contract.
 //
-// Surfaces covered (every guest-facing include of the partial):
+// Surfaces covered — one representative from each rollout family:
 //   - /user/login    — the "password" method form (one field)
 //   - /user/register — password + confirm-password (two INDEPENDENT fields:
 //     each include gets its own x-data scope, so toggling one must not flip
@@ -25,6 +28,17 @@ import { expect, test, type Locator, type Page } from "@playwright/test";
 //     nests the partial under the header's big x-data (authOpen/authTab) plus
 //     the login panel's own `{ method }` scope, so a scope clash there is a
 //     DISTINCT way to break the toggle that the standalone pages can't catch.
+//   - /admin/login   — the admin-guard login form (admin blade family)
+//   - /user/links-url/create — link password protection behind the
+//     "Password protect" checkbox (authenticated user surface; the field
+//     lives inside an x-show container, proving the partial's own x-data
+//     scope survives nesting inside the page's outer x-data)
+//   - /{alias} for a seeded password-protected short link — the public
+//     link-password unlock page (guest, standalone layout)
+//   - /{handle}/resume for a seeded password-visibility resume — the
+//     resume-public locked card, which uses an INLINE JS toggle (the page
+//     has no Alpine) but must honor the same observable contract
+>>>>>>> d20007f9c (Task #4786: Confirm the password eye toggle works on every converted screen)
 //
 // Contract asserted per field, through a full show -> hide round trip:
 //   - input `type` flips password -> text -> password
@@ -62,22 +76,113 @@ function runTinker(php: string): string {
   throw lastErr;
 }
 
+// Per-run unique alias for the seeded password-protected link: fixed aliases
+// collide across parallel task envs on the shared RDS (see repo memory
+// e2e-shared-rds-fixture-aliases). Stale fixtures from prior runs are pruned
+// in the seed.
+const ALIAS_PREFIX = "e2e-pwtog-";
+const ALIAS =
+  ALIAS_PREFIX +
+  Date.now().toString(36) +
+  Math.random().toString(36).slice(2, 6);
+
+// The resume fixture needs its OWN user with a real handle: the public
+// /{handle}/resume route's constraint rejects handles starting with "user"
+// (to keep reserved prefixes out), so the demo account's fallback
+// "user{id}" handle can never reach PublicResumeController. Per-run unique
+// handle for the same shared-RDS reason as the alias above.
+const RESUME_HANDLE =
+  "e2epwtog" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+const RESUME_EMAIL = RESUME_HANDLE + "@e2e.test";
+
 test.beforeAll(() => {
-  // Pin the auth-method settings the password UI depends on. Without
+  // Pin the auth-method settings the password UI depends on (without
   // email+password enabled the login page hides the password form and the
-  // register page renders no password fields at all, and this spec would
-  // silently test nothing.
+  // register page renders no password fields at all), then seed the two
+  // public fixtures: a password-protected short link (unlock page at
+  // /{alias}) and a password-visibility resume for the demo user (locked
+  // card at /{handle}/resume).
+  //
+  // NOTE: passed straight to `tinker --execute=`. In a JS template literal,
+  // `\\` becomes the single backslash PHP namespaces need, while `$var` stays
+  // literal. Do NOT write `\\$`.
   const php = `
 use App\\Modules\\Admin\\Models\\AppSetting;
+use App\\Modules\\Admin\\Models\\Plan;
+use App\\Modules\\User\\Models\\Link;
+use App\\Modules\\User\\Models\\Resume;
+use App\\Modules\\User\\Models\\User;
+use App\\Modules\\User\\Services\\WorkspaceContext;
+use Illuminate\\Support\\Facades\\Hash;
+use Illuminate\\Support\\Facades\\DB;
 
 AppSetting::put('auth_email_password_enabled', true);
 AppSetting::put('auth_registration_paused', false);
 
-echo 'PW_TOGGLE_SETTINGS_OK';
+// Seed under the SAME account demo-login authenticates as, so the
+// create-url test's session and the fixtures share one owner.
+$u = User::where('email', '${DEMO_LOGIN_EMAIL}')->first();
+if (!$u) {
+  $free = Plan::where('slug', 'free')->first();
+  $u = User::create([
+    'name' => 'Demo User', 'email' => '${DEMO_LOGIN_EMAIL}',
+    'password' => Hash::make('password'), 'plan_id' => $free?->id,
+    'status' => 'active', 'email_verified_at' => now(),
+  ]);
+}
+$rid = DB::table('roles')->where('slug', 'user-admin')->where('guard', 'web')->value('id');
+if ($rid) { $u->roles()->syncWithoutDetaching([$rid]); $u->flushPermissionCache(); }
+if ($u->onboarded_at === null) { $u->onboarded_at = now(); $u->save(); }
+$ws = app(WorkspaceContext::class)->resolve($u);
+
+// Prune stale fixtures from previous runs (aliases are per-run unique).
+$stale = Link::withoutGlobalScope('workspace')
+  ->where('alias', 'like', '${ALIAS_PREFIX}%')
+  ->where('created_at', '<', now()->subDay())
+  ->get();
+foreach ($stale as $s) { $s->delete(); }
+
+// Password-protected short link -> /{alias} serves common/link-password.
+Link::create([
+  'user_id' => $u->id, 'workspace_id' => $ws?->id, 'type' => 'short',
+  'alias' => '${ALIAS}', 'title' => 'E2E PW Toggle',
+  'url' => 'https://example.com/e2e-pw-toggle', 'is_active' => true,
+  'is_password_protected' => true,
+  'password' => Hash::make('e2e-secret'),
+]);
+
+// Password-visibility resume -> /{RESUME_HANDLE}/resume serves the locked
+// card in common/resume-public (inline JS toggle, no Alpine on that page).
+// A dedicated user is needed because the public route constraint rejects
+// "user…"-prefixed fallback handles, which is all the demo account has.
+// Prune this fixture family from prior runs too (unique per run).
+foreach (User::where('email', 'like', 'e2epwtog%@e2e.test')
+  ->where('created_at', '<', now()->subDay())->get() as $old) {
+  Resume::where('user_id', $old->id)->delete();
+  $old->delete();
+}
+$ru = User::create([
+  'name' => 'E2E PW Toggle', 'email' => '${RESUME_EMAIL}',
+  'handle' => '${RESUME_HANDLE}',
+  'password' => Hash::make(str()->random(24)),
+  'status' => 'active', 'email_verified_at' => now(),
+  'onboarded_at' => now(),
+]);
+Resume::create([
+  'user_id'    => $ru->id,
+  'name'       => 'E2E Toggle',
+  'slug'       => Resume::DEFAULT_SLUG,
+  'is_default' => true,
+  'is_public'  => true,
+  'visibility' => 'password',
+  'password'   => Hash::make('e2e-secret'),
+]);
+
+echo 'PW_TOGGLE_SEED_OK';
 `.trim();
   const out = runTinker(php);
-  if (!out.includes("PW_TOGGLE_SETTINGS_OK")) {
-    throw new Error("password-toggle settings pin failed, output:\n" + out);
+  if (!out.includes("PW_TOGGLE_SEED_OK")) {
+    throw new Error("password-toggle seed failed, output:\n" + out);
   }
 });
 
@@ -161,6 +266,63 @@ test.describe("password show/hide toggle", () => {
     await password.locator("button").click();
     await expect(password.locator("input")).toHaveAttribute("type", "password");
     await expect(confirm.locator("input")).toHaveAttribute("type", "text");
+  });
+
+  test("admin login page: toggle reveals and re-hides the password", async ({ page }) => {
+    await page.goto("/admin/login", { timeout: 120_000 });
+    await assertToggleRoundTrip(pwWrap(page, "password"), "password");
+  });
+
+  test("create-url page: link password protection field toggles", async ({ page }) => {
+    // Authenticated user surface: the password field sits inside an
+    // x-show container behind the "Password protect" checkbox, nested in
+    // the page's own outer x-data — a broken nested scope would leave the
+    // partial's _pwShow undefined and the toggle dead.
+    await loginAsDemo(page);
+    await page.goto("/user/links-url/create", { timeout: 120_000 });
+
+    // The Protection section (checkbox included) sits behind the collapsed
+    // "Advanced Options" disclosure (x-show + x-cloak) — open it first.
+    await page.locator('button:has-text("Advanced Options")').click();
+    await page.locator('input[name="is_password_protected"]').check();
+    const wrap = pwWrap(page, "password");
+    await expect(wrap).toBeVisible();
+    await assertToggleRoundTrip(wrap, "password");
+  });
+
+  test("public link-password unlock page: toggle works for guests", async ({ page }) => {
+    await page.goto(`/${ALIAS}`, { timeout: 120_000 });
+    await expect(page.getByText("Password Required")).toBeVisible();
+    await assertToggleRoundTrip(pwWrap(page, "password"), "password");
+  });
+
+  test("resume-public locked card: inline toggle honors the same contract", async ({ page }) => {
+    // This surface intentionally does NOT use the Alpine partial (the
+    // resume-public page ships no Alpine); it has a hand-rolled inline JS
+    // toggle. Assert the identical observable contract by hand.
+    await page.goto(`/${RESUME_HANDLE}/resume`, { timeout: 120_000 });
+
+    const input = page.locator("#resume-unlock-password");
+    const button = page.locator('button[aria-label="Show password"], button[aria-label="Hide password"]').first();
+    const icon = button.locator("i");
+
+    await expect(input).toBeVisible();
+    await expect(input).toHaveAttribute("type", "password");
+    await expect(button).toHaveAttribute("aria-label", "Show password");
+    await expect(button).toHaveAttribute("aria-pressed", "false");
+    await expect(icon).toHaveClass(/fa-eye(?!-slash)/);
+
+    await button.click();
+    await expect(input).toHaveAttribute("type", "text");
+    await expect(button).toHaveAttribute("aria-label", "Hide password");
+    await expect(button).toHaveAttribute("aria-pressed", "true");
+    await expect(icon).toHaveClass(/fa-eye-slash/);
+
+    await button.click();
+    await expect(input).toHaveAttribute("type", "password");
+    await expect(button).toHaveAttribute("aria-label", "Show password");
+    await expect(button).toHaveAttribute("aria-pressed", "false");
+    await expect(icon).toHaveClass(/fa-eye(?!-slash)/);
   });
 });
 
