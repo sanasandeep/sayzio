@@ -215,6 +215,15 @@ class ProfileController extends Controller
                     ]);
                 }
             }
+
+            // Sync the linked admin account's name so the admin sidebar always
+            // shows the user's current display name. Only the name is synced —
+            // email and all other fields are explicitly out of scope. If the
+            // user has no linked admin account this is a no-op.
+            $linkedAdmin = \App\Modules\Common\Services\AdminUserBridge::resolveAdminForUser($user);
+            if ($linkedAdmin !== null) {
+                $linkedAdmin->update(['name' => $user->name]);
+            }
         }
 
         // Persist billing address + tax-id when the form sent any of
