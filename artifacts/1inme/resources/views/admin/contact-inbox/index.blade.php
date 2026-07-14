@@ -24,7 +24,8 @@
         @else
             <div class="space-y-3">
                 @foreach($messages as $m)
-                    <div class="bg-white/5 border border-white/10 rounded-xl p-4" x-data="{ open:false, replying:false }">
+                    @php($replyFailed = old('reply_message_id') == $m->id && $errors->any())
+                    <div class="bg-white/5 border border-white/10 rounded-xl p-4" x-data="{ open:{{ $replyFailed ? 'true' : 'false' }}, replying:{{ $replyFailed ? 'true' : 'false' }} }">
                         <div class="flex items-start justify-between gap-4">
                             <div class="min-w-0 flex-1">
                                 <div class="flex items-center gap-2 mb-1 flex-wrap">
@@ -72,13 +73,27 @@
                                     <div x-show="replying" x-cloak class="mt-4">
                                         <form method="POST" action="{{ route('admin.contact-inbox.reply', $m) }}">
                                             @csrf
+                                            <input type="hidden" name="reply_message_id" value="{{ $m->id }}">
                                             <div class="space-y-2">
-                                                <input type="text" name="reply_subject" value="{{ old('reply_subject', 'Re: ' . $m->subject) }}"
+                                                @if($replyFailed)
+                                                    <div class="text-xs text-red-300 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2 space-y-0.5">
+                                                        @if($errors->has('reply'))
+                                                            <div>{{ $errors->first('reply') }}</div>
+                                                        @endif
+                                                        @if($errors->has('reply_subject'))
+                                                            <div>{{ $errors->first('reply_subject') }}</div>
+                                                        @endif
+                                                        @if($errors->has('reply_body'))
+                                                            <div>{{ $errors->first('reply_body') }}</div>
+                                                        @endif
+                                                    </div>
+                                                @endif
+                                                <input type="text" name="reply_subject" value="{{ $replyFailed ? old('reply_subject') : 'Re: ' . $m->subject }}"
                                                     class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder-white/30 focus:outline-none focus:border-blue-500/50"
                                                     placeholder="Subject" required maxlength="500">
                                                 <textarea name="reply_body" rows="5" required maxlength="20000"
                                                     class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder-white/30 focus:outline-none focus:border-blue-500/50 resize-y"
-                                                    placeholder="Write your reply…">{{ old('reply_body') }}</textarea>
+                                                    placeholder="Write your reply…">{{ $replyFailed ? old('reply_body') : '' }}</textarea>
                                                 <div class="flex items-center gap-2">
                                                     <button type="submit" class="px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg text-xs text-white font-medium">Send reply</button>
                                                     <button type="button" @click="replying=false" class="px-4 py-2 bg-white/5 hover:bg-white/10 rounded-lg text-xs text-white/70">Cancel</button>

@@ -35,6 +35,7 @@ class AdminContactInboxReplyTest extends TestCase
             'email'    => 'admin' . uniqid() . '@example.com',
             'password' => Hash::make('secret'),
             'role_id'  => $role->id,
+            'status'   => 'active',
         ]);
     }
 
@@ -156,6 +157,51 @@ class AdminContactInboxReplyTest extends TestCase
 
         $this->assertDatabaseMissing('contact_message_replies', [
             'contact_message_id' => $message->id,
+        ]);
+    }
+
+    public function test_failed_send_keeps_input_and_does_not_mark_replied(): void
+    {
+        $admin   = $this->makeAdmin();
+        $message = $this->makeMessage();
+
+        // Force a transport failure: point the default mailer at an
+        // unroutable SMTP endpoint so the send throws inside Emailer.
+        config([
+            'mail.default'           => 'smtp',
+            'mail.mailers.smtp'      => [
+                'transport' => 'smtp',
+                'host'      => '127.0.0.1',
+                'port'      => 1,
+                'timeout'   => 1,
+            ],
+        ]);
+
+        $this->actingAs($admin, 'admin')
+            ->from(route('admin.contact-inbox.index'))
+            ->post(route('admin.contact-inbox.reply', $message), [
+                'reply_subject'    => 'Re: Question about pricing',
+                'reply_body'       => 'This reply must survive the failure.',
+                'reply_message_id' => $message->id,
+            ])
+            ->assertRedirect(route('admin.contact-inbox.index'))
+            ->assertSessionHasErrors('reply')
+            // old() input preserved so the compose box re-fills.
+            ->assertSessionHasInput('reply_subject', 'Re: Question about pricing')
+            ->assertSessionHasInput('reply_body', 'This reply must survive the failure.')
+            ->assertSessionHasInput('reply_message_id', (string) $message->id);
+
+        // No reply row persisted and status unchanged.
+        $this->assertDatabaseMissing('contact_message_replies', [
+            'contact_message_id' => $message->id,
+        ]);
+        $this->assertSame('new', $message->fresh()->status);
+
+        // The failed attempt is still logged for the admin email log.
+        $this->assertDatabaseHas('email_logs', [
+            'email_key' => 'contact.inbox_reply',
+            'recipient' => 'visitor@example.com',
+            'status'    => 'failed',
         ]);
     }
 

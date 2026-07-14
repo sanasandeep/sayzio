@@ -60,28 +60,37 @@ class ContactInboxController extends Controller
 
         $admin = $request->user('admin');
 
-        // Send via the centralized email pipeline.
-        Emailer::send(
-            'contact.inbox_reply',
-            $message->email,
-            [
-                'recipient_name'   => $message->name,
-                'reply_subject'    => $validated['reply_subject'],
-                'reply_body'       => $validated['reply_body'],
-                'original_message' => $message->message,
-                'app_name'         => config('app.name'),
-            ],
-            [
-                'subject'   => $validated['reply_subject'],
-                'body_type' => 'view',
-                'view_data' => [
+        // Send via the centralized email pipeline. Throw on transport failure
+        // so a failed send doesn't silently mark the thread as replied — the
+        // admin gets the compose box back pre-filled and can retry.
+        try {
+            Emailer::send(
+                'contact.inbox_reply',
+                $message->email,
+                [
+                    'recipient_name'   => $message->name,
+                    'reply_subject'    => $validated['reply_subject'],
                     'reply_body'       => $validated['reply_body'],
                     'original_message' => $message->message,
+                    'app_name'         => config('app.name'),
                 ],
-                'related'   => ['type' => 'contact_message', 'id' => $message->id],
-                'to_name'   => $message->name,
-            ]
-        );
+                [
+                    'subject'          => $validated['reply_subject'],
+                    'body_type'        => 'view',
+                    'view_data'        => [
+                        'reply_body'       => $validated['reply_body'],
+                        'original_message' => $message->message,
+                    ],
+                    'related'          => ['type' => 'contact_message', 'id' => $message->id],
+                    'to_name'          => $message->name,
+                    'throw_on_failure' => true,
+                ]
+            );
+        } catch (\App\Modules\Common\Exceptions\EmailDeliveryException $e) {
+            return back()
+                ->withInput()
+                ->withErrors(['reply' => 'Sending failed — the email could not be delivered. Your reply has been kept below so you can retry.']);
+        }
 
         // Persist the reply thread.
         ContactMessageReply::create([
