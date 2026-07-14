@@ -500,13 +500,16 @@ Route::prefix('admin')->name('admin.')->group(function () {
         });
 
         Route::prefix('testimonials')->name('testimonials.')->group(function () {
-            Route::get('/',                    [TestimonialController::class, 'index'])->middleware(CheckPermission::class . ':settings.manage')->name('index');
-            Route::get('create',               [TestimonialController::class, 'create'])->middleware(CheckPermission::class . ':settings.manage')->name('create');
-            Route::post('/',                   [TestimonialController::class, 'store'])->middleware(CheckPermission::class . ':settings.manage')->name('store');
-            Route::get('{testimonial}/edit',   [TestimonialController::class, 'edit'])->middleware(CheckPermission::class . ':settings.manage')->name('edit');
-            Route::put('{testimonial}',        [TestimonialController::class, 'update'])->middleware(CheckPermission::class . ':settings.manage')->name('update');
-            Route::post('{testimonial}/toggle', [TestimonialController::class, 'toggle'])->middleware(CheckPermission::class . ':settings.manage')->name('toggle');
-            Route::delete('{testimonial}',     [TestimonialController::class, 'destroy'])->middleware(CheckPermission::class . ':settings.manage')->name('destroy');
+            Route::get('/',                         [TestimonialController::class, 'index'])->middleware(CheckPermission::class . ':settings.manage')->name('index');
+            Route::get('pending',                   [TestimonialController::class, 'pending'])->middleware(CheckPermission::class . ':settings.manage')->name('pending');
+            Route::get('create',                    [TestimonialController::class, 'create'])->middleware(CheckPermission::class . ':settings.manage')->name('create');
+            Route::post('/',                        [TestimonialController::class, 'store'])->middleware(CheckPermission::class . ':settings.manage')->name('store');
+            Route::get('{testimonial}/edit',        [TestimonialController::class, 'edit'])->middleware(CheckPermission::class . ':settings.manage')->name('edit');
+            Route::put('{testimonial}',             [TestimonialController::class, 'update'])->middleware(CheckPermission::class . ':settings.manage')->name('update');
+            Route::post('{testimonial}/toggle',     [TestimonialController::class, 'toggle'])->middleware(CheckPermission::class . ':settings.manage')->name('toggle');
+            Route::post('{testimonial}/approve',    [TestimonialController::class, 'approve'])->middleware(CheckPermission::class . ':settings.manage')->name('approve');
+            Route::post('{testimonial}/reject',     [TestimonialController::class, 'reject'])->middleware(CheckPermission::class . ':settings.manage')->name('reject');
+            Route::delete('{testimonial}',          [TestimonialController::class, 'destroy'])->middleware(CheckPermission::class . ':settings.manage')->name('destroy');
         });
 
         Route::prefix('site-stats')->name('site-stats.')->group(function () {

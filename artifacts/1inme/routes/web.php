@@ -544,6 +544,11 @@ Route::get('/@{handle}/events', [\App\Modules\Common\Controllers\CreatorProfileP
     ->where('handle', '[A-Za-z0-9_]+')
     ->name('creator-profile.events');
 
+// Public testimonial submission form. Two-segment path under /testimonials
+// so it never collides with the single-segment /{alias} catch-all.
+Route::get ('/testimonials/submit', [\App\Modules\Common\Controllers\TestimonialSubmissionController::class, 'show'])->name('testimonials.submit.show');
+Route::post('/testimonials/submit', [\App\Modules\Common\Controllers\TestimonialSubmissionController::class, 'store'])->middleware('throttle:5,60')->name('testimonials.submit.store');
+
 // Task #1211 — public DMCA / IP takedown intake.
 Route::get ('/legal/dmca', [\App\Modules\Common\Controllers\DmcaController::class, 'show'])->name('legal.dmca.show');
 Route::post('/legal/dmca', [\App\Modules\Common\Controllers\DmcaController::class, 'store'])->middleware('throttle:10,60')->name('legal.dmca.store');
