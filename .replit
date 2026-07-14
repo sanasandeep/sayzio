@@ -324,6 +324,10 @@ args = "e2e-otp-login-whatsapp-resend"
 task = "workflow.run"
 args = "e2e-otp-signup-whatsapp-paused"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-otp-signup-email-paused"
+
 [[workflows.workflow]]
 name = "e2e"
 author = "agent"
@@ -1167,6 +1171,17 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "bash artifacts/1inme/tests/Browser/run-validation.sh otp-signup-whatsapp-paused.spec.ts"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-otp-signup-email-paused"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "bash artifacts/1inme/tests/Browser/run-validation.sh otp-signup-email-paused.spec.ts"
 
 [workflows.workflow.metadata]
 isValidation = true
