@@ -162,6 +162,7 @@ export default function AuthLanding() {
   const [showNameModal, setShowNameModal] = useState(false);
   const [loginMethod, setLoginMethod] = useState<"otp" | "password">("password");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
   // Login-method policy: email is always available; WhatsApp (mobile) login
   // is behind an admin toggle with an allowed-country-code list. Default to
@@ -530,12 +531,27 @@ export default function AuthLanding() {
             <TextField
               label="Password"
               placeholder="Your password"
-              secureTextEntry
+              secureTextEntry={!showPassword}
               autoCapitalize="none"
               autoCorrect={false}
               value={password}
               onChangeText={setPassword}
               error={error ?? undefined}
+              trailing={
+                <Pressable
+                  onPress={() => setShowPassword((v) => !v)}
+                  accessibilityLabel={showPassword ? "Hide password" : "Show password"}
+                  accessibilityRole="button"
+                  accessibilityState={{ checked: showPassword }}
+                  hitSlop={8}
+                >
+                  <Feather
+                    name={showPassword ? "eye-off" : "eye"}
+                    size={18}
+                    color={colors.mutedForeground}
+                  />
+                </Pressable>
+              }
             />
           </>
         ) : null}

@@ -82,8 +82,13 @@
                         </div>
                         <div>
                             <label class="block text-xs font-semibold uppercase tracking-wider mb-1.5 text-gray-400">Password</label>
-                            <input type="password" name="password" required placeholder="Your password" autocomplete="current-password"
-                                   class="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-lg text-sm text-white placeholder-gray-500 focus:border-blue-500 focus:outline-none">
+                            @include('common.partials.password-field', [
+                                'name' => 'password',
+                                'placeholder' => 'Your password',
+                                'autocomplete' => 'current-password',
+                                'required' => true,
+                                'inputClass' => 'w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-lg text-sm text-white placeholder-gray-500 focus:border-blue-500 focus:outline-none',
+                            ])
                         </div>
                         <button type="submit" class="w-full py-2.5 bg-blue-600 hover:bg-blue-700 rounded-lg text-sm font-bold text-white">
                             <i class="fas fa-arrow-right-to-bracket mr-1 text-xs"></i> Sign In
@@ -173,13 +178,23 @@
                     @if($emailPasswordEnabled)
                     <div>
                         <label class="block text-xs font-semibold uppercase tracking-wider mb-1.5 text-gray-400">Password</label>
-                        <input type="password" name="password" required placeholder="At least 8 characters" autocomplete="new-password"
-                               class="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-lg text-sm text-white placeholder-gray-500 focus:border-blue-500 focus:outline-none">
+                        @include('common.partials.password-field', [
+                            'name' => 'password',
+                            'placeholder' => 'At least 8 characters',
+                            'autocomplete' => 'new-password',
+                            'required' => true,
+                            'inputClass' => 'w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-lg text-sm text-white placeholder-gray-500 focus:border-blue-500 focus:outline-none',
+                        ])
                     </div>
                     <div>
                         <label class="block text-xs font-semibold uppercase tracking-wider mb-1.5 text-gray-400">Confirm password</label>
-                        <input type="password" name="password_confirmation" required placeholder="Re-enter your password" autocomplete="new-password"
-                               class="w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-lg text-sm text-white placeholder-gray-500 focus:border-blue-500 focus:outline-none">
+                        @include('common.partials.password-field', [
+                            'name' => 'password_confirmation',
+                            'placeholder' => 'Re-enter your password',
+                            'autocomplete' => 'new-password',
+                            'required' => true,
+                            'inputClass' => 'w-full px-3 py-2.5 bg-white/5 border border-white/10 rounded-lg text-sm text-white placeholder-gray-500 focus:border-blue-500 focus:outline-none',
+                        ])
                     </div>
                     @endif
                     <div>

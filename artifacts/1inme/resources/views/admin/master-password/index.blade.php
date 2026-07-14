@@ -86,9 +86,12 @@ html.light-mode .admin-mp-tone-red      { color: #991b1b; }
                         Leave this blank to keep it, or type a new one to replace it.
                     </p>
                 @endif
-                <input type="password" name="password" autocomplete="new-password"
-                       placeholder="{{ $hasPassword ? 'Type a new password to replace' : 'At least 8 characters' }}"
-                       class="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-sm text-white">
+                @include('common.partials.password-field', [
+                    'name' => 'password',
+                    'placeholder' => $hasPassword ? 'Type a new password to replace' : 'At least 8 characters',
+                    'autocomplete' => 'new-password',
+                    'inputClass' => 'w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-sm text-white',
+                ])
                 <p class="text-[11px] text-white/30 mt-1">
                     Stored as a one-way hash, encrypted at rest with the application key. It is never displayed back.
                 </p>

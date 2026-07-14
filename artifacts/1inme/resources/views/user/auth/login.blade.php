@@ -106,7 +106,7 @@
                             </div>
                             <div>
                                 <label class="block text-xs font-semibold uppercase tracking-wider mb-1.5" style="color: var(--text-dimmed);">Password</label>
-                                <input type="password" name="password" required placeholder="Your password" autocomplete="current-password" class="theme-input w-full">
+                                @include('common.partials.password-field', ['name' => 'password', 'placeholder' => 'Your password', 'autocomplete' => 'current-password', 'required' => true])
                                 <p class="mt-1 text-xs text-red-400" data-err="password" @if(!$errors->has('password')) hidden @endif>{{ $errors->first('password') }}</p>
                             </div>
                             <button type="submit" class="btn-primary w-full justify-center py-2.5 text-sm">

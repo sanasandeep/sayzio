@@ -88,13 +88,13 @@
                         @if($emailPasswordEnabled ?? false)
                         <div>
                             <label class="block text-xs font-semibold uppercase tracking-wider mb-1.5" style="color: var(--text-dimmed);">Password</label>
-                            <input type="password" name="password" required placeholder="At least 8 characters" autocomplete="new-password" class="theme-input w-full">
+                            @include('common.partials.password-field', ['name' => 'password', 'placeholder' => 'At least 8 characters', 'autocomplete' => 'new-password', 'required' => true])
                             <p class="mt-1 text-xs text-red-400" data-err="password" @if(!$errors->has('password')) hidden @endif>{{ $errors->first('password') }}</p>
                         </div>
 
                         <div>
                             <label class="block text-xs font-semibold uppercase tracking-wider mb-1.5" style="color: var(--text-dimmed);">Confirm Password</label>
-                            <input type="password" name="password_confirmation" required placeholder="Re-enter your password" autocomplete="new-password" class="theme-input w-full">
+                            @include('common.partials.password-field', ['name' => 'password_confirmation', 'placeholder' => 'Re-enter your password', 'autocomplete' => 'new-password', 'required' => true])
                         </div>
                         @endif
 
