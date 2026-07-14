@@ -332,6 +332,10 @@ args = "e2e-otp-signup-email-paused"
 task = "workflow.run"
 args = "e2e-password-toggle"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-otp-login-whatsapp-different"
+
 [[workflows.workflow]]
 name = "e2e"
 author = "agent"
@@ -1197,6 +1201,17 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "bash artifacts/1inme/tests/Browser/run-validation.sh password-toggle.spec.ts"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-otp-login-whatsapp-different"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "bash artifacts/1inme/tests/Browser/run-validation.sh otp-login-whatsapp-different-number.spec.ts"
 
 [workflows.workflow.metadata]
 isValidation = true
