@@ -1,3 +1,943 @@
+modules = ["nodejs-24", "php-8.4", "python-3.11", "system", "postgresql-16"]
+
+[deployment]
+router = "application"
+deploymentTarget = "autoscale"
+
+[deployment.postBuild]
+args = ["pnpm", "store", "prune"]
+env = { "CI" = "true" }
+
+[workflows]
+runButton = "Project"
+
+[[workflows.workflow]]
+name = "Project"
+mode = "parallel"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-mobile-main"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-mobile-google"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "php-deprecations"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "brand-color"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "test:1inme-com"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-voice-panel"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "migration-ordering"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "mobile-strategy"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-mobile-icons"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-mobile-icons-native"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "ai-tool-names"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "scripts-tests"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "favicon-sync"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "home-preview-blocks"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "demo-allowlist"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "ci-passthrough-names"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "brand-color-build"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "mobile-docs-parity"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "check-plan-feature-coverage"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "light-mode-pairing"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "blade-comment-echo"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "undefined-css-var"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "factory-columns"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-ehb-band"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "multicol-transform"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "dialer-typecheck"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "dialer-channel-actions"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "dialer-sync"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "fontawesome-loader"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-inline-edit"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-block-live"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-home-showcase"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-mobile-import-url"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "mobile-unit"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-audience-prompt"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-audience-stale"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "blade-json-in-attr"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-mobile-onboarding"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-mobile-drawer-signout"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "demo-login-email"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-mobile-tabbar"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "mobile-auth-providers"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-mobile-wordmark"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-mobile-drawer-focus-ring"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-mobile-form-focus-ring"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "alpine-line-comments"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-otp-signup-name"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-mobile-login-default"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-otp-signup-errors"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-zio-visualviewport"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-mobile-info-pages"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-mobile-onboarding-reveal"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "auth-screen-gradient"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-mobile-plans-refresh"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-mobile-plans-downgrade-refresh"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-2fa-challenge"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-auth-ajax"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "claude-training-api-index"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "doc-constants"
+
+[[workflows.workflow]]
+name = "e2e"
+author = "agent"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "bash artifacts/1inme/tests/Browser/run-validation.sh home-auth-modal-mobile.spec.ts biolink-editor-card-gallery-preview.spec.ts biolink-editor-palette-dnd.spec.ts cookie-consent-footer-gap.spec.ts cookie-consent-layout-styles.spec.ts cookie-consent-theme-match.spec.ts voice-assistant-bridge.spec.ts voice-assistant-panel.spec.ts slides-mode.spec.ts cookie-consent-footer-reserve.spec.ts home-hero-orbit-popover.spec.ts home-hero-claim-handle.spec.ts brand-consistency-apply-fix.spec.ts create-link-picker.spec.ts marketing-background-seam.spec.ts home-section-structure.spec.ts home-ai-zone.spec.ts onboarding-flow.spec.ts dashboard-layout.spec.ts header-account-menu.spec.ts header-mobile-account-menu.spec.ts header-mobile-logged-out-cta.spec.ts dashboard-mobile-account.spec.ts header-desktop-logged-out-cta.spec.ts dialer-live-sync.spec.ts store-coming-soon-modal.spec.ts ai-dashboard-demo-perf.spec.ts event-rsvp-light-readability.spec.ts events-hero-band-gap.spec.ts header-autohide.spec.ts fontawesome-cached-visit.spec.ts home-showcase-editor-preview.spec.ts pricing-price-visible.spec.ts"
+
+[[workflows.workflow]]
+name = "e2e-mobile-main"
+author = "agent"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/1inme-mobile run test:auth-flow-e2e:core"
+
+[[workflows.workflow]]
+name = "e2e-mobile-google"
+author = "agent"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/1inme-mobile run test:auth-flow-e2e:google"
+
+[[workflows.workflow]]
+name = "php-deprecations"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd artifacts/1inme && composer lint:deprecations"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "brand-color"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/scripts run check:brand-color"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "test:1inme-com"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/1inme-com run test"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-voice-panel"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "bash artifacts/1inme/tests/Browser/run-validation.sh voice-assistant-panel.spec.ts"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "migration-ordering"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd artifacts/1inme && composer check:migration-ordering"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "mobile-strategy"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/1inme-mobile run test:strategy-stream && pnpm --filter @workspace/1inme-mobile run test:strategy-screens"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-mobile-icons"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/1inme-mobile run test:icon-fonts-e2e"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-mobile-icons-native"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/1inme-mobile run test:native-icon-fonts-e2e"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "ai-tool-names"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/scripts run check:ai-tool-names"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "scripts-tests"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/scripts run test"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "favicon-sync"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/1inme-com run check:favicons"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "home-preview-blocks"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/scripts run check:home-preview-blocks"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "demo-allowlist"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd artifacts/1inme && composer check:demo-allowlist"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "ci-passthrough-names"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/scripts run check:ci-passthrough-names"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "brand-color-build"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/scripts run check:brand-color-build"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "mobile-docs-parity"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd artifacts/1inme && composer check:mobile-docs-parity"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "check-plan-feature-coverage"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd artifacts/1inme && composer check:plan-feature-coverage"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "light-mode-pairing"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/scripts run check:light-mode-pairing"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "blade-comment-echo"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/scripts run check:blade-comment-echo"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "undefined-css-var"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/scripts run check:undefined-css-var"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "factory-columns"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd artifacts/1inme && composer check:factory-columns"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-ehb-band"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "bash artifacts/1inme/tests/Browser/run-validation.sh events-hero-band-gap.spec.ts"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "multicol-transform"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/scripts run check:multicol-transform"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "dialer-typecheck"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/scripts run check:dialer-typecheck"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "dialer-channel-actions"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd sayzio-dialer-standalone && npm run test:channel-actions"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "dialer-sync"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/scripts run check:dialer-sync"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "fontawesome-loader"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/scripts run check:fontawesome-loader"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-inline-edit"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "bash artifacts/1inme/tests/Browser/run-validation.sh biolink-editor-inline-edit.spec.ts"
+
+[workflows.workflow.metadata]
+outputType = "console"
+
+[[workflows.workflow]]
+name = "e2e-block-live"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "bash artifacts/1inme/tests/Browser/run-validation.sh biolink-block-live-preview.spec.ts"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-home-showcase"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "bash artifacts/1inme/tests/Browser/run-validation.sh home-showcase-editor-preview.spec.ts"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-mobile-import-url"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/1inme-mobile run test:import-url-e2e"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "mobile-unit"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/1inme-mobile run test:unit:strict"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-audience-prompt"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "bash artifacts/1inme/tests/Browser/run-validation.sh audience-prompt-flow.spec.ts"
+
+[workflows.workflow.metadata]
+outputType = "console"
+
+[[workflows.workflow]]
+name = "e2e-audience-stale"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "bash artifacts/1inme/tests/Browser/run-validation.sh audience-estimate-stale.spec.ts"
+
+[workflows.workflow.metadata]
+outputType = "console"
+
+[[workflows.workflow]]
+name = "blade-json-in-attr"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/scripts run check:blade-json-in-attr"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-mobile-onboarding"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/1inme-mobile run test:onboarding-e2e"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-mobile-drawer-signout"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/1inme-mobile run test:drawer-signout-e2e"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "demo-login-email"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/scripts run check:demo-login-email"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-mobile-tabbar"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/1inme-mobile run test:tabbar-legibility-e2e"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "mobile-auth-providers"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/scripts run check:mobile-auth-providers"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-mobile-wordmark"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/1inme-mobile run test:wordmark-legibility-e2e"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-mobile-drawer-focus-ring"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/1inme-mobile run test:drawer-focus-ring-e2e"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-mobile-form-focus-ring"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/1inme-mobile run test:form-focus-ring-e2e"
+
+[workflows.workflow.metadata]
+outputType = "console"
+
+[[workflows.workflow]]
+name = "alpine-line-comments"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/scripts run check:alpine-line-comments"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-otp-signup-name"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "bash artifacts/1inme/tests/Browser/run-validation.sh otp-signup-name-flow.spec.ts"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-mobile-login-default"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/1inme-mobile run test:login-default-e2e"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-otp-signup-errors"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "bash artifacts/1inme/tests/Browser/run-validation.sh otp-signup-error-paths.spec.ts"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-zio-visualviewport"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "bash artifacts/1inme/tests/Browser/run-validation.sh site-assistant-visualviewport.spec.ts"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-mobile-info-pages"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/1inme-mobile run test:info-pages-e2e"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-mobile-onboarding-reveal"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/1inme-mobile run test:onboarding-reveal-e2e"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "auth-screen-gradient"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/scripts run check:auth-screen-gradient"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-mobile-plans-refresh"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/1inme-mobile run test:plans-foreground-refresh-e2e"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-mobile-plans-downgrade-refresh"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/1inme-mobile run test:plans-downgrade-refresh-e2e"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-2fa-challenge"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "bash artifacts/1inme/tests/Browser/run-validation.sh two-factor-challenge-ajax.spec.ts"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-auth-ajax"
+author = "agent"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd artifacts/1inme && bash tests/Browser/run-validation.sh auth-ajax-flows.spec.ts --retries=0 --reporter=list"
+
+[[workflows.workflow]]
+name = "claude-training-api-index"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/scripts run check:claude-training-api-index"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "doc-constants"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/scripts run check:doc-constants"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[agent]
+stack = "PNPM_WORKSPACE"
+expertMode = true
+
+[postMerge]
+path = "scripts/post-merge.sh"
+timeoutMs = 600000
+
+[nix]
+channel = "stable-25_05"
+
+[userenv]
+
+[userenv.shared]
+AWS_BUCKET = "1in.me"
+AWS_DEFAULT_REGION = "ap-south-2"
+AWS_URL = "https://d3l7wvr1shk1cg.cloudfront.net"
+AWS_USE_PATH_STYLE_ENDPOINT = "true"
+USER_CONTENT_DISK = "s3"
+CONTACT_ADMIN_TOKEN = "RP8TvxVjeyRZabgOUgSjT-fBNw-IaNBA"
+APP_NAME = "Sayzio"
+
 [[ports]]
 localPort = 5000
 externalPort = 5000
@@ -7,24 +947,9 @@ localPort = 5050
 externalPort = 3000
 
 [[ports]]
-localPort = 8080
-externalPort = 8080
-
-[[ports]]
-localPort = 8081
-externalPort = 8081
-
-[[ports]]
 localPort = 8082
 externalPort = 3001
 
 [[ports]]
-localPort = 23680
-externalPort = 3002
-
-[[ports]]
 localPort = 23681
 externalPort = 80
-
-[agent]
-expertMode = true
