@@ -1189,6 +1189,7 @@ args = "bash artifacts/1inme/tests/Browser/run-validation.sh voice-assistant-bri
 [workflows.workflow.metadata]
 isValidation = true
 
+>>>>>>> 2605ed662 (Repair the six stale-failing voice-widget tests in voice-assistant-bridge.spec.ts (Task #4877))
 [agent]
 stack = "PNPM_WORKSPACE"
 expertMode = true

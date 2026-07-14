@@ -66,10 +66,14 @@ they're shell-specific.
 **Floating widget is ADMIN-ONLY since the Zio merge (June 2026):** the user
 layout includes the partial with `voiceFloating=false`, so NO
 `voiceAssistant()` Alpine component exists on any `/user/*` page (only the
-dictation helper + `window.__voice` config render). Consequence:
-`voice-assistant-bridge.spec.ts` tests that `openWithWidget()` a user page
-(create/wizard/links) have been stale-failing since that merge — they time out
-waiting for the widget. Tests needing the floating widget must log in on BOTH
-guards (web demo-login + `/admin/demo-login`, seed the demo Admin first) and
-open an admin page like `/admin`; the admin layout's `@auth` resolves the web
-session's User for the plan gate.
+dictation helper + `window.__voice` config render). Tests needing the floating
+widget must log in on BOTH guards (web demo-login + `/admin/demo-login`, seed
+the demo Admin first) and open an admin page like `/admin`; the admin layout's
+`@auth` resolves the web session's User for the plan gate.
+`voice-assistant-bridge.spec.ts` was repaired accordingly (July 2026):
+widget-shell tests (nav deferral, confirm chips) open `/admin`; user-page
+surface tests (create form, wizard) drive `window.VoiceRuntime.applyToolResults`
+directly on the user page (the runtime is present there via the Zio panel
+include). The old `search_app`→header-search test was DELETED: no `voice-action`
+listener for the `search` client_action exists anywhere anymore — if header
+voice search comes back, add both the listener and a test.

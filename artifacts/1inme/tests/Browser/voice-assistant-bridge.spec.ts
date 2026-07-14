@@ -155,6 +155,46 @@ async function openWithWidget(page: Page, urlPath: string): Promise<void> {
   );
 }
 
+/**
+ * Open an authenticated USER page and wait for the shared VoiceRuntime bridge
+ * (included by the Zio panel — common/partials/voice-runtime). Since the
+ * Zio-panel merge the floating widget no longer mounts on /user/* pages, so
+ * page-surface tests drive the REAL bridge directly: applyToolResults()
+ * dispatches the same `voice-action` window events both voice shells emit.
+ */
+async function openWithBridge(page: Page, urlPath: string): Promise<void> {
+  await page.goto(urlPath, { timeout: 120_000 });
+  await page.waitForFunction(
+    () => {
+      const rt = (window as unknown as {
+        VoiceRuntime?: { applyToolResults?: unknown };
+      }).VoiceRuntime;
+      return !!(rt && typeof rt.applyToolResults === "function");
+    },
+    undefined,
+    { timeout: 120_000 },
+  );
+}
+
+/**
+ * Push tool results through the real shared bridge on the page — the exact
+ * code path both the admin floating widget and the Zio-panel mic use after a
+ * turn (VoiceRuntime.applyToolResults → `voice-action` CustomEvent dispatch).
+ */
+async function applyToolResults(
+  page: Page,
+  results: Array<{ result: Record<string, unknown> }>,
+): Promise<void> {
+  await page.evaluate((toolResults) => {
+    const rt = (window as unknown as {
+      VoiceRuntime: {
+        applyToolResults: (r: Array<{ result: Record<string, unknown> }>) => string | null;
+      };
+    }).VoiceRuntime;
+    rt.applyToolResults(toolResults);
+  }, results);
+}
+
 /** A single voice "turn" response carrying one tool result. */
 type TurnBody = {
   transcript?: string;
@@ -205,9 +245,15 @@ test.describe("voice assistant — client_action / voice-action bridge", () => {
 
   test.beforeAll(async ({ browser }) => {
     seedVoiceFixture();
+    // The floating widget is ADMIN-ONLY since the Zio-panel merge, so the
+    // shared context logs in on BOTH guards up front: the web session (plan
+    // gate + user-page bridge tests) and the admin session (widget tests
+    // open /admin). One login each keeps us under the demo-login throttle.
+    seedDemoAdminFixture();
     sharedContext = await browser.newContext();
     const page = await sharedContext.newPage();
     await loginAsDemo(page);
+    await loginAsDemoAdmin(page);
     await page.close();
   });
 
@@ -218,7 +264,7 @@ test.describe("voice assistant — client_action / voice-action bridge", () => {
   test("a spoken 'select_link_type' picks the type and submits the Create form", async ({
     page,
   }) => {
-    await openWithWidget(page, "/user/links/create");
+    await openWithBridge(page, "/user/links/create");
 
     // Stub the form's destination so the native submit doesn't run the heavy
     // next page — we only care that the bridge selected the type and submitted.
@@ -231,19 +277,17 @@ test.describe("voice assistant — client_action / voice-action bridge", () => {
       });
     });
 
-    // `url` is the radio value behind the "Short Link" card on the Create page.
-    await mockTurn(page, {
-      tool_results: [
-        { result: { client_action: { type: "select_link_type", link_type: "url" } } },
-      ],
-    });
-
     const submit = page.waitForRequest(
       (r) =>
         r.method() === "POST" && r.url().includes("/user/links/choose-type"),
       { timeout: 60_000 },
     );
-    await speak(page);
+    // `url` is the radio value behind the "Short Link" card on the Create page.
+    // Drive the REAL shared bridge (the same call both voice shells make after
+    // a turn) — it dispatches the `voice-action` event the create form handles.
+    await applyToolResults(page, [
+      { result: { client_action: { type: "select_link_type", link_type: "url" } } },
+    ]);
 
     // The create form's @voice-action handler set `type` and called $el.submit():
     // the POST carries the spoken type.
@@ -254,7 +298,7 @@ test.describe("voice assistant — client_action / voice-action bridge", () => {
   test("a spoken 'wizard_advance' clicks the wizard's forward submit", async ({
     page,
   }) => {
-    await openWithWidget(page, "/user/links/wizard");
+    await openWithBridge(page, "/user/links/wizard");
 
     // Stub the wizard step POST so goNext()'s native form submit doesn't run the
     // heavy save controller — we assert the forward submission fired.
@@ -267,17 +311,15 @@ test.describe("voice assistant — client_action / voice-action bridge", () => {
       });
     });
 
-    await mockTurn(page, {
-      tool_results: [
-        { result: { client_action: { type: "wizard_advance", direction: "next" } } },
-      ],
-    });
-
     const advance = page.waitForRequest(
       (r) => r.method() === "POST" && r.url().endsWith("/user/links/wizard"),
       { timeout: 60_000 },
     );
-    await speak(page);
+    // Drive the REAL shared bridge — dispatches the `voice-action` event the
+    // wizard's page-level listener handles (goNext clicks the forward submit).
+    await applyToolResults(page, [
+      { result: { client_action: { type: "wizard_advance", direction: "next" } } },
+    ]);
 
     // Step 0 forwards by submitting a persona_group choice (goNext clicks the
     // form's forward submit button), so the advancing POST carries it.
@@ -288,7 +330,9 @@ test.describe("voice assistant — client_action / voice-action bridge", () => {
   test("a 'navigate_to' with spoken audio is DEFERRED until the reply finishes", async ({
     page,
   }) => {
-    await openWithWidget(page, "/user/links/create");
+    // The floating widget only mounts on the ADMIN layout now; the deferral
+    // logic under test is widget-shell behavior, so drive it from /admin.
+    await openWithWidget(page, "/admin");
 
     const target = "/user/links?voicenav=deferred";
     await page.route("**/user/links*", async (route: Route) => {
@@ -345,7 +389,8 @@ test.describe("voice assistant — client_action / voice-action bridge", () => {
   test("a 'navigate_to' with no spoken audio navigates immediately", async ({
     page,
   }) => {
-    await openWithWidget(page, "/user/links/create");
+    // Widget-shell behavior — the floating widget is admin-only now.
+    await openWithWidget(page, "/admin");
 
     const target = "/user/links?voicenav=instant";
     await page.route("**/user/links*", async (route: Route) => {
@@ -374,7 +419,8 @@ test.describe("voice assistant — client_action / voice-action bridge", () => {
   test("a spoken destructive 'delete_biolink' must be confirmed before it fires", async ({
     page,
   }) => {
-    await openWithWidget(page, "/user/links");
+    // Confirmation chips are widget-shell behavior — admin-only surface now.
+    await openWithWidget(page, "/admin");
 
     // Record every turn POST so we can prove the destructive call does NOT
     // reach the server until the user explicitly confirms.
@@ -478,45 +524,12 @@ test.describe("voice assistant — client_action / voice-action bridge", () => {
     ).toHaveCount(0);
   });
 
-  test("a read-only 'search_app' drives the header search surface", async ({
-    page,
-  }) => {
-    await openWithWidget(page, "/user/links");
-
-    const query = "coffee";
-    // The header search surface navigates to the links index with the spoken
-    // query; stub that destination so the heavy results render never blocks.
-    await page.route("**/user/links*", async (route: Route) => {
-      const u = new URL(route.request().url());
-      if (u.searchParams.get("search") !== query) return route.fallback();
-      await route.fulfill({
-        status: 200,
-        contentType: "text/html",
-        body: "<!doctype html><title>search</title>voice-search-arrived",
-      });
-    });
-
-    // search_app emits a `search` client_action; the header search box reacts
-    // by filling itself and navigating to the results. No audio → the bridge
-    // dispatches the surface event immediately.
-    await mockTurn(page, {
-      reply: `Searching for "${query}".`,
-      tool_results: [
-        { result: { client_action: { type: "search", query }, data: { query } } },
-      ],
-    });
-
-    await speak(page);
-
-    // Reaching the surface = the header box took the spoken query to the
-    // results page (no navigate_to in the result; the surface drove the nav).
-    await page.waitForURL((u) => u.searchParams.get("search") === query, {
-      timeout: 60_000,
-    });
-    await expect(page.getByText("voice-search-arrived")).toBeVisible({
-      timeout: 30_000,
-    });
-  });
+  // NOTE: the old "search_app drives the header search surface" test was
+  // removed: no `voice-action` listener for the `search` client_action exists
+  // on any surface since the Zio-panel merge (the header search voice hook is
+  // gone). The generic bridge dispatch for read-only client_actions is still
+  // covered by voice-assistant-panel.spec.ts ("a read-only client_action
+  // dispatches a 'voice-action' surface event").
 
   test("the floating panel renders with a light surface in light mode", async ({
     page,
@@ -524,11 +537,8 @@ test.describe("voice assistant — client_action / voice-action bridge", () => {
     // The floating mic/panel is suppressed on user pages since the Zio-panel
     // merge (the user layout includes the partial with voiceFloating=false);
     // the ADMIN layout is the surface that still hosts the floating widget.
-    // The admin layout's @auth resolves the demo user's existing web session
-    // (the shared context is already web-logged-in), so we only need to add
-    // the admin-guard session and open an admin page.
-    seedDemoAdminFixture();
-    await loginAsDemoAdmin(page);
+    // The shared context is already logged in on BOTH guards (beforeAll), so
+    // we just open an admin page.
     await page.goto("/admin", { timeout: 120_000 });
     await page.waitForFunction(
       () => {
