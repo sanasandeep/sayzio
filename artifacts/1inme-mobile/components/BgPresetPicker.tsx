@@ -76,6 +76,27 @@ export function BgPresetPicker({ linkId }: { linkId: number }) {
           biolink: { background_type: "preset", bg_preset_key: key },
         },
       }),
+    // Optimistically patch the cached link so the Appearance screen's
+    // live background preview flips the moment a swatch is tapped; the
+    // invalidate below reconciles with the server truth either way.
+    onMutate: (key: string) => {
+      qc.setQueryData(["link", linkId], (prev: unknown) => {
+        if (!isRecord(prev)) return prev;
+        const settings = isRecord(prev.settings) ? prev.settings : {};
+        const biolink = isRecord(settings.biolink) ? settings.biolink : {};
+        return {
+          ...prev,
+          settings: {
+            ...settings,
+            biolink: {
+              ...biolink,
+              background_type: "preset",
+              bg_preset_key: key,
+            },
+          },
+        };
+      });
+    },
     onSettled: () => {
       setPendingKey(null);
       qc.invalidateQueries({ queryKey: ["link", linkId] });

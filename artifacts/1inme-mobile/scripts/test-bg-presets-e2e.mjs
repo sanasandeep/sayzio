@@ -171,10 +171,12 @@ async function run(appUrl) {
       timeout: NAV_TIMEOUT_MS,
     });
 
-    // 1. The Presets background option is present.
+    // 1. The Presets background option is present, along with the live
+    //    background preview card above it.
     const toggle = page.getByTestId("bg-presets-toggle");
     await toggle.waitFor({ state: "visible" });
-    log("Presets option visible");
+    await page.getByTestId("bg-preview").waitFor({ state: "visible" });
+    log("Presets option + background preview visible");
 
     // 2. Expanding it loads and renders the catalog grid.
     await toggle.click();
@@ -211,6 +213,14 @@ async function run(appUrl) {
     }
     log("PATCH saved background_type=preset + bg_preset_key=abstract_one");
 
+    // 5. The live preview reflects the newly selected preset (its caption
+    //    names the preset once the link cache updates optimistically).
+    await page
+      .getByTestId("bg-preview")
+      .getByText(/Preset · Abstract 1/)
+      .waitFor({ state: "visible" });
+    log("background preview updated to the selected preset");
+
     await context.close();
     log("PASS — Presets gallery browses, searches by name and saves.");
   } finally {
@@ -219,25 +229,22 @@ async function run(appUrl) {
 }
 
 async function main() {
-  if (EXPLICIT_APP_URL) {
-    await run(EXPLICIT_APP_URL.replace(/\/$/, ""));
+  const { acquireServer, stopExpo } = createExpoServerManager(log);
+  const server = await acquireServer("bg-presets", EXPLICIT_APP_URL);
+  if (!server) {
+    skip("could not boot a throwaway Expo web server in this environment");
     return;
   }
-  const manager = createExpoServerManager({ log });
-  let appUrl;
-  try {
-    appUrl = await manager.start();
-  } catch (err) {
-    if (isTransientEnvError(err)) skip(`expo web server could not boot: ${err.message}`);
-    throw err;
-  }
+  const appUrl = server.appUrl.replace(/\/$/, "");
   try {
     await run(appUrl);
   } catch (err) {
-    if (isTransientEnvError(err)) skip(`transient environment error: ${err.message}`);
+    if (isTransientEnvError(err)) {
+      skip(`transient environment error: ${err.message}`);
+    }
     throw err;
   } finally {
-    await manager.stop();
+    if (!server.explicit && server.child) stopExpo(server.child);
   }
 }
 
