@@ -181,6 +181,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
         Route::prefix('block-defaults')->name('block-defaults.')->middleware(CheckPermission::class . ':settings.manage')->group(function () {
             Route::get('/', [BlockDefaultsController::class, 'index'])->name('index');
+            Route::post('{type}/preview', [BlockDefaultsController::class, 'preview'])->name('preview');
             Route::get('{type}', [BlockDefaultsController::class, 'edit'])->name('edit');
             Route::put('{type}', [BlockDefaultsController::class, 'update'])->name('update');
             Route::delete('{type}', [BlockDefaultsController::class, 'reset'])->name('reset');
