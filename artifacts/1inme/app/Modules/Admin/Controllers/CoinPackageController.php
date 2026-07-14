@@ -5,6 +5,7 @@ namespace App\Modules\Admin\Controllers;
 use App\Http\Controllers\Controller;
 use App\Modules\Admin\Models\CoinPackage;
 use App\Modules\Admin\Support\BillingFxRate;
+use App\Modules\Common\Support\PricingPageCache;
 use App\Services\PricingResolver;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -58,6 +59,7 @@ class CoinPackageController extends Controller
         ]);
         $this->syncPrices($package, $minor);
         $this->syncOriginalPrices($package, $this->extractOriginalMinor($data));
+        PricingPageCache::flush();
 
         return redirect()->route('admin.coin-packages.index')->with('success', 'Coin package created.');
     }
@@ -83,12 +85,14 @@ class CoinPackageController extends Controller
         ]);
         $this->syncPrices($coinPackage, $minor);
         $this->syncOriginalPrices($coinPackage, $this->extractOriginalMinor($data));
+        PricingPageCache::flush();
         return redirect()->route('admin.coin-packages.index')->with('success', 'Coin package updated.');
     }
 
     public function archive(CoinPackage $coinPackage)
     {
         $coinPackage->update(['is_archived' => !$coinPackage->is_archived]);
+        PricingPageCache::flush();
         return back()->with('success', $coinPackage->is_archived ? 'Package archived.' : 'Package restored.');
     }
 
@@ -96,6 +100,7 @@ class CoinPackageController extends Controller
     {
         $coinPackage->prices()->delete();
         $coinPackage->delete();
+        PricingPageCache::flush();
         return redirect()->route('admin.coin-packages.index')->with('success', 'Coin package deleted.');
     }
 
