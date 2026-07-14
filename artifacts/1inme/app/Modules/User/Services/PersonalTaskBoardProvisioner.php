@@ -46,7 +46,7 @@ class PersonalTaskBoardProvisioner
             $board->owner_user_id = $user->id;
             $board->scope         = 'personal';
             $board->name          = 'My Tasks';
-            $board->color         = '#8b5cf6';
+            $board->color         = '#3d6bff'; // default board color = brand accent (blue)
             $board->position      = 0;
             $board->save();
 

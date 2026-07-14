@@ -154,6 +154,10 @@ class BiolinkBlock extends Model
      * block-card partials and any controller that renders a block card for
      * in-place insertion. Superset of CATEGORIES (covers legacy/system
      * categories like `files`/`verified`) so lookups never miss.
+     *
+     * Intentional CATEGORICAL palette (includes purple #8b5cf6) — these are
+     * per-category hues for visual grouping, not the brand accent, so they
+     * are exempt from the brand-color guard.
      */
     public const CATEGORY_COLORS = [
         'basic' => '#8b5cf6', 'media' => '#ec4899', 'social' => '#3b82f6',

@@ -36,7 +36,7 @@ class SlideDeckController extends Controller
             'version'      => 1,
             'is_published' => false,
             'settings'     => [
-                'theme'        => ['background' => '#0f172a', 'accent' => '#8b5cf6', 'text' => '#f8fafc'],
+                'theme'        => ['background' => '#0f172a', 'accent' => '#3d6bff', 'text' => '#f8fafc'],
                 'transition'   => 'slide',
                 'auto_advance' => 0,
                 'loop'         => false,

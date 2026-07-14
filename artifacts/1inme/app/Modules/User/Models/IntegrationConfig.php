@@ -44,7 +44,7 @@ protected $fillable = [
 
     public function providerColor(): string
     {
-        return IntegrationConfigRegistry::providers($this->kind)[$this->provider]['color'] ?? '#8b5cf6';
+        return IntegrationConfigRegistry::providers($this->kind)[$this->provider]['color'] ?? '#3d6bff'; // fallback = brand accent (blue)
     }
 
     /** Mask all credential values (preserve key shape) for safe display. */
