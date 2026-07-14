@@ -75,6 +75,72 @@ const TRANSIENT_ENV_CODES = new Set([
   "EPIPE",
 ]);
 
+// Hard wall-clock budget for an entire harness process. Generous relative to
+// the boot deadline + the longest flow, because it's a last-resort watchdog,
+// not a performance target: it only ever fires when a harness has genuinely
+// hung (leaked handle, stuck await), and a forced exit then is strictly
+// better than stalling the validation run for over an hour (which the
+// bg-presets harness once did when a detached Metro child kept the event
+// loop alive after PASS).
+export const HARNESS_WATCHDOG_MS = 15 * 60_000;
+
+/**
+ * Run a harness entrypoint with a termination guarantee.
+ *
+ * Every throwaway-Expo harness must end its file with
+ * `runHarness(main, { log })` instead of a bare `main().catch(...)`:
+ *
+ * - When `main` RESOLVES, the process exits 0 immediately — no reliance on
+ *   the event loop draining, so a leaked child/socket/timer can never turn a
+ *   PASS into an hour-long hang. (skip()/fail() paths inside `main` already
+ *   process.exit() directly and never reach this.)
+ * - When `main` REJECTS, `onError` (if given) gets first crack — harnesses
+ *   use it for their skip-vs-fail infra classification, and those helpers
+ *   process.exit() themselves. If it returns (or isn't given), the error is
+ *   logged and the process exits 1.
+ * - A watchdog timer backstops even a `main` that never settles: after
+ *   `timeoutMs` the process force-exits 1. Deliberately ref'd — both settle
+ *   paths process.exit() immediately, so the watchdog can never prolong a
+ *   finished harness, and keeping it ref'd means a stuck-await `main` with an
+ *   otherwise-drained event loop hits the watchdog's exit 1 instead of
+ *   silently exiting 0 (a false PASS).
+ *
+ * The manager's process-"exit" hook reaps any booted Expo children on every
+ * one of these exits.
+ */
+export function runHarness(
+  main,
+  { log = (m) => console.error(m), timeoutMs = HARNESS_WATCHDOG_MS, onError } = {},
+) {
+  const watchdog = setTimeout(() => {
+    log(
+      `harness watchdog: still running after ${Math.round(timeoutMs / 1000)}s — ` +
+        `forcing exit 1 so the validation run can't stall`,
+    );
+    process.exit(1);
+  }, timeoutMs);
+  // NOTE: intentionally NOT unref'd — see the doc comment above.
+  void watchdog;
+
+  Promise.resolve()
+    .then(() => main())
+    .then(
+      () => process.exit(0),
+      (err) => {
+        if (onError) {
+          try {
+            onError(err);
+          } catch (handlerErr) {
+            log(`harness onError handler itself threw: ${handlerErr?.stack ?? handlerErr}`);
+          }
+        }
+        // Reached only when onError was absent or returned without exiting.
+        log(err?.stack || String(err));
+        process.exit(1);
+      },
+    );
+}
+
 export function isTransientEnvError(e) {
   return (
     e?.name === "TimeoutError" ||
@@ -203,6 +269,12 @@ export function createExpoServerManager(log) {
         },
       },
     );
+
+    // Never let the throwaway child keep THIS process's event loop alive: a
+    // harness that misses its explicit exit path would otherwise hang the
+    // whole validation run for the child's lifetime. The process "exit"
+    // handler still group-kills it, and unref() doesn't affect that.
+    child.unref();
 
     let spawnFailed = false;
     child.on("error", (e) => {

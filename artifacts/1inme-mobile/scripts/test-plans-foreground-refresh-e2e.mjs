@@ -54,6 +54,7 @@ import { chromium } from "playwright";
 import { NAV_TIMEOUT_MS, STEP_TIMEOUT_MS } from "./check-icon-fonts.mjs";
 import {
   createExpoServerManager,
+  runHarness,
   isTransientEnvError,
 } from "./expo-web-server.mjs";
 
@@ -441,16 +442,21 @@ async function run() {
   }
 }
 
-run().catch((e) => {
-  const msg = e?.message || String(e);
-  const infra =
-    /Target page, context or browser has been closed|browser has been closed|browserType\.launch|pthread_create|Browser closed|Target closed/i.test(
-      msg,
-    );
-  if (infra) {
-    skip(
-      `browser crashed under environment load, not a product failure: ${msg.split("\n")[0]}`,
-    );
-  }
-  fail(e?.stack || msg);
+// Termination guarantee: runHarness exits the process as soon as run()
+// settles and arms a watchdog, so a leaked handle can never stall the run.
+runHarness(run, {
+  log,
+  onError: (e) => {
+    const msg = e?.message || String(e);
+    const infra =
+      /Target page, context or browser has been closed|browser has been closed|browserType\.launch|pthread_create|Browser closed|Target closed/i.test(
+        msg,
+      );
+    if (infra) {
+      skip(
+        `browser crashed under environment load, not a product failure: ${msg.split("\n")[0]}`,
+      );
+    }
+    fail(e?.stack || msg);
+  },
 });

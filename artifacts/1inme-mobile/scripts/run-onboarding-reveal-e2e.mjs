@@ -36,7 +36,7 @@ import { spawn } from "node:child_process";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { createExpoServerManager } from "./expo-web-server.mjs";
+import { createExpoServerManager, runHarness } from "./expo-web-server.mjs";
 
 const SCRIPTS_DIR = path.dirname(fileURLToPath(import.meta.url));
 const HARNESS = path.join(SCRIPTS_DIR, "test-onboarding-slide-reveal-e2e.mjs");
@@ -48,7 +48,7 @@ function log(...args) {
 // Run the harness as a child, inheriting stdio, with APP_URL pointing at the
 // warm server. Resolves with the child's exit code (defaulting a signal death
 // to 1 so a killed harness never reads as a pass).
-function runHarness(appUrl) {
+function runRevealHarness(appUrl) {
   return new Promise((resolve) => {
     const child = spawn(process.execPath, [HARNESS], {
       stdio: "inherit",
@@ -76,7 +76,7 @@ async function main() {
   const explicitUrl = process.env.APP_URL;
   if (explicitUrl) {
     log(`reusing the server from APP_URL (${explicitUrl})`);
-    const code = await runHarness(explicitUrl);
+    const code = await runRevealHarness(explicitUrl);
     process.exit(code);
   }
 
@@ -93,14 +93,19 @@ async function main() {
 
   const appUrl = `http://localhost:${booted.port}/`;
   log(`Expo server warm at ${appUrl}; running the reveal harness against it`);
-  const code = await runHarness(appUrl);
+  const code = await runRevealHarness(appUrl);
   manager.stopExpo(booted.child);
   process.exit(code);
 }
 
-main().catch((e) => {
-  // A crash in the wrapper itself is an infra problem, not a product
-  // regression: log and skip rather than red-flagging CI.
-  log(`wrapper error, skipping (exit 0): ${e?.stack ?? e}`);
-  process.exit(0);
+// Termination guarantee: runHarness exits the process as soon as main()
+// settles and arms a watchdog, so a leaked handle can never stall the run.
+runHarness(main, {
+  log,
+  onError: (e) => {
+    // A crash in the wrapper itself is an infra problem, not a product
+    // regression: log and skip rather than red-flagging CI.
+    log(`wrapper error, skipping (exit 0): ${e?.stack ?? e}`);
+    process.exit(0);
+  },
 });

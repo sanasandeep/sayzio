@@ -46,7 +46,7 @@
 import { chromium } from "playwright";
 
 import { NAV_TIMEOUT_MS, STEP_TIMEOUT_MS } from "./check-icon-fonts.mjs";
-import { createExpoServerManager } from "./expo-web-server.mjs";
+import { createExpoServerManager, runHarness } from "./expo-web-server.mjs";
 import {
   assertWordmarkVisibleVariant,
   assertWordmarkWhiteVariant,
@@ -225,6 +225,6 @@ async function run() {
   }
 }
 
-run().catch((e) => {
-  fail(e?.stack || e?.message || String(e));
-});
+// Termination guarantee: runHarness exits the process as soon as run()
+// settles and arms a watchdog, so a leaked handle can never stall the run.
+runHarness(run, { log, onError: (e) => fail(e?.stack || e?.message || String(e)) });

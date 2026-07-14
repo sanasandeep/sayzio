@@ -58,6 +58,7 @@ import {
 } from "./check-icon-fonts.mjs";
 import {
   createExpoServerManager,
+  runHarness,
   isTransientEnvError,
 } from "./expo-web-server.mjs";
 
@@ -341,7 +342,6 @@ async function run() {
   }
 }
 
-run().catch((e) => {
-  console.error(e);
-  process.exit(1);
-});
+// Termination guarantee: runHarness exits the process as soon as run()
+// settles and arms a watchdog, so a leaked handle can never stall the run.
+runHarness(run, { log, onError: (e) => console.error(e) });
