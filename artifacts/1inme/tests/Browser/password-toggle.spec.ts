@@ -20,6 +20,11 @@ import { expect, test, type Locator, type Page } from "@playwright/test";
 //   - /user/register — password + confirm-password (two INDEPENDENT fields:
 //     each include gets its own x-data scope, so toggling one must not flip
 //     the other)
+//   - home-page auth modal (public/partials/auth-modal.blade.php) — the same
+//     partial included three times inside the pop-up sign-in window. The modal
+//     nests the partial under the header's big x-data (authOpen/authTab) plus
+//     the login panel's own `{ method }` scope, so a scope clash there is a
+//     DISTINCT way to break the toggle that the standalone pages can't catch.
 //
 // Contract asserted per field, through a full show -> hide round trip:
 //   - input `type` flips password -> text -> password
@@ -153,6 +158,125 @@ test.describe("password show/hide toggle", () => {
     await confirm.locator("button").click();
     await expect(confirm.locator("input")).toHaveAttribute("type", "text");
     // And back: hiding the first must not hide the second.
+    await password.locator("button").click();
+    await expect(password.locator("input")).toHaveAttribute("type", "password");
+    await expect(confirm.locator("input")).toHaveAttribute("type", "text");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Home-page auth modal (public/partials/auth-modal.blade.php)
+//
+// The pop-up sign-in window includes the same partial three times: once in the
+// login tab's password form and twice (password + confirm) in the register
+// form. Unlike the standalone pages, every include here sits inside the
+// header's big x-data (authOpen/authTab/authHandle/…) and — for the login one —
+// the login panel's own `{ method }` x-data too. A clash between those outer
+// scopes and the partial's `_pwShow` (e.g. the outer scope declaring/absorbing
+// `_pwShow`, or a refactor flattening the nested x-data) would break the
+// toggle ONLY in the modal, so it needs its own coverage.
+// ---------------------------------------------------------------------------
+
+const CONSENT_COOKIE = "1inme_cookie_consent";
+
+/**
+ * Load the home page with cookie consent pre-granted (the bottom-pinned
+ * consent banner would otherwise intercept clicks) and wait for Alpine —
+ * both the modal itself and the toggle under test are Alpine-driven.
+ */
+async function gotoHome(page: Page): Promise<void> {
+  await page.context().addCookies([
+    {
+      name: CONSENT_COOKIE,
+      value: encodeURIComponent(
+        JSON.stringify({
+          v: 1,
+          t: Date.now(),
+          c: { analytics: false, marketing: false, functional: false },
+        }),
+      ),
+      domain: "localhost",
+      path: "/",
+    },
+  ]);
+  // The home page is heavy (maps, embeds); don't wait for full network idle.
+  await page.goto("/", { waitUntil: "domcontentloaded" });
+  await page.waitForFunction(() => !!(window as unknown as { Alpine?: unknown }).Alpine);
+}
+
+/** The auth popup, scoped by its dialog aria-label (see auth-modal.blade.php). */
+function authModal(page: Page): Locator {
+  return page.getByRole("dialog", { name: "Sign in or create an account" });
+}
+
+/**
+ * Open the modal via the desktop header CTA and land on the requested tab.
+ * (The specs run on Playwright's default desktop viewport, so the nav
+ * Login/Register buttons are visible — no hamburger menu needed.)
+ */
+async function openAuthModal(page: Page, tab: "Login" | "Register"): Promise<void> {
+  await page.getByRole("button", { name: tab, exact: true }).first().click();
+  await expect(authModal(page)).toBeVisible();
+}
+
+/**
+ * Scope a `._pw-wrap` lookup to a specific form inside the modal. Needed
+ * because the login and register forms BOTH contain an input named
+ * "password" — pwWrap() alone would be ambiguous inside the dialog.
+ */
+function modalPwWrap(form: Locator, inputName: string): Locator {
+  return form.locator(`._pw-wrap:has(input[name="${inputName}"])`);
+}
+
+test.describe("password show/hide toggle — home-page auth modal", () => {
+  test.beforeEach(({}, testInfo) => {
+    // Cold first paint of the heavy home page over the distant RDS is slow.
+    testInfo.setTimeout(90_000);
+  });
+
+  test("login tab: toggle works on the password field", async ({ page }) => {
+    await gotoHome(page);
+    await openAuthModal(page, "Login");
+
+    const dialog = authModal(page);
+
+    // With multiple sign-in methods enabled the password form sits behind a
+    // "Password" method chip inside the dialog; click it if it's rendered
+    // (in password-only mode the form is already the visible one).
+    const passwordChip = dialog.locator('button:has-text("Password")').first();
+    if (await passwordChip.isVisible().catch(() => false)) {
+      await passwordChip.click();
+    }
+
+    const loginForm = dialog.locator('form:has(input[name="login_method"][value="password"])');
+    await assertToggleRoundTrip(modalPwWrap(loginForm, "password"), "password");
+  });
+
+  test("register tab: password and confirm fields toggle independently", async ({ page }) => {
+    await gotoHome(page);
+    await openAuthModal(page, "Register");
+
+    const dialog = authModal(page);
+    // The register form is the one carrying the desired_handle claim input.
+    const registerForm = dialog.locator('form:has(input[name="desired_handle"])');
+    await expect(registerForm.locator('input[name="name"]')).toBeVisible();
+
+    const password = modalPwWrap(registerForm, "password");
+    const confirm = modalPwWrap(registerForm, "password_confirmation");
+
+    await assertToggleRoundTrip(password, "password");
+    await assertToggleRoundTrip(confirm, "password_confirmation");
+
+    // Independence across the two includes: each owns its OWN x-data scope,
+    // so revealing one must not flip the other (a shared/hoisted `_pwShow`
+    // in the modal's outer Alpine scope would flip both together).
+    await password.locator("button").click();
+    await expect(password.locator("input")).toHaveAttribute("type", "text");
+    await expect(confirm.locator("input")).toHaveAttribute("type", "password");
+    await expect(confirm.locator("button")).toHaveAttribute("aria-pressed", "false");
+
+    await confirm.locator("button").click();
+    await expect(confirm.locator("input")).toHaveAttribute("type", "text");
     await password.locator("button").click();
     await expect(password.locator("input")).toHaveAttribute("type", "password");
     await expect(confirm.locator("input")).toHaveAttribute("type", "text");
