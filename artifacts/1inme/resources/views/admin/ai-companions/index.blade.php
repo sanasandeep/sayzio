@@ -11,30 +11,93 @@
         <p class="text-sm text-white/50 mt-1">Placement-bound chatbots (biolink / external embed / inbox bot). Tune platform caps and disable abusive widgets here.</p>
     </div>
 
+    @php
+    $statTiles = [
+        ['Companions',    $totals['companions'],    'Platform-wide total across all users'],
+        ['Disabled',      $totals['disabled'],      'Platform-wide companions currently disabled'],
+        ['Conversations', $totals['conversations'], 'Platform-wide all-time conversation count'],
+        ['Turns / month', $totals['turns_month'],   'Platform-wide messages sent this calendar month'],
+        ['Credits / mo',  $totals['credits_month'], 'AI credits consumed platform-wide this calendar month'],
+    ];
+    @endphp
+
     <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
-        @foreach([
-            ['Companions',    $totals['companions']],
-            ['Disabled',      $totals['disabled']],
-            ['Conversations', $totals['conversations']],
-            ['Turns / month', $totals['turns_month']],
-            ['Credits / mo',  $totals['credits_month']],
-        ] as [$lbl, $val])
-            <div class="rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-center">
+        @foreach($statTiles as [$lbl, $val, $sub])
+            <div class="rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-center" title="{{ $sub }}">
                 <p class="text-[10px] uppercase tracking-wider text-white/40">{{ $lbl }}</p>
                 <p class="text-xl font-bold text-white mt-1">{{ number_format($val) }}</p>
+                <p class="text-[10px] text-white/30 mt-1 leading-tight">{{ $sub }}</p>
             </div>
         @endforeach
     </div>
 
-    <form method="POST" action="{{ route('admin.ai-companions.caps.update') }}" class="rounded-2xl border border-white/10 bg-white/[0.03] p-5 space-y-3">
+    @php
+    $capsDefaults = \App\Services\AI\CompanionSettings::capsDefault();
+    $capsMeta = [
+        'max_companions_per_user' => [
+            'label' => 'Max Companions Per User',
+            'scope' => 'Per user',
+            'scopeColor' => 'blue',
+            'help'  => 'Fallback companion limit per account when the user\'s plan doesn\'t set its own limit. Plan-level limits always win.',
+        ],
+        'max_allowed_domains' => [
+            'label' => 'Max Allowed Domains',
+            'scope' => 'Per companion',
+            'scopeColor' => 'indigo',
+            'help'  => 'Ceiling on the size of each companion\'s embed domain allow-list.',
+        ],
+        'visitor_rate_per_minute' => [
+            'label' => 'Visitor Rate Per Minute',
+            'scope' => 'Per visitor / companion',
+            'scopeColor' => 'amber',
+            'help'  => 'Anti-spam throttle: max messages a single visitor can send to one companion in any 60-second window.',
+        ],
+        'platform_hard_cap_per_month' => [
+            'label' => 'Platform Hard Cap Per Month',
+            'scope' => 'Per companion',
+            'scopeColor' => 'red',
+            'help'  => 'Absolute monthly message ceiling per companion. Overrides any higher limit set by the owner or their plan.',
+        ],
+        'default_free_turns_per_month' => [
+            'label' => 'Default Free Turns Per Month',
+            'scope' => 'Per companion',
+            'scopeColor' => 'emerald',
+            'help'  => 'Starting free-turn quota assigned to every newly created companion (credit-refunded turns each month).',
+        ],
+        'max_visitor_message_chars' => [
+            'label' => 'Max Visitor Message Chars',
+            'scope' => 'Per message',
+            'scopeColor' => 'sky',
+            'help'  => 'Character limit on a single visitor message. Longer input is truncated before being sent to the AI.',
+        ],
+    ];
+    $scopeBadgeClasses = [
+        'blue'   => 'bg-blue-500/10 text-blue-300 border-blue-500/20',
+        'indigo' => 'bg-indigo-500/10 text-indigo-300 border-indigo-500/20',
+        'amber'  => 'bg-amber-500/10 text-amber-300 border-amber-500/20',
+        'red'    => 'bg-red-500/10 text-red-300 border-red-500/20',
+        'emerald'=> 'bg-emerald-500/10 text-emerald-300 border-emerald-500/20',
+        'sky'    => 'bg-sky-500/10 text-sky-300 border-sky-500/20',
+    ];
+    @endphp
+
+    <form method="POST" action="{{ route('admin.ai-companions.caps.update') }}" class="rounded-2xl border border-white/10 bg-white/[0.03] p-5 space-y-4">
         @csrf @method('PUT')
-        <h2 class="text-sm font-bold text-white">Platform caps</h2>
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-            @foreach(\App\Services\AI\CompanionSettings::capsDefault() as $key => $default)
-                <div>
-                    <label class="block text-[11px] font-semibold text-white/60 mb-1">{{ ucwords(str_replace('_', ' ', $key)) }}</label>
-                    <input type="number" min="0" name="caps[{{ $key }}]" value="{{ $caps[$key] ?? $default }}"
+        <div>
+            <h2 class="text-sm font-bold text-white">Platform caps</h2>
+            <p class="text-[11px] text-white/40 mt-0.5">Scope badges show what each limit applies to. Plan-level overrides take precedence where noted.</p>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            @foreach($capsMeta as $key => $meta)
+                @php $default = $capsDefaults[$key] ?? 0; @endphp
+                <div class="space-y-1.5">
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <label for="cap_{{ $key }}" class="text-[11px] font-semibold text-white/70">{{ $meta['label'] }}</label>
+                        <span class="inline-flex items-center px-1.5 py-0.5 rounded-md border text-[10px] font-medium leading-none {{ $scopeBadgeClasses[$meta['scopeColor']] }}">{{ $meta['scope'] }}</span>
+                    </div>
+                    <input id="cap_{{ $key }}" type="number" min="0" name="caps[{{ $key }}]" value="{{ $caps[$key] ?? $default }}"
                            class="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white">
+                    <p class="text-[10px] text-white/40 leading-snug">{{ $meta['help'] }}</p>
                 </div>
             @endforeach
         </div>
