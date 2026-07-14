@@ -120,6 +120,12 @@ class PricingPageCache
      * from the database. Called from admin plan write paths (PlanWriter)
      * so plan edits (prices, features, coin grants) are visible to
      * visitors immediately instead of waiting for the TTL / warm cadence.
+     *
+     * Also drops the homepage's anonymous plan-teaser payloads: they embed
+     * the same plan/price data, so any write that invalidates the pricing
+     * catalogue must invalidate the home teaser too. Doing it here keeps
+     * every existing flush call site (PlanWriter + PlanController's
+     * archive/delete/import/revert paths) covering both surfaces.
      */
     public static function flush(): void
     {
@@ -128,5 +134,7 @@ class PricingPageCache
         } catch (\Throwable $e) {
             // Cache layer unavailable — reads already fall back to live queries.
         }
+
+        HomePageCache::flushAnonPayloads();
     }
 }

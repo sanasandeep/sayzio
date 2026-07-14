@@ -146,6 +146,26 @@ class HomePageCache
     }
 
     /**
+     * Drop every cached anonymous home payload (one key per currency) so
+     * the next homepage render rebuilds the plan teaser from the database.
+     * The payload embeds plan names/prices/features, so admin plan edits
+     * must invalidate it the same way they invalidate the /pricing
+     * catalogue — PricingPageCache::flush() calls this so every plan
+     * write path covers both surfaces from one choke point.
+     */
+    public static function flushAnonPayloads(): void
+    {
+        try {
+            foreach (self::CURRENCIES as $currency) {
+                Cache::forget(self::ANON_PAYLOAD_PREFIX . $currency);
+            }
+        } catch (\Throwable $e) {
+            // Cache layer unavailable — the payload will simply be rebuilt
+            // lazily (or overwritten by the next warm run).
+        }
+    }
+
+    /**
      * Log a warm-section failure and return a short label for the summary.
      */
     private static function reportWarmFailure(string $section, \Throwable $e): string
