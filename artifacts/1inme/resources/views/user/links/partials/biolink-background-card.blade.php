@@ -10,6 +10,7 @@
                    — auto-loaded from the database if not passed in.
 --}}
 @php
+    use App\Modules\User\Support\BgPresetCatalog;
     $bs = $link->settings['biolink'] ?? [];
     $bgType            = $bs['background_type']     ?? 'color';
     $bgColor           = $bs['background_color']    ?? '#0a0612';
@@ -28,6 +29,9 @@
     $bgBlur            = $bs['bg_blur']             ?? 0;
     $bgOverlayColor    = $bs['bg_overlay_color']    ?? '#000000';
     $bgOverlayOpacity  = $bs['bg_overlay_opacity']  ?? 0;
+    $bgPresetKey       = $bs['bg_preset_key']       ?? '';
+    $bgPresets         = BgPresetCatalog::all();
+    $bgPresetGroups    = BgPresetCatalog::GROUPS;
 
     // Lazy-load bg templates if the parent didn't pass them in.
     $bgTemplates = $bgTemplates ?? \App\Modules\Admin\Models\BgTemplate::active()->get();
@@ -189,6 +193,48 @@
             ])
         </div>
 
+        {{-- PRESET --}}
+        <div x-show="bgType === 'preset'" x-transition class="space-y-3"
+             x-data="{ presetGroup: 'gradients', presetSearch: '', selectedKey: @js($bgPresetKey) }">
+            <div class="flex items-center justify-between gap-2 flex-wrap">
+                <label class="block text-xs font-medium" style="color: var(--text-muted);">Choose a Preset <span class="opacity-60">({{ count($bgPresets) }})</span></label>
+                <input type="text" x-model="presetSearch" placeholder="Search…"
+                       class="text-[11px] px-2 py-1 rounded-md flex-1 max-w-[160px]"
+                       style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-primary);">
+            </div>
+            <div class="flex items-center gap-1.5 overflow-x-auto pb-1 -mx-1 px-1">
+                @foreach($bgPresetGroups as $groupKey => $groupLabel)
+                <button type="button" @click="presetGroup = '{{ $groupKey }}'"
+                        class="text-[11px] font-semibold px-2.5 py-1 rounded-full whitespace-nowrap transition-all"
+                        :style="presetGroup === '{{ $groupKey }}' ? 'background: rgba(61,107,255,0.25); color:#bccfff; border:1px solid rgba(61,107,255,0.5)' : 'background: var(--bg-glass-input); color: var(--text-muted); border:1px solid var(--border-glass)'">
+                    {{ $groupLabel }}
+                    <span class="opacity-60">{{ collect($bgPresets)->where('group', $groupKey)->count() }}</span>
+                </button>
+                @endforeach
+            </div>
+            <input type="hidden" name="bg_preset_key" :value="selectedKey">
+            <div class="grid grid-cols-6 xs:grid-cols-7 sm:grid-cols-9 md:grid-cols-10 lg:grid-cols-12 gap-1 max-h-[480px] overflow-y-auto pr-1">
+                @foreach($bgPresets as $presetId => $preset)
+                <button type="button"
+                        x-show="(presetGroup === '{{ $preset['group'] }}') && (!presetSearch || '{{ strtolower($preset['label']) }}'.includes(presetSearch.toLowerCase()))"
+                        @click="selectedKey = selectedKey === '{{ $presetId }}' ? '' : '{{ $presetId }}'"
+                        :class="selectedKey === '{{ $presetId }}' ? 'ring-2 ring-blue-400 ring-offset-1 ring-offset-transparent' : ''"
+                        class="rounded-md overflow-hidden relative transition-all hover:scale-[1.08] hover:z-10 hover:shadow-lg"
+                        style="{{ $preset['css'] }}; width:100%; aspect-ratio:9/14; border:1px solid var(--border-glass); background-size: cover; background-position: center;"
+                        title="{{ $preset['label'] }}">
+                    <div x-show="selectedKey === '{{ $presetId }}'"
+                         class="absolute top-0.5 right-0.5 w-3.5 h-3.5 rounded-full flex items-center justify-center"
+                         style="background: rgba(61,107,255,0.95); color:#fff; font-size:7px;">
+                        <i class="fas fa-check" style="font-size:6px;"></i>
+                    </div>
+                </button>
+                @endforeach
+            </div>
+            <p class="text-[10px] mt-1" style="color: var(--text-dimmed);">
+                Click a swatch to select it. Click again to deselect.
+            </p>
+        </div>
+
         {{-- TEMPLATE --}}
         <div x-show="bgType === 'template'" x-transition class="space-y-3"
              x-data="{ tplCat: 'all', tplSearch: '', selectedTpl: {{ $bgTemplateId ?? 'null' }} }">
@@ -318,12 +364,14 @@
 function bgSettings() {
     return {
         bgType: @json($bgType),
+        bgPresetKey: @json($bgPresetKey),
         gradientType: @json($gradientTypeVal),
         gradientAngle: @json((int) $gradientAngle),
         gradientStops: @json($gradientColors),
         types: [
             { key: 'color',     label: 'Solid Color', icon: 'fa-fill',    preview: 'linear-gradient(135deg, #2139a1, #3b0764)' },
             { key: 'gradient',  label: 'Gradient',    icon: 'fa-rainbow', preview: 'linear-gradient(135deg, #ec4899, #5c83ff, #06b6d4)' },
+            { key: 'preset',    label: 'Presets',     icon: 'fa-th-large', preview: 'linear-gradient(135deg, #f97316, #ec4899, #8b5cf6)' },
             { key: 'image',     label: 'Image',       icon: 'fa-image',   preview: 'rgba(99,102,241,0.15)' },
             { key: 'slideshow', label: 'Slideshow',   icon: 'fa-images',  preview: 'rgba(236,72,153,0.15)' },
             { key: 'video',     label: 'Video',       icon: 'fa-film',    preview: 'rgba(61,107,255,0.15)' },

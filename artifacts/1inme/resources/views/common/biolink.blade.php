@@ -111,6 +111,11 @@
         $bgAttachment = $bs['bg_attachment'] ?? 'fixed';
         $bgFallbackColor = $bs['bg_fallback_color'] ?? '#0a0612';
         $bgFallbackImage = $bs['bg_fallback_image'] ?? '';
+        // Preset CSS background: resolved server-side from the catalog by key.
+        $bgPresetCss = null;
+        if ($bgType === 'preset' && !empty($bs['bg_preset_key'])) {
+            $bgPresetCss = \App\Modules\User\Support\BgPresetCatalog::css((string) $bs['bg_preset_key']);
+        }
 
         // Contrast safeguard: when no explicit background_type has been saved the
         // page falls back to the dark default gradient (#0a0612 / $bgFallbackColor).
@@ -283,6 +288,10 @@
                 background-color: {{ $bgColor }};
             @elseif($bgType === 'gradient')
                 background: {{ $bgGradient }};
+            @elseif($bgType === 'preset' && $bgPresetCss)
+                {!! $bgPresetCss !!}
+            @elseif($bgType === 'preset')
+                background-color: {{ $bgFallbackColor }};
             @elseif($bgType === 'image' && $bgImage)
                 background: {{ $bgFallbackColor }} url('{{ $bgImage }}') center/cover no-repeat {{ $bgAttachment }};
             @elseif($bgType === 'slideshow' || $bgType === 'video' || $bgType === 'template')
