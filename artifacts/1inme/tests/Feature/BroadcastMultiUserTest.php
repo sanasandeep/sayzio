@@ -176,6 +176,56 @@ class BroadcastMultiUserTest extends TestCase
         $this->assertSame(0, $broadcast->recipients_count);
     }
 
+    public function test_flash_reports_unmatched_entries(): void
+    {
+        $u1 = User::factory()->create(['status' => 'active']);
+        $u2 = User::factory()->create(['status' => 'active']);
+
+        $target = implode(', ', [
+            $u1->email,
+            $u2->email,
+            'missing@example.com',
+            '99999999',
+        ]);
+
+        $resp = $this->sendBroadcast($this->admin(), ['target_value' => $target]);
+
+        $resp->assertRedirect(route('admin.notifications.index'));
+        $resp->assertSessionHas('success', 'Broadcast sent to 2 users. (2 entries not found)');
+    }
+
+    public function test_flash_reports_single_unmatched_entry(): void
+    {
+        $user = User::factory()->create(['status' => 'active']);
+
+        $resp = $this->sendBroadcast($this->admin(), [
+            'target_value' => $user->email . ', typo@example.com',
+        ]);
+
+        $resp->assertRedirect(route('admin.notifications.index'));
+        $resp->assertSessionHas('success', 'Broadcast sent to 1 user. (1 entry not found)');
+    }
+
+    public function test_flash_has_no_unmatched_suffix_when_all_entries_match(): void
+    {
+        $user = User::factory()->create(['status' => 'active']);
+
+        $resp = $this->sendBroadcast($this->admin(), ['target_value' => $user->email]);
+
+        $resp->assertSessionHas('success', 'Broadcast sent to 1 user.');
+    }
+
+    public function test_duplicate_entries_do_not_count_as_unmatched(): void
+    {
+        $user = User::factory()->create(['status' => 'active']);
+
+        $target = $user->email . "\n" . strtoupper($user->email);
+
+        $resp = $this->sendBroadcast($this->admin(), ['target_value' => $target]);
+
+        $resp->assertSessionHas('success', 'Broadcast sent to 1 user.');
+    }
+
     public function test_long_target_list_persists_without_truncation(): void
     {
         $users  = User::factory()->count(5)->create(['status' => 'active']);

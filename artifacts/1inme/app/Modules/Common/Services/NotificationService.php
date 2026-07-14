@@ -491,6 +491,25 @@ class NotificationService
         return \App\Services\Integrations\InternalAlertDispatcher::send($title, $body, $level, $context, $category);
     }
 
+    /**
+     * Count the distinct entries an admin typed into a "user" target list,
+     * using the same tokenizer as resolveTargetUserIds() so the "entries
+     * not found" math can't drift from the actual matching logic.
+     */
+    public function countUserTargetEntries(?string $value): int
+    {
+        if (!$value) {
+            return 0;
+        }
+
+        $entries = array_filter(
+            array_map('trim', preg_split('/[\s,;]+/', $value)),
+            fn ($e) => $e !== '',
+        );
+
+        return count(array_unique(array_map('strtolower', $entries)));
+    }
+
     /** @return Collection<int, int> */
     public function resolveTargetUserIds(string $kind, ?string $value): Collection
     {

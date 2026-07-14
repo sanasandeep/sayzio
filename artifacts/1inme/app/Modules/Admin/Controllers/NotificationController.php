@@ -51,25 +51,33 @@ class NotificationController extends Controller
             targetUrl:   $data['target_url'] ?? null,
         );
 
-        if (
-            $data['target_kind'] === 'user'
-            && $broadcast->recipients_count === 0
-            // Distinguish "no token matched a user" (input error) from
-            // "matched users all opted out" (a valid, delivered-to-zero
-            // send that must keep its audit row).
-            && $svc->resolveTargetUserIds('user', $data['target_value'] ?? null)->isEmpty()
-        ) {
-            // Don't leave a zero-recipient audit row behind for a failed send.
-            $broadcast->delete();
+        $unmatched = 0;
 
-            return back()->withErrors([
-                'target_value' => 'None of the entered emails or IDs matched an active user.',
-            ])->withInput();
+        if ($data['target_kind'] === 'user') {
+            $resolved = $svc->resolveTargetUserIds('user', $data['target_value'] ?? null);
+
+            if ($broadcast->recipients_count === 0 && $resolved->isEmpty()) {
+                // Distinguish "no token matched a user" (input error) from
+                // "matched users all opted out" (a valid, delivered-to-zero
+                // send that must keep its audit row). Don't leave a
+                // zero-recipient audit row behind for a failed send.
+                $broadcast->delete();
+
+                return back()->withErrors([
+                    'target_value' => 'None of the entered emails or IDs matched an active user.',
+                ])->withInput();
+            }
+
+            $entered   = $svc->countUserTargetEntries($data['target_value'] ?? null);
+            $unmatched = max(0, $entered - $resolved->count());
         }
 
-        return redirect()->route('admin.notifications.index')->with(
-            'success',
-            'Broadcast sent to ' . $broadcast->recipients_count . ' user' . ($broadcast->recipients_count === 1 ? '' : 's') . '.'
-        );
+        $message = 'Broadcast sent to ' . $broadcast->recipients_count . ' user' . ($broadcast->recipients_count === 1 ? '' : 's') . '.';
+
+        if ($unmatched > 0) {
+            $message .= ' (' . $unmatched . ($unmatched === 1 ? ' entry' : ' entries') . ' not found)';
+        }
+
+        return redirect()->route('admin.notifications.index')->with('success', $message);
     }
 }
