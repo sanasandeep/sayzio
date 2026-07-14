@@ -28,32 +28,18 @@
         <p class="text-sm text-white/40 mb-4">{{ $plan->description ?? 'No description' }}</p>
 
         @php
-            $__prices = $plan->relationLoaded('prices') ? $plan->prices : collect();
-            $__pk = $__prices->keyBy(fn($p) => $p->currency . '_' . $p->billing_cycle);
-
-            // USD: authoritative from prices table; fall back to legacy decimal columns.
-            $__usdMon = isset($__pk['USD_monthly'])
-                ? \App\Services\PricingResolver::money((int) $__pk['USD_monthly']->amount_minor_units, 'USD')
-                : '$' . number_format((float) $plan->monthly_price, 2);
-            $__usdAnn = isset($__pk['USD_annual'])
-                ? \App\Services\PricingResolver::money((int) $__pk['USD_annual']->amount_minor_units, 'USD')
-                : '$' . number_format((float) $plan->annual_price, 2);
-
-            // INR: authoritative from prices table; "—" when not set.
-            $__inrMon = isset($__pk['INR_monthly'])
-                ? \App\Services\PricingResolver::money((int) $__pk['INR_monthly']->amount_minor_units, 'INR')
-                : null;
-            $__inrAnn = isset($__pk['INR_annual'])
-                ? \App\Services\PricingResolver::money((int) $__pk['INR_annual']->amount_minor_units, 'INR')
-                : null;
+            // Shared dual-currency display logic (single source of truth
+            // with the admin Addons listing — see PricingResolver).
+            $__mon = \App\Services\PricingResolver::adminDisplayPair($plan, 'monthly');
+            $__ann = \App\Services\PricingResolver::adminDisplayPair($plan, 'annual');
         @endphp
         <div class="space-y-2 mb-4">
             <div class="flex justify-between text-sm">
                 <span class="text-white/40">Monthly</span>
                 <span class="font-semibold text-white">
-                    {{ $__usdMon }}
-                    @if($__inrMon !== null)
-                        <span class="text-white/50 font-normal"> / {{ $__inrMon }}</span>
+                    {{ $__mon['usd'] }}
+                    @if($__mon['inr'] !== null)
+                        <span class="text-white/50 font-normal"> / {{ $__mon['inr'] }}</span>
                     @else
                         <span class="text-white/30 font-normal"> / —</span>
                     @endif
@@ -62,9 +48,9 @@
             <div class="flex justify-between text-sm">
                 <span class="text-white/40">Annual</span>
                 <span class="font-semibold text-white">
-                    {{ $__usdAnn }}
-                    @if($__inrAnn !== null)
-                        <span class="text-white/50 font-normal"> / {{ $__inrAnn }}</span>
+                    {{ $__ann['usd'] }}
+                    @if($__ann['inr'] !== null)
+                        <span class="text-white/50 font-normal"> / {{ $__ann['inr'] }}</span>
                     @else
                         <span class="text-white/30 font-normal"> / —</span>
                     @endif

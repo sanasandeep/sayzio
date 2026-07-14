@@ -478,6 +478,36 @@ class PricingResolver
     }
 
     /**
+     * Shared dual-currency display pair for the admin Plans and Addons
+     * listings. Single source of truth so the two pages cannot drift:
+     *   - USD: authoritative from the `prices` table; falls back to the
+     *     legacy major-unit decimal columns when no USD row exists.
+     *   - INR: authoritative from the `prices` table; null when no INR
+     *     row exists (the views render "—" for null — never ₹0.00).
+     *
+     * Returns ['usd' => string, 'inr' => string|null].
+     */
+    public static function adminDisplayPair($priceable, string $cycle): array
+    {
+        $cycle = $cycle === 'annual' ? 'annual' : 'monthly';
+
+        $usdMinor = self::lookupMinor($priceable, 'USD', $cycle);
+        if ($usdMinor !== null) {
+            $usd = self::money($usdMinor, 'USD');
+        } else {
+            $legacyColumn = $cycle === 'annual' ? 'annual_price' : 'monthly_price';
+            $usd = '$' . number_format((float) ($priceable->{$legacyColumn} ?? 0), 2);
+        }
+
+        $inrMinor = self::lookupMinor($priceable, 'INR', $cycle);
+
+        return [
+            'usd' => $usd,
+            'inr' => $inrMinor !== null ? self::money($inrMinor, 'INR') : null,
+        ];
+    }
+
+    /**
      * Format a minor-unit amount as a display string. Public so views and
      * other code can format ad-hoc amounts without going through priceFor.
      */

@@ -33,19 +33,33 @@
         <p class="text-sm text-white/40 mb-4">{{ $addon->description ?? 'No description' }}</p>
 
         @php
-            $usdMonthly = \App\Services\PricingResolver::priceForCurrency($addon, 'USD', 'monthly');
-            $usdAnnual  = \App\Services\PricingResolver::priceForCurrency($addon, 'USD', 'annual');
-            $inrMonthly = \App\Services\PricingResolver::priceForCurrency($addon, 'INR', 'monthly');
-            $inrAnnual  = \App\Services\PricingResolver::priceForCurrency($addon, 'INR', 'annual');
+            // Shared dual-currency display logic (single source of truth
+            // with the admin Plans cards — see PricingResolver).
+            $monthly = \App\Services\PricingResolver::adminDisplayPair($addon, 'monthly');
+            $annual  = \App\Services\PricingResolver::adminDisplayPair($addon, 'annual');
         @endphp
         <div class="space-y-1 mb-4 text-sm">
             <div class="flex justify-between">
                 <span class="text-white/40">Monthly</span>
-                <span class="font-semibold text-white">{{ $usdMonthly['formatted'] }} <span class="text-white/30 font-normal">/</span> {{ $inrMonthly['formatted'] }}</span>
+                <span class="font-semibold text-white">
+                    {{ $monthly['usd'] }}
+                    @if($monthly['inr'] !== null)
+                        <span class="text-white/50 font-normal"> / {{ $monthly['inr'] }}</span>
+                    @else
+                        <span class="text-white/30 font-normal"> / —</span>
+                    @endif
+                </span>
             </div>
             <div class="flex justify-between">
                 <span class="text-white/40">Annual</span>
-                <span class="font-semibold text-white">{{ $usdAnnual['formatted'] }} <span class="text-white/30 font-normal">/</span> {{ $inrAnnual['formatted'] }}</span>
+                <span class="font-semibold text-white">
+                    {{ $annual['usd'] }}
+                    @if($annual['inr'] !== null)
+                        <span class="text-white/50 font-normal"> / {{ $annual['inr'] }}</span>
+                    @else
+                        <span class="text-white/30 font-normal"> / —</span>
+                    @endif
+                </span>
             </div>
             @if(!is_null($addon->coin_cost))
                 <div class="flex justify-between"><span class="text-white/40">Coin price</span><span class="font-semibold text-amber-300">{{ number_format($addon->coin_cost) }} 🪙</span></div>
