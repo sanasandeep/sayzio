@@ -21,8 +21,11 @@ args = ["pnpm", "--filter", "@workspace/api-server", "run", "build"]
 NODE_ENV = "production"
 
 [services.production.run]
-# we don't run through pnpm to make startup faster in production
-args = ["node", "--enable-source-maps", "artifacts/api-server/dist/index.mjs"]
+# we don't run through pnpm to make startup faster in production.
+# PROD_DATABASE_URL (secret) holds the production RDS hostname; when present it
+# overrides DB_HOST so the deployed API server talks to the production database
+# while the dev workspace keeps using the default DB_HOST secret.
+args = ["sh", "-c", 'if [ -n "${PROD_DATABASE_URL:-}" ]; then _pdh="$PROD_DATABASE_URL"; case "$_pdh" in *://*) _pdh="${_pdh#*://}"; _pdh="${_pdh#*@}"; _pdh="${_pdh%%/*}"; _pdh="${_pdh%%\\?*}"; _pdh="${_pdh%%:*}";; esac; export DB_HOST="$_pdh"; fi; exec node --enable-source-maps artifacts/api-server/dist/index.mjs']
 
 [services.production.run.env]
 PORT = "8080"
