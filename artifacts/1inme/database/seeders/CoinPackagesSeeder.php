@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Modules\Admin\Models\CoinPackage;
+use App\Modules\Admin\Support\BillingFxRate;
 use App\Services\PricingResolver;
 use Illuminate\Database\Seeder;
 
@@ -20,7 +21,9 @@ use Illuminate\Database\Seeder;
  * Lineup v2 (AI-credit formula)
  * ─────────────────────────────
  * 1 coin = $0.80 of AI credits + 20% platform margin → $0.96/coin customer price.
- * INR rate: ₹90/$1 → ₹86.40/coin. Tax is NOT baked in; checkout adds GST/VAT on top.
+ * INR rate: admin-editable via the `billing.fx_rate_inr` app setting
+ * (BillingFxRate; falls back to ₹90/$1 → ₹86.40/coin when unset).
+ * Tax is NOT baked in; checkout adds GST/VAT on top.
  * Old v1 packages are archived (not deleted) so purchase history references survive.
  */
 class CoinPackagesSeeder extends Seeder
@@ -55,8 +58,10 @@ class CoinPackagesSeeder extends Seeder
             ->update(['status' => 'inactive', 'is_archived' => true]);
 
         // ── Step 2: seed the v2 lineup ────────────────────────────────────────
-        // Formula: $0.96/coin (USD cents) · ₹86.40/coin (INR paise).
+        // Formula: $0.96/coin (USD cents); INR prices are computed from the
+        // admin-editable FX rate (BillingFxRate, fallback ₹90/$1 → ₹86.40/coin).
         // No bonus coins, no compare-at (original) prices per spec.
+        $fxRate = BillingFxRate::get();
         $packages = [
             [
                 'slug'        => 'ai-credits-10',
@@ -64,7 +69,7 @@ class CoinPackagesSeeder extends Seeder
                 'description' => '10 coins — a small top-up to try AI-powered features.',
                 'coin_amount' => 10,
                 'sort_order'  => 10,
-                'prices'      => ['USD' => 960, 'INR' => 86400],
+                'prices'      => ['USD' => 960, 'INR' => BillingFxRate::usdMinorToInrMinor(960, $fxRate)],
             ],
             [
                 'slug'        => 'ai-credits-50',
@@ -72,7 +77,7 @@ class CoinPackagesSeeder extends Seeder
                 'description' => '50 coins for occasional AI tasks and one-off boosts.',
                 'coin_amount' => 50,
                 'sort_order'  => 20,
-                'prices'      => ['USD' => 4800, 'INR' => 432000],
+                'prices'      => ['USD' => 4800, 'INR' => BillingFxRate::usdMinorToInrMinor(4800, $fxRate)],
             ],
             [
                 'slug'        => 'ai-credits-100',
@@ -80,7 +85,7 @@ class CoinPackagesSeeder extends Seeder
                 'description' => '100 coins — a comfortable reserve for regular AI use.',
                 'coin_amount' => 100,
                 'sort_order'  => 30,
-                'prices'      => ['USD' => 9600, 'INR' => 864000],
+                'prices'      => ['USD' => 9600, 'INR' => BillingFxRate::usdMinorToInrMinor(9600, $fxRate)],
             ],
             [
                 'slug'        => 'ai-credits-250',
@@ -88,7 +93,7 @@ class CoinPackagesSeeder extends Seeder
                 'description' => '250 coins for creators who rely on AI features daily.',
                 'coin_amount' => 250,
                 'sort_order'  => 40,
-                'prices'      => ['USD' => 24000, 'INR' => 2160000],
+                'prices'      => ['USD' => 24000, 'INR' => BillingFxRate::usdMinorToInrMinor(24000, $fxRate)],
             ],
             [
                 'slug'        => 'ai-credits-500',
@@ -96,7 +101,7 @@ class CoinPackagesSeeder extends Seeder
                 'description' => '500 coins — solid headroom for active AI-assisted workflows.',
                 'coin_amount' => 500,
                 'sort_order'  => 50,
-                'prices'      => ['USD' => 48000, 'INR' => 4320000],
+                'prices'      => ['USD' => 48000, 'INR' => BillingFxRate::usdMinorToInrMinor(48000, $fxRate)],
             ],
             [
                 'slug'        => 'ai-credits-1000',
@@ -104,7 +109,7 @@ class CoinPackagesSeeder extends Seeder
                 'description' => '1,000 coins for power users running frequent AI campaigns.',
                 'coin_amount' => 1000,
                 'sort_order'  => 60,
-                'prices'      => ['USD' => 96000, 'INR' => 8640000],
+                'prices'      => ['USD' => 96000, 'INR' => BillingFxRate::usdMinorToInrMinor(96000, $fxRate)],
             ],
             [
                 'slug'        => 'ai-credits-2000',
@@ -112,7 +117,7 @@ class CoinPackagesSeeder extends Seeder
                 'description' => '2,000 coins for teams scaling their AI-driven content.',
                 'coin_amount' => 2000,
                 'sort_order'  => 70,
-                'prices'      => ['USD' => 192000, 'INR' => 17280000],
+                'prices'      => ['USD' => 192000, 'INR' => BillingFxRate::usdMinorToInrMinor(192000, $fxRate)],
             ],
             [
                 'slug'        => 'ai-credits-3500',
@@ -120,7 +125,7 @@ class CoinPackagesSeeder extends Seeder
                 'description' => '3,500 coins — the sweet spot for high-volume AI usage.',
                 'coin_amount' => 3500,
                 'sort_order'  => 80,
-                'prices'      => ['USD' => 336000, 'INR' => 30240000],
+                'prices'      => ['USD' => 336000, 'INR' => BillingFxRate::usdMinorToInrMinor(336000, $fxRate)],
             ],
             [
                 'slug'        => 'ai-credits-5000',
@@ -128,7 +133,7 @@ class CoinPackagesSeeder extends Seeder
                 'description' => '5,000 coins for agencies running continuous AI pipelines.',
                 'coin_amount' => 5000,
                 'sort_order'  => 90,
-                'prices'      => ['USD' => 480000, 'INR' => 43200000],
+                'prices'      => ['USD' => 480000, 'INR' => BillingFxRate::usdMinorToInrMinor(480000, $fxRate)],
             ],
             [
                 'slug'        => 'ai-credits-10000',
@@ -136,7 +141,7 @@ class CoinPackagesSeeder extends Seeder
                 'description' => '10,000 coins — maximum reserve for enterprise-scale AI automation.',
                 'coin_amount' => 10000,
                 'sort_order'  => 100,
-                'prices'      => ['USD' => 960000, 'INR' => 86400000],
+                'prices'      => ['USD' => 960000, 'INR' => BillingFxRate::usdMinorToInrMinor(960000, $fxRate)],
             ],
         ];
 

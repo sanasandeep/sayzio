@@ -4,6 +4,7 @@ namespace App\Modules\Admin\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Modules\Admin\Models\CoinPackage;
+use App\Modules\Admin\Support\BillingFxRate;
 use App\Services\PricingResolver;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -13,13 +14,31 @@ class CoinPackageController extends Controller
     public function index()
     {
         $packages = CoinPackage::with('prices')->ordered()->get();
-        return view('admin.coin-packages.index', compact('packages'));
+        $fxRate = BillingFxRate::get();
+        return view('admin.coin-packages.index', compact('packages', 'fxRate'));
+    }
+
+    /**
+     * Persist the admin-editable INR-per-USD exchange rate
+     * (`billing.fx_rate_inr` app setting). Used by CoinPackagesSeeder for
+     * new packages and as a computed-INR hint on the package forms.
+     */
+    public function updateFxRate(Request $request)
+    {
+        $data = $request->validate([
+            'fx_rate_inr' => 'required|numeric|gt:0|max:10000',
+        ]);
+        BillingFxRate::put((float) $data['fx_rate_inr']);
+
+        return redirect()->route('admin.coin-packages.index')
+            ->with('success', 'INR exchange rate updated to ₹' . rtrim(rtrim(number_format((float) $data['fx_rate_inr'], 4, '.', ''), '0'), '.') . '/$1.');
     }
 
     public function create()
     {
         $package = new CoinPackage(['status' => 'active']);
-        return view('admin.coin-packages.create', compact('package'));
+        $fxRate = BillingFxRate::get();
+        return view('admin.coin-packages.create', compact('package', 'fxRate'));
     }
 
     public function store(Request $request)
@@ -46,7 +65,8 @@ class CoinPackageController extends Controller
     public function edit(CoinPackage $coinPackage)
     {
         $package = $coinPackage;
-        return view('admin.coin-packages.edit', compact('package'));
+        $fxRate = BillingFxRate::get();
+        return view('admin.coin-packages.edit', compact('package', 'fxRate'));
     }
 
     public function update(Request $request, CoinPackage $coinPackage)

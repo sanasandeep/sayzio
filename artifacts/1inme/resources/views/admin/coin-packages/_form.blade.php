@@ -46,8 +46,29 @@
             <input type="number" name="price_inr" min="0" required
                    value="{{ old('price_inr', $pInr->amount_minor_units ?? 0) }}"
                    class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white text-sm">
+            @php $fxRateHint = $fxRate ?? \App\Modules\Admin\Support\BillingFxRate::get(); @endphp
+            <p class="mt-1 text-[11px] text-white/40" data-fx-hint data-fx-rate="{{ $fxRateHint }}">
+                At ₹{{ rtrim(rtrim(number_format($fxRateHint, 4, '.', ''), '0'), '.') }}/$1, the USD price converts to
+                <span data-fx-computed>₹{{ number_format(\App\Modules\Admin\Support\BillingFxRate::usdMinorToInrMinor((int) old('price_usd', $pUsd->amount_minor_units ?? 0), $fxRateHint) / 100, 2) }}</span>
+                (<span data-fx-paise>{{ \App\Modules\Admin\Support\BillingFxRate::usdMinorToInrMinor((int) old('price_usd', $pUsd->amount_minor_units ?? 0), $fxRateHint) }}</span> paise).
+            </p>
         </div>
     </div>
+    <script>
+        (function () {
+            var usd = document.querySelector('input[name="price_usd"]');
+            var hint = document.querySelector('[data-fx-hint]');
+            if (!usd || !hint) return;
+            var rate = parseFloat(hint.getAttribute('data-fx-rate')) || 0;
+            usd.addEventListener('input', function () {
+                var cents = parseInt(usd.value, 10);
+                if (isNaN(cents) || cents < 0 || !rate) return;
+                var paise = Math.round(cents * rate);
+                hint.querySelector('[data-fx-computed]').textContent = '₹' + (paise / 100).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                hint.querySelector('[data-fx-paise]').textContent = String(paise);
+            });
+        })();
+    </script>
     <div class="grid grid-cols-2 gap-4">
         <div>
             <label class="block text-xs text-white/60 mb-1">Original price USD (cents) <span class="text-white/30">— optional</span></label>
