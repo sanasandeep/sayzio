@@ -246,6 +246,10 @@ async function main() {
   } finally {
     if (!server.explicit && server.child) stopExpo(server.child);
   }
+  // Explicit exit: the detached throwaway Expo child keeps the event loop
+  // alive otherwise (siblings do the same); the manager's process "exit"
+  // handler reaps it.
+  process.exit(0);
 }
 
 main().catch((err) => {
