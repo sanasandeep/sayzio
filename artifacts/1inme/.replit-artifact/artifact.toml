@@ -188,7 +188,12 @@ args = ["sh", "-c", '''if [ -n "${PROD_DATABASE_URL:-}" ]; then _pdh="$PROD_DATA
 PORT = "5000"
 APP_ENV = "production"
 APP_DEBUG = "false"
-DB_PERSISTENT = "false"
+# Persistent PDO + multiple php -S workers: the RDS is in ap-south-2, so a fresh
+# SSL handshake costs ~2s per request. Persistent connections amortize that per
+# worker, and 10 workers keep one slow request from wedging the whole site
+# (single-worker php -S serializes ALL traffic, incl. health checks).
+DB_PERSISTENT = "true"
+PHP_CLI_SERVER_WORKERS = "10"
 
 [services.production.health.startup]
 path = "/up"
