@@ -148,7 +148,7 @@ allowance. Your balance and a running transaction ledger are always visible in
 your **Wallet**.
 
 **AI credits.** A separate metered balance that powers Sayzio's AI features (the
-AI biolink builder, Account Assistant, AI Agents/Knowledge Bases, resume tailoring and cover
+AI biolink builder, AI Coach, AI Agents/Knowledge Bases, resume tailoring and cover
 letters, the card/brochure scanner, the voice assistant, and visitor chats with
 your Chat Widget). Each AI action is billed automatically. Before an action
 runs, Sayzio checks you can afford it — if your balance is too low you're prompted
@@ -573,10 +573,15 @@ unless a visitor opts to show adult content.
 
 Sayzio includes several AI helpers, all metered with **AI credits**:
 
-- **Account Assistant** — an AI assistant that reviews your account
-  (analytics, biolinks) and answers "how do I improve?" questions with actionable
-  suggestions.
-- **AI Growth Coach** — AI-powered suggestions to grow and fine-tune your links and pages.
+- **AI Coach** — an AI assistant that reviews your account (analytics, biolinks)
+  and answers "how do I improve?" questions with actionable, plain-language growth
+  advice. (Previously labelled *Account Assistant* and *AI Growth Coach*.)
+- **Zio Bot** (Site Assistant) — a conversational helper available as a chat
+  widget on the Sayzio website and inside the app. Click the chat icon to open it.
+  Zio Bot can answer questions, guide you to features, or connect you with support.
+  You can log in or create an account right inside the chat via a one-time code, and
+  you can request to be contacted via WhatsApp, a callback, or email using **Quick
+  Contact**. Zio Bot uses AI credits.
 - **Persona Generator** — creates a brand persona that shapes the tone and
   personality your AI uses when it writes or replies on your behalf.
 - **AI Agents** — configurable agents you can create and switch between, each with
@@ -952,7 +957,7 @@ For teams and agencies, Sayzio scales beyond a single user:
 
 - **Sayzio mobile app** — most creator features have native parity in the mobile
   app, including links, biolink editing, QR Studio, restaurant menus, reviews
-  moderation, payouts, the 18+ toggle, Account Assistant, AI Agent chat, and a
+  moderation, payouts, the 18+ toggle, AI Coach, AI Agent chat, and a
   floating-mic voice assistant. Sign in with email/OTP or social.
 - **Browser extension** — helps with things like saving and shortening links
   (including "Shorten as A/B test") and powering the Backlinks radar from your
@@ -997,7 +1002,7 @@ require a specific plan).
 **What's the difference between coins and AI credits?**
 **Coins** are a general prepaid balance (top up by buying coin packages) used for
 add-ons and developer-API overage. **AI credits** specifically power AI features
-like the AI builder, Account Assistant, AI Agents/Knowledge Bases, the card scanner, and resume AI
+like the AI builder, AI Coach, AI Agents/Knowledge Bases, the card scanner, and resume AI
 tools.
 
 **What are add-ons?**
@@ -1280,9 +1285,16 @@ embed it as a block or run it as a full-page **AI Chatbot** link.
 **Who pays when a visitor chats with my Chat Widget?**
 You do (the owner), from your AI credits — visitors don't pay.
 
-**What is the Account Assistant?**
-An AI assistant that reviews your account and gives plain-language advice on how to
-improve your links and pages.
+**What is the AI Coach?**
+An AI assistant that reviews your account (analytics, biolinks) and gives
+plain-language advice on how to grow and improve your links and pages.
+(Previously labelled *Account Assistant* and *AI Growth Coach*.)
+
+**What is Zio Bot?**
+Zio Bot is Sayzio's built-in site assistant — the chat icon you see on the website
+and inside the app. Open it to get help navigating features, ask questions, or
+request to be contacted by support. If you're not signed in you can log in or sign
+up right inside the chat using a one-time code. Zio Bot uses your AI credits.
 
 **What does the voice assistant do?**
 It listens to you (speech-to-text), takes an AI turn, and can speak its reply

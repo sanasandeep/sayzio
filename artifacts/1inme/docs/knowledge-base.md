@@ -33,7 +33,7 @@ of *what it is*, *why you'd use it*, and *how to use it* step by step. A large
 17. [Referrals](#17-referrals)
 18. [Creator monetization](#18-creator-monetization)
 19. [18+ adult content](#19-adult-content)
-20. [AI tools: AI Note Summarizer, Knowledge Bases, Persona Generator, AI Agents, AI Chat, Chat Widgets, AI Growth Coach, Account Assistant](#20-ai-tools)
+20. [AI tools: AI Note Summarizer, Knowledge Bases, Persona Generator, AI Agents, AI Chat, Chat Widgets, AI Coach, Zio Bot](#20-ai-tools)
 21. [Tools: Forms, Contact cards, Contacts & Dialer, Scan a card or brochure, Files, Resume, Calendar](#21-tools)
 22. [Restaurant menu, Store & Service Booking](#22-restaurant-menu-store--service-booking)
    - [22a. Restaurant menu](#22a-restaurant-menu)
@@ -203,7 +203,7 @@ add-ons, or covering developer-API usage beyond your plan's monthly allowance.
 
 **What it is.** A separate metered balance that powers Sayzio's AI features.
 
-**Why use it.** AI features (the AI biolink builder, Account Assistant, AI Agents/Knowledge Bases,
+**Why use it.** AI features (the AI biolink builder, AI Coach, AI Agents/Knowledge Bases,
 resume tailoring and cover letters, the [card/brochure scanner](#scan-a-card-or-brochure),
 voice assistant, etc.) consume **AI credits** as you use them.
 
@@ -736,9 +736,16 @@ unless a visitor opts to show adult content.
 
 Sayzio includes several AI helpers (all metered with **AI credits**):
 
-- **Account Assistant** — an AI assistant that reviews your account
-  and answers "how do I improve?" questions, including actionable suggestions.
-- **AI Growth Coach** — AI-powered suggestions to grow and fine-tune your links and pages.
+- **AI Coach** — an AI assistant that reviews your account (analytics, biolinks) and
+  answers "how do I improve?" questions with actionable, plain-language growth advice.
+  (Previously labelled *Account Assistant* and *AI Growth Coach*.)
+- **Zio Bot** (Site Assistant) — a conversational helper available as a chat widget on
+  the Sayzio website and inside the app. Click the chat icon to open it. Zio Bot can
+  answer questions, guide you to features, or connect you with support. If you're not
+  signed in, you can log in (or create an account) right inside the chat via a one-time
+  code — no need to leave the page. You can also ask to be contacted by a real person
+  via WhatsApp, a callback, or email using the **Quick Contact** option. Zio Bot uses
+  AI credits from your account.
 - **Persona Generator** — creates a brand persona that shapes the tone and
   personality your AI uses when it writes or replies on your behalf.
 - **AI Agents** — configurable agents you can create and switch between, each with
@@ -1361,7 +1368,7 @@ address (`@yourname`) and is used in the Creators directory.
 **What's the difference between coins and AI credits?**
 **Coins** are a general prepaid balance (top up by buying coin packages) used for
 add-ons and developer-API overage. **AI credits** specifically power AI features
-like the AI builder, Account Assistant, AI Agents/Knowledge Bases, and resume AI tools.
+like the AI builder, AI Coach, AI Agents/Knowledge Bases, and resume AI tools.
 
 **What happens if I run out of AI credits?**
 Before an AI action runs, Sayzio checks you can afford it; if not, you'll be
@@ -1589,9 +1596,17 @@ embed it as a block or run it as a full-page **AI Chatbot** link.
 **Who pays when a visitor chats with my Chat Widget?**
 You do (the owner), from your AI credits — visitors don't pay.
 
-**What is the Account Assistant?**
-An AI assistant that reviews your account and gives plain-language advice on how
-to improve your links and pages.
+**What is the AI Coach?**
+An AI assistant that reviews your account (analytics, biolinks) and gives
+plain-language advice on how to grow and improve your links and pages.
+(Previously labelled *Account Assistant* and *AI Growth Coach*.)
+
+**What is Zio Bot?**
+Zio Bot is Sayzio's built-in site assistant — the chat icon you see on the
+website and inside the app. Open it to get help navigating features, ask
+questions, or request to be contacted by support. If you're not signed in, you
+can log in or sign up right inside the chat using a one-time code. Zio Bot uses
+your AI credits.
 
 **Which AI features come with my plan?**
 It varies by plan — your plan controls which AI tools are available and how many

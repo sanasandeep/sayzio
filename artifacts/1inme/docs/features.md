@@ -912,8 +912,9 @@ through the engine settings include the `biolink_builder`,
   prompts and chat history (`CompanionThread`); a Chat Widget can be embedded as a
   biolink **block** or run as a full-page **AI Chatbot** (`ai_chat`) link, and the
   direct owner chat is surfaced as **AI Chat**. The **owner** pays for visitor chats.
-- **Account Assistant / AI Growth Coach** — self-support AI grounded in an account
-  snapshot (analytics, biolinks) with actionable suggestions.
+- **AI Coach** — self-support AI grounded in an account snapshot (analytics,
+  biolinks) with actionable growth suggestions. (Feature key: `ask_coach`.
+  Previously labelled *Account Assistant* / *AI Growth Coach*.)
 - **Voice assistant** — Whisper **STT** (transcription / dictation), an LLM turn,
   and ElevenLabs **TTS** (spoken mp3). Voice tools return a `client_action`
   (+ deferred navigation); the active surface is set per platform (web
@@ -976,7 +977,7 @@ through the engine settings include the `biolink_builder`,
 first-class AI features per plan in two shapes: **quantity** caps for Knowledge
 Bases / AI Agents / Chat Widgets / saved AI Brand Kits (`max_minds` /
 `max_personas` / `max_companions` / `max_brand_kits`; `-1` = unlimited) and
-**availability** booleans for the Account Assistant (`ask_coach`), the voice
+**availability** booleans for the AI Coach (`ask_coach`), the voice
 assistant (`ai_voice_assistant`), the Chat Widget (`ai_widget`), card/brochure
 scan (`card_scan`), AI resume tools (`ai_resume_tools`), the Inbox Agent
 (`inbox_agent`), the Marketing Strategist (`marketing_strategist`), the Brand
@@ -994,8 +995,8 @@ metered monthly (`api_usage_counters`) against the plan allowance by
 period 80% / 100% / overage-unavailable warnings (email + in-app
 `api.usage_warning`).
 
-*Web · REST (`/ai/*`, Voice, AI Growth Coach, Chat Widgets, `/ai/marketing-strategist/*`,
-`/brand-kits/*`, `/inbox/*`, `/links-teardown/*`) · Mobile (Account Assistant,
+*Web · REST (`/ai/*`, Voice, AI Coach, Chat Widgets, `/ai/marketing-strategist/*`,
+`/brand-kits/*`, `/inbox/*`, `/links-teardown/*`) · Mobile (AI Coach,
 AI Agent chat, floating-mic voice assistant, Inbox, Brand Kits, Competitor
 Teardown).*
 
@@ -1198,7 +1199,7 @@ High-level groups:
 - **Creator stack** — creator profile, posts, feed, paid DMs, tiers.
 - **Business tools** — store/products, restaurant menu & orders, reviews (public
   feed + moderation), contacts/dialer.
-- **Platform & AI** — wallet/coins, AI (Knowledge Bases, voice, AI Growth Coach), onboarding slides.
+- **Platform & AI** — wallet/coins, AI (Knowledge Bases, voice, AI Coach), onboarding slides.
 - **Back-office** — users, roles, protected accounts, mail settings, schema
   health.
 
@@ -1225,7 +1226,7 @@ over `/api/v1`.
   restaurant menu builder + orders; paid pages (mobile template tokens).
 - **Monetization** — unlock content, tip, manage orders; payouts onboarding +
   sync; 18+ toggle.
-- **AI** — Account Assistant, AI Agent chat, floating-mic voice assistant;
+- **AI** — AI Coach, AI Agent chat, floating-mic voice assistant;
   Audience Insights tab on the Link analytics screen
   (see [§5.17](#517-visitor-type-audience-insights)).
 - **Reviews** — moderation parity.

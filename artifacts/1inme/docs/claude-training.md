@@ -363,7 +363,7 @@ Feature key goes in `FEATURES`; call `OpenAiService::chat` (auto-charges).
 | Feature | Credit key | Notes |
 |---|---|---|
 | AI Biolink Builder | `biolink_builder` | Prompt + images/links → full page via OpenAI |
-| Account Assistant / AI Growth Coach | `ask_coach` | Reviews account, gives growth advice |
+| AI Coach | `ask_coach` | Reviews account, gives growth advice (formerly: Account Assistant / AI Growth Coach) |
 | AI Agents / Knowledge Bases | various | Configurable agents with KB grounding |
 | Chat Widgets | `ai_widget` | Embed chatbot; owner pays for visitor chats |
 | AI Note Summarizer | — | Summarizes raw notes into action steps |
@@ -402,10 +402,14 @@ findings with one-click "apply fix" links. Kit generation → `brand_kit` credit
 The `brand_kit` **link type** publishes a shareable press-kit page (separate from
 the AI Brand Kits feature).
 
-**Site assistant (Ask Zio).** A blade widget on the `/assistant/*` contract.
-Login-gated server-side. In-chat OTP login = signup. Session auth. Mobile panel
-pins height to `vv.height - 100` and translateY-lifts above keyboard using
-`vv.offsetTop`.
+**Site assistant — Zio Bot (Ask Zio).** User-facing name: **Zio Bot**. A Laravel
+blade widget on the `/assistant/*` contract. Login-gated server-side; authenticated
+users get the full chat surface. Capabilities: general help/navigation, in-chat OTP
+login/signup (OTP verify = account creation for new emails), Quick Contact (callback /
+WhatsApp / email channels to reach support), and a voice mic for eligible users.
+Session auth. Mobile panel pins height to `vv.height - 100` and translateY-lifts
+above keyboard using `vv.offsetTop`. Zio Bot charges AI credits from the user's
+wallet; a low-balance banner is shown when credits are insufficient.
 
 ---
 
