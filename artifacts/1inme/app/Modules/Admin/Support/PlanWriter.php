@@ -211,6 +211,14 @@ class PlanWriter
             $out[$row['key']] = !empty($features[$row['key']]);
         }
 
+        // ---- Included coin grants (non-negative integers; 0 = none) ----
+        foreach (PlanFormCatalogue::includedCoinGrants() as $row) {
+            if (array_key_exists($row['key'], $features)) {
+                $v = (int) $features[$row['key']];
+                $out[$row['key']] = max(0, $v);
+            }
+        }
+
         // ---- AI coin multipliers (per provider) ----
         // Stored as a float; a blank / non-positive value normalises to 1.0
         // (no change) so the wallet never under-charges. These deliberately
@@ -356,6 +364,10 @@ class PlanWriter
             // AI coin pricing multipliers (per provider) — float, blank/0 = 1×.
             'features.ai_openai_coin_multiplier'     => 'nullable|numeric|min:0',
             'features.ai_elevenlabs_coin_multiplier' => 'nullable|numeric|min:0',
+
+            // Included coin grants — non-negative integer coin counts per billing cycle.
+            'features.included_coins_monthly' => 'nullable|integer|min:0',
+            'features.included_coins_yearly'  => 'nullable|integer|min:0',
 
             // Analytics select.
             'features.analytics' => 'nullable|in:basic,advanced',

@@ -221,6 +221,8 @@ class ActivateSubscription
                 'paid_at'         => $now,
             ])->save();
 
+            $this->grantPlanCoins($plan, $subscription, $user, $cycle);
+
             $this->sendReceipt($fresh);
 
             // If this invoice paid a custom-plan offer, mark the request as paid.
@@ -228,6 +230,52 @@ class ActivateSubscription
 
             return $subscription;
         });
+    }
+
+    /**
+     * Credit the plan's included coin grant for the current billing period,
+     * keyed with an idempotency key derived from `subscription_id + period_start`
+     * so webhook re-deliveries and manual retries are always no-ops for an
+     * already-granted period.
+     *
+     * Monthly subscribers receive `features.included_coins_monthly` coins;
+     * annual subscribers receive `features.included_coins_yearly` coins.
+     * A zero or absent value skips the grant entirely.
+     *
+     * Best-effort: failures are logged but never abort the calling transaction.
+     */
+    protected function grantPlanCoins(Plan $plan, Subscription $subscription, $user, string $cycle): void
+    {
+        try {
+            $features = is_array($plan->features) ? $plan->features : [];
+            $amount = $cycle === 'annual'
+                ? (int) ($features['included_coins_yearly'] ?? 0)
+                : (int) ($features['included_coins_monthly'] ?? 0);
+
+            if ($amount <= 0) {
+                return;
+            }
+
+            $periodStart = \Carbon\Carbon::parse($subscription->current_period_start)->format('Y-m-d');
+            $idempotencyKey = "plan_grant:sub:{$subscription->id}:from:{$periodStart}";
+
+            app(WalletService::class)->credit($user, $amount, [
+                'reason'          => 'Included with your ' . $plan->name . ' plan',
+                'idempotency_key' => $idempotencyKey,
+                'meta'            => [
+                    'kind'            => 'plan_coin_grant',
+                    'plan_id'         => $plan->id,
+                    'subscription_id' => $subscription->id,
+                    'cycle'           => $cycle,
+                ],
+            ]);
+        } catch (\Throwable $e) {
+            Log::warning('Plan coin grant failed: ' . $e->getMessage(), [
+                'plan_id'         => $plan->id ?? null,
+                'subscription_id' => $subscription->id ?? null,
+                'cycle'           => $cycle,
+            ]);
+        }
     }
 
     /**
