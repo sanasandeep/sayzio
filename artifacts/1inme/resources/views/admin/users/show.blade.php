@@ -2,6 +2,15 @@
 @section('title', 'User Details')
 @section('page-title', 'User: ' . $user->name)
 
+@push('styles')
+<style>
+html.light-mode .admin-ushow-suspend-reason { color: #991b1b; }
+html.light-mode .admin-ushow-suspend-sub    { color: #b91c1c; }
+html.light-mode .admin-ushow-protected      { color: #065f46; }
+html.light-mode .admin-ushow-comp-note      { color: #92400e; }
+</style>
+@endpush
+
 @section('content')
 @php
     $showOperator = auth('admin')->user();
@@ -14,9 +23,9 @@
     <div class="text-sm text-rose-200">
         <i class="fas fa-ban mr-1"></i>
         <span class="font-semibold">Account suspended</span>
-        @if($user->suspension_reason)<span class="text-rose-200/80">— {{ $user->suspension_reason }}</span>@endif
+        @if($user->suspension_reason)<span class="admin-ushow-suspend-reason text-rose-200/80">— {{ $user->suspension_reason }}</span>@endif
         @if($user->reactivate_at)
-            <span class="block text-xs text-rose-200/60 mt-1">Auto-reactivates on {{ $user->reactivate_at->format('M j, Y') }}</span>
+            <span class="admin-ushow-suspend-sub block text-xs text-rose-200/60 mt-1">Auto-reactivates on {{ $user->reactivate_at->format('M j, Y') }}</span>
         @endif
     </div>
     @if(auth('admin')->user()?->hasPermission('users.suspend'))
@@ -96,7 +105,7 @@
                             @if(!empty($isProtected))
                             {{-- A disabled select isn't submitted; keep the current status in the payload so this account can never be suspended/banned via the edit form. --}}
                             <input type="hidden" name="status" value="{{ $user->status }}">
-                            <p class="mt-1 text-xs text-emerald-400/80"><i class="fas fa-shield-alt mr-1"></i> Protected account — status is locked.</p>
+                            <p class="admin-ushow-protected mt-1 text-xs text-emerald-400/80"><i class="fas fa-shield-alt mr-1"></i> Protected account — status is locked.</p>
                             @endif
                             @else
                             {{-- No users.suspend permission: show status read-only and submit nothing (server strips it too). --}}
@@ -162,7 +171,7 @@
                     <input type="number" name="comp_days" min="1" max="3650" placeholder="e.g. 30 — leave blank for permanent"
                            class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder:text-white/30 focus:ring-2 focus:ring-blue-500/40 outline-none">
                     @if($user->comp_plan_expires_at)
-                        <p class="text-xs text-amber-300/80 mt-1">Current comp window ends {{ $user->comp_plan_expires_at->format('M j, Y') }}.</p>
+                        <p class="admin-ushow-comp-note text-xs text-amber-300/80 mt-1">Current comp window ends {{ $user->comp_plan_expires_at->format('M j, Y') }}.</p>
                     @endif
                 </div>
                 <button type="submit" class="px-6 py-2.5 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition">

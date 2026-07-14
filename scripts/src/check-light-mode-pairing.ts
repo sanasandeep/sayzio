@@ -471,14 +471,13 @@ export const TARGETS: Target[] = [
   // Admin pages. These extend admin.layouts.app, which @includes the shared
   // theme system (common/partials/theme-styles.blade.php), so they participate
   // in the html.light-mode toggle exactly like the user/marketing pages above.
-  // Today their dark styling flows through Tailwind utility classes (which the
-  // sitewide light-mode remap handles) with page-local `html.light-mode`
-  // overrides where needed (e.g. the master-password banner tones) — so they
-  // currently carry NO unpaired base color rules. They are configured here so
-  // any FUTURE page-local `<style>` rule that sets a dark `color` /
-  // `border-color` without its light pair hard-fails this guard instead of
-  // silently shipping a washed-out light-mode surface on a high-stakes admin
-  // screen.
+  // Light-mode wash-outs are fixed per-element: a marker class on the affected
+  // element plus an `html.light-mode .marker { color: … }` override in the
+  // page's @push('styles') block (convention set by the Master Password page).
+  // Their <style> blocks carry ONLY html.light-mode overrides today — so any
+  // FUTURE page-local rule that sets a dark `color` / `border-color` without
+  // its light pair hard-fails this guard instead of silently shipping a
+  // washed-out light-mode surface on a high-stakes admin screen.
   {
     page: "artifacts/1inme/resources/views/admin/master-password/index.blade.php",
     label: "admin master-password page",
@@ -490,6 +489,21 @@ export const TARGETS: Target[] = [
     allowlist: [],
   },
   {
+    page: "artifacts/1inme/resources/views/admin/users/show.blade.php",
+    label: "admin user detail page",
+    allowlist: [],
+  },
+  {
+    page: "artifacts/1inme/resources/views/admin/plans/index.blade.php",
+    label: "admin plans list",
+    allowlist: [],
+  },
+  {
+    page: "artifacts/1inme/resources/views/admin/integrations/index.blade.php",
+    label: "admin integrations hub",
+    allowlist: [],
+  },
+  {
     page: "artifacts/1inme/resources/views/admin/mail-settings/index.blade.php",
     label: "admin mail settings page",
     allowlist: [],
@@ -497,6 +511,11 @@ export const TARGETS: Target[] = [
   {
     page: "artifacts/1inme/resources/views/admin/auth-settings/index.blade.php",
     label: "admin auth settings page",
+    allowlist: [],
+  },
+  {
+    page: "artifacts/1inme/resources/views/admin/activity-log/index.blade.php",
+    label: "admin activity log",
     allowlist: [],
   },
 ];

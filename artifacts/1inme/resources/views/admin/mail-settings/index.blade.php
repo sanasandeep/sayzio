@@ -2,6 +2,12 @@
 @section('title', 'Email / SMTP')
 @section('page-title', 'Email / SMTP')
 
+@push('styles')
+<style>
+html.light-mode .admin-mail-verified { color: #065f46; }
+</style>
+@endpush
+
 @php
     $toneClass = function (string $tone) {
         return match ($tone) {
@@ -67,7 +73,7 @@
                         {{ $status['label'] }}
                     </span>
                     @if($verifiedAt)
-                        <span class="text-[11px] text-emerald-300/80 flex items-center gap-1"
+                        <span class="admin-mail-verified text-[11px] text-emerald-300/80 flex items-center gap-1"
                               title="Last successful SMTP handshake: {{ $verifiedAt->toDayDateTimeString() }}">
                             <i class="fas fa-check-circle"></i>
                             Verified OK {{ $verifiedAt->diffForHumans() }}
