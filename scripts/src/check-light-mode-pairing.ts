@@ -518,6 +518,16 @@ export const TARGETS: Target[] = [
     label: "admin activity log",
     allowlist: [],
   },
+  {
+    // The company-identity page ships only html.light-mode overrides in its
+    // @push('styles') block (no dark base color/border-color rules in <style>),
+    // so there are no base rules for the guard to check pairs against. All
+    // dark-mode colors come from Tailwind utility classes (text-white/*, etc.)
+    // and the jurisdiction info box uses Tailwind utilities for dark mode.
+    page: "artifacts/1inme/resources/views/admin/company-identity/edit.blade.php",
+    label: "admin company identity page",
+    allowlist: [],
+  },
 ];
 
 function makeIsAllowed(allowlist: AllowEntry[]) {
