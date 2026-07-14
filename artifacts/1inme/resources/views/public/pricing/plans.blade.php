@@ -816,6 +816,10 @@
                 ['key' => 'vaults',             'group' => 'Pro controls',     'icon' => 'fa-key',                        'type' => 'bool',      'name' => 'Credential vault',   'desc' => 'Store secrets securely'],
 
                 ['key' => 'api_access',         'group' => 'Developer',        'icon' => 'fa-code',                       'type' => 'api'],
+
+                // Included coin grants (features.included_coins_monthly / _yearly, 0 = hidden).
+                ['key' => 'included_coins_monthly', 'group' => 'Included coins', 'icon' => 'fa-coins', 'type' => 'number', 'noun' => 'coins / month included', 'desc' => 'Credited to your wallet every monthly billing cycle'],
+                ['key' => 'included_coins_yearly',  'group' => 'Included coins', 'icon' => 'fa-coins', 'type' => 'number', 'noun' => 'coins / year included',  'desc' => 'Credited to your wallet every yearly billing cycle'],
             ];
 
             // Biolink block-type slug → human-readable label resolution (and
@@ -1252,6 +1256,10 @@
                     ['api_access',               'API access',              'bool'],
                     ['api_calls_monthly',        'API calls / month',       'number'],
                     ['api_rate_per_min',         'API rate (calls / min)',  'number'],
+                ],
+                'Included coins' => [
+                    ['included_coins_monthly',   'Coins / monthly cycle',   'number'],
+                    ['included_coins_yearly',    'Coins / yearly cycle',    'number'],
                 ],
             ];
             // Fixed (locked) column widths so every plan column lines up

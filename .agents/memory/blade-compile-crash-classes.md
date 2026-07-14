@@ -16,3 +16,6 @@ Several Blade source patterns compile to broken PHP (page 500s on render) yet pa
 **How to find them fast:** the real gate `BladeViewsCompileTest` buffers all output and exceeds the 120s tool cap. Instead drive a one-off PHP script that bootstraps the app, `Blade::compileString(file_get_contents($view))` for every `*.blade.php`, and `php -l` the compiled output — reports every broken view in one pass (~80–110s for ~730 views). One broken view can mask a second error in the same file (php -l stops at the first), so re-run until clean.
 
 **Why:** these are launch-blocking 500s on real admin/user/public routes; static compile-lint catches the whole class without needing a DB or auth context, which the isolated env lacks.
+
+## Blade {{-- --}} comment inside an @php block
+A `{{--  --}}` comment placed inside an `@php ... @endphp` block (e.g. inside a PHP array literal) is NOT reliably stripped before PHP compilation and can produce "unexpected token \"{\"" parse errors in the compiled view. Use a plain PHP `//` comment inside @php blocks.

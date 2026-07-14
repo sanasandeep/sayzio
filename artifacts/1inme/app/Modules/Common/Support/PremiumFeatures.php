@@ -171,6 +171,23 @@ class PremiumFeatures
     }
 
     /**
+     * The two included-coin-grant catalogue entries (monthly + yearly),
+     * keyed for surfaces that render them as a dedicated "Included coins"
+     * row (public pricing cards, /user/upgrade comparison, mobile
+     * feature_highlights). Same entries as catalogue() — this is a
+     * filtered view, not a second source of truth.
+     *
+     * @return list<array{key:string,group:string,name:string,description:string,unit:string}>
+     */
+    public static function includedCoinGrants(): array
+    {
+        return array_values(array_filter(
+            self::catalogue(),
+            fn (array $e) => in_array($e['key'], ['included_coins_monthly', 'included_coins_yearly'], true)
+        ));
+    }
+
+    /**
      * Classify a catalogue entry for rendering:
      *  - 'analytics' the basic/advanced select
      *  - 'number'    any entry carrying a numeric `unit`
