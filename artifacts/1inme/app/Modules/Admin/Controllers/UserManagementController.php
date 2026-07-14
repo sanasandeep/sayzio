@@ -2,6 +2,7 @@
 
 namespace App\Modules\Admin\Controllers;
 
+use App\Actions\Billing\ActivateSubscription;
 use App\Http\Controllers\Controller;
 use App\Modules\Admin\Models\Admin;
 use App\Modules\Admin\Models\ProtectedAccount;
@@ -351,6 +352,11 @@ class UserManagementController extends Controller
             $referrals->handlePlanActivation($user->fresh(), $plan);
         }
 
+        // Grant the plan's included coins — this manual path has no invoice,
+        // so ActivateSubscription::run() never fires for it. Idempotent
+        // per (user, plan, day) so a double-click can't double-credit.
+        app(ActivateSubscription::class)->grantPlanCoinsForManualAssignment($user->fresh(), $plan);
+
         $audit->log(AdminActionLogger::PLAN_ASSIGNED, $user, [
             'plan_id'          => $plan->id,
             'plan_name'        => $plan->name,
@@ -534,6 +540,9 @@ class UserManagementController extends Controller
                 if ($plan->id != $prev) {
                     $referrals->handlePlanActivation($u->fresh(), $plan);
                 }
+                // Included-coin grant for the manually assigned plan (idempotent
+                // per user/plan/day, so a duplicate bulk submit is a no-op).
+                app(ActivateSubscription::class)->grantPlanCoinsForManualAssignment($u->fresh(), $plan);
                 $audit->log(AdminActionLogger::PLAN_ASSIGNED, $u, [
                     'plan_id'          => $plan->id,
                     'plan_name'        => $plan->name,
@@ -638,6 +647,10 @@ class UserManagementController extends Controller
             $newPlan = Plan::find($validated['plan_id']);
             if ($newPlan) {
                 $referrals->handlePlanActivation($user->fresh(), $newPlan);
+                // Mirror the dedicated assign-plan route: an admin plan change
+                // also grants the plan's included coins (idempotent per
+                // user/plan/day).
+                app(ActivateSubscription::class)->grantPlanCoinsForManualAssignment($user->fresh(), $newPlan);
             }
         }
 

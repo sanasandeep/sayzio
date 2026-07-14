@@ -241,6 +241,91 @@ class PlanIncludedCoinGrantTest extends TestCase
         $this->assertSame(800, app(WalletService::class)->getBalance($user));
     }
 
+    public function test_manual_admin_assignment_grants_monthly_coins(): void
+    {
+        $user = $this->makeUser();
+        $plan = $this->makePlan(['included_coins_monthly' => 200, 'included_coins_yearly' => 1000]);
+
+        app(ActivateSubscription::class)->grantPlanCoinsForManualAssignment($user, $plan);
+
+        $this->assertSame(200, app(WalletService::class)->getBalance($user));
+
+        $tx = WalletTransaction::where('user_id', $user->id)->where('type', 'purchase')->first();
+        $this->assertNotNull($tx);
+        $this->assertStringStartsWith("plan_grant:user:{$user->id}:plan:{$plan->id}:assigned:", $tx->idempotency_key);
+    }
+
+    public function test_manual_admin_assignment_uses_yearly_amount_for_annual_cycle_users(): void
+    {
+        $user = $this->makeUser();
+        $user->forceFill(['billing_cycle' => 'annual'])->save();
+        $plan = $this->makePlan(['included_coins_monthly' => 200, 'included_coins_yearly' => 1000]);
+
+        app(ActivateSubscription::class)->grantPlanCoinsForManualAssignment($user->fresh(), $plan);
+
+        $this->assertSame(1000, app(WalletService::class)->getBalance($user));
+    }
+
+    public function test_manual_admin_assignment_is_idempotent_same_day(): void
+    {
+        $user = $this->makeUser();
+        $plan = $this->makePlan(['included_coins_monthly' => 300]);
+
+        $activator = app(ActivateSubscription::class);
+        $activator->grantPlanCoinsForManualAssignment($user, $plan);
+        $activator->grantPlanCoinsForManualAssignment($user, $plan);
+
+        $this->assertSame(300, app(WalletService::class)->getBalance($user));
+        $this->assertCount(
+            1,
+            WalletTransaction::where('user_id', $user->id)->where('type', 'purchase')->get(),
+            'A same-day duplicate admin assignment must not double-credit coins.'
+        );
+    }
+
+    public function test_manual_admin_assignment_skips_grant_for_zero_coin_plan(): void
+    {
+        $user = $this->makeUser();
+        $plan = $this->makePlan(['included_coins_monthly' => 0]);
+
+        app(ActivateSubscription::class)->grantPlanCoinsForManualAssignment($user, $plan);
+
+        $this->assertSame(0, app(WalletService::class)->getBalance($user));
+        $this->assertCount(0, WalletTransaction::where('user_id', $user->id)->where('type', 'purchase')->get());
+    }
+
+    public function test_admin_assign_plan_route_grants_included_coins(): void
+    {
+        $user = $this->makeUser();
+        $plan = $this->makePlan(['included_coins_monthly' => 250]);
+
+        $role  = \App\Modules\Admin\Models\Role::firstOrCreate(
+            ['slug' => 'super-admin'],
+            ['name' => 'Super Admin']
+        );
+        $admin = \App\Modules\Admin\Models\Admin::create([
+            'name'     => 'Test Admin',
+            'email'    => 'admin-' . Str::random(6) . '@example.com',
+            'password' => bcrypt('secret-password'),
+            'role_id'  => $role->id,
+            'status'   => 'active',
+        ]);
+
+        $this->be($admin, 'admin');
+
+        $response = $this->post(route('admin.users.assign-plan', $user), [
+            'plan_id' => $plan->id,
+        ]);
+        $response->assertSessionHas('success');
+
+        $this->assertSame($plan->id, $user->fresh()->plan_id);
+        $this->assertSame(250, app(WalletService::class)->getBalance($user));
+
+        // Double-submit on the same day must be a no-op for the wallet.
+        $this->post(route('admin.users.assign-plan', $user), ['plan_id' => $plan->id]);
+        $this->assertSame(250, app(WalletService::class)->getBalance($user));
+    }
+
     public function test_plan_writer_persists_coin_grant_amounts_in_features(): void
     {
         // Smoke-test that PlanWriter::collectFeatures picks up the two keys
