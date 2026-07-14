@@ -32,7 +32,7 @@
                         <option value="plan">Users on a specific plan</option>
                         <option value="role">Users with a specific role</option>
                         <option value="country">Users in a specific country</option>
-                        <option value="user">A single user (email or ID)</option>
+                        <option value="user">Specific users (emails or IDs)</option>
                     </select>
                     @error('target_kind')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
                 </div>
@@ -42,7 +42,7 @@
                         <span x-show="kind === 'plan'">Plan</span>
                         <span x-show="kind === 'role'">Role</span>
                         <span x-show="kind === 'country'">Country code (ISO-2)</span>
-                        <span x-show="kind === 'user'">User email or ID</span>
+                        <span x-show="kind === 'user'">Emails or IDs (comma- or newline-separated)</span>
                         <span x-show="kind === 'all'" style="color: var(--text-faint);">— No target needed —</span>
                     </label>
 
@@ -69,9 +69,9 @@
                     </template>
 
                     <template x-if="kind === 'user'">
-                        <input type="text" name="target_value" placeholder="user@example.com or 1234"
-                               value="{{ old('target_value') }}"
-                               class="theme-input w-full"/>
+                        <textarea name="target_value" rows="3"
+                                  placeholder="user@example.com, 1234, other@site.com&#10;(one per line or comma-separated; mixed emails and IDs are fine)"
+                                  class="theme-input w-full resize-y">{{ old('target_value') }}</textarea>
                     </template>
 
                     <template x-if="kind === 'all'">
@@ -139,9 +139,14 @@
                             <div class="min-w-0 flex-1">
                                 <div class="flex items-center gap-2 mb-1">
                                     <span class="text-sm font-semibold" style="color: var(--text-primary);">{{ $b->subject }}</span>
+                                    @php
+                                        $rawTarget = $b->target_value ? $b->target_kind . ': ' . $b->target_value : $b->target_kind;
+                                        $badgeLabel = \Illuminate\Support\Str::limit($rawTarget, 60);
+                                    @endphp
                                     <span class="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full"
-                                          style="background: rgba(61,107,255,0.12); color:#3d6bff;">
-                                        {{ $b->target_kind }}@if($b->target_value): {{ $b->target_value }}@endif
+                                          style="background: rgba(61,107,255,0.12); color:#3d6bff;"
+                                          title="{{ $rawTarget }}">
+                                        {{ $badgeLabel }}
                                     </span>
                                 </div>
                                 <p class="text-xs whitespace-pre-line" style="color: var(--text-muted);">{{ \Illuminate\Support\Str::limit($b->body, 240) }}</p>

@@ -33,7 +33,7 @@ class NotificationController extends Controller
             'body'         => ['required', 'string', 'max:4000'],
             'target_url'   => ['nullable', 'url', 'max:500'],
             'target_kind'  => ['required', Rule::in(['all', 'plan', 'role', 'country', 'user'])],
-            'target_value' => ['nullable', 'string', 'max:120'],
+            'target_value' => ['nullable', 'string', 'max:5000'],
         ]);
 
         if ($data['target_kind'] !== 'all' && empty($data['target_value'])) {
@@ -50,6 +50,22 @@ class NotificationController extends Controller
             body:        $data['body'],
             targetUrl:   $data['target_url'] ?? null,
         );
+
+        if (
+            $data['target_kind'] === 'user'
+            && $broadcast->recipients_count === 0
+            // Distinguish "no token matched a user" (input error) from
+            // "matched users all opted out" (a valid, delivered-to-zero
+            // send that must keep its audit row).
+            && $svc->resolveTargetUserIds('user', $data['target_value'] ?? null)->isEmpty()
+        ) {
+            // Don't leave a zero-recipient audit row behind for a failed send.
+            $broadcast->delete();
+
+            return back()->withErrors([
+                'target_value' => 'None of the entered emails or IDs matched an active user.',
+            ])->withInput();
+        }
 
         return redirect()->route('admin.notifications.index')->with(
             'success',

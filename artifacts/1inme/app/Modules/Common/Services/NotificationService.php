@@ -492,7 +492,7 @@ class NotificationService
     }
 
     /** @return Collection<int, int> */
-    protected function resolveTargetUserIds(string $kind, ?string $value): Collection
+    public function resolveTargetUserIds(string $kind, ?string $value): Collection
     {
         $q = User::query()->where('status', 'active')->select('id');
 
@@ -522,11 +522,35 @@ class NotificationService
                 break;
             case 'user':
                 if (!$value) return collect();
-                if (str_contains($value, '@')) {
-                    $q->where('email', strtolower(trim($value)));
-                } else {
-                    $q->where('id', (int) $value);
+                // Split on commas, semicolons, and/or newlines; drop blanks.
+                $entries = array_filter(
+                    array_map('trim', preg_split('/[\s,;]+/', $value)),
+                    fn ($e) => $e !== '',
+                );
+                if (empty($entries)) return collect();
+                // Guard: if no entry is a valid email or numeric ID, bail out
+                // early — an empty nested where() adds no constraint and would
+                // otherwise select EVERY active user.
+                $emails = [];
+                $ids    = [];
+                foreach ($entries as $entry) {
+                    if (str_contains($entry, '@')) {
+                        $emails[] = strtolower($entry);
+                    } elseif (ctype_digit($entry)) {
+                        $ids[] = (int) $entry;
+                    }
                 }
+                if (empty($emails) && empty($ids)) return collect();
+                $q->where(function ($sub) use ($emails, $ids) {
+                    if ($emails) {
+                        // Emails are matched case-insensitively — stored
+                        // addresses may carry mixed case.
+                        $sub->orWhereIn(DB::raw('lower(email)'), $emails);
+                    }
+                    if ($ids) {
+                        $sub->orWhereIn('id', $ids);
+                    }
+                });
                 break;
             case 'all':
             default:
