@@ -9,6 +9,7 @@ use App\Modules\User\Support\BlockDefaults;
 use App\Modules\User\Support\BlockTypeRegistry;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 /**
  * Admin editor for first-paint defaults on new biolink blocks.
@@ -227,6 +228,58 @@ class BlockDefaultsController extends Controller
         }
 
         return response($html)->header('Content-Type', 'text/html; charset=utf-8');
+    }
+
+    /**
+     * Bulk-copy one type's admin override onto several other types at once.
+     *
+     * The source type's stored override (content + style) fully replaces
+     * any existing override on each selected target type, so targets end
+     * up exactly matching the source.
+     */
+    public function copyTo(Request $request, string $type)
+    {
+        $type = BlockTypeRegistry::canonical($type);
+        abort_unless(in_array($type, self::allCanonicalTypes(), true), 404);
+
+        $source = BlockDefaults::getAdminOverrideForType($type);
+        if (empty($source)) {
+            return redirect()->route('admin.block-defaults.index')
+                ->withErrors(['copy' => '"' . $type . '" has no overrides to copy.']);
+        }
+
+        $validated = $request->validate([
+            'targets'   => ['required', 'array', 'min:1'],
+            'targets.*' => ['string'],
+        ]);
+
+        $valid = self::allCanonicalTypes();
+        $targets = [];
+        foreach ($validated['targets'] as $raw) {
+            $canonical = BlockTypeRegistry::canonical((string) $raw);
+            if ($canonical !== $type && in_array($canonical, $valid, true)) {
+                $targets[$canonical] = true;
+            }
+        }
+        $targets = array_keys($targets);
+
+        if (empty($targets)) {
+            return redirect()->route('admin.block-defaults.index')
+                ->withErrors(['copy' => 'No valid target types were selected.']);
+        }
+
+        foreach ($targets as $target) {
+            // Empty arrays clear any part the source doesn't override
+            // (saveAdminOverrideForType treats [] as "unset this part"), so
+            // the target ends up an exact copy of the source override.
+            BlockDefaults::saveAdminOverrideForType($target, [
+                'content' => $source['content'] ?? [],
+                'style'   => $source['style'] ?? [],
+            ]);
+        }
+
+        return redirect()->route('admin.block-defaults.index')
+            ->with('success', 'Copied "' . $type . '" overrides to ' . count($targets) . ' ' . Str::plural('type', count($targets)) . '.');
     }
 
     public function reset(string $type)
