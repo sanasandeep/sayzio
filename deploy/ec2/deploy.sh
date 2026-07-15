@@ -67,7 +67,9 @@ log "Pulling latest code..."
 git pull --ff-only
 
 log "Installing JS dependencies (frozen lockfile)..."
-pnpm install --frozen-lockfile
+# CI=1: non-interactive — lets pnpm proceed past prompts (e.g. recreating
+# node_modules after a pnpm version switch) instead of aborting with no TTY.
+CI=1 pnpm install --frozen-lockfile
 
 # ---------------------------------------------------------------------------
 # Laravel app (artifacts/1inme)
