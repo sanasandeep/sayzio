@@ -560,7 +560,7 @@ html.light-mode .compare-save-bar {
 @push('scripts')
 <script>
 // Plan name map for error summary display
-const __planNames = @js($plans->pluck('name', 'id')->mapKeys(fn($v, $k) => (string) $k));
+const __planNames = @js($plans->pluck('name', 'id')->mapWithKeys(fn($v, $k) => [(string) $k => $v]));
 
 function planCompare(initial) {
     return {
