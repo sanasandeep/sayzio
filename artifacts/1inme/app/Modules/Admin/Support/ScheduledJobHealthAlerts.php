@@ -276,6 +276,26 @@ class ScheduledJobHealthAlerts
             return; // Streak already alerted.
         }
 
+        // Race-condition guard: when two scheduler instances run the same job
+        // concurrently, a late failure record from the earlier instance can
+        // arrive after the later instance has already recorded a success and
+        // closed the episode. Check the most recent completed DB run — if it
+        // is a success, this failure is stale and must not (re)open an episode.
+        try {
+            $latestComplete = \App\Modules\Admin\Models\ScheduledJobRun::where('job_key', $jobKey)
+                ->whereIn('status', [\App\Modules\Admin\Models\ScheduledJobRun::STATUS_SUCCESS, \App\Modules\Admin\Models\ScheduledJobRun::STATUS_FAILED])
+                ->latest('finished_at')
+                ->first();
+
+            if ($latestComplete && $latestComplete->status === \App\Modules\Admin\Models\ScheduledJobRun::STATUS_SUCCESS) {
+                return; // A later successful run supersedes this failure — stay silent.
+            }
+        } catch (\Throwable $e) {
+            // Best-effort: if the DB check itself fails, fall through and alert
+            // (the alert is recoverable; silence on a real failure is worse).
+            Log::warning('scheduled-job-health latest-run guard failed: ' . $e->getMessage());
+        }
+
         $def     = ScheduledJobRegistry::find($jobKey);
         $purpose = is_array($def) ? (string) ($def['description'] ?? '') : '';
         $detail  = $error !== null && $error !== ''

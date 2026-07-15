@@ -26,6 +26,17 @@ class ScheduledJobRunRecorder
     /** @var array<string, int> job key => in-flight run row id */
     protected array $open = [];
 
+    /**
+     * Keys whose finish has already been recorded (either by ScheduledTaskFailed
+     * or ScheduledTaskFinished, whichever fired first). When an exception-throwing
+     * job exits, Laravel dispatches both ScheduledTaskFailed (immediately) AND
+     * ScheduledTaskFinished (after the process returns) — without this guard the
+     * second call hits the "no open row" fallback path and inserts a duplicate row.
+     *
+     * @var array<string, true>
+     */
+    protected array $closed = [];
+
     public function starting(Event $event): void
     {
         try {
@@ -55,6 +66,15 @@ class ScheduledJobRunRecorder
                 return;
             }
 
+            // Deduplication: when a job exits with an exception Laravel fires
+            // both ScheduledTaskFailed (immediately) and ScheduledTaskFinished
+            // (after the process returns). Without this guard the second call
+            // consumes the null open-run fallback path and inserts a duplicate
+            // row. The first event to arrive wins; the second is a no-op.
+            if (isset($this->closed[$key])) {
+                return;
+            }
+
             $attrs = [
                 'status'      => $ok ? ScheduledJobRun::STATUS_SUCCESS : ScheduledJobRun::STATUS_FAILED,
                 'finished_at' => Carbon::now(),
@@ -67,6 +87,7 @@ class ScheduledJobRunRecorder
             unset($this->open[$key]);
 
             if ($id !== null && ScheduledJobRun::whereKey($id)->update($attrs) > 0) {
+                $this->closed[$key] = true;
                 $this->maybePrune($key);
                 $this->alert($key, $ok, $error, $exitCode);
 
@@ -83,6 +104,7 @@ class ScheduledJobRunRecorder
                     : Carbon::now(),
             ]);
 
+            $this->closed[$key] = true;
             $this->maybePrune($key);
             $this->alert($key, $ok, $error, $exitCode);
         } catch (\Throwable $e) {
