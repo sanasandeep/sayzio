@@ -137,6 +137,17 @@ class DashboardSwitchController extends Controller
                 ->with('success', 'AI and the Voice Assistant are now enabled.');
         }
 
+        // Engine + voice toggle are already on but a per-plan allowlist is
+        // blocking the feature: clear it so every plan can use voice. Only
+        // reachable via the admin gate above (settings.manage).
+        if ($feature === 'voice-plans') {
+            AiEngineSettings::setVoiceEnabled(true);
+            AiEngineSettings::setVoiceEnabledPlans([]);
+
+            return redirect($this->resolveAiReturnTarget($request))
+                ->with('success', 'Voice Assistant is now available on all plans.');
+        }
+
         return redirect($this->resolveAiReturnTarget($request))
             ->with('success', 'AI is now enabled.');
     }

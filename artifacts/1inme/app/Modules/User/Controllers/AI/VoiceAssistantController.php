@@ -70,6 +70,12 @@ class VoiceAssistantController extends Controller
             return view('user.ai.disabled', [
                 'title'       => 'Voice Assistant',
                 'upgradePlan' => AiEngineSettings::voiceUpgradePlanFor($user),
+                // The engine and voice toggle are ON here — the gate is the
+                // per-plan allowlist. Tell the view so an admin sees the real
+                // blocker (and a one-click "allow all plans" fix) instead of
+                // the misleading "AI is turned off" card whose button flips
+                // switches that are already on.
+                'planGate'    => 'voice',
             ]);
         }
 
