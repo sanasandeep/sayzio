@@ -45,7 +45,11 @@
         "android.permission.VIBRATE",
         "android.permission.RECORD_AUDIO",
         "android.permission.READ_CALENDAR",
-        "android.permission.WRITE_CALENDAR"
+        "android.permission.WRITE_CALENDAR",
+        "android.permission.USE_BIOMETRIC",
+        "android.permission.USE_FINGERPRINT",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.MODIFY_AUDIO_SETTINGS"
       ],
       "intentFilters": [
         {
@@ -108,7 +112,9 @@
             "NSExtensionActivationSupportsWebPageWithMaxCount": 1,
             "NSExtensionActivationSupportsText": true
           },
-          "androidIntentFilters": ["text/*"]
+          "androidIntentFilters": [
+            "text/*"
+          ]
         }
       ],
       "expo-web-browser",
@@ -152,7 +158,10 @@
     },
     "extra": {
       "eas": {
-        "projectId": "eas-project-id-placeholder"
+        "projectId": "7d456b75-3a4b-4f59-95b1-369f0cb1ba77"
+      },
+      "router": {
+        "origin": "https://sayzio.app/"
       }
     }
   }
