@@ -92,6 +92,20 @@ export function upgradeHintFromError(error: unknown): UpgradeHint | undefined {
 }
 
 /**
+ * Build the in-app router target for the /upgrade screen, attaching the
+ * recommended-plan hint as `?plan=` / `?feature=` params so the screen can
+ * highlight and scroll to the right plan. With no hint, routes to the bare
+ * screen (generic free/popular view).
+ */
+export function upgradeRoute(hint?: UpgradeHint) {
+  if (!hint || (!hint.planSlug && !hint.feature)) return "/upgrade";
+  const params: Record<string, string> = {};
+  if (hint.planSlug) params.plan = hint.planSlug;
+  if (hint.feature) params.feature = hint.feature;
+  return { pathname: "/upgrade", params };
+}
+
+/**
  * Open the website's pricing page in the OS external browser (Safari / Chrome).
  * The external browser does not carry the app's session, so we always land on
  * the public /pricing page rather than the authenticated /user/upgrade page.
