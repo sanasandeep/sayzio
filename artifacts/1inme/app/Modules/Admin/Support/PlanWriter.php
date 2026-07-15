@@ -34,7 +34,7 @@ class PlanWriter
         $addonIds = $validated['addon_ids'] ?? [];
         unset($validated['addon_ids']);
 
-        $validated['features'] = $this->collectFeatures($request, $validated['features'] ?? []);
+        $validated['features'] = $this->collectFeatures($request, (array) $request->input('features', []));
         $validated['intro_discount'] = \App\Services\Billing\IntroDiscount::normalize($request->input('intro_discount'));
 
         // Down-convert MINOR → MAJOR for legacy decimal columns; the
@@ -67,7 +67,7 @@ class PlanWriter
         $addonIds = $validated['addon_ids'] ?? [];
         unset($validated['addon_ids']);
 
-        $validated['features'] = $this->collectFeatures($request, $validated['features'] ?? [], $plan->features ?? []);
+        $validated['features'] = $this->collectFeatures($request, (array) $request->input('features', []), $plan->features ?? []);
         $validated['intro_discount'] = \App\Services\Billing\IntroDiscount::normalize($request->input('intro_discount'));
 
         $minor = $this->minorPrices($validated);

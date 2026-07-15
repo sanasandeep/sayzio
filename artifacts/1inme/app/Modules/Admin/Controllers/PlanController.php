@@ -226,9 +226,23 @@ class PlanController extends Controller
         $blockMode    = ($blockAllowed === '*' || $blockAllowed === null) ? 'all' : 'pick';
         $blockTypes   = is_array($blockAllowed) ? $blockAllowed : [];
 
-        $providerMode = [];
+        // Per-kind provider allowlists: kinds in "all" mode are stored as the
+        // string '*', but the validation rules (and the real edit form) only
+        // accept ARRAYS under integration_providers_allowed.<kind> — the form
+        // simply omits the list for "all" kinds and lets provider_mode drive
+        // it. Mirror that here: emit provider_mode for every kind, but only
+        // emit the pick list for kinds actually in "pick" mode, otherwise a
+        // stored '*' fails validation and the whole plan's bulk save 422s.
+        $providerMode  = [];
+        $providerLists = [];
         foreach (array_keys(\App\Modules\User\Support\IntegrationConfigRegistry::kinds()) as $kind) {
-            $providerMode[$kind] = (($intAllowed[$kind] ?? '*') === '*') ? 'all' : 'pick';
+            $stored = $intAllowed[$kind] ?? '*';
+            if (is_array($stored)) {
+                $providerMode[$kind]  = 'pick';
+                $providerLists[$kind] = $stored;
+            } else {
+                $providerMode[$kind] = 'all';
+            }
         }
 
         return [
@@ -255,7 +269,7 @@ class PlanController extends Controller
             'addon_ids'                     => $plan->addons()->pluck('addons.id')->all(),
             'intro_discount'                => $plan->intro_discount ?? [],
             'provider_mode'                 => $providerMode,
-            'integration_providers_allowed' => $intAllowed,
+            'integration_providers_allowed' => $providerLists,
         ];
     }
 
