@@ -94,6 +94,159 @@ class PlanController extends Controller
         return redirect()->route('admin.plans.index')->with('success', 'Plan updated successfully.');
     }
 
+    // ======================== COMPARE & EDIT ========================
+
+    /**
+     * Render the side-by-side compare & edit grid for 2–6 selected plans.
+     * Plan IDs are passed as ?ids[]=1&ids[]=2 query parameters from the index.
+     */
+    public function compareView(Request $request): \Illuminate\Http\RedirectResponse|\Illuminate\Contracts\View\View
+    {
+        $ids = array_values(array_filter(array_map('intval', (array) $request->input('ids', []))));
+
+        if (count($ids) < 2) {
+            return redirect()->route('admin.plans.index')->with('error', 'Select at least 2 plans to compare.');
+        }
+        if (count($ids) > 6) {
+            return redirect()->route('admin.plans.index')->with('error', 'Select at most 6 plans to compare at once.');
+        }
+
+        $plans = Plan::with(['prices', 'addons'])->whereIn('id', $ids)->orderBy('sort_order')->get();
+
+        if ($plans->count() < 2) {
+            return redirect()->route('admin.plans.index')->with('error', 'Could not load the selected plans.');
+        }
+
+        return view('admin.plans.compare', compact('plans'));
+    }
+
+    /**
+     * Accept per-plan changes submitted from the compare & edit grid, validate
+     * each through the standard PlanWriter path (same rules, price-sync and
+     * cache flush as single-plan editing), and persist all valid plans in one
+     * transaction. Returns JSON so the Alpine component can flag problem cells.
+     */
+    public function bulkSave(Request $request): \Illuminate\Http\JsonResponse
+    {
+        $request->validate(['plans' => 'required|array', 'plans.*' => 'array']);
+
+        $errors   = [];
+        $okPlans  = [];
+        $payloads = [];
+
+        // First pass: load plans + validate — outside the transaction so a bad
+        // plan doesn't roll back the already-validated ones.
+        foreach ($request->input('plans') as $rawId => $changes) {
+            $id   = (int) $rawId;
+            $plan = Plan::with(['prices', 'addons'])->find($id);
+            if (!$plan) {
+                $errors[$id] = ['_plan' => ['Plan not found.']];
+                continue;
+            }
+
+            $payload = $this->buildSyntheticPayload($plan, (array) $changes);
+            $synReq  = \Illuminate\Http\Request::create('', 'POST', $payload);
+
+            try {
+                $synReq->validate($this->writer->rules());
+                $okPlans[$id]  = $plan;
+                $payloads[$id] = $payload;
+            } catch (\Illuminate\Validation\ValidationException $e) {
+                $errors[$id] = $e->errors();
+            }
+        }
+
+        // Second pass: write all valid plans atomically.
+        $updated = 0;
+        if (!empty($okPlans)) {
+            \Illuminate\Support\Facades\DB::transaction(function () use ($okPlans, $payloads, &$updated) {
+                foreach ($okPlans as $id => $plan) {
+                    $synReq = \Illuminate\Http\Request::create('', 'POST', $payloads[$id]);
+                    $this->writer->updateFromRequest($synReq, $plan);
+                    $updated++;
+                }
+            });
+            \App\Modules\Common\Support\PricingPageCache::flush();
+        }
+
+        return response()->json([
+            'ok'      => $updated > 0,
+            'updated' => $updated,
+            'errors'  => $errors,
+        ], ($errors && !$updated) ? 422 : 200);
+    }
+
+    /**
+     * Build a complete request payload for one plan by merging the compare-
+     * view's submitted changes onto the plan's existing state. The result is
+     * suitable for passing to PlanWriter::updateFromRequest(), which expects
+     * a full form payload (all required fields present, block/integration
+     * settings at the top level, etc.).
+     *
+     * Keys managed outside the features blob (block_types_allowed,
+     * integration_providers_allowed) are extracted from the existing plan and
+     * re-emitted at the top level so collectFeatures() finds them correctly.
+     */
+    private function buildSyntheticPayload(Plan $plan, array $changes): array
+    {
+        $usdMonthly = (int) round(((float) $plan->monthly_price) * 100);
+        $usdAnnual  = (int) round(((float) $plan->annual_price) * 100);
+        $inrMonthly = (int) round(((float) $plan->monthly_price_secondary) * 100);
+        $inrAnnual  = (int) round(((float) $plan->annual_price_secondary) * 100);
+
+        $existing  = $plan->features ?? [];
+        $submitted = array_diff_key(
+            (array) ($changes['features'] ?? []),
+            array_flip(['block_types_allowed', 'integration_providers_allowed', 'integration_accounts_max'])
+        );
+
+        // Merge submitted changes onto the full existing features blob so keys
+        // the compare UI does not show (e.g. referral fields, upload_limits)
+        // are preserved untouched.
+        $merged = array_merge($existing, $submitted);
+        unset($merged['block_types_allowed'], $merged['integration_providers_allowed'], $merged['integration_accounts_max']);
+
+        $blockAllowed = $existing['block_types_allowed'] ?? '*';
+        $intAllowed   = is_array($existing['integration_providers_allowed'] ?? null)
+                        ? $existing['integration_providers_allowed'] : [];
+        $blockMode    = ($blockAllowed === '*' || $blockAllowed === null) ? 'all' : 'pick';
+        $blockTypes   = is_array($blockAllowed) ? $blockAllowed : [];
+
+        $providerMode = [];
+        foreach (array_keys(\App\Modules\User\Support\IntegrationConfigRegistry::kinds()) as $kind) {
+            $providerMode[$kind] = (($intAllowed[$kind] ?? '*') === '*') ? 'all' : 'pick';
+        }
+
+        return [
+            'name'                          => $changes['name']                    ?? $plan->name,
+            'description'                   => $changes['description']             ?? ($plan->description ?? ''),
+            'monthly_price'                 => $changes['monthly_price']           ?? $usdMonthly,
+            'annual_price'                  => $changes['annual_price']            ?? $usdAnnual,
+            'monthly_price_secondary'       => $changes['monthly_price_secondary'] ?? $inrMonthly,
+            'annual_price_secondary'        => $changes['annual_price_secondary']  ?? $inrAnnual,
+            'trial_days'                    => $changes['trial_days']              ?? (int) $plan->trial_days,
+            'grace_days'                    => $changes['grace_days']              ?? (int) $plan->grace_days,
+            'refund_window_days'            => $changes['refund_window_days']      ?? (int) $plan->refund_window_days,
+            'status'                        => $changes['status']                  ?? $plan->status,
+            'sort_order'                    => $changes['sort_order']              ?? (int) $plan->sort_order,
+            'is_popular'                    => isset($changes['is_popular'])
+                                               ? ($changes['is_popular'] ? '1' : '0')
+                                               : ($plan->is_popular ? '1' : '0'),
+            'is_internal'                   => isset($changes['is_internal'])
+                                               ? ($changes['is_internal'] ? '1' : '0')
+                                               : ($plan->is_internal ? '1' : '0'),
+            'features'                      => $merged,
+            'block_mode'                    => $blockMode,
+            'block_types_allowed'           => $blockTypes,
+            'addon_ids'                     => $plan->addons()->pluck('addons.id')->all(),
+            'intro_discount'                => $plan->intro_discount ?? [],
+            'provider_mode'                 => $providerMode,
+            'integration_providers_allowed' => $intAllowed,
+        ];
+    }
+
+    // ======================== END COMPARE & EDIT ========================
+
     public function destroy(Plan $plan)
     {
         if ($plan->users()->count() > 0) {

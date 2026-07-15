@@ -1,6 +1,15 @@
-    <div class="glass rounded-2xl border border-white/10  p-6 {{ $plan->is_archived ? 'opacity-60' : '' }}">
-        <div class="flex items-center justify-between mb-2">
-            <h3 class="font-semibold text-white flex items-center gap-2">
+    <div class="glass rounded-2xl border border-white/10 p-6 {{ $plan->is_archived ? 'opacity-60' : '' }} relative">
+        {{-- Compare & Edit checkbox (visible when selection mode is implied by planIndex scope) --}}
+        <div class="absolute top-4 right-4 z-10" title="Select to compare">
+            <input type="checkbox"
+                   class="plan-card-checkbox"
+                   :checked="selected['{{ $plan->id }}'] ?? false"
+                   @change="toggle('{{ $plan->id }}')"
+                   aria-label="Select {{ addslashes($plan->name) }} for comparison">
+        </div>
+
+        <div class="flex items-center justify-between mb-2 pr-7">
+            <h3 class="font-semibold text-white flex items-center gap-2 flex-wrap">
                 {{ $plan->name }}
                 @if($plan->is_popular)
                     <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-blue-500/15 text-blue-300" title="Shown as Most Popular on the homepage">
@@ -28,8 +37,6 @@
         <p class="text-sm text-white/40 mb-4">{{ $plan->description ?? 'No description' }}</p>
 
         @php
-            // Shared dual-currency display logic (single source of truth
-            // with the admin Addons listing — see PricingResolver).
             $__mon = \App\Services\PricingResolver::adminDisplayPair($plan, 'monthly');
             $__ann = \App\Services\PricingResolver::adminDisplayPair($plan, 'annual');
         @endphp
