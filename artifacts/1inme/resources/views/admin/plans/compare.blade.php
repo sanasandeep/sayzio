@@ -93,6 +93,7 @@ foreach ($plans as $plan) {
         'trial_days'              => (int) $plan->trial_days,
         'grace_days'              => (int) $plan->grace_days,
         'refund_window_days'      => (int) $plan->refund_window_days,
+        '_loaded_at'              => $plan->updated_at?->toISOString(),
         'features'                => [],
     ];
 
@@ -671,6 +672,11 @@ function planCompare(initial) {
                     // Advance the baseline for plans that saved successfully
                     for (const id of Object.keys(payload)) {
                         if (!this.errors[id]) {
+                            // Adopt the server's fresh updated_at so the next
+                            // save passes the optimistic-concurrency check.
+                            if (data.saved_at && data.saved_at[id]) {
+                                this.plans[id]._loaded_at = data.saved_at[id];
+                            }
                             this.original[id] = JSON.parse(JSON.stringify(this.plans[id]));
                         }
                     }

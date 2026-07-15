@@ -144,6 +144,17 @@ class PlanController extends Controller
                 continue;
             }
 
+            // Optimistic-concurrency check: the compare page embeds each
+            // plan's updated_at at load time. If the plan has been modified
+            // since (by another admin or elsewhere), reject the save for this
+            // plan instead of silently clobbering the newer edit.
+            $loadedAt  = isset($changes['_loaded_at']) ? (string) $changes['_loaded_at'] : null;
+            $currentAt = $plan->updated_at?->toISOString();
+            if ($loadedAt !== null && $loadedAt !== '' && $currentAt !== null && $loadedAt !== $currentAt) {
+                $errors[$id] = ['_plan' => ['This plan was changed since you loaded the page. Reload to see the latest values before saving.']];
+                continue;
+            }
+
             $payload = $this->buildSyntheticPayload($plan, (array) $changes);
             $synReq  = \Illuminate\Http\Request::create('', 'POST', $payload);
 
@@ -158,11 +169,13 @@ class PlanController extends Controller
 
         // Second pass: write all valid plans atomically.
         $updated = 0;
+        $savedAt = [];
         if (!empty($okPlans)) {
-            \Illuminate\Support\Facades\DB::transaction(function () use ($okPlans, $payloads, &$updated) {
+            \Illuminate\Support\Facades\DB::transaction(function () use ($okPlans, $payloads, &$updated, &$savedAt) {
                 foreach ($okPlans as $id => $plan) {
                     $synReq = \Illuminate\Http\Request::create('', 'POST', $payloads[$id]);
                     $this->writer->updateFromRequest($synReq, $plan);
+                    $savedAt[$id] = $plan->fresh()?->updated_at?->toISOString();
                     $updated++;
                 }
             });
@@ -170,9 +183,10 @@ class PlanController extends Controller
         }
 
         return response()->json([
-            'ok'      => $updated > 0,
-            'updated' => $updated,
-            'errors'  => $errors,
+            'ok'       => $updated > 0,
+            'updated'  => $updated,
+            'errors'   => $errors,
+            'saved_at' => $savedAt,
         ], ($errors && !$updated) ? 422 : 200);
     }
 
