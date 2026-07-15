@@ -35,13 +35,15 @@ LARAVEL_DIR="$APP_DIR/artifacts/1inme"
 
 # --- PHP-FPM unit name: php8.4-fpm (Ubuntu/ondrej) vs php-fpm (AL2023) -----
 if [ -z "${PHP_FPM_SERVICE:-}" ]; then
-  if systemctl list-unit-files 'php8.4-fpm.service' 2>/dev/null | grep -q '^php8\.4-fpm\.service'; then
-    PHP_FPM_SERVICE=php8.4-fpm
-  elif systemctl list-unit-files 'php-fpm.service' 2>/dev/null | grep -q '^php-fpm\.service'; then
-    PHP_FPM_SERVICE=php-fpm
-  else
-    PHP_FPM_SERVICE=php8.4-fpm   # historical default; override via env if needed
-  fi
+  # `systemctl cat` is the reliable existence probe (list-unit-files output
+  # formatting varies and broke the old grep-based detection on AL2023).
+  for _svc in php-fpm php8.4-fpm php8.3-fpm; do
+    if systemctl cat "${_svc}.service" >/dev/null 2>&1; then
+      PHP_FPM_SERVICE="$_svc"
+      break
+    fi
+  done
+  PHP_FPM_SERVICE="${PHP_FPM_SERVICE:-php-fpm}"  # override via env if needed
 fi
 
 # --- FPM runtime user: www-data (Ubuntu) vs apache (AL2023 default pool) ---

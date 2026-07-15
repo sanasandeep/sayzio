@@ -34,6 +34,17 @@ jobs:
               "ec2-user@${{ secrets.DEPLOY_HOST }}" \
               "echo 'sayzio ALL=(root) NOPASSWD: /usr/bin/systemctl, /usr/sbin/nginx, /usr/bin/nginx' | sudo tee /etc/sudoers.d/sayzio-deploy >/dev/null && sudo chmod 440 /etc/sudoers.d/sayzio-deploy && sudo chown -R sayzio:sayzio /var/www/sayzio/artifacts/1inme/storage /var/www/sayzio/artifacts/1inme/bootstrap/cache"
 
+      # Update the checkout BEFORE invoking deploy.sh so the run executes the
+      # newest script (deploy.sh's own `git pull` updates the file mid-run,
+      # which otherwise leaves every run one script version behind).
+      - name: Update code on EC2
+        run: |
+          ssh -i ~/.ssh/deploy_key \
+              -o StrictHostKeyChecking=yes \
+              -o ConnectTimeout=30 \
+              "sayzio@${{ secrets.DEPLOY_HOST }}" \
+              'git -C /var/www/sayzio fetch origin main && git -C /var/www/sayzio reset --hard origin/main'
+
       - name: Run deploy script on EC2
         run: |
           ssh -i ~/.ssh/deploy_key \
