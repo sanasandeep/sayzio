@@ -903,7 +903,11 @@ export default function Onboarding() {
   }, [index]);
 
   const finish = async () => {
-    await setOnboardingComplete(true);
+    try {
+      await setOnboardingComplete(true);
+    } catch {
+      // A storage failure must not dead-end the user — always navigate.
+    }
     router.replace(user ? "/(tabs)" : "/(auth)");
   };
 

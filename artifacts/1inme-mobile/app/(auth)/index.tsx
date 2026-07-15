@@ -64,15 +64,18 @@ const HAS_GOOGLE_NATIVE =
   !!process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID ||
   !!process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID;
 
-// On web, expo-auth-session's useIdTokenAuthRequest THROWS at render when no
-// webClientId is configured ("Client Id property `webClientId` must be defined
-// to use Google auth on this platform."), which crashes the whole login screen
-// into the error boundary. On native it safely no-ops without a client id.
-// So only invoke the hook when it's safe to do so. Both Platform.OS and the
-// env var are module-level constants for the app's lifetime, so this condition
-// never changes between renders and the hook call order stays stable.
+// expo-auth-session's useIdTokenAuthRequest can throw at render when no
+// usable client ID is compiled in for the current platform — on web it throws
+// if webClientId is absent; on standalone Android/iOS builds the "safely
+// no-ops" assumption is not reliable and can crash the screen into the error
+// boundary. Guard the hook so it is only invoked when a client ID exists for
+// the current platform. Both Platform.OS and the env vars are module-level
+// constants for the app's lifetime, so this condition never changes between
+// renders and the hook-call order stays stable.
 const GOOGLE_AUTH_SAFE_TO_INIT =
-  Platform.OS !== "web" || !!process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID;
+  Platform.OS === "web"
+    ? !!process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID
+    : HAS_GOOGLE_NATIVE;
 
 type GoogleAuth = ReturnType<typeof Google.useIdTokenAuthRequest>;
 
