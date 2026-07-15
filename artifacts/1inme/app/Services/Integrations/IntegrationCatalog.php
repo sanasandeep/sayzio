@@ -194,6 +194,22 @@ class IntegrationCatalog
                     ],
                 ],
             ],
+            [
+                'key'   => 'system',
+                'label' => 'System',
+                'icon'  => 'fas fa-server',
+                'items' => [
+                    [
+                        'key'      => 'system-update',
+                        'label'    => 'System Update (GitHub → EC2)',
+                        'desc'     => 'Check for new commits and trigger the GitHub Actions deploy to EC2 with one click. Not applicable on Replit (managed by the platform there).',
+                        'icon'     => 'fas fa-circle-up',
+                        'status'   => self::systemUpdateStatus(),
+                        'route'    => route('admin.system-update.show'),
+                        'external' => false,
+                    ],
+                ],
+            ],
         ];
     }
 
@@ -313,5 +329,25 @@ class IntegrationCatalog
             return ['key' => 'default', 'label' => 'System defaults', 'tone' => 'slate'];
         }
         return ['key' => 'customised', 'label' => $count . ' ' . Str::plural('type', $count) . ' customised', 'tone' => 'green'];
+    }
+
+    private static function systemUpdateStatus(): array
+    {
+        if (\App\Services\Integrations\SystemUpdateService::isReplit()) {
+            return ['key' => 'managed', 'label' => 'Managed by Replit', 'tone' => 'slate'];
+        }
+        if (!\App\Services\Integrations\SystemUpdateService::isConfigured()) {
+            return ['key' => 'not_configured', 'label' => 'Not configured', 'tone' => 'amber'];
+        }
+        try {
+            $status = \App\Services\Integrations\SystemUpdateService::cachedStatus();
+            if (!empty($status['available'])) {
+                $behind = $status['commits_behind'] ? $status['commits_behind'] . ' commits behind' : 'Update available';
+                return ['key' => 'update_available', 'label' => $behind, 'tone' => 'amber'];
+            }
+            return ['key' => 'up_to_date', 'label' => 'Up to date', 'tone' => 'green'];
+        } catch (\Throwable $e) {
+            return ['key' => 'unknown', 'label' => 'Unknown', 'tone' => 'slate'];
+        }
     }
 }

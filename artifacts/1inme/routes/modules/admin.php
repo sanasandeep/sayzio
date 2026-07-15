@@ -71,6 +71,15 @@ Route::prefix('admin')->name('admin.')->group(function () {
         // "Last updated" timestamp in place (no page reload needed).
         Route::get('meta/last-updated', [DashboardController::class, 'lastUpdated'])->name('meta.last-updated');
 
+        // System update: GitHub→EC2 one-click deploy surface.
+        Route::prefix('system-update')->name('system-update.')->group(function () {
+            Route::get('/',        [\App\Modules\Admin\Controllers\SystemUpdateController::class, 'show'])->middleware(CheckPermission::class . ':settings.manage')->name('show');
+            Route::post('deploy',  [\App\Modules\Admin\Controllers\SystemUpdateController::class, 'triggerDeploy'])->middleware(CheckPermission::class . ':settings.manage')->name('deploy');
+            Route::get('status',   [\App\Modules\Admin\Controllers\SystemUpdateController::class, 'pollStatus'])->middleware(CheckPermission::class . ':settings.manage')->name('status');
+            Route::post('refresh', [\App\Modules\Admin\Controllers\SystemUpdateController::class, 'refresh'])->middleware(CheckPermission::class . ':settings.manage')->name('refresh');
+            Route::post('dismiss', [\App\Modules\Admin\Controllers\SystemUpdateController::class, 'dismiss'])->middleware(CheckPermission::class . ':settings.manage')->name('dismiss');
+        });
+
         // Seamless switch from the back-office to the matching user dashboard.
         Route::post('switch-to-user', [\App\Modules\Common\Controllers\DashboardSwitchController::class, 'toUser'])->name('switch-to-user');
 

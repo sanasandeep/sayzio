@@ -15,6 +15,7 @@ use App\Modules\User\Models\User;
 use App\Modules\Admin\Models\Admin;
 use App\Modules\Admin\Models\Plan;
 use App\Modules\Admin\Models\SchemaRepairAudit;
+use App\Services\Integrations\SystemUpdateService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
@@ -76,7 +77,20 @@ class DashboardController extends Controller
         // mirroring the SchemaHealth banner. Cheap: one cached AppSetting read.
         $failureEpisodes = ScheduledJobHealthAlerts::openEpisodes();
 
-        return view('admin.dashboard.index', compact('stats', 'schemaHealth', 'workspaceColumnHealth', 'expectedSchemaHealth', 'statsStorage', 'contactRecipientHealth', 'templateGalleryHealth', 'bgTemplateHealth', 'failureEpisodes'));
+        // Proactive system-update banner: compares the running commit with the
+        // latest on GitHub main. Only shown on EC2 (not Replit), and only when
+        // the token/repo are configured. Cached 5 minutes so the dashboard
+        // render doesn't block on GitHub API calls.
+        $updateStatus = null;
+        try {
+            if (!SystemUpdateService::isReplit() && SystemUpdateService::isConfigured()) {
+                $updateStatus = SystemUpdateService::cachedStatus();
+            }
+        } catch (\Throwable $e) {
+            // best-effort — never let a GitHub API blip break the dashboard
+        }
+
+        return view('admin.dashboard.index', compact('stats', 'schemaHealth', 'workspaceColumnHealth', 'expectedSchemaHealth', 'statsStorage', 'contactRecipientHealth', 'templateGalleryHealth', 'bgTemplateHealth', 'failureEpisodes', 'updateStatus'));
     }
 
     /**
