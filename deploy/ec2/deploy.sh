@@ -139,10 +139,20 @@ if [ "${SKIP_SERVICES:-0}" = "1" ]; then
   log "SKIP_SERVICES=1 — skipping service reloads."
 else
   log "Reloading services..."
-  sudo systemctl reload "$PHP_FPM_SERVICE"
-  sudo systemctl restart sayzio-api.service
-  sudo systemctl restart sayzio-queue.service
-  sudo nginx -t && sudo systemctl reload nginx
+  # -n = never prompt for a password (an automated deploy has no terminal).
+  # If passwordless sudo isn't configured for the deploy user, fail with
+  # actionable instructions instead of a hanging/opaque password prompt.
+  if ! sudo -n true 2>/dev/null; then
+    echo "ERROR: the deploy user '$(id -un)' cannot use passwordless sudo, so services cannot be reloaded." >&2
+    echo "Fix once on the server (as ec2-user or root):" >&2
+    echo "  echo 'sayzio ALL=(root) NOPASSWD: /usr/bin/systemctl, /usr/sbin/nginx, /usr/bin/nginx' | sudo tee /etc/sudoers.d/sayzio-deploy" >&2
+    echo "  sudo chmod 440 /etc/sudoers.d/sayzio-deploy" >&2
+    exit 1
+  fi
+  sudo -n systemctl reload "$PHP_FPM_SERVICE"
+  sudo -n systemctl restart sayzio-api.service
+  sudo -n systemctl restart sayzio-queue.service
+  sudo -n nginx -t && sudo -n systemctl reload nginx
 fi
 
 # ---------------------------------------------------------------------------
