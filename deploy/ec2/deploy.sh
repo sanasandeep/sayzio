@@ -142,7 +142,9 @@ else
   # -n = never prompt for a password (an automated deploy has no terminal).
   # If passwordless sudo isn't configured for the deploy user, fail with
   # actionable instructions instead of a hanging/opaque password prompt.
-  if ! sudo -n true 2>/dev/null; then
+  # Probe with systemctl itself: sudoers may grant only specific commands
+  # (systemctl/nginx), in which case `sudo -n true` would falsely fail.
+  if ! sudo -n systemctl --version >/dev/null 2>&1; then
     echo "ERROR: the deploy user '$(id -un)' cannot use passwordless sudo, so services cannot be reloaded." >&2
     echo "Fix once on the server (as ec2-user or root):" >&2
     echo "  echo 'sayzio ALL=(root) NOPASSWD: /usr/bin/systemctl, /usr/sbin/nginx, /usr/bin/nginx' | sudo tee /etc/sudoers.d/sayzio-deploy" >&2
