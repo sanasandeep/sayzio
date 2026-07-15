@@ -1,6 +1,6 @@
 @extends('admin.layouts.app')
 @section('title', 'Compare Plans')
-@section('page-title', 'Compare &amp; Edit Plans')
+@section('page-title', 'Compare & Edit Plans')
 
 @php
 use App\Modules\Common\Support\PlanFormCatalogue;
@@ -203,7 +203,7 @@ html.light-mode .compare-cell-error .cmp-input {
 /* Shared input style */
 .cmp-input {
     width: 100%;
-    background: rgba(255,255,255,0.06);
+    background-color: rgba(255,255,255,0.06);
     border: 1px solid rgba(255,255,255,0.1);
     border-radius: 8px;
     color: #fff;
@@ -215,9 +215,18 @@ html.light-mode .compare-cell-error .cmp-input {
 }
 .cmp-input:focus { border-color: rgba(61,107,255,0.6); box-shadow: 0 0 0 2px rgba(61,107,255,0.15); }
 html.light-mode .cmp-input {
-    background: #fff;
+    background-color: #fff;
     border-color: #cbd5e1;
     color: #0f172a;
+}
+/* Selects keep the single themed chevron (never tiled), regardless of
+   the background-color rules above. */
+select.cmp-input,
+html.light-mode select.cmp-input {
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+    background-size: 1rem 1rem;
+    padding-right: 2.25rem;
 }
 html.light-mode .cmp-input:focus { border-color: #3d6bff; box-shadow: 0 0 0 2px rgba(61,107,255,0.12); }
 
