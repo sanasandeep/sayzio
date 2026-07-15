@@ -79,6 +79,11 @@ return [
         'cadence'     => ['hourlyAt', 55],
     ],
     [
+        'key'         => 'github:check-token',
+        'description' => 'Verify the GitHub push token (GITHUB_TOKEN) still authenticates and warn ops admins before it expires — a dead token makes post-publish pushes fail silently and the repo drift behind the workspace.',
+        'cadence'     => ['dailyAt', '06:20'],
+    ],
+    [
         'key'         => 'bg-templates:check-library',
         'description' => 'Alert ops admins when the biolink background template library goes empty or drops below its expected floor, and all-clear once restored.',
         'cadence'     => ['hourlyAt', 50],

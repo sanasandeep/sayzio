@@ -215,20 +215,98 @@ class PlanController extends Controller
         );
 
         // Merge submitted changes onto the full existing features blob so keys
-        // the compare UI does not show (e.g. referral fields, upload_limits)
-        // are preserved untouched.
+        // the compare UI does not expose are preserved untouched.
         $merged = array_merge($existing, $submitted);
         unset($merged['block_types_allowed'], $merged['integration_providers_allowed'], $merged['integration_accounts_max']);
 
-        $blockAllowed = $existing['block_types_allowed'] ?? '*';
-        $intAllowed   = is_array($existing['integration_providers_allowed'] ?? null)
-                        ? $existing['integration_providers_allowed'] : [];
-        $blockMode    = ($blockAllowed === '*' || $blockAllowed === null) ? 'all' : 'pick';
-        $blockTypes   = is_array($blockAllowed) ? $blockAllowed : [];
+        // ── Block allowlist ───────────────────────────────────────────────
+        // Accept block_mode + block_types from compare-grid $changes if present;
+        // otherwise fall back to the existing plan's stored setting.
+        if (array_key_exists('block_mode', $changes)) {
+            $blockMode  = ($changes['block_mode'] === 'pick') ? 'pick' : 'all';
+            $blockTypes = ($blockMode === 'pick') ? array_values((array) ($changes['block_types'] ?? [])) : [];
+        } else {
+            $blockAllowed = $existing['block_types_allowed'] ?? '*';
+            $blockMode    = ($blockAllowed === '*' || $blockAllowed === null) ? 'all' : 'pick';
+            $blockTypes   = is_array($blockAllowed) ? $blockAllowed : [];
+        }
 
-        $providerMode = [];
-        foreach (array_keys(\App\Modules\User\Support\IntegrationConfigRegistry::kinds()) as $kind) {
-            $providerMode[$kind] = (($intAllowed[$kind] ?? '*') === '*') ? 'all' : 'pick';
+        // ── Integration account caps ──────────────────────────────────────
+        // Caps submitted from the compare grid land as $changes['integration_caps'][kind].
+        // Merge into features['integration_accounts_max'] so PlanWriter finds them.
+        $existingCaps  = is_array($existing['integration_accounts_max'] ?? null)
+                         ? $existing['integration_accounts_max'] : [];
+        $submittedCaps = is_array($changes['integration_caps'] ?? null)
+                         ? array_map('intval', $changes['integration_caps']) : [];
+        $intCaps = array_merge($existingCaps, $submittedCaps);
+        if (!empty($intCaps)) {
+            $merged['integration_accounts_max'] = $intCaps;
+        }
+
+        // ── Integration provider allowlists ───────────────────────────────
+        // Compare grid submits integration_mode[kind] and integration_providers[kind].
+        // Map onto the provider_mode[] + integration_providers_allowed[] that PlanWriter expects.
+        $existingIntAllowed = is_array($existing['integration_providers_allowed'] ?? null)
+                              ? $existing['integration_providers_allowed'] : [];
+        $submittedIntMode   = is_array($changes['integration_mode'] ?? null)
+                              ? $changes['integration_mode'] : [];
+        $submittedIntProv   = is_array($changes['integration_providers'] ?? null)
+                              ? $changes['integration_providers'] : [];
+
+        $providerMode  = [];
+        $providerLists = [];
+        $allKinds = array_keys(\App\Modules\User\Support\IntegrationConfigRegistry::kinds());
+        foreach ($allKinds as $kind) {
+            // If the compare grid submitted a mode for this kind, use it;
+            // otherwise derive from the stored value (same logic as before).
+            if (array_key_exists($kind, $submittedIntMode)) {
+                $mode = $submittedIntMode[$kind] === 'pick' ? 'pick' : 'all';
+            } else {
+                $stored = $existingIntAllowed[$kind] ?? '*';
+                $mode   = is_array($stored) ? 'pick' : 'all';
+            }
+            $providerMode[$kind] = $mode;
+            if ($mode === 'pick') {
+                // Use submitted providers for this kind if the compare grid touched it,
+                // otherwise keep the existing stored list.
+                $providerLists[$kind] = array_key_exists($kind, $submittedIntMode)
+                    ? array_values((array) ($submittedIntProv[$kind] ?? []))
+                    : (is_array($existingIntAllowed[$kind] ?? null) ? $existingIntAllowed[$kind] : []);
+            }
+        }
+
+        // ── Addon IDs ─────────────────────────────────────────────────────
+        // Accept addon_ids from compare grid if submitted.
+        if (array_key_exists('addon_ids', $changes)) {
+            $addonIds = array_map('intval', (array) $changes['addon_ids']);
+        } else {
+            $addonIds = $plan->addons()->pluck('addons.id')->all();
+        }
+
+        // ── Intro discount ────────────────────────────────────────────────
+        // Compare grid submits flat intro_enabled/intro_type/intro_percent/
+        // intro_fixed_usd/intro_fixed_inr/intro_cycles_*/intro_label keys.
+        // Reassemble them into the intro_discount JSON format IntroDiscount::normalize()
+        // expects. Fall back to the plan's stored setting if none were submitted.
+        if (array_key_exists('intro_enabled', $changes)) {
+            $introCycles = [];
+            if ($changes['intro_cycles_monthly'] ?? false) $introCycles[] = 'monthly';
+            if ($changes['intro_cycles_annual']  ?? false) $introCycles[] = 'annual';
+            if (empty($introCycles)) $introCycles = ['monthly', 'annual'];
+
+            $introDiscount = [
+                'enabled' => (bool) ($changes['intro_enabled'] ?? false),
+                'type'    => ($changes['intro_type'] ?? 'percent') === 'fixed' ? 'fixed' : 'percent',
+                'percent' => (int) ($changes['intro_percent'] ?? 0),
+                'fixed'   => [
+                    'USD' => (int) ($changes['intro_fixed_usd'] ?? 0),
+                    'INR' => (int) ($changes['intro_fixed_inr'] ?? 0),
+                ],
+                'cycles'  => $introCycles,
+                'label'   => (string) ($changes['intro_label'] ?? ''),
+            ];
+        } else {
+            $introDiscount = $plan->intro_discount ?? [];
         }
 
         return [
@@ -252,10 +330,10 @@ class PlanController extends Controller
             'features'                      => $merged,
             'block_mode'                    => $blockMode,
             'block_types_allowed'           => $blockTypes,
-            'addon_ids'                     => $plan->addons()->pluck('addons.id')->all(),
-            'intro_discount'                => $plan->intro_discount ?? [],
+            'addon_ids'                     => $addonIds,
+            'intro_discount'                => $introDiscount,
             'provider_mode'                 => $providerMode,
-            'integration_providers_allowed' => $intAllowed,
+            'integration_providers_allowed' => $providerLists,
         ];
     }
 
