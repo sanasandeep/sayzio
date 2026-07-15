@@ -1,0 +1,55 @@
+name: Deploy to EC2
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-ec2
+  cancel-in-progress: false
+
+env:
+  APP_URL: https://sayzio.app
+
+jobs:
+  deploy:
+    name: Deploy to production EC2
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Set up SSH key
+        run: |
+          install -m 600 -D /dev/null ~/.ssh/deploy_key
+          echo "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/deploy_key
+          ssh-keyscan -H "${{ secrets.DEPLOY_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Run deploy script on EC2
+        run: |
+          ssh -i ~/.ssh/deploy_key \
+              -o StrictHostKeyChecking=yes \
+              -o ConnectTimeout=30 \
+              "sayzio@${{ secrets.DEPLOY_HOST }}" \
+              'bash /var/www/sayzio/deploy/ec2/deploy.sh'
+
+      - name: Smoke test — /up
+        run: |
+          echo "Waiting 10 s for services to settle..."
+          sleep 10
+          echo "Checking $APP_URL/up ..."
+          curl --fail --silent --show-error --max-time 30 "$APP_URL/up"
+          echo ""
+          echo "/up OK"
+
+      - name: Smoke test — /api/healthz
+        run: |
+          echo "Checking $APP_URL/api/healthz ..."
+          curl --fail --silent --show-error --max-time 30 "$APP_URL/api/healthz"
+          echo ""
+          echo "/api/healthz OK"
+
+      - name: Clean up SSH key
+        if: always()
+        run: rm -f ~/.ssh/deploy_key
