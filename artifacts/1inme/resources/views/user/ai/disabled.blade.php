@@ -91,6 +91,12 @@
                     <form action="{{ route('user.ai.enable') }}" method="POST">
                         @csrf
                         <input type="hidden" name="return_to" value="{{ $__returnTo }}">
+                        @if(!empty($enableFeature))
+                            {{-- Some surfaces (eg. Voice Assistant) are gated by an
+                                 extra per-feature toggle on top of the master AI
+                                 switch; tell the enable action to flip both. --}}
+                            <input type="hidden" name="feature" value="{{ $enableFeature }}">
+                        @endif
                         <button type="submit"
                                 class="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700">
                             <i class="fas fa-bolt text-xs"></i>

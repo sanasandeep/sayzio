@@ -55,8 +55,12 @@ class VoiceAssistantController extends Controller
         // (explainer + request access / admin enable) of the gate page.
         if (!AiEngineSettings::isEnabled() || !AiEngineSettings::voiceEnabled()) {
             return view('user.ai.disabled', [
-                'title'     => 'Voice Assistant',
-                'aiEnabled' => false,
+                'title'         => 'Voice Assistant',
+                'aiEnabled'     => false,
+                // The one-click "Enable AI now" action must also flip the
+                // Voice Assistant feature toggle, otherwise an admin lands
+                // right back on this gate with a stale success banner.
+                'enableFeature' => 'voice',
             ]);
         }
 
