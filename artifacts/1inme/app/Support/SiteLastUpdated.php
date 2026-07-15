@@ -11,9 +11,12 @@ use Illuminate\Support\Facades\Cache;
  *
  *  1. Latest git commit timestamp (`git log -1 --format=%ct`) — authoritative
  *     in development and on servers that have git metadata.
- *  2. Vite build manifest mtime (`public/build/manifest.json`) — available in
- *     production containers where git history is stripped out.
- *  3. null — returned silently if neither source is accessible so the footer
+ *  2. Build-meta stamp (`public/build/build-meta.json`, written by the npm
+ *     `build` script) — the build time stored as file CONTENT, so it survives
+ *     deployment images that strip git metadata AND normalize file mtimes.
+ *  3. Vite build manifest mtime (`public/build/manifest.json`) — legacy
+ *     fallback for builds produced before the build-meta stamp existed.
+ *  4. null — returned silently if no source is accessible so the footer
  *     can hide the element rather than crash.
  *
  * The resolved value is cached for {@see CACHE_TTL} seconds so no shell/FS
@@ -37,6 +40,13 @@ class SiteLastUpdated
      * an environment with no Vite build.
      */
     public static ?string $manifestPathOverride = null;
+
+    /**
+     * Test hook: when set, {@see fromBuildMeta()} reads this path instead of
+     * public/build/build-meta.json. Point it at a nonexistent file to simulate
+     * an environment without the build stamp.
+     */
+    public static ?string $buildMetaPathOverride = null;
 
     /**
      * Sentinel cached in place of null so an "unavailable" result is also
@@ -69,7 +79,13 @@ class SiteLastUpdated
             return $ts;
         }
 
-        // 2. Build manifest mtime
+        // 2. Build-meta stamp (content-based, survives mtime normalization)
+        $ts = self::fromBuildMeta();
+        if ($ts !== null) {
+            return $ts;
+        }
+
+        // 3. Build manifest mtime
         return self::fromManifest();
     }
 
@@ -99,6 +115,24 @@ class SiteLastUpdated
             }
 
             $epoch = (int) trim($output);
+
+            return $epoch > 0 ? Carbon::createFromTimestampUTC($epoch) : null;
+        } catch (\Throwable) {
+            return null;
+        }
+    }
+
+    private static function fromBuildMeta(): ?Carbon
+    {
+        try {
+            $path = self::$buildMetaPathOverride ?? public_path('build/build-meta.json');
+
+            if (! is_file($path)) {
+                return null;
+            }
+
+            $data = json_decode((string) file_get_contents($path), true);
+            $epoch = (int) ($data['built_at'] ?? 0);
 
             return $epoch > 0 ? Carbon::createFromTimestampUTC($epoch) : null;
         } catch (\Throwable) {

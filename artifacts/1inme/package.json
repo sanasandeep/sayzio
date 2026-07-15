@@ -3,7 +3,7 @@
     "private": true,
     "type": "module",
     "scripts": {
-        "build": "vite build",
+        "build": "vite build && node -e \"require('fs').writeFileSync('public/build/build-meta.json', JSON.stringify({built_at: Math.floor(Date.now()/1000)}))\"",
         "build:watch": "vite build --watch",
         "build:watch:cycle": "fails=0; while true; do start=$(date +%s); VITE_KEEP_OUTDIR=1 timeout -s TERM 60 node_modules/.bin/vite build --watch; if [ $(( $(date +%s) - start )) -lt 10 ]; then fails=$(( fails + 1 )); if [ $fails -ge 5 ]; then echo '::1inme:: build:watch:cycle: vite exited within 10s 5x in a row (crash loop, not a timeout cycle) — bailing non-zero so concurrently --kill-others tears down the dev server for a fresh Tailwind watcher instead of silently serving stale CSS' >&2; exit 1; fi; sleep 2; else fails=0; fi; done",
         "dev": "vite",

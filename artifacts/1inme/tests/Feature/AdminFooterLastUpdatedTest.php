@@ -40,6 +40,7 @@ class AdminFooterLastUpdatedTest extends TestCase
     {
         SiteLastUpdated::$gitOutputResolver = null;
         SiteLastUpdated::$manifestPathOverride = null;
+        SiteLastUpdated::$buildMetaPathOverride = null;
         SiteLastUpdated::flush();
         parent::tearDown();
     }
@@ -72,6 +73,7 @@ class AdminFooterLastUpdatedTest extends TestCase
         // the NONE sentinel that get() caches for an unavailable result.
         SiteLastUpdated::$gitOutputResolver = fn () => null;
         SiteLastUpdated::$manifestPathOverride = '/nonexistent/manifest.json';
+        SiteLastUpdated::$buildMetaPathOverride = '/nonexistent/build-meta.json';
         SiteLastUpdated::flush();
         Cache::put('site:last_updated_at', SiteLastUpdated::NONE, 300);
 
@@ -95,8 +97,10 @@ class AdminFooterLastUpdatedTest extends TestCase
             $this->markTestSkipped('Vite build manifest missing — run `npm run build` first.');
         }
 
-        // Stub git as unavailable to force the manifest fallback branch.
+        // Stub git AND the build-meta stamp as unavailable to force the
+        // manifest-mtime fallback branch.
         SiteLastUpdated::$gitOutputResolver = fn () => null;
+        SiteLastUpdated::$buildMetaPathOverride = '/nonexistent/build-meta.json';
         SiteLastUpdated::flush();
 
         $resolved = SiteLastUpdated::resolve();
@@ -112,6 +116,29 @@ class AdminFooterLastUpdatedTest extends TestCase
         $response->assertSee('Last updated:');
         $response->assertSee(\App\Support\PlatformTimezone::format($resolved, 'M j, Y H:i', false));
         $response->assertSee('IST');
+    }
+
+    /**
+     * Production fallback: git metadata is stripped and file mtimes are
+     * normalized inside the deployment image, so the timestamp must come from
+     * the CONTENT of the build-meta stamp written by the npm build script.
+     */
+    public function test_resolver_prefers_build_meta_content_when_git_unavailable(): void
+    {
+        $stamp = tempnam(sys_get_temp_dir(), 'build-meta');
+        $epoch = Carbon::create(2026, 7, 15, 9, 0, 0, 'UTC')->getTimestamp();
+        file_put_contents($stamp, json_encode(['built_at' => $epoch]));
+
+        SiteLastUpdated::$gitOutputResolver = fn () => null;
+        SiteLastUpdated::$buildMetaPathOverride = $stamp;
+        SiteLastUpdated::flush();
+
+        $resolved = SiteLastUpdated::resolve();
+
+        $this->assertInstanceOf(Carbon::class, $resolved);
+        $this->assertSame($epoch, $resolved->getTimestamp());
+
+        @unlink($stamp);
     }
 
     public function test_meta_endpoint_returns_cached_timestamp_as_json(): void
