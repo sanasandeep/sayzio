@@ -304,10 +304,6 @@ args = "admin-footer-manifest"
 task = "workflow.run"
 args = "footer-last-updated"
 
-[[workflows.workflow.tasks]]
-task = "workflow.run"
-args = "eas-android-build"
-
 [[workflows.workflow]]
 name = "e2e"
 author = "agent"
@@ -1294,17 +1290,6 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "cd artifacts/1inme && TEST_LOCAL_MODE=artisan TEST_LOCAL_PORT=55468 bash scripts/test-local.sh --filter=AdminFooterLastUpdatedTest"
-
-[workflows.workflow.metadata]
-isValidation = true
-
-[[workflows.workflow]]
-name = "eas-android-build"
-author = "agent"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "cd artifacts/1inme-mobile && EAS_NO_VCS=1 npx -y eas-cli build --platform android --profile preview --non-interactive --no-wait"
 
 [workflows.workflow.metadata]
 isValidation = true
