@@ -142,3 +142,4 @@
 - [Catalog CSS strings need trailing ';' when emitted in Blade](css-string-emission-trailing-semicolon.md) — raw multi-decl CSS mid-rule silently drops its last property + the next declaration.
 - [Playwright Chromium system libs](playwright-chromium-system-libs.md) — fresh envs mass-fail every browser spec on missing shared libs; install the chromium dep set + libgbm + systemdLibs, verify via ldd.
 - [Throwaway-Expo harness exit](expo-throwaway-harness-exit.md) — manager API is acquireServer (not start/stop); harness must process.exit(0) after PASS or the detached Expo child hangs the run forever.
+- [EC2 deploy pipeline lessons](ec2-deploy-pipeline-lessons.md) — pre-update checkout kills one-run script lag; pin pnpm via packageManager; CI=1 for no-TTY installs; sudo -n needs an in-grant command.

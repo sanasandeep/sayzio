@@ -35,13 +35,15 @@ LARAVEL_DIR="$APP_DIR/artifacts/1inme"
 
 # --- PHP-FPM unit name: php8.4-fpm (Ubuntu/ondrej) vs php-fpm (AL2023) -----
 if [ -z "${PHP_FPM_SERVICE:-}" ]; then
-  if systemctl list-unit-files 'php8.4-fpm.service' 2>/dev/null | grep -q '^php8\.4-fpm\.service'; then
-    PHP_FPM_SERVICE=php8.4-fpm
-  elif systemctl list-unit-files 'php-fpm.service' 2>/dev/null | grep -q '^php-fpm\.service'; then
-    PHP_FPM_SERVICE=php-fpm
-  else
-    PHP_FPM_SERVICE=php8.4-fpm   # historical default; override via env if needed
-  fi
+  # `systemctl cat` is the reliable existence probe (list-unit-files output
+  # formatting varies and broke the old grep-based detection on AL2023).
+  for _svc in php-fpm php8.4-fpm php8.3-fpm; do
+    if systemctl cat "${_svc}.service" >/dev/null 2>&1; then
+      PHP_FPM_SERVICE="$_svc"
+      break
+    fi
+  done
+  PHP_FPM_SERVICE="${PHP_FPM_SERVICE:-php-fpm}"  # override via env if needed
 fi
 
 # --- FPM runtime user: www-data (Ubuntu) vs apache (AL2023 default pool) ---
@@ -65,7 +67,9 @@ log "Pulling latest code..."
 git pull --ff-only
 
 log "Installing JS dependencies (frozen lockfile)..."
-pnpm install --frozen-lockfile
+# CI=1: non-interactive — lets pnpm proceed past prompts (e.g. recreating
+# node_modules after a pnpm version switch) instead of aborting with no TTY.
+CI=1 pnpm install --frozen-lockfile
 
 # ---------------------------------------------------------------------------
 # Laravel app (artifacts/1inme)
@@ -142,7 +146,9 @@ else
   # -n = never prompt for a password (an automated deploy has no terminal).
   # If passwordless sudo isn't configured for the deploy user, fail with
   # actionable instructions instead of a hanging/opaque password prompt.
-  if ! sudo -n true 2>/dev/null; then
+  # Probe with systemctl itself: sudoers may grant only specific commands
+  # (systemctl/nginx), in which case `sudo -n true` would falsely fail.
+  if ! sudo -n systemctl --version >/dev/null 2>&1; then
     echo "ERROR: the deploy user '$(id -un)' cannot use passwordless sudo, so services cannot be reloaded." >&2
     echo "Fix once on the server (as ec2-user or root):" >&2
     echo "  echo 'sayzio ALL=(root) NOPASSWD: /usr/bin/systemctl, /usr/sbin/nginx, /usr/bin/nginx' | sudo tee /etc/sudoers.d/sayzio-deploy" >&2
