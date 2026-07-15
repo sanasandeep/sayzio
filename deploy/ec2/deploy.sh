@@ -115,7 +115,10 @@ php artisan view:cache
 
 log "Fixing storage permissions (FPM user: $PHP_FPM_USER)..."
 mkdir -p storage/framework/{cache,sessions,views} storage/logs bootstrap/cache
-chmod -R ug+rwX storage bootstrap/cache
+# Only chmod files we own — cache files created by the PHP-FPM user (apache/
+# www-data) are not chmod-able by the deploy user and must not abort the deploy;
+# the setfacl grant below (plus each owner's own perms) keeps both users writable.
+find storage bootstrap/cache -user "$(id -un)" -exec chmod ug+rwX {} + || true
 # Grant the PHP-FPM runtime user write access via ACLs
 # (www-data on Ubuntu, apache on Amazon Linux 2023 — auto-detected above).
 if command -v setfacl >/dev/null 2>&1; then
