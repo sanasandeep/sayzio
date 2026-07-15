@@ -38,6 +38,8 @@ class AdminFooterLastUpdatedTest extends TestCase
 
     protected function tearDown(): void
     {
+        SiteLastUpdated::$gitOutputResolver = null;
+        SiteLastUpdated::$manifestPathOverride = null;
         SiteLastUpdated::flush();
         parent::tearDown();
     }
@@ -65,12 +67,51 @@ class AdminFooterLastUpdatedTest extends TestCase
     {
         $admin = $this->makeAdmin();
 
+        // Stub BOTH sources away: Cache::remember treats a null cached value
+        // as a miss and re-resolves, so the resolver itself must find nothing
+        // (git stubbed out, manifest pointed at a nonexistent file).
+        SiteLastUpdated::$gitOutputResolver = fn () => null;
+        SiteLastUpdated::$manifestPathOverride = '/nonexistent/manifest.json';
+        SiteLastUpdated::flush();
         Cache::put('site:last_updated_at', null, 300);
 
         $response = $this->actingAs($admin, 'admin')->get(route('admin.dashboard'));
 
         $response->assertOk();
         $response->assertDontSee('Last updated:');
+    }
+
+    /**
+     * Production-like fallback: git metadata is unavailable, so the timestamp
+     * must come from the Vite build manifest's mtime. Requires a real
+     * `npm run build` to have produced public/build/manifest.json (the CI
+     * validation step builds first); skipped when the manifest is absent.
+     */
+    public function test_footer_falls_back_to_manifest_mtime_when_git_unavailable(): void
+    {
+        $manifest = public_path('build/manifest.json');
+
+        if (! is_file($manifest)) {
+            $this->markTestSkipped('Vite build manifest missing — run `npm run build` first.');
+        }
+
+        // Stub git as unavailable to force the manifest fallback branch.
+        SiteLastUpdated::$gitOutputResolver = fn () => null;
+        SiteLastUpdated::flush();
+
+        $resolved = SiteLastUpdated::resolve();
+
+        $this->assertInstanceOf(Carbon::class, $resolved);
+        $this->assertSame(filemtime($manifest), $resolved->getTimestamp());
+
+        $admin = $this->makeAdmin();
+
+        $response = $this->actingAs($admin, 'admin')->get(route('admin.dashboard'));
+
+        $response->assertOk();
+        $response->assertSee('Last updated:');
+        $response->assertSee($resolved->format('M j, Y H:i'));
+        $response->assertSee('UTC');
     }
 
     public function test_resolver_returns_null_gracefully_when_no_source(): void

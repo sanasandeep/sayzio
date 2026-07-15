@@ -25,6 +25,20 @@ class SiteLastUpdated
     private const CACHE_TTL = 300; // 5 minutes
 
     /**
+     * Test hook: when set, {@see fromGit()} calls this instead of shelling
+     * out to `git log`. Return the raw command output (string) or null to
+     * simulate git being unavailable (forcing the manifest fallback).
+     */
+    public static ?\Closure $gitOutputResolver = null;
+
+    /**
+     * Test hook: when set, {@see fromManifest()} reads this path instead of
+     * public/build/manifest.json. Point it at a nonexistent file to simulate
+     * an environment with no Vite build.
+     */
+    public static ?string $manifestPathOverride = null;
+
+    /**
      * Return the resolved Carbon timestamp, or null when unavailable.
      */
     public static function get(): ?Carbon
@@ -68,7 +82,9 @@ class SiteLastUpdated
     private static function fromGit(): ?Carbon
     {
         try {
-            $output = shell_exec('git log -1 --format=%ct 2>/dev/null');
+            $output = self::$gitOutputResolver !== null
+                ? (self::$gitOutputResolver)()
+                : shell_exec('git log -1 --format=%ct 2>/dev/null');
 
             if ($output === null || $output === false) {
                 return null;
@@ -85,7 +101,7 @@ class SiteLastUpdated
     private static function fromManifest(): ?Carbon
     {
         try {
-            $path = public_path('build/manifest.json');
+            $path = self::$manifestPathOverride ?? public_path('build/manifest.json');
 
             if (! is_file($path)) {
                 return null;

@@ -296,6 +296,10 @@ args = "e2e-bg-branches"
 task = "workflow.run"
 args = "e2e-mobile-bg-presets"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "admin-footer-manifest"
+
 [[workflows.workflow]]
 name = "e2e"
 author = "agent"
@@ -1260,6 +1264,17 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "pnpm --filter @workspace/1inme-mobile run test:bg-presets-e2e"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "admin-footer-manifest"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd artifacts/1inme && npm run build && TEST_LOCAL_MODE=artisan TEST_LOCAL_PORT=55467 bash scripts/test-local.sh --filter=AdminFooterLastUpdatedTest"
 
 [workflows.workflow.metadata]
 isValidation = true
