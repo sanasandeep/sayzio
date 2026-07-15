@@ -38,7 +38,7 @@
             <p class="text-rose-100 font-semibold">The scheduler appears to have stopped.</p>
             <p class="text-rose-200/70 mt-0.5">
                 No scheduled job has run since
-                <span class="font-medium text-rose-100" x-text="status.last_tick">{{ $status['state'] === 'stale' ? $status['last_tick']->format('M j, H:i') : '' }}</span>
+                <span class="font-medium text-rose-100" x-text="status.last_tick">{{ $status['state'] === 'stale' ? \App\Support\PlatformTimezone::format($status['last_tick'], 'M j, H:i', false) : '' }}</span>
                 (<span x-text="status.last_tick_human">{{ $status['state'] === 'stale' ? $status['last_tick']->diffForHumans() : '' }}</span>). Jobs are no longer firing &mdash; check that the master
                 cron entry below is still present on the server.
             </p>
@@ -62,7 +62,7 @@
             <p class="text-emerald-100 font-semibold">Scheduler is active.</p>
             <p class="text-emerald-200/70 mt-0.5">
                 Last activity <span x-text="status.last_tick_human">{{ $status['state'] === 'healthy' ? $status['last_tick']->diffForHumans() : '' }}</span>
-                (<span x-text="status.last_tick">{{ $status['state'] === 'healthy' ? $status['last_tick']->format('M j, H:i') : '' }}</span>).
+                (<span x-text="status.last_tick">{{ $status['state'] === 'healthy' ? \App\Support\PlatformTimezone::format($status['last_tick'], 'M j, H:i', false) : '' }}</span>).
                 <span class="text-amber-200" x-show="status.overdue_count > 0" @if(!($status['state'] === 'healthy' && $status['overdue_count'] > 0)) style="display: none" @endif>
                     <span x-text="status.overdue_count">{{ $status['overdue_count'] }}</span>
                     job<span x-text="status.overdue_count === 1 ? '' : 's'">{{ $status['overdue_count'] === 1 ? '' : 's' }}</span>
@@ -279,7 +279,7 @@
                                             @else
                                                 <i class="fas fa-circle-check text-emerald-400 text-[11px]" title="Last run succeeded"></i>
                                             @endif
-                                            <span class="text-white/80">{{ $job['last_run']->format('M j, H:i') }}</span>
+                                            <span class="text-white/80">{{ \App\Support\PlatformTimezone::format($job['last_run'], 'M j, H:i', false) }}</span>
                                             @if(($job['last_run_source'] ?? null) === 'manual')
                                                 <span class="text-[10px] uppercase tracking-wider px-1 py-0.5 rounded bg-white/5 border border-white/10 text-white/40" title="Triggered manually with Run now">Manual</span>
                                             @endif
@@ -307,7 +307,7 @@
                                     @if($job['paused'])
                                         <span class="text-amber-300/80 text-[12px]">Paused</span>
                                     @elseif($job['next_run'])
-                                        <div class="text-white/80">{{ $job['next_run']->format('M j, H:i') }}</div>
+                                        <div class="text-white/80">{{ \App\Support\PlatformTimezone::format($job['next_run'], 'M j, H:i', false) }}</div>
                                         <div class="text-[11px] text-white/40">{{ $job['next_run']->diffForHumans() }}</div>
                                     @else
                                         <span class="text-white/30">&mdash;</span>

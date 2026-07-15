@@ -12,7 +12,7 @@
     $episodeCount = count($failingJobs) + ($schedulerEpisode !== null ? 1 : 0);
     $fmtSince = function ($iso) {
         try {
-            return $iso ? \Illuminate\Support\Carbon::parse($iso)->diffForHumans() . ' (' . \Illuminate\Support\Carbon::parse($iso)->format('M j, H:i') . ')' : null;
+            return $iso ? \Illuminate\Support\Carbon::parse($iso)->diffForHumans() . ' (' . \App\Support\PlatformTimezone::format(\Illuminate\Support\Carbon::parse($iso), 'M j, H:i', false) . ')' : null;
         } catch (\Throwable $e) {
             return null;
         }

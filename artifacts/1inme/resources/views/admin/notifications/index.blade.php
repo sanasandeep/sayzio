@@ -85,7 +85,7 @@
             <div>
                 <label class="block text-xs font-semibold uppercase tracking-wider mb-1.5" style="color: var(--text-dimmed);">Subject</label>
                 <input type="text" name="subject" value="{{ old('subject') }}" maxlength="200" required
-                       placeholder="Scheduled maintenance Sunday 02:00 UTC"
+                       placeholder="Scheduled maintenance Sunday 02:00 IST"
                        class="theme-input w-full"/>
                 @error('subject')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
             </div>

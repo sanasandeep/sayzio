@@ -58,13 +58,13 @@
                     @endif
                 </dd>
             </div>
-            <div><dt class="text-white/40 text-xs uppercase tracking-wider">Submitted</dt><dd class="text-white/90 mt-0.5">{{ $pr->created_at?->format('M j, Y g:i a') }}</dd></div>
-            <div><dt class="text-white/40 text-xs uppercase tracking-wider">Verified</dt><dd class="text-white/90 mt-0.5">{{ $pr->verified_at?->format('M j, Y g:i a') ?? '—' }}</dd></div>
+            <div><dt class="text-white/40 text-xs uppercase tracking-wider">Submitted</dt><dd class="text-white/90 mt-0.5">{{ \App\Support\PlatformTimezone::format($pr->created_at, 'M j, Y g:i a', false) }}</dd></div>
+            <div><dt class="text-white/40 text-xs uppercase tracking-wider">Verified</dt><dd class="text-white/90 mt-0.5">{{ \App\Support\PlatformTimezone::format($pr->verified_at, 'M j, Y g:i a', false) ?? '—' }}</dd></div>
             @if($pr->scheduled_at)
-                <div><dt class="text-white/40 text-xs uppercase tracking-wider">Scheduled deletion</dt><dd class="text-white/90 mt-0.5">{{ $pr->scheduled_at->format('M j, Y g:i a') }} UTC</dd></div>
+                <div><dt class="text-white/40 text-xs uppercase tracking-wider">Scheduled deletion</dt><dd class="text-white/90 mt-0.5">{{ \App\Support\PlatformTimezone::format($pr->scheduled_at, 'M j, Y g:i a') }}</dd></div>
             @endif
             @if($pr->completed_at)
-                <div><dt class="text-white/40 text-xs uppercase tracking-wider">Completed</dt><dd class="text-white/90 mt-0.5">{{ $pr->completed_at->format('M j, Y g:i a') }}</dd></div>
+                <div><dt class="text-white/40 text-xs uppercase tracking-wider">Completed</dt><dd class="text-white/90 mt-0.5">{{ \App\Support\PlatformTimezone::format($pr->completed_at, 'M j, Y g:i a', false) }}</dd></div>
             @endif
         </dl>
 
@@ -142,7 +142,7 @@
                             @if(!empty($entry['note']))<div class="text-white/60 text-xs mt-0.5">{{ $entry['note'] }}</div>@endif
                             <div class="text-white/40 text-[11px] mt-0.5">
                                 @if(!empty($entry['actor'])){{ $entry['actor'] }} ·@endif
-                                @if(!empty($entry['at'])){{ \Illuminate\Support\Carbon::parse($entry['at'])->format('M j, Y g:i a') }}@endif
+                                @if(!empty($entry['at'])){{ \App\Support\PlatformTimezone::format(\Illuminate\Support\Carbon::parse($entry['at']), 'M j, Y g:i a', false) }}@endif
                             </div>
                         </div>
                     </li>

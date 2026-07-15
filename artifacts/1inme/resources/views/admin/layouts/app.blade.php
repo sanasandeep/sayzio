@@ -284,7 +284,7 @@
                             <span style="color: var(--border-glass-light);">•</span>
                             <span x-data="{
                                     iso: @js($__lastUpdated->toIso8601String()),
-                                    formatted: @js($__lastUpdated->format('M j, Y H:i') . ' UTC'),
+                                    formatted: @js(\App\Support\PlatformTimezone::format($__lastUpdated, 'M j, Y H:i')),
                                     relative: @js($__lastUpdated->diffForHumans()),
                                     init() {
                                         setInterval(() => this.refresh(), 5 * 60 * 1000);
@@ -304,7 +304,7 @@
                                 }"
                                 :title="iso" title="{{ $__lastUpdated->toIso8601String() }}">
                                 Last updated:
-                                <span style="color: var(--text-muted);" x-text="formatted">{{ $__lastUpdated->format('M j, Y H:i') }} UTC</span>
+                                <span style="color: var(--text-muted);" x-text="formatted">{{ \App\Support\PlatformTimezone::format($__lastUpdated, 'M j, Y H:i') }}</span>
                                 <span style="color: var(--text-dimmed);" x-text="'(' + relative + ')'">({{ $__lastUpdated->diffForHumans() }})</span>
                             </span>
                         @endif

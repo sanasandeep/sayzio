@@ -140,7 +140,7 @@
             <div>
                 <label class="block text-xs font-semibold uppercase tracking-wider text-white/60 mb-1.5">Estimated back online</label>
                 <input type="text" name="eta" value="{{ old('eta', $eta) }}" maxlength="120"
-                       placeholder="e.g. Today at 6:00 PM UTC"
+                       placeholder="e.g. Today at 6:00 PM IST"
                        class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
                 @error('eta')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
             </div>

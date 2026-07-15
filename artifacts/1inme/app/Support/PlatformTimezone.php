@@ -41,4 +41,34 @@ class PlatformTimezone
     {
         return self::resolve($user?->timezone);
     }
+
+    /**
+     * Convert a stored (UTC) timestamp to the platform default timezone for
+     * display. Returns a copy — never mutates the given instance.
+     */
+    public static function display(?\DateTimeInterface $time, ?string $timezone = null): ?\Illuminate\Support\Carbon
+    {
+        if ($time === null) {
+            return null;
+        }
+
+        return \Illuminate\Support\Carbon::instance($time)
+            ->copy()
+            ->setTimezone(self::resolve($timezone));
+    }
+
+    /**
+     * Format a stored (UTC) timestamp in the platform default timezone,
+     * appending the timezone abbreviation (e.g. "IST") when $withAbbr is
+     * true. Null-safe: returns null for a null input.
+     */
+    public static function format(?\DateTimeInterface $time, string $format, bool $withAbbr = true, ?string $timezone = null): ?string
+    {
+        $local = self::display($time, $timezone);
+        if ($local === null) {
+            return null;
+        }
+
+        return $local->format($format) . ($withAbbr ? ' ' . $local->format('T') : '');
+    }
 }

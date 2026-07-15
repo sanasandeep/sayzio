@@ -171,7 +171,7 @@ class DashboardController extends Controller
         return response()->json([
             'available' => $ts !== null,
             'iso'       => $ts?->toIso8601String(),
-            'formatted' => $ts?->format('M j, Y H:i') . ($ts ? ' UTC' : null),
+            'formatted' => \App\Support\PlatformTimezone::format($ts, 'M j, Y H:i'),
             'relative'  => $ts?->diffForHumans(),
         ]);
     }

@@ -69,8 +69,9 @@
                                 <div>
                                     <span class="font-semibold" style="color: var(--text-primary);">Next digest:</span>
                                     @if($nextRun)
-                                        <span title="{{ $nextRun->toDayDateTimeString() }} UTC">
-                                            {{ $nextRun->format('D, M j \a\t g:i A') }} UTC
+                                        @php $__tzPref = \App\Support\PlatformTimezone::forUser(auth()->user()); @endphp
+                                        <span title="{{ \App\Support\PlatformTimezone::display($nextRun, $__tzPref)->toDayDateTimeString() }} {{ \App\Support\PlatformTimezone::display($nextRun, $__tzPref)->format('T') }}">
+                                            {{ \App\Support\PlatformTimezone::format($nextRun, 'D, M j \a\t g:i A', true, $__tzPref) }}
                                             <span style="color: var(--text-faint);">({{ $nextRun->diffForHumans() }})</span>
                                         </span>
                                     @else
@@ -80,8 +81,9 @@
                                 <div>
                                     <span class="font-semibold" style="color: var(--text-primary);">Last sent:</span>
                                     @if($lastSent)
-                                        <span title="{{ $lastSent->toDayDateTimeString() }} UTC">
-                                            {{ $lastSent->format('D, M j, Y') }}
+                                        @php $__tzPref2 = \App\Support\PlatformTimezone::forUser(auth()->user()); @endphp
+                                        <span title="{{ \App\Support\PlatformTimezone::display($lastSent, $__tzPref2)->toDayDateTimeString() }} {{ \App\Support\PlatformTimezone::display($lastSent, $__tzPref2)->format('T') }}">
+                                            {{ \App\Support\PlatformTimezone::format($lastSent, 'D, M j, Y', false, $__tzPref2) }}
                                             <span style="color: var(--text-faint);">({{ $lastSent->diffForHumans() }})</span>
                                         </span>
                                     @else

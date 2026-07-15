@@ -60,7 +60,7 @@ class AdminFooterLastUpdatedTest extends TestCase
         $response->assertOk();
         $response->assertSee('Last updated:');
         $response->assertSee('Jul 15, 2026');
-        $response->assertSee('UTC');
+        $response->assertSee('IST');
     }
 
     public function test_footer_hides_last_updated_when_unavailable(): void
@@ -110,8 +110,8 @@ class AdminFooterLastUpdatedTest extends TestCase
 
         $response->assertOk();
         $response->assertSee('Last updated:');
-        $response->assertSee($resolved->format('M j, Y H:i'));
-        $response->assertSee('UTC');
+        $response->assertSee(\App\Support\PlatformTimezone::format($resolved, 'M j, Y H:i', false));
+        $response->assertSee('IST');
     }
 
     public function test_meta_endpoint_returns_cached_timestamp_as_json(): void
@@ -127,7 +127,7 @@ class AdminFooterLastUpdatedTest extends TestCase
         $response->assertJson([
             'available' => true,
             'iso'       => $fixed->toIso8601String(),
-            'formatted' => 'Jul 15, 2026 05:58 UTC',
+            'formatted' => 'Jul 15, 2026 11:28 IST',
         ]);
         $this->assertIsString($response->json('relative'));
     }
