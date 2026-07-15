@@ -282,10 +282,30 @@
                         @php $__lastUpdated = \App\Support\SiteLastUpdated::get(); @endphp
                         @if ($__lastUpdated)
                             <span style="color: var(--border-glass-light);">•</span>
-                            <span title="{{ $__lastUpdated->toIso8601String() }}">
+                            <span x-data="{
+                                    iso: @js($__lastUpdated->toIso8601String()),
+                                    formatted: @js($__lastUpdated->format('M j, Y H:i') . ' UTC'),
+                                    relative: @js($__lastUpdated->diffForHumans()),
+                                    init() {
+                                        setInterval(() => this.refresh(), 5 * 60 * 1000);
+                                    },
+                                    refresh() {
+                                        fetch(@js(route('admin.meta.last-updated')), { headers: { 'Accept': 'application/json' } })
+                                            .then(r => r.ok ? r.json() : null)
+                                            .then(d => {
+                                                if (d && d.available) {
+                                                    this.iso = d.iso;
+                                                    this.formatted = d.formatted;
+                                                    this.relative = d.relative;
+                                                }
+                                            })
+                                            .catch(() => {});
+                                    }
+                                }"
+                                :title="iso" title="{{ $__lastUpdated->toIso8601String() }}">
                                 Last updated:
-                                <span style="color: var(--text-muted);">{{ $__lastUpdated->format('M j, Y H:i') }} UTC</span>
-                                <span style="color: var(--text-dimmed);">({{ $__lastUpdated->diffForHumans() }})</span>
+                                <span style="color: var(--text-muted);" x-text="formatted">{{ $__lastUpdated->format('M j, Y H:i') }} UTC</span>
+                                <span style="color: var(--text-dimmed);" x-text="'(' + relative + ')'">({{ $__lastUpdated->diffForHumans() }})</span>
                             </span>
                         @endif
                     </div>

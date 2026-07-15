@@ -160,6 +160,23 @@ class DashboardController extends Controller
     }
 
     /**
+     * Tiny JSON endpoint the admin footer polls so the "Last updated"
+     * timestamp refreshes in place without a full page reload. Returns the
+     * same cached value the footer renders on page load.
+     */
+    public function lastUpdated()
+    {
+        $ts = \App\Support\SiteLastUpdated::get();
+
+        return response()->json([
+            'available' => $ts !== null,
+            'iso'       => $ts?->toIso8601String(),
+            'formatted' => $ts?->format('M j, Y H:i') . ($ts ? ' UTC' : null),
+            'relative'  => $ts?->diffForHumans(),
+        ]);
+    }
+
+    /**
      * Read-only timeline of past one-click schema repair runs — who ran each
      * repair, when, and which columns/tables it touched.
      */

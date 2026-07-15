@@ -39,12 +39,20 @@ class SiteLastUpdated
     public static ?string $manifestPathOverride = null;
 
     /**
+     * Sentinel cached in place of null so an "unavailable" result is also
+     * cached for CACHE_TTL (Cache::remember re-runs the resolver on null).
+     */
+    public const NONE = 'none';
+
+    /**
      * Return the resolved Carbon timestamp, or null when unavailable.
      */
     public static function get(): ?Carbon
     {
         try {
-            return Cache::remember(self::CACHE_KEY, self::CACHE_TTL, fn () => self::resolve());
+            $value = Cache::remember(self::CACHE_KEY, self::CACHE_TTL, fn () => self::resolve() ?? self::NONE);
+
+            return $value instanceof Carbon ? $value : null;
         } catch (\Throwable) {
             return self::resolve();
         }

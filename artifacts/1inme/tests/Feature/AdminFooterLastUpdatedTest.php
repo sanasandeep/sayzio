@@ -67,13 +67,13 @@ class AdminFooterLastUpdatedTest extends TestCase
     {
         $admin = $this->makeAdmin();
 
-        // Stub BOTH sources away: Cache::remember treats a null cached value
-        // as a miss and re-resolves, so the resolver itself must find nothing
-        // (git stubbed out, manifest pointed at a nonexistent file).
+        // Stub BOTH sources away so even a cache miss cannot resolve a value
+        // (git stubbed out, manifest pointed at a nonexistent file), and seed
+        // the NONE sentinel that get() caches for an unavailable result.
         SiteLastUpdated::$gitOutputResolver = fn () => null;
         SiteLastUpdated::$manifestPathOverride = '/nonexistent/manifest.json';
         SiteLastUpdated::flush();
-        Cache::put('site:last_updated_at', null, 300);
+        Cache::put('site:last_updated_at', SiteLastUpdated::NONE, 300);
 
         $response = $this->actingAs($admin, 'admin')->get(route('admin.dashboard'));
 
@@ -112,6 +112,47 @@ class AdminFooterLastUpdatedTest extends TestCase
         $response->assertSee('Last updated:');
         $response->assertSee($resolved->format('M j, Y H:i'));
         $response->assertSee('UTC');
+    }
+
+    public function test_meta_endpoint_returns_cached_timestamp_as_json(): void
+    {
+        $admin = $this->makeAdmin();
+        $fixed = Carbon::create(2026, 7, 15, 5, 58, 0, 'UTC');
+
+        Cache::put('site:last_updated_at', $fixed, 300);
+
+        $response = $this->actingAs($admin, 'admin')->getJson(route('admin.meta.last-updated'));
+
+        $response->assertOk();
+        $response->assertJson([
+            'available' => true,
+            'iso'       => $fixed->toIso8601String(),
+            'formatted' => 'Jul 15, 2026 05:58 UTC',
+        ]);
+        $this->assertIsString($response->json('relative'));
+    }
+
+    public function test_meta_endpoint_reports_unavailable_when_no_source(): void
+    {
+        $admin = $this->makeAdmin();
+
+        Cache::put('site:last_updated_at', SiteLastUpdated::NONE, 300);
+
+        $response = $this->actingAs($admin, 'admin')->getJson(route('admin.meta.last-updated'));
+
+        $response->assertOk();
+        $response->assertJson([
+            'available' => false,
+            'iso'       => null,
+            'relative'  => null,
+        ]);
+    }
+
+    public function test_meta_endpoint_requires_admin_auth(): void
+    {
+        $response = $this->get(route('admin.meta.last-updated'));
+
+        $response->assertRedirect(route('admin.login'));
     }
 
     public function test_resolver_returns_null_gracefully_when_no_source(): void

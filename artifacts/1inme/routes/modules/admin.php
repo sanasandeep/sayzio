@@ -67,6 +67,10 @@ Route::prefix('admin')->name('admin.')->group(function () {
             ->middleware(CheckPermission::class . ':settings.manage')
             ->name('schema.repair-audits');
 
+        // Lightweight JSON probe the footer polls to refresh the
+        // "Last updated" timestamp in place (no page reload needed).
+        Route::get('meta/last-updated', [DashboardController::class, 'lastUpdated'])->name('meta.last-updated');
+
         // Seamless switch from the back-office to the matching user dashboard.
         Route::post('switch-to-user', [\App\Modules\Common\Controllers\DashboardSwitchController::class, 'toUser'])->name('switch-to-user');
 
