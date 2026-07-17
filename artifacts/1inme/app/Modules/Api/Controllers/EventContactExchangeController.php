@@ -394,6 +394,55 @@ class EventContactExchangeController extends Controller
         return $this->doAccept($exchange, $user);
     }
 
+    // ─── Organizer stats (Task #5010) ────────────────────────────────
+
+    /**
+     * Aggregate contact-exchange stats for an event the caller organizes:
+     * opt-in counts, exchange request totals and acceptance rate. Owner or
+     * workspace member with links.view. Shares EventPeopleStats with the
+     * web dashboard so both surfaces report identical numbers.
+     */
+    public function ownerStats(Request $request, int $linkId)
+    {
+        $user = $request->user();
+        if (!$user) return $this->unauthorized();
+
+        $link = $this->findOwnedEventLink($user, $linkId);
+        if (!$link) return $this->notFound('Event not found.');
+
+        if (!$this->canViewAsOrganizer($user, $link)) return $this->forbidden();
+
+        return $this->ok(array_merge(
+            \App\Services\Events\EventPeopleStats::for($link),
+            ['event' => ['id' => $link->id, 'title' => $link->title, 'alias' => $link->alias]],
+        ));
+    }
+
+    /** Resolve an ICS link owned by the user or in an accessible workspace. */
+    private function findOwnedEventLink(User $user, int $id): ?Link
+    {
+        $link = Link::where('user_id', $user->id)->where('type', 'ics')->find($id);
+        if ($link) return $link;
+
+        if (!\Illuminate\Support\Facades\Schema::hasColumn('links', 'workspace_id')) return null;
+
+        $workspaceIds = $user->accessibleWorkspaces()->pluck('id')->all();
+        if (empty($workspaceIds)) return null;
+
+        return Link::where('type', 'ics')->whereIn('workspace_id', $workspaceIds)->find($id);
+    }
+
+    /** Owner, or workspace member with links.view on the link's workspace. */
+    private function canViewAsOrganizer(User $user, Link $link): bool
+    {
+        if ((int) $link->user_id === (int) $user->id) return true;
+        if (empty($link->workspace_id)) return false;
+
+        $workspace = \App\Modules\User\Models\Workspace::find($link->workspace_id);
+
+        return $workspace ? $user->canInWorkspace($workspace, 'links.view') : false;
+    }
+
     // ─── Helpers ─────────────────────────────────────────────────────
 
     private function doAccept(EventContactExchange $exchange, User $acceptor): \Illuminate\Http\JsonResponse

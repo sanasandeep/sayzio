@@ -195,6 +195,8 @@ Route::prefix('v1')->group(function () {
         Route::get ('/events/{alias}/people',              [\App\Modules\Api\Controllers\EventContactExchangeController::class, 'listAttendees']);
         Route::post('/events/{alias}/exchange',            [\App\Modules\Api\Controllers\EventContactExchangeController::class, 'requestExchange'])->middleware('throttle:10,1');
         Route::post('/me/contact-exchanges/{id}/accept',  [\App\Modules\Api\Controllers\EventContactExchangeController::class, 'acceptExchange'])->whereNumber('id');
+        // Task #5010 — organizer aggregate stats for the connections dashboard.
+        Route::get ('/links/{link}/exchange-stats',        [\App\Modules\Api\Controllers\EventContactExchangeController::class, 'ownerStats'])->whereNumber('link');
         Route::get ('/links/{link}/event-tiers',            [\App\Modules\Api\Controllers\EventTicketApiController::class, 'ownerTiers'])->whereNumber('link');
         Route::post('/links/{link}/event-tiers',            [\App\Modules\Api\Controllers\EventTicketApiController::class, 'storeTier'])->whereNumber('link');
         Route::patch('/links/{link}/event-tiers/{tier}',    [\App\Modules\Api\Controllers\EventTicketApiController::class, 'updateTier'])->whereNumber('link')->whereNumber('tier');
