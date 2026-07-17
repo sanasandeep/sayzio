@@ -256,6 +256,10 @@ Route::get('/storage/{path}', function (string $path) {
             'path'  => $path,
             'error' => $e->getMessage(),
         ]);
+        // Real-time ops alert: a broken S3 config here means ALL user file
+        // retrievals 404 (avatars/covers degrade to placeholders). Cooldown-
+        // guarded inside the service so bursts don't spam admins.
+        \App\Services\Integrations\StorageHealthAlerts::alertFromBridge($e);
         abort(404);
     }
     return redirect($url, 302);
