@@ -312,7 +312,7 @@ class BlogController extends Controller
             'readingTime' => max(1, (int) $p->reading_time_min) . ' min read',
             'author'      => (string) ($p->author?->name ?? 'The Sayzio Team'),
             'category'    => (string) ($p->category?->name ?? 'General'),
-            'coverImage'  => $this->absoluteUrl($p->cover_image),
+            'coverImage'  => $this->absoluteUrl(\App\Support\PublicStorageUrl::resolve($p->cover_image)),
         ];
     }
 

@@ -308,6 +308,10 @@ args = "footer-last-updated"
 task = "workflow.run"
 args = "eas-android-build"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "storage-url-resolve"
+
 [[workflows.workflow]]
 name = "e2e"
 author = "agent"
@@ -1305,6 +1309,17 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "cd artifacts/1inme-mobile && EAS_NO_VCS=1 npx -y eas-cli build --platform android --profile preview --non-interactive --no-wait"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "storage-url-resolve"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/scripts run check:storage-url-resolve"
 
 [workflows.workflow.metadata]
 isValidation = true

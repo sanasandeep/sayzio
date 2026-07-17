@@ -412,7 +412,7 @@ class DeliveryProjectController extends Controller
                 'id'      => $m->id,
                 'user_id' => (int) $m->user_id,
                 'name'    => $m->user?->name,
-                'avatar'  => $m->user?->avatar,
+                'avatar'  => \App\Support\PublicStorageUrl::resolve($m->user?->avatar),
             ])
             ->filter(fn ($m) => $m['name'] !== null)
             ->values()

@@ -168,7 +168,7 @@ class ViewerAuthController extends Controller
         UserNotification::create([
             'user_id' => $creator->id,
             'type'    => 'new_follower',
-            'data'    => ['follower_id' => $me->id, 'follower_name' => $me->name, 'follower_avatar' => $me->avatar],
+            'data'    => ['follower_id' => $me->id, 'follower_name' => $me->name, 'follower_avatar' => \App\Support\PublicStorageUrl::resolve($me->avatar)],
             'created_at' => now(),
         ]);
         if ($creator->notify_new_follower) {

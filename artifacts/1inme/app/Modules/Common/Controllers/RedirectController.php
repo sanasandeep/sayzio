@@ -802,7 +802,7 @@ class RedirectController extends Controller
 
         $icons = [];
         if ($link->favicon) {
-            $icons[] = ['src' => $link->favicon, 'sizes' => '64x64', 'type' => 'image/png'];
+            $icons[] = ['src' => \App\Support\PublicStorageUrl::resolve($link->favicon), 'sizes' => '64x64', 'type' => 'image/png'];
         }
         if (!empty($favicons['apple_touch_icon'])) {
             $icons[] = ['src' => $favicons['apple_touch_icon'], 'sizes' => '180x180', 'type' => 'image/png'];
