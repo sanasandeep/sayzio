@@ -79,7 +79,7 @@
 
     @include('common.partials.default-icons')
     @if($link->favicon)
-        <link rel="icon" type="image/png" href="{{ $link->favicon }}">
+        <link rel="icon" type="image/png" href="{{ \App\Support\PublicStorageUrl::resolve($link->favicon) }}">
     @endif
     @if(!empty($faviconSettings['apple_touch_icon']))
         <link rel="apple-touch-icon" sizes="180x180" href="{{ $faviconSettings['apple_touch_icon'] }}">
@@ -971,7 +971,7 @@
                     @endif
                     <p class="text-sm whitespace-pre-line" style="color:{{ $fontColor }}cc;">{{ \Illuminate\Support\Str::limit($pinnedPost->body, 320) }}</p>
                     @if($pinnedPost->image)
-                        <img src="{{ $pinnedPost->image }}" class="mt-3 rounded-lg max-h-72 w-full object-cover" alt=""/>
+                        <img src="{{ \App\Support\PublicStorageUrl::resolve($pinnedPost->image) }}" class="mt-3 rounded-lg max-h-72 w-full object-cover" alt=""/>
                     @endif
                     <p class="text-[11px] mt-2" style="color:{{ $fontColor }}77;">{{ $pinnedPost->published_at?->diffForHumans() }}</p>
                 </div>
@@ -1131,7 +1131,7 @@
                         <div class="relative" @click.away="menu=false">
                             <button type="button" @click="menu=!menu" class="flex items-center gap-1.5 pr-1 hover:opacity-90">
                                 @if($__viewer->avatar)
-                                    <img src="{{ $__viewer->avatar }}" class="w-5 h-5 rounded-full object-cover" alt=""/>
+                                    <img src="{{ \App\Support\PublicStorageUrl::resolve($__viewer->avatar) }}" class="w-5 h-5 rounded-full object-cover" alt=""/>
                                 @else
                                     <span class="w-5 h-5 rounded-full inline-flex items-center justify-center text-[10px] font-bold"
                                           style="background: {{ $fontColor }}30; color: {{ $fontColor }};">

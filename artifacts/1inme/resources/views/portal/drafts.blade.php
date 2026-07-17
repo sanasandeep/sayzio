@@ -23,7 +23,7 @@
         </div>
 
         @if($post->image)
-            <img src="{{ $post->image }}" alt="" class="rounded mb-3 max-h-72 object-cover w-full">
+            <img src="{{ \App\Support\PublicStorageUrl::resolve($post->image) }}" alt="" class="rounded mb-3 max-h-72 object-cover w-full">
         @endif
         <div class="prose prose-sm max-w-none text-slate-700 whitespace-pre-wrap mb-4">{{ $post->body }}</div>
 

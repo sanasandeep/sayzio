@@ -46,7 +46,7 @@
     <meta name="description" content="{{ $link->seo_description }}">
 @endif
 @if($link->favicon)
-    <link rel="icon" href="{{ $link->favicon }}">
+    <link rel="icon" href="{{ \App\Support\PublicStorageUrl::resolve($link->favicon) }}">
 @endif
 <style>
     *, *::before, *::after { box-sizing: border-box; }

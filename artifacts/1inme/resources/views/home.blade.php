@@ -5303,7 +5303,7 @@
                    class="group shrink-0 w-[85%] sm:w-auto snap-start block bg-white/[0.03] border border-white/10 rounded-2xl overflow-hidden hover:border-blue-500/40 transition reveal rd-{{ $loop->iteration + 1 }}">
                     @if($post->cover_image)
                         <div class="aspect-[16/9] bg-white/5 overflow-hidden">
-                            <img src="{{ $post->cover_image }}" alt="" loading="lazy" class="w-full h-full object-cover group-hover:scale-105 transition duration-500">
+                            <img src="{{ \App\Support\PublicStorageUrl::resolve($post->cover_image) }}" alt="" loading="lazy" class="w-full h-full object-cover group-hover:scale-105 transition duration-500">
                         </div>
                     @else
                         <div class="aspect-[16/9]" style="background:rgba(61,107,255,.18);"></div>

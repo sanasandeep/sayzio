@@ -68,10 +68,10 @@
 <link rel="canonical" href="{{ \App\Modules\Common\Support\PlatformHosts::canonicalUrl() }}">
 <meta property="og:url" content="{{ \App\Modules\Common\Support\PlatformHosts::canonicalUrl() }}">
 @if($creator->cover_image)
-    <meta property="og:image" content="{{ $creator->cover_image }}">
+    <meta property="og:image" content="{{ \App\Support\PublicStorageUrl::resolve($creator->cover_image) }}">
     <meta property="og:image:alt" content="{{ $creator->name }}">
 @elseif($creator->avatar)
-    <meta property="og:image" content="{{ $creator->avatar }}">
+    <meta property="og:image" content="{{ \App\Support\PublicStorageUrl::resolve($creator->avatar) }}">
     <meta property="og:image:alt" content="{{ $creator->name }}">
 @endif
 <meta name="twitter:card" content="{{ $__cpImage ? 'summary_large_image' : 'summary' }}">
@@ -106,14 +106,14 @@
     <header class="cp-card overflow-hidden mt-4">
         <div class="h-40 sm:h-56 bg-gradient-to-br from-blue-500 via-fuchsia-500 to-indigo-500 relative">
             @if($creator->cover_image)
-                <img src="{{ $creator->cover_image }}" alt="" class="absolute inset-0 w-full h-full object-cover">
+                <img src="{{ \App\Support\PublicStorageUrl::resolve($creator->cover_image) }}" alt="" class="absolute inset-0 w-full h-full object-cover">
             @endif
         </div>
         <div class="px-5 sm:px-7 pb-6 -mt-12">
             <div class="flex items-end justify-between gap-3 flex-wrap">
                 <div class="flex items-end gap-4">
                     @if($creator->avatar)
-                        <img src="{{ $creator->avatar }}" alt="{{ $creator->name }}" class="w-24 h-24 rounded-2xl object-cover border-4 border-white shadow-md bg-white">
+                        <img src="{{ \App\Support\PublicStorageUrl::resolve($creator->avatar) }}" alt="{{ $creator->name }}" class="w-24 h-24 rounded-2xl object-cover border-4 border-white shadow-md bg-white">
                     @else
                         <div class="w-24 h-24 rounded-2xl border-4 border-white shadow-md bg-gradient-to-br from-blue-500 to-fuchsia-500 text-white flex items-center justify-center font-extrabold text-2xl">
                             {{ $creator->getInitials() }}
@@ -407,7 +407,7 @@
                 @foreach($relatedCreators as $rc)
                     <a href="{{ url('/@' . $rc->handle) }}" class="flex items-center gap-2 p-2 rounded-lg border border-slate-200 hover:border-blue-400 hover:bg-blue-50 transition">
                         @if($rc->avatar)
-                            <img src="{{ $rc->avatar }}" alt="" class="w-9 h-9 rounded-full object-cover bg-slate-100 shrink-0">
+                            <img src="{{ \App\Support\PublicStorageUrl::resolve($rc->avatar) }}" alt="" class="w-9 h-9 rounded-full object-cover bg-slate-100 shrink-0">
                         @else
                             <div class="w-9 h-9 rounded-full bg-gradient-to-br from-blue-500 to-fuchsia-500 text-white flex items-center justify-center text-xs font-bold shrink-0">
                                 {{ $rc->getInitials() }}

@@ -68,7 +68,7 @@
                     <label class="text-xs font-semibold mb-1 block" style="color: var(--text-dimmed);">Cover image</label>
                     @if($user->cover_image)
                         <div class="mb-2 relative">
-                            <img src="{{ $user->cover_image }}" class="w-full h-32 object-cover rounded-lg">
+                            <img src="{{ \App\Support\PublicStorageUrl::resolve($user->cover_image) }}" class="w-full h-32 object-cover rounded-lg">
                             <label class="absolute top-2 right-2 text-[11px] px-2 py-1 rounded bg-white/90 text-slate-700 cursor-pointer">
                                 <input type="checkbox" name="cover_image_remove" value="1" class="mr-1"> Remove
                             </label>

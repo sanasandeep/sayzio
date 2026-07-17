@@ -65,7 +65,7 @@
                        class="group bg-white/[0.03] hover:bg-white/[0.06] border border-white/10 hover:border-blue-500/40 rounded-2xl p-5 transition-all duration-300 hover:-translate-y-1 flex flex-col">
                         <div class="flex items-center gap-3">
                             @if($u && $u->avatar)
-                                <img src="{{ $u->avatar }}" alt="{{ $u?->name ?? 'Creator' }}" class="w-11 h-11 rounded-full object-cover ring-2 ring-white/5 group-hover:ring-blue-400/40 transition">
+                                <img src="{{ \App\Support\PublicStorageUrl::resolve($u->avatar) }}" alt="{{ $u?->name ?? 'Creator' }}" class="w-11 h-11 rounded-full object-cover ring-2 ring-white/5 group-hover:ring-blue-400/40 transition">
                             @else
                                 <div class="w-11 h-11 rounded-full bg-gradient-to-br from-blue-500 to-fuchsia-500 flex items-center justify-center text-white text-sm font-bold ring-2 ring-white/5 group-hover:ring-blue-400/40 transition">
                                     {{ strtoupper(mb_substr($u?->name ?? $b->title ?? '?', 0, 1)) }}

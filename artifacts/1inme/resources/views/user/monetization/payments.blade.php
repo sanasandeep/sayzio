@@ -35,7 +35,7 @@
                                     @if($e->fan)
                                         <div class="flex items-center gap-2">
                                             @if($e->fan->avatar)
-                                                <img src="{{ $e->fan->avatar }}" class="w-6 h-6 rounded-full object-cover" alt="">
+                                                <img src="{{ \App\Support\PublicStorageUrl::resolve($e->fan->avatar) }}" class="w-6 h-6 rounded-full object-cover" alt="">
                                             @endif
                                             <span class="text-sm" style="color: var(--text-secondary);">{{ $e->fan->name }}</span>
                                         </div>

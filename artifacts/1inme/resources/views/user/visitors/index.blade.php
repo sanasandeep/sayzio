@@ -193,7 +193,7 @@
                             <tr class="border-t" style="border-color: var(--border-soft);">
                                 <td class="py-2 pr-4 flex items-center gap-2">
                                     @if($row->avatar)
-                                        <img src="{{ $row->avatar }}" class="w-7 h-7 rounded-full object-cover"/>
+                                        <img src="{{ \App\Support\PublicStorageUrl::resolve($row->avatar) }}" class="w-7 h-7 rounded-full object-cover"/>
                                     @else
                                         <div class="w-7 h-7 rounded-full bg-gradient-to-br from-blue-500 to-fuchsia-500 text-white flex items-center justify-center text-xs font-bold">{{ strtoupper(substr($row->name ?? '?', 0, 1)) }}</div>
                                     @endif

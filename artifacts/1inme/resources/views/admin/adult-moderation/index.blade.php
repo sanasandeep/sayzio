@@ -52,7 +52,7 @@
                         <td class="px-4 py-3">
                             <div class="flex items-center gap-3">
                                 @if($u->avatar)
-                                    <img src="{{ $u->avatar }}" class="w-8 h-8 rounded-full object-cover" alt="">
+                                    <img src="{{ \App\Support\PublicStorageUrl::resolve($u->avatar) }}" class="w-8 h-8 rounded-full object-cover" alt="">
                                 @else
                                     <div class="w-8 h-8 rounded-full bg-slate-200 text-slate-500 inline-flex items-center justify-center text-xs font-bold">
                                         {{ strtoupper(substr($u->name ?? '?', 0, 1)) }}

@@ -48,7 +48,7 @@
                     <li class="flex items-center gap-3">
                         <span class="w-6 text-center text-xs font-bold" style="color: var(--text-faint);">{{ $loop->iteration }}</span>
                         @if($row['post']->image)
-                            <img src="{{ $row['post']->image }}" alt="" class="w-10 h-10 object-cover rounded">
+                            <img src="{{ \App\Support\PublicStorageUrl::resolve($row['post']->image) }}" alt="" class="w-10 h-10 object-cover rounded">
                         @else
                             <div class="w-10 h-10 rounded bg-gradient-to-br from-blue-400 to-fuchsia-500"></div>
                         @endif

@@ -3,10 +3,13 @@ import fs from "node:fs";
 import path from "node:path";
 import {
   ALLOWLIST,
+  BLADE_SCAN_ROOTS,
   REPO_ROOT,
   SCAN_ROOTS,
   STORAGE_COLUMNS,
+  scanBladeSource,
   scanSource,
+  stripBladeComments,
   stripPhpComments,
 } from "./check-storage-url-resolve.js";
 
@@ -114,6 +117,77 @@ describe("scanSource — stays quiet on benign patterns", () => {
     expect(scanSource(entry.file, src)).toEqual([]);
     // Same line in a different file IS flagged.
     expect(scanSource(FILE, src).length).toBeGreaterThan(0);
+  });
+});
+
+const BLADE_FILE = "artifacts/1inme/resources/views/fake/fake.blade.php";
+const bladeCols = (src: string) => scanBladeSource(BLADE_FILE, src).map((o) => o.column);
+
+describe("scanBladeSource — flags raw echoes of storage columns", () => {
+  it("flags a raw <img src> echo", () => {
+    expect(bladeCols('<img src="{{ $u->avatar }}" class="w-8">')).toEqual(["avatar"]);
+  });
+
+  it("flags a raw unescaped echo", () => {
+    expect(bladeCols("{!! $link->favicon !!}")).toEqual(["favicon"]);
+  });
+
+  it("flags nullsafe / chained reads and `??` raw emissions", () => {
+    expect(bladeCols("{{ $sub->fan?->avatar }}")).toEqual(["avatar"]);
+    expect(bladeCols("{{ $link->favicon ?? '' }}")).toEqual(["favicon"]);
+  });
+
+  it("flags a raw echo inside an inline style url()", () => {
+    expect(bladeCols("style=\"background-image:url('{{ $c->cover_image }}');\"")).toEqual([
+      "cover_image",
+    ]);
+  });
+
+  it("flags every storage column in the set", () => {
+    for (const c of STORAGE_COLUMNS) {
+      expect(bladeCols(`{{ $m->${c} }}`)).toEqual([c]);
+    }
+  });
+});
+
+describe("scanBladeSource — stays quiet on benign patterns", () => {
+  it("ignores resolved echoes", () => {
+    expect(bladeCols("{{ \\App\\Support\\PublicStorageUrl::resolve($u->avatar) }}")).toEqual([]);
+  });
+
+  it("ignores old() form-repopulation round-trips", () => {
+    expect(bladeCols("value=\"{{ old('og_image', $post->og_image) }}\"")).toEqual([]);
+  });
+
+  it("ignores reads outside an echo (@if conditions)", () => {
+    expect(bladeCols("@if($u->avatar)")).toEqual([]);
+    // Condition on the same line as an unrelated echo.
+    expect(bladeCols("@if($u->avatar) {{ $u->name }} @endif")).toEqual([]);
+  });
+
+  it("ignores an echo already closed before the read", () => {
+    expect(bladeCols("{{ $u->name }} @if($u->avatar) x @endif")).toEqual([]);
+  });
+
+  it("ignores method calls and `_url` properties", () => {
+    expect(bladeCols("{{ $u->avatarUrl() }}")).toEqual([]);
+    expect(bladeCols("{{ $u->avatar_url }}")).toEqual([]);
+  });
+
+  it("ignores bare ternary truthiness tests", () => {
+    expect(bladeCols("{{ $u->avatar ? 'yes' : 'no' }}")).toEqual([]);
+  });
+
+  it("ignores blade comments", () => {
+    expect(bladeCols("{{-- <img src=\"{{ $u->avatar }}\"> --}}")).toEqual([]);
+    const out = stripBladeComments("keep\n{{-- {{ $u->avatar }} --}}\nkeep");
+    expect(out.split("\n")).toHaveLength(3);
+  });
+
+  it("honors the allowlist for the exact file + needle", () => {
+    const entry = ALLOWLIST.find((a) => a.file.endsWith(".blade.php"))!;
+    expect(scanBladeSource(entry.file, `<div>${entry.needle}</div>`)).toEqual([]);
+    expect(scanBladeSource(BLADE_FILE, `<div>${entry.needle}</div>`).length).toBeGreaterThan(0);
   });
 });
 

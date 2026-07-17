@@ -290,7 +290,7 @@
                 {{-- Avatar Upload --}}
                 <div class="glass rounded-2xl p-6" x-data="{
                     fileName: '',
-                    previewSrc: {{ $user->avatar ? ('\''. $user->avatar .'\'') : 'null' }},
+                    previewSrc: {{ $user->avatar ? ('\''. \App\Support\PublicStorageUrl::resolve($user->avatar) .'\'') : 'null' }},
                     pick() {
                         this.$refs.avatarInput.click();
                     },

@@ -34,7 +34,7 @@
     {{-- ── Header ───────────────────────────── --}}
     <div class="px-5 pt-4 flex items-center gap-3">
         @if($creator->avatar)
-            <img src="{{ $creator->avatar }}" alt="" class="w-9 h-9 rounded-full object-cover">
+            <img src="{{ \App\Support\PublicStorageUrl::resolve($creator->avatar) }}" alt="" class="w-9 h-9 rounded-full object-cover">
         @else
             <div class="w-9 h-9 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-sm">{{ $creator->getInitials() }}</div>
         @endif
@@ -244,7 +244,7 @@
             @foreach($comments as $c)
                 <div class="flex items-start gap-2">
                     @if($c->viewer && $c->viewer->avatar)
-                        <img src="{{ $c->viewer->avatar }}" class="w-7 h-7 rounded-full object-cover">
+                        <img src="{{ \App\Support\PublicStorageUrl::resolve($c->viewer->avatar) }}" class="w-7 h-7 rounded-full object-cover">
                     @else
                         <div class="w-7 h-7 rounded-full bg-slate-200 flex items-center justify-center text-[11px] font-semibold text-slate-600">
                             {{ $c->viewer?->getInitials() ?? '?' }}
@@ -262,7 +262,7 @@
                                 @foreach($c->replies as $r)
                                     <div class="flex items-start gap-2">
                                         @if($r->viewer && $r->viewer->avatar)
-                                            <img src="{{ $r->viewer->avatar }}" class="w-6 h-6 rounded-full object-cover">
+                                            <img src="{{ \App\Support\PublicStorageUrl::resolve($r->viewer->avatar) }}" class="w-6 h-6 rounded-full object-cover">
                                         @else
                                             <div class="w-6 h-6 rounded-full bg-slate-200 flex items-center justify-center text-[10px] font-semibold text-slate-600">{{ $r->viewer?->getInitials() ?? '?' }}</div>
                                         @endif

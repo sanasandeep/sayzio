@@ -1,7 +1,7 @@
 <a href="{{ route('site.blogs.show', $post->slug) }}" class="group block bg-white/[0.03] border border-white/10 rounded-2xl overflow-hidden hover:border-blue-500/40 transition">
     @if($post->cover_image)
         <div class="aspect-[16/9] bg-white/5 overflow-hidden">
-            <img src="{{ $post->cover_image }}" alt="" class="w-full h-full object-cover group-hover:scale-105 transition duration-500" loading="lazy">
+            <img src="{{ \App\Support\PublicStorageUrl::resolve($post->cover_image) }}" alt="" class="w-full h-full object-cover group-hover:scale-105 transition duration-500" loading="lazy">
         </div>
     @else
         <div class="aspect-[16/9] flex items-center justify-center" style="background:rgba(61,107,255,.18);">
@@ -19,7 +19,7 @@
         @if($post->author)
             <div class="mt-3 flex items-center gap-2 text-[11px] text-white/60">
                 @if(!empty($post->author->avatar))
-                    <img src="{{ $post->author->avatar }}" alt="" class="w-5 h-5 rounded-full object-cover">
+                    <img src="{{ \App\Support\PublicStorageUrl::resolve($post->author->avatar) }}" alt="" class="w-5 h-5 rounded-full object-cover">
                 @else
                     <span class="w-5 h-5 rounded-full bg-blue-600/40 inline-flex items-center justify-center text-[9px] font-bold text-white">{{ strtoupper(mb_substr($post->author->name ?? '?', 0, 1)) }}</span>
                 @endif

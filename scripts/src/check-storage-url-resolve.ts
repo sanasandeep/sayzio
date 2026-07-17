@@ -58,7 +58,17 @@ export const SCAN_ROOTS: string[] = [
   "artifacts/1inme/app/Modules/Api",
   "artifacts/1inme/app/Modules/Common",
   "artifacts/1inme/app/Modules/User",
+  "artifacts/1inme/app/Modules/Admin",
+  "artifacts/1inme/app/Services",
 ];
+
+/**
+ * Blade template roots. Blade files get a second pass (`scanBladeSource`) that
+ * flags raw storage-column reads emitted through `{{ … }}` / `{!! … !!}`
+ * echoes (e.g. `<img src="{{ $user->avatar }}">`), which reach browsers and
+ * email clients directly.
+ */
+export const BLADE_SCAN_ROOTS: string[] = ["artifacts/1inme/resources/views"];
 
 /**
  * Storage-backed image columns that must go through PublicStorageUrl::resolve()
@@ -100,6 +110,11 @@ export const ALLOWLIST: AllowlistEntry[] = [
     file: "artifacts/1inme/app/Modules/User/Models/SplashPage.php",
     needle: "'og_image'      => $this->og_image",
     reason: "Editor round-trip payload — raw stored path (public API surface resolves separately).",
+  },
+  {
+    file: "artifacts/1inme/resources/views/user/links/settings/advanced.blade.php",
+    needle: "value=\"{{ $link->favicon ?? '' }}\"",
+    reason: "Settings form input round-trip — must repopulate the raw stored value so re-saving keeps it.",
   },
 ];
 
@@ -190,6 +205,68 @@ export function scanSource(relFile: string, src: string): Offender[] {
   return offenders;
 }
 
+/**
+ * Blank `{{-- … --}}` Blade comments, newline-preserving, so commented-out
+ * markup never trips the guard.
+ */
+export function stripBladeComments(src: string): string {
+  return src.replace(/\{\{--[\s\S]*?--\}\}/g, (m) => m.replace(/[^\n]/g, " "));
+}
+
+/**
+ * Pure Blade scanner: return every raw storage-column read emitted through a
+ * `{{ … }}` / `{!! … !!}` echo in `src` (e.g. `<img src="{{ $u->avatar }}">`).
+ * Exposed for unit tests.
+ *
+ * Safe (never flagged), mirroring the PHP scanner where applicable:
+ *   - Echoes already wrapped in `PublicStorageUrl::resolve(...)`.
+ *   - Method calls, `_url` properties (COLUMN_RE handles both).
+ *   - Boolean / comparison contexts and bare ternary truthiness tests.
+ *   - `old(...)` form-repopulation echoes — those are input-value round-trips
+ *     that must re-emit the raw stored value.
+ *   - Reads outside an echo (e.g. `@if($u->avatar)` conditions).
+ *   - Explicit ALLOWLIST entries.
+ */
+export function scanBladeSource(relFile: string, src: string): Offender[] {
+  const offenders: Offender[] = [];
+  const rawLines = src.split("\n");
+  const lines = stripBladeComments(src).split("\n");
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i] ?? "";
+    if (!line.includes("{{") && !line.includes("{!!")) continue;
+
+    COLUMN_RE.lastIndex = 0;
+    for (const m of line.matchAll(COLUMN_RE)) {
+      const idx = m.index ?? 0;
+      // The read must sit inside an echo opened earlier on this line.
+      const open = Math.max(line.lastIndexOf("{{", idx), line.lastIndexOf("{!!", idx));
+      if (open === -1) continue;
+      const between = line.slice(open, idx);
+      if (between.includes("}}") || between.includes("!!}")) continue; // echo already closed
+      if (between.includes("PublicStorageUrl::resolve")) continue;
+      if (between.includes("old(")) continue; // form-repopulation round-trip
+      if (BOOLEAN_CONTEXT_RE.test(between)) continue;
+      // Bare ternary truthiness test — value not emitted directly.
+      const after = line.slice(idx + m[0].length).trimStart();
+      if (after.startsWith("?") && !after.startsWith("??")) continue;
+
+      const allowed = ALLOWLIST.some(
+        (a) => a.file === relFile && (rawLines[i] ?? "").includes(a.needle),
+      );
+      if (allowed) continue;
+
+      offenders.push({
+        file: relFile,
+        line: i + 1,
+        column: m[2] ?? "",
+        text: (rawLines[i] ?? "").trim(),
+      });
+    }
+  }
+  return offenders;
+}
+
 /** List every `.php` file under SCAN_ROOTS. */
 function listFiles(): string[] {
   const res = spawnSync("rg", ["--files", "-g", "*.php", ...SCAN_ROOTS], {
@@ -199,6 +276,20 @@ function listFiles(): string[] {
   });
   if (res.error || res.status === 2) {
     console.error("storage-url-resolve guard: failed to list files:", res.error?.message ?? res.stderr);
+    process.exit(2);
+  }
+  return res.stdout.split("\n").map((l) => l.trim()).filter(Boolean);
+}
+
+/** List every `.blade.php` file under BLADE_SCAN_ROOTS. */
+function listBladeFiles(): string[] {
+  const res = spawnSync("rg", ["--files", "-g", "*.blade.php", ...BLADE_SCAN_ROOTS], {
+    cwd: REPO_ROOT,
+    encoding: "utf8",
+    maxBuffer: 64 * 1024 * 1024,
+  });
+  if (res.error || res.status === 2) {
+    console.error("storage-url-resolve guard: failed to list blade files:", res.error?.message ?? res.stderr);
     process.exit(2);
   }
   return res.stdout.split("\n").map((l) => l.trim()).filter(Boolean);
@@ -225,6 +316,15 @@ function main(): void {
       continue;
     }
     offenders.push(...scanSource(rel, src));
+  }
+  for (const rel of listBladeFiles()) {
+    let src: string;
+    try {
+      src = fs.readFileSync(path.join(REPO_ROOT, rel), "utf8");
+    } catch {
+      continue;
+    }
+    offenders.push(...scanBladeSource(rel, src));
   }
 
   const stale = staleAllowlistEntries();

@@ -27,7 +27,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>{{ $title }}</title>
 @if($link->seo_description)<meta name="description" content="{{ $link->seo_description }}">@endif
-@if($link->favicon)<link rel="icon" href="{{ $link->favicon }}">@endif
+@if($link->favicon)<link rel="icon" href="{{ \App\Support\PublicStorageUrl::resolve($link->favicon) }}">@endif
 <style>
     * { box-sizing: border-box; }
     html, body { margin: 0; padding: 0; height: 100%; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
