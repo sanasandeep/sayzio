@@ -820,6 +820,10 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::get('links-ics/{link}/checkin/progress', [\App\Modules\User\Controllers\EventCheckinController::class, 'progress'])->middleware('workspace.can:links.view')->name('links.ics.checkin.progress');
         Route::get('links-ics/{link}/people', [\App\Modules\User\Controllers\EventPeopleController::class, 'dashboard'])->middleware('workspace.can:links.view')->name('links.ics.people');
         Route::get('links-ics/{link}/people/stats', [\App\Modules\User\Controllers\EventPeopleController::class, 'stats'])->middleware('workspace.can:links.view')->name('links.ics.people.stats');
+        // Task #5052 — attendee "My swaps" per event: JSON list + withdraw,
+        // consumed by the public event page for signed-in viewers.
+        Route::get ('event-swaps/{alias}', [\App\Modules\User\Controllers\EventSwapsController::class, 'index'])->name('event-swaps.index');
+        Route::post('contact-exchanges/{id}/cancel', [\App\Modules\User\Controllers\EventSwapsController::class, 'cancel'])->whereNumber('id')->name('contact-exchanges.cancel');
         Route::post('links-ics/{link}/tickets/{ticket}/refund', [\App\Modules\User\Controllers\EventTicketTierController::class, 'refundTicket'])->middleware('workspace.can:links.edit')->name('links.ics.tickets.refund');
         Route::get('events/{link}/checkin/lookup/{code}', [\App\Modules\User\Controllers\EventCheckinController::class, 'lookup'])->name('events.checkin.lookup');
         Route::get('links-vcf/create', [VcfLinkController::class, 'create'])->middleware('workspace.can:links.create')->name('links.vcf.create');

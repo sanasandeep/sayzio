@@ -573,6 +573,14 @@ export default function EventDetailScreen() {
           <Feather name="credit-card" size={18} color={colors.primary} />
           <Text style={[styles.exchangeBtnText, { color: colors.foreground }]}>My card</Text>
         </Pressable>
+        {/* Task #5052 — review/withdraw own contact-swap requests */}
+        <Pressable
+          style={[styles.exchangeBtn, { backgroundColor: colors.card, borderColor: colors.border }]}
+          onPress={() => router.push({ pathname: "/events/swaps/[alias]", params: { alias: event.alias, title: event.title } })}
+        >
+          <Feather name="repeat" size={18} color={colors.primary} />
+          <Text style={[styles.exchangeBtnText, { color: colors.foreground }]}>My swaps</Text>
+        </Pressable>
       </View>
 
       <LinkTypePairings pairings={event?.pairings} theme="dark" />

@@ -436,6 +436,49 @@ class EventContactExchangeController extends Controller
         ]);
     }
 
+    // ─── My swaps (Task #5052) ───────────────────────────────────────
+
+    /**
+     * List the viewer's own pending + accepted swap requests at this event.
+     * Their own data — no event-live or attendee gate, so requests stay
+     * reviewable after the event ends (until retention pruning removes
+     * them).
+     */
+    public function mySwaps(Request $request, string $alias)
+    {
+        $user = $request->user();
+        if (!$user) return $this->unauthorized();
+
+        $link = $this->resolveEventLink($alias);
+        if (!$link) return $this->notFound('Event not found.');
+
+        $items = \App\Services\Events\EventContactSwaps::listForUser($user, $link);
+
+        return $this->ok([
+            'items' => $items,
+            'total' => count($items),
+        ]);
+    }
+
+    /**
+     * Withdraw a pending swap request the viewer sent. Sender-only,
+     * pending-only; the row is deleted so the pair can exchange later.
+     */
+    public function cancelExchange(Request $request, int $exchangeId)
+    {
+        $user = $request->user();
+        if (!$user) return $this->unauthorized();
+
+        $error = \App\Services\Events\EventContactSwaps::cancel($user, $exchangeId);
+
+        return match ($error) {
+            'not_found'        => $this->notFound('Exchange request not found.'),
+            'not_sender'       => $this->forbidden('Only the sender can withdraw this request.'),
+            'already_resolved' => $this->fail('This request has already been resolved and can no longer be withdrawn.', 409, 'already_resolved'),
+            default            => $this->ok(['exchange_id' => $exchangeId, 'cancelled' => true]),
+        };
+    }
+
     // ─── Organizer stats (Task #5010) ────────────────────────────────
 
     /**
