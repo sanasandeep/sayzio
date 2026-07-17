@@ -9,8 +9,9 @@ export type DeviceImportResult = {
 };
 
 export type DeviceImportOutcome =
-  | { ok: true; result: DeviceImportResult; imported: number }
-  | { ok: false; reason: "unavailable" | "denied" | "empty" };
+  | { ok: true; result: DeviceImportResult; imported: number; fingerprint: string }
+  | { ok: false; reason: "unavailable" | "denied" | "empty" }
+  | { ok: false; reason: "unchanged"; fingerprint: string };
 
 /**
  * Read the device address book and push it to the Sayzio contacts API.
@@ -20,9 +21,18 @@ export type DeviceImportOutcome =
  * explicit permission handling, then a single bulk POST. When
  * `requestPermission` is false we only proceed if access was already granted,
  * so silent re-syncs never re-prompt the user.
+ *
+ * Change detection: when `unchangedFingerprint` is provided and the freshly
+ * built payload hashes to the same fingerprint, the bulk POST is skipped and
+ * `{ ok: false, reason: "unchanged", fingerprint }` is returned — so silent
+ * background re-syncs of an unchanged address book cost zero network calls.
+ * Successful imports also return the payload `fingerprint` for callers to
+ * remember. The hash is computed inline (FNV-1a over the JSON payload) so
+ * this function stays self-contained.
  */
 export async function importDeviceContacts(opts?: {
   requestPermission?: boolean;
+  unchangedFingerprint?: string | null;
 }): Promise<DeviceImportOutcome> {
   const Contacts = await import("expo-contacts").catch(() => null);
   if (!Contacts) return { ok: false, reason: "unavailable" };
@@ -64,6 +74,17 @@ export async function importDeviceContacts(opts?: {
 
   if (!payload.length) return { ok: false, reason: "empty" };
 
+  // Cheap change detection: FNV-1a hash of the exact payload we'd POST.
+  const json = JSON.stringify(payload);
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < json.length; i++) {
+    hash = Math.imul(hash ^ json.charCodeAt(i), 0x01000193) >>> 0;
+  }
+  const fingerprint = `${json.length}:${hash.toString(16)}`;
+  if (opts?.unchangedFingerprint && opts.unchangedFingerprint === fingerprint) {
+    return { ok: false, reason: "unchanged", fingerprint };
+  }
+
   const result = await bulkImportContacts(payload);
-  return { ok: true, result, imported: payload.length };
+  return { ok: true, result, imported: payload.length, fingerprint };
 }

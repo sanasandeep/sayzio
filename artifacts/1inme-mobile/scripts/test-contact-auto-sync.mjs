@@ -21,6 +21,10 @@
 //   4. ["contacts"] and ["contact-duplicate-count"] are invalidated only on a
 //      successful import — not on { ok: false }, not on a thrown error, and
 //      not after the effect was cleaned up (unmounted).
+//   4b. Change detection: the hook passes the last known fingerprint as
+//      unchangedFingerprint, remembers the fingerprint from successful AND
+//      "unchanged" outcomes, and an unchanged address book never invalidates
+//      queries (the POST was skipped inside importDeviceContacts).
 //   5. No alert is ever shown (the hook source never references Alert).
 //   6. enabled=false means no sync and no AppState listener at all.
 //
@@ -130,6 +134,7 @@ function mount({ enabled = true } = {}) {
     enabled,
     running: { current: false },
     lastRun: { current: -60_000 }, // far enough back that the mount sync runs at t=0
+    lastFingerprint: { current: null },
     MIN_INTERVAL_MS: 60_000,
     Date: { now: () => state.now },
     qc: {
@@ -181,10 +186,10 @@ const tick = () => new Promise((r) => setImmediate(r));
   assert.equal(h.importCalls.length, 1, "must sync once on mount");
   assert.deepEqual(
     h.importCalls[0],
-    { requestPermission: false },
-    "runtime call must pass requestPermission: false and nothing else",
+    { requestPermission: false, unchangedFingerprint: null },
+    "first runtime call must pass requestPermission: false and no fingerprint yet",
   );
-  h.pending[0].resolve({ ok: true, imported: 3 });
+  h.pending[0].resolve({ ok: true, imported: 3, fingerprint: "fp-a" });
   await tick();
   assert.deepEqual(
     h.invalidated.map((k) => JSON.stringify(k)).sort(),
@@ -210,7 +215,12 @@ const tick = () => new Promise((r) => setImmediate(r));
   h.foreground();
   await tick();
   assert.equal(h.importCalls.length, 2, "resume after 60s must re-sync");
-  assert.deepEqual(h.importCalls[1], { requestPermission: false });
+  assert.deepEqual(
+    h.importCalls[1],
+    { requestPermission: false, unchangedFingerprint: "fp-a" },
+    "later runs must pass the remembered fingerprint so unchanged books skip the POST",
+  );
+  ok("hook passes the fingerprint from the last successful sync as unchangedFingerprint");
 
   // --- single-flight: resume while in flight never doubles up ---------------
   h.now = 300_000; // well past the throttle window
@@ -262,6 +272,65 @@ const tick = () => new Promise((r) => setImmediate(r));
     "a success that lands after unmount must not invalidate queries",
   );
   ok("cleanup removes the listener and late successes after unmount are muted");
+}
+
+// --- skip path: unchanged address book never refreshes, fingerprint kept ----
+{
+  const h = mount();
+  assert.equal(h.importCalls.length, 1);
+  // First sync succeeds and establishes the fingerprint.
+  h.pending[0].resolve({ ok: true, imported: 5, fingerprint: "fp-1" });
+  await tick();
+  h.invalidated.length = 0;
+
+  // Unchanged book: importDeviceContacts skipped the POST and reports
+  // "unchanged" — no query invalidation, fingerprint retained.
+  h.now = 61_000;
+  h.foreground();
+  await tick();
+  assert.deepEqual(
+    h.importCalls[1],
+    { requestPermission: false, unchangedFingerprint: "fp-1" },
+    "second run must offer the established fingerprint for skipping",
+  );
+  h.pending[1].resolve({ ok: false, reason: "unchanged", fingerprint: "fp-1" });
+  await tick();
+  assert.equal(
+    h.invalidated.length,
+    0,
+    "an unchanged address book must not invalidate any queries",
+  );
+  ok("unchanged outcome causes no invalidation (POST skipped upstream)");
+
+  // A failed run without a fingerprint must NOT clobber the remembered one.
+  h.now = 122_000;
+  h.foreground();
+  await tick();
+  h.pending[2].resolve({ ok: false, reason: "denied" });
+  await tick();
+  h.now = 183_000;
+  h.foreground();
+  await tick();
+  assert.deepEqual(
+    h.importCalls[3],
+    { requestPermission: false, unchangedFingerprint: "fp-1" },
+    "fingerprint must survive an outcome without a fingerprint (e.g. denied)",
+  );
+  // And a changed book (fresh fingerprint) rolls it forward.
+  h.pending[3].resolve({ ok: true, imported: 6, fingerprint: "fp-2" });
+  await tick();
+  h.now = 244_000;
+  h.foreground();
+  await tick();
+  assert.deepEqual(
+    h.importCalls[4],
+    { requestPermission: false, unchangedFingerprint: "fp-2" },
+    "a changed book must roll the remembered fingerprint forward",
+  );
+  h.pending[4].resolve({ ok: false, reason: "unchanged", fingerprint: "fp-2" });
+  await tick();
+  h.cleanup();
+  ok("fingerprint survives failures and rolls forward on a changed book");
 }
 
 console.log(`\n[test-contact-auto-sync] all ${passed} checks passed`);

@@ -132,8 +132,10 @@ assert.ok(
   ),
   "name falls back to the host account name when the profile name is blank",
 );
+// The avatar may be wrapped in PublicStorageUrl::resolve(...) (CDN-aware URL
+// resolution); the fallback expression itself is what matters here.
 assert.ok(
-  /'avatar'\s*=> \$profile\['logo'\] !== '' \? \$profile\['logo'\] : \$host->avatar,/.test(
+  /'avatar'\s*=> (?:\\App\\Support\\PublicStorageUrl::resolve\()?\$profile\['logo'\] !== '' \? \$profile\['logo'\] : \$host->avatar\)?,/.test(
     apiSrc,
   ),
   "avatar falls back to the host account avatar when no organizer logo is set",

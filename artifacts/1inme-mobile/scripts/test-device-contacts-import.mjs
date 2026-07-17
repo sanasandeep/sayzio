@@ -253,9 +253,57 @@ ok('empty / junk-only address book → { ok:false, reason:"empty" }, no API call
     emails: [],
     phones: [],
   });
-  assert.deepEqual(out, { ok: true, result: serverResult, imported: 3 });
+  assert.equal(out.ok, true);
+  assert.deepEqual(out.result, serverResult);
+  assert.equal(out.imported, 3);
+  assert.ok(
+    typeof out.fingerprint === "string" && out.fingerprint.length > 0,
+    "a successful import must return the payload fingerprint",
+  );
 }
-ok("success maps fields (junk emails/phones filtered) and returns result + imported count");
+ok("success maps fields (junk emails/phones filtered) and returns result + imported + fingerprint");
+
+// ===========================================================================
+// 4b. Change detection: an unchanged address book skips the bulk POST when
+//     the caller passes back the last fingerprint; a changed book still POSTs.
+// ===========================================================================
+{
+  const contacts = [{ name: "Ada", emails: [{ email: "ada@example.com" }] }];
+  const apiCalls = [];
+  const makeIt = (list) =>
+    makeImporter(
+      () => Promise.resolve(makeContactsModule({ contacts: list })),
+      async (p) => (apiCalls.push(p), { created: 1, updated: 0, skipped: 0 }),
+    );
+
+  const first = await makeIt(contacts)({ requestPermission: false });
+  assert.equal(first.ok, true);
+  assert.equal(apiCalls.length, 1, "first sync POSTs");
+
+  // Same book + last fingerprint → no POST, "unchanged" outcome that still
+  // carries the fingerprint so callers keep remembering it.
+  const second = await makeIt(contacts)({
+    requestPermission: false,
+    unchangedFingerprint: first.fingerprint,
+  });
+  assert.deepEqual(second, {
+    ok: false,
+    reason: "unchanged",
+    fingerprint: first.fingerprint,
+  });
+  assert.equal(apiCalls.length, 1, "unchanged address book must skip the bulk POST");
+
+  // A stale/other fingerprint (changed book) still POSTs and returns the new one.
+  const changed = [{ name: "Ada B", emails: [{ email: "ada@example.com" }] }];
+  const third = await makeIt(changed)({
+    requestPermission: false,
+    unchangedFingerprint: first.fingerprint,
+  });
+  assert.equal(third.ok, true, "a changed book must still import");
+  assert.notEqual(third.fingerprint, first.fingerprint, "fingerprint must change with the payload");
+  assert.equal(apiCalls.length, 2, "changed address book POSTs again");
+}
+ok("unchanged fingerprint skips the bulk POST; changed payloads still import with a new fingerprint");
 
 // ===========================================================================
 // 5. A failing bulk POST REJECTS — never swallowed into a fake outcome.
@@ -287,8 +335,18 @@ function sliceBetween(src, startMarker, endMarker, label) {
   return src.slice(start, end);
 }
 
-const onSuccessSrc = sliceBetween(
+// The screen now has multiple mutations with onSuccess/onError handlers (e.g.
+// the Google-sync mutation added later sits ABOVE the device import). Anchor
+// on the import mutation's mutationFn so we lift the right handlers.
+const importMutationSrc = sliceBetween(
   screenSrc,
+  "mutationFn: () => importDeviceContacts",
+  "\n  });",
+  "device import mutation",
+);
+
+const onSuccessSrc = sliceBetween(
+  importMutationSrc,
   "onSuccess: (out) => {",
   "\n    onError:",
   "onSuccess handler",
@@ -298,7 +356,7 @@ const onSuccessSrc = sliceBetween(
   .replace(/ as any\)/g, ")");
 
 const onErrorSrc = sliceBetween(
-  screenSrc,
+  `${importMutationSrc}\n  });`,
   "onError: (e: any) => {",
   "\n  });",
   "onError handler",

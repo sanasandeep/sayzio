@@ -26,6 +26,9 @@ export function useContactAutoSync(enabled: boolean) {
   const qc = useQueryClient();
   const lastRun = useRef(0);
   const running = useRef(false);
+  // Fingerprint of the last payload we synced (or confirmed unchanged), so
+  // foreground resumes with an unchanged address book skip the network POST.
+  const lastFingerprint = useRef<string | null>(null);
 
   useEffect(() => {
     if (!enabled) return;
@@ -38,7 +41,11 @@ export function useContactAutoSync(enabled: boolean) {
       lastRun.current = Date.now();
       let changed = false;
       try {
-        const out = await importDeviceContacts({ requestPermission: false });
+        const out = await importDeviceContacts({
+          requestPermission: false,
+          unchangedFingerprint: lastFingerprint.current,
+        });
+        if ("fingerprint" in out) lastFingerprint.current = out.fingerprint;
         if (out.ok) changed = true;
       } catch {
         // Import is best-effort; ignore device/permission failures.
