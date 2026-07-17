@@ -247,4 +247,82 @@ class EventContactExchangeFlowTest extends TestCase
         $this->assertNotNull(Contact::where('user_id', $alice->id)->where('biolink_user_id', $bob->id)->first());
         $this->assertNotNull(Contact::where('user_id', $bob->id)->where('biolink_user_id', $alice->id)->first());
     }
+
+    /**
+     * Seed $count sent exchanges from $requester at $link, each to a distinct
+     * throwaway recipient (the unique index forbids duplicate pairs), stamped
+     * with the given created_at.
+     */
+    private function seedSentExchanges(User $requester, Link $link, int $count, \DateTimeInterface $createdAt): void
+    {
+        for ($i = 0; $i < $count; $i++) {
+            $recipient = User::factory()->create();
+            $exchange  = EventContactExchange::create([
+                'requester_id' => $requester->id,
+                'recipient_id' => $recipient->id,
+                'link_id'      => $link->id,
+                'status'       => EventContactExchange::STATUS_PENDING,
+            ]);
+            // Bypass model timestamp handling so the stamp sticks exactly.
+            EventContactExchange::where('id', $exchange->id)
+                ->update(['created_at' => $createdAt]);
+        }
+    }
+
+    public function test_eleventh_exchange_request_within_the_hour_is_rate_limited(): void
+    {
+        $host  = $this->makeUser('Rate Host');
+        $alice = $this->makeUser('Rapid Alice');
+        $bob   = $this->makeUser('Target Bob');
+
+        $link = $this->makeLiveEvent($host);
+        $this->rsvp($alice, $link);
+        $this->rsvp($bob, $link);
+        $this->optIn($alice, $link);
+        $this->optIn($bob, $link);
+
+        // 10 requests already sent within the last hour → cap reached.
+        $this->seedSentExchanges($alice, $link, 10, now()->subMinutes(30));
+
+        $resp = $this->withToken($this->token($alice))
+            ->postJson('/api/v1/events/' . $link->alias . '/exchange', [
+                'recipient_id' => $bob->id,
+            ]);
+        $this->flushHeaders();
+
+        $resp->assertStatus(429)->assertJsonPath('error.code', 'rate_limited');
+
+        // No 11th row was created.
+        $this->assertSame(
+            0,
+            EventContactExchange::where('requester_id', $alice->id)
+                ->where('recipient_id', $bob->id)
+                ->where('link_id', $link->id)
+                ->count(),
+        );
+    }
+
+    public function test_requests_older_than_an_hour_do_not_count_toward_the_cap(): void
+    {
+        $host  = $this->makeUser('Old Host');
+        $alice = $this->makeUser('Patient Alice');
+        $bob   = $this->makeUser('Fresh Bob');
+
+        $link = $this->makeLiveEvent($host);
+        $this->rsvp($alice, $link);
+        $this->rsvp($bob, $link);
+        $this->optIn($alice, $link);
+        $this->optIn($bob, $link);
+
+        // 10 requests sent two hours ago — outside the rolling window.
+        $this->seedSentExchanges($alice, $link, 10, now()->subHours(2));
+
+        $resp = $this->withToken($this->token($alice))
+            ->postJson('/api/v1/events/' . $link->alias . '/exchange', [
+                'recipient_id' => $bob->id,
+            ]);
+        $this->flushHeaders();
+
+        $resp->assertStatus(201)->assertJsonPath('data.status', 'pending');
+    }
 }
