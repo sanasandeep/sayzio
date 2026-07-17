@@ -11,6 +11,7 @@ import {
   View,
 } from "react-native";
 import { useFocusEffect } from "expo-router";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   Contact,
   DuplicateGroup,
@@ -23,6 +24,7 @@ import {
 } from "@/lib/api/contacts";
 
 export default function ContactDuplicatesScreen() {
+  const qc = useQueryClient();
   const [groups, setGroups] = useState<DuplicateGroup[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -81,6 +83,8 @@ export default function ContactDuplicatesScreen() {
         dismissDuplicates(pairs)
           .then(() => {
             setGroups((prev) => prev.filter((_, i) => i !== groupIdx));
+            // Keep the contacts-screen banner count in sync immediately.
+            qc.invalidateQueries({ queryKey: ["contact-duplicate-count"] });
           })
           .catch((e: unknown) => {
             Alert.alert(
@@ -122,6 +126,8 @@ export default function ContactDuplicatesScreen() {
         mergeContacts(primaryId, loserIds)
           .then(() => {
             setGroups((prev) => prev.filter((_, i) => i !== groupIdx));
+            // Keep the contacts-screen banner count in sync immediately.
+            qc.invalidateQueries({ queryKey: ["contact-duplicate-count"] });
           })
           .catch((e: unknown) => {
             Alert.alert(
