@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
@@ -29,10 +30,14 @@ use Tests\TestCase;
  *      config declares `throw: false` — that flag only suppresses exceptions
  *      from actual API calls, not from SDK/credential initialization.
  *
- * No database is touched by this route, so no RefreshDatabase is needed.
+ * The route itself touches no database rows, but rendering the 404 error
+ * page pulls in the site layout (site_pages, site assistant hints, …), so
+ * RefreshDatabase is required for the tests to run on a fresh/ephemeral DB.
  */
 class StorageCdnFallbackTest extends TestCase
 {
+    use RefreshDatabase;
+
     private const TEST_PATH = 'avatars/Gm1SI5v9QUwKwKczoZNaSQVAFCbiPIRHd2aX843H.jpg';
 
     /**
