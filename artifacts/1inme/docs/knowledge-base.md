@@ -977,6 +977,13 @@ link with PDF download. Find it under **Resume / Portfolio**.
   your events). On supported plans (the `calendar_sync` feature), your events stay
   in **two-way sync** with your connected calendar (Google; Outlook where
   supported); connect or disconnect calendar accounts under **Calendar**.
+- **Contact swaps at events** — attendees at the same event can offer to swap
+  contact details with each other. Retention: an **accepted** swap record is
+  kept for **2 years** after acceptance and then deleted (the contact entries
+  already saved to each person's address book are not affected). Swap requests
+  that are **never accepted** are deleted about **30 days** after the event
+  ends — or about **90 days** after the request was made if the event has no
+  end date.
 
 ### Projects & Task Boards
 

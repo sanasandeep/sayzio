@@ -36,3 +36,9 @@ refresh migration use `sectionsMatchAnyPrevious($current, $prevSectionSets)`:
 set into a new frozen `policyDefaultsV{n}()`, add it to `policyPreviousDefaults()`,
 and add a content-only refresh migration mirroring the seeder loop. Never seed
 `AppSetting` rows for identity — defaults stay in code until an admin overrides.
+
+A `policyDefaultsV{n}()` snapshot may be **slug-partial**: if only one page
+changed in a generation, freeze only that page's outgoing entry (V3 is
+privacy-only). Unchanged pages are already covered by earlier snapshots +
+current defaults, and `policyPreviousDefaults()` is keyed per slug so partial
+sets compose fine.
