@@ -11,13 +11,16 @@ use App\Modules\User\Models\ContactExport;
 use App\Modules\User\Models\ContactImport;
 use App\Modules\User\Models\ContactPhone;
 use App\Modules\User\Models\ContactDeletionTombstone;
+use App\Modules\User\Models\ContactWorkspaceShare;
 use App\Modules\User\Models\GoogleContactsAccount;
 use App\Modules\User\Models\IntegrationConfig;
 use App\Modules\User\Models\LinkedIdentifier;
+use App\Modules\User\Models\Workspace;
 use App\Modules\User\Services\Contacts\BiolinkAttachResolver;
 use App\Modules\User\Services\Contacts\ContactExportBuilder;
 use App\Modules\User\Services\Contacts\ContactImportParser;
 use App\Modules\User\Services\Contacts\GoogleContactsSyncService;
+use App\Modules\User\Support\ContactWorkspaceShareHelper;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -91,13 +94,28 @@ class ContactController extends Controller
             ->orderByDesc('id')
             ->first();
 
+        // Contacts shared with the current team workspace by other members.
+        // Only loaded when a non-personal workspace is active so the list
+        // doesn't add overhead for personal accounts.
+        $sharedContacts = collect();
+        $currentWorkspace = null;
+        if (app()->bound('current_workspace')) {
+            $ws = app('current_workspace');
+            if ($ws && !$ws->is_personal) {
+                $currentWorkspace = $ws;
+                $sharedContacts = ContactWorkspaceShareHelper::contactsSharedToWorkspace(
+                    (int) $ws->id, (int) $user->id, $search, $tab
+                );
+            }
+        }
+
         // Live as-you-type search / tab switch / pagination fetch just the list
         // body so the page never reloads. The full page is returned otherwise.
         if ($request->ajax()) {
-            return view('user.contacts._list', compact('contacts', 'tab', 'search'));
+            return view('user.contacts._list', compact('contacts', 'tab', 'search', 'sharedContacts', 'currentWorkspace'));
         }
 
-        return view('user.contacts.index', compact('contacts', 'tab', 'search', 'googleAccount', 'stats', 'usage', 'activeImport'));
+        return view('user.contacts.index', compact('contacts', 'tab', 'search', 'googleAccount', 'stats', 'usage', 'activeImport', 'sharedContacts', 'currentWorkspace'));
     }
 
     /**
@@ -169,15 +187,21 @@ class ContactController extends Controller
 
     public function show(Request $request, Contact $contact)
     {
-        abort_if($contact->user_id !== workspace_owner_id(), 403);
+        $user = $request->user();
+        $this->authorizeContactView($contact, $user);
         $contact->load(['phones', 'emails', 'biolinkUser', 'user']);
         $biolinkPreview = $this->biolinkPreview($contact);
-        return view('user.contacts.show', compact('contact', 'biolinkPreview'));
+
+        // Workspace sharing context for the share/unshare UI panel.
+        $shareContext = $this->buildShareContext($contact, $user);
+
+        return view('user.contacts.show', compact('contact', 'biolinkPreview', 'shareContext'));
     }
 
     public function edit(Request $request, Contact $contact)
     {
-        abort_if($contact->user_id !== workspace_owner_id(), 403);
+        $user = $request->user();
+        $this->authorizeContactEdit($contact, $user);
         $contact->load(['phones', 'emails']);
         return view('user.contacts.edit', [
             'contact'     => $contact,
@@ -188,7 +212,7 @@ class ContactController extends Controller
 
     public function update(Request $request, Contact $contact)
     {
-        abort_if($contact->user_id !== workspace_owner_id(), 403);
+        $this->authorizeContactEdit($contact, $request->user());
         $v = $this->validatePayload($request);
 
         DB::transaction(function () use ($contact, $v, $request) {
@@ -220,6 +244,8 @@ class ContactController extends Controller
 
     public function destroy(Request $request, Contact $contact)
     {
+        // Only the contact owner (or workspace owner via legacy check) can delete.
+        // Workspace members with edit access can edit shared contacts but not delete them.
         abort_if($contact->user_id !== workspace_owner_id(), 403);
         if ($contact->photo_path) Storage::disk('public')->delete($contact->photo_path);
         // Park a deletion tombstone before removing the row so the next sync
@@ -240,7 +266,7 @@ class ContactController extends Controller
 
     public function detachBiolink(Request $request, Contact $contact)
     {
-        abort_if($contact->user_id !== workspace_owner_id(), 403);
+        $this->authorizeContactEdit($contact, $request->user());
         if ($contact->biolink_user_id) {
             $this->resolver->detach($contact, $contact->biolink_user_id);
         }
@@ -249,7 +275,7 @@ class ContactController extends Controller
 
     public function attachBiolink(Request $request, Contact $contact)
     {
-        abort_if($contact->user_id !== workspace_owner_id(), 403);
+        $this->authorizeContactEdit($contact, $request->user());
         // Force a re-resolve clearing the detach marker for any user that the
         // current phones now resolve to.
         $contact->loadMissing('phones');
@@ -274,7 +300,7 @@ class ContactController extends Controller
      */
     public function setFollowUp(Request $request, Contact $contact)
     {
-        abort_if($contact->user_id !== workspace_owner_id(), 403);
+        $this->authorizeContactEdit($contact, $request->user());
         $v = $request->validate([
             'follow_up_at'   => ['required', 'date'],
             'follow_up_note' => ['nullable', 'string', 'max:2000'],
@@ -312,7 +338,7 @@ class ContactController extends Controller
     /** Clear a scheduled follow-up reminder without firing it. */
     public function clearFollowUp(Request $request, Contact $contact)
     {
-        abort_if($contact->user_id !== workspace_owner_id(), 403);
+        $this->authorizeContactEdit($contact, $request->user());
         $contact->update([
             'follow_up_at'          => null,
             'follow_up_note'        => null,
@@ -719,7 +745,7 @@ class ContactController extends Controller
      */
     public function smsBiolink(Request $request, Contact $contact)
     {
-        abort_if($contact->user_id !== workspace_owner_id(), 403);
+        $this->authorizeContactEdit($contact, $request->user());
         $contact->loadMissing(['phones', 'biolinkUser']);
 
         $preview = $this->biolinkPreview($contact);
@@ -823,6 +849,191 @@ class ContactController extends Controller
                     . 'Use Twilio or Plivo, or text from a mobile device.'
                 );
         }
+    }
+
+    // ---- Workspace sharing ------------------------------------------------
+
+    /**
+     * Share a contact with the currently-active (or specified) workspace.
+     * Only the contact owner can initiate sharing.
+     *
+     * POST contacts/{contact}/share
+     */
+    public function share(Request $request, Contact $contact)
+    {
+        $user = $request->user();
+        abort_if((int) $contact->user_id !== (int) workspace_owner_id(), 403);
+
+        $wsId = (int) ($request->input('workspace_id') ?: 0);
+        $ws   = $wsId ? Workspace::find($wsId) : (app()->bound('current_workspace') ? app('current_workspace') : null);
+
+        if (!$ws || $ws->is_personal) {
+            return back()->with('error', 'Select a team workspace to share this contact with.');
+        }
+
+        // Requester must belong to the target workspace.
+        $isMember = ((int) $ws->owner_user_id === (int) $user->id)
+            || $user->workspaceMemberships()->where('workspace_id', $ws->id)->exists();
+        abort_unless($isMember, 403);
+
+        ContactWorkspaceShareHelper::share($contact, $ws, $user);
+
+        if ($request->ajax()) {
+            return response()->json(['data' => ['shared' => true, 'workspace_id' => $ws->id]]);
+        }
+        return back()->with('success', 'Contact shared with "' . $ws->name . '".');
+    }
+
+    /**
+     * Remove a contact's share from the specified workspace.
+     * Only the contact owner or workspace owner may unshare.
+     *
+     * DELETE contacts/{contact}/share
+     */
+    public function unshare(Request $request, Contact $contact)
+    {
+        $user = $request->user();
+
+        $wsId = (int) ($request->input('workspace_id') ?: 0);
+        $ws   = $wsId ? Workspace::find($wsId) : (app()->bound('current_workspace') ? app('current_workspace') : null);
+        if (!$ws) return back()->with('error', 'Workspace not found.');
+
+        abort_unless(
+            ContactWorkspaceShareHelper::userCanManageShare($user, $contact, $ws),
+            403
+        );
+
+        ContactWorkspaceShareHelper::unshare($contact, $ws->id);
+
+        if ($request->ajax()) {
+            return response()->json(['data' => ['shared' => false, 'workspace_id' => $ws->id]]);
+        }
+        return back()->with('success', 'Contact removed from "' . $ws->name . '".');
+    }
+
+    /**
+     * Bulk-share selected contacts with a workspace.
+     * Only shares contacts that the authenticated user owns.
+     *
+     * POST contacts/bulk-share
+     */
+    public function bulkShare(Request $request)
+    {
+        $user = $request->user();
+        $v = $request->validate([
+            'contact_ids'  => ['required', 'array', 'min:1', 'max:200'],
+            'contact_ids.*'=> ['integer'],
+            'workspace_id' => ['required', 'integer'],
+        ]);
+
+        $ws = Workspace::find($v['workspace_id']);
+        if (!$ws || $ws->is_personal) {
+            return back()->with('error', 'Invalid workspace.');
+        }
+        $isMember = ((int) $ws->owner_user_id === (int) $user->id)
+            || $user->workspaceMemberships()->where('workspace_id', $ws->id)->exists();
+        abort_unless($isMember, 403);
+
+        $owned = Contact::withoutGlobalScope('workspace')
+            ->where('user_id', workspace_owner_id())
+            ->whereIn('id', $v['contact_ids'])
+            ->pluck('id');
+
+        $count = 0;
+        foreach ($owned as $cid) {
+            $c = Contact::withoutGlobalScope('workspace')->find($cid);
+            if ($c) { ContactWorkspaceShareHelper::share($c, $ws, $user); $count++; }
+        }
+
+        return back()->with('success', $count . ' contact(s) shared with "' . $ws->name . '".');
+    }
+
+    // ---- Authorization helpers --------------------------------------------
+
+    /**
+     * Allow viewing a contact if:
+     *  1. The contact belongs to the workspace owner (legacy check), OR
+     *  2. The contact is shared with the currently-bound workspace AND the
+     *     viewer is a member of that workspace (any role with settings.view).
+     */
+    private function authorizeContactView(Contact $contact, $user): void
+    {
+        if ((int) $contact->user_id === (int) workspace_owner_id()) return;
+
+        // Check shared access via current workspace.
+        if (app()->bound('current_workspace')) {
+            $ws = app('current_workspace');
+            if ($ws && !$ws->is_personal) {
+                $share = ContactWorkspaceShareHelper::findShare($contact->id, $ws->id);
+                if ($share && ContactWorkspaceShareHelper::userCanViewShared($user, $ws)) return;
+            }
+        }
+
+        abort(403);
+    }
+
+    /**
+     * Allow editing a contact if:
+     *  1. The contact belongs to the workspace owner (legacy check), OR
+     *  2. The contact is shared with the currently-bound workspace AND the
+     *     viewer has 'edit' permission (settings.edit) in that workspace.
+     */
+    private function authorizeContactEdit(Contact $contact, $user): void
+    {
+        if ((int) $contact->user_id === (int) workspace_owner_id()) return;
+
+        if (app()->bound('current_workspace')) {
+            $ws = app('current_workspace');
+            if ($ws && !$ws->is_personal) {
+                $share = ContactWorkspaceShareHelper::findShare($contact->id, $ws->id);
+                if ($share && ContactWorkspaceShareHelper::userCanEditShared($user, $ws)) return;
+            }
+        }
+
+        abort(403);
+    }
+
+    /**
+     * Build workspace-sharing context for the show view.
+     * Returns an array with:
+     *  - is_owner: bool — the authenticated user owns this contact
+     *  - is_shared_contact: bool — viewing a contact shared by someone else
+     *  - shared_by: ?User — who shared it (when is_shared_contact)
+     *  - current_workspace: ?Workspace
+     *  - shareable_workspaces: Collection — workspaces the owner can share with
+     *  - shares: Collection<ContactWorkspaceShare> — existing shares
+     */
+    private function buildShareContext(Contact $contact, $user): array
+    {
+        $ws = app()->bound('current_workspace') ? app('current_workspace') : null;
+        $isOwner = (int) $contact->user_id === (int) $user->id;
+
+        $shares = $contact->workspaceShares()->with('workspace', 'sharedBy')->get();
+
+        $sharedBy = null;
+        $isSharedContact = false;
+        if (!$isOwner && $ws) {
+            $share = $shares->firstWhere('workspace_id', $ws->id);
+            if ($share) {
+                $isSharedContact = true;
+                $sharedBy = $share->sharedBy;
+            }
+        }
+
+        // Workspaces the owner can share this contact with (all their non-personal workspaces).
+        $shareableWorkspaces = collect();
+        if ($isOwner) {
+            $shareableWorkspaces = $user->accessibleWorkspaces()->filter(fn ($w) => !$w->is_personal);
+        }
+
+        return [
+            'is_owner'             => $isOwner,
+            'is_shared_contact'    => $isSharedContact,
+            'shared_by'            => $sharedBy,
+            'current_workspace'    => $ws,
+            'shareable_workspaces' => $shareableWorkspaces,
+            'shares'               => $shares,
+        ];
     }
 
     // ---- helpers ----------------------------------------------------------

@@ -1381,6 +1381,9 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::post('contacts/{contact}/biolink/sms',       [ContactController::class, 'smsBiolink'])->middleware('workspace.can:settings.edit')->name('contacts.biolink.sms');
         Route::post('contacts/{contact}/follow-up',         [ContactController::class, 'setFollowUp'])->middleware('workspace.can:settings.edit')->name('contacts.follow-up.set');
         Route::delete('contacts/{contact}/follow-up',       [ContactController::class, 'clearFollowUp'])->middleware('workspace.can:settings.edit')->name('contacts.follow-up.clear');
+        Route::post('contacts/{contact}/share',             [ContactController::class, 'share'])->middleware('workspace.can:settings.edit')->name('contacts.share');
+        Route::delete('contacts/{contact}/share',           [ContactController::class, 'unshare'])->middleware('workspace.can:settings.edit')->name('contacts.unshare');
+        Route::post('contacts/bulk-share',                  [ContactController::class, 'bulkShare'])->middleware('workspace.can:settings.edit')->name('contacts.bulk-share');
 
         // Google Contacts OAuth + sync.
         Route::get('contacts/google/connect',               [GoogleContactsAccountController::class, 'connect'])->middleware(['workspace.can:settings.edit', CheckPlanLimit::class . ':contacts_google_sync'])->name('contacts.google.connect');

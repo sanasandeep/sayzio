@@ -13,13 +13,16 @@ use App\Modules\User\Models\ContactEmail;
 use App\Modules\User\Models\ContactExport;
 use App\Modules\User\Models\ContactImport;
 use App\Modules\User\Models\ContactPhone;
+use App\Modules\User\Models\ContactWorkspaceShare;
 use App\Modules\User\Models\GoogleContactsAccount;
 use App\Modules\User\Models\IntegrationConfig;
 use App\Modules\User\Models\Link;
+use App\Modules\User\Models\Workspace;
 use App\Modules\User\Services\Contacts\BiolinkAttachResolver;
 use App\Modules\User\Services\Contacts\ContactExportBuilder;
 use App\Modules\User\Services\Contacts\ContactImportParser;
 use App\Modules\User\Services\Contacts\GoogleContactsSyncService;
+use App\Modules\User\Support\ContactWorkspaceShareHelper;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\DB;
@@ -42,8 +45,30 @@ class ContactController extends Controller
 
     public function index(Request $request)
     {
+        $user  = $request->user();
+        $wsId  = (int) $request->input('workspace_id', 0);
+
+        // When a non-personal team workspace ID is passed, include contacts
+        // shared to that workspace by other members (mobile parity for the
+        // shared team address book). The caller must be a member of that workspace.
+        $sharedWsId = null;
+        if ($wsId) {
+            $ws = Workspace::find($wsId);
+            if ($ws && !$ws->is_personal) {
+                $isMember = ((int) $ws->owner_user_id === (int) $user->id)
+                    || $user->workspaceMemberships()->where('workspace_id', $ws->id)->exists();
+                if ($isMember) $sharedWsId = $wsId;
+            }
+        }
+
         $q = Contact::with(['phones', 'emails'])
-            ->where('user_id', $request->user()->id);
+            ->withoutGlobalScope('workspace')
+            ->where(function ($w) use ($user, $sharedWsId) {
+                $w->where('user_id', $user->id);
+                if ($sharedWsId) {
+                    $w->orWhereHas('workspaceShares', fn ($sq) => $sq->where('workspace_id', $sharedWsId));
+                }
+            });
 
         if ($s = $request->string('q')->toString()) {
             $like = '%' . str_replace(['%', '_'], ['\\%', '\\_'], $s) . '%';
@@ -61,15 +86,21 @@ class ContactController extends Controller
         $page = $q->orderBy('display_name')
             ->paginate(min(200, max(1, (int) $request->input('per_page', 50))));
 
+        $items = collect($page->items())->map(fn ($c) => $this->transform($c, $sharedWsId))->all();
+
+        // Count only the caller's own contacts for the usage gauge; shared
+        // contacts belong to another account's quota.
+        $ownTotal = Contact::where('user_id', $user->id)->count();
+
         return $this->ok([
-            'items' => collect($page->items())->map(fn ($c) => $this->transform($c))->all(),
+            'items' => $items,
             'meta'  => [
                 'current_page' => $page->currentPage(),
                 'per_page'     => $page->perPage(),
                 'total'        => $page->total(),
                 'last_page'    => $page->lastPage(),
             ],
-            'usage' => $this->contactsUsage($request->user(), $page->total()),
+            'usage' => $this->contactsUsage($user, $ownTotal),
         ]);
     }
 
@@ -133,11 +164,35 @@ class ContactController extends Controller
 
     public function show(Request $request, int $id)
     {
+        $user = $request->user();
+
+        // Look up own contacts first. If not found, check whether the contact
+        // is shared with a workspace the caller is a member of (mobile parity
+        // for team shared-contact viewing).
         $c = Contact::with(['phones', 'emails'])
-            ->where('user_id', $request->user()->id)
+            ->withoutGlobalScope('workspace')
+            ->where(function ($w) use ($user) {
+                $w->where('user_id', $user->id)
+                  ->orWhereHas('workspaceShares', function ($sq) use ($user) {
+                      // Restrict to workspaces the caller is a member of.
+                      $memberWsIds = $user->workspaceMemberships()->pluck('workspace_id')->merge(
+                          Workspace::where('owner_user_id', $user->id)->pluck('id')
+                      )->unique()->all();
+                      $sq->whereIn('workspace_id', $memberWsIds);
+                  });
+            })
             ->find($id);
+
         if (!$c) return $this->notFound('Contact not found');
-        return $this->ok(['contact' => $this->transform($c)]);
+
+        // Detect which workspace share applies (if any) for the response.
+        $wsId = (int) $request->input('workspace_id', 0);
+        $sharedWsId = null;
+        if ($wsId && (int) $c->user_id !== (int) $user->id) {
+            $sharedWsId = $wsId;
+        }
+
+        return $this->ok(['contact' => $this->transform($c, $sharedWsId)]);
     }
 
     public function store(Request $request)
@@ -538,8 +593,25 @@ class ContactController extends Controller
         }
     }
 
-    protected function transform(Contact $c): array
+    protected function transform(Contact $c, ?int $forWorkspaceId = null): array
     {
+        $workspaceShare = null;
+        if ($forWorkspaceId) {
+            $share = $c->relationLoaded('workspaceShares')
+                ? $c->workspaceShares->firstWhere('workspace_id', $forWorkspaceId)
+                : ContactWorkspaceShare::where('contact_id', $c->id)->where('workspace_id', $forWorkspaceId)->with('sharedBy')->first();
+            if ($share) {
+                $workspaceShare = [
+                    'workspace_id' => $share->workspace_id,
+                    'shared_by'    => [
+                        'id'   => $share->sharedBy?->id,
+                        'name' => $share->sharedBy?->name,
+                    ],
+                    'shared_at' => optional($share->created_at)->toIso8601String(),
+                ];
+            }
+        }
+
         return [
             'id'           => $c->id,
             'display_name' => $c->display_name ?: $c->nameForDisplay(),
@@ -555,13 +627,85 @@ class ContactController extends Controller
                 'id' => $p->id, 'label' => $p->label, 'value' => $p->value,
                 'value_e164' => $p->value_e164, 'is_primary' => (bool) $p->is_primary,
             ])->values()->all(),
-            'photo_url'    => $c->photoUrl(),
+            'photo_url'      => $c->photoUrl(),
             'manual_profile' => \App\Modules\User\Support\DialerIdentity::normalizeManual($c->manual_profile),
             'follow_up_at'   => optional($c->follow_up_at)->toIso8601String(),
             'follow_up_note' => $c->follow_up_note,
             'follow_up_tz'   => $c->follow_up_tz,
-            'created_at'   => optional($c->created_at)->toIso8601String(),
+            'workspace_share'=> $workspaceShare,
+            'created_at'     => optional($c->created_at)->toIso8601String(),
         ];
+    }
+
+    /**
+     * Share a contact with the specified workspace (mobile parity).
+     * Only the contact owner can share. Workspace ID is passed in the body.
+     *
+     * POST /contacts/{id}/share
+     */
+    public function share(Request $request, int $id)
+    {
+        $user = $request->user();
+
+        // Must be the contact owner.
+        $c = Contact::where('user_id', $user->id)->find($id);
+        if (!$c) return $this->notFound('Contact not found');
+
+        $wsId = (int) $request->input('workspace_id', 0);
+        if (!$wsId) return $this->fail('workspace_id is required.', 422, 'workspace_id_required');
+
+        $ws = Workspace::find($wsId);
+        if (!$ws || $ws->is_personal) return $this->fail('Invalid workspace.', 422, 'invalid_workspace');
+
+        // Caller must be a member of the target workspace.
+        $isMember = ((int) $ws->owner_user_id === (int) $user->id)
+            || $user->workspaceMemberships()->where('workspace_id', $ws->id)->exists();
+        if (!$isMember) return $this->fail('Not a member of this workspace.', 403, 'not_a_member');
+
+        $share = ContactWorkspaceShareHelper::share($c, $ws, $user);
+
+        return $this->ok([
+            'shared'    => true,
+            'share'     => [
+                'workspace_id' => $ws->id,
+                'shared_by'    => ['id' => $user->id, 'name' => $user->name],
+                'shared_at'    => optional($share->created_at)->toIso8601String(),
+            ],
+        ]);
+    }
+
+    /**
+     * Remove a contact's share from the specified workspace (mobile parity).
+     * The contact owner or workspace owner can unshare.
+     *
+     * DELETE /contacts/{id}/share
+     */
+    public function unshare(Request $request, int $id)
+    {
+        $user = $request->user();
+
+        // The contact can be found via user ownership OR via a workspace share.
+        $wsId = (int) $request->input('workspace_id', 0);
+        if (!$wsId) return $this->fail('workspace_id is required.', 422, 'workspace_id_required');
+
+        $ws = Workspace::find($wsId);
+        if (!$ws) return $this->notFound('Workspace not found');
+
+        $c = Contact::withoutGlobalScope('workspace')
+            ->where(function ($q) use ($user, $wsId) {
+                $q->where('user_id', $user->id)
+                  ->orWhereHas('workspaceShares', fn ($sq) => $sq->where('workspace_id', $wsId));
+            })
+            ->find($id);
+        if (!$c) return $this->notFound('Contact not found');
+
+        if (!ContactWorkspaceShareHelper::userCanManageShare($user, $c, $ws)) {
+            return $this->fail('Only the contact owner or workspace owner can remove a share.', 403, 'not_authorized');
+        }
+
+        $removed = ContactWorkspaceShareHelper::unshare($c, $ws->id);
+
+        return $this->ok(['shared' => false, 'removed' => $removed]);
     }
 
     /**

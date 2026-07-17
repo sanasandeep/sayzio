@@ -39,9 +39,13 @@
                     </span>
                 @endif
             </div>
-            <a href="{{ route('user.contacts.edit', $contact) }}" class="px-3 py-1.5 rounded-lg text-xs font-semibold" style="background:rgba(255,255,255,.06);color:var(--text-primary);border:1px solid rgba(255,255,255,.10)">
-                <i class="fas fa-pen mr-1"></i> Edit
-            </a>
+            <div class="flex gap-2 flex-shrink-0">
+                @if($shareContext['is_owner'] || ($shareContext['is_shared_contact'] && $shareContext['current_workspace'] && request()->user()->canInWorkspace($shareContext['current_workspace'], 'settings.edit')))
+                <a href="{{ route('user.contacts.edit', $contact) }}" class="px-3 py-1.5 rounded-lg text-xs font-semibold" style="background:rgba(255,255,255,.06);color:var(--text-primary);border:1px solid rgba(255,255,255,.10)">
+                    <i class="fas fa-pen mr-1"></i> Edit
+                </a>
+                @endif
+            </div>
         </div>
 
         @if($biolinkPreview)
@@ -218,6 +222,61 @@
                 </div>
             </form>
         </div>
+    </div>
+
+    {{-- ── Workspace sharing panel ──────────────────────────────────────── --}}
+    @if($shareContext['is_shared_contact'])
+    <div class="mt-4 p-4 rounded-xl" style="background:linear-gradient(135deg,rgba(61,107,255,.07),rgba(34,211,238,.07));border:1px solid rgba(61,107,255,.18);">
+        <div class="flex items-center gap-2 mb-1">
+            <i class="fas fa-share-nodes text-xs" style="color:#90acff;"></i>
+            <span class="text-xs font-semibold" style="color:#90acff;">Shared contact</span>
+        </div>
+        <p class="text-xs" style="color:var(--text-muted);">
+            Shared by <strong>{{ $shareContext['shared_by']?->name ?? 'a team member' }}</strong> with <strong>{{ $shareContext['current_workspace']?->name }}</strong>.
+        </p>
+    </div>
+    @endif
+
+    @if($shareContext['is_owner'] && $shareContext['shareable_workspaces']->isNotEmpty())
+    <div class="mt-4 pt-4" style="border-top:1px solid rgba(255,255,255,.06);">
+        <h3 class="text-[10px] font-bold uppercase tracking-wider mb-3" style="color:var(--text-faint);">Share with workspaces</h3>
+        <div class="space-y-2">
+            @foreach($shareContext['shareable_workspaces'] as $ws)
+                @php($alreadyShared = $shareContext['shares']->firstWhere('workspace_id', $ws->id))
+                <div class="flex items-center justify-between gap-3">
+                    <div class="min-w-0">
+                        <span class="text-sm font-medium truncate block" style="color:var(--text-primary);">{{ $ws->name }}</span>
+                        @if($alreadyShared)
+                            <span class="text-[10px]" style="color:#22c55e;">
+                                <i class="fas fa-check-circle mr-0.5"></i> Shared
+                                @if($alreadyShared->sharedBy && $alreadyShared->sharedBy->id !== auth()->id())
+                                    by {{ $alreadyShared->sharedBy->name }}
+                                @endif
+                            </span>
+                        @endif
+                    </div>
+                    @if($alreadyShared)
+                        <form method="POST" action="{{ route('user.contacts.unshare', $contact) }}">
+                            @csrf @method('DELETE')
+                            <input type="hidden" name="workspace_id" value="{{ $ws->id }}">
+                            <button type="submit" class="px-3 py-1.5 rounded-lg text-[11px] font-medium flex-shrink-0" style="background:rgba(239,68,68,.10);color:#ef4444;border:1px solid rgba(239,68,68,.20);">
+                                <i class="fas fa-times mr-1"></i> Unshare
+                            </button>
+                        </form>
+                    @else
+                        <form method="POST" action="{{ route('user.contacts.share', $contact) }}">
+                            @csrf
+                            <input type="hidden" name="workspace_id" value="{{ $ws->id }}">
+                            <button type="submit" class="px-3 py-1.5 rounded-lg text-[11px] font-medium flex-shrink-0" style="background:rgba(61,107,255,.12);color:#90acff;border:1px solid rgba(61,107,255,.20);">
+                                <i class="fas fa-share-nodes mr-1"></i> Share
+                            </button>
+                        </form>
+                    @endif
+                </div>
+            @endforeach
+        </div>
+    </div>
+    @endif
     </div>
 </div>
 @endsection

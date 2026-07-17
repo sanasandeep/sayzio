@@ -916,6 +916,8 @@ Route::prefix('v1')->group(function () {
         Route::post  ('/contacts/{id}/sms-biolink', [ContactController::class, 'smsBiolink'])->whereNumber('id')->middleware('throttle:30,1');
         Route::post  ('/contacts/{id}/follow-up',   [ContactController::class, 'setFollowUp'])->whereNumber('id');
         Route::delete('/contacts/{id}/follow-up',   [ContactController::class, 'clearFollowUp'])->whereNumber('id');
+        Route::post  ('/contacts/{id}/share',       [ContactController::class, 'share'])->whereNumber('id');
+        Route::delete('/contacts/{id}/share',       [ContactController::class, 'unshare'])->whereNumber('id');
         Route::delete('/contacts/{id}',             [ContactController::class, 'destroy'])->whereNumber('id');
 
         // Contacts — Google Contacts sync

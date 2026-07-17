@@ -115,6 +115,15 @@ protected $fillable = [
     public function googleAccount(): BelongsTo   { return $this->belongsTo(GoogleContactsAccount::class, 'google_contacts_account_id'); }
     public function phones(): HasMany            { return $this->hasMany(ContactPhone::class); }
     public function emails(): HasMany            { return $this->hasMany(ContactEmail::class); }
+    public function workspaceShares(): HasMany   { return $this->hasMany(ContactWorkspaceShare::class); }
+
+    /**
+     * True when this contact has been shared with the given workspace.
+     */
+    public function isSharedWithWorkspace(int $workspaceId): bool
+    {
+        return $this->workspaceShares()->where('workspace_id', $workspaceId)->exists();
+    }
 
     public function nameForDisplay(): string
     {
