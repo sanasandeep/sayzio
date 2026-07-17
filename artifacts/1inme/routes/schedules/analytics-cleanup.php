@@ -81,6 +81,12 @@ return [
         'cadence'     => ['dailyAt', '04:35'],
     ],
     [
+        'key'         => 'events:prune-discoverability',
+        'command'     => 'events:prune-discoverability --days=7',
+        'description' => 'Delete "People at this event" opt-in rows whose expiry is more than 7 days past, so dead rows (and their location data) don\'t pile up.',
+        'cadence'     => ['dailyAt', '04:15'],
+    ],
+    [
         'key'         => 'email-logs:prune-history',
         'description' => 'Trim the email log: null heavy stored bodies past the body-retention window, then delete whole rows past the retention window.',
         'cadence'     => ['dailyAt', '04:25'],
