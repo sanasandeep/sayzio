@@ -90,7 +90,31 @@ function isChangeDetector(job: JobDef): boolean {
 }
 
 interface WorkflowDef {
+  // The `yaml` package parses YAML 1.2, so the `on:` key stays the string
+  // "on" (it is NOT coerced to boolean `true` as YAML 1.1 would).
+  on?: unknown;
   jobs?: Record<string, JobDef>;
+}
+
+/**
+ * Does this workflow ever run in a pull-request context (and therefore report
+ * a status GitHub could mark *required* and deadlock on)? Only `pull_request`
+ * / `pull_request_target` triggers put a check onto a PR. A push-to-main
+ * deploy workflow (e.g. `deploy-ec2.yml`) never reports on PRs, so it is
+ * DELIBERATELY exempt from the passthrough scheme and from the required-check
+ * manifest — marking its check required in branch protection would deadlock
+ * every PR, which `assessRequiredCoverage` already fails loudly on.
+ */
+export function isPrGatingWorkflow(doc: WorkflowDef): boolean {
+  const on = doc.on;
+  if (typeof on === "string") return on.startsWith("pull_request");
+  if (Array.isArray(on)) {
+    return on.some((t) => typeof t === "string" && t.startsWith("pull_request"));
+  }
+  if (on && typeof on === "object") {
+    return Object.keys(on).some((t) => t.startsWith("pull_request"));
+  }
+  return false;
 }
 
 export interface ParityProblem {

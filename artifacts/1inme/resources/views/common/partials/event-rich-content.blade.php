@@ -115,7 +115,7 @@
                     $mime = $doc['mime'] ?? '';
                     $docIcon = str_contains($mime, 'pdf') ? 'fa-file-pdf' : (str_contains($mime, 'word') || str_contains($mime, 'document') ? 'fa-file-word' : (str_contains($mime, 'sheet') || str_contains($mime, 'excel') ? 'fa-file-excel' : (str_contains($mime, 'presentation') || str_contains($mime, 'powerpoint') ? 'fa-file-powerpoint' : (str_contains($mime, 'image') ? 'fa-file-image' : 'fa-file-alt'))));
                 @endphp
-                <a href="{{ $docUrl }}" target="_blank" rel="noopener" class="event-document-item d-flex align-items-center gap-2 text-decoration-none p-2 rounded" style="border:1px solid var(--border-glass,rgba(255,255,255,.1));background:var(--bg-card-deep,rgba(0,0,0,.15));">
+                <a href="{{ $docUrl }}" target="_blank" rel="noopener" class="event-document-item d-flex align-items-center gap-2 text-decoration-none p-2 rounded" style="border:1px solid var(--border-glass,rgba(255,255,255,.1));background:var(--bg-card,rgba(0,0,0,.15));">
                     <i class="fas {{ $docIcon }} text-lg" style="color:var(--c-primary,#6d5fff);width:1.2rem;text-align:center;"></i>
                     <div class="flex-1 min-width-0">
                         <div class="small fw-semibold text-truncate" style="color:var(--text-primary,#f8fafc);">{{ $doc['label'] ?? $doc['filename'] ?? 'Document' }}</div>
