@@ -234,15 +234,31 @@ Route::get('/f/{id}/{filename}', [UserFileController::class, 'serve'])->name('fi
 // through to this route (php's dev server / production still serve any file
 // that is still present locally). We then redirect to the S3/CloudFront URL.
 // Guarded so it never loops when the `public` disk is still local.
+//
+// HARDENING: we skip the `exists()` round-trip entirely. An S3 HeadObject call
+// on every avatar request is expensive, and more critically the AWS SDK can
+// throw during client construction (e.g. missing bucket/region) even when the
+// disk config declares `throw: false` — `throw` only suppresses exceptions from
+// actual API calls, not from SDK initialization. Skipping the check means a
+// missing object yields a 302 to a URL that S3/CloudFront then serves as 404;
+// that is an acceptable trade-off vs. a 500 error page.
+// Any exception (misconfigured credentials, SDK init failure, etc.) is caught
+// and returns a 404 with a warning log instead of a 500 error page.
 Route::get('/storage/{path}', function (string $path) {
     if (config('filesystems.disks.public.driver') !== 's3') {
         abort(404);
     }
-    $disk = \Illuminate\Support\Facades\Storage::disk('public');
-    if (!$disk->exists($path)) {
+    try {
+        $disk = \Illuminate\Support\Facades\Storage::disk('public');
+        $url  = $disk->url($path);
+    } catch (\Throwable $e) {
+        \Illuminate\Support\Facades\Log::warning('storage.cdn.fallback: could not resolve S3 URL', [
+            'path'  => $path,
+            'error' => $e->getMessage(),
+        ]);
         abort(404);
     }
-    return redirect($disk->url($path), 302);
+    return redirect($url, 302);
 })->where('path', '.*')->name('storage.cdn.fallback');
 
 // ---- Public Forms ----
