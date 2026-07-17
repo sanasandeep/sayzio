@@ -5,6 +5,7 @@ import { useCallback, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
+  Platform,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -24,6 +25,8 @@ import {
   listContactTags,
   listContacts,
 } from "@/lib/api/contacts";
+import { importDeviceContacts } from "@/lib/deviceContacts";
+import { showAlert } from "@/lib/webAlert";
 
 /** Keep the duplicate count fresh-enough without hammering the API on focus. */
 const DUPLICATE_COUNT_STALE_MS = 5 * 60 * 1000;
@@ -66,6 +69,46 @@ export default function ContactsScreen() {
 
   const duplicateCount = duplicatesQ.data ?? 0;
 
+  // Device address-book import (expo-contacts). Hidden on web, where the
+  // native contacts module isn't available.
+  const importMutation = useMutation({
+    mutationFn: () => importDeviceContacts({ requestPermission: true }),
+    onSuccess: (out) => {
+      if (!out.ok) {
+        if (out.reason === "unavailable") {
+          showAlert("Not available", "Device contact import isn't available on this build.");
+        } else if (out.reason === "denied") {
+          showAlert("Permission needed", "Allow access to your contacts to import them.");
+        } else {
+          showAlert("Nothing to import", "No contacts with emails or phones were found.");
+        }
+        return;
+      }
+      const dupes = out.result.duplicates_found ?? 0;
+      const summary = `Created ${out.result.created}, updated ${out.result.updated}, skipped ${out.result.skipped}.`;
+      if (dupes > 0) {
+        const dupeLine =
+          dupes === 1
+            ? "1 imported contact looks like a duplicate of an existing one."
+            : `${dupes} imported contacts look like duplicates of existing ones.`;
+        showAlert("Import complete", `${summary}\n\n${dupeLine}`, [
+          { text: "Later", style: "cancel" },
+          {
+            text: "Review duplicates",
+            onPress: () => router.push("/contact-duplicates" as any),
+          },
+        ]);
+      } else {
+        showAlert("Import complete", summary);
+      }
+      qc.invalidateQueries({ queryKey: ["contacts"] });
+      qc.invalidateQueries({ queryKey: ["contact-duplicate-count"] });
+    },
+    onError: (e: any) => {
+      showAlert("Import failed", e?.message ?? "Try again");
+    },
+  });
+
   const tags = tagsQ.data ?? [];
 
   function toggleTag(t: string) {
@@ -86,9 +129,25 @@ export default function ContactsScreen() {
           },
           headerTintColor: colors.primary,
           headerRight: () => (
-            <View style={{ flexDirection: "row", gap: 8 }}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 14 }}>
+              {Platform.OS !== "web" && (
+                <Pressable
+                  onPress={() => importMutation.mutate()}
+                  disabled={importMutation.isPending}
+                  hitSlop={8}
+                  style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
+                  accessibilityLabel="Import from phone"
+                >
+                  {importMutation.isPending ? (
+                    <ActivityIndicator color={colors.primary} size="small" />
+                  ) : (
+                    <Feather name="download" size={20} color={colors.primary} />
+                  )}
+                </Pressable>
+              )}
               <Pressable
                 onPress={() => router.push("/contacts/follow-ups" as any)}
+                hitSlop={8}
                 style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1, marginRight: 4 })}
               >
                 <Feather name="clock" size={20} color={colors.primary} />

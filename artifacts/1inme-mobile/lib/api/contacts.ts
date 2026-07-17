@@ -196,6 +196,41 @@ export async function mergeAllDuplicates(): Promise<{
   return res.data;
 }
 
+/** Minimal contact shape accepted by the bulk-import endpoint. */
+export type ContactImportPayload = {
+  display_name?: string | null;
+  given_name?: string | null;
+  family_name?: string | null;
+  organization?: string | null;
+  emails?: { value: string; label?: string | null }[];
+  phones?: { value: string; label?: string | null }[];
+};
+
+/**
+ * Push a batch of contacts (e.g. from the device address book) to the API.
+ * The server dedupes/updates in place and reports how many freshly created
+ * contacts now look like duplicates of existing ones.
+ */
+export async function bulkImportContacts(contacts: ContactImportPayload[]): Promise<{
+  created: number;
+  updated: number;
+  skipped: number;
+  duplicates_found: number;
+}> {
+  const res = await apiFetch<{
+    data: {
+      created: number;
+      updated: number;
+      skipped: number;
+      duplicates_found?: number;
+    };
+  }>(`/contacts/bulk`, {
+    method: "POST",
+    body: JSON.stringify({ contacts }),
+  });
+  return { duplicates_found: 0, ...res.data };
+}
+
 /**
  * Merge `loserIds` contacts into the primary contact `primaryId`.
  * Returns the updated primary contact and the count of merged records.
