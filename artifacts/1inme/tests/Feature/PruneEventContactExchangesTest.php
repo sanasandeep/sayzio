@@ -12,9 +12,12 @@ use Tests\TestCase;
 
 /**
  * events:prune-contact-exchanges must delete pending/declined exchange rows
- * for events that ended well in the past (default > 30 days), keep accepted
- * rows forever, keep rows for recent/ongoing events, and fall back to row age
- * (default > 90 days) for events with no end date.
+ * for events that ended well in the past (default > 30 days), keep rows for
+ * recent/ongoing events, and fall back to row age (default > 90 days) for
+ * events with no end date. Accepted rows are kept by default; with
+ * --accepted-days=N they are pruned N days after acceptance (the production
+ * schedule passes 730 — the exchanged contacts already live in each user's
+ * address book).
  */
 class PruneEventContactExchangesTest extends TestCase
 {
@@ -120,6 +123,58 @@ class PruneEventContactExchangesTest extends TestCase
         $this->artisan('events:prune-contact-exchanges', ['--dry-run' => true])->assertSuccessful();
 
         $this->assertDatabaseHas('event_contact_exchanges', ['id' => $row->id]);
+    }
+
+    public function test_accepted_rows_kept_forever_by_default(): void
+    {
+        $a = User::factory()->create();
+        $b = User::factory()->create();
+
+        $ancientAccepted = $this->exchange($a, $b, $this->makeEventLink($a, now()->subDays(900)), EventContactExchange::STATUS_ACCEPTED, now()->subDays(900));
+        EventContactExchange::where('id', $ancientAccepted->id)->update(['accepted_at' => now()->subDays(900)]);
+
+        $this->artisan('events:prune-contact-exchanges')->assertSuccessful();
+
+        $this->assertDatabaseHas('event_contact_exchanges', ['id' => $ancientAccepted->id]);
+    }
+
+    public function test_accepted_days_prunes_only_old_accepted_rows(): void
+    {
+        $a = User::factory()->create();
+        $b = User::factory()->create();
+
+        $oldAccepted = $this->exchange($a, $b, $this->makeEventLink($a, now()->subDays(800)), EventContactExchange::STATUS_ACCEPTED);
+        EventContactExchange::where('id', $oldAccepted->id)->update(['accepted_at' => now()->subDays(800)]);
+
+        $recentAccepted = $this->exchange($b, $a, $this->makeEventLink($a, now()->subDays(800)), EventContactExchange::STATUS_ACCEPTED);
+        EventContactExchange::where('id', $recentAccepted->id)->update(['accepted_at' => now()->subDays(100)]);
+
+        // Legacy row: accepted status but null accepted_at → created_at fallback.
+        $legacyAccepted = $this->exchange($a, $b, $this->makeEventLink($a, now()->subDays(800)), EventContactExchange::STATUS_ACCEPTED, now()->subDays(800));
+        EventContactExchange::where('id', $legacyAccepted->id)->update(['accepted_at' => null]);
+
+        // Recent pending row must not be touched by the accepted sweep.
+        $recentPending = $this->exchange($a, $b, $this->makeEventLink($a, now()->addDays(1)), EventContactExchange::STATUS_PENDING);
+
+        $this->artisan('events:prune-contact-exchanges', ['--accepted-days' => 730])->assertSuccessful();
+
+        $this->assertDatabaseMissing('event_contact_exchanges', ['id' => $oldAccepted->id]);
+        $this->assertDatabaseMissing('event_contact_exchanges', ['id' => $legacyAccepted->id]);
+        $this->assertDatabaseHas('event_contact_exchanges', ['id' => $recentAccepted->id]);
+        $this->assertDatabaseHas('event_contact_exchanges', ['id' => $recentPending->id]);
+    }
+
+    public function test_accepted_days_dry_run_deletes_nothing(): void
+    {
+        $a = User::factory()->create();
+        $b = User::factory()->create();
+
+        $oldAccepted = $this->exchange($a, $b, $this->makeEventLink($a, now()->subDays(800)), EventContactExchange::STATUS_ACCEPTED);
+        EventContactExchange::where('id', $oldAccepted->id)->update(['accepted_at' => now()->subDays(800)]);
+
+        $this->artisan('events:prune-contact-exchanges', ['--accepted-days' => 730, '--dry-run' => true])->assertSuccessful();
+
+        $this->assertDatabaseHas('event_contact_exchanges', ['id' => $oldAccepted->id]);
     }
 
     public function test_custom_days_window_is_honoured(): void

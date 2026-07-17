@@ -88,8 +88,8 @@ return [
     ],
     [
         'key'         => 'events:prune-contact-exchanges',
-        'command'     => 'events:prune-contact-exchanges --days=30 --fallback-days=90',
-        'description' => 'Delete pending/declined event contact-swap requests for events that ended over 30 days ago (90-day fallback when the event has no end date); accepted exchanges are kept.',
+        'command'     => 'events:prune-contact-exchanges --days=30 --fallback-days=90 --accepted-days=730',
+        'description' => 'Delete pending/declined event contact-swap requests for events that ended over 30 days ago (90-day fallback when the event has no end date); accepted exchanges are kept 2 years after acceptance, then pruned (the exchanged contacts already live in each address book).',
         'cadence'     => ['dailyAt', '04:20'],
     ],
     [
