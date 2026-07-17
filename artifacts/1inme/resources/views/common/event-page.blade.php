@@ -48,6 +48,7 @@
     .ev-input:focus { outline:none; border-color:#3d6bff; box-shadow:0 0 0 3px rgba(61,107,255,0.25); }
     .ev-label { color: rgba(255,255,255,0.5); }
     .ev-section-label { color:#8fa8ff; }
+    .ev-strong { color:#fff; }
     .ev-muted { color: rgba(255,255,255,0.6); }
     .ev-muted-lite { color: rgba(255,255,255,0.4); }
     .ev-desc { color: rgba(255,255,255,0.7); }
@@ -69,6 +70,7 @@
     html.light-mode .ev-input { background:#f8fafc; border-color:rgba(15,23,42,0.14); color:#111827; }
     html.light-mode .ev-label { color: rgba(15,23,42,0.55); }
     html.light-mode .ev-section-label { color:#3d6bff; }
+    html.light-mode .ev-strong { color:#0f172a; }
     html.light-mode .ev-muted { color: rgba(15,23,42,0.6); }
     html.light-mode .ev-muted-lite { color: rgba(15,23,42,0.4); }
     html.light-mode .ev-desc { color: rgba(15,23,42,0.72); }
@@ -476,7 +478,7 @@
                 : '';
             return '<div class="ev-card-soft flex items-center gap-2.5 p-2.5" data-swap-row="' + it.exchange_id + '">'
                 + avatar
-                + '<div class="min-w-0 flex-1"><div class="text-sm font-semibold text-white truncate">' + name + (o.handle ? ' <span class="ev-muted-lite font-normal">@' + esc(o.handle) + '</span>' : '') + '</div>' + status + '</div>'
+                + '<div class="min-w-0 flex-1"><div class="text-sm font-semibold ev-strong truncate">' + name + (o.handle ? ' <span class="ev-muted-lite font-normal">@' + esc(o.handle) + '</span>' : '') + '</div>' + status + '</div>'
                 + action
                 + '</div>';
         }).join('');
