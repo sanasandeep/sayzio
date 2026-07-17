@@ -581,13 +581,19 @@ class User extends Authenticatable
         if (!empty($this->avatar) && !str_contains((string) $this->avatar, 'gravatar.com')) {
             $avatar = (string) $this->avatar;
 
-            // When the public disk is S3-backed, avatars are stored as `/storage/<path>`
-            // (the local-symlink path from when the disk was local). Resolve to the
-            // direct S3/CloudFront URL so the browser never hits the /storage bridge
-            // route — avoiding the S3 round-trip and any boot-time SDK init failure
-            // that can turn the bridge into a 500. Falls back to the bridge path on
-            // a transient S3 config issue so avatars degrade gracefully.
-            return (string) \App\Support\PublicStorageUrl::resolve($avatar);
+            // Legacy `/storage/<path>` values were canonicalized to direct CDN
+            // URLs by `storage:canonicalize-legacy-paths` (production confirmed
+            // clean July 2026), so runtime resolution is retired. If a stray
+            // legacy value ever reappears, log it so it can be re-canonicalized
+            // — the value is returned as-is and will hit the 404-logging shim.
+            if (str_starts_with($avatar, '/storage/')) {
+                \Illuminate\Support\Facades\Log::warning('resolveAvatarUrl: unexpected legacy /storage/ avatar value — re-run storage:canonicalize-legacy-paths', [
+                    'user_id' => $this->id,
+                    'avatar'  => $avatar,
+                ]);
+            }
+
+            return $avatar;
         }
 
         // 2. Connected Google social account photo (ignore null/empty rows so

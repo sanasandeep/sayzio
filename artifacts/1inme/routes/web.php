@@ -227,42 +227,21 @@ Route::get('/qr/render', [PublicQrController::class, 'render'])->name('qr.public
 
 Route::get('/f/{id}/{filename}', [UserFileController::class, 'serve'])->name('file.serve')->where('id', '[0-9]+');
 
-// ---- Legacy /storage/* fallback → CloudFront ----
-// Avatars, covers, post images, verification logos, etc. were historically
-// stored as plain `/storage/...` URLs that the local symlink served directly.
-// Once the `public` disk is S3-backed the local file is gone, so requests fall
-// through to this route (php's dev server / production still serve any file
-// that is still present locally). We then redirect to the S3/CloudFront URL.
-// Guarded so it never loops when the `public` disk is still local.
-//
-// HARDENING: we skip the `exists()` round-trip entirely. An S3 HeadObject call
-// on every avatar request is expensive, and more critically the AWS SDK can
-// throw during client construction (e.g. missing bucket/region) even when the
-// disk config declares `throw: false` — `throw` only suppresses exceptions from
-// actual API calls, not from SDK initialization. Skipping the check means a
-// missing object yields a 302 to a URL that S3/CloudFront then serves as 404;
-// that is an acceptable trade-off vs. a 500 error page.
-// Any exception (misconfigured credentials, SDK init failure, etc.) is caught
-// and returns a 404 with a warning log instead of a 500 error page.
+// ---- Retired legacy /storage/* bridge (now a 404-logging shim) ----
+// Legacy `/storage/...` DB values (avatars, covers, post images, verification
+// logos, …) were rewritten to canonical CDN URLs by
+// `storage:canonicalize-legacy-paths` (production dry-run confirmed 0 legacy
+// rows, July 2026), so the old redirect-to-CloudFront bridge is retired.
+// Deliberate decision: keep a thin shim (instead of deleting the route) so
+// any straggler request — e.g. a `/storage/...` URL baked into an old email
+// or export — is logged for follow-up rather than silently swallowed by the
+// `/{alias}` catch-all, which would misread the path as a link alias.
 Route::get('/storage/{path}', function (string $path) {
-    if (config('filesystems.disks.public.driver') !== 's3') {
-        abort(404);
-    }
-    try {
-        $disk = \Illuminate\Support\Facades\Storage::disk('public');
-        $url  = $disk->url($path);
-    } catch (\Throwable $e) {
-        \Illuminate\Support\Facades\Log::warning('storage.cdn.fallback: could not resolve S3 URL', [
-            'path'  => $path,
-            'error' => $e->getMessage(),
-        ]);
-        // Real-time ops alert: a broken S3 config here means ALL user file
-        // retrievals 404 (avatars/covers degrade to placeholders). Cooldown-
-        // guarded inside the service so bursts don't spam admins.
-        \App\Services\Integrations\StorageHealthAlerts::alertFromBridge($e);
-        abort(404);
-    }
-    return redirect($url, 302);
+    \Illuminate\Support\Facades\Log::warning('storage.cdn.fallback: request to retired /storage bridge — value should have been canonicalized', [
+        'path'    => $path,
+        'referer' => request()->headers->get('referer'),
+    ]);
+    abort(404);
 })->where('path', '.*')->name('storage.cdn.fallback');
 
 // ---- Public Forms ----

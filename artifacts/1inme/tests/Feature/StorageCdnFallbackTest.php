@@ -3,32 +3,22 @@
 namespace Tests\Feature;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Log;
 use Tests\TestCase;
 
 /**
- * Coverage for the /storage/{path} → CloudFront bridge route
- * ({@see routes/web.php, storage.cdn.fallback}).
+ * Coverage for the retired /storage/{path} bridge, now a thin 404-logging
+ * shim ({@see routes/web.php, storage.cdn.fallback}).
  *
- * The route exists to handle legacy `/storage/...` URLs that were generated
- * when the `public` disk was local. Once the disk moved to S3, existing
- * stored paths (in users.avatar, links.cover_image, etc.) keep working via
- * this redirect bridge instead of a broken 404 / 500.
+ * Legacy `/storage/...` DB values were rewritten to canonical CDN URLs by
+ * `storage:canonicalize-legacy-paths` (production dry-run confirmed 0 legacy
+ * rows, July 2026), so the old redirect-to-CloudFront bridge is retired.
+ * The route is deliberately KEPT as a shim so that:
  *
- * Key invariants:
- *   1. When the public disk is S3-backed and the disk resolves correctly,
- *      the route issues a 302 redirect to the CloudFront/S3 URL.
- *   2. When the public disk is NOT S3-backed (local driver), the route
- *      returns 404 so it doesn't interfere with the local symlink.
- *   3. When the S3 disk throws during URL resolution (misconfigured
- *      credentials, SDK init failure, etc.), the route returns 404 and
- *      logs a warning — it NEVER returns a 500 error page.
- *
- * The route was hardened to skip the `exists()` round-trip because:
- *   a) an S3 HeadObject on every avatar load is expensive, and
- *   b) the AWS SDK can throw during client construction even when the disk
- *      config declares `throw: false` — that flag only suppresses exceptions
- *      from actual API calls, not from SDK/credential initialization.
+ *   1. Straggler requests (e.g. `/storage/...` URLs baked into old emails or
+ *      exports) log a warning for follow-up instead of being silently
+ *      swallowed by the `/{alias}` catch-all as a bogus link alias.
+ *   2. It always 404s — no S3 SDK involvement, so it can never 500.
  *
  * The route itself touches no database rows, but rendering the 404 error
  * page pulls in the site layout (site_pages, site assistant hints, …), so
@@ -41,61 +31,33 @@ class StorageCdnFallbackTest extends TestCase
     private const TEST_PATH = 'avatars/Gm1SI5v9QUwKwKczoZNaSQVAFCbiPIRHd2aX843H.jpg';
 
     /**
-     * S3-backed disk + successful URL resolution → 302 to the CDN URL.
+     * The shim always 404s — no redirect, regardless of disk driver.
      */
-    public function test_s3_disk_redirects_to_cdn_url(): void
+    public function test_shim_returns_404(): void
     {
         config(['filesystems.disks.public.driver' => 's3']);
+        $this->get('/storage/' . self::TEST_PATH)->assertNotFound();
 
-        // Mock Storage so we control what url() returns without real AWS creds.
-        $fakeDisk = \Mockery::mock(\Illuminate\Contracts\Filesystem\Filesystem::class);
-        $fakeDisk->shouldReceive('url')
-            ->once()
-            ->with(self::TEST_PATH)
-            ->andReturn('https://cdn.example.com/' . self::TEST_PATH);
-
-        Storage::shouldReceive('disk')
-            ->with('public')
-            ->once()
-            ->andReturn($fakeDisk);
-
-        $response = $this->get('/storage/' . self::TEST_PATH);
-
-        $response->assertRedirect('https://cdn.example.com/' . self::TEST_PATH);
-        $this->assertSame(302, $response->status());
-    }
-
-    /**
-     * Non-S3 (local) disk → 404 immediately; the local symlink handles it.
-     */
-    public function test_local_disk_returns_404(): void
-    {
         config(['filesystems.disks.public.driver' => 'local']);
-
-        $response = $this->get('/storage/' . self::TEST_PATH);
-
-        $response->assertNotFound();
+        $this->get('/storage/' . self::TEST_PATH)->assertNotFound();
     }
 
     /**
-     * S3 disk that throws during URL resolution → 404, never 500.
-     *
-     * This is the production failure mode: the AWS SDK can throw during client
-     * construction when credentials or bucket/region are missing, even though
-     * the disk config has `throw: false`.
+     * Straggler requests are logged so lingering legacy URLs are visible.
      */
-    public function test_s3_exception_returns_404_not_500(): void
+    public function test_shim_logs_a_warning_with_the_requested_path(): void
     {
-        config(['filesystems.disks.public.driver' => 's3']);
+        Log::shouldReceive('warning')
+            ->atLeast()->once()
+            ->withArgs(function (string $message, array $context = []) {
+                return str_contains($message, 'retired /storage bridge')
+                    && ($context['path'] ?? null) === self::TEST_PATH;
+            });
+        // The 404 error page render may log unrelated lines at other levels.
+        Log::shouldReceive('info')->zeroOrMoreTimes();
+        Log::shouldReceive('error')->zeroOrMoreTimes();
+        Log::shouldReceive('debug')->zeroOrMoreTimes();
 
-        Storage::shouldReceive('disk')
-            ->with('public')
-            ->once()
-            ->andThrow(new \RuntimeException('S3 credentials missing or bucket not found'));
-
-        $response = $this->get('/storage/' . self::TEST_PATH);
-
-        // Must be 404, never 500.
-        $response->assertNotFound();
+        $this->get('/storage/' . self::TEST_PATH)->assertNotFound();
     }
 }

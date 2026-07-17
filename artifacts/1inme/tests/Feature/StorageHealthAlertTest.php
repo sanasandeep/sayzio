@@ -255,25 +255,6 @@ class StorageHealthAlertTest extends TestCase
         );
     }
 
-    public function test_bridge_route_exception_dispatches_alert(): void
-    {
-        $ops = $this->makeOpsAdmin();
-
-        config(['filesystems.disks.public.driver' => 's3']);
-        \Illuminate\Support\Facades\Storage::shouldReceive('disk')
-            ->with('public')
-            ->once()
-            ->andThrow(new \RuntimeException('S3 credentials missing or bucket not found'));
-
-        $this->get('/storage/avatars/some-file.jpg')->assertNotFound();
-
-        $this->assertSame(
-            1,
-            UserNotification::where('user_id', $ops->id)->where('type', 'storage_misconfigured')->count(),
-            'the storage.cdn.fallback catch block must dispatch the ops alert'
-        );
-    }
-
     public function test_no_alert_when_configured(): void
     {
         $ops = $this->makeOpsAdmin();
