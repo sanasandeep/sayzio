@@ -87,6 +87,12 @@ return [
         'cadence'     => ['dailyAt', '04:15'],
     ],
     [
+        'key'         => 'events:prune-contact-exchanges',
+        'command'     => 'events:prune-contact-exchanges --days=30 --fallback-days=90',
+        'description' => 'Delete pending/declined event contact-swap requests for events that ended over 30 days ago (90-day fallback when the event has no end date); accepted exchanges are kept.',
+        'cadence'     => ['dailyAt', '04:20'],
+    ],
+    [
         'key'         => 'email-logs:prune-history',
         'description' => 'Trim the email log: null heavy stored bodies past the body-retention window, then delete whole rows past the retention window.',
         'cadence'     => ['dailyAt', '04:25'],
