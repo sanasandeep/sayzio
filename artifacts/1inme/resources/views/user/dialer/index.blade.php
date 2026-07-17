@@ -149,7 +149,12 @@
             </div>
 
             <div class="card-premium p-5" id="recent-card" @if(empty($recent)) style="display:none" @endif>
-                <h3 class="text-sm font-bold mb-3" style="color:var(--text-primary);">Recent</h3>
+                <div class="flex items-center justify-between mb-3">
+                    <h3 class="text-sm font-bold" style="color:var(--text-primary);">Recent</h3>
+                    <a href="{{ route('user.dialer.history') }}" class="text-[11px] font-medium inline-flex items-center gap-1" style="color:var(--text-muted);">
+                        <i class="fas fa-history text-[10px]"></i> View all history
+                    </a>
+                </div>
                 <div class="space-y-2" id="recent-list">
                     @foreach($recent as $r)
                         @include('user.dialer._recent', ['r' => $r])

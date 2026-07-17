@@ -76,6 +76,85 @@ class DialerController extends Controller
         ));
     }
 
+    // ── Full history screen ───────────────────────────────────────────
+
+    /**
+     * Paginated, filterable full call/lookup history. Accepts JSON (AJAX) or
+     * returns the history Blade view. Filters: outcome, tag, q (text search),
+     * page (0-based, 25 per page).
+     */
+    public function historyIndex(Request $request)
+    {
+        $user = $request->user();
+        $filters = [
+            'outcome' => $request->query('outcome') ?: null,
+            'tag'     => $request->query('tag')     ?: null,
+            'q'       => $request->query('q')       ?: null,
+        ];
+        $page = max(0, (int) $request->query('page', 0));
+
+        if ($request->wantsJson()) {
+            $result = DialerData::paginatedHistory($user->id, $filters, $page);
+            return response()->json(['data' => $result]);
+        }
+
+        $channelPayload = DialerChannels::payloadFor($user);
+        $channelCatalog = $channelPayload['catalog'];
+        $channelEnabled = $channelPayload['enabled'];
+
+        return view('user.dialer.history', compact('channelCatalog', 'channelEnabled'));
+    }
+
+    /** Delete a single history entry (must belong to the authenticated user). */
+    public function historyDestroy(Request $request, int $log)
+    {
+        $row = DialerLookup::where('user_id', $request->user()->id)->find($log);
+        if (!$row) {
+            return response()->json(['error' => ['message' => 'Not found', 'code' => 'not_found']], 404);
+        }
+        $row->delete();
+        return response()->json(['data' => ['deleted' => true]]);
+    }
+
+    /** Clear all history entries for the user (optionally filtered by outcome or tag). */
+    public function historyClear(Request $request)
+    {
+        $user    = $request->user();
+        $outcome = $request->query('outcome') ?: null;
+        $tag     = $request->query('tag')     ?: null;
+
+        $query = DialerLookup::where('user_id', $user->id);
+        if ($outcome) $query->where('outcome', $outcome);
+        if ($tag)     $query->where('tag', $tag);
+        $count = $query->count();
+        $query->delete();
+
+        return response()->json(['data' => ['cleared' => $count]]);
+    }
+
+    /** Inline outcome / note / tag update for an existing history entry. */
+    public function historyUpdate(Request $request, int $log)
+    {
+        $user = $request->user();
+        $data = $request->validate([
+            'outcome' => ['nullable', 'string', 'in:called,messaged,no_answer,voicemail,busy,wrong_number,completed'],
+            'note'    => ['nullable', 'string', 'max:2000'],
+            'tag'     => ['nullable', 'string', 'max:50'],
+        ]);
+
+        $row = DialerLookup::where('user_id', $user->id)->find($log);
+        if (!$row) {
+            return response()->json(['error' => ['message' => 'Not found', 'code' => 'not_found']], 404);
+        }
+
+        if (array_key_exists('outcome', $data)) $row->outcome = $data['outcome'];
+        if (array_key_exists('note',    $data)) $row->note    = $data['note'];
+        if (array_key_exists('tag',     $data)) $row->tag     = $data['tag'];
+        $row->save();
+
+        return response()->json(['data' => ['log' => DialerData::transformLog($row)]]);
+    }
+
     /**
      * Save the user's preferred messaging channels for the dialer (which of
      * call / SMS / WhatsApp / Telegram / Signal / Viber the one-tap channel

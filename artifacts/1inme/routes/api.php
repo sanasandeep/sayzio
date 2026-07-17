@@ -1301,6 +1301,9 @@ Route::prefix('v1')->group(function () {
         Route::post  ('/dialer/lookup',             [DialerController::class, 'lookup'])->middleware('throttle:60,1');
         Route::get   ('/dialer/profile',            [DialerController::class, 'profile']);
         Route::get   ('/dialer/history',            [DialerController::class, 'history']);
+        Route::delete('/dialer/history',            [DialerController::class, 'historyClear']);
+        Route::patch ('/dialer/history/{id}',       [DialerController::class, 'historyUpdate'])->whereNumber('id');
+        Route::delete('/dialer/history/{id}',       [DialerController::class, 'historyDestroy'])->whereNumber('id');
         Route::get   ('/dialer/channels',           [DialerController::class, 'channels']);
         Route::put   ('/dialer/channels',           [DialerController::class, 'updateChannels']);
         // Contact privacy (Task #3497) — what strangers may see via caller-ID / search.

@@ -1433,6 +1433,10 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::delete('dialer/callback/{log}',              [DialerController::class, 'callbackClear'])->whereNumber('log')->middleware('workspace.can:settings.edit')->name('dialer.callback.clear');
         Route::post('dialer/manual',                        [DialerController::class, 'updateManual'])->middleware('workspace.can:settings.edit')->name('dialer.manual');
         Route::post('dialer/channels',                      [DialerController::class, 'channelsUpdate'])->middleware('workspace.can:settings.edit')->name('dialer.channels');
+        Route::get   ('dialer/history',                     [DialerController::class, 'historyIndex'])->middleware('workspace.can:settings.view')->name('dialer.history');
+        Route::delete('dialer/history',                     [DialerController::class, 'historyClear'])->middleware('workspace.can:settings.edit')->name('dialer.history.clear');
+        Route::patch ('dialer/history/{log}',               [DialerController::class, 'historyUpdate'])->whereNumber('log')->middleware('workspace.can:settings.edit')->name('dialer.history.update');
+        Route::delete('dialer/history/{log}',               [DialerController::class, 'historyDestroy'])->whereNumber('log')->middleware('workspace.can:settings.edit')->name('dialer.history.destroy');
 
         // ===== Events calendar (month / week / day / list views) =====
         Route::get('events',                                [CalendarAccountController::class, 'events'])->middleware('workspace.can:settings.view')->name('events.index');
