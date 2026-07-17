@@ -15,6 +15,8 @@ interface QrCode {
   svg?: string;
 }
 
+export type QrContentType = "url" | "text" | "phone" | "wifi";
+
 interface Props {
   tabUrl: string;
   tabTitle: string;
@@ -23,12 +25,18 @@ interface Props {
   onCancel: () => void;
   onCreated: (qr: QrCode) => void;
   showToast: (t: { kind: "success" | "error" | "info"; text: string }) => void;
+  prefillText?: string;
+  prefillContentType?: QrContentType;
 }
 
-export function QuickQrView({ tabUrl, tabTitle, workspaceId, webBaseUrl, onCancel, onCreated, showToast }: Props) {
+export function QuickQrView({ tabUrl, tabTitle, workspaceId, webBaseUrl, onCancel, onCreated, showToast, prefillText, prefillContentType }: Props) {
   const [presets, setPresets] = useState<QrPreset[]>([]);
   const [selectedPreset, setSelectedPreset] = useState<string>("");
+  const [contentType, setContentType] = useState<QrContentType>(prefillContentType ?? "url");
   const [name, setName] = useState((tabTitle || "").slice(0, 60) || "Quick QR");
+  const [contentValue, setContentValue] = useState(
+    prefillText ?? tabUrl ?? "",
+  );
   const [loadingCatalog, setLoadingCatalog] = useState(true);
   const [creating, setCreating] = useState(false);
   const [created, setCreated] = useState<QrCode | null>(null);
@@ -50,14 +58,21 @@ export function QuickQrView({ tabUrl, tabTitle, workspaceId, webBaseUrl, onCance
     return () => { mountedRef.current = false; };
   }, []);
 
+  const buildPayload = (): Record<string, unknown> => {
+    if (contentType === "url") return { url: contentValue };
+    if (contentType === "phone") return { phone: contentValue };
+    if (contentType === "wifi") return { ssid: contentValue };
+    return { text: contentValue };
+  };
+
   const create = async () => {
     setCreating(true);
     try {
       const design = presets.find((p) => p.id === selectedPreset)?.design;
       const resp = await api.createQrCode(
         name || "Quick QR",
-        "url",
-        { url: tabUrl },
+        contentType === "phone" ? "phone" : contentType === "wifi" ? "wifi" : contentType === "url" ? "url" : "text",
+        buildPayload(),
         undefined,
         design,
       );
@@ -93,12 +108,49 @@ export function QuickQrView({ tabUrl, tabTitle, workspaceId, webBaseUrl, onCance
     );
   }
 
+  const isFromSelection = !!prefillText;
+
   return (
     <div className="body">
-      <h3 className="section-h" style={{ marginBottom: 10 }}>Design a QR code for this page</h3>
-      <div className="muted" style={{ fontSize: 11, marginBottom: 10, wordBreak: "break-all" }}>
-        {tabUrl}
-      </div>
+      <h3 className="section-h" style={{ marginBottom: 10 }}>
+        {isFromSelection ? "Create QR from selection" : "Design a QR code for this page"}
+      </h3>
+
+      {!isFromSelection && (
+        <div className="muted" style={{ fontSize: 11, marginBottom: 10, wordBreak: "break-all" }}>
+          {tabUrl}
+        </div>
+      )}
+
+      {isFromSelection && (
+        <div className="field">
+          <label>Content type</label>
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+            {(["url", "text", "phone", "wifi"] as QrContentType[]).map((t) => (
+              <label key={t} style={{ display: "flex", gap: 4, alignItems: "center", cursor: "pointer", fontSize: 12 }}>
+                <input type="radio" name="ct" value={t} checked={contentType === t} onChange={() => setContentType(t)} />
+                {t === "url" ? "URL" : t === "text" ? "Text" : t === "phone" ? "Phone" : "Wi-Fi"}
+              </label>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {isFromSelection && (
+        <div className="field">
+          <label>Content</label>
+          <input
+            value={contentValue}
+            onChange={(e) => setContentValue(e.target.value)}
+            placeholder={
+              contentType === "url" ? "https://…"
+              : contentType === "phone" ? "+1 555 555 0123"
+              : contentType === "wifi" ? "Wi-Fi SSID"
+              : "Text to encode"
+            }
+          />
+        </div>
+      )}
 
       <div className="field">
         <label>QR code name</label>

@@ -1001,6 +1001,14 @@ Route::prefix('v1')->group(function () {
         // Mailbox AI reply draft (browser extension — email thread from Gmail / Outlook).
         Route::post('/mailbox/draft-reply', [\App\Modules\Api\Controllers\MailboxReplyDraftController::class, 'draft'])->middleware('throttle:20,1');
 
+        // Browser extension v0.2 helper endpoints.
+        // POST /me/files/fetch-url — save a remote image URL to Sayzio Files
+        //   (background SW cannot do binary downloads directly; backend fetches).
+        // POST /me/links/health   — batch check alias active/expired status
+        //   (popup link-health alerts).
+        Route::post('/me/files/fetch-url', [\App\Modules\Api\Controllers\ExtensionApiController::class, 'fetchUrlAndSave'])->middleware('throttle:30,1');
+        Route::post('/me/links/health',    [\App\Modules\Api\Controllers\ExtensionApiController::class, 'checkLinksHealth'])->middleware('throttle:60,1');
+
         // Workspaces
         Route::get('/workspaces',                 [WorkspaceController::class, 'index']);
         Route::post('/workspaces',                [WorkspaceController::class, 'store']);

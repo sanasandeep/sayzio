@@ -460,6 +460,79 @@ export const api = {
       method: "POST",
       body: payload,
     }),
+
+  // ── Quick analytics (7-day click count for a link) ────────────────
+  getLinkClickCount: (linkId: number) =>
+    request<{
+      totals: { clicks: number; unique_clicks?: number };
+      daily?: Array<{ date: string; clicks: number }>;
+    }>(`/links/${linkId}/analytics?days=7&breakdown=daily`),
+
+  // ── Forms ─────────────────────────────────────────────────────────
+  getForms: (perPage = 30) =>
+    request<{
+      items: Array<{
+        id: number;
+        title: string;
+        alias?: string | null;
+        short_url?: string | null;
+        submissions_count?: number;
+      }>;
+    }>(`/forms?per_page=${perPage}`),
+
+  // ── Universal search (backed by the dialer search endpoint) ───────
+  dialerSearch: (q: string) =>
+    request<{
+      groups: Array<{
+        label: string;
+        items: Array<{
+          id?: number | string;
+          display_name?: string;
+          name?: string;
+          title?: string;
+          alias?: string;
+          handle?: string;
+          type?: string;
+          organization?: string;
+          short_url?: string;
+          action_url?: string;
+          copy_url?: string;
+        }>;
+      }>;
+      total: number;
+    }>(`/dialer/search?q=${encodeURIComponent(q)}&per_page=30`),
+
+  // ── Image save from URL (extension-specific endpoint) ─────────────
+  saveImageFromUrl: (imageUrl: string, filename?: string) =>
+    request<{ file: { id: number; name: string; url: string } }>(
+      "/me/files/fetch-url",
+      {
+        method: "POST",
+        body: { url: imageUrl, filename: filename ?? undefined },
+      },
+    ),
+
+  // ── Contacts list (for the contact-note picker) ───────────────────
+  listContacts: (perPage = 20) =>
+    request<{
+      items: Array<{ id: number; display_name: string; emails?: any[]; phones?: any[] }>;
+    }>(`/contacts?per_page=${perPage}`),
+
+  // ── Contact note append ────────────────────────────────────────────
+  appendContactNote: (contactId: number, note: string) =>
+    request<{ contact: { id: number; display_name: string; notes?: string | null } }>(
+      `/contacts/${contactId}`,
+      { method: "PATCH", body: { notes_append: note } },
+    ),
+
+  // ── Link health check (checks alias status via the links endpoint) ─
+  checkLinksHealth: (aliases: string[]) =>
+    request<{
+      items: Array<{ alias: string; is_active: boolean; is_expired: boolean; status: "ok" | "inactive" | "expired" }>;
+    }>(
+      "/me/links/health",
+      { method: "POST", body: { aliases } },
+    ),
 };
 
 export interface NotificationItem {

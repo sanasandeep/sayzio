@@ -1,13 +1,16 @@
-import React, { useEffect, useMemo, useState, useCallback } from "react";
+import React, { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { browser } from "../lib/browser";
 import { ApiError, api, AbVariantsPayload, BacklinkRow, LinkSummary, SmartRule, WorkspacePixels, NotificationItem } from "../lib/api";
 import { NotificationsView } from "./NotificationsView";
 import { AddToBiolinkView } from "./AddToBiolinkView";
-import { QuickQrView } from "./QuickQrView";
+import { QuickQrView, QrContentType } from "./QuickQrView";
 import { AddToCalendarView } from "./AddToCalendarView";
 import { ReviewCaptureView } from "./ReviewCaptureView";
 import { BiolinkModeView } from "./BiolinkModeView";
 import { MailboxReplyView } from "./MailboxReplyView";
+import { SearchView } from "./SearchView";
+import { FormShareView } from "./FormShareView";
+import { SubscriberComposeView } from "./SubscriberComposeView";
 import {
   AuthorBookEntry,
   AuthorContacts,
@@ -89,10 +92,16 @@ type View =
   | "notifications"
   | "add-biolink"
   | "quick-qr"
+  | "qr-selection"
   | "add-calendar"
   | "review-capture"
   | "biolink-mode"
-  | "mailbox-reply";
+  | "mailbox-reply"
+  | "search"
+  | "form-share"
+  | "subscriber-compose"
+  | "contact-note"
+  | "dialer-lookup";
 
 type AbTestItem = { link: { id: number; alias: string; short_url?: string; title?: string }; variants: AbVariantsPayload };
 
@@ -139,6 +148,11 @@ export function App() {
   const [prunedThanks, setPrunedThanks] = useState<number>(0);
   // Unread notification count, seeded from storage on popup open.
   const [notifUnreadCount, setNotifUnreadCount] = useState<number>(0);
+  // Selection-based actions from context menus (QR from selection, contact note, dialer lookup).
+  const [selectionText, setSelectionText] = useState<string>("");
+  const [qrPrefillContentType, setQrPrefillContentType] = useState<QrContentType>("text");
+  // Link health alerts — populated when radar matches link on page and health check reveals issues.
+  const [unhealthyLinks, setUnhealthyLinks] = useState<Array<{ alias: string; status: "inactive" | "expired" }>>([]);
 
   const loadAbTests = useCallback(async () => {
     setAbLoading(true);
@@ -173,7 +187,8 @@ export function App() {
       // Preserve all sub-views that shouldn't be reset on a storage-change refresh.
       const preservedViews: View[] = [
         "contact-preview", "ab", "notifications", "add-biolink",
-        "quick-qr", "add-calendar", "review-capture", "biolink-mode", "mailbox-reply",
+        "quick-qr", "qr-selection", "add-calendar", "review-capture", "biolink-mode",
+        "mailbox-reply", "search", "form-share", "subscriber-compose", "contact-note", "dialer-lookup",
       ];
       if (preservedViews.includes(v)) return v;
       if (!s.token) return "login";
@@ -218,7 +233,7 @@ export function App() {
         browser.storage.local.remove("pendingContactCandidate");
         return; // contact-preview takes precedence
       }
-      // Context-menu actions (Add to bio-link, QR, Calendar, Reviews, Bio-link mode picker).
+      // Context-menu actions (Add to bio-link, QR, Calendar, Reviews, Bio-link mode picker, v0.2 actions).
       const action = res?.pendingAction;
       if (action && action.at && Date.now() - action.at < 60_000) {
         browser.storage.local.remove("pendingAction");
@@ -228,9 +243,28 @@ export function App() {
           ADD_TO_CALENDAR: "add-calendar",
           CAPTURE_REVIEWS: "review-capture",
           PAGE_TO_BIOLINK_MODE: "biolink-mode",
+          SEND_TO_SUBSCRIBERS: "subscriber-compose",
+          CONTACT_NOTE: "contact-note",
+          DIALER_LOOKUP: "dialer-lookup",
         };
+        // Handle QR from selection — needs content type detection
+        if (action.type === "QR_SELECTION" && action.selectionText) {
+          const sel: string = action.selectionText;
+          let ct: QrContentType = "text";
+          try { new URL(sel); ct = "url"; } catch { /* not a URL */ }
+          if (ct === "text") {
+            if (/^\+?[\d\s\-().]{6,20}$/.test(sel)) ct = "phone";
+          }
+          setSelectionText(sel);
+          setQrPrefillContentType(ct);
+          setView("qr-selection");
+          return;
+        }
+        if (action.selectionText) setSelectionText(action.selectionText);
         const nextView = typeToView[action.type];
         if (nextView) setView(nextView);
+        // Open-search command stash
+        if (action.type === "OPEN_SEARCH") setView("search");
       }
     });
     return () => browser.storage.onChanged.removeListener(listener);
@@ -514,6 +548,66 @@ export function App() {
           showToast={showToast}
         />
       )}
+      {view === "search" && settings.token && (
+        <SearchView
+          webBaseUrl={settings.webBaseUrl}
+          onCancel={() => setView("main")}
+          showToast={showToast}
+        />
+      )}
+      {view === "form-share" && settings.token && (
+        <FormShareView
+          webBaseUrl={settings.webBaseUrl}
+          onCancel={() => setView("main")}
+          showToast={showToast}
+        />
+      )}
+      {view === "subscriber-compose" && settings.token && (
+        <SubscriberComposeView
+          tabUrl={tabUrl}
+          tabTitle={tabTitle}
+          settings={settings}
+          onCancel={() => setView("main")}
+          showToast={showToast}
+        />
+      )}
+      {view === "contact-note" && settings.token && (
+        <ContactNoteView
+          selectionText={selectionText}
+          webBaseUrl={settings.webBaseUrl}
+          onCancel={() => { setSelectionText(""); setView("main"); }}
+          showToast={showToast}
+        />
+      )}
+      {view === "dialer-lookup" && settings.token && (
+        <DialerLookupSelectionView
+          selectionText={selectionText}
+          webBaseUrl={settings.webBaseUrl}
+          onCancel={() => { setSelectionText(""); setView("main"); }}
+          showToast={showToast}
+        />
+      )}
+      {view === "qr-selection" && settings.token && (
+        <QuickQrView
+          tabUrl={tabUrl}
+          tabTitle={tabTitle}
+          workspaceId={settings.workspaceId ?? null}
+          webBaseUrl={settings.webBaseUrl}
+          prefillText={selectionText}
+          prefillContentType={qrPrefillContentType}
+          onCancel={() => { setSelectionText(""); setView("main"); }}
+          onCreated={(qr) => {
+            setSelectionText("");
+            setView("main");
+            showToast({
+              kind: "success",
+              text: "QR code created!",
+              link: qr.short_url ? { href: qr.short_url, label: "Open" } : undefined,
+            });
+          }}
+          showToast={showToast}
+        />
+      )}
       {view === "biolink-mode" && settings.token && (
         <BiolinkModeView
           tabUrl={tabUrl}
@@ -664,6 +758,37 @@ export function App() {
               title="Open a Gmail or Outlook thread and draft an AI reply"
             >
               ✉ Draft AI reply
+            </button>
+          </div>
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+            <button
+              className="btn-secondary"
+              style={{ flex: "1 1 auto", fontSize: 12, padding: "5px 8px" }}
+              disabled={!tabUrl || busy !== null}
+              onClick={() => setView("subscriber-compose")}
+              title="Send this page to your email/WhatsApp subscribers"
+            >
+              📣 Send to subscribers
+            </button>
+            <button
+              className="btn-secondary"
+              style={{ flex: "1 1 auto", fontSize: 12, padding: "5px 8px" }}
+              disabled={busy !== null}
+              onClick={() => setView("form-share")}
+              title="Copy a short link to one of your forms"
+            >
+              📋 Form quick-share
+            </button>
+          </div>
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+            <button
+              className="btn-secondary"
+              style={{ flex: "1 1 auto", fontSize: 12, padding: "5px 8px" }}
+              disabled={busy !== null}
+              onClick={() => setView("search")}
+              title="Search contacts, links, people, and workspaces (Ctrl+Shift+F)"
+            >
+              🔍 Universal search
             </button>
           </div>
 
@@ -2662,6 +2787,168 @@ function Sparkline({ variants, totalClicks }: { variants: AbTestItem["variants"]
     </div>
   );
 }
+
+// ─── Contact note view (inline, from context menu selection) ──────────────
+function ContactNoteView({
+  selectionText, webBaseUrl, onCancel, showToast,
+}: {
+  selectionText: string;
+  webBaseUrl: string;
+  onCancel: () => void;
+  showToast: (t: { kind: "success" | "error" | "info"; text: string }) => void;
+}) {
+  const [contacts, setContacts] = useState<Array<{ id: number; display_name: string }> | null>(null);
+  const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [note, setNote] = useState(selectionText);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    (async () => {
+      try {
+        const r = await api.listContacts(20);
+        if (!mountedRef.current) return;
+        setContacts(r.items ?? []);
+      } catch {
+        if (mountedRef.current) setContacts([]);
+      }
+    })();
+    return () => { mountedRef.current = false; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const save = async () => {
+    if (!selectedId) { setErr("Select a contact first."); return; }
+    if (!note.trim()) { setErr("Note is empty."); return; }
+    setBusy(true);
+    setErr(null);
+    try {
+      await api.appendContactNote(selectedId, note.trim());
+      showToast({ kind: "success", text: "Note added to contact!" });
+      onCancel();
+    } catch (e: any) {
+      setErr(e?.message || "Could not save note");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="body">
+      <div className="preview-header">
+        <strong>📝 Add note to contact</strong>
+        <button className="btn-link" onClick={onCancel}>← Back</button>
+      </div>
+      <div className="field">
+        <label>Note text (from selection)</label>
+        <textarea rows={3} value={note} onChange={(e) => setNote(e.target.value)} style={{ width: "100%", boxSizing: "border-box" }} />
+      </div>
+      <div className="field">
+        <label>Contact</label>
+        {contacts === null && <div className="muted">Loading contacts…</div>}
+        {contacts?.length === 0 && <div className="muted">No contacts yet. <a href={`${webBaseUrl}/dashboard/contacts`} target="_blank" rel="noreferrer">Open Contacts ↗</a></div>}
+        {contacts && contacts.length > 0 && (
+          <select
+            className="workspace-select"
+            value={selectedId ?? ""}
+            onChange={(e) => setSelectedId(e.target.value === "" ? null : Number(e.target.value))}
+          >
+            <option value="">— pick a contact —</option>
+            {contacts.map((c) => <option key={c.id} value={c.id}>{c.display_name}</option>)}
+          </select>
+        )}
+      </div>
+      {err && <div className="error-text">{err}</div>}
+      <button className="btn-primary" onClick={save} disabled={busy || !selectedId || !note.trim()}>
+        {busy && <span className="spinner" />}Save note
+      </button>
+      <div className="muted" style={{ fontSize: 11 }}>
+        The note will be appended to the contact's existing notes in Sayzio.
+      </div>
+    </div>
+  );
+}
+
+// ─── Dialer lookup from selection ──────────────────────────────────────────
+function DialerLookupSelectionView({
+  selectionText, webBaseUrl, onCancel, showToast,
+}: {
+  selectionText: string;
+  webBaseUrl: string;
+  onCancel: () => void;
+  showToast: (t: { kind: "success" | "error" | "info"; text: string }) => void;
+}) {
+  const [number, setNumber] = useState(selectionText);
+  const [result, setResult] = useState<any>(null);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  const lookup = async () => {
+    const n = number.trim();
+    if (!n) { setErr("Enter a phone number."); return; }
+    setBusy(true);
+    setErr(null);
+    setResult(null);
+    try {
+      const r = await api.dialerLookup(n);
+      setResult(r);
+    } catch (e: any) {
+      setErr(e?.message || "Lookup failed");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const openInDialer = () => {
+    browser.tabs.create({ url: `${webBaseUrl}/dashboard/contacts/dialer?q=${encodeURIComponent(number.trim())}` });
+  };
+
+  return (
+    <div className="body">
+      <div className="preview-header">
+        <strong>📞 Dialer lookup</strong>
+        <button className="btn-link" onClick={onCancel}>← Back</button>
+      </div>
+      <div className="field">
+        <label>Phone number</label>
+        <input value={number} onChange={(e) => setNumber(e.target.value)} placeholder="+1 555 555 0123" />
+      </div>
+      {err && <div className="error-text">{err}</div>}
+      <div style={{ display: "flex", gap: 6 }}>
+        <button className="btn-primary" onClick={lookup} disabled={busy || !number.trim()}>
+          {busy && <span className="spinner" />}Look up
+        </button>
+        <button className="btn-secondary" onClick={openInDialer}>Open in Dialer ↗</button>
+      </div>
+      {result && (
+        <div style={{ marginTop: 12 }}>
+          {result.contact ? (
+            <div className="recent-item">
+              <div className="alias">{result.contact.name}</div>
+              {result.contact.organization && <div className="muted">{result.contact.organization}</div>}
+              {result.biolink && (
+                <a href={`${webBaseUrl}/${result.biolink.alias}`} target="_blank" rel="noreferrer" className="btn-link" style={{ fontSize: 11 }}>
+                  View bio-link ↗
+                </a>
+              )}
+            </div>
+          ) : (
+            <div className="muted">
+              {result.is_spam ? "⚠ Likely spam" : "No Sayzio contact found for this number."}
+              <div style={{ marginTop: 6 }}>
+                <button className="btn-secondary btn-sm" onClick={openInDialer}>Add to contacts ↗</button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Settings view ──────────────────────────────────────────────────────────
 
 function SettingsView({
   settings, pixels, onSaved, onPixelsSaved, showToast,

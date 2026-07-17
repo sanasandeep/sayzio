@@ -314,6 +314,15 @@ class ContactController extends Controller
 
         $data = $this->validatePayload($request, partial: true);
 
+        // notes_append: browser extension shortcut — append text to notes
+        // without overwriting the whole contact record.
+        if ($request->has('notes_append') && ! $request->has('notes')) {
+            $appended = trim($request->string('notes_append'));
+            if ($appended !== '') {
+                $data['notes'] = trim(($c->notes ?? '') . "\n\n" . $appended);
+            }
+        }
+
         $contact = DB::transaction(function () use ($c, $data) {
             $c->fill(array_intersect_key($data, array_flip([
                 'display_name', 'given_name', 'family_name',

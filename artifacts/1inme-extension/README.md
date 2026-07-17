@@ -11,7 +11,7 @@ Primary actions on any page you visit:
 3. **Save contact** — extracts the page author/business contact (vCard `.vcf`, hCard microformats, JSON-LD `Person`/`Organization`, or a heuristic email/phone scrape) and saves it to your Sayzio address book in one click (`POST /api/v1/contacts`). Default tags and the active workspace for saves are configurable in **Settings**.
 4. **Backlink radar** (opt-in) — quietly notices when a page you're browsing links **to you** (one of your short links, your bio-link username path, or any of your verified custom domains) and surfaces a "This page links to you" card in the popup with one-click **Save**, **Open**, and **Thank** actions. A **Backlinks** tab keeps a filterable history with CSV export.
 
-New in this release:
+New in this release (v0.2):
 
 5. **Notifications** — a 🔔 tab in the popup polls `/api/v1/notifications` every 30 s and shows an unread badge. High-signal events (new subscriber, form submission, restaurant/store order, payment received, review received) also fire a native browser notification. Mark-all-read is one click.
 6. **Click-to-dial** (opt-in) — when turned on in Settings, a content script scans pages for phone numbers and adds a hover overlay that shows the matching Sayzio contact, bio-link, and recent activity. The lookup is relayed to the background service worker so the API token stays safe.
@@ -20,6 +20,27 @@ New in this release:
 9. **Quick QR** — choose a preset style and generate a QR code for the current URL directly from the popup (`POST /api/v1/qr-codes`).
 10. **Add to calendar** — auto-extracts JSON-LD / Microdata event data from the page and pre-fills a form to add the event to any of your Sayzio calendars.
 11. **Dual-mode page → bio-link** — the "Turn into bio-link page" button now opens a mode picker: **Quick** (instant, no AI credits) or **AI-powered** (uses the AI Biolink Builder from your wallet).
+
+New in v0.2.0 — popup:
+
+12. **Universal search** — search contacts, links, people, and workspaces from the popup using the same universal finder as the in-app dialer (`GET /api/v1/dialer/search`). Results are grouped by category with direct action links. Keyboard shortcut: **Ctrl+Shift+F**.
+13. **Form quick-share** — see all your published Sayzio forms and copy a short link with one click. Useful when you're in a meeting and need to share a form without opening the dashboard.
+14. **Send to subscribers** — compose a broadcast to your email/WhatsApp subscriber lists, with the current page's short URL pre-filled. Opens the broadcast composer in the Sayzio dashboard with subject and body pre-populated.
+
+New in v0.2.0 — right-click context menu additions:
+
+15. **Shorten selected text as URL** (right-click on selected text) — shortens the selected URL directly, without opening the popup.
+16. **QR code for selected text** (right-click on selected text) — opens the Quick QR view in the popup with the selected text pre-filled; content type (URL / plain text / phone number) is auto-detected.
+17. **Note to contact from selection** (right-click on selected text) — opens a contact picker in the popup and appends the selected text as a note to the chosen contact (`PATCH /api/v1/contacts/{id}` with `notes_append`).
+18. **Look up in Sayzio Dialer** (right-click on selected text) — resolves a selected phone number against your Sayzio Contacts + bio-links and shows the matching person, or lets you add them.
+19. **Save image to Sayzio Files** (right-click on any image) — saves the image to your Sayzio Files storage via `POST /api/v1/me/files/fetch-url`; the backend fetches the binary so the service worker doesn't need to.
+20. **Send page to my subscribers** (right-click anywhere on a page) — shortcut to the subscriber broadcast compose view.
+
+New in v0.2.0 — keyboard shortcuts and address-bar keyword:
+
+- **Ctrl+Shift+S** (Windows/Linux) / **⌘+Shift+S** (Mac) — shorten the current tab URL silently and copy it to clipboard.
+- **Ctrl+Shift+F** (Windows/Linux) / **⌘+Shift+F** (Mac) — open the popup in universal search mode.
+- **Omnibox keyword `szo`** — type `szo ` in the address bar to activate the Sayzio omnibox. If the query looks like a URL, the extension shortens it and navigates to the short link. Otherwise it opens your Sayzio dashboard with the query pre-filled in the search box.
 
 A **right-click context menu** mirrors these actions:
 
@@ -31,6 +52,12 @@ A **right-click context menu** mirrors these actions:
 - **Design QR for this page / this link** (right-click anywhere or on a link)
 - **Add page event to Sayzio calendar** (right-click anywhere on a page)
 - **Capture reviews for this business** (right-click anywhere on a page)
+- **Shorten selected text as URL** *(new)* (right-click on a text selection)
+- **QR code for selected text** *(new)* (right-click on a text selection)
+- **Note to contact from selection** *(new)* (right-click on a text selection)
+- **Look up in Sayzio Dialer** *(new)* (right-click on a text selection)
+- **Save image to Sayzio Files** *(new)* (right-click on an image)
+- **Send page to my subscribers** *(new)* (right-click anywhere on a page)
 
 ## Permissions
 
