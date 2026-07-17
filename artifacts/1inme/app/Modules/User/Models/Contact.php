@@ -50,6 +50,20 @@ protected $fillable = [
         static::created(function (Contact $contact): void {
             $contact->queueCrmPush();
         });
+
+        // A create, edit (rename etc.) or delete can change which contacts
+        // count as duplicates — drop the cached duplicate-group count so the
+        // contacts-index banner reflects the new state immediately.
+        static::saved(function (Contact $contact): void {
+            if ($contact->user_id) {
+                \App\Modules\User\Services\Contacts\ContactDuplicateDetector::flushCountCache((int) $contact->user_id);
+            }
+        });
+        static::deleted(function (Contact $contact): void {
+            if ($contact->user_id) {
+                \App\Modules\User\Services\Contacts\ContactDuplicateDetector::flushCountCache((int) $contact->user_id);
+            }
+        });
     }
 
     /**

@@ -26,20 +26,23 @@
     </div>
     @endif
 
-    @if(($duplicateCount ?? 0) > 0)
+    {{-- Duplicate banner: always rendered (hidden at 0) so the count can be
+         refreshed in place without a full page reload — e.g. when returning
+         here via the browser back button after editing a contact. --}}
     <a href="{{ route('user.contacts.duplicates') }}"
+       id="duplicate-banner"
+       @if(($duplicateCount ?? 0) < 1) hidden @endif
        class="block mb-6 px-4 py-3 rounded-xl text-sm transition"
        style="background:linear-gradient(135deg,rgba(245,158,11,.08),rgba(61,107,255,.08));border:1px solid rgba(245,158,11,.30);color:var(--text-primary);">
         <div class="flex items-center justify-between gap-3 flex-wrap">
             <div class="flex items-center gap-2">
                 <i class="fas fa-copy text-amber-400"></i>
-                <span class="font-semibold">{{ $duplicateCount }} duplicate {{ \Illuminate\Support\Str::plural('group', $duplicateCount) }} found</span>
+                <span class="font-semibold" id="duplicate-banner-text">{{ $duplicateCount }} duplicate {{ \Illuminate\Support\Str::plural('group', $duplicateCount ?? 0) }} found</span>
                 <span class="text-xs" style="color:var(--text-muted);">Merge them to keep your address book clean.</span>
             </div>
             <span class="text-xs font-semibold" style="color:#f59e0b;">Review &amp; Merge <i class="fas fa-arrow-right ml-1 text-[10px]"></i></span>
         </div>
     </a>
-    @endif
 
     @isset($activeImport)
     @if($activeImport)
@@ -307,6 +310,31 @@ function contactsSearch(cfg) {
         },
     };
 }
+
+// Keep the duplicate banner honest when the page is restored from the
+// back/forward cache (e.g. edit a contact → back button): re-fetch the
+// cheap cached count and update/toggle the banner in place.
+window.addEventListener('pageshow', function (ev) {
+    if (!ev.persisted) return;
+    fetch(@js(route('user.contacts.duplicates.count')), {
+        headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+    })
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (json) {
+            if (!json || !json.data) return;
+            var count = parseInt(json.data.count, 10) || 0;
+            var banner = document.getElementById('duplicate-banner');
+            var text = document.getElementById('duplicate-banner-text');
+            if (!banner || !text) return;
+            if (count > 0) {
+                text.textContent = count + ' duplicate ' + (count === 1 ? 'group' : 'groups') + ' found';
+                banner.hidden = false;
+            } else {
+                banner.hidden = true;
+            }
+        })
+        .catch(function () { /* leave the server-rendered banner untouched */ });
+});
 </script>
 @endpush
 @endsection

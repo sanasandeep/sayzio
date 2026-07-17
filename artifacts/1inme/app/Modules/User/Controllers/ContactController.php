@@ -506,8 +506,26 @@ class ContactController extends Controller
             );
         }
 
+        // Dismissed pairs change the group count but bypass model events
+        // (raw upsert), so invalidate the cached badge count explicitly.
+        ContactDuplicateDetector::flushCountCache($userId);
+
         return redirect()->route('user.contacts.duplicates')
             ->with('success', 'Marked as not duplicates — they won\'t appear here again.');
+    }
+
+    /**
+     * Lightweight JSON count of undismissed duplicate groups — used by the
+     * contacts index to refresh the banner without a full page reload
+     * (e.g. after returning via the browser back button).
+     */
+    public function duplicatesCount(Request $request): \Illuminate\Http\JsonResponse
+    {
+        $count = 0;
+        try {
+            $count = $this->detector->count(workspace_owner_id());
+        } catch (\Throwable) {}
+        return response()->json(['data' => ['count' => $count]]);
     }
 
     /**

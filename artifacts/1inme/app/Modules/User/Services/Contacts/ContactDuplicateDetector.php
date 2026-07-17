@@ -3,6 +3,7 @@
 namespace App\Modules\User\Services\Contacts;
 
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -26,6 +27,26 @@ class ContactDuplicateDetector
 {
     /** Maximum groups returned in a single call. */
     public const MAX_GROUPS = 100;
+
+    /** How long the per-user group count may be served from cache. */
+    public const COUNT_CACHE_TTL_SECONDS = 600;
+
+    /** Cache key for a user's duplicate-group count. */
+    public static function countCacheKey(int $userId): string
+    {
+        return "contacts:dup-group-count:{$userId}";
+    }
+
+    /**
+     * Invalidate the cached duplicate-group count for a user. Called whenever
+     * a contact (or one of its phones/emails) is created, edited or deleted,
+     * and when duplicate pairs are dismissed/merged, so the badge on the
+     * contacts index reflects the new state on the very next read.
+     */
+    public static function flushCountCache(int $userId): void
+    {
+        Cache::forget(self::countCacheKey($userId));
+    }
 
     /**
      * Return groups of likely-duplicate contact IDs for the user.
@@ -75,7 +96,14 @@ class ContactDuplicateDetector
      */
     public function count(int $userId): int
     {
-        return count($this->detect($userId));
+        // Cached so the index/import-summary badge is cheap; write paths
+        // (contact edits, merges, dismissals) call flushCountCache() so the
+        // number is recomputed immediately after anything that can change it.
+        return (int) Cache::remember(
+            self::countCacheKey($userId),
+            self::COUNT_CACHE_TTL_SECONDS,
+            fn () => count($this->detect($userId))
+        );
     }
 
     // ------------------------------------------------------------------

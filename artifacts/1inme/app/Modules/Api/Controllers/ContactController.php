@@ -249,6 +249,12 @@ class ContactController extends Controller
             $dismissed++;
         }
 
+        // Dismissed pairs change the group count but bypass model events
+        // (raw upsert), so invalidate the cached badge count explicitly.
+        if ($dismissed > 0) {
+            ContactDuplicateDetector::flushCountCache($userId);
+        }
+
         return $this->ok(['dismissed' => $dismissed]);
     }
 
