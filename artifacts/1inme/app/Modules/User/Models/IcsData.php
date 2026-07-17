@@ -23,6 +23,7 @@ class IcsData extends Model
         // badge-powered invite/entry rules.
         'hashtags', 'gallery', 'info_sections', 'cover_image_url',
         'required_badge_id', 'award_badge_id',
+        'agenda', 'documents',
     ];
 
     protected function casts(): array
@@ -40,6 +41,8 @@ class IcsData extends Model
             'hashtags' => 'array',
             'gallery' => 'array',
             'info_sections' => 'array',
+            'agenda' => 'array',
+            'documents' => 'array',
         ];
     }
 

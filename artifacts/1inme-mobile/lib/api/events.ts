@@ -24,6 +24,25 @@ export type EventInfoSection = {
   body?: string | null;
 };
 
+/** Task #5023: one agenda slot (may be grouped by day for multi-day events). */
+export type EventAgendaItem = {
+  time: string | null;
+  end_time: string | null;
+  title: string;
+  description: string | null;
+  day: number | null;
+};
+
+/** Task #5023: a downloadable document attached to an event. */
+export type EventDocument = {
+  file_id: number;
+  label: string;
+  filename: string;
+  size_bytes: number;
+  mime: string;
+  url: string;
+};
+
 /**
  * Organizer card (Task #3674) — always present when the event has a host,
  * regardless of whether that host has claimed a public handle. `handle` is
@@ -95,6 +114,10 @@ export type EventItem = {
   info_sections: EventInfoSection[];
   required_badge_id: number | null;
   award_badge_id: number | null;
+  /** Task #5023: structured agenda items for this event. */
+  agenda: EventAgendaItem[];
+  /** Task #5023: downloadable documents attached to this event. */
+  documents: EventDocument[];
   interested_count: number;
   not_interested_count: number;
   organizer: EventOrganizer | null;

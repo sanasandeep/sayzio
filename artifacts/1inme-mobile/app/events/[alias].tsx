@@ -372,6 +372,72 @@ export default function EventDetailScreen() {
         </View>
       ) : null}
 
+      {event.agenda.length > 0 ? (
+        <View style={{ marginTop: 20 }}>
+          <Text style={[styles.section, { color: colors.foreground }]}>Agenda</Text>
+          {(() => {
+            const hasDay = event.agenda.some((it) => it.day != null && it.day > 0);
+            const byDay = event.agenda.reduce<Record<number, typeof event.agenda>>((acc, it) => {
+              const d = it.day ?? 0;
+              if (!acc[d]) acc[d] = [];
+              acc[d].push(it);
+              return acc;
+            }, {});
+            return Object.entries(byDay).map(([dayKey, items]) => (
+              <View key={dayKey}>
+                {hasDay && Number(dayKey) > 0 ? (
+                  <Text style={{ color: colors.mutedForeground, fontSize: 11, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.8, marginTop: 12, marginBottom: 4 }}>
+                    Day {dayKey}
+                  </Text>
+                ) : null}
+                {items.map((item, idx) => (
+                  <View key={idx} style={[styles.agendaItem, { borderLeftColor: colors.primary }]}>
+                    {item.time ? (
+                      <Text style={{ color: colors.mutedForeground, fontSize: 12, minWidth: 70 }}>
+                        {item.time}{item.end_time ? ` – ${item.end_time}` : ""}
+                      </Text>
+                    ) : null}
+                    <View style={{ flex: 1, marginLeft: item.time ? 10 : 0 }}>
+                      <Text style={{ color: colors.foreground, fontWeight: "600", fontSize: 14 }}>{item.title}</Text>
+                      {item.description ? (
+                        <Text style={{ color: colors.mutedForeground, fontSize: 13, marginTop: 2 }}>{item.description}</Text>
+                      ) : null}
+                    </View>
+                  </View>
+                ))}
+              </View>
+            ));
+          })()}
+        </View>
+      ) : null}
+
+      {event.documents.length > 0 ? (
+        <View style={{ marginTop: 20 }}>
+          <Text style={[styles.section, { color: colors.foreground }]}>Documents</Text>
+          <View style={{ marginTop: 10, gap: 8 }}>
+            {event.documents.map((doc) => {
+              const sizeLabel = doc.size_bytes >= 1048576
+                ? `${(doc.size_bytes / 1048576).toFixed(1)} MB`
+                : `${Math.max(1, Math.round(doc.size_bytes / 1024))} KB`;
+              return (
+                <Pressable
+                  key={doc.file_id}
+                  onPress={() => Linking.openURL(doc.url)}
+                  style={[styles.docRow, { borderColor: colors.border, backgroundColor: colors.card }]}
+                >
+                  <Feather name="file-text" size={18} color={colors.primary} style={{ marginRight: 10 }} />
+                  <View style={{ flex: 1 }}>
+                    <Text numberOfLines={1} style={{ color: colors.foreground, fontWeight: "600", fontSize: 14 }}>{doc.label}</Text>
+                    <Text style={{ color: colors.mutedForeground, fontSize: 12 }}>{sizeLabel}</Text>
+                  </View>
+                  <Feather name="download" size={16} color={colors.mutedForeground} />
+                </Pressable>
+              );
+            })}
+          </View>
+        </View>
+      ) : null}
+
       {event.same_host_events.length > 0 ? (
         <View style={{ marginTop: 20 }}>
           <Text style={[styles.section, { color: colors.foreground }]}>More from this host</Text>
@@ -574,6 +640,22 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   galleryImg: { width: 220, height: 140, borderRadius: 12, marginRight: 10 },
+  agendaItem: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    paddingVertical: 8,
+    paddingLeft: 10,
+    borderLeftWidth: 3,
+    marginTop: 8,
+  },
+  docRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 12,
+    gap: 4,
+  },
   hostEventCard: {
     width: 160,
     borderWidth: 1,

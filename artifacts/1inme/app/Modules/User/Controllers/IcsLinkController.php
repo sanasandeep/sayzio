@@ -278,6 +278,24 @@ class IcsLinkController extends Controller
             'info_sections.*.body'  => 'nullable|string|max:5000',
             'required_badge_id'    => ['nullable', 'exists:account_badges,id'],
             'award_badge_id'       => ['nullable', 'exists:account_badges,id'],
+
+            // Event agenda (Task #5023).
+            'agenda'               => 'nullable|array|max:100',
+            'agenda.*.time'        => 'nullable|string|max:10',
+            'agenda.*.end_time'    => 'nullable|string|max:10',
+            'agenda.*.title'       => 'nullable|string|max:255',
+            'agenda.*.description' => 'nullable|string|max:2000',
+            'agenda.*.day'         => 'nullable|integer|min:1|max:99',
+
+            // Event documents (Task #5023).
+            'documents'            => 'nullable|array|max:20',
+            'documents.*.file_id'  => ['nullable', 'integer', 'exists:user_files,id', function ($attr, $val, $fail) {
+                if ($val && !\App\Modules\User\Models\UserFile::where('id', $val)
+                    ->where('user_id', workspace_owner_id())->exists()) {
+                    $fail('One of the attached documents does not belong to your account.');
+                }
+            }],
+            'documents.*.label'    => 'nullable|string|max:255',
         ] + LinkController::protectionSchedulingRules());
     }
 
@@ -337,6 +355,10 @@ class IcsLinkController extends Controller
             'info_sections'       => $this->normalizeInfoSections($v['info_sections'] ?? []),
             'required_badge_id'   => $v['required_badge_id'] ?? null,
             'award_badge_id'      => $v['award_badge_id'] ?? null,
+
+            // Agenda + documents (Task #5023).
+            'agenda'              => $this->normalizeAgenda($v['agenda'] ?? []),
+            'documents'           => $this->normalizeDocuments($v['documents'] ?? []),
         ];
     }
 
@@ -348,6 +370,56 @@ class IcsLinkController extends Controller
             ->filter(fn ($t) => $t !== '')
             ->unique()
             ->take(15)
+            ->values()
+            ->all();
+    }
+
+    /** Normalize agenda items — drop items with no title, cap fields. */
+    private function normalizeAgenda(array $items): array
+    {
+        return collect($items)
+            ->map(fn ($item) => [
+                'time'        => mb_substr(trim((string) ($item['time']        ?? '')), 0, 10)  ?: null,
+                'end_time'    => mb_substr(trim((string) ($item['end_time']    ?? '')), 0, 10)  ?: null,
+                'title'       => mb_substr(trim((string) ($item['title']       ?? '')), 0, 255),
+                'description' => mb_substr(trim((string) ($item['description'] ?? '')), 0, 2000) ?: null,
+                'day'         => isset($item['day']) && (int) $item['day'] >= 1 ? (int) $item['day'] : null,
+            ])
+            ->filter(fn ($item) => $item['title'] !== '')
+            ->take(100)
+            ->values()
+            ->all();
+    }
+
+    /**
+     * Normalize event documents — resolve file metadata from the UserFile
+     * record so the public page can render them without extra DB queries.
+     * Drops items whose file_id doesn't resolve to a file owned by the
+     * workspace owner (belt-and-suspenders after validation).
+     */
+    private function normalizeDocuments(array $docs): array
+    {
+        $fileIds = collect($docs)->pluck('file_id')->filter()->unique()->values()->all();
+        if (empty($fileIds)) return [];
+
+        $files = \App\Modules\User\Models\UserFile::whereIn('id', $fileIds)
+            ->where('user_id', workspace_owner_id())
+            ->get()
+            ->keyBy('id');
+
+        return collect($docs)
+            ->filter(fn ($doc) => !empty($doc['file_id']) && isset($files[(int) $doc['file_id']]))
+            ->map(function ($doc) use ($files) {
+                $file = $files[(int) $doc['file_id']];
+                return [
+                    'file_id'    => $file->id,
+                    'label'      => mb_substr(trim((string) ($doc['label'] ?? '')), 0, 255) ?: $file->original_name,
+                    'filename'   => $file->filename,
+                    'size_bytes' => $file->size_bytes,
+                    'mime'       => $file->mime_type,
+                ];
+            })
+            ->take(20)
             ->values()
             ->all();
     }

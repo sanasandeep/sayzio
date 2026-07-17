@@ -579,6 +579,12 @@ class EventTicketApiController extends Controller
             'info_sections'     => $ics?->info_sections ?? [],
             'required_badge_id' => $ics?->required_badge_id,
             'award_badge_id'    => $ics?->award_badge_id,
+            // Task #5023: structured agenda + downloadable documents.
+            'agenda'            => $ics?->agenda ?? [],
+            'documents'         => array_map(
+                fn (array $doc) => $doc + ['url' => url('/f/' . $doc['file_id'] . '/' . $doc['filename'])],
+                $ics?->documents ?? []
+            ),
             'interested_count'      => $link->eventInterests()->where('status', 'interested')->count(),
             'not_interested_count'  => $link->eventInterests()->where('status', 'not_interested')->count(),
             // Task #3674: organizer card — shown regardless of whether the
