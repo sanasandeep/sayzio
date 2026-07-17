@@ -55,4 +55,74 @@ class DatabaseErrors
 
         return false;
     }
+
+    /**
+     * Whether a throwable means "the database is effectively unavailable" —
+     * either the server can't be reached at all (connection-level PDO
+     * failures) or the environment is un-migrated (missing table). Used by
+     * high-traffic public entry points (short-link alias resolution) to
+     * degrade to a branded 503 instead of a raw 500.
+     *
+     * Intentionally does NOT match ordinary query errors (bad SQL, missing
+     * column, constraint violations) — those are application bugs and must
+     * keep surfacing loudly.
+     */
+    public static function isUnavailable(\Throwable $e): bool
+    {
+        if ($e instanceof QueryException) {
+            if (self::isMissingTable($e)) {
+                return true;
+            }
+
+            return self::isConnectionFailure($e->getPrevious() ?? $e);
+        }
+
+        if ($e instanceof \PDOException) {
+            return self::isConnectionFailure($e);
+        }
+
+        return false;
+    }
+
+    /**
+     * Connection-level failure detection: SQLSTATE class 08 (connection
+     * exception) plus the common driver messages Postgres/MySQL emit when
+     * the server is down, unreachable, or dropped the connection.
+     */
+    private static function isConnectionFailure(\Throwable $e): bool
+    {
+        $sqlState = null;
+        if ($e instanceof \PDOException) {
+            $sqlState = $e->errorInfo[0] ?? (is_string($e->getCode()) ? $e->getCode() : null);
+        } elseif ($e instanceof QueryException) {
+            $sqlState = $e->errorInfo[0] ?? null;
+        }
+
+        if (is_string($sqlState) && str_starts_with($sqlState, '08')) {
+            return true;
+        }
+
+        $message = strtolower($e->getMessage());
+
+        foreach ([
+            'connection refused',
+            'could not connect',
+            'connection timed out',
+            'server has gone away',
+            'no connection to the server',
+            'server closed the connection unexpectedly',
+            'name or service not known',
+            'could not translate host name',
+            'the database system is starting up',
+            'the database system is shutting down',
+            'too many connections',
+            'sqlstate[08',
+        ] as $needle) {
+            if (str_contains($message, $needle)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
 }
