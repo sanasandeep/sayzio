@@ -18,6 +18,12 @@
         <i class="fas fa-circle-exclamation mr-1.5"></i> {{ session('error') }}
     </div>
     @endif
+    @if(session('duplicate_notice'))
+    <div class="mb-4 px-4 py-3 rounded-xl text-sm font-medium flex items-center justify-between gap-3 flex-wrap" style="background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.25); color: #f59e0b;">
+        <span><i class="fas fa-clone mr-1.5"></i> {{ session('duplicate_notice') }}</span>
+        <a href="{{ route('user.contacts.duplicates') }}" class="font-semibold underline whitespace-nowrap" style="color: #f59e0b;">Review &amp; merge</a>
+    </div>
+    @endif
 
     <div class="card-premium p-6">
         <div class="flex items-start gap-4 mb-5">

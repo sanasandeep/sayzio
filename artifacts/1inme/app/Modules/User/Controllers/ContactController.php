@@ -200,7 +200,11 @@ class ContactController extends Controller
         $this->resolver->resolveFor($contact->fresh('phones'));
         $this->pushToGoogleSafely($user->id, $contact);
 
-        return redirect()->route('user.contacts.show', $contact)->with('success', 'Contact added.');
+        $redirect = redirect()->route('user.contacts.show', $contact)->with('success', 'Contact added.');
+        if ($this->detector->contactHasDuplicate($contact->user_id, $contact->id)) {
+            $redirect->with('duplicate_notice', 'This contact looks like a duplicate of an existing contact.');
+        }
+        return $redirect;
     }
 
     public function show(Request $request, Contact $contact)
@@ -259,7 +263,11 @@ class ContactController extends Controller
         $this->resolver->resolveFor($contact->fresh('phones'));
         $this->pushToGoogleSafely($contact->user_id, $contact);
 
-        return redirect()->route('user.contacts.show', $contact)->with('success', 'Contact updated.');
+        $redirect = redirect()->route('user.contacts.show', $contact)->with('success', 'Contact updated.');
+        if ($this->detector->contactHasDuplicate($contact->user_id, $contact->id)) {
+            $redirect->with('duplicate_notice', 'This edit makes the contact match an existing contact.');
+        }
+        return $redirect;
     }
 
     public function destroy(Request $request, Contact $contact)

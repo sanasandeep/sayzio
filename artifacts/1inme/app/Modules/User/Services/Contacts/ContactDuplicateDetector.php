@@ -106,6 +106,89 @@ class ContactDuplicateDetector
         );
     }
 
+    /**
+     * Cheap targeted check: does this one contact currently match at least
+     * one OTHER contact of the same user (shared phone / email / identical
+     * name), ignoring pairs the user already dismissed?
+     *
+     * Used on the save path (store/update) to surface an inline "possible
+     * duplicate" notice without running the full detect() scan — each query
+     * is anchored on the single contact's own values so it stays fast even
+     * for large address books.
+     */
+    public function contactHasDuplicate(int $userId, int $contactId): bool
+    {
+        $dismissed = $this->dismissedPairs($userId);
+
+        $others = array_merge(
+            $this->phoneMatchesFor($userId, $contactId),
+            $this->emailMatchesFor($userId, $contactId),
+            $this->nameMatchesFor($userId, $contactId)
+        );
+
+        foreach ($others as $otherId) {
+            $a = min($contactId, $otherId);
+            $b = max($contactId, $otherId);
+            if (!isset($dismissed["{$a}:{$b}"])) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /** Other contact IDs sharing a normalised phone with the given contact. */
+    protected function phoneMatchesFor(int $userId, int $contactId): array
+    {
+        $sql = <<<'SQL'
+            SELECT DISTINCT b.contact_id AS id
+            FROM   contact_phones a
+            JOIN   contact_phones b ON (
+                       COALESCE(NULLIF(a.value_e164,''), regexp_replace(a.value,'[^0-9]','','g'))
+                     = COALESCE(NULLIF(b.value_e164,''), regexp_replace(b.value,'[^0-9]','','g'))
+                   )
+            JOIN   contacts cb ON cb.id = b.contact_id AND cb.user_id = ?
+            WHERE  a.contact_id = ?
+              AND  b.contact_id <> a.contact_id
+              AND  COALESCE(NULLIF(a.value_e164,''), regexp_replace(a.value,'[^0-9]','','g')) <> ''
+        SQL;
+
+        return array_map(fn ($r) => (int) $r->id, DB::select($sql, [$userId, $contactId]));
+    }
+
+    /** Other contact IDs sharing a normalised email with the given contact. */
+    protected function emailMatchesFor(int $userId, int $contactId): array
+    {
+        $sql = <<<'SQL'
+            SELECT DISTINCT b.contact_id AS id
+            FROM   contact_emails a
+            JOIN   contact_emails b ON LOWER(TRIM(a.value)) = LOWER(TRIM(b.value))
+            JOIN   contacts cb ON cb.id = b.contact_id AND cb.user_id = ?
+            WHERE  a.contact_id = ?
+              AND  b.contact_id <> a.contact_id
+              AND  TRIM(a.value) <> ''
+        SQL;
+
+        return array_map(fn ($r) => (int) $r->id, DB::select($sql, [$userId, $contactId]));
+    }
+
+    /** Other contact IDs with an identical normalised display_name. */
+    protected function nameMatchesFor(int $userId, int $contactId): array
+    {
+        $sql = <<<'SQL'
+            SELECT DISTINCT b.id
+            FROM   contacts a
+            JOIN   contacts b
+                ON  LOWER(TRIM(COALESCE(a.display_name,''))) = LOWER(TRIM(COALESCE(b.display_name,'')))
+               AND  b.id <> a.id
+               AND  b.user_id = ?
+            WHERE  a.id = ?
+              AND  TRIM(COALESCE(a.display_name,'')) <> ''
+        SQL;
+
+        return array_map(fn ($r) => (int) $r->id, DB::select($sql, [$userId, $contactId]));
+    }
+
     // ------------------------------------------------------------------
     //  Internal helpers
     // ------------------------------------------------------------------
