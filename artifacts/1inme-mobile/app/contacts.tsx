@@ -17,11 +17,13 @@ import {
 
 import { EmptyState } from "@/components/EmptyState";
 import { useColors } from "@/hooks/useColors";
+import { useCooldown } from "@/hooks/useCooldown";
 import {
   Contact,
   contactInitials,
   contactPrimaryPhone,
   fetchDuplicateCount,
+  googleContacts,
   listContactTags,
   listContacts,
 } from "@/lib/api/contacts";
@@ -68,6 +70,53 @@ export default function ContactsScreen() {
   );
 
   const duplicateCount = duplicatesQ.data ?? 0;
+
+  // Google Contacts sync status — only rendered when an account is connected.
+  const googleQ = useQuery({
+    queryKey: ["google-contacts-status"],
+    queryFn: googleContacts.status,
+    staleTime: 60_000,
+  });
+  const googleAccount = googleQ.data ?? null;
+  const syncCooldown = useCooldown();
+
+  const syncMutation = useMutation({
+    mutationFn: googleContacts.sync,
+    onSuccess: (r) => {
+      qc.invalidateQueries({ queryKey: ["google-contacts-status"] });
+      qc.invalidateQueries({ queryKey: ["contacts"] });
+      qc.invalidateQueries({ queryKey: ["contact-duplicate-count"] });
+
+      if (r.status === "in_progress") {
+        showAlert(
+          "Sync already running",
+          "A sync is already in progress. Give it a moment and check back.",
+        );
+        return;
+      }
+      if (r.status === "throttled") {
+        const secs = Math.max(1, Math.ceil(r.retry_after ?? 0));
+        syncCooldown.start(secs);
+        showAlert("Already up to date", `You synced very recently. Try again in ${secs}s.`);
+        return;
+      }
+      const s = r.stats;
+      if (!s) {
+        showAlert("Sync complete", "Your contacts are up to date.");
+        return;
+      }
+      showAlert(
+        "Sync complete",
+        `Created ${s.created}, updated ${s.updated}, deleted ${s.deleted}, pushed ${s.pushed}` +
+          (s.skipped_capped ? `, ${s.skipped_capped} skipped (plan cap)` : "") +
+          (s.errors ? `, ${s.errors} error(s)` : "") +
+          ".",
+      );
+    },
+    onError: (e: any) => {
+      showAlert("Sync failed", e?.message ?? "Try again");
+    },
+  });
 
   // Device address-book import (expo-contacts). Hidden on web, where the
   // native contacts module isn't available.
@@ -156,6 +205,94 @@ export default function ContactsScreen() {
           ),
         }}
       />
+
+      {googleAccount && (
+        <View
+          style={[
+            styles.googleCard,
+            { backgroundColor: colors.card, borderColor: colors.border },
+          ]}
+        >
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+              <Feather name="refresh-cw" size={13} color={colors.primary} />
+              <Text
+                numberOfLines={1}
+                style={{
+                  flex: 1,
+                  fontFamily: "SpaceGrotesk_600SemiBold",
+                  fontSize: 13,
+                  color: colors.foreground,
+                }}
+              >
+                Google · {googleAccount.account_email ?? "Connected"}
+              </Text>
+            </View>
+            <Text
+              numberOfLines={1}
+              style={{
+                fontFamily: "SpaceGrotesk_400Regular",
+                fontSize: 12,
+                color:
+                  googleAccount.last_sync_status === "error"
+                    ? colors.destructive
+                    : colors.mutedForeground,
+                marginTop: 2,
+              }}
+            >
+              {googleAccount.last_synced_at
+                ? `Last synced ${new Date(googleAccount.last_synced_at).toLocaleString()} · ${
+                    googleAccount.last_sync_status ?? "ok"
+                  }`
+                : "Not synced yet"}
+            </Text>
+            {googleAccount.last_sync_error ? (
+              <Text
+                numberOfLines={2}
+                style={{
+                  fontFamily: "SpaceGrotesk_400Regular",
+                  fontSize: 11,
+                  color: colors.destructive,
+                  marginTop: 2,
+                }}
+              >
+                {googleAccount.last_sync_error}
+              </Text>
+            ) : null}
+          </View>
+          <Pressable
+            onPress={() => syncMutation.mutate()}
+            disabled={syncMutation.isPending || syncCooldown.active}
+            style={({ pressed }) => [
+              styles.syncBtn,
+              {
+                backgroundColor: colors.primary,
+                opacity:
+                  syncMutation.isPending || syncCooldown.active
+                    ? 0.5
+                    : pressed
+                      ? 0.75
+                      : 1,
+              },
+            ]}
+            accessibilityLabel="Sync Google contacts now"
+          >
+            {syncMutation.isPending ? (
+              <ActivityIndicator color="#fff" size="small" />
+            ) : (
+              <Text
+                style={{
+                  fontFamily: "SpaceGrotesk_600SemiBold",
+                  fontSize: 12,
+                  color: "#fff",
+                }}
+              >
+                {syncCooldown.active ? `${syncCooldown.remaining}s` : "Sync now"}
+              </Text>
+            )}
+          </Pressable>
+        </View>
+      )}
 
       {duplicateCount > 0 && (
         <Pressable
@@ -358,6 +495,25 @@ function ContactRow({
 }
 
 const styles = StyleSheet.create({
+  googleCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    marginHorizontal: 16,
+    marginTop: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  syncBtn: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+    minWidth: 76,
+  },
   duplicateBanner: {
     flexDirection: "row",
     alignItems: "center",

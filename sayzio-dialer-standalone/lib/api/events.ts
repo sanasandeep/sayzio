@@ -573,3 +573,40 @@ export async function acceptContactExchange(
   );
   return res.data;
 }
+
+// ── Task #5052: "My swaps" — review + withdraw own swap requests ────
+
+/** One of the viewer's own swap requests at an event. */
+export type MyEventSwap = {
+  exchange_id: number;
+  status: "pending" | "accepted";
+  sent_by_me: boolean;
+  /** True only for pending requests the viewer sent. */
+  can_cancel: boolean;
+  created_at: string | null;
+  accepted_at: string | null;
+  other: {
+    id: number;
+    name: string | null;
+    handle: string | null;
+    avatar_url: string | null;
+  } | null;
+};
+
+export async function listMyEventSwaps(
+  alias: string,
+): Promise<{ items: MyEventSwap[]; total: number }> {
+  const res = await apiFetch<{ data: { items: MyEventSwap[]; total: number } }>(
+    `/events/${encodeURIComponent(alias)}/my-swaps`,
+  );
+  return res.data;
+}
+
+/** Withdraw a pending swap request the viewer sent (sender-only). */
+export async function cancelContactExchange(
+  exchangeId: number,
+): Promise<void> {
+  await apiFetch(`/me/contact-exchanges/${exchangeId}/cancel`, {
+    method: "POST",
+  });
+}

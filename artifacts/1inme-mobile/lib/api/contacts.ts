@@ -196,6 +196,67 @@ export async function mergeAllDuplicates(): Promise<{
   return res.data;
 }
 
+// ── Google Contacts sync ──────────────────────────────────────────
+export type GoogleContactsAccount = {
+  id: number;
+  account_email: string | null;
+  pull_enabled: boolean;
+  push_enabled: boolean;
+  last_sync_status: string | null;
+  last_sync_error: string | null;
+  last_synced_at: string | null;
+};
+
+export type GoogleSyncStats = {
+  created: number;
+  updated: number;
+  deleted: number;
+  pushed: number;
+  errors: number;
+  skipped_capped: number;
+};
+
+export type GoogleSyncStatus = "synced" | "throttled" | "in_progress";
+
+export type GoogleSyncResult = {
+  status: GoogleSyncStatus;
+  retry_after?: number | null;
+  stats: GoogleSyncStats | null;
+  account: GoogleContactsAccount;
+};
+
+/**
+ * Google Contacts two-way sync helpers (ported from the standalone dialer).
+ * `status` returns null when no Google account is connected.
+ */
+export const googleContacts = {
+  status: async (): Promise<GoogleContactsAccount | null> => {
+    const res = await apiFetch<{ data: { account: GoogleContactsAccount | null } }>(
+      `/contacts/google/status`,
+    );
+    return res.data.account;
+  },
+  sync: async (): Promise<GoogleSyncResult> => {
+    const res = await apiFetch<{ data: GoogleSyncResult }>(
+      `/contacts/google/sync`,
+      { method: "POST" },
+    );
+    return res.data;
+  },
+  update: async (
+    prefs: { pull_enabled?: boolean; push_enabled?: boolean },
+  ): Promise<GoogleContactsAccount> => {
+    const res = await apiFetch<{ data: { account: GoogleContactsAccount } }>(
+      `/contacts/google`,
+      { method: "PATCH", body: JSON.stringify(prefs) },
+    );
+    return res.data.account;
+  },
+  disconnect: async (): Promise<void> => {
+    await apiFetch(`/contacts/google`, { method: "DELETE" });
+  },
+};
+
 /** Minimal contact shape accepted by the bulk-import endpoint. */
 export type ContactImportPayload = {
   display_name?: string | null;
