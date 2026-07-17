@@ -470,8 +470,41 @@ describe("discoverUnknownStandalonePages", () => {
     ]);
     const found = discoverUnknownStandalonePages(files, []);
     expect(found).toEqual([
-      { rel: "common/waitlist.blade.php", missing: [{ selector: ".wl-title", property: "color" }] },
+      {
+        rel: "common/waitlist.blade.php",
+        missing: [{ selector: ".wl-title", property: "color" }],
+        scriptWhiteHits: [],
+      },
     ]);
+  });
+
+  it("flags a standalone theme-aware page whose <script>-built rows hardcode white text", () => {
+    const files = baseFiles([
+      [
+        "common/queue.blade.php",
+        standalone(
+          `<script>rows.push('<div class="text-white text-sm">' + name + '</div>');</script>`,
+        ),
+      ],
+    ]);
+    const found = discoverUnknownStandalonePages(files, []);
+    expect(found).toHaveLength(1);
+    expect(found[0]!.rel).toBe("common/queue.blade.php");
+    expect(found[0]!.missing).toEqual([]);
+    expect(found[0]!.scriptWhiteHits).toHaveLength(1);
+    expect(found[0]!.scriptWhiteHits[0]!.tokens).toEqual(["text-white"]);
+  });
+
+  it("stays quiet when a page's <script>-built rows use themed (non-white) classes", () => {
+    const files = baseFiles([
+      [
+        "common/queue-ok.blade.php",
+        standalone(
+          `<script>rows.push('<div class="qk-row text-sm">' + name + '</div>');</script>`,
+        ),
+      ],
+    ]);
+    expect(discoverUnknownStandalonePages(files, [])).toEqual([]);
   });
 
   it("treats a theme-bootstrap page (rsvp-form family) as theme-aware too", () => {

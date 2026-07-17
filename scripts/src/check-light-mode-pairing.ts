@@ -271,6 +271,24 @@ export const TARGETS: Target[] = [
     ],
   },
   {
+    // Dual-mode page: authed requests @extends the dashboard layout, guests
+    // get a standalone <html> document — either way it participates in the
+    // app theme (theme-styles reached via the layout chain). Its feed rows are
+    // BUILT IN <script> (infinite scroll), which is exactly the surface the
+    // script-white-text check protects; the only white text there is the
+    // fallback avatar initial on a saturated gradient circle (theme-neutral).
+    page: "artifacts/1inme/resources/views/user/feed/index.blade.php",
+    label: "My Feed page",
+    allowlist: [],
+    scriptAllowlist: [
+      {
+        match: "bg-gradient-to-br from-blue-500 to-fuchsia-500 text-white",
+        reason:
+          "fallback avatar initial — white letter on a saturated blue→fuchsia gradient circle, legible in both themes (matches the identical server-rendered avatar markup on the same page).",
+      },
+    ],
+  },
+  {
     // The one genuine wash-out here (`.dcp-chchip` white label on the
     // translucent .glass chip, which turns near-white in light mode) is FIXED
     // with a real `html.light-mode .dcp-chchip { color }` override in the page.
@@ -1140,6 +1158,11 @@ export interface UnknownPageFinding {
   rel: string;
   /** Unpaired base color rules found by the whole-page check (no allowlist). */
   missing: MissingPair[];
+  /**
+   * Hardcoded white text classes in <script>-built markup (no allowlist —
+   * discovery pages have none yet). Warning-only, like `missing`.
+   */
+  scriptWhiteHits: ScriptWhiteHit[];
 }
 
 /**
@@ -1177,11 +1200,16 @@ export function discoverUnknownStandalonePages(
   const out: UnknownPageFinding[] = [];
   for (const [rel, raw] of [...files.entries()].sort((a, b) => a[0].localeCompare(b[0]))) {
     if (known.has(rel) || extendedBy.has(rel)) continue;
-    const src = stripScriptBlocks(stripBladeComments(raw));
+    const noComments = stripBladeComments(raw);
+    const src = stripScriptBlocks(noComments);
     if (!declaresOwnDocument(src)) continue;
     if (!includesThemeStyles(rel, files)) continue;
     const missing = checkSource(src);
-    if (missing.length > 0) out.push({ rel, missing });
+    // Script-built rows are scanned on the PRE-strip source (that's where the
+    // <script> bodies live); no allowlist — unknown pages have none yet.
+    const scriptWhiteHits = findScriptWhiteText(noComments);
+    if (missing.length > 0 || scriptWhiteHits.length > 0)
+      out.push({ rel, missing, scriptWhiteHits });
   }
   return out;
 }
@@ -1313,12 +1341,17 @@ function printExplain(): void {
 function printUnknownPageWarnings(unknown: UnknownPageFinding[]): void {
   if (unknown.length === 0) return;
   console.warn(
-    `\n⚠ light-mode-pairing discovery — ${unknown.length} standalone theme-aware page(s) NOT configured in TARGETS have unpaired base color rule(s):\n`,
+    `\n⚠ light-mode-pairing discovery — ${unknown.length} standalone theme-aware page(s) NOT configured in TARGETS have unpaired base color rule(s) and/or hardcoded white text in <script>-built markup:\n`,
   );
   for (const u of unknown) {
     console.warn(`  ${VIEWS_REL}/${u.rel}:`);
     for (const m of u.missing) {
       console.warn(`    ${m.selector} { ${m.property} } — no paired ${LIGHT_PREFIX}override`);
+    }
+    for (const h of u.scriptWhiteHits) {
+      console.warn(
+        `    <script>-built markup (line ~${h.line}) hardcodes white text class(es) ${h.tokens.join(", ")} in class="${h.classValue}" — client-rendered rows ship white-on-white in light mode`,
+      );
     }
   }
   console.warn(
