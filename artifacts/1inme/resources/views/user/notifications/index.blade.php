@@ -154,6 +154,26 @@
                                     <i class="fas fa-arrow-right"></i> Open project
                                 </a>
                             @endif
+                        @elseif($n->type === 'event.exchange_request')
+                            <p class="text-sm" style="color: var(--text-primary);">
+                                <i class="fas fa-address-card mr-1" style="color:#3d6bff;"></i>
+                                {{ $d['message'] ?? 'Someone wants to exchange contacts with you.' }}
+                            </p>
+                            @if(!empty($d['url']))
+                                <a href="{{ $d['url'] }}" class="inline-flex items-center gap-1 mt-1 text-xs font-semibold text-blue-600 hover:underline">
+                                    <i class="fas fa-arrow-right"></i> View request
+                                </a>
+                            @endif
+                        @elseif($n->type === 'event.exchange_accepted')
+                            <p class="text-sm" style="color: var(--text-primary);">
+                                <i class="fas fa-handshake mr-1" style="color:#16a34a;"></i>
+                                {{ $d['message'] ?? 'Your contact exchange request was accepted.' }}
+                            </p>
+                            @if(!empty($d['url']))
+                                <a href="{{ $d['url'] }}" class="inline-flex items-center gap-1 mt-1 text-xs font-semibold text-blue-600 hover:underline">
+                                    <i class="fas fa-arrow-right"></i> View contact
+                                </a>
+                            @endif
                         @else
                             <p class="text-sm" style="color: var(--text-primary);">{{ $d['message'] ?? $n->type }}</p>
                         @endif

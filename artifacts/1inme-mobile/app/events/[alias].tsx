@@ -491,6 +491,24 @@ export default function EventDetailScreen() {
         title="RSVP"
         onClose={() => setRsvpModalUrl(null)}
       />
+      {/* Task #5008 — Contact Exchange entry points */}
+      <View style={styles.exchangeRow}>
+        <Pressable
+          style={[styles.exchangeBtn, { backgroundColor: colors.card, borderColor: colors.border }]}
+          onPress={() => router.push({ pathname: "/events/people/[alias]", params: { alias: event.alias, title: event.title } })}
+        >
+          <Feather name="users" size={18} color={colors.primary} />
+          <Text style={[styles.exchangeBtnText, { color: colors.foreground }]}>People here</Text>
+        </Pressable>
+        <Pressable
+          style={[styles.exchangeBtn, { backgroundColor: colors.card, borderColor: colors.border }]}
+          onPress={() => router.push("/my-card")}
+        >
+          <Feather name="credit-card" size={18} color={colors.primary} />
+          <Text style={[styles.exchangeBtnText, { color: colors.foreground }]}>My card</Text>
+        </Pressable>
+      </View>
+
       <LinkTypePairings pairings={event?.pairings} theme="dark" />
       <EventConnectionTips tips={event?.connection_tips} compact />
     </ScrollView>
@@ -533,6 +551,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 3,
   },
+  exchangeRow: { flexDirection: "row", gap: 10, marginTop: 14, marginBottom: 4 },
+  exchangeBtn: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingVertical: 10,
+  },
+  exchangeBtnText: { fontSize: 13, fontWeight: "600" },
   interestRow: { flexDirection: "row", gap: 10, marginTop: 14 },
   interestBtn: {
     flexDirection: "row",

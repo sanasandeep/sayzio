@@ -187,6 +187,14 @@ Route::prefix('v1')->group(function () {
         Route::post('/events/{alias}/buy',                 [\App\Modules\Api\Controllers\EventTicketApiController::class, 'buy'])->middleware('throttle:30,1');
         Route::post('/events/{alias}/interest',            [\App\Modules\Api\Controllers\EventTicketApiController::class, 'interest'])->middleware('throttle:30,1');
         Route::get ('/me/event-tickets',                   [\App\Modules\Api\Controllers\EventTicketApiController::class, 'myTickets']);
+
+        // Task #5008 — Event contact exchange: "My card" QR + opt-in people list.
+        Route::get ('/me/event-card',                      [\App\Modules\Api\Controllers\EventContactExchangeController::class, 'myCard']);
+        Route::get ('/events/{alias}/discoverability',     [\App\Modules\Api\Controllers\EventContactExchangeController::class, 'getDiscoverability']);
+        Route::post('/events/{alias}/discoverability',     [\App\Modules\Api\Controllers\EventContactExchangeController::class, 'toggleDiscoverability'])->middleware('throttle:30,1');
+        Route::get ('/events/{alias}/people',              [\App\Modules\Api\Controllers\EventContactExchangeController::class, 'listAttendees']);
+        Route::post('/events/{alias}/exchange',            [\App\Modules\Api\Controllers\EventContactExchangeController::class, 'requestExchange'])->middleware('throttle:10,1');
+        Route::post('/me/contact-exchanges/{id}/accept',  [\App\Modules\Api\Controllers\EventContactExchangeController::class, 'acceptExchange'])->whereNumber('id');
         Route::get ('/links/{link}/event-tiers',            [\App\Modules\Api\Controllers\EventTicketApiController::class, 'ownerTiers'])->whereNumber('link');
         Route::post('/links/{link}/event-tiers',            [\App\Modules\Api\Controllers\EventTicketApiController::class, 'storeTier'])->whereNumber('link');
         Route::patch('/links/{link}/event-tiers/{tier}',    [\App\Modules\Api\Controllers\EventTicketApiController::class, 'updateTier'])->whereNumber('link')->whereNumber('tier');

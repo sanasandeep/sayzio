@@ -443,3 +443,110 @@ export async function getCheckinProgress(
   );
   return res.data;
 }
+
+// ── Task #5008: Event contact exchange ─────────────────────────────
+
+/** The current user's "My card" payload — QR SVG + public profile info. */
+export type MyEventCard = {
+  profile_url: string;
+  handle: string | null;
+  name: string | null;
+  avatar_url: string | null;
+  bio: string | null;
+  qr_svg: string;
+};
+
+export async function getMyEventCard(): Promise<MyEventCard> {
+  const res = await apiFetch<{ data: MyEventCard }>("/me/event-card");
+  return res.data;
+}
+
+/** The current user's discoverability state for a specific event. */
+export type DiscoverabilityState = {
+  discoverable: boolean;
+  event_live: boolean;
+  is_attendee: boolean;
+};
+
+export async function getDiscoverability(
+  alias: string,
+): Promise<DiscoverabilityState> {
+  const res = await apiFetch<{ data: DiscoverabilityState }>(
+    `/events/${encodeURIComponent(alias)}/discoverability`,
+  );
+  return res.data;
+}
+
+export async function toggleDiscoverability(
+  alias: string,
+  discoverable: boolean,
+  coords?: { lat: number; lng: number },
+): Promise<{ discoverable: boolean }> {
+  const res = await apiFetch<{ data: { discoverable: boolean } }>(
+    `/events/${encodeURIComponent(alias)}/discoverability`,
+    {
+      method: "POST",
+      body: JSON.stringify({
+        discoverable,
+        lat: coords?.lat ?? null,
+        lng: coords?.lng ?? null,
+      }),
+    },
+  );
+  return res.data;
+}
+
+/** A discoverable attendee shown in the "People at this event" list. */
+export type EventAttendee = {
+  user: {
+    id: number;
+    name: string | null;
+    handle: string | null;
+    avatar_url: string | null;
+    bio: string | null;
+  };
+  exchange_status: "pending" | "accepted" | "declined" | null;
+  exchange_id: number | null;
+  sent_by_me: boolean | null;
+};
+
+export type AttendeesResponse = {
+  items: EventAttendee[];
+  total: number;
+  my_discoverable: boolean;
+};
+
+export async function listEventAttendees(
+  alias: string,
+): Promise<AttendeesResponse> {
+  const res = await apiFetch<{ data: AttendeesResponse }>(
+    `/events/${encodeURIComponent(alias)}/people`,
+  );
+  return res.data;
+}
+
+export type ExchangeResult = {
+  exchange_id: number;
+  status: "pending" | "accepted";
+};
+
+export async function requestContactExchange(
+  alias: string,
+  recipientId: number,
+): Promise<ExchangeResult> {
+  const res = await apiFetch<{ data: ExchangeResult }>(
+    `/events/${encodeURIComponent(alias)}/exchange`,
+    { method: "POST", body: JSON.stringify({ recipient_id: recipientId }) },
+  );
+  return res.data;
+}
+
+export async function acceptContactExchange(
+  exchangeId: number,
+): Promise<ExchangeResult> {
+  const res = await apiFetch<{ data: ExchangeResult }>(
+    `/me/contact-exchanges/${exchangeId}/accept`,
+    { method: "POST" },
+  );
+  return res.data;
+}

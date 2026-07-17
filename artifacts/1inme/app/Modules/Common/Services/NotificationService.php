@@ -126,6 +126,20 @@ class NotificationService
                 'default_email'  => true,
                 'default_push'   => true,
             ],
+            'event_exchange_request' => [
+                'label'          => 'Contact exchange requests',
+                'description'    => 'When a fellow attendee at an event sends you a contact-exchange request.',
+                'default_in_app' => true,
+                'default_email'  => false,
+                'default_push'   => true,
+            ],
+            'event_exchange_accepted' => [
+                'label'          => 'Contact exchange accepted',
+                'description'    => 'When someone accepts your contact-exchange request at an event.',
+                'default_in_app' => true,
+                'default_email'  => false,
+                'default_push'   => true,
+            ],
             'link_failover' => [
                 'label'          => 'Link Insurance failover',
                 'description'    => 'When a short link\'s primary destination breaks and we promote one of your backup URLs to keep traffic flowing.',
