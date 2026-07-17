@@ -28,7 +28,7 @@ class CanonicalizeLegacyStoragePaths extends Command
 {
     protected $signature = 'storage:canonicalize-legacy-paths
         {--dry-run : Report what would change without writing anything}
-        {--only= : Comma-separated subset of tables (users,creator_posts,blog_posts,blog_categories,links)}
+        {--only= : Comma-separated subset of tables (users,creator_posts,blog_posts,blog_categories,links,site_pages)}
         {--relative : Rewrite to a bare disk-relative path instead of the CDN URL}
         {--chunk=500 : Rows per chunk}';
 
@@ -43,6 +43,30 @@ class CanonicalizeLegacyStoragePaths extends Command
         'links'           => ['id', ['verified_logo']],
     ];
 
+    /**
+     * JSON columns that hold legacy /storage/ values at known dot-paths.
+     * table => [id column, json column => [dot paths]]
+     *
+     * - users.organizer_profile.logo: written by CreatorProfileController as
+     *   '/storage/' . store('organizer-logos', 'public').
+     * - site_pages.extra image URLs: admin editors accept pasted "/storage/…"
+     *   values (hero side image, about story images, contact office image).
+     */
+    private const JSON_TABLES = [
+        'users'      => ['id', [
+            'organizer_profile' => ['logo'],
+        ]],
+        'site_pages' => ['id', [
+            'extra' => [
+                'hero.side_image',
+                'story_images.office.url',
+                'story_images.values.url',
+                'story_images.team_band.url',
+                'office_image.url',
+            ],
+        ]],
+    ];
+
     private const PREFIX = '/storage/';
 
     public function handle(): int
@@ -52,9 +76,10 @@ class CanonicalizeLegacyStoragePaths extends Command
         $chunk    = max(1, (int) $this->option('chunk'));
         $only     = array_filter(array_map('trim', explode(',', (string) $this->option('only'))));
 
-        if ($unknown = array_diff($only, array_keys(self::TABLES))) {
+        $validTables = array_unique(array_merge(array_keys(self::TABLES), array_keys(self::JSON_TABLES)));
+        if ($unknown = array_diff($only, $validTables)) {
             $this->error('Unknown table(s) in --only: ' . implode(', ', $unknown)
-                . '. Valid: ' . implode(', ', array_keys(self::TABLES)));
+                . '. Valid: ' . implode(', ', $validTables));
             return self::FAILURE;
         }
 
@@ -97,6 +122,26 @@ class CanonicalizeLegacyStoragePaths extends Command
 
             foreach ($columns as $column) {
                 [$updated, $failed] = $this->rewriteColumn($table, $idColumn, $column, $relative, $dryRun, $chunk);
+                $grandUpdated += $updated;
+                $grandFailed  += $failed;
+            }
+        }
+
+        foreach (self::JSON_TABLES as $table => [$idColumn, $jsonColumns]) {
+            if ($only && !in_array($table, $only, true)) {
+                continue;
+            }
+            if (!Schema::hasTable($table)) {
+                $this->line("  [{$table}] table missing — skipped.");
+                continue;
+            }
+
+            foreach ($jsonColumns as $column => $paths) {
+                if (!Schema::hasColumn($table, $column)) {
+                    $this->line("  [{$table}.{$column}] column missing — skipped.");
+                    continue;
+                }
+                [$updated, $failed] = $this->rewriteJsonColumn($table, $idColumn, $column, $paths, $relative, $dryRun, $chunk);
                 $grandUpdated += $updated;
                 $grandFailed  += $failed;
             }
@@ -158,6 +203,103 @@ class CanonicalizeLegacyStoragePaths extends Command
                         ->where($idColumn, $row->{$idColumn})
                         ->where($column, $old)
                         ->update([$column => $new]);
+                }
+            }, $idColumn);
+
+        $this->line("    updated={$updated} failed={$failed}");
+
+        return [$updated, $failed];
+    }
+
+    /**
+     * Rewrite legacy /storage/ values at known dot-paths inside a JSON column.
+     *
+     * Candidate rows are pre-filtered with a LIKE on the column's text form
+     * (matching both raw `/storage/` and JSON-escaped `\/storage\/`), then the
+     * document is decoded and only the configured paths are touched. The
+     * UPDATE re-checks the original serialized text so a concurrent write
+     * between read and write is never clobbered.
+     *
+     * @param list<string> $paths dot-paths within the JSON document
+     * @return array{0:int,1:int} [updated, failed]
+     */
+    private function rewriteJsonColumn(string $table, string $idColumn, string $column, array $paths, bool $relative, bool $dryRun, int $chunk): array
+    {
+        $candidates = fn () => DB::table($table)
+            ->select([$idColumn, DB::raw("{$column}::text as __raw_json")])
+            ->whereNotNull($column)
+            // Coarse prefilter: plain `json` columns keep json_encode's
+            // escaped form (`\/storage\/`) while `jsonb` normalizes to
+            // `/storage/`, and backslashes are LIKE escape chars — so match
+            // the common unescapable substring and let the decode+path check
+            // below do the precise filtering.
+            ->whereRaw("{$column}::text like ?", ['%storage%']);
+
+        $total = $candidates()->count();
+        $this->line("  [{$table}.{$column}] {$total} candidate row(s) (json)");
+        if ($total === 0) {
+            return [0, 0];
+        }
+
+        $updated = $failed = 0;
+
+        $candidates()
+            ->orderBy($idColumn)
+            ->chunkById($chunk, function ($rows) use ($table, $idColumn, $column, $paths, $relative, $dryRun, &$updated, &$failed) {
+                foreach ($rows as $row) {
+                    $rawOld = (string) $row->__raw_json;
+                    $doc    = json_decode($rawOld, true);
+                    if (!is_array($doc)) {
+                        continue; // scalar / malformed JSON — leave untouched
+                    }
+
+                    $changed = false;
+                    foreach ($paths as $path) {
+                        $value = data_get($doc, $path);
+                        if (!is_string($value) || !str_starts_with($value, self::PREFIX)) {
+                            continue;
+                        }
+                        $relPath = ltrim(substr($value, strlen(self::PREFIX)), '/');
+                        if ($relPath === '') {
+                            continue; // degenerate "/storage/" value — leave untouched
+                        }
+
+                        try {
+                            $new = $relative ? $relPath : Storage::disk('public')->url($relPath);
+                        } catch (\Throwable $e) {
+                            $failed++;
+                            $this->warn("    error: {$table}.{$column} #{$row->{$idColumn}} [{$path}] — {$e->getMessage()}");
+                            continue;
+                        }
+
+                        if ($new === $value) {
+                            continue;
+                        }
+
+                        data_set($doc, $path, $new);
+                        $changed = true;
+
+                        if ($dryRun && $updated < 5) {
+                            $this->line("    would rewrite #{$row->{$idColumn}} {$path}: {$value} → {$new}");
+                        }
+                    }
+
+                    if (!$changed) {
+                        continue;
+                    }
+
+                    if ($dryRun) {
+                        $updated++;
+                        continue;
+                    }
+
+                    // Re-check the serialized value in the WHERE so a
+                    // concurrent update between read and write is never
+                    // clobbered.
+                    $updated += DB::table($table)
+                        ->where($idColumn, $row->{$idColumn})
+                        ->whereRaw("{$column}::text = ?", [$rawOld])
+                        ->update([$column => json_encode($doc, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE)]);
                 }
             }, $idColumn);
 

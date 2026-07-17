@@ -140,4 +140,129 @@ class CanonicalizeLegacyStoragePathsTest extends TestCase
         $this->fakeS3();
         $this->artisan('storage:canonicalize-legacy-paths --only=nope')->assertFailed();
     }
+
+    // ── JSON columns ─────────────────────────────────────────────────
+
+    public function test_rewrites_organizer_logo_inside_json_and_is_idempotent(): void
+    {
+        $this->fakeS3();
+
+        $user = $this->makeUser([
+            'organizer_profile' => [
+                'name'    => 'Acme Events',
+                'logo'    => '/storage/organizer-logos/logo.png',
+                'website' => 'https://acme.test',
+            ],
+        ]);
+        $untouched = $this->makeUser([
+            'organizer_profile' => [
+                'name' => 'No Legacy',
+                'logo' => 'https://cdn.other.com/logo.png',
+            ],
+        ]);
+
+        $this->artisan('storage:canonicalize-legacy-paths --only=users')->assertSuccessful();
+
+        $profile = $user->fresh()->organizer_profile;
+        $this->assertSame(self::CDN . '/organizer-logos/logo.png', $profile['logo']);
+        // Sibling keys survive untouched.
+        $this->assertSame('Acme Events', $profile['name']);
+        $this->assertSame('https://acme.test', $profile['website']);
+        // Already-canonical values stay put.
+        $this->assertSame('https://cdn.other.com/logo.png', $untouched->fresh()->organizer_profile['logo']);
+
+        // Second run: nothing left to rewrite.
+        $this->artisan('storage:canonicalize-legacy-paths --only=users')
+            ->expectsOutputToContain('updated=0')
+            ->assertSuccessful();
+        $this->assertSame(self::CDN . '/organizer-logos/logo.png', $user->fresh()->organizer_profile['logo']);
+    }
+
+    public function test_rewrites_site_page_extra_image_urls(): void
+    {
+        $this->fakeS3();
+
+        DB::table('site_pages')->insert([
+            'slug'       => 'about-json-' . uniqid(),
+            'title'      => 'About',
+            'extra'      => json_encode([
+                'hero' => [
+                    'badge_label' => 'Hi',
+                    'side_image'  => '/storage/blogs/hero.jpg',
+                ],
+                'story_images' => [
+                    'office'    => ['url' => '/storage/blogs/office.jpg', 'alt' => 'Office'],
+                    'values'    => ['url' => 'https://example.com/values.jpg', 'alt' => 'Values'],
+                    'team_band' => ['url' => '/storage/blogs/team.jpg', 'alt' => 'Team'],
+                ],
+            ]),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $this->artisan('storage:canonicalize-legacy-paths --only=site_pages')->assertSuccessful();
+
+        $extra = json_decode(
+            DB::table('site_pages')->where('slug', 'like', 'about-json-%')->value('extra'),
+            true
+        );
+        $this->assertSame(self::CDN . '/blogs/hero.jpg', $extra['hero']['side_image']);
+        $this->assertSame(self::CDN . '/blogs/office.jpg', $extra['story_images']['office']['url']);
+        $this->assertSame(self::CDN . '/blogs/team.jpg', $extra['story_images']['team_band']['url']);
+        // Absolute URL and sibling keys stay untouched.
+        $this->assertSame('https://example.com/values.jpg', $extra['story_images']['values']['url']);
+        $this->assertSame('Hi', $extra['hero']['badge_label']);
+        $this->assertSame('Office', $extra['story_images']['office']['alt']);
+    }
+
+    public function test_json_dry_run_writes_nothing(): void
+    {
+        $this->fakeS3();
+        $user = $this->makeUser([
+            'organizer_profile' => ['logo' => '/storage/organizer-logos/dry.png'],
+        ]);
+
+        $this->artisan('storage:canonicalize-legacy-paths --dry-run --only=users')
+            ->expectsOutputToContain('would update=1')
+            ->assertSuccessful();
+
+        $this->assertSame('/storage/organizer-logos/dry.png', $user->fresh()->organizer_profile['logo']);
+    }
+
+    public function test_json_relative_mode_strips_prefix(): void
+    {
+        config(['filesystems.disks.public.driver' => 'local']);
+        $user = $this->makeUser([
+            'organizer_profile' => ['logo' => '/storage/organizer-logos/rel.png'],
+        ]);
+
+        $this->artisan('storage:canonicalize-legacy-paths --relative --only=users')
+            ->assertSuccessful();
+
+        $this->assertSame('organizer-logos/rel.png', $user->fresh()->organizer_profile['logo']);
+    }
+
+    public function test_json_untouched_rows_and_malformed_paths_are_skipped(): void
+    {
+        $this->fakeS3();
+
+        // Row with the substring in a non-configured key must not change.
+        $user = $this->makeUser([
+            'organizer_profile' => [
+                'description' => 'See /storage/organizer-logos/in-text.png inline',
+            ],
+        ]);
+        // Degenerate "/storage/" value stays as-is.
+        $degenerate = $this->makeUser([
+            'organizer_profile' => ['logo' => '/storage/'],
+        ]);
+
+        $this->artisan('storage:canonicalize-legacy-paths --only=users')->assertSuccessful();
+
+        $this->assertSame(
+            'See /storage/organizer-logos/in-text.png inline',
+            $user->fresh()->organizer_profile['description']
+        );
+        $this->assertSame('/storage/', $degenerate->fresh()->organizer_profile['logo']);
+    }
 }
