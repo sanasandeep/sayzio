@@ -914,6 +914,7 @@ Route::prefix('v1')->group(function () {
         Route::get   ('/contacts',                      [ContactController::class, 'index']);
         Route::get   ('/contacts/tags',                 [ContactController::class, 'allTags']);
         Route::get   ('/contacts/duplicates',           [ContactController::class, 'duplicates']);
+        Route::get   ('/contacts/duplicates/count',     [ContactController::class, 'duplicatesCount']);
         Route::post  ('/contacts/duplicates/dismiss',   [ContactController::class, 'duplicatesDismiss'])->middleware('throttle:60,1');
         Route::post  ('/contacts/{id}/merge-duplicate', [ContactController::class, 'mergeContacts'])->whereNumber('id')->middleware('throttle:30,1');
         Route::get   ('/contacts/follow-ups',       [ContactController::class, 'followUps']);

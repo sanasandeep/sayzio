@@ -1,7 +1,7 @@
 import { Feather } from "@expo/vector-icons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { router, Stack } from "expo-router";
-import { useMemo, useState } from "react";
+import { router, Stack, useFocusEffect } from "expo-router";
+import { useCallback, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -20,9 +20,13 @@ import {
   Contact,
   contactInitials,
   contactPrimaryPhone,
+  fetchDuplicateCount,
   listContactTags,
   listContacts,
 } from "@/lib/api/contacts";
+
+/** Keep the duplicate count fresh-enough without hammering the API on focus. */
+const DUPLICATE_COUNT_STALE_MS = 5 * 60 * 1000;
 
 export default function ContactsScreen() {
   const colors = useColors();
@@ -42,6 +46,25 @@ export default function ContactsScreen() {
     queryFn: listContactTags,
     staleTime: 60_000,
   });
+
+  const duplicatesQ = useQuery({
+    queryKey: ["contact-duplicate-count"],
+    queryFn: fetchDuplicateCount,
+    staleTime: DUPLICATE_COUNT_STALE_MS,
+  });
+
+  // Refetch on screen focus, but only once the 5-minute cache has gone stale
+  // (react-query's refetch() would otherwise bypass staleTime entirely).
+  useFocusEffect(
+    useCallback(() => {
+      if (duplicatesQ.isStale && !duplicatesQ.isFetching) {
+        duplicatesQ.refetch();
+      }
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [duplicatesQ.isStale, duplicatesQ.isFetching]),
+  );
+
+  const duplicateCount = duplicatesQ.data ?? 0;
 
   const tags = tagsQ.data ?? [];
 
@@ -74,6 +97,40 @@ export default function ContactsScreen() {
           ),
         }}
       />
+
+      {duplicateCount > 0 && (
+        <Pressable
+          onPress={() => router.push("/contact-duplicates" as any)}
+          style={({ pressed }) => [
+            styles.duplicateBanner,
+            {
+              backgroundColor: colors.primary + "14",
+              borderColor: colors.primary + "40",
+              opacity: pressed ? 0.7 : 1,
+            },
+          ]}
+        >
+          <View style={[styles.duplicateBadge, { backgroundColor: colors.primary }]}>
+            <Text style={{ fontFamily: "SpaceGrotesk_700Bold", fontSize: 12, color: "#fff" }}>
+              {duplicateCount > 99 ? "99+" : duplicateCount}
+            </Text>
+          </View>
+          <Text
+            style={{
+              flex: 1,
+              fontFamily: "SpaceGrotesk_500Medium",
+              fontSize: 13,
+              color: colors.foreground,
+            }}
+            numberOfLines={2}
+          >
+            {duplicateCount === 1
+              ? "1 possible duplicate group found — tap to review"
+              : `${duplicateCount} possible duplicate groups found — tap to review`}
+          </Text>
+          <Feather name="chevron-right" size={16} color={colors.primary} />
+        </Pressable>
+      )}
 
       <View style={styles.searchRow}>
         <View style={[styles.searchBox, { backgroundColor: colors.card, borderColor: colors.border }]}>
@@ -242,6 +299,25 @@ function ContactRow({
 }
 
 const styles = StyleSheet.create({
+  duplicateBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    marginHorizontal: 16,
+    marginTop: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  duplicateBadge: {
+    minWidth: 24,
+    height: 24,
+    borderRadius: 12,
+    paddingHorizontal: 6,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   searchRow: {
     paddingHorizontal: 16,
     paddingVertical: 10,

@@ -159,6 +159,17 @@ export async function fetchDuplicates(): Promise<{ groups: DuplicateGroup[]; cou
 }
 
 /**
+ * Lightweight duplicate-group count for the contacts banner/badge.
+ * Cheaper than fetchDuplicates(): the server skips hydrating contact rows.
+ */
+export async function fetchDuplicateCount(): Promise<number> {
+  const res = await apiFetch<{ data: { count: number } }>(
+    "/contacts/duplicates/count",
+  );
+  return res.data.count ?? 0;
+}
+
+/**
  * Dismiss pairs of contacts so they never appear as duplicates again.
  * `pairs` is an array of "idA:idB" strings (any order; server canonicalises).
  */

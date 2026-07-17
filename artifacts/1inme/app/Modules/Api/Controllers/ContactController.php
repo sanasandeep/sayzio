@@ -199,6 +199,25 @@ class ContactController extends Controller
     }
 
     /**
+     * Lightweight duplicate-group count for the mobile contacts banner/badge.
+     * Runs the same detector but skips hydrating/transforming contacts so the
+     * app can poll it cheaply on screen focus.
+     */
+    public function duplicatesCount(Request $request)
+    {
+        $userId = $request->user()->id;
+
+        try {
+            $rawGroups = $this->detector->detect($userId);
+        } catch (\Throwable $e) {
+            \Log::warning('API duplicates count failed', ['err' => $e->getMessage()]);
+            return $this->ok(['count' => 0]);
+        }
+
+        return $this->ok(['count' => count($rawGroups)]);
+    }
+
+    /**
      * Dismiss one or more contact pairs so the duplicate engine never
      * re-flags them. Accepts pairs[] as "idA:idB" strings.
      */
