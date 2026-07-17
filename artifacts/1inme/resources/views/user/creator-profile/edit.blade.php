@@ -346,15 +346,15 @@
         </fieldset>
 
         {{-- Publish --}}
-        <fieldset class="rounded-2xl p-5" style="background: var(--bg-card); border: 1px solid var(--border-soft);">
+        <fieldset class="rounded-2xl px-4 pt-2 pb-4" style="background: var(--bg-card); border: 1px solid var(--border-soft);">
             <legend class="text-sm font-bold px-2" style="color: var(--text-primary);">Publish</legend>
-            <label class="flex items-start gap-3 p-3 rounded-lg cursor-pointer" style="background: var(--bg-input, #fff); border: 1px solid var(--border-soft);">
+            <label class="flex items-start gap-3 p-2.5 rounded-lg cursor-pointer" style="background: var(--bg-input, #fff); border: 1px solid var(--border-soft);">
                 <input type="hidden" name="profile_published" value="0">
                 <input type="checkbox" name="profile_published" value="1"
                        {{ $user->profile_published ? 'checked' : '' }}
                        class="mt-0.5 rounded text-blue-600 focus:ring-blue-500" style="border-color: var(--border-glass);">
                 <div>
-                    <p class="text-sm font-semibold" style="color: var(--text-primary);">My profile is live at /@{{ $user->handle ?: 'handle' }}</p>
+                    <p class="text-sm font-semibold" style="color: var(--text-primary);">My profile is live at /{{ '@' . ($user->handle ?: 'handle') }}</p>
                     <p class="text-xs mt-0.5" style="color: var(--text-dimmed);">When off, only you can see it. (You'll need a handle first.)</p>
                 </div>
             </label>
