@@ -698,9 +698,10 @@ class ContactController extends Controller
 
         $userId = $request->user()->id;
         $created = 0; $updated = 0; $skipped = 0;
+        $createdIds = [];
 
         $wsId = $this->activeWorkspaceId($request->user());
-        DB::transaction(function () use ($data, $userId, $wsId, &$created, &$updated, &$skipped) {
+        DB::transaction(function () use ($data, $userId, $wsId, &$created, &$updated, &$skipped, &$createdIds) {
             foreach ($data['contacts'] as $row) {
                 $emails = $row['emails'] ?? [];
                 $phones = $row['phones'] ?? [];
@@ -750,11 +751,34 @@ class ContactController extends Controller
                     $this->mergeEmails($c, $emails);
                     $this->mergePhones($c, $phones);
                     $created++;
+                    $createdIds[] = $c->id;
                 }
             }
         });
 
-        return $this->ok(compact('created', 'updated', 'skipped'));
+        // Surface how many of the freshly created contacts now look like
+        // duplicates of existing ones, so the import completion UI can offer
+        // a jump straight into the duplicates review screen. Uses the cheap
+        // per-contact check (anchored on each new row's own values) rather
+        // than a full detect() scan; capped rows (max 500) keep this bounded.
+        $duplicatesFound = 0;
+        try {
+            ContactDuplicateDetector::flushCountCache($userId);
+            foreach ($createdIds as $cid) {
+                if ($this->detector->contactHasDuplicate($userId, $cid)) {
+                    $duplicatesFound++;
+                }
+            }
+        } catch (\Throwable $e) {
+            \Log::warning('Bulk import duplicate check failed', ['err' => $e->getMessage()]);
+        }
+
+        return $this->ok([
+            'created'          => $created,
+            'updated'          => $updated,
+            'skipped'          => $skipped,
+            'duplicates_found' => $duplicatesFound,
+        ]);
     }
 
     protected function mergeEmails(Contact $c, array $emails): void

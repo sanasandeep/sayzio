@@ -203,13 +203,100 @@ export async function bulkImportContacts(contacts: ContactPayload[]): Promise<{
   created: number;
   updated: number;
   skipped: number;
+  duplicates_found: number;
 }> {
   const res = await apiFetch<{
-    data: { created: number; updated: number; skipped: number };
+    data: {
+      created: number;
+      updated: number;
+      skipped: number;
+      duplicates_found?: number;
+    };
   }>(`/contacts/bulk`, {
     method: "POST",
     body: JSON.stringify({ contacts }),
   });
+  return { duplicates_found: 0, ...res.data };
+}
+
+/** Primary (or first) email value for display. */
+export function contactPrimaryEmail(c: Contact): string | null {
+  const e = c.emails.find((x) => x.is_primary) ?? c.emails[0];
+  return e?.value ?? null;
+}
+
+/** Primary (or first) phone value for display. */
+export function contactPrimaryPhone(c: Contact): string | null {
+  const p = c.phones.find((x) => x.is_primary) ?? c.phones[0];
+  return p?.value ?? null;
+}
+
+// ── Duplicate detection & review ──────────────────────────────────
+export type DuplicateGroup = {
+  ids: number[];
+  reason: string;
+  contacts: Contact[];
+};
+
+/**
+ * Fetch all duplicate groups for the signed-in user.
+ * Returns `{ groups, count }` where groups[].contacts is already transformed.
+ */
+export async function fetchDuplicates(): Promise<{
+  groups: DuplicateGroup[];
+  count: number;
+}> {
+  const res = await apiFetch<{
+    data: { groups: DuplicateGroup[]; count: number };
+  }>("/contacts/duplicates");
+  return res.data;
+}
+
+/**
+ * Dismiss pairs of contacts so they never appear as duplicates again.
+ * `pairs` is an array of "idA:idB" strings (any order; server canonicalises).
+ */
+export async function dismissDuplicates(
+  pairs: string[],
+): Promise<{ dismissed: number }> {
+  const res = await apiFetch<{ data: { dismissed: number } }>(
+    "/contacts/duplicates/dismiss",
+    { method: "POST", body: JSON.stringify({ pairs }) },
+  );
+  return res.data;
+}
+
+/**
+ * Bulk-merge every duplicate group in one call. The first contact in each
+ * group becomes the primary; the rest are merged into it.
+ */
+export async function mergeAllDuplicates(): Promise<{
+  groups_merged: number;
+  contacts_removed: number;
+  groups_failed: number;
+}> {
+  const res = await apiFetch<{
+    data: {
+      groups_merged: number;
+      contacts_removed: number;
+      groups_failed: number;
+    };
+  }>("/contacts/duplicates/merge-all", { method: "POST" });
+  return res.data;
+}
+
+/**
+ * Merge `loserIds` contacts into the primary contact `primaryId`.
+ * Returns the updated primary contact and the count of merged records.
+ */
+export async function mergeContacts(
+  primaryId: number,
+  loserIds: number[],
+): Promise<{ contact: Contact; merged: number }> {
+  const res = await apiFetch<{ data: { contact: Contact; merged: number } }>(
+    `/contacts/${primaryId}/merge-duplicate`,
+    { method: "POST", body: JSON.stringify({ loser_ids: loserIds }) },
+  );
   return res.data;
 }
 

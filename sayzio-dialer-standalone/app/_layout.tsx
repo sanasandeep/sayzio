@@ -58,6 +58,10 @@ function RootLayoutNav() {
         name="contacts/google-sync"
         options={{ title: "Google sync" }}
       />
+      <Stack.Screen
+        name="contact-duplicates"
+        options={{ title: "Duplicate contacts" }}
+      />
       <Stack.Screen name="info" options={{ headerShown: false }} />
       <Stack.Screen name="oauth-callback" options={{ headerShown: false }} />
       <Stack.Screen name="events/[alias]" options={{ title: "Event" }} />

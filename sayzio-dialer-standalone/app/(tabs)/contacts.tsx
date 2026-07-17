@@ -63,10 +63,23 @@ export default function ContactsScreen() {
         }
         return;
       }
-      Alert.alert(
-        "Import complete",
-        `Created ${out.result.created}, updated ${out.result.updated}, skipped ${out.result.skipped}.`,
-      );
+      const dupes = out.result.duplicates_found ?? 0;
+      const summary = `Created ${out.result.created}, updated ${out.result.updated}, skipped ${out.result.skipped}.`;
+      if (dupes > 0) {
+        const dupeLine =
+          dupes === 1
+            ? "1 imported contact looks like a duplicate of an existing one."
+            : `${dupes} imported contacts look like duplicates of existing ones.`;
+        Alert.alert("Import complete", `${summary}\n\n${dupeLine}`, [
+          { text: "Later", style: "cancel" },
+          {
+            text: "Review duplicates",
+            onPress: () => router.push("/contact-duplicates" as any),
+          },
+        ]);
+      } else {
+        Alert.alert("Import complete", summary);
+      }
       qc.invalidateQueries({ queryKey: ["contacts"] });
     } catch (e: any) {
       Alert.alert("Import failed", e?.message ?? "Try again");

@@ -4,6 +4,8 @@ export type DeviceImportResult = {
   created: number;
   updated: number;
   skipped: number;
+  /** How many freshly created contacts now match an existing one. */
+  duplicates_found: number;
 };
 
 export type DeviceImportOutcome =

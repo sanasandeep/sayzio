@@ -639,7 +639,7 @@ failed captcha returns `{ error: { message, code: "captcha_failed" } }` (422).
 | GET    | `/contacts`                   | yes  | Paginated address book.                                 |
 | POST   | `/contacts`                   | yes  | Create a contact. Throttle: 120/min.                    |
 | POST   | `/contacts/validate`          | yes  | Validate a candidate before saving. Throttle: 120/min. |
-| POST   | `/contacts/bulk`              | yes  | Bulk import contacts.                                   |
+| POST   | `/contacts/bulk`              | yes  | Bulk import contacts. Returns `{ created, updated, skipped, duplicates_found }` — `duplicates_found` counts newly created contacts that now match an existing one. |
 | GET    | `/contacts/{id}`              | yes  | Show a contact.                                         |
 | PATCH  | `/contacts/{id}`              | yes  | Update a contact.                                       |
 | POST   | `/contacts/{id}/manual-profile` | yes | Attach/override a manual biolink profile on a contact. Body: `{ channels:[{type,label,value}], socials:[…], location:{…} }`. Returns `{ manual_profile }`. |
