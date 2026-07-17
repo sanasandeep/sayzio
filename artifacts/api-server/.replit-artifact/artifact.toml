@@ -7,7 +7,14 @@ id = "3B4_FFSkEVBkAeYMFRJ2e"
 [[services]]
 localPort = 8080
 name = "API Server"
-paths = ["/api"]
+# Only claim the specific paths this service natively implements.
+# DO NOT widen to "/api" — that prefix swallows all "/api/v1/*" Laravel
+# traffic in production, causing 502s because the fallthrough proxy cannot
+# reach localhost:5000 in a published deployment.
+# The shared proxy uses most-specific-first routing, so "/api/v1/*" falls
+# through to the Laravel service (mounted at "/") when it is not claimed here.
+# See: .agents/memory/laravel-api-proxy-shadow.md and task-5012.md
+paths = ["/api/healthz", "/api/contact"]
 
 [services.development]
 run = "pnpm --filter @workspace/api-server run dev"

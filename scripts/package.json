@@ -28,6 +28,7 @@
     "check:dialer-sync:accept": "tsx ./src/check-dialer-standalone-sync.ts --accept",
     "check:dialer-typecheck": "tsx ./src/check-dialer-standalone-typecheck.ts",
     "check:claude-training-api-index": "tsx ./src/check-claude-training-api-index.ts",
+    "check:api-server-paths": "tsx ./src/check-api-server-paths.ts",
     "test": "vitest run",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
