@@ -406,6 +406,36 @@ class EventContactExchangeController extends Controller
         return $this->doAccept($exchange, $user);
     }
 
+    /**
+     * Decline an inbound exchange request (Task #5042). Recipient-only,
+     * pending-only; flips status to declined without creating any contacts.
+     * Deliberately silent — the requester is not notified, mirroring the
+     * privacy-friendly convention of professional networks, and simply
+     * stops seeing the request as pending.
+     */
+    public function declineExchange(Request $request, int $exchangeId)
+    {
+        $user = $request->user();
+        if (!$user) return $this->unauthorized();
+
+        $exchange = EventContactExchange::find($exchangeId);
+        if (!$exchange) return $this->notFound('Exchange request not found.');
+
+        if ((int) $exchange->recipient_id !== (int) $user->id) {
+            return $this->forbidden('This request was not sent to you.');
+        }
+        if (!$exchange->isPending()) {
+            return $this->fail('This request has already been ' . $exchange->status . '.', 409, 'already_resolved');
+        }
+
+        $exchange->update(['status' => EventContactExchange::STATUS_DECLINED]);
+
+        return $this->ok([
+            'exchange_id' => $exchange->id,
+            'status'      => EventContactExchange::STATUS_DECLINED,
+        ]);
+    }
+
     // ─── Organizer stats (Task #5010) ────────────────────────────────
 
     /**

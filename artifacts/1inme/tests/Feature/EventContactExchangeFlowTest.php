@@ -218,6 +218,135 @@ class EventContactExchangeFlowTest extends TestCase
         $this->assertSame(1, Contact::where('user_id', $bob->id)->where('biolink_user_id', $alice->id)->count());
     }
 
+    // ─── Task #5042: decline an exchange request ──────────────────────
+
+    public function test_recipient_can_decline_a_pending_request_silently(): void
+    {
+        $host  = $this->makeUser('Hix Host');
+        $alice = $this->makeUser('Ash Attendee');
+        $bob   = $this->makeUser('Bex Attendee');
+
+        $link = $this->makeLiveEvent($host);
+        $this->rsvp($alice, $link);
+        $this->rsvp($bob, $link);
+
+        $exchange = EventContactExchange::create([
+            'requester_id' => $alice->id,
+            'recipient_id' => $bob->id,
+            'link_id'      => $link->id,
+            'status'       => EventContactExchange::STATUS_PENDING,
+        ]);
+
+        $this->withToken($this->token($bob))
+            ->postJson('/api/v1/me/contact-exchanges/' . $exchange->id . '/decline')
+            ->assertOk()
+            ->assertJsonPath('data.status', 'declined');
+        $this->flushHeaders();
+
+        $exchange->refresh();
+        $this->assertSame(EventContactExchange::STATUS_DECLINED, $exchange->status);
+        $this->assertNull($exchange->accepted_at);
+
+        // No contacts were created on either side.
+        $this->assertSame(0, Contact::where('user_id', $alice->id)->where('biolink_user_id', $bob->id)->count());
+        $this->assertSame(0, Contact::where('user_id', $bob->id)->where('biolink_user_id', $alice->id)->count());
+
+        // Declines are silent — the requester receives no notification.
+        $this->assertSame(
+            0,
+            \App\Modules\User\Models\UserNotification::where('user_id', $alice->id)
+                ->whereIn('type', ['event_exchange_declined', 'event_exchange_accepted'])
+                ->count(),
+        );
+    }
+
+    public function test_decline_is_recipient_only_and_resolved_requests_conflict(): void
+    {
+        $host  = $this->makeUser('Hob Host');
+        $alice = $this->makeUser('Ala Attendee');
+        $bob   = $this->makeUser('Bud Attendee');
+
+        $link = $this->makeLiveEvent($host);
+        $this->rsvp($alice, $link);
+        $this->rsvp($bob, $link);
+
+        $exchange = EventContactExchange::create([
+            'requester_id' => $alice->id,
+            'recipient_id' => $bob->id,
+            'link_id'      => $link->id,
+            'status'       => EventContactExchange::STATUS_PENDING,
+        ]);
+
+        // The requester cannot decline their own request.
+        $this->withToken($this->token($alice))
+            ->postJson('/api/v1/me/contact-exchanges/' . $exchange->id . '/decline')
+            ->assertStatus(403);
+        $this->flushHeaders();
+        $this->assertTrue($exchange->fresh()->isPending());
+
+        // A stranger cannot decline it either.
+        $carl = $this->makeUser('Cal Attendee');
+        $this->withToken($this->token($carl))
+            ->postJson('/api/v1/me/contact-exchanges/' . $exchange->id . '/decline')
+            ->assertStatus(403);
+        $this->flushHeaders();
+
+        // Unknown id → 404.
+        $this->withToken($this->token($bob))
+            ->postJson('/api/v1/me/contact-exchanges/999999/decline')
+            ->assertStatus(404);
+
+        // The recipient declines once…
+        $this->postJson('/api/v1/me/contact-exchanges/' . $exchange->id . '/decline')
+            ->assertOk();
+
+        // …a second decline is 409 already_resolved…
+        $this->postJson('/api/v1/me/contact-exchanges/' . $exchange->id . '/decline')
+            ->assertStatus(409)
+            ->assertJsonPath('error.code', 'already_resolved');
+
+        // …and it can no longer be accepted.
+        $this->postJson('/api/v1/me/contact-exchanges/' . $exchange->id . '/accept')
+            ->assertStatus(409)
+            ->assertJsonPath('error.code', 'already_resolved');
+        $this->flushHeaders();
+
+        $this->assertSame(EventContactExchange::STATUS_DECLINED, $exchange->fresh()->status);
+    }
+
+    public function test_decline_is_blocked_on_an_already_accepted_request(): void
+    {
+        $host  = $this->makeUser('Han Host');
+        $alice = $this->makeUser('Aya Attendee');
+        $bob   = $this->makeUser('Boe Attendee');
+
+        $link = $this->makeLiveEvent($host);
+        $this->rsvp($alice, $link);
+        $this->rsvp($bob, $link);
+
+        $exchange = EventContactExchange::create([
+            'requester_id' => $alice->id,
+            'recipient_id' => $bob->id,
+            'link_id'      => $link->id,
+            'status'       => EventContactExchange::STATUS_PENDING,
+        ]);
+
+        $token = $this->token($bob);
+        $this->withToken($token)
+            ->postJson('/api/v1/me/contact-exchanges/' . $exchange->id . '/accept')
+            ->assertOk();
+
+        $this->postJson('/api/v1/me/contact-exchanges/' . $exchange->id . '/decline')
+            ->assertStatus(409)
+            ->assertJsonPath('error.code', 'already_resolved');
+        $this->flushHeaders();
+
+        // Still accepted, and the mutual contacts survive.
+        $this->assertSame(EventContactExchange::STATUS_ACCEPTED, $exchange->fresh()->status);
+        $this->assertSame(1, Contact::where('user_id', $alice->id)->where('biolink_user_id', $bob->id)->count());
+        $this->assertSame(1, Contact::where('user_id', $bob->id)->where('biolink_user_id', $alice->id)->count());
+    }
+
     /** An event that already ended (started and finished in the past). */
     private function makeEndedEvent(User $host, int $endedHoursAgo = 2): Link
     {
