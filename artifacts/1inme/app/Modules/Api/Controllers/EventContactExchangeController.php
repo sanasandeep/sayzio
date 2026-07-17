@@ -391,6 +391,18 @@ class EventContactExchangeController extends Controller
             return $this->fail('This request has already been ' . $exchange->status . '.', 409, 'already_resolved');
         }
 
+        // Pending requests can only be accepted while the event is live or
+        // within a short grace window after it ends. Beyond that, the
+        // privacy window has closed and the request can no longer create
+        // mutual contacts.
+        if (!$exchange->link || !$this->isWithinAcceptWindow($exchange->link)) {
+            return $this->fail(
+                'This event has ended, so this request can no longer be accepted.',
+                422,
+                'event_not_live'
+            );
+        }
+
         return $this->doAccept($exchange, $user);
     }
 
@@ -557,6 +569,32 @@ class EventContactExchangeController extends Controller
         if ($end && $end->isPast()) return false;
 
         return true;
+    }
+
+    /**
+     * Grace window (hours) after an event ends during which a pending
+     * exchange request may still be accepted.
+     */
+    public const ACCEPT_GRACE_HOURS = 24;
+
+    /**
+     * True when a pending exchange for this event may still be accepted:
+     * the event has started and is either still live or ended less than
+     * ACCEPT_GRACE_HOURS ago. Events with no ICS data are never acceptable;
+     * events with no end date stay acceptable once started.
+     */
+    private function isWithinAcceptWindow(Link $link): bool
+    {
+        $ics = $link->icsData;
+        if (!$ics) return false;
+
+        $start = $ics->start_date ? \Carbon\Carbon::parse($ics->start_date) : null;
+        if (!$start || $start->isFuture()) return false;
+
+        $end = $ics->end_date ? \Carbon\Carbon::parse($ics->end_date) : null;
+        if (!$end) return true;
+
+        return $end->copy()->addHours(self::ACCEPT_GRACE_HOURS)->isFuture();
     }
 
     /** Expiry to stamp on a new discoverability row — event end, or null. */

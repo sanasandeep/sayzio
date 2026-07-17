@@ -219,7 +219,7 @@ class EventContactExchangeFlowTest extends TestCase
     }
 
     /** An event that already ended (started and finished in the past). */
-    private function makeEndedEvent(User $host): Link
+    private function makeEndedEvent(User $host, int $endedHoursAgo = 2): Link
     {
         $link = Link::create([
             'user_id'    => $host->id,
@@ -234,13 +234,73 @@ class EventContactExchangeFlowTest extends TestCase
         IcsData::create([
             'link_id'    => $link->id,
             'event_name' => $link->title,
-            'start_date' => now()->subHours(5)->toDateTimeString(),
-            'end_date'   => now()->subHours(2)->toDateTimeString(),
+            'start_date' => now()->subHours($endedHoursAgo + 3)->toDateTimeString(),
+            'end_date'   => now()->subHours($endedHoursAgo)->toDateTimeString(),
             'timezone'   => 'UTC',
             'all_day'    => false,
         ]);
 
         return $link;
+    }
+
+    // ─── Task #5033: accept window after event end ────────────────────
+
+    public function test_accept_is_blocked_after_event_grace_window(): void
+    {
+        $host  = $this->makeUser('Hugo Host');
+        $alice = $this->makeUser('Amy Attendee');
+        $bob   = $this->makeUser('Bo Attendee');
+
+        // Event ended well past the 24h grace window.
+        $link = $this->makeEndedEvent($host, endedHoursAgo: 30);
+        $this->rsvp($alice, $link);
+        $this->rsvp($bob, $link);
+
+        $exchange = EventContactExchange::create([
+            'requester_id' => $alice->id,
+            'recipient_id' => $bob->id,
+            'link_id'      => $link->id,
+            'status'       => EventContactExchange::STATUS_PENDING,
+        ]);
+
+        $this->withToken($this->token($bob))
+            ->postJson('/api/v1/me/contact-exchanges/' . $exchange->id . '/accept')
+            ->assertStatus(422)
+            ->assertJsonPath('error.code', 'event_not_live');
+        $this->flushHeaders();
+
+        // Still pending; no contacts were created on either side.
+        $this->assertTrue($exchange->fresh()->isPending());
+        $this->assertSame(0, Contact::where('user_id', $alice->id)->where('biolink_user_id', $bob->id)->count());
+        $this->assertSame(0, Contact::where('user_id', $bob->id)->where('biolink_user_id', $alice->id)->count());
+    }
+
+    public function test_accept_is_allowed_within_grace_window_after_event_end(): void
+    {
+        $host  = $this->makeUser('Hetty Host');
+        $alice = $this->makeUser('Ava Attendee');
+        $bob   = $this->makeUser('Burt Attendee');
+
+        // Event ended 2 hours ago — inside the 24h grace window.
+        $link = $this->makeEndedEvent($host, endedHoursAgo: 2);
+        $this->rsvp($alice, $link);
+        $this->rsvp($bob, $link);
+
+        $exchange = EventContactExchange::create([
+            'requester_id' => $alice->id,
+            'recipient_id' => $bob->id,
+            'link_id'      => $link->id,
+            'status'       => EventContactExchange::STATUS_PENDING,
+        ]);
+
+        $this->withToken($this->token($bob))
+            ->postJson('/api/v1/me/contact-exchanges/' . $exchange->id . '/accept')
+            ->assertOk()
+            ->assertJsonPath('data.status', 'accepted');
+        $this->flushHeaders();
+
+        $this->assertSame(1, Contact::where('user_id', $alice->id)->where('biolink_user_id', $bob->id)->count());
+        $this->assertSame(1, Contact::where('user_id', $bob->id)->where('biolink_user_id', $alice->id)->count());
     }
 
     // ─── Task #5013: privacy gates after event end / opt-in expiry ────
