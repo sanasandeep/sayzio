@@ -298,17 +298,69 @@ class EventContactExchangeController extends Controller
             return $this->fail('Too many exchange requests. Please wait a while before sending more.', 429, 'rate_limited');
         }
 
-        $exchange = EventContactExchange::create([
-            'requester_id' => $user->id,
-            'recipient_id' => $recipient->id,
-            'link_id'      => $link->id,
-            'status'       => EventContactExchange::STATUS_PENDING,
-        ]);
+        // DB-level guard: the unique index on (requester_id, recipient_id,
+        // link_id) makes concurrent duplicate inserts impossible. If a racing
+        // request slipped past the duplicate pre-check above, the insert
+        // throws a unique violation — treat it idempotently by returning the
+        // row the winner created instead of a 500.
+        try {
+            // Own transaction (a savepoint when already inside one) so a
+            // unique violation doesn't poison any surrounding transaction.
+            $exchange = DB::transaction(fn () => EventContactExchange::create([
+                'requester_id' => $user->id,
+                'recipient_id' => $recipient->id,
+                'link_id'      => $link->id,
+                'status'       => EventContactExchange::STATUS_PENDING,
+            ]));
+        } catch (\Illuminate\Database\UniqueConstraintViolationException) {
+            $existing = EventContactExchange::where('link_id', $link->id)
+                ->where(function ($q) use ($user, $recipient) {
+                    $q->where(fn ($w) => $w->where('requester_id', $user->id)->where('recipient_id', $recipient->id))
+                      ->orWhere(fn ($w) => $w->where('requester_id', $recipient->id)->where('recipient_id', $user->id));
+                })
+                ->first();
 
-        // Notify the recipient.
+            if (!$existing) {
+                // The competing row vanished between the violation and the
+                // refetch (e.g. it was rolled back). Retry the insert once;
+                // a second violation means a live duplicate really exists.
+                try {
+                    $exchange = DB::transaction(fn () => EventContactExchange::create([
+                        'requester_id' => $user->id,
+                        'recipient_id' => $recipient->id,
+                        'link_id'      => $link->id,
+                        'status'       => EventContactExchange::STATUS_PENDING,
+                    ]));
+
+                    return $this->finishNewExchange($exchange, $user, $recipient, $link);
+                } catch (\Illuminate\Database\UniqueConstraintViolationException) {
+                    return $this->fail('Could not create the exchange request. Please try again.', 409, 'exchange_conflict');
+                }
+            }
+
+            if ($existing->isAccepted()) {
+                return $this->fail('You have already exchanged contacts with this person.', 409, 'already_exchanged');
+            }
+            if ($existing->recipient_id === $user->id && $existing->isPending()) {
+                return $this->doAccept($existing, $user);
+            }
+
+            // Same-direction race: the concurrent twin won. Idempotent success.
+            return $this->ok([
+                'exchange_id' => $existing->id,
+                'status'      => $existing->status,
+            ]);
+        }
+
+        return $this->finishNewExchange($exchange, $user, $recipient, $link);
+    }
+
+    /** Notify the recipient of a freshly created request and return 201. */
+    private function finishNewExchange(EventContactExchange $exchange, User $requester, User $recipient, Link $link): \Illuminate\Http\JsonResponse
+    {
         app(NotificationService::class)->notify($recipient, 'event_exchange_request', [
-            'requester_name'  => $user->name,
-            'requester_handle' => $user->handle,
+            'requester_name'  => $requester->name,
+            'requester_handle' => $requester->handle,
             'event_title'     => $link->title,
             'exchange_id'     => $exchange->id,
             'url'             => url('/user/notifications'),
