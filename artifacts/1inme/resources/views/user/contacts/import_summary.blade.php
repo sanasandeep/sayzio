@@ -56,6 +56,24 @@
         </div>
     @endif
 
+    @if($import->status === 'completed' && ($duplicateCount ?? 0) > 0)
+    <div class="mb-6 px-4 py-3 rounded-xl flex items-center justify-between gap-3 flex-wrap"
+         style="background:linear-gradient(135deg,rgba(245,158,11,.08),rgba(61,107,255,.08));border:1px solid rgba(245,158,11,.25);">
+        <div class="flex items-center gap-2">
+            <i class="fas fa-copy text-amber-400"></i>
+            <span class="text-sm font-semibold" style="color:var(--text-primary);">
+                {{ $duplicateCount }} duplicate {{ \Illuminate\Support\Str::plural('group', $duplicateCount) }} detected
+            </span>
+            <span class="text-xs" style="color:var(--text-muted);">— new contacts may match existing ones.</span>
+        </div>
+        <a href="{{ route('user.contacts.duplicates') }}"
+           class="px-3 py-1.5 rounded-lg text-xs font-semibold text-white"
+           style="background:linear-gradient(135deg,#f59e0b,#ec4899);">
+            <i class="fas fa-code-merge mr-1"></i> Review &amp; Merge
+        </a>
+    </div>
+    @endif
+
     <div class="card-premium p-5 mb-6">
         <h3 class="text-sm font-bold mb-3" style="color: var(--text-primary);">Summary</h3>
         <div class="grid grid-cols-3 gap-4 text-center">

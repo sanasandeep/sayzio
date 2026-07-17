@@ -38,6 +38,12 @@ export type FollowUpsResponse = {
   upcoming: Contact[];
 };
 
+export type DuplicateGroup = {
+  ids: number[];
+  reason: string;
+  contacts: Contact[];
+};
+
 /**
  * Lists the signed-in user's saved contacts/leads. `q` filters server-side
  * across name, organization, email and phone. `tag` filters by a single tag.
@@ -128,7 +134,7 @@ export function contactPrimaryEmail(c: Contact): string | null {
   return (c.emails.find((e) => e.is_primary) ?? c.emails[0])?.value ?? null;
 }
 
-/** Best-effort primary phone for a contact. */
+/** Best-effort primary phone for a contact (falls back to the first on file). */
 export function contactPrimaryPhone(c: Contact): string | null {
   return (c.phones.find((p) => p.is_primary) ?? c.phones[0])?.value ?? null;
 }
@@ -139,4 +145,42 @@ export function contactInitials(c: Contact): string {
   const parts = name.split(/\s+/);
   if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
   return (parts[0]?.[0] ?? "?").toUpperCase();
+}
+
+/**
+ * Fetch all duplicate groups for the signed-in user.
+ * Returns `{ groups, count }` where groups[].contacts is already transformed.
+ */
+export async function fetchDuplicates(): Promise<{ groups: DuplicateGroup[]; count: number }> {
+  const res = await apiFetch<{ data: { groups: DuplicateGroup[]; count: number } }>(
+    "/contacts/duplicates",
+  );
+  return res.data;
+}
+
+/**
+ * Dismiss pairs of contacts so they never appear as duplicates again.
+ * `pairs` is an array of "idA:idB" strings (any order; server canonicalises).
+ */
+export async function dismissDuplicates(pairs: string[]): Promise<{ dismissed: number }> {
+  const res = await apiFetch<{ data: { dismissed: number } }>(
+    "/contacts/duplicates/dismiss",
+    { method: "POST", body: JSON.stringify({ pairs }) },
+  );
+  return res.data;
+}
+
+/**
+ * Merge `loserIds` contacts into the primary contact `primaryId`.
+ * Returns the updated primary contact and the count of merged records.
+ */
+export async function mergeContacts(
+  primaryId: number,
+  loserIds: number[],
+): Promise<{ contact: Contact; merged: number }> {
+  const res = await apiFetch<{ data: { contact: Contact; merged: number } }>(
+    `/contacts/${primaryId}/merge-duplicate`,
+    { method: "POST", body: JSON.stringify({ loser_ids: loserIds }) },
+  );
+  return res.data;
 }

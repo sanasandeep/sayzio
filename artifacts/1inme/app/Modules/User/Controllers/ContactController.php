@@ -17,8 +17,10 @@ use App\Modules\User\Models\IntegrationConfig;
 use App\Modules\User\Models\LinkedIdentifier;
 use App\Modules\User\Models\Workspace;
 use App\Modules\User\Services\Contacts\BiolinkAttachResolver;
+use App\Modules\User\Services\Contacts\ContactDuplicateDetector;
 use App\Modules\User\Services\Contacts\ContactExportBuilder;
 use App\Modules\User\Services\Contacts\ContactImportParser;
+use App\Modules\User\Services\Contacts\ContactMergeService;
 use App\Modules\User\Services\Contacts\GoogleContactsSyncService;
 use App\Modules\User\Support\ContactWorkspaceShareHelper;
 use Illuminate\Http\Request;
@@ -38,6 +40,8 @@ class ContactController extends Controller
         protected GoogleContactsSyncService $sync,
         protected ContactImportParser $importParser,
         protected ContactExportBuilder $exportBuilder,
+        protected ContactDuplicateDetector $detector,
+        protected ContactMergeService $mergeService,
     ) {}
 
     public function index(Request $request)
@@ -121,7 +125,13 @@ class ContactController extends Controller
             return view('user.contacts._list', compact('contacts', 'tab', 'search', 'tag', 'sharedContacts', 'currentWorkspace'));
         }
 
-        return view('user.contacts.index', compact('contacts', 'tab', 'search', 'tag', 'googleAccount', 'stats', 'usage', 'activeImport', 'sharedContacts', 'currentWorkspace'));
+        // Duplicate count for the banner — best-effort, never blocks the page
+        $duplicateCount = 0;
+        try {
+            $duplicateCount = $this->detector->count($user->id);
+        } catch (\Throwable) {}
+
+        return view('user.contacts.index', compact('contacts', 'tab', 'search', 'tag', 'googleAccount', 'stats', 'usage', 'activeImport', 'sharedContacts', 'currentWorkspace', 'duplicateCount'));
     }
 
     /**
@@ -414,6 +424,142 @@ class ContactController extends Controller
             return response()->json(['data' => ['cleared' => true]]);
         }
         return back()->with('success', 'Follow-up reminder cleared.');
+    }
+
+    // ---- duplicate detection & merge -------------------------------------
+
+    /**
+     * Duplicate review page: show all undismissed duplicate groups with
+     * side-by-side contact cards so the user can pick a primary and merge.
+     */
+    public function duplicates(Request $request)
+    {
+        $userId = workspace_owner_id();
+        $rawGroups = $this->detector->detect($userId);
+
+        // Load full contact models for each group
+        $allIds = collect($rawGroups)->flatMap(fn ($g) => $g['ids'])->unique()->all();
+        $contactMap = Contact::withoutGlobalScope('workspace')
+            ->where('user_id', $userId)
+            ->with(['phones', 'emails'])
+            ->whereIn('id', $allIds)
+            ->get()
+            ->keyBy('id');
+
+        $groups = [];
+        foreach ($rawGroups as $g) {
+            $contacts = array_values(array_filter(
+                array_map(fn ($id) => $contactMap->get($id), $g['ids']),
+                fn ($c) => $c !== null
+            ));
+            if (count($contacts) < 2) continue;
+            $groups[] = [
+                'ids'      => $g['ids'],
+                'reason'   => $g['reason'],
+                'contacts' => array_map(fn ($c) => [
+                    'id'           => $c->id,
+                    'display_name' => $c->nameForDisplay(),
+                    'organization' => $c->organization,
+                    'notes'        => $c->notes,
+                    'photo_url'    => $c->photoUrl(),
+                    'phones'       => $c->phones->map(fn ($p) => ['value' => $p->value, 'label' => $p->label])->all(),
+                    'emails'       => $c->emails->map(fn ($e) => ['value' => $e->value, 'label' => $e->label])->all(),
+                ], $contacts),
+            ];
+        }
+
+        $groupCount = count($groups);
+        return view('user.contacts.duplicates', compact('groups', 'groupCount'));
+    }
+
+    /**
+     * Dismiss one or more contact pairs so they never re-surface as duplicates.
+     * Accepts `pairs[]` = "idA:idB" strings (canonical min:max order).
+     */
+    public function duplicatesDismiss(Request $request)
+    {
+        $request->validate([
+            'pairs'   => 'required|array|min:1|max:100',
+            'pairs.*' => 'string',
+        ]);
+
+        $userId = workspace_owner_id();
+        $now    = now();
+
+        foreach ($request->input('pairs', []) as $pair) {
+            if (!preg_match('/^(\d+):(\d+)$/', (string) $pair, $m)) continue;
+            $a = (int) min($m[1], $m[2]);
+            $b = (int) max($m[1], $m[2]);
+            if ($a === $b) continue;
+
+            // Verify both contacts belong to this user
+            $count = Contact::withoutGlobalScope('workspace')
+                ->where('user_id', $userId)
+                ->whereIn('id', [$a, $b])
+                ->count();
+            if ($count < 2) continue;
+
+            DB::table('contact_dismissed_pairs')->upsert(
+                [['user_id' => $userId, 'contact_id_a' => $a, 'contact_id_b' => $b, 'dismissed_at' => $now]],
+                ['user_id', 'contact_id_a', 'contact_id_b'],
+                ['dismissed_at']
+            );
+        }
+
+        return redirect()->route('user.contacts.duplicates')
+            ->with('success', 'Marked as not duplicates — they won\'t appear here again.');
+    }
+
+    /**
+     * Merge loser contacts into the chosen primary.
+     *
+     * POST /contacts/{contact}/merge-duplicate
+     * Body: loser_ids[] — IDs of contacts to absorb into {contact}.
+     * The primary is the route-model-bound {contact}; loser_ids should
+     * include ALL contacts in the group (primary excluded server-side).
+     */
+    public function mergeContacts(Request $request, Contact $contact)
+    {
+        abort_if($contact->user_id !== workspace_owner_id(), 403);
+
+        $request->validate([
+            'loser_ids'   => 'required|array|min:1|max:50',
+            'loser_ids.*' => 'integer',
+        ]);
+
+        $userId   = workspace_owner_id();
+        $loserIds = array_filter(
+            array_map('intval', $request->input('loser_ids', [])),
+            fn ($id) => $id !== $contact->id
+        );
+
+        if (empty($loserIds)) {
+            return redirect()->route('user.contacts.duplicates')
+                ->with('error', 'No contacts to merge — select at least one non-primary contact.');
+        }
+
+        $losers = Contact::withoutGlobalScope('workspace')
+            ->where('user_id', $userId)
+            ->whereIn('id', $loserIds)
+            ->get()
+            ->all();
+
+        if (empty($losers)) {
+            return redirect()->route('user.contacts.duplicates')
+                ->with('error', 'Could not find the contacts to merge.');
+        }
+
+        try {
+            $this->mergeService->merge($contact, $losers);
+        } catch (\Throwable $e) {
+            \Log::warning('ContactController::mergeContacts failed', ['err' => $e->getMessage()]);
+            return redirect()->route('user.contacts.duplicates')
+                ->with('error', 'Merge failed: ' . $e->getMessage());
+        }
+
+        $merged = count($losers);
+        return redirect()->route('user.contacts.show', $contact)
+            ->with('success', "Merged {$merged} contact" . ($merged === 1 ? '' : 's') . ' into this one — no data was lost.');
     }
 
     // ---- bulk import ------------------------------------------------------
@@ -780,7 +926,15 @@ class ContactController extends Controller
     public function importShow(Request $request, ContactImport $import)
     {
         abort_if($import->user_id !== workspace_owner_id(), 403);
-        return view('user.contacts.import_summary', ['import' => $import]);
+        $duplicateCount = null;
+        if ($import->status === 'completed') {
+            try {
+                $duplicateCount = $this->detector->count(workspace_owner_id());
+            } catch (\Throwable) {
+                // non-fatal: detection may fail on missing pg_trgm or new env
+            }
+        }
+        return view('user.contacts.import_summary', compact('import', 'duplicateCount'));
     }
 
     /** Tiny JSON endpoint the summary page polls while a job is running. */

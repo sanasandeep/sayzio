@@ -26,6 +26,21 @@
     </div>
     @endif
 
+    @if(($duplicateCount ?? 0) > 0)
+    <a href="{{ route('user.contacts.duplicates') }}"
+       class="block mb-6 px-4 py-3 rounded-xl text-sm transition"
+       style="background:linear-gradient(135deg,rgba(245,158,11,.08),rgba(61,107,255,.08));border:1px solid rgba(245,158,11,.30);color:var(--text-primary);">
+        <div class="flex items-center justify-between gap-3 flex-wrap">
+            <div class="flex items-center gap-2">
+                <i class="fas fa-copy text-amber-400"></i>
+                <span class="font-semibold">{{ $duplicateCount }} duplicate {{ \Illuminate\Support\Str::plural('group', $duplicateCount) }} found</span>
+                <span class="text-xs" style="color:var(--text-muted);">Merge them to keep your address book clean.</span>
+            </div>
+            <span class="text-xs font-semibold" style="color:#f59e0b;">Review &amp; Merge <i class="fas fa-arrow-right ml-1 text-[10px]"></i></span>
+        </div>
+    </a>
+    @endif
+
     @isset($activeImport)
     @if($activeImport)
     <a href="{{ route('user.contacts.import.show', $activeImport) }}"

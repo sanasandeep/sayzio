@@ -19,8 +19,10 @@ use App\Modules\User\Models\IntegrationConfig;
 use App\Modules\User\Models\Link;
 use App\Modules\User\Models\Workspace;
 use App\Modules\User\Services\Contacts\BiolinkAttachResolver;
+use App\Modules\User\Services\Contacts\ContactDuplicateDetector;
 use App\Modules\User\Services\Contacts\ContactExportBuilder;
 use App\Modules\User\Services\Contacts\ContactImportParser;
+use App\Modules\User\Services\Contacts\ContactMergeService;
 use App\Modules\User\Services\Contacts\GoogleContactsSyncService;
 use App\Modules\User\Support\ContactWorkspaceShareHelper;
 use Illuminate\Http\Request;
@@ -41,6 +43,8 @@ class ContactController extends Controller
         protected GoogleContactsSyncService $sync,
         protected ContactImportParser $importParser,
         protected ContactExportBuilder $exportBuilder,
+        protected ContactDuplicateDetector $detector,
+        protected ContactMergeService $mergeService,
     ) {}
 
     public function index(Request $request)
@@ -146,6 +150,141 @@ class ContactController extends Controller
             ->count();
 
         return $this->ok(['overdue' => $overdue]);
+    }
+
+    // ---- duplicate detection & merge (mobile parity) --------------------
+
+    /**
+     * Return groups of likely-duplicate contacts for the signed-in user.
+     *
+     * Response:
+     *   {groups: [{ids, reason, contacts}], count: N}
+     *
+     * `contacts` arrays are the same shape as `transform()` so the mobile
+     * app can render side-by-side cards without extra requests.
+     */
+    public function duplicates(Request $request)
+    {
+        $userId = $request->user()->id;
+
+        try {
+            $rawGroups = $this->detector->detect($userId);
+        } catch (\Throwable $e) {
+            \Log::warning('API duplicates detect failed', ['err' => $e->getMessage()]);
+            return $this->ok(['groups' => [], 'count' => 0]);
+        }
+
+        $allIds = collect($rawGroups)->flatMap(fn ($g) => $g['ids'])->unique()->all();
+        $contactMap = Contact::with(['phones', 'emails'])
+            ->where('user_id', $userId)
+            ->whereIn('id', $allIds)
+            ->get()
+            ->keyBy('id');
+
+        $groups = [];
+        foreach ($rawGroups as $g) {
+            $contacts = array_values(array_filter(
+                array_map(fn ($id) => $contactMap->get($id), $g['ids']),
+                fn ($c) => $c !== null
+            ));
+            if (count($contacts) < 2) continue;
+            $groups[] = [
+                'ids'      => $g['ids'],
+                'reason'   => $g['reason'],
+                'contacts' => array_map(fn ($c) => $this->transform($c), $contacts),
+            ];
+        }
+
+        return $this->ok(['groups' => $groups, 'count' => count($groups)]);
+    }
+
+    /**
+     * Dismiss one or more contact pairs so the duplicate engine never
+     * re-flags them. Accepts pairs[] as "idA:idB" strings.
+     */
+    public function duplicatesDismiss(Request $request)
+    {
+        $request->validate([
+            'pairs'   => 'required|array|min:1|max:100',
+            'pairs.*' => 'string',
+        ]);
+
+        $userId = $request->user()->id;
+        $now    = now();
+        $dismissed = 0;
+
+        foreach ($request->input('pairs', []) as $pair) {
+            if (!preg_match('/^(\d+):(\d+)$/', (string) $pair, $m)) continue;
+            $a = (int) min($m[1], $m[2]);
+            $b = (int) max($m[1], $m[2]);
+            if ($a === $b) continue;
+
+            $count = Contact::where('user_id', $userId)->whereIn('id', [$a, $b])->count();
+            if ($count < 2) continue;
+
+            DB::table('contact_dismissed_pairs')->upsert(
+                [['user_id' => $userId, 'contact_id_a' => $a, 'contact_id_b' => $b, 'dismissed_at' => $now]],
+                ['user_id', 'contact_id_a', 'contact_id_b'],
+                ['dismissed_at']
+            );
+            $dismissed++;
+        }
+
+        return $this->ok(['dismissed' => $dismissed]);
+    }
+
+    /**
+     * Merge loser contacts into the designated primary.
+     *
+     * POST /api/v1/contacts/{id}/merge-duplicate
+     * Body: loser_ids[] — IDs to merge into {id}; the primary ({id}) is
+     * excluded from the loser list server-side so the caller may include it
+     * for convenience.
+     *
+     * Returns the updated primary contact.
+     */
+    public function mergeContacts(Request $request, int $id)
+    {
+        $userId = $request->user()->id;
+        $primary = Contact::with(['phones', 'emails'])
+            ->where('user_id', $userId)
+            ->find($id);
+        if (!$primary) return $this->notFound('Contact not found');
+
+        $request->validate([
+            'loser_ids'   => 'required|array|min:1|max:50',
+            'loser_ids.*' => 'integer',
+        ]);
+
+        $loserIds = array_filter(
+            array_map('intval', $request->input('loser_ids', [])),
+            fn ($lid) => $lid !== $id
+        );
+
+        if (empty($loserIds)) {
+            return $this->fail('No contacts to merge into the primary.', 422, 'no_losers');
+        }
+
+        $losers = Contact::where('user_id', $userId)
+            ->whereIn('id', $loserIds)
+            ->get()
+            ->all();
+
+        if (empty($losers)) {
+            return $this->fail('Could not find contacts to merge.', 404, 'losers_not_found');
+        }
+
+        try {
+            $updated = $this->mergeService->merge($primary, $losers);
+        } catch (\Throwable $e) {
+            \Log::warning('API mergeContacts failed', ['err' => $e->getMessage()]);
+            return $this->fail('Merge failed: ' . $e->getMessage(), 500, 'merge_failed');
+        }
+
+        return $this->ok([
+            'contact' => $this->transform($updated->fresh(['phones', 'emails'])),
+            'merged'  => count($losers),
+        ]);
     }
 
     /**

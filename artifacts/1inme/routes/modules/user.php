@@ -1333,6 +1333,9 @@ Route::prefix('user')->name('user.')->group(function () {
         // (CRM). Read endpoints require `settings.view`, mutations
         // `settings.edit` so non-admin members can't see or modify the
         // workspace's address book.
+        Route::get('contacts/duplicates',                   [ContactController::class, 'duplicates'])->middleware('workspace.can:settings.view')->name('contacts.duplicates');
+        Route::post('contacts/duplicates/dismiss',           [ContactController::class, 'duplicatesDismiss'])->middleware('workspace.can:settings.edit')->name('contacts.duplicates.dismiss');
+        Route::post('contacts/{contact}/merge-duplicate',   [ContactController::class, 'mergeContacts'])->middleware('workspace.can:settings.edit')->name('contacts.merge-duplicate');
         Route::get('contacts',                              [ContactController::class, 'index'])->middleware(['workspace.can:settings.view', 'contacts.sync-on-open'])->name('contacts.index');
         // Consolidated "everything I need to follow up on" list. Must be
         // registered before the contacts/{contact} wildcard below so the

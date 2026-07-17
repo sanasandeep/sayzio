@@ -903,8 +903,11 @@ Route::prefix('v1')->group(function () {
         Route::post  ('/posts/{id}/unpin', [CreatorPostController::class, 'unpin'])->whereNumber('id');
 
         // Contacts
-        Route::get   ('/contacts',                  [ContactController::class, 'index']);
-        Route::get   ('/contacts/tags',             [ContactController::class, 'allTags']);
+        Route::get   ('/contacts',                      [ContactController::class, 'index']);
+        Route::get   ('/contacts/tags',                 [ContactController::class, 'allTags']);
+        Route::get   ('/contacts/duplicates',           [ContactController::class, 'duplicates']);
+        Route::post  ('/contacts/duplicates/dismiss',   [ContactController::class, 'duplicatesDismiss'])->middleware('throttle:60,1');
+        Route::post  ('/contacts/{id}/merge-duplicate', [ContactController::class, 'mergeContacts'])->whereNumber('id')->middleware('throttle:30,1');
         Route::get   ('/contacts/follow-ups',       [ContactController::class, 'followUps']);
         Route::get   ('/contacts/follow-ups/count', [ContactController::class, 'followUpsCount']);
         Route::post  ('/contacts',                  [ContactController::class, 'store'])->middleware('throttle:120,1');
