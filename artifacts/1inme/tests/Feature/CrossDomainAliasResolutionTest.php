@@ -44,17 +44,25 @@ class CrossDomainAliasResolutionTest extends TestCase
         return User::factory()->create()->fresh();
     }
 
-    /** An admin-global (no owning user), verified+active brand domain row. */
+    /**
+     * An admin-global (no owning user), verified+active brand domain row.
+     *
+     * The fresh migrate/seed baseline may already contain these brand domains
+     * (e.g. sayzio.app), so upsert instead of insert to avoid tripping the
+     * domains_domain_unique constraint on a clean database.
+     */
     private function globalBrandDomain(string $host, bool $primary = false): Domain
     {
-        return Domain::create([
-            'user_id'     => null,
-            'domain'      => $host,
-            'type'        => 'custom',
-            'is_verified' => true,
-            'is_active'   => true,
-            'is_primary'  => $primary,
-        ]);
+        return Domain::updateOrCreate(
+            ['domain' => $host],
+            [
+                'user_id'     => null,
+                'type'        => 'custom',
+                'is_verified' => true,
+                'is_active'   => true,
+                'is_primary'  => $primary,
+            ]
+        );
     }
 
     private function makeUrlLink(User $user, ?int $domainId, string $alias, string $url): Link
@@ -210,13 +218,17 @@ class CrossDomainAliasResolutionTest extends TestCase
         $sayzio = $this->globalBrandDomain(self::BRAND_PRIMARY, primary: true);
 
         // 1in.me exists but verification isn't complete yet → not attachable.
-        $pending = Domain::create([
-            'user_id'     => null,
-            'domain'      => self::BRAND_SECONDARY,
-            'type'        => 'custom',
-            'is_verified' => false,
-            'is_active'   => true,
-        ]);
+        // Upsert: the seed baseline may already have this row (see globalBrandDomain).
+        $pending = Domain::updateOrCreate(
+            ['domain' => self::BRAND_SECONDARY],
+            [
+                'user_id'     => null,
+                'type'        => 'custom',
+                'is_verified' => false,
+                'is_active'   => true,
+                'is_primary'  => false,
+            ]
+        );
 
         $this->asUser($user);
         $resp = $this->getJson('/api/v1/domains/available');
