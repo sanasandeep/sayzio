@@ -585,26 +585,9 @@ class User extends Authenticatable
             // (the local-symlink path from when the disk was local). Resolve to the
             // direct S3/CloudFront URL so the browser never hits the /storage bridge
             // route — avoiding the S3 round-trip and any boot-time SDK init failure
-            // that can turn the bridge into a 500.
-            if (
-                str_starts_with($avatar, '/storage/')
-                && config('filesystems.disks.public.driver') === 's3'
-            ) {
-                $relativePath = ltrim(substr($avatar, strlen('/storage/')), '/');
-                try {
-                    return \Illuminate\Support\Facades\Storage::disk('public')->url($relativePath);
-                } catch (\Throwable $e) {
-                    // Fall back to the bridge path so avatars degrade gracefully
-                    // rather than vanishing entirely on a transient S3 config issue.
-                    \Illuminate\Support\Facades\Log::warning('resolveAvatarUrl: could not build S3 URL, using bridge path', [
-                        'user_id' => $this->id,
-                        'avatar'  => $avatar,
-                        'error'   => $e->getMessage(),
-                    ]);
-                }
-            }
-
-            return $avatar;
+            // that can turn the bridge into a 500. Falls back to the bridge path on
+            // a transient S3 config issue so avatars degrade gracefully.
+            return (string) \App\Support\PublicStorageUrl::resolve($avatar);
         }
 
         // 2. Connected Google social account photo (ignore null/empty rows so

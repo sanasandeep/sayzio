@@ -105,6 +105,10 @@ class FollowerDigestComposer
         $avatar = trim($avatar);
         if ($avatar === '') return null;
         if (preg_match('#^https?://#i', $avatar)) return $avatar;
-        return url($avatar);
+        // Resolve /storage/... paths straight to the CDN when the public
+        // disk is S3-backed, so email clients skip the bridge redirect.
+        $resolved = (string) \App\Support\PublicStorageUrl::resolve($avatar);
+        if (preg_match('#^https?://#i', $resolved)) return $resolved;
+        return url($resolved);
     }
 }

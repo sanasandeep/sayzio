@@ -437,7 +437,7 @@ class BiolinkBlockController extends Controller
                 'occurred_at' => now(),
                 'data'        => [
                     'creator_name'   => $creator?->name,
-                    'creator_avatar' => $creator?->avatar,
+                    'creator_avatar' => \App\Support\PublicStorageUrl::resolve($creator?->avatar),
                     'link_alias'     => $link->alias,
                     'block_type'     => $block->type,
                     'block_label'    => BiolinkBlock::TYPES[$block->type] ?? $block->type,

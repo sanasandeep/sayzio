@@ -43,7 +43,7 @@ class CreatorMonetizationApiController extends Controller
         return $this->ok([
             'creator' => [
                 'id' => $creator->id, 'handle' => $creator->handle, 'name' => $creator->name,
-                'avatar' => $creator->avatar, 'tagline' => $creator->tagline,
+                'avatar' => \App\Support\PublicStorageUrl::resolve($creator->avatar), 'tagline' => $creator->tagline,
             ],
             'tiers'    => $tiers->map(fn ($t) => $this->tierShape($t))->all(),
             'currency' => $creator->preferred_currency ?: 'USD',
@@ -250,7 +250,7 @@ class CreatorMonetizationApiController extends Controller
                 'label'        => $e->describeShort(),
                 'amount_cents' => (int) $e->amount_cents,
                 'currency'     => $e->currency,
-                'fan'          => $e->fan ? ['id' => $e->fan->id, 'name' => $e->fan->name, 'avatar' => $e->fan->avatar] : null,
+                'fan'          => $e->fan ? ['id' => $e->fan->id, 'name' => $e->fan->name, 'avatar' => \App\Support\PublicStorageUrl::resolve($e->fan->avatar)] : null,
                 'occurred_at'  => optional($e->occurred_at)->toIso8601String(),
             ])->all(),
             'meta'  => ['current_page' => $rows->currentPage(), 'last_page' => $rows->lastPage(), 'total' => $rows->total()],
@@ -314,11 +314,11 @@ class CreatorMonetizationApiController extends Controller
             ] : null,
             'creator'              => $s->creator ? [
                 'id' => $s->creator->id, 'name' => $s->creator->name,
-                'handle' => $s->creator->handle, 'avatar' => $s->creator->avatar,
+                'handle' => $s->creator->handle, 'avatar' => \App\Support\PublicStorageUrl::resolve($s->creator->avatar),
             ] : null,
             'fan'                  => $s->fan ? [
                 'id' => $s->fan->id, 'name' => $s->fan->name,
-                'handle' => $s->fan->handle, 'avatar' => $s->fan->avatar,
+                'handle' => $s->fan->handle, 'avatar' => \App\Support\PublicStorageUrl::resolve($s->fan->avatar),
             ] : null,
         ];
     }

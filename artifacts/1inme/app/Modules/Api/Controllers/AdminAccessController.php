@@ -138,7 +138,7 @@ class AdminAccessController extends Controller
                 'name'         => $u->name,
                 'email'        => $u->email,
                 'handle'       => $u->handle,
-                'avatar'       => $u->avatar,
+                'avatar'       => \App\Support\PublicStorageUrl::resolve($u->avatar),
                 'status'       => $u->status,
                 'plan'         => $u->plan?->name,
                 'is_admin'     => $linked !== null,

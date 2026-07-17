@@ -59,7 +59,7 @@ class TeamController extends Controller
                 'role'    => $m->role,
                 'name'    => $m->user?->name,
                 'email'   => $m->user?->email,
-                'avatar'  => $m->user?->avatar,
+                'avatar'  => \App\Support\PublicStorageUrl::resolve($m->user?->avatar),
                 'created_at' => optional($m->created_at)->toIso8601String(),
             ])->all();
 
@@ -174,7 +174,7 @@ class TeamController extends Controller
             'role'       => $row->role,
             'name'       => $row->user?->name,
             'email'      => $row->user?->email,
-            'avatar'     => $row->user?->avatar,
+            'avatar'     => \App\Support\PublicStorageUrl::resolve($row->user?->avatar),
             'created_at' => optional($row->created_at)->toIso8601String(),
         ]]);
     }

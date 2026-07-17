@@ -190,7 +190,7 @@ class CreatorPostController extends Controller
                 'type'         => 'post',
                 'subject_id'   => $post->id,
                 'subject_type' => CreatorPost::class,
-                'data'         => ['title' => $post->title, 'body_excerpt' => mb_substr($post->body, 0, 160), 'creator_name' => $me->name, 'creator_avatar' => $me->avatar],
+                'data'         => ['title' => $post->title, 'body_excerpt' => mb_substr($post->body, 0, 160), 'creator_name' => $me->name, 'creator_avatar' => \App\Support\PublicStorageUrl::resolve($me->avatar)],
                 'occurred_at'  => now(),
             ]);
 
@@ -290,7 +290,7 @@ class CreatorPostController extends Controller
                         'title'          => $post->title,
                         'body_excerpt'   => mb_substr($post->body, 0, 160),
                         'creator_name'   => $owner->name,
-                        'creator_avatar' => $owner->avatar,
+                        'creator_avatar' => \App\Support\PublicStorageUrl::resolve($owner->avatar),
                     ],
                     'occurred_at'  => now(),
                 ]);
@@ -641,12 +641,12 @@ class CreatorPostController extends Controller
             $data = [
                 'creator_id'     => (int) $creator->id,
                 'creator_name'   => $creator->name,
-                'creator_avatar' => $creator->avatar,
+                'creator_avatar' => \App\Support\PublicStorageUrl::resolve($creator->avatar),
                 'message'        => $message,
             ];
             if ($post) {
                 $data['post_id']    = (int) $post->id;
-                $data['post_image'] = $post->image;
+                $data['post_image'] = \App\Support\PublicStorageUrl::resolve($post->image);
             }
 
             $notif = UserNotification::create([

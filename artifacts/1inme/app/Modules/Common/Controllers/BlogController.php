@@ -478,7 +478,7 @@ class BlogController extends Controller
                 'id'     => (int) $v->id,
                 'name'   => (string) ($v->name ?? 'Reader'),
                 'email'  => (string) ($v->email ?? ''),
-                'avatar' => $v->avatar ?? null,
+                'avatar' => \App\Support\PublicStorageUrl::resolve($v->avatar ?? null),
             ];
         }
         return ['type' => null, 'id' => null, 'name' => null, 'email' => null, 'avatar' => null];

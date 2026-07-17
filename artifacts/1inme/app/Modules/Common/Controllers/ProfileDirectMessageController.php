@@ -83,7 +83,7 @@ class ProfileDirectMessageController
                 'id'     => $creator->id,
                 'name'   => $creator->name,
                 'handle' => $creator->handle,
-                'avatar' => $creator->avatar,
+                'avatar' => \App\Support\PublicStorageUrl::resolve($creator->avatar),
             ],
             'conversation_id' => $conv?->id,
             'policy'          => $policy,

@@ -625,12 +625,12 @@ class EventTicketApiController extends Controller
             // fallback (name -> account name, logo -> account avatar) so the
             // existing simple card keeps working when no profile is set.
             'name'   => $profile['name'] !== '' ? $profile['name'] : $host->name,
-            'avatar' => $profile['logo'] !== '' ? $profile['logo'] : $host->avatar,
+            'avatar' => \App\Support\PublicStorageUrl::resolve($profile['logo'] !== '' ? $profile['logo'] : $host->avatar),
             'handle' => $host->handle,
             // Extended reusable-profile fields. `filled` drives whether mobile
             // renders the rich card or the plain avatar+name fallback.
             'filled'        => (bool) $profile['filled'],
-            'logo'          => $orNull($profile['logo']),
+            'logo'          => \App\Support\PublicStorageUrl::resolve($orNull($profile['logo'])),
             'description'   => $orNull($profile['description']),
             'website'       => $orNull($profile['website']),
             'contact_name'  => $orNull($profile['contact_name']),

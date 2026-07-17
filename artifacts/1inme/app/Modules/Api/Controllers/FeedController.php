@@ -82,7 +82,7 @@ class FeedController extends Controller
                     'id'     => $u->id,
                     'name'   => $u->name,
                     'handle' => $u->handle,
-                    'avatar' => $u->avatar,
+                    'avatar' => \App\Support\PublicStorageUrl::resolve($u->avatar),
                 ] : null,
             ];
         })->all();

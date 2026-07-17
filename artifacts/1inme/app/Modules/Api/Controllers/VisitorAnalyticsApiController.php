@@ -257,7 +257,7 @@ class VisitorAnalyticsApiController extends Controller
             'id'           => (int) $r->id,
             'name'         => $r->name,
             'email'        => $r->email,
-            'avatar'       => $r->avatar,
+            'avatar'       => \App\Support\PublicStorageUrl::resolve($r->avatar),
             'visit_count'  => (int) $r->visit_count,
             'first_seen'   => $r->first_seen ? Carbon::parse($r->first_seen)->toDateString() : null,
             'last_seen'    => $r->last_seen ? Carbon::parse($r->last_seen)->toDateString() : null,

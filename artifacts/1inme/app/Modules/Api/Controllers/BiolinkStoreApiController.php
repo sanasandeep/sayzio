@@ -214,7 +214,7 @@ class BiolinkStoreApiController extends Controller
                 'id'     => $order->creator->id,
                 'name'   => $order->creator->name,
                 'handle' => $order->creator->handle,
-                'avatar' => $order->creator->avatar,
+                'avatar' => \App\Support\PublicStorageUrl::resolve($order->creator->avatar),
             ] : null,
             'items' => $order->items->map(function ($it) use ($order, $paid, $includeDownloads) {
                 $isDigital = $it->isDigital();
@@ -247,7 +247,7 @@ class BiolinkStoreApiController extends Controller
                 'id'     => $order->buyer->id,
                 'name'   => $order->buyer->name,
                 'handle' => $order->buyer->handle,
-                'avatar' => $order->buyer->avatar,
+                'avatar' => \App\Support\PublicStorageUrl::resolve($order->buyer->avatar),
             ] : null,
             'fulfilled_at' => optional($order->fulfilled_at)->toIso8601String(),
         ]);

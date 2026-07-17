@@ -83,7 +83,7 @@ class CommentController extends Controller
             'author_id'     => $admin->id,
             'author_name'   => $admin->name,
             'author_email'  => $admin->email,
-            'author_avatar' => $admin->avatar,
+            'author_avatar' => \App\Support\PublicStorageUrl::resolve($admin->avatar),
             'body'          => $data['body'],
             'status'        => 'approved',
             'ip_address'    => substr((string) $request->ip(), 0, 64),
