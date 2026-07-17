@@ -1354,6 +1354,10 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::get ('contacts/scan/{scan}',                 [\App\Modules\User\Controllers\CardScanController::class, 'show'])->whereNumber('scan')->middleware('workspace.can:settings.edit')->name('contacts.scan.show');
         Route::post('contacts/scan/{scan}/rescan',          [\App\Modules\User\Controllers\CardScanController::class, 'rescan'])->whereNumber('scan')->middleware('workspace.can:settings.edit')->name('contacts.scan.rescan');
         Route::post('contacts/scan/{scan}/save',            [\App\Modules\User\Controllers\CardScanController::class, 'save'])->whereNumber('scan')->middleware('workspace.can:settings.edit')->name('contacts.scan.save');
+        // Quick-confirm flow: lightweight confirm sheet + one-tap save for
+        // scans initiated from the Contacts page or Dialer entry points.
+        Route::get ('contacts/scan/{scan}/confirm',         [\App\Modules\User\Controllers\CardScanController::class, 'confirm'])->whereNumber('scan')->middleware('workspace.can:settings.edit')->name('contacts.scan.confirm');
+        Route::post('contacts/scan/{scan}/quick-save',      [\App\Modules\User\Controllers\CardScanController::class, 'quickSave'])->whereNumber('scan')->middleware('workspace.can:settings.edit')->name('contacts.scan.quick-save');
         Route::post('contacts/import',                      [ContactController::class, 'import'])->middleware(['workspace.can:settings.edit', CheckPlanLimit::class . ':contacts_max', CheckPlanLimit::class . ':leads'])->name('contacts.import.store');
         Route::get('contacts/import/preview/{token}',       [ContactController::class, 'importPreview'])->middleware('workspace.can:settings.edit')->name('contacts.import.preview');
         Route::post('contacts/import/preview/{token}/row/{index}', [ContactController::class, 'importRowUpdate'])->whereNumber('index')->middleware('workspace.can:settings.edit')->name('contacts.import.preview.row.update');

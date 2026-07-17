@@ -116,6 +116,20 @@
                 </div>
 
                 <div id="search-results" class="mt-3 space-y-3"></div>
+
+                {{-- Scan-a-card nudge: shown when search has no results --}}
+                <div id="dialer-scan-nudge" class="mt-3 hidden">
+                    <a href="{{ route('user.contacts.scan.create', ['from' => 'dialer']) }}"
+                       class="flex items-center gap-2.5 px-3 py-2.5 rounded-xl transition text-left w-full"
+                       style="background:rgba(236,72,153,.08);border:1px solid rgba(236,72,153,.20);color:var(--text-primary);">
+                        <i class="fas fa-camera text-pink-400 text-sm"></i>
+                        <div class="min-w-0">
+                            <p class="text-xs font-semibold leading-tight" style="color:var(--text-primary);">Scan a business card</p>
+                            <p class="text-[11px] leading-tight mt-0.5" style="color:var(--text-muted);">Use AI to extract contact details from a photo</p>
+                        </div>
+                        <span class="ml-auto text-[10px] font-bold uppercase tracking-wide shrink-0" style="color:#ec4899;">AI</span>
+                    </a>
+                </div>
             </div>
 
             <div class="card-premium p-5" id="recent-card" @if(empty($recent)) style="display:none" @endif>
@@ -404,6 +418,8 @@ function runUniversal() {
     _tu = setTimeout(async () => {
         const data = await fetchUniversal(q, uniFilters);
         renderGroups(box, data, 'No matches');
+        const nudge = document.getElementById('dialer-scan-nudge');
+        if (nudge) nudge.classList.toggle('hidden', !!(data && data.total > 0));
     }, 220);
 }
 

@@ -109,7 +109,8 @@ const TOOL_PAGES: {
     | "/orders"
     | "/links/conversational"
     | "/events"
-    | "/events/my-tickets";
+    | "/events/my-tickets"
+    | "/card-scan";
   label: string;
   icon: keyof typeof Feather.glyphMap;
 }[] = [
@@ -142,6 +143,7 @@ const TOOL_PAGES: {
   { href: "/leaderboard", label: "Leaderboard", icon: "award" },
   { href: "/vault-audit", label: "Vault audit", icon: "shield" },
   { href: "/links/conversational", label: "Conversational links", icon: "message-circle" },
+  { href: "/card-scan", label: "Scan a business card", icon: "camera" },
 ];
 
 // Ordered to mirror the consolidated web Settings hub tabs (Task #3220):
