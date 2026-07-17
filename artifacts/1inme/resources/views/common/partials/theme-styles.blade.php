@@ -134,7 +134,7 @@
         --glow-2: rgba(110,97,255,0);
         --scrollbar-thumb: #e4e6ef;
         --scrollbar-thumb-hover: #b5b5c3;
-        --overlay-bg: rgba(7,20,55,0.28);
+        --overlay-bg: rgba(7,20,55,0.65);
         --card-shadow: 0 1px 2px rgba(7,20,55,0.04), 0 4px 12px -2px rgba(7,20,55,0.05);
         --card-shadow-hover: 0 10px 28px -6px rgba(7,20,55,0.12), 0 3px 8px rgba(7,20,55,0.06);
         --noise-opacity: 0;

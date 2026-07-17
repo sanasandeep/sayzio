@@ -26,7 +26,7 @@
 
     {{-- ── Backdrop ─────────────────────────────────────────────────────── --}}
     <div class="absolute inset-0" @click="close()"
-         style="background: var(--overlay-bg); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);"></div>
+         style="background: var(--overlay-bg); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);"></div>
 
     {{-- ── Panel ────────────────────────────────────────────────────────── --}}
     <div class="relative z-10 flex flex-col w-full h-full overflow-hidden pointer-events-none">
@@ -93,7 +93,8 @@
              x-ref="results"
              class="pointer-events-auto flex-1 overflow-y-auto overscroll-contain px-4 pb-10"
              style="-webkit-overflow-scrolling: touch;">
-            <div class="max-w-2xl mx-auto">
+            <div class="max-w-2xl mx-auto rounded-2xl px-2 pt-2 pb-4"
+                 style="background: var(--bg-sidebar); border: 1.5px solid var(--border-strong); box-shadow: 0 24px 64px rgba(0,0,0,0.45);">
 
                 {{-- Loading skeleton --}}
                 <template x-if="loading && groups.length === 0">
