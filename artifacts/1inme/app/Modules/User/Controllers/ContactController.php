@@ -580,6 +580,95 @@ class ContactController extends Controller
             ->with('success', "Merged {$merged} contact" . ($merged === 1 ? '' : 's') . ' into this one — no data was lost.');
     }
 
+    /**
+     * Bulk-merge every duplicate group in one action.
+     *
+     * POST /contacts/duplicates/merge-all
+     * For each detected group the first contact becomes the primary and the
+     * rest are merged into it (same semantics as a per-group merge). Each
+     * group is merged in its own transaction via ContactMergeService, so a
+     * failure in one group doesn't roll back the others.
+     */
+    public function mergeAllDuplicates(Request $request)
+    {
+        $userId    = workspace_owner_id();
+        $rawGroups = $this->detector->detect($userId);
+
+        if (empty($rawGroups)) {
+            return redirect()->route('user.contacts.duplicates')
+                ->with('error', 'No duplicate groups to merge.');
+        }
+
+        [$mergedGroups, $removedContacts, $failed] = $this->mergeAllGroups($userId, $rawGroups);
+
+        if ($mergedGroups === 0) {
+            return redirect()->route('user.contacts.duplicates')
+                ->with('error', 'Could not merge any duplicate groups.');
+        }
+
+        $msg = "Merged {$mergedGroups} group" . ($mergedGroups === 1 ? '' : 's')
+             . " — {$removedContacts} duplicate contact" . ($removedContacts === 1 ? '' : 's') . ' removed.';
+        if ($failed > 0) {
+            $msg .= " {$failed} group" . ($failed === 1 ? '' : 's') . ' could not be merged.';
+        }
+
+        return redirect()->route('user.contacts.duplicates')->with('success', $msg);
+    }
+
+    /**
+     * Shared bulk-merge loop: merges each group's tail contacts into its
+     * first contact. Returns [groupsMerged, contactsRemoved, groupsFailed].
+     *
+     * @param array $rawGroups Output of ContactDuplicateDetector::detect().
+     */
+    protected function mergeAllGroups(int $userId, array $rawGroups): array
+    {
+        $mergedGroups    = 0;
+        $removedContacts = 0;
+        $failed          = 0;
+        // A contact may appear in more than one group (e.g. same phone AND
+        // same name); once merged away it must not be reused as a primary
+        // or loser in a later group.
+        $consumed = [];
+
+        foreach ($rawGroups as $g) {
+            $ids = array_values(array_filter(
+                array_map('intval', $g['ids'] ?? []),
+                fn ($id) => !isset($consumed[$id])
+            ));
+            if (count($ids) < 2) continue;
+
+            $primaryId = array_shift($ids);
+            $primary = Contact::withoutGlobalScope('workspace')
+                ->where('user_id', $userId)
+                ->find($primaryId);
+            if (!$primary) continue;
+
+            $losers = Contact::withoutGlobalScope('workspace')
+                ->where('user_id', $userId)
+                ->whereIn('id', $ids)
+                ->get()
+                ->all();
+            if (empty($losers)) continue;
+
+            try {
+                $this->mergeService->merge($primary, $losers);
+            } catch (\Throwable $e) {
+                \Log::warning('ContactController::mergeAllDuplicates group failed', [
+                    'user' => $userId, 'primary' => $primaryId, 'err' => $e->getMessage(),
+                ]);
+                $failed++;
+                continue;
+            }
+
+            $mergedGroups++;
+            $removedContacts += count($losers);
+            foreach ($losers as $l) $consumed[$l->id] = true;
+        }
+
+        return [$mergedGroups, $removedContacts, $failed];
+    }
+
     // ---- bulk import ------------------------------------------------------
 
     public function importForm(Request $request)

@@ -313,6 +313,74 @@ class ContactController extends Controller
     }
 
     /**
+     * Bulk-merge every duplicate group in one call (mobile parity with the
+     * web "Merge all" action).
+     *
+     * POST /api/v1/contacts/duplicates/merge-all
+     * For each detected group the first contact becomes the primary and the
+     * rest are merged into it. Each group merges inside its own transaction
+     * (ContactMergeService), so one failing group doesn't roll back others.
+     *
+     * Returns {groups_merged, contacts_removed, groups_failed}.
+     */
+    public function mergeAllDuplicates(Request $request)
+    {
+        $userId = $request->user()->id;
+
+        try {
+            $rawGroups = $this->detector->detect($userId);
+        } catch (\Throwable $e) {
+            \Log::warning('API mergeAllDuplicates detect failed', ['err' => $e->getMessage()]);
+            return $this->fail('Could not scan for duplicates.', 500, 'detect_failed');
+        }
+
+        $mergedGroups    = 0;
+        $removedContacts = 0;
+        $failed          = 0;
+        // A contact can appear in multiple groups; once merged away it must
+        // not be reused as a primary or loser in a later group.
+        $consumed = [];
+
+        foreach ($rawGroups as $g) {
+            $ids = array_values(array_filter(
+                array_map('intval', $g['ids'] ?? []),
+                fn ($cid) => !isset($consumed[$cid])
+            ));
+            if (count($ids) < 2) continue;
+
+            $primaryId = array_shift($ids);
+            $primary = Contact::where('user_id', $userId)->find($primaryId);
+            if (!$primary) continue;
+
+            $losers = Contact::where('user_id', $userId)
+                ->whereIn('id', $ids)
+                ->get()
+                ->all();
+            if (empty($losers)) continue;
+
+            try {
+                $this->mergeService->merge($primary, $losers);
+            } catch (\Throwable $e) {
+                \Log::warning('API mergeAllDuplicates group failed', [
+                    'user' => $userId, 'primary' => $primaryId, 'err' => $e->getMessage(),
+                ]);
+                $failed++;
+                continue;
+            }
+
+            $mergedGroups++;
+            $removedContacts += count($losers);
+            foreach ($losers as $l) $consumed[$l->id] = true;
+        }
+
+        return $this->ok([
+            'groups_merged'    => $mergedGroups,
+            'contacts_removed' => $removedContacts,
+            'groups_failed'    => $failed,
+        ]);
+    }
+
+    /**
      * Plan-based contacts usage gauge, mirrors the web index banner so the
      * mobile app can warn the user before the create/import flow blocks them.
      */

@@ -18,6 +18,7 @@ import {
   contactPrimaryPhone,
   dismissDuplicates,
   fetchDuplicates,
+  mergeAllDuplicates,
   mergeContacts,
 } from "@/lib/api/contacts";
 
@@ -28,6 +29,7 @@ export default function ContactDuplicatesScreen() {
   const [error, setError] = useState<string | null>(null);
   const [primaryIds, setPrimaryIds] = useState<Record<number, number>>({});
   const [busy, setBusy] = useState<Record<number, boolean>>({});
+  const [bulkBusy, setBulkBusy] = useState(false);
 
   const load = useCallback(async (quiet = false) => {
     if (!quiet) setLoading(true);
@@ -144,6 +146,44 @@ export default function ContactDuplicatesScreen() {
     [primaryIds],
   );
 
+  const handleMergeAll = useCallback(() => {
+    const count = groups.length;
+    if (count === 0 || bulkBusy) return;
+    const message = `Merge all ${count} duplicate ${count === 1 ? "group" : "groups"} at once? The first contact in each group keeps all data; the others are deleted. This cannot be undone.`;
+
+    const confirmAction = () => {
+      setBulkBusy(true);
+      mergeAllDuplicates()
+        .then((res) => {
+          const summary = `${res.groups_merged} ${res.groups_merged === 1 ? "group" : "groups"} merged, ${res.contacts_removed} duplicate ${res.contacts_removed === 1 ? "contact" : "contacts"} removed.${res.groups_failed > 0 ? ` ${res.groups_failed} could not be merged.` : ""}`;
+          if (typeof window !== "undefined" && window.alert) {
+            window.alert(summary);
+          } else {
+            Alert.alert("Merge complete", summary);
+          }
+          return load(true);
+        })
+        .catch((e: unknown) => {
+          Alert.alert(
+            "Merge failed",
+            e instanceof Error ? e.message : "Could not merge all duplicates.",
+          );
+        })
+        .finally(() => {
+          setBulkBusy(false);
+        });
+    };
+
+    if (typeof window !== "undefined" && window.confirm) {
+      if (window.confirm(message)) confirmAction();
+    } else {
+      Alert.alert("Merge all duplicates?", message, [
+        { text: "Cancel", style: "cancel" },
+        { text: "Merge all", style: "destructive", onPress: confirmAction },
+      ]);
+    }
+  }, [groups.length, bulkBusy, load]);
+
   if (loading) {
     return (
       <View style={styles.center}>
@@ -197,6 +237,23 @@ export default function ContactDuplicatesScreen() {
       </Text>
       <Text style={styles.subheader}>
         Select a primary contact in each group, then merge or dismiss.
+      </Text>
+
+      <Pressable
+        style={[styles.mergeAllBtn, bulkBusy && styles.btnDisabled]}
+        onPress={handleMergeAll}
+        disabled={bulkBusy}
+      >
+        {bulkBusy ? (
+          <ActivityIndicator size="small" color="#fff" />
+        ) : (
+          <Text style={styles.mergeAllBtnText}>
+            ⚡ Merge all {groups.length} {groups.length === 1 ? "group" : "groups"}
+          </Text>
+        )}
+      </Pressable>
+      <Text style={styles.mergeAllHint}>
+        The first contact in each group becomes the primary.
       </Text>
 
       {groups.map((group, gIdx) => (
@@ -367,6 +424,25 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: "#94a3b8",
     marginBottom: 20,
+  },
+  mergeAllBtn: {
+    paddingVertical: 12,
+    borderRadius: 12,
+    backgroundColor: PRIMARY_COLOR,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 6,
+  },
+  mergeAllBtnText: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#fff",
+  },
+  mergeAllHint: {
+    fontSize: 11,
+    color: "#64748b",
+    textAlign: "center",
+    marginBottom: 18,
   },
   card: {
     backgroundColor: SURFACE,

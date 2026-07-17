@@ -1336,6 +1336,7 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::get('contacts/duplicates',                   [ContactController::class, 'duplicates'])->middleware('workspace.can:settings.view')->name('contacts.duplicates');
         Route::get('contacts/duplicates/count',             [ContactController::class, 'duplicatesCount'])->middleware('workspace.can:settings.view')->name('contacts.duplicates.count');
         Route::post('contacts/duplicates/dismiss',           [ContactController::class, 'duplicatesDismiss'])->middleware('workspace.can:settings.edit')->name('contacts.duplicates.dismiss');
+        Route::post('contacts/duplicates/merge-all',         [ContactController::class, 'mergeAllDuplicates'])->middleware(['workspace.can:settings.edit', 'throttle:6,1'])->name('contacts.duplicates.merge-all');
         Route::post('contacts/{contact}/merge-duplicate',   [ContactController::class, 'mergeContacts'])->middleware('workspace.can:settings.edit')->name('contacts.merge-duplicate');
         Route::get('contacts',                              [ContactController::class, 'index'])->middleware(['workspace.can:settings.view', 'contacts.sync-on-open'])->name('contacts.index');
         // Consolidated "everything I need to follow up on" list. Must be

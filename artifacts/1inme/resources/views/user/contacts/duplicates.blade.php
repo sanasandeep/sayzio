@@ -35,6 +35,23 @@
     </div>
     @else
 
+    {{-- Bulk action: merge every group in one tap --}}
+    <div class="mb-5 flex items-center justify-between gap-3 flex-wrap card-premium p-4">
+        <p class="text-xs" style="color:var(--text-muted);">
+            <i class="fas fa-bolt mr-1.5 text-amber-400"></i>
+            In a hurry? Merge all {{ $groupCount }} group{{ $groupCount === 1 ? '' : 's' }} at once — the first contact in each group becomes the primary.
+        </p>
+        <form method="POST" action="{{ route('user.contacts.duplicates.merge-all') }}">
+            @csrf
+            <button type="submit"
+                    onclick="return window.themedConfirmSubmit && window.themedConfirmSubmit(this.form, {title:'Merge all duplicates?',message:'This will merge all {{ $groupCount }} group{{ $groupCount === 1 ? '' : 's' }} at once. The first contact in each group keeps all data; the others are deleted. This cannot be undone.',confirmText:'Merge all',confirmIcon:'fa-code-merge',iconClass:'fa-code-merge'}) || confirm('Merge all {{ $groupCount }} duplicate group{{ $groupCount === 1 ? '' : 's' }}? The first contact in each group keeps all data; the others are deleted.')"
+                    class="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-white transition"
+                    style="background:linear-gradient(135deg,#3d6bff,#ec4899);">
+                <i class="fas fa-code-merge text-xs"></i> Merge all
+            </button>
+        </form>
+    </div>
+
     <div class="space-y-5">
     @foreach($groups as $gi => $group)
     @php
