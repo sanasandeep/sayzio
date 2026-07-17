@@ -28,6 +28,7 @@ import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { WorkspaceProvider } from "@/contexts/WorkspaceContext";
 import { useColors } from "@/hooks/useColors";
+import { useContactAutoSync } from "@/hooks/useContactAutoSync";
 import { useWebFocusRing } from "@/hooks/useWebFocusRing";
 import { getBaseUrl } from "@/lib/api";
 import {
@@ -60,6 +61,15 @@ function ActivityWatcher({ children }: { children: React.ReactNode }) {
   );
 }
 
+
+// Silently re-imports the device address book on app start / foreground while
+// the user is signed in and unlocked. Never prompts for permission — the
+// Contacts screen's manual import remains the only permission-requesting path.
+function ContactAutoSync() {
+  const { user, token, locked } = useAuth();
+  useContactAutoSync(Boolean(user && token && !locked));
+  return null;
+}
 
 function PushRegistrar() {
   const { user, token, locked } = useAuth();
@@ -203,6 +213,7 @@ export default function RootLayout() {
                       <RootLayoutNav />
                     </WorkspaceProvider>
                     <PushRegistrar />
+                    <ContactAutoSync />
                     <IdleLockWarning />
                   </ActivityWatcher>
                 </KeyboardProvider>

@@ -233,8 +233,8 @@
       "standalone": "app/_layout.tsx",
       "source": "app/_layout.tsx",
       "relation": "adapted",
-      "note": "root providers trimmed to what the dialer needs (no VoiceAssistant, DeepLinkRouter, ErrorBoundary, ImpersonationBanner, IdleLockWarning, KeyboardProvider, RevenueCat/SubscriptionProvider, push registration, @workspace/api-client-react wiring); mounts useContactAutoSync; Stack.Screen list only carries dialer-relevant routes (search/dialer-profile/call/contacts/info/oauth-callback) \u2014 new main-app-only screens (calendars, brand-kits, delivery-projects, marketing-strategist, etc.) are not dialer surfaces and intentionally omitted",
-      "sourceSha256": "e9683e9f5ea62fac3bc9ce356e53b698271f3b8c994ec6bf05167e5a6d36e282"
+      "note": "root providers trimmed to what the dialer needs (no VoiceAssistant, DeepLinkRouter, ErrorBoundary, ImpersonationBanner, IdleLockWarning, KeyboardProvider, RevenueCat/SubscriptionProvider, push registration, @workspace/api-client-react wiring); mounts useContactAutoSync; Stack.Screen list only carries dialer-relevant routes (search/dialer-profile/call/contacts/info/oauth-callback) — new main-app-only screens (calendars, brand-kits, delivery-projects, marketing-strategist, etc.) are not dialer surfaces and intentionally omitted",
+      "sourceSha256": "16829db5f2e82007bdfdfefe75f76bef2f26fbbb4c701490380c1c91fe81bce6"
     },
     {
       "standalone": "app/oauth-callback.tsx",
@@ -273,11 +273,11 @@
     },
     {
       "path": "app/(tabs)/dialer.tsx",
-      "note": "dialer keypad screen (with suggestions empty-state); the main app removed its app/dialer.tsx \u2014 this standalone is now the sole home of the mobile dialer surface"
+      "note": "dialer keypad screen (with suggestions empty-state); the main app removed its app/dialer.tsx — this standalone is now the sole home of the mobile dialer surface"
     },
     {
       "path": "app/(tabs)/contacts.tsx",
-      "note": "contacts list screen; the main app removed its app/contacts/ screens \u2014 device import goes through lib/deviceContacts.ts"
+      "note": "contacts list screen; the main app removed its app/contacts/ screens — device import goes through lib/deviceContacts.ts"
     },
     {
       "path": "app/dialer-profile.tsx",
@@ -337,7 +337,7 @@
     },
     {
       "path": "lib/eventsLocation.ts",
-      "note": "Single saved 'my location' anchoring Events near-me filtering + nearby-event alerts, set via device GPS or the shared MapPickerModal (the dialer's existing location-picker UI) \u2014 one location concept in this app, not a separate store; the main app has no equivalent single-location concept"
+      "note": "Single saved 'my location' anchoring Events near-me filtering + nearby-event alerts, set via device GPS or the shared MapPickerModal (the dialer's existing location-picker UI) — one location concept in this app, not a separate store; the main app has no equivalent single-location concept"
     },
     {
       "path": "app/(tabs)/events.tsx",
@@ -345,7 +345,7 @@
     },
     {
       "path": "app/events/[alias].tsx",
-      "note": "Event detail/RSVP/buy/interest screen adapted from the main app's app/events/[alias].tsx to this app's auth context field names (user.display_name) and colors; adds an in-app RsvpWebViewModal (embeds the existing public /{alias}/rsvp page) for non-ticketed events since there is no JSON RSVP API \u2014 otherwise the same hashtags/gallery/info-sections/interest UI"
+      "note": "Event detail/RSVP/buy/interest screen adapted from the main app's app/events/[alias].tsx to this app's auth context field names (user.display_name) and colors; adds an in-app RsvpWebViewModal (embeds the existing public /{alias}/rsvp page) for non-ticketed events since there is no JSON RSVP API — otherwise the same hashtags/gallery/info-sections/interest UI"
     },
     {
       "path": "hooks/useNearbyEventAlerts.ts",
