@@ -30,3 +30,16 @@ fallback only appears when the rich page can't render.
 fallback depend on DB/Vite/site layout. `response()->view()` renders eagerly
 (Illuminate Response::setContent calls Renderable::render), so a throwing error
 view IS caught inside `renderHttpException`'s try.
+
+**Non-prod guarantee (July 2026):** outside production there is no view-level
+net, so every DB-touching layout partial must individually tolerate missing
+tables. Locked in by `tests/Feature/ErrorPagesResilienceTest.php` — swaps the
+default connection to an EMPTY in-memory SQLite DB (no RefreshDatabase) and
+renders each error status. Gotchas found that way: (1) throwaway test routes
+must be TWO-segment paths or the `/{alias}` catch-all swallows them and you get
+the non-prod "Setup required" 503 from the missing-table QueryException
+renderer in `bootstrap/app.php`; (2) cache-fallback patterns like
+`catch { return $query(); }` (Domain::platformDomainIds) re-throw on a missing
+table — the direct-query retry needs its own `DatabaseErrors::isMissingTable`
+guard, since alias/brand-domain resolution runs on EVERY request including
+while rendering the error page itself.

@@ -5,7 +5,9 @@ namespace App\Modules\User\Models;
 
 use App\Modules\User\Concerns\BelongsToWorkspace;
 use App\Modules\Admin\Models\Plan;
+use App\Modules\Common\Support\DatabaseErrors;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
@@ -70,8 +72,27 @@ protected $fillable = [
         $query = fn () => static::query()->whereNull('user_id')->pluck('id')->all();
         try {
             return Cache::remember(self::PLATFORM_IDS_CACHE_KEY, 600, $query);
+        } catch (QueryException $e) {
+            // The domains table itself is missing (un-migrated / broken DB).
+            // This runs on every request via alias/brand-domain resolution —
+            // including while RENDERING an error page for that same broken DB
+            // — so degrade to "no platform domains" instead of cascading into
+            // a 500.
+            if (DatabaseErrors::isMissingTable($e)) {
+                return [];
+            }
+            throw $e;
         } catch (\Throwable $e) {
-            return $query();
+            // Cache store unavailable — fall back to a direct query, but keep
+            // the same missing-table tolerance for the retry.
+            try {
+                return $query();
+            } catch (QueryException $e2) {
+                if (DatabaseErrors::isMissingTable($e2)) {
+                    return [];
+                }
+                throw $e2;
+            }
         }
     }
 
