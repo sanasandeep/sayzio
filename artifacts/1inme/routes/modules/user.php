@@ -1372,10 +1372,17 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::post('contacts/import/cancel/{token}',       [ContactController::class, 'importCancel'])->middleware('workspace.can:settings.edit')->name('contacts.import.cancel');
         Route::get('contacts/import/{import}',              [ContactController::class, 'importShow'])->middleware('workspace.can:settings.view')->name('contacts.import.show');
         Route::get('contacts/import/{import}/status',       [ContactController::class, 'importStatus'])->middleware('workspace.can:settings.view')->name('contacts.import.status');
+        // Tags autocomplete endpoint (GET, JSON). Registered before the
+        // {contact} wildcard so the literal "tags" segment isn't captured.
+        Route::get('contacts/tags',                         [ContactController::class, 'allTags'])->middleware('workspace.can:settings.view')->name('contacts.tags');
+
         Route::get('contacts/{contact}',                    [ContactController::class, 'show'])->middleware('workspace.can:settings.view')->name('contacts.show');
         Route::get('contacts/{contact}/edit',               [ContactController::class, 'edit'])->middleware('workspace.can:settings.edit')->name('contacts.edit');
         Route::put('contacts/{contact}',                    [ContactController::class, 'update'])->middleware('workspace.can:settings.edit')->name('contacts.update');
         Route::delete('contacts/{contact}',                 [ContactController::class, 'destroy'])->middleware('workspace.can:settings.edit')->name('contacts.destroy');
+        // Inline quick-patch endpoints for the show-page AJAX editors.
+        Route::patch('contacts/{contact}/notes',            [ContactController::class, 'updateNotes'])->middleware('workspace.can:settings.edit')->name('contacts.notes.update');
+        Route::patch('contacts/{contact}/tags',             [ContactController::class, 'updateTags'])->middleware('workspace.can:settings.edit')->name('contacts.tags.update');
         Route::post('contacts/{contact}/biolink/detach',    [ContactController::class, 'detachBiolink'])->middleware('workspace.can:settings.edit')->name('contacts.biolink.detach');
         Route::post('contacts/{contact}/biolink/attach',    [ContactController::class, 'attachBiolink'])->middleware('workspace.can:settings.edit')->name('contacts.biolink.attach');
         Route::post('contacts/{contact}/biolink/sms',       [ContactController::class, 'smsBiolink'])->middleware('workspace.can:settings.edit')->name('contacts.biolink.sms');

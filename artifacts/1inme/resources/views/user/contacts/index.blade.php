@@ -157,7 +157,7 @@
                 @endif
             </div>
             <div class="card-premium p-5"
-                 x-data="contactsSearch({ index: '{{ route('user.contacts.index') }}', tab: '{{ $tab }}', q: @js($search) })">
+                 x-data="contactsSearch({ index: '{{ route('user.contacts.index') }}', tab: '{{ $tab }}', q: @js($search), initTag: @js($tag ?? '') })">
                 <div class="flex flex-wrap items-center gap-3 mb-4">
                     <div class="inline-flex rounded-xl p-1" style="background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);">
                         <button type="button" @click="setTab('all')"
@@ -185,6 +185,17 @@
                     </div>
                 </div>
 
+                {{-- Active tag filter chip --}}
+                <div x-show="tag !== ''" x-cloak class="flex items-center gap-2 mb-3 flex-wrap">
+                    <span class="text-[11px] font-semibold uppercase tracking-wider" style="color:var(--text-faint);">Filtered by tag:</span>
+                    <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium"
+                          style="background:rgba(61,107,255,.18);color:#90acff;border:1px solid rgba(61,107,255,.28);">
+                        <i class="fas fa-tag text-[9px]"></i>
+                        <span x-text="tag"></span>
+                        <button type="button" @click="clearTag()" class="ml-0.5 opacity-70 hover:opacity-100 leading-none">&times;</button>
+                    </span>
+                </div>
+
                 <div id="contacts-list" x-ref="list" :class="loading ? 'opacity-60 transition-opacity' : 'transition-opacity'">
                     @include('user.contacts._list')
                 </div>
@@ -200,6 +211,7 @@ function contactsSearch(cfg) {
         indexUrl: cfg.index,
         tab: cfg.tab || 'all',
         q: cfg.q || '',
+        tag: cfg.initTag || '',
         loading: false,
         _t: null,
         _seq: 0,
@@ -218,6 +230,14 @@ function contactsSearch(cfg) {
                     this.reload(u.searchParams.get('page') || '1');
                 } catch (_) { this.reload('1'); }
             });
+
+            // Tag-filter links emitted by _list.blade.php have data-tag-filter attributes.
+            this.$refs.list.addEventListener('click', (e) => {
+                const btn = e.target.closest('[data-tag-filter]');
+                if (!btn || !this.$refs.list.contains(btn)) return;
+                e.preventDefault();
+                this.setTag(btn.getAttribute('data-tag-filter'));
+            });
         },
 
         onInput() {
@@ -231,10 +251,21 @@ function contactsSearch(cfg) {
             this.reload('1');
         },
 
+        setTag(tag) {
+            this.tag = (tag || '').trim();
+            this.reload('1');
+        },
+
+        clearTag() {
+            this.tag = '';
+            this.reload('1');
+        },
+
         buildUrl(page) {
             const params = new URLSearchParams();
             params.set('tab', this.tab);
             if ((this.q || '').trim() !== '') params.set('q', this.q.trim());
+            if ((this.tag || '').trim() !== '') params.set('tag', this.tag.trim());
             if (page && page !== '1') params.set('page', page);
             const qs = params.toString();
             return this.indexUrl + (qs ? ('?' + qs) : '');

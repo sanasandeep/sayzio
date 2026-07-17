@@ -94,6 +94,17 @@
                         <div class="text-xs truncate" style="color:var(--text-muted);">
                             {{ $c->phones->first()?->value ?? $c->emails->first()?->value ?? '—' }}
                         </div>
+                        @if(!empty($c->tags))
+                            <div class="flex flex-wrap gap-1 mt-1">
+                                @foreach(array_slice((array)$c->tags, 0, 3) as $tag)
+                                    <span class="px-1.5 py-0.5 rounded-full text-[10px] font-medium"
+                                          style="background:rgba(61,107,255,.12);color:#90acff;border:1px solid rgba(61,107,255,.18);">{{ $tag }}</span>
+                                @endforeach
+                                @if(count((array)$c->tags) > 3)
+                                    <span class="px-1.5 py-0.5 rounded-full text-[10px] font-medium" style="color:var(--text-faint);">+{{ count((array)$c->tags) - 3 }}</span>
+                                @endif
+                            </div>
+                        @endif
                     </div>
                     <i class="fas fa-chevron-right text-[10px] opacity-40"></i>
                 </a>

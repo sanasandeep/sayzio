@@ -83,6 +83,11 @@ class ContactController extends Controller
             });
         }
 
+        // Tag filter — `?tag=value` returns only contacts that carry this tag.
+        if ($tag = $request->string('tag')->toString()) {
+            $q->whereJsonContains('tags', $tag);
+        }
+
         $page = $q->orderBy('display_name')
             ->paginate(min(200, max(1, (int) $request->input('per_page', 50))));
 
@@ -620,6 +625,7 @@ class ContactController extends Controller
             'organization' => $c->organization,
             'job_title'    => $c->job_title,
             'notes'        => $c->notes,
+            'tags'         => $c->tags ?? [],
             'emails'       => $c->emails->map(fn ($e) => [
                 'id' => $e->id, 'label' => $e->label, 'value' => $e->value, 'is_primary' => (bool) $e->is_primary,
             ])->values()->all(),
@@ -748,7 +754,51 @@ class ContactController extends Controller
         return $this->ok(['contact' => $this->transform($c->fresh(['phones', 'emails']))]);
     }
 
-    /** Clear a scheduled follow-up reminder without firing it. */
+    /**
+     * Return the authenticated user's distinct contact tags for autocomplete.
+     */
+    public function allTags(Request $request): \Illuminate\Http\JsonResponse
+    {
+        $rows = Contact::where('user_id', $request->user()->id)
+            ->whereNotNull('tags')
+            ->pluck('tags');
+
+        $tags = $rows->flatMap(fn ($t) => (array) $t)
+            ->filter(fn ($t) => is_string($t) && $t !== '')
+            ->unique()
+            ->sort()
+            ->values()
+            ->all();
+
+        return $this->ok(['tags' => $tags]);
+    }
+
+    /**
+     * Quick PATCH — update the notes field only.
+     */
+    public function updateNotes(Request $request, int $id): \Illuminate\Http\JsonResponse
+    {
+        $contact = Contact::where('user_id', $request->user()->id)->findOrFail($id);
+        $v = $request->validate(['notes' => ['nullable', 'string', 'max:5000']]);
+        $contact->update(['notes' => $v['notes'] ?? null]);
+        return $this->ok($this->transform($contact->fresh()));
+    }
+
+    /**
+     * Quick PATCH — replace the tags list for this contact.
+     */
+    public function updateTags(Request $request, int $id): \Illuminate\Http\JsonResponse
+    {
+        $contact = Contact::where('user_id', $request->user()->id)->findOrFail($id);
+        $v = $request->validate([
+            'tags'   => ['nullable', 'array', 'max:50'],
+            'tags.*' => ['required', 'string', 'max:80'],
+        ]);
+        $tags = array_values(array_unique(array_filter((array) ($v['tags'] ?? []), fn ($t) => $t !== '')));
+        $contact->update(['tags' => $tags ?: null]);
+        return $this->ok($this->transform($contact->fresh()));
+    }
+
     public function clearFollowUp(Request $request, int $id)
     {
         $c = Contact::where('user_id', $request->user()->id)->find($id);

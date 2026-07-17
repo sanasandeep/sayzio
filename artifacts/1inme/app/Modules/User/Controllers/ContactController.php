@@ -49,11 +49,17 @@ class ContactController extends Controller
         // The contacts address book is account-wide (matching the dialer
         // finder and the Sanctum/mobile API), so opt out of the workspace
         // global scope; the user_id predicate still scopes to the owner.
+        $tag  = trim((string) $request->query('tag', ''));
+
         $query = Contact::withoutGlobalScope('workspace')
             ->where('user_id', $user->id)
             ->with(['phones', 'emails', 'biolinkUser']);
 
         if ($tab === 'biolink') $query->whereNotNull('biolink_user_id');
+        if ($tag !== '') {
+            // Filter contacts that include the requested tag in their JSON tags array.
+            $query->whereJsonContains('tags', $tag);
+        }
         if ($search !== '') {
             $needle = '%' . $search . '%';
             $phoneNeedle = '%' . ContactPhone::normalize($search) . '%';
@@ -112,10 +118,10 @@ class ContactController extends Controller
         // Live as-you-type search / tab switch / pagination fetch just the list
         // body so the page never reloads. The full page is returned otherwise.
         if ($request->ajax()) {
-            return view('user.contacts._list', compact('contacts', 'tab', 'search', 'sharedContacts', 'currentWorkspace'));
+            return view('user.contacts._list', compact('contacts', 'tab', 'search', 'tag', 'sharedContacts', 'currentWorkspace'));
         }
 
-        return view('user.contacts.index', compact('contacts', 'tab', 'search', 'googleAccount', 'stats', 'usage', 'activeImport', 'sharedContacts', 'currentWorkspace'));
+        return view('user.contacts.index', compact('contacts', 'tab', 'search', 'tag', 'googleAccount', 'stats', 'usage', 'activeImport', 'sharedContacts', 'currentWorkspace'));
     }
 
     /**
@@ -164,6 +170,7 @@ class ContactController extends Controller
         $v = $this->validatePayload($request);
 
         $contact = DB::transaction(function () use ($user, $v, $request) {
+            $tags = array_values(array_unique(array_filter((array) ($v['tags'] ?? []), fn ($t) => $t !== '')));
             $contact = Contact::create([
                 'user_id'      => $user->id,
                 'display_name' => $v['display_name'] ?: trim(($v['given_name'] ?? '') . ' ' . ($v['family_name'] ?? '')),
@@ -172,6 +179,7 @@ class ContactController extends Controller
                 'organization' => $v['organization'] ?? null,
                 'job_title'    => $v['job_title'] ?? null,
                 'notes'        => $v['notes'] ?? null,
+                'tags'         => $tags ?: null,
                 'photo_path'   => $request->hasFile('photo') ? $request->file('photo')->store('contact-photos', 'public') : null,
                 'locally_modified_at' => now(),
             ]);
@@ -216,6 +224,7 @@ class ContactController extends Controller
         $v = $this->validatePayload($request);
 
         DB::transaction(function () use ($contact, $v, $request) {
+            $tags = array_values(array_unique(array_filter((array) ($v['tags'] ?? []), fn ($t) => $t !== '')));
             $payload = [
                 'display_name' => $v['display_name'] ?: trim(($v['given_name'] ?? '') . ' ' . ($v['family_name'] ?? '')),
                 'given_name'   => $v['given_name'] ?? null,
@@ -223,6 +232,7 @@ class ContactController extends Controller
                 'organization' => $v['organization'] ?? null,
                 'job_title'    => $v['job_title'] ?? null,
                 'notes'        => $v['notes'] ?? null,
+                'tags'         => $tags ?: null,
             ];
             if ($request->boolean('remove_photo') && $contact->photo_path) {
                 Storage::disk('public')->delete($contact->photo_path);
@@ -333,6 +343,60 @@ class ContactController extends Controller
             return response()->json(['data' => ['follow_up_at' => $contact->follow_up_at->toIso8601String(), 'follow_up_note' => $contact->follow_up_note, 'follow_up_tz' => $contact->follow_up_tz]]);
         }
         return back()->with('success', 'Follow-up reminder set.');
+    }
+
+    /**
+     * Return the authenticated user's distinct contact tags for autocomplete.
+     * Returns an alphabetically-sorted unique list. Only tags that already
+     * exist on at least one of their contacts are returned; there is no
+     * global tag library.
+     */
+    public function allTags(Request $request): \Illuminate\Http\JsonResponse
+    {
+        $user = $request->user();
+        $rows = Contact::withoutGlobalScope('workspace')
+            ->where('user_id', $user->id)
+            ->whereNotNull('tags')
+            ->pluck('tags');
+
+        $tags = $rows->flatMap(fn ($t) => (array) $t)
+            ->filter(fn ($t) => is_string($t) && $t !== '')
+            ->unique()
+            ->sort()
+            ->values()
+            ->all();
+
+        return response()->json(['data' => $tags]);
+    }
+
+    /**
+     * Quick inline-patch for the notes field only — used by the show page
+     * AJAX editor so the user never has to leave the contact detail view.
+     * Accepts `notes` (nullable) and returns the fresh value.
+     */
+    public function updateNotes(Request $request, Contact $contact): \Illuminate\Http\JsonResponse
+    {
+        abort_if($contact->user_id !== workspace_owner_id(), 403);
+        $v = $request->validate(['notes' => ['nullable', 'string', 'max:5000']]);
+        $contact->update(['notes' => $v['notes'] ?? null]);
+        return response()->json(['data' => ['notes' => $contact->notes]]);
+    }
+
+    /**
+     * Quick inline-patch for the tags field — replaces the tag list with the
+     * submitted array. Used by the tag chip editor on the show page and the
+     * list-row tag management UI.
+     */
+    public function updateTags(Request $request, Contact $contact): \Illuminate\Http\JsonResponse
+    {
+        abort_if($contact->user_id !== workspace_owner_id(), 403);
+        $v = $request->validate([
+            'tags'   => ['nullable', 'array', 'max:50'],
+            'tags.*' => ['required', 'string', 'max:80'],
+        ]);
+        $tags = array_values(array_unique(array_filter((array) ($v['tags'] ?? []), fn ($t) => $t !== '')));
+        $contact->update(['tags' => $tags ?: null]);
+        return response()->json(['data' => ['tags' => $contact->fresh()->tags ?? []]]);
     }
 
     /** Clear a scheduled follow-up reminder without firing it. */
@@ -1133,6 +1197,8 @@ class ContactController extends Controller
             'organization' => 'nullable|string|max:191',
             'job_title'    => 'nullable|string|max:191',
             'notes'        => 'nullable|string|max:5000',
+            'tags'         => 'nullable|array|max:50',
+            'tags.*'       => 'nullable|string|max:80',
             'photo'        => 'nullable|image|max:5120',
             'phones'                 => 'nullable|array|max:10',
             'phones.*.label'         => 'nullable|string|max:50',

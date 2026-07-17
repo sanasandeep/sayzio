@@ -94,6 +94,40 @@
     <textarea name="notes" rows="3" class="w-full px-3 py-2 rounded-lg text-sm" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.10);color:var(--text-primary);">{{ old('notes', $contact?->notes) }}</textarea>
 </div>
 
+<div class="mt-5"
+     x-data="tagChipInput({ existing: @js(old('tags', $contact?->tags ?? [])), suggestions: [] })"
+     x-init="loadSuggestions()">
+    <label class="block text-xs font-semibold mb-1.5" style="color:var(--text-muted);">Tags</label>
+    <div class="flex flex-wrap gap-1.5 mb-2">
+        <template x-for="(tag, i) in tags" :key="i">
+            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium"
+                  style="background:rgba(61,107,255,.15);color:#90acff;border:1px solid rgba(61,107,255,.25);">
+                <span x-text="tag"></span>
+                <button type="button" @click="removeTag(i)" class="opacity-60 hover:opacity-100 leading-none">&times;</button>
+                <input type="hidden" :name="'tags[' + i + ']'" :value="tag">
+            </span>
+        </template>
+    </div>
+    <div class="relative">
+        <input type="text" x-model="input" @keydown.enter.prevent="addFromInput()"
+               @keydown.comma.prevent="addFromInput()"
+               @keydown.backspace="onBackspace()"
+               @input="filterSuggestions()" @focus="filterSuggestions()" @blur.window="showDropdown = false"
+               placeholder="Add tag…"
+               class="w-full px-3 py-2 rounded-lg text-sm" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.10);color:var(--text-primary);">
+        <div x-show="showDropdown && filtered.length" x-cloak
+             class="absolute left-0 z-20 mt-1 w-full rounded-xl shadow-xl overflow-hidden"
+             style="background:var(--surface-2,#1a1d2e);border:1px solid rgba(255,255,255,.12);">
+            <template x-for="s in filtered" :key="s">
+                <button type="button" @mousedown.prevent="addTag(s)"
+                        class="w-full text-left px-3 py-2 text-xs hover:brightness-125 transition"
+                        style="color:var(--text-primary);background:rgba(255,255,255,.03);" x-text="s"></button>
+            </template>
+        </div>
+    </div>
+    <p class="text-[11px] mt-1" style="color:var(--text-faint);">Press Enter or comma to add. Click &times; to remove.</p>
+</div>
+
 <div class="mt-5">
     <label class="block text-xs font-semibold mb-1.5" style="color:var(--text-muted);">Photo</label>
     @if($contact && $contact->photoUrl())
@@ -106,6 +140,55 @@
     @endif
     <input type="file" name="photo" accept="image/*" class="text-xs" style="color:var(--text-muted);">
 </div>
+
+<script>
+function tagChipInput(cfg) {
+    return {
+        tags: (cfg.existing || []).filter(Boolean),
+        suggestions: cfg.suggestions || [],
+        input: '',
+        filtered: [],
+        showDropdown: false,
+
+        loadSuggestions() {
+            fetch('{{ route("user.contacts.tags") }}', {
+                headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' },
+            }).then(r => r.json()).then(d => {
+                this.suggestions = d.data || [];
+            }).catch(() => {});
+        },
+
+        addFromInput() {
+            const v = this.input.replace(/,/g, '').trim();
+            if (v) this.addTag(v);
+        },
+
+        addTag(tag) {
+            tag = tag.trim();
+            if (!tag || this.tags.includes(tag)) { this.input = ''; this.showDropdown = false; return; }
+            this.tags.push(tag);
+            this.input = '';
+            this.showDropdown = false;
+        },
+
+        removeTag(i) {
+            this.tags.splice(i, 1);
+        },
+
+        onBackspace() {
+            if (this.input === '' && this.tags.length) this.tags.pop();
+        },
+
+        filterSuggestions() {
+            const q = this.input.trim().toLowerCase();
+            this.filtered = this.suggestions.filter(s =>
+                (!q || s.toLowerCase().includes(q)) && !this.tags.includes(s)
+            ).slice(0, 8);
+            this.showDropdown = this.filtered.length > 0;
+        },
+    };
+}
+</script>
 
 <style>
 html.light-mode #phones-list .phone-cc-select,

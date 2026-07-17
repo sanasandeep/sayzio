@@ -904,6 +904,7 @@ Route::prefix('v1')->group(function () {
 
         // Contacts
         Route::get   ('/contacts',                  [ContactController::class, 'index']);
+        Route::get   ('/contacts/tags',             [ContactController::class, 'allTags']);
         Route::get   ('/contacts/follow-ups',       [ContactController::class, 'followUps']);
         Route::get   ('/contacts/follow-ups/count', [ContactController::class, 'followUpsCount']);
         Route::post  ('/contacts',                  [ContactController::class, 'store'])->middleware('throttle:120,1');
@@ -918,6 +919,8 @@ Route::prefix('v1')->group(function () {
         Route::delete('/contacts/{id}/follow-up',   [ContactController::class, 'clearFollowUp'])->whereNumber('id');
         Route::post  ('/contacts/{id}/share',       [ContactController::class, 'share'])->whereNumber('id');
         Route::delete('/contacts/{id}/share',       [ContactController::class, 'unshare'])->whereNumber('id');
+        Route::patch ('/contacts/{id}/notes',       [ContactController::class, 'updateNotes'])->whereNumber('id');
+        Route::patch ('/contacts/{id}/tags',        [ContactController::class, 'updateTags'])->whereNumber('id');
         Route::delete('/contacts/{id}',             [ContactController::class, 'destroy'])->whereNumber('id');
 
         // Contacts — Google Contacts sync
