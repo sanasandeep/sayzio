@@ -499,6 +499,9 @@ class ContactController extends Controller
         return $this->created([
             'contact'      => $this->transform($contact->fresh(['phones', 'emails'])),
             'duplicate_of' => $v->duplicateOf, // surfaced for non-strict callers
+            // Cheap targeted per-contact check so mobile can surface the same
+            // "possible duplicate" notice the web flash shows after a save.
+            'has_duplicate' => $this->detector->contactHasDuplicate($contact->user_id, $contact->id),
         ]);
     }
 
@@ -642,7 +645,13 @@ class ContactController extends Controller
         // Immediately mirror the edit to Google (best-effort).
         $this->pushToGoogleSafely($request->user()->id, $contact);
 
-        return $this->ok(['contact' => $this->transform($contact->fresh(['phones', 'emails']))]);
+        return $this->ok([
+            'contact' => $this->transform($contact->fresh(['phones', 'emails'])),
+            // Same duplicate signal the web update flash surfaces, so the
+            // mobile edit flow can prompt a review after a save that makes
+            // this contact match an existing one.
+            'has_duplicate' => $this->detector->contactHasDuplicate($contact->user_id, $contact->id),
+        ]);
     }
 
     public function destroy(Request $request, int $id)

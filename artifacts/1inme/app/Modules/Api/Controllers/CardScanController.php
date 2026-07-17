@@ -308,6 +308,11 @@ class CardScanController extends Controller
             $payload['contact'] = [
                 'id'           => $contact->id,
                 'display_name' => $contact->display_name,
+                // Cheap targeted per-contact check so the app can surface a
+                // "possible duplicate" notice right after the save, mirroring
+                // the web flash message.
+                'has_duplicate' => app(\App\Modules\User\Services\Contacts\ContactDuplicateDetector::class)
+                    ->contactHasDuplicate($contact->user_id, $contact->id),
             ];
         }
         if ($draft) {

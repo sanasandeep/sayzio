@@ -160,12 +160,12 @@ export async function saveCardScan(
   scanId: number,
   payload: SaveCardScanPayload,
 ): Promise<{
-  contact?: { id: number; display_name: string };
+  contact?: { id: number; display_name: string; has_duplicate?: boolean };
   biolink?: { draft_id: number; category: string; answers: Record<string, unknown> };
 }> {
   const res = await apiFetch<{
     data: {
-      contact?: { id: number; display_name: string };
+      contact?: { id: number; display_name: string; has_duplicate?: boolean };
       biolink?: { draft_id: number; category: string; answers: Record<string, unknown> };
     };
   }>(`/card-scans/${scanId}/save`, {

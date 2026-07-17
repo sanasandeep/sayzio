@@ -1,4 +1,5 @@
 import { Feather } from "@expo/vector-icons";
+import { useQueryClient } from "@tanstack/react-query";
 import * as ImagePicker from "expo-image-picker";
 import { Stack, useRouter } from "expo-router";
 import { useState } from "react";
@@ -36,6 +37,7 @@ type PickedFile = {
 export default function CardScanScreen() {
   const colors = useColors();
   const router = useRouter();
+  const qc = useQueryClient();
 
   const [files, setFiles] = useState<PickedFile[]>([]);
   const [instruction, setInstruction] = useState("");
@@ -150,6 +152,31 @@ export default function CardScanScreen() {
       }
 
       if (opts.createContact && result.contact) {
+        // Freshly-saved contacts (and any new duplicate they create) should
+        // show up immediately on the contacts screen and its banner.
+        qc.invalidateQueries({ queryKey: ["contacts"] });
+        qc.invalidateQueries({ queryKey: ["contact-duplicate-count"] });
+
+        if (result.contact.has_duplicate) {
+          // Same notice the web flash shows: the save made this contact
+          // match an existing one — offer a jump to the review screen.
+          showAlert(
+            "Possible duplicate",
+            `"${result.contact.display_name}" was saved, but it looks like a duplicate of an existing contact.`,
+            [
+              { text: "Not now", style: "cancel", onPress: () => router.back() },
+              {
+                text: "Review duplicates",
+                onPress: () => {
+                  router.back();
+                  router.push("/contact-duplicates" as never);
+                },
+              },
+            ],
+          );
+          return;
+        }
+
         showAlert(
           "Contact saved",
           `"${result.contact.display_name}" has been added to your contacts.`,
