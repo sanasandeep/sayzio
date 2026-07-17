@@ -1,0 +1,267 @@
+// Source-driven test for the silent background contacts auto-sync
+// (hooks/useContactAutoSync.ts, mounted via ContactAutoSync in app/_layout.tsx).
+//
+// The hook silently re-imports the device address book on app start and on
+// every foreground resume while signed in and unlocked. Because it runs with
+// no UI at all, a regression here is invisible in manual testing: it could
+// start prompting for permission (requestPermission drifting to true), hammer
+// the device/API (throttle or single-flight guard lost), refresh screens on a
+// FAILED import, or start showing alerts.
+//
+// Following the source-driven convention (test-plans-foreground-refresh.mjs)
+// this lifts the REAL effect body out of the shipped hook and drives it
+// against a mock query client, a mock AppState, a controllable clock, and a
+// mock importDeviceContacts, asserting:
+//   1. importDeviceContacts is ALWAYS called with requestPermission: false
+//      (the manual Contacts-screen import stays the only prompting path).
+//   2. The 60s throttle holds: a foreground bounce within a minute of the
+//      last run does nothing; after the minute a resume re-syncs.
+//   3. The single-flight guard holds: a resume while an import is still
+//      in flight never starts a second concurrent import.
+//   4. ["contacts"] and ["contact-duplicate-count"] are invalidated only on a
+//      successful import — not on { ok: false }, not on a thrown error, and
+//      not after the effect was cleaned up (unmounted).
+//   5. No alert is ever shown (the hook source never references Alert).
+//   6. enabled=false means no sync and no AppState listener at all.
+//
+// Run via `node scripts/test-contact-auto-sync.mjs` (package script
+// `test:contact-auto-sync`).
+
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { dirname, join } from "node:path";
+import { runExtractedCall } from "./lib/extract.mjs";
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const hookSrc = readFileSync(
+  join(__dirname, "..", "hooks", "useContactAutoSync.ts"),
+  "utf8",
+);
+const layoutSrc = readFileSync(
+  join(__dirname, "..", "app", "_layout.tsx"),
+  "utf8",
+);
+
+let passed = 0;
+function ok(label) {
+  passed += 1;
+  console.log(`  ok — ${label}`);
+}
+
+// ===========================================================================
+// Static source guards
+// ===========================================================================
+console.log("[test-contact-auto-sync] static source guards");
+
+// The silent path must never prompt: the ONLY importDeviceContacts call in the
+// hook passes requestPermission: false.
+const importCalls = hookSrc.match(/importDeviceContacts\(([^)]*)\)/g) ?? [];
+assert.ok(importCalls.length >= 1, "hook must call importDeviceContacts");
+for (const call of importCalls) {
+  assert.ok(
+    /requestPermission:\s*false/.test(call),
+    `every importDeviceContacts call in the hook must pass requestPermission: false — got ${call}`,
+  );
+}
+ok("hook only ever calls importDeviceContacts with requestPermission: false");
+
+// Truly silent: no Alert anywhere in the hook.
+assert.ok(
+  !/\bAlert\b/.test(hookSrc),
+  "the silent auto-sync hook must never import or use Alert",
+);
+ok("hook never references Alert (fully silent)");
+
+// The throttle constant the behavioural model below relies on.
+assert.ok(
+  /const MIN_INTERVAL_MS = 60_?000;/.test(hookSrc),
+  "the throttle interval must stay at 60 seconds (MIN_INTERVAL_MS = 60_000)",
+);
+ok("60s throttle constant present");
+
+// Root layout wiring: the hook is mounted via ContactAutoSync, gated on a
+// signed-in, unlocked session.
+assert.ok(
+  /import \{ useContactAutoSync \} from "@\/hooks\/useContactAutoSync"/.test(
+    layoutSrc,
+  ),
+  "_layout.tsx must import the useContactAutoSync hook",
+);
+assert.ok(
+  /useContactAutoSync\(Boolean\(user && token && !locked\)\)/.test(layoutSrc),
+  "ContactAutoSync must enable the sync only when signed in AND unlocked",
+);
+assert.ok(
+  /<ContactAutoSync \/>/.test(layoutSrc),
+  "_layout.tsx must actually mount <ContactAutoSync />",
+);
+ok("root layout mounts ContactAutoSync gated on user && token && !locked");
+
+// ===========================================================================
+// Lift the REAL effect body and drive it against mocks.
+// ===========================================================================
+console.log("[test-contact-auto-sync] behavioural checks on the lifted effect");
+
+function loadEffectBody() {
+  const m = hookSrc.match(
+    /useEffect\((\(\) => \{[\s\S]*?\n {2}\}), \[enabled, qc\]\);/,
+  );
+  assert.ok(m, "could not find the useEffect body in useContactAutoSync.ts");
+  return m[1];
+}
+const effectBody = loadEffectBody();
+
+// Harness: mount the lifted effect with a controllable clock, AppState, and
+// import outcome. Returns handles to advance time, fire foreground events,
+// resolve pending imports, and inspect calls/invalidations.
+function mount({ enabled = true } = {}) {
+  const state = {
+    now: 0,
+    importCalls: [],
+    invalidated: [],
+    listeners: [],
+    removed: 0,
+    // Each import call pushes a deferred here; tests resolve them explicitly.
+    pending: [],
+  };
+
+  const scope = {
+    enabled,
+    running: { current: false },
+    lastRun: { current: -60_000 }, // far enough back that the mount sync runs at t=0
+    MIN_INTERVAL_MS: 60_000,
+    Date: { now: () => state.now },
+    qc: {
+      invalidateQueries: ({ queryKey }) => state.invalidated.push(queryKey),
+    },
+    importDeviceContacts: (opts) => {
+      state.importCalls.push(opts);
+      return new Promise((resolve, reject) => {
+        state.pending.push({ resolve, reject });
+      });
+    },
+    AppState: {
+      addEventListener: (event, cb) => {
+        assert.equal(event, "change", "hook must listen to AppState 'change'");
+        state.listeners.push(cb);
+        return {
+          remove: () => {
+            state.removed += 1;
+          },
+        };
+      },
+    },
+  };
+
+  const effect = runExtractedCall(`(${effectBody})`, scope, "useEffect", {
+    test: "test-contact-auto-sync",
+  });
+  state.cleanup = effect();
+  state.foreground = (appState = "active") => {
+    for (const cb of state.listeners) cb(appState);
+  };
+  return state;
+}
+
+const tick = () => new Promise((r) => setImmediate(r));
+
+// --- disabled: nothing happens at all --------------------------------------
+{
+  const h = mount({ enabled: false });
+  await tick();
+  assert.equal(h.importCalls.length, 0, "disabled hook must not import");
+  assert.equal(h.listeners.length, 0, "disabled hook must not listen to AppState");
+  ok("enabled=false: no import, no AppState listener");
+}
+
+// --- happy path: mount sync + invalidation on success -----------------------
+{
+  const h = mount();
+  assert.equal(h.importCalls.length, 1, "must sync once on mount");
+  assert.deepEqual(
+    h.importCalls[0],
+    { requestPermission: false },
+    "runtime call must pass requestPermission: false and nothing else",
+  );
+  h.pending[0].resolve({ ok: true, imported: 3 });
+  await tick();
+  assert.deepEqual(
+    h.invalidated.map((k) => JSON.stringify(k)).sort(),
+    [JSON.stringify(["contact-duplicate-count"]), JSON.stringify(["contacts"])].sort(),
+    "a successful import must invalidate contacts + contact-duplicate-count (and nothing else)",
+  );
+  ok("mount sync runs silently and invalidates both queries on success");
+
+  // --- throttle: bounce within 60s is a no-op -------------------------------
+  h.now = 30_000;
+  h.foreground();
+  await tick();
+  assert.equal(h.importCalls.length, 1, "resume 30s after last run must be throttled");
+  // Non-active states never trigger either.
+  h.now = 120_000;
+  h.foreground("background");
+  h.foreground("inactive");
+  await tick();
+  assert.equal(h.importCalls.length, 1, "only 'active' may trigger a sync");
+  ok("60s throttle holds and only 'active' transitions trigger");
+
+  // --- after the minute a resume re-syncs -----------------------------------
+  h.foreground();
+  await tick();
+  assert.equal(h.importCalls.length, 2, "resume after 60s must re-sync");
+  assert.deepEqual(h.importCalls[1], { requestPermission: false });
+
+  // --- single-flight: resume while in flight never doubles up ---------------
+  h.now = 300_000; // well past the throttle window
+  h.foreground();
+  h.foreground();
+  await tick();
+  assert.equal(
+    h.importCalls.length,
+    2,
+    "a resume while an import is still in flight must not start a second one",
+  );
+  ok("single-flight guard holds while an import is in flight");
+
+  // --- failure paths never invalidate ---------------------------------------
+  h.invalidated.length = 0;
+  h.pending[1].resolve({ ok: false, reason: "denied" });
+  await tick();
+  assert.equal(
+    h.invalidated.length,
+    0,
+    "a failed import ({ ok: false }) must not invalidate any queries",
+  );
+  // Thrown import error: swallowed silently, no invalidation, guard released.
+  h.now = 600_000;
+  h.foreground();
+  await tick();
+  assert.equal(h.importCalls.length, 3, "guard must release after a failed run");
+  h.pending[2].reject(new Error("device exploded"));
+  await tick();
+  assert.equal(
+    h.invalidated.length,
+    0,
+    "a thrown import error must be swallowed with no invalidation",
+  );
+  ok("no invalidation on ok:false or thrown errors; guard releases after each run");
+
+  // --- cleanup: unmount removes the listener and mutes late successes -------
+  h.now = 900_000;
+  h.foreground();
+  await tick();
+  assert.equal(h.importCalls.length, 4);
+  h.cleanup();
+  assert.equal(h.removed, 1, "cleanup must remove the AppState listener");
+  h.pending[3].resolve({ ok: true });
+  await tick();
+  assert.equal(
+    h.invalidated.length,
+    0,
+    "a success that lands after unmount must not invalidate queries",
+  );
+  ok("cleanup removes the listener and late successes after unmount are muted");
+}
+
+console.log(`\n[test-contact-auto-sync] all ${passed} checks passed`);
