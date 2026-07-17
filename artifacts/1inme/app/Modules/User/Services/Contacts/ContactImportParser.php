@@ -14,6 +14,9 @@ class ContactImportParser
      *     'given_name'   => string|null,
      *     'family_name'  => string|null,
      *     'organization' => string|null,
+     *     'job_title'    => string|null,
+     *     'notes'        => string|null,
+     *     'tags'         => string[]|null,   // parsed from a comma-separated string
      *     'phones' => [['label' => ?string, 'value' => string], ...],
      *     'emails' => [['label' => ?string, 'value' => string], ...],
      *     'source_line' => int,    // 1-indexed pointer back into the file
@@ -58,16 +61,40 @@ class ContactImportParser
                 'given_name'   => $get('given_name'),
                 'family_name'  => $get('family_name'),
                 'organization' => $get('organization'),
+                'job_title'    => $get('job_title'),
+                'notes'        => $get('notes'),
+                'tags'         => $this->parseTags($get('tags')),
                 'phones'       => [],
                 'emails'       => [],
                 'source_line'  => $line,
             ];
+
+            // Legacy single-value columns (phone / email) kept for
+            // backward-compat with third-party CSV exports.
             if ($p = $get('phone')) {
                 $row['phones'][] = ['label' => 'Mobile', 'value' => $p];
             }
             if ($e = $get('email')) {
                 $row['emails'][] = ['label' => 'Personal', 'value' => $e];
             }
+
+            // Multi-value numbered columns exported by ContactExportBuilder:
+            // "phone 1", "phone 1 label", "phone 2", "phone 2 label", …
+            for ($n = 1; isset($map["phone_{$n}"]); $n++) {
+                $val   = $get("phone_{$n}");
+                $label = $get("phone_{$n}_label");
+                if ($val !== null) {
+                    $row['phones'][] = ['label' => $label ?: 'Mobile', 'value' => $val];
+                }
+            }
+            for ($n = 1; isset($map["email_{$n}"]); $n++) {
+                $val   = $get("email_{$n}");
+                $label = $get("email_{$n}_label");
+                if ($val !== null) {
+                    $row['emails'][] = ['label' => $label ?: 'Personal', 'value' => $val];
+                }
+            }
+
             $rows[] = $row;
         }
         fclose($handle);
@@ -75,8 +102,9 @@ class ContactImportParser
     }
 
     /**
-     * Map common header variants to canonical keys: name, given_name,
-     * family_name, organization, phone, email.
+     * Map common header variants to canonical keys.
+     * Canonical keys: name, given_name, family_name, organization, job_title,
+     * notes, tags, phone, email, phone_N, phone_N_label, email_N, email_N_label.
      */
     protected function buildHeaderMap(array $header): array
     {
@@ -85,16 +113,31 @@ class ContactImportParser
             'given_name'   => ['first name', 'first', 'given name', 'givenname'],
             'family_name'  => ['last name', 'last', 'surname', 'family name', 'familyname'],
             'organization' => ['organization', 'organisation', 'company', 'org', 'employer'],
+            'job_title'    => ['job title', 'jobtitle', 'title', 'position', 'role'],
+            'notes'        => ['notes', 'note', 'description', 'memo', 'comments'],
+            'tags'         => ['tags', 'tag', 'labels', 'label', 'categories', 'category'],
             'phone'        => ['phone', 'phone number', 'mobile', 'cell', 'telephone', 'tel'],
             'email'        => ['email', 'e-mail', 'email address', 'mail'],
         ];
         $map = [];
         foreach ($header as $i => $h) {
             $norm = strtolower(trim((string) $h));
+            // Standard alias keys.
             foreach ($aliases as $canon => $opts) {
                 if (in_array($norm, $opts, true) && !isset($map[$canon])) {
                     $map[$canon] = $i;
                 }
+            }
+            // Numbered multi-value columns: "phone N", "phone N label",
+            // "email N", "email N label" (N = 1..many).
+            if (preg_match('/^phone\s+(\d+)$/', $norm, $m)) {
+                $map["phone_{$m[1]}"] = $i;
+            } elseif (preg_match('/^phone\s+(\d+)\s+label$/', $norm, $m)) {
+                $map["phone_{$m[1]}_label"] = $i;
+            } elseif (preg_match('/^email\s+(\d+)$/', $norm, $m)) {
+                $map["email_{$m[1]}"] = $i;
+            } elseif (preg_match('/^email\s+(\d+)\s+label$/', $norm, $m)) {
+                $map["email_{$m[1]}_label"] = $i;
             }
         }
         return $map;
@@ -123,6 +166,9 @@ class ContactImportParser
                 'given_name'   => null,
                 'family_name'  => null,
                 'organization' => null,
+                'job_title'    => null,
+                'notes'        => null,
+                'tags'         => null,
                 'phones'       => [],
                 'emails'       => [],
                 'source_line'  => $cursor,
@@ -158,6 +204,18 @@ class ContactImportParser
                         break;
                     case 'ORG':
                         $row['organization'] = trim(explode(';', $value)[0]) ?: null;
+                        break;
+                    case 'TITLE':
+                        $row['job_title'] = trim($value) ?: null;
+                        break;
+                    case 'NOTE':
+                        $row['notes'] = trim(str_replace('\\n', "\n", $value)) ?: null;
+                        break;
+                    case 'CATEGORIES':
+                        $row['tags'] = array_values(array_filter(
+                            array_map('trim', explode(',', $value)),
+                            fn ($t) => $t !== ''
+                        ));
                         break;
                     case 'TEL':
                         if (trim($value) !== '') {
@@ -195,5 +253,16 @@ class ContactImportParser
             if (isset($map[$t])) return $map[$t];
         }
         return $kind === 'phone' ? 'Other' : 'Other';
+    }
+
+    /** Parse a comma/semicolon-separated tags string into a clean array. */
+    private function parseTags(?string $raw): ?array
+    {
+        if ($raw === null) return null;
+        $tags = array_values(array_filter(
+            array_map('trim', preg_split('/[,;]+/', $raw)),
+            fn ($t) => $t !== ''
+        ));
+        return empty($tags) ? null : $tags;
     }
 }

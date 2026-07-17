@@ -144,3 +144,4 @@
 - [EAS Android APK builds](eas-android-build.md) — EXPO_TOKEN robot under account "eefind"; needs EAS_NO_VCS=1 (git blocked), placeholder projectId blocks init, share-intent duplicate appExtensions fatal, run upload via validation workflow.
 - [Throwaway-Expo harness exit](expo-throwaway-harness-exit.md) — manager API is acquireServer (not start/stop); harness must process.exit(0) after PASS or the detached Expo child hangs the run forever.
 - [EC2 deploy pipeline lessons](ec2-deploy-pipeline-lessons.md) — pre-update checkout kills one-run script lag; pin pnpm via packageManager; CI=1 for no-TTY installs; sudo -n needs an in-grant command.
+- [Bulk export pattern (contacts/general)](bulk-export-pattern.md) — async threshold 500; sync=stream; async=ContactExport row+job+polling page; signed URL (temporarySignedRoute) for mobile/no-auth download.

@@ -2,6 +2,7 @@
 
 namespace App\Modules\Api\Controllers;
 
+use App\Jobs\ProcessContactExportJob;
 use App\Jobs\ProcessContactImportJob;
 use App\Modules\Api\Controllers\Concerns\ApiResponses;
 use App\Modules\Common\Services\ContactCandidateValidator;
@@ -9,18 +10,21 @@ use App\Modules\User\Controllers\ContactController as WebContactController;
 use App\Modules\User\Models\Contact;
 use App\Modules\User\Models\ContactDeletionTombstone;
 use App\Modules\User\Models\ContactEmail;
+use App\Modules\User\Models\ContactExport;
 use App\Modules\User\Models\ContactImport;
 use App\Modules\User\Models\ContactPhone;
 use App\Modules\User\Models\GoogleContactsAccount;
 use App\Modules\User\Models\IntegrationConfig;
 use App\Modules\User\Models\Link;
 use App\Modules\User\Services\Contacts\BiolinkAttachResolver;
+use App\Modules\User\Services\Contacts\ContactExportBuilder;
 use App\Modules\User\Services\Contacts\ContactImportParser;
 use App\Modules\User\Services\Contacts\GoogleContactsSyncService;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\URL;
 
 class ContactController extends Controller
 {
@@ -33,6 +37,7 @@ class ContactController extends Controller
         protected BiolinkAttachResolver $resolver,
         protected GoogleContactsSyncService $sync,
         protected ContactImportParser $importParser,
+        protected ContactExportBuilder $exportBuilder,
     ) {}
 
     public function index(Request $request)
@@ -1249,6 +1254,123 @@ class ContactController extends Controller
                 'is_primary' => false,
             ]);
         }
+    }
+
+    // ── bulk export ──────────────────────────────────────────────────────────
+
+    /**
+     * POST /api/v1/contacts/export
+     * Request a bulk export. Small address books are built synchronously and
+     * a signed download URL is returned immediately; large ones are queued.
+     */
+    public function exportRequest(Request $request)
+    {
+        $user = $request->user();
+        $v = $request->validate([
+            'format' => 'required|in:csv,vcf',
+            'scope'  => 'nullable|in:all,filtered',
+            'tab'    => 'nullable|in:all,biolink',
+            'q'      => 'nullable|string|max:255',
+        ]);
+
+        $scopeParam = $v['scope'] ?? 'all';
+        $scope = [];
+        if ($scopeParam === 'filtered') {
+            $scope['tab'] = $v['tab'] ?? 'all';
+            $scope['q']   = $v['q']  ?? '';
+        }
+
+        $query = Contact::withoutGlobalScope('workspace')->where('user_id', $user->id);
+        if (($scope['tab'] ?? '') === 'biolink') $query->whereNotNull('biolink_user_id');
+        if (!empty($scope['q'])) {
+            $needle = '%' . $scope['q'] . '%';
+            $query->where(function ($w) use ($needle) {
+                $w->where('display_name', 'ilike', $needle)
+                  ->orWhere('given_name',  'ilike', $needle)
+                  ->orWhere('family_name', 'ilike', $needle)
+                  ->orWhere('organization','ilike', $needle)
+                  ->orWhereHas('emails',  fn ($e) => $e->where('value', 'ilike', $needle))
+                  ->orWhereHas('phones',  fn ($p) => $p->where('value', 'ilike', $needle));
+            });
+        }
+        $count = $query->count();
+
+        // Small address books — build and store synchronously, return URL.
+        if ($count <= WebContactController::EXPORT_ASYNC_THRESHOLD) {
+            $contacts = $query->with(['phones', 'emails'])->orderBy('display_name')->get();
+            $content  = $v['format'] === 'vcf'
+                ? $this->exportBuilder->buildVcf($contacts)
+                : $this->exportBuilder->buildCsv($contacts);
+
+            $export = ContactExport::create([
+                'user_id'       => $user->id,
+                'format'        => $v['format'],
+                'scope'         => $scope ?: null,
+                'status'        => 'completed',
+                'contact_count' => $contacts->count(),
+                'expires_at'    => now()->addDay(),
+                'started_at'    => now(),
+                'completed_at'  => now(),
+            ]);
+            $path = "exports/{$export->user_id}/{$export->id}.{$export->format}";
+            Storage::disk('local')->put($path, $content);
+            $export->update(['file_path' => $path]);
+
+            return $this->ok([
+                'id'           => $export->id,
+                'status'       => 'completed',
+                'contact_count'=> $export->contact_count,
+                'format'       => $export->format,
+                'download_url' => $this->signedDownloadUrl($export),
+            ]);
+        }
+
+        // Large address books — queue and return pending status.
+        $export = ContactExport::create([
+            'user_id'       => $user->id,
+            'format'        => $v['format'],
+            'scope'         => $scope ?: null,
+            'status'        => 'pending',
+            'contact_count' => $count,
+        ]);
+        ProcessContactExportJob::dispatch($export->id);
+
+        return $this->ok([
+            'id'           => $export->id,
+            'status'       => 'pending',
+            'contact_count'=> $export->contact_count,
+            'format'       => $export->format,
+            'download_url' => null,
+        ], 202);
+    }
+
+    /**
+     * GET /api/v1/contacts/export/{id}/status
+     * Poll export progress. Returns a signed download URL once ready.
+     */
+    public function exportStatus(Request $request, int $id)
+    {
+        $export = ContactExport::where('user_id', $request->user()->id)->find($id);
+        if (!$export) return $this->notFound('Export not found.');
+
+        return $this->ok([
+            'id'           => $export->id,
+            'status'       => $export->status,
+            'contact_count'=> $export->contact_count,
+            'format'       => $export->format,
+            'in_progress'  => $export->isInProgress(),
+            'download_url' => $export->isReady() ? $this->signedDownloadUrl($export) : null,
+        ]);
+    }
+
+    /** Build a temporary signed URL so the mobile app can download without a bearer token. */
+    private function signedDownloadUrl(ContactExport $export): string
+    {
+        return URL::temporarySignedRoute(
+            'user.contacts.export.signed-download',
+            now()->addHours(24),
+            ['export' => $export->id]
+        );
     }
 
     private function stashPath(int $userId, string $token): string

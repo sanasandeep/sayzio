@@ -102,6 +102,11 @@
                         <span class="ml-2 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-bold leading-none text-white" style="background:#ef4444;" title="{{ $contactsOverdueFollowUps }} overdue">{{ $contactsOverdueFollowUps > 99 ? '99+' : $contactsOverdueFollowUps }}</span>
                     @endif
                 </a>
+                <a href="{{ route('user.contacts.export.request', array_filter(['tab' => $tab, 'q' => $search])) }}"
+                   class="block w-full px-3 py-2 rounded-lg text-xs font-medium text-center transition"
+                   style="background:rgba(34,211,238,.08);color:#67e8f9;border:1px solid rgba(34,211,238,.18)">
+                    <i class="fas fa-file-export mr-1"></i> Export contacts
+                </a>
             </div>
         </div>
 

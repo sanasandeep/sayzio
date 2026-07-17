@@ -1341,6 +1341,12 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::get('contacts/create',                       [ContactController::class, 'create'])->middleware('workspace.can:settings.edit')->name('contacts.create');
         Route::post('contacts',                             [ContactController::class, 'store'])->middleware(['workspace.can:settings.edit', CheckPlanLimit::class . ':contacts_max', CheckPlanLimit::class . ':leads'])->name('contacts.store');
         Route::get('contacts/import',                       [ContactController::class, 'importForm'])->middleware('workspace.can:settings.edit')->name('contacts.import');
+        Route::get ('contacts/export',                      [ContactController::class, 'exportRequest'])->middleware('workspace.can:settings.view')->name('contacts.export.request');
+        Route::post('contacts/export',                      [ContactController::class, 'export'])->middleware('workspace.can:settings.view')->name('contacts.export.store');
+        Route::get ('contacts/export/{export}',             [ContactController::class, 'exportShow'])->middleware('workspace.can:settings.view')->name('contacts.export.show');
+        Route::get ('contacts/export/{export}/status',      [ContactController::class, 'exportStatus'])->middleware('workspace.can:settings.view')->name('contacts.export.status');
+        Route::get ('contacts/export/{export}/download',    [ContactController::class, 'exportDownload'])->middleware('workspace.can:settings.view')->name('contacts.export.download');
+        Route::get ('contacts/export/{export}/signed-dl',  [ContactController::class, 'exportSignedDownload'])->middleware('signed')->name('contacts.export.signed-download')->withoutMiddleware('auth');
 
         // ── AI Card / Brochure Scanner ───────────────────────────────
         // Upload an image or PDF, get a structured contact + biolink

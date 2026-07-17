@@ -3,9 +3,11 @@
 namespace App\Modules\User\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Jobs\ProcessContactExportJob;
 use App\Jobs\ProcessContactImportJob;
 use App\Modules\User\Models\Contact;
 use App\Modules\User\Models\ContactEmail;
+use App\Modules\User\Models\ContactExport;
 use App\Modules\User\Models\ContactImport;
 use App\Modules\User\Models\ContactPhone;
 use App\Modules\User\Models\ContactDeletionTombstone;
@@ -13,6 +15,7 @@ use App\Modules\User\Models\GoogleContactsAccount;
 use App\Modules\User\Models\IntegrationConfig;
 use App\Modules\User\Models\LinkedIdentifier;
 use App\Modules\User\Services\Contacts\BiolinkAttachResolver;
+use App\Modules\User\Services\Contacts\ContactExportBuilder;
 use App\Modules\User\Services\Contacts\ContactImportParser;
 use App\Modules\User\Services\Contacts\GoogleContactsSyncService;
 use Illuminate\Http\Request;
@@ -24,10 +27,14 @@ class ContactController extends Controller
     public const PHONE_LABELS = ['Mobile', 'Work', 'Home', 'Main', 'Other'];
     public const EMAIL_LABELS = ['Personal', 'Work', 'Other'];
 
+    /** Contacts above this threshold trigger a queued export job. */
+    public const EXPORT_ASYNC_THRESHOLD = 500;
+
     public function __construct(
         protected BiolinkAttachResolver $resolver,
         protected GoogleContactsSyncService $sync,
         protected ContactImportParser $importParser,
+        protected ContactExportBuilder $exportBuilder,
     ) {}
 
     public function index(Request $request)
@@ -584,6 +591,9 @@ class ContactController extends Controller
                 'given_name'   => $row['given_name'] ?? null,
                 'family_name'  => $row['family_name'] ?? null,
                 'organization' => $row['organization'] ?? null,
+                'job_title'    => $row['job_title']   ?? null,
+                'notes'        => $row['notes']        ?? null,
+                'tags'         => $row['tags']         ?? null,
                 'phones'       => $row['phones'] ?? [],
                 'emails'       => $row['emails'] ?? [],
             ];
@@ -595,6 +605,9 @@ class ContactController extends Controller
                 'given_name'   => 'nullable|string|max:191',
                 'family_name'  => 'nullable|string|max:191',
                 'organization' => 'nullable|string|max:191',
+                'job_title'    => 'nullable|string|max:191',
+                'notes'        => 'nullable|string|max:5000',
+                'tags'         => 'nullable|array',
                 'phones'                 => 'nullable|array|max:10',
                 'phones.*.label'         => 'nullable|string|max:50',
                 'phones.*.value'         => 'nullable|string|max:80',
@@ -629,6 +642,9 @@ class ContactController extends Controller
                         'given_name'   => $payload['given_name'],
                         'family_name'  => $payload['family_name'],
                         'organization' => $payload['organization'],
+                        'job_title'    => $payload['job_title'] ?? null,
+                        'notes'        => $payload['notes']     ?? null,
+                        'tags'         => !empty($payload['tags']) ? $payload['tags'] : null,
                         'locally_modified_at' => now(),
                     ]);
                     $this->syncRows($c, $payload['phones'], $payload['emails']);
@@ -963,6 +979,127 @@ class ContactController extends Controller
         if (!$account) return; // push disabled → leave for the scheduled drain
         try { $this->sync->attemptTombstoneDelete($account, $tombstone); }
         catch (\Throwable $e) { \Log::warning('Immediate contact delete failed', ['err' => $e->getMessage()]); }
+    }
+
+    // ---- bulk export ------------------------------------------------------
+
+    /** Show the export options form. */
+    public function exportRequest(Request $request)
+    {
+        $user  = $request->user();
+        $total = Contact::withoutGlobalScope('workspace')->where('user_id', $user->id)->count();
+        $tab   = in_array($request->query('tab'), ['all', 'biolink'], true) ? $request->query('tab') : 'all';
+        $q     = trim((string) $request->query('q', ''));
+        return view('user.contacts.export_form', compact('total', 'tab', 'q'));
+    }
+
+    /** POST: create or stream the export. */
+    public function export(Request $request)
+    {
+        $user = $request->user();
+        $v = $request->validate([
+            'format' => 'required|in:csv,vcf',
+            'scope'  => 'required|in:all,filtered',
+            'tab'    => 'nullable|in:all,biolink',
+            'q'      => 'nullable|string|max:255',
+        ]);
+
+        $scope = [];
+        if ($v['scope'] === 'filtered') {
+            $scope['tab'] = $v['tab'] ?? 'all';
+            $scope['q']   = $v['q']  ?? '';
+        }
+
+        $query = Contact::withoutGlobalScope('workspace')->where('user_id', $user->id);
+        if (($scope['tab'] ?? '') === 'biolink') $query->whereNotNull('biolink_user_id');
+        if (!empty($scope['q'])) {
+            $needle = '%' . $scope['q'] . '%';
+            $query->where(function ($w) use ($needle) {
+                $w->where('display_name', 'ilike', $needle)
+                  ->orWhere('given_name',  'ilike', $needle)
+                  ->orWhere('family_name', 'ilike', $needle)
+                  ->orWhere('organization','ilike', $needle)
+                  ->orWhereHas('emails',  fn ($e) => $e->where('value', 'ilike', $needle))
+                  ->orWhereHas('phones',  fn ($p) => $p->where('value', 'ilike', $needle));
+            });
+        }
+        $count = $query->count();
+
+        // Small address books: generate synchronously and stream back.
+        if ($count <= self::EXPORT_ASYNC_THRESHOLD) {
+            $contacts = $query->with(['phones', 'emails'])->orderBy('display_name')->get();
+            $content  = $v['format'] === 'vcf'
+                ? $this->exportBuilder->buildVcf($contacts)
+                : $this->exportBuilder->buildCsv($contacts);
+            $date     = now()->format('Y-m-d');
+            $filename = "contacts-{$date}.{$v['format']}";
+            $mime     = $v['format'] === 'vcf' ? 'text/vcard; charset=utf-8' : 'text/csv; charset=utf-8';
+            return response($content, 200, [
+                'Content-Type'        => $mime,
+                'Content-Disposition' => "attachment; filename=\"{$filename}\"",
+            ]);
+        }
+
+        // Large address books: queue and redirect to a polling page.
+        $export = ContactExport::create([
+            'user_id'       => $user->id,
+            'format'        => $v['format'],
+            'scope'         => $scope ?: null,
+            'status'        => 'pending',
+            'contact_count' => $count,
+        ]);
+        ProcessContactExportJob::dispatch($export->id);
+        return redirect()->route('user.contacts.export.show', $export)
+            ->with('success', 'Export queued — we\'ll generate your file in the background.');
+    }
+
+    /** Status/download page for a queued export. */
+    public function exportShow(Request $request, ContactExport $export)
+    {
+        abort_if($export->user_id !== workspace_owner_id(), 403);
+        return view('user.contacts.export_show', compact('export'));
+    }
+
+    /** JSON poll endpoint the status page calls every 2 seconds. */
+    public function exportStatus(Request $request, ContactExport $export)
+    {
+        abort_if($export->user_id !== workspace_owner_id(), 403);
+        return response()->json([
+            'status'        => $export->status,
+            'contact_count' => $export->contact_count,
+            'is_ready'      => $export->isReady(),
+            'in_progress'   => $export->isInProgress(),
+        ]);
+    }
+
+    /** Stream the generated export file to the browser (auth-gated). */
+    public function exportDownload(Request $request, ContactExport $export)
+    {
+        abort_if($export->user_id !== workspace_owner_id(), 403);
+        return $this->streamExport($export);
+    }
+
+    /**
+     * Serve a background export via a temporary signed URL — used by the
+     * mobile/API path so the app can open the URL without a bearer token.
+     * The `signed` middleware on the route is the only authorization.
+     */
+    public function exportSignedDownload(Request $request, ContactExport $export)
+    {
+        return $this->streamExport($export);
+    }
+
+    private function streamExport(ContactExport $export): \Illuminate\Http\Response
+    {
+        abort_if(!$export->isReady(), 404, 'Export file is not ready yet.');
+        $content = Storage::disk('local')->get($export->file_path);
+        if ($content === null) {
+            abort(404, 'Export file not found. Please start a new export.');
+        }
+        return response($content, 200, [
+            'Content-Type'        => $export->mimeType(),
+            'Content-Disposition' => 'attachment; filename="' . $export->downloadFilename() . '"',
+        ]);
     }
 
     public function biolinkPreview(Contact $contact): ?array

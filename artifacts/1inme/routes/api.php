@@ -933,6 +933,10 @@ Route::prefix('v1')->group(function () {
         Route::post  ('/contacts/import/preview/{token}/confirm',[ContactController::class, 'importConfirm']);
         Route::get   ('/contacts/import/status/{id}',            [ContactController::class, 'importStatus'])->whereNumber('id');
 
+        // Contacts — bulk export
+        Route::post  ('/contacts/export',                        [ContactController::class, 'exportRequest'])->middleware('throttle:30,1');
+        Route::get   ('/contacts/export/{id}/status',            [ContactController::class, 'exportStatus'])->whereNumber('id');
+
         // Connected Apps (CRM two-way sync + GA4 forwarding). Mirrors the
         // web /user/connected-apps area; OAuth is delegated to the shared
         // stateless web callback (finishes to the sayzio:// deep link).
