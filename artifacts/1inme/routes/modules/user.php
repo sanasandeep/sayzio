@@ -1422,6 +1422,8 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::post  ('dialer/favorites',                   [DialerController::class, 'favoriteStore'])->middleware('workspace.can:settings.edit')->name('dialer.favorites.store');
         Route::post  ('dialer/favorites/reorder',           [DialerController::class, 'favoritesReorder'])->middleware('workspace.can:settings.edit')->name('dialer.favorites.reorder');
         Route::delete('dialer/favorites/{favorite}',        [DialerController::class, 'favoriteDestroy'])->whereNumber('favorite')->middleware('workspace.can:settings.edit')->name('dialer.favorites.destroy');
+        Route::post  ('dialer/speed-dial/assign',           [DialerController::class, 'speedDialAssign'])->middleware('workspace.can:settings.edit')->name('dialer.speed-dial.assign');
+        Route::post  ('dialer/speed-dial/unassign',         [DialerController::class, 'speedDialUnassign'])->middleware('workspace.can:settings.edit')->name('dialer.speed-dial.unassign');
         Route::post  ('dialer/flag',                        [DialerController::class, 'flag'])->middleware('workspace.can:settings.edit')->name('dialer.flag');
         Route::post  ('dialer/log',                         [DialerController::class, 'logCall'])->middleware('workspace.can:settings.edit')->name('dialer.log');
         Route::post  ('dialer/callback',                    [DialerController::class, 'callbackSet'])->middleware('workspace.can:settings.edit')->name('dialer.callback.set');

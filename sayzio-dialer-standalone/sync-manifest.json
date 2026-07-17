@@ -23,7 +23,7 @@
       "source": "app/info/about.tsx",
       "relation": "adapted",
       "note": "standalone copy keeps the contacts/dialer mentions the main app removed when its dialer surfaces were dropped",
-      "sourceSha256": "b6fd811db31480c85ed551d95042c14a5f94ad9a134fd04816568cba3fcafd91"
+      "sourceSha256": "33685c9f7305b34c57147598142690a9e190baf433a0474de0085fa50e089b77"
     },
     {
       "standalone": "app/info/help.tsx",
@@ -219,21 +219,21 @@
       "standalone": "app/(auth)/index.tsx",
       "source": "app/(auth)/index.tsx",
       "relation": "adapted",
-      "sourceSha256": "0748f27f33308f1625c2148348265fcb8fc9bf131d940031285d30d61c26a101",
+      "sourceSha256": "61daf1a67643dba1ec8516ce54c27fc909bb38c9c3176e4f410e7bf3dcfd3117",
       "note": "dev-only missing-env alert text reworded (no monorepo path); also omits the intro-style reanimated AnimatedBlob decorative background the main app adds, because the standalone deliberately does not depend on react-native-reanimated (same policy as the static InfoPage entry); everything else must match the main app"
     },
     {
       "standalone": "app/index.tsx",
       "source": "app/index.tsx",
       "relation": "adapted",
-      "sourceSha256": "e4bbcecbde595b87743111a7e9a676c7a30f34eafecab1fbc0de8f7cd56fee2b",
+      "sourceSha256": "b76f01d9b2fe7deda7131ec971161cb372c8140e0357f51dc208ca74d0accc5f",
       "note": "launch gate simplified: no onboarding/biometric-lock routing; signed-in users go straight to the Dialer tab"
     },
     {
       "standalone": "app/_layout.tsx",
       "source": "app/_layout.tsx",
       "relation": "adapted",
-      "note": "root providers trimmed to what the dialer needs (no VoiceAssistant, DeepLinkRouter, ErrorBoundary, ImpersonationBanner, IdleLockWarning, KeyboardProvider, RevenueCat/SubscriptionProvider, push registration, @workspace/api-client-react wiring); mounts useContactAutoSync; Stack.Screen list only carries dialer-relevant routes (search/dialer-profile/call/contacts/info/oauth-callback) \u2014 new main-app-only screens (calendars, brand-kits, delivery-projects, marketing-strategist, etc.) are not dialer surfaces and intentionally omitted",
+      "note": "root providers trimmed to what the dialer needs (no VoiceAssistant, DeepLinkRouter, ErrorBoundary, ImpersonationBanner, IdleLockWarning, KeyboardProvider, RevenueCat/SubscriptionProvider, push registration, @workspace/api-client-react wiring); mounts useContactAutoSync; Stack.Screen list only carries dialer-relevant routes (search/dialer-profile/call/contacts/info/oauth-callback) — new main-app-only screens (calendars, brand-kits, delivery-projects, marketing-strategist, etc.) are not dialer surfaces and intentionally omitted",
       "sourceSha256": "e9683e9f5ea62fac3bc9ce356e53b698271f3b8c994ec6bf05167e5a6d36e282"
     },
     {
@@ -273,11 +273,11 @@
     },
     {
       "path": "app/(tabs)/dialer.tsx",
-      "note": "dialer keypad screen (with suggestions empty-state); the main app removed its app/dialer.tsx \u2014 this standalone is now the sole home of the mobile dialer surface"
+      "note": "dialer keypad screen (with suggestions empty-state); the main app removed its app/dialer.tsx — this standalone is now the sole home of the mobile dialer surface"
     },
     {
       "path": "app/(tabs)/contacts.tsx",
-      "note": "contacts list screen; the main app removed its app/contacts/ screens \u2014 device import goes through lib/deviceContacts.ts"
+      "note": "contacts list screen; the main app removed its app/contacts/ screens — device import goes through lib/deviceContacts.ts"
     },
     {
       "path": "app/dialer-profile.tsx",
@@ -337,7 +337,7 @@
     },
     {
       "path": "lib/eventsLocation.ts",
-      "note": "Single saved 'my location' anchoring Events near-me filtering + nearby-event alerts, set via device GPS or the shared MapPickerModal (the dialer's existing location-picker UI) \u2014 one location concept in this app, not a separate store; the main app has no equivalent single-location concept"
+      "note": "Single saved 'my location' anchoring Events near-me filtering + nearby-event alerts, set via device GPS or the shared MapPickerModal (the dialer's existing location-picker UI) — one location concept in this app, not a separate store; the main app has no equivalent single-location concept"
     },
     {
       "path": "app/(tabs)/events.tsx",
@@ -345,7 +345,7 @@
     },
     {
       "path": "app/events/[alias].tsx",
-      "note": "Event detail/RSVP/buy/interest screen adapted from the main app's app/events/[alias].tsx to this app's auth context field names (user.display_name) and colors; adds an in-app RsvpWebViewModal (embeds the existing public /{alias}/rsvp page) for non-ticketed events since there is no JSON RSVP API \u2014 otherwise the same hashtags/gallery/info-sections/interest UI"
+      "note": "Event detail/RSVP/buy/interest screen adapted from the main app's app/events/[alias].tsx to this app's auth context field names (user.display_name) and colors; adds an in-app RsvpWebViewModal (embeds the existing public /{alias}/rsvp page) for non-ticketed events since there is no JSON RSVP API — otherwise the same hashtags/gallery/info-sections/interest UI"
     },
     {
       "path": "hooks/useNearbyEventAlerts.ts",

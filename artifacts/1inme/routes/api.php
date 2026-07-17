@@ -1307,10 +1307,12 @@ Route::prefix('v1')->group(function () {
         // Pollable live-sync cursor (favorites/flags/call-log across devices).
         Route::get   ('/dialer/live',               [DialerController::class, 'live']);
         // Speed-dial favorites.
-        Route::get   ('/dialer/favorites',          [DialerController::class, 'favorites']);
-        Route::post  ('/dialer/favorites',          [DialerController::class, 'addFavorite']);
-        Route::post  ('/dialer/favorites/reorder',  [DialerController::class, 'reorderFavorites']);
-        Route::delete('/dialer/favorites/{id}',     [DialerController::class, 'removeFavorite'])->whereNumber('id');
+        Route::get   ('/dialer/favorites',              [DialerController::class, 'favorites']);
+        Route::post  ('/dialer/favorites',              [DialerController::class, 'addFavorite']);
+        Route::post  ('/dialer/favorites/reorder',      [DialerController::class, 'reorderFavorites']);
+        Route::delete('/dialer/favorites/{id}',         [DialerController::class, 'removeFavorite'])->whereNumber('id');
+        Route::post  ('/dialer/speed-dial/assign',      [DialerController::class, 'assignSpeedDial']);
+        Route::post  ('/dialer/speed-dial/unassign',    [DialerController::class, 'unassignSpeedDial']);
         // Per-user spam/block flags.
         Route::post  ('/dialer/flag',               [DialerController::class, 'flag']);
         // Call log (outcome/note/tag) + call-back reminders.

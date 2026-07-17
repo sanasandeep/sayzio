@@ -350,6 +350,59 @@ class DialerController extends Controller
         return $this->ok(['items' => DialerData::favorites($userId)]);
     }
 
+    /**
+     * Assign a speed-dial digit (1–9) to a favorite. Clears any prior owner
+     * of that digit so the slot is never double-booked.
+     */
+    public function assignSpeedDial(Request $request)
+    {
+        $userId = $request->user()->id;
+        $data = $request->validate([
+            'favorite_id' => ['required', 'integer'],
+            'digit'       => ['required', 'integer', 'min:1', 'max:9'],
+        ]);
+
+        $fav = DialerFavorite::where('user_id', $userId)->find($data['favorite_id']);
+        if (!$fav) return $this->notFound('Favorite not found');
+
+        // Release any other favorite that already owns this digit.
+        DialerFavorite::where('user_id', $userId)
+            ->where('speed_dial_digit', $data['digit'])
+            ->where('id', '!=', $fav->id)
+            ->update(['speed_dial_digit' => null]);
+
+        $fav->speed_dial_digit = $data['digit'];
+        $fav->save();
+
+        return $this->ok(['favorite' => DialerData::transformSingleFavorite($fav, $userId)]);
+    }
+
+    /**
+     * Unassign the speed-dial digit from a specific favorite or from a
+     * digit slot directly (pass either `favorite_id` or `digit`).
+     */
+    public function unassignSpeedDial(Request $request)
+    {
+        $userId = $request->user()->id;
+        $data = $request->validate([
+            'favorite_id' => ['nullable', 'integer'],
+            'digit'       => ['nullable', 'integer', 'min:1', 'max:9'],
+        ]);
+
+        $q = DialerFavorite::where('user_id', $userId);
+        if (!empty($data['favorite_id'])) {
+            $q->where('id', $data['favorite_id']);
+        } elseif (!empty($data['digit'])) {
+            $q->where('speed_dial_digit', $data['digit']);
+        } else {
+            return $this->fail('Provide favorite_id or digit', 422, 'invalid');
+        }
+
+        $q->update(['speed_dial_digit' => null]);
+
+        return $this->ok(['items' => DialerData::favorites($userId)]);
+    }
+
     // ── Spam / block flags ────────────────────────────────────────────
 
     public function flag(Request $request)

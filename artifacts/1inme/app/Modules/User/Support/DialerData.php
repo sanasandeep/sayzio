@@ -68,14 +68,15 @@ class DialerData
         $number = $f->number_e164
             ?: ($contact?->phones->first()?->value_e164 ?: $contact?->phones->first()?->value);
         return [
-            'id'          => $f->id,
-            'contact_id'  => $f->contact_id,
-            'number'      => $number,
-            'number_e164' => $f->number_e164 ?: ($contact?->phones->first()?->value_e164),
-            'label'       => $f->label ?: ($contact?->nameForDisplay() ?: $number),
-            'initials'    => $contact?->initials() ?: self::numberInitials($number),
-            'biolink'     => self::contactHasReachableBiolink($contact, $reachable),
-            'sort_order'  => $f->sort_order,
+            'id'               => $f->id,
+            'contact_id'       => $f->contact_id,
+            'number'           => $number,
+            'number_e164'      => $f->number_e164 ?: ($contact?->phones->first()?->value_e164),
+            'label'            => $f->label ?: ($contact?->nameForDisplay() ?: $number),
+            'initials'         => $contact?->initials() ?: self::numberInitials($number),
+            'biolink'          => self::contactHasReachableBiolink($contact, $reachable),
+            'sort_order'       => $f->sort_order,
+            'speed_dial_digit' => $f->speed_dial_digit,
         ];
     }
 

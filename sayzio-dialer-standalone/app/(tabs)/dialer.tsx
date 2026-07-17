@@ -53,6 +53,8 @@ import {
   getDialerSuggestions,
   lookupNumber,
   updateDialerChannels,
+  assignSpeedDial,
+  unassignSpeedDial,
 } from "@/lib/api/dialer";
 import { type Contact, listContacts } from "@/lib/api/contacts";
 
@@ -159,6 +161,15 @@ export default function DialerScreen() {
   // fetched + cached app-wide by the shared ChannelActions store).
   const channelPrefs = useChannelPrefs();
   const [channelPickerOpen, setChannelPickerOpen] = useState(false);
+
+  // Speed-dial digit assignment modal.
+  const [speedDialModal, setSpeedDialModal] = useState<{
+    favId: number | null;   // null = assigning from keypad long-press
+    digit: number | null;   // pre-selected digit (from long-press on a taken key)
+    currentDigit: number | null; // digit already owned by favId (for clearing)
+    forDigit: number | null;     // digit slot coming from a keypad long-press
+  } | null>(null);
+  const [speedDialBusy, setSpeedDialBusy] = useState(false);
 
   const [contactsQuery, setContactsQuery] = useState("");
   const [appContacts, setAppContacts] = useState<Contact[]>([]);
@@ -554,9 +565,19 @@ export default function DialerScreen() {
           {/* Favorites / speed dial */}
           {favorites.length > 0 && (
             <View style={styles.section}>
-              <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>
-                Speed dial
-              </Text>
+              <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+                <Text style={[styles.sectionLabel, { color: colors.mutedForeground, marginBottom: 0 }]}>
+                  Speed dial
+                </Text>
+                <Pressable
+                  onPress={() => setSpeedDialModal({ favId: null, digit: null, currentDigit: null, forDigit: null })}
+                  style={{ padding: 4 }}
+                >
+                  <Text style={{ fontSize: 11, color: colors.primary, fontFamily: "SpaceGrotesk_600SemiBold" }}>
+                    # Manage digits
+                  </Text>
+                </Pressable>
+              </View>
               <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                 {favorites.map((f) => (
                   <Pressable
@@ -568,9 +589,28 @@ export default function DialerScreen() {
                         name: f.label,
                       })
                     }
-                    onLongPress={() => f.number && dial(f.number, f.label)}
+                    onLongPress={() =>
+                      setSpeedDialModal({
+                        favId: f.id,
+                        digit: f.speed_dial_digit,
+                        currentDigit: f.speed_dial_digit,
+                        forDigit: null,
+                      })
+                    }
                     style={styles.bubble}
                   >
+                    {/* Speed-dial digit badge */}
+                    {f.speed_dial_digit != null && (
+                      <View style={{
+                        position: "absolute", top: -2, left: -2, zIndex: 10,
+                        width: 18, height: 18, borderRadius: 9,
+                        backgroundColor: "#3d6bff", alignItems: "center", justifyContent: "center",
+                      }}>
+                        <Text style={{ fontSize: 9, fontFamily: "SpaceGrotesk_700Bold", color: "#fff" }}>
+                          {f.speed_dial_digit}
+                        </Text>
+                      </View>
+                    )}
                     <View style={[styles.bubbleAvatar, { backgroundColor: colors.primary }]}>
                       <Text style={styles.bubbleInitials}>{f.initials}</Text>
                     </View>
@@ -911,11 +951,41 @@ export default function DialerScreen() {
 
             {keypadMode === "t9" && (
               <View style={styles.keypad}>
-                {KEYS.map((k) => (
+                {KEYS.map((k) => {
+                  const digitNum = /^[1-9]$/.test(k.v) ? parseInt(k.v, 10) : null;
+                  const sdFav = digitNum != null
+                    ? favorites.find((f) => f.speed_dial_digit === digitNum) ?? null
+                    : null;
+                  return (
                   <Pressable
                     key={k.v}
                     onPress={() => press(k.v)}
-                    onLongPress={k.v === "0" ? longPressZero : undefined}
+                    onLongPress={
+                      k.v === "0"
+                        ? longPressZero
+                        : digitNum != null
+                          ? () => {
+                              void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                              suppressNextPress.current = true;
+                              if (sdFav) {
+                                setSpeedDialModal({
+                                  favId: sdFav.id,
+                                  digit: sdFav.speed_dial_digit,
+                                  currentDigit: sdFav.speed_dial_digit,
+                                  forDigit: null,
+                                });
+                              } else {
+                                setSpeedDialModal({
+                                  favId: null,
+                                  digit: digitNum,
+                                  currentDigit: null,
+                                  forDigit: digitNum,
+                                });
+                              }
+                            }
+                          : undefined
+                    }
+                    delayLongPress={600}
                     style={({ pressed }) => [
                       styles.key,
                       {
@@ -930,8 +1000,14 @@ export default function DialerScreen() {
                         {k.sub}
                       </Text>
                     )}
+                    {digitNum != null && sdFav && (
+                      <Text style={{ fontSize: 8, color: "#90acff", fontFamily: "SpaceGrotesk_700Bold", marginTop: 1 }}>
+                        {(sdFav.initials ?? "").slice(0, 3)}
+                      </Text>
+                    )}
                   </Pressable>
-                ))}
+                  );
+                })}
               </View>
             )}
 
@@ -1317,6 +1393,203 @@ export default function DialerScreen() {
           setChannelPickerOpen(false);
         }}
       />
+
+      {/* Speed-dial digit assignment modal */}
+      <Modal
+        visible={speedDialModal != null}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setSpeedDialModal(null)}
+      >
+        <Pressable
+          style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.6)", justifyContent: "flex-end" }}
+          onPress={() => setSpeedDialModal(null)}
+        >
+          <Pressable
+            style={{ borderRadius: 20, margin: 12, padding: 20, backgroundColor: colors.card, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border }}
+            onPress={() => {/* prevent close on inner tap */}}
+          >
+            <Text style={{ fontSize: 16, fontFamily: "SpaceGrotesk_700Bold", color: colors.foreground, marginBottom: 4 }}>
+              Speed-dial digit
+            </Text>
+            <Text style={{ fontSize: 12, color: colors.mutedForeground, marginBottom: 16, fontFamily: "SpaceGrotesk_400Regular" }}>
+              {speedDialModal?.favId
+                ? "Assign a keypad digit (1–9). Long-pressing that key will open this contact instantly."
+                : speedDialModal?.forDigit
+                  ? `Pick a favorite to assign to key ${speedDialModal.forDigit}.`
+                  : "Manage speed-dial assignments for keys 1–9."}
+            </Text>
+
+            {/* Favorite selector when opened from a keypad long-press with no owner */}
+            {speedDialModal?.forDigit && !speedDialModal.favId && (
+              <View style={{ marginBottom: 12 }}>
+                <Text style={{ fontSize: 11, fontFamily: "SpaceGrotesk_600SemiBold", color: colors.mutedForeground, marginBottom: 6, textTransform: "uppercase", letterSpacing: 0.5 }}>
+                  Assign favorite to key {speedDialModal.forDigit}
+                </Text>
+                {favorites.length === 0 ? (
+                  <Text style={{ color: colors.mutedForeground, fontFamily: "SpaceGrotesk_400Regular", fontSize: 13 }}>
+                    No favorites yet. Add favorites to your speed dial strip first.
+                  </Text>
+                ) : (
+                  favorites.map((f) => (
+                    <Pressable
+                      key={f.id}
+                      onPress={async () => {
+                        if (speedDialBusy) return;
+                        setSpeedDialBusy(true);
+                        try {
+                          await assignSpeedDial(f.id, speedDialModal!.forDigit!);
+                          const updated = await listFavorites();
+                          setFavorites(updated);
+                          setSpeedDialModal(null);
+                        } catch { Alert.alert("Error", "Could not assign digit. Try again."); }
+                        finally { setSpeedDialBusy(false); }
+                      }}
+                      style={({ pressed }) => ({
+                        flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 10,
+                        paddingHorizontal: 12, borderRadius: 12, marginBottom: 6,
+                        backgroundColor: pressed ? colors.muted : colors.background,
+                        borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border,
+                      })}
+                    >
+                      <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: colors.primary, alignItems: "center", justifyContent: "center" }}>
+                        <Text style={{ color: "#fff", fontFamily: "SpaceGrotesk_700Bold", fontSize: 11 }}>{f.initials}</Text>
+                      </View>
+                      <Text style={{ flex: 1, color: colors.foreground, fontFamily: "SpaceGrotesk_600SemiBold", fontSize: 13 }}>{f.label || f.number}</Text>
+                      {f.speed_dial_digit != null && (
+                        <Text style={{ fontSize: 11, color: colors.mutedForeground, fontFamily: "SpaceGrotesk_400Regular" }}>key {f.speed_dial_digit}</Text>
+                      )}
+                    </Pressable>
+                  ))
+                )}
+              </View>
+            )}
+
+            {/* Digit picker grid when opened from a favorite's long-press */}
+            {speedDialModal?.favId != null && (
+              <View style={{ marginBottom: 12 }}>
+                <Text style={{ fontSize: 11, fontFamily: "SpaceGrotesk_600SemiBold", color: colors.mutedForeground, marginBottom: 8, textTransform: "uppercase", letterSpacing: 0.5 }}>
+                  Pick a key
+                </Text>
+                <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+                  {[1,2,3,4,5,6,7,8,9].map((d) => {
+                    const owner = favorites.find((f) => f.speed_dial_digit === d);
+                    const isMine = owner?.id === speedDialModal?.favId;
+                    return (
+                      <Pressable
+                        key={d}
+                        onPress={async () => {
+                          if (speedDialBusy || !speedDialModal?.favId) return;
+                          setSpeedDialBusy(true);
+                          try {
+                            await assignSpeedDial(speedDialModal.favId!, d);
+                            const updated = await listFavorites();
+                            setFavorites(updated);
+                            setSpeedDialModal(null);
+                          } catch { Alert.alert("Error", "Could not assign digit. Try again."); }
+                          finally { setSpeedDialBusy(false); }
+                        }}
+                        style={({ pressed }) => ({
+                          width: 54, height: 54, borderRadius: 12, alignItems: "center", justifyContent: "center",
+                          backgroundColor: isMine ? "#3d6bff" : pressed ? colors.muted : colors.background,
+                          borderWidth: StyleSheet.hairlineWidth,
+                          borderColor: isMine ? "#3d6bff" : owner ? "#90acff55" : colors.border,
+                        })}
+                      >
+                        <Text style={{ fontSize: 18, fontFamily: "SpaceGrotesk_700Bold", color: isMine ? "#fff" : colors.foreground }}>{d}</Text>
+                        {owner && !isMine && (
+                          <Text style={{ fontSize: 8, color: "#90acff", fontFamily: "SpaceGrotesk_600SemiBold" }} numberOfLines={1}>
+                            {(owner.initials ?? "").slice(0, 3)}
+                          </Text>
+                        )}
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              </View>
+            )}
+
+            {/* Slot manager when opened with no specific fav or digit */}
+            {!speedDialModal?.favId && !speedDialModal?.forDigit && (
+              <View style={{ marginBottom: 12 }}>
+                {[1,2,3,4,5,6,7,8,9].map((d) => {
+                  const owner = favorites.find((f) => f.speed_dial_digit === d);
+                  return (
+                    <View key={d} style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 8, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border }}>
+                      <View style={{ width: 30, height: 30, borderRadius: 15, backgroundColor: "#3d6bff33", alignItems: "center", justifyContent: "center" }}>
+                        <Text style={{ fontSize: 14, fontFamily: "SpaceGrotesk_700Bold", color: "#90acff" }}>{d}</Text>
+                      </View>
+                      <Text style={{ flex: 1, fontSize: 13, fontFamily: "SpaceGrotesk_500Medium", color: owner ? colors.foreground : colors.mutedForeground }}>
+                        {owner ? (owner.label || owner.number || "Favorite") : "— unassigned"}
+                      </Text>
+                      {owner ? (
+                        <Pressable
+                          onPress={async () => {
+                            if (speedDialBusy) return;
+                            setSpeedDialBusy(true);
+                            try {
+                              const updated = await unassignSpeedDial({ digit: d });
+                              setFavorites(updated);
+                            } catch { Alert.alert("Error", "Could not clear digit."); }
+                            finally { setSpeedDialBusy(false); }
+                          }}
+                          style={{ padding: 6, borderRadius: 8, backgroundColor: "rgba(239,68,68,0.12)" }}
+                        >
+                          <Feather name="x" size={14} color="#ef4444" />
+                        </Pressable>
+                      ) : (
+                        <Pressable
+                          onPress={() => setSpeedDialModal({ favId: null, digit: null, currentDigit: null, forDigit: d })}
+                          style={{ padding: 6, borderRadius: 8, backgroundColor: "rgba(61,107,255,0.12)" }}
+                        >
+                          <Feather name="plus" size={14} color="#90acff" />
+                        </Pressable>
+                      )}
+                    </View>
+                  );
+                })}
+              </View>
+            )}
+
+            {/* Clear current digit (when opened from an assigned favorite's long-press) */}
+            {speedDialModal?.currentDigit != null && speedDialModal.favId != null && (
+              <Pressable
+                onPress={async () => {
+                  if (speedDialBusy || !speedDialModal?.favId) return;
+                  setSpeedDialBusy(true);
+                  try {
+                    const updated = await unassignSpeedDial({ favorite_id: speedDialModal.favId! });
+                    setFavorites(updated);
+                    setSpeedDialModal(null);
+                  } catch { Alert.alert("Error", "Could not clear digit."); }
+                  finally { setSpeedDialBusy(false); }
+                }}
+                style={({ pressed }) => ({
+                  paddingVertical: 10, borderRadius: 12, alignItems: "center",
+                  backgroundColor: pressed ? "rgba(239,68,68,0.2)" : "rgba(239,68,68,0.1)",
+                  borderWidth: StyleSheet.hairlineWidth, borderColor: "rgba(239,68,68,0.3)",
+                  marginBottom: 8,
+                })}
+              >
+                <Text style={{ color: "#ef4444", fontFamily: "SpaceGrotesk_600SemiBold", fontSize: 13 }}>
+                  Remove key {speedDialModal.currentDigit}
+                </Text>
+              </Pressable>
+            )}
+
+            <Pressable
+              onPress={() => setSpeedDialModal(null)}
+              style={({ pressed }) => ({
+                paddingVertical: 10, borderRadius: 12, alignItems: "center",
+                backgroundColor: pressed ? colors.muted : colors.background,
+                borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border,
+              })}
+            >
+              <Text style={{ color: colors.mutedForeground, fontFamily: "SpaceGrotesk_500Medium", fontSize: 13 }}>Cancel</Text>
+            </Pressable>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </View>
   );
 }

@@ -75,6 +75,7 @@ export type DialerFavorite = {
   initials: string;
   biolink: boolean;
   sort_order: number;
+  speed_dial_digit: number | null;
 };
 
 export type DialerHistory = {
@@ -163,6 +164,36 @@ export async function reorderFavorites(
   const res = await apiFetch<{ data: { items: DialerFavorite[] } }>(
     `/dialer/favorites/reorder`,
     { method: "POST", body: JSON.stringify({ order }) },
+  );
+  return res.data.items;
+}
+
+/**
+ * Assign speed-dial digit 1–9 to a favorite. Clears any existing owner of
+ * that digit so the slot is never double-booked.
+ */
+export async function assignSpeedDial(
+  favoriteId: number,
+  digit: number,
+): Promise<DialerFavorite> {
+  const res = await apiFetch<{ data: { favorite: DialerFavorite } }>(
+    `/dialer/speed-dial/assign`,
+    { method: "POST", body: JSON.stringify({ favorite_id: favoriteId, digit }) },
+  );
+  return res.data.favorite;
+}
+
+/**
+ * Remove a speed-dial digit assignment by digit (1–9) or by favorite id.
+ * Returns the updated full favorites list.
+ */
+export async function unassignSpeedDial(params: {
+  digit?: number;
+  favorite_id?: number;
+}): Promise<DialerFavorite[]> {
+  const res = await apiFetch<{ data: { items: DialerFavorite[] } }>(
+    `/dialer/speed-dial/unassign`,
+    { method: "POST", body: JSON.stringify(params) },
   );
   return res.data.items;
 }

@@ -234,6 +234,62 @@ class DialerController extends Controller
         return response()->json(['data' => ['favorites' => DialerData::favorites($user->id)]]);
     }
 
+    /**
+     * Assign a speed-dial digit (1–9) to a favorite. If another favorite
+     * already owns that digit for the same user, it is unassigned first so the
+     * digit is never double-booked.
+     */
+    public function speedDialAssign(Request $request)
+    {
+        $user = $request->user();
+        $data = $request->validate([
+            'favorite_id' => ['required', 'integer'],
+            'digit'       => ['required', 'integer', 'min:1', 'max:9'],
+        ]);
+
+        $fav = DialerFavorite::where('user_id', $user->id)->find($data['favorite_id']);
+        if (!$fav) {
+            return response()->json(['error' => ['message' => 'Favorite not found', 'code' => 'not_found']], 404);
+        }
+
+        // Release any favorite that currently owns this digit for this user.
+        DialerFavorite::where('user_id', $user->id)
+            ->where('speed_dial_digit', $data['digit'])
+            ->where('id', '!=', $fav->id)
+            ->update(['speed_dial_digit' => null]);
+
+        $fav->speed_dial_digit = $data['digit'];
+        $fav->save();
+
+        return response()->json(['data' => ['favorite' => DialerData::transformSingleFavorite($fav, $user->id)]]);
+    }
+
+    /**
+     * Unassign the speed-dial digit from a favorite (or clear a specific digit
+     * slot if `digit` is passed instead of `favorite_id`).
+     */
+    public function speedDialUnassign(Request $request)
+    {
+        $user = $request->user();
+        $data = $request->validate([
+            'favorite_id' => ['nullable', 'integer'],
+            'digit'       => ['nullable', 'integer', 'min:1', 'max:9'],
+        ]);
+
+        $q = DialerFavorite::where('user_id', $user->id);
+        if (!empty($data['favorite_id'])) {
+            $q->where('id', $data['favorite_id']);
+        } elseif (!empty($data['digit'])) {
+            $q->where('speed_dial_digit', $data['digit']);
+        } else {
+            return response()->json(['error' => ['message' => 'Provide favorite_id or digit', 'code' => 'invalid']], 422);
+        }
+
+        $q->update(['speed_dial_digit' => null]);
+
+        return response()->json(['data' => ['favorites' => DialerData::favorites($user->id)]]);
+    }
+
     // ── Spam / block flags ────────────────────────────────────────────
 
     public function flag(Request $request)
