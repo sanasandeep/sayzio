@@ -218,6 +218,149 @@ class EventContactExchangeFlowTest extends TestCase
         $this->assertSame(1, Contact::where('user_id', $bob->id)->where('biolink_user_id', $alice->id)->count());
     }
 
+    /** An event that already ended (started and finished in the past). */
+    private function makeEndedEvent(User $host): Link
+    {
+        $link = Link::create([
+            'user_id'    => $host->id,
+            'type'       => 'ics',
+            'alias'      => 'evt' . Str::random(8),
+            'title'      => 'Finished Meetup',
+            'settings'   => [],
+            'visibility' => 'public',
+            'is_active'  => true,
+        ]);
+
+        IcsData::create([
+            'link_id'    => $link->id,
+            'event_name' => $link->title,
+            'start_date' => now()->subHours(5)->toDateTimeString(),
+            'end_date'   => now()->subHours(2)->toDateTimeString(),
+            'timezone'   => 'UTC',
+            'all_day'    => false,
+        ]);
+
+        return $link;
+    }
+
+    // ─── Task #5013: privacy gates after event end / opt-in expiry ────
+
+    public function test_ended_event_blocks_people_list_and_exchange_requests(): void
+    {
+        $host  = $this->makeUser('Hilda Host');
+        $alice = $this->makeUser('Ada Attendee');
+        $bob   = $this->makeUser('Bill Attendee');
+
+        $link = $this->makeEndedEvent($host);
+        $this->rsvp($alice, $link);
+        $this->rsvp($bob, $link);
+
+        // Simulate rows created while the event was still live — even with
+        // an opt-in still on the books, an ended event must gate everything.
+        EventDiscoverability::create([
+            'user_id'    => $bob->id,
+            'link_id'    => $link->id,
+            'expires_at' => now()->addHour(),
+        ]);
+
+        $token = $this->token($alice);
+
+        $this->withToken($token)
+            ->getJson('/api/v1/events/' . $link->alias . '/people')
+            ->assertStatus(422)
+            ->assertJsonPath('error.code', 'event_not_live');
+
+        $this->withToken($token)
+            ->postJson('/api/v1/events/' . $link->alias . '/exchange', ['recipient_id' => $bob->id])
+            ->assertStatus(422)
+            ->assertJsonPath('error.code', 'event_not_live');
+        $this->flushHeaders();
+
+        // Nothing was created by the blocked request.
+        $this->assertSame(0, EventContactExchange::where('link_id', $link->id)->count());
+    }
+
+    public function test_expired_opt_in_is_excluded_from_people_list(): void
+    {
+        $host  = $this->makeUser('Hope Host');
+        $alice = $this->makeUser('Abby Attendee');
+        $bob   = $this->makeUser('Brad Attendee');
+        $carol = $this->makeUser('Cara Attendee');
+
+        $link = $this->makeLiveEvent($host);
+        $this->rsvp($alice, $link);
+        $this->rsvp($bob, $link);
+        $this->rsvp($carol, $link);
+
+        // Bob's opt-in expired; Carol's is still active.
+        EventDiscoverability::create([
+            'user_id'    => $bob->id,
+            'link_id'    => $link->id,
+            'expires_at' => now()->subMinute(),
+        ]);
+        $this->optIn($carol, $link);
+
+        $resp = $this->withToken($this->token($alice))
+            ->getJson('/api/v1/events/' . $link->alias . '/people');
+        $this->flushHeaders();
+
+        $resp->assertOk()->assertJsonPath('data.total', 1);
+        $ids = collect($resp->json('data.items'))->pluck('user.id')->all();
+        $this->assertSame([$carol->id], $ids);
+        $this->assertNotContains($bob->id, $ids, 'Expired opt-in leaked into the People list');
+    }
+
+    public function test_expired_opt_in_blocks_new_exchange_requests(): void
+    {
+        $host  = $this->makeUser('Hugh Host');
+        $alice = $this->makeUser('Anne Attendee');
+        $bob   = $this->makeUser('Bert Attendee');
+
+        $link = $this->makeLiveEvent($host);
+        $this->rsvp($alice, $link);
+        $this->rsvp($bob, $link);
+
+        EventDiscoverability::create([
+            'user_id'    => $bob->id,
+            'link_id'    => $link->id,
+            'expires_at' => now()->subMinute(),
+        ]);
+
+        $this->withToken($this->token($alice))
+            ->postJson('/api/v1/events/' . $link->alias . '/exchange', ['recipient_id' => $bob->id])
+            ->assertStatus(403)
+            ->assertJsonPath('error.code', 'not_discoverable');
+        $this->flushHeaders();
+
+        $this->assertSame(0, EventContactExchange::where('link_id', $link->id)->count());
+    }
+
+    public function test_non_attendee_gets_403_on_people_list_and_exchange(): void
+    {
+        $host    = $this->makeUser('Hal Host');
+        $alice   = $this->makeUser('Avis Attendee');
+        $lurker  = $this->makeUser('Lou Lurker'); // no RSVP, no ticket
+
+        $link = $this->makeLiveEvent($host);
+        $this->rsvp($alice, $link);
+        $this->optIn($alice, $link);
+
+        $token = $this->token($lurker);
+
+        $this->withToken($token)
+            ->getJson('/api/v1/events/' . $link->alias . '/people')
+            ->assertStatus(403)
+            ->assertJsonPath('error.code', 'not_attendee');
+
+        $this->withToken($token)
+            ->postJson('/api/v1/events/' . $link->alias . '/exchange', ['recipient_id' => $alice->id])
+            ->assertStatus(403)
+            ->assertJsonPath('error.code', 'not_attendee');
+        $this->flushHeaders();
+
+        $this->assertSame(0, EventContactExchange::where('link_id', $link->id)->count());
+    }
+
     public function test_reverse_request_auto_accepts_pending_exchange(): void
     {
         $host  = $this->makeUser('Hana Host');
