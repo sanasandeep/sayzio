@@ -3,6 +3,7 @@
 namespace App\Modules\Common\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Modules\Admin\Models\AppSetting;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 
@@ -24,9 +25,17 @@ class ZioBrowserDownloadController extends Controller
     private const CACHE_TTL = 21600; // 6h — releases are infrequent.
 
     /**
-     * Pinned fallback (v0.1.0) used when the GitHub API is unreachable and
-     * nothing is cached. Update alongside major releases if convenient; the
-     * live API path supersedes it whenever it works.
+     * app_settings key persisting the last SUCCESSFULLY fetched release, so
+     * the fallback self-updates as releases ship. Survives cache clears and
+     * restarts; superseded only by a fresher successful fetch.
+     */
+    private const LAST_RELEASE_SETTING = 'zio_browser_last_release';
+
+    /**
+     * Last-resort bootstrap fallback (v0.1.0) used only when the GitHub API
+     * is unreachable, nothing is cached, AND no release has ever been
+     * persisted to app_settings. The persisted last-good release (see
+     * self::LAST_RELEASE_SETTING) supersedes it once any fetch succeeds.
      */
     private const FALLBACK = [
         'version' => '0.1.0',
@@ -52,7 +61,7 @@ class ZioBrowserDownloadController extends Controller
                 return $fetched;
             });
         } catch (\Throwable $e) {
-            $release = self::FALLBACK;
+            $release = self::lastGoodRelease() ?? self::FALLBACK;
         }
 
         return view('public.download', ['release' => $release, 'seoKey' => 'download']);
@@ -116,10 +125,67 @@ class ZioBrowserDownloadController extends Controller
 
             // Require the three headline installers before trusting the release.
             if ($out['mac_arm64_dmg'] && $out['mac_x64_dmg'] && $out['windows_exe']) {
+                self::persistLastGoodRelease($out);
+
                 return $out;
             }
         }
 
         return null;
+    }
+
+    /**
+     * Durably persist the last successfully fetched release so the outage
+     * fallback self-updates as releases ship. Best-effort: a DB hiccup must
+     * never break the live fetch path that just succeeded.
+     *
+     * @param array<string,mixed> $release
+     */
+    private static function persistLastGoodRelease(array $release): void
+    {
+        try {
+            $current = AppSetting::get(self::LAST_RELEASE_SETTING);
+            if (is_array($current) && ($current['version'] ?? null) === ($release['version'] ?? null)) {
+                return; // Unchanged — skip the write.
+            }
+            AppSetting::put(self::LAST_RELEASE_SETTING, $release);
+        } catch (\Throwable $e) {
+            // Best-effort only.
+        }
+    }
+
+    /**
+     * Read the persisted last-good release, validating shape so a corrupt or
+     * partial value can never render a broken download page.
+     *
+     * @return array<string,mixed>|null
+     */
+    private static function lastGoodRelease(): ?array
+    {
+        try {
+            $stored = AppSetting::get(self::LAST_RELEASE_SETTING);
+        } catch (\Throwable $e) {
+            return null;
+        }
+
+        if (!is_array($stored)) {
+            return null;
+        }
+
+        foreach (['mac_arm64_dmg', 'mac_x64_dmg', 'windows_exe'] as $key) {
+            if (!is_string($stored[$key] ?? null) || $stored[$key] === '') {
+                return null;
+            }
+        }
+        if (!is_string($stored['version'] ?? null) || $stored['version'] === '') {
+            return null;
+        }
+
+        // Keep the view contract stable even if optional keys are absent.
+        return $stored + [
+            'mac_arm64_zip' => null,
+            'mac_x64_zip' => null,
+            'published_at' => null,
+        ];
     }
 }
