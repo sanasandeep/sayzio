@@ -364,14 +364,20 @@ const onErrorSrc = sliceBetween(
   .replace("onError: (e: any) => {", "const onError = (e) => {")
   .replace(/,\s*$/, ";");
 
-function makeScreenHarness() {
+function makeScreenHarness({ user = { id: 42 } } = {}) {
   const alerts = [];
   const pushes = [];
   const invalidated = [];
+  const persisted = [];
   const scope = {
     showAlert: (title, message, buttons) => alerts.push({ title, message, buttons }),
     router: { push: (path) => pushes.push(path) },
     qc: { invalidateQueries: (q) => invalidated.push(q.queryKey) },
+    user,
+    setStoredContactSyncFingerprint: (userId, fingerprint) => {
+      persisted.push({ userId, fingerprint });
+      return Promise.resolve();
+    },
   };
   const handlers = runExtractedStatements(
     `${onSuccessSrc}\n${onErrorSrc}`,
@@ -380,7 +386,7 @@ function makeScreenHarness() {
     "contacts import handlers",
     { test: "test-device-contacts-import" },
   );
-  return { ...handlers, alerts, pushes, invalidated };
+  return { ...handlers, alerts, pushes, invalidated, persisted };
 }
 
 // ===========================================================================
@@ -399,6 +405,7 @@ function makeScreenHarness() {
     assert.equal(h.alerts[0].title, title, `${reason} → "${title}" alert`);
     assert.equal(h.invalidated.length, 0, `${reason} does not invalidate queries`);
     assert.equal(h.pushes.length, 0, `${reason} does not navigate`);
+    assert.equal(h.persisted.length, 0, `${reason} does not persist a fingerprint`);
   }
 }
 ok("unavailable / denied / empty each raise a distinct visible alert");
@@ -425,6 +432,38 @@ ok("unavailable / denied / empty each raise a distinct visible alert");
   assert.equal(h.pushes.length, 0, "no navigation without user action");
 }
 ok("clean success shows the created/updated/skipped summary and refreshes queries");
+
+// ===========================================================================
+// 7b. A successful manual import persists the returned fingerprint under the
+//     signed-in user's id, so the NEXT auto-sync of an unchanged address book
+//     skips its bulk POST (no redundant re-upload after a manual import).
+// ===========================================================================
+{
+  const h = makeScreenHarness({ user: { id: 42 } });
+  h.onSuccess({
+    ok: true,
+    imported: 5,
+    fingerprint: "123:abcd",
+    result: { created: 3, updated: 1, skipped: 1, duplicates_found: 0 },
+  });
+  assert.deepEqual(
+    h.persisted,
+    [{ userId: 42, fingerprint: "123:abcd" }],
+    "manual import persists the fingerprint keyed by the signed-in user id",
+  );
+
+  // No signed-in user id → nothing persisted (never write an unkeyed value).
+  const h2 = makeScreenHarness({ user: null });
+  h2.onSuccess({
+    ok: true,
+    imported: 1,
+    fingerprint: "9:ffff",
+    result: { created: 1, updated: 0, skipped: 0, duplicates_found: 0 },
+  });
+  assert.equal(h2.persisted.length, 0, "no persistence without a signed-in user id");
+  assert.equal(h2.alerts.length, 1, "the success alert still shows");
+}
+ok("manual import persists the fingerprint via setStoredContactSyncFingerprint (per-user)");
 
 // ===========================================================================
 // 8. Success WITH duplicates: dupe line + "Review duplicates" button that
@@ -492,8 +531,10 @@ assert.ok(
   "the header button import PROMPTS for permission (user-initiated)",
 );
 assert.ok(
-  /import \{ importDeviceContacts \} from "@\/lib\/deviceContacts"/.test(screenSrc),
-  "the screen imports the shared importDeviceContacts helper",
+  /import \{ importDeviceContacts, setStoredContactSyncFingerprint \} from "@\/lib\/deviceContacts"/.test(
+    screenSrc,
+  ),
+  "the screen imports the shared importDeviceContacts + fingerprint helpers",
 );
 assert.ok(
   /Platform\.OS !== "web" && \(/.test(screenSrc),

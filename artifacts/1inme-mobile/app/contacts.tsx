@@ -27,7 +27,8 @@ import {
   listContactTags,
   listContacts,
 } from "@/lib/api/contacts";
-import { importDeviceContacts } from "@/lib/deviceContacts";
+import { useAuth } from "@/contexts/AuthContext";
+import { importDeviceContacts, setStoredContactSyncFingerprint } from "@/lib/deviceContacts";
 import { showAlert } from "@/lib/webAlert";
 
 /** Keep the duplicate count fresh-enough without hammering the API on focus. */
@@ -36,6 +37,7 @@ const DUPLICATE_COUNT_STALE_MS = 5 * 60 * 1000;
 export default function ContactsScreen() {
   const colors = useColors();
   const qc = useQueryClient();
+  const { user } = useAuth();
 
   const [search, setSearch] = useState("");
   const [activeTag, setActiveTag] = useState<string | null>(null);
@@ -123,6 +125,12 @@ export default function ContactsScreen() {
   const importMutation = useMutation({
     mutationFn: () => importDeviceContacts({ requestPermission: true }),
     onSuccess: (out) => {
+      // Remember what we just uploaded so the next silent auto-sync with an
+      // unchanged address book skips its bulk POST (same per-user key the
+      // auto-sync hook reads on cold start).
+      if ("fingerprint" in out && user?.id != null) {
+        void setStoredContactSyncFingerprint(user.id, out.fingerprint);
+      }
       if (!out.ok) {
         if (out.reason === "unavailable") {
           showAlert("Not available", "Device contact import isn't available on this build.");
