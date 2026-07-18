@@ -485,7 +485,7 @@ export function registerIpcHandlers(tabManager: TabManager, modeManager?: Window
   ipcMain.handle('browsing-data:clear', async () => {
     try {
       await session.defaultSession.clearStorageData({
-        storages: ['cookies', 'localstorage', 'caches', 'shadercache', 'indexdb', 'websql', 'serviceworkers'],
+        storages: ['cookies', 'localstorage', 'cachestorage', 'shadercache', 'indexdb', 'websql', 'serviceworkers'],
       });
       clearHistory();
       return true;

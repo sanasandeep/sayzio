@@ -494,4 +494,3 @@ export function deleteAllPasswords(): void {
   const db = getDb();
   db.prepare('DELETE FROM saved_passwords').run();
 }
-}
