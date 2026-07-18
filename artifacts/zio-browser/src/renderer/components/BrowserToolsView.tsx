@@ -514,6 +514,43 @@ function PasswordsSection({ currentUrl, onConfirm }: { currentUrl: string | null
 function DownloadsSection() {
   const [downloads, setDownloads] = useState<DownloadEntry[]>([]);
   const [loading, setLoading] = useState(false);
+  const [downloadDir, setDownloadDir] = useState<string | null>(null);
+  const [defaultDir, setDefaultDir] = useState<string>('');
+  const [alwaysAsk, setAlwaysAsk] = useState(false);
+
+  // Load download preferences
+  useEffect(() => {
+    void (async () => {
+      const [dir, def, ask] = await Promise.all([
+        window.zio.prefs.get('download_path') as Promise<string | null>,
+        window.zio.downloads.defaultDirectory() as Promise<string>,
+        window.zio.prefs.get('download_ask') as Promise<string | null>,
+      ]);
+      setDownloadDir(dir);
+      setDefaultDir(def);
+      setAlwaysAsk(ask === '1');
+    })();
+  }, []);
+
+  const handleChangeDir = async () => {
+    const picked = await window.zio.downloads.chooseDirectory() as string | null;
+    if (picked) {
+      await window.zio.prefs.set('download_path', picked);
+      setDownloadDir(picked);
+    }
+  };
+
+  const handleResetDir = async () => {
+    // Store the platform default explicitly so the manager falls back cleanly
+    await window.zio.prefs.set('download_path', defaultDir);
+    setDownloadDir(defaultDir);
+  };
+
+  const handleToggleAsk = async () => {
+    const next = !alwaysAsk;
+    setAlwaysAsk(next);
+    await window.zio.prefs.set('download_ask', next ? '1' : '0');
+  };
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -555,6 +592,54 @@ function DownloadsSection() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
+      {/* Download preferences */}
+      <div style={{
+        margin: '8px 12px 0',
+        padding: '10px 12px',
+        borderRadius: 10,
+        background: 'var(--color-bg-elevated)',
+        border: '1px solid var(--color-border)',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 8,
+      }}>
+        <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--color-text)' }}>Save downloaded files to</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span
+            title={downloadDir ?? defaultDir}
+            style={{
+              flex: 1,
+              minWidth: 0,
+              fontSize: 11,
+              fontFamily: 'monospace',
+              color: 'var(--color-text-muted)',
+              background: 'var(--color-bg)',
+              border: '1px solid var(--color-border)',
+              borderRadius: 6,
+              padding: '4px 8px',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+              direction: 'rtl',
+              textAlign: 'left',
+            }}
+          >{downloadDir ?? defaultDir ?? '…'}</span>
+          <button onClick={() => void handleChangeDir()} style={smallToggleBtn} title="Choose a different folder">Change…</button>
+          {downloadDir != null && defaultDir !== '' && downloadDir !== defaultDir && (
+            <button onClick={() => void handleResetDir()} style={smallToggleBtn} title="Use the system Downloads folder">Reset</button>
+          )}
+        </div>
+        <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: 'var(--color-text)', cursor: 'pointer' }}>
+          <input
+            type="checkbox"
+            checked={alwaysAsk}
+            onChange={() => void handleToggleAsk()}
+            style={{ accentColor: 'var(--color-primary)' }}
+          />
+          Always ask where to save each file
+        </label>
+      </div>
+
       <div style={{ padding: '8px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <span style={{ fontSize: 11, color: 'var(--color-text-muted)' }}>Recent downloads</span>
         <button onClick={() => void load()} style={smallToggleBtn} title="Refresh">↻</button>

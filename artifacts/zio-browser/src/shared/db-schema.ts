@@ -186,6 +186,7 @@ export const PREFERENCE_KEYS = {
   HISTORY_DAYS_RETENTION: 'history_days_retention',
   NEW_TAB_PAGE: 'new_tab_page',
   DOWNLOAD_PATH: 'download_path',
+  DOWNLOAD_ASK: 'download_ask',
   SAVE_PASSWORDS: 'save_passwords',
   WINDOW_MODE: 'window_mode',
   SPLIT_RATIO: 'split_ratio',

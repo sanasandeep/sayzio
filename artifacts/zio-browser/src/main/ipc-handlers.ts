@@ -389,6 +389,16 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
     const result = await dialog.showSaveDialog({ title: 'Save File' });
     return result.canceled ? null : result.filePath;
   });
+  ipcMain.handle('downloads:choose-directory', async () => {
+    const current = getPreference(PREFERENCE_KEYS.DOWNLOAD_PATH);
+    const result = await dialog.showOpenDialog({
+      title: 'Choose Download Folder',
+      defaultPath: current ?? app.getPath('downloads'),
+      properties: ['openDirectory', 'createDirectory'],
+    });
+    return result.canceled || result.filePaths.length === 0 ? null : result.filePaths[0];
+  });
+  ipcMain.handle('downloads:default-directory', () => app.getPath('downloads'));
   ipcMain.handle('downloads:pause', (_, id: string) => {
     const item = getActiveItem(id);
     if (!item) return false;
