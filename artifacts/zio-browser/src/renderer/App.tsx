@@ -8,6 +8,7 @@ import { DashboardLayout } from './components/DashboardLayout';
 import { SplitLayout } from './components/SplitLayout';
 import { FindBar } from './components/FindBar';
 import { DownloadsPanel } from './components/DownloadsPanel';
+import { DownloadToast } from './components/DownloadToast';
 import { DeviceLab } from './components/DeviceLab';
 import { TabSearchPopover } from './components/TabSearchPopover';
 import { ClearDataDialog } from './components/ClearDataDialog';
@@ -122,8 +123,6 @@ export default function App() {
   useEffect(() => {
     const onStarted = () => {
       setActiveDownloadCount(n => n + 1);
-      // Auto-open the downloads panel when a download begins
-      setDownloadsPanelOpen(true);
     };
     const onDone = () => {
       setActiveDownloadCount(n => Math.max(0, n - 1));
@@ -452,6 +451,9 @@ export default function App() {
           <DownloadsPanel onClose={() => setDownloadsPanelOpen(false)} />
         </div>
       )}
+
+      {/* Download started toast — bottom-right, non-blocking */}
+      <DownloadToast onOpenDownloads={() => setDownloadsPanelOpen(true)} />
 
       {authModalOpen && !isPrivate && (
         <AuthModal onClose={() => setAuthModalOpen(false)} />
