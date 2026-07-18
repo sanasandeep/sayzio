@@ -268,6 +268,14 @@
   ],
   "standaloneOnly": [
     {
+      "path": "scripts/test-contact-auto-sync.mjs",
+      "note": "source-driven unit test for the silent contact auto-sync hook (fingerprint persistence, cold-restart skip, account-switch reset, first-open prompt vs silent resumes, Google Contacts sync trigger); run via npm run test:contact-auto-sync"
+    },
+    {
+      "path": "scripts/lib/extract.mjs",
+      "note": "resilient with-proxy evaluation helper for source-driven tests, copied from artifacts/1inme-mobile/scripts/lib/extract.mjs"
+    },
+    {
       "path": "scripts/test-channel-actions.mjs",
       "note": "source-driven unit test: every screen with per-number channel actions uses the shared ChannelActions component (no bespoke wa.me/t.me deep links) and resolveChannels honors dialer_channels prefs; run via npm run test:channel-actions"
     },

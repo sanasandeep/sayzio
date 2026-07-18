@@ -90,7 +90,19 @@ export function useContactAutoSync(
       }
     };
 
-    void runSync(true);
+    const start = async () => {
+      // Seed the in-memory fingerprint from the per-user persisted copy so a
+      // cold app start with an unchanged address book skips the POST too.
+      if (lastFingerprint.current === null) {
+        const stored = await getStoredContactSyncFingerprint(userId);
+        if (stored && mounted && lastFingerprint.current === null) {
+          lastFingerprint.current = stored;
+        }
+      }
+      await runSync(true);
+    };
+
+    void start();
 
     const sub = AppState.addEventListener("change", (state) => {
       if (state === "active") void runSync(false);
@@ -100,5 +112,5 @@ export function useContactAutoSync(
       mounted = false;
       sub.remove();
     };
-  }, [enabled, qc]);
+  }, [enabled, qc, userId]);
 }
