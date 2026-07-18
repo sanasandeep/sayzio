@@ -74,7 +74,7 @@ See `electron-builder.config.cjs` for details.
 
 ### Auto-updates
 
-Packaged builds check the GitHub Releases feed of `sanasandeep/sayzio` every 4 hours (electron-updater; see `src/main/auto-updater.ts`). CI (`zio-browser-build.yml`, dispatched with `release: true`) uploads the installers plus `latest.yml` / `latest-mac.yml` into a **draft** release tagged `zio-browser-v<version>` — the draft must be published before installed apps can see the update.
+Packaged builds check the GitHub Releases feed of `sanasandeep/sayzio` every 4 hours (electron-updater; see `src/main/auto-updater.ts`). CI (`zio-browser-build.yml`, dispatched with `release: true`) uploads the installers plus `latest.yml` / `latest-mac.yml` into a **published** release tagged `zio-browser-v<version>` — installed apps see the update immediately (electron-updater ignores drafts, which is why the release is published, not drafted). A guard step fails the release job if the tag or release already exists, so bump the version in `package.json` before dispatching.
 
 - **Windows**: works unsigned — the app detects, downloads (sha512-verified), and installs on quit/restart.
 - **macOS**: auto-update requires a **code-signed** app (Squirrel.Mac refuses unsigned updates). Unsigned mac builds log the update error and keep running; users must download new versions manually until mac signing secrets are configured.
@@ -106,6 +106,6 @@ pnpm run test         # vitest unit tests (omnibox, context-extractor, sync, col
 1. **Test job** — typecheck + vitest (Ubuntu, no Electron)
 2. **macOS build** — `electron-builder` → `.dmg` + `.zip` (x64 + arm64)
 3. **Windows build** — `electron-builder` → NSIS installer (x64)
-4. **Release job** — triggered manually; creates a draft GitHub Release with all artifacts
+4. **Release job** — triggered manually; publishes a GitHub Release with all artifacts (refuses to overwrite an existing version's tag/release)
 
 Set `workflow_dispatch.inputs.release = true` to publish a release.
