@@ -150,4 +150,5 @@
 - [Bulk export pattern (contacts/general)](bulk-export-pattern.md) — async threshold 500; sync=stream; async=ContactExport row+job+polling page; signed URL (temporarySignedRoute) for mobile/no-auth download.
 - [Session driver file vs database](session-driver-file-vs-database.md) — Devices & sessions revoke only works on the database driver; dev/e2e pin file, e2e must boot with SESSION_DRIVER=database (passthrough-listed); prod currently inherits file.
 - [storage-url-resolve guard](storage-url-resolve-guard.md) — payload emissions of storage-backed image columns must go through PublicStorageUrl::resolve() (CDN vs slow /storage 302); exceptions go in the guard's ALLOWLIST.
+- [better-sqlite3 needs source build on Node 24](better-sqlite3-node24-source-build.md) — no prebuilt binary; background node-gyp rebuild in node_modules, ignore the bogus node_gyp_bins ENOENT.
 - [Electron desktop CI packaging](electron-desktop-ci-packaging.md) — workspace blocks non-Linux native binaries (strip ': -' overrides in CI); electron-builder needs explicit .cjs --config; empty WIN_CSC_LINK breaks signing.
