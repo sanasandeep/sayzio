@@ -43,10 +43,9 @@ const config = {
   mac: {
     category: 'public.app-category.productivity',
     icon: 'build-resources/icon.png',
-    target: [
-      { target: 'dmg', arch: ['x64', 'arm64'] },
-      { target: 'zip', arch: ['x64', 'arm64'] },
-    ],
+    // ZIP only: it is what electron-updater consumes on macOS, and the DMG
+    // target is flaky on GitHub macOS runners (dmgbuild background.tiff race).
+    target: [{ target: 'zip', arch: ['x64', 'arm64'] }],
     // Signed builds require hardened runtime for notarization to pass.
     // Unsigned (no CSC_LINK): identity null keeps local/dev builds working.
     ...(macSigningEnabled
@@ -64,15 +63,6 @@ const config = {
           hardenedRuntime: false,
           gatekeeperAssess: false,
         }),
-  },
-
-  dmg: {
-    title: 'SayZio Browser',
-    contents: [
-      { x: 130, y: 220 },
-      { x: 410, y: 220, type: 'link', path: '/Applications' },
-    ],
-    window: { width: 540, height: 380 },
   },
 
   // Windows — WIN_CSC_LINK / WIN_CSC_KEY_PASSWORD enable signing when present.
