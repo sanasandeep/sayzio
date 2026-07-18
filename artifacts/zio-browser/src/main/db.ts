@@ -718,7 +718,6 @@ export function upsertReadingListFromSync(record: SyncRecord): void {
     record.updated_at, record.updated_at, record.deleted ? 1 : 0, now,
   );
 }
-}
 
 // ── Downloads ────────────────────────────────────────────────────────────────
 

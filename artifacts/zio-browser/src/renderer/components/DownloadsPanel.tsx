@@ -577,6 +577,18 @@ export function DownloadsPanel({ onClose }: Props) {
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: '#ef4444' }}>
                       <span>File not found —</span>
                       <button
+                        onClick={() => handleRetry(entry.url)}
+                        style={{
+                          ...iconBtnStyle,
+                          fontSize: 11,
+                          color: 'var(--color-text-accent, #3b82f6)',
+                          textDecoration: 'underline',
+                          padding: 0,
+                        }}
+                        title="Re-download this file from its original URL"
+                      >Download again</button>
+                      <span>·</span>
+                      <button
                         onClick={() => void handleRemove(entry.id)}
                         style={{
                           ...iconBtnStyle,
