@@ -153,6 +153,7 @@ Route::prefix('v1')->group(function () {
         Route::post('/creators/{handle}/subscribe',              [\App\Modules\Api\Controllers\CreatorMonetizationApiController::class, 'subscribe'])->middleware('throttle:30,1');
         Route::post('/creators/{handle}/posts/{post}/unlock',    [\App\Modules\Api\Controllers\CreatorMonetizationApiController::class, 'unlockPost'])->whereNumber('post')->middleware('throttle:30,1');
         Route::post('/creators/{handle}/tip',                    [\App\Modules\Api\Controllers\CreatorMonetizationApiController::class, 'tip'])->middleware('throttle:30,1');
+        Route::post('/biolinks/{alias}/tip-jar',                 [\App\Modules\Api\Controllers\CreatorMonetizationApiController::class, 'biolinkTip'])->where('alias', '[^/]+')->middleware('throttle:30,1');
         Route::get ('/creators/{handle}/my-subscription',        [\App\Modules\Api\Controllers\CreatorMonetizationApiController::class, 'mySubscription']);
         Route::post('/creators/{handle}/my-subscription/cancel', [\App\Modules\Api\Controllers\CreatorMonetizationApiController::class, 'cancelSubscription']);
         Route::post('/creators/{handle}/my-subscription/resume', [\App\Modules\Api\Controllers\CreatorMonetizationApiController::class, 'resumeSubscription']);

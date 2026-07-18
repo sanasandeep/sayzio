@@ -1340,6 +1340,44 @@ if (typeof window.resetPollVotes !== 'function') {
         <p class="text-xs text-white/40 mt-2"><i class="fas fa-info-circle mr-1"></i> The notification will appear as a floating widget on the Link in Bio page.</p>
     @endif
 
+@elseif($block->type === 'tip_jar')
+@php
+    $tjConnection = auth()->user()?->defaultPaymentConnection();
+    $tjAmtsCsv = is_array($s['amounts'] ?? null) ? implode(',', array_map('intval', $s['amounts'])) : '';
+@endphp
+<div class="space-y-3">
+    @if(!$tjConnection || !$tjConnection->charges_enabled)
+        <div class="rounded-xl px-4 py-3 flex items-start gap-3 text-xs"
+             style="background: rgba(251,191,36,0.12); border: 1px solid rgba(251,191,36,0.25);">
+            <i class="fas fa-triangle-exclamation text-amber-400 mt-0.5"></i>
+            <span style="color:rgba(255,255,255,0.75);">
+                No active payout connection.
+                <a href="{{ route('user.payouts.index') }}" class="font-semibold underline underline-offset-2" style="color:#fbbf24;">Set up payouts →</a>
+                to collect tips.
+            </span>
+        </div>
+    @else
+        <div class="rounded-xl px-4 py-2 flex items-center gap-2 text-xs"
+             style="background: rgba(52,211,153,0.10); border: 1px solid rgba(52,211,153,0.20);">
+            <i class="fas fa-circle-check text-emerald-400"></i>
+            <span style="color:rgba(255,255,255,0.65);">Tips go via <span class="font-semibold capitalize" style="color:rgba(255,255,255,0.85)">{{ $tjConnection->provider }}</span> · 0% platform fee</span>
+        </div>
+    @endif
+    <div><label class="{{ $labelClass }}">Title</label><input type="text" name="settings[title]" value="{{ $s['title'] ?? 'Send me a tip' }}" class="{{ $inputClass }}"></div>
+    <div><label class="{{ $labelClass }}">Message (optional)</label><textarea name="settings[message]" rows="2" class="{{ $inputClass }}" placeholder="A short note to your visitors">{{ $s['message'] ?? '' }}</textarea></div>
+    <div>
+        <label class="{{ $labelClass }}">Preset amounts (comma-separated)</label>
+        <input type="text" name="settings[amounts_csv]" value="{{ $tjAmtsCsv }}" placeholder="3, 5, 10, 25" class="{{ $inputClass }}">
+        <p class="text-[11px] text-white/40 mt-1">Amounts shown as quick-tap chips. Currency is taken from your profile's preferred currency.</p>
+    </div>
+    <div><label class="{{ $labelClass }}">Button Text</label><input type="text" name="settings[button_text]" value="{{ $s['button_text'] ?? 'Send Tip' }}" class="{{ $inputClass }}"></div>
+    <label class="flex items-center gap-2 text-xs text-white/60">
+        <input type="hidden" name="settings[allow_custom]" value="0">
+        <input type="checkbox" name="settings[allow_custom]" value="1" {{ ($s['allow_custom'] ?? true) ? 'checked' : '' }} class="rounded text-blue-500">
+        Allow custom amount
+    </label>
+</div>
+
 @elseif(in_array($block->type, ['buy_me_coffee', 'patreon', 'ko_fi'], true))
 @php
     $tipLabel = match($block->type) { 'buy_me_coffee' => 'Buy Me a Coffee username', 'patreon' => 'Patreon username', default => 'Ko-fi username' };

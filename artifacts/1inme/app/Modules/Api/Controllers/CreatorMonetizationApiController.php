@@ -130,6 +130,56 @@ class CreatorMonetizationApiController extends Controller
     }
 
     /**
+     * Mobile parity for the `tip_jar` biolink block. Accepts an alias
+     * and block_id (rather than @handle) so the mobile app can start a
+     * tip from a biolink block and open the returned checkout_url in the
+     * system browser.
+     */
+    public function biolinkTip(Request $request, string $alias)
+    {
+        if (!$request->user()) return $this->unauthorized('Sign in to tip.');
+
+        $link = \App\Modules\User\Models\Link::where('alias', $alias)->first();
+        if (!$link) return $this->notFound();
+        $creator = $link->user;
+        if (!$creator) return $this->notFound();
+
+        $data = $request->validate([
+            'block_id'  => 'required|integer',
+            'amount'    => 'required|numeric|min:1|max:1000',
+            'note'      => 'nullable|string|max:280',
+            'anonymous' => 'nullable|boolean',
+            'return_url' => 'nullable|url',
+        ]);
+
+        $block = \App\Modules\User\Models\BiolinkBlock::withoutGlobalScope('workspace')
+            ->where('link_id', $link->id)
+            ->where('type', 'tip_jar')
+            ->whereKey((int) $data['block_id'])
+            ->first();
+        if (!$block) return $this->notFound();
+
+        $connection = $creator->defaultPaymentConnection();
+        if (!$connection || !$connection->charges_enabled) {
+            return $this->fail('Tips are not available for this creator right now.', 422);
+        }
+
+        $r = app(MonetizationCheckout::class)->startTip(
+            $request->user(), $creator,
+            (int) round(((float) $data['amount']) * 100),
+            $creator->preferred_currency ?: 'USD',
+            null,
+            $data['note'] ?? null,
+            (bool) ($data['anonymous'] ?? false),
+            $data['return_url'] ?? null,
+        );
+        return $this->ok([
+            'checkout_url' => $r['url'],
+            'tip_id'       => $r['tip']->id,
+        ]);
+    }
+
+    /**
      * Every creator subscription the signed-in fan holds — the native
      * "manage subscription" screen lists these so a fan can review and
      * cancel/resume each one without leaving the app. Mirrors the web

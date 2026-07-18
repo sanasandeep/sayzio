@@ -67,6 +67,7 @@
         "buy_me_coffee"                    => 'common.blocks.buy-me-coffee',
         "patreon"                          => 'common.blocks.buy-me-coffee',
         "ko_fi"                            => 'common.blocks.buy-me-coffee',
+        "tip_jar"                          => 'common.blocks.tip-jar',
         "latest_youtube"                   => 'common.blocks.latest-youtube',
         "latest_instagram"                 => 'common.blocks.latest-instagram',
         "featured_pin"                     => 'common.blocks.featured-pin',

@@ -1611,7 +1611,7 @@ class BiolinkBlockController extends Controller
 
         // Tip-jar blocks: convert "amounts_csv" form input into a numeric
         // array, dropping non-positive values and capping at 6 entries.
-        if (in_array($type, ['buy_me_coffee', 'ko_fi'], true) && array_key_exists('amounts_csv', $settings)) {
+        if (in_array($type, ['buy_me_coffee', 'ko_fi', 'tip_jar'], true) && array_key_exists('amounts_csv', $settings)) {
             $raw = (string) $settings['amounts_csv'];
             $parsed = array_values(array_filter(array_map('intval', preg_split('/[,\s]+/', $raw, -1, PREG_SPLIT_NO_EMPTY)), fn ($n) => $n > 0));
             $settings['amounts'] = array_slice($parsed, 0, 6);

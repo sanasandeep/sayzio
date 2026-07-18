@@ -700,6 +700,12 @@ Route::post('/{alias}/subscribe', [RedirectController::class, 'subscribe'])->nam
 
 // Public, no-login review submission for a standalone Reviews page. Honeypot
 // + SpamChecker live inside the controller; per-IP throttle here.
+// Tip-Jar block tip checkout — two-segment path so it precedes the
+// single-segment /{alias} catch-all. Multi-segment keeps it clear of
+// Route::post('/{alias}', RedirectController::handle).
+Route::post('/{alias}/tip-jar', [\App\Modules\Common\Controllers\CreatorMonetizationPublicController::class, 'biolinkTip'])
+    ->where('alias', '[^/]+')->middleware('throttle:30,1')->name('biolink.tip-jar');
+
 Route::post('/{alias}/reviews', [\App\Modules\Common\Controllers\ReviewSubmissionController::class, 'submit'])
     ->name('redirect.reviews.submit')
     ->where('alias', '^(?!user|admin|qr|storage|sanctum|api|webhooks).*$')
