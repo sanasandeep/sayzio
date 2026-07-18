@@ -146,6 +146,14 @@ class MarketingSeo
                 'description' => 'Stay on top of everything on Sayzio with a unified notification feed plus in-app, email and mobile push alerts, and per-event preferences across 20+ event types.',
                 'keywords' => 'notifications, notification preferences, push notifications, email alerts, in-app notifications, notification feed, sayzio notifications',
             ],
+            'download' => [
+                'label' => 'Download (SayZio Browser)',
+                'group' => 'Capabilities',
+                'url' => '/download',
+                'title' => 'Download SayZio Browser for Mac & Windows',
+                'description' => 'Get the SayZio Browser desktop app — your links, Link in Bio pages and analytics in a fast, distraction-free browser. Free download for macOS (Intel & Apple Silicon) and Windows.',
+                'keywords' => 'sayzio browser, download sayzio, sayzio desktop app, sayzio for mac, sayzio for windows, link in bio desktop',
+            ],
             'compare-index' => [
                 'label' => 'Compare overview',
                 'group' => 'Compare',

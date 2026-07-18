@@ -340,6 +340,9 @@ Route::middleware('brand.primary')->controller(\App\Modules\Common\Controllers\S
     })->name('site.coins');
     // Public gallery linking every live "explainer" biolink demo page.
     Route::get('/demos', [\App\Modules\Common\Controllers\SitePageController::class, 'demos'])->name('site.demos');
+    // SayZio Browser desktop-app download page (installers resolved live
+    // from the latest published GitHub release, cached).
+    Route::get('/download', [\App\Modules\Common\Controllers\ZioBrowserDownloadController::class, 'show'])->name('site.download');
     Route::get('/{slug}/history', [\App\Modules\Common\Controllers\SitePageController::class, 'history'])
         ->where('slug', 'terms|privacy|refunds|cookies|gdpr')
         ->name('site.policy.history');
