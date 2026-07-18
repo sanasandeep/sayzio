@@ -57,6 +57,7 @@ class LinkTypeCategories
                     ['value' => 'paid_page', 'icon' => 'fa-crown', 'badge' => 'bg-rose-500/15 text-rose-300',     'label' => 'Bizs Profile',  'desc' => 'A themeable home that automatically shows all your posts, tiers & tips — no linking needed.'],
                     ['value' => 'reviews',   'icon' => 'fa-star',  'badge' => 'bg-yellow-500/15 text-yellow-300', 'label' => 'Reviews Page',  'desc' => 'Collect and showcase reviews from your audience.'],
                     ['value' => 'brand_kit', 'icon' => 'fa-palette', 'badge' => 'bg-purple-500/15 text-purple-300', 'label' => 'Brand / Press Kit', 'desc' => 'A shareable press kit with logo downloads, colours, fonts and brand voice.'],
+                    ['value' => 'updates',   'icon' => 'fa-bullhorn', 'badge' => 'bg-sky-500/15 text-sky-300',    'label' => 'Updates Page',  'desc' => 'A public changelog where you post dated announcements — followers get notified.'],
                 ],
             ],
             [

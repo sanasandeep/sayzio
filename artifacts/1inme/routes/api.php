@@ -117,6 +117,10 @@ Route::prefix('v1')->group(function () {
         // Public reviews feed + summary for a standalone Reviews page.
         Route::get('/reviews/{alias}',             [\App\Modules\Api\Controllers\ReviewApiController::class, 'index']);
         Route::get('/reviews/{alias}/summary',     [\App\Modules\Api\Controllers\ReviewApiController::class, 'summary']);
+
+        // Public Updates / Changelog page: paginated published entries.
+        Route::get('/updates/{alias}',             [\App\Modules\Api\Controllers\UpdatesApiController::class, 'index']);
+        Route::get('/updates/{alias}/entries/{entry}', [\App\Modules\Api\Controllers\UpdatesApiController::class, 'show'])->whereNumber('entry');
         Route::get('/discovery/creators',          [DiscoveryController::class, 'creators']);
         Route::get('/discovery/creators/{handle}', [DiscoveryController::class, 'creator']);
 
@@ -393,6 +397,12 @@ Route::prefix('v1')->group(function () {
         // actions so creators can approve / hide / pin / reply / delete
         // their own native reviews from the mobile "Manage reviews"
         // screen. Every action is scoped to the authenticated owner.
+        // Owner-only Updates / Changelog entry CRUD and settings.
+        Route::post  ('/me/updates/{link}/entries',          [\App\Modules\Api\Controllers\UpdatesApiController::class, 'storeEntry'])->whereNumber('link');
+        Route::put   ('/me/updates/{link}/entries/{entry}',  [\App\Modules\Api\Controllers\UpdatesApiController::class, 'updateEntry'])->whereNumber('link')->whereNumber('entry');
+        Route::delete('/me/updates/{link}/entries/{entry}',  [\App\Modules\Api\Controllers\UpdatesApiController::class, 'destroyEntry'])->whereNumber('link')->whereNumber('entry');
+        Route::patch ('/me/updates/{link}/settings',         [\App\Modules\Api\Controllers\UpdatesApiController::class, 'updateSettings'])->whereNumber('link');
+
         Route::get   ('/me/reviews',                  [\App\Modules\Api\Controllers\ReviewApiController::class, 'mine']);
         Route::post  ('/me/reviews/{review}/approve', [\App\Modules\Api\Controllers\ReviewApiController::class, 'approve'])->whereNumber('review');
         Route::post  ('/me/reviews/{review}/hide',    [\App\Modules\Api\Controllers\ReviewApiController::class, 'hide'])->whereNumber('review');
