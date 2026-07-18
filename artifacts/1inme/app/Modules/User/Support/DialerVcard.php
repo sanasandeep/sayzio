@@ -80,7 +80,7 @@ class DialerVcard
             'urls'            => $urls,
             'addresses'       => $addresses,
             'social_profiles' => $socials,
-            'note'            => 'Saved from Sayzio Dialer',
+            'note'            => 'Saved from Zio Dialer',
         ]);
 
         return $vcf->toVcf();

@@ -1,5 +1,5 @@
 /**
- * Download manager for SayZio Browser.
+ * Download manager for Zio Browser.
  * Intercepts Electron download events and tracks them in the local DB.
  */
 import path from 'path';

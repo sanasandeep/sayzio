@@ -1,4 +1,4 @@
-# SayZio Browser
+# Zio Browser
 
 An AI-powered Chromium desktop browser for Mac and Windows, built on Electron. It bundles the **Zio AI assistant**, Sayzio CRM/contact actions, the Zio Dialer, smart link collections, and local-first SQLite storage — with optional cloud sync to your Sayzio account.
 

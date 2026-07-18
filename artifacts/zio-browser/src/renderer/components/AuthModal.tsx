@@ -30,7 +30,7 @@ export function AuthModal({ onClose }: Props) {
     setError(null);
     try {
       const client = new ApiClient({ baseUrl });
-      const result = await client.login(email.trim(), password, 'SayZio Browser');
+      const result = await client.login(email.trim(), password, 'Zio Browser');
       await setAuth(result.user, result.token);
       onClose();
     } catch (err) {

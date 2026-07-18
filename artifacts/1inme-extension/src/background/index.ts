@@ -223,7 +223,7 @@ async function setupContextMenus() {
     });
     browser.contextMenus.create({
       id: "1inme-dialer-lookup",
-      title: "Look up this number in Sayzio Dialer",
+      title: "Look up this number in Zio Dialer",
       contexts: ["selection"],
     });
     browser.contextMenus.create({

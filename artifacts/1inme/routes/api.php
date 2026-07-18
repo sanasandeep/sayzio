@@ -1348,7 +1348,7 @@ Route::prefix('v1')->group(function () {
         Route::post  ('/dialer/callback',           [DialerController::class, 'setCallback']);
         Route::delete('/dialer/callback/{id}',      [DialerController::class, 'clearCallback'])->whereNumber('id');
 
-        // ── SayZio Browser cloud sync ──────────────────────────────────────────
+        // ── Zio Browser cloud sync ──────────────────────────────────────────
         // Sync protocol: last-write-wins on item_updated_at.
         // Device registration is idempotent (UUID in X-Browser-Device-Id header).
         Route::post  ('/browser/devices',                            [BrowserSyncController::class, 'registerDevice']);

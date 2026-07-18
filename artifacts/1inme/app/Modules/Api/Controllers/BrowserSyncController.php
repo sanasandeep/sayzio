@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 /**
- * BrowserSyncController — cloud sync endpoints for SayZio Browser.
+ * BrowserSyncController — cloud sync endpoints for Zio Browser.
  *
  * Handles device registration and last-write-wins sync of bookmarks,
  * collections, saved links, and browsing history.

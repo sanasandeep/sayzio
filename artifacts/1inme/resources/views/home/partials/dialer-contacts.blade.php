@@ -366,7 +366,7 @@
         <div class="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
             {{-- LEFT: animated phone / dialer --}}
             <div class="reveal rd-3 dc-wrap relative flex justify-center">
-                <div class="dc-phone" role="img" aria-label="Sayzio dialer typing a phone number on a dual-SIM keypad, then flipping to a caller-ID screen that resolves the number into a verified Sayzio profile">
+                <div class="dc-phone" role="img" aria-label="Zio dialer typing a phone number on a dual-SIM keypad, then flipping to a caller-ID screen that resolves the number into a verified Sayzio profile">
                     <div class="dc-stage" aria-hidden="true">
                         <div class="dc-flip">
 
@@ -529,7 +529,7 @@
                 <div class="reveal rd-4 pt-2">
                     <div class="text-[11px] font-bold uppercase tracking-[.14em] text-gray-500 mb-2.5">Take the dialer with you</div>
                     <p class="text-xs text-gray-400 mb-2.5 max-w-sm">
-                        Also available as its own dedicated companion app, <strong class="text-white">Sayzio Dialer</strong>.
+                        Also available as its own dedicated companion app, <strong class="text-white">Zio Dialer</strong>.
                     </p>
                     @include('public.partials.store-buttons')
                 </div>

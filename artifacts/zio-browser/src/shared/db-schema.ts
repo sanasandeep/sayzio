@@ -1,5 +1,5 @@
 /**
- * SQLite schema definitions for the SayZio Browser local-first store.
+ * SQLite schema definitions for the Zio Browser local-first store.
  * These are the CREATE TABLE statements used by src/main/db.ts.
  *
  * Keeping schema in a shared module lets tests verify the schema without

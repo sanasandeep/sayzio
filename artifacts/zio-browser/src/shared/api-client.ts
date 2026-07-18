@@ -146,7 +146,7 @@ export class ApiClient {
   }
 
   async login(email: string, password: string, device?: string): Promise<{ user: ApiUser; token: string }> {
-    return this.post('/auth/login', { email, password, device: device ?? 'SayZio Browser' });
+    return this.post('/auth/login', { email, password, device: device ?? 'Zio Browser' });
   }
 
   async logout(): Promise<void> {

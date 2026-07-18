@@ -1,5 +1,5 @@
 /**
- * Smart link collection model for SayZio Browser.
+ * Smart link collection model for Zio Browser.
  *
  * Collections are local-first (SQLite) with optional cloud sync.
  * This module defines the data model and pure operations on collections.

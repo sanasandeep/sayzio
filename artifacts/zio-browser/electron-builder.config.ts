@@ -2,7 +2,7 @@ import type { Configuration } from 'electron-builder';
 
 const config: Configuration = {
   appId: 'com.sayzio.browser',
-  productName: 'SayZio Browser',
+  productName: 'Zio Browser',
   copyright: 'Copyright © 2025 SayZio',
 
   directories: {
@@ -37,7 +37,7 @@ const config: Configuration = {
   },
 
   dmg: {
-    title: 'SayZio Browser',
+    title: 'Zio Browser',
     icon: 'build-resources/icon.icns',
     contents: [
       { x: 130, y: 220 },
@@ -64,7 +64,7 @@ const config: Configuration = {
     installerHeaderIcon: 'build-resources/icon.ico',
     createDesktopShortcut: true,
     createStartMenuShortcut: true,
-    shortcutName: 'SayZio Browser',
+    shortcutName: 'Zio Browser',
   },
 
   // Auto-update server (configure when ready)

@@ -1,5 +1,5 @@
 /**
- * Cloud sync engine for the SayZio Browser.
+ * Cloud sync engine for the Zio Browser.
  * Implements last-write-wins merge with tombstones for deletes.
  * Syncs bookmarks, collections, and history to/from /api/v1/browser/*.
  *

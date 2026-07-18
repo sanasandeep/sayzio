@@ -154,7 +154,7 @@ export function SearchView({ webBaseUrl, onCancel, showToast }: Props) {
       {!searched && !loading && (
         <div className="muted" style={{ fontSize: 12 }}>
           Search across contacts, people, links, followed accounts, and workspaces.
-          Uses the same universal finder as the Sayzio dialer.
+          Uses the same universal finder as the Zio dialer.
         </div>
       )}
     </div>

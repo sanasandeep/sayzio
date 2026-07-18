@@ -2,7 +2,7 @@
   "name": "@workspace/zio-browser",
   "version": "0.1.0",
   "private": true,
-  "description": "SayZio Browser — AI-powered companion browser for Mac and Windows",
+  "description": "Zio Browser — AI-powered companion browser for Mac and Windows",
   "main": "dist/main/index.js",
   "scripts": {
     "dev": "concurrently \"pnpm run dev:renderer\" \"pnpm run dev:main\"",

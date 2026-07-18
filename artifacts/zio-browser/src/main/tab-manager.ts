@@ -1,5 +1,5 @@
 /**
- * Tab manager for SayZio Browser.
+ * Tab manager for Zio Browser.
  * Manages WebContentsView instances, tab state, and navigation.
  */
 import { BrowserWindow, WebContentsView, session, type WebContents } from 'electron';

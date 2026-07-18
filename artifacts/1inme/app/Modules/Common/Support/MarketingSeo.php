@@ -120,7 +120,7 @@ class MarketingSeo
                 'url' => '/dialer-contacts',
                 'title' => 'Smart Dialer & Contacts — Call, Sync & Turn Numbers Into Profiles',
                 'description' => 'A T9 smart dialer, quick call / SMS / WhatsApp / Telegram channels, two-way Google Contacts sync, phone-to-biolink resolution, an AI business-card scanner and shareable vCards — your whole address book, supercharged on Sayzio.',
-                'keywords' => 'smart dialer, contacts, t9 dialer, google contacts sync, business card scanner, vcard, phone to biolink, speed dial, call log, caller id, sayzio dialer',
+                'keywords' => 'smart dialer, contacts, t9 dialer, google contacts sync, business card scanner, vcard, phone to biolink, speed dial, call log, caller id, zio dialer',
             ],
             'ai-marketing-strategist' => [
                 'label' => 'AI Marketing Strategist',

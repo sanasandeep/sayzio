@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Sayzio Dialer",
+    "name": "Zio Dialer",
     "slug": "sayzio-dialer",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -17,9 +17,9 @@
       "supportsTablet": false,
       "bundleIdentifier": "com.sayzio.dialer",
       "infoPlist": {
-        "NSContactsUsageDescription": "Sayzio Dialer reads your contacts so you can call, message and manage them, and match incoming numbers to saved people.",
-        "NSLocationWhenInUseUsageDescription": "Sayzio Dialer can show and pick a contact's location on a map. This is optional and only used while the app is open.",
-        "NSFaceIDUsageDescription": "Sayzio Dialer uses Face ID so you can unlock the app without re-entering your code."
+        "NSContactsUsageDescription": "Zio Dialer reads your contacts so you can call, message and manage them, and match incoming numbers to saved people.",
+        "NSLocationWhenInUseUsageDescription": "Zio Dialer can show and pick a contact's location on a map. This is optional and only used while the app is open.",
+        "NSFaceIDUsageDescription": "Zio Dialer uses Face ID so you can unlock the app without re-entering your code."
       }
     },
     "android": {
@@ -61,19 +61,19 @@
       [
         "expo-local-authentication",
         {
-          "faceIDPermission": "Sayzio Dialer uses Face ID so you can unlock the app without re-entering your code."
+          "faceIDPermission": "Zio Dialer uses Face ID so you can unlock the app without re-entering your code."
         }
       ],
       [
         "expo-contacts",
         {
-          "contactsPermission": "Sayzio Dialer can read your contacts so you can call, message and manage them."
+          "contactsPermission": "Zio Dialer can read your contacts so you can call, message and manage them."
         }
       ],
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "Sayzio Dialer can show and pick a contact's location on a map."
+          "locationWhenInUsePermission": "Zio Dialer can show and pick a contact's location on a map."
         }
       ]
     ],

@@ -1,5 +1,5 @@
 /**
- * Local SQLite database for SayZio Browser.
+ * Local SQLite database for Zio Browser.
  * Uses better-sqlite3 for synchronous access (Electron main process only).
  */
 import path from 'path';

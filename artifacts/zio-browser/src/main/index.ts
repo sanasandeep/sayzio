@@ -1,5 +1,5 @@
 /**
- * SayZio Browser — Electron main process entry point.
+ * Zio Browser — Electron main process entry point.
  */
 import path from 'path';
 import { app, BrowserWindow, Menu, session, nativeTheme } from 'electron';
@@ -37,7 +37,7 @@ function createWindow(): void {
     height: 800,
     minWidth: 800,
     minHeight: 600,
-    title: 'SayZio Browser',
+    title: 'Zio Browser',
     backgroundColor: nativeTheme.shouldUseDarkColors ? '#1a1a2e' : '#ffffff',
     webPreferences: {
       preload: path.join(__dirname, '../preload/index.js'),

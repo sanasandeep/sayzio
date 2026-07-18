@@ -142,7 +142,7 @@ export function extractEmails(text: string): string[] {
  */
 export function buildAiSystemPrompt(ctx: TrimmedContext, task: string): string {
   const lines: string[] = [
-    `You are Zio, the AI assistant built into SayZio Browser.`,
+    `You are Zio, the AI assistant built into Zio Browser.`,
     `The user is currently viewing: ${ctx.title} (${ctx.url})`,
   ];
 
