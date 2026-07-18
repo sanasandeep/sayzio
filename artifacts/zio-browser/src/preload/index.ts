@@ -51,6 +51,8 @@ const api = {
     getOrder: () => ipcRenderer.invoke('tabs:get-order'),
     getActive: () => ipcRenderer.invoke('tabs:get-active'),
     extractContext: (id: string) => ipcRenderer.invoke('tabs:extract-context', id),
+    autofillForm: (id: string, card: Record<string, string | undefined>) =>
+      ipcRenderer.invoke('tabs:autofill-form', id, card),
   },
 
   // ── Window mode ───────────────────────────────────────────────────────────

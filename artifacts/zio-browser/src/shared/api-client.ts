@@ -31,6 +31,16 @@ export interface ApiUser {
   coin_balance?: number;
 }
 
+/** Extended profile with fields useful for form autofill (returned by GET /profile). */
+export interface ApiUserProfile extends ApiUser {
+  phone: string | null;
+  given_name?: string | null;
+  family_name?: string | null;
+  organization?: string | null;
+  job_title?: string | null;
+  website?: string | null;
+}
+
 export interface AuthConfig {
   email: boolean;
   otp_email: boolean;
@@ -190,8 +200,20 @@ export class ApiClient {
 
   // ── Contacts ─────────────────────────────────────────────────────────────
 
+  async getProfile(): Promise<{ user: ApiUserProfile }> {
+    return this.get('/profile');
+  }
+
   async createContact(data: ContactPayload): Promise<{ contact: ApiContact }> {
     return this.post('/contacts', { ...data, validate: 'strict' });
+  }
+
+  async updateContact(id: number, data: ContactPayload): Promise<{ contact: ApiContact }> {
+    return this.patch(`/contacts/${id}`, data);
+  }
+
+  async getContact(id: number): Promise<{ contact: ApiContact }> {
+    return this.get(`/contacts/${id}`);
   }
 
   async searchContacts(q: string): Promise<{ items: ApiContact[] }> {

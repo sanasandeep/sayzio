@@ -6,11 +6,12 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { useAuthStore } from '../store/auth-store';
 import { ApiClient, ApiClientError } from '../../shared/api-client';
-import type { LinkAnalytics, AssistantPage } from '../../shared/api-client';
+import type { LinkAnalytics, AssistantPage, ApiContact, ApiUserProfile } from '../../shared/api-client';
 import { trimPageContext } from '../../shared/context-extractor';
 import type { PageContext, TrimmedContext } from '../../shared/context-extractor';
 import { detectSayzioLink } from '../../shared/link-tools';
 import { AddToBiolinkModal } from './AddToBiolinkModal';
+import type { AutofillCard, AutofillResult } from '../../shared/form-autofill';
 
 const BASE_URL = 'https://1in.me';
 
@@ -708,61 +709,405 @@ function Sparkline({ data }: { data: Array<{ date: string; clicks: number }> }) 
   );
 }
 
-// ── Contact extractor (unchanged) ─────────────────────────────────────────────
+// ── Contact extractor ─────────────────────────────────────────────────────────
+
+type ContactSaveState =
+  | { kind: 'idle' }
+  | { kind: 'saving' }
+  | { kind: 'saved'; contactId: number; name: string }
+  | { kind: 'duplicate'; existingId: number; existingName: string; existingEmails: string[]; existingPhones: string[] }
+  | { kind: 'updating' }
+  | { kind: 'updated' }
+  | { kind: 'skipped' }
+  | { kind: 'limit_reached' }
+  | { kind: 'error'; message: string };
+
+interface ContactEntry {
+  emails: string[];
+  phones: string[];
+  key: string;
+}
+
+/** Build an AutofillCard from the user's Sayzio profile. */
+function profileToAutofillCard(profile: ApiUserProfile): AutofillCard {
+  const nameParts = (profile.name ?? '').trim().split(/\s+/);
+  return {
+    full_name: profile.name ?? undefined,
+    given_name: profile.given_name ?? (nameParts[0] ?? undefined),
+    family_name: profile.family_name ?? (nameParts.length > 1 ? nameParts.slice(1).join(' ') : undefined),
+    email: profile.email ?? undefined,
+    phone: profile.phone ?? undefined,
+    organization: profile.organization ?? undefined,
+    job_title: profile.job_title ?? undefined,
+    website: profile.website ?? undefined,
+  };
+}
 
 function ContactExtractorView({ url, trimmedCtx }: { url: string; title: string; trimmedCtx: TrimmedContext | null }) {
   const { token } = useAuthStore();
+  const [saveStates, setSaveStates] = useState<Record<string, ContactSaveState>>({});
+  const [profile, setProfile] = useState<ApiUserProfile | null>(null);
+  const [autofillResult, setAutofillResult] = useState<AutofillResult | null>(null);
+  const [isAutofilling, setIsAutofilling] = useState(false);
 
-  const savePhonesAndEmails = useCallback(async () => {
-    if (!token || !trimmedCtx) return;
+  // Fetch the user's profile once when signed in (for autofill)
+  useEffect(() => {
+    if (!token) { setProfile(null); return; }
     const client = new ApiClient({ baseUrl: BASE_URL, token });
-    if (trimmedCtx.emails.length > 0 || trimmedCtx.phones.length > 0) {
-      await client.createContact({
-        emails: trimmedCtx.emails.map(e => ({ value: e })),
-        phones: trimmedCtx.phones.map(p => ({ value: p })),
+    void (async () => {
+      try {
+        const res = await client.getProfile();
+        setProfile(res.user);
+      } catch {
+        // Non-critical — autofill will just show a fetch-error state
+      }
+    })();
+  }, [token]);
+
+  // Build deduplicated contact entries from the page context
+  const contacts: ContactEntry[] = (() => {
+    if (!trimmedCtx) return [];
+    const emails = trimmedCtx.emails;
+    const phones = trimmedCtx.phones;
+    if (emails.length === 0 && phones.length === 0) return [];
+
+    // Group as one contact when there are few items, else one per email/phone
+    if (emails.length <= 3 && phones.length <= 3) {
+      return [{ emails, phones, key: [...emails, ...phones].join('|') }];
+    }
+    const entries: ContactEntry[] = [];
+    for (const e of emails.slice(0, 10)) {
+      entries.push({ emails: [e], phones: [], key: `email:${e}` });
+    }
+    for (const p of phones.slice(0, 10)) {
+      entries.push({ emails: [], phones: [p], key: `phone:${p}` });
+    }
+    return entries;
+  })();
+
+  const setSaveState = (key: string, state: ContactSaveState) =>
+    setSaveStates(prev => ({ ...prev, [key]: state }));
+
+  const handleSave = useCallback(async (entry: ContactEntry) => {
+    if (!token) return;
+    setSaveState(entry.key, { kind: 'saving' });
+    const client = new ApiClient({ baseUrl: BASE_URL, token });
+
+    try {
+      const res = await client.createContact({
+        emails: entry.emails.map(e => ({ value: e })),
+        phones: entry.phones.map(p => ({ value: p })),
         source_url: url,
       });
+      setSaveState(entry.key, {
+        kind: 'saved',
+        contactId: res.contact.id,
+        name: res.contact.display_name,
+      });
+    } catch (err) {
+      if (err instanceof ApiClientError) {
+        if (err.status === 409) {
+          // Duplicate found — fetch the existing contact to show details
+          const details = err.details as { duplicate_of?: number } | undefined;
+          const dupId = details?.duplicate_of;
+          if (dupId) {
+            try {
+              const existing = await client.getContact(dupId);
+              setSaveState(entry.key, {
+                kind: 'duplicate',
+                existingId: existing.contact.id,
+                existingName: existing.contact.display_name,
+                existingEmails: existing.contact.emails.map(e => e.value),
+                existingPhones: existing.contact.phones.map(p => p.value),
+              });
+            } catch {
+              setSaveState(entry.key, { kind: 'duplicate', existingId: dupId, existingName: 'Existing contact', existingEmails: [], existingPhones: [] });
+            }
+          } else {
+            setSaveState(entry.key, { kind: 'error', message: err.message });
+          }
+        } else if (err.status === 402) {
+          setSaveState(entry.key, { kind: 'limit_reached' });
+        } else {
+          setSaveState(entry.key, { kind: 'error', message: err.message });
+        }
+      } else {
+        setSaveState(entry.key, { kind: 'error', message: 'Failed to save contact' });
+      }
     }
-  }, [token, trimmedCtx, url]);
+  }, [token, url]);
 
-  if (!trimmedCtx || (trimmedCtx.emails.length === 0 && trimmedCtx.phones.length === 0)) {
+  const handleUpdate = useCallback(async (entry: ContactEntry, existingId: number) => {
+    if (!token) return;
+    setSaveState(entry.key, { kind: 'updating' });
+    const client = new ApiClient({ baseUrl: BASE_URL, token });
+    try {
+      await client.updateContact(existingId, {
+        emails: entry.emails.map(e => ({ value: e })),
+        phones: entry.phones.map(p => ({ value: p })),
+        source_url: url,
+      });
+      setSaveState(entry.key, { kind: 'updated' });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Update failed';
+      setSaveState(entry.key, { kind: 'error', message: msg });
+    }
+  }, [token, url]);
+
+  const handleAutofill = useCallback(async () => {
+    if (!token || !profile) return;
+    setIsAutofilling(true);
+    setAutofillResult(null);
+    try {
+      const activeTabId = await window.zio.tabs.getActive() as string | null;
+      if (!activeTabId) return;
+      const card = profileToAutofillCard(profile);
+      const result = await window.zio.tabs.autofillForm(activeTabId, card as Record<string, string | undefined>) as AutofillResult;
+      setAutofillResult(result);
+    } catch {
+      setAutofillResult({ filled: 0, filled_fields: [] });
+    } finally {
+      setIsAutofilling(false);
+    }
+  }, [token, profile]);
+
+  // Unauthenticated fallback
+  if (!token) {
     return (
       <div style={{ padding: 24, textAlign: 'center', color: 'var(--color-text-muted)' }}>
-        <p style={{ fontSize: 14 }}>No contacts detected on this page</p>
+        <div style={{ fontSize: 28, marginBottom: 10 }}>🔒</div>
+        <p style={{ fontSize: 14, marginBottom: 6 }}>Sign in to save contacts and autofill forms</p>
+        <p style={{ fontSize: 12, opacity: 0.7 }}>Your Sayzio account is required for these features.</p>
       </div>
     );
   }
 
   return (
-    <div style={{ padding: 16, overflowY: 'auto', flex: 1 }}>
-      <p style={{ fontSize: 12, color: 'var(--color-text-muted)', marginBottom: 12 }}>Found on page:</p>
-      {trimmedCtx.emails.length > 0 && (
-        <div style={{ marginBottom: 16 }}>
-          <p style={{ fontSize: 11, fontWeight: 600, color: 'var(--color-text-muted)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 1 }}>Emails</p>
-          {trimmedCtx.emails.map(e => (
-            <div key={e} style={{ fontSize: 13, padding: '4px 0', borderBottom: '1px solid var(--color-border)' }}>{e}</div>
-          ))}
-        </div>
-      )}
-      {trimmedCtx.phones.length > 0 && (
-        <div style={{ marginBottom: 16 }}>
-          <p style={{ fontSize: 11, fontWeight: 600, color: 'var(--color-text-muted)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 1 }}>Phone Numbers</p>
-          {trimmedCtx.phones.map(p => (
-            <div key={p} style={{ fontSize: 13, padding: '4px 0', borderBottom: '1px solid var(--color-border)' }}>{p}</div>
-          ))}
-        </div>
-      )}
-      {token && (
-        <button
-          onClick={() => void savePhonesAndEmails()}
-          style={{ width: '100%', padding: 10, borderRadius: 10, background: 'var(--color-primary)', color: '#fff', fontSize: 13, fontWeight: 600, marginTop: 8 }}
-        >Save to Sayzio Contacts</button>
-      )}
+    <div style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
+      {/* Autofill section */}
+      <div style={{
+        padding: '12px 16px',
+        borderBottom: '1px solid var(--color-border)',
+        background: 'var(--color-bg-elevated)',
+      }}>
+        <p style={{ fontSize: 11, fontWeight: 600, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>
+          Form autofill
+        </p>
+        {profile ? (
+          <div>
+            <p style={{ fontSize: 12, color: 'var(--color-text-muted)', marginBottom: 8 }}>
+              Fill this page's forms using your digital card ({profile.name}{profile.email ? ` · ${profile.email}` : ''}).
+            </p>
+            <button
+              onClick={() => void handleAutofill()}
+              disabled={isAutofilling}
+              style={{
+                width: '100%',
+                padding: '8px 12px',
+                borderRadius: 8,
+                background: isAutofilling ? 'var(--color-bg)' : 'var(--color-primary)',
+                color: isAutofilling ? 'var(--color-text-muted)' : '#fff',
+                border: '1px solid var(--color-border)',
+                fontSize: 12,
+                fontWeight: 600,
+                cursor: isAutofilling ? 'default' : 'pointer',
+              }}
+            >
+              {isAutofilling ? 'Filling…' : '⌨ Fill this form'}
+            </button>
+            {autofillResult && (
+              <p style={{
+                fontSize: 11,
+                marginTop: 6,
+                color: autofillResult.filled > 0 ? 'var(--color-success, #22c55e)' : 'var(--color-text-muted)',
+              }}>
+                {autofillResult.filled > 0
+                  ? `✓ Filled ${autofillResult.filled} field${autofillResult.filled === 1 ? '' : 's'} (${autofillResult.filled_fields.map(f => f.replace('_', ' ')).join(', ')})`
+                  : 'No fillable form fields found on this page.'}
+              </p>
+            )}
+          </div>
+        ) : (
+          <p style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>Loading your card…</p>
+        )}
+      </div>
+
+      {/* Detected contacts section */}
+      <div style={{ flex: 1, overflowY: 'auto', padding: 16 }}>
+        {contacts.length === 0 ? (
+          <div style={{ textAlign: 'center', color: 'var(--color-text-muted)', marginTop: 24 }}>
+            <p style={{ fontSize: 14 }}>No contacts detected on this page</p>
+            <p style={{ fontSize: 11, marginTop: 6, opacity: 0.7 }}>Emails and phone numbers found on the page will appear here.</p>
+          </div>
+        ) : (
+          <>
+            <p style={{ fontSize: 11, fontWeight: 600, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12 }}>
+              Found on page
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {contacts.map(entry => (
+                <ContactEntryCard
+                  key={entry.key}
+                  entry={entry}
+                  state={saveStates[entry.key] ?? { kind: 'idle' }}
+                  onSave={() => void handleSave(entry)}
+                  onUpdate={(existingId) => void handleUpdate(entry, existingId)}
+                  onSkip={() => setSaveState(entry.key, { kind: 'skipped' })}
+                />
+              ))}
+            </div>
+          </>
+        )}
+      </div>
     </div>
   );
 }
 
-// ── Collections (unchanged) ────────────────────────────────────────────────────
+function ContactEntryCard({
+  entry,
+  state,
+  onSave,
+  onUpdate,
+  onSkip,
+}: {
+  entry: ContactEntry;
+  state: ContactSaveState;
+  onSave: () => void;
+  onUpdate: (existingId: number) => void;
+  onSkip: () => void;
+}) {
+  return (
+    <div style={{
+      borderRadius: 10,
+      border: '1px solid var(--color-border)',
+      background: 'var(--color-bg-elevated)',
+      padding: '10px 12px',
+    }}>
+      {/* Contact details */}
+      {entry.emails.map(e => (
+        <div key={e} style={{ fontSize: 12, color: 'var(--color-text)', marginBottom: 3, display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span style={{ opacity: 0.5, fontSize: 11 }}>✉</span> {e}
+        </div>
+      ))}
+      {entry.phones.map(p => (
+        <div key={p} style={{ fontSize: 12, color: 'var(--color-text)', marginBottom: 3, display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span style={{ opacity: 0.5, fontSize: 11 }}>📞</span> {p}
+        </div>
+      ))}
+
+      {/* Actions */}
+      <div style={{ marginTop: 8 }}>
+        {state.kind === 'idle' && (
+          <button
+            onClick={onSave}
+            style={{
+              padding: '5px 14px',
+              borderRadius: 6,
+              background: 'var(--color-primary)',
+              color: '#fff',
+              fontSize: 11,
+              fontWeight: 600,
+            }}
+          >Save to Contacts</button>
+        )}
+
+        {state.kind === 'saving' && (
+          <span style={{ fontSize: 11, color: 'var(--color-text-muted)' }}>Saving…</span>
+        )}
+
+        {state.kind === 'saved' && (
+          <span style={{ fontSize: 11, color: 'var(--color-success, #22c55e)' }}>
+            ✓ Saved as "{state.name}"
+          </span>
+        )}
+
+        {state.kind === 'duplicate' && (
+          <div>
+            <div style={{
+              padding: '6px 8px',
+              borderRadius: 6,
+              background: 'color-mix(in srgb, var(--color-primary) 8%, transparent)',
+              border: '1px solid color-mix(in srgb, var(--color-primary) 20%, transparent)',
+              marginBottom: 6,
+              fontSize: 11,
+              color: 'var(--color-text)',
+            }}>
+              <span style={{ fontWeight: 600 }}>Match found: </span>{state.existingName}
+              {state.existingEmails.length > 0 && (
+                <span style={{ color: 'var(--color-text-muted)', display: 'block', marginTop: 2 }}>
+                  {state.existingEmails.slice(0, 2).join(', ')}
+                </span>
+              )}
+            </div>
+            <div style={{ display: 'flex', gap: 6 }}>
+              <button
+                onClick={() => onUpdate(state.existingId)}
+                style={{
+                  flex: 1,
+                  padding: '5px 8px',
+                  borderRadius: 6,
+                  background: 'var(--color-primary)',
+                  color: '#fff',
+                  fontSize: 11,
+                  fontWeight: 600,
+                }}
+              >Update</button>
+              <button
+                onClick={onSkip}
+                style={{
+                  flex: 1,
+                  padding: '5px 8px',
+                  borderRadius: 6,
+                  background: 'var(--color-bg)',
+                  border: '1px solid var(--color-border)',
+                  color: 'var(--color-text-muted)',
+                  fontSize: 11,
+                }}
+              >Skip</button>
+            </div>
+          </div>
+        )}
+
+        {state.kind === 'updating' && (
+          <span style={{ fontSize: 11, color: 'var(--color-text-muted)' }}>Updating…</span>
+        )}
+
+        {state.kind === 'updated' && (
+          <span style={{ fontSize: 11, color: 'var(--color-success, #22c55e)' }}>✓ Contact updated</span>
+        )}
+
+        {state.kind === 'skipped' && (
+          <span style={{ fontSize: 11, color: 'var(--color-text-muted)' }}>Skipped</span>
+        )}
+
+        {state.kind === 'limit_reached' && (
+          <div>
+            <span style={{ fontSize: 11, color: 'var(--color-danger, #ef4444)' }}>
+              Contact limit reached on your plan.{' '}
+            </span>
+            <a
+              href="#"
+              onClick={e => { e.preventDefault(); void window.zio.shell.openExternal(`${BASE_URL}/user/upgrade`); }}
+              style={{ fontSize: 11, color: 'var(--color-primary)', textDecoration: 'underline' }}
+            >Upgrade</a>
+          </div>
+        )}
+
+        {state.kind === 'error' && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontSize: 11, color: 'var(--color-danger, #ef4444)' }}>{state.message}</span>
+            <button
+              onClick={onSave}
+              style={{ fontSize: 10, color: 'var(--color-primary)', textDecoration: 'underline' }}
+            >Retry</button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── Collections ────────────────────────────────────────────────────────────────
 
 function CollectionsView({ onSaveCurrent, currentUrl }: { onSaveCurrent: () => Promise<void>; currentUrl?: string }) {
   const [collections, setCollections] = useState<Array<{ id: string; name: string; item_count?: number }>>([]);

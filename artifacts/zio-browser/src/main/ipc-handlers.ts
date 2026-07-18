@@ -33,6 +33,8 @@ import {
   enqueueSyncPush,
   countSyncQueue,
 } from './db';
+import { buildAutofillScript } from '../shared/form-autofill';
+import type { AutofillCard } from '../shared/form-autofill';
 import { storeToken, retrieveToken, clearToken, storeUser, retrieveUser, clearUser } from './auth-store';
 import { createCollection, createSavedLink } from '../shared/collection-store';
 import type { PREFERENCE_KEYS } from '../shared/db-schema';
@@ -237,6 +239,22 @@ export function registerIpcHandlers(tabManager: TabManager, modeManager?: Window
       }
     } catch { }
     return false;
+  });
+
+  // ── Form autofill ─────────────────────────────────────────────────────────
+  // Injects the autofill script into the active tab's page.
+  // The card data comes from the renderer (already fetched from the Sayzio API)
+  // so no credentials pass through this handler.
+  ipcMain.handle('tabs:autofill-form', async (_, id: string, card: AutofillCard) => {
+    const wc = tabManager.getWebContents(id);
+    if (!wc) return { filled: 0, filled_fields: [] };
+    try {
+      const script = buildAutofillScript(card);
+      const result = await wc.executeJavaScript(script);
+      return result ?? { filled: 0, filled_fields: [] };
+    } catch {
+      return { filled: 0, filled_fields: [] };
+    }
   });
 
   // ── Version info ─────────────────────────────────────────────────────────
