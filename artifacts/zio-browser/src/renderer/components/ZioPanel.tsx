@@ -22,6 +22,7 @@ import type { AutofillCard, AutofillResult } from '../../shared/form-autofill';
 import { BrowserToolsView } from './BrowserToolsView';
 import { detectBrowserIntent, describeIntent } from '../../shared/browser-intents';
 import type { BrowserIntent } from '../../shared/browser-intents';
+import { ProfileBadge } from './ProfileBadge';
 
 const BASE_URL = 'https://1in.me';
 
@@ -529,6 +530,7 @@ export function ZioPanel({ pageContext, onClose, presentation = 'embedded', pane
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0, flex: 1 }}>
           <span style={{ fontSize: 18, flexShrink: 0 }}>⚡</span>
           <span style={{ fontWeight: 700, fontSize: 15, flexShrink: 0 }}>Zio</span>
+          <ProfileBadge variant="pill" style={{ flexShrink: 0 }} />
           {pageContext && (
             <span style={{ fontSize: 11, color: 'var(--color-text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               — {pageContext.title}
@@ -1349,6 +1351,11 @@ function CollectionsView({ onSaveCurrent, currentUrl }: { onSaveCurrent: () => P
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
+      {/* Active profile ribbon — collections are scoped to this profile */}
+      <div style={{ padding: '10px 16px 0' }}>
+        <ProfileBadge variant="ribbon" />
+      </div>
+
       {currentUrl && (
         <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--color-border)', background: 'var(--color-bg-elevated)' }}>
           <button

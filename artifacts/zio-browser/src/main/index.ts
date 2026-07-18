@@ -272,8 +272,7 @@ function buildMenu(): void {
           click: (_item, bw) => {
             const browserWin = asBrowserWin(bw);
             if (!browserWin) return;
-            const tm = getTabManagerForWindow(browserWin);
-            tm?.reopenClosedTab();
+            getTabManagerForWindow(browserWin)?.reopenClosedTab();
           },
         },
         { type: 'separator' },

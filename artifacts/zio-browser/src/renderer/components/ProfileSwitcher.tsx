@@ -201,7 +201,7 @@ export function ProfileSwitcher({ isAuthenticated, onOpenAuth }: Props) {
  * Generate a deterministic accent colour from a profile ID so each profile
  * has its own distinct avatar tint.
  */
-function profileColor(profileId: string): string {
+export function profileColor(profileId: string): string {
   if (profileId === 'default') return '#6c63ff';
   const PALETTE = [
     '#e05c97', '#3b82f6', '#10b981', '#f59e0b',

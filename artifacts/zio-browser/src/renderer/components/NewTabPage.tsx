@@ -5,6 +5,7 @@
  */
 import { useState, useEffect, useCallback } from 'react';
 import type { HistoryEntry } from '../../main/db';
+import { ProfileBadge } from './ProfileBadge';
 
 interface Props {
   onNavigate: (url: string) => void;
@@ -153,7 +154,13 @@ export function NewTabPage({ onNavigate, isPrivate = false }: Props) {
       padding: 40,
       background: 'var(--color-bg)',
       overflowY: 'auto',
+      position: 'relative',
     }}>
+      {/* Active profile ribbon (top corner) */}
+      <div style={{ position: 'absolute', top: 16, right: 16 }}>
+        <ProfileBadge variant="ribbon" />
+      </div>
+
       {/* Clock */}
       <div style={{ textAlign: 'center', marginBottom: 40 }}>
         <div style={{ fontSize: 56, fontWeight: 200, letterSpacing: -2, color: 'var(--color-text)' }}>
