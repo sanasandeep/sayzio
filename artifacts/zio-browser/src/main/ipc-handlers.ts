@@ -483,8 +483,18 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
   });
 
   // ── Sync ─────────────────────────────────────────────────────────────────
+  //
+  // Private-mode privacy boundary for account sync:
+  //  - PRIMARY GATE: `sync:queue-push` rejects writes from private windows, so
+  //    private browsing data never lands in the `sync_queue` in the first place.
+  //  - SECONDARY (belt-and-suspenders) GATE: `sync:flush` also refuses to drain
+  //    the queue when invoked from a private window, so even if a future code
+  //    path enqueued a row from a private context, a private window's flush
+  //    timer could never push it to the server. Flushing is only ever driven
+  //    by non-private windows (or the main-process retry runner).
   ipcMain.handle('sync:state', (_, entity: string) => getSyncState(entity));
   ipcMain.handle('sync:queue-push', (event, entity: SyncEntityKind, payloadJson: string, error?: string) => {
+    // Primary private-mode gate: never enqueue sync data from private windows.
     if (senderIsPrivate(event)) return null;
     const item = enqueueSyncPush(entity, payloadJson, error ?? null);
     syncRetryRunner.notify();
@@ -492,6 +502,8 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
   });
   ipcMain.handle('sync:pending-count', (event) => senderIsPrivate(event) ? 0 : countSyncQueue());
   ipcMain.handle('sync:flush', async (event) => {
+    // Secondary private-mode gate (see block comment above): private windows
+    // must never trigger a queue drain to the server.
     if (senderIsPrivate(event)) return { flushed: 0, remaining: 0 };
     const flushed = await syncRetryRunner.flushAll();
     return { flushed, remaining: countSyncQueue() };
