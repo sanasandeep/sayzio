@@ -124,6 +124,7 @@ const api = {
     search: (q: string) => ipcRenderer.invoke('downloads:search', q),
     open: (filePath: string) => ipcRenderer.invoke('downloads:open', filePath),
     show: (filePath: string) => ipcRenderer.invoke('downloads:show', filePath),
+    exists: (filePath: string) => ipcRenderer.invoke('downloads:exists', filePath),
     choosePath: () => ipcRenderer.invoke('downloads:choose-path'),
     chooseDirectory: () => ipcRenderer.invoke('downloads:choose-directory'),
     defaultDirectory: () => ipcRenderer.invoke('downloads:default-directory'),

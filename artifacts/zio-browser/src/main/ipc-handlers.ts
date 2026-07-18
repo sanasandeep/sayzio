@@ -400,13 +400,20 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
   ipcMain.handle('downloads:recent', () => getRecentDownloads());
   ipcMain.handle('downloads:search', (_, q: string) => searchDownloads(q));
   ipcMain.handle('downloads:open', async (_, filePath: string) => {
+    if (!fs.existsSync(filePath)) {
+      return { ok: false, error: 'File not found', missing: true };
+    }
     const err = await shell.openPath(filePath);
     return err === '' ? { ok: true } : { ok: false, error: err };
   });
   ipcMain.handle('downloads:show', async (_, filePath: string) => {
+    if (!fs.existsSync(filePath)) {
+      return { ok: false, error: 'File not found', missing: true };
+    }
     shell.showItemInFolder(filePath);
-    return true;
+    return { ok: true };
   });
+  ipcMain.handle('downloads:exists', (_, filePath: string) => fs.existsSync(filePath));
   ipcMain.handle('downloads:choose-path', async () => {
     const result = await dialog.showSaveDialog({ title: 'Save File' });
     return result.canceled ? null : result.filePath;
