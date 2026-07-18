@@ -24,3 +24,5 @@ Homestead.json
 Homestead.yaml
 Thumbs.db
 /storage/framework/blade-lint
+public/build/assets/analytics-charts-Ci1xFqr6.js
+public/build/manifest.json
