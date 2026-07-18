@@ -10,11 +10,13 @@ import { ShortenPopover } from './ShortenPopover';
 import { ModeSwitcher } from './ModeSwitcher';
 import { ProfileSwitcher } from './ProfileSwitcher';
 import { useModeStore } from '../store/mode-store';
+import type { RecentlyClosedEntry } from '../../main/tab-manager';
 
 interface Props {
   zioPanelOpen: boolean;
   onToggleZio: () => void;
   onOpenAuth: () => void;
+  onOpenTabSearch: () => void;
   /** If false, hides the mode switcher (used in split mode right pane). */
   showModeSwitcher?: boolean;
   downloadsPanelOpen?: boolean;
@@ -28,10 +30,282 @@ interface Props {
 
 const BASE_URL = 'https://1in.me';
 
+// ── Tiny inline context menu ──────────────────────────────────────────────────
+
+interface ContextMenuState {
+  tabId: string;
+  x: number;
+  y: number;
+}
+
+interface TabContextMenuProps {
+  state: ContextMenuState;
+  isPinned: boolean;
+  isMuted: boolean;
+  isAudible: boolean;
+  tabCount: number;
+  tabIndex: number;
+  onClose: () => void;
+  onPin: () => void;
+  onMute: () => void;
+  onDuplicate: () => void;
+  onCloseTab: () => void;
+  onCloseOthers: () => void;
+  onCloseToRight: () => void;
+}
+
+function TabContextMenu({
+  state, isPinned, isMuted, isAudible,
+  tabCount, tabIndex,
+  onClose, onPin, onMute, onDuplicate,
+  onCloseTab, onCloseOthers, onCloseToRight,
+}: TabContextMenuProps) {
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        onClose();
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [onClose]);
+
+  const menuStyle: React.CSSProperties = {
+    position: 'fixed',
+    left: state.x,
+    top: state.y,
+    background: 'var(--color-bg-surface)',
+    border: '1px solid var(--color-border)',
+    borderRadius: 8,
+    boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
+    zIndex: 9999,
+    minWidth: 180,
+    padding: '4px 0',
+    fontSize: 13,
+    color: 'var(--color-text)',
+  };
+
+  const itemStyle: React.CSSProperties = {
+    padding: '6px 14px',
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    gap: 8,
+    whiteSpace: 'nowrap',
+  };
+
+  const sepStyle: React.CSSProperties = {
+    borderTop: '1px solid var(--color-border)',
+    margin: '4px 0',
+  };
+
+  const action = (fn: () => void) => () => { fn(); onClose(); };
+
+  return (
+    <div ref={menuRef} style={menuStyle}>
+      <div
+        style={itemStyle}
+        onMouseDown={action(onPin)}
+        onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg-elevated)')}
+        onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+      >
+        <span>📌</span>
+        {isPinned ? 'Unpin tab' : 'Pin tab'}
+      </div>
+
+      {(isAudible || isMuted) && (
+        <div
+          style={itemStyle}
+          onMouseDown={action(onMute)}
+          onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg-elevated)')}
+          onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+        >
+          <span>{isMuted ? '🔊' : '🔇'}</span>
+          {isMuted ? 'Unmute tab' : 'Mute tab'}
+        </div>
+      )}
+
+      <div
+        style={itemStyle}
+        onMouseDown={action(onDuplicate)}
+        onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg-elevated)')}
+        onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+      >
+        <span>⧉</span>
+        Duplicate tab
+      </div>
+
+      <div style={sepStyle} />
+
+      {tabCount > 1 && (
+        <div
+          style={itemStyle}
+          onMouseDown={action(onCloseOthers)}
+          onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg-elevated)')}
+          onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+        >
+          <span>✕</span>
+          Close other tabs
+        </div>
+      )}
+
+      {tabIndex < tabCount - 1 && (
+        <div
+          style={itemStyle}
+          onMouseDown={action(onCloseToRight)}
+          onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg-elevated)')}
+          onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+        >
+          <span>→✕</span>
+          Close tabs to the right
+        </div>
+      )}
+
+      <div style={sepStyle} />
+
+      <div
+        style={{ ...itemStyle, color: 'var(--color-danger, #e55)' }}
+        onMouseDown={action(onCloseTab)}
+        onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg-elevated)')}
+        onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+      >
+        <span>✕</span>
+        Close tab
+      </div>
+    </div>
+  );
+}
+
+// ── Recently-closed / tab-strip menu ─────────────────────────────────────────
+
+interface StripMenuProps {
+  anchorRef: React.RefObject<HTMLButtonElement | null>;
+  recentlyClosed: RecentlyClosedEntry[];
+  onClose: () => void;
+  onReopenEntry: (url: string) => void;
+  onMuteAll: () => void;
+  onOpenSearch: () => void;
+}
+
+function StripMenu({ anchorRef, recentlyClosed, onClose, onReopenEntry, onMuteAll, onOpenSearch }: StripMenuProps) {
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  const rect = anchorRef.current?.getBoundingClientRect();
+  const left = rect ? rect.right - 200 : 80;
+  const top = rect ? rect.bottom + 4 : 40;
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node) &&
+          !anchorRef.current?.contains(e.target as Node)) {
+        onClose();
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [onClose, anchorRef]);
+
+  const menuStyle: React.CSSProperties = {
+    position: 'fixed',
+    left,
+    top,
+    background: 'var(--color-bg-surface)',
+    border: '1px solid var(--color-border)',
+    borderRadius: 8,
+    boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
+    zIndex: 9999,
+    minWidth: 220,
+    padding: '4px 0',
+    fontSize: 13,
+    color: 'var(--color-text)',
+    maxHeight: 360,
+    overflowY: 'auto',
+  };
+
+  const itemStyle: React.CSSProperties = {
+    padding: '6px 14px',
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    gap: 8,
+    whiteSpace: 'nowrap',
+  };
+
+  const sepStyle: React.CSSProperties = {
+    borderTop: '1px solid var(--color-border)',
+    margin: '4px 0',
+  };
+
+  const action = (fn: () => void) => () => { fn(); onClose(); };
+
+  return (
+    <div ref={menuRef} style={menuStyle}>
+      <div
+        style={{ ...itemStyle, fontSize: 11, color: 'var(--color-text-muted)', cursor: 'default' }}
+      >
+        RECENTLY CLOSED
+      </div>
+
+      {recentlyClosed.length === 0 ? (
+        <div style={{ ...itemStyle, color: 'var(--color-text-muted)', fontSize: 12 }}>
+          No recently closed tabs
+        </div>
+      ) : (
+        recentlyClosed.map((entry, idx) => (
+          <div
+            key={`${entry.url}-${idx}`}
+            style={itemStyle}
+            onMouseDown={action(() => onReopenEntry(entry.url))}
+            onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg-elevated)')}
+            onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+          >
+            {entry.favicon ? (
+              <img src={entry.favicon} width={12} height={12} style={{ borderRadius: 2, flexShrink: 0 }} alt="" />
+            ) : (
+              <div style={{ width: 12, height: 12, borderRadius: 2, background: 'var(--color-border)', flexShrink: 0 }} />
+            )}
+            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 160 }}>
+              {entry.title || entry.url}
+            </span>
+          </div>
+        ))
+      )}
+
+      <div style={sepStyle} />
+
+      <div
+        style={itemStyle}
+        onMouseDown={action(onOpenSearch)}
+        onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg-elevated)')}
+        onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+      >
+        <span>🔍</span>
+        Search tabs
+        <span style={{ marginLeft: 'auto', fontSize: 10, opacity: 0.6 }}>⌘⇧A</span>
+      </div>
+
+      <div
+        style={itemStyle}
+        onMouseDown={action(onMuteAll)}
+        onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg-elevated)')}
+        onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+      >
+        <span>🔇</span>
+        Mute all tabs
+      </div>
+    </div>
+  );
+}
+
+// ── ChromeBar ─────────────────────────────────────────────────────────────────
+
 export function ChromeBar({
   zioPanelOpen,
   onToggleZio,
   onOpenAuth,
+  onOpenTabSearch,
   showModeSwitcher = true,
   downloadsPanelOpen = false,
   onToggleDownloads,
@@ -39,14 +313,21 @@ export function ChromeBar({
   isPrivate = false,
   onOpenDeviceLab,
 }: Props) {
-  const { tabs, tabOrder, activeTabId, createTab, closeTab, activateTab, navigate, goBack, goForward, reload, stop } = useTabStore();
+  const {
+    tabs, tabOrder, activeTabId, recentlyClosed,
+    createTab, closeTab, activateTab, navigate, goBack, goForward, reload, stop,
+    pinTab, duplicateTab, closeOtherTabs, closeTabsToRight, muteAllTabs, reopenFromRecent,
+  } = useTabStore();
   const { user } = useAuthStore();
   const { mode, setMode } = useModeStore();
   const [omniboxValue, setOmniboxValue] = useState('');
   const [omniboxFocused, setOmniboxFocused] = useState(false);
   const [shortenOpen, setShortenOpen] = useState(false);
   const [pendingSyncCount, setPendingSyncCount] = useState(0);
+  const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
+  const [stripMenuOpen, setStripMenuOpen] = useState(false);
   const omniboxRef = useRef<HTMLInputElement>(null);
+  const stripMenuBtnRef = useRef<HTMLButtonElement>(null);
 
   // Track queued (offline / failed) sync pushes for the pending indicator
   useEffect(() => {
@@ -91,8 +372,23 @@ export function ChromeBar({
     void createTab();
   }, [createTab]);
 
+  const openContextMenu = useCallback((e: React.MouseEvent, tabId: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setContextMenu({ tabId, x: e.clientX, y: e.clientY });
+  }, []);
+
+  const closeContextMenu = useCallback(() => setContextMenu(null), []);
+
   const activeTabState = activeTab;
   const canShorten = !!(activeTab?.url && activeTab.url !== 'about:newtab' && activeTab.url !== '');
+
+  // Pinned tabs always first in tabOrder (maintained by tab-manager); split for rendering
+  const pinnedTabIds = tabOrder.filter(id => tabs[id]?.pinned);
+  const normalTabIds = tabOrder.filter(id => !tabs[id]?.pinned);
+
+  const ctxTab = contextMenu ? tabs[contextMenu.tabId] : null;
+  const ctxTabIndex = contextMenu ? tabOrder.indexOf(contextMenu.tabId) : -1;
 
   return (
     <div style={{
@@ -111,7 +407,7 @@ export function ChromeBar({
         display: 'flex',
         alignItems: 'center',
         paddingLeft: process.platform === 'darwin' ? 80 : 8,
-        paddingRight: 8,
+        paddingRight: 4,
         gap: 2,
         overflowX: 'auto',
         overflowY: 'hidden',
@@ -136,18 +432,104 @@ export function ChromeBar({
             🔒 Private
           </div>
         )}
-        {tabOrder.map(id => {
+        {/* Pinned tabs — icon-only, compact */}
+        {pinnedTabIds.map(id => {
           const tab = tabs[id];
           const isActive = id === activeTabId;
           return (
             <div
               key={id}
               onClick={() => void activateTab(id)}
+              onContextMenu={(e) => openContextMenu(e, id)}
+              title={tab?.title || 'New Tab'}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 4,
+                padding: '0 6px',
+                height: 28,
+                width: 36,
+                borderRadius: 6,
+                background: isActive ? 'var(--color-bg-elevated)' : 'transparent',
+                border: isActive ? '1px solid var(--color-border)' : '1px solid transparent',
+                cursor: 'pointer',
+                WebkitAppRegion: 'no-drag',
+                flexShrink: 0,
+                position: 'relative',
+              } as React.CSSProperties}
+            >
+              {tab?.favicon ? (
+                <img src={tab.favicon} width={14} height={14} style={{ borderRadius: 2 }} alt="" />
+              ) : (
+                <div style={{ width: 14, height: 14, borderRadius: 2, background: 'var(--color-border)' }} />
+              )}
+              {/* Pin indicator dot */}
+              <div style={{
+                position: 'absolute',
+                top: 2,
+                right: 2,
+                width: 5,
+                height: 5,
+                borderRadius: '50%',
+                background: 'var(--color-primary)',
+              }} />
+              {/* Audio indicator */}
+              {tab?.isAudible && !tab.isMuted && (
+                <div
+                  style={{
+                    position: 'absolute',
+                    bottom: 1,
+                    right: 1,
+                    fontSize: 8,
+                    lineHeight: 1,
+                  }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    void window.zio.tabs.mute(id, true);
+                  }}
+                  title="Mute tab"
+                >🔊</div>
+              )}
+              {tab?.isMuted && (
+                <div
+                  style={{ position: 'absolute', bottom: 1, right: 1, fontSize: 8, lineHeight: 1 }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    void window.zio.tabs.mute(id, false);
+                  }}
+                  title="Unmute tab"
+                >🔇</div>
+              )}
+            </div>
+          );
+        })}
+
+        {/* Divider between pinned and normal tabs */}
+        {pinnedTabIds.length > 0 && normalTabIds.length > 0 && (
+          <div style={{
+            width: 1,
+            height: 20,
+            background: 'var(--color-border)',
+            flexShrink: 0,
+            margin: '0 2px',
+          }} />
+        )}
+
+        {/* Normal tabs */}
+        {normalTabIds.map(id => {
+          const tab = tabs[id];
+          const isActive = id === activeTabId;
+          return (
+            <div
+              key={id}
+              onClick={() => void activateTab(id)}
+              onContextMenu={(e) => openContextMenu(e, id)}
               style={{
                 display: 'flex',
                 alignItems: 'center',
                 gap: 6,
-                padding: '0 10px',
+                padding: '0 8px 0 10px',
                 height: 28,
                 minWidth: 120,
                 maxWidth: 200,
@@ -157,13 +539,15 @@ export function ChromeBar({
                 cursor: 'pointer',
                 WebkitAppRegion: 'no-drag',
                 flexShrink: 0,
+                position: 'relative',
               } as React.CSSProperties}
             >
               {tab?.favicon ? (
-                <img src={tab.favicon} width={14} height={14} style={{ borderRadius: 2 }} alt="" />
+                <img src={tab.favicon} width={14} height={14} style={{ borderRadius: 2, flexShrink: 0 }} alt="" />
               ) : (
-                <div style={{ width: 14, height: 14, borderRadius: 2, background: 'var(--color-border)' }} />
+                <div style={{ width: 14, height: 14, borderRadius: 2, background: 'var(--color-border)', flexShrink: 0 }} />
               )}
+
               <span style={{
                 flex: 1,
                 overflow: 'hidden',
@@ -174,18 +558,40 @@ export function ChromeBar({
               }}>
                 {tab?.title || 'New Tab'}
               </span>
+
+              {/* Audio indicator — click to mute */}
+              {tab?.isAudible && !tab.isMuted && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); void window.zio.tabs.mute(id, true); }}
+                  title="Mute tab"
+                  style={{
+                    width: 16, height: 16, borderRadius: 4,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: 10, flexShrink: 0,
+                    WebkitAppRegion: 'no-drag',
+                  } as React.CSSProperties}
+                >🔊</button>
+              )}
+              {tab?.isMuted && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); void window.zio.tabs.mute(id, false); }}
+                  title="Unmute tab"
+                  style={{
+                    width: 16, height: 16, borderRadius: 4,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: 10, flexShrink: 0, opacity: 0.7,
+                    WebkitAppRegion: 'no-drag',
+                  } as React.CSSProperties}
+                >🔇</button>
+              )}
+
+              {/* Close button — hidden for pinned tabs */}
               <button
                 onClick={(e) => { e.stopPropagation(); void closeTab(id); }}
                 style={{
-                  width: 16,
-                  height: 16,
-                  borderRadius: 4,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: 10,
-                  opacity: 0.6,
-                  flexShrink: 0,
+                  width: 16, height: 16, borderRadius: 4,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 10, opacity: 0.6, flexShrink: 0,
                   WebkitAppRegion: 'no-drag',
                 } as React.CSSProperties}
               >✕</button>
@@ -197,17 +603,42 @@ export function ChromeBar({
         <button
           onClick={handleNewTab}
           style={{
-            width: 28,
-            height: 28,
-            borderRadius: 6,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: 16,
-            color: 'var(--color-text-muted)',
+            width: 28, height: 28, borderRadius: 6,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 16, color: 'var(--color-text-muted)',
             WebkitAppRegion: 'no-drag',
+            flexShrink: 0,
           } as React.CSSProperties}
+          title="New tab (Ctrl+T)"
         >+</button>
+
+        {/* Tab strip menu — recently closed + tab actions */}
+        <button
+          ref={stripMenuBtnRef}
+          onClick={() => setStripMenuOpen(v => !v)}
+          style={{
+            width: 24, height: 24, borderRadius: 5,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 13, color: 'var(--color-text-muted)',
+            WebkitAppRegion: 'no-drag',
+            background: stripMenuOpen ? 'var(--color-bg-elevated)' : 'transparent',
+            flexShrink: 0,
+          } as React.CSSProperties}
+          title="Recently closed tabs & tab actions"
+        >⋮</button>
+
+        {/* Tab search button */}
+        <button
+          onClick={onOpenTabSearch}
+          style={{
+            width: 24, height: 24, borderRadius: 5,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 11, color: 'var(--color-text-muted)',
+            WebkitAppRegion: 'no-drag',
+            flexShrink: 0,
+          } as React.CSSProperties}
+          title="Search tabs (Ctrl+Shift+A)"
+        >🔍</button>
       </div>
 
       {/* Address Bar Row */}
@@ -263,8 +694,6 @@ export function ChromeBar({
             }}
           />
         </form>
-
-        {/* ── Link tool buttons ─────────────────────────────────────────────── */}
 
         {/* Shorten + QR popover trigger */}
         <button
@@ -432,6 +861,37 @@ export function ChromeBar({
           baseUrl={BASE_URL}
           onClose={() => setShortenOpen(false)}
           onOpenAuth={() => { setShortenOpen(false); onOpenAuth(); }}
+        />
+      )}
+
+      {/* Tab context menu */}
+      {contextMenu && ctxTab && (
+        <TabContextMenu
+          state={contextMenu}
+          isPinned={ctxTab.pinned ?? false}
+          isMuted={ctxTab.isMuted ?? false}
+          isAudible={ctxTab.isAudible ?? false}
+          tabCount={tabOrder.length}
+          tabIndex={ctxTabIndex}
+          onClose={closeContextMenu}
+          onPin={() => void pinTab(contextMenu.tabId, !(ctxTab.pinned ?? false))}
+          onMute={() => void window.zio.tabs.mute(contextMenu.tabId, !(ctxTab.isMuted ?? false))}
+          onDuplicate={() => void duplicateTab(contextMenu.tabId)}
+          onCloseTab={() => void closeTab(contextMenu.tabId)}
+          onCloseOthers={() => void closeOtherTabs(contextMenu.tabId)}
+          onCloseToRight={() => void closeTabsToRight(contextMenu.tabId)}
+        />
+      )}
+
+      {/* Tab strip menu */}
+      {stripMenuOpen && (
+        <StripMenu
+          anchorRef={stripMenuBtnRef}
+          recentlyClosed={recentlyClosed}
+          onClose={() => setStripMenuOpen(false)}
+          onReopenEntry={(url) => void reopenFromRecent(url)}
+          onMuteAll={() => void muteAllTabs()}
+          onOpenSearch={() => { setStripMenuOpen(false); onOpenTabSearch(); }}
         />
       )}
     </div>

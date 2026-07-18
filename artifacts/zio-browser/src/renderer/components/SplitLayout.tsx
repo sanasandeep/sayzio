@@ -221,6 +221,7 @@ export function SplitLayout({
           zioPanelOpen={false}
           onToggleZio={() => setLeftPane('zio')}
           onOpenAuth={onOpenAuth}
+          onOpenTabSearch={() => { /* tab search is available in browser mode */ }}
           showModeSwitcher={false}
         />
         {/* Tab content area — transparent; WebContentsViews are positioned here.

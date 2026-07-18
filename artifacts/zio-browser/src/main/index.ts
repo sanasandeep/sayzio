@@ -4,7 +4,7 @@
 import path from 'path';
 import { app, BrowserWindow, Menu, session, nativeTheme } from 'electron';
 import type { BaseWindow } from 'electron';
-import { initDb, getPreference, setActiveProfileId } from './db';
+import { initDb, getPreference, setPreference, setActiveProfileId } from './db';
 import { PREFERENCE_KEYS } from '../shared/db-schema';
 import { sessionPartitionForProfile, DEFAULT_PROFILE_ID } from '../shared/profile-store';
 import { TabManager } from './tab-manager';
@@ -20,6 +20,7 @@ import { setupDownloadManager } from './download-manager';
 import { getPrivateSession, registerPrivateWindow } from './private-session';
 import type { WindowMode } from '../shared/window-mode';
 import { setupAutoUpdater } from './auto-updater';
+import type { RecentlyClosedEntry } from './tab-manager';
 
 const isDev = process.env['NODE_ENV'] === 'development';
 
@@ -81,6 +82,9 @@ function createWindow(): BrowserWindow {
     onNavigate:        (tabId, url, title) => win.webContents.send('tab:navigated', tabId, url, title),
     onAddToBiolink:    (url, title)   => win.webContents.send('biolink:add-page', url, title),
     onFindResult:      (result) => win.webContents.send('tab:find-result', result),
+    onTabOrderChange: (order) => win.webContents.send('tab:order-changed', order),
+    onPinnedUrlsChange: (urls) => { setPreference(PREFERENCE_KEYS.PINNED_TABS, JSON.stringify(urls)); },
+    onRecentlyClosedChange: (entries: RecentlyClosedEntry[]) => win.webContents.send('tab:recently-closed-changed', entries),
   });
 
   const savedMode  = (getPreference(PREFERENCE_KEYS.WINDOW_MODE) as WindowMode | null) ?? 'browser';
@@ -99,6 +103,19 @@ function createWindow(): BrowserWindow {
     win.show();
     modeManager.setMode(savedMode);
     if (savedMode === 'browser') {
+      // Restore pinned tabs from persistence (background, so they load silently)
+      const savedPinnedJson = getPreference(PREFERENCE_KEYS.PINNED_TABS) ?? '[]';
+      let savedPinnedUrls: string[] = [];
+      try {
+        savedPinnedUrls = JSON.parse(savedPinnedJson) as string[];
+      } catch {
+        savedPinnedUrls = [];
+      }
+      if (savedPinnedUrls.length > 0) {
+        tabManager?.initPinnedUrls(savedPinnedUrls);
+      }
+
+      // Open the default new tab (active, placed after pinned tabs)
       const newTabUrl = getPreference(PREFERENCE_KEYS.NEW_TAB_PAGE) ?? undefined;
       tabManager.createTab(newTabUrl);
     }
@@ -249,6 +266,13 @@ function buildMenu(): void {
             if (id) tm?.closeTab(id);
           },
         },
+        {
+          label: 'Reopen Closed Tab',
+          accelerator: 'CmdOrCtrl+Shift+T',
+          click: () => {
+            tabManager?.reopenClosedTab();
+          },
+        },
         { type: 'separator' },
         isMac ? { role: 'close' as const } : { role: 'quit' as const },
       ],
@@ -267,6 +291,13 @@ function buildMenu(): void {
         { label: 'Find on Page', accelerator: 'CmdOrCtrl+F', click: (_item, bw) => {
           asBrowserWin(bw)?.webContents.send('find:open');
         }},
+        {
+          label: 'Search Tabs',
+          accelerator: 'CmdOrCtrl+Shift+A',
+          click: () => {
+            mainWindow?.webContents.send('tab:search-open');
+          },
+        },
       ],
     },
     {

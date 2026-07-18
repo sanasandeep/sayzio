@@ -56,6 +56,15 @@ const api = {
     injectPasswordDetector: (id: string) => ipcRenderer.invoke('tabs:inject-password-detector', id),
     popPendingCredential: (id: string) =>
       ipcRenderer.invoke('tabs:pop-pending-credential', id),
+    // ── Tab management ──────────────────────────────────────────────────────
+    pin: (id: string, pinned: boolean) => ipcRenderer.invoke('tabs:pin', id, pinned),
+    duplicate: (id: string) => ipcRenderer.invoke('tabs:duplicate', id),
+    closeOthers: (id: string) => ipcRenderer.invoke('tabs:close-others', id),
+    closeToRight: (id: string) => ipcRenderer.invoke('tabs:close-to-right', id),
+    muteAll: () => ipcRenderer.invoke('tabs:mute-all'),
+    reopenClosed: () => ipcRenderer.invoke('tabs:reopen-closed'),
+    recentlyClosed: () => ipcRenderer.invoke('tabs:recently-closed'),
+    reopenFromRecent: (url: string) => ipcRenderer.invoke('tabs:reopen-from-recent', url),
   },
 
   // ── Window mode ───────────────────────────────────────────────────────────
@@ -208,6 +217,9 @@ const api = {
       'tab:activated',
       'tab:navigated',
       'tab:find-result',
+      'tab:order-changed',
+      'tab:recently-closed-changed',
+      'tab:search-open',
       'download:started',
       'download:progress',
       'download:done',

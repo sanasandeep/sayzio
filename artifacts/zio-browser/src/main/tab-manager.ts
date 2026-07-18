@@ -21,6 +21,13 @@ export interface TabState {
   isAudible: boolean;
   isMuted: boolean;
   zoomFactor: number;
+  pinned: boolean;
+}
+
+export interface RecentlyClosedEntry {
+  url: string;
+  title: string;
+  favicon: string | null;
 }
 
 export interface FindResult {
@@ -35,7 +42,11 @@ type TabId = string;
 interface ManagedTab {
   id: TabId;
   view: WebContentsView;
+  pinned: boolean;
+  favicon: string | null;
 }
+
+const MAX_RECENTLY_CLOSED = 10;
 
 /**
  * Safely check if a WebContents object is still alive.
@@ -57,6 +68,8 @@ export class TabManager {
   private tabs: Map<TabId, ManagedTab> = new Map();
   private activeTabId: TabId | null = null;
   private tabOrder: TabId[] = [];
+  private pinnedTabs = new Set<TabId>();
+  private recentlyClosed: RecentlyClosedEntry[] = [];
   private win: BrowserWindow;
   private searchEngine: SearchEngineConfig = DEFAULT_SEARCH_ENGINE;
   /** Active session partition — changes when the user switches profiles. */
@@ -66,11 +79,13 @@ export class TabManager {
   private onTabClosed?: (tabId: TabId) => void;
   private onActiveTabChange?: (tabId: TabId) => void;
   private onNavigate?: (tabId: TabId, url: string, title: string) => void;
-  /** Optional callback invoked when the user picks "Add to my biolink" from the context menu */
   private onAddToBiolink?: (url: string, title: string) => void;
   private onFindResult?: (result: FindResult) => void;
   private readonly tabSession: Electron.Session;
   readonly isPrivate: boolean;
+  private onTabOrderChange?: (order: TabId[]) => void;
+  private onPinnedUrlsChange?: (urls: string[]) => void;
+  private onRecentlyClosedChange?: (entries: RecentlyClosedEntry[]) => void;
 
   constructor(win: BrowserWindow, options: TabManagerOptions = {}) {
     this.win = win;
@@ -86,6 +101,9 @@ export class TabManager {
     onNavigate?: (tabId: TabId, url: string, title: string) => void;
     onAddToBiolink?: (url: string, title: string) => void;
     onFindResult?: (result: FindResult) => void;
+    onTabOrderChange?: (order: TabId[]) => void;
+    onPinnedUrlsChange?: (urls: string[]) => void;
+    onRecentlyClosedChange?: (entries: RecentlyClosedEntry[]) => void;
   }): void {
     this.onTabStateChange = cbs.onTabStateChange;
     this.onTabCreated = cbs.onTabCreated;
@@ -94,6 +112,9 @@ export class TabManager {
     this.onNavigate = cbs.onNavigate;
     this.onAddToBiolink = cbs.onAddToBiolink;
     this.onFindResult = cbs.onFindResult;
+    this.onTabOrderChange = cbs.onTabOrderChange;
+    this.onPinnedUrlsChange = cbs.onPinnedUrlsChange;
+    this.onRecentlyClosedChange = cbs.onRecentlyClosedChange;
   }
 
   setSearchEngine(engine: SearchEngineConfig): void {
@@ -113,7 +134,31 @@ export class TabManager {
     return this.activePartition;
   }
 
-  createTab(url?: string, background = false): TabId {
+  /**
+   * Returns the index just after the last pinned tab (the insertion point for new non-pinned tabs).
+   */
+  private pinnedCount(): number {
+    return this.tabOrder.filter(id => this.pinnedTabs.has(id)).length;
+  }
+
+  /**
+   * Insert a tab ID into tabOrder respecting pinned ordering.
+   * Pinned tabs go at the front; non-pinned go after pinned section.
+   */
+  private insertInOrder(id: TabId, pinned: boolean): void {
+    if (pinned) {
+      const firstNonPinned = this.tabOrder.findIndex(tid => !this.pinnedTabs.has(tid));
+      if (firstNonPinned === -1) {
+        this.tabOrder.push(id);
+      } else {
+        this.tabOrder.splice(firstNonPinned, 0, id);
+      }
+    } else {
+      this.tabOrder.push(id);
+    }
+  }
+
+  createTab(url?: string, background = false, pinned = false): TabId {
     const id = crypto.randomUUID();
 
     const tabSession = session.fromPartition(this.activePartition);
@@ -131,13 +176,11 @@ export class TabManager {
 
     const wc = view.webContents;
 
-    // Content size will be managed by the main window's resize handler
     const [w, h] = this.win.getContentSize();
     view.setBounds({ x: 0, y: 72, width: w, height: h - 72 });
 
     // Wire up events
     wc.on('did-navigate', (_, navUrl) => {
-      // Stop any in-progress find and reset match state on navigation
       if (isAlive(wc)) {
         wc.stopFindInPage('clearSelection');
       }
@@ -162,7 +205,10 @@ export class TabManager {
     });
 
     wc.on('page-favicon-updated', (_, favicons) => {
-      this.onTabStateChange?.(id, { favicon: favicons[0] ?? null });
+      const favicon = favicons[0] ?? null;
+      const tab = this.tabs.get(id);
+      if (tab) tab.favicon = favicon;
+      this.onTabStateChange?.(id, { favicon });
     });
 
     wc.on('did-start-loading', () => {
@@ -233,13 +279,11 @@ export class TabManager {
       });
     });
 
-    // Handle new-window requests (target="_blank" etc.)
     wc.setWindowOpenHandler(({ url: openUrl }) => {
       this.createTab(openUrl);
       return { action: 'deny' };
     });
 
-    // Prevent navigation to dangerous protocols
     wc.on('will-navigate', (event, navUrl) => {
       const allowed = ['http:', 'https:', 'file:', 'about:'];
       try {
@@ -252,9 +296,10 @@ export class TabManager {
       }
     });
 
-    const tab: ManagedTab = { id, view };
+    if (pinned) this.pinnedTabs.add(id);
+    const tab: ManagedTab = { id, view, pinned, favicon: null };
     this.tabs.set(id, tab);
-    this.tabOrder.push(id);
+    this.insertInOrder(id, pinned);
 
     if (!background || !this.activeTabId) {
       this.win.contentView.addChildView(view);
@@ -280,6 +325,22 @@ export class TabManager {
     const tab = this.tabs.get(id);
     if (!tab) return;
 
+    // Save to recently-closed stack (skip empty/new-tab pages)
+    const wc = tab.view.webContents;
+    const url = isAlive(wc) ? wc.getURL() : '';
+    if (url && url !== 'about:newtab' && url !== 'about:blank' && url !== '') {
+      const entry: RecentlyClosedEntry = {
+        url,
+        title: (isAlive(wc) ? wc.getTitle() : '') || url,
+        favicon: tab.favicon,
+      };
+      this.recentlyClosed.unshift(entry);
+      if (this.recentlyClosed.length > MAX_RECENTLY_CLOSED) {
+        this.recentlyClosed.pop();
+      }
+      this.onRecentlyClosedChange?.(this.recentlyClosed);
+    }
+
     const wasActive = this.activeTabId === id;
     const idx = this.tabOrder.indexOf(id);
 
@@ -293,6 +354,7 @@ export class TabManager {
       // May already be removed
     }
 
+    this.pinnedTabs.delete(id);
     this.tabs.delete(id);
     this.tabOrder.splice(idx, 1);
     this.onTabClosed?.(id);
@@ -302,6 +364,111 @@ export class TabManager {
       if (newActive) this.activateTab(newActive);
     } else if (this.tabOrder.length === 0) {
       this.activeTabId = null;
+    }
+  }
+
+  /**
+   * Pin or unpin a tab. Pinned tabs move to the front of the tab strip.
+   */
+  pinTab(id: TabId, pinned: boolean): void {
+    const tab = this.tabs.get(id);
+    if (!tab || tab.pinned === pinned) return;
+
+    const idx = this.tabOrder.indexOf(id);
+    this.tabOrder.splice(idx, 1);
+
+    tab.pinned = pinned;
+    if (pinned) {
+      this.pinnedTabs.add(id);
+    } else {
+      this.pinnedTabs.delete(id);
+    }
+    this.insertInOrder(id, pinned);
+
+    this.onTabStateChange?.(id, { pinned });
+    this.onTabOrderChange?.(this.getTabOrder());
+    this.onPinnedUrlsChange?.(this.getPinnedUrls());
+  }
+
+  /**
+   * Duplicate a tab by opening a new tab with the same URL.
+   */
+  duplicateTab(id: TabId): TabId | null {
+    const wc = this.tabs.get(id)?.view.webContents;
+    if (!wc) return null;
+    const url = wc.getURL();
+    if (!url || url === 'about:newtab' || url === 'about:blank') return null;
+    return this.createTab(url);
+  }
+
+  /**
+   * Close all tabs except the given one. Pinned tabs are never closed by this action.
+   */
+  closeOtherTabs(id: TabId): void {
+    const toClose = this.tabOrder.filter(tid => tid !== id && !this.pinnedTabs.has(tid));
+    for (const tid of toClose) {
+      this.closeTab(tid);
+    }
+  }
+
+  /**
+   * Close all tabs to the right of the given tab. Pinned tabs are never closed.
+   */
+  closeTabsToRight(id: TabId): void {
+    const idx = this.tabOrder.indexOf(id);
+    if (idx === -1) return;
+    const toClose = this.tabOrder.slice(idx + 1).filter(tid => !this.pinnedTabs.has(tid));
+    for (const tid of toClose) {
+      this.closeTab(tid);
+    }
+  }
+
+  /**
+   * Mute all open tabs.
+   */
+  muteAllTabs(): void {
+    for (const [tid] of this.tabs) {
+      this.muteTab(tid, true);
+    }
+  }
+
+  /**
+   * Reopen the most recently closed tab.
+   */
+  reopenClosedTab(): TabId | null {
+    const entry = this.recentlyClosed.shift();
+    if (!entry) return null;
+    this.onRecentlyClosedChange?.(this.recentlyClosed);
+    return this.createTab(entry.url);
+  }
+
+  getRecentlyClosed(): RecentlyClosedEntry[] {
+    return [...this.recentlyClosed];
+  }
+
+  /**
+   * Return the URLs of all currently pinned tabs (for persistence).
+   */
+  getPinnedUrls(): string[] {
+    const urls: string[] = [];
+    for (const id of this.tabOrder) {
+      if (!this.pinnedTabs.has(id)) continue;
+      const wc = this.tabs.get(id)?.view.webContents;
+      if (!wc) continue;
+      const url = isAlive(wc) ? wc.getURL() : '';
+      if (url && url !== 'about:newtab' && url !== 'about:blank') {
+        urls.push(url);
+      }
+    }
+    return urls;
+  }
+
+  /**
+   * Restore pinned tabs from persisted URLs. Call before opening the default new tab.
+   */
+  initPinnedUrls(urls: string[]): void {
+    for (const url of urls) {
+      if (url) this.createTab(url, true, true);
     }
   }
 
@@ -384,13 +551,14 @@ export class TabManager {
       url,
       displayUrl: url,
       title: wc.getTitle(),
-      favicon: null,
+      favicon: tab.favicon,
       isLoading: wc.isLoading(),
       canGoBack: wc.canGoBack(),
       canGoForward: wc.canGoForward(),
       isAudible: wc.isCurrentlyAudible(),
       isMuted: wc.isAudioMuted(),
       zoomFactor: wc.getZoomFactor(),
+      pinned: tab.pinned,
     };
   }
 

@@ -193,6 +193,36 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
   ipcMain.handle('tabs:get-order', (event) => resolveTabManager(event)?.getTabOrder() ?? []);
   ipcMain.handle('tabs:get-active', (event) => resolveTabManager(event)?.getActiveTabId() ?? null);
 
+  // ── Tab management — new actions ─────────────────────────────────────────
+  ipcMain.handle('tabs:pin', (event, id: string, pinned: boolean) => {
+    resolveTabManager(event)?.pinTab(id, pinned);
+    return true;
+  });
+  ipcMain.handle('tabs:duplicate', (event, id: string) => {
+    return resolveTabManager(event)?.duplicateTab(id);
+  });
+  ipcMain.handle('tabs:close-others', (event, id: string) => {
+    resolveTabManager(event)?.closeOtherTabs(id);
+    return true;
+  });
+  ipcMain.handle('tabs:close-to-right', (event, id: string) => {
+    resolveTabManager(event)?.closeTabsToRight(id);
+    return true;
+  });
+  ipcMain.handle('tabs:mute-all', (event) => {
+    resolveTabManager(event)?.muteAllTabs();
+    return true;
+  });
+  ipcMain.handle('tabs:reopen-closed', (event) => {
+    return resolveTabManager(event)?.reopenClosedTab();
+  });
+  ipcMain.handle('tabs:recently-closed', (event) => {
+    return resolveTabManager(event)?.getRecentlyClosed() ?? [];
+  });
+  ipcMain.handle('tabs:reopen-from-recent', (event, url: string) => {
+    return resolveTabManager(event)?.createTab(url);
+  });
+
   // Page context extraction
   ipcMain.handle('tabs:extract-context', async (event, id: string) => {
     const wc = resolveTabManager(event)?.getWebContents(id);

@@ -192,6 +192,7 @@ export const PREFERENCE_KEYS = {
   ZIO_PANEL_WIDTH: 'zio_panel_width',
   ZIO_PANEL_DOCKED: 'zio_panel_docked',
   ACTIVE_PROFILE: 'active_profile',
+  PINNED_TABS: 'pinned_tabs',
 } as const;
 
 export type PreferenceKey = typeof PREFERENCE_KEYS[keyof typeof PREFERENCE_KEYS];

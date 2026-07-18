@@ -9,6 +9,7 @@ import { SplitLayout } from './components/SplitLayout';
 import { FindBar } from './components/FindBar';
 import { DownloadsPanel } from './components/DownloadsPanel';
 import { DeviceLab } from './components/DeviceLab';
+import { TabSearchPopover } from './components/TabSearchPopover';
 import { useTabStore } from './store/tab-store';
 import { useAuthStore } from './store/auth-store';
 import { useModeStore } from './store/mode-store';
@@ -31,7 +32,8 @@ export default function App() {
   const [activeDownloadCount, setActiveDownloadCount] = useState(0);
   const [isPrivate, setIsPrivate] = useState(false);
   const [deviceLabOpen, setDeviceLabOpen] = useState(false);
-  const { tabs, activeTabId, initTabs } = useTabStore();
+  const [tabSearchOpen, setTabSearchOpen] = useState(false);
+  const { tabs, activeTabId, initTabs, reopenClosedTab } = useTabStore();
   const { init: initAuth, user, token } = useAuthStore();
   const {
     mode,
@@ -121,6 +123,35 @@ export default function App() {
     }
   }, [mode, findOpen, activeTabId, closeFind]);
 
+  // Keyboard shortcuts: Ctrl/Cmd+Shift+A → tab search, Ctrl/Cmd+Shift+T → reopen closed tab
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const ctrl = e.ctrlKey || e.metaKey;
+      if (!ctrl) return;
+
+      if (e.shiftKey && (e.key === 'A' || e.key === 'a')) {
+        e.preventDefault();
+        setTabSearchOpen(v => !v);
+        return;
+      }
+
+      if (e.shiftKey && (e.key === 'T' || e.key === 't')) {
+        e.preventDefault();
+        void reopenClosedTab();
+        return;
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [reopenClosedTab]);
+
+  // Listen for main-process tab:search-open event (sent from menu shortcut)
+  useEffect(() => {
+    const listener = () => setTabSearchOpen(true);
+    window.zio.on('tab:search-open', listener);
+    return () => window.zio.off('tab:search-open', listener);
+  }, []);
+
   const activeTab = activeTabId ? tabs[activeTabId] : null;
   const showNewTab = !activeTab || activeTab.url === '' || activeTab.url === 'about:newtab';
 
@@ -170,6 +201,10 @@ export default function App() {
     }
     setDeviceLabOpen(true);
   }, [user]);
+
+  const handleOpenTabSearch = useCallback(() => {
+    setTabSearchOpen(true);
+  }, []);
 
   // Show mode picker before content is ready
   if (!isInitialized) {
@@ -234,6 +269,7 @@ export default function App() {
         zioPanelOpen={zioPanelOpen}
         onToggleZio={handleToggleZio}
         onOpenAuth={() => setAuthModalOpen(true)}
+        onOpenTabSearch={handleOpenTabSearch}
         showModeSwitcher={!isPrivate}
         downloadsPanelOpen={downloadsPanelOpen}
         onToggleDownloads={handleToggleDownloads}
@@ -328,6 +364,11 @@ export default function App() {
 
       {/* Device Lab overlays the entire window */}
       {deviceLabOpen && <DeviceLab onClose={() => setDeviceLabOpen(false)} />}
+
+      {/* Tab search popover */}
+      {tabSearchOpen && (
+        <TabSearchPopover onClose={() => setTabSearchOpen(false)} />
+      )}
     </div>
   );
 }
