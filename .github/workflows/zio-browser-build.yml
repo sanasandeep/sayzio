@@ -88,13 +88,23 @@ jobs:
       #   APPLE_ID / APPLE_APP_SPECIFIC_PASSWORD / APPLE_TEAM_ID → notarization
       # Without them electron-builder produces unsigned installers.
       - name: Package macOS
-        run: pnpm exec electron-builder --config electron-builder.config.cjs --publish never
+        shell: bash
         env:
-          CSC_LINK: ${{ secrets.MAC_CERT_P12_BASE64 }}
-          CSC_KEY_PASSWORD: ${{ secrets.MAC_CERT_PASSWORD }}
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          IN_CSC_LINK: ${{ secrets.MAC_CERT_P12_BASE64 }}
+          IN_CSC_KEY_PASSWORD: ${{ secrets.MAC_CERT_PASSWORD }}
+          IN_APPLE_ID: ${{ secrets.APPLE_ID }}
+          IN_APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          IN_APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          # Only export signing/notarization vars when the secrets are set —
+          # empty values make electron-builder attempt (and fail) signing.
+          if [ -n "$IN_CSC_LINK" ]; then
+            export CSC_LINK="$IN_CSC_LINK" CSC_KEY_PASSWORD="$IN_CSC_KEY_PASSWORD"
+          fi
+          if [ -n "$IN_APPLE_ID" ]; then
+            export APPLE_ID="$IN_APPLE_ID" APPLE_APP_SPECIFIC_PASSWORD="$IN_APPLE_APP_SPECIFIC_PASSWORD" APPLE_TEAM_ID="$IN_APPLE_TEAM_ID"
+          fi
+          pnpm exec electron-builder --config electron-builder.config.cjs --publish never
 
       - name: Upload macOS artifacts
         uses: actions/upload-artifact@v4
@@ -143,10 +153,17 @@ jobs:
       # Signing activates automatically when the secrets are set:
       #   WIN_CERT_P12_BASE64 / WIN_CERT_PASSWORD → Authenticode signing
       - name: Package Windows
-        run: pnpm exec electron-builder --config electron-builder.config.cjs --publish never
+        shell: bash
         env:
-          WIN_CSC_LINK: ${{ secrets.WIN_CERT_P12_BASE64 }}
-          WIN_CSC_KEY_PASSWORD: ${{ secrets.WIN_CERT_PASSWORD }}
+          IN_WIN_CSC_LINK: ${{ secrets.WIN_CERT_P12_BASE64 }}
+          IN_WIN_CSC_KEY_PASSWORD: ${{ secrets.WIN_CERT_PASSWORD }}
+        run: |
+          # Only export signing vars when the secrets are set — empty values
+          # make electron-builder attempt (and fail) signing.
+          if [ -n "$IN_WIN_CSC_LINK" ]; then
+            export WIN_CSC_LINK="$IN_WIN_CSC_LINK" WIN_CSC_KEY_PASSWORD="$IN_WIN_CSC_KEY_PASSWORD"
+          fi
+          pnpm exec electron-builder --config electron-builder.config.cjs --publish never
 
       - name: Upload Windows artifacts
         uses: actions/upload-artifact@v4
