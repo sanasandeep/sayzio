@@ -65,10 +65,19 @@ class InboxReplyDispatcher
         $htmlBody = \App\Modules\Common\Services\LinkReferenceRenderer::renderEmail($body, $thread->user_id);
 
         try {
-            Mail::html($htmlBody, function ($m) use ($to, $thread, $fromName, $fromAddress, $replyTo) {
-                $m->to($to)->subject('Re: ' . ($thread->subject ?: 'Your message'))->from($fromAddress, $fromName);
-                if ($replyTo) $m->replyTo($replyTo);
-            });
+            $opts = [
+                'subject'          => 'Re: ' . ($thread->subject ?: 'Your message'),
+                'body'             => $htmlBody,
+                'format'           => 'html',
+                'from'             => ['address' => $fromAddress, 'name' => $fromName],
+                'user'             => $thread->user_id,
+                'related'          => ['type' => 'inbox_thread', 'id' => $thread->id],
+                'throw_on_failure' => true,
+            ];
+            if ($replyTo) {
+                $opts['reply_to'] = $replyTo;
+            }
+            \App\Modules\Common\Services\Emailer::send('inbox.reply', $to, [], $opts);
         } catch (\Throwable $e) {
             return ['via' => 'email', 'error' => $e->getMessage()];
         }

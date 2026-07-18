@@ -284,6 +284,7 @@ Route::prefix('user')->name('user.')->group(function () {
             ->middleware('throttle:6,60')
             ->name('workspaces.request-access');
         Route::post('workspaces/{workspace}/switch',           [\App\Modules\User\Controllers\WorkspaceController::class, 'switch']) ->name('workspaces.switch');
+        Route::get ('workspaces/{workspace}/settings',         [\App\Modules\User\Controllers\WorkspaceController::class, 'settings'])->name('workspaces.settings');
         Route::put ('workspaces/{workspace}',                  [\App\Modules\User\Controllers\WorkspaceController::class, 'update']) ->name('workspaces.update');
         Route::put ('workspaces/{workspace}/post-approval',    [\App\Modules\User\Controllers\WorkspaceController::class, 'updatePostApproval'])->name('workspaces.post-approval.update');
         Route::delete('workspaces/{workspace}',                [\App\Modules\User\Controllers\WorkspaceController::class, 'destroy'])->name('workspaces.destroy');
@@ -304,6 +305,10 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::delete('team/members/{member}',                 [\App\Modules\User\Controllers\TeamController::class, 'removeMember'])->name('team.members.remove');
         Route::post  ('team/members/{member}/suspend',         [\App\Modules\User\Controllers\TeamController::class, 'suspend'])    ->name('team.members.suspend');
         Route::post  ('team/members/{member}/reactivate',      [\App\Modules\User\Controllers\TeamController::class, 'reactivate']) ->name('team.members.reactivate');
+        // Member-initiated self-leave — any non-owner seat can drop their own
+        // membership without going through an owner. Deliberately NOT gated by
+        // the owner/admin controller guard used by the routes above.
+        Route::post  ('team/leave',                            [\App\Modules\User\Controllers\TeamController::class, 'leave'])     ->name('team.leave');
 
         // ---- Roles & Permissions (Owner + Admin) ----
         Route::get   ('team/roles',                            [\App\Modules\User\Controllers\WorkspaceRolesController::class, 'index']) ->name('team.roles.index');
@@ -690,6 +695,8 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::put('forms/{form}/payment', [FormController::class, 'updatePayment'])->middleware('workspace.can:inbox.edit')->name('forms.payment.update');
         Route::get('forms/{form}/embed', [FormController::class, 'embed'])->middleware('workspace.can:inbox.view')->name('forms.embed');
         Route::put('forms/{form}/domain', [FormController::class, 'updateDomain'])->middleware('workspace.can:inbox.edit')->name('forms.domain.update');
+        Route::get('forms/{form}/settings', [FormController::class, 'settings'])->middleware('workspace.can:inbox.view')->name('forms.settings');
+        Route::put('forms/{form}/settings', [FormController::class, 'updateSettings'])->middleware('workspace.can:inbox.edit')->name('forms.settings.update');
         Route::get('forms/{form}/submissions', [FormController::class, 'submissions'])->middleware('workspace.can:inbox.view')->name('forms.submissions');
         Route::get('forms/{form}/submissions/export', [FormController::class, 'exportSubmissions'])->middleware('workspace.can:inbox.view')->name('forms.submissions.export');
         Route::get('forms/{form}/submissions/{submission}', [FormController::class, 'showSubmission'])->middleware('workspace.can:inbox.view')->name('forms.submissions.show');
@@ -811,6 +818,12 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::get('links-ics/{link}/checkin', [\App\Modules\User\Controllers\EventCheckinController::class, 'scanner'])->middleware('workspace.can:links.view')->name('links.ics.checkin');
         Route::post('links-ics/{link}/checkin/scan', [\App\Modules\User\Controllers\EventCheckinController::class, 'scan'])->middleware('workspace.can:links.edit')->name('links.ics.checkin.scan');
         Route::get('links-ics/{link}/checkin/progress', [\App\Modules\User\Controllers\EventCheckinController::class, 'progress'])->middleware('workspace.can:links.view')->name('links.ics.checkin.progress');
+        Route::get('links-ics/{link}/people', [\App\Modules\User\Controllers\EventPeopleController::class, 'dashboard'])->middleware('workspace.can:links.view')->name('links.ics.people');
+        Route::get('links-ics/{link}/people/stats', [\App\Modules\User\Controllers\EventPeopleController::class, 'stats'])->middleware('workspace.can:links.view')->name('links.ics.people.stats');
+        // Task #5052 — attendee "My swaps" per event: JSON list + withdraw,
+        // consumed by the public event page for signed-in viewers.
+        Route::get ('event-swaps/{alias}', [\App\Modules\User\Controllers\EventSwapsController::class, 'index'])->name('event-swaps.index');
+        Route::post('contact-exchanges/{id}/cancel', [\App\Modules\User\Controllers\EventSwapsController::class, 'cancel'])->whereNumber('id')->name('contact-exchanges.cancel');
         Route::post('links-ics/{link}/tickets/{ticket}/refund', [\App\Modules\User\Controllers\EventTicketTierController::class, 'refundTicket'])->middleware('workspace.can:links.edit')->name('links.ics.tickets.refund');
         Route::get('events/{link}/checkin/lookup/{code}', [\App\Modules\User\Controllers\EventCheckinController::class, 'lookup'])->name('events.checkin.lookup');
         Route::get('links-vcf/create', [VcfLinkController::class, 'create'])->middleware('workspace.can:links.create')->name('links.vcf.create');
@@ -1326,6 +1339,11 @@ Route::prefix('user')->name('user.')->group(function () {
         // (CRM). Read endpoints require `settings.view`, mutations
         // `settings.edit` so non-admin members can't see or modify the
         // workspace's address book.
+        Route::get('contacts/duplicates',                   [ContactController::class, 'duplicates'])->middleware('workspace.can:settings.view')->name('contacts.duplicates');
+        Route::get('contacts/duplicates/count',             [ContactController::class, 'duplicatesCount'])->middleware('workspace.can:settings.view')->name('contacts.duplicates.count');
+        Route::post('contacts/duplicates/dismiss',           [ContactController::class, 'duplicatesDismiss'])->middleware('workspace.can:settings.edit')->name('contacts.duplicates.dismiss');
+        Route::post('contacts/duplicates/merge-all',         [ContactController::class, 'mergeAllDuplicates'])->middleware(['workspace.can:settings.edit', 'throttle:6,1'])->name('contacts.duplicates.merge-all');
+        Route::post('contacts/{contact}/merge-duplicate',   [ContactController::class, 'mergeContacts'])->middleware('workspace.can:settings.edit')->name('contacts.merge-duplicate');
         Route::get('contacts',                              [ContactController::class, 'index'])->middleware(['workspace.can:settings.view', 'contacts.sync-on-open'])->name('contacts.index');
         // Consolidated "everything I need to follow up on" list. Must be
         // registered before the contacts/{contact} wildcard below so the
@@ -1334,6 +1352,12 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::get('contacts/create',                       [ContactController::class, 'create'])->middleware('workspace.can:settings.edit')->name('contacts.create');
         Route::post('contacts',                             [ContactController::class, 'store'])->middleware(['workspace.can:settings.edit', CheckPlanLimit::class . ':contacts_max', CheckPlanLimit::class . ':leads'])->name('contacts.store');
         Route::get('contacts/import',                       [ContactController::class, 'importForm'])->middleware('workspace.can:settings.edit')->name('contacts.import');
+        Route::get ('contacts/export',                      [ContactController::class, 'exportRequest'])->middleware('workspace.can:settings.view')->name('contacts.export.request');
+        Route::post('contacts/export',                      [ContactController::class, 'export'])->middleware('workspace.can:settings.view')->name('contacts.export.store');
+        Route::get ('contacts/export/{export}',             [ContactController::class, 'exportShow'])->middleware('workspace.can:settings.view')->name('contacts.export.show');
+        Route::get ('contacts/export/{export}/status',      [ContactController::class, 'exportStatus'])->middleware('workspace.can:settings.view')->name('contacts.export.status');
+        Route::get ('contacts/export/{export}/download',    [ContactController::class, 'exportDownload'])->middleware('workspace.can:settings.view')->name('contacts.export.download');
+        Route::get ('contacts/export/{export}/signed-dl',  [ContactController::class, 'exportSignedDownload'])->middleware('signed')->name('contacts.export.signed-download')->withoutMiddleware('auth');
 
         // ── AI Card / Brochure Scanner ───────────────────────────────
         // Upload an image or PDF, get a structured contact + biolink
@@ -1345,7 +1369,12 @@ Route::prefix('user')->name('user.')->group(function () {
         // biolink-only draft must work even with a full contacts quota.
         Route::post('contacts/scan',                        [\App\Modules\User\Controllers\CardScanController::class, 'store'])->middleware('workspace.can:settings.edit')->name('contacts.scan.store');
         Route::get ('contacts/scan/{scan}',                 [\App\Modules\User\Controllers\CardScanController::class, 'show'])->whereNumber('scan')->middleware('workspace.can:settings.edit')->name('contacts.scan.show');
+        Route::post('contacts/scan/{scan}/rescan',          [\App\Modules\User\Controllers\CardScanController::class, 'rescan'])->whereNumber('scan')->middleware('workspace.can:settings.edit')->name('contacts.scan.rescan');
         Route::post('contacts/scan/{scan}/save',            [\App\Modules\User\Controllers\CardScanController::class, 'save'])->whereNumber('scan')->middleware('workspace.can:settings.edit')->name('contacts.scan.save');
+        // Quick-confirm flow: lightweight confirm sheet + one-tap save for
+        // scans initiated from the Contacts page or Dialer entry points.
+        Route::get ('contacts/scan/{scan}/confirm',         [\App\Modules\User\Controllers\CardScanController::class, 'confirm'])->whereNumber('scan')->middleware('workspace.can:settings.edit')->name('contacts.scan.confirm');
+        Route::post('contacts/scan/{scan}/quick-save',      [\App\Modules\User\Controllers\CardScanController::class, 'quickSave'])->whereNumber('scan')->middleware('workspace.can:settings.edit')->name('contacts.scan.quick-save');
         Route::post('contacts/import',                      [ContactController::class, 'import'])->middleware(['workspace.can:settings.edit', CheckPlanLimit::class . ':contacts_max', CheckPlanLimit::class . ':leads'])->name('contacts.import.store');
         Route::get('contacts/import/preview/{token}',       [ContactController::class, 'importPreview'])->middleware('workspace.can:settings.edit')->name('contacts.import.preview');
         Route::post('contacts/import/preview/{token}/row/{index}', [ContactController::class, 'importRowUpdate'])->whereNumber('index')->middleware('workspace.can:settings.edit')->name('contacts.import.preview.row.update');
@@ -1354,15 +1383,25 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::post('contacts/import/cancel/{token}',       [ContactController::class, 'importCancel'])->middleware('workspace.can:settings.edit')->name('contacts.import.cancel');
         Route::get('contacts/import/{import}',              [ContactController::class, 'importShow'])->middleware('workspace.can:settings.view')->name('contacts.import.show');
         Route::get('contacts/import/{import}/status',       [ContactController::class, 'importStatus'])->middleware('workspace.can:settings.view')->name('contacts.import.status');
+        // Tags autocomplete endpoint (GET, JSON). Registered before the
+        // {contact} wildcard so the literal "tags" segment isn't captured.
+        Route::get('contacts/tags',                         [ContactController::class, 'allTags'])->middleware('workspace.can:settings.view')->name('contacts.tags');
+
         Route::get('contacts/{contact}',                    [ContactController::class, 'show'])->middleware('workspace.can:settings.view')->name('contacts.show');
         Route::get('contacts/{contact}/edit',               [ContactController::class, 'edit'])->middleware('workspace.can:settings.edit')->name('contacts.edit');
         Route::put('contacts/{contact}',                    [ContactController::class, 'update'])->middleware('workspace.can:settings.edit')->name('contacts.update');
         Route::delete('contacts/{contact}',                 [ContactController::class, 'destroy'])->middleware('workspace.can:settings.edit')->name('contacts.destroy');
+        // Inline quick-patch endpoints for the show-page AJAX editors.
+        Route::patch('contacts/{contact}/notes',            [ContactController::class, 'updateNotes'])->middleware('workspace.can:settings.edit')->name('contacts.notes.update');
+        Route::patch('contacts/{contact}/tags',             [ContactController::class, 'updateTags'])->middleware('workspace.can:settings.edit')->name('contacts.tags.update');
         Route::post('contacts/{contact}/biolink/detach',    [ContactController::class, 'detachBiolink'])->middleware('workspace.can:settings.edit')->name('contacts.biolink.detach');
         Route::post('contacts/{contact}/biolink/attach',    [ContactController::class, 'attachBiolink'])->middleware('workspace.can:settings.edit')->name('contacts.biolink.attach');
         Route::post('contacts/{contact}/biolink/sms',       [ContactController::class, 'smsBiolink'])->middleware('workspace.can:settings.edit')->name('contacts.biolink.sms');
         Route::post('contacts/{contact}/follow-up',         [ContactController::class, 'setFollowUp'])->middleware('workspace.can:settings.edit')->name('contacts.follow-up.set');
         Route::delete('contacts/{contact}/follow-up',       [ContactController::class, 'clearFollowUp'])->middleware('workspace.can:settings.edit')->name('contacts.follow-up.clear');
+        Route::post('contacts/{contact}/share',             [ContactController::class, 'share'])->middleware('workspace.can:settings.edit')->name('contacts.share');
+        Route::delete('contacts/{contact}/share',           [ContactController::class, 'unshare'])->middleware('workspace.can:settings.edit')->name('contacts.unshare');
+        Route::post('contacts/bulk-share',                  [ContactController::class, 'bulkShare'])->middleware('workspace.can:settings.edit')->name('contacts.bulk-share');
 
         // Google Contacts OAuth + sync.
         Route::get('contacts/google/connect',               [GoogleContactsAccountController::class, 'connect'])->middleware(['workspace.can:settings.edit', CheckPlanLimit::class . ':contacts_google_sync'])->name('contacts.google.connect');
@@ -1404,12 +1443,18 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::post  ('dialer/favorites',                   [DialerController::class, 'favoriteStore'])->middleware('workspace.can:settings.edit')->name('dialer.favorites.store');
         Route::post  ('dialer/favorites/reorder',           [DialerController::class, 'favoritesReorder'])->middleware('workspace.can:settings.edit')->name('dialer.favorites.reorder');
         Route::delete('dialer/favorites/{favorite}',        [DialerController::class, 'favoriteDestroy'])->whereNumber('favorite')->middleware('workspace.can:settings.edit')->name('dialer.favorites.destroy');
+        Route::post  ('dialer/speed-dial/assign',           [DialerController::class, 'speedDialAssign'])->middleware('workspace.can:settings.edit')->name('dialer.speed-dial.assign');
+        Route::post  ('dialer/speed-dial/unassign',         [DialerController::class, 'speedDialUnassign'])->middleware('workspace.can:settings.edit')->name('dialer.speed-dial.unassign');
         Route::post  ('dialer/flag',                        [DialerController::class, 'flag'])->middleware('workspace.can:settings.edit')->name('dialer.flag');
         Route::post  ('dialer/log',                         [DialerController::class, 'logCall'])->middleware('workspace.can:settings.edit')->name('dialer.log');
         Route::post  ('dialer/callback',                    [DialerController::class, 'callbackSet'])->middleware('workspace.can:settings.edit')->name('dialer.callback.set');
         Route::delete('dialer/callback/{log}',              [DialerController::class, 'callbackClear'])->whereNumber('log')->middleware('workspace.can:settings.edit')->name('dialer.callback.clear');
         Route::post('dialer/manual',                        [DialerController::class, 'updateManual'])->middleware('workspace.can:settings.edit')->name('dialer.manual');
         Route::post('dialer/channels',                      [DialerController::class, 'channelsUpdate'])->middleware('workspace.can:settings.edit')->name('dialer.channels');
+        Route::get   ('dialer/history',                     [DialerController::class, 'historyIndex'])->middleware('workspace.can:settings.view')->name('dialer.history');
+        Route::delete('dialer/history',                     [DialerController::class, 'historyClear'])->middleware('workspace.can:settings.edit')->name('dialer.history.clear');
+        Route::patch ('dialer/history/{log}',               [DialerController::class, 'historyUpdate'])->whereNumber('log')->middleware('workspace.can:settings.edit')->name('dialer.history.update');
+        Route::delete('dialer/history/{log}',               [DialerController::class, 'historyDestroy'])->whereNumber('log')->middleware('workspace.can:settings.edit')->name('dialer.history.destroy');
 
         // ===== Events calendar (month / week / day / list views) =====
         Route::get('events',                                [CalendarAccountController::class, 'events'])->middleware('workspace.can:settings.view')->name('events.index');

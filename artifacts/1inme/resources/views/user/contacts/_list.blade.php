@@ -2,13 +2,14 @@
      as-you-type AJAX search (ContactController@index returns just this partial
      when the request is XHR). Keeps the tab-specific rendering, empty-state and
      pagination in one place so the two code paths can never drift. --}}
-@if($contacts->isEmpty())
+@php($hasShared = isset($sharedContacts) && $sharedContacts->isNotEmpty())
+@if($contacts->isEmpty() && !$hasShared)
     <div class="text-center py-16">
         <div class="w-16 h-16 mx-auto rounded-2xl flex items-center justify-center mb-4" style="background: linear-gradient(135deg, rgba(34,211,238,0.18), rgba(61,107,255,0.18));">
             <i class="fas fa-address-book text-2xl text-cyan-400"></i>
         </div>
         @if(trim((string) $search) !== '')
-            <p class="text-sm font-semibold mb-1" style="color: var(--text-primary);">No matches for “{{ $search }}”</p>
+            <p class="text-sm font-semibold mb-1" style="color: var(--text-primary);">No matches for "{{ $search }}"</p>
             <p class="text-xs mb-4" style="color: var(--text-muted);">Try a different name, phone number, or email.</p>
         @else
             <p class="text-sm font-semibold mb-1" style="color: var(--text-primary);">No contacts yet</p>
@@ -19,6 +20,7 @@
         @endif
     </div>
 @else
+    @if($contacts->isNotEmpty())
     @if($tab === 'biolink')
         {{-- Richer card view: includes the matched user's biolink URL inline. --}}
         <div class="space-y-3">
@@ -92,6 +94,17 @@
                         <div class="text-xs truncate" style="color:var(--text-muted);">
                             {{ $c->phones->first()?->value ?? $c->emails->first()?->value ?? '—' }}
                         </div>
+                        @if(!empty($c->tags))
+                            <div class="flex flex-wrap gap-1 mt-1">
+                                @foreach(array_slice((array)$c->tags, 0, 3) as $tag)
+                                    <span class="px-1.5 py-0.5 rounded-full text-[10px] font-medium"
+                                          style="background:rgba(61,107,255,.12);color:#90acff;border:1px solid rgba(61,107,255,.18);">{{ $tag }}</span>
+                                @endforeach
+                                @if(count((array)$c->tags) > 3)
+                                    <span class="px-1.5 py-0.5 rounded-full text-[10px] font-medium" style="color:var(--text-faint);">+{{ count((array)$c->tags) - 3 }}</span>
+                                @endif
+                            </div>
+                        @endif
                     </div>
                     <i class="fas fa-chevron-right text-[10px] opacity-40"></i>
                 </a>
@@ -99,4 +112,49 @@
         </div>
     @endif
     <div class="mt-4">{{ $contacts->links() }}</div>
+    @endif
+
+    {{-- Contacts shared with the current team workspace by other members. --}}
+    @if($hasShared)
+    <div class="mt-6">
+        <div class="flex items-center gap-2 mb-3">
+            <i class="fas fa-users text-[11px]" style="color:#90acff;"></i>
+            <span class="text-[10px] font-bold uppercase tracking-wider" style="color:var(--text-faint);">
+                Shared with {{ $currentWorkspace?->name ?? 'your workspace' }}
+            </span>
+            <span class="px-1.5 py-0.5 rounded text-[9px] font-semibold" style="background:rgba(61,107,255,.15);color:#90acff;">{{ $sharedContacts->count() }}</span>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            @foreach($sharedContacts as $c)
+                @php($share = $c->workspaceShares->first())
+                <a href="{{ route('user.contacts.show', $c) }}" class="flex items-center gap-3 px-4 py-3 rounded-xl transition relative" style="background:rgba(61,107,255,.04);border:1px solid rgba(61,107,255,.14);" onmouseover="this.style.background='rgba(61,107,255,.10)'" onmouseout="this.style.background='rgba(61,107,255,.04)'">
+                    <div class="w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0 text-sm font-bold text-white" style="background: linear-gradient(135deg,#3d6bff,#ec4899);">
+                        @if($c->photoUrl())
+                            <img src="{{ $c->photoUrl() }}" class="w-full h-full rounded-full object-cover">
+                        @else
+                            {{ $c->initials() }}
+                        @endif
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <div class="text-sm font-semibold truncate" style="color:var(--text-primary);">
+                            {{ $c->nameForDisplay() }}
+                            @if($c->biolink_user_id)
+                                <span class="ml-1 px-1.5 py-0.5 rounded text-[9px] font-bold uppercase" style="background:rgba(236,72,153,.15);color:#f472b6">Sayzio</span>
+                            @endif
+                        </div>
+                        <div class="text-xs truncate" style="color:var(--text-muted);">
+                            {{ $c->phones->first()?->value ?? $c->emails->first()?->value ?? '—' }}
+                        </div>
+                        @if($share?->sharedBy)
+                        <div class="text-[10px] mt-0.5" style="color:var(--text-faint);">
+                            <i class="fas fa-share-nodes mr-0.5"></i> Shared by {{ $share->sharedBy->name }}
+                        </div>
+                        @endif
+                    </div>
+                    <i class="fas fa-chevron-right text-[10px] opacity-40"></i>
+                </a>
+            @endforeach
+        </div>
+    </div>
+    @endif
 @endif

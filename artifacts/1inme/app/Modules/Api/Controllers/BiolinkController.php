@@ -160,7 +160,7 @@ class BiolinkController extends Controller
                 'id'              => $owner?->id,
                 'name'            => $owner?->name,
                 'handle'          => $owner?->handle,
-                'avatar'          => $owner?->avatar,
+                'avatar'          => \App\Support\PublicStorageUrl::resolve($owner?->avatar),
                 'bio'             => $owner?->bio,
                 'followers_count' => (int) ($owner?->followers_count ?? 0),
             ],

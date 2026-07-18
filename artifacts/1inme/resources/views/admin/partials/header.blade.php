@@ -22,6 +22,7 @@
         @endif
 
         @if(!session('impersonate_user_id') && auth()->guard('admin')->user()?->hasUserAccount())
+            {{-- Full label on sm+ --}}
             <form action="{{ route('admin.switch-to-user') }}" method="POST" class="hidden sm:inline">
                 @csrf
                 <button type="submit"
@@ -32,16 +33,32 @@
                     <span>Switch to user</span>
                 </button>
             </form>
+            {{-- Icon-only on mobile --}}
+            <form action="{{ route('admin.switch-to-user') }}" method="POST" class="sm:hidden inline">
+                @csrf
+                <button type="submit"
+                        class="flex items-center justify-center w-8 h-8 rounded-lg text-xs font-semibold transition-all"
+                        style="background: rgba(61,107,255,0.12); border: 1px solid rgba(61,107,255,0.25); color: var(--accent-light);"
+                        title="Switch back to your user dashboard">
+                    <i class="fas fa-arrow-right-arrow-left"></i>
+                </button>
+            </form>
         @endif
 
-        <div class="hidden lg:block">
-            @include('common.partials.theme-toggle')
-        </div>
+        @include('common.partials.theme-toggle')
 
-        <div x-data="{ open: false }" class="relative">
+        <div x-data="{ open: false }" class="relative lg:hidden">
             <button @click="open = !open" class="flex items-center gap-2 transition-colors hover:opacity-80" style="color: var(--text-muted);">
-                <div class="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold" style="background: rgba(61,107,255,0.1); border: 1px solid rgba(61,107,255,0.15); color: var(--accent-light);">
-                    {{ strtoupper(substr(auth()->guard('admin')->user()->name ?? 'A', 0, 1)) }}
+                @php $adminAvatarUrlHdr = auth()->guard('admin')->user()?->resolveAvatarUrl(); @endphp
+                <div class="w-8 h-8 rounded-lg overflow-hidden relative flex items-center justify-center text-xs font-bold flex-shrink-0"
+                     style="background: rgba(61,107,255,0.1); border: 1px solid rgba(61,107,255,0.15); color: var(--accent-light);">
+                    @if($adminAvatarUrlHdr)
+                        <img src="{{ $adminAvatarUrlHdr }}"
+                             alt="{{ auth()->guard('admin')->user()->name ?? 'Admin' }}"
+                             class="w-full h-full object-cover absolute inset-0"
+                             onerror="this.style.display='none';">
+                    @endif
+                    <span>{{ strtoupper(substr(auth()->guard('admin')->user()->name ?? 'A', 0, 1)) }}</span>
                 </div>
                 <i class="fas fa-chevron-down text-[10px]" style="color: var(--text-faint);"></i>
             </button>

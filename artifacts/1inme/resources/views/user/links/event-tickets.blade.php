@@ -15,6 +15,7 @@
             ['icon' => 'fa-door-open text-primary-400', 'text' => $totals['checked_in'] . ' checked in'],
         ],
         'actions' => [
+            ['label' => 'People & connections', 'url' => route('user.links.ics.people', $link), 'icon' => 'fa-people-arrows', 'class' => 'btn-secondary'],
             ['label' => 'Scan tickets', 'url' => route('user.links.ics.checkin', $link), 'icon' => 'fa-qrcode', 'class' => 'btn-primary'],
         ],
     ])

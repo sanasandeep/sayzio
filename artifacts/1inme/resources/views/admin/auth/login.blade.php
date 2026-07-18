@@ -82,7 +82,12 @@
 
                         <div>
                             <label class="block text-xs font-semibold uppercase tracking-wider mb-1.5" style="color: var(--text-dimmed);">Password</label>
-                            <input type="password" name="password" required placeholder="Enter your password" class="theme-input w-full">
+                            @include('common.partials.password-field', [
+                                'name' => 'password',
+                                'required' => true,
+                                'placeholder' => 'Enter your password',
+                                'autocomplete' => 'current-password',
+                            ])
                             @error('password')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
                         </div>
 
@@ -100,23 +105,6 @@
                     </div>
                 </form>
 
-                <div class="mt-6 pt-6" style="border-top: 1px solid var(--border-glass);">
-                    <p class="text-center text-[10px] uppercase tracking-wider font-bold mb-3" style="color: var(--text-faint);">Quick access</p>
-                    <div class="grid grid-cols-2 gap-2">
-                        <form method="POST" action="{{ route('user.demo.login') }}">
-                            @csrf
-                            <button type="submit" class="btn-ghost w-full justify-center text-xs py-2">
-                                <i class="fas fa-user text-[10px]"></i> Demo User
-                            </button>
-                        </form>
-                        <form method="POST" action="{{ route('admin.demo.login') }}">
-                            @csrf
-                            <button type="submit" class="btn-ghost w-full justify-center text-xs py-2">
-                                <i class="fas fa-shield-alt text-[10px]"></i> Demo Admin
-                            </button>
-                        </form>
-                    </div>
-                </div>
             </div>
         </div>
     </div>

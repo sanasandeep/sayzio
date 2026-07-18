@@ -439,6 +439,16 @@ class UserFileController extends Controller
             if ($exists) return true;
         }
 
+        // Event documents (Task #5023) — files attached to a public event page.
+        if (\Illuminate\Support\Facades\Schema::hasTable('ics_data')) {
+            $exists = \Illuminate\Support\Facades\DB::table('ics_data')
+                ->join('links', 'ics_data.link_id', '=', 'links.id')
+                ->where('links.is_active', true)
+                ->whereRaw("ics_data.documents @> ?::jsonb", [json_encode([['file_id' => $file->id]])])
+                ->exists();
+            if ($exists) return true;
+        }
+
         return false;
     }
 

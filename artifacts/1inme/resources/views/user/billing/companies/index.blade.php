@@ -1,7 +1,7 @@
 @extends('user.layouts.settings')
 @section('title', 'Billing Companies')
 @section('settings-content')
-<div class="max-w-5xl mx-auto px-4 py-8">
+<div>
     <div class="page-hero mb-6 flex items-center justify-between">
         <div>
             <h1 class="hero-title">Billing Companies</h1>

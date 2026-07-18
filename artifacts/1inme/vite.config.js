@@ -5,7 +5,31 @@ import tailwindcss from '@tailwindcss/vite';
 export default defineConfig({
     plugins: [
         laravel({
-            input: ['resources/css/app.css', 'resources/js/app.js'],
+            // Project-authored helper scripts live here (not public/js) so Vite
+            // content-hashes them and lists them in the build manifest. Blade
+            // loads them via @vite([...]); a missing/renamed file then FAILS the
+            // build instead of shipping a silent 404 + degraded page.
+            //
+            // Intentionally still loaded from public/js via asset('js/...') and
+            // NOT bundled here:
+            //   - public/js/vendor/* (alpine, alpine-collapse, chart.umd, jsqr,
+            //     leaflet): third-party libraries, self-hosted + pinned on
+            //     purpose (no CDN SPOF / SRI drift). Alpine in particular must
+            //     stay a classic global <script defer>, not an ES module entry.
+            //   - public/js/qr-studio/engine.js: large standalone public QR
+            //     engine wanted as one stable, globally-cached URL across the
+            //     many public QR pages that embed it.
+            //   - public/js/social-proof-widget.js: embeddable widget served to
+            //     third-party sites, needs a stable non-hashed URL.
+            input: [
+                'resources/css/app.css',
+                'resources/js/app.js',
+                'resources/js/auth-ajax.js',
+                'resources/js/analytics-charts.js',
+                'resources/js/map-pin-picker.js',
+                'resources/js/marketing-anim.js',
+                'resources/js/community-public.js',
+            ],
             refresh: true,
         }),
         tailwindcss(),

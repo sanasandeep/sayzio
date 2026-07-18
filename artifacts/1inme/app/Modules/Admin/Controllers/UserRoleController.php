@@ -160,6 +160,13 @@ class UserRoleController extends Controller
             return back()->with('error', 'That is not a valid admin role.');
         }
 
+        // Back-office accounts are keyed by email. A mobile/WhatsApp-only
+        // sign-up has no users.email yet — the user must add + verify an
+        // email in Account Settings (Linked identifiers) first.
+        if (trim((string) $user->email) === '') {
+            return back()->with('error', $user->name . ' has no email address on file. Ask them to add and verify an email in Account Settings → Linked identifiers first, then grant admin access.');
+        }
+
         // Look the existing back-office record up by email directly (not via
         // the ownership-gated bridge) so the create-vs-repoint decision is
         // correct even for an as-yet-unverified target, and never trips the

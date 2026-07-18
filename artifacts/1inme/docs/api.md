@@ -28,7 +28,7 @@ see [API usage metering](#api-usage-metering)).
 - [Reviews (public)](#reviews-public) · [Reviews moderation (owner)](#reviews-moderation-owner)
 - [Feed](#feed) · [Follows](#follows) · [Subscribers](#subscribers) · [Discovery](#discovery-public) · [Creator profile](#creator-profile-public) · [Paid pages](#paid-pages-public) · [Creator monetization](#creator-monetization) · [Product storefront](#product-storefront) · [Posts](#posts-creator-feed) · [Paid DMs](#paid-dms)
 - [QR Studio](#qr-studio) · [Forms](#forms) · [Contacts & dialer](#contacts) · [Google Contacts sync](#google-contacts-sync) · [Connected apps](#connected-apps-crm-sync) · [Bulk import](#bulk-import-preview-workflow) · [Resume](#resume--portfolio) · [Projects](#projects)
-- [Wallet & coins](#wallet--coins) · [AI](#ai-credits-knowledge-bases-voice-account-assistant-chat-widgets) · [Competitor Biolink Teardown](#competitor-biolink-teardown) · [Creator payouts](#creator-payouts) · [18+ adult content](#adult-content) · [Billing](#billing) · [Plans & RevenueCat](#plans--revenuecat)
+- [Wallet & coins](#wallet--coins) · [AI](#ai-credits-knowledge-bases-voice-account-assistant-chat-widgets) · [Competitor Biolink Teardown](#competitor-biolink-teardown) · [Creator payouts](#creator-payouts) · [18+ adult content](#adult-content) · [Billing](#billing) · [Plans](#plans)
 - [Domains](#custom-domains) · [Splash pages](#splash-pages) · [Restaurant menu](#restaurant-menu) · [Store menu](#store-menu) · [Service booking](#service-booking) · [Workspaces](#workspaces) · [Team](#team--staff) · [Client portals](#client-portals) · [Vault](#vault) · [Inbox](#inbox-biolink-dms) · [Spam settings](#spam-settings) · [Forwarding](#forwarding)
 - [Social connections & proofs](#social-connections--proofs) · [Integrations](#integrations) · [Calendar](#calendar) · [Verification](#verification)
 - [Admin (mobile back-office)](#admin-mobile-back-office) · [Banned names / reserved handles](#banned-names--reserved-handles) · [Plan editor](#plan-editor) · [Scheduled jobs](#admin-scheduled-jobs) · [Admin mail / SMTP](#admin-mail--smtp-settings)
@@ -268,6 +268,7 @@ A passed bearer token is honored for the visibility checks on the `show` route.
 | Method | Path                                  | Auth | Description                                                  |
 | ------ | ------------------------------------- | ---- | ----------------------------------------------------------- |
 | GET    | `/block-catalog`                      | yes  | Block-type palette (categories + picker types, per-user `locked` flag). |
+| GET    | `/bg-presets`                         | yes  | Background preset catalog for the Appearance "Presets" picker (groups + presets with `key`, `label`, `css`, parsed `colors`). |
 | GET    | `/links/{id}/blocks`                  | yes  | List blocks on a biolink.                                   |
 | POST   | `/links/{id}/blocks`                  | yes  | Create a block (seeds first-paint defaults).               |
 | PATCH  | `/links/{id}/blocks/{blockId}`        | yes  | Update a block (clears the placeholder flag on first save). |
@@ -561,6 +562,7 @@ Mobile can list + create-on-the-spot from the block editor; richer editing lives
 | GET    | `/forms`                             | yes  | List forms.                         |
 | POST   | `/forms`                             | yes  | Create a form.                      |
 | GET    | `/forms/{id}`                        | yes  | Show a form.                        |
+| POST   | `/forms/{id}/submit`                 | no   | Public form submission. Throttle: 10/min. |
 | GET    | `/forms/{id}/submissions`            | yes  | List submissions.                   |
 | GET    | `/forms/{id}/submissions.csv`        | yes  | Export submissions as CSV.          |
 
@@ -573,6 +575,63 @@ Forms can charge on submission — a **fixed** price and/or **per-field** pricin
 items are computed and charged **server-side** in minor units, so a client must
 not trust a client-supplied total.
 
+### Reading a form's fields
+
+`GET /forms/{id}` returns `{ data: { form: { …, fields: [ … ] } } }`. Each entry
+in `fields` is the raw field definition. **Repeatable sections** (a field with
+`type: "section"`) carry the metadata a client needs to render and collect a
+repeatable group:
+
+| Field key          | Meaning                                                                 |
+| ------------------ | ----------------------------------------------------------------------- |
+| `repeatable`       | `true` when the section can be duplicated by the visitor.               |
+| `repeat_min`       | Minimum number of copies required (defaults to `1`; `0` = optional).    |
+| `repeat_max`       | Maximum number of copies allowed (`0`/absent = unlimited).              |
+| `repeat_add_label` | Button label shown to add another copy (e.g. `"Add another"`).          |
+
+Fields that belong to a section carry `parent` set to that section's `id`. To
+build a repeatable group, take every non-section child whose `parent` equals the
+repeatable section's `id`.
+
+### Submitting a form
+
+`POST /forms/{id}/submit` is the REST mirror of the public web form (`POST
+/f/{slug}`). It requires **no** authentication and shares the same submit
+pipeline — server-side validation, spam/honeypot checks, HTTP-verified captcha
+(reCAPTCHA / hCaptcha / Turnstile), pricing/payment, CRM fan-out, and owner
+notifications — so behaviour is identical to the web form.
+
+Send each **flat** field keyed by its field `id`. For each **repeatable
+section**, send an array keyed `rep_{sectionId}`, where every element is an object
+of that section's `{childId: value}` copies:
+
+```bash
+curl -X POST $BASE/forms/42/submit \
+  -H 'Accept: application/json' -H 'Content-Type: application/json' \
+  -d '{
+    "name": "Ada Lovelace",
+    "rep_7": [
+      { "item_9": "Widget", "qty_10": "2" },
+      { "item_9": "Gadget", "qty_10": "1" }
+    ]
+  }'
+```
+
+Repeatable-group answers are stored on the submission in the same shape the web
+flow uses — `{ "7": { "_repeatable_group": true, "copies": [ … ] } }` — so they
+appear identically in `GET /forms/{id}/submissions`.
+
+**Success** returns `{ ok: true, message, redirect }`. When the form charges on
+submission, the response is `{ ok: true, payment_required: true, checkout_url,
+amount_cents, currency }` and the submission is finalised after payment.
+**Validation errors** use the standard envelope
+(`{ error: { message, code: "validation_failed", details } }`, HTTP 422); a
+failed captcha returns `{ error: { message, code: "captcha_failed" } }` (422).
+
+> **Note:** the session-based **math** captcha cannot be satisfied over the
+> stateless bearer API — forms configured with it will reject API submissions.
+> Use the honeypot or an HTTP-verified captcha provider instead.
+
 ## Contacts
 
 | Method | Path                          | Auth | Description                                              |
@@ -580,7 +639,7 @@ not trust a client-supplied total.
 | GET    | `/contacts`                   | yes  | Paginated address book.                                 |
 | POST   | `/contacts`                   | yes  | Create a contact. Throttle: 120/min.                    |
 | POST   | `/contacts/validate`          | yes  | Validate a candidate before saving. Throttle: 120/min. |
-| POST   | `/contacts/bulk`              | yes  | Bulk import contacts.                                   |
+| POST   | `/contacts/bulk`              | yes  | Bulk import contacts. Returns `{ created, updated, skipped, duplicates_found }` — `duplicates_found` counts newly created contacts that now match an existing one. |
 | GET    | `/contacts/{id}`              | yes  | Show a contact.                                         |
 | PATCH  | `/contacts/{id}`              | yes  | Update a contact.                                       |
 | POST   | `/contacts/{id}/manual-profile` | yes | Attach/override a manual biolink profile on a contact. Body: `{ channels:[{type,label,value}], socials:[…], location:{…} }`. Returns `{ manual_profile }`. |
@@ -915,14 +974,13 @@ client-facing email templates. The SMTP password is never returned (masked only)
 | DELETE | `/billing/companies/{id}/emails/{key}`         | yes  | Reset a template to the default.                 |
 | POST   | `/billing/companies/{id}/emails/{key}/preview` | yes  | Render a preview of a template.                  |
 
-## Plans & RevenueCat
+## Plans
 
 | Method | Path                              | Auth | Description                                              |
 | ------ | --------------------------------- | ---- | ------------------------------------------------------- |
 | GET    | `/plans`                          | —    | Public plan catalog. Excludes internal (admin-only) plans. |
 | GET    | `/billing/plans`                  | yes  | Plan + addon catalog priced for the signed-in user. Excludes internal plans. |
 | POST   | `/billing/currency`               | yes  | Set preferred currency. Throttle: 60/min.               |
-| POST   | `/billing/revenuecat/activate`    | yes  | RevenueCat receipt-verification hook (post-purchase/restore). Throttle: 30/min. |
 
 ---
 
@@ -1072,8 +1130,11 @@ Operates on the active workspace.
 | ------ | --------------------------------- | ---- | -------------------------------- |
 | GET    | `/team`                           | yes  | List members + invites.          |
 | POST   | `/team/invite`                    | yes  | Invite a teammate. Throttle: 30/min. |
+| PATCH  | `/team/members/{member}`          | yes  | Change a member's role (`admin`, `editor`, `replier`, `analyst`, `viewer`). |
 | DELETE | `/team/invites/{invite}`          | yes  | Revoke an invite.                |
 | DELETE | `/team/members/{member}`          | yes  | Remove a member.                 |
+
+All `/team*` endpoints accept an optional `workspace_id` (query or body) to target a specific workspace instead of the active one; the caller must own or be an Admin of it.
 
 ## Client portals
 

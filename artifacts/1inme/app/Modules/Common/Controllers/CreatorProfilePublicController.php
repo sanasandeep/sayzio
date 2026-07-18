@@ -369,7 +369,7 @@ class CreatorProfilePublicController extends Controller
                 'author'    => [
                     'id'     => $viewer->id,
                     'name'   => $viewer->name,
-                    'avatar' => $viewer->avatar,
+                    'avatar' => \App\Support\PublicStorageUrl::resolve($viewer->avatar),
                     'handle' => $viewer->handle,
                 ],
                 'created_at' => $c->created_at?->toIso8601String(),

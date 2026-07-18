@@ -579,6 +579,12 @@ class EventTicketApiController extends Controller
             'info_sections'     => $ics?->info_sections ?? [],
             'required_badge_id' => $ics?->required_badge_id,
             'award_badge_id'    => $ics?->award_badge_id,
+            // Task #5023: structured agenda + downloadable documents.
+            'agenda'            => $ics?->agenda ?? [],
+            'documents'         => array_map(
+                fn (array $doc) => $doc + ['url' => url('/f/' . $doc['file_id'] . '/' . $doc['filename'])],
+                $ics?->documents ?? []
+            ),
             'interested_count'      => $link->eventInterests()->where('status', 'interested')->count(),
             'not_interested_count'  => $link->eventInterests()->where('status', 'not_interested')->count(),
             // Task #3674: organizer card — shown regardless of whether the
@@ -619,12 +625,12 @@ class EventTicketApiController extends Controller
             // fallback (name -> account name, logo -> account avatar) so the
             // existing simple card keeps working when no profile is set.
             'name'   => $profile['name'] !== '' ? $profile['name'] : $host->name,
-            'avatar' => $profile['logo'] !== '' ? $profile['logo'] : $host->avatar,
+            'avatar' => \App\Support\PublicStorageUrl::resolve($profile['logo'] !== '' ? $profile['logo'] : $host->avatar),
             'handle' => $host->handle,
             // Extended reusable-profile fields. `filled` drives whether mobile
             // renders the rich card or the plain avatar+name fallback.
             'filled'        => (bool) $profile['filled'],
-            'logo'          => $orNull($profile['logo']),
+            'logo'          => \App\Support\PublicStorageUrl::resolve($orNull($profile['logo'])),
             'description'   => $orNull($profile['description']),
             'website'       => $orNull($profile['website']),
             'contact_name'  => $orNull($profile['contact_name']),

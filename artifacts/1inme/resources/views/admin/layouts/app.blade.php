@@ -14,7 +14,7 @@
     @include('common.partials.theme-styles')
     <style>
         /* ============ Shared sidebar shell (mirrors user layout v3) ============ */
-        .sidebar-v2 { transition: width 0.35s cubic-bezier(0.4,0,0.2,1), transform 0.35s cubic-bezier(0.4,0,0.2,1); }
+        .sidebar-v2 { transition: width 0.35s cubic-bezier(0.4,0,0.2,1), transform 0.35s cubic-bezier(0.4,0,0.2,1); overflow: hidden; }
         .main-content-v2 { transition: margin-left 0.35s cubic-bezier(0.4,0,0.2,1); }
 
         .sidebar-v2 .nav-label,
@@ -75,6 +75,17 @@
         html.light-mode .logout-btn { border-color: #cbd5e1; color: #475569; }
         html.light-mode .logout-btn:hover { background: rgba(239,68,68,.08); border-color: rgba(239,68,68,.40); color: #dc2626; }
 
+        /* ---- Help-note callout: light-mode text/icon legibility overrides ---- */
+        html.light-mode .help-note-callout--info { color: #1e40af; border-color: rgba(59,130,246,.30); background-color: rgba(59,130,246,.07); }
+        html.light-mode .help-note-callout--info .help-note-icon { color: #2563eb; }
+        html.light-mode .help-note-callout--info a { color: #1d4ed8; }
+        html.light-mode .help-note-callout--warn { color: #78350f; border-color: rgba(245,158,11,.30); background-color: rgba(245,158,11,.07); }
+        html.light-mode .help-note-callout--warn .help-note-icon { color: #b45309; }
+        html.light-mode .help-note-callout--warn a { color: #92400e; }
+        html.light-mode .help-note-callout--tip { color: #064e3b; border-color: rgba(16,185,129,.30); background-color: rgba(16,185,129,.07); }
+        html.light-mode .help-note-callout--tip .help-note-icon { color: #059669; }
+        html.light-mode .help-note-callout--tip a { color: #065f46; }
+
         .sidebar-tooltip {
             position: absolute; left: calc(100% + 8px); top: 50%; transform: translateY(-50%);
             padding: 4px 10px; border-radius: 8px;
@@ -89,13 +100,13 @@
     </style>
     @stack('styles')
 </head>
-<body class="min-h-screen" style="color: var(--text-primary);">
+<body class="min-h-screen" data-app-layout style="color: var(--text-primary);">
     <div class="bg-mesh"><span class="bloom bloom-pink"></span></div>
     <div class="particles" id="admin-particles"></div>
 
     <div class="flex h-screen relative z-10 overflow-hidden"
          x-data="{
-            sidebarMode: localStorage.getItem('1inme_admin_sidebar') || 'full',
+            sidebarMode: (function(){ var v = localStorage.getItem('1inme_admin_sidebar'); return (v === 'full' || v === 'icons') ? v : 'full'; })(),
             mobileMenu: false,
             isDesktop: window.innerWidth >= 1024,
             init() {
@@ -104,13 +115,14 @@
                 mq.addEventListener('change', (e) => { this.isDesktop = e.matches; });
             },
             setSidebar(mode) {
+                if (mode !== 'full' && mode !== 'icons') mode = 'full';
                 this.sidebarMode = mode;
                 localStorage.setItem('1inme_admin_sidebar', mode);
             },
             get sidebarWidth() {
                 if (this.sidebarMode === 'full')  return 260;
                 if (this.sidebarMode === 'icons') return 72;
-                return 0;
+                return 260;
             }
          }">
 
@@ -263,10 +275,39 @@
 
                 <footer class="mt-10 pt-5 pb-2 text-[11px] flex flex-col sm:flex-row items-center justify-between gap-3"
                         style="border-top: 1px solid var(--border-glass); color: var(--text-dimmed);">
-                    <div class="flex items-center gap-2">
+                    <div class="flex items-center gap-2 flex-wrap">
                         <span>&copy; {{ date('Y') }} <span style="color: var(--text-muted); font-weight: 600;">Sayzio</span></span>
                         <span style="color: var(--border-glass-light);">•</span>
                         <span>Admin</span>
+                        @php $__lastUpdated = \App\Support\SiteLastUpdated::get(); @endphp
+                        @if ($__lastUpdated)
+                            <span style="color: var(--border-glass-light);">•</span>
+                            <span x-data="{
+                                    iso: @js($__lastUpdated->toIso8601String()),
+                                    formatted: @js(\App\Support\PlatformTimezone::format($__lastUpdated, 'M j, Y H:i')),
+                                    relative: @js($__lastUpdated->diffForHumans()),
+                                    init() {
+                                        setInterval(() => this.refresh(), 5 * 60 * 1000);
+                                    },
+                                    refresh() {
+                                        fetch(@js(route('admin.meta.last-updated')), { headers: { 'Accept': 'application/json' } })
+                                            .then(r => r.ok ? r.json() : null)
+                                            .then(d => {
+                                                if (d && d.available) {
+                                                    this.iso = d.iso;
+                                                    this.formatted = d.formatted;
+                                                    this.relative = d.relative;
+                                                }
+                                            })
+                                            .catch(() => {});
+                                    }
+                                }"
+                                :title="iso" title="{{ $__lastUpdated->toIso8601String() }}">
+                                Last updated:
+                                <span style="color: var(--text-muted);" x-text="formatted">{{ \App\Support\PlatformTimezone::format($__lastUpdated, 'M j, Y H:i') }}</span>
+                                <span style="color: var(--text-dimmed);" x-text="'(' + relative + ')'">({{ $__lastUpdated->diffForHumans() }})</span>
+                            </span>
+                        @endif
                     </div>
                     @include('common.partials.social-links-row', ['justify' => 'justify-end'])
                 </footer>

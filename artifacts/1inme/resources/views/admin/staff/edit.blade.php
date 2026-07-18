@@ -25,14 +25,20 @@
                 <div class="grid grid-cols-2 gap-4">
                     <div>
                         <label class="block text-sm font-medium text-white/80 mb-1">Password <span class="text-white/30">(leave blank to keep)</span></label>
-                        <input type="password" name="password"
-                               class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white focus:ring-2 focus:ring-blue-500/40 outline-none">
+                        @include('common.partials.password-field', [
+                            'name' => 'password',
+                            'autocomplete' => 'new-password',
+                            'inputClass' => 'w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white focus:ring-2 focus:ring-blue-500/40 outline-none',
+                        ])
                         @error('password')<p class="mt-1 text-sm text-red-400">{{ $message }}</p>@enderror
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-white/80 mb-1">Confirm Password</label>
-                        <input type="password" name="password_confirmation"
-                               class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white focus:ring-2 focus:ring-blue-500/40 outline-none">
+                        @include('common.partials.password-field', [
+                            'name' => 'password_confirmation',
+                            'autocomplete' => 'new-password',
+                            'inputClass' => 'w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white focus:ring-2 focus:ring-blue-500/40 outline-none',
+                        ])
                     </div>
                 </div>
 

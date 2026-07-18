@@ -39,10 +39,17 @@ class ProtectedAccountController extends Controller
             ->orderBy('email')
             ->get();
 
+        // Resolve the users behind id-keyed entries so the list can show
+        // who an email-less entry protects.
+        $userIds = $accounts->pluck('user_id')->filter()->all();
+        $usersById = empty($userIds)
+            ? collect()
+            : User::query()->whereIn('id', $userIds)->get()->keyBy('id');
+
         $admin = Auth::guard('admin')->user();
         $canManage = $admin instanceof Admin && $admin->isSuperAdmin();
 
-        return view('admin.protected-accounts.index', compact('accounts', 'canManage'));
+        return view('admin.protected-accounts.index', compact('accounts', 'canManage', 'usersById'));
     }
 
     public function store(Request $request, AdminActionLogger $audit)
@@ -50,29 +57,51 @@ class ProtectedAccountController extends Controller
         $this->requireSuperAdmin();
 
         $data = $request->validate([
-            'email' => 'required|email|max:191',
-            'label' => 'nullable|string|max:191',
+            'email'   => 'nullable|required_without:user_id|email|max:191',
+            'user_id' => 'nullable|required_without:email|integer|min:1',
+            'label'   => 'nullable|string|max:191',
         ]);
 
-        $email = ProtectedAccount::normalizeEmail($data['email']);
+        $email = ProtectedAccount::normalizeEmail($data['email'] ?? null);
+        $userId = isset($data['user_id']) ? (int) $data['user_id'] : null;
 
-        if (ProtectedAccount::isProtectedEmail($email)) {
+        // An id-keyed entry must point at a real user. If that user has an
+        // email, key the entry by email instead (covers a linked Admin too).
+        $target = null;
+        if ($userId) {
+            $target = User::find($userId);
+            if (! $target) {
+                return back()->with('error', 'No user found with that ID.');
+            }
+            if ($email === '' && $target->email) {
+                $email = ProtectedAccount::normalizeEmail($target->email);
+            }
+        }
+
+        if ($email !== '' && ProtectedAccount::isProtectedEmail($email)) {
+            return back()->with('info', 'That account is already protected.');
+        }
+        if ($userId && ProtectedAccount::isProtectedUserId($userId)) {
             return back()->with('info', 'That account is already protected.');
         }
 
         ProtectedAccount::create([
-            'email'      => $email,
+            'email'      => $email !== '' ? $email : null,
+            'user_id'    => $email !== '' ? null : $userId,
             'locked'     => false,
             'label'      => $data['label'] ?? null,
             'created_by' => Auth::guard('admin')->id(),
         ]);
 
         // Snapshot the matching user (if any) so the audit row links back
-        // to the account; the email is always recorded in details.
-        $target = User::query()->whereRaw('lower(email) = ?', [$email])->first();
+        // to the account; the key is always recorded in details.
+        if (! $target && $email !== '') {
+            $target = User::query()->whereRaw('lower(email) = ?', [$email])->first();
+        }
         $audit->log(AdminActionLogger::PROTECTED_ADDED, $target, [
-            'email' => $email,
-            'label' => $data['label'] ?? null,
+            'email'   => $email !== '' ? $email : null,
+            'user_id' => $email !== '' ? null : $userId,
+            'label'   => $data['label'] ?? null,
         ]);
 
         return back()->with('success', 'Account added to the protected list.');
@@ -87,12 +116,16 @@ class ProtectedAccountController extends Controller
         }
 
         $email = $protectedAccount->email;
-        $target = User::query()->whereRaw('lower(email) = ?', [$email])->first();
+        $userId = $protectedAccount->user_id;
+        $target = $userId
+            ? User::find($userId)
+            : User::query()->whereRaw('lower(email) = ?', [(string) $email])->first();
 
         $protectedAccount->delete();
 
         $audit->log(AdminActionLogger::PROTECTED_REMOVED, $target, [
-            'email' => $email,
+            'email'   => $email,
+            'user_id' => $userId,
         ]);
 
         return back()->with('success', 'Account removed from the protected list.');

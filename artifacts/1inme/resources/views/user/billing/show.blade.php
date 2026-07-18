@@ -29,6 +29,37 @@
   @if (session('status'))<div class="alert alert-success">{{ session('status') }}</div>@endif
   @if (session('error'))<div class="alert alert-danger">{{ session('error') }}</div>@endif
 
+  @if (!empty($appReturn))
+    {{-- Post-payment landing for a checkout that started in the native app.
+         Fire the sayzio://billing/refresh deep link so the app invalidates its
+         cached plan/subscription and re-pulls the user the moment it reopens.
+         The button is a manual fallback for browsers that block auto-firing a
+         custom scheme without a user gesture. --}}
+    <div class="alert alert-success d-flex flex-wrap align-items-center justify-content-between gap-2" role="alert">
+      <span><i class="fas fa-check-circle me-1"></i> Payment complete — returning you to the Sayzio app…</span>
+      <a href="sayzio://billing/refresh" class="btn btn-primary btn-sm" id="billing-return-to-app">
+        <i class="fas fa-mobile-screen-button me-1"></i> Return to app
+      </a>
+    </div>
+    <script>
+      (function () {
+        var DEEP_LINK = 'sayzio://billing/refresh';
+        // Defer the auto hand-off briefly so the success banner paints first
+        // and the browser can associate the navigation with the just-finished
+        // interaction rather than a bare page-load. If no app is registered
+        // (e.g. this markup somehow reaches a desktop browser) the navigation
+        // simply no-ops; the manual "Return to app" button is the fallback.
+        window.setTimeout(function () {
+          try {
+            window.location.href = DEEP_LINK;
+          } catch (e) {
+            /* no-op — the manual button above still works */
+          }
+        }, 400);
+      })();
+    </script>
+  @endif
+
   @if ($subscription)
     @if (in_array($subscription->status, ['past_due', 'grace']) && $graceDaysRemaining !== null)
       <div class="alert alert-warning">
@@ -52,6 +83,20 @@
               Next renewal:
               {{ \Carbon\Carbon::parse($subscription->current_period_end)->toFormattedDateString() }}
             </div>
+            @php
+              $planFeatures = (array) ($subscription->plan->features ?? []);
+              $coinGrant = $subscription->billing_cycle === 'yearly'
+                  ? (int) ($planFeatures['included_coins_yearly'] ?? 0)
+                  : (int) ($planFeatures['included_coins_monthly'] ?? 0);
+            @endphp
+            @if ($coinGrant > 0)
+              <div class="text-muted mt-1">
+                <i class="fa-solid fa-coins me-1"></i>
+                Included coins: <strong>{{ number_format($coinGrant) }}</strong>
+                per {{ $subscription->billing_cycle === 'yearly' ? 'year' : 'month' }}
+                — you'll receive {{ number_format($coinGrant) }} coins on your next renewal.
+              </div>
+            @endif
             @if ($subscription->cancel_at_period_end)
               <div class="text-danger mt-1">Will cancel at end of current period.</div>
             @elseif (!empty($scheduledDowngradePlan))

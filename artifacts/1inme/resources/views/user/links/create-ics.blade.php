@@ -79,6 +79,64 @@
                 },
                 addQuestion: function () { if (this.questions.length < 10) this.questions.push({ label: '', type: 'text', required: false, options: '' }); },
                 removeQuestion: function (i) { this.questions.splice(i, 1); },
+                // Task #5023 — agenda
+                agendaItems: @json(old('agenda', [])),
+                addAgendaItem: function () {
+                    if (this.agendaItems.length >= 100) return;
+                    this.agendaItems.push({ time: '', end_time: '', title: '', description: '', day: '' });
+                },
+                removeAgendaItem: function (i) { this.agendaItems.splice(i, 1); },
+                // Task #5023 — documents
+                documents: @json(old('documents', [])),
+                showFilePicker: false,
+                pickerFiles: [],
+                pickerLoading: false,
+                pickerPage: 1,
+                pickerHasMore: false,
+                uploadingDoc: false,
+                loadPickerFiles: function (page) {
+                    var self = this;
+                    self.pickerLoading = true;
+                    self.pickerPage = page || 1;
+                    fetch('/user/files?page=' + self.pickerPage, { headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' } })
+                        .then(function (r) { return r.json(); })
+                        .then(function (d) {
+                            self.pickerFiles = d.files || [];
+                            self.pickerHasMore = (d.pagination || {}).current_page < (d.pagination || {}).last_page;
+                            self.pickerLoading = false;
+                        }).catch(function () { self.pickerLoading = false; });
+                },
+                openFilePicker: function () {
+                    this.showFilePicker = true;
+                    if (!this.pickerFiles.length) this.loadPickerFiles(1);
+                },
+                pickFile: function (file) {
+                    var already = this.documents.some(function (d) { return d.file_id == file.id; });
+                    if (!already && this.documents.length < 20) {
+                        this.documents.push({ file_id: file.id, label: file.original_name || file.filename, filename: file.filename, size_bytes: file.size_bytes, mime: file.mime_type });
+                    }
+                    this.showFilePicker = false;
+                },
+                uploadDocument: function (event) {
+                    var self = this;
+                    var file = event.target.files[0];
+                    if (!file) return;
+                    if (self.documents.length >= 20) { alert('Maximum 20 documents per event.'); return; }
+                    self.uploadingDoc = true;
+                    var fd = new FormData();
+                    fd.append('file', file);
+                    fd.append('_token', document.querySelector('meta[name="csrf-token"]').content);
+                    fetch('/user/files/upload', { method: 'POST', body: fd, headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' } })
+                        .then(function (r) { return r.json(); })
+                        .then(function (d) {
+                            if (d.success && d.file) {
+                                self.documents.push({ file_id: d.file.id, label: d.file.original_name || d.file.filename, filename: d.file.filename, size_bytes: d.file.size_bytes, mime: d.file.mime_type });
+                            } else { alert((d.message || d.error) || 'Upload failed.'); }
+                            self.uploadingDoc = false;
+                        }).catch(function () { self.uploadingDoc = false; alert('Upload failed.'); });
+                    event.target.value = '';
+                },
+                removeDocument: function (i) { this.documents.splice(i, 1); },
                 pickFreq: function (v) {
                     this.freq = v;
                     if (v === 'weekdays') this.byday = ['MO','TU','WE','TH','FR'];
@@ -301,6 +359,112 @@
                         </div>
                     </div>
                 </template>
+            </div>
+        </div>
+
+        {{-- Task #5023: Agenda --}}
+        <div class="ics-section">
+            <div class="ics-section-head">
+                <div class="ics-section-icon"><i class="fas fa-list-ul"></i></div>
+                <div><h2 class="ics-section-title">Agenda</h2><p class="ics-section-sub">Optional — add a schedule of sessions or activities. Shown on your public event page.</p></div>
+            </div>
+            <template x-if="agendaItems.length === 0">
+                <p class="text-xs mb-3" style="color: var(--text-muted);">No agenda items yet. Add sessions, talks, or activities below.</p>
+            </template>
+            <div class="space-y-2 mb-3">
+                <template x-for="(item, i) in agendaItems" :key="i">
+                    <div class="ics-tile-strong p-3 space-y-2">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-semibold uppercase tracking-wide" style="color: var(--text-muted);" x-text="'Item #' + (i + 1)"></span>
+                            <button type="button" @click="removeAgendaItem(i)" class="text-red-400/70 hover:text-red-400 text-xs px-2 py-1 rounded hover:bg-red-500/10"><i class="fas fa-trash mr-1"></i>Remove</button>
+                        </div>
+                        <div>
+                            <label class="ics-label text-xs">Title <span class="text-red-400">*</span></label>
+                            <input type="text" :name="'agenda[' + i + '][title]'" x-model="item.title" placeholder="e.g. Opening Keynote" class="ics-input" maxlength="255">
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-2">
+                            <div>
+                                <label class="ics-label text-xs">Start time <span style="color: var(--text-faint);">(optional)</span></label>
+                                <input type="time" :name="'agenda[' + i + '][time]'" x-model="item.time" class="ics-input">
+                            </div>
+                            <div>
+                                <label class="ics-label text-xs">End time <span style="color: var(--text-faint);">(optional)</span></label>
+                                <input type="time" :name="'agenda[' + i + '][end_time]'" x-model="item.end_time" class="ics-input">
+                            </div>
+                            <div>
+                                <label class="ics-label text-xs">Day # <span style="color: var(--text-faint);">(multi-day only)</span></label>
+                                <input type="number" :name="'agenda[' + i + '][day]'" x-model="item.day" min="1" max="99" placeholder="e.g. 1, 2" class="ics-input">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="ics-label text-xs">Description <span style="color: var(--text-faint);">(optional)</span></label>
+                            <textarea :name="'agenda[' + i + '][description]'" x-model="item.description" rows="2" class="ics-input" placeholder="A brief description of this session" maxlength="2000"></textarea>
+                        </div>
+                    </div>
+                </template>
+            </div>
+            <button type="button" @click="addAgendaItem()" class="text-sm px-3 py-1.5 rounded-lg bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 border border-blue-500/20">
+                <i class="fas fa-plus mr-1.5"></i>Add agenda item
+            </button>
+        </div>
+
+        {{-- Task #5023: Documents --}}
+        <div class="ics-section">
+            <div class="ics-section-head">
+                <div class="ics-section-icon"><i class="fas fa-file-download"></i></div>
+                <div><h2 class="ics-section-title">Documents</h2><p class="ics-section-sub">Optional — attach PDFs, slides, or other files for attendees to download. Max 20 files.</p></div>
+            </div>
+            <template x-if="documents.length === 0 && !showFilePicker">
+                <p class="text-xs mb-3" style="color: var(--text-muted);">No documents attached yet.</p>
+            </template>
+            <div class="space-y-2 mb-3">
+                <template x-for="(doc, i) in documents" :key="doc.file_id">
+                    <div class="ics-tile-strong p-3 flex items-center gap-3">
+                        <input type="hidden" :name="'documents[' + i + '][file_id]'" :value="doc.file_id">
+                        <input type="hidden" :name="'documents[' + i + '][filename]'" :value="doc.filename">
+                        <input type="hidden" :name="'documents[' + i + '][size_bytes]'" :value="doc.size_bytes">
+                        <input type="hidden" :name="'documents[' + i + '][mime]'" :value="doc.mime">
+                        <i class="fas fa-file-alt text-lg flex-shrink-0" style="color: var(--c-primary); width: 1.2rem; text-align: center;"></i>
+                        <div class="flex-1 min-w-0">
+                            <input type="text" :name="'documents[' + i + '][label]'" x-model="doc.label" placeholder="Display label" class="ics-input py-1.5 text-sm" maxlength="255">
+                            <div class="text-xs mt-0.5" style="color: var(--text-muted);" x-text="doc.filename"></div>
+                        </div>
+                        <button type="button" @click="removeDocument(i)" class="text-red-400/70 hover:text-red-400 flex-shrink-0 text-xs px-2 py-1 rounded hover:bg-red-500/10"><i class="fas fa-times"></i></button>
+                    </div>
+                </template>
+            </div>
+            {{-- File picker panel --}}
+            <div x-show="showFilePicker" x-cloak class="ics-tile p-3 mb-3">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-xs font-semibold" style="color: var(--text-secondary);">Pick from your Files</span>
+                    <button type="button" @click="showFilePicker = false" class="text-xs" style="color: var(--text-muted);"><i class="fas fa-times"></i></button>
+                </div>
+                <div x-show="pickerLoading" class="text-xs py-3 text-center" style="color: var(--text-muted);">Loading…</div>
+                <div x-show="!pickerLoading && !pickerFiles.length" class="text-xs py-3 text-center" style="color: var(--text-muted);">No files found. Upload a file first.</div>
+                <div class="grid grid-cols-1 gap-1 max-h-48 overflow-y-auto">
+                    <template x-for="file in pickerFiles" :key="file.id">
+                        <button type="button" @click="pickFile(file)" class="flex items-center gap-2 text-left p-2 rounded hover:bg-white/5 w-full">
+                            <i class="fas fa-file-alt flex-shrink-0" style="color: var(--c-primary); width: 1rem;"></i>
+                            <div class="flex-1 min-w-0">
+                                <div class="text-xs truncate" style="color: var(--text-primary);" x-text="file.original_name || file.filename"></div>
+                                <div class="text-xs" style="color: var(--text-muted);" x-text="file.size_human"></div>
+                            </div>
+                        </button>
+                    </template>
+                </div>
+                <div x-show="pickerHasMore && !pickerLoading" class="mt-2 text-center">
+                    <button type="button" @click="loadPickerFiles(pickerPage + 1)" class="text-xs text-blue-400 hover:text-blue-300">Load more</button>
+                </div>
+            </div>
+            <div class="flex flex-wrap gap-2">
+                <button type="button" @click="openFilePicker()" x-show="!showFilePicker" class="text-sm px-3 py-1.5 rounded-lg bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 border border-blue-500/20">
+                    <i class="fas fa-folder-open mr-1.5"></i>Pick from Files
+                </button>
+                <label class="cursor-pointer text-sm px-3 py-1.5 rounded-lg bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 border border-blue-500/20" :class="uploadingDoc ? 'opacity-60 pointer-events-none' : ''">
+                    <span x-show="!uploadingDoc"><i class="fas fa-upload mr-1.5"></i>Upload file</span>
+                    <span x-show="uploadingDoc"><i class="fas fa-spinner fa-spin mr-1.5"></i>Uploading…</span>
+                    <input type="file" class="sr-only" @change="uploadDocument($event)" accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.jpg,.jpeg,.png,.gif,.webp">
+                </label>
             </div>
         </div>
 

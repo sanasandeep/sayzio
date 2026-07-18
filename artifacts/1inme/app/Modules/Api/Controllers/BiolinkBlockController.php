@@ -75,6 +75,17 @@ class BiolinkBlockController extends Controller
         ]);
     }
 
+    /**
+     * Background preset catalog (mobile parity for the web Appearance
+     * "Presets" gallery). Static catalog — same 157 presets the web picker
+     * shows — with per-preset color stops parsed server-side so React
+     * Native can approximate each swatch with a LinearGradient.
+     */
+    public function bgPresets(Request $request)
+    {
+        return $this->ok(\App\Modules\User\Support\BgPresetCatalog::forApi());
+    }
+
     public function store(Request $request, int $linkId)
     {
         $link = $this->ownedLink($request, $linkId);

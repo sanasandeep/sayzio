@@ -1,3 +1,4 @@
+import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
@@ -183,6 +184,17 @@ export default function OAuthCallback() {
     );
   }
 
+  // Derive tinted brand gradient stops for the screen background wash so the
+  // OAuth return step matches the login and verify screens. Uses the
+  // theme-aware brandGradient tokens so colors adapt to dark mode; dark mode
+  // gets more opacity (0x40 = 25%) since the near-black base makes lighter
+  // tints less visible, light mode uses 0x2e (18%) for a soft wash that keeps
+  // the spinner/status text legible.
+  const bgAlpha = colors.scheme === "dark" ? "40" : "2e";
+  const bgGradientColors = colors.brandGradient.map(
+    (c) => `${c}${bgAlpha}`,
+  ) as unknown as [string, string, string];
+
   return (
     <View
       style={[
@@ -190,6 +202,13 @@ export default function OAuthCallback() {
         { backgroundColor: colors.background },
       ]}
     >
+      <LinearGradient
+        colors={bgGradientColors}
+        start={{ x: 0.0, y: 0.0 }}
+        end={{ x: 1.0, y: 1.0 }}
+        style={StyleSheet.absoluteFill}
+      />
+
       {mergeProvider ? (
         <SocialMergePrompt
           provider={mergeProvider}

@@ -131,6 +131,10 @@ class PremiumFeatures
             ['key' => 'max_events', 'group' => 'Tools & extras', 'name' => 'Events included', 'description' => 'How many event listings you can publish.', 'unit' => 'events'],
             ['key' => 'templates_premium', 'group' => 'Tools & extras', 'name' => 'Premium templates', 'description' => 'Unlock the premium template library for Link in Bio pages and the other page types.'],
 
+            // ---- Included coins ----
+            ['key' => 'included_coins_monthly', 'group' => 'Included coins', 'name' => 'Monthly coin grant', 'description' => 'Coins credited to your wallet automatically each month as part of this plan — spend them on AI features, API overage and other coin-priced add-ons.', 'unit' => 'coins / mo'],
+            ['key' => 'included_coins_yearly', 'group' => 'Included coins', 'name' => 'Yearly coin grant', 'description' => 'Coins credited to your wallet automatically each year as part of this plan — spend them on AI features, API overage and other coin-priced add-ons.', 'unit' => 'coins / yr'],
+
             // ---- Branding ----
             ['key' => 'custom_branding', 'group' => 'Branding', 'name' => 'White-label branding', 'description' => 'Replace Sayzio branding with your own colors, logo and footer attribution on every public page.'],
             ['key' => 'remove_branding', 'group' => 'Branding', 'name' => 'Remove "powered by" badge', 'description' => 'Hide the small "powered by Sayzio" wordmark from the bottom of your public Link in Bio pages.'],
@@ -164,6 +168,23 @@ class PremiumFeatures
             ['key' => 'marketing_strategist', 'group' => 'AI suite', 'name' => 'AI Marketing Strategist', 'description' => 'An AI strategist that analyses your account and audience to build saved, actionable marketing plans and campaign ideas.'],
             ['key' => 'competitor_teardown', 'group' => 'AI suite', 'name' => 'Competitor Biolink Teardown', 'description' => 'Paste any competitor\'s link-in-bio URL and get an AI-scored teardown — strengths, weaknesses, missing elements and CTA quality — then build a better version with one click.'],
         ];
+    }
+
+    /**
+     * The two included-coin-grant catalogue entries (monthly + yearly),
+     * keyed for surfaces that render them as a dedicated "Included coins"
+     * row (public pricing cards, /user/upgrade comparison, mobile
+     * feature_highlights). Same entries as catalogue() — this is a
+     * filtered view, not a second source of truth.
+     *
+     * @return list<array{key:string,group:string,name:string,description:string,unit:string}>
+     */
+    public static function includedCoinGrants(): array
+    {
+        return array_values(array_filter(
+            self::catalogue(),
+            fn (array $e) => in_array($e['key'], ['included_coins_monthly', 'included_coins_yearly'], true)
+        ));
     }
 
     /**

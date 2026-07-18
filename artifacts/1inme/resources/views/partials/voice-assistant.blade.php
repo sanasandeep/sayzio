@@ -79,6 +79,37 @@ window.__voice = { dictateUrl: @js(route('user.ai.voice.transcribe')), csrf: @js
      also used by the Zio panel mic (common.partials.site-assistant) — defined
      idempotently so a page hosting both surfaces registers only one runtime. --}}
 @include('common.partials.voice-runtime')
+<style>
+/* Floating voice-assistant panel — light-mode overrides.
+   The panel uses Tailwind utility classes for its dark-mode base colors;
+   when html.light-mode is active we flip each surface to a light equivalent
+   using the .va-panel scope so dark mode stays completely unchanged. */
+html.light-mode .va-panel{background:#ffffff;border-color:rgba(15,23,42,.12);color:#1e293b}
+html.light-mode .va-panel .va-tab-bar{border-bottom-color:rgba(15,23,42,.09)}
+html.light-mode .va-panel .va-tab-btn{color:#64748b}
+html.light-mode .va-panel .va-tab-btn:hover{color:#1e293b}
+html.light-mode .va-panel .va-tab-active{color:#3551c8}
+html.light-mode .va-panel .va-hf-btn{color:#64748b}
+html.light-mode .va-panel .va-hf-btn.va-hf-on{color:#047857}
+html.light-mode .va-panel .va-close-btn{color:#64748b}
+html.light-mode .va-panel .va-close-btn:hover{color:#1e293b}
+html.light-mode .va-panel .va-hint{color:#64748b}
+html.light-mode .va-panel .va-coins{color:#64748b}
+html.light-mode .va-panel .va-bubble-user{background:rgba(61,107,255,.14);color:#1e3a8a}
+html.light-mode .va-panel .va-bubble-ai{background:rgba(15,23,42,.06);color:#1e293b}
+html.light-mode .va-panel .va-confirm-title{color:#b45309}
+html.light-mode .va-panel .va-confirm-tool{color:#92400e}
+html.light-mode .va-panel .va-cancel-btn{background:rgba(15,23,42,.07);color:#334155}
+html.light-mode .va-panel .va-status{color:#64748b}
+html.light-mode .va-panel .va-credits{color:#64748b}
+html.light-mode .va-panel .va-caps-loading{color:#64748b}
+html.light-mode .va-panel .va-caps-group{color:#3551c8}
+html.light-mode .va-panel .va-caps-cant{color:#dc2626}
+html.light-mode .va-panel .va-caps-name{color:#1e293b}
+html.light-mode .va-panel .va-caps-mono{color:#475569}
+html.light-mode .va-panel .va-caps-desc{color:#64748b}
+html.light-mode .va-panel .va-caps-lim{color:#64748b}
+</style>
 <div
     x-data="voiceAssistant({
         turnUrl: @js(route('user.ai.voice.turn')),
@@ -94,37 +125,37 @@ window.__voice = { dictateUrl: @js(route('user.ai.voice.transcribe')), csrf: @js
         x-show="panelOpen"
         x-transition.opacity
         @click.outside="panelOpen = false"
-        class="absolute bottom-16 right-0 w-[22rem] max-w-[92vw] bg-[#0d1118] border border-white/10 rounded-2xl shadow-2xl text-white overflow-hidden"
+        class="va-panel absolute bottom-16 right-0 w-[22rem] max-w-[92vw] bg-[#0d1118] border border-white/10 rounded-2xl shadow-2xl text-white overflow-hidden"
     >
         {{-- Tabs --}}
-        <div class="flex items-center justify-between px-4 py-3 border-b border-white/10">
+        <div class="va-tab-bar flex items-center justify-between px-4 py-3 border-b border-white/10">
             <div class="flex items-center gap-3 text-xs font-medium">
-                <button @click="tab='chat'" :class="tab==='chat' ? 'text-blue-300' : 'text-white/50 hover:text-white/80'">Voice</button>
-                <button @click="tab='caps'; loadCaps()" :class="tab==='caps' ? 'text-blue-300' : 'text-white/50 hover:text-white/80'">What I can do</button>
+                <button @click="tab='chat'" class="va-tab-btn" :class="tab==='chat' ? 'text-blue-300 va-tab-active' : 'text-white/50 hover:text-white/80'">Voice</button>
+                <button @click="tab='caps'; loadCaps()" class="va-tab-btn" :class="tab==='caps' ? 'text-blue-300 va-tab-active' : 'text-white/50 hover:text-white/80'">What I can do</button>
             </div>
             <div class="flex items-center gap-2">
                 <button
                     @click="handsFree = !handsFree"
                     :title="handsFree ? 'Hands-free on — I keep listening after each reply' : 'Hands-free off'"
-                    :class="handsFree ? 'text-emerald-300' : 'text-white/40 hover:text-white/80'"
-                    class="text-[11px] flex items-center gap-1"
+                    :class="handsFree ? 'text-emerald-300 va-hf-on' : 'text-white/40 hover:text-white/80'"
+                    class="va-hf-btn text-[11px] flex items-center gap-1"
                 >
                     <i class="fas fa-infinity"></i>
                     <span>Hands-free</span>
                 </button>
-                <button @click="panelOpen=false" class="text-white/40 hover:text-white text-sm">&times;</button>
+                <button @click="panelOpen=false" class="va-close-btn text-white/40 hover:text-white text-sm">&times;</button>
             </div>
         </div>
 
         {{-- Chat / transcript --}}
         <div x-show="tab==='chat'" class="p-4 space-y-3">
             <template x-if="!messages.length && !status">
-                <p class="text-white/50 text-xs leading-relaxed">
-                    Tap the mic and ask anything — “open my dashboard”, “how many clicks today?”, “delete link 42”. Destructive actions always ask before running.
+                <p class="va-hint text-white/50 text-xs leading-relaxed">
+                    Tap the mic and ask anything — "open my dashboard", "how many clicks today?", "delete link 42". Destructive actions always ask before running.
                 </p>
             </template>
             @if($voiceTurnCoins > 0)
-            <p class="text-white/40 text-[11px] flex items-center gap-1">
+            <p class="va-coins text-white/40 text-[11px] flex items-center gap-1">
                 <i class="fas fa-coins"></i> &approx; {{ $voiceTurnCoins }} {{ $voiceTurnCoins === 1 ? 'coin' : 'coins' }} per voice turn
                 · Balance <span x-text="balance"></span>
             </p>
@@ -135,8 +166,8 @@ window.__voice = { dictateUrl: @js(route('user.ai.voice.transcribe')), csrf: @js
                     <div :class="m.role === 'user' ? 'text-right' : 'text-left'">
                         <span
                             :class="m.role === 'user'
-                                ? 'bg-blue-600/30 text-blue-100'
-                                : 'bg-white/5 text-white/85'"
+                                ? 'bg-blue-600/30 text-blue-100 va-bubble-user'
+                                : 'bg-white/5 text-white/85 va-bubble-ai'"
                             class="inline-block rounded-2xl px-3 py-1.5 text-xs max-w-[85%] whitespace-pre-wrap"
                             x-text="m.content"
                         ></span>
@@ -146,13 +177,13 @@ window.__voice = { dictateUrl: @js(route('user.ai.voice.transcribe')), csrf: @js
 
             <template x-if="pendingConfirmations.length">
                 <div class="rounded-xl border border-amber-400/40 bg-amber-400/10 p-3 space-y-2">
-                    <p class="text-amber-200 text-xs font-medium">Confirm before I run:</p>
+                    <p class="va-confirm-title text-amber-200 text-xs font-medium">Confirm before I run:</p>
                     <template x-for="(c, i) in pendingConfirmations" :key="i">
                         <div class="flex items-center justify-between gap-2 text-xs">
-                            <code class="text-amber-100 truncate" x-text="c.tool"></code>
+                            <code class="va-confirm-tool text-amber-100 truncate" x-text="c.tool"></code>
                             <div class="flex items-center gap-1.5 shrink-0">
                                 <button @click="confirmTool(c.tool, true)"  class="px-2 py-1 rounded bg-emerald-500/80 hover:bg-emerald-500 text-white text-[11px]">Yes</button>
-                                <button @click="confirmTool(c.tool, false)" class="px-2 py-1 rounded bg-white/10 hover:bg-white/20 text-white/80 text-[11px]">Cancel</button>
+                                <button @click="confirmTool(c.tool, false)" class="va-cancel-btn px-2 py-1 rounded bg-white/10 hover:bg-white/20 text-white/80 text-[11px]">Cancel</button>
                             </div>
                         </div>
                     </template>
@@ -160,10 +191,10 @@ window.__voice = { dictateUrl: @js(route('user.ai.voice.transcribe')), csrf: @js
             </template>
 
             <template x-if="status">
-                <p class="text-white/40 text-[11px]" x-text="status"></p>
+                <p class="va-status text-white/40 text-[11px]" x-text="status"></p>
             </template>
             <template x-if="lastCredits">
-                <p class="text-white/40 text-[11px]">
+                <p class="va-credits text-white/40 text-[11px]">
                     Last turn: STT <span x-text="lastCredits.stt"></span> ·
                     LLM <span x-text="lastCredits.llm"></span> ·
                     TTS <span x-text="lastCredits.tts"></span>
@@ -176,29 +207,29 @@ window.__voice = { dictateUrl: @js(route('user.ai.voice.transcribe')), csrf: @js
         {{-- Capabilities --}}
         <div x-show="tab==='caps'" class="p-4 space-y-3 max-h-[24rem] overflow-y-auto">
             <template x-if="!caps">
-                <p class="text-white/40 text-xs">Loading…</p>
+                <p class="va-caps-loading text-white/40 text-xs">Loading…</p>
             </template>
             <template x-if="caps">
                 <div class="space-y-3">
                     <template x-for="(items, group) in caps.tools" :key="group">
                         <div>
-                            <p class="text-blue-300 text-[11px] uppercase tracking-wider mb-1" x-text="group.replace('_',' ')"></p>
+                            <p class="va-caps-group text-blue-300 text-[11px] uppercase tracking-wider mb-1" x-text="group.replace('_',' ')"></p>
                             <ul class="space-y-1">
                                 <template x-for="t in items" :key="t.name">
-                                    <li class="text-xs text-white/80 leading-snug">
-                                        <span class="font-mono text-white/60" x-text="t.name"></span>
+                                    <li class="va-caps-name text-xs text-white/80 leading-snug">
+                                        <span class="va-caps-mono font-mono text-white/60" x-text="t.name"></span>
                                         <template x-if="t.destructive"><span class="ml-1 text-amber-300 text-[10px]">⚠ confirms</span></template>
-                                        <span class="block text-white/50" x-text="t.description"></span>
+                                        <span class="va-caps-desc block text-white/50" x-text="t.description"></span>
                                     </li>
                                 </template>
                             </ul>
                         </div>
                     </template>
                     <div>
-                        <p class="text-rose-300 text-[11px] uppercase tracking-wider mb-1">What I can't do</p>
+                        <p class="va-caps-cant text-rose-300 text-[11px] uppercase tracking-wider mb-1">What I can't do</p>
                         <ul class="space-y-1 list-disc pl-4">
                             <template x-for="lim in caps.limitations" :key="lim">
-                                <li class="text-xs text-white/60 leading-snug" x-text="lim"></li>
+                                <li class="va-caps-lim text-xs text-white/60 leading-snug" x-text="lim"></li>
                             </template>
                         </ul>
                     </div>

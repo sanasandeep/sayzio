@@ -34,10 +34,16 @@ class CustomFont extends Model
     {
         $diskName = $this->disk === 'public' ? 'public' : ($this->disk === 's3' ? 's3' : 'public');
         try {
-            return Storage::disk($diskName)->url($this->path);
+            $url = Storage::disk($diskName)->url($this->path);
         } catch (\Throwable $e) {
-            return '/storage/' . ltrim($this->path, '/');
+            $url = '/storage/' . ltrim($this->path, '/');
         }
+
+        // Legacy rows (or a disk whose `url` config still emits `/storage/<path>`)
+        // resolve through the bridge route; rewrite to the direct S3/CloudFront
+        // URL when the public disk is S3-backed so public biolink pages load
+        // fonts straight from the CDN. Non-`/storage/` URLs pass through as-is.
+        return (string) \App\Support\PublicStorageUrl::resolve($url);
     }
 
     public function deleteFile(): bool

@@ -6,15 +6,6 @@ return [
         'key' => env('POSTMARK_API_KEY'),
     ],
 
-    // RevenueCat REST v1 secret API key — used by the mobile billing
-    // controller to fetch the authoritative subscriber object before
-    // activating a plan locally. NOT the public SDK key the mobile
-    // client uses (those live in EXPO_PUBLIC_REVENUECAT_*_API_KEY).
-    'revenuecat' => [
-        'api_key'    => env('REVENUECAT_REST_API_KEY'),
-        'project_id' => env('REVENUECAT_PROJECT_ID'),
-    ],
-
     'ses' => [
         'key' => env('AWS_ACCESS_KEY_ID'),
         'secret' => env('AWS_SECRET_ACCESS_KEY'),
@@ -68,5 +59,14 @@ return [
     'replicate' => [
         'api_token' => env('REPLICATE_API_TOKEN'),
         'qr_model'  => env('REPLICATE_QR_MODEL', 'zylim0702/qr_code_controlnet'),
+    ],
+
+    // GitHub mirror — code is pushed to this repo after each publish using
+    // a fine-grained personal access token (GITHUB_TOKEN secret). The token
+    // expires (~90-day lifetime); github:check-token probes it daily and
+    // alerts ops admins before pushes silently start failing.
+    'github' => [
+        'token' => env('GITHUB_TOKEN'),
+        'repo'  => env('GITHUB_REPO', 'sanasandeep/sayzio'),
     ],
 ];

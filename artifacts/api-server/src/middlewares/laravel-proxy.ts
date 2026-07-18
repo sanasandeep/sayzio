@@ -2,19 +2,22 @@ import { Readable } from "node:stream";
 import type { RequestHandler } from "express";
 
 // ---------------------------------------------------------------------------
-// Laravel fallthrough proxy
+// Laravel fallthrough proxy  (DEV / PREVIEW ONLY)
 // ---------------------------------------------------------------------------
-// In the Replit preview every `/api/*` request is routed by the shared proxy
-// to this Node api-server, which only implements `health` and `contact`. The
-// mobile app's real backend (auth, profile, links, onboarding, ...) lives in
-// the Laravel app mounted at `/`. To make the mobile app work end-to-end in
-// the preview, any `/api` request this server does NOT handle itself is
-// forwarded to the local Laravel backend.
+// The api-server's artifact.toml now claims only the specific paths it natively
+// implements ("/api/healthz", "/api/contact"). The shared proxy uses
+// most-specific-first routing, so "/api/v1/*" requests fall straight through to
+// the Laravel service (mounted at "/") WITHOUT passing through Express — in
+// both dev and production.
+//
+// This middleware is therefore only reachable in unusual dev scenarios (e.g. a
+// request whose path starts with "/api/healthz" but is not an exact match for
+// any defined Express route, or a future path added to the api-server without
+// a corresponding route). In production it is unreachable for "/api/v1/*".
 //
 // The upstream target is configurable via LARAVEL_BACKEND_URL with a sensible
-// local default. In production the mobile app talks to Laravel directly (the
-// api-server never receives these calls), so this path is preview-only and
-// leaves production behavior unchanged.
+// local default. Setting LARAVEL_BACKEND_URL to the production origin is still
+// supported as a backstop if the path configuration ever changes.
 
 const DEFAULT_LARAVEL_BACKEND_URL = "http://127.0.0.1:5000";
 

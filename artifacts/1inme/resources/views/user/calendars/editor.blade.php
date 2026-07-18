@@ -5,7 +5,7 @@
 
 @section('content')
 {{-- Shared "drop a pin to fill address + lat/lng" map picker (lazy-loads Leaflet itself). --}}
-<script src="{{ asset('js/map-pin-picker.js') }}"></script>
+@vite(['resources/js/map-pin-picker.js'])
 <style>
     .mpp-map .leaflet-container { background:#1e2330 !important; font-family:'Space Grotesk', sans-serif; }
     html.light-mode .mpp-map .leaflet-container { background:#e6e9f0 !important; }

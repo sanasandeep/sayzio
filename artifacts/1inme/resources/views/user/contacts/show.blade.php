@@ -18,6 +18,12 @@
         <i class="fas fa-circle-exclamation mr-1.5"></i> {{ session('error') }}
     </div>
     @endif
+    @if(session('duplicate_notice'))
+    <div class="mb-4 px-4 py-3 rounded-xl text-sm font-medium flex items-center justify-between gap-3 flex-wrap" style="background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.25); color: #f59e0b;">
+        <span><i class="fas fa-clone mr-1.5"></i> {{ session('duplicate_notice') }}</span>
+        <a href="{{ route('user.contacts.duplicates') }}" class="font-semibold underline whitespace-nowrap" style="color: #f59e0b;">Review &amp; merge</a>
+    </div>
+    @endif
 
     <div class="card-premium p-6">
         <div class="flex items-start gap-4 mb-5">
@@ -39,9 +45,13 @@
                     </span>
                 @endif
             </div>
-            <a href="{{ route('user.contacts.edit', $contact) }}" class="px-3 py-1.5 rounded-lg text-xs font-semibold" style="background:rgba(255,255,255,.06);color:var(--text-primary);border:1px solid rgba(255,255,255,.10)">
-                <i class="fas fa-pen mr-1"></i> Edit
-            </a>
+            <div class="flex gap-2 flex-shrink-0">
+                @if($shareContext['is_owner'] || ($shareContext['is_shared_contact'] && $shareContext['current_workspace'] && request()->user()->canInWorkspace($shareContext['current_workspace'], 'settings.edit')))
+                <a href="{{ route('user.contacts.edit', $contact) }}" class="px-3 py-1.5 rounded-lg text-xs font-semibold" style="background:rgba(255,255,255,.06);color:var(--text-primary);border:1px solid rgba(255,255,255,.10)">
+                    <i class="fas fa-pen mr-1"></i> Edit
+                </a>
+                @endif
+            </div>
         </div>
 
         @if($biolinkPreview)
@@ -136,12 +146,85 @@
         </div>
         @endif
 
-        @if($contact->notes)
-            <div class="mt-5 pt-4" style="border-top: 1px solid rgba(255,255,255,.06);">
-                <h3 class="text-[10px] font-bold uppercase tracking-wider mb-2" style="color:var(--text-faint);">Notes</h3>
-                <p class="text-sm whitespace-pre-line" style="color:var(--text-muted);">{{ $contact->notes }}</p>
+        {{-- Tags --}}
+        <div class="mt-5 pt-4" style="border-top: 1px solid rgba(255,255,255,.06);"
+             x-data="contactTagsEditor({
+                 id: {{ $contact->id }},
+                 initial: @js($contact->tags ?? []),
+                 tagsUrl: '{{ route('user.contacts.tags') }}',
+                 patchUrl: '{{ route('user.contacts.tags.update', $contact) }}',
+                 csrf: '{{ csrf_token() }}',
+             })">
+            <div class="flex items-center justify-between mb-2">
+                <h3 class="text-[10px] font-bold uppercase tracking-wider" style="color:var(--text-faint);">Tags</h3>
+                <button type="button" @click="editing = !editing" class="text-[11px] font-medium" style="color:#90acff;">
+                    <span x-text="editing ? 'Done' : 'Edit'"></span>
+                </button>
             </div>
-        @endif
+            <div class="flex flex-wrap gap-1.5 mb-1">
+                <template x-for="(tag, i) in tags" :key="i">
+                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium"
+                          style="background:rgba(61,107,255,.15);color:#90acff;border:1px solid rgba(61,107,255,.25);">
+                        <span x-text="tag"></span>
+                        <button x-show="editing" type="button" @click="removeTag(i)" class="opacity-60 hover:opacity-100 leading-none ml-0.5">&times;</button>
+                    </span>
+                </template>
+                <span x-show="tags.length === 0 && !editing" class="text-xs" style="color:var(--text-faint);">No tags yet</span>
+            </div>
+            <div x-show="editing" class="relative mt-2">
+                <input type="text" x-model="input" @keydown.enter.prevent="addFromInput()"
+                       @keydown.comma.prevent="addFromInput()" @keydown.backspace="onBackspace()"
+                       @input="filterSuggestions()" @focus="filterSuggestions()" @blur.window="showDropdown = false"
+                       placeholder="Add tag…"
+                       class="w-full px-3 py-2 rounded-lg text-sm" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.10);color:var(--text-primary);">
+                <div x-show="showDropdown && filtered.length" x-cloak
+                     class="absolute left-0 z-20 mt-1 w-full rounded-xl shadow-xl overflow-hidden"
+                     style="background:var(--surface-2,#1a1d2e);border:1px solid rgba(255,255,255,.12);">
+                    <template x-for="s in filtered" :key="s">
+                        <button type="button" @mousedown.prevent="addTag(s)"
+                                class="w-full text-left px-3 py-2 text-xs hover:brightness-125 transition"
+                                style="color:var(--text-primary);background:rgba(255,255,255,.03);" x-text="s"></button>
+                    </template>
+                </div>
+                <p class="text-[11px] mt-1" style="color:var(--text-faint);">Enter or comma to add · Backspace to remove last</p>
+            </div>
+            <p x-show="saveError" x-cloak class="text-[11px] mt-1" style="color:#ef4444;" x-text="saveError"></p>
+        </div>
+
+        {{-- Notes — inline quick-edit --}}
+        <div class="mt-5 pt-4" style="border-top: 1px solid rgba(255,255,255,.06);"
+             x-data="contactNotesEditor({
+                 id: {{ $contact->id }},
+                 initial: @js($contact->notes ?? ''),
+                 patchUrl: '{{ route('user.contacts.notes.update', $contact) }}',
+                 csrf: '{{ csrf_token() }}',
+             })">
+            <div class="flex items-center justify-between mb-2">
+                <h3 class="text-[10px] font-bold uppercase tracking-wider" style="color:var(--text-faint);">Notes</h3>
+                <button type="button" @click="toggleEdit()" class="text-[11px] font-medium" style="color:#90acff;">
+                    <span x-text="editing ? 'Done' : (notes ? 'Edit' : 'Add note')"></span>
+                </button>
+            </div>
+            <p x-show="!editing && notes" class="text-sm whitespace-pre-line" style="color:var(--text-muted);" x-text="notes"></p>
+            <p x-show="!editing && !notes" class="text-xs" style="color:var(--text-faint);">No notes yet</p>
+            <div x-show="editing" class="mt-1">
+                <textarea x-model="draft" rows="4" maxlength="5000"
+                          placeholder="Add notes about this contact…"
+                          class="w-full px-3 py-2 rounded-lg text-sm" style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.10);color:var(--text-primary);"></textarea>
+                <div class="flex items-center gap-2 mt-2">
+                    <button type="button" @click="save()" :disabled="saving"
+                            class="px-3 py-1.5 rounded-lg text-xs font-semibold text-white"
+                            style="background:linear-gradient(135deg,#3d6bff,#ec4899);">
+                        <span x-text="saving ? 'Saving…' : 'Save'"></span>
+                    </button>
+                    <button type="button" @click="editing = false; draft = notes"
+                            class="px-3 py-1.5 rounded-lg text-xs font-medium" style="background:rgba(255,255,255,.06);color:var(--text-muted);border:1px solid rgba(255,255,255,.10)">
+                        Cancel
+                    </button>
+                </div>
+                <p x-show="saveError" x-cloak class="text-[11px] mt-1" style="color:#ef4444;" x-text="saveError"></p>
+            </div>
+        </div>
 
         <div class="mt-5 pt-4" style="border-top: 1px solid rgba(255,255,255,.06);">
             <h3 class="text-[10px] font-bold uppercase tracking-wider mb-2" style="color:var(--text-faint);">Follow-up reminder</h3>
@@ -219,5 +302,165 @@
             </form>
         </div>
     </div>
+
+    {{-- ── Workspace sharing panel ──────────────────────────────────────── --}}
+    @if($shareContext['is_shared_contact'])
+    <div class="mt-4 p-4 rounded-xl" style="background:linear-gradient(135deg,rgba(61,107,255,.07),rgba(34,211,238,.07));border:1px solid rgba(61,107,255,.18);">
+        <div class="flex items-center gap-2 mb-1">
+            <i class="fas fa-share-nodes text-xs" style="color:#90acff;"></i>
+            <span class="text-xs font-semibold" style="color:#90acff;">Shared contact</span>
+        </div>
+        <p class="text-xs" style="color:var(--text-muted);">
+            Shared by <strong>{{ $shareContext['shared_by']?->name ?? 'a team member' }}</strong> with <strong>{{ $shareContext['current_workspace']?->name }}</strong>.
+        </p>
+    </div>
+    @endif
+
+    @if($shareContext['is_owner'] && $shareContext['shareable_workspaces']->isNotEmpty())
+    <div class="mt-4 pt-4" style="border-top:1px solid rgba(255,255,255,.06);">
+        <h3 class="text-[10px] font-bold uppercase tracking-wider mb-3" style="color:var(--text-faint);">Share with workspaces</h3>
+        <div class="space-y-2">
+            @foreach($shareContext['shareable_workspaces'] as $ws)
+                @php($alreadyShared = $shareContext['shares']->firstWhere('workspace_id', $ws->id))
+                <div class="flex items-center justify-between gap-3">
+                    <div class="min-w-0">
+                        <span class="text-sm font-medium truncate block" style="color:var(--text-primary);">{{ $ws->name }}</span>
+                        @if($alreadyShared)
+                            <span class="text-[10px]" style="color:#22c55e;">
+                                <i class="fas fa-check-circle mr-0.5"></i> Shared
+                                @if($alreadyShared->sharedBy && $alreadyShared->sharedBy->id !== auth()->id())
+                                    by {{ $alreadyShared->sharedBy->name }}
+                                @endif
+                            </span>
+                        @endif
+                    </div>
+                    @if($alreadyShared)
+                        <form method="POST" action="{{ route('user.contacts.unshare', $contact) }}">
+                            @csrf @method('DELETE')
+                            <input type="hidden" name="workspace_id" value="{{ $ws->id }}">
+                            <button type="submit" class="px-3 py-1.5 rounded-lg text-[11px] font-medium flex-shrink-0" style="background:rgba(239,68,68,.10);color:#ef4444;border:1px solid rgba(239,68,68,.20);">
+                                <i class="fas fa-times mr-1"></i> Unshare
+                            </button>
+                        </form>
+                    @else
+                        <form method="POST" action="{{ route('user.contacts.share', $contact) }}">
+                            @csrf
+                            <input type="hidden" name="workspace_id" value="{{ $ws->id }}">
+                            <button type="submit" class="px-3 py-1.5 rounded-lg text-[11px] font-medium flex-shrink-0" style="background:rgba(61,107,255,.12);color:#90acff;border:1px solid rgba(61,107,255,.20);">
+                                <i class="fas fa-share-nodes mr-1"></i> Share
+                            </button>
+                        </form>
+                    @endif
+                </div>
+            @endforeach
+        </div>
+    </div>
+    @endif
+    </div>
 </div>
+@push('scripts')
+<script>
+function contactTagsEditor(cfg) {
+    return {
+        tags: [...(cfg.initial || [])],
+        suggestions: [],
+        input: '',
+        filtered: [],
+        showDropdown: false,
+        editing: false,
+        saving: false,
+        saveError: '',
+
+        init() {
+            this.$watch('editing', v => { if (v) this.loadSuggestions(); });
+        },
+
+        loadSuggestions() {
+            fetch(cfg.tagsUrl, { headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' } })
+                .then(r => r.json()).then(d => { this.suggestions = d.data || []; }).catch(() => {});
+        },
+
+        addFromInput() {
+            const v = this.input.replace(/,/g, '').trim();
+            if (v) this.addTag(v);
+        },
+
+        addTag(tag) {
+            tag = tag.trim();
+            if (!tag || this.tags.includes(tag)) { this.input = ''; this.showDropdown = false; return; }
+            this.tags.push(tag);
+            this.input = '';
+            this.showDropdown = false;
+            this.persist();
+        },
+
+        removeTag(i) {
+            this.tags.splice(i, 1);
+            this.persist();
+        },
+
+        onBackspace() {
+            if (this.input === '' && this.tags.length) { this.tags.pop(); this.persist(); }
+        },
+
+        filterSuggestions() {
+            const q = this.input.trim().toLowerCase();
+            this.filtered = this.suggestions.filter(s =>
+                (!q || s.toLowerCase().includes(q)) && !this.tags.includes(s)
+            ).slice(0, 8);
+            this.showDropdown = this.filtered.length > 0;
+        },
+
+        async persist() {
+            this.saveError = '';
+            try {
+                const fd = new FormData();
+                fd.append('_method', 'PATCH');
+                fd.append('_token', cfg.csrf);
+                this.tags.forEach((t, i) => fd.append('tags[' + i + ']', t));
+                const r = await fetch(cfg.patchUrl, { method: 'POST', body: fd, headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' } });
+                if (!r.ok) throw new Error('save failed');
+            } catch (e) {
+                this.saveError = 'Could not save tags. Please try again.';
+            }
+        },
+    };
+}
+
+function contactNotesEditor(cfg) {
+    return {
+        notes: cfg.initial || '',
+        draft: cfg.initial || '',
+        editing: false,
+        saving: false,
+        saveError: '',
+
+        toggleEdit() {
+            this.editing = !this.editing;
+            if (this.editing) this.draft = this.notes;
+        },
+
+        async save() {
+            this.saving = true;
+            this.saveError = '';
+            try {
+                const fd = new FormData();
+                fd.append('_method', 'PATCH');
+                fd.append('_token', cfg.csrf);
+                fd.append('notes', this.draft);
+                const r = await fetch(cfg.patchUrl, { method: 'POST', body: fd, headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' } });
+                if (!r.ok) throw new Error('save failed');
+                const d = await r.json();
+                this.notes = d.data?.notes ?? this.draft;
+                this.editing = false;
+            } catch (e) {
+                this.saveError = 'Could not save notes. Please try again.';
+            } finally {
+                this.saving = false;
+            }
+        },
+    };
+}
+</script>
+@endpush
 @endsection

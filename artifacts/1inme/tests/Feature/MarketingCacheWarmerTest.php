@@ -37,7 +37,7 @@ class MarketingCacheWarmerTest extends TestCase
 
     private function forgetMarketingCaches(): void
     {
-        Cache::forget(PricingPagesController::CATALOG_CACHE_KEY);
+        Cache::forget(\App\Modules\Common\Support\PricingPageCache::catalogKey());
         Cache::forget(CreatorsController::DEFAULT_CACHE_KEY);
         foreach (CreatorsController::trendingCarouselVariants() as [$showAdult, $onlyAdult]) {
             Cache::forget(CreatorsController::trendingCarouselCacheKey($showAdult, $onlyAdult));
@@ -70,7 +70,7 @@ class MarketingCacheWarmerTest extends TestCase
 
         $this->artisan('home:warm-caches')->assertSuccessful();
 
-        $catalog = Cache::get(PricingPagesController::CATALOG_CACHE_KEY);
+        $catalog = Cache::get(\App\Modules\Common\Support\PricingPageCache::catalogKey());
         $this->assertIsArray($catalog, 'Pricing catalog must be warmed.');
 
         $creators = Cache::get(CreatorsController::DEFAULT_CACHE_KEY);

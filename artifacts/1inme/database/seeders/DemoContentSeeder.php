@@ -37,7 +37,7 @@ class DemoContentSeeder extends Seeder
     public function run(): void
     {
         $user = User::firstOrCreate(
-            ['email' => 'sazioapp@gmail.com'],
+            ['email' => 'sayzioapp@gmail.com'],
             [
                 'name'     => 'Demo User',
                 'password' => Hash::make('password'),
@@ -70,7 +70,7 @@ class DemoContentSeeder extends Seeder
                 'description'   => 'We host community meetups, workshops, and pop-up experiences around the city — come say hi!',
                 'website'       => 'https://1in.me',
                 'contact_name'  => 'Demo User',
-                'contact_email' => 'sazioapp@gmail.com',
+                'contact_email' => 'sayzioapp@gmail.com',
                 'contact_phone' => '+1 (555) 010-0100',
                 'address'       => 'San Francisco, CA',
                 'socials'       => [
@@ -126,10 +126,10 @@ class DemoContentSeeder extends Seeder
         ];
 
         // Demo users (excluding the seed super-admin so the admin retains login).
-        $demoAdmin = User::where('email', 'sazioapp@gmail.com')->first();
+        $demoAdmin = User::where('email', 'sayzioapp@gmail.com')->first();
         $demoAdminId = $demoAdmin?->id;
         $otherDemoUserIds = User::where('is_demo', true)
-            ->where('email', '!=', 'sazioapp@gmail.com')
+            ->where('email', '!=', 'sayzioapp@gmail.com')
             ->pluck('id')->all();
         $allDemoUserIds = $demoAdminId
             ? array_values(array_unique(array_merge([$demoAdminId], $otherDemoUserIds)))
@@ -240,10 +240,10 @@ class DemoContentSeeder extends Seeder
     /** Counts of currently-present demo content (used by the admin dashboard). */
     public static function demoContentStats(): array
     {
-        $demoAdmin = User::where('email', 'sazioapp@gmail.com')->first();
+        $demoAdmin = User::where('email', 'sayzioapp@gmail.com')->first();
         $demoAdminId = $demoAdmin?->id;
         $otherDemoUserIds = User::where('is_demo', true)
-            ->where('email', '!=', 'sazioapp@gmail.com')
+            ->where('email', '!=', 'sayzioapp@gmail.com')
             ->pluck('id')->all();
         $allDemoUserIds = $demoAdminId
             ? array_values(array_unique(array_merge([$demoAdminId], $otherDemoUserIds)))

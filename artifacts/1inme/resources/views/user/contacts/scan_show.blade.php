@@ -65,6 +65,40 @@
     </div>
     @endif
 
+    <div class="card-premium p-5 mb-6" x-data="{ open: false }">
+        <div class="flex items-center justify-between gap-3 flex-wrap">
+            <div>
+                <h3 class="text-sm font-bold" style="color: var(--text-primary);">
+                    <i class="fas fa-wand-magic-sparkles text-fuchsia-400 mr-1"></i> Re-scan with a new focus
+                </h3>
+                <p class="text-xs mt-1" style="color: var(--text-muted);">
+                    Run the AI over the same upload again with a different instruction — no need to upload it again. This scan's results stay saved so you can compare.
+                </p>
+            </div>
+            <button type="button" @click="open = !open"
+                class="px-3 py-1.5 rounded-lg text-xs font-semibold shrink-0"
+                style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.10);color:var(--text-primary);">
+                <i class="fas fa-rotate mr-1"></i> <span x-text="open ? 'Cancel' : 'New focus'"></span>
+            </button>
+        </div>
+        <form method="POST" action="{{ route('user.contacts.scan.rescan', $scan) }}" x-show="open" x-cloak class="mt-4">
+            @csrf
+            <input type="hidden" name="from" value="{{ $from }}">
+            <label class="block">
+                <span class="block text-[11px] font-semibold mb-1" style="color: var(--text-muted);">What should we focus on this time?</span>
+                <textarea name="instruction" rows="2" maxlength="{{ \App\Services\AI\CardBrochureExtractionService::MAX_INSTRUCTION_LENGTH }}"
+                    placeholder="e.g. also grab the brand colors and any product prices"
+                    class="w-full text-sm rounded-lg px-3 py-2"
+                    style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.10);color:var(--text-primary);">{{ old('instruction') }}</textarea>
+            </label>
+            <div class="flex items-center justify-end mt-3">
+                <button type="submit" class="px-4 py-2 rounded-xl text-sm font-bold text-white transition" style="background: linear-gradient(135deg,#3d6bff,#ec4899);">
+                    <i class="fas fa-bolt mr-1"></i> Re-scan
+                </button>
+            </div>
+        </form>
+    </div>
+
     <form method="POST" action="{{ route('user.contacts.scan.save', $scan) }}" class="grid grid-cols-1 lg:grid-cols-3 gap-6">
         @csrf
 

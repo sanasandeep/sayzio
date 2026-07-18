@@ -11,6 +11,7 @@ import {
 } from "@playwright/test";
 
 import { DEMO_LOGIN_EMAIL } from "./demo-account";
+import { loginAsDemo } from "./login-as-demo";
 
 // Shared logged-in context (demo-login is throttled at 5/min).
 let sharedContext: BrowserContext;
@@ -101,25 +102,6 @@ echo 'LINKID=' . $bio->id . ' TPLID=' . $tpl->id . ' TPLSLUG=' . $tpl->slug;
   return { linkId: Number(m[1]), tplId: Number(m[2]), tplSlug: m[3] };
 }
 
-async function loginAsDemo(page: Page): Promise<void> {
-  await page.goto("/user/login");
-  await Promise.all([
-    page.waitForResponse(
-      (r) =>
-        r.url().endsWith("/user/demo-login") &&
-        r.request().method() === "POST",
-      { timeout: 90_000 },
-    ),
-    page.evaluate(() => {
-      const form = document.querySelector<HTMLFormElement>(
-        'form[action$="/user/demo-login"]',
-      );
-      if (!form) throw new Error("demo-login form not found");
-      form.submit();
-    }),
-  ]);
-}
-
 function findPreviewFrame(page: Page): Frame | null {
   for (const frame of page.frames()) {
     if (frame.url().includes(`/${ALIAS}?`) || frame.url().includes(`/${ALIAS}&`))
@@ -163,6 +145,9 @@ test.afterAll(async () => {
 test("clicking a background template updates the live phone preview without saving", async ({
   page,
 }) => {
+  // Cold first navigation to the heavy appearance editor over the distant RDS
+  // can eat most of the default 60s budget before the iframe even mounts.
+  test.setTimeout(180_000);
   const { linkId, tplId, tplSlug } = fixture;
 
   await page.goto(`/user/links/${linkId}/settings/appearance`, {

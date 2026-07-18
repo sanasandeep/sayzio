@@ -11,6 +11,7 @@ import {
 } from "@playwright/test";
 
 import { DEMO_LOGIN_EMAIL } from "./demo-account";
+import { loginAsDemo } from "./login-as-demo";
 
 // Visual verification of the bento redesign of the Links index and Stats home
 // (Task #3217) in a real, logged-in session. This spec is NOT an unattended
@@ -131,22 +132,6 @@ echo 'SEED_OK';
   if (!out.includes("SEED_OK")) {
     throw new Error("Links/Stats verify seed failed, output:\n" + out);
   }
-}
-
-async function loginAsDemo(page: Page): Promise<void> {
-  await page.goto("/user/login");
-  await Promise.all([
-    page.waitForResponse(
-      (r) =>
-        r.url().endsWith("/user/demo-login") && r.request().method() === "POST",
-    ),
-    page.evaluate(() => {
-      const form = document.querySelector<HTMLFormElement>(
-        'form[action$="/user/demo-login"]',
-      );
-      form?.submit();
-    }),
-  ]);
 }
 
 /** The app keys its theme off the `light-mode` html class (added server-side

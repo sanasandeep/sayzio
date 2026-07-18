@@ -88,11 +88,19 @@ class AppServiceProvider extends ServiceProvider
         // (Settings → Email / SMTP) so notifications, newsletters and email
         // OTP all use them without a redeploy. Falls back to env/config when
         // unset. Best-effort: never let a settings read break the whole boot.
-        try {
-            \App\Services\Integrations\MailSettings::applyRuntimeConfig();
-        } catch (\Throwable $e) {
-            \Illuminate\Support\Facades\Log::warning('MailSettings runtime override failed: ' . $e->getMessage());
-        }
+        //
+        // IMPORTANT — production-only: non-production environments (dev, CI,
+        // e2e browser tests) must never open a real SMTP connection.  Sending
+        // OTP / verification emails to @example.com fixtures through the live
+        // Zoho relay generated bounces that triggered Zoho's abuse block,
+        // which then knocked out real production OTP delivery.  Instead, force
+        // the log driver so all automated/dev mail is black-holed.
+        //
+        // Deliberate admin actions (Admin → Email/SMTP "Send test email",
+        // "Verify connection", bulk reminder sends) call applyRuntimeConfig()
+        // themselves immediately before sending, so those paths still exercise
+        // the real transport even from a non-production shell.
+        $this->configureMailTransport();
 
         // Override the env-only platform services (Google Places / Trustpilot
         // reviews keys, Google Contacts OAuth client, and the S3 user-content
@@ -178,6 +186,36 @@ class AppServiceProvider extends ServiceProvider
         $this->guardDestructiveSchemaCommands();
         $this->recordScheduledTaskRuns();
         $this->forwardClicksToConnectedAnalytics();
+    }
+
+    /**
+     * Resolve the effective mail transport for the current environment.
+     *
+     * Production applies the admin-configured SMTP settings (Settings →
+     * Email / SMTP) so notifications, newsletters and email OTP use them
+     * without a redeploy, falling back to env/config when unset.
+     *
+     * Every non-production environment (dev, CI, e2e browser tests) is forced
+     * onto the non-delivering "log" driver — regardless of what MAIL_MAILER
+     * env or admin app_settings say — so it can never open a real SMTP socket.
+     * Sending OTP / verification emails to @example.com fixtures through the
+     * live relay once generated bounces that triggered an abuse block on the
+     * upstream provider, which knocked out real production OTP delivery.
+     *
+     * Best-effort: a settings read must never break the whole boot. Extracted
+     * from boot() so the isolation guarantee is feature-testable.
+     */
+    public function configureMailTransport(): void
+    {
+        try {
+            if ($this->app->environment('production')) {
+                \App\Services\Integrations\MailSettings::applyRuntimeConfig();
+            } else {
+                config(['mail.default' => 'log']);
+            }
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('MailSettings runtime override failed: ' . $e->getMessage());
+        }
     }
 
     /**

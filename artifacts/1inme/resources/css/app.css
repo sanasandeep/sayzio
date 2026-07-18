@@ -5,6 +5,36 @@
 @source '../**/*.blade.php';
 @source '../**/*.js';
 
+/* ===== Select / input height parity (in-app layouts only) =====
+   Resets native <select> appearance so its height matches adjacent
+   <input> elements that share the same py-* padding class.
+   Scoped to [data-app-layout] so public/marketing/biolink pages
+   that ship their own theme stylesheets are not affected.
+
+   Two sizes mirror the two input sizes used across the app:
+     Standard  — py-2.5 (10px top+bottom, total ≈ 43px)
+     Compact   — py-2   (8px  top+bottom, total ≈ 39px)
+   The padding values on the elements themselves are already set by
+   Tailwind utilities; this rule only removes the native arrow,
+   normalises line-height/box-model, and injects a themed chevron.
+   ================================================================ */
+[data-app-layout] select {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    box-sizing: border-box;
+    line-height: 1.5;
+    padding-right: 2.5rem;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.875rem center;
+    background-size: 1rem 1rem;
+}
+
+html.light-mode [data-app-layout] select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%234b5675' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+}
+
 @theme {
     --font-sans: 'Space Grotesk', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
         'Segoe UI Symbol', 'Noto Color Emoji';

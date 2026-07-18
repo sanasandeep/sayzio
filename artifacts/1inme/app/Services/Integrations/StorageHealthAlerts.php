@@ -98,6 +98,40 @@ class StorageHealthAlerts
         }
     }
 
+    /**
+     * Real-time trigger from the public `/storage/{path}` bridge route
+     * (`storage.cdn.fallback`). Unlike alertFromBoot(), this fires even when
+     * s3MissingPieces() is empty — the S3 disk can throw during URL
+     * resolution with a config that *looks* complete (bad credentials,
+     * malformed region/bucket, SDK init failure). A broken bridge means ALL
+     * user file retrievals 404 and avatars/covers silently degrade, so ops
+     * admins must hear about it.
+     *
+     * Cooldown-guarded via the same shared episode state, so a burst of
+     * broken avatar requests costs at most one fan-out per cooldown window.
+     * Wholly best-effort: never lets alerting break the (already failing)
+     * request.
+     */
+    public static function alertFromBridge(\Throwable $e): void
+    {
+        try {
+            if (self::withinCooldown()) {
+                return;
+            }
+            $missing = PlatformServiceSettings::s3MissingPieces();
+            if ($missing === []) {
+                // Config looks complete but the disk still threw — surface
+                // the underlying error as the "missing piece" so the alert
+                // body/webhook carry an actionable hint.
+                $missing = ['URL resolution failed: ' . mb_substr($e->getMessage(), 0, 200)];
+            }
+            self::dispatchAlert($missing);
+        } catch (\Throwable $inner) {
+            // Never let alerting break the bridge route.
+            Log::warning('storage-health bridge alert failed: ' . $inner->getMessage());
+        }
+    }
+
     // ─────────────────────────────────────────────────────────────
 
     /**

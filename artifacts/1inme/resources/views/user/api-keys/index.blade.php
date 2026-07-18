@@ -3,7 +3,7 @@
 @section('title', 'API keys')
 
 @section('settings-content')
-<div class="max-w-4xl mx-auto">
+<div>
     @include('user.partials.page-hero', [
         'title' => 'API keys',
         'subtitle' => 'Generate keys to call the Sayzio REST API programmatically. Each call counts against your monthly allowance — overage is paid with coins.',

@@ -163,7 +163,7 @@ class CreatorPostController extends Controller
             'id'              => $p->id,
             'title'           => $p->title,
             'body'            => $p->body,
-            'image'           => $p->image,
+            'image'           => \App\Support\PublicStorageUrl::resolve($p->image),
             'post_type'       => $p->effectiveType(),
             'media'           => is_array($p->media) ? $p->media : null,
             'reactions_count' => (int) ($p->reactions_count ?? 0),

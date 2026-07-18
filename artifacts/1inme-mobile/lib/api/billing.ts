@@ -89,16 +89,6 @@ export type SetCurrencyResponse = {
   };
 };
 
-export type RevenueCatActivateResponse = {
-  data: {
-    ok: boolean;
-    plan_id: number;
-    cycle?: "monthly" | "annual";
-    expires_at?: string | null;
-    idempotent?: boolean;
-  };
-};
-
 /**
  * Pick a plan's price for the selected currency + cycle. Mirrors the web
  * /pricing switcher: read from the per-currency `prices` matrix when the
@@ -211,14 +201,5 @@ export const billing = {
     apiFetch<SetCurrencyResponse>("/billing/currency", {
       method: "POST",
       body: JSON.stringify({ currency }),
-    }),
-  activateRevenueCat: (input: {
-    plan_id: number;
-    cycle: "monthly" | "annual";
-    entitlement?: string;
-  }) =>
-    apiFetch<RevenueCatActivateResponse>("/billing/revenuecat/activate", {
-      method: "POST",
-      body: JSON.stringify(input),
     }),
 };

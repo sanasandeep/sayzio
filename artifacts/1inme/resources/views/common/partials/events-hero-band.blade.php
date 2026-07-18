@@ -111,7 +111,7 @@
             <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-5">
                 <div>
                     <span class="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-blue-300">
-                        <i class="fas fa-calendar-star"></i> Discover Events
+                        <i class="fas fa-calendar-days"></i> Discover Events
                     </span>
                     <h2 class="mt-1 text-xl sm:text-2xl font-extrabold tracking-tight">Happening soon on {{ config('app.name') }}</h2>
                 </div>

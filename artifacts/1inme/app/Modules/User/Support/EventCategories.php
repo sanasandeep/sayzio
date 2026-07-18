@@ -76,7 +76,7 @@ class EventCategories
         'fa-champagne-glasses' => ['party', 'nightlife', 'festival', 'celebration'],
     ];
 
-    public const FALLBACK_ICON = 'fa-calendar-star';
+    public const FALLBACK_ICON = 'fa-calendar-days';
 
     private const CACHE_KEY = 'event_categories.enabled';
     private const CACHE_TTL_SECONDS = 300;

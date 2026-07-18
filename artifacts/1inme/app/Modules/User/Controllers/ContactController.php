@@ -3,18 +3,26 @@
 namespace App\Modules\User\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Jobs\ProcessContactExportJob;
 use App\Jobs\ProcessContactImportJob;
 use App\Modules\User\Models\Contact;
 use App\Modules\User\Models\ContactEmail;
+use App\Modules\User\Models\ContactExport;
 use App\Modules\User\Models\ContactImport;
 use App\Modules\User\Models\ContactPhone;
 use App\Modules\User\Models\ContactDeletionTombstone;
+use App\Modules\User\Models\ContactWorkspaceShare;
 use App\Modules\User\Models\GoogleContactsAccount;
 use App\Modules\User\Models\IntegrationConfig;
 use App\Modules\User\Models\LinkedIdentifier;
+use App\Modules\User\Models\Workspace;
 use App\Modules\User\Services\Contacts\BiolinkAttachResolver;
+use App\Modules\User\Services\Contacts\ContactDuplicateDetector;
+use App\Modules\User\Services\Contacts\ContactExportBuilder;
 use App\Modules\User\Services\Contacts\ContactImportParser;
+use App\Modules\User\Services\Contacts\ContactMergeService;
 use App\Modules\User\Services\Contacts\GoogleContactsSyncService;
+use App\Modules\User\Support\ContactWorkspaceShareHelper;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -24,10 +32,16 @@ class ContactController extends Controller
     public const PHONE_LABELS = ['Mobile', 'Work', 'Home', 'Main', 'Other'];
     public const EMAIL_LABELS = ['Personal', 'Work', 'Other'];
 
+    /** Contacts above this threshold trigger a queued export job. */
+    public const EXPORT_ASYNC_THRESHOLD = 500;
+
     public function __construct(
         protected BiolinkAttachResolver $resolver,
         protected GoogleContactsSyncService $sync,
         protected ContactImportParser $importParser,
+        protected ContactExportBuilder $exportBuilder,
+        protected ContactDuplicateDetector $detector,
+        protected ContactMergeService $mergeService,
     ) {}
 
     public function index(Request $request)
@@ -39,11 +53,17 @@ class ContactController extends Controller
         // The contacts address book is account-wide (matching the dialer
         // finder and the Sanctum/mobile API), so opt out of the workspace
         // global scope; the user_id predicate still scopes to the owner.
+        $tag  = trim((string) $request->query('tag', ''));
+
         $query = Contact::withoutGlobalScope('workspace')
             ->where('user_id', $user->id)
             ->with(['phones', 'emails', 'biolinkUser']);
 
         if ($tab === 'biolink') $query->whereNotNull('biolink_user_id');
+        if ($tag !== '') {
+            // Filter contacts that include the requested tag in their JSON tags array.
+            $query->whereJsonContains('tags', $tag);
+        }
         if ($search !== '') {
             $needle = '%' . $search . '%';
             $phoneNeedle = '%' . ContactPhone::normalize($search) . '%';
@@ -84,13 +104,34 @@ class ContactController extends Controller
             ->orderByDesc('id')
             ->first();
 
+        // Contacts shared with the current team workspace by other members.
+        // Only loaded when a non-personal workspace is active so the list
+        // doesn't add overhead for personal accounts.
+        $sharedContacts = collect();
+        $currentWorkspace = null;
+        if (app()->bound('current_workspace')) {
+            $ws = app('current_workspace');
+            if ($ws && !$ws->is_personal) {
+                $currentWorkspace = $ws;
+                $sharedContacts = ContactWorkspaceShareHelper::contactsSharedToWorkspace(
+                    (int) $ws->id, (int) $user->id, $search, $tab
+                );
+            }
+        }
+
         // Live as-you-type search / tab switch / pagination fetch just the list
         // body so the page never reloads. The full page is returned otherwise.
         if ($request->ajax()) {
-            return view('user.contacts._list', compact('contacts', 'tab', 'search'));
+            return view('user.contacts._list', compact('contacts', 'tab', 'search', 'tag', 'sharedContacts', 'currentWorkspace'));
         }
 
-        return view('user.contacts.index', compact('contacts', 'tab', 'search', 'googleAccount', 'stats', 'usage', 'activeImport'));
+        // Duplicate count for the banner — best-effort, never blocks the page
+        $duplicateCount = 0;
+        try {
+            $duplicateCount = $this->detector->count($user->id);
+        } catch (\Throwable) {}
+
+        return view('user.contacts.index', compact('contacts', 'tab', 'search', 'tag', 'googleAccount', 'stats', 'usage', 'activeImport', 'sharedContacts', 'currentWorkspace', 'duplicateCount'));
     }
 
     /**
@@ -139,6 +180,7 @@ class ContactController extends Controller
         $v = $this->validatePayload($request);
 
         $contact = DB::transaction(function () use ($user, $v, $request) {
+            $tags = array_values(array_unique(array_filter((array) ($v['tags'] ?? []), fn ($t) => $t !== '')));
             $contact = Contact::create([
                 'user_id'      => $user->id,
                 'display_name' => $v['display_name'] ?: trim(($v['given_name'] ?? '') . ' ' . ($v['family_name'] ?? '')),
@@ -147,6 +189,7 @@ class ContactController extends Controller
                 'organization' => $v['organization'] ?? null,
                 'job_title'    => $v['job_title'] ?? null,
                 'notes'        => $v['notes'] ?? null,
+                'tags'         => $tags ?: null,
                 'photo_path'   => $request->hasFile('photo') ? $request->file('photo')->store('contact-photos', 'public') : null,
                 'locally_modified_at' => now(),
             ]);
@@ -157,20 +200,30 @@ class ContactController extends Controller
         $this->resolver->resolveFor($contact->fresh('phones'));
         $this->pushToGoogleSafely($user->id, $contact);
 
-        return redirect()->route('user.contacts.show', $contact)->with('success', 'Contact added.');
+        $redirect = redirect()->route('user.contacts.show', $contact)->with('success', 'Contact added.');
+        if ($this->detector->contactHasDuplicate($contact->user_id, $contact->id)) {
+            $redirect->with('duplicate_notice', 'This contact looks like a duplicate of an existing contact.');
+        }
+        return $redirect;
     }
 
     public function show(Request $request, Contact $contact)
     {
-        abort_if($contact->user_id !== workspace_owner_id(), 403);
+        $user = $request->user();
+        $this->authorizeContactView($contact, $user);
         $contact->load(['phones', 'emails', 'biolinkUser', 'user']);
         $biolinkPreview = $this->biolinkPreview($contact);
-        return view('user.contacts.show', compact('contact', 'biolinkPreview'));
+
+        // Workspace sharing context for the share/unshare UI panel.
+        $shareContext = $this->buildShareContext($contact, $user);
+
+        return view('user.contacts.show', compact('contact', 'biolinkPreview', 'shareContext'));
     }
 
     public function edit(Request $request, Contact $contact)
     {
-        abort_if($contact->user_id !== workspace_owner_id(), 403);
+        $user = $request->user();
+        $this->authorizeContactEdit($contact, $user);
         $contact->load(['phones', 'emails']);
         return view('user.contacts.edit', [
             'contact'     => $contact,
@@ -181,10 +234,11 @@ class ContactController extends Controller
 
     public function update(Request $request, Contact $contact)
     {
-        abort_if($contact->user_id !== workspace_owner_id(), 403);
+        $this->authorizeContactEdit($contact, $request->user());
         $v = $this->validatePayload($request);
 
         DB::transaction(function () use ($contact, $v, $request) {
+            $tags = array_values(array_unique(array_filter((array) ($v['tags'] ?? []), fn ($t) => $t !== '')));
             $payload = [
                 'display_name' => $v['display_name'] ?: trim(($v['given_name'] ?? '') . ' ' . ($v['family_name'] ?? '')),
                 'given_name'   => $v['given_name'] ?? null,
@@ -192,6 +246,7 @@ class ContactController extends Controller
                 'organization' => $v['organization'] ?? null,
                 'job_title'    => $v['job_title'] ?? null,
                 'notes'        => $v['notes'] ?? null,
+                'tags'         => $tags ?: null,
             ];
             if ($request->boolean('remove_photo') && $contact->photo_path) {
                 Storage::disk('public')->delete($contact->photo_path);
@@ -208,11 +263,17 @@ class ContactController extends Controller
         $this->resolver->resolveFor($contact->fresh('phones'));
         $this->pushToGoogleSafely($contact->user_id, $contact);
 
-        return redirect()->route('user.contacts.show', $contact)->with('success', 'Contact updated.');
+        $redirect = redirect()->route('user.contacts.show', $contact)->with('success', 'Contact updated.');
+        if ($this->detector->contactHasDuplicate($contact->user_id, $contact->id)) {
+            $redirect->with('duplicate_notice', 'This edit makes the contact match an existing contact.');
+        }
+        return $redirect;
     }
 
     public function destroy(Request $request, Contact $contact)
     {
+        // Only the contact owner (or workspace owner via legacy check) can delete.
+        // Workspace members with edit access can edit shared contacts but not delete them.
         abort_if($contact->user_id !== workspace_owner_id(), 403);
         if ($contact->photo_path) Storage::disk('public')->delete($contact->photo_path);
         // Park a deletion tombstone before removing the row so the next sync
@@ -233,7 +294,7 @@ class ContactController extends Controller
 
     public function detachBiolink(Request $request, Contact $contact)
     {
-        abort_if($contact->user_id !== workspace_owner_id(), 403);
+        $this->authorizeContactEdit($contact, $request->user());
         if ($contact->biolink_user_id) {
             $this->resolver->detach($contact, $contact->biolink_user_id);
         }
@@ -242,7 +303,7 @@ class ContactController extends Controller
 
     public function attachBiolink(Request $request, Contact $contact)
     {
-        abort_if($contact->user_id !== workspace_owner_id(), 403);
+        $this->authorizeContactEdit($contact, $request->user());
         // Force a re-resolve clearing the detach marker for any user that the
         // current phones now resolve to.
         $contact->loadMissing('phones');
@@ -267,7 +328,7 @@ class ContactController extends Controller
      */
     public function setFollowUp(Request $request, Contact $contact)
     {
-        abort_if($contact->user_id !== workspace_owner_id(), 403);
+        $this->authorizeContactEdit($contact, $request->user());
         $v = $request->validate([
             'follow_up_at'   => ['required', 'date'],
             'follow_up_note' => ['nullable', 'string', 'max:2000'],
@@ -302,10 +363,64 @@ class ContactController extends Controller
         return back()->with('success', 'Follow-up reminder set.');
     }
 
+    /**
+     * Return the authenticated user's distinct contact tags for autocomplete.
+     * Returns an alphabetically-sorted unique list. Only tags that already
+     * exist on at least one of their contacts are returned; there is no
+     * global tag library.
+     */
+    public function allTags(Request $request): \Illuminate\Http\JsonResponse
+    {
+        $user = $request->user();
+        $rows = Contact::withoutGlobalScope('workspace')
+            ->where('user_id', $user->id)
+            ->whereNotNull('tags')
+            ->pluck('tags');
+
+        $tags = $rows->flatMap(fn ($t) => (array) $t)
+            ->filter(fn ($t) => is_string($t) && $t !== '')
+            ->unique()
+            ->sort()
+            ->values()
+            ->all();
+
+        return response()->json(['data' => $tags]);
+    }
+
+    /**
+     * Quick inline-patch for the notes field only — used by the show page
+     * AJAX editor so the user never has to leave the contact detail view.
+     * Accepts `notes` (nullable) and returns the fresh value.
+     */
+    public function updateNotes(Request $request, Contact $contact): \Illuminate\Http\JsonResponse
+    {
+        abort_if($contact->user_id !== workspace_owner_id(), 403);
+        $v = $request->validate(['notes' => ['nullable', 'string', 'max:5000']]);
+        $contact->update(['notes' => $v['notes'] ?? null]);
+        return response()->json(['data' => ['notes' => $contact->notes]]);
+    }
+
+    /**
+     * Quick inline-patch for the tags field — replaces the tag list with the
+     * submitted array. Used by the tag chip editor on the show page and the
+     * list-row tag management UI.
+     */
+    public function updateTags(Request $request, Contact $contact): \Illuminate\Http\JsonResponse
+    {
+        abort_if($contact->user_id !== workspace_owner_id(), 403);
+        $v = $request->validate([
+            'tags'   => ['nullable', 'array', 'max:50'],
+            'tags.*' => ['required', 'string', 'max:80'],
+        ]);
+        $tags = array_values(array_unique(array_filter((array) ($v['tags'] ?? []), fn ($t) => $t !== '')));
+        $contact->update(['tags' => $tags ?: null]);
+        return response()->json(['data' => ['tags' => $contact->fresh()->tags ?? []]]);
+    }
+
     /** Clear a scheduled follow-up reminder without firing it. */
     public function clearFollowUp(Request $request, Contact $contact)
     {
-        abort_if($contact->user_id !== workspace_owner_id(), 403);
+        $this->authorizeContactEdit($contact, $request->user());
         $contact->update([
             'follow_up_at'          => null,
             'follow_up_note'        => null,
@@ -317,6 +432,249 @@ class ContactController extends Controller
             return response()->json(['data' => ['cleared' => true]]);
         }
         return back()->with('success', 'Follow-up reminder cleared.');
+    }
+
+    // ---- duplicate detection & merge -------------------------------------
+
+    /**
+     * Duplicate review page: show all undismissed duplicate groups with
+     * side-by-side contact cards so the user can pick a primary and merge.
+     */
+    public function duplicates(Request $request)
+    {
+        $userId = workspace_owner_id();
+        $rawGroups = $this->detector->detect($userId);
+
+        // Load full contact models for each group
+        $allIds = collect($rawGroups)->flatMap(fn ($g) => $g['ids'])->unique()->all();
+        $contactMap = Contact::withoutGlobalScope('workspace')
+            ->where('user_id', $userId)
+            ->with(['phones', 'emails'])
+            ->whereIn('id', $allIds)
+            ->get()
+            ->keyBy('id');
+
+        $groups = [];
+        foreach ($rawGroups as $g) {
+            $contacts = array_values(array_filter(
+                array_map(fn ($id) => $contactMap->get($id), $g['ids']),
+                fn ($c) => $c !== null
+            ));
+            if (count($contacts) < 2) continue;
+            $groups[] = [
+                'ids'      => $g['ids'],
+                'reason'   => $g['reason'],
+                'contacts' => array_map(fn ($c) => [
+                    'id'           => $c->id,
+                    'display_name' => $c->nameForDisplay(),
+                    'organization' => $c->organization,
+                    'notes'        => $c->notes,
+                    'photo_url'    => $c->photoUrl(),
+                    'phones'       => $c->phones->map(fn ($p) => ['value' => $p->value, 'label' => $p->label])->all(),
+                    'emails'       => $c->emails->map(fn ($e) => ['value' => $e->value, 'label' => $e->label])->all(),
+                ], $contacts),
+            ];
+        }
+
+        $groupCount = count($groups);
+        return view('user.contacts.duplicates', compact('groups', 'groupCount'));
+    }
+
+    /**
+     * Dismiss one or more contact pairs so they never re-surface as duplicates.
+     * Accepts `pairs[]` = "idA:idB" strings (canonical min:max order).
+     */
+    public function duplicatesDismiss(Request $request)
+    {
+        $request->validate([
+            'pairs'   => 'required|array|min:1|max:100',
+            'pairs.*' => 'string',
+        ]);
+
+        $userId = workspace_owner_id();
+        $now    = now();
+
+        foreach ($request->input('pairs', []) as $pair) {
+            if (!preg_match('/^(\d+):(\d+)$/', (string) $pair, $m)) continue;
+            $a = (int) min($m[1], $m[2]);
+            $b = (int) max($m[1], $m[2]);
+            if ($a === $b) continue;
+
+            // Verify both contacts belong to this user
+            $count = Contact::withoutGlobalScope('workspace')
+                ->where('user_id', $userId)
+                ->whereIn('id', [$a, $b])
+                ->count();
+            if ($count < 2) continue;
+
+            DB::table('contact_dismissed_pairs')->upsert(
+                [['user_id' => $userId, 'contact_id_a' => $a, 'contact_id_b' => $b, 'dismissed_at' => $now]],
+                ['user_id', 'contact_id_a', 'contact_id_b'],
+                ['dismissed_at']
+            );
+        }
+
+        // Dismissed pairs change the group count but bypass model events
+        // (raw upsert), so invalidate the cached badge count explicitly.
+        ContactDuplicateDetector::flushCountCache($userId);
+
+        return redirect()->route('user.contacts.duplicates')
+            ->with('success', 'Marked as not duplicates — they won\'t appear here again.');
+    }
+
+    /**
+     * Lightweight JSON count of undismissed duplicate groups — used by the
+     * contacts index to refresh the banner without a full page reload
+     * (e.g. after returning via the browser back button).
+     */
+    public function duplicatesCount(Request $request): \Illuminate\Http\JsonResponse
+    {
+        $count = 0;
+        try {
+            $count = $this->detector->count(workspace_owner_id());
+        } catch (\Throwable) {}
+        return response()->json(['data' => ['count' => $count]]);
+    }
+
+    /**
+     * Merge loser contacts into the chosen primary.
+     *
+     * POST /contacts/{contact}/merge-duplicate
+     * Body: loser_ids[] — IDs of contacts to absorb into {contact}.
+     * The primary is the route-model-bound {contact}; loser_ids should
+     * include ALL contacts in the group (primary excluded server-side).
+     */
+    public function mergeContacts(Request $request, Contact $contact)
+    {
+        abort_if($contact->user_id !== workspace_owner_id(), 403);
+
+        $request->validate([
+            'loser_ids'   => 'required|array|min:1|max:50',
+            'loser_ids.*' => 'integer',
+        ]);
+
+        $userId   = workspace_owner_id();
+        $loserIds = array_filter(
+            array_map('intval', $request->input('loser_ids', [])),
+            fn ($id) => $id !== $contact->id
+        );
+
+        if (empty($loserIds)) {
+            return redirect()->route('user.contacts.duplicates')
+                ->with('error', 'No contacts to merge — select at least one non-primary contact.');
+        }
+
+        $losers = Contact::withoutGlobalScope('workspace')
+            ->where('user_id', $userId)
+            ->whereIn('id', $loserIds)
+            ->get()
+            ->all();
+
+        if (empty($losers)) {
+            return redirect()->route('user.contacts.duplicates')
+                ->with('error', 'Could not find the contacts to merge.');
+        }
+
+        try {
+            $this->mergeService->merge($contact, $losers);
+        } catch (\Throwable $e) {
+            \Log::warning('ContactController::mergeContacts failed', ['err' => $e->getMessage()]);
+            return redirect()->route('user.contacts.duplicates')
+                ->with('error', 'Merge failed: ' . $e->getMessage());
+        }
+
+        $merged = count($losers);
+        return redirect()->route('user.contacts.show', $contact)
+            ->with('success', "Merged {$merged} contact" . ($merged === 1 ? '' : 's') . ' into this one — no data was lost.');
+    }
+
+    /**
+     * Bulk-merge every duplicate group in one action.
+     *
+     * POST /contacts/duplicates/merge-all
+     * For each detected group the first contact becomes the primary and the
+     * rest are merged into it (same semantics as a per-group merge). Each
+     * group is merged in its own transaction via ContactMergeService, so a
+     * failure in one group doesn't roll back the others.
+     */
+    public function mergeAllDuplicates(Request $request)
+    {
+        $userId    = workspace_owner_id();
+        $rawGroups = $this->detector->detect($userId);
+
+        if (empty($rawGroups)) {
+            return redirect()->route('user.contacts.duplicates')
+                ->with('error', 'No duplicate groups to merge.');
+        }
+
+        [$mergedGroups, $removedContacts, $failed] = $this->mergeAllGroups($userId, $rawGroups);
+
+        if ($mergedGroups === 0) {
+            return redirect()->route('user.contacts.duplicates')
+                ->with('error', 'Could not merge any duplicate groups.');
+        }
+
+        $msg = "Merged {$mergedGroups} group" . ($mergedGroups === 1 ? '' : 's')
+             . " — {$removedContacts} duplicate contact" . ($removedContacts === 1 ? '' : 's') . ' removed.';
+        if ($failed > 0) {
+            $msg .= " {$failed} group" . ($failed === 1 ? '' : 's') . ' could not be merged.';
+        }
+
+        return redirect()->route('user.contacts.duplicates')->with('success', $msg);
+    }
+
+    /**
+     * Shared bulk-merge loop: merges each group's tail contacts into its
+     * first contact. Returns [groupsMerged, contactsRemoved, groupsFailed].
+     *
+     * @param array $rawGroups Output of ContactDuplicateDetector::detect().
+     */
+    protected function mergeAllGroups(int $userId, array $rawGroups): array
+    {
+        $mergedGroups    = 0;
+        $removedContacts = 0;
+        $failed          = 0;
+        // A contact may appear in more than one group (e.g. same phone AND
+        // same name); once merged away it must not be reused as a primary
+        // or loser in a later group.
+        $consumed = [];
+
+        foreach ($rawGroups as $g) {
+            $ids = array_values(array_filter(
+                array_map('intval', $g['ids'] ?? []),
+                fn ($id) => !isset($consumed[$id])
+            ));
+            if (count($ids) < 2) continue;
+
+            $primaryId = array_shift($ids);
+            $primary = Contact::withoutGlobalScope('workspace')
+                ->where('user_id', $userId)
+                ->find($primaryId);
+            if (!$primary) continue;
+
+            $losers = Contact::withoutGlobalScope('workspace')
+                ->where('user_id', $userId)
+                ->whereIn('id', $ids)
+                ->get()
+                ->all();
+            if (empty($losers)) continue;
+
+            try {
+                $this->mergeService->merge($primary, $losers);
+            } catch (\Throwable $e) {
+                \Log::warning('ContactController::mergeAllDuplicates group failed', [
+                    'user' => $userId, 'primary' => $primaryId, 'err' => $e->getMessage(),
+                ]);
+                $failed++;
+                continue;
+            }
+
+            $mergedGroups++;
+            $removedContacts += count($losers);
+            foreach ($losers as $l) $consumed[$l->id] = true;
+        }
+
+        return [$mergedGroups, $removedContacts, $failed];
     }
 
     // ---- bulk import ------------------------------------------------------
@@ -584,6 +942,9 @@ class ContactController extends Controller
                 'given_name'   => $row['given_name'] ?? null,
                 'family_name'  => $row['family_name'] ?? null,
                 'organization' => $row['organization'] ?? null,
+                'job_title'    => $row['job_title']   ?? null,
+                'notes'        => $row['notes']        ?? null,
+                'tags'         => $row['tags']         ?? null,
                 'phones'       => $row['phones'] ?? [],
                 'emails'       => $row['emails'] ?? [],
             ];
@@ -595,6 +956,9 @@ class ContactController extends Controller
                 'given_name'   => 'nullable|string|max:191',
                 'family_name'  => 'nullable|string|max:191',
                 'organization' => 'nullable|string|max:191',
+                'job_title'    => 'nullable|string|max:191',
+                'notes'        => 'nullable|string|max:5000',
+                'tags'         => 'nullable|array',
                 'phones'                 => 'nullable|array|max:10',
                 'phones.*.label'         => 'nullable|string|max:50',
                 'phones.*.value'         => 'nullable|string|max:80',
@@ -629,6 +993,9 @@ class ContactController extends Controller
                         'given_name'   => $payload['given_name'],
                         'family_name'  => $payload['family_name'],
                         'organization' => $payload['organization'],
+                        'job_title'    => $payload['job_title'] ?? null,
+                        'notes'        => $payload['notes']     ?? null,
+                        'tags'         => !empty($payload['tags']) ? $payload['tags'] : null,
                         'locally_modified_at' => now(),
                     ]);
                     $this->syncRows($c, $payload['phones'], $payload['emails']);
@@ -674,7 +1041,15 @@ class ContactController extends Controller
     public function importShow(Request $request, ContactImport $import)
     {
         abort_if($import->user_id !== workspace_owner_id(), 403);
-        return view('user.contacts.import_summary', ['import' => $import]);
+        $duplicateCount = null;
+        if ($import->status === 'completed') {
+            try {
+                $duplicateCount = $this->detector->count(workspace_owner_id());
+            } catch (\Throwable) {
+                // non-fatal: detection may fail on missing pg_trgm or new env
+            }
+        }
+        return view('user.contacts.import_summary', compact('import', 'duplicateCount'));
     }
 
     /** Tiny JSON endpoint the summary page polls while a job is running. */
@@ -703,7 +1078,7 @@ class ContactController extends Controller
      */
     public function smsBiolink(Request $request, Contact $contact)
     {
-        abort_if($contact->user_id !== workspace_owner_id(), 403);
+        $this->authorizeContactEdit($contact, $request->user());
         $contact->loadMissing(['phones', 'biolinkUser']);
 
         $preview = $this->biolinkPreview($contact);
@@ -809,6 +1184,191 @@ class ContactController extends Controller
         }
     }
 
+    // ---- Workspace sharing ------------------------------------------------
+
+    /**
+     * Share a contact with the currently-active (or specified) workspace.
+     * Only the contact owner can initiate sharing.
+     *
+     * POST contacts/{contact}/share
+     */
+    public function share(Request $request, Contact $contact)
+    {
+        $user = $request->user();
+        abort_if((int) $contact->user_id !== (int) workspace_owner_id(), 403);
+
+        $wsId = (int) ($request->input('workspace_id') ?: 0);
+        $ws   = $wsId ? Workspace::find($wsId) : (app()->bound('current_workspace') ? app('current_workspace') : null);
+
+        if (!$ws || $ws->is_personal) {
+            return back()->with('error', 'Select a team workspace to share this contact with.');
+        }
+
+        // Requester must belong to the target workspace.
+        $isMember = ((int) $ws->owner_user_id === (int) $user->id)
+            || $user->workspaceMemberships()->where('workspace_id', $ws->id)->exists();
+        abort_unless($isMember, 403);
+
+        ContactWorkspaceShareHelper::share($contact, $ws, $user);
+
+        if ($request->ajax()) {
+            return response()->json(['data' => ['shared' => true, 'workspace_id' => $ws->id]]);
+        }
+        return back()->with('success', 'Contact shared with "' . $ws->name . '".');
+    }
+
+    /**
+     * Remove a contact's share from the specified workspace.
+     * Only the contact owner or workspace owner may unshare.
+     *
+     * DELETE contacts/{contact}/share
+     */
+    public function unshare(Request $request, Contact $contact)
+    {
+        $user = $request->user();
+
+        $wsId = (int) ($request->input('workspace_id') ?: 0);
+        $ws   = $wsId ? Workspace::find($wsId) : (app()->bound('current_workspace') ? app('current_workspace') : null);
+        if (!$ws) return back()->with('error', 'Workspace not found.');
+
+        abort_unless(
+            ContactWorkspaceShareHelper::userCanManageShare($user, $contact, $ws),
+            403
+        );
+
+        ContactWorkspaceShareHelper::unshare($contact, $ws->id);
+
+        if ($request->ajax()) {
+            return response()->json(['data' => ['shared' => false, 'workspace_id' => $ws->id]]);
+        }
+        return back()->with('success', 'Contact removed from "' . $ws->name . '".');
+    }
+
+    /**
+     * Bulk-share selected contacts with a workspace.
+     * Only shares contacts that the authenticated user owns.
+     *
+     * POST contacts/bulk-share
+     */
+    public function bulkShare(Request $request)
+    {
+        $user = $request->user();
+        $v = $request->validate([
+            'contact_ids'  => ['required', 'array', 'min:1', 'max:200'],
+            'contact_ids.*'=> ['integer'],
+            'workspace_id' => ['required', 'integer'],
+        ]);
+
+        $ws = Workspace::find($v['workspace_id']);
+        if (!$ws || $ws->is_personal) {
+            return back()->with('error', 'Invalid workspace.');
+        }
+        $isMember = ((int) $ws->owner_user_id === (int) $user->id)
+            || $user->workspaceMemberships()->where('workspace_id', $ws->id)->exists();
+        abort_unless($isMember, 403);
+
+        $owned = Contact::withoutGlobalScope('workspace')
+            ->where('user_id', workspace_owner_id())
+            ->whereIn('id', $v['contact_ids'])
+            ->pluck('id');
+
+        $count = 0;
+        foreach ($owned as $cid) {
+            $c = Contact::withoutGlobalScope('workspace')->find($cid);
+            if ($c) { ContactWorkspaceShareHelper::share($c, $ws, $user); $count++; }
+        }
+
+        return back()->with('success', $count . ' contact(s) shared with "' . $ws->name . '".');
+    }
+
+    // ---- Authorization helpers --------------------------------------------
+
+    /**
+     * Allow viewing a contact if:
+     *  1. The contact belongs to the workspace owner (legacy check), OR
+     *  2. The contact is shared with the currently-bound workspace AND the
+     *     viewer is a member of that workspace (any role with settings.view).
+     */
+    private function authorizeContactView(Contact $contact, $user): void
+    {
+        if ((int) $contact->user_id === (int) workspace_owner_id()) return;
+
+        // Check shared access via current workspace.
+        if (app()->bound('current_workspace')) {
+            $ws = app('current_workspace');
+            if ($ws && !$ws->is_personal) {
+                $share = ContactWorkspaceShareHelper::findShare($contact->id, $ws->id);
+                if ($share && ContactWorkspaceShareHelper::userCanViewShared($user, $ws)) return;
+            }
+        }
+
+        abort(403);
+    }
+
+    /**
+     * Allow editing a contact if:
+     *  1. The contact belongs to the workspace owner (legacy check), OR
+     *  2. The contact is shared with the currently-bound workspace AND the
+     *     viewer has 'edit' permission (settings.edit) in that workspace.
+     */
+    private function authorizeContactEdit(Contact $contact, $user): void
+    {
+        if ((int) $contact->user_id === (int) workspace_owner_id()) return;
+
+        if (app()->bound('current_workspace')) {
+            $ws = app('current_workspace');
+            if ($ws && !$ws->is_personal) {
+                $share = ContactWorkspaceShareHelper::findShare($contact->id, $ws->id);
+                if ($share && ContactWorkspaceShareHelper::userCanEditShared($user, $ws)) return;
+            }
+        }
+
+        abort(403);
+    }
+
+    /**
+     * Build workspace-sharing context for the show view.
+     * Returns an array with:
+     *  - is_owner: bool — the authenticated user owns this contact
+     *  - is_shared_contact: bool — viewing a contact shared by someone else
+     *  - shared_by: ?User — who shared it (when is_shared_contact)
+     *  - current_workspace: ?Workspace
+     *  - shareable_workspaces: Collection — workspaces the owner can share with
+     *  - shares: Collection<ContactWorkspaceShare> — existing shares
+     */
+    private function buildShareContext(Contact $contact, $user): array
+    {
+        $ws = app()->bound('current_workspace') ? app('current_workspace') : null;
+        $isOwner = (int) $contact->user_id === (int) $user->id;
+
+        $shares = $contact->workspaceShares()->with('workspace', 'sharedBy')->get();
+
+        $sharedBy = null;
+        $isSharedContact = false;
+        if (!$isOwner && $ws) {
+            $share = $shares->firstWhere('workspace_id', $ws->id);
+            if ($share) {
+                $isSharedContact = true;
+                $sharedBy = $share->sharedBy;
+            }
+        }
+
+        // Workspaces the owner can share this contact with (all their non-personal workspaces).
+        $shareableWorkspaces = collect();
+        if ($isOwner) {
+            $shareableWorkspaces = $user->accessibleWorkspaces()->filter(fn ($w) => !$w->is_personal);
+        }
+
+        return [
+            'is_owner'             => $isOwner,
+            'is_shared_contact'    => $isSharedContact,
+            'shared_by'            => $sharedBy,
+            'current_workspace'    => $ws,
+            'shareable_workspaces' => $shareableWorkspaces,
+            'shares'               => $shares,
+        ];
+    }
+
     // ---- helpers ----------------------------------------------------------
 
     /** Resolve the plan-based contacts_max cap. Returns -1 for unlimited. */
@@ -906,6 +1466,8 @@ class ContactController extends Controller
             'organization' => 'nullable|string|max:191',
             'job_title'    => 'nullable|string|max:191',
             'notes'        => 'nullable|string|max:5000',
+            'tags'         => 'nullable|array|max:50',
+            'tags.*'       => 'nullable|string|max:80',
             'photo'        => 'nullable|image|max:5120',
             'phones'                 => 'nullable|array|max:10',
             'phones.*.label'         => 'nullable|string|max:50',
@@ -963,6 +1525,127 @@ class ContactController extends Controller
         if (!$account) return; // push disabled → leave for the scheduled drain
         try { $this->sync->attemptTombstoneDelete($account, $tombstone); }
         catch (\Throwable $e) { \Log::warning('Immediate contact delete failed', ['err' => $e->getMessage()]); }
+    }
+
+    // ---- bulk export ------------------------------------------------------
+
+    /** Show the export options form. */
+    public function exportRequest(Request $request)
+    {
+        $user  = $request->user();
+        $total = Contact::withoutGlobalScope('workspace')->where('user_id', $user->id)->count();
+        $tab   = in_array($request->query('tab'), ['all', 'biolink'], true) ? $request->query('tab') : 'all';
+        $q     = trim((string) $request->query('q', ''));
+        return view('user.contacts.export_form', compact('total', 'tab', 'q'));
+    }
+
+    /** POST: create or stream the export. */
+    public function export(Request $request)
+    {
+        $user = $request->user();
+        $v = $request->validate([
+            'format' => 'required|in:csv,vcf',
+            'scope'  => 'required|in:all,filtered',
+            'tab'    => 'nullable|in:all,biolink',
+            'q'      => 'nullable|string|max:255',
+        ]);
+
+        $scope = [];
+        if ($v['scope'] === 'filtered') {
+            $scope['tab'] = $v['tab'] ?? 'all';
+            $scope['q']   = $v['q']  ?? '';
+        }
+
+        $query = Contact::withoutGlobalScope('workspace')->where('user_id', $user->id);
+        if (($scope['tab'] ?? '') === 'biolink') $query->whereNotNull('biolink_user_id');
+        if (!empty($scope['q'])) {
+            $needle = '%' . $scope['q'] . '%';
+            $query->where(function ($w) use ($needle) {
+                $w->where('display_name', 'ilike', $needle)
+                  ->orWhere('given_name',  'ilike', $needle)
+                  ->orWhere('family_name', 'ilike', $needle)
+                  ->orWhere('organization','ilike', $needle)
+                  ->orWhereHas('emails',  fn ($e) => $e->where('value', 'ilike', $needle))
+                  ->orWhereHas('phones',  fn ($p) => $p->where('value', 'ilike', $needle));
+            });
+        }
+        $count = $query->count();
+
+        // Small address books: generate synchronously and stream back.
+        if ($count <= self::EXPORT_ASYNC_THRESHOLD) {
+            $contacts = $query->with(['phones', 'emails'])->orderBy('display_name')->get();
+            $content  = $v['format'] === 'vcf'
+                ? $this->exportBuilder->buildVcf($contacts)
+                : $this->exportBuilder->buildCsv($contacts);
+            $date     = now()->format('Y-m-d');
+            $filename = "contacts-{$date}.{$v['format']}";
+            $mime     = $v['format'] === 'vcf' ? 'text/vcard; charset=utf-8' : 'text/csv; charset=utf-8';
+            return response($content, 200, [
+                'Content-Type'        => $mime,
+                'Content-Disposition' => "attachment; filename=\"{$filename}\"",
+            ]);
+        }
+
+        // Large address books: queue and redirect to a polling page.
+        $export = ContactExport::create([
+            'user_id'       => $user->id,
+            'format'        => $v['format'],
+            'scope'         => $scope ?: null,
+            'status'        => 'pending',
+            'contact_count' => $count,
+        ]);
+        ProcessContactExportJob::dispatch($export->id);
+        return redirect()->route('user.contacts.export.show', $export)
+            ->with('success', 'Export queued — we\'ll generate your file in the background.');
+    }
+
+    /** Status/download page for a queued export. */
+    public function exportShow(Request $request, ContactExport $export)
+    {
+        abort_if($export->user_id !== workspace_owner_id(), 403);
+        return view('user.contacts.export_show', compact('export'));
+    }
+
+    /** JSON poll endpoint the status page calls every 2 seconds. */
+    public function exportStatus(Request $request, ContactExport $export)
+    {
+        abort_if($export->user_id !== workspace_owner_id(), 403);
+        return response()->json([
+            'status'        => $export->status,
+            'contact_count' => $export->contact_count,
+            'is_ready'      => $export->isReady(),
+            'in_progress'   => $export->isInProgress(),
+        ]);
+    }
+
+    /** Stream the generated export file to the browser (auth-gated). */
+    public function exportDownload(Request $request, ContactExport $export)
+    {
+        abort_if($export->user_id !== workspace_owner_id(), 403);
+        return $this->streamExport($export);
+    }
+
+    /**
+     * Serve a background export via a temporary signed URL — used by the
+     * mobile/API path so the app can open the URL without a bearer token.
+     * The `signed` middleware on the route is the only authorization.
+     */
+    public function exportSignedDownload(Request $request, ContactExport $export)
+    {
+        return $this->streamExport($export);
+    }
+
+    private function streamExport(ContactExport $export): \Illuminate\Http\Response
+    {
+        abort_if(!$export->isReady(), 404, 'Export file is not ready yet.');
+        $content = Storage::disk('local')->get($export->file_path);
+        if ($content === null) {
+            abort(404, 'Export file not found. Please start a new export.');
+        }
+        return response($content, 200, [
+            'Content-Type'        => $export->mimeType(),
+            'Content-Disposition' => 'attachment; filename="' . $export->downloadFilename() . '"',
+        ]);
     }
 
     public function biolinkPreview(Contact $contact): ?array

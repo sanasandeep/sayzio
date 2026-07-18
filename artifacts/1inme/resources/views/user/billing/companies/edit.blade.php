@@ -203,8 +203,14 @@
                     @if($smtp->hasPassword())
                         <span class="block mt-1 mb-1 text-[11px]" style="color: var(--text-muted);">Stored: <span class="font-mono text-amber-600">{{ $smtp->maskedPassword() }}</span></span>
                     @endif
-                    <input type="password" name="smtp_password" autocomplete="new-password" placeholder="{{ $smtp->hasPassword() ? 'Paste a new password to replace' : '••••••••' }}"
-                           class="block w-full mt-1 p-2 rounded-lg border" style="background: var(--bg-glass-input); border-color: var(--border-soft); color: var(--text-primary);">
+                    @include('common.partials.password-field', [
+                        'name' => 'smtp_password',
+                        'autocomplete' => 'new-password',
+                        'placeholder' => $smtp->hasPassword() ? 'Paste a new password to replace' : '••••••••',
+                        'wrapClass' => 'mt-1',
+                        'inputClass' => 'block w-full p-2 rounded-lg border',
+                        'inputStyle' => 'background: var(--bg-glass-input); border-color: var(--border-soft); color: var(--text-primary);',
+                    ])
                     @if($smtp->hasPassword())
                         <span class="flex items-center gap-2 mt-2 text-[11px]" style="color: var(--text-muted);">
                             <input type="hidden" name="smtp_clear_password" value="0">

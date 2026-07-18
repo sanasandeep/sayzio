@@ -36,11 +36,11 @@ class HomeCacheWarmerTest extends TestCase
     private function forgetHomeCaches(): void
     {
         foreach (HomePageCache::CURRENCIES as $cur) {
-            Cache::forget(HomePageCache::ANON_PAYLOAD_PREFIX . $cur);
+            Cache::forget(HomePageCache::anonPayloadKey($cur));
         }
         Cache::forget(HomePageCache::FEATURED_CACHE_KEY);
         Cache::forget(HomePageCache::AI_HERO_ALIASES_KEY);
-        Cache::forget(PricingPageCache::CATALOG_CACHE_KEY);
+        Cache::forget(PricingPageCache::catalogKey());
     }
 
     private function makePlan(array $attrs = []): Plan
@@ -84,7 +84,7 @@ class HomeCacheWarmerTest extends TestCase
         $this->artisan('home:warm-caches')->assertSuccessful();
 
         foreach (HomePageCache::CURRENCIES as $cur) {
-            $json = Cache::get(HomePageCache::ANON_PAYLOAD_PREFIX . $cur);
+            $json = Cache::get(HomePageCache::anonPayloadKey($cur));
             $this->assertIsString($json, "Anonymous payload for {$cur} must be warmed.");
             $decoded = json_decode($json, true);
             $this->assertIsArray($decoded);
@@ -112,7 +112,7 @@ class HomeCacheWarmerTest extends TestCase
 
         $this->artisan('home:warm-caches')->assertSuccessful();
 
-        $payload = Cache::get(PricingPageCache::CATALOG_CACHE_KEY);
+        $payload = Cache::get(PricingPageCache::catalogKey());
         $this->assertIsArray($payload, 'Pricing catalogue must be warmed alongside the home caches.');
         $this->assertArrayHasKey('plans', $payload);
         $this->assertArrayHasKey('packages', $payload);

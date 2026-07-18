@@ -1,7 +1,7 @@
-import { Alert, Platform } from "react-native";
-import { router } from "expo-router";
+import { Alert, Linking, Platform } from "react-native";
 
 import type { ApiError } from "@/lib/api";
+import { getBaseUrl } from "@/lib/api";
 
 /**
  * Error `code`s the REST API stamps on plan-gated rejections (the
@@ -56,17 +56,17 @@ function messageOf(error: unknown, fallback: string): string {
 }
 
 /**
- * A pre-fill hint for the upgrade screen: the plan that unlocks the feature
+ * A pre-fill hint for the upgrade prompt: the plan that unlocks the feature
  * the user just hit. The Laravel side computes the cheapest qualifying plan
  * (`User::planThatUnlocks`) and stamps it into the plan-gated error envelope's
  * `details` (`recommended_plan` slug + `recommended_plan_name` + `feature`).
  */
 export type UpgradeHint = {
-  /** Recommended plan slug — the upgrade screen highlights/scrolls to it. */
+  /** Recommended plan slug. */
   planSlug?: string;
   /** Human-readable recommended plan name, for the prompt copy. */
   planName?: string;
-  /** Raw feature key the gate blocked on (fallback resolution on the screen). */
+  /** Raw feature key the gate blocked on. */
   feature?: string;
 };
 
@@ -76,9 +76,7 @@ function str(v: unknown): string | undefined {
 
 /**
  * Pull the recommended-plan hint out of a plan-gated API error's `details`.
- * Returns `undefined` when the backend didn't supply one (older server, or a
- * gate that has no single qualifying plan) — callers then fall back to the
- * generic upgrade view.
+ * Returns `undefined` when the backend didn't supply one.
  */
 export function upgradeHintFromError(error: unknown): UpgradeHint | undefined {
   const err = asApiError(error);
@@ -93,44 +91,61 @@ export function upgradeHintFromError(error: unknown): UpgradeHint | undefined {
   return { planSlug, planName, feature };
 }
 
-/** Build the upgrade-screen route, attaching the hint as query params. */
-function upgradeRoute(hint?: UpgradeHint) {
+/**
+ * Build the in-app router target for the /upgrade screen, attaching the
+ * recommended-plan hint as `?plan=` / `?feature=` params so the screen can
+ * highlight and scroll to the right plan. With no hint, routes to the bare
+ * screen (generic free/popular view).
+ */
+export function upgradeRoute(hint?: UpgradeHint) {
+  if (!hint || (!hint.planSlug && !hint.feature)) return "/upgrade";
   const params: Record<string, string> = {};
-  if (hint?.planSlug) params.plan = hint.planSlug;
-  if (hint?.feature) params.feature = hint.feature;
-  if (Object.keys(params).length === 0) return "/upgrade";
+  if (hint.planSlug) params.plan = hint.planSlug;
+  if (hint.feature) params.feature = hint.feature;
   return { pathname: "/upgrade", params };
 }
 
 /**
- * Show the "Upgrade your plan" prompt with a CTA that opens the in-app
- * upgrade screen. Safe to call from anywhere (uses the imperative
- * `expo-router` `router`); on web falls back to `window.confirm`.
+ * Open the website's pricing page in the OS external browser (Safari / Chrome).
+ * The external browser does not carry the app's session, so we always land on
+ * the public /pricing page rather than the authenticated /user/upgrade page.
+ */
+export function openUpgradeInBrowser(): void {
+  const url = `${getBaseUrl()}/pricing`;
+  if (Platform.OS === "web") {
+    if (typeof window !== "undefined") {
+      window.open(url, "_blank");
+    }
+    return;
+  }
+  Linking.openURL(url).catch(() => {});
+}
+
+/**
+ * Show the "Upgrade your plan" prompt with a CTA that opens the website's
+ * pricing page in the phone's external browser. Safe to call from anywhere.
  */
 export function showUpgradePrompt(opts?: {
   title?: string;
   message?: string;
-  /** Pre-fill hint so the upgrade screen highlights the unlocking plan. */
   hint?: UpgradeHint;
 }): void {
   const title = opts?.title ?? "Upgrade your plan";
   const message =
     opts?.message ?? "This feature isn't available on your current plan.";
 
-  const goToUpgrade = () => router.push(upgradeRoute(opts?.hint) as never);
-
   if (Platform.OS === "web") {
     const proceed =
       typeof window !== "undefined" && typeof window.confirm === "function"
-        ? window.confirm(`${title}\n\n${message}\n\nSee upgrade options?`)
+        ? window.confirm(`${title}\n\n${message}\n\nOpen pricing page?`)
         : false;
-    if (proceed) goToUpgrade();
+    if (proceed) openUpgradeInBrowser();
     return;
   }
 
   Alert.alert(title, message, [
     { text: "Not now", style: "cancel" },
-    { text: "See plans", style: "default", onPress: goToUpgrade },
+    { text: "See plans", style: "default", onPress: openUpgradeInBrowser },
   ]);
 }
 
@@ -153,8 +168,6 @@ export function handlePlanLockedError(
   if (!isPlanLockedError(error)) return false;
   const hint = upgradeHintFromError(error);
   let message = messageOf(error, fallbackMessage);
-  // When we know the unlocking plan, name it in the prompt copy so the CTA
-  // lines up with the plan the screen will highlight.
   if (hint?.planName && !message.includes(hint.planName)) {
     const sep = /[.!?]\s*$/.test(message) ? "" : ".";
     message = `${message.trimEnd()}${sep} Upgrade to ${hint.planName} to unlock it.`;

@@ -153,46 +153,58 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const [
-        token,
-        user,
-        biometricEnabled,
-        capability,
-        idleTimeoutMs,
-        lockWarningLeadMs,
-        needsName,
-      ] = await Promise.all([
-        getToken(),
-        getStoredUser<AuthUser>(),
-        getBiometricEnabled(),
-        getBiometricCapability(),
-        getIdleTimeoutMs(),
-        getLockWarningLeadMs(),
-        getNeedsName(),
-      ]);
-      if (cancelled) return;
+      try {
+        const [
+          token,
+          user,
+          biometricEnabled,
+          capability,
+          idleTimeoutMs,
+          lockWarningLeadMs,
+          needsName,
+        ] = await Promise.all([
+          getToken(),
+          getStoredUser<AuthUser>(),
+          getBiometricEnabled(),
+          getBiometricCapability(),
+          getIdleTimeoutMs(),
+          getLockWarningLeadMs(),
+          getNeedsName(),
+        ]);
+        if (cancelled) return;
 
-      let enabled = biometricEnabled;
-      // If biometrics were enabled previously but the device no longer
-      // supports them (hardware removed, all enrollments cleared), treat
-      // as disabled and clear the persisted flag — task spec edge case.
-      if (enabled && !capability.supported) {
-        enabled = false;
-        await persistBiometricEnabled(false);
+        let enabled = biometricEnabled;
+        // If biometrics were enabled previously but the device no longer
+        // supports them (hardware removed, all enrollments cleared), treat
+        // as disabled and clear the persisted flag — task spec edge case.
+        if (enabled && !capability.supported) {
+          enabled = false;
+          await persistBiometricEnabled(false);
+        }
+        const locked = !!token && enabled;
+        setState({
+          ready: true,
+          token: token ?? null,
+          user: user ?? null,
+          locked,
+          biometricEnabled: enabled,
+          biometricCapability: capability,
+          idleTimeoutMs,
+          lockWarningLeadMs,
+          lockWarningSecondsRemaining: null,
+          isNameRequired: !!token && needsName,
+        });
+      } catch (e) {
+        // Secure-store read or biometric capability check failed (e.g. a
+        // corrupted Android keystore). Degrade gracefully to a fully
+        // logged-out, first-run state so the app reaches the auth screen
+        // instead of staying frozen at ready=false or crashing the
+        // ErrorBoundary.
+        if (__DEV__) console.error("[AuthContext] init failed, falling back to logged-out state:", e);
+        if (!cancelled) {
+          setState((s) => ({ ...s, ready: true }));
+        }
       }
-      const locked = !!token && enabled;
-      setState({
-        ready: true,
-        token: token ?? null,
-        user: user ?? null,
-        locked,
-        biometricEnabled: enabled,
-        biometricCapability: capability,
-        idleTimeoutMs,
-        lockWarningLeadMs,
-        lockWarningSecondsRemaining: null,
-        isNameRequired: !!token && needsName,
-      });
     })();
     return () => {
       cancelled = true;
@@ -355,8 +367,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   // Re-pull the signed-in user from the API and persist it locally.
-  // Called after server-side state changes (e.g. RevenueCat activation
-  // bumps the plan) so any cached `user.plan_id` reflects reality.
+  // Called after server-side state changes (e.g. a plan change on the web)
+  // so any cached `user.plan_id` reflects reality.
   const refresh = useCallback(async () => {
     try {
       const res = await apiFetch<{ user: AuthUser }>("/auth/me");

@@ -45,7 +45,8 @@
 import { chromium } from "playwright";
 
 import { NAV_TIMEOUT_MS, STEP_TIMEOUT_MS, reachLoginScreen } from "./check-icon-fonts.mjs";
-import { createExpoServerManager, isTransientEnvError } from "./expo-web-server.mjs";
+import { createExpoServerManager,
+  runHarness, isTransientEnvError } from "./expo-web-server.mjs";
 
 function log(...args) {
   console.log("[form-focus-ring-e2e]", ...args);
@@ -303,6 +304,9 @@ function failOrSkipInfra(e, explicit) {
   fail(e?.stack || msg);
 }
 
-run().catch((e) => {
-  failOrSkipInfra(e, Boolean(process.env.APP_URL));
+// Termination guarantee: runHarness exits the process as soon as run()
+// settles and arms a watchdog, so a leaked handle can never stall the run.
+runHarness(run, {
+  log,
+  onError: (e) => failOrSkipInfra(e, Boolean(process.env.APP_URL)),
 });

@@ -294,6 +294,15 @@
                             <li class="flex items-start gap-2"><span class="text-blue-400">•</span><span>{{ $features[$key] == -1 ? 'Unlimited' : number_format((int)$features[$key]) }} {{ $label }}</span></li>
                         @endif
                     @endforeach
+                    {{-- Included coins — powered by PremiumFeatures::includedCoinGrants()
+                         so this list, the public pricing page and the mobile
+                         feature_highlights all read the same catalogue entries. --}}
+                    @foreach(\App\Modules\Common\Support\PremiumFeatures::includedCoinGrants() as $cg)
+                        @php $cgCell = \App\Modules\Common\Support\PremiumFeatures::resolveCell($plan, $cg); @endphp
+                        @if($cgCell['on'])
+                            <li class="flex items-start gap-2"><span class="text-amber-400"><i class="fas fa-coins text-[11px]"></i></span><span>{{ $cgCell['text'] }} {{ $cg['unit'] }} included</span></li>
+                        @endif
+                    @endforeach
                     @php
                         $boolFeatures = [
                             'calendar_sync'           => 'Calendar sync',

@@ -1,9 +1,5 @@
 {pkgs}: {
   deps = [
-    pkgs.freetype
-    pkgs.fontconfig
-    pkgs.libgbm
-    pkgs.xorg.libxkbfile
     pkgs.xorg.libxcb
     pkgs.xorg.libXrandr
     pkgs.xorg.libXfixes
@@ -11,17 +7,20 @@
     pkgs.xorg.libXdamage
     pkgs.xorg.libXcomposite
     pkgs.xorg.libX11
-    pkgs.expat
-    pkgs.mesa
-    pkgs.libxkbcommon
+    pkgs.systemdLibs
+    pkgs.libgbm
+    pkgs.gtk3
+    pkgs.at-spi2-core
+    pkgs.at-spi2-atk
     pkgs.alsa-lib
     pkgs.cairo
     pkgs.pango
-    pkgs.gtk3
-    pkgs.dbus
+    pkgs.mesa
+    pkgs.libxkbcommon
     pkgs.libdrm
+    pkgs.expat
+    pkgs.dbus
     pkgs.cups
-    pkgs.at-spi2-atk
     pkgs.atk
     pkgs.nspr
     pkgs.nss

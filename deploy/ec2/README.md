@@ -352,6 +352,76 @@ cd /var/www/sayzio/artifacts/1inme && php artisan config:cache && sudo systemctl
 
 ---
 
+## Auto-deploy from GitHub
+
+Pushing to the `main` branch of `sanasandeep/sayzio` automatically deploys to
+the EC2 server. The workflow lives at `.github/workflows/deploy-ec2.yml`.
+
+A concurrency guard prevents two deploys from running at the same time — if a
+second push arrives while one deploy is in progress, it waits rather than
+cancelling. A manual re-deploy (without a new commit) is available from the
+**Actions** tab → **Deploy to EC2** → **Run workflow**.
+
+### One-time setup (do this once per repo/server pair)
+
+**1. Create a dedicated deploy SSH key pair**
+
+Do this on your local machine (never on the server). Do not reuse your
+personal `1INME.pem`:
+
+```bash
+ssh-keygen -t ed25519 -C "github-actions-deploy" -f ~/.ssh/sayzio_deploy -N ""
+```
+
+This creates two files:
+- `~/.ssh/sayzio_deploy` — the private key (goes into GitHub)
+- `~/.ssh/sayzio_deploy.pub` — the public key (goes onto the server)
+
+**2. Install the public key on the server**
+
+```bash
+# Copy the public key content
+cat ~/.ssh/sayzio_deploy.pub
+
+# SSH into the server as the sayzio user and add it
+ssh -i /path/to/1INME.pem ubuntu@16.113.25.149   # Ubuntu
+# or: ssh -i /path/to/1INME.pem ec2-user@16.113.25.149  # Amazon Linux 2023
+
+sudo -u sayzio bash -c '
+  mkdir -p ~/.ssh
+  chmod 700 ~/.ssh
+  echo "PASTE_PUBLIC_KEY_HERE" >> ~/.ssh/authorized_keys
+  chmod 600 ~/.ssh/authorized_keys
+'
+```
+
+Replace `PASTE_PUBLIC_KEY_HERE` with the full line from `cat ~/.ssh/sayzio_deploy.pub`.
+
+Test it before adding to GitHub:
+
+```bash
+ssh -i ~/.ssh/sayzio_deploy sayzio@16.113.25.149 "echo OK"
+# Should print: OK
+```
+
+**3. Add the two GitHub repository secrets**
+
+Go to your GitHub repo → **Settings** → **Secrets and variables** → **Actions** → **New repository secret**:
+
+| Secret name | Value |
+|---|---|
+| `DEPLOY_SSH_KEY` | The full contents of `~/.ssh/sayzio_deploy` (the private key, including the `-----BEGIN` and `-----END` lines) |
+| `DEPLOY_HOST` | `16.113.25.149` |
+
+**4. Verify**
+
+Push any commit to `main` (or trigger the workflow manually from the Actions
+tab). The run log will stream the deploy script output. At the end, the
+workflow checks `https://sayzio.app/up` and `https://sayzio.app/api/healthz`
+— the run turns red if either fails.
+
+---
+
 ## Amazon Linux 2023 quickstart (existing instance, e.g. sayzio.app)
 
 The condensed end-to-end sequence for an AL2023 instance that already has DNS

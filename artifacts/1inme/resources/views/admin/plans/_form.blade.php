@@ -392,6 +392,30 @@
             </div>
         </section>
 
+        {{-- ============================== INCLUDED COIN GRANTS ============================== --}}
+        <section id="sec-coins" class="glass rounded-2xl border border-white/10 p-6">
+            <header class="mb-4">
+                <h2 class="text-base font-semibold text-white">Included coins</h2>
+                <p class="text-xs text-white/40">Coins credited to the user's wallet automatically on each successful billing period. 0 (or blank) means no grant. Monthly plan subscribers receive the monthly amount each month; annual plan subscribers receive the yearly amount each year.</p>
+            </header>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                @foreach(\App\Modules\Common\Support\PlanFormCatalogue::includedCoinGrants() as $cg)
+                    <div>
+                        <label class="block text-xs text-white/60 mb-1">{{ $cg['label'] }}</label>
+                        <input type="number" name="features[{{ $cg['key'] }}]"
+                               value="{{ (int) $val($cg['key'], 0) }}"
+                               min="0" step="1"
+                               class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white text-sm focus:ring-2 focus:ring-blue-500/40 outline-none">
+                        <p class="text-[10px] text-white/40 mt-1">{{ $cg['hint'] }}</p>
+                        @error('features.'.$cg['key'])<p class="mt-1 text-sm text-red-400">{{ $message }}</p>@enderror
+                    </div>
+                @endforeach
+            </div>
+            <div class="mt-3 rounded-xl border border-blue-400/20 bg-blue-500/[0.06] p-3">
+                <p class="text-[11px] text-blue-200/70"><i class="fas fa-info-circle mr-1"></i>Each grant is idempotent — re-delivered webhooks and retries never double-credit the same billing period. Transactions show as "Included with your &lt;Plan&gt; plan" in the user's coin history.</p>
+            </div>
+        </section>
+
         {{-- ============================== MODULES ============================== --}}
         <section id="sec-modules" class="glass rounded-2xl border border-white/10 p-6">
             <header class="mb-4">

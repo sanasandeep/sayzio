@@ -161,13 +161,21 @@ class TwoFactorController extends Controller
     public function verifyChallenge(Request $request)
     {
         $userId = $request->session()->get('2fa_pending_user_id');
-        if (!$userId) return redirect()->route('user.login');
+        if (!$userId) {
+            if ($request->ajax()) {
+                return response()->json(['ok' => true, 'redirect' => route('user.login'), 'csrf_token' => csrf_token()]);
+            }
+            return redirect()->route('user.login');
+        }
 
         $request->validate(['code' => 'required|string']);
 
         $user = \App\Modules\User\Models\User::find($userId);
         if (!$user || !$this->policy->userHasEnrolledTotp($user)) {
             $request->session()->forget(['2fa_pending_user_id', '2fa_pending_remember']);
+            if ($request->ajax()) {
+                return response()->json(['ok' => false, 'errors' => ['code' => 'Session expired — please sign in again.'], 'redirect' => route('user.login'), 'csrf_token' => csrf_token()]);
+            }
             return redirect()->route('user.login')
                 ->withErrors(['code' => 'Session expired — please sign in again.']);
         }
@@ -198,6 +206,9 @@ class TwoFactorController extends Controller
         }
 
         if (!$matched) {
+            if ($request->ajax()) {
+                return response()->json(['ok' => false, 'errors' => ['code' => 'Invalid 2FA code.'], 'csrf_token' => csrf_token()]);
+            }
             return back()->withErrors(['code' => 'Invalid 2FA code.']);
         }
 
@@ -220,6 +231,9 @@ class TwoFactorController extends Controller
         $user->ensureDefaultWorkspace();
         AcceptInviteController::attachPendingInvite($user);
 
+        if ($request->ajax()) {
+            return response()->json(['ok' => true, 'redirect' => redirect()->intended(route('user.dashboard'))->getTargetUrl(), 'csrf_token' => csrf_token()]);
+        }
         return redirect()->intended(route('user.dashboard'));
     }
 }

@@ -92,8 +92,12 @@ class LinkedIdentifierController extends Controller
                 $existing->verified_at = now();
                 $existing->save();
             }
+            $adopted = $kind === 'email'
+                && app(AccountMergeService::class)->adoptEmailIfMissing(Auth::user(), $value);
             session()->forget('linked_identifier_pending');
-            return redirect()->route('user.identifiers.index')->with('success', 'Identifier already linked to your account.');
+            return redirect()->route('user.identifiers.index')->with('success', $adopted
+                ? 'Email verified — it is now the email address on your account.'
+                : 'Identifier already linked to your account.');
         }
 
         LinkedIdentifier::create([
@@ -103,8 +107,15 @@ class LinkedIdentifierController extends Controller
             'verified_at' => now(),
             'is_primary'  => false,
         ]);
+        // Mobile/WhatsApp-only accounts have no users.email — adopt the
+        // freshly verified email as the account email so email-dependent
+        // flows (e.g. being promoted to admin) work.
+        $adopted = $kind === 'email'
+            && app(AccountMergeService::class)->adoptEmailIfMissing(Auth::user(), $value);
         session()->forget('linked_identifier_pending');
-        return redirect()->route('user.identifiers.index')->with('success', 'Identifier verified and linked.');
+        return redirect()->route('user.identifiers.index')->with('success', $adopted
+            ? 'Email verified — it is now the email address on your account.'
+            : 'Identifier verified and linked.');
     }
 
     public function destroy(LinkedIdentifier $identifier, AccountMergeService $service)

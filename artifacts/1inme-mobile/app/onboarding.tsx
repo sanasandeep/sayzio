@@ -6,10 +6,9 @@ import { useRouter } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   AccessibilityInfo,
-  ActivityIndicator,
   FlatList,
+  Linking,
   Platform,
-  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -30,16 +29,12 @@ import Animated, {
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { AiDashboardDemo } from "@/components/AiDashboardDemo";
+import { AnimatedBlob } from "@/components/AnimatedBlobBackground";
 import { BrandWordmark } from "@/components/Brand";
 import { Button } from "@/components/Button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useColors } from "@/hooks/useColors";
 import { onboarding as onboardingApi, type OnboardingSlide } from "@/lib/api";
-import {
-  getDashboardLayout,
-  type DashboardPreset,
-} from "@/lib/api/dashboard";
 import {
   getCachedOnboardingSlides,
   setCachedOnboardingSlides,
@@ -55,84 +50,101 @@ import {
 // Used only if the slides endpoint is unreachable (offline, fresh install).
 // Admin-managed slides from the API always take priority.
 const FALLBACK_IMAGES: Record<string, ImageSourcePropType> = {
-  creators: require("@/assets/images/onboarding/creators.png"),
-  business: require("@/assets/images/onboarding/business.png"),
-  freelancer: require("@/assets/images/onboarding/freelancer.png"),
-  networker: require("@/assets/images/onboarding/networker.png"),
-  students: require("@/assets/images/onboarding/students.png"),
-  coaches: require("@/assets/images/onboarding/coaches.png"),
+  welcome: require("@/assets/images/onboarding/welcome.png"),
+  "every-business": require("@/assets/images/onboarding/business.png"),
+  "everything-you-need": require("@/assets/images/onboarding/platform.png"),
+  "work-smarter": require("@/assets/images/onboarding/grow.png"),
+  "start-free": require("@/assets/images/onboarding/get-started.png"),
 };
 
 const FALLBACK_SLIDES: OnboardingSlide[] = [
+  // 1. Brand intro
   {
     id: -1,
-    slug: "creators",
-    category: "For creators",
-    title: "Every link, every channel — one tap away",
-    body: "Bundle your latest video, store, sponsorships and socials into a single Link in Bio your audience can save, share, or tap.",
+    slug: "welcome",
+    category: "Welcome",
+    title: "Meet Zio",
+    body: "Your AI-powered business companion for smarter customer engagement.",
     image_url: null,
     image_urls: [],
     sort_order: 10,
   },
+  // 2. Audience breadth
   {
     id: -2,
-    slug: "business",
-    category: "For small businesses",
-    title: "Your menu, hours and reviews on the counter",
-    body: "Stick a Sayzio NFC tag at the till. Customers tap their phone to see your menu, hours, directions and leave a review — no app needed.",
+    slug: "every-business",
+    category: "Built for Every Business",
+    title: "One Platform. Every Business.",
+    body: "Whether you're a startup, coach, restaurant, retailer, clinic, freelancer, or nonprofit, Sayzio helps you connect and grow.",
     image_url: null,
     image_urls: [],
     sort_order: 20,
   },
+  // 3. Tools grid
   {
     id: -3,
-    slug: "freelancer",
-    category: "For freelancers",
-    title: "Pitch your portfolio in one link",
-    body: "Send one tidy Sayzio profile instead of five attachments. Show case studies, rates and a booking link, and see exactly who clicked what.",
+    slug: "everything-you-need",
+    category: "Everything You Need",
+    title: "All Your Business Tools in One Place",
+    body: null,
     image_url: null,
     image_urls: [],
     sort_order: 30,
   },
+  // 4. AI value prop
   {
     id: -4,
-    slug: "networker",
-    category: "For networkers",
-    title: "Replace your business card",
-    body: "Tap a Sayzio NFC card to share contact, LinkedIn, calendar and portfolio in seconds — and the other person doesn't need to install anything.",
+    slug: "work-smarter",
+    category: "Work Smarter",
+    title: "Automate. Engage. Grow.",
+    body: "Let AI answer questions, capture leads, schedule appointments, and support customers 24/7.",
     image_url: null,
     image_urls: [],
     sort_order: 40,
+  },
+  // 5. Call to action (final slide)
+  {
+    id: -5,
+    slug: "start-free",
+    category: "Start Free",
+    title: "Ready to Grow?",
+    body: "Create your free workspace in minutes and upgrade whenever you're ready.",
+    image_url: null,
+    image_urls: [],
+    sort_order: 50,
   },
 ];
 
 type InfoHref =
   | "/info/about"
-  | "/info/nfc"
   | "/info/help"
   | "/info/privacy"
   | "/info/terms";
 
-const INFO_LINKS: { href: InfoHref; label: string }[] = [
-  { href: "/info/about", label: "About" },
-  { href: "/info/nfc", label: "NFC" },
-  { href: "/info/help", label: "Help" },
-  { href: "/info/privacy", label: "Privacy" },
-  { href: "/info/terms", label: "Terms" },
+type InfoLink =
+  | { kind: "internal"; href: InfoHref; label: string }
+  | { kind: "external"; url: string; label: string };
+
+const INFO_LINKS: InfoLink[] = [
+  { kind: "internal", href: "/info/about", label: "About" },
+  { kind: "internal", href: "/info/help", label: "Help" },
+  { kind: "internal", href: "/info/privacy", label: "Privacy" },
+  { kind: "internal", href: "/info/terms", label: "Terms" },
+  { kind: "external", url: "https://sayzio.app", label: "Website" },
 ];
 
-const AI_DASHBOARD_SLUG = "ai-dashboard";
-
-const AI_DASHBOARD_SLIDE: OnboardingSlide = {
-  id: -1000,
-  slug: AI_DASHBOARD_SLUG,
-  category: "AI dashboard",
-  title: "Let AI arrange your dashboard",
-  body: "Describe what you want to keep an eye on and Sayzio picks the right widgets for you — no manual setup.",
-  image_url: null,
-  image_urls: [],
-  sort_order: 10000,
-};
+// 9 tools displayed as a labeled icon grid on the "everything-you-need" slide
+const TOOLS_GRID = [
+  { label: "AI Chatbots", icon: "cpu" as const },
+  { label: "CRM", icon: "users" as const },
+  { label: "WhatsApp", icon: "message-square" as const },
+  { label: "Forms", icon: "file-text" as const },
+  { label: "Booking", icon: "calendar" as const },
+  { label: "Store", icon: "shopping-bag" as const },
+  { label: "QR Codes", icon: "grid" as const },
+  { label: "Campaigns", icon: "send" as const },
+  { label: "Analytics", icon: "bar-chart-2" as const },
+];
 
 // ─── Per-slide animated visual config ────────────────────────────────────
 // Each entry defines blob colors and which feature icons float above the
@@ -160,15 +172,16 @@ type SlideTheme = {
 };
 
 const SLIDE_THEMES: Record<string, SlideTheme> = {
-  creators: {
-    blobAColor: "#1a3dff",
-    blobBColor: "#0080ff",
-    blobCColor: "#005aff",
-    accent: "#3d6bff",
+  // ── Slide 1: Welcome ─────────────────────────────────────────────────────
+  welcome: {
+    blobAColor: "#4422cc",
+    blobBColor: "#5533ee",
+    blobCColor: "#3311aa",
+    accent: "#7755ff",
     icons: [
       {
-        img: require("@/assets/images/zio-nodes/link.png"),
-        fx: 0.78, fy: 0.18, size: 50, floatAmplitude: 9, floatDuration: 2800, delayMs: 0,
+        img: require("@/assets/images/zio-nodes/ai.png"),
+        fx: 0.78, fy: 0.18, size: 52, floatAmplitude: 9, floatDuration: 2800, delayMs: 0,
       },
       {
         img: require("@/assets/images/zio-nodes/analytics.png"),
@@ -176,147 +189,119 @@ const SLIDE_THEMES: Record<string, SlideTheme> = {
       },
       {
         img: require("@/assets/images/zio-nodes/audience.png"),
-        fx: 0.82, fy: 0.52, size: 36, floatAmplitude: 11, floatDuration: 2500, delayMs: 300,
-      },
-      {
-        img: require("@/assets/images/zio-nodes/social.png"),
-        fx: 0.08, fy: 0.60, size: 32, floatAmplitude: 8, floatDuration: 3100, delayMs: 900,
+        fx: 0.82, fy: 0.52, size: 36, floatAmplitude: 10, floatDuration: 2600, delayMs: 300,
       },
       {
         img: require("@/assets/images/zio-nodes/growth.png"),
-        fx: 0.60, fy: 0.12, size: 34, floatAmplitude: 6, floatDuration: 3700, delayMs: 450,
+        fx: 0.10, fy: 0.62, size: 34, floatAmplitude: 8, floatDuration: 3100, delayMs: 900,
+      },
+      {
+        img: require("@/assets/images/zio-nodes/social.png"),
+        fx: 0.60, fy: 0.12, size: 32, floatAmplitude: 6, floatDuration: 3700, delayMs: 450,
       },
     ],
   },
-  business: {
-    blobAColor: "#0066cc",
-    blobBColor: "#007799",
-    blobCColor: "#004d99",
-    accent: "#0099cc",
+
+  // ── Slide 2: Every Business ───────────────────────────────────────────────
+  "every-business": {
+    blobAColor: "#0055bb",
+    blobBColor: "#0077cc",
+    blobCColor: "#003d99",
+    accent: "#0099ee",
     icons: [
       {
         img: require("@/assets/images/zio-nodes/store.png"),
-        fx: 0.75, fy: 0.15, size: 50, floatAmplitude: 8, floatDuration: 3000, delayMs: 0,
-      },
-      {
-        img: require("@/assets/images/zio-nodes/menu.png"),
-        fx: 0.14, fy: 0.30, size: 42, floatAmplitude: 10, floatDuration: 2700, delayMs: 500,
-      },
-      {
-        img: require("@/assets/images/zio-nodes/qr.png"),
-        fx: 0.80, fy: 0.54, size: 36, floatAmplitude: 7, floatDuration: 3300, delayMs: 200,
-      },
-      {
-        img: require("@/assets/images/zio-nodes/reviews.png"),
-        fx: 0.10, fy: 0.62, size: 34, floatAmplitude: 9, floatDuration: 2900, delayMs: 800,
+        fx: 0.76, fy: 0.16, size: 50, floatAmplitude: 8, floatDuration: 3100, delayMs: 0,
       },
       {
         img: require("@/assets/images/zio-nodes/forms.png"),
-        fx: 0.58, fy: 0.10, size: 32, floatAmplitude: 6, floatDuration: 3600, delayMs: 350,
-      },
-    ],
-  },
-  freelancer: {
-    blobAColor: "#1a55cc",
-    blobBColor: "#2244bb",
-    blobCColor: "#0033aa",
-    accent: "#4477ee",
-    icons: [
-      {
-        img: require("@/assets/images/zio-nodes/resume.png"),
-        fx: 0.76, fy: 0.17, size: 50, floatAmplitude: 9, floatDuration: 2900, delayMs: 0,
-      },
-      {
-        img: require("@/assets/images/zio-nodes/analytics.png"),
-        fx: 0.11, fy: 0.27, size: 40, floatAmplitude: 8, floatDuration: 3200, delayMs: 600,
-      },
-      {
-        img: require("@/assets/images/zio-nodes/domain.png"),
-        fx: 0.82, fy: 0.50, size: 36, floatAmplitude: 7, floatDuration: 2600, delayMs: 300,
-      },
-      {
-        img: require("@/assets/images/zio-nodes/code.png"),
-        fx: 0.09, fy: 0.60, size: 32, floatAmplitude: 11, floatDuration: 3000, delayMs: 900,
-      },
-      {
-        img: require("@/assets/images/zio-nodes/growth.png"),
-        fx: 0.62, fy: 0.13, size: 34, floatAmplitude: 6, floatDuration: 3800, delayMs: 450,
-      },
-    ],
-  },
-  networker: {
-    blobAColor: "#1a44cc",
-    blobBColor: "#0055bb",
-    blobCColor: "#003399",
-    accent: "#3366dd",
-    icons: [
-      {
-        img: require("@/assets/images/zio-nodes/vcard.png"),
-        fx: 0.77, fy: 0.16, size: 50, floatAmplitude: 8, floatDuration: 3100, delayMs: 0,
-      },
-      {
-        img: require("@/assets/images/zio-nodes/calls.png"),
-        fx: 0.13, fy: 0.29, size: 42, floatAmplitude: 10, floatDuration: 2800, delayMs: 500,
-      },
-      {
-        img: require("@/assets/images/zio-nodes/link.png"),
-        fx: 0.81, fy: 0.52, size: 36, floatAmplitude: 7, floatDuration: 3400, delayMs: 200,
-      },
-      {
-        img: require("@/assets/images/zio-nodes/social.png"),
-        fx: 0.09, fy: 0.63, size: 32, floatAmplitude: 9, floatDuration: 2700, delayMs: 800,
-      },
-      {
-        img: require("@/assets/images/zio-nodes/audience.png"),
-        fx: 0.60, fy: 0.11, size: 34, floatAmplitude: 6, floatDuration: 3500, delayMs: 350,
-      },
-    ],
-  },
-  students: {
-    blobAColor: "#1155cc",
-    blobBColor: "#0066bb",
-    blobCColor: "#004499",
-    accent: "#3388ff",
-    icons: [
-      {
-        img: require("@/assets/images/zio-nodes/link.png"),
-        fx: 0.76, fy: 0.17, size: 50, floatAmplitude: 9, floatDuration: 2900, delayMs: 0,
-      },
-      {
-        img: require("@/assets/images/zio-nodes/social.png"),
-        fx: 0.12, fy: 0.28, size: 40, floatAmplitude: 7, floatDuration: 3300, delayMs: 600,
-      },
-      {
-        img: require("@/assets/images/zio-nodes/analytics.png"),
-        fx: 0.82, fy: 0.52, size: 36, floatAmplitude: 8, floatDuration: 2600, delayMs: 300,
-      },
-      {
-        img: require("@/assets/images/zio-nodes/forms.png"),
-        fx: 0.10, fy: 0.61, size: 32, floatAmplitude: 10, floatDuration: 3000, delayMs: 900,
-      },
-    ],
-  },
-  coaches: {
-    blobAColor: "#0055bb",
-    blobBColor: "#1166cc",
-    blobCColor: "#003388",
-    accent: "#4488ff",
-    icons: [
-      {
-        img: require("@/assets/images/zio-nodes/audience.png"),
-        fx: 0.77, fy: 0.16, size: 50, floatAmplitude: 8, floatDuration: 3000, delayMs: 0,
+        fx: 0.13, fy: 0.28, size: 42, floatAmplitude: 10, floatDuration: 2700, delayMs: 500,
       },
       {
         img: require("@/assets/images/zio-nodes/calendar.png"),
-        fx: 0.13, fy: 0.29, size: 40, floatAmplitude: 10, floatDuration: 2800, delayMs: 500,
+        fx: 0.82, fy: 0.52, size: 36, floatAmplitude: 7, floatDuration: 3400, delayMs: 200,
       },
       {
-        img: require("@/assets/images/zio-nodes/link.png"),
-        fx: 0.81, fy: 0.53, size: 36, floatAmplitude: 7, floatDuration: 3200, delayMs: 200,
+        img: require("@/assets/images/zio-nodes/audience.png"),
+        fx: 0.09, fy: 0.63, size: 34, floatAmplitude: 9, floatDuration: 2900, delayMs: 800,
       },
       {
-        img: require("@/assets/images/zio-nodes/forms.png"),
-        fx: 0.09, fy: 0.63, size: 32, floatAmplitude: 9, floatDuration: 2700, delayMs: 800,
+        img: require("@/assets/images/zio-nodes/qr.png"),
+        fx: 0.58, fy: 0.11, size: 32, floatAmplitude: 6, floatDuration: 3600, delayMs: 350,
+      },
+    ],
+  },
+
+  // ── Slide 3: Everything You Need (tools grid rendered in card) ────────────
+  "everything-you-need": {
+    blobAColor: "#1a44cc",
+    blobBColor: "#0066dd",
+    blobCColor: "#003399",
+    accent: "#3377ff",
+    icons: [
+      {
+        img: require("@/assets/images/zio-nodes/analytics.png"),
+        fx: 0.80, fy: 0.14, size: 40, floatAmplitude: 7, floatDuration: 3200, delayMs: 0,
+      },
+      {
+        img: require("@/assets/images/zio-nodes/qr.png"),
+        fx: 0.10, fy: 0.22, size: 34, floatAmplitude: 9, floatDuration: 2800, delayMs: 400,
+      },
+      {
+        img: require("@/assets/images/zio-nodes/store.png"),
+        fx: 0.84, fy: 0.56, size: 32, floatAmplitude: 8, floatDuration: 3500, delayMs: 200,
+      },
+    ],
+  },
+
+  // ── Slide 4: Work Smarter ─────────────────────────────────────────────────
+  "work-smarter": {
+    blobAColor: "#0d3399",
+    blobBColor: "#1a55cc",
+    blobCColor: "#091f77",
+    accent: "#3d6bff",
+    icons: [
+      {
+        img: require("@/assets/images/zio-nodes/ai.png"),
+        fx: 0.78, fy: 0.17, size: 52, floatAmplitude: 9, floatDuration: 2900, delayMs: 0,
+      },
+      {
+        img: require("@/assets/images/zio-nodes/analytics.png"),
+        fx: 0.11, fy: 0.28, size: 42, floatAmplitude: 8, floatDuration: 3300, delayMs: 600,
+      },
+      {
+        img: require("@/assets/images/zio-nodes/audience.png"),
+        fx: 0.82, fy: 0.54, size: 36, floatAmplitude: 7, floatDuration: 2700, delayMs: 300,
+      },
+      {
+        img: require("@/assets/images/zio-nodes/growth.png"),
+        fx: 0.10, fy: 0.62, size: 32, floatAmplitude: 10, floatDuration: 3100, delayMs: 900,
+      },
+    ],
+  },
+
+  // ── Slide 5: Start Free (CTA) ─────────────────────────────────────────────
+  "start-free": {
+    blobAColor: "#1133ee",
+    blobBColor: "#0055ff",
+    blobCColor: "#1144cc",
+    accent: "#4466ff",
+    icons: [
+      {
+        img: require("@/assets/images/zio-nodes/growth.png"),
+        fx: 0.78, fy: 0.17, size: 52, floatAmplitude: 9, floatDuration: 2800, delayMs: 0,
+      },
+      {
+        img: require("@/assets/images/zio-nodes/audience.png"),
+        fx: 0.12, fy: 0.28, size: 40, floatAmplitude: 7, floatDuration: 3400, delayMs: 600,
+      },
+      {
+        img: require("@/assets/images/zio-nodes/social.png"),
+        fx: 0.82, fy: 0.50, size: 36, floatAmplitude: 10, floatDuration: 2600, delayMs: 300,
+      },
+      {
+        img: require("@/assets/images/zio-nodes/analytics.png"),
+        fx: 0.10, fy: 0.62, size: 32, floatAmplitude: 8, floatDuration: 3000, delayMs: 900,
       },
     ],
   },
@@ -438,29 +423,16 @@ function FloatingIcon({
     transform: [{ translateY: ty.value }],
   }));
 
-  const tileSize = def.size + 16;
-
   return (
     <Animated.View
       pointerEvents="none"
       style={[
         {
           position: "absolute",
-          left: def.fx * width - tileSize / 2,
-          top: def.fy * height - tileSize / 2,
-          width: tileSize,
-          height: tileSize,
-          borderRadius: tileSize * 0.28,
-          backgroundColor: "rgba(255,255,255,0.07)",
-          borderWidth: 1,
-          borderColor: "rgba(100,160,255,0.20)",
-          alignItems: "center",
-          justifyContent: "center",
-          shadowColor: "#3d6bff",
-          shadowOffset: { width: 0, height: 0 },
-          shadowOpacity: 0.35,
-          shadowRadius: 10,
-          elevation: 6,
+          left: def.fx * width - def.size / 2,
+          top: def.fy * height - def.size / 2,
+          width: def.size,
+          height: def.size,
         },
         iconStyle,
       ]}
@@ -474,72 +446,40 @@ function FloatingIcon({
   );
 }
 
-// ─── Animated blob ────────────────────────────────────────────────────────
-// A soft, blurred-looking colour blob that slowly drifts, giving the
-// background a sense of living depth without relying on colour interpolation.
-function AnimatedBlob({
-  color,
-  size,
-  initialX,
-  initialY,
-  driftX,
-  driftY,
-  duration,
-  opacity,
-  delayMs,
+// ─── Floating Zio mascot ──────────────────────────────────────────────────
+// Shown prominently on the Welcome slide. Reuses the same float-loop animation
+// pattern as FloatingIcon so it feels alive, and respects reduced-motion.
+const zioMascotSource = require("@/assets/images/zio-mascot.png");
+
+function FloatingMascot({
+  width,
+  height,
   reduced,
 }: {
-  color: string;
-  size: number;
-  initialX: number;
-  initialY: number;
-  driftX: number;
-  driftY: number;
-  duration: number;
-  opacity: number;
-  delayMs: number;
+  width: number;
+  height: number;
   reduced: boolean;
 }) {
-  const tx = useSharedValue(0);
+  const mascotSize = Math.min(width * 0.52, 220);
   const ty = useSharedValue(0);
+  const opacity = useSharedValue(0);
 
   useEffect(() => {
+    opacity.value = withDelay(300, withTiming(1, { duration: 600 }));
     if (reduced) return;
-    tx.value = withDelay(
-      delayMs,
-      withRepeat(
-        withSequence(
-          withTiming(driftX, { duration, easing: Easing.inOut(Easing.quad) }),
-          withTiming(-driftX * 0.6, {
-            duration: duration * 0.9,
-            easing: Easing.inOut(Easing.quad),
-          }),
-        ),
-        -1,
-        true,
+    ty.value = withRepeat(
+      withSequence(
+        withTiming(-10, { duration: 3000, easing: Easing.inOut(Easing.sin) }),
+        withTiming(6, { duration: 2600, easing: Easing.inOut(Easing.sin) }),
       ),
-    );
-    ty.value = withDelay(
-      delayMs,
-      withRepeat(
-        withSequence(
-          withTiming(driftY, {
-            duration: duration * 1.1,
-            easing: Easing.inOut(Easing.quad),
-          }),
-          withTiming(-driftY * 0.7, {
-            duration: duration * 0.8,
-            easing: Easing.inOut(Easing.quad),
-          }),
-        ),
-        -1,
-        true,
-      ),
+      -1,
+      true,
     );
   }, [reduced]);
 
-  const blobStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: tx.value }, { translateY: ty.value }],
+  const mascotStyle = useAnimatedStyle(() => ({
+    opacity: opacity.value,
+    transform: [{ translateY: ty.value }],
   }));
 
   return (
@@ -548,17 +488,20 @@ function AnimatedBlob({
       style={[
         {
           position: "absolute",
-          left: initialX - size / 2,
-          top: initialY - size / 2,
-          width: size,
-          height: size,
-          borderRadius: size / 2,
-          backgroundColor: color,
-          opacity,
+          left: width * 0.5 - mascotSize / 2,
+          top: height * 0.30 - mascotSize / 2,
+          width: mascotSize,
+          height: mascotSize,
         },
-        blobStyle,
+        mascotStyle,
       ]}
-    />
+    >
+      <ExpoImage
+        source={zioMascotSource}
+        style={{ width: mascotSize, height: mascotSize }}
+        contentFit="contain"
+      />
+    </Animated.View>
   );
 }
 
@@ -753,6 +696,11 @@ function AnimatedSlide({
             startDelay={def.delayMs}
           />
         ))}
+
+        {/* Big Zio mascot — Welcome slide only */}
+        {slide.slug === "welcome" ? (
+          <FloatingMascot width={width} height={height} reduced={reduced} />
+        ) : null}
       </Animated.View>
 
       {/* Bottom scrim so the glass card stays readable on any background */}
@@ -764,145 +712,89 @@ function AnimatedSlide({
       />
 
       {/* Animated glass content card */}
-      <SlideCard
-        category={slide.category}
-        title={slide.title}
-        body={slide.body}
-        active={active}
-        paddingBottom={paddingBottom}
-      />
+      {slide.slug === "everything-you-need" ? (
+        <ToolsSlideCard
+          category={slide.category}
+          title={slide.title}
+          active={active}
+          paddingBottom={paddingBottom}
+        />
+      ) : (
+        <SlideCard
+          category={slide.category}
+          title={slide.title}
+          body={slide.body}
+          active={active}
+          paddingBottom={paddingBottom}
+        />
+      )}
     </View>
   );
 }
 
-// ─── AI dashboard slide ───────────────────────────────────────────────────
-// Final onboarding slide introducing the AI dashboard designer. Visually
-// upgraded with animated blobs and floating icons consistent with the rest
-// of the carousel, while keeping the AiDashboardDemo widget intact.
-function AiDashboardSlide({
-  loading,
-  presets,
-  onOpenDesigner,
-  paddingTop,
+// ─── Tools grid slide card ─────────────────────────────────────────────────
+// Replaces the body text on the "everything-you-need" slide with a 3×3 labeled
+// icon grid showing the 9 core business tools.
+function ToolsSlideCard({
+  category,
+  title,
+  active,
   paddingBottom,
-  width,
-  height,
-  reduced,
 }: {
-  loading: boolean;
-  presets: DashboardPreset[] | null;
-  onOpenDesigner: () => void;
-  paddingTop: number;
+  category: string;
+  title: string;
+  active: boolean;
   paddingBottom: number;
-  width: number;
-  height: number;
-  reduced: boolean;
 }) {
-  const colors = useColors();
-  const hasPresets = !!presets && presets.length > 0;
+  const cardY = useSharedValue(active ? 0 : 28);
+  const cardOpacity = useSharedValue(active ? 1 : 0);
+
+  useEffect(() => {
+    if (active) {
+      cardY.value = withSpring(0, { damping: 22, stiffness: 130, mass: 0.8 });
+      cardOpacity.value = withTiming(1, { duration: 320, easing: Easing.out(Easing.quad) });
+    } else {
+      cardY.value = 28;
+      cardOpacity.value = 0;
+    }
+  }, [active]);
+
+  const cardStyle = useAnimatedStyle(() => ({
+    opacity: cardOpacity.value,
+    transform: [{ translateY: cardY.value }],
+  }));
 
   return (
-    <View style={[styles.slide, { width, height }]}>
-      {/* Background */}
-      <LinearGradient
-        colors={["#08101f", "#070c18", "#060a14"]}
-        style={StyleSheet.absoluteFill}
-      />
-
-      {/* Animated blobs — blue-toned for the AI slide */}
-      <AnimatedBlob
-        color="#1a3dff"
-        size={width * 0.65}
-        initialX={width * 0.18}
-        initialY={height * 0.18}
-        driftX={16}
-        driftY={12}
-        duration={5800}
-        opacity={0.16}
-        delayMs={0}
-        reduced={reduced}
-      />
-      <AnimatedBlob
-        color="#0055cc"
-        size={width * 0.5}
-        initialX={width * 0.80}
-        initialY={height * 0.60}
-        driftX={-12}
-        driftY={16}
-        duration={7200}
-        opacity={0.12}
-        delayMs={1000}
-        reduced={reduced}
-      />
-
-      {/* Floating AI-related icons in the background */}
-      {[
-        { img: require("@/assets/images/zio-nodes/ai.png"),        fx: 0.82, fy: 0.14, size: 38, floatAmplitude: 8,  floatDuration: 2900, delayMs: 0 },
-        { img: require("@/assets/images/zio-nodes/analytics.png"), fx: 0.10, fy: 0.25, size: 32, floatAmplitude: 7,  floatDuration: 3300, delayMs: 500 },
-        { img: require("@/assets/images/zio-nodes/growth.png"),    fx: 0.78, fy: 0.72, size: 30, floatAmplitude: 10, floatDuration: 2600, delayMs: 300 },
-      ].map((def, i) => (
-        <FloatingIcon
-          key={i}
-          def={def as FloatingIconDef}
-          width={width}
-          height={height}
-          reduced={reduced}
-          startDelay={def.delayMs}
-        />
-      ))}
-
-      {/* Content */}
-      <ScrollView
-        contentContainerStyle={[
-          styles.aiScroll,
-          { paddingTop, paddingBottom },
-        ]}
-        showsVerticalScrollIndicator={false}
+    <Animated.View
+      style={[
+        styles.copyWrap,
+        { paddingHorizontal: 20, paddingBottom },
+        cardStyle,
+      ]}
+    >
+      <BlurView
+        intensity={Platform.OS === "android" ? 40 : 64}
+        tint="dark"
+        style={styles.glassCard}
       >
-        <View style={styles.categoryChip}>
-          <Text style={styles.categoryText}>{AI_DASHBOARD_SLIDE.category}</Text>
+        <View style={styles.glassInner}>
+          <View style={styles.categoryChip}>
+            <Text style={styles.categoryText}>{category}</Text>
+          </View>
+          <Text style={styles.title}>{title}</Text>
+          <View style={styles.toolsGrid}>
+            {TOOLS_GRID.map((t) => (
+              <View key={t.label} style={styles.toolItem}>
+                <View style={styles.toolIconWrap}>
+                  <Feather name={t.icon} size={18} color="#a8c4ff" />
+                </View>
+                <Text style={styles.toolLabel}>{t.label}</Text>
+              </View>
+            ))}
+          </View>
         </View>
-        <Text style={styles.title}>{AI_DASHBOARD_SLIDE.title}</Text>
-        {AI_DASHBOARD_SLIDE.body ? (
-          <Text style={[styles.body, { marginBottom: 20 }]}>
-            {AI_DASHBOARD_SLIDE.body}
-          </Text>
-        ) : null}
-
-        {hasPresets ? (
-          <AiDashboardDemo presets={presets!} />
-        ) : loading ? (
-          <View style={styles.aiTeaser}>
-            <ActivityIndicator color={colors.primary} />
-          </View>
-        ) : (
-          <View style={styles.aiTeaser}>
-            <View
-              style={[
-                styles.aiTeaserIcon,
-                { backgroundColor: colors.primary + "22" },
-              ]}
-            >
-              <Feather name="zap" size={22} color={colors.primary} />
-            </View>
-            <Text style={styles.aiTeaserText}>
-              Once you&apos;re in, describe your goal and the AI designer builds
-              a dashboard around the metrics that matter to you.
-            </Text>
-          </View>
-        )}
-
-        <Button
-          label={hasPresets ? "Open the AI designer" : "Set up my dashboard"}
-          variant="cta"
-          onPress={onOpenDesigner}
-          leading={
-            <Feather name="zap" size={16} color={colors.primaryForeground} />
-          }
-          style={{ marginTop: 20 }}
-        />
-      </ScrollView>
-    </View>
+      </BlurView>
+    </Animated.View>
   );
 }
 
@@ -926,9 +818,6 @@ export default function Onboarding() {
 
   const resyncing = useRef(false);
   const deferredSlidesRef = useRef<OnboardingSlide[] | null>(null);
-
-  const [presets, setPresets] = useState<DashboardPreset[] | null>(null);
-  const [presetsLoading, setPresetsLoading] = useState(false);
 
   const freshSlidesRef = useRef(false);
 
@@ -1013,40 +902,16 @@ export default function Onboarding() {
     }
   }, [index]);
 
-  // Fetch real dashboard presets for the AI slide (signed-in users only)
-  useEffect(() => {
-    if (!token) return;
-    let cancelled = false;
-    setPresetsLoading(true);
-    (async () => {
-      try {
-        const layout = await getDashboardLayout();
-        if (!cancelled) setPresets(layout.presets ?? []);
-      } catch {
-        if (!cancelled) setPresets([]);
-      } finally {
-        if (!cancelled) setPresetsLoading(false);
-      }
-    })();
-    return () => { cancelled = true; };
-  }, [token]);
-
   const finish = async () => {
-    await setOnboardingComplete(true);
+    try {
+      await setOnboardingComplete(true);
+    } catch {
+      // A storage failure must not dead-end the user — always navigate.
+    }
     router.replace(user ? "/(tabs)" : "/(auth)");
   };
 
-  const openDesigner = async () => {
-    await setOnboardingComplete(true);
-    if (user) {
-      router.replace("/(tabs)");
-      router.push("/dashboard-customize");
-    } else {
-      router.replace("/(auth)");
-    }
-  };
-
-  const pages = [...slides, AI_DASHBOARD_SLIDE];
+  const pages = slides;
   const pageCount = pages.length;
 
   const onScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
@@ -1114,35 +979,22 @@ export default function Onboarding() {
             animated: true,
           });
         }}
-        renderItem={({ item, index: i }) =>
-          item.slug === AI_DASHBOARD_SLUG ? (
-            <AiDashboardSlide
-              loading={presetsLoading}
-              presets={presets}
-              onOpenDesigner={openDesigner}
-              paddingTop={insets.top + 72 + webTop}
-              paddingBottom={insets.bottom + 200 + webBottom}
-              width={width}
-              height={height}
-              reduced={reduced}
-            />
-          ) : (
-            <AnimatedSlide
-              slide={item}
-              images={resolveImages(item, localImages)}
-              hasRemoteImages={
-                !!(item.image_urls?.length || item.image_url)
-              }
-              active={i === index}
-              width={width}
-              height={height}
-              scrollX={scrollX}
-              slideIndex={i}
-              paddingBottom={insets.bottom + 200 + webBottom}
-              reduced={reduced}
-            />
-          )
-        }
+        renderItem={({ item, index: i }) => (
+          <AnimatedSlide
+            slide={item}
+            images={resolveImages(item, localImages)}
+            hasRemoteImages={
+              !!(item.image_urls?.length || item.image_url)
+            }
+            active={i === index}
+            width={width}
+            height={height}
+            scrollX={scrollX}
+            slideIndex={i}
+            paddingBottom={insets.bottom + 200 + webBottom}
+            reduced={reduced}
+          />
+        )}
       />
 
       {/* ── Top brand bar ──────────────────────────────────────────────── */}
@@ -1192,10 +1044,17 @@ export default function Onboarding() {
         />
         <View style={styles.infoLinks}>
           {INFO_LINKS.map((l, i, arr) => (
-            <View key={l.href} style={styles.infoLinkRow}>
+            <View
+              key={l.kind === "internal" ? l.href : l.url}
+              style={styles.infoLinkRow}
+            >
               <Text
                 accessibilityRole="link"
-                onPress={() => router.push(l.href)}
+                onPress={() =>
+                  l.kind === "internal"
+                    ? router.push(l.href)
+                    : void Linking.openURL(l.url)
+                }
                 style={styles.infoLink}
               >
                 {l.label}
@@ -1264,36 +1123,35 @@ const styles = StyleSheet.create({
     lineHeight: 21,
   },
 
-  // AI dashboard slide
-  aiScroll: {
-    paddingHorizontal: 24,
-    justifyContent: "center",
-    flexGrow: 1,
+  // Tools grid (slide 3)
+  toolsGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    marginTop: 4,
+    gap: 8,
   },
-  aiTeaser: {
-    borderRadius: 20,
+  toolItem: {
+    width: "30%",
+    alignItems: "center",
+    gap: 5,
+    paddingVertical: 6,
+  },
+  toolIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(61,107,255,0.18)",
     borderWidth: 1,
-    borderColor: "rgba(61,107,255,0.25)",
-    backgroundColor: "rgba(12,16,30,0.55)",
-    padding: 20,
-    alignItems: "center",
-    gap: 14,
-    minHeight: 120,
-    justifyContent: "center",
+    borderColor: "rgba(61,107,255,0.30)",
   },
-  aiTeaserIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 999,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  aiTeaserText: {
-    color: "rgba(255,255,255,0.85)",
-    fontFamily: "SpaceGrotesk_400Regular",
-    fontSize: 14,
-    lineHeight: 21,
+  toolLabel: {
+    color: "rgba(255,255,255,0.80)",
+    fontFamily: "SpaceGrotesk_500Medium",
+    fontSize: 10,
     textAlign: "center",
+    lineHeight: 14,
   },
 
   // Chrome

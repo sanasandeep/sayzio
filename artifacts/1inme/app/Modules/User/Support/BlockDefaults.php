@@ -97,14 +97,16 @@ class BlockDefaults
             unset($all[$canonical]);
         } else {
             $entry = $all[$canonical] ?? [];
-            if (isset($data['content'])) {
+            // array_key_exists, NOT isset: a null value is the documented
+            // "clear this part" signal and isset(null) is false.
+            if (array_key_exists('content', $data)) {
                 if ($data['content'] === null || $data['content'] === []) {
                     unset($entry['content']);
                 } else {
                     $entry['content'] = $data['content'];
                 }
             }
-            if (isset($data['style'])) {
+            if (array_key_exists('style', $data)) {
                 if ($data['style'] === null || $data['style'] === []) {
                     unset($entry['style']);
                 } else {

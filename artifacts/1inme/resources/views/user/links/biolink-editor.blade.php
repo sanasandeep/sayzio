@@ -8,7 +8,7 @@
 {{-- Shared "drop a pin to fill address + lat/lng" map picker, reused by the
      map_location block settings form (loaded here on the host page since the
      edit form is injected via AJAX, which strips external <script src> tags). --}}
-<script src="{{ asset('js/map-pin-picker.js') }}"></script>
+@vite(['resources/js/map-pin-picker.js'])
 <style>
     .mpp-map .leaflet-container { background:#1e2330 !important; font-family:'Space Grotesk', sans-serif; }
     html.light-mode .mpp-map .leaflet-container { background:#e6e9f0 !important; }

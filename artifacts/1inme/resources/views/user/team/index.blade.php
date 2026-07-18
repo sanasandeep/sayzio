@@ -21,6 +21,13 @@
             </p>
         </div>
         <div class="flex items-center gap-2">
+            @if(!empty($isOwner))
+                <a href="{{ route('user.workspaces.settings', $workspace) }}"
+                   class="px-3 py-2 rounded-lg text-sm font-semibold border glass-hover"
+                   style="border-color: var(--border-strong); color: var(--text-primary);">
+                    <i class="fas fa-gear mr-1"></i> Workspace settings
+                </a>
+            @endif
             @if(!empty($canEditRoles))
                 <a href="{{ route('user.team.roles.index') }}"
                    class="px-3 py-2 rounded-lg text-sm font-semibold border glass-hover"
@@ -39,6 +46,17 @@
                     class="px-4 py-2 bg-primary-600 text-white rounded-lg text-sm font-semibold hover:bg-primary-700">
                 <i class="fas fa-plus mr-1"></i> Invite teammate
             </button>
+            @if(empty($isOwner) && !$workspace->is_personal)
+                <form method="POST" action="{{ route('user.team.leave') }}"
+                      onsubmit="return confirm('Leave {{ $workspace->name }}? You\'ll lose access to this workspace and be moved back to your personal one. Anything you created here transfers to the owner.');">
+                    @csrf
+                    <button type="submit"
+                            class="px-3 py-2 rounded-lg text-sm font-semibold border glass-hover text-red-500"
+                            style="border-color: var(--border-strong);">
+                        <i class="fas fa-arrow-right-from-bracket mr-1"></i> Leave workspace
+                    </button>
+                </form>
+            @endif
         </div>
     </div>
 

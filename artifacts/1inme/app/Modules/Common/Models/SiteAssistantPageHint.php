@@ -2,7 +2,9 @@
 
 namespace App\Modules\Common\Models;
 
+use App\Modules\Common\Support\DatabaseErrors;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\Cache;
 
 class SiteAssistantPageHint extends Model
@@ -50,11 +52,22 @@ class SiteAssistantPageHint extends Model
         // region RDS isn't hit on each request. getAttributes() keeps the JSON
         // `suggested_actions` column in its raw form so the `array` cast still
         // decodes correctly after hydrate().
-        $rows = Cache::remember(
-            self::SURFACE_CACHE_PREFIX . $surface,
-            300,
-            fn () => static::buildRowsForSurface($surface)
-        );
+        try {
+            $rows = Cache::remember(
+                self::SURFACE_CACHE_PREFIX . $surface,
+                300,
+                fn () => static::buildRowsForSurface($surface)
+            );
+        } catch (QueryException $e) {
+            // The widget partial renders on EVERY page — including error pages
+            // triggered by a broken/un-migrated database. A missing
+            // site_assistant_page_hints table must degrade to "no hint", never
+            // cascade into a 500 while rendering an error page.
+            if (DatabaseErrors::isMissingTable($e)) {
+                return null;
+            }
+            throw $e;
+        }
         $hints = static::hydrate($rows);
 
         $routeName = (string) $routeName;

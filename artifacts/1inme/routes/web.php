@@ -227,22 +227,21 @@ Route::get('/qr/render', [PublicQrController::class, 'render'])->name('qr.public
 
 Route::get('/f/{id}/{filename}', [UserFileController::class, 'serve'])->name('file.serve')->where('id', '[0-9]+');
 
-// ---- Legacy /storage/* fallback → CloudFront ----
-// Avatars, covers, post images, verification logos, etc. were historically
-// stored as plain `/storage/...` URLs that the local symlink served directly.
-// Once the `public` disk is S3-backed the local file is gone, so requests fall
-// through to this route (php's dev server / production still serve any file
-// that is still present locally). We then redirect to the S3/CloudFront URL.
-// Guarded so it never loops when the `public` disk is still local.
+// ---- Retired legacy /storage/* bridge (now a 404-logging shim) ----
+// Legacy `/storage/...` DB values (avatars, covers, post images, verification
+// logos, …) were rewritten to canonical CDN URLs by
+// `storage:canonicalize-legacy-paths` (production dry-run confirmed 0 legacy
+// rows, July 2026), so the old redirect-to-CloudFront bridge is retired.
+// Deliberate decision: keep a thin shim (instead of deleting the route) so
+// any straggler request — e.g. a `/storage/...` URL baked into an old email
+// or export — is logged for follow-up rather than silently swallowed by the
+// `/{alias}` catch-all, which would misread the path as a link alias.
 Route::get('/storage/{path}', function (string $path) {
-    if (config('filesystems.disks.public.driver') !== 's3') {
-        abort(404);
-    }
-    $disk = \Illuminate\Support\Facades\Storage::disk('public');
-    if (!$disk->exists($path)) {
-        abort(404);
-    }
-    return redirect($disk->url($path), 302);
+    \Illuminate\Support\Facades\Log::warning('storage.cdn.fallback: request to retired /storage bridge — value should have been canonicalized', [
+        'path'    => $path,
+        'referer' => request()->headers->get('referer'),
+    ]);
+    abort(404);
 })->where('path', '.*')->name('storage.cdn.fallback');
 
 // ---- Public Forms ----
@@ -347,6 +346,9 @@ Route::middleware('brand.primary')->controller(\App\Modules\Common\Controllers\S
 });
 Route::post('/contact', [\App\Modules\Common\Controllers\SitePageController::class, 'submitContact'])
     ->name('site.contact.submit')->middleware('throttle:10,10');
+
+Route::post('/custom-plan-request', [\App\Modules\Common\Controllers\CustomPlanRequestController::class, 'store'])
+    ->name('custom-plan-request.store')->middleware('throttle:5,10');
 
 // ---- Marketing XML sitemap + robots.txt (must precede the catch-all /{alias} routes) ----
 // URL list sourced from MarketingSeo so it stays in lockstep with per-page SEO meta.
@@ -540,6 +542,11 @@ Route::get('/@{handle}/og.png', [\App\Modules\Common\Controllers\CreatorOgImageC
 Route::get('/@{handle}/events', [\App\Modules\Common\Controllers\CreatorProfilePublicController::class, 'events'])
     ->where('handle', '[A-Za-z0-9_]+')
     ->name('creator-profile.events');
+
+// Public testimonial submission form. Two-segment path under /testimonials
+// so it never collides with the single-segment /{alias} catch-all.
+Route::get ('/testimonials/submit', [\App\Modules\Common\Controllers\TestimonialSubmissionController::class, 'show'])->name('testimonials.submit.show');
+Route::post('/testimonials/submit', [\App\Modules\Common\Controllers\TestimonialSubmissionController::class, 'store'])->middleware('throttle:5,60')->name('testimonials.submit.store');
 
 // Task #1211 — public DMCA / IP takedown intake.
 Route::get ('/legal/dmca', [\App\Modules\Common\Controllers\DmcaController::class, 'show'])->name('legal.dmca.show');

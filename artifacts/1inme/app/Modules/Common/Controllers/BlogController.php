@@ -312,7 +312,7 @@ class BlogController extends Controller
             'readingTime' => max(1, (int) $p->reading_time_min) . ' min read',
             'author'      => (string) ($p->author?->name ?? 'The Sayzio Team'),
             'category'    => (string) ($p->category?->name ?? 'General'),
-            'coverImage'  => $this->absoluteUrl($p->cover_image),
+            'coverImage'  => $this->absoluteUrl(\App\Support\PublicStorageUrl::resolve($p->cover_image)),
         ];
     }
 
@@ -478,7 +478,7 @@ class BlogController extends Controller
                 'id'     => (int) $v->id,
                 'name'   => (string) ($v->name ?? 'Reader'),
                 'email'  => (string) ($v->email ?? ''),
-                'avatar' => $v->avatar ?? null,
+                'avatar' => \App\Support\PublicStorageUrl::resolve($v->avatar ?? null),
             ];
         }
         return ['type' => null, 'id' => null, 'name' => null, 'email' => null, 'avatar' => null];

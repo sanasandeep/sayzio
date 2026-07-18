@@ -48,6 +48,7 @@
     .ev-input:focus { outline:none; border-color:#3d6bff; box-shadow:0 0 0 3px rgba(61,107,255,0.25); }
     .ev-label { color: rgba(255,255,255,0.5); }
     .ev-section-label { color:#8fa8ff; }
+    .ev-strong { color:#fff; }
     .ev-muted { color: rgba(255,255,255,0.6); }
     .ev-muted-lite { color: rgba(255,255,255,0.4); }
     .ev-desc { color: rgba(255,255,255,0.7); }
@@ -69,6 +70,7 @@
     html.light-mode .ev-input { background:#f8fafc; border-color:rgba(15,23,42,0.14); color:#111827; }
     html.light-mode .ev-label { color: rgba(15,23,42,0.55); }
     html.light-mode .ev-section-label { color:#3d6bff; }
+    html.light-mode .ev-strong { color:#0f172a; }
     html.light-mode .ev-muted { color: rgba(15,23,42,0.6); }
     html.light-mode .ev-muted-lite { color: rgba(15,23,42,0.4); }
     html.light-mode .ev-desc { color: rgba(15,23,42,0.72); }
@@ -337,6 +339,22 @@
                                     </a>
                                 </div>
                             @endif
+
+                            @auth('web')
+                                {{-- Task #5052 — "My swaps": the signed-in viewer's own
+                                     pending/accepted contact-swap requests at this event,
+                                     with a Withdraw button on pending ones they sent. --}}
+                                <div class="ev-card p-4 mt-4" id="ev-my-swaps" hidden
+                                     data-list-url="{{ route('user.event-swaps.index', $link->alias) }}"
+                                     data-cancel-url="{{ url('/user/contact-exchanges') }}"
+                                     data-csrf="{{ csrf_token() }}">
+                                    <div class="flex items-center gap-2 mb-3 px-1">
+                                        <i class="fas fa-right-left ev-accent-text text-xs"></i>
+                                        <span class="text-[11px] font-bold uppercase tracking-wide ev-section-label">My swaps</span>
+                                    </div>
+                                    <div id="ev-my-swaps-list" class="space-y-2"></div>
+                                </div>
+                            @endauth
                         </div>
                     </div>
                 </div>
@@ -412,3 +430,85 @@
 </script>
 @endpush
 @endif
+
+@auth('web')
+@push('scripts')
+<script>
+// Task #5052 — "My swaps" panel: fetch the viewer's pending/accepted swap
+// requests for this event and allow withdrawing pending ones they sent.
+// The card stays hidden until at least one swap exists.
+(function () {
+    var card = document.getElementById('ev-my-swaps');
+    if (!card) return;
+    var listEl = document.getElementById('ev-my-swaps-list');
+    var listUrl = card.dataset.listUrl;
+    var cancelBase = card.dataset.cancelUrl;
+    var csrf = card.dataset.csrf;
+
+    function esc(s) {
+        return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+            return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+        });
+    }
+
+    function fmtDate(iso) {
+        if (!iso) return '';
+        try {
+            return new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+        } catch (e) { return ''; }
+    }
+
+    function render(items) {
+        if (!items.length) { card.hidden = true; return; }
+        card.hidden = false;
+        listEl.innerHTML = items.map(function (it) {
+            var o = it.other || {};
+            var name = esc(o.name || 'Attendee');
+            var avatar = o.avatar_url
+                ? '<img src="' + esc(o.avatar_url) + '" alt="" class="w-8 h-8 rounded-full object-cover flex-shrink-0">'
+                : '<div class="w-8 h-8 rounded-full ev-chip flex items-center justify-center text-xs font-bold flex-shrink-0">' + esc((o.name || '?')[0]).toUpperCase() + '</div>';
+            var status;
+            if (it.status === 'accepted') {
+                status = '<span class="text-[11px] ev-accent-text font-semibold"><i class="fas fa-check mr-1"></i>Accepted' + (it.accepted_at ? ' ' + esc(fmtDate(it.accepted_at)) : '') + '</span>';
+            } else {
+                status = '<span class="text-[11px] ev-muted-lite">' + (it.sent_by_me ? 'Pending — sent by you' : 'Pending — awaiting you') + '</span>';
+            }
+            var action = it.can_cancel
+                ? '<button type="button" data-cancel-id="' + it.exchange_id + '" class="ev-chip text-[11px] font-semibold px-2.5 py-1.5 rounded-lg hover:opacity-80 transition flex-shrink-0">Withdraw</button>'
+                : '';
+            return '<div class="ev-card-soft flex items-center gap-2.5 p-2.5" data-swap-row="' + it.exchange_id + '">'
+                + avatar
+                + '<div class="min-w-0 flex-1"><div class="text-sm font-semibold ev-strong truncate">' + name + (o.handle ? ' <span class="ev-muted-lite font-normal">@' + esc(o.handle) + '</span>' : '') + '</div>' + status + '</div>'
+                + action
+                + '</div>';
+        }).join('');
+    }
+
+    listEl.addEventListener('click', function (e) {
+        var btn = e.target.closest('[data-cancel-id]');
+        if (!btn) return;
+        var id = btn.getAttribute('data-cancel-id');
+        btn.disabled = true;
+        fetch(cancelBase + '/' + id + '/cancel', {
+            method: 'POST',
+            headers: { 'X-CSRF-TOKEN': csrf, 'Accept': 'application/json' },
+            credentials: 'same-origin',
+        }).then(function (r) {
+            if (!r.ok) throw new Error('cancel failed');
+            var row = listEl.querySelector('[data-swap-row="' + id + '"]');
+            if (row) row.remove();
+            if (!listEl.children.length) card.hidden = true;
+        }).catch(function () {
+            btn.disabled = false;
+            alert('Could not withdraw the request. Please try again.');
+        });
+    });
+
+    fetch(listUrl, { headers: { 'Accept': 'application/json' }, credentials: 'same-origin' })
+        .then(function (r) { return r.ok ? r.json() : { items: [] }; })
+        .then(function (data) { render((data && data.items) || []); })
+        .catch(function () { /* leave hidden */ });
+})();
+</script>
+@endpush
+@endauth

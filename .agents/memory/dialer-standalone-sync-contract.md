@@ -30,6 +30,13 @@ lib/secure, verify.tsx, shared components, etc.) fails the `dialer-sync`,
    script).
 6. Re-baseline: `pnpm --filter @workspace/scripts run check:dialer-sync:accept`.
 
+**Status (July 2026 full re-sync):** `contexts/AuthContext.tsx` is now relation
+`identical` (the demoLogin role adaptation is gone), the login screen matches
+the main app (password login, MandatoryNameModal name gate, no demo buttons),
+and the pre-existing drift backlog (verify/about/InfoPage/siteContent/etc.) was
+cleared. Remaining `adapted` entries: about.tsx, InfoPage.tsx, (auth)/index.tsx,
+app/_layout.tsx, (tabs)/_layout.tsx, oauth-callback.tsx.
+
 **Gotcha — the standalone lags behind prior admin-removal.** When you finally
 `cp` a current AuthContext over, pre-existing un-synced drift surfaces as NEW
 typecheck errors, because the old standalone was internally consistent with the
@@ -38,3 +45,21 @@ old API. Seen: standalone `contexts/AuthContext.tsx` importing removed
 `demoLogin(role)` (now 0-arg) behind a "Demo as admin" button. Fixing these to
 match the main app (admin removed) is part of a clean sync. Related:
 [mobile-admin-removal-lockstep.md](mobile-admin-removal-lockstep.md).
+
+**Gotcha — the standalone has NO `react-native-reanimated`.** It deliberately
+avoids that dependency (its InfoPage is the plain static version for this exact
+reason). So a new main-app shared component built on reanimated (AnimatedBlob
+decorative background, ScrollReveal, etc.) CANNOT be `cp`'d into the standalone —
+`dialer-typecheck` fails with `Cannot find module 'react-native-reanimated'`.
+When a synced `adapted` file (e.g. `app/(auth)/index.tsx`) starts pulling in a
+reanimated component, the correct sync is to OMIT that decorative layer from the
+standalone copy, extend the manifest entry's `note` to document the omission,
+and re-baseline the entry's `sourceSha256` to the current main-app source (do
+NOT run the global `:accept`, which would also mask unrelated pre-existing drift
+in about.tsx/InfoPage.tsx/siteContent.ts/verify.tsx).
+
+**Scoping — only fix YOUR drift.** `check:dialer-sync` surfaces cascading
+pre-existing drift from earlier tasks (verify.tsx, about.tsx, InfoPage.tsx ~360
+diff lines, siteContent.ts) that predates your change and is out of scope to
+port. Resolve only the entry your commit touched; leave the rest and (if the
+gate stays red purely on pre-existing drift) skip that validation with a reason.

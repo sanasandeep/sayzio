@@ -240,7 +240,7 @@
                                 <div class="flex items-center gap-2">
                                     <span class="rank-badge {{ $rankCls }}">{{ $i + 1 }}</span>
                                     @if($f->avatar)
-                                        <img src="{{ $f->avatar }}" class="w-7 h-7 rounded-full object-cover" alt=""/>
+                                        <img src="{{ \App\Support\PublicStorageUrl::resolve($f->avatar) }}" class="w-7 h-7 rounded-full object-cover" alt=""/>
                                     @else
                                         <div class="w-7 h-7 rounded-full bg-gradient-to-br from-blue-500 to-fuchsia-500 text-white flex items-center justify-center text-xs font-bold">
                                             {{ strtoupper(substr($f->name ?? '?', 0, 1)) }}

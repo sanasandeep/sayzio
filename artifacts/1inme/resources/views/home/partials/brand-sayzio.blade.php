@@ -143,6 +143,12 @@
     /* Animated energy line between the two cards (desktop horizontal). */
     .bs-energy { position: relative; height: 4px; border-radius: 9999px; overflow: hidden; background: rgba(255,255,255,.08); }
     html.light-mode .bs-energy { background: rgba(15,23,42,.08); }
+    /* Mobile connector: absolutely center the line across the connector row so the
+       "is" pill sits over its middle. Declared here (not via the Tailwind .absolute
+       utility) because this unlayered .bs-energy rule would otherwise beat the
+       layered utility in the cascade, leaving the line at position:relative. Scoped
+       to a mobile-only class so the desktop full-span line is untouched. */
+    .bs-energy.bs-energy--m { position: absolute; left: 0; right: 0; top: 50%; transform: translateY(-50%); }
     .bs-energy::after {
         content: ""; position: absolute; inset: 0;
         background: linear-gradient(90deg, transparent, var(--c1), #6e61ff, var(--c3), transparent);
@@ -275,9 +281,13 @@
             </div>
 
             {{-- Center connector ("is" pill; desktop energy line now spans the full row above) --}}
-            <div class="relative z-10 flex lg:flex-col items-center justify-center gap-0 lg:px-2 lg:flex-none" aria-hidden="true">
-                <div class="bs-energy lg:hidden h-1 w-24 rotate-0"></div>
-                <span class="bs-is-pill float-c text-lg">is</span>
+            {{-- On mobile: energy line is absolute left-0/right-0 so it spans the full width of this
+                 flex-col row, and the pill sits centered on top of it via relative z-10.
+                 On desktop (lg): line is hidden (full-span line above handles it), flex-col keeps the
+                 pill centered in the gap column between the two cards. --}}
+            <div class="relative z-10 flex items-center justify-center lg:flex-col lg:px-2 lg:flex-none" aria-hidden="true">
+                <div class="bs-energy bs-energy--m lg:hidden"></div>
+                <span class="bs-is-pill float-c text-lg relative z-10">is</span>
             </div>
 
             {{-- Sayzio card --}}

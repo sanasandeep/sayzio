@@ -42,7 +42,7 @@
                                 <td class="px-4 py-3">
                                     <div class="flex items-center gap-2.5">
                                         @if($sub->fan?->avatar)
-                                            <img src="{{ $sub->fan->avatar }}" class="w-8 h-8 rounded-full object-cover" alt="">
+                                            <img src="{{ \App\Support\PublicStorageUrl::resolve($sub->fan->avatar) }}" class="w-8 h-8 rounded-full object-cover" alt="">
                                         @else
                                             <div class="w-8 h-8 rounded-full flex items-center justify-center font-semibold text-xs"
                                                  style="background: rgba(92,131,255,0.15); color: #5c83ff;">

@@ -83,7 +83,7 @@
 
         @if($post->cover_image)
             <div class="mt-8 rounded-2xl overflow-hidden">
-                <img src="{{ $post->cover_image }}" alt="{{ $post->title }}" class="w-full h-auto">
+                <img src="{{ \App\Support\PublicStorageUrl::resolve($post->cover_image) }}" alt="{{ $post->title }}" class="w-full h-auto">
             </div>
         @endif
 

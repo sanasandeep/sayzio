@@ -295,7 +295,7 @@
                             <div class="px-5 pt-8 pb-6">
                                 <div class="flex items-end gap-3">
                                     @if($link->user->avatar ?? false)
-                                        <img src="{{ $link->user->avatar }}" class="w-16 h-16 rounded-2xl object-cover border-4 border-white/70 shadow-lg" alt="">
+                                        <img src="{{ \App\Support\PublicStorageUrl::resolve($link->user->avatar) }}" class="w-16 h-16 rounded-2xl object-cover border-4 border-white/70 shadow-lg" alt="">
                                     @else
                                         <div class="w-16 h-16 rounded-2xl border-4 border-white/70 bg-white/20 text-white flex items-center justify-center font-extrabold backdrop-blur">{{ $link->user->getInitials() ?? '?' }}</div>
                                     @endif

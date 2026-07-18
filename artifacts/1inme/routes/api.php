@@ -44,7 +44,7 @@ use App\Modules\Api\Controllers\VaultController;
 use App\Modules\Api\Controllers\VerificationController;
 use App\Modules\Api\Controllers\AccountingController;
 use App\Modules\Api\Controllers\BillingController;
-use App\Modules\Api\Controllers\RevenueCatBillingController;
+use App\Modules\Api\Controllers\MobileBillingController;
 use App\Modules\Api\Controllers\DialerController;
 use App\Modules\Api\Controllers\RestaurantController;
 use App\Modules\Api\Controllers\StoreController;
@@ -187,6 +187,20 @@ Route::prefix('v1')->group(function () {
         Route::post('/events/{alias}/buy',                 [\App\Modules\Api\Controllers\EventTicketApiController::class, 'buy'])->middleware('throttle:30,1');
         Route::post('/events/{alias}/interest',            [\App\Modules\Api\Controllers\EventTicketApiController::class, 'interest'])->middleware('throttle:30,1');
         Route::get ('/me/event-tickets',                   [\App\Modules\Api\Controllers\EventTicketApiController::class, 'myTickets']);
+
+        // Task #5008 — Event contact exchange: "My card" QR + opt-in people list.
+        Route::get ('/me/event-card',                      [\App\Modules\Api\Controllers\EventContactExchangeController::class, 'myCard']);
+        Route::get ('/events/{alias}/discoverability',     [\App\Modules\Api\Controllers\EventContactExchangeController::class, 'getDiscoverability']);
+        Route::post('/events/{alias}/discoverability',     [\App\Modules\Api\Controllers\EventContactExchangeController::class, 'toggleDiscoverability'])->middleware('throttle:30,1');
+        Route::get ('/events/{alias}/people',              [\App\Modules\Api\Controllers\EventContactExchangeController::class, 'listAttendees']);
+        Route::post('/events/{alias}/exchange',            [\App\Modules\Api\Controllers\EventContactExchangeController::class, 'requestExchange'])->middleware('throttle:10,1');
+        Route::post('/me/contact-exchanges/{id}/accept',  [\App\Modules\Api\Controllers\EventContactExchangeController::class, 'acceptExchange'])->whereNumber('id');
+        Route::post('/me/contact-exchanges/{id}/decline', [\App\Modules\Api\Controllers\EventContactExchangeController::class, 'declineExchange'])->whereNumber('id');
+        // Task #5052 — "My swaps": review + withdraw own swap requests.
+        Route::get ('/events/{alias}/my-swaps',           [\App\Modules\Api\Controllers\EventContactExchangeController::class, 'mySwaps']);
+        Route::post('/me/contact-exchanges/{id}/cancel',  [\App\Modules\Api\Controllers\EventContactExchangeController::class, 'cancelExchange'])->whereNumber('id');
+        // Task #5010 — organizer aggregate stats for the connections dashboard.
+        Route::get ('/links/{link}/exchange-stats',        [\App\Modules\Api\Controllers\EventContactExchangeController::class, 'ownerStats'])->whereNumber('link');
         Route::get ('/links/{link}/event-tiers',            [\App\Modules\Api\Controllers\EventTicketApiController::class, 'ownerTiers'])->whereNumber('link');
         Route::post('/links/{link}/event-tiers',            [\App\Modules\Api\Controllers\EventTicketApiController::class, 'storeTier'])->whereNumber('link');
         Route::patch('/links/{link}/event-tiers/{tier}',    [\App\Modules\Api\Controllers\EventTicketApiController::class, 'updateTier'])->whereNumber('link')->whereNumber('tier');
@@ -205,6 +219,15 @@ Route::prefix('v1')->group(function () {
     // visibility-gated (registered/followers/subscribers).
     Route::post('/reviews/{alias}', [\App\Modules\Api\Controllers\ReviewApiController::class, 'submit'])
         ->middleware(['api.optional_auth', 'throttle:10,1']);
+
+    // Public, no-login form submission — the REST mirror of the web POST
+    // /f/{slug}. Delegates to the canonical web submit pipeline so API-driven
+    // embeds and mobile integrations capture the same data, including
+    // repeatable-group (rep_{id}[idx][childId]) payloads stored as
+    // {_repeatable_group, copies}. Same throttle as the web route.
+    Route::post('/forms/{id}/submit', [FormController::class, 'publicSubmit'])
+        ->whereNumber('id')
+        ->middleware('throttle:10,1');
 
     // Best-effort page-visit tracking from in-app biolink viewers (mobile).
     // Mirrors the web's RedirectController::track() call on every biolink
@@ -629,9 +652,10 @@ Route::prefix('v1')->group(function () {
         // Scan a business card / brochure (mobile parity for the web-only
         // user.card-scans.* flow). Upload runs the shared AI extraction
         // service; review/save persists a Contact and/or seeds a wizard draft.
-        Route::post('/card-scans',             [CardScanController::class, 'store'])->middleware('throttle:20,1');
-        Route::get ('/card-scans/{scan}',      [CardScanController::class, 'show'])->whereNumber('scan');
-        Route::post('/card-scans/{scan}/save', [CardScanController::class, 'save'])->whereNumber('scan');
+        Route::post('/card-scans',               [CardScanController::class, 'store'])->middleware('throttle:20,1');
+        Route::get ('/card-scans/{scan}',        [CardScanController::class, 'show'])->whereNumber('scan');
+        Route::post('/card-scans/{scan}/rescan', [CardScanController::class, 'rescan'])->whereNumber('scan')->middleware('throttle:20,1');
+        Route::post('/card-scans/{scan}/save',   [CardScanController::class, 'save'])->whereNumber('scan');
         // A/B test endpoints — registered BEFORE the `/links/{id}` show
         // route so the literal segments (`ab`) win over the integer id
         // matcher and we don't accidentally treat "ab" as a link id.
@@ -735,6 +759,9 @@ Route::prefix('v1')->group(function () {
         // per-user `locked` flag. Declared before the {id}/blocks routes
         // since it carries no link id.
         Route::get   ('/block-catalog',                     [BiolinkBlockController::class, 'catalog']);
+        // Background preset catalog for the Appearance "Presets" picker
+        // (mobile parity for the web preset gallery). Static, user-agnostic.
+        Route::get   ('/bg-presets',                        [BiolinkBlockController::class, 'bgPresets']);
         Route::get   ('/links/{id}/blocks',                 [BiolinkBlockController::class, 'index'])->whereNumber('id');
         Route::post  ('/links/{id}/blocks',                 [BiolinkBlockController::class, 'store'])->whereNumber('id');
         Route::patch ('/links/{id}/blocks/{blockId}',       [BiolinkBlockController::class, 'update'])->whereNumber('id')->whereNumber('blockId');
@@ -890,7 +917,13 @@ Route::prefix('v1')->group(function () {
         Route::post  ('/posts/{id}/unpin', [CreatorPostController::class, 'unpin'])->whereNumber('id');
 
         // Contacts
-        Route::get   ('/contacts',                  [ContactController::class, 'index']);
+        Route::get   ('/contacts',                      [ContactController::class, 'index']);
+        Route::get   ('/contacts/tags',                 [ContactController::class, 'allTags']);
+        Route::get   ('/contacts/duplicates',           [ContactController::class, 'duplicates']);
+        Route::get   ('/contacts/duplicates/count',     [ContactController::class, 'duplicatesCount']);
+        Route::post  ('/contacts/duplicates/dismiss',   [ContactController::class, 'duplicatesDismiss'])->middleware('throttle:60,1');
+        Route::post  ('/contacts/duplicates/merge-all', [ContactController::class, 'mergeAllDuplicates'])->middleware('throttle:6,1');
+        Route::post  ('/contacts/{id}/merge-duplicate', [ContactController::class, 'mergeContacts'])->whereNumber('id')->middleware('throttle:30,1');
         Route::get   ('/contacts/follow-ups',       [ContactController::class, 'followUps']);
         Route::get   ('/contacts/follow-ups/count', [ContactController::class, 'followUpsCount']);
         Route::post  ('/contacts',                  [ContactController::class, 'store'])->middleware('throttle:120,1');
@@ -903,6 +936,10 @@ Route::prefix('v1')->group(function () {
         Route::post  ('/contacts/{id}/sms-biolink', [ContactController::class, 'smsBiolink'])->whereNumber('id')->middleware('throttle:30,1');
         Route::post  ('/contacts/{id}/follow-up',   [ContactController::class, 'setFollowUp'])->whereNumber('id');
         Route::delete('/contacts/{id}/follow-up',   [ContactController::class, 'clearFollowUp'])->whereNumber('id');
+        Route::post  ('/contacts/{id}/share',       [ContactController::class, 'share'])->whereNumber('id');
+        Route::delete('/contacts/{id}/share',       [ContactController::class, 'unshare'])->whereNumber('id');
+        Route::patch ('/contacts/{id}/notes',       [ContactController::class, 'updateNotes'])->whereNumber('id');
+        Route::patch ('/contacts/{id}/tags',        [ContactController::class, 'updateTags'])->whereNumber('id');
         Route::delete('/contacts/{id}',             [ContactController::class, 'destroy'])->whereNumber('id');
 
         // Contacts — Google Contacts sync
@@ -919,6 +956,10 @@ Route::prefix('v1')->group(function () {
         Route::delete('/contacts/import/preview/{token}',        [ContactController::class, 'importCancel']);
         Route::post  ('/contacts/import/preview/{token}/confirm',[ContactController::class, 'importConfirm']);
         Route::get   ('/contacts/import/status/{id}',            [ContactController::class, 'importStatus'])->whereNumber('id');
+
+        // Contacts — bulk export
+        Route::post  ('/contacts/export',                        [ContactController::class, 'exportRequest'])->middleware('throttle:30,1');
+        Route::get   ('/contacts/export/{id}/status',            [ContactController::class, 'exportStatus'])->whereNumber('id');
 
         // Connected Apps (CRM two-way sync + GA4 forwarding). Mirrors the
         // web /user/connected-apps area; OAuth is delegated to the shared
@@ -988,8 +1029,19 @@ Route::prefix('v1')->group(function () {
         // Mailbox AI reply draft (browser extension — email thread from Gmail / Outlook).
         Route::post('/mailbox/draft-reply', [\App\Modules\Api\Controllers\MailboxReplyDraftController::class, 'draft'])->middleware('throttle:20,1');
 
+        // Browser extension v0.2 helper endpoints.
+        // POST /me/files/fetch-url — save a remote image URL to Sayzio Files
+        //   (background SW cannot do binary downloads directly; backend fetches).
+        // POST /me/links/health   — batch check alias active/expired status
+        //   (popup link-health alerts).
+        Route::post('/me/files/fetch-url', [\App\Modules\Api\Controllers\ExtensionApiController::class, 'fetchUrlAndSave'])->middleware('throttle:30,1');
+        Route::post('/me/links/health',    [\App\Modules\Api\Controllers\ExtensionApiController::class, 'checkLinksHealth'])->middleware('throttle:60,1');
+
         // Workspaces
         Route::get('/workspaces',                 [WorkspaceController::class, 'index']);
+        Route::post('/workspaces',                [WorkspaceController::class, 'store']);
+        Route::patch('/workspaces/{id}',          [WorkspaceController::class, 'update'])->whereNumber('id');
+        Route::delete('/workspaces/{id}',         [WorkspaceController::class, 'destroy'])->whereNumber('id');
         Route::get('/workspaces/{id}/members',    [WorkspaceController::class, 'members'])->whereNumber('id');
 
         // Workspace tracking pixels (Meta / TikTok / Google Ads). Used by
@@ -1254,17 +1306,16 @@ Route::prefix('v1')->group(function () {
         // Team / staff (active workspace)
         Route::get   ('/team',                     [\App\Modules\Api\Controllers\TeamController::class, 'index']);
         Route::post  ('/team/invite',              [\App\Modules\Api\Controllers\TeamController::class, 'invite'])->middleware('throttle:30,1');
+        Route::patch ('/team/members/{member}',    [\App\Modules\Api\Controllers\TeamController::class, 'updateMember'])->whereNumber('member');
         Route::delete('/team/invites/{invite}',    [\App\Modules\Api\Controllers\TeamController::class, 'revokeInvite'])->whereNumber('invite');
         Route::delete('/team/members/{member}',    [\App\Modules\Api\Controllers\TeamController::class, 'removeMember'])->whereNumber('member');
 
-        // Plan + addon catalogue priced for the signed-in user, plus
-        // the RevenueCat receipt-verification hook used by the mobile
-        // app after a successful Purchases.purchasePackage / restore.
-        Route::get ('/billing/plans',                [RevenueCatBillingController::class, 'plans']);
-        Route::post('/billing/currency',             [RevenueCatBillingController::class, 'setCurrency'])
+        // Plan + addon catalogue priced for the signed-in user. Plan
+        // upgrades and coin purchases are completed on the web pricing
+        // page (opened in the OS external browser), not in-app.
+        Route::get ('/billing/plans',                [MobileBillingController::class, 'plans']);
+        Route::post('/billing/currency',             [MobileBillingController::class, 'setCurrency'])
             ->middleware('throttle:60,1');
-        Route::post('/billing/revenuecat/activate',  [RevenueCatBillingController::class, 'activate'])
-            ->middleware('throttle:30,1');
 
         // Dialer
         Route::get   ('/dialer/suggestions',        [DialerController::class, 'suggestions']);
@@ -1272,6 +1323,9 @@ Route::prefix('v1')->group(function () {
         Route::post  ('/dialer/lookup',             [DialerController::class, 'lookup'])->middleware('throttle:60,1');
         Route::get   ('/dialer/profile',            [DialerController::class, 'profile']);
         Route::get   ('/dialer/history',            [DialerController::class, 'history']);
+        Route::delete('/dialer/history',            [DialerController::class, 'historyClear']);
+        Route::patch ('/dialer/history/{id}',       [DialerController::class, 'historyUpdate'])->whereNumber('id');
+        Route::delete('/dialer/history/{id}',       [DialerController::class, 'historyDestroy'])->whereNumber('id');
         Route::get   ('/dialer/channels',           [DialerController::class, 'channels']);
         Route::put   ('/dialer/channels',           [DialerController::class, 'updateChannels']);
         // Contact privacy (Task #3497) — what strangers may see via caller-ID / search.
@@ -1280,10 +1334,12 @@ Route::prefix('v1')->group(function () {
         // Pollable live-sync cursor (favorites/flags/call-log across devices).
         Route::get   ('/dialer/live',               [DialerController::class, 'live']);
         // Speed-dial favorites.
-        Route::get   ('/dialer/favorites',          [DialerController::class, 'favorites']);
-        Route::post  ('/dialer/favorites',          [DialerController::class, 'addFavorite']);
-        Route::post  ('/dialer/favorites/reorder',  [DialerController::class, 'reorderFavorites']);
-        Route::delete('/dialer/favorites/{id}',     [DialerController::class, 'removeFavorite'])->whereNumber('id');
+        Route::get   ('/dialer/favorites',              [DialerController::class, 'favorites']);
+        Route::post  ('/dialer/favorites',              [DialerController::class, 'addFavorite']);
+        Route::post  ('/dialer/favorites/reorder',      [DialerController::class, 'reorderFavorites']);
+        Route::delete('/dialer/favorites/{id}',         [DialerController::class, 'removeFavorite'])->whereNumber('id');
+        Route::post  ('/dialer/speed-dial/assign',      [DialerController::class, 'assignSpeedDial']);
+        Route::post  ('/dialer/speed-dial/unassign',    [DialerController::class, 'unassignSpeedDial']);
         // Per-user spam/block flags.
         Route::post  ('/dialer/flag',               [DialerController::class, 'flag']);
         // Call log (outcome/note/tag) + call-back reminders.

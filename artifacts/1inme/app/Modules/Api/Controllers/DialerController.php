@@ -174,13 +174,78 @@ class DialerController extends Controller
         return $this->ok(DialerIdentity::payload($user, $resolved));
     }
 
+    /**
+     * Full paginated call/lookup history with filters.
+     * Query params: outcome, tag, q (text search), page (0-based, 25/page).
+     * Also returns recents + frequent for the legacy home tab.
+     */
     public function history(Request $request)
     {
-        $userId = $request->user()->id;
+        $user    = $request->user();
+        $userId  = $user->id;
+
+        $filters = [
+            'outcome' => $request->query('outcome') ?: null,
+            'tag'     => $request->query('tag')     ?: null,
+            'q'       => $request->query('q')       ?: null,
+        ];
+        $page = max(0, (int) $request->query('page', 0));
+
+        // Full-history mode (any filter or explicit page > 0 or ?full=1)
+        if ($request->boolean('full') || $page > 0 || array_filter($filters)) {
+            return $this->ok(DialerData::paginatedHistory($userId, $filters, $page));
+        }
+
+        // Legacy home-tab mode: grouped recents + frequent (backward-compatible).
         return $this->ok([
             'recents'  => DialerData::groupedRecents($userId),
             'frequent' => DialerData::frequent($userId),
         ]);
+    }
+
+    /** Delete a single history entry scoped to the authenticated user. */
+    public function historyDestroy(Request $request, int $id)
+    {
+        $row = DialerLookup::where('user_id', $request->user()->id)->find($id);
+        if (!$row) return $this->notFound('History entry not found');
+        $row->delete();
+        return $this->ok(['deleted' => true]);
+    }
+
+    /** Clear all (or filtered) history entries for the user. */
+    public function historyClear(Request $request)
+    {
+        $userId  = $request->user()->id;
+        $outcome = $request->query('outcome') ?: null;
+        $tag     = $request->query('tag')     ?: null;
+
+        $query = DialerLookup::where('user_id', $userId);
+        if ($outcome) $query->where('outcome', $outcome);
+        if ($tag)     $query->where('tag', $tag);
+        $count = $query->count();
+        $query->delete();
+
+        return $this->ok(['cleared' => $count]);
+    }
+
+    /** Inline update of outcome / note / tag for a history entry. */
+    public function historyUpdate(Request $request, int $id)
+    {
+        $data = $request->validate([
+            'outcome' => ['nullable', 'string', 'in:called,messaged,no_answer,voicemail,busy,wrong_number,completed'],
+            'note'    => ['nullable', 'string', 'max:2000'],
+            'tag'     => ['nullable', 'string', 'max:50'],
+        ]);
+
+        $row = DialerLookup::where('user_id', $request->user()->id)->find($id);
+        if (!$row) return $this->notFound('History entry not found');
+
+        if (array_key_exists('outcome', $data)) $row->outcome = $data['outcome'];
+        if (array_key_exists('note',    $data)) $row->note    = $data['note'];
+        if (array_key_exists('tag',     $data)) $row->tag     = $data['tag'];
+        $row->save();
+
+        return $this->ok(['log' => DialerData::transformLog($row)]);
     }
 
     /**
@@ -347,6 +412,59 @@ class DialerController extends Controller
             if (!in_array((int) $id, $ids, true)) continue;
             DialerFavorite::where('user_id', $userId)->where('id', $id)->update(['sort_order' => $pos++]);
         }
+        return $this->ok(['items' => DialerData::favorites($userId)]);
+    }
+
+    /**
+     * Assign a speed-dial digit (1–9) to a favorite. Clears any prior owner
+     * of that digit so the slot is never double-booked.
+     */
+    public function assignSpeedDial(Request $request)
+    {
+        $userId = $request->user()->id;
+        $data = $request->validate([
+            'favorite_id' => ['required', 'integer'],
+            'digit'       => ['required', 'integer', 'min:1', 'max:9'],
+        ]);
+
+        $fav = DialerFavorite::where('user_id', $userId)->find($data['favorite_id']);
+        if (!$fav) return $this->notFound('Favorite not found');
+
+        // Release any other favorite that already owns this digit.
+        DialerFavorite::where('user_id', $userId)
+            ->where('speed_dial_digit', $data['digit'])
+            ->where('id', '!=', $fav->id)
+            ->update(['speed_dial_digit' => null]);
+
+        $fav->speed_dial_digit = $data['digit'];
+        $fav->save();
+
+        return $this->ok(['favorite' => DialerData::transformSingleFavorite($fav, $userId)]);
+    }
+
+    /**
+     * Unassign the speed-dial digit from a specific favorite or from a
+     * digit slot directly (pass either `favorite_id` or `digit`).
+     */
+    public function unassignSpeedDial(Request $request)
+    {
+        $userId = $request->user()->id;
+        $data = $request->validate([
+            'favorite_id' => ['nullable', 'integer'],
+            'digit'       => ['nullable', 'integer', 'min:1', 'max:9'],
+        ]);
+
+        $q = DialerFavorite::where('user_id', $userId);
+        if (!empty($data['favorite_id'])) {
+            $q->where('id', $data['favorite_id']);
+        } elseif (!empty($data['digit'])) {
+            $q->where('speed_dial_digit', $data['digit']);
+        } else {
+            return $this->fail('Provide favorite_id or digit', 422, 'invalid');
+        }
+
+        $q->update(['speed_dial_digit' => null]);
+
         return $this->ok(['items' => DialerData::favorites($userId)]);
     }
 

@@ -68,11 +68,34 @@ class LogOutboundEmail
                 'subject'   => $message->getSubject() ? mb_substr((string) $message->getSubject(), 0, 255) : null,
                 'body'      => $body !== '' ? $body : null, // capped by EmailLog's body mutator
                 'format'    => $format,
+                'transport' => $this->effectiveTransport(),
                 'status'    => 'sent',
                 'meta'      => $cc ? ['cc' => $cc] : null,
             ]);
         } catch (\Throwable $e) {
             Log::warning('LogOutboundEmail failed: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Effective default mail transport/driver at send time, so the admin log
+     * can flag black-holed non-delivering sends (log/array). The catch-all
+     * listener always goes through the default mailer, so the configured
+     * default reflects what was used. Best-effort.
+     */
+    private function effectiveTransport(): ?string
+    {
+        try {
+            $mailer = (string) config('mail.default');
+            if ($mailer === '') {
+                return null;
+            }
+            $transport = config("mail.mailers.{$mailer}.transport");
+            $value = is_string($transport) && $transport !== '' ? $transport : $mailer;
+
+            return mb_substr($value, 0, 32);
+        } catch (\Throwable $e) {
+            return null;
         }
     }
 }

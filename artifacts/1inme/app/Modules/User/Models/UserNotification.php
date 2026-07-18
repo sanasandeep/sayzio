@@ -59,7 +59,7 @@ class UserNotification extends Model
         }
 
         // Type-derived destinations for notifications that don't store a URL.
-        if ($type === 'workspace_access_request') {
+        if ($type === 'workspace_access_request' || $type === 'workspace_member_left') {
             return route('user.team.index');
         }
 
@@ -104,6 +104,10 @@ class UserNotification extends Model
                 return $data['message'] ?? 'Your subscription has changed.';
             case 'delivery_project.comment':
                 return $data['message'] ?? 'A client commented on a delivery project';
+            case 'event_exchange_request':
+                return ($data['requester_name'] ?? 'Someone') . ' wants to exchange contacts with you at ' . ($data['event_title'] ?? 'an event') . '.';
+            case 'event_exchange_accepted':
+                return ($data['acceptor_name'] ?? 'Someone') . ' accepted your contact exchange at ' . ($data['event_title'] ?? 'an event') . '.';
             default:
                 return $data['message'] ?? ($type ?? 'Notification');
         }

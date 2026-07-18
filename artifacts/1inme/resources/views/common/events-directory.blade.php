@@ -359,7 +359,7 @@
                        class="cat-tile-icon {{ $category === $c ? 'active' : '' }}"
                        data-label="{{ $categoryLabels[$c] ?? ucfirst($c) }}" aria-label="{{ $categoryLabels[$c] ?? ucfirst($c) }}"
                        @if($i >= $catFitCount) x-show="showMoreCats" x-cloak @endif>
-                        <i class="fas {{ $categoryIcons[$c] ?? 'fa-calendar-star' }}"></i>
+                        <i class="fas {{ $categoryIcons[$c] ?? 'fa-calendar-days' }}"></i>
                     </a>
                     @if($i === $catFitCount - 1 && $categories->count() > $catFitCount)
                         <div class="cat-divider" aria-hidden="true"></div>
@@ -470,7 +470,7 @@
                     @if($category === $otherCategory)
                         <i class="fas fa-ellipsis"></i> Other
                     @else
-                        <i class="fas {{ $categoryIcons[$category] ?? 'fa-calendar-star' }}"></i> {{ $categoryLabels[$category] ?? \App\Modules\User\Support\EventCategories::label($category) }}
+                        <i class="fas {{ $categoryIcons[$category] ?? 'fa-calendar-days' }}"></i> {{ $categoryLabels[$category] ?? \App\Modules\User\Support\EventCategories::label($category) }}
                     @endif
                     <a href="{{ url()->current() }}?{{ http_build_query(request()->except(['category', 'page'])) }}" class="chip-close">&times;</a>
                 </span>
@@ -557,7 +557,7 @@
                     $eventIsOnline = !empty($event->settings['is_online'] ?? false);
                     $catIcon = $eventCategory !== ''
                         ? \App\Modules\User\Support\EventCategories::icon($eventCategory)
-                        : 'fa-calendar-star';
+                        : 'fa-calendar-days';
                     $catGradient = \App\Modules\User\Support\EventCategories::gradient($eventCategory);
 
                     $tiers = $event->eventTicketTiers->sortBy('price_cents')->values();

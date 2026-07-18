@@ -66,6 +66,32 @@ class RedirectController extends Controller
 
     public function handle(Request $request, string $alias)
     {
+        // The public /{alias} short-link surface is the most-trafficked
+        // entry point on the platform. When the database is unreachable
+        // or un-migrated, every resolution query throws — degrade to a
+        // branded, self-contained 503 "temporarily unavailable" page
+        // (with Retry-After) instead of surfacing a raw 500. Unrelated
+        // query errors (application bugs) are re-thrown untouched.
+        try {
+            return $this->handleResolved($request, $alias);
+        } catch (\Throwable $e) {
+            if (!\App\Modules\Common\Support\DatabaseErrors::isUnavailable($e)) {
+                throw $e;
+            }
+
+            Log::warning('Short-link resolution degraded: database unavailable', [
+                'alias' => $alias,
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()
+                ->view('common.link-service-unavailable', ['alias' => $alias], 503)
+                ->header('Retry-After', '120');
+        }
+    }
+
+    private function handleResolved(Request $request, string $alias)
+    {
         // Resolve to the link via primary alias OR any of its additional aliases.
         // Host-aware: requests on a known custom domain only match links bound to
         // that domain; an unknown/disabled host gets a "domain not connected" notice.
@@ -802,7 +828,7 @@ class RedirectController extends Controller
 
         $icons = [];
         if ($link->favicon) {
-            $icons[] = ['src' => $link->favicon, 'sizes' => '64x64', 'type' => 'image/png'];
+            $icons[] = ['src' => \App\Support\PublicStorageUrl::resolve($link->favicon), 'sizes' => '64x64', 'type' => 'image/png'];
         }
         if (!empty($favicons['apple_touch_icon'])) {
             $icons[] = ['src' => $favicons['apple_touch_icon'], 'sizes' => '180x180', 'type' => 'image/png'];

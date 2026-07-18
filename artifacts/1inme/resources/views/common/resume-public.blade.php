@@ -173,7 +173,14 @@
             <p style="font-size: 12px; color: #64748b; margin: 0 0 8px;">Enter the password the owner shared with you.</p>
             <form method="POST" action="{{ url('/' . $user->publicHandle() . '/resume') }}">
                 @csrf
-                <input type="password" name="password" placeholder="Password" autofocus required>
+                <div style="position:relative;">
+                    <input type="password" name="password" id="resume-unlock-password" placeholder="Password" autofocus required style="padding-right:38px;">
+                    <button type="button" aria-label="Show password" aria-pressed="false"
+                            onclick="var i=document.getElementById('resume-unlock-password'); var s=i.type==='password'; i.type=s?'text':'password'; this.setAttribute('aria-pressed', s?'true':'false'); this.setAttribute('aria-label', s?'Hide password':'Show password'); this.querySelector('i').className='fas '+(s?'fa-eye-slash':'fa-eye');"
+                            style="position:absolute; right:4px; top:50%; transform:translateY(-50%); width:32px; padding:6px 0; background:none; border:none; color:#94a3b8; cursor:pointer;">
+                        <i class="fas fa-eye" style="pointer-events:none; font-size:13px;"></i>
+                    </button>
+                </div>
                 @if (!empty($lockedError))
                     <p style="color:#dc2626; font-size:12px; margin: -4px 0 8px;">{{ $lockedError }}</p>
                 @endif

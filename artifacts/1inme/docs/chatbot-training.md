@@ -1,15 +1,21 @@
-# Sayzio Chatbot Training Document
+# Ask Zio Training Document
 
-This is a single, self-contained, customer-facing reference to **Sayzio**, written
-to train a support and sales chatbot. It explains every customer-facing feature
-in plain English — *what it is*, *what it does*, and *how to use it* — and then
-provides a large FAQ the chatbot can answer from directly.
-
-A reader needs no other file to understand what Sayzio offers its customers.
-Everything here is written from the user's point of view; it deliberately leaves
-out admin/back-office tools, the developer REST API, and internal technical
-detail. Plans, the coin wallet, AI credits, and add-ons are explained
-conceptually (how they relate to features), not as a price list.
+> **Purpose.** This is the training document for **Ask Zio** — Sayzio's
+> customer-facing AI assistant. It is a single, self-contained, customer-facing
+> reference written in plain English. Ask Zio uses this document to answer
+> user questions about what Sayzio does, how features work, and what to do next.
+>
+> **Scope.** Every customer-facing feature is explained from the user's point of
+> view — *what it is*, *what it does*, and *how to use it* — followed by a large
+> FAQ. Admin/back-office tools, internal architecture, and raw API endpoint
+> contracts are intentionally excluded here (those live in
+> [`claude-training.md`](./claude-training.md) and [`api.md`](./api.md)).
+> Plans, the coin wallet, AI credits, and add-ons are explained conceptually
+> (how they relate to features), not as a price list.
+>
+> **Sibling docs.** [`knowledge-base.md`](./knowledge-base.md) is the
+> user-guide/FAQ for the help center. [`claude-training.md`](./claude-training.md)
+> is the comprehensive technical training doc for internal AI assistants.
 
 ---
 
@@ -27,7 +33,7 @@ conceptually (how they relate to features), not as a price list.
 9. [Biolink settings (appearance, SEO, branding, PWA)](#9-biolink-settings)
 10. [AI biolink builder & wizard](#10-ai-biolink-builder--wizard)
 11. [QR Studio Pro](#11-qr-studio-pro)
-12. [Analytics](#12-analytics)
+12. [Analytics (incl. Audience Insights)](#12-analytics)
 13. [Audience & engagement](#13-audience--engagement)
 14. [Reviews](#14-reviews)
 15. [Referrals](#15-referrals)
@@ -39,7 +45,10 @@ conceptually (how they relate to features), not as a price list.
 21. [Social proof (Buzz)](#21-social-proof-buzz)
 22. [Contacts & dialer](#22-contacts--dialer)
 23. [Scan a card or brochure](#23-scan-a-card-or-brochure)
-24. [Restaurant menu & orders](#24-restaurant-menu--orders)
+24. [Restaurant menu, Store & Service Booking](#24-restaurant-menu-store--service-booking)
+   - [24a. Restaurant menu](#24a-restaurant-menu)
+   - [24b. Store (order-request storefront)](#24b-store-order-request-storefront)
+   - [24c. Service Booking (appointment requests)](#24c-service-booking-appointment-requests)
 25. [Resume / portfolio](#25-resume--portfolio)
 26. [Files / Vault](#26-files--vault)
 27. [Inbox & messages](#27-inbox--messages)
@@ -139,7 +148,7 @@ allowance. Your balance and a running transaction ledger are always visible in
 your **Wallet**.
 
 **AI credits.** A separate metered balance that powers Sayzio's AI features (the
-AI biolink builder, Account Assistant, AI Agents/Knowledge Bases, resume tailoring and cover
+AI biolink builder, AI Coach, AI Agents/Knowledge Bases, resume tailoring and cover
 letters, the card/brochure scanner, the voice assistant, and visitor chats with
 your Chat Widget). Each AI action is billed automatically. Before an action
 runs, Sayzio checks you can afford it — if your balance is too low you're prompted
@@ -394,6 +403,41 @@ whole workspace.
 Google Analytics, GTM, LinkedIn, X, Pinterest, TikTok, Snapchat, Quora) so visits
 and conversions also flow to your own marketing tools.
 
+**Exporting your data.** Export analytics (link clicks, follower/subscriber lists,
+slide stats) to CSV — the analytics CSV export is a paid plan feature; the simpler
+**Export links** on the My Links page is free on every plan. Each plan retains
+analytics history for a set window; older detail beyond it is pruned, but running
+totals stay.
+
+### Audience Insights (Visitor Type Estimation)
+
+**What it is.** An AI feature that estimates the *type* of people visiting your
+Link in Bio page, returning a percentage split across five personas: Student,
+Professional / Employee, Business Owner, Creator / Artist, and Other.
+
+**Why use it.** Knowing your audience mix helps you tailor your blocks, language,
+and offers without running a survey — for example, a page skewing toward Business
+Owners might benefit from a testimonials block and a pricing table.
+
+**Privacy.** The AI only sees aggregate counts (referrer domain, geographic region,
+device type, browser language, time-of-day distribution, block engagement) that
+Sayzio already collects. No individual visitor is identified, and no third-party
+data is used.
+
+**How to use it.**
+1. Open a Link in Bio → **Analytics** → **Audience Insights** panel.
+   On mobile: tap the link → **Analytics** → **Audience Insights** tab.
+2. Click **Estimate audience**. AI runs the analysis and shows the breakdown.
+3. To refresh after making big changes, click **Re-estimate → Force refresh**.
+   This bypasses the 10-minute result cache and runs a fresh analysis.
+
+**What it costs.** A small number of AI credits per estimate (shown before you
+confirm). If the analysis fails, the credits are automatically refunded. Re-running
+within 10 minutes returns the cached result at no charge.
+
+**Plan requirement.** Audience Insights is a paid feature; an upgrade prompt
+appears if your plan doesn't include it.
+
 ---
 
 ## 13. Audience & engagement
@@ -529,10 +573,15 @@ unless a visitor opts to show adult content.
 
 Sayzio includes several AI helpers, all metered with **AI credits**:
 
-- **Account Assistant** — an AI assistant that reviews your account
-  (analytics, biolinks) and answers "how do I improve?" questions with actionable
-  suggestions.
-- **AI Growth Coach** — AI-powered suggestions to grow and fine-tune your links and pages.
+- **AI Coach** — an AI assistant that reviews your account (analytics, biolinks)
+  and answers "how do I improve?" questions with actionable, plain-language growth
+  advice. (Previously labelled *Account Assistant* and *AI Growth Coach*.)
+- **Zio Bot** (Site Assistant) — a conversational helper available as a chat
+  widget on the Sayzio website and inside the app. Click the chat icon to open it.
+  Zio Bot can answer questions, guide you to features, or connect you with support.
+  You can log in or create an account right inside the chat via a one-time code, and
+  you can request to be contacted via WhatsApp, a callback, or email using **Quick
+  Contact**. Zio Bot uses AI credits.
 - **Persona Generator** — creates a brand persona that shapes the tone and
   personality your AI uses when it writes or replies on your behalf.
 - **AI Agents** — configurable agents you can create and switch between, each with
@@ -559,6 +608,27 @@ Sayzio includes several AI helpers, all metered with **AI credits**:
 - **Inbox Agent** — categorizes and prioritizes incoming messages, drafts replies,
   and can auto-send confident, safe replies on autopilot (see
   [Inbox & messages](#27-inbox--messages)).
+- **Competitor Biolink Teardown** — paste a competitor's public page URL and get an
+  AI-scored analysis: an overall score (0–100), strengths, weaknesses, missing
+  elements, call-to-action quality, and concrete recommendations. One tap on
+  **"Build a better version"** hands those findings to the AI biolink builder to
+  assemble an improved page for you. Available on web and mobile.
+
+**Knowledge Base sync sources.** Besides pasting text, uploading documents, and
+adding FAQs or links, a Knowledge Base can stay in sync with outside systems through
+two additional connection sources — both respect your plan limits, and any
+credentials you enter are encrypted at rest.
+
+- **Webhook (inbound)** — Sayzio generates a unique inbound URL and a secret token.
+  Copy both into any external system. When that system POSTs content to the URL,
+  Sayzio verifies the token, stores the payload, and re-trains the Knowledge Base
+  automatically. The source shows its **Last received** timestamp so you can
+  confirm the connection is live. For security, the token is shown only once (copy
+  it immediately; use **Regenerate** to issue a new one if lost).
+- **API connector (outbound)** — enter an endpoint URL, choose an authentication
+  method (none, header API key, or bearer token), and set a refresh interval.
+  Sayzio fetches the endpoint on that schedule, turns the response into text, and
+  re-trains the Knowledge Base.
 
 Other AI helpers appear inside specific tools — **resume tailoring** and
 **cover-letter generation** in the Resume builder, the **AI biolink builder**, and
@@ -682,7 +752,9 @@ still **seed just the biolink draft** without using a contact slot.
 
 ---
 
-## 24. Restaurant menu & orders
+## 24. Restaurant menu, Store & Service Booking
+
+### 24a. Restaurant menu
 
 **What it is.** A dedicated digital-menu page type for restaurants and cafes, with
 optional table-side ordering. It has its own builder (it doesn't use the block
@@ -691,17 +763,79 @@ editor).
 **How to use it (owner).**
 1. Create a **Restaurant Menu** link.
 2. Build **Categories**, then add **Items** (name, description, price, photo).
-3. Set display options, order mode, currency, and accent color.
+3. Set display options, order mode, currency, accent color, and optionally a
+   **GST/tax rate** (added on top or marked as already included) and **coupon
+   codes** (percentage off or a fixed amount; one coupon applies per order).
 4. For table ordering, define **Tables** — each gets its own unique QR/URL so a
    diner's order is tied to their table.
 5. When orders come in, manage them in the near-real-time **Orders Dashboard**,
    moving each from **Pending → Preparing → Served → Paid/Cancelled**.
 
 **Visitor experience.** Diners scan the table QR (or open the menu link), browse,
-and tap **Place Order** (entering their name, notes, and quantities).
+optionally enter a coupon code, and see a live **estimated bill** (subtotal, any
+discount, the GST line, and an estimated total) before tapping **Place Order**.
+
+> **Important.** The bill shown is an **estimate, not the actual bill**. Sayzio
+> does not collect payment — diners settle directly with the restaurant.
 
 **Mobile.** The restaurant menu has a full native builder in the Sayzio mobile app
-too — no need to switch to the web.
+too — including coupon entry and the live estimated bill — no need to switch to
+the web.
+
+---
+
+### 24b. Store (order-request storefront)
+
+**What it is.** A product catalog page where visitors browse, place orders, and
+leave their contact details — the owner fulfills orders offline. There is **no
+online payment**, **no tax/GST**, and **no coupon codes** (unlike the Restaurant
+Menu). It has its own dedicated builder.
+
+**Why use it.** Great for small shops, home businesses, local sellers, and anyone
+who wants a clean "catalog + order request" page without a full ecommerce setup.
+
+**How to use it (owner).**
+1. Create a **Store** link.
+2. Build **Categories**, then add **Products** (name, description, price, photo).
+3. Set your currency, accent color, and optionally a WhatsApp number (Sayzio can
+   build a `wa.me` link so you're notified when an order arrives).
+4. Toggle **Accepting orders** on/off to pause when needed.
+5. When orders arrive, manage them in the **Order Requests Dashboard**, moving each
+   from **New → Accepted → Packing → Ready → Completed / Cancelled**. The order
+   total is the simple sum of line items — no tax, no coupon.
+
+**Visitor experience.** Visitors browse categories and products, enter their name,
+contact details, and an optional note, and submit an order. No account or payment
+required. You receive an in-app notification and email.
+
+**Mobile.** The store builder and order requests dashboard have full native parity
+in the Sayzio mobile app.
+
+---
+
+### 24c. Service Booking (appointment requests)
+
+**What it is.** An appointment-request page where visitors browse your services
+and request a time slot. You confirm or decline bookings from a dashboard. **No
+payment is collected** — any pricing shown is for reference only. It has its own
+dedicated builder.
+
+**Why use it.** Ideal for freelancers, coaches, therapists, personal trainers, and
+any service provider who wants a simple "here's what I offer, book a slot" page.
+
+**How to use it (owner).**
+1. Create a **Service Booking** link.
+2. Add **Services** (name, description, duration, price/rate — display only).
+3. Set your **weekly availability** (which days and hours) and any blocked dates.
+4. When booking requests come in, manage them in the **Bookings Dashboard**:
+   confirm or decline each request and add notes.
+
+**Visitor experience.** Visitors pick a service, choose an available slot on a
+calendar, enter their name and contact details, and submit the request. They see
+"request sent — awaiting confirmation" after submitting.
+
+**Mobile.** The service booking builder and bookings dashboard have full native
+parity in the Sayzio mobile app.
 
 ---
 
@@ -823,7 +957,7 @@ For teams and agencies, Sayzio scales beyond a single user:
 
 - **Sayzio mobile app** — most creator features have native parity in the mobile
   app, including links, biolink editing, QR Studio, restaurant menus, reviews
-  moderation, payouts, the 18+ toggle, Account Assistant, AI Agent chat, and a
+  moderation, payouts, the 18+ toggle, AI Coach, AI Agent chat, and a
   floating-mic voice assistant. Sign in with email/OTP or social.
 - **Browser extension** — helps with things like saving and shortening links
   (including "Shorten as A/B test") and powering the Backlinks radar from your
@@ -868,7 +1002,7 @@ require a specific plan).
 **What's the difference between coins and AI credits?**
 **Coins** are a general prepaid balance (top up by buying coin packages) used for
 add-ons and developer-API overage. **AI credits** specifically power AI features
-like the AI builder, Account Assistant, AI Agents/Knowledge Bases, the card scanner, and resume AI
+like the AI builder, AI Coach, AI Agents/Knowledge Bases, the card scanner, and resume AI
 tools.
 
 **What are add-ons?**
@@ -1071,9 +1205,68 @@ Yes — the **Resume / Portfolio** builder supports multiple versions plus AI
 readiness** check, and publishes as a shareable link with PDF download.
 
 **How does the restaurant menu's table ordering work?**
-Define **Tables**, each with its own QR/URL. Diners scan, browse, and **Place
-Order**; you manage orders in the **Orders Dashboard** through Pending →
-Preparing → Served → Paid/Cancelled.
+Define **Tables**, each with its own QR/URL. Diners scan, browse, optionally enter a
+coupon code, see a live estimated bill (subtotal, discount, GST, total), and **Place
+Order**. You manage orders in the **Orders Dashboard** through Pending →
+Preparing → Served → Paid/Cancelled. The bill is an estimate only — Sayzio does
+not collect payment.
+
+**What's the difference between Restaurant Menu and Store?**
+The **Restaurant Menu** supports table-side ordering (per-table QR), coupon codes,
+and a GST/tax rate, and shows a live estimated bill. The **Store** is a product
+catalog for offline-fulfilled orders with no tax, no coupons, and no physical
+tables — just a clean catalog → order-request flow. Use Restaurant Menu for food
+service; use Store for product-based businesses.
+
+**How does the Store work?**
+Create a **Store** link, build Categories and Products, then manage incoming order
+requests in your **Order Requests Dashboard**. Visitors browse, add products to a
+cart, enter their name and contact, and submit the request — no account, no payment.
+You can toggle **Accepting orders** off to pause the store without taking it down.
+You get an in-app notification and email for each new request. Statuses: New →
+Accepted → Packing → Ready → Completed / Cancelled.
+
+**Does the Store collect payment?**
+No. The Store is an order-request tool only — no payment is collected. Customers
+settle directly with you through whatever method you agree (bank transfer, cash on
+delivery, etc.).
+
+**What is Service Booking?**
+A **Service Booking** page lets visitors browse your services (e.g. coaching,
+haircuts, personal training) and request an available time slot. You confirm or
+decline each request from a Bookings Dashboard. No payment is collected — any
+pricing shown is for reference only.
+
+**How do I set my availability in Service Booking?**
+In the Service Booking builder, set your **weekly availability** (which days and
+hours you're open for each service) and block off specific dates (holidays, time
+off). Visitors only see slots that fall within your available hours.
+
+**Can I use Service Booking to take payment?**
+No — Service Booking only handles appointment requests. Any price shown on a service
+is for the visitor's reference; Sayzio does not process payment.
+
+**What's the Competitor Biolink Teardown?**
+It's an AI tool that analyzes a competitor's public page. Paste their URL, and you
+get an overall 0–100 score, strengths, weaknesses, missing elements, a CTA quality
+assessment, and concrete recommendations to beat it. Tap **"Build a better version"**
+and the AI biolink builder turns those findings into a draft page for you.
+
+**Does the Competitor Teardown cost anything?**
+Yes — it uses AI credits (drawn from your coin wallet), and your plan must include
+it. If the analysis fails, credits are automatically refunded.
+
+**What are Audience Insights?**
+Audience Insights estimates the type of people visiting your Link in Bio page —
+Student, Professional / Employee, Business Owner, Creator / Artist, or Other —
+shown as a percentage split. It helps you tailor your page without running a
+survey. The AI only uses aggregate analytics data Sayzio already collects; no
+individual visitor is identified.
+
+**How often can I run Audience Insights?**
+Re-running within 10 minutes returns the cached result at no charge. To force a
+fresh analysis sooner, click **Re-estimate → Force refresh**. Each new estimate
+uses a small number of AI credits.
 
 **What's the Files/Vault for?**
 It's your personal storage for images, video, audio, and documents you reuse
@@ -1092,9 +1285,16 @@ embed it as a block or run it as a full-page **AI Chatbot** link.
 **Who pays when a visitor chats with my Chat Widget?**
 You do (the owner), from your AI credits — visitors don't pay.
 
-**What is the Account Assistant?**
-An AI assistant that reviews your account and gives plain-language advice on how to
-improve your links and pages.
+**What is the AI Coach?**
+An AI assistant that reviews your account (analytics, biolinks) and gives
+plain-language advice on how to grow and improve your links and pages.
+(Previously labelled *Account Assistant* and *AI Growth Coach*.)
+
+**What is Zio Bot?**
+Zio Bot is Sayzio's built-in site assistant — the chat icon you see on the website
+and inside the app. Open it to get help navigating features, ask questions, or
+request to be contacted by support. If you're not signed in you can log in or sign
+up right inside the chat using a one-time code. Zio Bot uses your AI credits.
 
 **What does the voice assistant do?**
 It listens to you (speech-to-text), takes an AI turn, and can speak its reply

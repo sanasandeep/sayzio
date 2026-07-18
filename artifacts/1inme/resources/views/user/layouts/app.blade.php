@@ -422,7 +422,7 @@
     </style>
     @stack('styles')
 </head>
-<body class="min-h-screen" style="color: var(--text-primary);">
+<body class="min-h-screen" data-app-layout style="color: var(--text-primary);">
     <div class="bg-mesh"><span class="bloom bloom-pink"></span></div>
     <div class="particles" id="particles"></div>
 
@@ -498,7 +498,8 @@
                     'referrals_view' => WP::userCan('referrals.view'),
                 ];
             @endphp
-            <nav class="flex-1 py-4 overflow-y-auto overflow-x-hidden sidebar-nav-scroll" :class="sidebarMode === 'icons' ? 'px-2' : 'px-3'">
+            <nav class="flex-1 relative overflow-hidden">
+            <div class="absolute inset-0 overflow-y-auto overflow-x-hidden sidebar-nav-scroll py-4" :class="sidebarMode === 'icons' ? 'px-2' : 'px-3'">
                 {{-- ========== TOP LEVEL — most-used destinations stay visible ========== --}}
                 <a href="{{ route('user.dashboard') }}"
                    class="sidebar-link {{ request()->routeIs('user.dashboard') ? 'active' : '' }}"
@@ -1060,6 +1061,7 @@
                 </div>
                 @endif
 
+            </div>{{-- /.sidebar-nav-scroll --}}
             </nav>
 
             <div class="mx-3 mb-3" x-show="sidebarMode === 'full'" x-cloak x-transition.opacity>
@@ -1707,6 +1709,7 @@
                 @include('user.partials.verify-email-banner')
                 @include('user.partials.starter-free-window-banner')
                 @include('user.partials.cloud-connections-banner')
+                @include('user.partials.custom-plan-offer-banner')
                 @if(session('success'))
                     <div class="mb-4 p-3.5 rounded-xl text-emerald-400 text-xs font-medium flex items-center gap-2.5 shimmer" style="border: 1px solid rgba(16,185,129,0.15); background: rgba(16,185,129,0.06);">
                         <i class="fas fa-check-circle"></i>

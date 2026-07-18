@@ -17,7 +17,7 @@ export default function TabsLayout() {
 
   // Near-instant contacts sync while signed in: import the device address book
   // on open / foreground and trigger the account's Google Contacts sync.
-  useContactAutoSync(ready && !!user);
+  useContactAutoSync(ready && !!user, user?.id ?? null);
 
   // Surfaces the real server-side `event.new_nearby` notification while
   // foregrounded — see the hook for how it reuses the existing

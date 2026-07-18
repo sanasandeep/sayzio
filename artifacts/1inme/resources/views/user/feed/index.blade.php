@@ -43,7 +43,7 @@
                 <div class="rounded-2xl border-2 border-amber-300 p-4" style="background: var(--bg-card);">
                     <div class="flex items-start gap-3">
                         @if($pp->user && $pp->user->avatar)
-                            <img src="{{ $pp->user->avatar }}" class="w-10 h-10 rounded-full object-cover" alt=""/>
+                            <img src="{{ \App\Support\PublicStorageUrl::resolve($pp->user->avatar) }}" class="w-10 h-10 rounded-full object-cover" alt=""/>
                         @else
                             <div class="w-10 h-10 rounded-full bg-gradient-to-br from-amber-500 to-orange-500 text-white flex items-center justify-center font-bold">
                                 {{ strtoupper(substr(optional($pp->user)->name ?? '?', 0, 1)) }}
@@ -57,7 +57,7 @@
                             </div>
                             @if($pp->title)<h3 class="font-bold mt-1" style="color: var(--text-primary);">{{ $pp->title }}</h3>@endif
                             <p class="text-sm mt-1 whitespace-pre-line" style="color: var(--text-muted);">{{ \Illuminate\Support\Str::limit($pp->body, 280) }}</p>
-                            @if($pp->image)<img src="{{ $pp->image }}" class="mt-3 rounded-lg max-h-72"/>@endif
+                            @if($pp->image)<img src="{{ \App\Support\PublicStorageUrl::resolve($pp->image) }}" class="mt-3 rounded-lg max-h-72"/>@endif
                         </div>
                     </div>
                 </div>

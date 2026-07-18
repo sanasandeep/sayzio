@@ -102,6 +102,10 @@ function spawnMetro(port, log) {
       },
     },
   );
+  // Never let the throwaway Metro child keep the harness's event loop alive:
+  // a missed exit path would otherwise hang the whole validation run for the
+  // child's lifetime. The process "exit" hook still group-kills it.
+  child.unref();
   return child;
 }
 

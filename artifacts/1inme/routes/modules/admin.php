@@ -47,6 +47,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
     Route::get('forgot-password', [PasswordResetController::class, 'showForgotForm'])->name('password.request');
     Route::post('forgot-password', [PasswordResetController::class, 'sendResetLink'])->name('password.email');
+    Route::post('forgot-password/resend', [PasswordResetController::class, 'resendResetLink'])->name('password.resend');
     Route::get('reset-password/{token}', [PasswordResetController::class, 'showResetForm'])->name('password.reset');
     Route::post('reset-password', [PasswordResetController::class, 'resetPassword'])->name('password.update');
 
@@ -65,6 +66,19 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('schema/repair-audits', [DashboardController::class, 'repairAudits'])
             ->middleware(CheckPermission::class . ':settings.manage')
             ->name('schema.repair-audits');
+
+        // Lightweight JSON probe the footer polls to refresh the
+        // "Last updated" timestamp in place (no page reload needed).
+        Route::get('meta/last-updated', [DashboardController::class, 'lastUpdated'])->name('meta.last-updated');
+
+        // System update: GitHub→EC2 one-click deploy surface.
+        Route::prefix('system-update')->name('system-update.')->group(function () {
+            Route::get('/',        [\App\Modules\Admin\Controllers\SystemUpdateController::class, 'show'])->middleware(CheckPermission::class . ':settings.manage')->name('show');
+            Route::post('deploy',  [\App\Modules\Admin\Controllers\SystemUpdateController::class, 'triggerDeploy'])->middleware(CheckPermission::class . ':settings.manage')->name('deploy');
+            Route::get('status',   [\App\Modules\Admin\Controllers\SystemUpdateController::class, 'pollStatus'])->middleware(CheckPermission::class . ':settings.manage')->name('status');
+            Route::post('refresh', [\App\Modules\Admin\Controllers\SystemUpdateController::class, 'refresh'])->middleware(CheckPermission::class . ':settings.manage')->name('refresh');
+            Route::post('dismiss', [\App\Modules\Admin\Controllers\SystemUpdateController::class, 'dismiss'])->middleware(CheckPermission::class . ':settings.manage')->name('dismiss');
+        });
 
         // Seamless switch from the back-office to the matching user dashboard.
         Route::post('switch-to-user', [\App\Modules\Common\Controllers\DashboardSwitchController::class, 'toUser'])->name('switch-to-user');
@@ -110,6 +124,8 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::post('import/preview', [PlanController::class, 'importPreview'])->middleware(CheckPermission::class . ':plans.manage')->name('import.preview');
             Route::post('import/commit', [PlanController::class, 'importCommit'])->middleware(CheckPermission::class . ':plans.manage')->name('import.commit');
             Route::post('import/{snapshot}/revert', [PlanController::class, 'revertImport'])->whereNumber('snapshot')->middleware(CheckPermission::class . ':plans.manage')->name('import.revert');
+            Route::get('compare', [PlanController::class, 'compareView'])->middleware(CheckPermission::class . ':plans.view')->name('compare');
+            Route::post('compare/save-bulk', [PlanController::class, 'bulkSave'])->middleware(CheckPermission::class . ':plans.manage')->name('compare.save');
             Route::get('create', [PlanController::class, 'create'])->middleware(CheckPermission::class . ':plans.manage')->name('create');
             Route::post('/', [PlanController::class, 'store'])->middleware(CheckPermission::class . ':plans.manage')->name('store');
             Route::get('{plan}', [PlanController::class, 'show'])->middleware(CheckPermission::class . ':plans.view')->name('show');
@@ -180,6 +196,8 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
         Route::prefix('block-defaults')->name('block-defaults.')->middleware(CheckPermission::class . ':settings.manage')->group(function () {
             Route::get('/', [BlockDefaultsController::class, 'index'])->name('index');
+            Route::post('{type}/preview', [BlockDefaultsController::class, 'preview'])->name('preview');
+            Route::post('{type}/copy-to', [BlockDefaultsController::class, 'copyTo'])->name('copy-to');
             Route::get('{type}', [BlockDefaultsController::class, 'edit'])->name('edit');
             Route::put('{type}', [BlockDefaultsController::class, 'update'])->name('update');
             Route::delete('{type}', [BlockDefaultsController::class, 'reset'])->name('reset');
@@ -455,6 +473,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::get('/', [\App\Modules\Admin\Controllers\ContactInboxController::class, 'index'])->middleware(CheckPermission::class . ':settings.manage')->name('index');
             Route::post('{message}/read', [\App\Modules\Admin\Controllers\ContactInboxController::class, 'markRead'])->middleware(CheckPermission::class . ':settings.manage')->name('read');
             Route::post('{message}/archive', [\App\Modules\Admin\Controllers\ContactInboxController::class, 'archive'])->middleware(CheckPermission::class . ':settings.manage')->name('archive');
+            Route::post('{message}/reply', [\App\Modules\Admin\Controllers\ContactInboxController::class, 'reply'])->middleware(CheckPermission::class . ':settings.manage')->name('reply');
             Route::delete('{message}', [\App\Modules\Admin\Controllers\ContactInboxController::class, 'destroy'])->middleware(CheckPermission::class . ':settings.manage')->name('destroy');
         });
 
@@ -462,6 +481,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::get('/',           [CoinPackageController::class, 'index'])->middleware(CheckPermission::class . ':settings.manage')->name('index');
             Route::get('create',      [CoinPackageController::class, 'create'])->middleware(CheckPermission::class . ':settings.manage')->name('create');
             Route::post('/',          [CoinPackageController::class, 'store'])->middleware(CheckPermission::class . ':settings.manage')->name('store');
+            Route::post('fx-rate',    [CoinPackageController::class, 'updateFxRate'])->middleware(CheckPermission::class . ':settings.manage')->name('fx-rate');
             Route::get('{coinPackage}/edit',  [CoinPackageController::class, 'edit'])->middleware(CheckPermission::class . ':settings.manage')->name('edit');
             Route::put('{coinPackage}',       [CoinPackageController::class, 'update'])->middleware(CheckPermission::class . ':settings.manage')->name('update');
             Route::post('{coinPackage}/archive', [CoinPackageController::class, 'archive'])->middleware(CheckPermission::class . ':settings.manage')->name('archive');
@@ -498,13 +518,16 @@ Route::prefix('admin')->name('admin.')->group(function () {
         });
 
         Route::prefix('testimonials')->name('testimonials.')->group(function () {
-            Route::get('/',                    [TestimonialController::class, 'index'])->middleware(CheckPermission::class . ':settings.manage')->name('index');
-            Route::get('create',               [TestimonialController::class, 'create'])->middleware(CheckPermission::class . ':settings.manage')->name('create');
-            Route::post('/',                   [TestimonialController::class, 'store'])->middleware(CheckPermission::class . ':settings.manage')->name('store');
-            Route::get('{testimonial}/edit',   [TestimonialController::class, 'edit'])->middleware(CheckPermission::class . ':settings.manage')->name('edit');
-            Route::put('{testimonial}',        [TestimonialController::class, 'update'])->middleware(CheckPermission::class . ':settings.manage')->name('update');
-            Route::post('{testimonial}/toggle', [TestimonialController::class, 'toggle'])->middleware(CheckPermission::class . ':settings.manage')->name('toggle');
-            Route::delete('{testimonial}',     [TestimonialController::class, 'destroy'])->middleware(CheckPermission::class . ':settings.manage')->name('destroy');
+            Route::get('/',                         [TestimonialController::class, 'index'])->middleware(CheckPermission::class . ':settings.manage')->name('index');
+            Route::get('pending',                   [TestimonialController::class, 'pending'])->middleware(CheckPermission::class . ':settings.manage')->name('pending');
+            Route::get('create',                    [TestimonialController::class, 'create'])->middleware(CheckPermission::class . ':settings.manage')->name('create');
+            Route::post('/',                        [TestimonialController::class, 'store'])->middleware(CheckPermission::class . ':settings.manage')->name('store');
+            Route::get('{testimonial}/edit',        [TestimonialController::class, 'edit'])->middleware(CheckPermission::class . ':settings.manage')->name('edit');
+            Route::put('{testimonial}',             [TestimonialController::class, 'update'])->middleware(CheckPermission::class . ':settings.manage')->name('update');
+            Route::post('{testimonial}/toggle',     [TestimonialController::class, 'toggle'])->middleware(CheckPermission::class . ':settings.manage')->name('toggle');
+            Route::post('{testimonial}/approve',    [TestimonialController::class, 'approve'])->middleware(CheckPermission::class . ':settings.manage')->name('approve');
+            Route::post('{testimonial}/reject',     [TestimonialController::class, 'reject'])->middleware(CheckPermission::class . ':settings.manage')->name('reject');
+            Route::delete('{testimonial}',          [TestimonialController::class, 'destroy'])->middleware(CheckPermission::class . ':settings.manage')->name('destroy');
         });
 
         Route::prefix('site-stats')->name('site-stats.')->group(function () {
@@ -800,6 +823,23 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::get('{badgeRequest}',          [\App\Modules\Admin\Controllers\BadgeRequestController::class, 'review'])->whereNumber('badgeRequest')->name('review');
             Route::post('{badgeRequest}/approve', [\App\Modules\Admin\Controllers\BadgeRequestController::class, 'approve'])->whereNumber('badgeRequest')->name('approve');
             Route::post('{badgeRequest}/reject',  [\App\Modules\Admin\Controllers\BadgeRequestController::class, 'reject'])->whereNumber('badgeRequest')->name('reject');
+        });
+
+        // Custom plan requests: prospects submit via the public form; admin
+        // reviews, provisions a bespoke internal plan, and notifies the user.
+        Route::prefix('custom-plan-requests')->name('custom-plan-requests.')->group(function () {
+            Route::get('/', [\App\Modules\Admin\Controllers\CustomPlanRequestController::class, 'index'])
+                ->middleware(CheckPermission::class . ':plans.view')->name('index');
+            Route::get('{customPlanRequest}', [\App\Modules\Admin\Controllers\CustomPlanRequestController::class, 'show'])
+                ->middleware(CheckPermission::class . ':plans.view')->whereNumber('customPlanRequest')->name('show');
+            Route::post('{customPlanRequest}/reviewing', [\App\Modules\Admin\Controllers\CustomPlanRequestController::class, 'markReviewing'])
+                ->middleware(CheckPermission::class . ':plans.manage')->whereNumber('customPlanRequest')->name('reviewing');
+            Route::post('{customPlanRequest}/approve', [\App\Modules\Admin\Controllers\CustomPlanRequestController::class, 'approve'])
+                ->middleware(CheckPermission::class . ':plans.manage')->whereNumber('customPlanRequest')->name('approve');
+            Route::post('{customPlanRequest}/decline', [\App\Modules\Admin\Controllers\CustomPlanRequestController::class, 'decline'])
+                ->middleware(CheckPermission::class . ':plans.manage')->whereNumber('customPlanRequest')->name('decline');
+            Route::patch('{customPlanRequest}/notes', [\App\Modules\Admin\Controllers\CustomPlanRequestController::class, 'updateNotes'])
+                ->middleware(CheckPermission::class . ':plans.manage')->whereNumber('customPlanRequest')->name('notes');
         });
     });
 });

@@ -33,6 +33,70 @@
         @endforeach
     </div>
 
+    {{-- Platform default Mind: built-in answer freshness --}}
+    <div class="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+        <div class="flex items-center justify-between mb-1">
+            <h3 class="text-white font-semibold flex items-center gap-2">
+                <i class="fas fa-book text-cyan-300"></i> Built-in assistant answers
+            </h3>
+            <span class="text-[11px] uppercase tracking-wider text-white/40">Platform default Mind</span>
+        </div>
+        <p class="text-xs text-white/40 mb-3">Whether the live copy matches the current product docs, and when it was last re-embedded. Use “Re-seed default” above if anything is drifted or stuck.</p>
+        @if(empty($staticSources))
+            <p class="text-sm text-white/40">The platform default Mind isn’t seeded yet. Click “Re-seed default” to create it.</p>
+        @else
+            <table class="w-full text-sm text-left">
+                <thead class="text-[11px] uppercase tracking-wider text-white/40">
+                    <tr>
+                        <th class="py-2">Source</th>
+                        <th>Sync</th>
+                        <th>Ingest status</th>
+                        <th class="text-right">Last ingested</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-white/5">
+                    @foreach($staticSources as $s)
+                        <tr class="text-white/80">
+                            <td class="py-2">
+                                {{ $s['title'] }}
+                                <span class="text-[10px] uppercase tracking-wider text-white/30 ml-1">{{ $s['type'] }}</span>
+                            </td>
+                            <td>
+                                @if(!$s['exists'])
+                                    <span class="inline-flex items-center gap-1 text-white/40 text-xs"><i class="fas fa-circle-minus"></i> Not created</span>
+                                @elseif($s['in_sync'])
+                                    <span class="inline-flex items-center gap-1 text-emerald-300 text-xs"><i class="fas fa-circle-check"></i> In sync</span>
+                                @else
+                                    <span class="inline-flex items-center gap-1 text-amber-300 text-xs"><i class="fas fa-triangle-exclamation"></i> Drifted</span>
+                                @endif
+                            </td>
+                            <td>
+                                @php $st = $s['status']; @endphp
+                                @if(!$st)
+                                    <span class="text-white/40 text-xs">—</span>
+                                @elseif($st === \App\Modules\User\Models\AiMindSource::STATUS_READY)
+                                    <span class="text-emerald-300 text-xs">Ready</span>
+                                @elseif($st === \App\Modules\User\Models\AiMindSource::STATUS_FAILED)
+                                    <span class="text-red-300 text-xs">Failed</span>
+                                    @if($s['status_message'])<p class="text-[11px] text-white/40 max-w-[16rem] truncate">{{ $s['status_message'] }}</p>@endif
+                                @else
+                                    <span class="text-cyan-300 text-xs">{{ ucfirst($st) }}</span>
+                                @endif
+                            </td>
+                            <td class="text-right text-white/60 text-xs">
+                                @if($s['last_ingested_at'])
+                                    <span title="{{ $s['last_ingested_at']->toDayDateTimeString() }}">{{ $s['last_ingested_at']->diffForHumans() }}</span>
+                                @else
+                                    <span class="text-white/30">Never</span>
+                                @endif
+                            </td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        @endif
+    </div>
+
     {{-- Caps form --}}
     <form method="POST" action="{{ route('admin.ai-minds.caps.update') }}" class="rounded-2xl border border-white/10 bg-white/[0.03] p-5 space-y-4">
         @csrf @method('PUT')

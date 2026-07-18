@@ -126,6 +126,20 @@ class NotificationService
                 'default_email'  => true,
                 'default_push'   => true,
             ],
+            'event_exchange_request' => [
+                'label'          => 'Contact exchange requests',
+                'description'    => 'When a fellow attendee at an event sends you a contact-exchange request.',
+                'default_in_app' => true,
+                'default_email'  => false,
+                'default_push'   => true,
+            ],
+            'event_exchange_accepted' => [
+                'label'          => 'Contact exchange accepted',
+                'description'    => 'When someone accepts your contact-exchange request at an event.',
+                'default_in_app' => true,
+                'default_email'  => false,
+                'default_push'   => true,
+            ],
             'link_failover' => [
                 'label'          => 'Link Insurance failover',
                 'description'    => 'When a short link\'s primary destination breaks and we promote one of your backup URLs to keep traffic flowing.',
@@ -491,8 +505,27 @@ class NotificationService
         return \App\Services\Integrations\InternalAlertDispatcher::send($title, $body, $level, $context, $category);
     }
 
+    /**
+     * Count the distinct entries an admin typed into a "user" target list,
+     * using the same tokenizer as resolveTargetUserIds() so the "entries
+     * not found" math can't drift from the actual matching logic.
+     */
+    public function countUserTargetEntries(?string $value): int
+    {
+        if (!$value) {
+            return 0;
+        }
+
+        $entries = array_filter(
+            array_map('trim', preg_split('/[\s,;]+/', $value)),
+            fn ($e) => $e !== '',
+        );
+
+        return count(array_unique(array_map('strtolower', $entries)));
+    }
+
     /** @return Collection<int, int> */
-    protected function resolveTargetUserIds(string $kind, ?string $value): Collection
+    public function resolveTargetUserIds(string $kind, ?string $value): Collection
     {
         $q = User::query()->where('status', 'active')->select('id');
 
@@ -522,11 +555,35 @@ class NotificationService
                 break;
             case 'user':
                 if (!$value) return collect();
-                if (str_contains($value, '@')) {
-                    $q->where('email', strtolower(trim($value)));
-                } else {
-                    $q->where('id', (int) $value);
+                // Split on commas, semicolons, and/or newlines; drop blanks.
+                $entries = array_filter(
+                    array_map('trim', preg_split('/[\s,;]+/', $value)),
+                    fn ($e) => $e !== '',
+                );
+                if (empty($entries)) return collect();
+                // Guard: if no entry is a valid email or numeric ID, bail out
+                // early — an empty nested where() adds no constraint and would
+                // otherwise select EVERY active user.
+                $emails = [];
+                $ids    = [];
+                foreach ($entries as $entry) {
+                    if (str_contains($entry, '@')) {
+                        $emails[] = strtolower($entry);
+                    } elseif (ctype_digit($entry)) {
+                        $ids[] = (int) $entry;
+                    }
                 }
+                if (empty($emails) && empty($ids)) return collect();
+                $q->where(function ($sub) use ($emails, $ids) {
+                    if ($emails) {
+                        // Emails are matched case-insensitively — stored
+                        // addresses may carry mixed case.
+                        $sub->orWhereIn(DB::raw('lower(email)'), $emails);
+                    }
+                    if ($ids) {
+                        $sub->orWhereIn('id', $ids);
+                    }
+                });
                 break;
             case 'all':
             default:

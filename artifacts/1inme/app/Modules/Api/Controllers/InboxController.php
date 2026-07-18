@@ -461,7 +461,7 @@ class InboxController extends Controller
             'link_title'          => $c->link?->title,
             'viewer_user_id'      => $c->viewer_user_id ? (int) $c->viewer_user_id : null,
             'viewer_name'         => $c->viewer?->name,
-            'viewer_avatar'       => $c->viewer?->avatar,
+            'viewer_avatar'       => \App\Support\PublicStorageUrl::resolve($c->viewer?->avatar),
             'status'              => $c->status ?? 'open',
             'last_message_at'     => optional($c->last_message_at)->toIso8601String(),
             'last_message_preview'=> $c->last_message_preview,

@@ -37,6 +37,18 @@ class PricingPagesController extends Controller
         // session the default guard returns an Admin, which the ?User
         // typehint on PricingResolver::currencyForUser() rejects (500).
         $user = $request->user('web');
+        // When the native app opens /pricing?client=app, remember it in the
+        // session for the duration of the checkout round-trip. The billing
+        // success page reads this flag to fire the `sayzio://billing/refresh`
+        // deep link so the app can auto-refresh the plan when the user
+        // returns (see BillingController::show + billing/show.blade.php).
+        // Store the moment it was set (not a bare bool) so the success page
+        // can ignore a stale flag left behind by an abandoned app checkout —
+        // otherwise a later plain-web upgrade in the same session would show
+        // the "return to app" banner even though this browser has no app.
+        if ($request->query('client') === 'app') {
+            $request->session()->put('billing.app_return', time());
+        }
         // Honor the visitor's last-chosen billing cycle (query param,
         // session, or long-lived cookie) so navigating from /user/upgrade
         // back to /pricing — or returning days later — keeps them on the

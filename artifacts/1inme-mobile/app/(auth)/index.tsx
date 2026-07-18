@@ -12,9 +12,11 @@ import {
   StyleSheet,
   Text,
   View,
+  useWindowDimensions,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { AnimatedBlob } from "@/components/AnimatedBlobBackground";
 import { BrandWordmark } from "@/components/Brand";
 import { Button } from "@/components/Button";
 import { MandatoryNameModal } from "@/components/MandatoryNameModal";
@@ -27,6 +29,7 @@ import { useAuth } from "@/contexts/AuthContext";
 // required by expo-auth-session for the Google provider on Android.
 WebBrowser.maybeCompleteAuthSession();
 import { useColors } from "@/hooks/useColors";
+import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { WEB_FOCUS_RING_PROPS } from "@/hooks/useWebFocusRing";
 import { redirectAfterAuth, touchPendingPostAuthNext } from "@/lib/authNext";
 import { getBaseUrl, getConfiguredBaseUrl } from "@/lib/api";
@@ -61,15 +64,18 @@ const HAS_GOOGLE_NATIVE =
   !!process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID ||
   !!process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID;
 
-// On web, expo-auth-session's useIdTokenAuthRequest THROWS at render when no
-// webClientId is configured ("Client Id property `webClientId` must be defined
-// to use Google auth on this platform."), which crashes the whole login screen
-// into the error boundary. On native it safely no-ops without a client id.
-// So only invoke the hook when it's safe to do so. Both Platform.OS and the
-// env var are module-level constants for the app's lifetime, so this condition
-// never changes between renders and the hook call order stays stable.
+// expo-auth-session's useIdTokenAuthRequest can throw at render when no
+// usable client ID is compiled in for the current platform — on web it throws
+// if webClientId is absent; on standalone Android/iOS builds the "safely
+// no-ops" assumption is not reliable and can crash the screen into the error
+// boundary. Guard the hook so it is only invoked when a client ID exists for
+// the current platform. Both Platform.OS and the env vars are module-level
+// constants for the app's lifetime, so this condition never changes between
+// renders and the hook-call order stays stable.
 const GOOGLE_AUTH_SAFE_TO_INIT =
-  Platform.OS !== "web" || !!process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID;
+  Platform.OS === "web"
+    ? !!process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID
+    : HAS_GOOGLE_NATIVE;
 
 type GoogleAuth = ReturnType<typeof Google.useIdTokenAuthRequest>;
 
@@ -90,6 +96,8 @@ export default function AuthLanding() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { width, height } = useWindowDimensions();
+  const reducedMotion = useReducedMotion();
   const auth = useAuth();
   const { sendOtp, socialLogin, loginWithPassword } = auth;
 
@@ -157,6 +165,7 @@ export default function AuthLanding() {
   const [showNameModal, setShowNameModal] = useState(false);
   const [loginMethod, setLoginMethod] = useState<"otp" | "password">("password");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
   // Login-method policy: email is always available; WhatsApp (mobile) login
   // is behind an admin toggle with an allowed-country-code list. Default to
@@ -356,23 +365,68 @@ export default function AuthLanding() {
     );
   }
 
-  // Derive tinted brand gradient stops for the screen background wash.
-  // Uses the theme-aware brandGradient tokens so colors adapt to dark mode.
-  // Dark mode gets slightly more opacity (0x40 = 25%) since the near-black
-  // base makes lighter tints less visible; light mode uses 0x2e (18%) for a
-  // soft wash that keeps white-base legibility intact.
+  // Brand gradient wash — theme-aware treatment shared across the whole auth
+  // funnel (login, verify, OAuth return, cancel-change). Dark mode uses 0x40
+  // (25%) since the near-black intro base makes lighter tints less visible;
+  // light mode uses 0x2e (18%) for a soft wash. It is layered over the dark
+  // intro base below so the login landing still matches the onboarding slides.
   const bgAlpha = colors.scheme === "dark" ? "40" : "2e";
   const bgGradientColors = colors.brandGradient.map(
     (c) => `${c}${bgAlpha}`,
   ) as unknown as [string, string, string];
 
   return (
-    <View style={[styles.root, { backgroundColor: colors.background }]}>
+    <View style={[styles.root, { backgroundColor: "#0b0e1a" }]}>
+      {/* Dark intro gradient base — same as onboarding slides */}
+      <LinearGradient
+        colors={["#0b0e1a", "#080b14", "#070a12"]}
+        style={StyleSheet.absoluteFill}
+      />
+      {/* Brand gradient wash on top */}
       <LinearGradient
         colors={bgGradientColors}
         start={{ x: 0.0, y: 0.0 }}
         end={{ x: 1.0, y: 1.0 }}
         style={StyleSheet.absoluteFill}
+      />
+
+      {/* Decorative ambient blobs — same visual family as the intro carousel.
+          pointerEvents="none" on each blob ensures taps pass through. */}
+      <AnimatedBlob
+        color="#1a3dff"
+        size={width * 0.7}
+        initialX={width * 0.15}
+        initialY={height * 0.2}
+        driftX={18}
+        driftY={14}
+        duration={5200}
+        opacity={0.18}
+        delayMs={0}
+        reduced={reducedMotion}
+      />
+      <AnimatedBlob
+        color="#0055cc"
+        size={width * 0.55}
+        initialX={width * 0.82}
+        initialY={height * 0.55}
+        driftX={-14}
+        driftY={18}
+        duration={6400}
+        opacity={0.14}
+        delayMs={800}
+        reduced={reducedMotion}
+      />
+      <AnimatedBlob
+        color="#003399"
+        size={width * 0.4}
+        initialX={width * 0.50}
+        initialY={height * 0.35}
+        driftX={10}
+        driftY={-12}
+        duration={7100}
+        opacity={0.10}
+        delayMs={1600}
+        reduced={reducedMotion}
       />
 
       {/* Back-to-intro button — absolute so it doesn't affect the scroll layout */}
@@ -480,12 +534,27 @@ export default function AuthLanding() {
             <TextField
               label="Password"
               placeholder="Your password"
-              secureTextEntry
+              secureTextEntry={!showPassword}
               autoCapitalize="none"
               autoCorrect={false}
               value={password}
               onChangeText={setPassword}
               error={error ?? undefined}
+              trailing={
+                <Pressable
+                  onPress={() => setShowPassword((v) => !v)}
+                  accessibilityLabel={showPassword ? "Hide password" : "Show password"}
+                  accessibilityRole="button"
+                  accessibilityState={{ checked: showPassword }}
+                  hitSlop={8}
+                >
+                  <Feather
+                    name={showPassword ? "eye-off" : "eye"}
+                    size={18}
+                    color={colors.mutedForeground}
+                  />
+                </Pressable>
+              }
             />
           </>
         ) : null}

@@ -40,6 +40,12 @@
         // Label for the base-fee line item in the mini-cart, mirroring
         // Form::priceLineItems()'s per_field base row (Task #2337).
         $baseFeeLabel    = ((string) ($settings['payment']['label'] ?? '')) ?: 'Base fee';
+
+        // Captcha configuration
+        $captchaCfg      = $form->captchaConfig();
+        $captchaProvider = $captchaCfg['provider'] ?? 'honeypot';
+        $captchaSiteKey  = $captchaCfg['site_key'] ?? '';
+        $mathQuestion    = $mathQuestion ?? null;
     @endphp
     <title>{{ $form->title }}</title>
     @if($form->description)<meta name="description" content="{{ $form->description }}">@endif
@@ -50,6 +56,15 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family={{ urlencode($font) }}:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     @include('common.partials.fontawesome')
+    @if($captchaProvider === 'recaptcha_v2' && $captchaSiteKey)
+        <script src="https://www.google.com/recaptcha/api.js" async defer></script>
+    @elseif($captchaProvider === 'recaptcha_v3' && $captchaSiteKey)
+        <script src="https://www.google.com/recaptcha/api.js?render={{ $captchaSiteKey }}" async defer></script>
+    @elseif($captchaProvider === 'hcaptcha' && $captchaSiteKey)
+        <script src="https://js.hcaptcha.com/1/api.js" async defer></script>
+    @elseif($captchaProvider === 'turnstile' && $captchaSiteKey)
+        <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+    @endif
     <script defer src="{{ asset('js/vendor/alpine-collapse.min.js') }}"></script>
     <script src="{{ asset('js/vendor/alpine.min.js') }}" defer></script>
     <style>
@@ -120,6 +135,34 @@
             margin-bottom: 1.25rem;
         }
         .form-section-card .form-grid { row-gap: 0; }
+        /* Repeatable group */
+        .rep-copy-card {
+            background: {{ $theme === 'light' ? 'rgba(15,23,42,0.03)' : 'rgba(255,255,255,0.05)' }};
+            border: 1px solid {{ $theme === 'light' ? '#e2e8f0' : 'rgba(255,255,255,0.1)' }};
+            border-radius: var(--form-radius-sm);
+            padding: 1rem 1rem 0;
+        }
+        .rep-copy-header {
+            display: flex; align-items: center; justify-content: space-between;
+            margin-bottom: 0.75rem;
+        }
+        .rep-copy-title { font-size: 0.78rem; font-weight: 700; opacity: 0.55; }
+        .rep-remove-btn {
+            font-size: 0.72rem; font-weight: 600; color: #f87171;
+            background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.18);
+            border-radius: 6px; padding: 0.2rem 0.6rem; cursor: pointer; line-height: 1.6;
+        }
+        .rep-remove-btn:hover { background: rgba(239,68,68,0.15); }
+        .rep-add-btn {
+            display: inline-flex; align-items: center; gap: 0.4rem;
+            font-size: 0.8rem; font-weight: 600;
+            color: var(--form-accent); background: transparent;
+            border: 1px dashed var(--form-accent); border-radius: var(--form-radius-sm);
+            padding: 0.45rem 1rem; cursor: pointer; opacity: 0.85; transition: opacity 0.15s;
+        }
+        .rep-add-btn:hover:not(:disabled) { opacity: 1; }
+        .rep-add-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+        .rep-copies-gap { margin-top: 0.75rem; }
         .form-card.has-cover { border-top-left-radius: 0; border-top-right-radius: 0; padding-top: 1.5rem; }
         .form-logo { width: 60px; height: 60px; border-radius: 14px; margin-bottom: 1rem; object-fit: contain; padding: 6px; background: rgba(0,0,0,0.04); }
         .form-title { font-size: 1.6rem; font-weight: 800; letter-spacing: -0.02em; margin: 0 0 0.5rem; }
@@ -215,7 +258,7 @@
         .form-pricing-options { display: flex; flex-direction: column; gap: 0.5rem; }
         .form-pricing-option { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; cursor: pointer; padding: 0.75rem 0.9rem; border-radius: var(--form-radius-sm); border: 1px solid {{ $theme === 'light' ? '#e2e8f0' : 'rgba(255,255,255,0.1)' }}; transition: all 0.15s; }
         .form-pricing-option:hover { border-color: var(--form-accent); }
-        .form-pricing-option.is-selected { border-color: var(--form-accent); background: {{ $theme === 'light' ? 'rgba(99,102,241,0.06)' : 'rgba(61,107,255,0.12)' }}; }
+        .form-pricing-option.is-selected { border-color: var(--form-accent); background: {{ $theme === 'light' ? 'rgba(59,130,246,0.06)' : 'rgba(61,107,255,0.12)' }}; }
         .form-pricing-option-main { display: flex; align-items: center; gap: 0.55rem; }
         .form-pricing-option input, .form-pricing-addon input { accent-color: var(--form-accent); }
         .form-pricing-option-price { font-weight: 700; white-space: nowrap; }
@@ -226,7 +269,7 @@
         .form-pricing-addon-main { display: flex; align-items: center; gap: 0.55rem; }
         .form-pricing-addon-price { white-space: nowrap; opacity: 0.8; }
         .form-pricing-subtotal { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; font-size: 0.85rem; padding-top: 0.5rem; border-top: 1px solid {{ $theme === 'light' ? '#e2e8f0' : 'rgba(255,255,255,0.1)' }}; }
-        .form-pricing-grand { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-top: 1.25rem; padding: 0.85rem 1rem; border-radius: var(--form-radius-sm); background: {{ $theme === 'light' ? 'rgba(99,102,241,0.06)' : 'rgba(61,107,255,0.12)' }}; border: 1px solid var(--form-accent); font-size: 1rem; }
+        .form-pricing-grand { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-top: 1.25rem; padding: 0.85rem 1rem; border-radius: var(--form-radius-sm); background: {{ $theme === 'light' ? 'rgba(59,130,246,0.06)' : 'rgba(61,107,255,0.12)' }}; border: 1px solid var(--form-accent); font-size: 1rem; }
         .form-pricing-grand strong { font-size: 1.15rem; }
         .form-pricing-grand.oneq-total { margin-top: 0; }
 
@@ -412,6 +455,9 @@
                             }
                         };
 
+                        // Types excluded from repeatable group copies in oneq (same as flat form)
+                        $oneqRepExcluded = ['signature', 'pricing', 'heading', 'paragraph', 'divider', 'page_break', 'section', 'hidden'];
+
                         foreach ($allFields as $f) {
                             $t = $f['type'] ?? 'text';
                             $parent = $f['parent'] ?? null;
@@ -419,14 +465,32 @@
                             if ($t === 'hidden') { $hiddenFields[] = $f; continue; }
                             if (in_array($t, ['divider', 'page_break'])) continue;
                             if ($t === 'section') {
-                                if (!empty($f['label']) || !empty($f['help'])) {
-                                    $slides[] = ['type' => 'section_intro', 'field' => $f, 'ids' => []];
-                                }
-                                foreach ($childrenBySection[$f['id']] ?? [] as $child) {
-                                    $ct = $child['type'] ?? 'text';
-                                    if (in_array($ct, ['divider', 'page_break'])) continue;
-                                    if ($ct === 'hidden') { $hiddenFields[] = $child; continue; }
-                                    $pushSlide($child);
+                                if (!empty($f['repeatable'])) {
+                                    // Repeatable sections in oneq degrade to a single fixed copy (copy index 0)
+                                    // using rep_{sectionId}[0][childId] names so the backend collects correctly.
+                                    $repChildren = array_values(array_filter(
+                                        $childrenBySection[$f['id']] ?? [],
+                                        fn ($c) => !in_array($c['type'] ?? 'text', $oneqRepExcluded, true)
+                                    ));
+                                    if (!empty($repChildren)) {
+                                        // Rename each child's 'id' key to the rep_ name so the oneq slide renders correctly
+                                        $repSlideFields = array_map(function ($c) use ($f) {
+                                            $c['_rep_name'] = 'rep_' . $f['id'] . '[0][' . $c['id'] . ']';
+                                            return $c;
+                                        }, $repChildren);
+                                        $ids = array_map(fn ($c) => $c['id'], $repChildren);
+                                        $slides[] = ['type' => 'rep_group', 'field' => $f, 'children' => $repSlideFields, 'ids' => $ids];
+                                    }
+                                } else {
+                                    if (!empty($f['label']) || !empty($f['help'])) {
+                                        $slides[] = ['type' => 'section_intro', 'field' => $f, 'ids' => []];
+                                    }
+                                    foreach ($childrenBySection[$f['id']] ?? [] as $child) {
+                                        $ct = $child['type'] ?? 'text';
+                                        if (in_array($ct, ['divider', 'page_break'])) continue;
+                                        if ($ct === 'hidden') { $hiddenFields[] = $child; continue; }
+                                        $pushSlide($child);
+                                    }
                                 }
                                 continue;
                             }
@@ -512,6 +576,22 @@
                                         <div class="oneq-slide-counter">{{ $idx }} / {{ $slideCount - 1 }}</div>
                                         @if(!empty($f['label']))<h2 class="oneq-slide-title">{{ $f['label'] }}</h2>@endif
                                         @if(!empty($f['help']))<p class="oneq-slide-help">{{ $f['help'] }}</p>@endif
+                                    </div>
+                                @elseif($s['type'] === 'rep_group')
+                                    @php $f = $s['field']; @endphp
+                                    <div class="oneq-slide" x-show="slide === {{ $idx }}" x-cloak>
+                                        <div class="oneq-slide-counter">{{ $idx }} / {{ $slideCount - 1 }}</div>
+                                        @if(!empty($f['label']))<h2 class="oneq-slide-title">{{ $f['label'] }}</h2>@endif
+                                        @if(!empty($f['help']))<p class="oneq-slide-help">{{ $f['help'] }}</p>@endif
+                                        @foreach($s['children'] as $repChild)
+                                            @include('common.form-field-rep', [
+                                                'field'       => $repChild,
+                                                'repName'     => $repChild['_rep_name'],
+                                                'repCopyIdx'  => 0,
+                                                'sectionId'   => $f['id'],
+                                                'fieldOwner'  => $form->user ?? null,
+                                            ])
+                                        @endforeach
                                     </div>
                                 @else
                                     @php $f = $s['field']; @endphp
@@ -609,22 +689,94 @@
                                     if ($parent && isset($sectionIds[$parent]) && ($field['type'] ?? null) !== 'section') continue;
                                 @endphp
                                 @if(($field['type'] ?? null) === 'section')
-                                    <div class="form-grid-cell form-section-card" style="grid-column: span 12;">
-                                        @if(!empty($field['label']))
-                                            <h3 class="form-heading" style="margin: 0 0 0.4rem;">{{ $field['label'] }}</h3>
-                                        @endif
-                                        @if(!empty($field['help']))
-                                            <p class="form-help" style="margin: 0 0 0.85rem;">{{ $field['help'] }}</p>
-                                        @endif
-                                        <div class="form-grid">
-                                            @foreach(($childrenBySection[$field['id']] ?? []) as $child)
-                                                @php $cw = (int) ($child['width'] ?? 12); if (!in_array($cw, [4,6,8,12], true)) $cw = 12; @endphp
-                                                <div class="form-grid-cell" style="grid-column: span {{ $cw }};">
-                                                    @include('common.form-field', ['field' => $child, 'errors' => $errors, 'fieldOwner' => $form->user ?? null, 'showPrices' => $showFieldPrices, 'priceCurrency' => $payCurrency, 'formCurrency' => $form->paymentCurrency()])
-                                                </div>
-                                            @endforeach
+                                    @php
+                                        $secId   = $field['id'] ?? null;
+                                        $sRepeat = !empty($field['repeatable']);
+                                        $repExcludedTypes = ['signature', 'pricing', 'hidden'];
+                                        $sChildren = $childrenBySection[$secId] ?? [];
+                                        $sChildrenRep = $sRepeat
+                                            ? array_values(array_filter($sChildren, fn ($c) => !in_array($c['type'] ?? 'text', $repExcludedTypes, true)))
+                                            : $sChildren;
+                                    @endphp
+                                    @if($sRepeat && $secId)
+                                        @php
+                                            $sMin    = max(1, (int) ($field['repeat_min'] ?? 1));
+                                            $sMax    = isset($field['repeat_max']) ? (int) $field['repeat_max'] : null;
+                                            $sCap    = $sMax ? min($sMax, 10) : 10;
+                                            $sAddLbl = e($field['repeat_add_label'] ?? 'Add another');
+                                            // On a 422 re-render, restore how many copies the visitor had open
+                                            // (Task #4640) so extra copies + their old() values survive.
+                                            $oldCopies = old('rep_' . $secId);
+                                            $oldCount  = is_array($oldCopies) ? count($oldCopies) : 0;
+                                            $sInitial  = max($sMin, min($oldCount, $sCap));
+                                        @endphp
+                                        <div class="form-grid-cell form-section-card" style="grid-column: span 12;"
+                                             x-data="{ rCount: {{ $sInitial }}, rMin: {{ $sMin }}, rMax: {{ $sMax ? $sMax : 'null' }}, rCap: {{ $sCap }} }">
+                                            @if(!empty($field['label']))
+                                                <h3 class="form-heading" style="margin: 0 0 0.4rem;">{{ $field['label'] }}</h3>
+                                            @endif
+                                            @if(!empty($field['help']))
+                                                <p class="form-help" style="margin: 0 0 0.85rem;">{{ $field['help'] }}</p>
+                                            @endif
+                                            @for($ci = 0; $ci < $sCap; $ci++)
+                                                <fieldset :disabled="{{ $ci }} >= rCount"
+                                                          class="rep-copy-fieldset {{ $ci > 0 ? 'rep-copies-gap' : '' }}"
+                                                          x-show="{{ $ci }} < rCount"
+                                                          @if($ci >= $sMin) x-cloak @endif
+                                                          style="border: none; padding: 0; margin: 0;">
+                                                    <div class="rep-copy-card">
+                                                        <div class="rep-copy-header">
+                                                            <span class="rep-copy-title">{{ $field['label'] ?: 'Item' }} <span x-text="{{ $ci }} + 1"></span></span>
+                                                            <button type="button"
+                                                                    @click="if(rCount > rMin) { rCount--; }"
+                                                                    x-show="rCount > rMin && {{ $ci }} >= rMin"
+                                                                    class="rep-remove-btn">
+                                                                <i class="fas fa-times"></i> Remove
+                                                            </button>
+                                                        </div>
+                                                        <div class="form-grid">
+                                                            @foreach($sChildrenRep as $child)
+                                                                @php
+                                                                    $cid  = $child['id'] ?? '';
+                                                                    $cw   = (int) ($child['width'] ?? 12);
+                                                                    if (!in_array($cw, [4,6,8,12], true)) $cw = 12;
+                                                                    $rn = "rep_{$secId}[{$ci}][{$cid}]";
+                                                                @endphp
+                                                                <div class="form-grid-cell" style="grid-column: span {{ $cw }};">
+                                                                    @include('common.form-field-rep', ['field' => $child, 'repName' => $rn, 'repCopyIdx' => $ci, 'sectionId' => $secId, 'fieldOwner' => $form->user ?? null])
+                                                                </div>
+                                                            @endforeach
+                                                        </div>
+                                                    </div>
+                                                </fieldset>
+                                            @endfor
+                                            <div style="margin-top: 0.85rem; padding-bottom: 0.25rem;">
+                                                <button type="button"
+                                                        @click="if(!rMax || rCount < rMax) rCount = Math.min(rCount + 1, rCap)"
+                                                        :disabled="(rMax && rCount >= rMax) || rCount >= rCap"
+                                                        class="rep-add-btn">
+                                                    <i class="fas fa-plus-circle"></i> {!! $sAddLbl !!}
+                                                </button>
+                                            </div>
                                         </div>
-                                    </div>
+                                    @else
+                                        <div class="form-grid-cell form-section-card" style="grid-column: span 12;">
+                                            @if(!empty($field['label']))
+                                                <h3 class="form-heading" style="margin: 0 0 0.4rem;">{{ $field['label'] }}</h3>
+                                            @endif
+                                            @if(!empty($field['help']))
+                                                <p class="form-help" style="margin: 0 0 0.85rem;">{{ $field['help'] }}</p>
+                                            @endif
+                                            <div class="form-grid">
+                                                @foreach($sChildren as $child)
+                                                    @php $cw = (int) ($child['width'] ?? 12); if (!in_array($cw, [4,6,8,12], true)) $cw = 12; @endphp
+                                                    <div class="form-grid-cell" style="grid-column: span {{ $cw }};">
+                                                        @include('common.form-field', ['field' => $child, 'errors' => $errors, 'fieldOwner' => $form->user ?? null, 'showPrices' => $showFieldPrices, 'priceCurrency' => $payCurrency, 'formCurrency' => $form->paymentCurrency()])
+                                                    </div>
+                                                @endforeach
+                                            </div>
+                                        </div>
+                                    @endif
                                 @else
                                     @php $w = (int) ($field['width'] ?? 12); if (!in_array($w, [4,6,8,12], true)) $w = 12; @endphp
                                     <div class="form-grid-cell" style="grid-column: span {{ $w }};">
@@ -650,6 +802,53 @@
                         <div class="form-pricing-grand" x-data x-show="$store.formPricing.grand > 0" x-cloak>
                             <span>Total due</span>
                             <strong x-text="$store.formPricing.fmt($store.formPricing.grand)"></strong>
+                        </div>
+                    @endif
+
+                    {{-- Captcha widget (shown on last page / only page) --}}
+                    @if($errors->has('_captcha'))
+                        <div style="margin-top:1rem; padding:0.6rem 0.9rem; border-radius:8px; background:rgba(239,68,68,0.08); border:1px solid rgba(239,68,68,0.25); color:#ef4444; font-size:0.8rem;">
+                            <i class="fas fa-exclamation-triangle mr-1"></i> {{ $errors->first('_captcha') }}
+                        </div>
+                    @endif
+                    @if($captchaProvider === 'math' && $mathQuestion)
+                        <div style="margin-top:1.25rem; padding:1rem; border-radius:var(--form-radius-sm,6px); border:1px solid rgba(59,130,246,0.2); background:rgba(59,130,246,0.04);">
+                            <label style="display:block; font-size:0.82rem; font-weight:600; margin-bottom:0.5rem; color:inherit;">
+                                <i class="fas fa-calculator" style="margin-right:0.3rem; color:var(--form-accent,#3b82f6);"></i>
+                                {{ $mathQuestion['question'] }}
+                            </label>
+                            <input type="number" name="_math_answer" class="form-input" placeholder="Your answer" required
+                                   inputmode="numeric" style="max-width:120px;">
+                        </div>
+                    @elseif($captchaProvider === 'recaptcha_v2' && $captchaSiteKey)
+                        <div style="margin-top:1.25rem;">
+                            <div class="g-recaptcha" data-sitekey="{{ $captchaSiteKey }}"></div>
+                        </div>
+                    @elseif($captchaProvider === 'recaptcha_v3' && $captchaSiteKey)
+                        <input type="hidden" name="_recaptcha_token" id="_recaptcha_token">
+                        <script>
+                            document.addEventListener('DOMContentLoaded', function() {
+                                var form = document.querySelector('form[action*="/f/"]');
+                                if (!form) return;
+                                form.addEventListener('submit', function(e) {
+                                    if (!window.grecaptcha) return;
+                                    e.preventDefault();
+                                    grecaptcha.ready(function() {
+                                        grecaptcha.execute('{{ $captchaSiteKey }}', {action: 'form_submit'}).then(function(token) {
+                                            document.getElementById('_recaptcha_token').value = token;
+                                            form.submit();
+                                        });
+                                    });
+                                }, { once: true });
+                            });
+                        </script>
+                    @elseif($captchaProvider === 'hcaptcha' && $captchaSiteKey)
+                        <div style="margin-top:1.25rem;">
+                            <div class="h-captcha" data-sitekey="{{ $captchaSiteKey }}"></div>
+                        </div>
+                    @elseif($captchaProvider === 'turnstile' && $captchaSiteKey)
+                        <div style="margin-top:1.25rem;">
+                            <div class="cf-turnstile" data-sitekey="{{ $captchaSiteKey }}"></div>
                         </div>
                     @endif
 
@@ -901,6 +1100,81 @@
                     const c = this.$refs.pad;
                     this.ctx.clearRect(0, 0, c.width, c.height);
                     this.hasInk = false; this.dataUrl = '';
+                },
+            };
+        }
+
+        // Date-range and time-range: enforce end >= start client-side.
+        // Runs once the DOM is ready and re-validates on every input change.
+        (function () {
+            function wireRangeField(fieldId, type) {
+                var prefix = fieldId + (type === 'date_range' ? '_date_range' : '_time_range');
+                var startEl = document.querySelector('[name="' + fieldId + '[start]"]');
+                var endEl   = document.querySelector('[name="' + fieldId + '[end]"]');
+                if (!startEl || !endEl) return;
+                function validate() {
+                    if (!startEl.value || !endEl.value) { endEl.setCustomValidity(''); return; }
+                    var s = type === 'time_range'
+                        ? (function(t) { var p = t.split(':'); return parseInt(p[0],10)*60 + parseInt(p[1]||0,10); })(startEl.value)
+                        : new Date(startEl.value).getTime();
+                    var e = type === 'time_range'
+                        ? (function(t) { var p = t.split(':'); return parseInt(p[0],10)*60 + parseInt(p[1]||0,10); })(endEl.value)
+                        : new Date(endEl.value).getTime();
+                    if (e < s) {
+                        endEl.setCustomValidity(type === 'time_range'
+                            ? 'End time must be the same or later than start time.'
+                            : 'End date must be the same or later than start date.');
+                    } else {
+                        endEl.setCustomValidity('');
+                    }
+                }
+                startEl.addEventListener('change', validate);
+                endEl.addEventListener('change', validate);
+                validate();
+            }
+            @foreach($form->fields ?? [] as $field)
+                @if(($field['type'] ?? '') === 'date_range')
+                    wireRangeField(@js($field['id'] ?? ''), 'date_range');
+                @elseif(($field['type'] ?? '') === 'time_range')
+                    wireRangeField(@js($field['id'] ?? ''), 'time_range');
+                @endif
+            @endforeach
+        })();
+
+        // Ranking field — drag-to-reorder list. The hidden input's :value binding
+        // is handled by Alpine directly in the template (`items.join(',')`).
+        // Handler names must match the @dragstart/@dragover/@dragend used in
+        // form-field.blade.php.
+        function rankingField(items) {
+            return {
+                items: items.slice(),
+                dragging: null,
+                over: null,
+                init() { /* Alpine `:value` binding handles the hidden input reactively */ },
+                dragStart(idx) {
+                    this.dragging = idx;
+                },
+                dragOver(idx) {
+                    this.over = idx;
+                },
+                dragEnd() {
+                    if (this.dragging !== null && this.over !== null && this.dragging !== this.over) {
+                        const moved = this.items.splice(this.dragging, 1)[0];
+                        this.items.splice(this.over, 0, moved);
+                        this.items = [...this.items];
+                    }
+                    this.dragging = null;
+                    this.over = null;
+                },
+                moveUp(idx) {
+                    if (idx === 0) return;
+                    [this.items[idx - 1], this.items[idx]] = [this.items[idx], this.items[idx - 1]];
+                    this.items = [...this.items];
+                },
+                moveDown(idx) {
+                    if (idx >= this.items.length - 1) return;
+                    [this.items[idx], this.items[idx + 1]] = [this.items[idx + 1], this.items[idx]];
+                    this.items = [...this.items];
                 },
             };
         }

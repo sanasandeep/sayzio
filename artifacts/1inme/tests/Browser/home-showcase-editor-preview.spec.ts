@@ -9,6 +9,8 @@ import {
   type Page,
 } from "@playwright/test";
 
+import { loginAsDemoAdmin } from "./login-as-demo-admin";
+
 /**
  * Guards the "What you can create" admin editor's Alpine-driven live preview
  * (admin/site-pages/partials/home-editor.blade.php, data-home-showcase-preview),
@@ -93,30 +95,6 @@ echo 'SEEDED=' . count($rows);
   if (!/SEEDED=\d+/.test(out)) {
     throw new Error("Seed failed, output:\n" + out);
   }
-}
-
-/**
- * Log in on the ADMIN guard via the non-prod demo-login form. Submits the form
- * via JS and waits only for the POST response (not the heavy admin dashboard
- * render) so the redirect target never blocks the suite.
- */
-async function loginAsDemoAdmin(page: Page): Promise<void> {
-  await page.goto("/admin/login");
-  await Promise.all([
-    page.waitForResponse(
-      (r) =>
-        r.url().endsWith("/admin/demo-login") &&
-        r.request().method() === "POST",
-      { timeout: 90_000 },
-    ),
-    page.evaluate(() => {
-      const form = document.querySelector<HTMLFormElement>(
-        'form[action$="/admin/demo-login"]',
-      );
-      if (!form) throw new Error("admin demo-login form not found");
-      form.submit();
-    }),
-  ]);
 }
 
 /** The editor card that hosts the whole Alpine component (rows + preview). */

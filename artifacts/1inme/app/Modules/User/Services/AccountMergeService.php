@@ -303,6 +303,42 @@ class AccountMergeService
         });
     }
 
+    /**
+     * Adopt a freshly verified email as the account's users.email when the
+     * account has none (mobile/WhatsApp-only sign-ups). Stamps
+     * email_verified_at because the caller just proved ownership via OTP.
+     *
+     * Does NOT touch the primary-identifier flag: the user's phone stays
+     * primary; users.email is an additional verified contact column. Skips
+     * silently if another user row already holds this email (legacy rows
+     * predating the linked_identifiers mirror), so the users.email unique
+     * constraint can never 500 this flow.
+     *
+     * @return bool true when users.email was set by this call.
+     */
+    public function adoptEmailIfMissing(User $user, string $email): bool
+    {
+        $email = LinkedIdentifier::normalize('email', $email);
+        if ($email === '' || !empty($user->email)) {
+            return false;
+        }
+
+        $taken = User::query()
+            ->whereRaw('lower(email) = ?', [strtolower($email)])
+            ->where('id', '!=', $user->id)
+            ->exists();
+        if ($taken) {
+            return false;
+        }
+
+        $user->forceFill([
+            'email'             => $email,
+            'email_verified_at' => $user->email_verified_at ?: now(),
+        ])->save();
+
+        return true;
+    }
+
     /** Detach a non-primary identifier, refusing to leave the user without one. */
     public function unlink(User $user, LinkedIdentifier $identifier): void
     {

@@ -3,6 +3,7 @@
 namespace App\Modules\Admin\Support;
 
 use App\Modules\Admin\Models\Plan;
+use App\Modules\Common\Support\PricingPageCache;
 use App\Modules\Common\Support\PlanFormCatalogue;
 use App\Modules\User\Models\BiolinkBlock;
 use App\Modules\User\Support\IntegrationConfigRegistry;
@@ -33,7 +34,7 @@ class PlanWriter
         $addonIds = $validated['addon_ids'] ?? [];
         unset($validated['addon_ids']);
 
-        $validated['features'] = $this->collectFeatures($request, $validated['features'] ?? []);
+        $validated['features'] = $this->collectFeatures($request, (array) $request->input('features', []));
         $validated['intro_discount'] = \App\Services\Billing\IntroDiscount::normalize($request->input('intro_discount'));
 
         // Down-convert MINOR → MAJOR for legacy decimal columns; the
@@ -49,6 +50,7 @@ class PlanWriter
         }
         $plan->addons()->sync($addonIds);
         $this->syncPriceTable($plan, $minor);
+        PricingPageCache::flush();
 
         return $plan;
     }
@@ -65,7 +67,7 @@ class PlanWriter
         $addonIds = $validated['addon_ids'] ?? [];
         unset($validated['addon_ids']);
 
-        $validated['features'] = $this->collectFeatures($request, $validated['features'] ?? [], $plan->features ?? []);
+        $validated['features'] = $this->collectFeatures($request, (array) $request->input('features', []), $plan->features ?? []);
         $validated['intro_discount'] = \App\Services\Billing\IntroDiscount::normalize($request->input('intro_discount'));
 
         $minor = $this->minorPrices($validated);
@@ -79,6 +81,7 @@ class PlanWriter
         }
         $plan->addons()->sync($addonIds);
         $this->syncPriceTable($plan, $minor);
+        PricingPageCache::flush();
 
         return $plan;
     }
@@ -114,6 +117,8 @@ class PlanWriter
             $newPrice->priceable_id = $clone->id;
             $newPrice->save();
         }
+
+        PricingPageCache::flush();
 
         return $clone;
     }
@@ -209,6 +214,14 @@ class PlanWriter
         // ---- AI suite booleans ----
         foreach (PlanFormCatalogue::aiSuite() as $row) {
             $out[$row['key']] = !empty($features[$row['key']]);
+        }
+
+        // ---- Included coin grants (non-negative integers; 0 = none) ----
+        foreach (PlanFormCatalogue::includedCoinGrants() as $row) {
+            if (array_key_exists($row['key'], $features)) {
+                $v = (int) $features[$row['key']];
+                $out[$row['key']] = max(0, $v);
+            }
         }
 
         // ---- AI coin multipliers (per provider) ----
@@ -357,6 +370,10 @@ class PlanWriter
             'features.ai_openai_coin_multiplier'     => 'nullable|numeric|min:0',
             'features.ai_elevenlabs_coin_multiplier' => 'nullable|numeric|min:0',
 
+            // Included coin grants — non-negative integer coin counts per billing cycle.
+            'features.included_coins_monthly' => 'nullable|integer|min:0',
+            'features.included_coins_yearly'  => 'nullable|integer|min:0',
+
             // Analytics select.
             'features.analytics' => 'nullable|in:basic,advanced',
 
@@ -382,12 +399,7 @@ class PlanWriter
     public function uniqueSlug(string $name): string
     {
         $base = Str::slug($name);
-        $slug = $base;
-        $i = 2;
-        while (Plan::where('slug', $slug)->exists()) {
-            $slug = $base . '-' . $i++;
-        }
-        return $slug;
+        return \App\Support\UniqueSuffix::resolve(Plan::query(), $base);
     }
 
     /**

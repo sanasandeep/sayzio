@@ -111,6 +111,9 @@ class ProcessContactImportJob implements ShouldQueue
             'given_name'   => $row['given_name'] ?? null,
             'family_name'  => $row['family_name'] ?? null,
             'organization' => $row['organization'] ?? null,
+            'job_title'    => $row['job_title']   ?? null,
+            'notes'        => $row['notes']        ?? null,
+            'tags'         => $row['tags']         ?? null,
             'phones'       => $row['phones'] ?? [],
             'emails'       => $row['emails'] ?? [],
         ];
@@ -120,6 +123,9 @@ class ProcessContactImportJob implements ShouldQueue
             'given_name'   => 'nullable|string|max:191',
             'family_name'  => 'nullable|string|max:191',
             'organization' => 'nullable|string|max:191',
+            'job_title'    => 'nullable|string|max:191',
+            'notes'        => 'nullable|string|max:5000',
+            'tags'         => 'nullable|array',
             'phones'                 => 'nullable|array|max:10',
             'phones.*.label'         => 'nullable|string|max:50',
             'phones.*.value'         => 'nullable|string|max:80',
@@ -147,6 +153,9 @@ class ProcessContactImportJob implements ShouldQueue
                     'given_name'   => $payload['given_name'],
                     'family_name'  => $payload['family_name'],
                     'organization' => $payload['organization'],
+                    'job_title'    => $payload['job_title'] ?? null,
+                    'notes'        => $payload['notes']     ?? null,
+                    'tags'         => !empty($payload['tags']) ? $payload['tags'] : null,
                     'locally_modified_at' => now(),
                 ]);
                 $this->syncRows($c, $payload['phones'], $payload['emails']);

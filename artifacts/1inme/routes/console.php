@@ -11,6 +11,23 @@ Artisan::command('inspire', function () {
 
 /*
 |--------------------------------------------------------------------------
+| Schedule mutex cache — must be a store shared across all server instances
+|--------------------------------------------------------------------------
+| onOneServer() acquires a distributed lock to ensure each job runs on only
+| one instance per tick. This only works when ALL instances share the same
+| cache store. The production environment may override CACHE_STORE to a
+| per-instance store (e.g. "file"), which silently makes onOneServer() a
+| no-op and causes every job to run once per instance.
+|
+| Explicitly pointing the scheduling mutex at the "database" store (backed
+| by the shared RDS `cache` table) guarantees the lock is truly cross-
+| instance regardless of what CACHE_STORE is set to. General-purpose
+| caching is unaffected — only the scheduler's own mutex store changes.
+*/
+Schedule::useCache('database');
+
+/*
+|--------------------------------------------------------------------------
 | Scheduled jobs — registry-driven
 |--------------------------------------------------------------------------
 | Every scheduled job is declared ONCE in routes/schedules/<group>.php and

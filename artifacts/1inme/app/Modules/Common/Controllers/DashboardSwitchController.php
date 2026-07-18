@@ -124,6 +124,30 @@ class DashboardSwitchController extends Controller
 
         AiEngineSettings::setEnabled(true);
 
+        // Some surfaces sit behind an extra per-feature toggle on top of the
+        // master switch (currently the Voice Assistant). If the gate page
+        // told us which feature it was guarding, flip that toggle too —
+        // otherwise the admin lands right back on the same "turned off"
+        // page with a stale success banner.
+        $feature = (string) $request->input('feature', '');
+        if ($feature === 'voice' && ! AiEngineSettings::voiceEnabled()) {
+            AiEngineSettings::setVoiceEnabled(true);
+
+            return redirect($this->resolveAiReturnTarget($request))
+                ->with('success', 'AI and the Voice Assistant are now enabled.');
+        }
+
+        // Engine + voice toggle are already on but a per-plan allowlist is
+        // blocking the feature: clear it so every plan can use voice. Only
+        // reachable via the admin gate above (settings.manage).
+        if ($feature === 'voice-plans') {
+            AiEngineSettings::setVoiceEnabled(true);
+            AiEngineSettings::setVoiceEnabledPlans([]);
+
+            return redirect($this->resolveAiReturnTarget($request))
+                ->with('success', 'Voice Assistant is now available on all plans.');
+        }
+
         return redirect($this->resolveAiReturnTarget($request))
             ->with('success', 'AI is now enabled.');
     }

@@ -33,7 +33,7 @@ class NotificationController extends Controller
             'body'         => ['required', 'string', 'max:4000'],
             'target_url'   => ['nullable', 'url', 'max:500'],
             'target_kind'  => ['required', Rule::in(['all', 'plan', 'role', 'country', 'user'])],
-            'target_value' => ['nullable', 'string', 'max:120'],
+            'target_value' => ['nullable', 'string', 'max:5000'],
         ]);
 
         if ($data['target_kind'] !== 'all' && empty($data['target_value'])) {
@@ -51,9 +51,33 @@ class NotificationController extends Controller
             targetUrl:   $data['target_url'] ?? null,
         );
 
-        return redirect()->route('admin.notifications.index')->with(
-            'success',
-            'Broadcast sent to ' . $broadcast->recipients_count . ' user' . ($broadcast->recipients_count === 1 ? '' : 's') . '.'
-        );
+        $unmatched = 0;
+
+        if ($data['target_kind'] === 'user') {
+            $resolved = $svc->resolveTargetUserIds('user', $data['target_value'] ?? null);
+
+            if ($broadcast->recipients_count === 0 && $resolved->isEmpty()) {
+                // Distinguish "no token matched a user" (input error) from
+                // "matched users all opted out" (a valid, delivered-to-zero
+                // send that must keep its audit row). Don't leave a
+                // zero-recipient audit row behind for a failed send.
+                $broadcast->delete();
+
+                return back()->withErrors([
+                    'target_value' => 'None of the entered emails or IDs matched an active user.',
+                ])->withInput();
+            }
+
+            $entered   = $svc->countUserTargetEntries($data['target_value'] ?? null);
+            $unmatched = max(0, $entered - $resolved->count());
+        }
+
+        $message = 'Broadcast sent to ' . $broadcast->recipients_count . ' user' . ($broadcast->recipients_count === 1 ? '' : 's') . '.';
+
+        if ($unmatched > 0) {
+            $message .= ' (' . $unmatched . ($unmatched === 1 ? ' entry' : ' entries') . ' not found)';
+        }
+
+        return redirect()->route('admin.notifications.index')->with('success', $message);
     }
 }

@@ -1,0 +1,810 @@
+import { browser } from "../lib/browser";
+import { api, ApiError } from "../lib/api";
+import { appendDialHistory, applyNotifUnreadCount, clearAuth, clearCachedProperties, getSettings, setSettings, syncPendingThanks } from "../lib/storage";
+import {
+  ensureProperties,
+  matchHrefs,
+  rememberMatches,
+  getMatchesForTab,
+  clearMatches,
+  updateBadgeForTab,
+  isPageHostDisabled,
+} from "./radar";
+
+interface ExtractedPayload {
+  title: string;
+  description: string;
+  canonical: string;
+  ogImage: string | null;
+  links: Array<{ url: string; label: string; social?: string | null }>;
+}
+
+const SOCIAL_HOSTS: Record<string, string> = {
+  "instagram.com": "instagram",
+  "twitter.com": "twitter",
+  "x.com": "twitter",
+  "tiktok.com": "tiktok",
+  "youtube.com": "youtube",
+  "youtu.be": "youtube",
+  "facebook.com": "facebook",
+  "fb.com": "facebook",
+  "linkedin.com": "linkedin",
+  "github.com": "github",
+  "twitch.tv": "twitch",
+  "spotify.com": "spotify",
+  "soundcloud.com": "soundcloud",
+  "pinterest.com": "pinterest",
+  "snapchat.com": "snapchat",
+  "discord.com": "discord",
+  "discord.gg": "discord",
+  "threads.net": "threads",
+  "medium.com": "medium",
+  "patreon.com": "patreon",
+};
+
+function detectSocial(url: string): string | null {
+  try {
+    const host = new URL(url).hostname.replace(/^www\./, "");
+    for (const [domain, label] of Object.entries(SOCIAL_HOSTS)) {
+      if (host === domain || host.endsWith(`.${domain}`)) return label;
+    }
+  } catch { /* ignore */ }
+  return null;
+}
+
+function notify(title: string, message: string) {
+  try {
+    browser.notifications?.create({
+      type: "basic",
+      iconUrl: browser.runtime.getURL("icons/icon-128.png"),
+      title,
+      message,
+    });
+  } catch { /* notifications permission may be missing */ }
+}
+
+async function shortenAndCopy(url: string, title?: string, openTabId?: number, autoPixel?: boolean): Promise<{ ok: true; shortUrl: string; linkId: number } | { ok: false; error: string }> {
+  const settings = await getSettings();
+  if (!settings.token) return { ok: false, error: "Not signed in" };
+  try {
+    const result = await api.createShortLink(url, title, settings.workspaceId, autoPixel);
+    const alias = result.link.alias;
+    const shortUrl = result.link.short_url || `${settings.webBaseUrl}/${alias}`;
+
+    // Try to copy via the active tab content script. The background's
+    // service worker doesn't have a clipboard API on its own.
+    if (openTabId !== undefined) {
+      try {
+        await browser.scripting.executeScript({
+          target: { tabId: openTabId },
+          func: (text: string) => {
+            try {
+              navigator.clipboard?.writeText?.(text);
+            } catch {
+              const t = document.createElement("textarea");
+              t.value = text;
+              document.body.appendChild(t);
+              t.select();
+              try { document.execCommand("copy"); } catch { /* ignore */ }
+              t.remove();
+            }
+          },
+          args: [shortUrl],
+        });
+      } catch { /* host permission may be missing on chrome:// pages */ }
+    }
+
+    notify("Shortened with Sayzio", shortUrl);
+    return { ok: true, shortUrl, linkId: result.link.id };
+  } catch (e) {
+    const msg = e instanceof ApiError ? e.message : (e as Error).message || "Shorten failed";
+    return { ok: false, error: msg };
+  }
+}
+
+async function pageToBiolink(tabId: number): Promise<{ ok: true; alias: string } | { ok: false; error: string }> {
+  const settings = await getSettings();
+  if (!settings.token) return { ok: false, error: "Not signed in" };
+
+  try {
+    const results = await browser.scripting.executeScript({
+      target: { tabId },
+      files: ["content-extract.js"],
+    });
+    const payload = (results?.[0]?.result ?? null) as ExtractedPayload | null;
+    if (!payload) return { ok: false, error: "Could not extract page content" };
+
+    const titleStr = payload.title || "Untitled";
+    const biolink = await api.createBiolink(titleStr, payload.description || undefined, payload.ogImage || undefined, settings.workspaceId);
+    const linkId = biolink.link.id;
+    const alias = biolink.link.alias;
+
+    let order = 0;
+    await api.addBlock(linkId, "header", {
+      title: titleStr,
+      subtitle: payload.description || "",
+      avatar_url: payload.ogImage || null,
+      cover_url: payload.ogImage || null,
+    }, order++);
+
+    for (const item of payload.links.slice(0, 25)) {
+      const blockType = item.social ? "social" : "link";
+      const settingsBlock: Record<string, unknown> = item.social
+        ? { platform: item.social, url: item.url, label: item.label || item.social }
+        : { url: item.url, label: item.label || item.url, link: item.url };
+      try {
+        await api.addBlock(linkId, blockType, settingsBlock, order++);
+      } catch { /* skip individual block failures */ }
+    }
+
+    const editorUrl = `${settings.webBaseUrl}/dashboard/biolinks/${linkId}/edit`;
+    await browser.tabs.create({ url: editorUrl });
+    notify("Bio-link draft created", `${alias} — opening editor`);
+    return { ok: true, alias };
+  } catch (e) {
+    const msg = e instanceof ApiError ? e.message : (e as Error).message || "Bio-link create failed";
+    return { ok: false, error: msg };
+  }
+}
+
+async function setupContextMenus() {
+  try {
+    await browser.contextMenus.removeAll();
+    browser.contextMenus.create({
+      id: "1inme-shorten-page",
+      title: "Shorten this page with Sayzio",
+      contexts: ["page"],
+    });
+    browser.contextMenus.create({
+      id: "1inme-shorten-link",
+      title: "Shorten link with Sayzio",
+      contexts: ["link"],
+    });
+    browser.contextMenus.create({
+      id: "1inme-page-to-biolink",
+      title: "Turn page into Sayzio bio-link",
+      contexts: ["page"],
+    });
+    browser.contextMenus.create({
+      id: "1inme-save-contact",
+      title: "Save contact with Sayzio",
+      contexts: ["page", "selection"],
+    });
+    browser.contextMenus.create({
+      id: "1inme-separator-1",
+      type: "separator",
+      contexts: ["page"],
+    });
+    browser.contextMenus.create({
+      id: "1inme-add-to-biolink",
+      title: "Add this page to a bio-link",
+      contexts: ["page"],
+    });
+    browser.contextMenus.create({
+      id: "1inme-quick-qr",
+      title: "Design QR for this page",
+      contexts: ["page"],
+    });
+    browser.contextMenus.create({
+      id: "1inme-quick-qr-link",
+      title: "Design QR for this link",
+      contexts: ["link"],
+    });
+    browser.contextMenus.create({
+      id: "1inme-add-to-calendar",
+      title: "Add page event to Sayzio calendar",
+      contexts: ["page"],
+    });
+    browser.contextMenus.create({
+      id: "1inme-capture-reviews",
+      title: "Capture reviews for this business",
+      contexts: ["page"],
+    });
+    // ── New context menu items (v0.2) ──────────────────────────────
+    browser.contextMenus.create({
+      id: "1inme-separator-selection",
+      type: "separator",
+      contexts: ["selection"],
+    });
+    browser.contextMenus.create({
+      id: "1inme-shorten-selection",
+      title: "Shorten selected URL with Sayzio",
+      contexts: ["selection"],
+    });
+    browser.contextMenus.create({
+      id: "1inme-qr-selection",
+      title: "Create Sayzio QR from selection",
+      contexts: ["selection"],
+    });
+    browser.contextMenus.create({
+      id: "1inme-note-to-contact",
+      title: "Add selection as note to contact",
+      contexts: ["selection"],
+    });
+    browser.contextMenus.create({
+      id: "1inme-dialer-lookup",
+      title: "Look up this number in Sayzio Dialer",
+      contexts: ["selection"],
+    });
+    browser.contextMenus.create({
+      id: "1inme-save-image",
+      title: "Save image to Sayzio Files",
+      contexts: ["image"],
+    });
+    browser.contextMenus.create({
+      id: "1inme-separator-2",
+      type: "separator",
+      contexts: ["page"],
+    });
+    browser.contextMenus.create({
+      id: "1inme-send-to-subscribers",
+      title: "Send this page to my subscribers",
+      contexts: ["page"],
+    });
+  } catch { /* context menus permission missing */ }
+}
+
+// ── Dial content-script registration ─────────────────────────────────
+const DIAL_SCRIPT_ID = "1inme-dial";
+
+async function refreshDialRegistration() {
+  if (!browser.scripting?.registerContentScripts) return;
+  try { await browser.scripting.unregisterContentScripts({ ids: [DIAL_SCRIPT_ID] }); } catch { /* not registered */ }
+  const settings = await getSettings();
+  if (!settings.dialEnabled || !settings.token) return;
+  try {
+    await browser.scripting.registerContentScripts([
+      {
+        id: DIAL_SCRIPT_ID,
+        matches: ["http://*/*", "https://*/*"],
+        js: ["content-dial.js"],
+        runAt: "document_idle",
+        persistAcrossSessions: true,
+        allFrames: false,
+      },
+    ]);
+  } catch { /* host permission may be missing */ }
+}
+
+async function extractContactCandidate(tabId: number): Promise<{ ok: true; candidate: any } | { ok: false; error: string }> {
+  try {
+    const results = await browser.scripting.executeScript({
+      target: { tabId },
+      files: ["content-extract-contact.js"],
+    });
+    const resp = results?.[0]?.result as any;
+    if (!resp || resp.ok !== true) return { ok: false, error: resp?.error || "Could not extract contact." };
+    return { ok: true, candidate: resp.candidate };
+  } catch (e) {
+    return { ok: false, error: (e as Error).message || "Extraction failed" };
+  }
+}
+
+async function stashContactCandidateAndOpenPopup(tabId: number) {
+  const result = await extractContactCandidate(tabId);
+  if (!result.ok) {
+    notify("Sayzio — error", result.error);
+    return;
+  }
+  await browser.storage.local.set({
+    pendingContactCandidate: { candidate: result.candidate, at: Date.now() },
+  });
+  // Open the popup (Chrome MV3) — falls back gracefully on Firefox where
+  // openPopup is sometimes unavailable from a context-menu click.
+  try {
+    if ((browser.action as any)?.openPopup) {
+      await (browser.action as any).openPopup();
+    } else {
+      notify("Sayzio", "Open the Sayzio extension popup to review the contact.");
+    }
+  } catch {
+    notify("Sayzio", "Open the Sayzio extension popup to review the contact.");
+  }
+}
+
+// Dynamically register the handshake content script against whatever
+// webBaseUrl the user has configured, so the SSO flow works against
+// production (1inme.com) AND a local dev workflow (replit.dev /
+// localhost / custom domain). The static manifest still covers the
+// production URL so first-install handshake works before any settings
+// are written.
+// Register the radar content script across the whole web — but only
+// while the user has explicitly opted in. Toggling the setting in the
+// popup re-runs this. Sites the user has muted are excluded from the
+// match patterns so the script never even loads on them.
+const RADAR_SCRIPT_ID = "1inme-radar";
+
+async function refreshRadarRegistration() {
+  if (!browser.scripting?.registerContentScripts) return;
+  try { await browser.scripting.unregisterContentScripts({ ids: [RADAR_SCRIPT_ID] }); } catch { /* not registered yet */ }
+  const settings = await getSettings();
+  if (!settings.radarEnabled || !settings.token) return;
+  try {
+    const excludeMatches = (settings.radarDisabledHosts || [])
+      .filter(Boolean)
+      .flatMap((h) => [`*://${h}/*`, `*://www.${h}/*`]);
+    await browser.scripting.registerContentScripts([
+      {
+        id: RADAR_SCRIPT_ID,
+        matches: ["http://*/*", "https://*/*"],
+        excludeMatches: excludeMatches.length ? excludeMatches : undefined,
+        js: ["content-radar.js"],
+        runAt: "document_idle",
+        persistAcrossSessions: true,
+        allFrames: false,
+      },
+    ]);
+  } catch { /* host permission may be missing — silently no-op */ }
+}
+
+async function refreshHandshakeMatches() {
+  if (!browser.scripting?.registerContentScripts) return;
+  try {
+    const { webBaseUrl } = await getSettings();
+    let pattern = "";
+    try {
+      const u = new URL(webBaseUrl);
+      pattern = `${u.protocol}//${u.host}/extension/handshake*`;
+    } catch { /* invalid URL — skip */ }
+    try { await browser.scripting.unregisterContentScripts({ ids: ["1inme-handshake"] }); } catch { /* not registered yet */ }
+    if (!pattern) return;
+    await browser.scripting.registerContentScripts([
+      {
+        id: "1inme-handshake",
+        matches: [pattern],
+        js: ["content-handshake.js"],
+        runAt: "document_idle",
+        persistAcrossSessions: true,
+      },
+    ]);
+  } catch { /* registerContentScripts may fail if host permission missing — fall back to manifest static match */ }
+}
+
+// Cross-device pending-thanks reconciliation. The popup only reconciles
+// on open, so a creator with the popup already up on desktop wouldn't
+// see an item their laptop just queued (or a dismissal) until they
+// closed and reopened it. A short-cadence alarm in the service worker
+// pulls the server copy in the background and writes it via setSettings,
+// which the popup's storage.onChanged listener picks up and re-renders
+// from automatically. Dismissals from another browser propagate the
+// same way (they show up as a smaller server queue with a newer
+// updated_at_ms, which adoptServer() in syncPendingThanks honours).
+//
+// Cadence: 30 seconds. chrome.alarms in MV3 accepts periodInMinutes
+// down to 0.5; the polyfill passes through to Firefox where 0.5 is
+// also the documented minimum. Service-worker alarms are far cheaper
+// than a setInterval (which wouldn't survive SW shutdown anyway) and
+// only fire while the browser is awake, so this stays power-friendly.
+// ── Notification polling alarm ────────────────────────────────────────
+// Polls /notifications every 30 s while signed in. Stores the unread
+// count in storage so the popup's tab badge stays in sync without a
+// network round-trip. Fires native browser.notifications for high-signal
+// event types that arrive since the last check.
+
+const NOTIF_ALARM = "1inme-notif-poll";
+const NOTIF_PERIOD_MIN = 0.5;
+
+// Notification types that warrant a native browser notification when
+// they arrive in the background (unread_count increases).
+const HIGH_SIGNAL_TYPES = new Set([
+  "new_subscriber",
+  "new_follower",
+  "form_submission",
+  "restaurant_order",
+  "store_order",
+  "payment_received",
+  "review_received",
+  "dialer_callback_due",
+]);
+
+function notifIcon(type: string): string {
+  if (type.includes("subscriber")) return "👤";
+  if (type.includes("follower"))   return "➕";
+  if (type.includes("form"))       return "📝";
+  if (type.includes("restaurant")) return "🍽️";
+  if (type.includes("store_order")) return "🛒";
+  if (type.includes("payment"))    return "💰";
+  if (type.includes("review"))     return "⭐";
+  if (type.includes("callback"))   return "📞";
+  return "🔔";
+}
+
+function notifLabel(item: { type: string; data: Record<string, unknown>; message?: string | null }): string {
+  if (item.message) return item.message;
+  const d = item.data;
+  if (typeof d.message === "string") return d.message;
+  if (typeof d.body === "string")    return d.body;
+  if (typeof d.title === "string")   return d.title;
+  return item.type.replace(/_/g, " ");
+}
+
+// Gap beyond which the stored count is considered stale: the MV3 service
+// worker slept through at least one alarm tick, so the cached badge value
+// may lag reality. 2× the poll period gives one full missed cycle of slack.
+const NOTIF_STALE_MS = NOTIF_PERIOD_MIN * 60_000 * 2;
+
+async function syncNotifications() {
+  const settings = await getSettings();
+  if (!settings.token) return;
+  const prevCount = settings.notifUnreadCount ?? 0;
+  const lastPolled = settings.notifLastPolledAt ?? 0;
+  const nowAtStart = Date.now();
+
+  // Stale-if-sleep guard: if the SW slept past the alarm cadence, clear the
+  // badge up front rather than letting a potentially stale count linger
+  // (e.g. if the fetch below fails). The successful fetch repaints it fresh.
+  const stale = lastPolled > 0 && nowAtStart - lastPolled > NOTIF_STALE_MS;
+  if (stale) {
+    try {
+      await (browser.action as any).setBadgeText?.({ text: "" });
+    } catch { /* badge updates are best-effort */ }
+    await setSettings({ notifUnreadCount: 0 });
+  }
+
+  try {
+    const resp = await api.getNotifications({ perPage: 20 });
+    const items = resp.items ?? [];
+    const unread = items.filter((n) => !n.read_at);
+    const newCount = unread.length;
+
+    // Persist updated count + poll timestamp AND repaint the global
+    // extension badge in one go (tab-specific radar badges override
+    // this per-tab, but the global badge shows when no tab override is
+    // set). Shared helper also used by the popup's markRead/markAll.
+    await applyNotifUnreadCount(newCount);
+
+    // Fire native notifications only for genuinely new high-signal items.
+    // When the SW slept (stale), the stored prevCount can lag reality and
+    // would wrongly suppress alerts; treat it as 0 so anything unread that
+    // arrived after the last poll still fires.
+    const effectivePrev = stale ? 0 : prevCount;
+    if (newCount > effectivePrev && lastPolled > 0) {
+      const newItems = unread.filter((n) => {
+        if (!HIGH_SIGNAL_TYPES.has(n.type)) return false;
+        // Only items newer than the previous poll.
+        try { return new Date(n.created_at).getTime() > lastPolled; } catch { return false; }
+      });
+      for (const item of newItems.slice(0, 3)) {
+        notify(`Sayzio ${notifIcon(item.type)}`, notifLabel(item));
+      }
+    }
+  } catch { /* offline — retry on next alarm */ }
+}
+
+async function ensureNotifAlarm() {
+  if (!browser.alarms?.create) return;
+  const settings = await getSettings();
+  if (!settings.token) {
+    try { await browser.alarms.clear(NOTIF_ALARM); } catch { /* not set */ }
+    return;
+  }
+  try {
+    const existing = await browser.alarms.get(NOTIF_ALARM);
+    if (existing && existing.periodInMinutes === NOTIF_PERIOD_MIN) return;
+    await browser.alarms.create(NOTIF_ALARM, {
+      periodInMinutes: NOTIF_PERIOD_MIN,
+      delayInMinutes: NOTIF_PERIOD_MIN,
+    });
+  } catch { /* alarms permission may be missing in older builds */ }
+}
+
+// On-focus sync: when the user switches back to the browser window
+// (e.g. after reading notifications on the Sayzio website in another
+// window, or returning from another app), re-poll right away instead of
+// waiting up to 30 s for the next alarm tick. Throttled so rapid
+// window-switching doesn't hammer the API.
+const NOTIF_FOCUS_SYNC_MIN_GAP_MS = 10_000;
+let lastFocusSyncAt = 0;
+
+browser.windows?.onFocusChanged?.addListener?.((windowId: number) => {
+  // -1 (WINDOW_ID_NONE) means focus left the browser entirely — skip.
+  if (windowId === (browser.windows as any)?.WINDOW_ID_NONE || windowId === -1) return;
+  const now = Date.now();
+  if (now - lastFocusSyncAt < NOTIF_FOCUS_SYNC_MIN_GAP_MS) return;
+  lastFocusSyncAt = now;
+  syncNotifications().catch(() => undefined);
+});
+
+const PENDING_THANKS_ALARM = "1inme-pending-thanks-poll";
+const PENDING_THANKS_PERIOD_MIN = 0.5;
+
+async function ensurePendingThanksAlarm() {
+  if (!browser.alarms?.create) return;
+  const settings = await getSettings();
+  if (!settings.token || !settings.workspaceId) {
+    try { await browser.alarms.clear(PENDING_THANKS_ALARM); } catch { /* not set */ }
+    return;
+  }
+  try {
+    const existing = await browser.alarms.get(PENDING_THANKS_ALARM);
+    if (existing && existing.periodInMinutes === PENDING_THANKS_PERIOD_MIN) return;
+    await browser.alarms.create(PENDING_THANKS_ALARM, {
+      periodInMinutes: PENDING_THANKS_PERIOD_MIN,
+      // Stagger the first tick so we don't pile a sync onto whatever
+      // triggered the registration (e.g. a fresh sign-in that's about
+      // to call syncPendingThanks itself from the popup).
+      delayInMinutes: PENDING_THANKS_PERIOD_MIN,
+    });
+  } catch { /* alarms permission may be missing in older builds */ }
+}
+
+browser.alarms?.onAlarm.addListener((alarm: any) => {
+  if (alarm?.name === PENDING_THANKS_ALARM) {
+    syncPendingThanks().catch(() => undefined);
+  } else if (alarm?.name === NOTIF_ALARM) {
+    syncNotifications().catch(() => undefined);
+  }
+});
+
+browser.runtime.onInstalled.addListener(() => {
+  setupContextMenus();
+  refreshHandshakeMatches();
+  refreshRadarRegistration();
+  refreshDialRegistration();
+  ensurePendingThanksAlarm();
+  ensureNotifAlarm();
+});
+browser.runtime.onStartup?.addListener?.(() => {
+  setupContextMenus();
+  refreshHandshakeMatches();
+  refreshRadarRegistration();
+  refreshDialRegistration();
+  ensurePendingThanksAlarm();
+  ensureNotifAlarm();
+  // One immediate reconcile on browser launch so a queue change made
+  // while this profile was closed shows up before the first alarm tick.
+  syncPendingThanks().catch(() => undefined);
+  syncNotifications().catch(() => undefined);
+});
+browser.storage.onChanged.addListener((changes: any, area: string) => {
+  if (area !== "local") return;
+  if (changes.webBaseUrl) refreshHandshakeMatches();
+  if (changes.radarEnabled || changes.radarDisabledHosts || changes.token) refreshRadarRegistration();
+  if (changes.dialEnabled || changes.token) refreshDialRegistration();
+  if (changes.token) clearCachedProperties().catch(() => undefined);
+  // Re-arm (or tear down) the pending-thanks alarm when the auth or
+  // active workspace changes so we don't poll without a token and we
+  // pick up the right workspace's queue right after a switch.
+  if (changes.token || changes.workspaceId) {
+    ensurePendingThanksAlarm();
+    ensureNotifAlarm();
+  }
+});
+
+// Drop per-tab match cache + badge when a tab navigates away or closes.
+browser.tabs.onRemoved.addListener((tabId: number) => { clearMatches(tabId).catch(() => undefined); });
+browser.tabs.onUpdated.addListener((tabId: number, info: any) => {
+  if (info.status === "loading" && info.url) {
+    clearMatches(tabId).catch(() => undefined);
+    updateBadgeForTab(tabId, 0).catch(() => undefined);
+  }
+});
+
+// Store a pending action payload that the popup reads on open. Used for
+// context-menu-initiated flows (add-to-biolink, QR, calendar, reviews)
+// where the action requires user interaction inside the popup.
+async function stashPendingAction(action: {
+  type: string;
+  url: string;
+  title: string;
+  linkUrl?: string;
+}) {
+  await browser.storage.local.set({
+    pendingAction: { ...action, at: Date.now() },
+  });
+  try {
+    if ((browser.action as any)?.openPopup) {
+      await (browser.action as any).openPopup();
+    } else {
+      notify("Sayzio", "Open the Sayzio extension to continue.");
+    }
+  } catch {
+    notify("Sayzio", "Open the Sayzio extension to continue.");
+  }
+}
+
+browser.contextMenus?.onClicked.addListener(async (info, tab) => {
+  if (!tab?.id) return;
+  if (info.menuItemId === "1inme-shorten-page") {
+    const result = await shortenAndCopy(tab.url || "", tab.title, tab.id);
+    if (!result.ok) notify("Sayzio — error", result.error);
+  } else if (info.menuItemId === "1inme-shorten-link") {
+    const url = info.linkUrl || "";
+    const result = await shortenAndCopy(url, undefined, tab.id);
+    if (!result.ok) notify("Sayzio — error", result.error);
+  } else if (info.menuItemId === "1inme-page-to-biolink") {
+    // Open popup with the biolink mode picker so user can choose Quick vs AI.
+    await stashPendingAction({ type: "PAGE_TO_BIOLINK_MODE", url: tab.url || "", title: tab.title || "" });
+  } else if (info.menuItemId === "1inme-save-contact") {
+    await stashContactCandidateAndOpenPopup(tab.id);
+  } else if (info.menuItemId === "1inme-add-to-biolink") {
+    await stashPendingAction({ type: "ADD_TO_BIOLINK", url: tab.url || "", title: tab.title || "" });
+  } else if (info.menuItemId === "1inme-quick-qr") {
+    await stashPendingAction({ type: "QUICK_QR", url: tab.url || "", title: tab.title || "" });
+  } else if (info.menuItemId === "1inme-quick-qr-link") {
+    await stashPendingAction({ type: "QUICK_QR", url: info.linkUrl || tab.url || "", title: info.linkUrl || "" });
+  } else if (info.menuItemId === "1inme-add-to-calendar") {
+    await stashPendingAction({ type: "ADD_TO_CALENDAR", url: tab.url || "", title: tab.title || "" });
+  } else if (info.menuItemId === "1inme-capture-reviews") {
+    await stashPendingAction({ type: "CAPTURE_REVIEWS", url: tab.url || "", title: tab.title || "" });
+  }
+});
+
+browser.runtime.onMessage.addListener(async (msg: any, sender: any) => {
+  if (!msg || typeof msg !== "object") return;
+  switch (msg.type) {
+    case "DIAL_LOOKUP": {
+      // Forwarded from the dial content script (cannot call the API directly
+      // because of CORS / auth; the background SW has the token).
+      const settings = await getSettings();
+      if (!settings.token) return { ok: false, error: "Not signed in" };
+      let pageHost: string | null = null;
+      try { pageHost = sender?.tab?.url ? new URL(sender.tab.url).hostname : null; } catch { /* ignore */ }
+      try {
+        const data = await api.dialerLookup(msg.number);
+        // Persist the interaction so the popup's "Recent calls" section
+        // can show it. Best-effort — a storage failure must not break
+        // the overlay.
+        try {
+          await setSettings({
+            dialHistory: appendDialHistory(settings.dialHistory, {
+              number: String(msg.number),
+              contactId: data?.contact?.id ?? null,
+              contactName: data?.contact?.name ?? null,
+              pageHost,
+              at: Date.now(),
+            }),
+          });
+        } catch { /* best-effort */ }
+        return { ok: true, data };
+      } catch (e: any) {
+        // Record the interaction even when the lookup fails (offline /
+        // API error) so the creator still sees what they dialed.
+        try {
+          await setSettings({
+            dialHistory: appendDialHistory(settings.dialHistory, {
+              number: String(msg.number),
+              contactId: null,
+              contactName: null,
+              pageHost,
+              at: Date.now(),
+            }),
+          });
+        } catch { /* best-effort */ }
+        return { ok: false, error: e?.message || "Lookup failed" };
+      }
+    }
+    case "DIAL_SAVE_CONTACT": {
+      // "Save contact" from the dial overlay when the number has no
+      // Sayzio match. Seeds a phone-only candidate and opens the popup's
+      // existing ContactPreview view for review + save.
+      const number = String(msg.number || "").trim();
+      if (!number) return { ok: false, error: "No number" };
+      const settings = await getSettings();
+      if (!settings.token) return { ok: false, error: "Not signed in" };
+      const pageUrl = sender?.tab?.url || "";
+      const pageTitle = sender?.tab?.title || "";
+      const candidate = {
+        display_name: null,
+        given_name: null,
+        family_name: null,
+        organization: null,
+        job_title: null,
+        website: null,
+        notes: pageUrl ? `Found via click-to-dial on ${pageUrl}` : "Found via click-to-dial",
+        emails: [],
+        phones: [{ value: number, source: "manual" }],
+        socials: {},
+        source_url: pageUrl,
+        source_title: pageTitle,
+        provenance: { phones: "manual" },
+        structured: false,
+      };
+      await browser.storage.local.set({
+        pendingContactCandidate: { candidate, at: Date.now() },
+      });
+      try {
+        if ((browser.action as any)?.openPopup) {
+          await (browser.action as any).openPopup();
+        } else {
+          notify("Sayzio", "Open the Sayzio extension popup to save the contact.");
+        }
+      } catch {
+        notify("Sayzio", "Open the Sayzio extension popup to save the contact.");
+      }
+      return { ok: true };
+    }
+    case "PAGE_TO_BIOLINK_AI": {
+      // AI-powered biolink builder path. Creates the biolink with the standard
+      // Quick path first, then triggers the AI builder on it.
+      const tabId = msg.tabId ?? sender.tab?.id;
+      if (!tabId) return { ok: false, error: "No active tab" };
+      const settings = await getSettings();
+      if (!settings.token) return { ok: false, error: "Not signed in" };
+      // Step 1: Quick extraction + biolink creation.
+      const quickResult = await pageToBiolink(tabId);
+      if (!quickResult.ok) return quickResult;
+      // The popup will open the editor — user can run AI builder from there.
+      notify("Sayzio — AI builder", "Bio-link draft created. Use the AI Builder in the editor to enhance it.");
+      return quickResult;
+    }
+    case "SHORTEN_URL": {
+      const tabId = sender.tab?.id;
+      let activeTabId = tabId;
+      if (activeTabId === undefined) {
+        const tabs = await browser.tabs.query({ active: true, currentWindow: true });
+        activeTabId = tabs[0]?.id;
+      }
+      return shortenAndCopy(msg.url, msg.title, activeTabId, msg.autoPixel);
+    }
+    case "PAGE_TO_BIOLINK": {
+      const tabId = msg.tabId ?? sender.tab?.id;
+      if (!tabId) return { ok: false, error: "No active tab" };
+      return pageToBiolink(tabId);
+    }
+    case "SIGN_OUT": {
+      try { await api.logout(); } catch { /* ignore */ }
+      await clearAuth();
+      return { ok: true };
+    }
+    case "RADAR_SCAN": {
+      // Inbound from the radar content script. Throttle by trusting
+      // only top-frame senders, then run the matcher in-process.
+      const tabId = sender.tab?.id;
+      if (!tabId) return { ok: false, error: "No tab" };
+      const settings = await getSettings();
+      if (!settings.radarEnabled || !settings.token) return { ok: true, matches: 0 };
+      const harvest = msg.payload || {};
+      if (!harvest.pageUrl) return { ok: false, error: "No page url" };
+      if (await isPageHostDisabled(harvest.pageUrl, settings)) return { ok: true, matches: 0 };
+      try {
+        const matches = await matchHrefs(harvest);
+        await rememberMatches(tabId, {
+          pageUrl: harvest.pageUrl,
+          pageTitle: harvest.pageTitle || "",
+          matches,
+          scannedAt: Date.now(),
+          author: harvest.author && typeof harvest.author === "object"
+            ? {
+                email: harvest.author.email ?? null,
+                xHandle: harvest.author.xHandle ?? null,
+                linkedinUrl: harvest.author.linkedinUrl ?? null,
+              }
+            : { email: null, xHandle: null, linkedinUrl: null },
+        });
+        await updateBadgeForTab(tabId, matches.length);
+        return { ok: true, matches: matches.length };
+      } catch (e: any) {
+        return { ok: false, error: e?.message || "scan failed" };
+      }
+    }
+    case "RADAR_GET_TAB_MATCHES": {
+      const tabId = msg.tabId ?? sender.tab?.id;
+      if (!tabId) return { ok: false, error: "No tab" };
+      const state = await getMatchesForTab(tabId);
+      return { ok: true, state };
+    }
+    case "RADAR_REFRESH_PROPERTIES": {
+      const props = await ensureProperties(true);
+      return { ok: !!props };
+    }
+    case "AUTH_HANDSHAKE": {
+      // Sent from the handshake content script on 1inme.com after a
+      // successful sign-in. Carries the freshly-issued Sanctum token.
+      const { token, user, workspaces } = msg;
+      if (!token) return { ok: false, error: "No token in handshake" };
+      await setSettings({
+        token,
+        user: user || null,
+        workspaces: Array.isArray(workspaces) ? workspaces : [],
+        workspaceId: workspaces?.[0]?.id ?? null,
+      });
+      return { ok: true };
+    }
+  }
+});
+
+setupContextMenus();
+refreshHandshakeMatches();
+refreshRadarRegistration();
+ensurePendingThanksAlarm();

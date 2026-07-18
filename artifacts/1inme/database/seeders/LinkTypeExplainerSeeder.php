@@ -18,7 +18,7 @@ use Illuminate\Support\Facades\Hash;
 
 /**
  * Seeds 10 hand-written "explainer" biolink pages into the super-admin
- * account (official1inme@gmail.com), one per marketing headline link type.
+ * account (sayzioapp@gmail.com), one per marketing headline link type.
  * Together they act as a live demo gallery that walks visitors through
  * every kind of link Sayzio can create.
  *
@@ -83,7 +83,7 @@ class LinkTypeExplainerSeeder extends Seeder
     private function resolveSuperAdminUser(): ?User
     {
         $admin = Admin::query()->orderBy('id')->first();
-        $email = $admin?->email ?: 'official1inme@gmail.com';
+        $email = $admin?->email ?: 'sayzioapp@gmail.com';
 
         return User::firstOrCreate(
             ['email' => $email],

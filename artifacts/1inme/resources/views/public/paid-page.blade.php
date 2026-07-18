@@ -10,9 +10,9 @@
 <meta property="og:description" content="{{ Str::limit($link->description ?: $creator->tagline ?: ('Follow ' . $creator->name . ' on Sayzio'), 180) }}">
 <meta property="og:type" content="profile">
 @if($creator->cover_image)
-    <meta property="og:image" content="{{ $creator->cover_image }}">
+    <meta property="og:image" content="{{ \App\Support\PublicStorageUrl::resolve($creator->cover_image) }}">
 @elseif($creator->avatar)
-    <meta property="og:image" content="{{ $creator->avatar }}">
+    <meta property="og:image" content="{{ \App\Support\PublicStorageUrl::resolve($creator->avatar) }}">
 @endif
 @vite(['resources/css/app.css', 'resources/js/app.js'])
 @include('common.partials.fontawesome')
@@ -187,13 +187,13 @@
         </div>
 
         @if($creator->cover_image)
-            <img src="{{ $creator->cover_image }}" alt="" class="absolute inset-0 w-full h-full object-cover opacity-30">
+            <img src="{{ \App\Support\PublicStorageUrl::resolve($creator->cover_image) }}" alt="" class="absolute inset-0 w-full h-full object-cover opacity-30">
         @endif
 
         <div class="relative px-5 sm:px-8 pt-10 pb-7">
             <div class="flex items-end gap-4 flex-wrap">
                 @if($creator->avatar)
-                    <img src="{{ $creator->avatar }}" alt="" class="w-24 h-24 rounded-2xl object-cover border-4 border-white/70 shadow-xl bg-white">
+                    <img src="{{ \App\Support\PublicStorageUrl::resolve($creator->avatar) }}" alt="" class="w-24 h-24 rounded-2xl object-cover border-4 border-white/70 shadow-xl bg-white">
                 @else
                     <div class="w-24 h-24 rounded-2xl border-4 border-white/70 shadow-xl bg-white/20 text-white flex items-center justify-center font-extrabold text-2xl backdrop-blur">
                         {{ $creator->getInitials() }}

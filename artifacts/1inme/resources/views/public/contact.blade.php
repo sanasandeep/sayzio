@@ -325,6 +325,23 @@
     </div>
 </section>
 
+<section class="pb-10">
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8" data-anim="fade-up">
+        <a href="{{ route('site.pricing') }}#custom-plan-request"
+           class="group flex items-center gap-4 p-5 rounded-2xl bg-white/[0.025] border border-white/10 hover:border-blue-400/30 transition-all">
+            <div class="w-10 h-10 shrink-0 rounded-xl flex items-center justify-center"
+                 style="background:rgba(61,107,255,0.15);border:1px solid rgba(61,107,255,0.3);">
+                <i class="fas fa-gem text-blue-400"></i>
+            </div>
+            <div class="flex-1 min-w-0">
+                <div class="text-sm font-bold text-white">Enquire about a custom plan</div>
+                <div class="text-xs text-gray-400 mt-0.5">Need more links, extra storage, or a bespoke feature set? Tell us your requirements and we'll put together a tailored offer.</div>
+            </div>
+            <i class="fas fa-arrow-right text-blue-400/50 group-hover:text-blue-300 transition text-xs shrink-0"></i>
+        </a>
+    </div>
+</section>
+
 <section class="pb-16">
     <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8" data-anim="fade-up">
         <div class="bg-white/[0.03] border border-white/10 rounded-2xl p-6 sm:p-8">

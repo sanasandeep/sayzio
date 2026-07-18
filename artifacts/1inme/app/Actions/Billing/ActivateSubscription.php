@@ -221,10 +221,130 @@ class ActivateSubscription
                 'paid_at'         => $now,
             ])->save();
 
+            $this->grantPlanCoins($plan, $subscription, $user, $cycle);
+
             $this->sendReceipt($fresh);
+
+            // If this invoice paid a custom-plan offer, mark the request as paid.
+            $this->resolveCustomPlanRequest($fresh, $plan);
 
             return $subscription;
         });
+    }
+
+    /**
+     * Credit the plan's included coin grant for the current billing period,
+     * keyed with an idempotency key derived from `subscription_id + period_start`
+     * so webhook re-deliveries and manual retries are always no-ops for an
+     * already-granted period.
+     *
+     * Monthly subscribers receive `features.included_coins_monthly` coins;
+     * annual subscribers receive `features.included_coins_yearly` coins.
+     * A zero or absent value skips the grant entirely.
+     *
+     * Best-effort: failures are logged but never abort the calling transaction.
+     */
+    protected function grantPlanCoins(Plan $plan, Subscription $subscription, $user, string $cycle): void
+    {
+        try {
+            $features = is_array($plan->features) ? $plan->features : [];
+            $amount = $cycle === 'annual'
+                ? (int) ($features['included_coins_yearly'] ?? 0)
+                : (int) ($features['included_coins_monthly'] ?? 0);
+
+            if ($amount <= 0) {
+                return;
+            }
+
+            $periodStart = \Carbon\Carbon::parse($subscription->current_period_start)->format('Y-m-d');
+            $idempotencyKey = "plan_grant:sub:{$subscription->id}:from:{$periodStart}";
+
+            app(WalletService::class)->credit($user, $amount, [
+                'reason'          => 'Included with your ' . $plan->name . ' plan',
+                'idempotency_key' => $idempotencyKey,
+                'meta'            => [
+                    'kind'            => 'plan_coin_grant',
+                    'plan_id'         => $plan->id,
+                    'subscription_id' => $subscription->id,
+                    'cycle'           => $cycle,
+                ],
+            ]);
+        } catch (\Throwable $e) {
+            Log::warning('Plan coin grant failed: ' . $e->getMessage(), [
+                'plan_id'         => $plan->id ?? null,
+                'subscription_id' => $subscription->id ?? null,
+                'cycle'           => $cycle,
+            ]);
+        }
+    }
+
+    /**
+     * Grant the plan's included coins for an admin-triggered manual plan
+     * assignment (assign-plan, bulk assign, or a plan change on the admin
+     * user-edit form). These paths have no invoice or Subscription row, so
+     * the webhook-path grant above never runs for them.
+     *
+     * Cycle selection follows the user's current billing cycle (annual →
+     * yearly amount, anything else → monthly amount), matching how plan
+     * gating treats the account.
+     *
+     * Idempotency: keyed on `plan_grant:user:{id}:plan:{id}:assigned:{Y-m-d}`
+     * so an admin double-click or duplicate bulk submit on the same day is a
+     * no-op, while a genuine later re-assignment (next period, renewed comp
+     * window) grants again.
+     *
+     * Best-effort: failures are logged but never abort the admin action.
+     */
+    public function grantPlanCoinsForManualAssignment($user, Plan $plan): void
+    {
+        try {
+            $features = is_array($plan->features) ? $plan->features : [];
+            $cycle  = ($user->billing_cycle ?? null) === 'annual' ? 'annual' : 'monthly';
+            $amount = $cycle === 'annual'
+                ? (int) ($features['included_coins_yearly'] ?? 0)
+                : (int) ($features['included_coins_monthly'] ?? 0);
+
+            if ($amount <= 0) {
+                return;
+            }
+
+            $idempotencyKey = "plan_grant:user:{$user->id}:plan:{$plan->id}:assigned:" . now()->format('Y-m-d');
+
+            app(WalletService::class)->credit($user, $amount, [
+                'reason'          => 'Included with your ' . $plan->name . ' plan',
+                'idempotency_key' => $idempotencyKey,
+                'meta'            => [
+                    'kind'    => 'plan_coin_grant',
+                    'plan_id' => $plan->id,
+                    'cycle'   => $cycle,
+                    'source'  => 'admin_assignment',
+                ],
+            ]);
+        } catch (\Throwable $e) {
+            Log::warning('Manual plan coin grant failed: ' . $e->getMessage(), [
+                'plan_id' => $plan->id ?? null,
+                'user_id' => $user->id ?? null,
+            ]);
+        }
+    }
+
+    /**
+     * Mark any pending custom plan request as paid once the provisioned plan
+     * invoice settles. Best-effort — never throws.
+     */
+    private function resolveCustomPlanRequest(Invoice $invoice, Plan $plan): void
+    {
+        try {
+            \App\Modules\Admin\Models\CustomPlanRequest::where('provisioned_plan_id', $plan->id)
+                ->where('status', 'approved')
+                ->update([
+                    'status'     => 'paid',
+                    'invoice_id' => $invoice->id,
+                    'handled_at' => now(),
+                ]);
+        } catch (\Throwable $e) {
+            Log::warning('Custom plan request resolution failed: ' . $e->getMessage());
+        }
     }
 
     /**

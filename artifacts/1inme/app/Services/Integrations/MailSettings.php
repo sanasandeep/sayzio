@@ -3,6 +3,7 @@
 namespace App\Services\Integrations;
 
 use App\Modules\Admin\Models\AppSetting;
+use App\Modules\Common\Support\RetiredAdminEmails;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Mail;
@@ -146,7 +147,10 @@ class MailSettings
 
     public static function setFromAddress(?string $v): void
     {
-        AppSetting::put(self::KEY_FROM_ADDRESS, self::cleanScalar($v));
+        // Defense-in-depth: a retired admin address can never be persisted as
+        // the platform "From" identity, even by a non-validated caller. The
+        // admin form/API also reject it up front with an inline message.
+        AppSetting::put(self::KEY_FROM_ADDRESS, RetiredAdminEmails::normalize(self::cleanScalar($v)));
     }
 
     public static function setFromName(?string $v): void

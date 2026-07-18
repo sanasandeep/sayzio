@@ -70,7 +70,49 @@
             <i class="fas fa-robot text-2xl"></i>
         </div>
 
-        @if($__canManageAi && !$__impersonating)
+        @if($__canManageAi && !$__impersonating && !empty($planGate))
+            {{-- Admin, but the AI engine + feature toggle are already ON: the
+                 real gate is the per-plan allowlist. Say so, and offer a
+                 one-click "allow all plans" instead of a no-op enable. --}}
+            <h1 class="text-lg font-semibold text-white">{{ $__featureLabel }} is limited to specific plans</h1>
+            <p class="mx-auto mt-2 max-w-md text-sm text-white/60">
+                The AI engine is on, but {{ $__featureLabel }} is restricted to a plan allowlist and
+                your plan ({{ $__planName }}) isn’t on it. As an administrator you can open it up to
+                every plan, or adjust the allowlist in the AI engine settings.
+            </p>
+            @if($__featureBlurb)
+                <p class="mx-auto mt-3 max-w-md text-sm text-blue-200/80">
+                    <i class="fas fa-info-circle mr-1 text-xs text-blue-300/80"></i>
+                    {{ $__featureBlurb }}
+                </p>
+            @endif
+            <div class="mt-6 flex flex-wrap items-center justify-center gap-3">
+                <form action="{{ route('user.ai.enable') }}" method="POST">
+                    @csrf
+                    <input type="hidden" name="return_to" value="{{ $__returnTo }}">
+                    <input type="hidden" name="feature" value="{{ $planGate }}-plans">
+                    <button type="submit"
+                            class="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700">
+                        <i class="fas fa-unlock text-xs"></i>
+                        Allow all plans
+                    </button>
+                </form>
+                <form action="{{ route('user.switch-to-admin') }}" method="POST">
+                    @csrf
+                    <input type="hidden" name="intent" value="ai-engine">
+                    <button type="submit"
+                            class="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-white/80 hover:bg-white/10">
+                        <i class="fas fa-sliders-h text-xs"></i>
+                        Open AI settings
+                    </button>
+                </form>
+                <a href="{{ route('user.dashboard') }}"
+                   class="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-white/80 hover:bg-white/10">
+                    <i class="fas fa-arrow-left text-xs"></i>
+                    Back to dashboard
+                </a>
+            </div>
+        @elseif($__canManageAi && !$__impersonating)
             <h1 class="text-lg font-semibold text-white">{{ $heading ?? 'AI features are currently turned off' }}</h1>
             <p class="mx-auto mt-2 max-w-md text-sm text-white/60">
                 {{ $message ?? 'The AI engine isn’t enabled on this account right now. Once an administrator switches it on, this feature will be ready to use here.' }}
@@ -91,6 +133,12 @@
                     <form action="{{ route('user.ai.enable') }}" method="POST">
                         @csrf
                         <input type="hidden" name="return_to" value="{{ $__returnTo }}">
+                        @if(!empty($enableFeature))
+                            {{-- Some surfaces (eg. Voice Assistant) are gated by an
+                                 extra per-feature toggle on top of the master AI
+                                 switch; tell the enable action to flip both. --}}
+                            <input type="hidden" name="feature" value="{{ $enableFeature }}">
+                        @endif
                         <button type="submit"
                                 class="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700">
                             <i class="fas fa-bolt text-xs"></i>

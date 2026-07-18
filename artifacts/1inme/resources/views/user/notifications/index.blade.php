@@ -72,6 +72,14 @@
                             <a href="{{ route('user.team.index') }}" class="inline-flex items-center gap-1 mt-1 text-xs font-semibold text-blue-600 hover:underline">
                                 <i class="fas fa-users-gear"></i> Manage team access
                             </a>
+                        @elseif($n->type === 'workspace_member_left')
+                            <p class="text-sm" style="color: var(--text-primary);">
+                                <span class="font-semibold">{{ $d['user_name'] ?? 'A teammate' }}</span>
+                                left <span class="font-semibold">{{ $d['workspace_name'] ?? 'your workspace' }}</span>@if(!empty($d['reassigned'])) — their {{ $d['reassigned'] }} item{{ $d['reassigned'] == 1 ? '' : 's' }} moved to you@endif.
+                            </p>
+                            <a href="{{ route('user.team.index') }}" class="inline-flex items-center gap-1 mt-1 text-xs font-semibold text-blue-600 hover:underline">
+                                <i class="fas fa-users"></i> View team
+                            </a>
                         @elseif($n->type === 'task_assigned')
                             <p class="text-sm" style="color: var(--text-primary);">
                                 <span class="font-semibold">{{ $d['assigner'] ?? 'Someone' }}</span>
@@ -144,6 +152,26 @@
                             @if(!empty($d['url']))
                                 <a href="{{ $d['url'] }}" class="inline-flex items-center gap-1 mt-1 text-xs font-semibold text-blue-600 hover:underline">
                                     <i class="fas fa-arrow-right"></i> Open project
+                                </a>
+                            @endif
+                        @elseif($n->type === 'event.exchange_request')
+                            <p class="text-sm" style="color: var(--text-primary);">
+                                <i class="fas fa-address-card mr-1" style="color:#3d6bff;"></i>
+                                {{ $d['message'] ?? 'Someone wants to exchange contacts with you.' }}
+                            </p>
+                            @if(!empty($d['url']))
+                                <a href="{{ $d['url'] }}" class="inline-flex items-center gap-1 mt-1 text-xs font-semibold text-blue-600 hover:underline">
+                                    <i class="fas fa-arrow-right"></i> View request
+                                </a>
+                            @endif
+                        @elseif($n->type === 'event.exchange_accepted')
+                            <p class="text-sm" style="color: var(--text-primary);">
+                                <i class="fas fa-handshake mr-1" style="color:#16a34a;"></i>
+                                {{ $d['message'] ?? 'Your contact exchange request was accepted.' }}
+                            </p>
+                            @if(!empty($d['url']))
+                                <a href="{{ $d['url'] }}" class="inline-flex items-center gap-1 mt-1 text-xs font-semibold text-blue-600 hover:underline">
+                                    <i class="fas fa-arrow-right"></i> View contact
                                 </a>
                             @endif
                         @else

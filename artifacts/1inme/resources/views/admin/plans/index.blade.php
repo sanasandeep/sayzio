@@ -2,8 +2,57 @@
 @section('title', 'Plans')
 @section('page-title', 'Subscription Plans')
 
+@push('styles')
+<style>
+    .plan-card-checkbox {
+        width: 18px; height: 18px;
+        border: 2px solid rgba(255,255,255,0.25);
+        border-radius: 5px;
+        background: rgba(255,255,255,0.05);
+        cursor: pointer;
+        accent-color: #3d6bff;
+        transition: border-color .15s, background .15s;
+    }
+    .plan-card-checkbox:checked {
+        border-color: #3d6bff;
+        background: rgba(61,107,255,0.15);
+    }
+    .plan-card-checkbox:hover { border-color: rgba(255,255,255,0.5); }
+
+    html.light-mode .plan-card-checkbox {
+        border-color: #cbd5e1;
+        background: #fff;
+    }
+    html.light-mode .plan-card-checkbox:checked {
+        border-color: #3d6bff;
+        background: rgba(61,107,255,0.08);
+    }
+    html.light-mode .plan-card-checkbox:hover { border-color: #94a3b8; }
+
+    .compare-float-bar {
+        position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%);
+        z-index: 40; display: flex; align-items: center; gap: 10px;
+        padding: 10px 18px;
+        background: rgba(25,25,30,0.92);
+        backdrop-filter: blur(16px);
+        border: 1px solid rgba(61,107,255,0.45);
+        border-radius: 16px;
+        box-shadow: 0 8px 32px rgba(0,0,0,.45), 0 0 0 1px rgba(61,107,255,0.15);
+        white-space: nowrap;
+    }
+    html.light-mode .compare-float-bar {
+        background: rgba(255,255,255,0.96);
+        border-color: rgba(61,107,255,0.35);
+        box-shadow: 0 8px 32px rgba(15,23,42,0.18), 0 0 0 1px rgba(61,107,255,0.12);
+    }
+</style>
+@endpush
+
 @section('content')
-<div x-data="{ importOpen: false }" class="flex items-center justify-between mb-6">
+<div x-data="planIndex()" x-init="init()">
+
+{{-- ── Top action bar ──────────────────────────────────────────────── --}}
+<div class="flex items-center justify-between mb-6">
     <p class="text-sm text-white/40">Manage subscription plans and pricing</p>
     <div class="flex items-center gap-3">
         <a href="{{ route('admin.plans.export') }}" class="px-4 py-2 bg-white/10 text-white/80 rounded-xl text-sm font-medium hover:bg-white/20 transition">
@@ -16,69 +65,83 @@
             <i class="fas fa-plus mr-2"></i>Add Plan
         </a>
     </div>
-
-    {{-- Import upload modal --}}
-    <div x-show="importOpen" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4"
-         @keydown.escape.window="importOpen = false">
-        <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" @click="importOpen = false"></div>
-        <div class="relative w-full max-w-lg glass rounded-2xl border border-white/10 p-6">
-            <div class="flex items-start justify-between mb-4">
-                <div>
-                    <h2 class="text-lg font-semibold text-white/90">Import plan changes</h2>
-                    <p class="text-xs text-white/50 mt-1 leading-relaxed">
-                        Upload a CSV in the same format as the export. Rows are matched to
-                        plans by their <span class="font-mono text-white/70">Slug</span>, and you'll
-                        see a diff of every change before anything is saved.
-                    </p>
-                </div>
-                <button type="button" @click="importOpen = false" class="text-white/40 hover:text-white/80">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-
-            @if(session('error'))
-            <div class="rounded-xl px-4 py-3 mb-4 bg-rose-500/10 border border-rose-500/30 text-rose-200 text-sm">
-                <i class="fas fa-exclamation-circle mr-1.5"></i>{{ session('error') }}
-            </div>
-            @endif
-            @if ($errors->any())
-            <div class="rounded-xl px-4 py-3 mb-4 bg-rose-500/10 border border-rose-500/30 text-rose-200 text-sm">
-                <ul class="list-disc list-inside space-y-0.5">
-                    @foreach ($errors->all() as $error)<li>{{ $error }}</li>@endforeach
-                </ul>
-            </div>
-            @endif
-
-            <form method="POST" action="{{ route('admin.plans.import.preview') }}" enctype="multipart/form-data" class="space-y-4">
-                @csrf
-                <div>
-                    <label class="block text-[11px] uppercase tracking-wider text-white/50 font-bold mb-1.5">
-                        CSV file <span class="text-white/30 normal-case">(max 4 MB)</span>
-                    </label>
-                    <input type="file" name="file" required accept=".csv,text/csv,text/plain"
-                           class="block w-full text-sm text-white/80 file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:bg-white/10 file:text-white/80 hover:file:bg-white/15">
-                    <p class="text-[11px] text-white/40 mt-2">
-                        Tip: click <span class="text-white/60">Export CSV</span> first, edit the values,
-                        then upload the edited file here. Unknown slugs are skipped.
-                    </p>
-                </div>
-                <div class="flex items-center gap-3 pt-1">
-                    <button type="submit" class="px-4 py-2 rounded-xl text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white">
-                        <i class="fas fa-eye mr-2"></i>Preview changes
-                    </button>
-                    <button type="button" @click="importOpen = false" class="text-sm text-white/60 hover:text-white">Cancel</button>
-                </div>
-            </form>
-        </div>
-    </div>
 </div>
 
+{{-- ── Compare selection hint ──────────────────────────────────────── --}}
+<div class="mb-4 flex items-center gap-2 text-xs text-white/40" x-show="!anySelected()">
+    <i class="fas fa-check-square"></i>
+    Tick the checkbox on 2–6 plan cards to open a side-by-side Compare &amp; Edit view.
+</div>
+<div class="mb-4 flex items-center gap-2 text-xs text-blue-300" x-show="anySelected()" x-cloak>
+    <i class="fas fa-check-square"></i>
+    <span x-text="selectedCount() + ' plan' + (selectedCount() === 1 ? '' : 's') + ' selected'"></span>
+    <span class="text-blue-300/50 mx-1">·</span>
+    <button type="button" @click="clearAll()" class="text-white/40 hover:text-white/70 underline underline-offset-2">Clear</button>
+</div>
+
+{{-- ── Plan cards grid ─────────────────────────────────────────────── --}}
 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
     @foreach($plans as $plan)
         @include('admin.plans.partials._card', ['plan' => $plan])
     @endforeach
 </div>
 
+{{-- ── Import upload modal ─────────────────────────────────────────── --}}
+<div x-show="importOpen" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4"
+     @keydown.escape.window="importOpen = false">
+    <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" @click="importOpen = false"></div>
+    <div class="relative w-full max-w-lg glass rounded-2xl border border-white/10 p-6">
+        <div class="flex items-start justify-between mb-4">
+            <div>
+                <h2 class="text-lg font-semibold text-white/90">Import plan changes</h2>
+                <p class="text-xs text-white/50 mt-1 leading-relaxed">
+                    Upload a CSV in the same format as the export. Rows are matched to
+                    plans by their <span class="font-mono text-white/70">Slug</span>, and you'll
+                    see a diff of every change before anything is saved.
+                </p>
+            </div>
+            <button type="button" @click="importOpen = false" class="text-white/40 hover:text-white/80">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+
+        @if(session('error'))
+        <div class="rounded-xl px-4 py-3 mb-4 bg-rose-500/10 border border-rose-500/30 text-rose-200 text-sm">
+            <i class="fas fa-exclamation-circle mr-1.5"></i>{{ session('error') }}
+        </div>
+        @endif
+        @if ($errors->any())
+        <div class="rounded-xl px-4 py-3 mb-4 bg-rose-500/10 border border-rose-500/30 text-rose-200 text-sm">
+            <ul class="list-disc list-inside space-y-0.5">
+                @foreach ($errors->all() as $error)<li>{{ $error }}</li>@endforeach
+            </ul>
+        </div>
+        @endif
+
+        <form method="POST" action="{{ route('admin.plans.import.preview') }}" enctype="multipart/form-data" class="space-y-4">
+            @csrf
+            <div>
+                <label class="block text-[11px] uppercase tracking-wider text-white/50 font-bold mb-1.5">
+                    CSV file <span class="text-white/30 normal-case">(max 4 MB)</span>
+                </label>
+                <input type="file" name="file" required accept=".csv,text/csv,text/plain"
+                       class="block w-full text-sm text-white/80 file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:bg-white/10 file:text-white/80 hover:file:bg-white/15">
+                <p class="text-[11px] text-white/40 mt-2">
+                    Tip: click <span class="text-white/60">Export CSV</span> first, edit the values,
+                    then upload the edited file here. Unknown slugs are skipped.
+                </p>
+            </div>
+            <div class="flex items-center gap-3 pt-1">
+                <button type="submit" class="px-4 py-2 rounded-xl text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white">
+                    <i class="fas fa-eye mr-2"></i>Preview changes
+                </button>
+                <button type="button" @click="importOpen = false" class="text-sm text-white/60 hover:text-white">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{{-- ── Import history ───────────────────────────────────────────────── --}}
 @if(isset($imports) && $imports->count() > 0)
 <div x-data="{ open: false }" class="mt-10">
     <button type="button" @click="open = !open" class="flex items-center gap-2 text-sm text-white/50 hover:text-white/80 transition">
@@ -144,6 +207,7 @@
 </div>
 @endif
 
+{{-- ── Archived plans ───────────────────────────────────────────────── --}}
 @if(isset($archivedPlans) && $archivedPlans->count() > 0)
 <div x-data="{ open: false }" class="mt-10">
     <button type="button" @click="open = !open" class="flex items-center gap-2 text-sm text-white/50 hover:text-white/80 transition">
@@ -158,4 +222,69 @@
     </div>
 </div>
 @endif
+
+{{-- ── Floating compare bar (2–6 selected) ────────────────────────── --}}
+<div x-show="selectedCount() >= 2" x-cloak class="compare-float-bar" x-transition>
+    <i class="fas fa-columns text-blue-400 text-sm"></i>
+    <span class="text-sm font-medium" style="color: var(--text-primary);">
+        Compare <span x-text="selectedCount()"></span> plans
+    </span>
+    <button type="button" @click="openCompare()"
+            :disabled="selectedCount() > 6"
+            class="ml-2 px-4 py-1.5 rounded-xl text-sm font-semibold bg-blue-600 hover:bg-blue-700 text-white transition disabled:opacity-50 disabled:cursor-not-allowed">
+        <i class="fas fa-arrow-right mr-1.5"></i>Compare &amp; Edit
+    </button>
+    <span x-show="selectedCount() > 6" class="text-xs text-amber-300">Max 6</span>
+    <button type="button" @click="clearAll()" class="text-white/40 hover:text-white/70 ml-1 text-xs" title="Clear selection">
+        <i class="fas fa-times"></i>
+    </button>
+</div>
+
+</div>{{-- /x-data=planIndex() --}}
 @endsection
+
+@push('scripts')
+<script>
+function planIndex() {
+    return {
+        importOpen: false,
+        selected: {},
+
+        init() {
+            // Re-open import modal if there were validation errors on upload.
+            @if($errors->any() || session('error'))
+            this.importOpen = true;
+            @endif
+        },
+
+        toggle(id) {
+            this.selected[id] = !this.selected[id];
+        },
+
+        clearAll() {
+            this.selected = {};
+        },
+
+        anySelected() {
+            return Object.values(this.selected).some(Boolean);
+        },
+
+        selectedCount() {
+            return Object.values(this.selected).filter(Boolean).length;
+        },
+
+        selectedIds() {
+            return Object.keys(this.selected).filter(k => this.selected[k]);
+        },
+
+        openCompare() {
+            const ids = this.selectedIds();
+            if (ids.length < 2 || ids.length > 6) return;
+            const url = new URL('{{ route("admin.plans.compare") }}', window.location.origin);
+            ids.forEach(id => url.searchParams.append('ids[]', id));
+            window.location.href = url.toString();
+        },
+    };
+}
+</script>
+@endpush

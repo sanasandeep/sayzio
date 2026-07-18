@@ -6,6 +6,68 @@
 {{-- Open scheduled-job failure-episode banner (mirrors the schema-health pattern) --}}
 @include('admin.partials.scheduled-job-failure-banner', ['failureEpisodes' => $failureEpisodes ?? []])
 
+{{-- System update banner: shown on EC2 when GitHub main has new commits --}}
+@php
+    $su           = $updateStatus ?? null;
+    $suAvailable  = !empty($su['available']);
+    $suDismissed  = $suAvailable && request()->cookie('su_dismissed_sha') === ($su['remote_sha'] ?? '');
+@endphp
+@if($suAvailable && !$suDismissed)
+<div class="mb-8 rounded-2xl p-5 border" style="border-color: rgba(59,130,246,0.35); background: rgba(59,130,246,0.08);">
+    <div class="flex items-start gap-4">
+        <div class="w-11 h-11 shrink-0 bg-blue-500/15 rounded-xl flex items-center justify-center">
+            <i class="fas fa-circle-up text-blue-400 text-lg"></i>
+        </div>
+        <div class="min-w-0 flex-1">
+            <h2 class="text-base font-semibold text-blue-200">
+                Update available
+                @if(!empty($su['commits_behind']))
+                    &mdash; {{ $su['commits_behind'] }} {{ \Illuminate\Support\Str::plural('commit', $su['commits_behind']) }} behind
+                @endif
+            </h2>
+            @if(!empty($su['remote_message']))
+            <p class="text-sm text-white/70 mt-1 truncate">
+                Latest: <span class="text-blue-200 font-mono text-xs">{{ substr($su['remote_sha'] ?? '', 0, 8) }}</span>
+                &mdash; {{ $su['remote_message'] }}
+                @if(!empty($su['remote_date']))
+                    <span class="text-white/40">({{ \Carbon\Carbon::parse($su['remote_date'])->diffForHumans() }})</span>
+                @endif
+            </p>
+            @endif
+            <div class="mt-3 flex flex-wrap items-center gap-3">
+                @if(!\App\Services\Integrations\SystemUpdateService::isDeployInProgress())
+                <form method="POST" action="{{ route('admin.system-update.deploy') }}"
+                      onsubmit="return confirm('Trigger the GitHub Actions \'Deploy to EC2\' workflow now? This will pull the latest code and restart services on the EC2 server.');">
+                    @csrf
+                    <button type="submit"
+                            class="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-semibold bg-blue-600 hover:bg-blue-500 text-white transition"
+                            onclick="this.disabled=true; this.innerHTML='<i class=\'fas fa-spinner fa-spin\'></i> Dispatching…'; this.form.submit();">
+                        <i class="fas fa-rocket"></i> Update now
+                    </button>
+                </form>
+                @else
+                <span class="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-semibold bg-blue-600/30 text-white/50 border border-blue-500/20">
+                    <i class="fas fa-spinner fa-spin"></i> Deploy in progress…
+                </span>
+                @endif
+                <a href="{{ route('admin.system-update.show') }}"
+                   class="inline-flex items-center gap-1.5 text-xs text-blue-300/70 hover:text-blue-200 transition">
+                    <i class="fas fa-info-circle"></i> Details
+                </a>
+                <form method="POST" action="{{ route('admin.system-update.dismiss') }}" class="ml-auto">
+                    @csrf
+                    <input type="hidden" name="sha" value="{{ $su['remote_sha'] ?? '' }}">
+                    <button type="submit"
+                            class="text-xs text-white/30 hover:text-white/50 transition">
+                        Dismiss
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+@endif
+
 @if(!empty($schemaHealth['available']) && !empty($schemaHealth['pending']))
 @php
     $pendingMigrations = $schemaHealth['pending'];

@@ -11,6 +11,8 @@ import {
 } from "@playwright/test";
 
 import { DEMO_LOGIN_EMAIL } from "./demo-account";
+import { loginAsDemo } from "./login-as-demo";
+import { loginAsDemoAdmin } from "./login-as-demo-admin";
 
 // All tests share a single logged-in browser context (the demo-login route is
 // rate-limited at throttle:5,1, so a login per test would trip the limit). Each
@@ -86,30 +88,53 @@ echo 'VOICE_OK';
 }
 
 /**
+ * Idempotently ensure the demo ADMIN exists and is active so the admin
+ * demo-login route (`/admin/demo-login`, non-prod only) can log the shared
+ * context onto the admin guard. The admin layout is the surface that still
+ * hosts the floating voice widget (the user layout suppresses it via
+ * voiceFloating=false since the Zio-panel merge). Mirrors the seeding in
+ * admin-sidebar-findbar.spec.ts.
+ */
+function seedDemoAdminFixture(): void {
+  const php = `
+use App\\Modules\\Admin\\Models\\Admin;
+use App\\Modules\\Admin\\Models\\Role;
+use Illuminate\\Support\\Facades\\Hash;
+
+$role = Role::firstOrCreate(
+  ['slug' => 'super-admin'],
+  ['name' => 'Super Admin', 'guard' => 'admin']
+);
+$a = Admin::where('email', '${DEMO_LOGIN_EMAIL}')->first();
+if (!$a) {
+  $a = Admin::create([
+    'name' => 'Admin', 'email' => '${DEMO_LOGIN_EMAIL}',
+    'password' => Hash::make('password'), 'role_id' => $role->id,
+    'status' => 'active',
+  ]);
+}
+$a->status = 'active';
+if (!$a->role_id) { $a->role_id = $role->id; }
+$a->save();
+
+echo 'ADMIN_OK';
+`.trim();
+
+  const out = execFileSync("php", ["artisan", "tinker", "--execute=" + php], {
+    cwd: ARTIFACT_ROOT,
+    encoding: "utf8",
+  });
+  if (!out.includes("ADMIN_OK")) {
+    throw new Error("Demo admin fixture seed failed, output:\n" + out);
+  }
+}
+
+/**
  * Log in as the demo user (non-prod quick-login). Submits the demo-login form
  * via JS and waits only for the demo-login POST response (not the redirect
  * target render), so the heavy post-login dashboard render never blocks the
  * suite. Mirrors the palette-dnd spec.
  */
-async function loginAsDemo(page: Page): Promise<void> {
-  await page.goto("/user/login");
-  await Promise.all([
-    page.waitForResponse(
-      (r) =>
-        r.url().endsWith("/user/demo-login") &&
-        r.request().method() === "POST",
-      { timeout: 90_000 },
-    ),
-    page.evaluate(() => {
-      const form = document.querySelector<HTMLFormElement>(
-        'form[action$="/user/demo-login"]',
-      );
-      if (!form) throw new Error("demo-login form not found");
-      form.submit();
-    }),
-  ]);
-}
-
 /**
  * Open an authenticated page and wait until the floating Voice Assistant Alpine
  * component is mounted and ready to drive. These pages are cold Blade renders
@@ -128,6 +153,46 @@ async function openWithWidget(page: Page, urlPath: string): Promise<void> {
     undefined,
     { timeout: 120_000 },
   );
+}
+
+/**
+ * Open an authenticated USER page and wait for the shared VoiceRuntime bridge
+ * (included by the Zio panel — common/partials/voice-runtime). Since the
+ * Zio-panel merge the floating widget no longer mounts on /user/* pages, so
+ * page-surface tests drive the REAL bridge directly: applyToolResults()
+ * dispatches the same `voice-action` window events both voice shells emit.
+ */
+async function openWithBridge(page: Page, urlPath: string): Promise<void> {
+  await page.goto(urlPath, { timeout: 120_000 });
+  await page.waitForFunction(
+    () => {
+      const rt = (window as unknown as {
+        VoiceRuntime?: { applyToolResults?: unknown };
+      }).VoiceRuntime;
+      return !!(rt && typeof rt.applyToolResults === "function");
+    },
+    undefined,
+    { timeout: 120_000 },
+  );
+}
+
+/**
+ * Push tool results through the real shared bridge on the page — the exact
+ * code path both the admin floating widget and the Zio-panel mic use after a
+ * turn (VoiceRuntime.applyToolResults → `voice-action` CustomEvent dispatch).
+ */
+async function applyToolResults(
+  page: Page,
+  results: Array<{ result: Record<string, unknown> }>,
+): Promise<void> {
+  await page.evaluate((toolResults) => {
+    const rt = (window as unknown as {
+      VoiceRuntime: {
+        applyToolResults: (r: Array<{ result: Record<string, unknown> }>) => string | null;
+      };
+    }).VoiceRuntime;
+    rt.applyToolResults(toolResults);
+  }, results);
 }
 
 /** A single voice "turn" response carrying one tool result. */
@@ -180,9 +245,15 @@ test.describe("voice assistant — client_action / voice-action bridge", () => {
 
   test.beforeAll(async ({ browser }) => {
     seedVoiceFixture();
+    // The floating widget is ADMIN-ONLY since the Zio-panel merge, so the
+    // shared context logs in on BOTH guards up front: the web session (plan
+    // gate + user-page bridge tests) and the admin session (widget tests
+    // open /admin). One login each keeps us under the demo-login throttle.
+    seedDemoAdminFixture();
     sharedContext = await browser.newContext();
     const page = await sharedContext.newPage();
     await loginAsDemo(page);
+    await loginAsDemoAdmin(page);
     await page.close();
   });
 
@@ -193,7 +264,7 @@ test.describe("voice assistant — client_action / voice-action bridge", () => {
   test("a spoken 'select_link_type' picks the type and submits the Create form", async ({
     page,
   }) => {
-    await openWithWidget(page, "/user/links/create");
+    await openWithBridge(page, "/user/links/create");
 
     // Stub the form's destination so the native submit doesn't run the heavy
     // next page — we only care that the bridge selected the type and submitted.
@@ -206,19 +277,17 @@ test.describe("voice assistant — client_action / voice-action bridge", () => {
       });
     });
 
-    // `url` is the radio value behind the "Short Link" card on the Create page.
-    await mockTurn(page, {
-      tool_results: [
-        { result: { client_action: { type: "select_link_type", link_type: "url" } } },
-      ],
-    });
-
     const submit = page.waitForRequest(
       (r) =>
         r.method() === "POST" && r.url().includes("/user/links/choose-type"),
       { timeout: 60_000 },
     );
-    await speak(page);
+    // `url` is the radio value behind the "Short Link" card on the Create page.
+    // Drive the REAL shared bridge (the same call both voice shells make after
+    // a turn) — it dispatches the `voice-action` event the create form handles.
+    await applyToolResults(page, [
+      { result: { client_action: { type: "select_link_type", link_type: "url" } } },
+    ]);
 
     // The create form's @voice-action handler set `type` and called $el.submit():
     // the POST carries the spoken type.
@@ -229,7 +298,7 @@ test.describe("voice assistant — client_action / voice-action bridge", () => {
   test("a spoken 'wizard_advance' clicks the wizard's forward submit", async ({
     page,
   }) => {
-    await openWithWidget(page, "/user/links/wizard");
+    await openWithBridge(page, "/user/links/wizard");
 
     // Stub the wizard step POST so goNext()'s native form submit doesn't run the
     // heavy save controller — we assert the forward submission fired.
@@ -242,17 +311,15 @@ test.describe("voice assistant — client_action / voice-action bridge", () => {
       });
     });
 
-    await mockTurn(page, {
-      tool_results: [
-        { result: { client_action: { type: "wizard_advance", direction: "next" } } },
-      ],
-    });
-
     const advance = page.waitForRequest(
       (r) => r.method() === "POST" && r.url().endsWith("/user/links/wizard"),
       { timeout: 60_000 },
     );
-    await speak(page);
+    // Drive the REAL shared bridge — dispatches the `voice-action` event the
+    // wizard's page-level listener handles (goNext clicks the forward submit).
+    await applyToolResults(page, [
+      { result: { client_action: { type: "wizard_advance", direction: "next" } } },
+    ]);
 
     // Step 0 forwards by submitting a persona_group choice (goNext clicks the
     // form's forward submit button), so the advancing POST carries it.
@@ -263,7 +330,9 @@ test.describe("voice assistant — client_action / voice-action bridge", () => {
   test("a 'navigate_to' with spoken audio is DEFERRED until the reply finishes", async ({
     page,
   }) => {
-    await openWithWidget(page, "/user/links/create");
+    // The floating widget only mounts on the ADMIN layout now; the deferral
+    // logic under test is widget-shell behavior, so drive it from /admin.
+    await openWithWidget(page, "/admin");
 
     const target = "/user/links?voicenav=deferred";
     await page.route("**/user/links*", async (route: Route) => {
@@ -320,7 +389,8 @@ test.describe("voice assistant — client_action / voice-action bridge", () => {
   test("a 'navigate_to' with no spoken audio navigates immediately", async ({
     page,
   }) => {
-    await openWithWidget(page, "/user/links/create");
+    // Widget-shell behavior — the floating widget is admin-only now.
+    await openWithWidget(page, "/admin");
 
     const target = "/user/links?voicenav=instant";
     await page.route("**/user/links*", async (route: Route) => {
@@ -349,7 +419,8 @@ test.describe("voice assistant — client_action / voice-action bridge", () => {
   test("a spoken destructive 'delete_biolink' must be confirmed before it fires", async ({
     page,
   }) => {
-    await openWithWidget(page, "/user/links");
+    // Confirmation chips are widget-shell behavior — admin-only surface now.
+    await openWithWidget(page, "/admin");
 
     // Record every turn POST so we can prove the destructive call does NOT
     // reach the server until the user explicitly confirms.
@@ -453,43 +524,151 @@ test.describe("voice assistant — client_action / voice-action bridge", () => {
     ).toHaveCount(0);
   });
 
-  test("a read-only 'search_app' drives the header search surface", async ({
+  // NOTE: the old "search_app drives the header search surface" test was
+  // removed: no `voice-action` listener for the `search` client_action exists
+  // on any surface since the Zio-panel merge (the header search voice hook is
+  // gone). The generic bridge dispatch for read-only client_actions is still
+  // covered by voice-assistant-panel.spec.ts ("a read-only client_action
+  // dispatches a 'voice-action' surface event").
+
+  test("the floating panel renders with a light surface in light mode", async ({
     page,
   }) => {
-    await openWithWidget(page, "/user/links");
+    // The floating mic/panel is suppressed on user pages since the Zio-panel
+    // merge (the user layout includes the partial with voiceFloating=false);
+    // the ADMIN layout is the surface that still hosts the floating widget.
+    // The shared context is already logged in on BOTH guards (beforeAll), so
+    // we just open an admin page.
+    await page.goto("/admin", { timeout: 120_000 });
+    await page.waitForFunction(
+      () => {
+        const el = document.querySelector('[x-data^="voiceAssistant"]');
+        const w = window as unknown as { Alpine?: unknown };
+        return Boolean(el && w.Alpine);
+      },
+      undefined,
+      { timeout: 120_000 },
+    );
 
-    const query = "coffee";
-    // The header search surface navigates to the links index with the spoken
-    // query; stub that destination so the heavy results render never blocks.
-    await page.route("**/user/links*", async (route: Route) => {
-      const u = new URL(route.request().url());
-      if (u.searchParams.get("search") !== query) return route.fallback();
-      await route.fulfill({
-        status: 200,
-        contentType: "text/html",
-        body: "<!doctype html><title>search</title>voice-search-arrived",
-      });
+    // Open the panel via the Alpine component so the .va-panel div is visible.
+    await page.evaluate(() => {
+      const el = document.querySelector('[x-data^="voiceAssistant"]')!;
+      const A = (window as unknown as {
+        Alpine: { $data: (e: Element) => { panelOpen: boolean } };
+      }).Alpine;
+      A.$data(el).panelOpen = true;
     });
+    await expect(page.locator(".va-panel")).toBeVisible({ timeout: 10_000 });
 
-    // search_app emits a `search` client_action; the header search box reacts
-    // by filling itself and navigating to the results. No audio → the bridge
-    // dispatches the surface event immediately.
-    await mockTurn(page, {
-      reply: `Searching for "${query}".`,
-      tool_results: [
-        { result: { client_action: { type: "search", query }, data: { query } } },
-      ],
-    });
+    // Engage light mode — the same toggle the site's theme system uses.
+    await page.evaluate(() =>
+      document.documentElement.classList.add("light-mode"),
+    );
 
-    await speak(page);
+    // The .va-panel html.light-mode override sets background:#ffffff.
+    await expect
+      .poll(
+        () =>
+          page
+            .locator(".va-panel")
+            .evaluate((el) => getComputedStyle(el).backgroundColor),
+        { timeout: 10_000 },
+      )
+      .toBe("rgb(255, 255, 255)");
 
-    // Reaching the surface = the header box took the spoken query to the
-    // results page (no navigate_to in the result; the surface drove the nav).
-    await page.waitForURL((u) => u.searchParams.get("search") === query, {
-      timeout: 60_000,
+    // The mic button is still present and the panel is still open in light mode.
+    await expect(
+      page.locator(".va-panel").locator(".va-tab-btn").first(),
+    ).toBeVisible();
+
+    // ---- Representative TEXT colours must be readable on the white panel ----
+    // The panel's dark-mode text colours are Tailwind utilities (text-white/*)
+    // that would render white-on-white in light mode without the .va-panel
+    // html.light-mode overrides. Assert each representative element's computed
+    // color is dark (not white/near-white) so a future dark-hardcoded text
+    // colour inside the panel can't silently regress. "Readable" = the text's
+    // relative luminance is well below white's (a saturated dark blue like
+    // rgb(29,78,216) passes; white/near-white greys fail).
+    const readableColor = async (selector: string): Promise<void> => {
+      await expect
+        .poll(
+          () =>
+            page
+              .locator(selector)
+              .first()
+              .evaluate((el) => getComputedStyle(el).color),
+          { timeout: 10_000, message: `${selector} color in light mode` },
+        )
+        .toMatch(/^rgba?\((\d+), (\d+), (\d+)/);
+      const color = await page
+        .locator(selector)
+        .first()
+        .evaluate((el) => getComputedStyle(el).color);
+      const m = /^rgba?\((\d+), (\d+), (\d+)/.exec(color);
+      expect(m, `${selector} computed color parses: ${color}`).not.toBeNull();
+      const lum = [Number(m![1]), Number(m![2]), Number(m![3])]
+        .map((c) => {
+          const s = c / 255;
+          return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
+        })
+        .reduce((acc, ch, i) => acc + ch * [0.2126, 0.7152, 0.0722][i]!, 0);
+      expect(
+        lum < 0.45,
+        `${selector} must be readable (dark, luminance < 0.45) on the white light-mode panel, got ${color} (luminance ${lum.toFixed(3)})`,
+      ).toBe(true);
+    };
+
+    // The empty-state hint is visible while there are no messages/status.
+    await expect(page.locator(".va-hint")).toBeVisible();
+    await readableColor(".va-hint");
+
+    // Seed a transcript + status through the Alpine component (the same state
+    // a real turn produces) so the bubble and status elements render.
+    await page.evaluate(() => {
+      const el = document.querySelector('[x-data^="voiceAssistant"]')!;
+      const A = (window as unknown as {
+        Alpine: {
+          $data: (e: Element) => {
+            messages: { role: string; content: string }[];
+            status: string;
+            tab: string;
+            caps: unknown;
+          };
+        };
+      }).Alpine;
+      const d = A.$data(el);
+      d.messages = [
+        { role: "user", content: "how many clicks today?" },
+        { role: "assistant", content: "You had 42 clicks today." },
+      ];
+      d.status = "Thinking…";
     });
-    await expect(page.getByText("voice-search-arrived")).toBeVisible({
-      timeout: 30_000,
+    await expect(page.locator(".va-bubble-user")).toBeVisible();
+    await expect(page.locator(".va-bubble-ai")).toBeVisible();
+    await expect(page.locator(".va-status")).toBeVisible();
+    await readableColor(".va-bubble-user");
+    await readableColor(".va-bubble-ai");
+    await readableColor(".va-status");
+
+    // Capabilities tab: seed caps directly (no network) and check a group
+    // heading is readable too.
+    await page.evaluate(() => {
+      const el = document.querySelector('[x-data^="voiceAssistant"]')!;
+      const A = (window as unknown as {
+        Alpine: { $data: (e: Element) => { tab: string; caps: unknown } };
+      }).Alpine;
+      const d = A.$data(el);
+      d.caps = {
+        tools: {
+          links: [
+            { name: "list_links", description: "List your links.", destructive: false },
+          ],
+        },
+        limitations: ["I can't change billing details."],
+      };
+      d.tab = "caps";
     });
+    await expect(page.locator(".va-caps-group")).toBeVisible();
+    await readableColor(".va-caps-group");
   });
 });

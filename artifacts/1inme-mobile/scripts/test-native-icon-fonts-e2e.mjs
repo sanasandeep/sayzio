@@ -36,7 +36,7 @@
  */
 
 import { runNativeIconFontCheck } from "./check-native-icon-fonts.mjs";
-import { isTransientEnvError } from "./expo-web-server.mjs";
+import { isTransientEnvError, runHarness } from "./expo-web-server.mjs";
 import { createNativeBundleManager } from "./native-bundle.mjs";
 
 function log(...args) {
@@ -102,7 +102,6 @@ async function run() {
   }
 }
 
-run().catch((e) => {
-  console.error(e);
-  process.exit(1);
-});
+// Termination guarantee: runHarness exits the process as soon as run()
+// settles and arms a watchdog, so a leaked handle can never stall the run.
+runHarness(run, { log, onError: (e) => console.error(e) });

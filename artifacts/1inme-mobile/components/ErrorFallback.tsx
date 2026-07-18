@@ -30,6 +30,9 @@ export function ErrorFallback({ error, resetError }: ErrorFallbackProps) {
       await reloadAppAsync();
     } catch (restartError) {
       console.error("Failed to restart app:", restartError);
+      // Fall back to clearing the boundary state so the launch gate
+      // re-runs without a full JS reload. This is a best-effort path
+      // for environments where reloadAppAsync is unavailable (e.g. web).
       resetError();
     }
   };
@@ -50,23 +53,24 @@ export function ErrorFallback({ error, resetError }: ErrorFallbackProps) {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      {__DEV__ ? (
-        <Pressable
-          onPress={() => setIsModalVisible(true)}
-          accessibilityLabel="View error details"
-          accessibilityRole="button"
-          style={({ pressed }) => [
-            styles.topButton,
-            {
-              top: insets.top + 16,
-              backgroundColor: colors.card,
-              opacity: pressed ? 0.8 : 1,
-            },
-          ]}
-        >
-          <Feather name="alert-circle" size={20} color={colors.foreground} />
-        </Pressable>
-      ) : null}
+      {/* Details button — always visible so production APK crashes are
+          diagnosable without a debug build. The collapsible modal keeps
+          the primary screen uncluttered. */}
+      <Pressable
+        onPress={() => setIsModalVisible(true)}
+        accessibilityLabel="View error details"
+        accessibilityRole="button"
+        style={({ pressed }) => [
+          styles.topButton,
+          {
+            top: insets.top + 16,
+            backgroundColor: colors.card,
+            opacity: pressed ? 0.8 : 1,
+          },
+        ]}
+      >
+        <Feather name="alert-circle" size={20} color={colors.foreground} />
+      </Pressable>
 
       <View style={styles.content}>
         <Text style={[styles.title, { color: colors.foreground }]}>
@@ -74,7 +78,15 @@ export function ErrorFallback({ error, resetError }: ErrorFallbackProps) {
         </Text>
 
         <Text style={[styles.message, { color: colors.mutedForeground }]}>
-          Please reload the app to continue.
+          {error.message
+            ? error.message
+            : "An unexpected error occurred."}
+        </Text>
+
+        <Text style={[styles.hint, { color: colors.mutedForeground }]}>
+          Tap the{" "}
+          <Feather name="alert-circle" size={12} color={colors.mutedForeground} />{" "}
+          icon above to view details.
         </Text>
 
         <Pressable
@@ -99,74 +111,72 @@ export function ErrorFallback({ error, resetError }: ErrorFallbackProps) {
         </Pressable>
       </View>
 
-      {__DEV__ ? (
-        <Modal
-          visible={isModalVisible}
-          animationType="slide"
-          transparent={true}
-          onRequestClose={() => setIsModalVisible(false)}
-        >
-          <View style={styles.modalOverlay}>
+      <Modal
+        visible={isModalVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setIsModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View
+            style={[
+              styles.modalContainer,
+              { backgroundColor: colors.background },
+            ]}
+          >
             <View
               style={[
-                styles.modalContainer,
-                { backgroundColor: colors.background },
+                styles.modalHeader,
+                { borderBottomColor: colors.border },
               ]}
+            >
+              <Text style={[styles.modalTitle, { color: colors.foreground }]}>
+                Error Details
+              </Text>
+              <Pressable
+                onPress={() => setIsModalVisible(false)}
+                accessibilityLabel="Close error details"
+                accessibilityRole="button"
+                style={({ pressed }) => [
+                  styles.closeButton,
+                  { opacity: pressed ? 0.6 : 1 },
+                ]}
+              >
+                <Feather name="x" size={24} color={colors.foreground} />
+              </Pressable>
+            </View>
+
+            <ScrollView
+              style={styles.modalScrollView}
+              contentContainerStyle={[
+                styles.modalScrollContent,
+                { paddingBottom: insets.bottom + 16 },
+              ]}
+              showsVerticalScrollIndicator
             >
               <View
                 style={[
-                  styles.modalHeader,
-                  { borderBottomColor: colors.border },
+                  styles.errorContainer,
+                  { backgroundColor: colors.card },
                 ]}
               >
-                <Text style={[styles.modalTitle, { color: colors.foreground }]}>
-                  Error Details
-                </Text>
-                <Pressable
-                  onPress={() => setIsModalVisible(false)}
-                  accessibilityLabel="Close error details"
-                  accessibilityRole="button"
-                  style={({ pressed }) => [
-                    styles.closeButton,
-                    { opacity: pressed ? 0.6 : 1 },
-                  ]}
-                >
-                  <Feather name="x" size={24} color={colors.foreground} />
-                </Pressable>
-              </View>
-
-              <ScrollView
-                style={styles.modalScrollView}
-                contentContainerStyle={[
-                  styles.modalScrollContent,
-                  { paddingBottom: insets.bottom + 16 },
-                ]}
-                showsVerticalScrollIndicator
-              >
-                <View
+                <Text
                   style={[
-                    styles.errorContainer,
-                    { backgroundColor: colors.card },
+                    styles.errorText,
+                    {
+                      color: colors.foreground,
+                      fontFamily: monoFont,
+                    },
                   ]}
+                  selectable
                 >
-                  <Text
-                    style={[
-                      styles.errorText,
-                      {
-                        color: colors.foreground,
-                        fontFamily: monoFont,
-                      },
-                    ]}
-                    selectable
-                  >
-                    {formatErrorDetails()}
-                  </Text>
-                </View>
-              </ScrollView>
-            </View>
+                  {formatErrorDetails()}
+                </Text>
+              </View>
+            </ScrollView>
           </View>
-        </Modal>
-      ) : null}
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -197,6 +207,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
     textAlign: "center",
     lineHeight: 24,
+  },
+  hint: {
+    fontSize: 13,
+    textAlign: "center",
+    lineHeight: 20,
   },
   topButton: {
     position: "absolute",

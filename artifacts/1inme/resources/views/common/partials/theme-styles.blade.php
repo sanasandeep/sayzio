@@ -58,7 +58,9 @@
         --text-muted: #94a3b8;
         --text-dimmed: #64748b;
         --text-faint: #475569;
+        --text-subtle: rgba(255,255,255,0.30);
         --text-label: #94a3b8;
+        --color-primary-400: #5c83ff;
         --sidebar-link: #94a3b8;
         --sidebar-link-hover-bg: rgba(255,255,255,0.05);
         --sidebar-link-hover-text: #ffffff;
@@ -117,6 +119,7 @@
         --text-muted: #4b5675;
         --text-dimmed: #5e6884;
         --text-faint: #6b7491;
+        --text-subtle: rgba(7,20,55,0.40);
         --text-label: #5e6884;
         --sidebar-link: #4b5675;
         --sidebar-link-hover-bg: #f9f9f9;
@@ -131,7 +134,7 @@
         --glow-2: rgba(110,97,255,0);
         --scrollbar-thumb: #e4e6ef;
         --scrollbar-thumb-hover: #b5b5c3;
-        --overlay-bg: rgba(7,20,55,0.28);
+        --overlay-bg: rgba(7,20,55,0.65);
         --card-shadow: 0 1px 2px rgba(7,20,55,0.04), 0 4px 12px -2px rgba(7,20,55,0.05);
         --card-shadow-hover: 0 10px 28px -6px rgba(7,20,55,0.12), 0 3px 8px rgba(7,20,55,0.06);
         --noise-opacity: 0;

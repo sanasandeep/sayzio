@@ -872,6 +872,6 @@
 
 @once
     @push('scripts')
-        <script src="{{ asset('js/community-public.js') }}" defer></script>
+        @vite(['resources/js/community-public.js'])
     @endpush
 @endonce

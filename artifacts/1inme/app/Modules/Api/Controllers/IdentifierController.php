@@ -149,8 +149,15 @@ class IdentifierController extends Controller
             ]);
         }
 
+        // Mobile/WhatsApp-only accounts have no users.email — adopt the
+        // freshly verified email as the account email so email-dependent
+        // flows (e.g. being promoted to admin) work.
+        $adoptedAsAccountEmail = $kind === 'email'
+            && app(AccountMergeService::class)->adoptEmailIfMissing($user, $value);
+
         return $this->ok([
             'verified'    => true,
+            'adopted_as_account_email' => $adoptedAsAccountEmail,
             'identifiers' => $user->linkedIdentifiers()->get()
                 ->map(fn (LinkedIdentifier $i) => $this->present($user, $i))->all(),
         ]);

@@ -97,9 +97,12 @@
                     @if($hasKey)
                         <p class="text-xs text-white/60 mb-1">Stored: <span class="font-mono text-amber-300">{{ $maskedKey }}</span></p>
                     @endif
-                    <input type="password" name="s3_key" autocomplete="new-password"
-                           placeholder="{{ $hasKey ? 'Paste a new key to replace' : 'AKIA…' }}"
-                           class="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-sm text-white">
+                    @include('common.partials.password-field', [
+                        'name' => 's3_key',
+                        'autocomplete' => 'new-password',
+                        'placeholder' => $hasKey ? 'Paste a new key to replace' : 'AKIA…',
+                        'inputClass' => 'w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-sm text-white',
+                    ])
                     <p class="text-[11px] text-white/30 mt-1">IAM access key ID — starts with <code>AKIA</code>.</p>
                     @if($hasKey)
                         <label class="mt-2 inline-flex items-center gap-2 text-xs text-white/60">
@@ -114,9 +117,12 @@
                     @if($hasSecret)
                         <p class="text-xs text-white/60 mb-1">Stored: <span class="font-mono text-amber-300">{{ $maskedSecret }}</span></p>
                     @endif
-                    <input type="password" name="s3_secret" autocomplete="new-password"
-                           placeholder="{{ $hasSecret ? 'Paste a new secret to replace' : '••••••••' }}"
-                           class="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-sm text-white">
+                    @include('common.partials.password-field', [
+                        'name' => 's3_secret',
+                        'autocomplete' => 'new-password',
+                        'placeholder' => $hasSecret ? 'Paste a new secret to replace' : '••••••••',
+                        'inputClass' => 'w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-sm text-white',
+                    ])
                     <p class="text-[11px] text-white/30 mt-1">IAM secret key — encrypted at rest, never displayed back.</p>
                     @if($hasSecret)
                         <label class="mt-2 inline-flex items-center gap-2 text-xs text-white/60">

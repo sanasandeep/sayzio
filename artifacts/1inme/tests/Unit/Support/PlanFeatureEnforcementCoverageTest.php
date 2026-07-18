@@ -126,6 +126,10 @@ class PlanFeatureEnforcementCoverageTest extends TestCase
         'ai_openai_coin_multiplier' => "Documented in aiCoinMultipliers(); deliberately kept out of moduleKeys()/aiSuite() per that method's own doc comment (applies platform-wide, not just the AI suite module).",
         'ai_elevenlabs_coin_multiplier' => 'Documented in aiCoinMultipliers(); see ai_openai_coin_multiplier.',
 
+        // --- (1) Documented via PlanFormCatalogue::includedCoinGrants() ---
+        'included_coins_monthly' => "Documented in includedCoinGrants(); a dedicated grant-amount section, not a quantity-limit or feature-flag row.",
+        'included_coins_yearly'  => 'Documented in includedCoinGrants(); see included_coins_monthly.',
+
         // --- (2) Non-scalar / composite storage keys ---
         'upload_limits' => 'A JSON blob of per-context upload caps, not a single scalar catalogue entry.',
         'resume.templates' => 'Dotted composite key (a per-template allow-list), not a single scalar catalogue entry.',

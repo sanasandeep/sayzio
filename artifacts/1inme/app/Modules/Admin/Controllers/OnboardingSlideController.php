@@ -24,8 +24,9 @@ class OnboardingSlideController extends Controller
 {
     public function index(Request $request)
     {
-        $slides = OnboardingSlide::ordered()->get();
-        return view('admin.onboarding-slides.index', compact('slides'));
+        $slides  = OnboardingSlide::ordered()->get();
+        $drifted = $slides->filter->hasDriftedFromDefault()->values();
+        return view('admin.onboarding-slides.index', compact('slides', 'drifted'));
     }
 
     public function create()
@@ -142,12 +143,6 @@ class OnboardingSlideController extends Controller
     private function uniqueSlug(string $title): string
     {
         $base = Str::slug($title) ?: 'slide';
-        $slug = $base;
-        $i = 2;
-        while (OnboardingSlide::where('slug', $slug)->exists()) {
-            $slug = "{$base}-{$i}";
-            $i++;
-        }
-        return $slug;
+        return \App\Support\UniqueSuffix::resolve(OnboardingSlide::query(), $base);
     }
 }

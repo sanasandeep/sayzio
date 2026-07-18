@@ -3,7 +3,7 @@
 @section('title', 'Two-factor authentication')
 
 @section('settings-content')
-<div class="max-w-3xl mx-auto px-4 py-8">
+<div>
     <div class="mb-6">
         <h1 class="text-2xl font-bold" style="color: var(--text-primary);">Two-factor authentication</h1>
         <p class="text-sm opacity-70 mt-1">Add a second step at sign-in using an authenticator app like Google Authenticator, 1Password, or Authy.</p>
@@ -28,8 +28,9 @@
         </div>
     @endif
 
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
     @if($enrolled)
-        <div class="rounded-lg border p-6" style="border-color: var(--border-strong); background: var(--bg-card);">
+        <div class="rounded-lg border p-6 lg:col-span-2" style="border-color: var(--border-strong); background: var(--bg-card);">
             <div class="flex items-center gap-3 mb-4">
                 <div class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
                     <i class="fas fa-shield-check text-green-600"></i>
@@ -61,7 +62,7 @@
             @endif
         </div>
     @else
-        <div class="rounded-lg border p-6" style="border-color: var(--border-strong); background: var(--bg-card);">
+        <div class="rounded-lg border p-6 lg:col-span-2" style="border-color: var(--border-strong); background: var(--bg-card);">
             <h2 class="font-bold mb-2" style="color: var(--text-primary);">Set up your authenticator</h2>
             <ol class="text-sm space-y-2 mb-5 list-decimal list-inside opacity-90">
                 <li>Open your authenticator app and tap "Add account".</li>
@@ -91,5 +92,26 @@
             </div>
         </div>
     @endif
+
+        <div class="rounded-lg border p-6" style="border-color: var(--border-strong); background: var(--bg-card);">
+            <h3 class="font-bold text-sm mb-3" style="color: var(--text-primary);">
+                <i class="fas fa-circle-info text-blue-400 mr-1.5"></i> How it works
+            </h3>
+            <ul class="text-xs space-y-3 opacity-80" style="color: var(--text-primary);">
+                <li class="flex items-start gap-2">
+                    <i class="fas fa-mobile-screen-button mt-0.5 text-blue-400"></i>
+                    <span>Use any authenticator app — Google Authenticator, 1Password, Authy, or similar.</span>
+                </li>
+                <li class="flex items-start gap-2">
+                    <i class="fas fa-key mt-0.5 text-blue-400"></i>
+                    <span>You'll enter a rotating 6-digit code after your one-time sign-in code.</span>
+                </li>
+                <li class="flex items-start gap-2">
+                    <i class="fas fa-life-ring mt-0.5 text-blue-400"></i>
+                    <span>Recovery codes let you back in if you lose your device — keep them somewhere safe.</span>
+                </li>
+            </ul>
+        </div>
+    </div>
 </div>
 @endsection

@@ -121,10 +121,16 @@ class InboxController
                 }
                 $mailer->send($email);
             } else {
-                \Illuminate\Support\Facades\Mail::html(nl2br(e($validated['body'])), function ($m) use ($toEmail, $validated, $fromName, $fromAddress, $replyTo) {
-                    $m->to($toEmail)->subject($validated['subject'])->from($fromAddress, $fromName);
-                    if ($replyTo) $m->replyTo($replyTo);
-                });
+                $opts = [
+                    'subject'          => $validated['subject'],
+                    'body'             => nl2br(e($validated['body'])),
+                    'format'           => 'html',
+                    'from'             => ['address' => $fromAddress, 'name' => $fromName],
+                    'user'             => $userId,
+                    'throw_on_failure' => true,
+                ];
+                if ($replyTo) $opts['reply_to'] = $replyTo;
+                \App\Modules\Common\Services\Emailer::send('inbox.reply', $toEmail, [], $opts);
             }
         } catch (\Exception $e) {
             $status = 'failed';

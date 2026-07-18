@@ -47,17 +47,25 @@ class MobileCrossDomainResolutionApiTest extends TestCase
         return User::factory()->create()->fresh();
     }
 
-    /** An admin-global (no owning user), verified+active brand domain row. */
+    /**
+     * An admin-global (no owning user), verified+active brand domain row.
+     *
+     * The fresh migrate/seed baseline may already contain these brand domains
+     * (e.g. sayzio.app), so upsert instead of insert to avoid tripping the
+     * domains_domain_unique constraint on a clean database.
+     */
     private function globalBrandDomain(string $host, bool $primary = false): Domain
     {
-        return Domain::create([
-            'user_id'     => null,
-            'domain'      => $host,
-            'type'        => 'custom',
-            'is_verified' => true,
-            'is_active'   => true,
-            'is_primary'  => $primary,
-        ]);
+        return Domain::updateOrCreate(
+            ['domain' => $host],
+            [
+                'user_id'     => null,
+                'type'        => 'custom',
+                'is_verified' => true,
+                'is_active'   => true,
+                'is_primary'  => $primary,
+            ]
+        );
     }
 
     /**

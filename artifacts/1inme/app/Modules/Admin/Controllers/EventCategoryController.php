@@ -31,7 +31,7 @@ class EventCategoryController extends Controller
     {
         $category = new EventCategory([
             'is_enabled' => true,
-            'icon'       => 'fa-calendar-star',
+            'icon'       => 'fa-calendar-days',
             'color_from' => '#3d6bff',
             'color_to'   => '#2342c7',
             'sort_order' => (int) EventCategory::max('sort_order') + 1,

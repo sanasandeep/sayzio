@@ -12,7 +12,7 @@ class UserResource
             'id'              => $u->id,
             'name'            => $u->name,
             'handle'          => $u->handle,
-            'avatar'          => $u->avatar,
+            'avatar'          => \App\Support\PublicStorageUrl::resolve($u->avatar),
             // Resolved avatar: Google photo → Gravatar → placeholder. Kept
             // alongside the raw `avatar` field for backward compatibility.
             'avatar_url'      => $u->resolveAvatarUrl(),

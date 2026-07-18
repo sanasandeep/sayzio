@@ -104,7 +104,7 @@
                 @foreach($trendingCarousel as $tc)
                     <a href="{{ url('/@' . $tc->handle) }}" class="snap-start flex-shrink-0 w-44 bg-white rounded-2xl border border-slate-200 hover:shadow-md transition-shadow p-3 text-center">
                         @if($tc->avatar)
-                            <img src="{{ $tc->avatar }}" class="w-14 h-14 rounded-full mx-auto object-cover" alt=""/>
+                            <img src="{{ \App\Support\PublicStorageUrl::resolve($tc->avatar) }}" class="w-14 h-14 rounded-full mx-auto object-cover" alt=""/>
                         @else
                             <div class="w-14 h-14 rounded-full mx-auto bg-gradient-to-br from-blue-500 to-fuchsia-500 text-white flex items-center justify-center font-bold">{{ $tc->getInitials() }}</div>
                         @endif
@@ -143,14 +143,14 @@
                 @endphp
                 <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden hover:shadow-lg transition-all">
                     @if(!empty($creator->cover_image))
-                        <a href="{{ $href }}" class="block h-20 bg-cover bg-center" style="background-image:url('{{ $creator->cover_image }}');"></a>
+                        <a href="{{ $href }}" class="block h-20 bg-cover bg-center" style="background-image:url('{{ \App\Support\PublicStorageUrl::resolve($creator->cover_image) }}');"></a>
                     @else
                         <a href="{{ $href }}" class="block h-20 bg-gradient-to-br from-blue-500 via-fuchsia-500 to-indigo-500"></a>
                     @endif
                     <div class="p-5">
                     <div class="flex items-center gap-3 -mt-9">
                         @if($creator->avatar)
-                            <img src="{{ $creator->avatar }}" class="w-14 h-14 rounded-full object-cover border-4 border-white bg-white" alt=""/>
+                            <img src="{{ \App\Support\PublicStorageUrl::resolve($creator->avatar) }}" class="w-14 h-14 rounded-full object-cover border-4 border-white bg-white" alt=""/>
                         @else
                             <div class="w-14 h-14 rounded-full bg-gradient-to-br from-blue-500 to-fuchsia-500 text-white flex items-center justify-center font-bold text-lg border-4 border-white">
                                 {{ $creator->getInitials() }}

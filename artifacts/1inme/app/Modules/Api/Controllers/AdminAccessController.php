@@ -123,7 +123,14 @@ class AdminAccessController extends Controller
                 ->all();
         }
 
-        $rows = collect($paginator->items())->map(function (User $u) use ($adminsByEmail, $protectedEmails) {
+        // Id-keyed protected entries (email-less accounts) on this page.
+        $protectedUserIds = ProtectedAccount::query()
+            ->whereIn('user_id', collect($paginator->items())->pluck('id')->all())
+            ->pluck('user_id')
+            ->flip()
+            ->all();
+
+        $rows = collect($paginator->items())->map(function (User $u) use ($adminsByEmail, $protectedEmails, $protectedUserIds) {
             $key = strtolower(trim((string) $u->email));
             $linked = $adminsByEmail[$key] ?? null;
             return [
@@ -131,12 +138,12 @@ class AdminAccessController extends Controller
                 'name'         => $u->name,
                 'email'        => $u->email,
                 'handle'       => $u->handle,
-                'avatar'       => $u->avatar,
+                'avatar'       => \App\Support\PublicStorageUrl::resolve($u->avatar),
                 'status'       => $u->status,
                 'plan'         => $u->plan?->name,
                 'is_admin'     => $linked !== null,
                 'admin_status' => $linked?->status,
-                'is_protected' => isset($protectedEmails[$key]),
+                'is_protected' => isset($protectedEmails[$key]) || isset($protectedUserIds[$u->id]),
             ];
         })->all();
 
@@ -305,6 +312,17 @@ class AdminAccessController extends Controller
 
         if (! $role) {
             return $this->fail('That is not a valid admin role.', 422, 'invalid_admin_role');
+        }
+
+        // Back-office accounts are keyed by email. A mobile/WhatsApp-only
+        // sign-up has no users.email yet — the user must add + verify an
+        // email (Linked identifiers) before they can be promoted.
+        if (trim((string) $user->email) === '') {
+            return $this->fail(
+                'This user has no email address on file. Ask them to add and verify an email in Account Settings first, then grant admin access.',
+                422,
+                'user_email_required'
+            );
         }
 
         $linked = $user->adminAccount();

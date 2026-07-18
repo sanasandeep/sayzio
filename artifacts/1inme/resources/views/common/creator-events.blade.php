@@ -48,7 +48,7 @@
 
     <div class="flex items-center gap-3 mb-6">
         @if($creator->avatar)
-            <img src="{{ $creator->avatar }}" alt="" class="w-12 h-12 rounded-xl object-cover">
+            <img src="{{ \App\Support\PublicStorageUrl::resolve($creator->avatar) }}" alt="" class="w-12 h-12 rounded-xl object-cover">
         @else
             <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-fuchsia-500 text-white flex items-center justify-center font-extrabold text-sm">
                 {{ $creator->getInitials() }}
@@ -139,7 +139,7 @@
                     $eventIsOnline = !empty($event->settings['is_online'] ?? false);
                     $catIcon = $eventCategory !== ''
                         ? \App\Modules\User\Support\EventCategories::icon($eventCategory)
-                        : 'fa-calendar-star';
+                        : 'fa-calendar-days';
                     $catGradient = \App\Modules\User\Support\EventCategories::gradient($eventCategory);
 
                     $tiers = $event->eventTicketTiers->sortBy('price_cents')->values();

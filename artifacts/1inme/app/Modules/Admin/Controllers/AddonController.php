@@ -43,6 +43,7 @@ class AddonController extends Controller
 
     public function edit(Addon $addon)
     {
+        $addon->load('prices');
         $plans = Plan::ordered()->get();
         $attachedPlanIds = $addon->plans()->pluck('plans.id')->all();
         return view('admin.addons.edit', compact('addon', 'plans', 'attachedPlanIds'));
@@ -143,11 +144,6 @@ class AddonController extends Controller
     private function uniqueSlug(string $name): string
     {
         $base = Str::slug($name);
-        $slug = $base;
-        $i = 2;
-        while (Addon::where('slug', $slug)->exists()) {
-            $slug = $base . '-' . $i++;
-        }
-        return $slug;
+        return \App\Support\UniqueSuffix::resolve(Addon::query(), $base);
     }
 }

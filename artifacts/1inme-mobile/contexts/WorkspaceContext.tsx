@@ -13,6 +13,7 @@ import {
   switchWorkspace as apiSwitchWorkspace,
   type Workspace,
 } from "@/lib/api/workspaces";
+import { useForegroundRefresh } from "@/hooks/useForegroundRefresh";
 
 const ACTIVE_WS_KEY = "sayzio_active_workspace_id";
 
@@ -21,6 +22,7 @@ type WorkspaceContextValue = {
   activeWorkspace: Workspace | null;
   isLoading: boolean;
   switchWorkspace: (ws: Workspace) => Promise<void>;
+  refresh: () => void;
 };
 
 const WorkspaceContext = createContext<WorkspaceContextValue>({
@@ -28,13 +30,14 @@ const WorkspaceContext = createContext<WorkspaceContextValue>({
   activeWorkspace: null,
   isLoading: false,
   switchWorkspace: async () => {},
+  refresh: () => {},
 });
 
 export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
   const queryClient = useQueryClient();
   const [activeId, setActiveId] = useState<number | null>(null);
 
-  const { data: workspaces = [], isLoading } = useQuery({
+  const { data: workspaces = [], isLoading, refetch } = useQuery({
     queryKey: ["workspaces-list"],
     queryFn: listWorkspaces,
     staleTime: 60_000,
@@ -74,9 +77,18 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     [queryClient],
   );
 
+  const refresh = useCallback(() => {
+    void refetch();
+  }, [refetch]);
+
+  // A rename/restyle/delete happens on the web (opened via the switcher's gear
+  // button); refresh the list when the app returns to the foreground so those
+  // changes show up without a manual pull-to-refresh.
+  useForegroundRefresh(refresh);
+
   return (
     <WorkspaceContext.Provider
-      value={{ workspaces, activeWorkspace, isLoading, switchWorkspace }}
+      value={{ workspaces, activeWorkspace, isLoading, switchWorkspace, refresh }}
     >
       {children}
     </WorkspaceContext.Provider>

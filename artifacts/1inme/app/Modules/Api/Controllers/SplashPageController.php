@@ -89,9 +89,9 @@ class SplashPageController extends Controller
             'cta_url'       => $s->cta_url,
             'auto_redirect' => (bool) $s->auto_redirect,
             'countdown'     => (int) ($s->countdown ?? 0),
-            'logo'          => $s->logo,
-            'favicon'       => $s->favicon,
-            'og_image'      => $s->og_image,
+            'logo'          => \App\Support\PublicStorageUrl::resolve($s->logo),
+            'favicon'       => \App\Support\PublicStorageUrl::resolve($s->favicon),
+            'og_image'      => \App\Support\PublicStorageUrl::resolve($s->og_image),
             'created_at'    => optional($s->created_at)->toIso8601String(),
         ];
     }

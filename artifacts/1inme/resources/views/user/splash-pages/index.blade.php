@@ -72,7 +72,7 @@
                     <div class="flex items-start gap-3 mb-3">
                         <div class="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden" style="background: var(--c-primary-soft);">
                             @if($sp->logo)
-                                <img src="{{ $sp->logo }}" alt="" class="max-w-full max-h-full object-contain">
+                                <img src="{{ \App\Support\PublicStorageUrl::resolve($sp->logo) }}" alt="" class="max-w-full max-h-full object-contain">
                             @else
                                 <i class="fas fa-rocket text-lg" style="color: var(--c-primary);"></i>
                             @endif

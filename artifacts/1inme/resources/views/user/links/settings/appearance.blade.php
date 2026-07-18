@@ -189,7 +189,13 @@
                                 <span class="text-sm font-medium" style="color: var(--text-primary);">Password protect this link</span>
                             </label>
                             <div x-show="pwd" x-transition class="mt-2 ml-7">
-                                <input type="password" name="password" placeholder="{{ $link->is_password_protected ? 'New password (leave empty to keep current)' : 'Enter a password' }}" class="theme-input w-full max-w-sm">
+                                @include('common.partials.password-field', [
+                                    'name' => 'password',
+                                    'placeholder' => $link->is_password_protected ? 'New password (leave empty to keep current)' : 'Enter a password',
+                                    'autocomplete' => 'new-password',
+                                    'wrapClass' => 'max-w-sm',
+                                    'inputClass' => 'theme-input w-full',
+                                ])
                                 <p class="text-[10px] mt-1" style="color: var(--text-faint);">Visitors must enter this password to access the page.</p>
                             </div>
                         </div>

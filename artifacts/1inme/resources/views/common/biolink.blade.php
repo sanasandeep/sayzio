@@ -7,8 +7,11 @@
     $shareBtnSettings = $link->settings['biolink']['share_button'] ?? [];
     $menuBarSettings = $link->settings['biolink']['menu_bar'] ?? [];
     $autoTranslateSettings = $link->settings['biolink']['auto_translate'] ?? [];
-    $pageTitle = $link->seo_title ?? $metaSettings['seo_title'] ?? $link->title ?? 'Sayzio Link in Bio';
-    $pageDesc = $link->seo_description ?? $metaSettings['seo_description'] ?? '';
+    $__biolinkOwnerName = $link->user?->name ?? null;
+    $pageTitle = $link->seo_title ?? $metaSettings['seo_title'] ?? $link->title
+        ?? ($__biolinkOwnerName ? $__biolinkOwnerName . ' — Link in Bio' : 'Link in Bio');
+    $pageDesc = $link->seo_description ?? $metaSettings['seo_description']
+        ?? ($__biolinkOwnerName ? ('Visit ' . $__biolinkOwnerName . "'s Link in Bio page on Sayzio.") : '');
     $pageImage = $link->seo_image ?? $ogSettings['image_url'] ?? '';
     $ogTitle = $ogSettings['title'] ?? $pageTitle;
     $ogDesc = $ogSettings['description'] ?? $pageDesc;
@@ -37,13 +40,16 @@
     @if(!empty($metaSettings['author']))
         <meta name="author" content="{{ $metaSettings['author'] }}">
     @endif
-    <meta name="robots" content="{{ $metaSettings['robots'] ?? 'index,follow' }}">
+    @php
+        $__biolinkVisibility = $link->visibility ?? 'public';
+        $__biolinkGated = $link->isBiolinkFamily() && $__biolinkVisibility !== 'public';
+        $__biolinkRobots = $__biolinkGated ? 'noindex,nofollow' : ($metaSettings['robots'] ?? 'index,follow');
+    @endphp
+    <meta name="robots" content="{{ $__biolinkRobots }}">
     @if(!empty($metaSettings['rating']))
         <meta name="rating" content="{{ $metaSettings['rating'] }}">
     @endif
-    @if(!empty($metaSettings['canonical_url']))
-        <link rel="canonical" href="{{ $metaSettings['canonical_url'] }}">
-    @endif
+    <link rel="canonical" href="{{ $metaSettings['canonical_url'] ?? \App\Modules\Common\Support\PlatformHosts::canonicalUrl() }}">
 
     <meta property="og:title" content="{{ $ogTitle }}">
     @if($ogDesc)
@@ -55,6 +61,7 @@
         <meta property="og:image" content="{{ $pageImage }}">
         <meta property="og:image:width" content="1200">
         <meta property="og:image:height" content="630">
+        <meta property="og:image:alt" content="{{ $ogTitle }}">
     @endif
     <meta property="og:url" content="{{ \App\Modules\Common\Support\PlatformHosts::canonicalUrl() }}">
 
@@ -72,7 +79,7 @@
 
     @include('common.partials.default-icons')
     @if($link->favicon)
-        <link rel="icon" type="image/png" href="{{ $link->favicon }}">
+        <link rel="icon" type="image/png" href="{{ \App\Support\PublicStorageUrl::resolve($link->favicon) }}">
     @endif
     @if(!empty($faviconSettings['apple_touch_icon']))
         <link rel="apple-touch-icon" sizes="180x180" href="{{ $faviconSettings['apple_touch_icon'] }}">
@@ -104,6 +111,11 @@
         $bgAttachment = $bs['bg_attachment'] ?? 'fixed';
         $bgFallbackColor = $bs['bg_fallback_color'] ?? '#0a0612';
         $bgFallbackImage = $bs['bg_fallback_image'] ?? '';
+        // Preset CSS background: resolved server-side from the catalog by key.
+        $bgPresetCss = null;
+        if ($bgType === 'preset' && !empty($bs['bg_preset_key'])) {
+            $bgPresetCss = \App\Modules\User\Support\BgPresetCatalog::css((string) $bs['bg_preset_key']);
+        }
 
         // Contrast safeguard: when no explicit background_type has been saved the
         // page falls back to the dark default gradient (#0a0612 / $bgFallbackColor).
@@ -276,6 +288,14 @@
                 background-color: {{ $bgColor }};
             @elseif($bgType === 'gradient')
                 background: {{ $bgGradient }};
+            @elseif($bgType === 'preset' && $bgPresetCss)
+                {{-- Always terminate the inlined preset CSS: many catalog entries have no
+                     trailing semicolon, and without one the following declaration
+                     (min-height) glues onto the preset's last declaration, silently
+                     invalidating both in the browser. --}}
+                {!! rtrim($bgPresetCss, "; \t\n\r") !!};
+            @elseif($bgType === 'preset')
+                background-color: {{ $bgFallbackColor }};
             @elseif($bgType === 'image' && $bgImage)
                 background: {{ $bgFallbackColor }} url('{{ $bgImage }}') center/cover no-repeat {{ $bgAttachment }};
             @elseif($bgType === 'slideshow' || $bgType === 'video' || $bgType === 'template')
@@ -951,7 +971,7 @@
                     @endif
                     <p class="text-sm whitespace-pre-line" style="color:{{ $fontColor }}cc;">{{ \Illuminate\Support\Str::limit($pinnedPost->body, 320) }}</p>
                     @if($pinnedPost->image)
-                        <img src="{{ $pinnedPost->image }}" class="mt-3 rounded-lg max-h-72 w-full object-cover" alt=""/>
+                        <img src="{{ \App\Support\PublicStorageUrl::resolve($pinnedPost->image) }}" class="mt-3 rounded-lg max-h-72 w-full object-cover" alt=""/>
                     @endif
                     <p class="text-[11px] mt-2" style="color:{{ $fontColor }}77;">{{ $pinnedPost->published_at?->diffForHumans() }}</p>
                 </div>
@@ -1111,7 +1131,7 @@
                         <div class="relative" @click.away="menu=false">
                             <button type="button" @click="menu=!menu" class="flex items-center gap-1.5 pr-1 hover:opacity-90">
                                 @if($__viewer->avatar)
-                                    <img src="{{ $__viewer->avatar }}" class="w-5 h-5 rounded-full object-cover" alt=""/>
+                                    <img src="{{ \App\Support\PublicStorageUrl::resolve($__viewer->avatar) }}" class="w-5 h-5 rounded-full object-cover" alt=""/>
                                 @else
                                     <span class="w-5 h-5 rounded-full inline-flex items-center justify-center text-[10px] font-bold"
                                           style="background: {{ $fontColor }}30; color: {{ $fontColor }};">

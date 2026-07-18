@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Two-factor verification - {{ config('app.name') }}</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <link rel="stylesheet" href="{{ asset('css/vendor/fontawesome-free-6.5.1/css/all.min.css') }}">
@@ -54,18 +55,16 @@
                     <p class="text-sm mt-1" style="color: var(--text-dimmed);">Enter the 6-digit code from your authenticator app, or use a recovery code.</p>
                 </div>
 
-                @if($errors->any())
-                    <div class="mb-4 p-3 rounded-xl text-red-400 text-xs font-medium" style="border: 1px solid rgba(239,68,68,0.15); background: rgba(239,68,68,0.06);">
+                <form method="POST" action="{{ route('user.account.two-factor.challenge.verify') }}" data-ajax>
+                    @csrf
+                    <div class="mb-4 p-3 rounded-xl text-red-400 text-xs font-medium" style="border: 1px solid rgba(239,68,68,0.15); background: rgba(239,68,68,0.06);" data-general-err @if(!$errors->any()) hidden @endif>
                         @foreach($errors->all() as $error)<p>{{ $error }}</p>@endforeach
                     </div>
-                @endif
-
-                <form method="POST" action="{{ route('user.account.two-factor.challenge.verify') }}">
-                    @csrf
                     <div class="mb-4">
                         <input type="text" name="code" required autofocus
                                placeholder="000000"
                                class="theme-input w-full text-center text-2xl tracking-[0.4em] font-bold py-3.5">
+                        <p class="mt-1 text-xs text-red-400" data-err="code" hidden></p>
                     </div>
                     <button type="submit" class="btn-primary w-full justify-center py-2.5 text-sm">
                         Verify &amp; sign in
@@ -97,5 +96,6 @@
         }
     })();
     </script>
+    @vite(['resources/js/auth-ajax.js'])
 </body>
 </html>

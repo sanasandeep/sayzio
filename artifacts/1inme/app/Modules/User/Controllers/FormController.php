@@ -63,10 +63,43 @@ class FormController extends Controller
     {
         $projects = workspace_owner()->projects()->orderBy('name')->get();
         $domains  = Domain::availableTo($request->user())->get();
+
+        $groups = \App\Modules\User\Services\FormTemplateCatalog::grouped();
+        $templatesFlat = [];
+        foreach ($groups as $catKey => $templates) {
+            foreach ($templates as $key => $tpl) {
+                $templatesFlat[] = [
+                    'key'      => $key,
+                    'label'    => $tpl['label'],
+                    'desc'     => $tpl['desc'],
+                    'icon'     => $tpl['icon'],
+                    'category' => $catKey,
+                ];
+            }
+        }
+
+        // A deep link may arrive with ?template=<key> — e.g. a bookmark or a
+        // curated link straight into a specific starting point. If that key
+        // still resolves, pre-select it; if it was retired from the catalog,
+        // fall back to Contact and surface a small notice so the removal is
+        // visible instead of silently ignored.
+        $requestedTemplate = $request->query('template');
+        $requestedTemplate = is_string($requestedTemplate) ? trim($requestedTemplate) : '';
+        $templateResolves  = $requestedTemplate !== ''
+            && \App\Modules\User\Services\FormTemplateCatalog::isValid($requestedTemplate);
+        $initialTemplate   = $templateResolves ? $requestedTemplate : 'contact';
+        $templateUnavailable = $requestedTemplate !== '' && !$templateResolves;
+
         return view('user.forms.create', [
-            'projects'        => $projects,
-            'domains'         => $domains,
-            'defaultDomainId' => $domains->firstWhere('is_primary', true)?->id,
+            'projects'            => $projects,
+            'domains'             => $domains,
+            'defaultDomainId'     => $domains->firstWhere('is_primary', true)?->id,
+            'templateGroups'      => $groups,
+            'templateCategories'  => \App\Modules\User\Services\FormTemplateCatalog::categories(),
+            'templatesFlat'       => $templatesFlat,
+            'initialTemplate'     => $initialTemplate,
+            'requestedTemplate'   => $requestedTemplate,
+            'templateUnavailable' => $templateUnavailable,
         ]);
     }
 
@@ -77,7 +110,7 @@ class FormController extends Controller
             'description' => 'nullable|string|max:1000',
             'project_id' => ['nullable', \Illuminate\Validation\Rule::exists('projects', 'id')->where('user_id', workspace_owner_id())],
             'domain_id' => ['nullable', $this->availableDomainRule($request->user())],
-            'template' => 'nullable|in:contact,lead,survey,registration,feedback,blank',
+            'template' => ['nullable', \Illuminate\Validation\Rule::in(\App\Modules\User\Services\FormTemplateCatalog::keys())],
         ]);
 
         $template = $data['template'] ?? 'contact';
@@ -282,6 +315,24 @@ class FormController extends Controller
             foreach (['rows', 'min', 'max', 'min_length', 'max_length', 'file_max_kb'] as $k) {
                 if (isset($f[$k]) && $f[$k] !== '' && is_numeric($f[$k])) $row[$k] = (int) $f[$k];
             }
+            // Float numeric props for new typed fields
+            foreach (['step', 'default_val'] as $k) {
+                if (isset($f[$k]) && $f[$k] !== '' && is_numeric($f[$k])) $row[$k] = (float) $f[$k];
+            }
+            // String props for new typed fields
+            foreach (['auto_collect', 'auto_collect_param', 'unit', 'currency_code', 'first_label', 'last_label', 'min_date', 'max_date'] as $k) {
+                if (isset($f[$k]) && (string) $f[$k] !== '') $row[$k] = (string) $f[$k];
+            }
+            // Image choice: [{label, url}] pairs
+            if ($type === 'image_choice') {
+                $ios = [];
+                foreach ((array) ($f['image_options'] ?? []) as $io) {
+                    $lbl = trim((string) ($io['label'] ?? ''));
+                    $url = trim((string) ($io['url'] ?? ''));
+                    if ($lbl !== '') $ios[] = ['label' => $lbl, 'url' => $url];
+                }
+                $row['image_options'] = $ios;
+            }
             // Width (4=1/3, 6=1/2, 8=2/3, 12=full)
             $w = (int) ($f['width'] ?? 12);
             $row['width'] = in_array($w, $allowedWidths, true) ? $w : 12;
@@ -317,6 +368,21 @@ class FormController extends Controller
             if ($type === 'pricing') {
                 $row['price_options'] = $this->cleanPriceList($f['price_options'] ?? []);
                 $row['addons']        = $this->cleanPriceList($f['addons'] ?? []);
+            }
+            // Repeatable section config — persisted only for section fields.
+            if ($type === 'section') {
+                $row['repeatable'] = filter_var($f['repeatable'] ?? false, FILTER_VALIDATE_BOOL);
+                if ($row['repeatable']) {
+                    $addLabel = mb_substr(trim((string) ($f['repeat_add_label'] ?? 'Add another')), 0, 60);
+                    $row['repeat_add_label'] = $addLabel ?: 'Add another';
+                    // Cap to 10 — the UI cannot render more than 10 copies.
+                    $rm = isset($f['repeat_min']) && is_numeric($f['repeat_min']) ? min(10, max(1, (int) $f['repeat_min'])) : 1;
+                    $rM = isset($f['repeat_max']) && is_numeric($f['repeat_max']) && (int) $f['repeat_max'] > 0
+                        ? min(10, (int) $f['repeat_max']) : null;
+                    if ($rM !== null && $rM < $rm) $rM = $rm;
+                    $row['repeat_min'] = $rm;
+                    if ($rM !== null) $row['repeat_max'] = $rM;
+                }
             }
             $clean[] = $row;
         }
@@ -434,6 +500,46 @@ class FormController extends Controller
 
         $form->update(['design' => $design]);
         return back()->with('success', 'Design updated.');
+    }
+
+    public function settings(Request $request, Form $form)
+    {
+        $this->authorizeForm($request, $form);
+        $captcha = $form->captchaConfig();
+        return view('user.forms.settings', compact('form', 'captcha'));
+    }
+
+    public function updateSettings(Request $request, Form $form)
+    {
+        $this->authorizeForm($request, $form);
+        $request->validate([
+            'captcha_provider' => 'required|in:honeypot,math,recaptcha_v2,recaptcha_v3,hcaptcha,turnstile',
+            'site_key'         => 'nullable|string|max:255',
+            'secret_key'       => 'nullable|string|max:255',
+            'score_threshold'  => 'nullable|numeric|min:0.1|max:1.0',
+        ]);
+
+        $cap = $form->captchaConfig();
+        $cap['provider']        = $request->input('captcha_provider');
+        $cap['site_key']        = trim((string) $request->input('site_key', '')) ?: null;
+        $cap['score_threshold'] = (float) $request->input('score_threshold', 0.5);
+
+        $newSecret = trim((string) $request->input('secret_key', ''));
+        if ($newSecret !== '') {
+            $cap['secret_key'] = encrypt($newSecret);
+        } elseif ($request->boolean('clear_secret')) {
+            $cap['secret_key'] = null;
+        }
+        if (in_array($cap['provider'], ['honeypot', 'math'], true)) {
+            $cap['secret_key'] = null;
+            $cap['site_key']   = null;
+        }
+
+        $settings = array_merge(Form::defaultSettings(), $form->settings ?? []);
+        $settings['captcha'] = $cap;
+        $form->update(['settings' => $settings]);
+
+        return back()->with('success', 'Settings saved.');
     }
 
     public function notifications(Request $request, Form $form)
@@ -627,13 +733,41 @@ class FormController extends Controller
     public function exportSubmissions(Request $request, Form $form): StreamedResponse
     {
         $this->authorizeForm($request, $form);
-        $headers = collect($form->fields ?? [])->whereNotIn('type', ['heading', 'paragraph', 'divider', 'page_break', 'section'])->pluck('id')->all();
+        // Build export header ids: standard non-structural fields, plus repeatable sections.
+        // New submissions store repeatable data under the section id as {_repeatable_group,copies}.
+        // Old submissions (created before the section was made repeatable) still store values under
+        // child field ids. We track child ids per repeatable section so we can fall back gracefully.
+        $fields = $form->fields ?? [];
+        $repeatableSectionIdsForExport = []; // sectionId => true
+        $repeatableSectionChildIds = [];     // sectionId => [childId, ...]
+        foreach ($fields as $ef) {
+            if (($ef['type'] ?? null) === 'section' && !empty($ef['repeatable']) && !empty($ef['id'])) {
+                $repeatableSectionIdsForExport[(string) $ef['id']] = true;
+                $repeatableSectionChildIds[(string) $ef['id']] = [];
+            }
+        }
+        foreach ($fields as $ef) {
+            $parent = (string) ($ef['parent'] ?? '');
+            if ($parent !== '' && isset($repeatableSectionChildIds[$parent]) && !empty($ef['id'])) {
+                $repeatableSectionChildIds[$parent][] = (string) $ef['id'];
+            }
+        }
+        $headers = collect($fields)->filter(function ($f) use ($repeatableSectionIdsForExport) {
+            $t = $f['type'] ?? 'text';
+            if (in_array($t, ['heading', 'paragraph', 'divider', 'page_break'])) return false;
+            // Non-repeatable sections are structural wrappers only; skip them.
+            if ($t === 'section') return !empty($f['repeatable']);
+            // Children of repeatable sections: data lives under the parent section id; exclude them.
+            $parent = (string) ($f['parent'] ?? '');
+            if ($parent !== '' && isset($repeatableSectionIdsForExport[$parent])) return false;
+            return true;
+        })->pluck('id')->all();
         $filename = 'form-' . $form->slug . '-' . now()->format('Ymd-His') . '.csv';
 
-        return response()->streamDownload(function () use ($form, $headers) {
+        return response()->streamDownload(function () use ($form, $headers, $repeatableSectionIdsForExport, $repeatableSectionChildIds) {
             $h = fopen('php://output', 'w');
             fputcsv($h, array_merge(['submitted_at', 'ip'], $headers));
-            $form->submissions()->completed()->orderBy('id')->chunk(500, function ($rows) use ($h, $headers) {
+            $form->submissions()->completed()->orderBy('id')->chunk(500, function ($rows) use ($h, $headers, $repeatableSectionIdsForExport, $repeatableSectionChildIds) {
                 foreach ($rows as $row) {
                     $line = [$row->created_at?->toIso8601String(), $row->ip];
                     foreach ($headers as $key) {
@@ -649,6 +783,37 @@ class FormController extends Controller
                             }
                             $total = number_format(((int) ($val['total_cents'] ?? 0)) / 100, 2);
                             $val   = implode(' + ', $parts) . ' = ' . $total . ' ' . $cur;
+                        } elseif (isset($repeatableSectionIdsForExport[$key])) {
+                            // Repeatable section column. Two possible shapes:
+                            // (a) New submission: {_repeatable_group:true, copies:[{fieldId:val,...},...]}
+                            // (b) Legacy submission (before repeatable was enabled): child values
+                            //     stored under their own field ids — data[$key] is empty/missing.
+                            //     Fall back to collecting child field values as a single copy.
+                            if (is_array($val) && !empty($val['_repeatable_group'])) {
+                                $rParts = [];
+                                foreach (array_values($val['copies'] ?? []) as $rci => $rcopy) {
+                                    $copyLabel = '[Copy ' . ($rci + 1) . ']';
+                                    $fieldParts = [];
+                                    foreach ((array) $rcopy as $rck => $rcv) {
+                                        $flat = is_array($rcv) ? implode(', ', $rcv) : ($rcv === null ? '' : (string) $rcv);
+                                        if ($flat === '') continue;
+                                        $fieldParts[] = ucfirst(str_replace('_', ' ', (string) $rck)) . ': ' . $flat;
+                                    }
+                                    $rParts[] = $copyLabel . ' ' . implode(' | ', $fieldParts);
+                                }
+                                $val = implode(' || ', $rParts);
+                            } else {
+                                // Legacy shape: collect values from child field ids directly.
+                                $childIds = $repeatableSectionChildIds[$key] ?? [];
+                                $fieldParts = [];
+                                foreach ($childIds as $cid) {
+                                    $cv = $row->data[$cid] ?? '';
+                                    $flat = is_array($cv) ? implode(', ', $cv) : ($cv === null ? '' : (string) $cv);
+                                    if ($flat === '') continue;
+                                    $fieldParts[] = $flat;
+                                }
+                                $val = implode(' | ', $fieldParts);
+                            }
                         } elseif (is_array($val)) {
                             $val = implode(', ', $val);
                         }
@@ -745,36 +910,11 @@ class FormController extends Controller
 
     protected function templateFields(string $template): array
     {
-        return match ($template) {
-            'lead' => [
-                ['id' => 'name', 'type' => 'text', 'label' => 'Full Name', 'required' => true],
-                ['id' => 'email', 'type' => 'email', 'label' => 'Work Email', 'required' => true],
-                ['id' => 'phone', 'type' => 'phone', 'label' => 'Phone', 'required' => false],
-                ['id' => 'company', 'type' => 'text', 'label' => 'Company', 'required' => false],
-                ['id' => 'budget', 'type' => 'select', 'label' => 'Budget', 'options' => ['< $1k', '$1k–$5k', '$5k–$25k', '$25k+'], 'required' => false],
-                ['id' => 'notes', 'type' => 'textarea', 'label' => 'Tell us about your project', 'rows' => 4],
-            ],
-            'survey' => [
-                ['id' => 'satisfaction', 'type' => 'rating', 'label' => 'How satisfied are you?', 'max' => 5, 'required' => true],
-                ['id' => 'recommend', 'type' => 'scale', 'label' => 'How likely are you to recommend us?', 'min' => 0, 'max' => 10, 'required' => true],
-                ['id' => 'comments', 'type' => 'textarea', 'label' => 'Any additional feedback?', 'rows' => 4],
-            ],
-            'registration' => [
-                ['id' => 'name', 'type' => 'text', 'label' => 'Full Name', 'required' => true],
-                ['id' => 'email', 'type' => 'email', 'label' => 'Email', 'required' => true],
-                ['id' => 'event_date', 'type' => 'date', 'label' => 'Preferred Date', 'required' => true],
-                ['id' => 'attendees', 'type' => 'number', 'label' => 'Number of Attendees', 'min' => 1, 'required' => true],
-                ['id' => 'consent', 'type' => 'consent', 'label' => 'I agree to the terms and privacy policy', 'required' => true],
-            ],
-            'feedback' => [
-                ['id' => 'rating', 'type' => 'rating', 'label' => 'Rate your experience', 'max' => 5, 'required' => true],
-                ['id' => 'category', 'type' => 'radio', 'label' => 'What is this about?', 'options' => ['Bug', 'Suggestion', 'Compliment', 'Other'], 'required' => true],
-                ['id' => 'message', 'type' => 'textarea', 'label' => 'Your message', 'required' => true, 'rows' => 4],
-                ['id' => 'email', 'type' => 'email', 'label' => 'Email (optional)', 'required' => false],
-            ],
-            'blank' => [],
-            default => Form::defaultFields(),
-        };
+        if (\App\Modules\User\Services\FormTemplateCatalog::isValid($template)) {
+            return \App\Modules\User\Services\FormTemplateCatalog::fieldsFor($template);
+        }
+
+        return Form::defaultFields();
     }
 
     /* ---------------------- public-side handlers ---------------------- */
@@ -844,14 +984,16 @@ class FormController extends Controller
     {
         $form = Form::where('slug', $slug)->where('is_active', true)->firstOrFail();
         $form->increment('total_views');
-        return view('common.form', ['form' => $form, 'embed' => false]);
+        $mathQuestion = $this->seedMathCaptcha($form);
+        return view('common.form', ['form' => $form, 'embed' => false, 'mathQuestion' => $mathQuestion]);
     }
 
     public function publicIframe(Request $request, string $slug)
     {
         $form = Form::where('slug', $slug)->where('is_active', true)->firstOrFail();
         $form->increment('total_views');
-        return view('common.form', ['form' => $form, 'embed' => true]);
+        $mathQuestion = $this->seedMathCaptcha($form);
+        return view('common.form', ['form' => $form, 'embed' => true, 'mathQuestion' => $mathQuestion]);
     }
 
     public function publicEmbedJs(Request $request, string $slug)
@@ -886,16 +1028,134 @@ class FormController extends Controller
         $form = Form::where('slug', $slug)->where('is_active', true)->firstOrFail();
 
         $rules = $this->buildSubmissionRules($form);
+
+        // Files attached inside repeatable copies can't be flashed back by old()
+        // on a 422 (browsers never resubmit a file input's value and Laravel
+        // doesn't flash uploads). Before validation may redirect us back,
+        // remember which repeatable copies carried an upload so the re-render
+        // can prompt the visitor to re-attach instead of silently dropping it.
+        $this->flashPendingRepeatableFiles($request, $form);
+
         $validated = $request->validate($rules, $this->customMessages);
+
+        // Verify captcha before processing any submission data
+        $captchaError = $this->verifyCaptcha($request, $form);
+        if ($captchaError !== null) {
+            if ($request->expectsJson()) {
+                return response()->json(['error' => ['message' => $captchaError, 'code' => 'captcha_failed']], 422);
+            }
+            return back()->withInput()->withErrors(['_captcha' => $captchaError]);
+        }
+
+        // Pre-identify repeatable sections and their supported child fields so
+        // we can collect structured copies from the rep_{id}[idx][fieldId] inputs.
+        $repeatableSecIds = [];
+        foreach ($form->fields ?? [] as $f) {
+            if (($f['type'] ?? null) === 'section' && !empty($f['repeatable']) && !empty($f['id'])) {
+                $repeatableSecIds[(string) $f['id']] = true;
+            }
+        }
+        $repSecChildren = [];
+        // Excluded types that cannot live inside a repeatable group at collect time.
+        // File children are collected separately (they arrive in the uploaded-files
+        // array, not ->input()), so they get their own map below.
+        $repExcluded = ['file', 'signature', 'pricing', 'heading', 'paragraph', 'divider', 'page_break', 'section', 'hidden'];
+        $repFileChildren = [];
+        foreach ($form->fields ?? [] as $f) {
+            $fParent = (string) ($f['parent'] ?? '');
+            if ($fParent === '' || !isset($repeatableSecIds[$fParent])) continue;
+            $ftype = $f['type'] ?? 'text';
+            if ($ftype === 'file') {
+                $repFileChildren[$fParent][] = $f;
+            } elseif (!in_array($ftype, $repExcluded, true)) {
+                $repSecChildren[$fParent][] = $f;
+            }
+        }
 
         $files = [];
         $data  = [];
         foreach ($form->fields ?? [] as $field) {
             $type = $field['type'] ?? 'text';
             $id = $field['id'] ?? null;
+
+            // Repeatable section: collect structured copies from rep_{id}[idx][childId] inputs.
+            if ($type === 'section' && $id && !empty($field['repeatable'])) {
+                $repKey    = 'rep_' . $id;
+                $rawCopies = $request->input($repKey, []);
+                $repFiles  = $request->file($repKey, []);
+                if (!is_array($rawCopies)) $rawCopies = [];
+                if (!is_array($repFiles))  $repFiles  = [];
+
+                // A copy index can appear in the text inputs, the uploaded files,
+                // or both. Iterate the union (preserving each original index) so an
+                // uploaded file lines up with the text siblings in its own copy.
+                $copyIndices = array_values(array_unique(array_merge(
+                    array_map('intval', array_keys($rawCopies)),
+                    array_map('intval', array_keys($repFiles))
+                )));
+                sort($copyIndices);
+
+                $copies = [];
+                foreach ($copyIndices as $ci) {
+                    $copyData  = is_array($rawCopies[$ci] ?? null) ? $rawCopies[$ci] : [];
+                    $copyFiles = is_array($repFiles[$ci] ?? null) ? $repFiles[$ci] : [];
+                    $copy = [];
+                    foreach ($repSecChildren[$id] ?? [] as $child) {
+                        $cid   = (string) ($child['id'] ?? '');
+                        $ctype = $child['type'] ?? 'text';
+                        if ($cid === '') continue;
+                        if ($ctype === 'consent') {
+                            $copy[$cid] = filter_var($copyData[$cid] ?? false, FILTER_VALIDATE_BOOL);
+                        } elseif ($ctype === 'checkbox') {
+                            $copy[$cid] = array_values(array_filter(
+                                (array) ($copyData[$cid] ?? []),
+                                fn ($v) => is_scalar($v)
+                            ));
+                        } else {
+                            $raw = $copyData[$cid] ?? null;
+                            $copy[$cid] = is_scalar($raw) ? (string) $raw : null;
+                        }
+                    }
+                    // File children arrive in the uploaded-files array, not
+                    // ->input(). Store each under the form OWNER's vault (visitors
+                    // are anonymous) and keep a downloadable reference plus the
+                    // original filename in the copy. The attachment key uses the
+                    // final copies-array position so the owner UI can resolve the
+                    // filename back from the stored group.
+                    $pos = count($copies);
+                    foreach ($repFileChildren[$id] ?? [] as $child) {
+                        $cid = (string) ($child['id'] ?? '');
+                        if ($cid === '') continue;
+                        $up = $copyFiles[$cid] ?? null;
+                        if ($up instanceof \Illuminate\Http\UploadedFile && $up->isValid()) {
+                            try {
+                                $userFile = UserFile::createFromUpload($up, $form->user, [
+                                    'enforce_allowlist' => false,
+                                ]);
+                                $files["{$id}.{$pos}.{$cid}"] = $userFile->url;
+                                $copy[$cid] = $up->getClientOriginalName();
+                            } catch (\RuntimeException $e) {
+                                $copy[$cid] = '[upload failed: ' . $e->getMessage() . ']';
+                            }
+                        } else {
+                            $copy[$cid] = null;
+                        }
+                    }
+                    $copies[] = $copy;
+                }
+                if (!empty($copies)) {
+                    $data[$id] = ['_repeatable_group' => true, 'copies' => $copies];
+                }
+                continue;
+            }
+
             // Pricing fields are handled below from the computed breakdown so the
             // stored value is the readable line-items, not a raw option index.
             if (!$id || in_array($type, ['heading', 'paragraph', 'divider', 'page_break', 'section', 'pricing'])) continue;
+
+            // Children of repeatable sections were already collected above.
+            $fParent = (string) ($field['parent'] ?? '');
+            if ($fParent !== '' && isset($repeatableSecIds[$fParent])) continue;
 
             if ($type === 'file' && $request->hasFile($id)) {
                 // Vault submissions under the form OWNER's quota — visitors are
@@ -939,6 +1199,31 @@ class FormController extends Controller
                 $data[$id] = $request->boolean($id);
             } elseif ($type === 'checkbox') {
                 $data[$id] = (array) $request->input($id, []);
+            } elseif ($type === 'full_name') {
+                $data[$id] = [
+                    'first' => (string) $request->input($id . '_first', ''),
+                    'last'  => (string) $request->input($id . '_last', ''),
+                ];
+            } elseif ($type === 'address') {
+                $addr = (array) $request->input($id, []);
+                $data[$id] = array_map(
+                    fn ($v) => substr((string) $v, 0, 255),
+                    array_intersect_key($addr, array_flip(['street', 'city', 'state', 'postal', 'country']))
+                );
+            } elseif ($type === 'time_range' || $type === 'date_range') {
+                $range = (array) $request->input($id, []);
+                $data[$id] = [
+                    'start' => (string) ($range['start'] ?? ''),
+                    'end'   => (string) ($range['end'] ?? ''),
+                ];
+            } elseif ($type === 'yes_no') {
+                $val = (string) $request->input($id, '');
+                $data[$id] = in_array($val, ['yes', 'no'], true) ? $val : '';
+            } elseif ($type === 'ranking') {
+                $val = (string) $request->input($id, '');
+                $data[$id] = $val !== '' ? array_map('trim', explode(',', $val)) : [];
+            } elseif ($type === 'hidden' && !empty($field['auto_collect'])) {
+                $data[$id] = $this->resolveAutoCollect($field['auto_collect_param'] ?? 'ip', $request, $form);
             } else {
                 $data[$id] = $request->input($id);
             }
@@ -1133,14 +1418,94 @@ class FormController extends Controller
         }
     }
 
+    /**
+     * Remember which repeatable copies carried an uploaded file so a 422
+     * re-render can prompt the visitor to re-attach (uploads can't be flashed
+     * to the session like old() text input). Structure:
+     *   session('_rep_file_pending') = [sectionId => [copyIdx => [fieldId => filename]]]
+     * Called BEFORE validation because a failed validate() redirects back.
+     */
+    protected function flashPendingRepeatableFiles(Request $request, Form $form): void
+    {
+        $repSecIds = [];
+        foreach ($form->fields ?? [] as $f) {
+            if (($f['type'] ?? null) === 'section' && !empty($f['repeatable']) && !empty($f['id'])) {
+                $repSecIds[(string) $f['id']] = true;
+            }
+        }
+        if (empty($repSecIds)) return;
+
+        $pending = [];
+        foreach ($request->allFiles() as $key => $copies) {
+            if (!is_string($key) || !str_starts_with($key, 'rep_')) continue;
+            $secId = substr($key, 4);
+            if (!isset($repSecIds[$secId])) continue;
+            foreach ((array) $copies as $ci => $childFiles) {
+                foreach ((array) $childFiles as $cid => $file) {
+                    if ($file instanceof \Illuminate\Http\UploadedFile && $file->isValid()) {
+                        $pending[$secId][(int) $ci][(string) $cid] = $file->getClientOriginalName();
+                    }
+                }
+            }
+        }
+        if (!empty($pending)) {
+            session()->flash('_rep_file_pending', $pending);
+        }
+    }
+
     protected function buildSubmissionRules(Form $form): array
     {
         $rules = ['_hp' => ['nullable', 'string', 'max:200']];
         $messages = [];
+
+        // Pre-identify repeatable sections so children can be routed to wildcard keys.
+        $repeatableSectionIds = [];
+        foreach ($form->fields ?? [] as $f) {
+            if (($f['type'] ?? null) === 'section' && !empty($f['repeatable']) && !empty($f['id'])) {
+                $repeatableSectionIds[(string) $f['id']] = $f;
+            }
+        }
+
         foreach ($form->fields ?? [] as $field) {
             $type = $field['type'] ?? 'text';
             $id = $field['id'] ?? null;
-            if (!$id || in_array($type, ['heading', 'paragraph', 'divider', 'page_break', 'section'])) continue;
+            if (!$id || in_array($type, ['heading', 'paragraph', 'divider', 'page_break'])) continue;
+
+            // Repeatable sections: add array-count rules; non-repeatable sections skip.
+            if ($type === 'section') {
+                if (empty($field['repeatable'])) continue;
+                $sMin = max(1, (int) ($field['repeat_min'] ?? 1));
+                $sMax = isset($field['repeat_max']) ? (int) $field['repeat_max'] : null;
+                $repKey = 'rep_' . $id;
+                // One-question (oneq) layout degrades repeatable groups to a single fixed copy
+                // (index 0). We cannot enforce min/max counts there because the UI never renders
+                // multiple copies. Skip count rules for oneq; child-field rules still apply below.
+                $isOneq = ($form->settings['layout'] ?? 'standard') === 'oneq';
+                if ($isOneq) {
+                    $rules[$repKey] = ['nullable', 'array'];
+                } else {
+                    // Use 'required' (not 'nullable') when min >= 1 so a client cannot simply
+                    // omit the rep_* key and bypass the minimum copy enforcement.
+                    $arrayRules = [$sMin >= 1 ? 'required' : 'nullable', 'array', "min:$sMin"];
+                    if ($sMax) $arrayRules[] = "max:$sMax";
+                    $rules[$repKey] = $arrayRules;
+                }
+                continue;
+            }
+
+            // Children of repeatable sections are validated under wildcard keys.
+            $parent = $field['parent'] ?? null;
+            if ($parent !== null && isset($repeatableSectionIds[(string) $parent])) {
+                $repParent = 'rep_' . $parent;
+                $stack = $this->buildFieldRuleStack($field);
+                $rules["{$repParent}.*.$id"] = $stack;
+                if (!empty($field['error_message'])) {
+                    $messages["{$repParent}.*.$id.required"] = $field['error_message'];
+                }
+                continue;
+            }
+
+            // Non-section, non-repeatable-child — existing flat handling below.
 
             $req = !empty($field['required']);
             $base = $req ? 'required' : 'nullable';
@@ -1224,6 +1589,60 @@ class FormController extends Controller
                 case 'hidden':
                     $stack = ['nullable', 'string', 'max:1000'];
                     break;
+                case 'full_name':
+                    // Submitted as {id}_first / {id}_last sub-fields
+                    $rules["{$id}_first"] = [$base, 'string', 'max:100'];
+                    $rules["{$id}_last"]  = [$base, 'string', 'max:100'];
+                    $stack = ['nullable']; // parent key not submitted
+                    break;
+                case 'address':
+                    $rules["{$id}.street"]  = [$base, 'string', 'max:255'];
+                    $rules["{$id}.city"]    = ['nullable', 'string', 'max:100'];
+                    $rules["{$id}.state"]   = ['nullable', 'string', 'max:100'];
+                    $rules["{$id}.postal"]  = ['nullable', 'string', 'max:20'];
+                    $rules["{$id}.country"] = ['nullable', 'string', 'max:100'];
+                    $stack = ['nullable', 'array'];
+                    break;
+                case 'country':
+                    $stack[] = 'string';
+                    $stack[] = 'max:100';
+                    break;
+                case 'currency':
+                    $stack[] = 'numeric';
+                    $stack[] = 'min:0';
+                    break;
+                case 'yes_no':
+                    $stack[] = 'string';
+                    $stack[] = 'in:yes,no';
+                    break;
+                case 'image_choice':
+                    $stack[] = 'string';
+                    $stack[] = 'max:255';
+                    break;
+                case 'ranking':
+                    $stack = [$base, 'string', 'max:1000'];
+                    break;
+                case 'slider':
+                    $stack[] = 'numeric';
+                    if ($minN !== null) $stack[] = "min:$minN";
+                    if ($maxN !== null) $stack[] = "max:$maxN";
+                    break;
+                case 'time_range':
+                    $rules["{$id}.start"] = [$base, 'date_format:H:i'];
+                    $rules["{$id}.end"]   = [$base, 'date_format:H:i', "after_or_equal:{$id}.start"];
+                    $stack = ['nullable', 'array'];
+                    break;
+                case 'date_range':
+                    $rules["{$id}.start"] = [$base, 'date'];
+                    $rules["{$id}.end"]   = [$base, 'date', "after_or_equal:{$id}.start"];
+                    if (!empty($field['min_date'])) {
+                        $rules["{$id}.start"][] = 'after_or_equal:' . $field['min_date'];
+                    }
+                    if (!empty($field['max_date'])) {
+                        $rules["{$id}.end"][] = 'before_or_equal:' . $field['max_date'];
+                    }
+                    $stack = ['nullable', 'array'];
+                    break;
                 default: // text and unknown
                     $stack[] = 'string';
                     $stack[] = 'max:' . ($maxL ?: 1000);
@@ -1253,13 +1672,289 @@ class FormController extends Controller
     protected array $customMessages = [];
 
     /**
-     * Normalise a builder-submitted pricing list (options or addons) into
-     * stored shape: an array of {label, price} where label is non-empty and
-     * price is a clamped dollar amount (0–1,000,000). Caps the row count so a
-     * malicious payload can't bloat the stored field.
-     *
-     * @return list<array{label:string,price:float}>
+     * Build a Laravel validation rule stack for a single form field definition.
+     * Shared between flat-field and repeatable-group-child validation.
+     * Excluded types (file, signature, pricing, hidden) return ['nullable'].
      */
+    protected function buildFieldRuleStack(array $field): array
+    {
+        $type  = $field['type'] ?? 'text';
+        $req   = !empty($field['required']);
+        $base  = $req ? 'required' : 'nullable';
+        $minL  = isset($field['min_length']) ? (int) $field['min_length'] : null;
+        $maxL  = isset($field['max_length']) ? (int) $field['max_length'] : null;
+        $minN  = isset($field['min']) && $field['min'] !== '' ? $field['min'] : null;
+        $maxN  = isset($field['max']) && $field['max'] !== '' ? $field['max'] : null;
+        $pat   = $this->sanitizeRegex($field['pattern'] ?? null);
+        $stack = [$base];
+
+        switch ($type) {
+            case 'email':
+                $stack[] = 'email';
+                $stack[] = 'max:' . ($maxL ?: 255);
+                if ($minL) $stack[] = "min:$minL";
+                break;
+            case 'url':
+                $stack[] = 'url';
+                $stack[] = 'max:' . ($maxL ?: 500);
+                if ($minL) $stack[] = "min:$minL";
+                break;
+            case 'phone':
+                $stack[] = 'string';
+                $stack[] = 'max:' . ($maxL ?: 40);
+                if ($minL) $stack[] = "min:$minL";
+                if ($pat) $stack[] = 'regex:/' . str_replace('/', '\/', $pat) . '/';
+                break;
+            case 'number':
+                $stack[] = 'numeric';
+                if ($minN !== null) $stack[] = "min:$minN";
+                if ($maxN !== null) $stack[] = "max:$maxN";
+                break;
+            case 'date':
+                $stack[] = 'date';
+                break;
+            case 'time':
+                $stack[] = 'date_format:H:i';
+                break;
+            case 'rating':
+                $stack = [$base, 'integer', 'min:0', 'max:' . (int) ($field['max'] ?? 5)];
+                break;
+            case 'scale':
+                $stack = [$base, 'integer', 'min:' . (int) ($field['min'] ?? 0), 'max:' . (int) ($field['max'] ?? 10)];
+                break;
+            case 'select':
+            case 'radio':
+                $stack[] = 'string';
+                $stack[] = 'max:255';
+                if (!empty($field['options'])) {
+                    $stack[] = 'in:' . implode(',', array_map(fn ($o) => str_replace(',', '\,', (string) $o), $field['options']));
+                }
+                break;
+            case 'checkbox':
+                $stack = $req ? ['required', 'array', 'min:1'] : ['nullable', 'array'];
+                break;
+            case 'textarea':
+                $stack[] = 'string';
+                $stack[] = 'max:' . ($maxL ?: 10000);
+                if ($minL) $stack[] = "min:$minL";
+                break;
+            case 'consent':
+                $stack = $req ? ['accepted'] : ['nullable'];
+                break;
+            case 'file':
+                // Repeatable file children are collected via $request->file();
+                // validate size/type here so an unauthenticated visitor can't
+                // push an oversized or disallowed upload into the owner's vault.
+                $maxKb = (int) ($field['file_max_kb'] ?? 10240);
+                if ($maxKb < 1) $maxKb = 10240;
+                $mimes = trim((string) ($field['file_types'] ?? ''));
+                $mimes = $mimes !== '' ? preg_replace('/[^a-zA-Z0-9,]/', '', $mimes) : 'jpg,jpeg,png,gif,webp,pdf,doc,docx,xls,xlsx,ppt,pptx,csv,txt,zip,mp3,mp4,mov';
+                $stack = [$req ? 'required' : 'nullable', 'file', "max:$maxKb", "mimes:$mimes"];
+                break;
+            case 'signature':
+            case 'pricing':
+            case 'hidden':
+                $stack = ['nullable'];
+                break;
+            default: // 'text' and unknown
+                $stack[] = 'string';
+                $stack[] = 'max:' . ($maxL ?: 1000);
+                if ($minL) $stack[] = "min:$minL";
+                if ($pat) $stack[] = 'regex:/' . str_replace('/', '\/', $pat) . '/';
+                break;
+        }
+        return $stack;
+    }
+
+    /**
+     * Verify the captcha token for the submitted form.
+     * Returns null on success, or an error string to show the user.
+     * Fails-open on network errors so temporary outages don't block real users.
+     */
+    protected function verifyCaptcha(Request $request, Form $form): ?string
+    {
+        $cap      = $form->captchaConfig();
+        $provider = $cap['provider'] ?? 'honeypot';
+
+        switch ($provider) {
+            case 'math':
+                $answer    = $request->session()->pull("_form_math_{$form->id}");
+                $submitted = (int) $request->input('_math_answer');
+                if ($answer === null || $submitted !== (int) $answer) {
+                    return 'Incorrect answer to the math question. Please try again.';
+                }
+                break;
+
+            case 'recaptcha_v2':
+                $secret   = !empty($cap['secret_key']) ? decrypt($cap['secret_key']) : null;
+                if (!$secret) break;
+                $response = (string) $request->input('g-recaptcha-response', '');
+                if ($response === '') return 'Please complete the CAPTCHA.';
+                try {
+                    $r = \Illuminate\Support\Facades\Http::asForm()
+                        ->timeout(5)
+                        ->post('https://www.google.com/recaptcha/api/siteverify', [
+                            'secret'   => $secret,
+                            'response' => $response,
+                            'remoteip' => $request->ip(),
+                        ]);
+                    if (!($r->json('success'))) return 'CAPTCHA verification failed. Please try again.';
+                } catch (\Exception) {
+                    return 'CAPTCHA verification could not be completed. Please try again.';
+                }
+                break;
+
+            case 'recaptcha_v3':
+                $secret    = !empty($cap['secret_key']) ? decrypt($cap['secret_key']) : null;
+                if (!$secret) break;
+                $response  = (string) $request->input('_recaptcha_token', '');
+                if ($response === '') return 'CAPTCHA token missing. Please refresh and try again.';
+                try {
+                    $r         = \Illuminate\Support\Facades\Http::asForm()
+                        ->timeout(5)
+                        ->post('https://www.google.com/recaptcha/api/siteverify', [
+                            'secret'   => $secret,
+                            'response' => $response,
+                            'remoteip' => $request->ip(),
+                        ]);
+                    $threshold = (float) ($cap['score_threshold'] ?? 0.5);
+                    if (!$r->json('success') || (float) $r->json('score', 1.0) < $threshold) {
+                        return 'Our security check flagged this submission as likely automated. Please try again.';
+                    }
+                } catch (\Exception) {
+                    return 'CAPTCHA verification could not be completed. Please try again.';
+                }
+                break;
+
+            case 'hcaptcha':
+                $secret   = !empty($cap['secret_key']) ? decrypt($cap['secret_key']) : null;
+                if (!$secret) break;
+                $response = (string) $request->input('h-captcha-response', '');
+                if ($response === '') return 'Please complete the CAPTCHA.';
+                try {
+                    $r = \Illuminate\Support\Facades\Http::asForm()
+                        ->timeout(5)
+                        ->post('https://hcaptcha.com/siteverify', [
+                            'secret'   => $secret,
+                            'response' => $response,
+                            'remoteip' => $request->ip(),
+                        ]);
+                    if (!$r->json('success')) return 'hCaptcha verification failed. Please try again.';
+                } catch (\Exception) {
+                    return 'CAPTCHA verification could not be completed. Please try again.';
+                }
+                break;
+
+            case 'turnstile':
+                $secret   = !empty($cap['secret_key']) ? decrypt($cap['secret_key']) : null;
+                if (!$secret) break;
+                $response = (string) $request->input('cf-turnstile-response', '');
+                if ($response === '') return 'Please complete the Turnstile challenge.';
+                try {
+                    $r = \Illuminate\Support\Facades\Http::asForm()
+                        ->timeout(5)
+                        ->post('https://challenges.cloudflare.com/turnstile/v0/siteverify', [
+                            'secret'   => $secret,
+                            'response' => $response,
+                            'remoteip' => $request->ip(),
+                        ]);
+                    if (!$r->json('success')) return 'Turnstile verification failed. Please try again.';
+                } catch (\Exception) {
+                    return 'CAPTCHA verification could not be completed. Please try again.';
+                }
+                break;
+
+            case 'honeypot':
+            default:
+                // Honeypot is validated via the SpamChecker using the _hp field
+                break;
+        }
+        return null;
+    }
+
+    /**
+     * Generate a math captcha question for forms that use it, storing the answer
+     * in the session. Returns null when this form does not use math captcha.
+     */
+    protected function seedMathCaptcha(Form $form): ?array
+    {
+        if ($form->captchaConfig()['provider'] !== 'math') return null;
+        $a      = random_int(1, 15);
+        $b      = random_int(1, 15);
+        $answer = $a + $b;
+        session(["_form_math_{$form->id}" => $answer]);
+        return ['question' => "What is {$a} + {$b}?", 'answer' => $answer];
+    }
+
+    /**
+     * Resolve a value for auto-collected hidden fields from request context.
+     * Only safe, non-sensitive metadata is collected — never cookies or credentials.
+     *
+     * Supports: ip, ua, referer, language, page_url, timestamp,
+     *           utm_source, utm_medium, utm_campaign, utm_term, utm_content,
+     *           browser, os, device, country (blank — no GeoIP service wired),
+     *           and custom query keys via "query:{key}" prefix.
+     */
+    protected function resolveAutoCollect(string $param, Request $request, ?Form $form = null): string
+    {
+        // Custom query-string key: "query:my_param" → ?my_param=value
+        if (str_starts_with($param, 'query:')) {
+            $key = substr($param, 6);
+            return substr((string) $request->query($key, ''), 0, 500);
+        }
+
+        $ua = (string) ($request->userAgent() ?? '');
+
+        return match ($param) {
+            'ip'           => (string) ($request->ip() ?? ''),
+            'ua'           => substr($ua, 0, 500),
+            'referer'      => substr((string) ($request->header('Referer', '')), 0, 500),
+            'language'     => substr((string) ($request->header('Accept-Language', '')), 0, 100),
+            'page_url'     => substr($request->fullUrl(), 0, 500),
+            'landing_url'  => substr((string) ($form->getPublicUrl()), 0, 500),
+            'timestamp'    => now()->toIso8601String(),
+            'utm_source'   => substr((string) $request->query('utm_source', ''), 0, 200),
+            'utm_medium'   => substr((string) $request->query('utm_medium', ''), 0, 200),
+            'utm_campaign' => substr((string) $request->query('utm_campaign', ''), 0, 200),
+            'utm_term'     => substr((string) $request->query('utm_term', ''), 0, 200),
+            'utm_content'  => substr((string) $request->query('utm_content', ''), 0, 200),
+            'browser'      => $this->parseUaBrowser($ua),
+            'os'           => $this->parseUaOs($ua),
+            'device'       => $this->parseUaDevice($ua),
+            'biolink_alias' => $form->slug ?? '',
+            'country'      => '', // GeoIP not wired — blank
+            'city'         => '', // GeoIP not wired — blank
+            default        => '',
+        };
+    }
+
+    private function parseUaBrowser(string $ua): string
+    {
+        if (str_contains($ua, 'Edg/') || str_contains($ua, 'Edge/')) return 'Edge';
+        if (str_contains($ua, 'OPR/') || str_contains($ua, 'Opera')) return 'Opera';
+        if (str_contains($ua, 'Chrome/')) return 'Chrome';
+        if (str_contains($ua, 'Firefox/')) return 'Firefox';
+        if (str_contains($ua, 'Safari/') && str_contains($ua, 'Version/')) return 'Safari';
+        return 'Other';
+    }
+
+    private function parseUaOs(string $ua): string
+    {
+        if (str_contains($ua, 'Windows')) return 'Windows';
+        if (str_contains($ua, 'iPhone') || str_contains($ua, 'iPad')) return 'iOS';
+        if (str_contains($ua, 'Mac OS X')) return 'macOS';
+        if (str_contains($ua, 'Android')) return 'Android';
+        if (str_contains($ua, 'Linux')) return 'Linux';
+        return 'Other';
+    }
+
+    private function parseUaDevice(string $ua): string
+    {
+        if (str_contains($ua, 'Mobi') || str_contains($ua, 'iPhone') || str_contains($ua, 'Android')) return 'Mobile';
+        if (str_contains($ua, 'iPad') || str_contains($ua, 'Tablet')) return 'Tablet';
+        return 'Desktop';
+    }
+
     protected function cleanPriceList($raw): array
     {
         if (!is_array($raw)) return [];
@@ -1323,7 +2018,17 @@ class FormController extends Controller
             if (!empty($n['email']['enabled']) && !empty($n['email']['to'])) {
                 $body = "New submission on {$form->title}\n\n";
                 foreach ($submission->data as $k => $v) {
-                    if (is_array($v) && !empty($v['_pricing'])) {
+                    if (is_array($v) && !empty($v['_repeatable_group'])) {
+                        $copyLines = [];
+                        foreach (array_values($v['copies'] ?? []) as $rci => $rcopy) {
+                            $copyLines[] = '  Copy ' . ($rci + 1) . ':';
+                            foreach ((array) $rcopy as $rck => $rcv) {
+                                $flat = is_array($rcv) ? implode(', ', $rcv) : ($rcv === null ? '' : (string) $rcv);
+                                $copyLines[] = '    ' . ucfirst(str_replace('_', ' ', (string) $rck)) . ': ' . $flat;
+                            }
+                        }
+                        $line = implode("\n", $copyLines);
+                    } elseif (is_array($v) && !empty($v['_pricing'])) {
                         $cur   = $v['currency'] ?? 'USD';
                         $parts = [];
                         if (!empty($v['option']['label'])) $parts[] = $v['option']['label'];
@@ -1441,7 +2146,7 @@ class FormController extends Controller
             if (count($lines) >= 2) break;
             $k = (string) $key;
             if ($k === '' || str_starts_with($k, '_')) continue; // honeypot / internal
-            if (is_array($value) && !empty($value['_pricing'])) continue; // structured pricing handled elsewhere
+            if (is_array($value) && (!empty($value['_pricing']) || !empty($value['_repeatable_group']))) continue; // structured values
 
             $flat = is_array($value)
                 ? implode(', ', array_filter(array_map(fn ($x) => is_scalar($x) ? (string) $x : '', $value)))
@@ -1471,14 +2176,19 @@ class FormController extends Controller
         $to = array_values(array_filter($to, fn ($e) => filter_var($e, FILTER_VALIDATE_EMAIL)));
         if (empty($to)) return;
 
-        $build = function ($m) use ($to, $subject, $replyTo) {
-            $m->to($to)->subject($subject);
-            if ($replyTo) $m->replyTo($replyTo);
-        };
+        $opts = [
+            'subject' => $subject,
+            'body'    => $body,
+            'format'  => 'text',
+            'user'    => $userId,
+        ];
+        if ($replyTo) $opts['reply_to'] = $replyTo;
 
         if (! $configId) {
             // No config selected → use application default mailer.
-            \Illuminate\Support\Facades\Mail::raw($body, $build);
+            foreach ($to as $recipient) {
+                \App\Modules\Common\Services\Emailer::send('form.notification', $recipient, [], $opts);
+            }
             return;
         }
 
@@ -1521,15 +2231,19 @@ class FormController extends Controller
             return;
         }
 
-        config(['mail.mailers.' . $mailerKey => $smtpConfig]);
         $fromEmail = $meta['from_email'] ?? config('mail.from.address');
         $fromName  = $meta['from_name']  ?? config('mail.from.name');
 
+        $opts['mailer'] = $mailerKey;
+        $opts['mailer_config'] = $smtpConfig;
+        if ($fromEmail) {
+            $opts['from'] = ['address' => $fromEmail, 'name' => $fromName ?? ''];
+        }
+
         try {
-            \Illuminate\Support\Facades\Mail::mailer($mailerKey)->raw($body, function ($m) use ($build, $fromEmail, $fromName) {
-                if ($fromEmail) $m->from($fromEmail, $fromName ?? '');
-                $build($m);
-            });
+            foreach ($to as $recipient) {
+                \App\Modules\Common\Services\Emailer::send('form.notification', $recipient, [], $opts);
+            }
         } finally {
             // Purge the runtime mailer config so the next request / queue job in
             // a long-running worker does not see leaked credentials. Also forget

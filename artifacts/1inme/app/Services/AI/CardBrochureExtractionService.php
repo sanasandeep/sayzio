@@ -98,8 +98,11 @@ class CardBrochureExtractionService
         $model    = $this->modelName();
         // Hash the composite key so we always fit in the 96-char DB
         // column even when model names grow long. Prefix kept for
-        // human-readable debugging in DB inspectors.
-        $idem     = 'card_scan:' . hash('sha256', "{$owner->id}|{$bundleHash}|{$model}");
+        // human-readable debugging in DB inspectors. The instruction is
+        // folded in so re-submitting the same file with a *different*
+        // focus runs a fresh extraction instead of returning the stale
+        // earlier result.
+        $idem     = 'card_scan:' . hash('sha256', "{$owner->id}|{$bundleHash}|{$model}|" . $this->instructionKeyPart($instruction));
 
         // Idempotency: race-safe firstOrCreate against the unique
         // `idempotency_key` index. The DB transaction + unique
@@ -189,8 +192,11 @@ class CardBrochureExtractionService
         $ids   = array_map(fn ($f) => $f->id, $userFiles);
         $model = $this->modelName();
         // Prefix "vaulted:" so idem keys from pre-vaulted files don't
-        // collide with keys from fresh UploadedFile bundles.
-        $idem  = 'card_scan:' . hash('sha256', "{$owner->id}|vaulted:" . implode(',', $ids) . "|{$model}");
+        // collide with keys from fresh UploadedFile bundles. The
+        // instruction is folded in so re-scanning the same vaulted files
+        // with a *different* focus produces a fresh scan (and leaves the
+        // original intact) instead of returning the earlier result.
+        $idem  = 'card_scan:' . hash('sha256', "{$owner->id}|vaulted:" . implode(',', $ids) . "|{$model}|" . $this->instructionKeyPart($instruction));
 
         $created = false;
         $scan = \Illuminate\Support\Facades\DB::transaction(function () use ($owner, $actor, $ids, $idem, &$created) {
@@ -541,6 +547,20 @@ class CardBrochureExtractionService
     public function modelName(): string
     {
         return AiEngineSettings::featureModel('card_scan');
+    }
+
+    /**
+     * Fold the user-supplied extraction instruction into the idempotency
+     * key. A different instruction always yields a different key (so the
+     * same file re-scanned with a new focus runs a fresh extraction),
+     * while empty/whitespace-only instructions collapse to one stable
+     * "no instruction" token so callers that never pass one behave as
+     * before across repeat submissions.
+     */
+    protected function instructionKeyPart(?string $instruction): string
+    {
+        $norm = trim((string) ($instruction ?? ''));
+        return $norm === '' ? 'noinstr' : 'instr:' . hash('sha256', $norm);
     }
 
     protected function systemPrompt(): string

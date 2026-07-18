@@ -4,6 +4,7 @@ namespace App\Modules\Admin\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Modules\Admin\Models\AppSetting;
+use App\Modules\Admin\Rules\NotRetiredAdminEmail;
 use App\Modules\Common\Models\FaqItem;
 use App\Modules\Common\Models\SitePage;
 use App\Modules\Common\Models\SitePageRevision;
@@ -534,7 +535,7 @@ class SitePageController extends Controller
     public function updateContactRecipient(Request $request)
     {
         $data = $request->validate([
-            'contact_recipient_email' => 'nullable|email|max:190',
+            'contact_recipient_email' => ['nullable', 'email', 'max:190', new NotRetiredAdminEmail()],
         ]);
         AppSetting::put('contact_recipient_email', $data['contact_recipient_email'] ?? null);
         return back()->with('success', 'Contact recipient updated.');

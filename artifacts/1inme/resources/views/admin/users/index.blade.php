@@ -2,6 +2,12 @@
 @section('title', 'Users')
 @section('page-title', 'User Management')
 
+@push('styles')
+<style>
+html.light-mode .admin-users-protected { color: #065f46; }
+</style>
+@endpush
+
 @php($operator = auth('admin')->user())
 @php($canCreateUsers = $operator?->hasPermission('users.create'))
 @php($canBulkPlan = $operator?->hasPermission('users.bulk_plan'))
@@ -197,8 +203,8 @@
                         </form>
                         @endif
                         @if($canDeleteUsers)
-                        @if(isset($protectedEmails) && $protectedEmails->has(strtolower(trim((string) $user->email))))
-                        <span class="text-emerald-400/70" title="Protected — cannot be deleted or suspended"><i class="fas fa-shield-alt"></i></span>
+                        @if((isset($protectedEmails) && $protectedEmails->has(strtolower(trim((string) $user->email)))) || (isset($protectedUserIds) && $protectedUserIds->has($user->id)))
+                        <span class="admin-users-protected text-emerald-400/70" title="Protected — cannot be deleted or suspended"><i class="fas fa-shield-alt"></i></span>
                         @else
                         <form action="{{ route('admin.users.destroy', $user) }}" method="POST" class="inline" onsubmit="return window.themedConfirmSubmit(this, {title: 'Delete this user?', message: 'This cannot be undone.', confirmText: 'Delete', confirmIcon: 'fa-trash', iconClass: 'fa-trash'})">
                             @csrf @method('DELETE')

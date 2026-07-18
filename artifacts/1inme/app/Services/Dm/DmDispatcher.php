@@ -314,7 +314,7 @@ class DmDispatcher
             'conversation_id' => $conv->id,
             'sender_id'       => $sender->id,
             'sender_name'     => $sender->name,
-            'sender_avatar'   => $sender->avatar,
+            'sender_avatar'   => \App\Support\PublicStorageUrl::resolve($sender->avatar),
             'preview'         => $preview,
             'message'         => "{$sender->name}: {$preview}",
             'link'            => $senderType === 'viewer'

@@ -192,9 +192,14 @@ class InboxForwarder
         $lines[] = '';
         $lines[] = 'View in your dashboard inbox.';
 
-        Mail::raw(implode("\n", $lines), function ($m) use ($address, $subject) {
-            $m->to($address)->subject($subject);
-        });
+        \App\Modules\Common\Services\Emailer::send('inbox.forward', $address, [], [
+            'subject'          => $subject,
+            'body'             => implode("\n", $lines),
+            'format'           => 'text',
+            'user'             => $dest->user_id,
+            'related'          => $dest,
+            'throw_on_failure' => true,
+        ]);
     }
 
     protected function deliverWebhook(InboxForwardDestination $dest, InboxForwardDelivery $delivery): void

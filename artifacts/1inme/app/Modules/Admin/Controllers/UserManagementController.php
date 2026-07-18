@@ -2,6 +2,7 @@
 
 namespace App\Modules\Admin\Controllers;
 
+use App\Actions\Billing\ActivateSubscription;
 use App\Http\Controllers\Controller;
 use App\Modules\Admin\Models\Admin;
 use App\Modules\Admin\Models\ProtectedAccount;
@@ -92,7 +93,13 @@ class UserManagementController extends Controller
             ->map(fn ($e) => strtolower(trim((string) $e)))
             ->flip();
 
-        return view('admin.users.index', compact('users', 'plans', 'badges', 'adminAccounts', 'canManageAdminAccess', 'protectedEmails'));
+        // Id-keyed protected entries (email-less accounts) on this page.
+        $protectedUserIds = ProtectedAccount::query()
+            ->whereIn('user_id', collect($users->items())->pluck('id')->all())
+            ->pluck('user_id')
+            ->flip();
+
+        return view('admin.users.index', compact('users', 'plans', 'badges', 'adminAccounts', 'canManageAdminAccess', 'protectedEmails', 'protectedUserIds'));
     }
 
     public function show(Request $request, User $user)
@@ -345,6 +352,11 @@ class UserManagementController extends Controller
             $referrals->handlePlanActivation($user->fresh(), $plan);
         }
 
+        // Grant the plan's included coins — this manual path has no invoice,
+        // so ActivateSubscription::run() never fires for it. Idempotent
+        // per (user, plan, day) so a double-click can't double-credit.
+        app(ActivateSubscription::class)->grantPlanCoinsForManualAssignment($user->fresh(), $plan);
+
         $audit->log(AdminActionLogger::PLAN_ASSIGNED, $user, [
             'plan_id'          => $plan->id,
             'plan_name'        => $plan->name,
@@ -528,6 +540,9 @@ class UserManagementController extends Controller
                 if ($plan->id != $prev) {
                     $referrals->handlePlanActivation($u->fresh(), $plan);
                 }
+                // Included-coin grant for the manually assigned plan (idempotent
+                // per user/plan/day, so a duplicate bulk submit is a no-op).
+                app(ActivateSubscription::class)->grantPlanCoinsForManualAssignment($u->fresh(), $plan);
                 $audit->log(AdminActionLogger::PLAN_ASSIGNED, $u, [
                     'plan_id'          => $plan->id,
                     'plan_name'        => $plan->name,
@@ -573,15 +588,12 @@ class UserManagementController extends Controller
             return;
         }
         try {
-            $loginUrl = route('user.login');
-            $body = "An account has been created for you on " . config('app.name') . ".\n\n"
-                . "Email: {$user->email}\n"
-                . "Temporary password: {$plainPassword}\n\n"
-                . "Sign in here: {$loginUrl}\n"
-                . "Please change your password after your first sign-in.";
-            \Illuminate\Support\Facades\Mail::raw($body, function ($m) use ($user) {
-                $m->to($user->email)->subject('Your new ' . config('app.name') . ' account');
-            });
+            \App\Modules\Common\Services\Emailer::send('account.credentials', $user->email, [
+                'app_name'  => config('app.name'),
+                'email'     => $user->email,
+                'password'  => $plainPassword,
+                'login_url' => route('user.login'),
+            ], ['user' => $user]);
         } catch (\Throwable $e) {
             \Illuminate\Support\Facades\Log::info('Account credentials email skipped: ' . $e->getMessage());
         }
@@ -635,6 +647,10 @@ class UserManagementController extends Controller
             $newPlan = Plan::find($validated['plan_id']);
             if ($newPlan) {
                 $referrals->handlePlanActivation($user->fresh(), $newPlan);
+                // Mirror the dedicated assign-plan route: an admin plan change
+                // also grants the plan's included coins (idempotent per
+                // user/plan/day).
+                app(ActivateSubscription::class)->grantPlanCoinsForManualAssignment($user->fresh(), $newPlan);
             }
         }
 

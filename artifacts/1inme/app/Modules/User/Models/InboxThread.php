@@ -55,6 +55,11 @@ class InboxThread extends Model
     public const AUTOPILOT_REVIEW  = 'review';
     public const AUTOPILOT_SKIPPED = 'skipped';
 
+    /**
+     * Per-channel label/icon/colour. Intentional CATEGORICAL palette (the
+     * `form`/`biolink_dm` purples are channel hues, not the brand accent),
+     * so it is exempt from the brand-color guard.
+     */
     public const CHANNEL_LABELS = [
         'instagram'    => ['Instagram',     'fab fa-instagram',  '#E4405F'],
         'tiktok'       => ['TikTok',        'fab fa-tiktok',     '#000000'],

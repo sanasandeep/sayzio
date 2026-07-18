@@ -26,7 +26,9 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { IdleLockWarning } from "@/components/IdleLockWarning";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
+import { WorkspaceProvider } from "@/contexts/WorkspaceContext";
 import { useColors } from "@/hooks/useColors";
+import { useContactAutoSync } from "@/hooks/useContactAutoSync";
 import { useWebFocusRing } from "@/hooks/useWebFocusRing";
 import { getBaseUrl } from "@/lib/api";
 import {
@@ -34,20 +36,10 @@ import {
   configurePushHandler,
   syncPushRegistration,
 } from "@/lib/push";
-import { initializeRevenueCat, SubscriptionProvider } from "@/lib/revenuecat";
 import { getToken } from "@/lib/secure";
 
 setBaseUrl(getBaseUrl());
 setAuthTokenGetter(async () => (await getToken()) ?? null);
-
-// In-app purchases are optional — if the public RevenueCat keys haven't
-// been set yet (early development, fresh repl), this is a silent no-op
-// and the plans screen will surface a friendly message at use time.
-try {
-  initializeRevenueCat();
-} catch {
-  /* swallow — see lib/revenuecat.tsx for messaging fallback */
-}
 
 SplashScreen.preventAutoHideAsync();
 
@@ -69,6 +61,15 @@ function ActivityWatcher({ children }: { children: React.ReactNode }) {
   );
 }
 
+
+// Silently re-imports the device address book on app start / foreground while
+// the user is signed in and unlocked. Never prompts for permission — the
+// Contacts screen's manual import remains the only permission-requesting path.
+function ContactAutoSync() {
+  const { user, token, locked } = useAuth();
+  useContactAutoSync(Boolean(user && token && !locked), user?.id ?? null);
+  return null;
+}
 
 function PushRegistrar() {
   const { user, token, locked } = useAuth();
@@ -167,6 +168,7 @@ function RootLayoutNav() {
         name="events/checkin/[linkId]"
         options={{ title: "Door check-in", headerShown: false }}
       />
+      <Stack.Screen name="workspace-edit" options={{ title: "Edit workspace" }} />
       <Stack.Screen name="whatsapp-verify" options={{ title: "Verify WhatsApp" }} />
       <Stack.Screen name="identifiers" options={{ title: "Linked emails & phones" }} />
       <Stack.Screen name="coming-soon" options={{ title: "Coming soon" }} />
@@ -202,19 +204,20 @@ export default function RootLayout() {
         <QueryClientProvider client={queryClient}>
           <ThemeProvider>
             <AuthProvider>
-              <SubscriptionProvider>
-                <GestureHandlerRootView>
-                  <KeyboardProvider>
-                    <DeepLinkRouter />
-                    <ShareIntentHandler />
-                    <ActivityWatcher>
+              <GestureHandlerRootView>
+                <KeyboardProvider>
+                  <DeepLinkRouter />
+                  <ShareIntentHandler />
+                  <ActivityWatcher>
+                    <WorkspaceProvider>
                       <RootLayoutNav />
-                      <PushRegistrar />
-                      <IdleLockWarning />
-                    </ActivityWatcher>
-                  </KeyboardProvider>
-                </GestureHandlerRootView>
-              </SubscriptionProvider>
+                    </WorkspaceProvider>
+                    <PushRegistrar />
+                    <ContactAutoSync />
+                    <IdleLockWarning />
+                  </ActivityWatcher>
+                </KeyboardProvider>
+              </GestureHandlerRootView>
             </AuthProvider>
           </ThemeProvider>
         </QueryClientProvider>

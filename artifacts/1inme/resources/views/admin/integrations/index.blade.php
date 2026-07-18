@@ -2,6 +2,14 @@
 @section('title', 'Integrations')
 @section('page-title', 'Integrations')
 
+@push('styles')
+<style>
+html.light-mode .admin-int-stat-green { color: #065f46; }
+html.light-mode .admin-int-stat-amber { color: #92400e; }
+html.light-mode .admin-int-open       { color: #1d4ed8; }
+</style>
+@endpush
+
 @php
     $toneClass = function (string $tone) {
         return match ($tone) {
@@ -30,11 +38,11 @@
             <div class="text-2xl font-bold text-white mt-1">{{ $summary['total'] }}</div>
         </div>
         <div class="glass rounded-xl p-4 border border-emerald-500/20">
-            <div class="text-[11px] uppercase tracking-wider text-emerald-300/70 flex items-center gap-2"><i class="fas fa-check-circle"></i> Configured</div>
+            <div class="admin-int-stat-green text-[11px] uppercase tracking-wider text-emerald-300/70 flex items-center gap-2"><i class="fas fa-check-circle"></i> Configured</div>
             <div class="text-2xl font-bold text-emerald-300 mt-1">{{ $summary['configured'] }}</div>
         </div>
         <div class="glass rounded-xl p-4 border border-amber-500/20">
-            <div class="text-[11px] uppercase tracking-wider text-amber-300/70 flex items-center gap-2"><i class="fas fa-triangle-exclamation"></i> Needs attention</div>
+            <div class="admin-int-stat-amber text-[11px] uppercase tracking-wider text-amber-300/70 flex items-center gap-2"><i class="fas fa-triangle-exclamation"></i> Needs attention</div>
             <div class="text-2xl font-bold text-amber-300 mt-1">{{ $summary['attention'] }}</div>
         </div>
     </div>
@@ -71,7 +79,7 @@
                             </span>
                         </div>
                         <p class="text-xs text-white/45 leading-relaxed">{{ $item['desc'] }}</p>
-                        <div class="text-[11px] text-blue-300/80 mt-auto flex items-center gap-1 group-hover:gap-2 transition-all">
+                        <div class="admin-int-open text-[11px] text-blue-300/80 mt-auto flex items-center gap-1 group-hover:gap-2 transition-all">
                             Open <i class="fas fa-chevron-right text-[9px]"></i>
                         </div>
                     </a>

@@ -55,7 +55,7 @@
                 @foreach($relatedBlog as $p)
                     <a href="{{ route('site.blogs.show', $p->slug) }}" class="block bg-white/[0.04] hover:bg-white/[0.07] border border-white/10 rounded-2xl overflow-hidden transition">
                         @if($p->cover_image)
-                            <div class="aspect-[16/9] bg-white/5 overflow-hidden"><img src="{{ $p->cover_image }}" alt="" loading="lazy" class="w-full h-full object-cover"></div>
+                            <div class="aspect-[16/9] bg-white/5 overflow-hidden"><img src="{{ \App\Support\PublicStorageUrl::resolve($p->cover_image) }}" alt="" loading="lazy" class="w-full h-full object-cover"></div>
                         @endif
                         <div class="p-4">
                             @if($p->category)<span class="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full" style="background: {{ $p->category->color ? $p->category->color . '22' : 'rgba(61,107,255,.15)' }}; color: {{ $p->category->color ?: '#90acff' }};">{{ $p->category->name }}</span>@endif

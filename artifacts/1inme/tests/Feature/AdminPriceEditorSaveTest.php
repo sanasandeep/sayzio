@@ -417,6 +417,156 @@ class AdminPriceEditorSaveTest extends TestCase
         ]);
     }
 
+    // -----------------------------------------------------------------
+    // Invalid-input coverage: the save path accepts MINOR units directly,
+    // so a broken editor posting negatives, decimals/garbage, or dropping
+    // one of the four USD/INR × monthly/annual cells must be rejected by
+    // validation BEFORE anything is written — no partial writes to either
+    // the `prices` table or the legacy decimal columns.
+    // -----------------------------------------------------------------
+
+    /** All four price fields for a fresh valid baseline save. */
+    private const VALID_PRICES = [
+        'monthly_price'           => 1000,
+        'annual_price'            => 2000,
+        'monthly_price_secondary' => 3000,
+        'annual_price_secondary'  => 4000,
+    ];
+
+    /** Assert a plan has zero prices rows and untouched legacy columns. */
+    private function assertNothingWritten(Plan $plan): void
+    {
+        $this->assertSame(0, Price::where('priceable_type', Plan::class)
+            ->where('priceable_id', $plan->id)->count());
+
+        $plan->refresh();
+        foreach (['monthly_price', 'annual_price', 'monthly_price_secondary', 'annual_price_secondary'] as $col) {
+            $this->assertSame(0.0, (float) $plan->{$col}, "Legacy column {$col} was written despite validation failure.");
+        }
+    }
+
+    public function test_plan_editor_rejects_negative_amounts_with_no_writes(): void
+    {
+        $plan  = $this->makePlan();
+        $admin = $this->makeAdmin();
+
+        foreach (array_keys(self::VALID_PRICES) as $field) {
+            $prices = self::VALID_PRICES;
+            $prices[$field] = -1;
+
+            $this->actingAs($admin, 'admin')
+                ->from(route('admin.plans.edit', $plan))
+                ->put(route('admin.plans.update', $plan), $this->planPayload($prices))
+                ->assertRedirect(route('admin.plans.edit', $plan))
+                ->assertSessionHasErrors($field);
+
+            $this->assertNothingWritten($plan);
+        }
+    }
+
+    public function test_plan_editor_rejects_non_integer_amounts_with_no_writes(): void
+    {
+        $plan  = $this->makePlan();
+        $admin = $this->makeAdmin();
+
+        // Both decimal-major-unit input (a broken editor posting dollars
+        // instead of cents) and outright garbage must fail the integer rule.
+        foreach (['19.99', 'abc'] as $bad) {
+            $prices = self::VALID_PRICES;
+            $prices['monthly_price'] = $bad;
+
+            $this->actingAs($admin, 'admin')
+                ->put(route('admin.plans.update', $plan), $this->planPayload($prices))
+                ->assertSessionHasErrors('monthly_price');
+
+            $this->assertNothingWritten($plan);
+        }
+    }
+
+    public function test_plan_editor_rejects_missing_price_cells_with_no_writes(): void
+    {
+        $plan  = $this->makePlan();
+        $admin = $this->makeAdmin();
+
+        foreach (array_keys(self::VALID_PRICES) as $missing) {
+            $prices = self::VALID_PRICES;
+            unset($prices[$missing]);
+
+            $this->actingAs($admin, 'admin')
+                ->put(route('admin.plans.update', $plan), $this->planPayload($prices))
+                ->assertSessionHasErrors($missing);
+
+            $this->assertNothingWritten($plan);
+        }
+    }
+
+    public function test_plan_editor_invalid_save_leaves_existing_prices_untouched(): void
+    {
+        $plan  = $this->makePlan();
+        $admin = $this->makeAdmin();
+
+        // Seed known-good prices via a real save.
+        $this->actingAs($admin, 'admin')
+            ->put(route('admin.plans.update', $plan), $this->planPayload(self::VALID_PRICES))
+            ->assertSessionHasNoErrors();
+
+        // A mixed payload (three valid cells + one invalid) must not
+        // partially apply the valid cells.
+        $this->actingAs($admin, 'admin')
+            ->put(route('admin.plans.update', $plan), $this->planPayload([
+                'monthly_price'           => 9999,
+                'annual_price'            => 8888,
+                'monthly_price_secondary' => 7777,
+                'annual_price_secondary'  => -5,
+            ]))->assertSessionHasErrors('annual_price_secondary');
+
+        $this->assertFourPrices($plan, [
+            ['USD', 'monthly', 1000],
+            ['USD', 'annual',  2000],
+            ['INR', 'monthly', 3000],
+            ['INR', 'annual',  4000],
+        ]);
+        $this->assertLegacyColumnsMatchPrices($plan);
+    }
+
+    public function test_addon_editor_rejects_invalid_amounts_with_no_writes(): void
+    {
+        $addon = $this->makeAddon();
+        $admin = $this->makeAdmin();
+
+        $base = [
+            'name'       => 'Boost',
+            'type'       => 'recurring',
+            'status'     => 'active',
+            'sort_order' => 0,
+        ];
+
+        foreach ([
+            ['monthly_price', -10],
+            ['annual_price', '12.34'],
+            ['monthly_price_secondary', null], // missing cell
+        ] as [$field, $bad]) {
+            $prices = self::VALID_PRICES;
+            if ($bad === null) {
+                unset($prices[$field]);
+            } else {
+                $prices[$field] = $bad;
+            }
+
+            $this->actingAs($admin, 'admin')
+                ->put(route('admin.addons.update', $addon), array_merge($base, $prices))
+                ->assertSessionHasErrors($field);
+
+            $this->assertSame(0, Price::where('priceable_type', Addon::class)
+                ->where('priceable_id', $addon->id)->count());
+
+            $addon->refresh();
+            foreach (['monthly_price', 'annual_price', 'monthly_price_secondary', 'annual_price_secondary'] as $col) {
+                $this->assertSame(0.0, (float) $addon->{$col}, "Addon legacy column {$col} was written despite validation failure.");
+            }
+        }
+    }
+
     public function test_addon_editor_does_not_touch_another_addons_prices(): void
     {
         $admin = $this->makeAdmin();

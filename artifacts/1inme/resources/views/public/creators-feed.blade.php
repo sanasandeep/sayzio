@@ -45,7 +45,7 @@
                     <article class="bg-white/[0.03] border border-white/10 rounded-2xl p-5 sm:p-6 hover:border-blue-400/40 transition">
                         <header class="flex items-center gap-3 mb-3">
                             @if($u && $u->avatar)
-                                <img src="{{ $u->avatar }}" alt="{{ $u?->name ?? 'Avatar' }}" class="w-10 h-10 rounded-full object-cover ring-2 ring-white/5">
+                                <img src="{{ \App\Support\PublicStorageUrl::resolve($u->avatar) }}" alt="{{ $u?->name ?? 'Avatar' }}" class="w-10 h-10 rounded-full object-cover ring-2 ring-white/5">
                             @else
                                 <div class="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-fuchsia-500 flex items-center justify-center text-white text-sm font-bold ring-2 ring-white/5">
                                     {{ strtoupper(mb_substr($u?->name ?? '?', 0, 1)) }}
@@ -68,7 +68,7 @@
                             <h2 class="text-lg sm:text-xl font-bold text-white mb-2">{{ $p->title }}</h2>
                         @endif
                         @if($p->image)
-                            <div class="img-frame mb-3 aspect-[16/10]"><img src="{{ $p->image }}" alt="{{ $p->title ?? 'Post image' }}"></div>
+                            <div class="img-frame mb-3 aspect-[16/10]"><img src="{{ \App\Support\PublicStorageUrl::resolve($p->image) }}" alt="{{ $p->title ?? 'Post image' }}"></div>
                         @endif
                         @if($p->body)
                             <div class="prose-light text-gray-300 leading-relaxed text-sm">

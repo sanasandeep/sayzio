@@ -26,6 +26,24 @@
     </div>
     @endif
 
+    {{-- Duplicate banner: always rendered (hidden at 0) so the count can be
+         refreshed in place without a full page reload — e.g. when returning
+         here via the browser back button after editing a contact. --}}
+    <a href="{{ route('user.contacts.duplicates') }}"
+       id="duplicate-banner"
+       @if(($duplicateCount ?? 0) < 1) hidden @endif
+       class="block mb-6 px-4 py-3 rounded-xl text-sm transition"
+       style="background:linear-gradient(135deg,rgba(245,158,11,.08),rgba(61,107,255,.08));border:1px solid rgba(245,158,11,.30);color:var(--text-primary);">
+        <div class="flex items-center justify-between gap-3 flex-wrap">
+            <div class="flex items-center gap-2">
+                <i class="fas fa-copy text-amber-400"></i>
+                <span class="font-semibold" id="duplicate-banner-text">{{ $duplicateCount }} duplicate {{ \Illuminate\Support\Str::plural('group', $duplicateCount ?? 0) }} found</span>
+                <span class="text-xs" style="color:var(--text-muted);">Merge them to keep your address book clean.</span>
+            </div>
+            <span class="text-xs font-semibold" style="color:#f59e0b;">Review &amp; Merge <i class="fas fa-arrow-right ml-1 text-[10px]"></i></span>
+        </div>
+    </a>
+
     @isset($activeImport)
     @if($activeImport)
     <a href="{{ route('user.contacts.import.show', $activeImport) }}"
@@ -102,6 +120,11 @@
                         <span class="ml-2 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-bold leading-none text-white" style="background:#ef4444;" title="{{ $contactsOverdueFollowUps }} overdue">{{ $contactsOverdueFollowUps > 99 ? '99+' : $contactsOverdueFollowUps }}</span>
                     @endif
                 </a>
+                <a href="{{ route('user.contacts.export.request', array_filter(['tab' => $tab, 'q' => $search])) }}"
+                   class="block w-full px-3 py-2 rounded-lg text-xs font-medium text-center transition"
+                   style="background:rgba(34,211,238,.08);color:#67e8f9;border:1px solid rgba(34,211,238,.18)">
+                    <i class="fas fa-file-export mr-1"></i> Export contacts
+                </a>
             </div>
         </div>
 
@@ -152,7 +175,7 @@
                 @endif
             </div>
             <div class="card-premium p-5"
-                 x-data="contactsSearch({ index: '{{ route('user.contacts.index') }}', tab: '{{ $tab }}', q: @js($search) })">
+                 x-data="contactsSearch({ index: '{{ route('user.contacts.index') }}', tab: '{{ $tab }}', q: @js($search), initTag: @js($tag ?? '') })">
                 <div class="flex flex-wrap items-center gap-3 mb-4">
                     <div class="inline-flex rounded-xl p-1" style="background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);">
                         <button type="button" @click="setTab('all')"
@@ -180,6 +203,17 @@
                     </div>
                 </div>
 
+                {{-- Active tag filter chip --}}
+                <div x-show="tag !== ''" x-cloak class="flex items-center gap-2 mb-3 flex-wrap">
+                    <span class="text-[11px] font-semibold uppercase tracking-wider" style="color:var(--text-faint);">Filtered by tag:</span>
+                    <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium"
+                          style="background:rgba(61,107,255,.18);color:#90acff;border:1px solid rgba(61,107,255,.28);">
+                        <i class="fas fa-tag text-[9px]"></i>
+                        <span x-text="tag"></span>
+                        <button type="button" @click="clearTag()" class="ml-0.5 opacity-70 hover:opacity-100 leading-none">&times;</button>
+                    </span>
+                </div>
+
                 <div id="contacts-list" x-ref="list" :class="loading ? 'opacity-60 transition-opacity' : 'transition-opacity'">
                     @include('user.contacts._list')
                 </div>
@@ -195,6 +229,7 @@ function contactsSearch(cfg) {
         indexUrl: cfg.index,
         tab: cfg.tab || 'all',
         q: cfg.q || '',
+        tag: cfg.initTag || '',
         loading: false,
         _t: null,
         _seq: 0,
@@ -213,6 +248,14 @@ function contactsSearch(cfg) {
                     this.reload(u.searchParams.get('page') || '1');
                 } catch (_) { this.reload('1'); }
             });
+
+            // Tag-filter links emitted by _list.blade.php have data-tag-filter attributes.
+            this.$refs.list.addEventListener('click', (e) => {
+                const btn = e.target.closest('[data-tag-filter]');
+                if (!btn || !this.$refs.list.contains(btn)) return;
+                e.preventDefault();
+                this.setTag(btn.getAttribute('data-tag-filter'));
+            });
         },
 
         onInput() {
@@ -226,10 +269,21 @@ function contactsSearch(cfg) {
             this.reload('1');
         },
 
+        setTag(tag) {
+            this.tag = (tag || '').trim();
+            this.reload('1');
+        },
+
+        clearTag() {
+            this.tag = '';
+            this.reload('1');
+        },
+
         buildUrl(page) {
             const params = new URLSearchParams();
             params.set('tab', this.tab);
             if ((this.q || '').trim() !== '') params.set('q', this.q.trim());
+            if ((this.tag || '').trim() !== '') params.set('tag', this.tag.trim());
             if (page && page !== '1') params.set('page', page);
             const qs = params.toString();
             return this.indexUrl + (qs ? ('?' + qs) : '');
@@ -256,6 +310,31 @@ function contactsSearch(cfg) {
         },
     };
 }
+
+// Keep the duplicate banner honest when the page is restored from the
+// back/forward cache (e.g. edit a contact → back button): re-fetch the
+// cheap cached count and update/toggle the banner in place.
+window.addEventListener('pageshow', function (ev) {
+    if (!ev.persisted) return;
+    fetch(@js(route('user.contacts.duplicates.count')), {
+        headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+    })
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (json) {
+            if (!json || !json.data) return;
+            var count = parseInt(json.data.count, 10) || 0;
+            var banner = document.getElementById('duplicate-banner');
+            var text = document.getElementById('duplicate-banner-text');
+            if (!banner || !text) return;
+            if (count > 0) {
+                text.textContent = count + ' duplicate ' + (count === 1 ? 'group' : 'groups') + ' found';
+                banner.hidden = false;
+            } else {
+                banner.hidden = true;
+            }
+        })
+        .catch(function () { /* leave the server-rendered banner untouched */ });
+});
 </script>
 @endpush
 @endsection

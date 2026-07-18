@@ -30,6 +30,9 @@ export class ErrorBoundary extends Component<
   }
 
   componentDidCatch(error: Error, info: { componentStack: string }): void {
+    // Always log the raw error so it appears in device logs / Metro / crash
+    // reporting services even when no custom onError prop is wired.
+    console.error("[ErrorBoundary] Caught error:", error, "\nComponent stack:", info.componentStack);
     if (typeof this.props.onError === "function") {
       this.props.onError(error, info.componentStack);
     }

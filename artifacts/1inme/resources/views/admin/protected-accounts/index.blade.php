@@ -38,11 +38,13 @@
     {{-- Add a new protected account (superadmin only). --}}
     <div class="glass rounded-2xl border border-white/10 p-6 mb-6">
         <h3 class="text-lg font-semibold text-white mb-1">Add protected account</h3>
-        <p class="text-xs text-white/40 mb-4">Protects both the user dashboard and any matching back-office staff account (matched by email).</p>
+        <p class="text-xs text-white/40 mb-4">Protects both the user dashboard and any matching back-office staff account (matched by email). For accounts without an email (e.g. WhatsApp-only signups), enter the user ID instead.</p>
         <form method="POST" action="{{ route('admin.protected-accounts.store') }}" class="flex flex-col sm:flex-row gap-3">
             @csrf
-            <input type="email" name="email" required maxlength="191" placeholder="email@example.com"
+            <input type="email" name="email" maxlength="191" placeholder="email@example.com"
                    class="flex-1 px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder:text-white/30 focus:ring-2 focus:ring-blue-500/40 outline-none">
+            <input type="number" name="user_id" min="1" placeholder="or user ID"
+                   class="w-full sm:w-36 px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder:text-white/30 focus:ring-2 focus:ring-blue-500/40 outline-none">
             <input type="text" name="label" maxlength="191" placeholder="Label (optional)"
                    class="flex-1 px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder:text-white/30 focus:ring-2 focus:ring-blue-500/40 outline-none">
             <button type="submit" class="px-6 py-2.5 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition whitespace-nowrap">
@@ -61,7 +63,7 @@
         <table class="w-full">
             <thead>
                 <tr class="border-b border-white/10 text-left text-xs uppercase tracking-wide text-white/40">
-                    <th class="px-6 py-3">Email</th>
+                    <th class="px-6 py-3">Account</th>
                     <th class="px-6 py-3">Label</th>
                     <th class="px-6 py-3">Status</th>
                     <th class="px-6 py-3 text-right">Actions</th>
@@ -70,7 +72,21 @@
             <tbody>
                 @forelse($accounts as $account)
                 <tr class="border-b border-white/5">
-                    <td class="px-6 py-4 text-sm text-white">{{ $account->email }}</td>
+                    <td class="px-6 py-4 text-sm text-white">
+                        @if($account->email)
+                            {{ $account->email }}
+                        @else
+                            @php($protectedUser = isset($usersById) ? $usersById->get($account->user_id) : null)
+                            <span class="inline-flex items-center gap-2">
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-white/10 text-white/60">User #{{ $account->user_id }}</span>
+                                @if($protectedUser)
+                                    <span>{{ $protectedUser->name ?? $protectedUser->handle ?? '—' }}</span>
+                                @else
+                                    <span class="text-white/40">(account no longer exists)</span>
+                                @endif
+                            </span>
+                        @endif
+                    </td>
                     <td class="px-6 py-4 text-sm text-white/60">{{ $account->label ?? '—' }}</td>
                     <td class="px-6 py-4">
                         @if($account->isLocked())

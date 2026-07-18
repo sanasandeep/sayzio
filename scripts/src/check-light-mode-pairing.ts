@@ -123,6 +123,14 @@ export interface PartialSpec {
   allowlist?: PartialAllowEntry[];
 }
 
+/**
+ * A class attribute inside a `<script>`-built markup string that intentionally
+ * carries a hardcoded white text class (a genuine always-dark island, e.g. a
+ * badge on a saturated gradient). `match` is a substring of the class
+ * attribute's VALUE that identifies the allowed occurrence.
+ */
+export type ScriptAllowEntry = { match: string; reason: string };
+
 export interface Target {
   /** Repo-relative path to the blade page. */
   page: string;
@@ -142,6 +150,12 @@ export interface Target {
    * pairing (see `checkPartial`).
    */
   partials?: PartialSpec[];
+  /**
+   * Intentional hardcoded white text classes inside `<script>`-built markup
+   * (see `findScriptWhiteText`), each with a reason. Omit for pages whose
+   * script-built rows must always use themed classes.
+   */
+  scriptAllowlist?: ScriptAllowEntry[];
 }
 
 /**
@@ -253,6 +267,24 @@ export const TARGETS: Target[] = [
         property: "border-color",
         reason:
           "blue accent hover border (rgba(61,107,255,.4)) — the brand accent reads clearly on both the dark and the white card, so it is intentionally theme-neutral.",
+      },
+    ],
+  },
+  {
+    // Dual-mode page: authed requests @extends the dashboard layout, guests
+    // get a standalone <html> document — either way it participates in the
+    // app theme (theme-styles reached via the layout chain). Its feed rows are
+    // BUILT IN <script> (infinite scroll), which is exactly the surface the
+    // script-white-text check protects; the only white text there is the
+    // fallback avatar initial on a saturated gradient circle (theme-neutral).
+    page: "artifacts/1inme/resources/views/user/feed/index.blade.php",
+    label: "My Feed page",
+    allowlist: [],
+    scriptAllowlist: [
+      {
+        match: "bg-gradient-to-br from-blue-500 to-fuchsia-500 text-white",
+        reason:
+          "fallback avatar initial — white letter on a saturated blue→fuchsia gradient circle, legible in both themes (matches the identical server-rendered avatar markup on the same page).",
       },
     ],
   },
@@ -466,6 +498,81 @@ export const TARGETS: Target[] = [
           "cyan accent icon (#67e8f9) on its matching tinted tile — legible on both themes.",
       },
     ],
+  },
+  // -------------------------------------------------------------------------
+  // Admin pages. These extend admin.layouts.app, which @includes the shared
+  // theme system (common/partials/theme-styles.blade.php), so they participate
+  // in the html.light-mode toggle exactly like the user/marketing pages above.
+  // Light-mode wash-outs are fixed per-element: a marker class on the affected
+  // element plus an `html.light-mode .marker { color: … }` override in the
+  // page's @push('styles') block (convention set by the Master Password page).
+  // Their <style> blocks carry ONLY html.light-mode overrides today — so any
+  // FUTURE page-local rule that sets a dark `color` / `border-color` without
+  // its light pair hard-fails this guard instead of silently shipping a
+  // washed-out light-mode surface on a high-stakes admin screen.
+  {
+    page: "artifacts/1inme/resources/views/admin/master-password/index.blade.php",
+    label: "admin master-password page",
+    allowlist: [],
+  },
+  {
+    page: "artifacts/1inme/resources/views/admin/users/index.blade.php",
+    label: "admin users index",
+    allowlist: [],
+  },
+  {
+    page: "artifacts/1inme/resources/views/admin/users/show.blade.php",
+    label: "admin user detail page",
+    allowlist: [],
+  },
+  {
+    page: "artifacts/1inme/resources/views/admin/plans/index.blade.php",
+    label: "admin plans list",
+    allowlist: [],
+  },
+  {
+    page: "artifacts/1inme/resources/views/admin/integrations/index.blade.php",
+    label: "admin integrations hub",
+    allowlist: [],
+  },
+  {
+    page: "artifacts/1inme/resources/views/admin/mail-settings/index.blade.php",
+    label: "admin mail settings page",
+    allowlist: [],
+  },
+  {
+    page: "artifacts/1inme/resources/views/admin/auth-settings/index.blade.php",
+    label: "admin auth settings page",
+    allowlist: [],
+  },
+  {
+    page: "artifacts/1inme/resources/views/admin/activity-log/index.blade.php",
+    label: "admin activity log",
+    allowlist: [],
+  },
+  {
+    // The floating voice-assistant panel partial (included by the admin/user
+    // layouts). Its dark-mode base colors are Tailwind utility classes on the
+    // markup; the partial's own <style> block carries ONLY html.light-mode
+    // overrides scoped under .va-panel. Any FUTURE base CSS color rule added
+    // to that <style> block (e.g. a new capabilities entry type, a coins-spent
+    // breakdown row, or a new confirmation chip variant) without its
+    // html.light-mode pair hard-fails here instead of silently rendering
+    // dark-on-white — the panel already regressed to a dark surface in light
+    // mode once, which is what motivated this entry.
+    page: "artifacts/1inme/resources/views/partials/voice-assistant.blade.php",
+    label: "floating voice-assistant panel",
+    allowlist: [],
+  },
+  {
+    // The company-identity page ships only html.light-mode overrides in its
+    // @push('styles') block (no dark base color/border-color rules in <style>),
+    // so there are no base rules for the guard to check pairs against. All
+    // dark-mode colors come from Tailwind utility classes (text-white/*, etc.)
+    // and the jurisdiction info box uses Tailwind utilities for dark mode.
+    page: "artifacts/1inme/resources/views/admin/company-identity/edit.blade.php",
+    label: "admin company identity page",
+    allowlist: [],
   },
 ];
 
@@ -744,6 +851,92 @@ export function checkSource(src: string, options: FindOptions = {}): MissingPair
 }
 
 /* -------------------------------------------------------------------------- *
+ * Script-built markup white-text check
+ * -------------------------------------------------------------------------- *
+ * The CSS pairing check above only sees `<style>` blocks — markup a page
+ * assembles CLIENT-SIDE in JavaScript template strings never touches a base
+ * CSS rule, so a hardcoded white utility class (`text-white`, `text-[#fff]`,
+ * `text-slate-50`, …) inside a `<script>`-built row ships invisible
+ * white-on-white text in light mode with no guard firing. Real regression:
+ * the event page's "My swaps" rows were rendered client-side with
+ * `text-white` and shipped with invisible attendee names in light mode
+ * (since fixed to the themed `.ev-strong` class, which carries its
+ * `html.light-mode` pair).
+ *
+ * This check scans every `class="…"` / `class='…'` attribute (including the
+ * `class=\"…\"` escaped form used inside JS strings) found within the
+ * `<script>` blocks of a TARGETS page and flags any hardcoded white text
+ * class token. Variant-prefixed tokens (`hover:text-white`) and opacity
+ * suffixes (`text-white/80`) are flagged too — they wash out just the same.
+ * Genuine always-dark islands (e.g. a white label on a saturated gradient
+ * badge) go in the target's `scriptAllowlist` with a reason.
+ */
+
+/**
+ * A single class token counts as hardcoded white text when, after any
+ * `variant:` prefixes, it is `text-white` (optionally with a `/opacity`
+ * suffix), an arbitrary white hex (`text-[#fff]` … `text-[#ffffffff]`), or a
+ * near-white `-50` gray shade.
+ */
+const WHITE_TEXT_TOKEN =
+  /^(?:[a-z0-9-]+:)*text-(?:white(?:\/\d+)?|\[#f{3,8}\]|(?:slate|gray|zinc|neutral|stone)-50(?:\/\d+)?)$/i;
+
+export interface ScriptWhiteHit {
+  /** 1-based line in the blade file where the class attribute starts. */
+  line: number;
+  /** The full class attribute value containing the white token. */
+  classValue: string;
+  /** The offending token(s). */
+  tokens: string[];
+}
+
+/**
+ * Extract the contents of every `<script>…</script>` block along with the
+ * 0-based line offset each body starts at (for reporting).
+ */
+export function extractScriptBlocks(src: string): { body: string; lineOffset: number }[] {
+  const re = /<script\b[^>]*>([\s\S]*?)<\/script>/gi;
+  const out: { body: string; lineOffset: number }[] = [];
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(src)) !== null) {
+    out.push({
+      body: m[1] ?? "",
+      lineOffset: src.slice(0, m.index).split("\n").length - 1,
+    });
+  }
+  return out;
+}
+
+/**
+ * Find hardcoded white text classes in `class` attributes inside the
+ * `<script>` blocks of a blade page. Allowlist entries match by substring of
+ * the class attribute value.
+ */
+export function findScriptWhiteText(
+  src: string,
+  allowlist: ScriptAllowEntry[] = [],
+): ScriptWhiteHit[] {
+  const hits: ScriptWhiteHit[] = [];
+  // Plain and JS-string-escaped quote forms: class="…", class='…', class=\"…\", class=\'…\'
+  const attrRe = /\bclass\s*=\s*(?:\\"([^"\\]*)\\"|\\'([^'\\]*)\\'|"([^"]*)"|'([^']*)')/gi;
+  for (const { body, lineOffset } of extractScriptBlocks(src)) {
+    let m: RegExpExecArray | null;
+    while ((m = attrRe.exec(body)) !== null) {
+      const value = m[1] ?? m[2] ?? m[3] ?? m[4] ?? "";
+      const tokens = value.split(/\s+/).filter((t) => WHITE_TEXT_TOKEN.test(t));
+      if (tokens.length === 0) continue;
+      if (allowlist.some((e) => value.includes(e.match))) continue;
+      hits.push({
+        line: lineOffset + body.slice(0, m.index).split("\n").length,
+        classValue: value,
+        tokens,
+      });
+    }
+  }
+  return hits;
+}
+
+/* -------------------------------------------------------------------------- *
  * Inline-styled partial coverage (structural count proxy)
  * -------------------------------------------------------------------------- *
  * Some partials a page includes bake their dark theme colors as INLINE
@@ -861,6 +1054,8 @@ export interface TargetResult {
   target: Target;
   missing: MissingPair[];
   partialMismatches: PartialMismatch[];
+  /** Hardcoded white text classes found in `<script>`-built markup. */
+  scriptWhiteHits: ScriptWhiteHit[];
   error?: string;
   /**
    * Set when the page does not participate in the app's light/dark toggle (it
@@ -963,6 +1158,11 @@ export interface UnknownPageFinding {
   rel: string;
   /** Unpaired base color rules found by the whole-page check (no allowlist). */
   missing: MissingPair[];
+  /**
+   * Hardcoded white text classes in <script>-built markup (no allowlist —
+   * discovery pages have none yet). Warning-only, like `missing`.
+   */
+  scriptWhiteHits: ScriptWhiteHit[];
 }
 
 /**
@@ -1000,11 +1200,16 @@ export function discoverUnknownStandalonePages(
   const out: UnknownPageFinding[] = [];
   for (const [rel, raw] of [...files.entries()].sort((a, b) => a[0].localeCompare(b[0]))) {
     if (known.has(rel) || extendedBy.has(rel)) continue;
-    const src = stripScriptBlocks(stripBladeComments(raw));
+    const noComments = stripBladeComments(raw);
+    const src = stripScriptBlocks(noComments);
     if (!declaresOwnDocument(src)) continue;
     if (!includesThemeStyles(rel, files)) continue;
     const missing = checkSource(src);
-    if (missing.length > 0) out.push({ rel, missing });
+    // Script-built rows are scanned on the PRE-strip source (that's where the
+    // <script> bodies live); no allowlist — unknown pages have none yet.
+    const scriptWhiteHits = findScriptWhiteText(noComments);
+    if (missing.length > 0 || scriptWhiteHits.length > 0)
+      out.push({ rel, missing, scriptWhiteHits });
   }
   return out;
 }
@@ -1025,6 +1230,7 @@ export function checkTarget(target: Target, files?: Map<string, string>): Target
         target,
         missing: [],
         partialMismatches: [],
+        scriptWhiteHits: [],
         scopeError:
           "page ships its own <html>/<head> and never @includes " +
           "common/partials/theme-styles.blade.php, so the app's html.light-mode class " +
@@ -1039,23 +1245,36 @@ export function checkTarget(target: Target, files?: Map<string, string>): Target
   try {
     src = fs.readFileSync(abs, "utf8");
   } catch (e) {
-    return { target, missing: [], partialMismatches: [], error: (e as Error).message };
+    return {
+      target,
+      missing: [],
+      partialMismatches: [],
+      scriptWhiteHits: [],
+      error: (e as Error).message,
+    };
   }
   const missing = checkSource(src, {
     scopes: target.scopes,
     isAllowed: makeIsAllowed(target.allowlist),
   });
+  const scriptWhiteHits = findScriptWhiteText(src, target.scriptAllowlist);
   const partialMismatches: PartialMismatch[] = [];
   for (const spec of target.partials ?? []) {
     let partialSrc: string;
     try {
       partialSrc = fs.readFileSync(path.join(REPO_ROOT, spec.file), "utf8");
     } catch (e) {
-      return { target, missing, partialMismatches, error: `${spec.file}: ${(e as Error).message}` };
+      return {
+        target,
+        missing,
+        partialMismatches,
+        scriptWhiteHits,
+        error: `${spec.file}: ${(e as Error).message}`,
+      };
     }
     partialMismatches.push(...checkPartial(partialSrc, src, spec));
   }
-  return { target, missing, partialMismatches };
+  return { target, missing, partialMismatches, scriptWhiteHits };
 }
 
 function describeMode(t: Target): string {
@@ -1094,6 +1313,11 @@ function printExplain(): void {
   console.log("  html.light-mode class never toggles onto it, so the pairing premise fails and");
   console.log("  the guard reports it as a misconfiguration (same scope nuance as the");
   console.log("  undefined-css-var guard). Pages that @extends a layout are in-scope.");
+  console.log("\nScript-built markup: the <script> blocks of each checked page are scanned for");
+  console.log("  hardcoded white text classes (text-white, text-[#fff…], *-50 grays) inside");
+  console.log("  class attributes of JS-assembled markup — client-rendered rows never touch a");
+  console.log("  base CSS rule, so such a class ships white-on-white in light mode. Genuine");
+  console.log("  always-dark islands go in the target's scriptAllowlist with a reason.");
   console.log("\nInline-styled partials bake dark colors as style=\"…\" attributes (no base");
   console.log("  rule to pair against), so each themed inline color/border must have exactly");
   console.log("  one paired html.light-mode override for that scope (a structural count).");
@@ -1117,12 +1341,17 @@ function printExplain(): void {
 function printUnknownPageWarnings(unknown: UnknownPageFinding[]): void {
   if (unknown.length === 0) return;
   console.warn(
-    `\n⚠ light-mode-pairing discovery — ${unknown.length} standalone theme-aware page(s) NOT configured in TARGETS have unpaired base color rule(s):\n`,
+    `\n⚠ light-mode-pairing discovery — ${unknown.length} standalone theme-aware page(s) NOT configured in TARGETS have unpaired base color rule(s) and/or hardcoded white text in <script>-built markup:\n`,
   );
   for (const u of unknown) {
     console.warn(`  ${VIEWS_REL}/${u.rel}:`);
     for (const m of u.missing) {
       console.warn(`    ${m.selector} { ${m.property} } — no paired ${LIGHT_PREFIX}override`);
+    }
+    for (const h of u.scriptWhiteHits) {
+      console.warn(
+        `    <script>-built markup (line ~${h.line}) hardcodes white text class(es) ${h.tokens.join(", ")} in class="${h.classValue}" — client-rendered rows ship white-on-white in light mode`,
+      );
     }
   }
   console.warn(
@@ -1184,10 +1413,12 @@ function main(): void {
   // never part of the exit code (see discoverUnknownStandalonePages).
   const unknown = discoverUnknownStandalonePages(files);
 
-  const failed = results.filter((r) => r.missing.length > 0 || r.partialMismatches.length > 0);
+  const failed = results.filter(
+    (r) => r.missing.length > 0 || r.partialMismatches.length > 0 || r.scriptWhiteHits.length > 0,
+  );
   if (failed.length === 0) {
     console.log(
-      `✓ light-mode-pairing guard passed — every base color rule across ${TARGETS.length} checked page(s) has its paired "${LIGHT_PREFIX}" override, and every themed inline color in the inline-styled partials has its light override.`,
+      `✓ light-mode-pairing guard passed — every base color rule across ${TARGETS.length} checked page(s) has its paired "${LIGHT_PREFIX}" override, every themed inline color in the inline-styled partials has its light override, and no script-built markup hardcodes a white text class.`,
     );
     printUnknownPageWarnings(unknown);
     process.exit(0);
@@ -1199,6 +1430,14 @@ function main(): void {
     for (const m of r.missing) {
       console.error(`    ${m.selector} { ${m.property} }`);
       console.error(`        add:  ${LIGHT_PREFIX}${m.selector} { ${m.property}: <light value>; }`);
+    }
+    for (const h of r.scriptWhiteHits) {
+      console.error(
+        `    <script>-built markup (line ~${h.line}) hardcodes white text class(es) ${h.tokens.join(", ")} in class="${h.classValue}"`,
+      );
+      console.error(
+        "        client-rendered rows never touch a base CSS rule, so this ships white-on-white text in light mode. Use a themed page class (with its html.light-mode pair) instead — or, if this is a genuine always-dark island, add a scriptAllowlist entry with a reason.",
+      );
     }
     for (const m of r.partialMismatches) {
       const spec = (r.target.partials ?? []).find((p) => p.name === m.partial);

@@ -27,7 +27,8 @@
         </template>
     </div>
 
-    <nav class="flex-1 py-4 overflow-y-auto overflow-x-hidden sidebar-nav-scroll"
+    <nav class="flex-1 relative overflow-hidden">
+    <div class="absolute inset-0 overflow-y-auto overflow-x-hidden sidebar-nav-scroll py-4"
          :class="sidebarMode === 'icons' ? 'px-2' : 'px-3'">
 
         {{-- ============ Overview ============ --}}
@@ -83,6 +84,24 @@
             <span class="nav-label">Protected accounts</span>
             <span class="sidebar-tooltip">Protected accounts</span>
         </a>
+
+        <a href="{{ route('admin.badges.index') }}"
+           class="sidebar-link {{ request()->routeIs('admin.badges.*') ? 'active' : '' }}"
+           style="--nav-tint:#6366f1; --nav-tint-soft:rgba(99,102,241,0.12);">
+            <div class="nav-icon-wrap"><i class="fas fa-certificate"></i></div>
+            <span class="nav-label">Account badges</span>
+            <span class="sidebar-tooltip">Account badges</span>
+        </a>
+
+        @if(auth('admin')->user()?->hasPermission('badge_requests.review'))
+            <a href="{{ route('admin.badge-requests.index') }}"
+               class="sidebar-link {{ request()->routeIs('admin.badge-requests.*') ? 'active' : '' }}"
+               style="--nav-tint:#f59e0b; --nav-tint-soft:rgba(245,158,11,0.12);">
+                <div class="nav-icon-wrap"><i class="fas fa-award"></i></div>
+                <span class="nav-label">Badge requests</span>
+                <span class="sidebar-tooltip">Badge requests</span>
+            </a>
+        @endif
 
         <a href="{{ route('admin.privacy-requests.index') }}"
            class="sidebar-link {{ request()->routeIs('admin.privacy-requests.*') ? 'active' : '' }}"
@@ -140,7 +159,7 @@
         <a href="{{ route('admin.event-categories.index') }}"
            class="sidebar-link {{ request()->routeIs('admin.event-categories.*') ? 'active' : '' }}"
            style="--nav-tint:#f59e0b; --nav-tint-soft:rgba(245,158,11,0.12);">
-            <div class="nav-icon-wrap"><i class="fas fa-calendar-star"></i></div>
+            <div class="nav-icon-wrap"><i class="fas fa-calendar-days"></i></div>
             <span class="nav-label">Event Categories</span>
             <span class="sidebar-tooltip">Event Categories</span>
         </a>
@@ -255,6 +274,20 @@
             <div class="nav-icon-wrap"><i class="fas fa-tags"></i></div>
             <span class="nav-label">Plans</span>
             <span class="sidebar-tooltip">Plans</span>
+        </a>
+
+        <a href="{{ route('admin.custom-plan-requests.index') }}"
+           class="sidebar-link {{ request()->routeIs('admin.custom-plan-requests.*') ? 'active' : '' }}"
+           style="--nav-tint:var(--color-primary-500,#3d6bff); --nav-tint-soft:rgba(61,107,255,0.12);">
+            <div class="nav-icon-wrap">
+                <i class="fas fa-gem"></i>
+                @php $__cprCount = \App\Modules\Admin\Models\CustomPlanRequest::where('status','new')->count(); @endphp
+                @if($__cprCount > 0)
+                    <span class="absolute -top-1 -right-1 inline-flex items-center justify-center min-w-[14px] h-[14px] px-0.5 rounded-full text-[8px] font-bold leading-none text-white" style="background:var(--color-primary-500,#3d6bff);">{{ $__cprCount }}</span>
+                @endif
+            </div>
+            <span class="nav-label">Custom Requests</span>
+            <span class="sidebar-tooltip">Custom Plan Requests</span>
         </a>
 
         <a href="{{ route('admin.coin-packages.index') }}"
@@ -571,6 +604,7 @@
             <span class="nav-label">Branding</span>
             <span class="sidebar-tooltip">Branding</span>
         </a>
+    </div>{{-- /.sidebar-nav-scroll --}}
     </nav>
 
     @php $__switchUser = !session('impersonate_user_id') && auth()->guard('admin')->user()?->hasUserAccount(); @endphp
@@ -601,9 +635,19 @@
     <div class="px-3 py-3" style="border-top: 1px solid var(--border-strong);">
         <div class="flex items-center gap-3"
              :class="sidebarMode === 'icons' ? 'justify-center' : ''">
-            <div class="w-9 h-9 rounded-lg flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
+            @php $adminAvatarUrl = auth()->guard('admin')->user()?->resolveAvatarUrl(); @endphp
+            <div class="w-9 h-9 rounded-lg flex-shrink-0 overflow-hidden relative"
                  style="background: linear-gradient(135deg,#5c83ff,#3d6bff);">
-                {{ strtoupper(substr(auth()->guard('admin')->user()->name ?? 'A', 0, 1)) }}
+                @if($adminAvatarUrl)
+                    <img src="{{ $adminAvatarUrl }}"
+                         alt="{{ auth()->guard('admin')->user()->name ?? 'Admin' }}"
+                         class="w-full h-full object-cover"
+                         onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+                    <span class="w-full h-full flex items-center justify-center text-white text-xs font-bold absolute inset-0"
+                          style="display:none;">{{ strtoupper(substr(auth()->guard('admin')->user()->name ?? 'A', 0, 1)) }}</span>
+                @else
+                    <span class="w-full h-full flex items-center justify-center text-white text-xs font-bold">{{ strtoupper(substr(auth()->guard('admin')->user()->name ?? 'A', 0, 1)) }}</span>
+                @endif
             </div>
             <div class="flex-1 min-w-0 user-info">
                 <p class="text-xs font-semibold truncate" style="color: var(--text-primary);">{{ auth()->guard('admin')->user()->name ?? 'Admin' }}</p>

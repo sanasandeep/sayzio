@@ -25,8 +25,8 @@
     "android": {
       "package": "com.sayzio.dialer",
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/icon.png",
-        "backgroundColor": "#0a0a0f"
+        "foregroundImage": "./assets/images/icon-foreground.png",
+        "backgroundColor": "#00000a"
       },
       "permissions": [
         "android.permission.READ_CONTACTS",

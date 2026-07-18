@@ -57,7 +57,7 @@ function makeStorage(initial = {}, { failing = false } = {}) {
   };
 }
 
-const CACHE_KEY = "1inme.onboarding.slides.cache.v1";
+const CACHE_KEY = "1inme.onboarding.slides.cache.v2";
 
 // ---------------------------------------------------------------------------
 // Lift the REAL cache section out of lib/secure.ts.

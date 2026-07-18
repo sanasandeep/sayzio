@@ -107,8 +107,80 @@ class CardScanController extends Controller
             return back()->with('error', 'We couldn\'t scan that file. Please try again with a clearer image.');
         }
 
+        $from = $request->input('from', 'contacts');
+
+        // Quick-confirm flow: when the upload came from the contacts or dialer
+        // entry points, skip the full review and land on the streamlined
+        // confirm sheet so the user can save in one tap.
+        if (in_array($from, ['contacts', 'dialer'], true)) {
+            return redirect()->route('user.contacts.scan.confirm', [
+                'scan' => $scan->id,
+                'from' => $from,
+            ]);
+        }
+
         return redirect()->route('user.contacts.scan.show', [
             'scan' => $scan->id,
+            'from' => $from,
+        ]);
+    }
+
+    /**
+     * Re-run extraction on the SAME vaulted source files with a new
+     * instruction — no re-upload required. Because the instruction is
+     * folded into the idempotency key, a different focus always produces a
+     * fresh CardScan row, leaving the original scan (and its saved
+     * contact/draft links) intact for comparison.
+     */
+    public function rescan(Request $request, CardScan $scan)
+    {
+        $this->authorizeScan($scan);
+
+        $request->validate([
+            'instruction' => 'nullable|string|max:' . CardBrochureExtractionService::MAX_INSTRUCTION_LENGTH,
+            'from'        => 'nullable|string|in:contacts,wizard',
+        ]);
+
+        $owner = workspace_owner();
+        $actor = $request->user();
+
+        if (!\App\Services\AI\AiPlanAccess::featureAllowed($actor, 'card_scan')) {
+            $plan = \App\Services\AI\AiPlanAccess::featureUpgradePlan($actor, 'card_scan');
+            $msg  = 'The Card & Brochure Scanner is not available on your current plan.';
+            if ($plan) {
+                $msg .= ' Upgrade to the ' . $plan->name . ' plan to use it.';
+            }
+            return back()->with('error', $msg);
+        }
+
+        if (!AiEngineSettings::isEnabled() || !AiEngineSettings::openAiKey()) {
+            return back()->with('error', 'AI scanning is currently unavailable. Please try again later.');
+        }
+
+        $sourceFiles = $scan->sourceFiles()->all();
+        if (!$sourceFiles) {
+            return back()->with('error', 'The original files for this scan are no longer available — please upload again.');
+        }
+
+        $instruction = $request->input('instruction') !== null
+            ? trim((string) $request->input('instruction'))
+            : null;
+        if ($instruction === '') $instruction = null;
+
+        try {
+            $newScan = $this->extractor->extractFromVaultedFiles($owner, $actor, $sourceFiles, $instruction);
+        } catch (InsufficientCoinsForAiException $e) {
+            return redirect()->route('user.wallet.buy')
+                ->with('error', "You need {$e->required} coins to scan a card (you have {$e->balance}).");
+        } catch (\RuntimeException $e) {
+            return back()->with('error', $e->getMessage());
+        } catch (\Throwable $e) {
+            report($e);
+            return back()->with('error', 'We couldn\'t re-scan that card. Please try again.');
+        }
+
+        return redirect()->route('user.contacts.scan.show', [
+            'scan' => $newScan->id,
             'from' => $request->input('from', 'contacts'),
         ]);
     }
@@ -231,6 +303,152 @@ class CardScanController extends Controller
             return redirect()->route('user.links.wizard')
                 ->with('success', 'Link in Bio draft seeded from the scan — pick up where you left off.');
         }
+
+        return redirect()->route('user.contacts.show', $contact)
+            ->with('success', 'Contact saved from the scan.');
+    }
+
+    /**
+     * Streamlined confirm sheet: shows just the key contact fields extracted
+     * from the scan (name, phones, emails, org/title) and offers a one-tap
+     * "Save as contact" CTA. Reached from the contacts-page and dialer
+     * entry points after a successful scan.
+     */
+    public function confirm(Request $request, CardScan $scan)
+    {
+        $this->authorizeScan($scan);
+        $scan->loadMissing('sourceFile');
+
+        if ($scan->status !== 'completed') {
+            // Fall back to the full review page if the scan isn't ready.
+            return redirect()->route('user.contacts.scan.show', [
+                'scan' => $scan->id,
+                'from' => $request->query('from', 'contacts'),
+            ]);
+        }
+
+        $extracted  = is_array($scan->extracted) ? $scan->extracted : [];
+        $duplicates = $this->findDuplicates($extracted);
+        $from       = $request->query('from') === 'dialer' ? 'dialer' : 'contacts';
+
+        return view('user.contacts.scan_confirm', [
+            'scan'       => $scan,
+            'extracted'  => $extracted,
+            'duplicates' => $duplicates,
+            'from'       => $from,
+        ]);
+    }
+
+    /**
+     * Fast-save path from the confirm sheet.
+     *
+     * Two modes:
+     *  • New contact (default) — creates a fresh contact from the scan data.
+     *  • Update existing (`update_contact_id`) — appends any new phones/emails
+     *    from the scan to an existing contact, never clobbering existing rows.
+     *
+     * Plan-limit and ownership checks are enforced in both modes.
+     */
+    public function quickSave(Request $request, CardScan $scan)
+    {
+        $this->authorizeScan($scan);
+
+        if ($scan->status !== 'completed') {
+            return back()->with('error', 'This scan isn\'t ready yet — please wait a moment and try again.');
+        }
+
+        $request->validate([
+            'update_contact_id' => 'nullable|integer',
+        ]);
+
+        $owner    = workspace_owner();
+        $extracted = is_array($scan->extracted) ? $scan->extracted : [];
+
+        $updateId = $request->integer('update_contact_id', 0);
+
+        if ($updateId > 0) {
+            // ── Update-existing mode ────────────────────────────────────────
+            $contact = Contact::where('user_id', $owner->id)->find($updateId);
+            if (!$contact) {
+                return back()->with('error', 'That contact could not be found in your address book.');
+            }
+
+            DB::transaction(function () use ($contact, $extracted, $scan) {
+                // Append phones that aren't already on the contact.
+                $existingPhones = $contact->phones()->pluck('value')->map(
+                    fn ($v) => ContactPhone::normalize($v)
+                )->filter()->values()->all();
+
+                foreach (($extracted['phones'] ?? []) as $p) {
+                    $val = trim((string) ($p['value'] ?? ''));
+                    if ($val === '') continue;
+                    $norm = ContactPhone::normalize($val);
+                    if (in_array($norm, $existingPhones, true)) continue;
+                    $contact->phones()->create([
+                        'label'      => $p['label'] ?? null,
+                        'value'      => $val,
+                        'value_e164' => $norm,
+                        'is_primary' => false,
+                    ]);
+                    $existingPhones[] = $norm;
+                }
+
+                // Append emails that aren't already on the contact.
+                $existingEmails = $contact->emails()->pluck('value')->map(
+                    fn ($v) => ContactEmail::normalize($v)
+                )->filter()->values()->all();
+
+                foreach (($extracted['emails'] ?? []) as $e) {
+                    $val = trim((string) ($e['value'] ?? ''));
+                    if ($val === '') continue;
+                    $norm = ContactEmail::normalize($val);
+                    if (in_array($norm, $existingEmails, true)) continue;
+                    $contact->emails()->create([
+                        'label'      => $e['label'] ?? null,
+                        'value'      => $norm,
+                        'is_primary' => false,
+                    ]);
+                    $existingEmails[] = $norm;
+                }
+
+                // Link the scan to this contact.
+                if (!$scan->contact_id) {
+                    $scan->contact_id = $contact->id;
+                    $scan->save();
+                }
+            });
+
+            return redirect()->route('user.contacts.show', $contact)
+                ->with('success', 'New phone and email details added to ' . $contact->nameForDisplay() . '.');
+        }
+
+        // ── Create-new mode ────────────────────────────────────────────────
+        $plan = $owner->plan;
+        $features = $plan?->features ?? [];
+        $maxContacts = $features['contacts_max'] ?? -1;
+        if ($maxContacts !== -1 && $owner->contacts()->count() >= $maxContacts) {
+            return back()->with('error',
+                "You've reached your plan's contact limit ({$maxContacts}). Upgrade your plan to save more contacts.");
+        }
+
+        $contact = null;
+        DB::transaction(function () use ($scan, $owner, $extracted, &$contact) {
+            $contact = $this->createContact($owner, [
+                'full_name'  => $extracted['full_name']  ?? null,
+                'first_name' => $extracted['first_name'] ?? null,
+                'last_name'  => $extracted['last_name']  ?? null,
+                'company'    => $extracted['company']    ?? null,
+                'title'      => $extracted['title']      ?? null,
+                'tagline'    => $extracted['tagline']    ?? null,
+                'description'=> $extracted['description']?? null,
+                'website'    => $extracted['website']    ?? null,
+                'address'    => $extracted['address']    ?? null,
+                'phones'     => $extracted['phones']     ?? [],
+                'emails'     => $extracted['emails']     ?? [],
+            ]);
+            $scan->contact_id = $contact->id;
+            $scan->save();
+        });
 
         return redirect()->route('user.contacts.show', $contact)
             ->with('success', 'Contact saved from the scan.');

@@ -1,7 +1,7 @@
 @extends('user.layouts.settings')
 @section('title', 'Creator Profile')
 @section('settings-content')
-<div class="max-w-3xl mx-auto px-4 py-8">
+<div>
     <div class="flex items-start justify-between gap-3 mb-6 flex-wrap">
         <div>
             <h1 class="text-2xl font-bold" style="color: var(--text-primary);">Creator Profile</h1>
@@ -57,7 +57,7 @@
     @endif
 
     {{-- ── Main editor ──────────────────────────────────── --}}
-    <form action="{{ route('user.creator-profile.update') }}" method="POST" enctype="multipart/form-data" class="space-y-6">
+    <form action="{{ route('user.creator-profile.update') }}" method="POST" enctype="multipart/form-data" class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
         @csrf
 
         {{-- Hero --}}
@@ -68,7 +68,7 @@
                     <label class="text-xs font-semibold mb-1 block" style="color: var(--text-dimmed);">Cover image</label>
                     @if($user->cover_image)
                         <div class="mb-2 relative">
-                            <img src="{{ $user->cover_image }}" class="w-full h-32 object-cover rounded-lg">
+                            <img src="{{ \App\Support\PublicStorageUrl::resolve($user->cover_image) }}" class="w-full h-32 object-cover rounded-lg">
                             <label class="absolute top-2 right-2 text-[11px] px-2 py-1 rounded bg-white/90 text-slate-700 cursor-pointer">
                                 <input type="checkbox" name="cover_image_remove" value="1" class="mr-1"> Remove
                             </label>
@@ -346,21 +346,21 @@
         </fieldset>
 
         {{-- Publish --}}
-        <fieldset class="rounded-2xl p-5" style="background: var(--bg-card); border: 1px solid var(--border-soft);">
+        <fieldset class="rounded-2xl px-4 pt-2 pb-4" style="background: var(--bg-card); border: 1px solid var(--border-soft);">
             <legend class="text-sm font-bold px-2" style="color: var(--text-primary);">Publish</legend>
-            <label class="flex items-start gap-3 p-3 rounded-lg cursor-pointer" style="background: var(--bg-input, #fff); border: 1px solid var(--border-soft);">
+            <label class="flex items-start gap-3 p-2.5 rounded-lg cursor-pointer" style="background: var(--bg-input, #fff); border: 1px solid var(--border-soft);">
                 <input type="hidden" name="profile_published" value="0">
                 <input type="checkbox" name="profile_published" value="1"
                        {{ $user->profile_published ? 'checked' : '' }}
                        class="mt-0.5 rounded text-blue-600 focus:ring-blue-500" style="border-color: var(--border-glass);">
                 <div>
-                    <p class="text-sm font-semibold" style="color: var(--text-primary);">My profile is live at /@{{ $user->handle ?: 'handle' }}</p>
+                    <p class="text-sm font-semibold" style="color: var(--text-primary);">My profile is live at /{{ '@' . ($user->handle ?: 'handle') }}</p>
                     <p class="text-xs mt-0.5" style="color: var(--text-dimmed);">When off, only you can see it. (You'll need a handle first.)</p>
                 </div>
             </label>
         </fieldset>
 
-        <div class="flex justify-end gap-2">
+        <div class="flex justify-end gap-2 lg:col-span-2">
             <a href="{{ route('user.posts.index') }}" class="text-xs font-semibold px-4 py-2 rounded-lg" style="background: var(--bg-card); border: 1px solid var(--border-soft); color: var(--text-primary);">
                 Manage posts
             </a>

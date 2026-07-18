@@ -110,6 +110,13 @@ Key points:
   visibility tiers). This documentation set links to it rather than duplicating it.
 - [`artifacts/1inme/docs/knowledge-base.md`](../artifacts/1inme/docs/knowledge-base.md) —
   the end-user knowledge base + FAQ covering every user-facing feature in plain
-  language (intended as chatbot training material, not a developer reference).
+  language (used as help-center and chatbot training material, not a developer reference).
+- [`artifacts/1inme/docs/chatbot-training.md`](../artifacts/1inme/docs/chatbot-training.md) —
+  the **Ask Zio** AI assistant training document: customer-facing, plain English,
+  user point of view only. No admin/back-office or API detail.
+- [`artifacts/1inme/docs/claude-training.md`](../artifacts/1inme/docs/claude-training.md) —
+  comprehensive technical training for internal AI assistants (Claude): all
+  customer features + REST API surface + internal/admin systems + billing +
+  security model.
 - [`artifacts/1inme/docs/blade-lint.md`](../artifacts/1inme/docs/blade-lint.md) —
   Blade template linting notes for the Laravel app.

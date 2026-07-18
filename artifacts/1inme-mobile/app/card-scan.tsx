@@ -1,4 +1,5 @@
 import { Feather } from "@expo/vector-icons";
+import { useQueryClient } from "@tanstack/react-query";
 import * as ImagePicker from "expo-image-picker";
 import { Stack, useRouter } from "expo-router";
 import { useState } from "react";
@@ -19,6 +20,7 @@ import { handlePlanLockedError } from "@/lib/upgradePrompt";
 import { showAlert } from "@/lib/webAlert";
 import {
   MAX_INSTRUCTION_LENGTH,
+  rescanCardScan,
   runCardScan,
   saveCardScan,
   type CardScan,
@@ -35,6 +37,7 @@ type PickedFile = {
 export default function CardScanScreen() {
   const colors = useColors();
   const router = useRouter();
+  const qc = useQueryClient();
 
   const [files, setFiles] = useState<PickedFile[]>([]);
   const [instruction, setInstruction] = useState("");
@@ -42,6 +45,7 @@ export default function CardScanScreen() {
   const [scan, setScan] = useState<CardScan | null>(null);
   const [duplicates, setDuplicates] = useState<DuplicateHint[]>([]);
   const [saving, setSaving] = useState(false);
+  const [rescanning, setRescanning] = useState(false);
 
   async function pickImages() {
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -77,6 +81,26 @@ export default function CardScanScreen() {
       showAlert("Scan failed", msg);
     } finally {
       setScanning(false);
+    }
+  }
+
+  async function runRescan() {
+    if (!scan) return;
+    setRescanning(true);
+    try {
+      const result = await rescanCardScan(
+        scan.id,
+        instruction.trim() || undefined,
+      );
+      setScan(result.scan);
+      setDuplicates(result.duplicates);
+    } catch (err: unknown) {
+      if (handlePlanLockedError(err)) return;
+      const msg =
+        err instanceof Error ? err.message : "Re-scan failed. Please try again.";
+      showAlert("Re-scan failed", msg);
+    } finally {
+      setRescanning(false);
     }
   }
 
@@ -128,6 +152,31 @@ export default function CardScanScreen() {
       }
 
       if (opts.createContact && result.contact) {
+        // Freshly-saved contacts (and any new duplicate they create) should
+        // show up immediately on the contacts screen and its banner.
+        qc.invalidateQueries({ queryKey: ["contacts"] });
+        qc.invalidateQueries({ queryKey: ["contact-duplicate-count"] });
+
+        if (result.contact.has_duplicate) {
+          // Same notice the web flash shows: the save made this contact
+          // match an existing one — offer a jump to the review screen.
+          showAlert(
+            "Possible duplicate",
+            `"${result.contact.display_name}" was saved, but it looks like a duplicate of an existing contact.`,
+            [
+              { text: "Not now", style: "cancel", onPress: () => router.back() },
+              {
+                text: "Review duplicates",
+                onPress: () => {
+                  router.back();
+                  router.push("/contact-duplicates" as never);
+                },
+              },
+            ],
+          );
+          return;
+        }
+
         showAlert(
           "Contact saved",
           `"${result.contact.display_name}" has been added to your contacts.`,
@@ -305,16 +354,42 @@ export default function CardScanScreen() {
               disabled={saving}
               variant="outline"
             />
+
+            <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
+              <Text style={[styles.sectionLabel, { color: colors.text }]}>
+                Not quite right?
+              </Text>
+              <Text style={[styles.hint, { color: colors.mutedForeground }]}>
+                Change the focus above and re-scan the same photos — no need to
+                re-upload. Your first scan is kept so you can compare.
+              </Text>
+              <Button
+                label={rescanning ? "Re-scanning…" : "Re-scan with a new focus"}
+                onPress={runRescan}
+                disabled={rescanning || saving}
+                loading={rescanning}
+                variant="outline"
+              />
+            </View>
           </>
         )}
 
         {scan?.status === "failed" && (
-          <View style={[styles.errorBox, { backgroundColor: "rgba(239,68,68,0.1)", borderColor: "rgba(239,68,68,0.25)" }]}>
-            <Feather name="x-circle" size={16} color="#ef4444" />
-            <Text style={[styles.errorText, { color: "#ef4444" }]}>
-              {scan.error ?? "Scan failed. Please try again with a clearer image."}
-            </Text>
-          </View>
+          <>
+            <View style={[styles.errorBox, { backgroundColor: "rgba(239,68,68,0.1)", borderColor: "rgba(239,68,68,0.25)" }]}>
+              <Feather name="x-circle" size={16} color="#ef4444" />
+              <Text style={[styles.errorText, { color: "#ef4444" }]}>
+                {scan.error ?? "Scan failed. Please try again with a clearer image."}
+              </Text>
+            </View>
+            <Button
+              label={rescanning ? "Re-scanning…" : "Re-scan with a new focus"}
+              onPress={runRescan}
+              disabled={rescanning}
+              loading={rescanning}
+              variant="outline"
+            />
+          </>
         )}
       </ScrollView>
     </>

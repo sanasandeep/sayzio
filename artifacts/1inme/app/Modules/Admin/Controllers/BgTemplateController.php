@@ -130,6 +130,7 @@ class BgTemplateController extends Controller
                 new \Database\Seeders\BgTemplateSeeder(),
                 new \Database\Seeders\BgPatternTemplatesSeeder(),
                 new \Database\Seeders\LightBgTemplatesSeeder(),
+                new \Database\Seeders\ClassicGradientBgTemplatesSeeder(),
             ] as $seeder) {
                 $seeder->run();
                 $defaultSlugs = array_merge($defaultSlugs, array_column($seeder->templates(), 'slug'));

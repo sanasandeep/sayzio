@@ -33,9 +33,12 @@ of *what it is*, *why you'd use it*, and *how to use it* step by step. A large
 17. [Referrals](#17-referrals)
 18. [Creator monetization](#18-creator-monetization)
 19. [18+ adult content](#19-adult-content)
-20. [AI tools: AI Note Summarizer, Knowledge Bases, Persona Generator, AI Agents, AI Chat, Chat Widgets, AI Growth Coach, Account Assistant](#20-ai-tools)
+20. [AI tools: AI Note Summarizer, Knowledge Bases, Persona Generator, AI Agents, AI Chat, Chat Widgets, AI Coach, Zio Bot](#20-ai-tools)
 21. [Tools: Forms, Contact cards, Contacts & Dialer, Scan a card or brochure, Files, Resume, Calendar](#21-tools)
-22. [Restaurant menu & orders](#22-restaurant-menu--orders)
+22. [Restaurant menu, Store & Service Booking](#22-restaurant-menu-store--service-booking)
+   - [22a. Restaurant menu](#22a-restaurant-menu)
+   - [22b. Store (order-request storefront)](#22b-store-order-request-storefront)
+   - [22c. Service Booking (appointment requests)](#22c-service-booking-appointment-requests)
 23. [Inbox & messages](#23-inbox--messages)
 24. [Notifications & digests](#24-notifications--digests)
 25. [Organizing your work: Projects, Workspaces, Team, Client portals](#25-organizing-your-work)
@@ -200,7 +203,7 @@ add-ons, or covering developer-API usage beyond your plan's monthly allowance.
 
 **What it is.** A separate metered balance that powers Sayzio's AI features.
 
-**Why use it.** AI features (the AI biolink builder, Account Assistant, AI Agents/Knowledge Bases,
+**Why use it.** AI features (the AI biolink builder, AI Coach, AI Agents/Knowledge Bases,
 resume tailoring and cover letters, the [card/brochure scanner](#scan-a-card-or-brochure),
 voice assistant, etc.) consume **AI credits** as you use them.
 
@@ -733,9 +736,16 @@ unless a visitor opts to show adult content.
 
 Sayzio includes several AI helpers (all metered with **AI credits**):
 
-- **Account Assistant** — an AI assistant that reviews your account
-  and answers "how do I improve?" questions, including actionable suggestions.
-- **AI Growth Coach** — AI-powered suggestions to grow and fine-tune your links and pages.
+- **AI Coach** — an AI assistant that reviews your account (analytics, biolinks) and
+  answers "how do I improve?" questions with actionable, plain-language growth advice.
+  (Previously labelled *Account Assistant* and *AI Growth Coach*.)
+- **Zio Bot** (Site Assistant) — a conversational helper available as a chat widget on
+  the Sayzio website and inside the app. Click the chat icon to open it. Zio Bot can
+  answer questions, guide you to features, or connect you with support. If you're not
+  signed in, you can log in (or create an account) right inside the chat via a one-time
+  code — no need to leave the page. You can also ask to be contacted by a real person
+  via WhatsApp, a callback, or email using the **Quick Contact** option. Zio Bot uses
+  AI credits from your account.
 - **Persona Generator** — creates a brand persona that shapes the tone and
   personality your AI uses when it writes or replies on your behalf.
 - **AI Agents** — configurable agents you can create and switch between, each with
@@ -967,6 +977,13 @@ link with PDF download. Find it under **Resume / Portfolio**.
   your events). On supported plans (the `calendar_sync` feature), your events stay
   in **two-way sync** with your connected calendar (Google; Outlook where
   supported); connect or disconnect calendar accounts under **Calendar**.
+- **Contact swaps at events** — attendees at the same event can offer to swap
+  contact details with each other. Retention: an **accepted** swap record is
+  kept for **2 years** after acceptance and then deleted (the contact entries
+  already saved to each person's address book are not affected). Swap requests
+  that are **never accepted** are deleted about **30 days** after the event
+  ends — or about **90 days** after the request was made if the event has no
+  end date.
 
 ### Projects & Task Boards
 
@@ -975,7 +992,9 @@ link with PDF download. Find it under **Resume / Portfolio**.
 
 ---
 
-## 22. Restaurant menu & orders
+## 22. Restaurant menu, Store & Service Booking
+
+### 22a. Restaurant menu
 
 **What it is.** A dedicated digital-menu page type for restaurants and cafes, with
 optional table-side ordering. It has its own builder (it doesn't use the block
@@ -1006,6 +1025,65 @@ tapping **Place Order**.
 **Mobile.** The restaurant menu has a full native builder in the Sayzio mobile app
 too — including coupon entry and the live estimated bill — so there's no need to
 switch to the web.
+
+---
+
+### 22b. Store (order-request storefront)
+
+**What it is.** A product catalog page where visitors browse, place orders, and
+leave their contact details — the owner then fulfills orders offline. There is
+**no online payment**, **no tax**, and **no coupon codes** (unlike the Restaurant
+Menu). It has its own dedicated builder.
+
+**Why use it.** Great for small shops, home businesses, local sellers, and anyone
+who wants a clean "catalog + order request" page without needing a full ecommerce
+setup.
+
+**How to use it (owner).**
+1. Create a **Store** link.
+2. Build **Categories**, then add **Products** (name, description, price, photo).
+3. Set your currency, accent color, and a WhatsApp number (optional — Sayzio can
+   build a `wa.me` link so you're notified there when an order arrives).
+4. Toggle **Accepting orders** on/off to pause the store when needed.
+5. When orders arrive, manage them in the **Order Requests Dashboard**, moving each
+   from **New → Accepted → Packing → Ready → Completed / Cancelled**. The order
+   total is the simple sum of the line items.
+
+**Visitor experience.** Visitors browse categories and products, enter their name,
+contact details, and an optional note, and submit an order. No account or payment
+is required. You receive an in-app notification and email alert.
+
+**Mobile.** The store builder and order requests dashboard have full native parity
+in the Sayzio mobile app.
+
+---
+
+### 22c. Service Booking (appointment requests)
+
+**What it is.** An appointment-request page where visitors browse your services
+and request a time slot. You review and confirm (or decline) bookings from a
+dashboard. **No payment is collected** — any pricing shown is for reference only.
+It has its own dedicated builder.
+
+**Why use it.** Ideal for freelancers, coaches, therapists, personal trainers,
+and any service provider who wants a simple "here's what I offer, book a slot"
+page without needing a third-party scheduling tool.
+
+**How to use it (owner).**
+1. Create a **Service Booking** link.
+2. Add **Services** (name, description, duration, price/rate — display only).
+3. Set your **weekly availability** (which days and hours you're open for each
+   service) and any blocked-off dates.
+4. When booking requests come in, manage them in the **Bookings Dashboard**:
+   confirm or decline each request and add notes. Visitors receive a
+   confirmation or decline notification.
+
+**Visitor experience.** Visitors pick a service, choose from the available slots
+on a calendar, enter their name and contact details, and submit the request. They
+see a clear "request sent — awaiting confirmation" status after submitting.
+
+**Mobile.** The service booking builder and bookings dashboard have full native
+parity in the Sayzio mobile app.
 
 ---
 
@@ -1297,7 +1375,7 @@ address (`@yourname`) and is used in the Creators directory.
 **What's the difference between coins and AI credits?**
 **Coins** are a general prepaid balance (top up by buying coin packages) used for
 add-ons and developer-API overage. **AI credits** specifically power AI features
-like the AI builder, Account Assistant, AI Agents/Knowledge Bases, and resume AI tools.
+like the AI builder, AI Coach, AI Agents/Knowledge Bases, and resume AI tools.
 
 **What happens if I run out of AI credits?**
 Before an AI action runs, Sayzio checks you can afford it; if not, you'll be
@@ -1525,9 +1603,17 @@ embed it as a block or run it as a full-page **AI Chatbot** link.
 **Who pays when a visitor chats with my Chat Widget?**
 You do (the owner), from your AI credits — visitors don't pay.
 
-**What is the Account Assistant?**
-An AI assistant that reviews your account and gives plain-language advice on how
-to improve your links and pages.
+**What is the AI Coach?**
+An AI assistant that reviews your account (analytics, biolinks) and gives
+plain-language advice on how to grow and improve your links and pages.
+(Previously labelled *Account Assistant* and *AI Growth Coach*.)
+
+**What is Zio Bot?**
+Zio Bot is Sayzio's built-in site assistant — the chat icon you see on the
+website and inside the app. Open it to get help navigating features, ask
+questions, or request to be contacted by support. If you're not signed in, you
+can log in or sign up right inside the chat using a one-time code. Zio Bot uses
+your AI credits.
 
 **Which AI features come with my plan?**
 It varies by plan — your plan controls which AI tools are available and how many

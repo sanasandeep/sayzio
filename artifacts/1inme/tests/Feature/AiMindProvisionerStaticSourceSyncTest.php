@@ -1,0 +1,239 @@
+<?php
+
+namespace Tests\Feature;
+
+use App\Jobs\IngestAiMindSourceJob;
+use App\Modules\Admin\Models\Admin;
+use App\Modules\Admin\Models\Role;
+use App\Modules\User\Models\AiMind;
+use App\Modules\User\Models\AiMindSource;
+use App\Services\AI\AiMindProvisioner;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Bus;
+use Illuminate\Support\Facades\Hash;
+use Tests\TestCase;
+
+/**
+ * Verifies the platform default Mind keeps its two code-defined static text
+ * sources (About + FAQ) in sync with the code constants: created on first
+ * provision, refreshed on drift, and a true no-op when unchanged.
+ */
+class AiMindProvisionerStaticSourceSyncTest extends TestCase
+{
+    use RefreshDatabase;
+
+    private function makeAdmin(): Admin
+    {
+        $role = Role::firstOrCreate(
+            ['slug' => 'super-admin'],
+            ['name' => 'Super Admin', 'guard' => 'admin']
+        );
+        return Admin::create([
+            'name'     => 'Test Admin',
+            'email'    => 'admin' . uniqid() . '@example.com',
+            'password' => Hash::make('secret'),
+            'role_id'  => $role->id,
+            'status'   => 'active',
+        ]);
+    }
+
+    private function aboutSource(AiMind $mind): ?AiMindSource
+    {
+        return AiMindSource::where('mind_id', $mind->id)
+            ->where('type', AiMindSource::TYPE_TEXT)
+            ->where('title', 'About Sayzio')
+            ->first();
+    }
+
+    private function faqSource(AiMind $mind): ?AiMindSource
+    {
+        return AiMindSource::where('mind_id', $mind->id)
+            ->where('type', AiMindSource::TYPE_FAQ)
+            ->where('title', 'Common questions')
+            ->first();
+    }
+
+    public function test_first_provision_creates_tagged_static_sources_and_queues_ingestion(): void
+    {
+        Bus::fake();
+
+        $mind = AiMindProvisioner::ensurePlatformDefault();
+
+        $about = $this->aboutSource($mind);
+        $faq   = $this->faqSource($mind);
+
+        $this->assertNotNull($about);
+        $this->assertNotNull($faq);
+        $this->assertSame('about', $about->meta['managed_key'] ?? null);
+        $this->assertSame('faq', $faq->meta['managed_key'] ?? null);
+        $this->assertSame(AiMindSource::STATUS_QUEUED, $about->status);
+        $this->assertStringContainsString('Sayzio is a creator platform', (string) $about->body);
+
+        Bus::assertDispatched(IngestAiMindSourceJob::class,
+            fn (IngestAiMindSourceJob $j) => $j->sourceId === $about->id);
+        Bus::assertDispatched(IngestAiMindSourceJob::class,
+            fn (IngestAiMindSourceJob $j) => $j->sourceId === $faq->id);
+    }
+
+    public function test_second_provision_is_a_no_op_when_body_unchanged(): void
+    {
+        Bus::fake();
+        $mind = AiMindProvisioner::ensurePlatformDefault();
+
+        // Fresh fake — the second provision, with no code drift and every
+        // feature/static source already present, must dispatch nothing.
+        Bus::fake();
+        AiMindProvisioner::ensurePlatformDefault();
+
+        Bus::assertNotDispatched(IngestAiMindSourceJob::class);
+    }
+
+    public function test_drift_in_stored_body_is_refreshed_and_reingested(): void
+    {
+        Bus::fake();
+        $mind = AiMindProvisioner::ensurePlatformDefault();
+
+        // Simulate an install whose stored copy is stale (older product docs)
+        // and already embedded (READY) so nothing but drift can re-queue it.
+        $about = $this->aboutSource($mind);
+        $about->forceFill([
+            'body'   => 'Outdated overview from an earlier release.',
+            'status' => AiMindSource::STATUS_READY,
+        ])->save();
+
+        Bus::fake();
+        AiMindProvisioner::ensurePlatformDefault();
+
+        $about->refresh();
+        $this->assertStringContainsString('Sayzio is a creator platform', (string) $about->body);
+        $this->assertSame(AiMindSource::STATUS_QUEUED, $about->status);
+
+        Bus::assertDispatched(IngestAiMindSourceJob::class,
+            fn (IngestAiMindSourceJob $j) => $j->sourceId === $about->id);
+        // The untouched FAQ source must NOT be re-queued.
+        $faq = $this->faqSource($mind);
+        Bus::assertNotDispatched(IngestAiMindSourceJob::class,
+            fn (IngestAiMindSourceJob $j) => $j->sourceId === $faq->id);
+    }
+
+    public function test_legacy_untagged_source_is_adopted_without_needless_reingest(): void
+    {
+        // A Mind seeded by an older build: the About source has no
+        // managed_key tag but its body already matches current code.
+        $mind = AiMind::create([
+            'user_id'    => null,
+            'name'       => AiMindProvisioner::PLATFORM_NAME,
+            'is_default' => true,
+        ]);
+        $legacy = AiMindSource::create([
+            'mind_id' => $mind->id,
+            'type'    => AiMindSource::TYPE_TEXT,
+            'title'   => 'About Sayzio',
+            'body'    => $this->currentAboutBody(),
+            'status'  => AiMindSource::STATUS_READY,
+        ]);
+
+        Bus::fake();
+        AiMindProvisioner::ensurePlatformDefault();
+
+        // No duplicate created — exactly one About source, now tagged.
+        $this->assertSame(1, AiMindSource::where('mind_id', $mind->id)
+            ->where('type', AiMindSource::TYPE_TEXT)
+            ->where('title', 'About Sayzio')->count());
+
+        $legacy->refresh();
+        $this->assertSame('about', $legacy->meta['managed_key'] ?? null);
+        $this->assertSame(AiMindSource::STATUS_READY, $legacy->status);
+
+        // Body already matched, so adopting it must not trigger a re-embed.
+        Bus::assertNotDispatched(IngestAiMindSourceJob::class,
+            fn (IngestAiMindSourceJob $j) => $j->sourceId === $legacy->id);
+    }
+
+    public function test_admin_reseed_dispatches_each_drifted_source_only_once(): void
+    {
+        Bus::fake();
+        $mind = AiMindProvisioner::ensurePlatformDefault();
+
+        // Simulate an install whose About copy has drifted (older docs) and is
+        // already embedded (READY), so ensurePlatformDefault() will re-queue it.
+        $about = $this->aboutSource($mind);
+        $about->forceFill([
+            'body'   => 'Outdated overview from an earlier release.',
+            'status' => AiMindSource::STATUS_READY,
+        ])->save();
+
+        Bus::fake();
+        $this->actingAs($this->makeAdmin(), 'admin')
+            ->post(route('admin.ai-minds.reseed'))
+            ->assertRedirect();
+
+        // The drifted About source must be embedded EXACTLY once, even though
+        // ensurePlatformDefault() re-queued it AND the reseed loop iterates it.
+        $this->assertCount(1, Bus::dispatched(IngestAiMindSourceJob::class,
+            fn (IngestAiMindSourceJob $j) => $j->sourceId === $about->id));
+
+        // Non-drifted sources are still refreshed once by the reseed loop.
+        $faq = $this->faqSource($mind);
+        $this->assertCount(1, Bus::dispatched(IngestAiMindSourceJob::class,
+            fn (IngestAiMindSourceJob $j) => $j->sourceId === $faq->id));
+    }
+
+    public function test_sync_report_flags_in_sync_and_drifted_sources(): void
+    {
+        Bus::fake();
+        $mind = AiMindProvisioner::ensurePlatformDefault();
+
+        // Fresh provision: both static sources exist and match the code.
+        $report = AiMindProvisioner::staticSourceSyncReport($mind);
+        $this->assertCount(2, $report);
+        $byKey = collect($report)->keyBy('key');
+        $this->assertTrue($byKey['about']['exists']);
+        $this->assertTrue($byKey['about']['in_sync']);
+        $this->assertTrue($byKey['faq']['in_sync']);
+        $this->assertSame(AiMindSource::STATUS_QUEUED, $byKey['about']['status']);
+
+        // Drift the About body: report must flag it as out of sync.
+        $this->aboutSource($mind)->forceFill([
+            'body' => 'Outdated overview from an earlier release.',
+        ])->save();
+
+        $report = collect(AiMindProvisioner::staticSourceSyncReport($mind))->keyBy('key');
+        $this->assertFalse($report['about']['in_sync']);
+        $this->assertTrue($report['faq']['in_sync']);
+    }
+
+    public function test_sync_report_marks_missing_source_as_not_created(): void
+    {
+        // A default Mind with no static sources at all (never provisioned).
+        $mind = AiMind::create([
+            'user_id'    => null,
+            'name'       => AiMindProvisioner::PLATFORM_NAME,
+            'is_default' => true,
+        ]);
+
+        $report = collect(AiMindProvisioner::staticSourceSyncReport($mind))->keyBy('key');
+        $this->assertFalse($report['about']['exists']);
+        $this->assertFalse($report['about']['in_sync']);
+        $this->assertNull($report['about']['status']);
+        $this->assertNull($report['about']['last_ingested_at']);
+    }
+
+    public function test_sync_report_is_read_only_and_dispatches_nothing(): void
+    {
+        Bus::fake();
+        $mind = AiMindProvisioner::ensurePlatformDefault();
+
+        Bus::fake();
+        AiMindProvisioner::staticSourceSyncReport($mind);
+        Bus::assertNotDispatched(IngestAiMindSourceJob::class);
+    }
+
+    /** The current code About body, read the same way the provisioner writes it. */
+    private function currentAboutBody(): string
+    {
+        $ref = new \ReflectionMethod(AiMindProvisioner::class, 'aboutText');
+        $ref->setAccessible(true);
+        return (string) $ref->invoke(null);
+    }
+}

@@ -68,14 +68,15 @@ class DialerData
         $number = $f->number_e164
             ?: ($contact?->phones->first()?->value_e164 ?: $contact?->phones->first()?->value);
         return [
-            'id'          => $f->id,
-            'contact_id'  => $f->contact_id,
-            'number'      => $number,
-            'number_e164' => $f->number_e164 ?: ($contact?->phones->first()?->value_e164),
-            'label'       => $f->label ?: ($contact?->nameForDisplay() ?: $number),
-            'initials'    => $contact?->initials() ?: self::numberInitials($number),
-            'biolink'     => self::contactHasReachableBiolink($contact, $reachable),
-            'sort_order'  => $f->sort_order,
+            'id'               => $f->id,
+            'contact_id'       => $f->contact_id,
+            'number'           => $number,
+            'number_e164'      => $f->number_e164 ?: ($contact?->phones->first()?->value_e164),
+            'label'            => $f->label ?: ($contact?->nameForDisplay() ?: $number),
+            'initials'         => $contact?->initials() ?: self::numberInitials($number),
+            'biolink'          => self::contactHasReachableBiolink($contact, $reachable),
+            'sort_order'       => $f->sort_order,
+            'speed_dial_digit' => $f->speed_dial_digit,
         ];
     }
 
@@ -319,6 +320,87 @@ class DialerData
         $numbers = $contacts->map(fn ($c) => $c->phones->first()?->value_e164 ?: $c->phones->first()?->value)
             ->filter()->all();
         return self::flagsForNumbers($userId, $numbers);
+    }
+
+    /**
+     * Paginated full call/lookup history for the history screen. Applies
+     * outcome / tag / text-search filters and returns a flat item list with
+     * resolved contact names so the caller never needs a second query.
+     *
+     * @return array{items:array<int,array<string,mixed>>,total:int,page:int,per_page:int,has_more:bool}
+     */
+    public static function paginatedHistory(int $userId, array $filters = [], int $page = 0, int $perPage = 25): array
+    {
+        $outcome = $filters['outcome'] ?? null;
+        $tag     = $filters['tag']     ?? null;
+        $q       = trim((string) ($filters['q'] ?? ''));
+
+        $query = DialerLookup::where('user_id', $userId)
+            ->with('contact.phones')
+            ->orderByDesc('looked_up_at');
+
+        if ($outcome) {
+            $query->where('outcome', $outcome);
+        }
+        if ($tag) {
+            $query->where('tag', $tag);
+        }
+        if ($q !== '') {
+            $like = '%' . $q . '%';
+            $query->where(function ($w) use ($like) {
+                $w->where('number_e164', 'ilike', $like)
+                  ->orWhere('note', 'ilike', $like)
+                  ->orWhere('tag', 'ilike', $like)
+                  ->orWhereHas('contact', fn ($cq) => $cq
+                      ->where('display_name', 'ilike', $like)
+                      ->orWhere('given_name', 'ilike', $like)
+                      ->orWhere('family_name', 'ilike', $like));
+            });
+        }
+
+        $total   = $query->count();
+        $rows    = $query->skip($page * $perPage)->take($perPage + 1)->get();
+        $hasMore = $rows->count() > $perPage;
+        $rows    = $rows->take($perPage);
+
+        $items = $rows->map(fn ($r) => self::transformHistoryRow($r))->all();
+
+        return [
+            'items'    => $items,
+            'total'    => $total,
+            'page'     => $page,
+            'per_page' => $perPage,
+            'has_more' => $hasMore,
+        ];
+    }
+
+    /**
+     * Transform a single DialerLookup into the history-row shape. The contact
+     * relation must be eager-loaded (with('contact')) on the parent query.
+     *
+     * @return array<string,mixed>
+     */
+    public static function transformHistoryRow(DialerLookup $r): array
+    {
+        $contact  = $r->relationLoaded('contact') ? $r->contact : null;
+        $name     = $contact?->nameForDisplay() ?: ($r->number_e164 ?: 'Unknown');
+        $initials = $contact?->initials() ?: self::numberInitials($r->number_e164);
+        $at       = $r->looked_up_at;
+
+        return [
+            'id'          => $r->id,
+            'number_e164' => $r->number_e164,
+            'contact_id'  => $r->contact_id,
+            'name'        => $name,
+            'initials'    => $initials,
+            'outcome'     => $r->outcome,
+            'note'        => $r->note,
+            'tag'         => $r->tag,
+            'callback_at' => optional($r->callback_at)->toIso8601String(),
+            'at'          => optional($at)->toIso8601String(),
+            'at_human'    => optional($at)->diffForHumans(),
+            'at_date'     => optional($at)->toDateString(),
+        ];
     }
 
     private static function numberInitials(?string $number): string

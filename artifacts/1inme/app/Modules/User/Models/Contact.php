@@ -50,6 +50,20 @@ protected $fillable = [
         static::created(function (Contact $contact): void {
             $contact->queueCrmPush();
         });
+
+        // A create, edit (rename etc.) or delete can change which contacts
+        // count as duplicates — drop the cached duplicate-group count so the
+        // contacts-index banner reflects the new state immediately.
+        static::saved(function (Contact $contact): void {
+            if ($contact->user_id) {
+                \App\Modules\User\Services\Contacts\ContactDuplicateDetector::flushCountCache((int) $contact->user_id);
+            }
+        });
+        static::deleted(function (Contact $contact): void {
+            if ($contact->user_id) {
+                \App\Modules\User\Services\Contacts\ContactDuplicateDetector::flushCountCache((int) $contact->user_id);
+            }
+        });
     }
 
     /**
@@ -115,6 +129,15 @@ protected $fillable = [
     public function googleAccount(): BelongsTo   { return $this->belongsTo(GoogleContactsAccount::class, 'google_contacts_account_id'); }
     public function phones(): HasMany            { return $this->hasMany(ContactPhone::class); }
     public function emails(): HasMany            { return $this->hasMany(ContactEmail::class); }
+    public function workspaceShares(): HasMany   { return $this->hasMany(ContactWorkspaceShare::class); }
+
+    /**
+     * True when this contact has been shared with the given workspace.
+     */
+    public function isSharedWithWorkspace(int $workspaceId): bool
+    {
+        return $this->workspaceShares()->where('workspace_id', $workspaceId)->exists();
+    }
 
     public function nameForDisplay(): string
     {

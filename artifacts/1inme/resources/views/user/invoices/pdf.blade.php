@@ -62,7 +62,12 @@
         {{ $address['city'] ?? '' }} {{ $address['region'] ?? '' }} {{ $address['postal_code'] ?? '' }}<br>
         {{ $address['country'] ?? '' }}
         @if(!empty($address['tax_id']))
-            <br><span class="muted">{{ $address['tax_id_kind'] ?? 'Tax ID' }}: {{ $address['tax_id'] }}</span>
+            @php
+                $taxLabel = ($address['tax_id_kind'] ?? '') === 'OTHER'
+                    ? ($address['tax_id_label'] ?? 'Tax ID')
+                    : ($address['tax_id_kind'] ?? 'Tax ID');
+            @endphp
+            <br><span class="muted">{{ $taxLabel }}: {{ $address['tax_id'] }}</span>
         @endif
     </div>
 

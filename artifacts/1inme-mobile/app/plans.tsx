@@ -1,9 +1,10 @@
 import { Feather } from "@expo/vector-icons";
 import { Stack, useRouter } from "expo-router";
-import React, { useMemo, useState } from "react";
+import React, { useState } from "react";
 import {
   ActivityIndicator,
-  Modal,
+  Linking,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -12,29 +13,44 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import type {
-  PurchasesOffering,
-  PurchasesPackage,
-} from "react-native-purchases";
 
 import { Button } from "@/components/Button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useColors } from "@/hooks/useColors";
+import { useForegroundRefresh } from "@/hooks/useForegroundRefresh";
 import {
   billing,
   planPrice,
   type Currency,
   type Plan,
 } from "@/lib/api/billing";
-import {
-  isRevenueCatConfigured,
-  useSubscription,
-} from "@/lib/revenuecat";
+import { getBaseUrl } from "@/lib/api";
 import { showAlert } from "@/lib/webAlert";
 
 type Cycle = "monthly" | "annual";
 
 const CURRENCIES: Currency[] = ["USD", "INR"];
+
+/**
+ * Open the website's pricing page in the OS external browser (Safari / Chrome).
+ * An external browser session does not carry the app's bearer token, so the
+ * user lands on the public /pricing page and can sign in there to complete
+ * a purchase.
+ */
+function openPricingPage(): void {
+  // The `client=app` marker tells the website this checkout originated from
+  // the native app, so its post-payment success page fires the
+  // `sayzio://billing/refresh` deep link to bounce the user back here with a
+  // freshly-refreshed plan (see DeepLinkRouter).
+  const url = `${getBaseUrl()}/pricing?client=app`;
+  if (Platform.OS === "web") {
+    if (typeof window !== "undefined") {
+      window.open(url, "_blank");
+    }
+    return;
+  }
+  Linking.openURL(url).catch(() => {});
+}
 
 /**
  * Format a minor-unit amount in the same style as PHP PricingResolver::money().
@@ -54,7 +70,6 @@ function fmtMinor(minor: number, currency: Currency): string {
 /**
  * On the annual cycle, return the effective per-month price (annual ÷ 12).
  * On the monthly cycle, return the normal monthly formatted string.
- * This is the value shown as the big headline number.
  */
 function planHeadlineFormatted(
   plan: Plan,
@@ -71,7 +86,6 @@ function planHeadlineFormatted(
 
 /**
  * Fineprint for the annual billing note shown below the per-month headline.
- * e.g. "Billed annually at $90.00/yr — or $9.00/mo month-to-month"
  */
 function annualBillingNote(plan: Plan, currency: Currency): string {
   const annual = planPrice(plan, currency, "annual");
@@ -101,14 +115,9 @@ export default function PlansScreen() {
   const router = useRouter();
   const qc = useQueryClient();
   const { refresh: refreshAuth } = useAuth();
-  const sub = useSubscription();
 
   const [cycle, setCycle] = useState<Cycle>("monthly");
   const [currency, setCurrencyState] = useState<Currency | null>(null);
-  const [confirm, setConfirm] = useState<{
-    plan: Plan;
-    pkg: PurchasesPackage;
-  } | null>(null);
 
   const plansQuery = useQuery({
     queryKey: ["billing", "plans"],
@@ -151,6 +160,7 @@ export default function PlansScreen() {
         qc.invalidateQueries({ queryKey: ["billing", "plans"] }),
         qc.invalidateQueries({ queryKey: ["billing", "downgrade"] }),
       ]);
+      refreshAuth?.();
       showAlert("Plan resumed", res.data.message);
     },
     onError: (e: { message?: string }) =>
@@ -173,8 +183,21 @@ export default function PlansScreen() {
       showAlert("Couldn't cancel", e?.message ?? "Please try again."),
   });
 
-  // Seed the currency from the backend-resolved default (geo / profile /
-  // saved preference) once, then let the user flip it manually.
+  // The "Upgrade on the web" flow hands off to the OS browser and relies on
+  // the user returning to the app. Nothing in an external browser session can
+  // push the new plan back into the app, so when the app returns to the
+  // foreground we invalidate every billing query (plans, subscription,
+  // downgrade) and refresh auth. This makes the "CURRENT" badge move to the
+  // just-purchased plan and the upgrade CTAs disappear without a manual reload.
+  useForegroundRefresh(() => {
+    qc.invalidateQueries({ queryKey: ["billing", "plans"] });
+    qc.invalidateQueries({ queryKey: ["billing", "subscription"] });
+    qc.invalidateQueries({ queryKey: ["billing", "downgrade"] });
+    refreshAuth?.();
+  });
+
+  // Seed the currency from the backend-resolved default once, then let the
+  // user flip it manually for price display purposes.
   const resolvedCurrency = plansQuery.data?.data?.currency;
   React.useEffect(() => {
     if (currency == null && resolvedCurrency) {
@@ -186,9 +209,7 @@ export default function PlansScreen() {
   const currencies = plansQuery.data?.data?.currencies ?? CURRENCIES;
   const activeCurrency: Currency = currency ?? "USD";
 
-  // Persist the manual pick so purchase/activation use the same currency
-  // and it follows the user across devices. Fire-and-forget — the UI has
-  // already flipped client-side from the pre-computed price matrix.
+  // Persist the manual currency pick so price display is consistent.
   const persistCurrency = useMutation({
     mutationFn: (c: Currency) => billing.setCurrency(c),
   });
@@ -196,112 +217,6 @@ export default function PlansScreen() {
   const onCurrencyChange = (c: Currency) => {
     setCurrencyState(c);
     persistCurrency.mutate(c);
-  };
-
-  const activate = useMutation({
-    mutationFn: (input: {
-      plan_id: number;
-      cycle: Cycle;
-      entitlement: string;
-    }) => billing.activateRevenueCat(input),
-    onSuccess: async () => {
-      await Promise.all([
-        qc.invalidateQueries({ queryKey: ["billing", "plans"] }),
-        refreshAuth?.(),
-      ]);
-    },
-  });
-
-  const restore = useMutation({
-    mutationFn: async () => {
-      // Use the CustomerInfo *returned by* restore() — sub.activeEntitlements
-      // reflects the cached query and may not yet be invalidated by the
-      // time we run this loop.
-      const info = await sub.restore();
-      const activeKeys = info ? Object.keys(info.entitlements.active) : [];
-      const plans = plansQuery.data?.data?.plans ?? [];
-      for (const p of plans) {
-        if (activeKeys.includes(p.slug)) {
-          try {
-            await billing.activateRevenueCat({
-              plan_id: p.id,
-              cycle,
-              entitlement: p.slug,
-            });
-          } catch {
-            /* ignore individual failures during restore */
-          }
-        }
-      }
-    },
-    onSuccess: async () => {
-      await Promise.all([
-        qc.invalidateQueries({ queryKey: ["billing", "plans"] }),
-        refreshAuth?.(),
-      ]);
-      showAlert("Restore complete", "We re-checked your purchases.");
-    },
-    onError: (e: any) =>
-      showAlert("Restore failed", e?.message ?? "Please try again."),
-  });
-
-  const offering: PurchasesOffering | null = sub.currentOffering;
-
-  // Strict mapping: a package belongs to (plan, cycle) only when its RC
-  // package identifier OR its store product identifier exactly equals
-  // `<slug>_<cycle>`. We deliberately do not fall back to a `startsWith`
-  // match — picking the wrong cycle here would charge the user for the
-  // wrong period.
-  const findPackage = (plan: Plan): PurchasesPackage | null => {
-    if (!offering) return null;
-    const wanted = `${plan.slug}_${cycle}`.toLowerCase();
-    return (
-      offering.availablePackages.find((p) => {
-        const id = (p.identifier ?? "").toLowerCase();
-        const prodId = (p.product?.identifier ?? "").toLowerCase();
-        return id === wanted || prodId === wanted;
-      }) ?? null
-    );
-  };
-
-  const onPurchase = (plan: Plan) => {
-    if (!isRevenueCatConfigured()) {
-      showAlert(
-        "Billing not available",
-        "In-app purchases haven't been configured for this build yet.",
-      );
-      return;
-    }
-    const pkg = findPackage(plan);
-    if (!pkg) {
-      showAlert(
-        "Plan unavailable",
-        `No matching ${cycle} package found for ${plan.name}.`,
-      );
-      return;
-    }
-    setConfirm({ plan, pkg });
-  };
-
-  const confirmPurchase = async () => {
-    if (!confirm) return;
-    const { plan, pkg } = confirm;
-    setConfirm(null);
-    try {
-      await sub.purchase(pkg);
-      await activate.mutateAsync({
-        plan_id: plan.id,
-        cycle,
-        entitlement: plan.slug,
-      });
-      showAlert("All set", `${plan.name} is now active.`);
-    } catch (e: any) {
-      if (e?.userCancelled) return;
-      showAlert(
-        "Purchase failed",
-        e?.message ?? "Something went wrong. Please try again.",
-      );
-    }
   };
 
   const data = plansQuery.data?.data;
@@ -353,9 +268,7 @@ export default function PlansScreen() {
     );
   };
 
-  // Show the downgrade entry point only when the user is on a paid plan
-  // (a lower paid plan exists to move to). Free users have nothing to
-  // downgrade — they'd cancel instead.
+  // Show the downgrade entry point only when the user is on a paid plan.
   const currentPlan = plans.find((p) => p.is_current);
   const onPaidPlan =
     !!currentPlan && (currentPlan.monthly?.amount_minor ?? 0) > 0;
@@ -454,6 +367,30 @@ export default function PlansScreen() {
             </View>
           </View>
         ) : null}
+
+        {/* Upgrade banner — always visible so the user knows how to upgrade */}
+        <View
+          style={[
+            styles.webBanner,
+            {
+              backgroundColor: colors.primary + "14",
+              borderColor: colors.primary + "44",
+              borderRadius: colors.radius,
+            },
+          ]}
+        >
+          <Feather name="external-link" size={15} color={colors.primary} />
+          <Text style={[styles.webBannerText, { color: colors.mutedForeground }]}>
+            Plan upgrades are completed on the website.{" "}
+            <Text
+              style={{ color: colors.primary, fontFamily: "SpaceGrotesk_600SemiBold" }}
+              onPress={openPricingPage}
+            >
+              Open pricing page
+            </Text>{" "}
+            in your browser to choose a plan.
+          </Text>
+        </View>
 
         <View style={styles.switchers}>
           <View style={[styles.toggle, { borderColor: colors.border }]}>
@@ -633,41 +570,19 @@ export default function PlansScreen() {
                     </Text>
                   </View>
                 ))}
-                <View style={{ marginTop: 12 }}>
-                  <Button
-                    label={isCurrent ? "Current plan" : "Choose plan"}
-                    onPress={() => onPurchase(plan)}
-                    variant={isCurrent ? "outline" : "cta"}
-                    disabled={
-                      isCurrent || sub.isPurchasing || activate.isPending
-                    }
-                  />
-                </View>
+                {!isCurrent ? (
+                  <View style={{ marginTop: 12 }}>
+                    <Button
+                      label="Upgrade on the web"
+                      onPress={openPricingPage}
+                      variant="cta"
+                    />
+                  </View>
+                ) : null}
               </View>
             );
           })
         )}
-
-        <Pressable
-          onPress={() => restore.mutate()}
-          disabled={restore.isPending || sub.isRestoring}
-          style={({ pressed }) => [
-            styles.restore,
-            { opacity: pressed || restore.isPending ? 0.6 : 1 },
-          ]}
-        >
-          <Feather name="refresh-cw" size={16} color={colors.primary} />
-          <Text
-            style={{
-              color: colors.primary,
-              fontFamily: "SpaceGrotesk_600SemiBold",
-            }}
-          >
-            {restore.isPending || sub.isRestoring
-              ? "Restoring…"
-              : "Restore purchases"}
-          </Text>
-        </Pressable>
 
         {onPaidPlan ? (
           <Pressable
@@ -755,59 +670,6 @@ export default function PlansScreen() {
           </Text>
         </Pressable>
       </ScrollView>
-
-      <Modal
-        visible={confirm !== null}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setConfirm(null)}
-      >
-        <View style={styles.modalOverlay}>
-          <View
-            style={[
-              styles.modalCard,
-              {
-                backgroundColor: colors.card,
-                borderColor: colors.border,
-                borderRadius: colors.radius,
-              },
-            ]}
-          >
-            <Text
-              style={{
-                color: colors.foreground,
-                fontFamily: "SpaceGrotesk_700Bold",
-                fontSize: 18,
-              }}
-            >
-              Confirm purchase
-            </Text>
-            <Text
-              style={{
-                color: colors.mutedForeground,
-                marginTop: 8,
-                fontFamily: "SpaceGrotesk_400Regular",
-              }}
-            >
-              {confirm
-                ? `${confirm.plan.name} — ${confirm.pkg.product.priceString} (${cycle})`
-                : ""}
-            </Text>
-            <View style={{ flexDirection: "row", gap: 8, marginTop: 16 }}>
-              <View style={{ flex: 1 }}>
-                <Button
-                  label="Cancel"
-                  variant="outline"
-                  onPress={() => setConfirm(null)}
-                />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Button label="Buy" variant="cta" onPress={confirmPurchase} />
-              </View>
-            </View>
-          </View>
-        </View>
-      </Modal>
     </View>
   );
 }
@@ -835,6 +697,19 @@ const styles = StyleSheet.create({
   scheduledCard: { borderWidth: 1, padding: 16 },
   scheduledHeader: { flexDirection: "row", alignItems: "center", gap: 8 },
   scheduledTitle: { fontFamily: "SpaceGrotesk_700Bold", fontSize: 16 },
+  webBanner: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 8,
+    padding: 12,
+    borderWidth: 1,
+  },
+  webBannerText: {
+    flex: 1,
+    fontFamily: "SpaceGrotesk_400Regular",
+    fontSize: 13,
+    lineHeight: 18,
+  },
   card: {
     borderWidth: 1,
     padding: 16,
@@ -865,31 +740,11 @@ const styles = StyleSheet.create({
     gap: 8,
     marginTop: 8,
   },
-  restore: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    paddingVertical: 12,
-  },
   downgrade: {
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
     padding: 14,
     borderWidth: 1,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.5)",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 20,
-  },
-  modalCard: {
-    width: "100%",
-    maxWidth: 360,
-    borderWidth: 1,
-    padding: 20,
   },
 });

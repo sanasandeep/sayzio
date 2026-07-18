@@ -141,7 +141,7 @@ export default function InvoiceForm(props: Props) {
   const catalogQ = useQuery({ queryKey: ["billing-catalog"], queryFn: getCatalog });
   const contactsQ = useQuery({
     queryKey: ["contacts", contactQuery],
-    queryFn: () => listContacts(contactQuery),
+    queryFn: () => listContacts({ q: contactQuery }),
     enabled: pickerOpen === "contact",
   });
 

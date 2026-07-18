@@ -149,7 +149,7 @@ class CronJobsController extends Controller
     {
         return [
             'state'           => $status['state'],
-            'last_tick'       => $status['last_tick']?->format('M j, H:i'),
+            'last_tick'       => \App\Support\PlatformTimezone::format($status['last_tick'], 'M j, H:i', false),
             'last_tick_human' => $status['last_tick']?->diffForHumans(),
             'overdue_count'   => (int) $status['overdue_count'],
         ];
@@ -190,7 +190,7 @@ class CronJobsController extends Controller
                 'running_now'     => (bool) $job['running_now'] || in_array($job['key'], $runningKeys, true),
                 'paused'          => (bool) $job['paused'],
                 'overdue'         => (bool) $job['overdue'],
-                'last_run'        => $job['last_run']?->format('M j, H:i'),
+                'last_run'        => \App\Support\PlatformTimezone::format($job['last_run'], 'M j, H:i', false),
                 'last_run_human'  => $job['last_run']?->diffForHumans(),
                 'last_run_ok'     => $job['last_run_ok'],
                 'last_runtime'    => $job['last_runtime'],

@@ -11,7 +11,7 @@
       "source": "app/(auth)/_layout.tsx",
       "relation": "adapted",
       "note": "signed-in redirect targets /(tabs)/dialer (standalone tab group has no index screen); otherwise identical",
-      "sourceSha256": "afdea40807667a2fcb86ee05a0b2501fc7f8f2806f5b28859ca245f61aee3f08"
+      "sourceSha256": "fcc7278dba124016b74a4c551b2edda4cd5b8f2721d4bcc076d48561629b1186"
     },
     {
       "standalone": "app/(auth)/verify.tsx",
@@ -23,7 +23,7 @@
       "source": "app/info/about.tsx",
       "relation": "adapted",
       "note": "standalone copy keeps the contacts/dialer mentions the main app removed when its dialer surfaces were dropped",
-      "sourceSha256": "a5e1fd9fa50f7cb339c5550a8d7561deec86deebdf328f58d8434940efd60ea5"
+      "sourceSha256": "33685c9f7305b34c57147598142690a9e190baf433a0474de0085fa50e089b77"
     },
     {
       "standalone": "app/info/help.tsx",
@@ -70,7 +70,7 @@
       "source": "components/InfoPage.tsx",
       "relation": "adapted",
       "note": "standalone keeps the plain static InfoPage; the main app added react-native-reanimated scroll-reveal entrance animations (via ./ScrollReveal + useReducedMotion) that the standalone does not depend on",
-      "sourceSha256": "e1e5600409ec4c9f41dff992c2f67a66192193ce40d30a40b7e83b987c8240b6"
+      "sourceSha256": "0eac898c9618f158b9f10ffe577ef956950835f65f1864a7f87bedb6d3bba1e7"
     },
     {
       "standalone": "components/MandatoryNameModal.tsx",
@@ -119,9 +119,7 @@
     {
       "standalone": "contexts/AuthContext.tsx",
       "source": "contexts/AuthContext.tsx",
-      "relation": "adapted",
-      "note": "demoLogin accepts an optional role (\"user\"|\"admin\"|\"super_admin\", default \"user\") to power the standalone (auth)/index.tsx \"Demo as admin\" button; otherwise identical (no impersonation stash — that was broken, half-added drift referencing storage exports the standalone never had)",
-      "sourceSha256": "bd6c9322b7c0ed75f1ffde73d8192fc00e6301e43a7409344fe2cd8591e2d2f4"
+      "relation": "identical"
     },
     {
       "standalone": "contexts/ThemeContext.tsx",
@@ -221,14 +219,14 @@
       "standalone": "app/(auth)/index.tsx",
       "source": "app/(auth)/index.tsx",
       "relation": "adapted",
-      "sourceSha256": "83537218e6ff47d5797cb6967fa9ddea7c672882e83a2666b8f4ad3692ada957",
-      "note": "dev-only missing-env alert text reworded (no monorepo path); everything else must match the main app"
+      "sourceSha256": "61daf1a67643dba1ec8516ce54c27fc909bb38c9c3176e4f410e7bf3dcfd3117",
+      "note": "dev-only missing-env alert text reworded (no monorepo path); also omits the intro-style reanimated AnimatedBlob decorative background the main app adds, because the standalone deliberately does not depend on react-native-reanimated (same policy as the static InfoPage entry); everything else must match the main app"
     },
     {
       "standalone": "app/index.tsx",
       "source": "app/index.tsx",
       "relation": "adapted",
-      "sourceSha256": "e4bbcecbde595b87743111a7e9a676c7a30f34eafecab1fbc0de8f7cd56fee2b",
+      "sourceSha256": "b76f01d9b2fe7deda7131ec971161cb372c8140e0357f51dc208ca74d0accc5f",
       "note": "launch gate simplified: no onboarding/biometric-lock routing; signed-in users go straight to the Dialer tab"
     },
     {
@@ -236,20 +234,20 @@
       "source": "app/_layout.tsx",
       "relation": "adapted",
       "note": "root providers trimmed to what the dialer needs (no VoiceAssistant, DeepLinkRouter, ErrorBoundary, ImpersonationBanner, IdleLockWarning, KeyboardProvider, RevenueCat/SubscriptionProvider, push registration, @workspace/api-client-react wiring); mounts useContactAutoSync; Stack.Screen list only carries dialer-relevant routes (search/dialer-profile/call/contacts/info/oauth-callback) — new main-app-only screens (calendars, brand-kits, delivery-projects, marketing-strategist, etc.) are not dialer surfaces and intentionally omitted",
-      "sourceSha256": "bc336ce2152cabebccb589d6bb83ad8329ca3143fc09d144df29d5ea04558b1d"
+      "sourceSha256": "4bb1b301311e2488a09305c93d0a9d427776112ce6f95952066d0dab914aa714"
     },
     {
       "standalone": "app/oauth-callback.tsx",
       "source": "app/oauth-callback.tsx",
       "relation": "adapted",
-      "sourceSha256": "80dc2a8694bb246dfea59bb79dba0b589f8e4c9e1a046ddf1278b8f57738176d",
+      "sourceSha256": "63ea63af3a730239191f0badc2f7c736cc3772128faf7b89c400aafb73029c02",
       "note": "Connected-Apps OAuth completion branch removed (standalone has no connected-apps screen); session handling must match"
     },
     {
       "standalone": "app/(tabs)/_layout.tsx",
       "source": "app/(tabs)/_layout.tsx",
       "relation": "adapted",
-      "sourceSha256": "920c0d38ef18d47bf26fc70e919f968e3764f654c2897acd3b12d7de5f72e78e",
+      "sourceSha256": "c5a11f49dd279d2b6d5f2cd403a53da873bd6499c228778b044ff2047874f5a1",
       "note": "different tab set: Dialer / Contacts / Caller ID / Events (+ header search button + nearby-event badge) instead of the main-app tabs"
     },
     {
@@ -266,9 +264,31 @@
       "standalone": "app/events/ticket/[alias]/[code].tsx",
       "source": "app/events/ticket/[alias]/[code].tsx",
       "relation": "identical"
+    },
+    {
+      "standalone": "hooks/useContactAutoSync.ts",
+      "source": "hooks/useContactAutoSync.ts",
+      "relation": "adapted",
+      "note": "standalone prompts for the contacts permission on first open (requestPermission true on the initial run) and triggers the account's Google Contacts sync on open/foreground; main app is fully silent (never prompts) and additionally invalidates contact-duplicate-count. Core mechanics (persisted-fingerprint cold-start seed, account-switch retrigger via userId dep, foreground re-sync) must stay in lockstep.",
+      "sourceSha256": "57afb5e2d781a0f4e2132e6236e7bdf64fa4e3834bd1fd0ef2ac3dddda986639"
+    },
+    {
+      "standalone": "lib/deviceContacts.ts",
+      "source": "lib/deviceContacts.ts",
+      "relation": "adapted",
+      "note": "same import flow; main app adds ContactImportPayload typing, a stricter FNV hash (json.length-based fingerprint, unsigned mixing per step) and non-any filtering. Fingerprint formats differ but each app only compares its own persisted values, so this is benign; behavior changes to the import/skip logic must be mirrored.",
+      "sourceSha256": "b12f5395e9b271bc26fc818ffcceb08bc805e5064f3f616f773e1761af33ecb1"
     }
   ],
   "standaloneOnly": [
+    {
+      "path": "scripts/test-contact-auto-sync.mjs",
+      "note": "source-driven unit test for the silent contact auto-sync hook (fingerprint persistence, cold-restart skip, account-switch reset, first-open prompt vs silent resumes, Google Contacts sync trigger); run via npm run test:contact-auto-sync"
+    },
+    {
+      "path": "scripts/lib/extract.mjs",
+      "note": "resilient with-proxy evaluation helper for source-driven tests, copied from artifacts/1inme-mobile/scripts/lib/extract.mjs"
+    },
     {
       "path": "scripts/test-channel-actions.mjs",
       "note": "source-driven unit test: every screen with per-number channel actions uses the shared ChannelActions component (no bespoke wa.me/t.me deep links) and resolveChannels honors dialer_channels prefs; run via npm run test:channel-actions"
@@ -330,14 +350,6 @@
       "note": "dedicated Caller ID lookup tab (main app reaches caller-id via the dialer + dialer-profile flows)"
     },
     {
-      "path": "hooks/useContactAutoSync.ts",
-      "note": "auto device-contact import + Google Contacts sync trigger on app open / foreground"
-    },
-    {
-      "path": "lib/deviceContacts.ts",
-      "note": "shared device-contact import helper used by the contacts tab and useContactAutoSync"
-    },
-    {
       "path": "lib/eventsLocation.ts",
       "note": "Single saved 'my location' anchoring Events near-me filtering + nearby-event alerts, set via device GPS or the shared MapPickerModal (the dialer's existing location-picker UI) — one location concept in this app, not a separate store; the main app has no equivalent single-location concept"
     },
@@ -356,6 +368,10 @@
     {
       "path": "components/RsvpWebViewModal.tsx",
       "note": "Standalone-only: embeds the existing public /{alias}/rsvp page in a WebView (same pattern as MapPickerModal) so free RSVP happens in-app without a new backend endpoint; detects success via the redirect to /rsvp/manage/."
+    },
+    {
+      "path": "app/contact-duplicates.tsx",
+      "note": "duplicates review screen adapted from the main app's app/contact-duplicates.tsx (nullable display_name); reached from the device-import completion alert on the contacts tab"
     }
   ]
 }

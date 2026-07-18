@@ -4,6 +4,7 @@ namespace App\Modules\User\Support;
 
 use App\Modules\User\Models\Contact;
 use App\Modules\User\Models\ContactPhone;
+use App\Modules\User\Models\ContactWorkspaceShare;
 use App\Modules\User\Models\Follow;
 use App\Modules\User\Models\Link;
 use App\Modules\User\Models\LinkAlias;
@@ -117,7 +118,7 @@ class DialerSearch
      * @param array{tag?:string,has_biolink?:bool,has_email?:bool,has_phone?:bool} $filters
      * @return Collection<int,Contact>
      */
-    public static function contactsAdvanced(int $userId, string $q, array $filters = []): Collection
+    public static function contactsAdvanced(int $userId, string $q, array $filters = [], ?int $forWorkspaceId = null): Collection
     {
         $q = trim($q);
         $needle = '%' . $q . '%';
@@ -133,8 +134,21 @@ class DialerSearch
         // returns the searcher's full address book. Opt out of the workspace
         // scope so the web dialer matches API/mobile; the user_id predicate
         // still scopes this to the searcher, so it never widens WHO is visible.
+        //
+        // When $forWorkspaceId is provided (team workspace is active and the
+        // searcher is a member), also surface contacts that other members of
+        // that workspace have explicitly shared, so team members can reach
+        // shared contacts from the dialer just like their own.
         $query = Contact::withoutGlobalScope('workspace')
-            ->where('user_id', $userId)->with(['phones', 'emails', 'biolinkUser']);
+            ->where(function ($w) use ($userId, $forWorkspaceId) {
+                $w->where('user_id', $userId);
+                if ($forWorkspaceId) {
+                    $w->orWhereHas('workspaceShares', fn ($sq) =>
+                        $sq->where('workspace_id', $forWorkspaceId)
+                    );
+                }
+            })
+            ->with(['phones', 'emails', 'biolinkUser']);
 
         if ($q !== '') {
             // T9 smart-dial (keypad-spelled names) is folded into the same SQL
@@ -198,7 +212,24 @@ class DialerSearch
             'has_biolink' => !empty($filters['has_biolink']),
         ];
 
-        $rows = self::contactsAdvanced($user->id, $q, $advFilters);
+        // When a non-personal team workspace is active and the searcher is a
+        // member, extend the search to contacts shared with that workspace by
+        // other members. The workspace scope is intentionally bypassed via
+        // withoutGlobalScope (see contactsAdvanced), so we detect the bound
+        // workspace from the container instead of relying on the global scope.
+        $wsId = null;
+        if (app()->bound('current_workspace')) {
+            $ws = app('current_workspace');
+            // Any member of a non-personal team workspace can see shared
+            // contacts in the dialer — the workspace binding already implies
+            // membership; personal workspaces only have one member so
+            // workspace-sharing is meaningless there.
+            if ($ws && !$ws->is_personal) {
+                $wsId = (int) $ws->id;
+            }
+        }
+
+        $rows = self::contactsAdvanced($user->id, $q, $advFilters, $wsId);
 
         $slice = $rows->skip($page * $perGroup)->take($perGroup + 1);
         $has_more = $slice->count() > $perGroup;

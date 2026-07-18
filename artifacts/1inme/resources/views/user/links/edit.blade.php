@@ -172,7 +172,13 @@
                 <span class="text-sm text-white/60">Require a password before this link works</span>
             </label>
             <div x-show="passwordProtect" class="mt-3 ml-7">
-                <input type="password" name="password" placeholder="New password (leave empty to keep current)" class="w-full max-w-xs border border-white/10 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500/40">
+                @include('common.partials.password-field', [
+                    'name' => 'password',
+                    'placeholder' => 'New password (leave empty to keep current)',
+                    'autocomplete' => 'new-password',
+                    'wrapClass' => 'max-w-xs',
+                    'inputClass' => 'w-full border border-white/10 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500/40',
+                ])
             </div>
         </div>
 

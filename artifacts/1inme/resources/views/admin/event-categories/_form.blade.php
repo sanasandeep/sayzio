@@ -34,7 +34,7 @@
         <label class="block text-[11px] uppercase tracking-wider text-white/50 font-bold mb-1.5">
             Icon <span class="text-white/30 normal-case">(Font Awesome class)</span>
         </label>
-        <input type="text" name="icon" value="{{ old('icon', $category->icon ?? 'fa-calendar-star') }}"
+        <input type="text" name="icon" value="{{ old('icon', $category->icon ?? 'fa-calendar-days') }}"
                required maxlength="60" pattern="fa-[a-z0-9-]+"
                class="w-full bg-black/30 border border-white/15 rounded-lg px-3 py-2 text-sm text-white font-mono"
                placeholder="fa-music">
@@ -61,7 +61,7 @@
 <div class="flex items-center gap-3">
     <div class="rounded-xl overflow-hidden border border-white/10 w-16 h-16 flex items-center justify-center text-white text-xl"
          style="background: linear-gradient(135deg, {{ old('color_from', $category->color_from ?? '#3d6bff') }} 0%, {{ old('color_to', $category->color_to ?? '#2342c7') }} 100%);">
-        <i class="fas {{ old('icon', $category->icon ?? 'fa-calendar-star') }}"></i>
+        <i class="fas {{ old('icon', $category->icon ?? 'fa-calendar-days') }}"></i>
     </div>
     <label class="flex items-center gap-2 cursor-pointer px-3 h-[42px] rounded-lg bg-black/30 border border-white/15">
         <input type="hidden" name="is_enabled" value="0">

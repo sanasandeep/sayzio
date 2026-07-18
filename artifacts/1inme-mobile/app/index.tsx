@@ -27,7 +27,12 @@ export default function GateScreen() {
   const [showSplash, setShowSplash] = useState(() => !hasSplashShownThisSession());
 
   useEffect(() => {
-    getOnboardingComplete().then(setOnboarded);
+    getOnboardingComplete()
+      .then(setOnboarded)
+      // Fail open: a corrupted or unreadable onboarding flag is treated as
+      // "not yet onboarded" so the user sees the intro slides rather than
+      // being stuck at the loading screen indefinitely.
+      .catch(() => setOnboarded(false));
   }, []);
 
   useEffect(() => {

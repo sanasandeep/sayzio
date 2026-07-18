@@ -41,12 +41,7 @@ class SubscriptionTier extends Model
     public static function makeSlug(int $userId, string $name): string
     {
         $base = Str::slug($name) ?: 'tier';
-        $slug = $base;
-        $i = 1;
-        while (self::query()->where('user_id', $userId)->where('slug', $slug)->exists()) {
-            $slug = $base . '-' . (++$i);
-        }
-        return $slug;
+        return \App\Support\UniqueSuffix::resolve(self::query()->where('user_id', $userId), $base);
     }
 
     public function priceForCycle(string $cycle): int

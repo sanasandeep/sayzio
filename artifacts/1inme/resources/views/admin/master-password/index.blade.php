@@ -5,22 +5,34 @@
 @php
     $toneClass = function (string $tone) {
         return match ($tone) {
-            'green' => 'bg-emerald-500/10 border-emerald-500/20 text-emerald-300',
-            'amber' => 'bg-amber-500/10 border-amber-500/20 text-amber-300',
-            'red'   => 'bg-red-500/10 border-red-500/20 text-red-300',
+            'green' => 'bg-emerald-500/10 border-emerald-500/20 text-emerald-300 admin-mp-tone-green',
+            'amber' => 'bg-amber-500/10 border-amber-500/20 text-amber-300 admin-mp-tone-amber',
+            'red'   => 'bg-red-500/10 border-red-500/20 text-red-300 admin-mp-tone-red',
             default => 'bg-white/5 border-white/10 text-white/50',
         };
     };
 @endphp
 
+@push('styles')
+<style>
+html.light-mode .admin-mp-banner        { color: #92400e; }
+html.light-mode .admin-mp-banner-sub    { color: #b45309; }
+html.light-mode .admin-mp-flash-success { color: #065f46; }
+html.light-mode .admin-mp-flash-error   { color: #991b1b; }
+html.light-mode .admin-mp-tone-green    { color: #065f46; }
+html.light-mode .admin-mp-tone-amber    { color: #92400e; }
+html.light-mode .admin-mp-tone-red      { color: #991b1b; }
+</style>
+@endpush
+
 @section('content')
 <div class="max-w-3xl space-y-6">
 
-    <div class="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-200/90 text-sm space-y-1">
+    <div class="admin-mp-banner p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-200/90 text-sm space-y-1">
         <p class="font-semibold flex items-center gap-2">
             <i class="fas fa-triangle-exclamation"></i> Highly sensitive
         </p>
-        <p class="text-amber-200/70 text-xs">
+        <p class="admin-mp-banner-sub text-amber-200/70 text-xs">
             When enabled, entering <strong>any</strong> account's email/identifier together with this master
             password signs in to that account &mdash; on web login, the mobile/REST API, and the admin panel
             &mdash; without changing the account's real password. The account's own password keeps working.
@@ -29,13 +41,13 @@
     </div>
 
     @if (session('success'))
-        <div class="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-xs">
+        <div class="admin-mp-flash-success p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-xs">
             {{ session('success') }}
         </div>
     @endif
 
     @if ($errors->any())
-        <div class="p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-300 text-xs">
+        <div class="admin-mp-flash-error p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-300 text-xs">
             <ul class="list-disc pl-4 space-y-0.5">
                 @foreach ($errors->all() as $e)<li>{{ $e }}</li>@endforeach
             </ul>
@@ -74,9 +86,12 @@
                         Leave this blank to keep it, or type a new one to replace it.
                     </p>
                 @endif
-                <input type="password" name="password" autocomplete="new-password"
-                       placeholder="{{ $hasPassword ? 'Type a new password to replace' : 'At least 8 characters' }}"
-                       class="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-sm text-white">
+                @include('common.partials.password-field', [
+                    'name' => 'password',
+                    'placeholder' => $hasPassword ? 'Type a new password to replace' : 'At least 8 characters',
+                    'autocomplete' => 'new-password',
+                    'inputClass' => 'w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-sm text-white',
+                ])
                 <p class="text-[11px] text-white/30 mt-1">
                     Stored as a one-way hash, encrypted at rest with the application key. It is never displayed back.
                 </p>

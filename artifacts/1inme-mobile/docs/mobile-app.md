@@ -16,9 +16,9 @@ monetization from their phone.
 - **@tanstack/react-query** — server-state/data fetching.
 - **expo-secure-store** — encrypted token storage; `@react-native-async-storage`
   for non-secret cache.
-- **react-native-purchases** (RevenueCat) for in-app subscriptions;
-  **expo-web-browser** / **expo-auth-session** for hosted-onboarding handoffs
-  (e.g. payouts).
+- **expo-web-browser** / **expo-auth-session** for hosted-onboarding handoffs
+  (e.g. payouts) and for opening the website's pricing page for plan upgrades
+  and coin purchases in the OS external browser.
 - Native modules: `expo-location`, `expo-audio` (voice
   assistant), `expo-notifications` (push), `react-native-nfc-manager` (NFC),
   `expo-local-authentication` (biometric app lock), `react-native-qrcode-svg`,
@@ -151,7 +151,7 @@ Generated from `app/` (expo-router). `(auth)` and `(tabs)` are route groups; `[p
 | `app/monetization/{manage,subscribe,tip,unlock}.tsx` | Creator monetization. |
 | `app/paid-page/[alias].tsx` | Standalone paid-page viewer. |
 | `app/orders.tsx`, `app/store/order/[id].tsx` | Product storefront orders + order detail. |
-| `app/plans.tsx`, `app/upgrade.tsx` | Plans & upsell (RevenueCat). |
+| `app/plans.tsx`, `app/upgrade.tsx` | Plans & upsell (redirect to website pricing). |
 | `app/invoices.tsx`, `app/invoices/[id].tsx` | Invoicing. |
 
 ### AI
@@ -207,6 +207,59 @@ Reachable only by an operator whose Sanctum token is email-linked to a back-offi
 | `app/admin/users.tsx`, `app/admin/users/[id].tsx` | User list + roles / admin-access / impersonation. |
 | `app/mail-settings.tsx` | Mail / SMTP settings (status, edit, send test). |
 
+## Building an installable Android APK (EAS Build)
+
+The project is configured for [EAS Build](https://docs.expo.dev/build/introduction/) with three profiles in `eas.json`:
+
+| Profile | Output | Distribution | API URL |
+|---------|--------|--------------|---------|
+| `development` | APK (debug) | Internal (sideload) | `https://sayzio.app` |
+| `preview` | APK (release) | Internal (sideload) | `https://sayzio.app` |
+| `production` | AAB | Play Store | `https://sayzio.app` |
+
+Use **`preview`** to produce a sideloadable APK for real-device testing.
+
+### One-time setup
+
+```bash
+# 1. Install the EAS CLI globally (if not already installed)
+npm install -g eas-cli
+
+# 2. Log in to your Expo account
+eas login
+
+# 3. Create the EAS project and write the real projectId into app.json
+#    (run once from the mobile artifact directory)
+cd artifacts/1inme-mobile
+eas init
+```
+
+`eas init` will replace the `"eas-project-id-placeholder"` value in `app.json → extra.eas.projectId` with your actual project UUID. Commit that change before the next build.
+
+### Trigger a build
+
+```bash
+cd artifacts/1inme-mobile
+
+# Sideloadable APK pointing at the production backend
+eas build -p android --profile preview
+```
+
+EAS queues the build on Expo's cloud workers. When it finishes (~10–20 min), the CLI prints a download URL. Install on any Android phone with **"Unknown sources"** (or "Install unknown apps") enabled:
+
+```bash
+# Download and install via ADB (device connected by USB with USB debugging on)
+adb install sayzio-*.apk
+```
+
+Or just open the EAS download URL on the phone's browser and tap **Install**.
+
+### Incrementing the build number
+
+`versionCode` in `app.json → expo.android.versionCode` must be a strictly increasing integer. Bump it before each new build (1 → 2 → 3 …). With `"appVersionSource": "remote"` in `eas.json`, EAS can also manage this automatically via `eas build --auto-submit` once remote version tracking is enabled on your project dashboard.
+
+---
+
 ## Feature parity with the web app
 
 | Feature | Status | Notes |
@@ -217,7 +270,7 @@ Reachable only by an operator whose Sanctum token is email-linked to a back-offi
 | **Forms** | Full | List, view, and submissions (`app/forms/`). |
 | **AI** | Full | Coach, Ask Coach, personas, credits; native voice via `expo-audio` (`lib/api/voice.ts`). |
 | **Wallet & coins** | Full | Balance, ledger, packages, purchase. |
-| **Payments** | Full | RevenueCat (`react-native-purchases`) with `/billing/revenuecat/activate`. |
+| **Payments** | Redirect | Plan upgrades & coin purchases open the website pricing page in the OS external browser (no in-app SDK). |
 | **Restaurant Menu** | Full | Native builder (settings, categories, items, device-photo upload, tables/QR) + orders dashboard (`app/links/[id]/restaurant-{menu,orders}.tsx`). |
 | **Reviews** | Full | Public viewer + owner approve/hide/pin/reply/delete (`app/reviews/`). |
 | **Product storefront** | Full | Native checkout + owner orders/fulfillment (`app/orders.tsx`, `app/store/order/[id].tsx`). |

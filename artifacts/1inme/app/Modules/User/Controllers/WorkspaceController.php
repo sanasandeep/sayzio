@@ -65,18 +65,71 @@ class WorkspaceController extends Controller
         return redirect()->route('user.dashboard')->with('success', "Workspace '{$ws->name}' created.");
     }
 
-    /** Owner-only: rename a workspace they own. */
+    /** Owner-only: show the workspace settings page. */
+    public function settings(Request $request, Workspace $workspace)
+    {
+        $user = $request->user();
+        abort_unless((int) $workspace->owner_user_id === $user->id, 403);
+
+        // The settings page is reachable by direct URL, so the workspace being
+        // configured may differ from whatever workspace is currently active in
+        // the sidebar/header. Auto-switch the active context to the workspace
+        // being edited so the switcher and every workspace-scoped surface line
+        // up with the page — otherwise the owner edits one workspace while the
+        // rest of the UI still points at another.
+        // Read the workspace the request resolved to via SetActiveWorkspace
+        // (bound in the container) rather than the injected context instance —
+        // WorkspaceContext is not a shared singleton, so this controller's copy
+        // has an empty cache and would report "no active workspace" every time.
+        $previous = app()->bound('current_workspace') ? app('current_workspace') : null;
+        $autoSwitched = !$previous || (int) $previous->id !== (int) $workspace->id;
+        if ($autoSwitched) {
+            $this->ctx->set($workspace);
+            // Keep the owner binding in step for any workspace-scoped partials
+            // shared with the layout (SetActiveWorkspace already ran with the
+            // old workspace before this controller resolved).
+            app()->instance('workspace_owner', $user);
+            $request->attributes->set('current_workspace', $workspace);
+        }
+
+        $ownedCount = $user->ownedWorkspaces()->count();
+        return view('user.workspaces.settings', [
+            'workspace'    => $workspace,
+            'ownedCount'   => $ownedCount,
+            'autoSwitched' => $autoSwitched,
+        ]);
+    }
+
+    /** Owner-only: rename a workspace and/or update its appearance. */
     public function update(Request $request, Workspace $workspace)
     {
         $user = $request->user();
         abort_unless((int) $workspace->owner_user_id === $user->id, 403);
-        $data = $request->validate(['name' => 'required|string|max:120']);
+        $data = $request->validate([
+            'name'  => 'required|string|max:120',
+            'icon'  => ['nullable', 'string', Rule::in(array_keys(Workspace::ICON_CHOICES))],
+            'color' => ['nullable', 'string', Rule::in(Workspace::COLOR_CHOICES)],
+        ]);
         $previousName = $workspace->name;
-        $workspace->update(['name' => $data['name']]);
+
+        $settings = $workspace->settings ?? [];
+        $appearance = $settings['appearance'] ?? [];
+        if (!empty($data['icon'])) {
+            $appearance['icon'] = $data['icon'];
+        }
+        if (!empty($data['color'])) {
+            $appearance['color'] = $data['color'];
+        }
+        $settings['appearance'] = $appearance;
+
+        $workspace->update([
+            'name'     => $data['name'],
+            'settings' => $settings,
+        ]);
         WorkspaceActivityRecorder::record($workspace, 'workspace.update', 'workspace', $workspace->id, $workspace->name, route('user.team.index'), [
             'from_name' => $previousName, 'to_name' => $data['name'],
         ]);
-        return back()->with('success', 'Workspace renamed.');
+        return back()->with('success', 'Workspace settings saved.');
     }
 
     /**

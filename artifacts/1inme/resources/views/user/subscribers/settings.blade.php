@@ -75,7 +75,13 @@
                 </div>
                 <div>
                     <label class="text-xs font-medium mb-1.5 block" style="color: var(--text-muted);">SMTP Password</label>
-                    <input type="password" name="smtp_password" value="{{ $subscription['smtp_password'] ?? '' }}" class="w-full px-3 py-2.5 rounded-xl text-sm outline-none" style="background: var(--bg-input); border: 1px solid var(--border-subtle); color: var(--text-primary);">
+                    @include('common.partials.password-field', [
+                        'name' => 'smtp_password',
+                        'autocomplete' => 'new-password',
+                        'value' => $subscription['smtp_password'] ?? '',
+                        'inputClass' => 'w-full px-3 py-2.5 rounded-xl text-sm outline-none',
+                        'inputStyle' => 'background: var(--bg-input); border: 1px solid var(--border-subtle); color: var(--text-primary);',
+                    ])
                 </div>
                 <div>
                     <label class="text-xs font-medium mb-1.5 block" style="color: var(--text-muted);">Encryption</label>
@@ -106,7 +112,13 @@
                 </div>
                 <div>
                     <label class="text-xs font-medium mb-1.5 block" style="color: var(--text-muted);">API Token</label>
-                    <input type="password" name="whatsapp_api_token" value="{{ $subscription['whatsapp_api_token'] ?? '' }}" class="w-full px-3 py-2.5 rounded-xl text-sm outline-none" style="background: var(--bg-input); border: 1px solid var(--border-subtle); color: var(--text-primary);">
+                    @include('common.partials.password-field', [
+                        'name' => 'whatsapp_api_token',
+                        'autocomplete' => 'off',
+                        'value' => $subscription['whatsapp_api_token'] ?? '',
+                        'inputClass' => 'w-full px-3 py-2.5 rounded-xl text-sm outline-none',
+                        'inputStyle' => 'background: var(--bg-input); border: 1px solid var(--border-subtle); color: var(--text-primary);',
+                    ])
                 </div>
                 <div>
                     <label class="text-xs font-medium mb-1.5 block" style="color: var(--text-muted);">Sender Number</label>

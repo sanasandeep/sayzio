@@ -2,6 +2,12 @@
 @section('title', 'Email / SMTP')
 @section('page-title', 'Email / SMTP')
 
+@push('styles')
+<style>
+html.light-mode .admin-mail-verified { color: #065f46; }
+</style>
+@endpush
+
 @php
     $toneClass = function (string $tone) {
         return match ($tone) {
@@ -67,7 +73,7 @@
                         {{ $status['label'] }}
                     </span>
                     @if($verifiedAt)
-                        <span class="text-[11px] text-emerald-300/80 flex items-center gap-1"
+                        <span class="admin-mail-verified text-[11px] text-emerald-300/80 flex items-center gap-1"
                               title="Last successful SMTP handshake: {{ $verifiedAt->toDayDateTimeString() }}">
                             <i class="fas fa-check-circle"></i>
                             Verified OK {{ $verifiedAt->diffForHumans() }}
@@ -126,9 +132,12 @@
                     @if($hasPassword)
                         <p class="text-xs text-white/60 mb-1">Stored: <span class="font-mono text-amber-300">{{ $maskedPassword }}</span></p>
                     @endif
-                    <input type="password" name="password" autocomplete="new-password"
-                           placeholder="{{ $hasPassword ? 'Paste a new password to replace' : '••••••••' }}"
-                           class="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-sm text-white">
+                    @include('common.partials.password-field', [
+                        'name' => 'password',
+                        'autocomplete' => 'new-password',
+                        'placeholder' => $hasPassword ? 'Paste a new password to replace' : '••••••••',
+                        'inputClass' => 'w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-sm text-white',
+                    ])
                     @if($hasPassword)
                         <label class="mt-2 inline-flex items-center gap-2 text-xs text-white/60">
                             <input type="hidden" name="clear_password" value="0">

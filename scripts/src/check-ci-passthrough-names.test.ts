@@ -14,6 +14,7 @@ import {
   checkAllWorkflows,
   discoverWorkflowFiles,
   usesPassthroughScheme,
+  isPrGatingWorkflow,
   collectCheckNames,
   loadRequiredChecks,
   assessRequiredCoverage,
@@ -39,8 +40,40 @@ describe("live workflows", () => {
     expect(checkAllWorkflows()).toEqual([]);
   });
 
-  it.each(WORKFLOW_FILES)("%s: every real check name has a passthrough", (rel) => {
+  // Per-workflow parity only applies to workflows that participate in the
+  // passthrough scheme (mirrors checkAllWorkflows). Non-PR workflows like the
+  // push-to-main deploy are exempt — asserted separately below.
+  const schemeFiles = WORKFLOW_FILES.filter((rel) => usesPassthroughScheme(readDoc(rel)));
+
+  it.each(schemeFiles)("%s: every real check name has a passthrough", (rel) => {
     expect(checkWorkflowParity(rel, readDoc(rel))).toEqual([]);
+  });
+
+  it("every non-scheme workflow is exempt ONLY because it never gates PRs", () => {
+    // A workflow without a passthrough companion is safe only if it can never
+    // report a status on a PR (no pull_request trigger) AND its check names
+    // are not in the required manifest. deploy-ec2.yml (push-to-main deploy)
+    // is the intended member of this set. If someone adds a pull_request
+    // trigger to it — or adds a new PR-gating workflow without passthroughs —
+    // this fails loudly instead of silently reopening the deadlock.
+    const required = new Set(loadRequiredChecks().names);
+    for (const rel of WORKFLOW_FILES) {
+      const doc = readDoc(rel);
+      if (usesPassthroughScheme(doc)) continue;
+      expect(isPrGatingWorkflow(doc), `${rel} gates PRs but has no passthrough scheme`).toBe(false);
+      for (const name of collectCheckNames(doc).real) {
+        expect(required.has(name), `${rel} check "${name}" must not be a required check`).toBe(false);
+      }
+    }
+  });
+
+  it("deploy-ec2.yml is present and correctly classified as a non-PR deploy workflow", () => {
+    const rel = ".github/workflows/deploy-ec2.yml";
+    expect(WORKFLOW_FILES).toContain(rel);
+    const doc = readDoc(rel);
+    expect(usesPassthroughScheme(doc)).toBe(false);
+    expect(isPrGatingWorkflow(doc)).toBe(false);
+    expect([...collectCheckNames(doc).real]).toContain("Deploy to production EC2");
   });
 });
 
@@ -173,9 +206,13 @@ describe("required-check manifest", () => {
 
   it("the manifest exactly matches the live real-guard names (no drift either way)", () => {
     const { names } = loadRequiredChecks();
+    // Only passthrough-scheme (safety) workflows feed the required manifest;
+    // non-PR workflows like the deploy are deliberately outside it.
     const allReal = new Set<string>();
     for (const rel of WORKFLOW_FILES) {
-      for (const n of collectCheckNames(readDoc(rel)).real) allReal.add(n);
+      const doc = readDoc(rel);
+      if (!usesPassthroughScheme(doc)) continue;
+      for (const n of collectCheckNames(doc).real) allReal.add(n);
     }
     // Every required name has a real producer, and no live safety job is
     // silently absent from the manifest.

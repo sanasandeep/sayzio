@@ -2,9 +2,10 @@ import { execFileSync } from "node:child_process";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test } from "@playwright/test";
 
 import { DEMO_LOGIN_EMAIL } from "./demo-account";
+import { loginAsDemo } from "./login-as-demo";
 
 /**
  * e2e: "estimate is outdated" hint on the Audience Insights panel
@@ -67,7 +68,7 @@ use Illuminate\\Support\\Facades\\Hash;
 use Illuminate\\Support\\Facades\\DB;
 
 // Seed under the SAME account demo-login authenticates
-// (AuthController::demoLogin -> sazioapp@gmail.com). Owning the fixture as
+// (AuthController::demoLogin -> sayzioapp@gmail.com). Owning the fixture as
 // any other email trips the analytics page's owner guard
 // (\$link->user_id !== workspace_owner_id()) and 403s before the card renders.
 $u = User::where('email', '${DEMO_LOGIN_EMAIL}')->first();
@@ -136,25 +137,6 @@ echo 'LINKID=' . $bio->id;
  * via JS and waits only for the POST response (not the heavy post-login
  * dashboard render) — see 1inme-browser-e2e-fast-login.
  */
-async function loginAsDemo(page: Page): Promise<void> {
-  await page.goto("/user/login");
-  await Promise.all([
-    page.waitForResponse(
-      (r) =>
-        r.url().endsWith("/user/demo-login") &&
-        r.request().method() === "POST",
-      { timeout: 90_000 },
-    ),
-    page.evaluate(() => {
-      const form = document.querySelector<HTMLFormElement>(
-        'form[action$="/user/demo-login"]',
-      );
-      if (!form) throw new Error("demo-login form not found");
-      form.submit();
-    }),
-  ]);
-}
-
 test.describe("audience insights — stale estimate hint", () => {
   // Blade renders over a distant RDS; lift the ceiling above the shared 60s.
   test.describe.configure({ timeout: 180_000 });

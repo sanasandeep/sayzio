@@ -2,6 +2,7 @@
 
 namespace App\Modules\Api\Controllers;
 
+use App\Jobs\ProcessContactExportJob;
 use App\Jobs\ProcessContactImportJob;
 use App\Modules\Api\Controllers\Concerns\ApiResponses;
 use App\Modules\Common\Services\ContactCandidateValidator;
@@ -9,18 +10,26 @@ use App\Modules\User\Controllers\ContactController as WebContactController;
 use App\Modules\User\Models\Contact;
 use App\Modules\User\Models\ContactDeletionTombstone;
 use App\Modules\User\Models\ContactEmail;
+use App\Modules\User\Models\ContactExport;
 use App\Modules\User\Models\ContactImport;
 use App\Modules\User\Models\ContactPhone;
+use App\Modules\User\Models\ContactWorkspaceShare;
 use App\Modules\User\Models\GoogleContactsAccount;
 use App\Modules\User\Models\IntegrationConfig;
 use App\Modules\User\Models\Link;
+use App\Modules\User\Models\Workspace;
 use App\Modules\User\Services\Contacts\BiolinkAttachResolver;
+use App\Modules\User\Services\Contacts\ContactDuplicateDetector;
+use App\Modules\User\Services\Contacts\ContactExportBuilder;
 use App\Modules\User\Services\Contacts\ContactImportParser;
+use App\Modules\User\Services\Contacts\ContactMergeService;
 use App\Modules\User\Services\Contacts\GoogleContactsSyncService;
+use App\Modules\User\Support\ContactWorkspaceShareHelper;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\URL;
 
 class ContactController extends Controller
 {
@@ -33,12 +42,37 @@ class ContactController extends Controller
         protected BiolinkAttachResolver $resolver,
         protected GoogleContactsSyncService $sync,
         protected ContactImportParser $importParser,
+        protected ContactExportBuilder $exportBuilder,
+        protected ContactDuplicateDetector $detector,
+        protected ContactMergeService $mergeService,
     ) {}
 
     public function index(Request $request)
     {
+        $user  = $request->user();
+        $wsId  = (int) $request->input('workspace_id', 0);
+
+        // When a non-personal team workspace ID is passed, include contacts
+        // shared to that workspace by other members (mobile parity for the
+        // shared team address book). The caller must be a member of that workspace.
+        $sharedWsId = null;
+        if ($wsId) {
+            $ws = Workspace::find($wsId);
+            if ($ws && !$ws->is_personal) {
+                $isMember = ((int) $ws->owner_user_id === (int) $user->id)
+                    || $user->workspaceMemberships()->where('workspace_id', $ws->id)->exists();
+                if ($isMember) $sharedWsId = $wsId;
+            }
+        }
+
         $q = Contact::with(['phones', 'emails'])
-            ->where('user_id', $request->user()->id);
+            ->withoutGlobalScope('workspace')
+            ->where(function ($w) use ($user, $sharedWsId) {
+                $w->where('user_id', $user->id);
+                if ($sharedWsId) {
+                    $w->orWhereHas('workspaceShares', fn ($sq) => $sq->where('workspace_id', $sharedWsId));
+                }
+            });
 
         if ($s = $request->string('q')->toString()) {
             $like = '%' . str_replace(['%', '_'], ['\\%', '\\_'], $s) . '%';
@@ -53,18 +87,29 @@ class ContactController extends Controller
             });
         }
 
+        // Tag filter — `?tag=value` returns only contacts that carry this tag.
+        if ($tag = $request->string('tag')->toString()) {
+            $q->whereJsonContains('tags', $tag);
+        }
+
         $page = $q->orderBy('display_name')
             ->paginate(min(200, max(1, (int) $request->input('per_page', 50))));
 
+        $items = collect($page->items())->map(fn ($c) => $this->transform($c, $sharedWsId))->all();
+
+        // Count only the caller's own contacts for the usage gauge; shared
+        // contacts belong to another account's quota.
+        $ownTotal = Contact::where('user_id', $user->id)->count();
+
         return $this->ok([
-            'items' => collect($page->items())->map(fn ($c) => $this->transform($c))->all(),
+            'items' => $items,
             'meta'  => [
                 'current_page' => $page->currentPage(),
                 'per_page'     => $page->perPage(),
                 'total'        => $page->total(),
                 'last_page'    => $page->lastPage(),
             ],
-            'usage' => $this->contactsUsage($request->user(), $page->total()),
+            'usage' => $this->contactsUsage($user, $ownTotal),
         ]);
     }
 
@@ -107,6 +152,234 @@ class ContactController extends Controller
         return $this->ok(['overdue' => $overdue]);
     }
 
+    // ---- duplicate detection & merge (mobile parity) --------------------
+
+    /**
+     * Return groups of likely-duplicate contacts for the signed-in user.
+     *
+     * Response:
+     *   {groups: [{ids, reason, contacts}], count: N}
+     *
+     * `contacts` arrays are the same shape as `transform()` so the mobile
+     * app can render side-by-side cards without extra requests.
+     */
+    public function duplicates(Request $request)
+    {
+        $userId = $request->user()->id;
+
+        try {
+            $rawGroups = $this->detector->detect($userId);
+        } catch (\Throwable $e) {
+            \Log::warning('API duplicates detect failed', ['err' => $e->getMessage()]);
+            return $this->ok(['groups' => [], 'count' => 0]);
+        }
+
+        $allIds = collect($rawGroups)->flatMap(fn ($g) => $g['ids'])->unique()->all();
+        $contactMap = Contact::with(['phones', 'emails'])
+            ->where('user_id', $userId)
+            ->whereIn('id', $allIds)
+            ->get()
+            ->keyBy('id');
+
+        $groups = [];
+        foreach ($rawGroups as $g) {
+            $contacts = array_values(array_filter(
+                array_map(fn ($id) => $contactMap->get($id), $g['ids']),
+                fn ($c) => $c !== null
+            ));
+            if (count($contacts) < 2) continue;
+            $groups[] = [
+                'ids'      => $g['ids'],
+                'reason'   => $g['reason'],
+                'contacts' => array_map(fn ($c) => $this->transform($c), $contacts),
+            ];
+        }
+
+        return $this->ok(['groups' => $groups, 'count' => count($groups)]);
+    }
+
+    /**
+     * Lightweight duplicate-group count for the mobile contacts banner/badge.
+     * Uses the detector's cached count (invalidated on every contact write /
+     * merge / dismissal) so the app can poll it cheaply on screen focus.
+     */
+    public function duplicatesCount(Request $request)
+    {
+        $userId = $request->user()->id;
+
+        try {
+            $count = $this->detector->count($userId);
+        } catch (\Throwable $e) {
+            \Log::warning('API duplicates count failed', ['err' => $e->getMessage()]);
+            return $this->ok(['count' => 0]);
+        }
+
+        return $this->ok(['count' => $count]);
+    }
+
+    /**
+     * Dismiss one or more contact pairs so the duplicate engine never
+     * re-flags them. Accepts pairs[] as "idA:idB" strings.
+     */
+    public function duplicatesDismiss(Request $request)
+    {
+        $request->validate([
+            'pairs'   => 'required|array|min:1|max:100',
+            'pairs.*' => 'string',
+        ]);
+
+        $userId = $request->user()->id;
+        $now    = now();
+        $dismissed = 0;
+
+        foreach ($request->input('pairs', []) as $pair) {
+            if (!preg_match('/^(\d+):(\d+)$/', (string) $pair, $m)) continue;
+            $a = (int) min($m[1], $m[2]);
+            $b = (int) max($m[1], $m[2]);
+            if ($a === $b) continue;
+
+            $count = Contact::where('user_id', $userId)->whereIn('id', [$a, $b])->count();
+            if ($count < 2) continue;
+
+            DB::table('contact_dismissed_pairs')->upsert(
+                [['user_id' => $userId, 'contact_id_a' => $a, 'contact_id_b' => $b, 'dismissed_at' => $now]],
+                ['user_id', 'contact_id_a', 'contact_id_b'],
+                ['dismissed_at']
+            );
+            $dismissed++;
+        }
+
+        // Dismissed pairs change the group count but bypass model events
+        // (raw upsert), so invalidate the cached badge count explicitly.
+        if ($dismissed > 0) {
+            ContactDuplicateDetector::flushCountCache($userId);
+        }
+
+        return $this->ok(['dismissed' => $dismissed]);
+    }
+
+    /**
+     * Merge loser contacts into the designated primary.
+     *
+     * POST /api/v1/contacts/{id}/merge-duplicate
+     * Body: loser_ids[] — IDs to merge into {id}; the primary ({id}) is
+     * excluded from the loser list server-side so the caller may include it
+     * for convenience.
+     *
+     * Returns the updated primary contact.
+     */
+    public function mergeContacts(Request $request, int $id)
+    {
+        $userId = $request->user()->id;
+        $primary = Contact::with(['phones', 'emails'])
+            ->where('user_id', $userId)
+            ->find($id);
+        if (!$primary) return $this->notFound('Contact not found');
+
+        $request->validate([
+            'loser_ids'   => 'required|array|min:1|max:50',
+            'loser_ids.*' => 'integer',
+        ]);
+
+        $loserIds = array_filter(
+            array_map('intval', $request->input('loser_ids', [])),
+            fn ($lid) => $lid !== $id
+        );
+
+        if (empty($loserIds)) {
+            return $this->fail('No contacts to merge into the primary.', 422, 'no_losers');
+        }
+
+        $losers = Contact::where('user_id', $userId)
+            ->whereIn('id', $loserIds)
+            ->get()
+            ->all();
+
+        if (empty($losers)) {
+            return $this->fail('Could not find contacts to merge.', 404, 'losers_not_found');
+        }
+
+        try {
+            $updated = $this->mergeService->merge($primary, $losers);
+        } catch (\Throwable $e) {
+            \Log::warning('API mergeContacts failed', ['err' => $e->getMessage()]);
+            return $this->fail('Merge failed: ' . $e->getMessage(), 500, 'merge_failed');
+        }
+
+        return $this->ok([
+            'contact' => $this->transform($updated->fresh(['phones', 'emails'])),
+            'merged'  => count($losers),
+        ]);
+    }
+
+    /**
+     * Bulk-merge every duplicate group in one call (mobile parity with the
+     * web "Merge all" action).
+     *
+     * POST /api/v1/contacts/duplicates/merge-all
+     * For each detected group the first contact becomes the primary and the
+     * rest are merged into it. Each group merges inside its own transaction
+     * (ContactMergeService), so one failing group doesn't roll back others.
+     *
+     * Returns {groups_merged, contacts_removed, groups_failed}.
+     */
+    public function mergeAllDuplicates(Request $request)
+    {
+        $userId = $request->user()->id;
+
+        try {
+            $rawGroups = $this->detector->detect($userId);
+        } catch (\Throwable $e) {
+            \Log::warning('API mergeAllDuplicates detect failed', ['err' => $e->getMessage()]);
+            return $this->fail('Could not scan for duplicates.', 500, 'detect_failed');
+        }
+
+        $mergedGroups    = 0;
+        $removedContacts = 0;
+        $failed          = 0;
+        // A contact can appear in multiple groups; once merged away it must
+        // not be reused as a primary or loser in a later group.
+        $consumed = [];
+
+        foreach ($rawGroups as $g) {
+            $ids = array_values(array_filter(
+                array_map('intval', $g['ids'] ?? []),
+                fn ($cid) => !isset($consumed[$cid])
+            ));
+            if (count($ids) < 2) continue;
+
+            $primaryId = array_shift($ids);
+            $primary = Contact::where('user_id', $userId)->find($primaryId);
+            if (!$primary) continue;
+
+            $losers = Contact::where('user_id', $userId)
+                ->whereIn('id', $ids)
+                ->get()
+                ->all();
+            if (empty($losers)) continue;
+
+            try {
+                $this->mergeService->merge($primary, $losers);
+            } catch (\Throwable $e) {
+                \Log::warning('API mergeAllDuplicates group failed', [
+                    'user' => $userId, 'primary' => $primaryId, 'err' => $e->getMessage(),
+                ]);
+                $failed++;
+                continue;
+            }
+
+            $mergedGroups++;
+            $removedContacts += count($losers);
+            foreach ($losers as $l) $consumed[$l->id] = true;
+        }
+
+        return $this->ok([
+            'groups_merged'    => $mergedGroups,
+            'contacts_removed' => $removedContacts,
+            'groups_failed'    => $failed,
+        ]);
+    }
+
     /**
      * Plan-based contacts usage gauge, mirrors the web index banner so the
      * mobile app can warn the user before the create/import flow blocks them.
@@ -128,11 +401,35 @@ class ContactController extends Controller
 
     public function show(Request $request, int $id)
     {
+        $user = $request->user();
+
+        // Look up own contacts first. If not found, check whether the contact
+        // is shared with a workspace the caller is a member of (mobile parity
+        // for team shared-contact viewing).
         $c = Contact::with(['phones', 'emails'])
-            ->where('user_id', $request->user()->id)
+            ->withoutGlobalScope('workspace')
+            ->where(function ($w) use ($user) {
+                $w->where('user_id', $user->id)
+                  ->orWhereHas('workspaceShares', function ($sq) use ($user) {
+                      // Restrict to workspaces the caller is a member of.
+                      $memberWsIds = $user->workspaceMemberships()->pluck('workspace_id')->merge(
+                          Workspace::where('owner_user_id', $user->id)->pluck('id')
+                      )->unique()->all();
+                      $sq->whereIn('workspace_id', $memberWsIds);
+                  });
+            })
             ->find($id);
+
         if (!$c) return $this->notFound('Contact not found');
-        return $this->ok(['contact' => $this->transform($c)]);
+
+        // Detect which workspace share applies (if any) for the response.
+        $wsId = (int) $request->input('workspace_id', 0);
+        $sharedWsId = null;
+        if ($wsId && (int) $c->user_id !== (int) $user->id) {
+            $sharedWsId = $wsId;
+        }
+
+        return $this->ok(['contact' => $this->transform($c, $sharedWsId)]);
     }
 
     public function store(Request $request)
@@ -202,6 +499,9 @@ class ContactController extends Controller
         return $this->created([
             'contact'      => $this->transform($contact->fresh(['phones', 'emails'])),
             'duplicate_of' => $v->duplicateOf, // surfaced for non-strict callers
+            // Cheap targeted per-contact check so mobile can surface the same
+            // "possible duplicate" notice the web flash shows after a save.
+            'has_duplicate' => $this->detector->contactHasDuplicate($contact->user_id, $contact->id),
         ]);
     }
 
@@ -314,6 +614,15 @@ class ContactController extends Controller
 
         $data = $this->validatePayload($request, partial: true);
 
+        // notes_append: browser extension shortcut — append text to notes
+        // without overwriting the whole contact record.
+        if ($request->has('notes_append') && ! $request->has('notes')) {
+            $appended = trim($request->string('notes_append'));
+            if ($appended !== '') {
+                $data['notes'] = trim(($c->notes ?? '') . "\n\n" . $appended);
+            }
+        }
+
         $contact = DB::transaction(function () use ($c, $data) {
             $c->fill(array_intersect_key($data, array_flip([
                 'display_name', 'given_name', 'family_name',
@@ -336,7 +645,13 @@ class ContactController extends Controller
         // Immediately mirror the edit to Google (best-effort).
         $this->pushToGoogleSafely($request->user()->id, $contact);
 
-        return $this->ok(['contact' => $this->transform($contact->fresh(['phones', 'emails']))]);
+        return $this->ok([
+            'contact' => $this->transform($contact->fresh(['phones', 'emails'])),
+            // Same duplicate signal the web update flash surfaces, so the
+            // mobile edit flow can prompt a review after a save that makes
+            // this contact match an existing one.
+            'has_duplicate' => $this->detector->contactHasDuplicate($contact->user_id, $contact->id),
+        ]);
     }
 
     public function destroy(Request $request, int $id)
@@ -383,9 +698,10 @@ class ContactController extends Controller
 
         $userId = $request->user()->id;
         $created = 0; $updated = 0; $skipped = 0;
+        $createdIds = [];
 
         $wsId = $this->activeWorkspaceId($request->user());
-        DB::transaction(function () use ($data, $userId, $wsId, &$created, &$updated, &$skipped) {
+        DB::transaction(function () use ($data, $userId, $wsId, &$created, &$updated, &$skipped, &$createdIds) {
             foreach ($data['contacts'] as $row) {
                 $emails = $row['emails'] ?? [];
                 $phones = $row['phones'] ?? [];
@@ -435,11 +751,34 @@ class ContactController extends Controller
                     $this->mergeEmails($c, $emails);
                     $this->mergePhones($c, $phones);
                     $created++;
+                    $createdIds[] = $c->id;
                 }
             }
         });
 
-        return $this->ok(compact('created', 'updated', 'skipped'));
+        // Surface how many of the freshly created contacts now look like
+        // duplicates of existing ones, so the import completion UI can offer
+        // a jump straight into the duplicates review screen. Uses the cheap
+        // per-contact check (anchored on each new row's own values) rather
+        // than a full detect() scan; capped rows (max 500) keep this bounded.
+        $duplicatesFound = 0;
+        try {
+            ContactDuplicateDetector::flushCountCache($userId);
+            foreach ($createdIds as $cid) {
+                if ($this->detector->contactHasDuplicate($userId, $cid)) {
+                    $duplicatesFound++;
+                }
+            }
+        } catch (\Throwable $e) {
+            \Log::warning('Bulk import duplicate check failed', ['err' => $e->getMessage()]);
+        }
+
+        return $this->ok([
+            'created'          => $created,
+            'updated'          => $updated,
+            'skipped'          => $skipped,
+            'duplicates_found' => $duplicatesFound,
+        ]);
     }
 
     protected function mergeEmails(Contact $c, array $emails): void
@@ -524,8 +863,25 @@ class ContactController extends Controller
         }
     }
 
-    protected function transform(Contact $c): array
+    protected function transform(Contact $c, ?int $forWorkspaceId = null): array
     {
+        $workspaceShare = null;
+        if ($forWorkspaceId) {
+            $share = $c->relationLoaded('workspaceShares')
+                ? $c->workspaceShares->firstWhere('workspace_id', $forWorkspaceId)
+                : ContactWorkspaceShare::where('contact_id', $c->id)->where('workspace_id', $forWorkspaceId)->with('sharedBy')->first();
+            if ($share) {
+                $workspaceShare = [
+                    'workspace_id' => $share->workspace_id,
+                    'shared_by'    => [
+                        'id'   => $share->sharedBy?->id,
+                        'name' => $share->sharedBy?->name,
+                    ],
+                    'shared_at' => optional($share->created_at)->toIso8601String(),
+                ];
+            }
+        }
+
         return [
             'id'           => $c->id,
             'display_name' => $c->display_name ?: $c->nameForDisplay(),
@@ -534,6 +890,7 @@ class ContactController extends Controller
             'organization' => $c->organization,
             'job_title'    => $c->job_title,
             'notes'        => $c->notes,
+            'tags'         => $c->tags ?? [],
             'emails'       => $c->emails->map(fn ($e) => [
                 'id' => $e->id, 'label' => $e->label, 'value' => $e->value, 'is_primary' => (bool) $e->is_primary,
             ])->values()->all(),
@@ -541,13 +898,85 @@ class ContactController extends Controller
                 'id' => $p->id, 'label' => $p->label, 'value' => $p->value,
                 'value_e164' => $p->value_e164, 'is_primary' => (bool) $p->is_primary,
             ])->values()->all(),
-            'photo_url'    => $c->photoUrl(),
+            'photo_url'      => $c->photoUrl(),
             'manual_profile' => \App\Modules\User\Support\DialerIdentity::normalizeManual($c->manual_profile),
             'follow_up_at'   => optional($c->follow_up_at)->toIso8601String(),
             'follow_up_note' => $c->follow_up_note,
             'follow_up_tz'   => $c->follow_up_tz,
-            'created_at'   => optional($c->created_at)->toIso8601String(),
+            'workspace_share'=> $workspaceShare,
+            'created_at'     => optional($c->created_at)->toIso8601String(),
         ];
+    }
+
+    /**
+     * Share a contact with the specified workspace (mobile parity).
+     * Only the contact owner can share. Workspace ID is passed in the body.
+     *
+     * POST /contacts/{id}/share
+     */
+    public function share(Request $request, int $id)
+    {
+        $user = $request->user();
+
+        // Must be the contact owner.
+        $c = Contact::where('user_id', $user->id)->find($id);
+        if (!$c) return $this->notFound('Contact not found');
+
+        $wsId = (int) $request->input('workspace_id', 0);
+        if (!$wsId) return $this->fail('workspace_id is required.', 422, 'workspace_id_required');
+
+        $ws = Workspace::find($wsId);
+        if (!$ws || $ws->is_personal) return $this->fail('Invalid workspace.', 422, 'invalid_workspace');
+
+        // Caller must be a member of the target workspace.
+        $isMember = ((int) $ws->owner_user_id === (int) $user->id)
+            || $user->workspaceMemberships()->where('workspace_id', $ws->id)->exists();
+        if (!$isMember) return $this->fail('Not a member of this workspace.', 403, 'not_a_member');
+
+        $share = ContactWorkspaceShareHelper::share($c, $ws, $user);
+
+        return $this->ok([
+            'shared'    => true,
+            'share'     => [
+                'workspace_id' => $ws->id,
+                'shared_by'    => ['id' => $user->id, 'name' => $user->name],
+                'shared_at'    => optional($share->created_at)->toIso8601String(),
+            ],
+        ]);
+    }
+
+    /**
+     * Remove a contact's share from the specified workspace (mobile parity).
+     * The contact owner or workspace owner can unshare.
+     *
+     * DELETE /contacts/{id}/share
+     */
+    public function unshare(Request $request, int $id)
+    {
+        $user = $request->user();
+
+        // The contact can be found via user ownership OR via a workspace share.
+        $wsId = (int) $request->input('workspace_id', 0);
+        if (!$wsId) return $this->fail('workspace_id is required.', 422, 'workspace_id_required');
+
+        $ws = Workspace::find($wsId);
+        if (!$ws) return $this->notFound('Workspace not found');
+
+        $c = Contact::withoutGlobalScope('workspace')
+            ->where(function ($q) use ($user, $wsId) {
+                $q->where('user_id', $user->id)
+                  ->orWhereHas('workspaceShares', fn ($sq) => $sq->where('workspace_id', $wsId));
+            })
+            ->find($id);
+        if (!$c) return $this->notFound('Contact not found');
+
+        if (!ContactWorkspaceShareHelper::userCanManageShare($user, $c, $ws)) {
+            return $this->fail('Only the contact owner or workspace owner can remove a share.', 403, 'not_authorized');
+        }
+
+        $removed = ContactWorkspaceShareHelper::unshare($c, $ws->id);
+
+        return $this->ok(['shared' => false, 'removed' => $removed]);
     }
 
     /**
@@ -590,7 +1019,51 @@ class ContactController extends Controller
         return $this->ok(['contact' => $this->transform($c->fresh(['phones', 'emails']))]);
     }
 
-    /** Clear a scheduled follow-up reminder without firing it. */
+    /**
+     * Return the authenticated user's distinct contact tags for autocomplete.
+     */
+    public function allTags(Request $request): \Illuminate\Http\JsonResponse
+    {
+        $rows = Contact::where('user_id', $request->user()->id)
+            ->whereNotNull('tags')
+            ->pluck('tags');
+
+        $tags = $rows->flatMap(fn ($t) => (array) $t)
+            ->filter(fn ($t) => is_string($t) && $t !== '')
+            ->unique()
+            ->sort()
+            ->values()
+            ->all();
+
+        return $this->ok(['tags' => $tags]);
+    }
+
+    /**
+     * Quick PATCH — update the notes field only.
+     */
+    public function updateNotes(Request $request, int $id): \Illuminate\Http\JsonResponse
+    {
+        $contact = Contact::where('user_id', $request->user()->id)->findOrFail($id);
+        $v = $request->validate(['notes' => ['nullable', 'string', 'max:5000']]);
+        $contact->update(['notes' => $v['notes'] ?? null]);
+        return $this->ok($this->transform($contact->fresh()));
+    }
+
+    /**
+     * Quick PATCH — replace the tags list for this contact.
+     */
+    public function updateTags(Request $request, int $id): \Illuminate\Http\JsonResponse
+    {
+        $contact = Contact::where('user_id', $request->user()->id)->findOrFail($id);
+        $v = $request->validate([
+            'tags'   => ['nullable', 'array', 'max:50'],
+            'tags.*' => ['required', 'string', 'max:80'],
+        ]);
+        $tags = array_values(array_unique(array_filter((array) ($v['tags'] ?? []), fn ($t) => $t !== '')));
+        $contact->update(['tags' => $tags ?: null]);
+        return $this->ok($this->transform($contact->fresh()));
+    }
+
     public function clearFollowUp(Request $request, int $id)
     {
         $c = Contact::where('user_id', $request->user()->id)->find($id);
@@ -1240,6 +1713,123 @@ class ContactController extends Controller
                 'is_primary' => false,
             ]);
         }
+    }
+
+    // ── bulk export ──────────────────────────────────────────────────────────
+
+    /**
+     * POST /api/v1/contacts/export
+     * Request a bulk export. Small address books are built synchronously and
+     * a signed download URL is returned immediately; large ones are queued.
+     */
+    public function exportRequest(Request $request)
+    {
+        $user = $request->user();
+        $v = $request->validate([
+            'format' => 'required|in:csv,vcf',
+            'scope'  => 'nullable|in:all,filtered',
+            'tab'    => 'nullable|in:all,biolink',
+            'q'      => 'nullable|string|max:255',
+        ]);
+
+        $scopeParam = $v['scope'] ?? 'all';
+        $scope = [];
+        if ($scopeParam === 'filtered') {
+            $scope['tab'] = $v['tab'] ?? 'all';
+            $scope['q']   = $v['q']  ?? '';
+        }
+
+        $query = Contact::withoutGlobalScope('workspace')->where('user_id', $user->id);
+        if (($scope['tab'] ?? '') === 'biolink') $query->whereNotNull('biolink_user_id');
+        if (!empty($scope['q'])) {
+            $needle = '%' . $scope['q'] . '%';
+            $query->where(function ($w) use ($needle) {
+                $w->where('display_name', 'ilike', $needle)
+                  ->orWhere('given_name',  'ilike', $needle)
+                  ->orWhere('family_name', 'ilike', $needle)
+                  ->orWhere('organization','ilike', $needle)
+                  ->orWhereHas('emails',  fn ($e) => $e->where('value', 'ilike', $needle))
+                  ->orWhereHas('phones',  fn ($p) => $p->where('value', 'ilike', $needle));
+            });
+        }
+        $count = $query->count();
+
+        // Small address books — build and store synchronously, return URL.
+        if ($count <= WebContactController::EXPORT_ASYNC_THRESHOLD) {
+            $contacts = $query->with(['phones', 'emails'])->orderBy('display_name')->get();
+            $content  = $v['format'] === 'vcf'
+                ? $this->exportBuilder->buildVcf($contacts)
+                : $this->exportBuilder->buildCsv($contacts);
+
+            $export = ContactExport::create([
+                'user_id'       => $user->id,
+                'format'        => $v['format'],
+                'scope'         => $scope ?: null,
+                'status'        => 'completed',
+                'contact_count' => $contacts->count(),
+                'expires_at'    => now()->addDay(),
+                'started_at'    => now(),
+                'completed_at'  => now(),
+            ]);
+            $path = "exports/{$export->user_id}/{$export->id}.{$export->format}";
+            Storage::disk('local')->put($path, $content);
+            $export->update(['file_path' => $path]);
+
+            return $this->ok([
+                'id'           => $export->id,
+                'status'       => 'completed',
+                'contact_count'=> $export->contact_count,
+                'format'       => $export->format,
+                'download_url' => $this->signedDownloadUrl($export),
+            ]);
+        }
+
+        // Large address books — queue and return pending status.
+        $export = ContactExport::create([
+            'user_id'       => $user->id,
+            'format'        => $v['format'],
+            'scope'         => $scope ?: null,
+            'status'        => 'pending',
+            'contact_count' => $count,
+        ]);
+        ProcessContactExportJob::dispatch($export->id);
+
+        return $this->ok([
+            'id'           => $export->id,
+            'status'       => 'pending',
+            'contact_count'=> $export->contact_count,
+            'format'       => $export->format,
+            'download_url' => null,
+        ], 202);
+    }
+
+    /**
+     * GET /api/v1/contacts/export/{id}/status
+     * Poll export progress. Returns a signed download URL once ready.
+     */
+    public function exportStatus(Request $request, int $id)
+    {
+        $export = ContactExport::where('user_id', $request->user()->id)->find($id);
+        if (!$export) return $this->notFound('Export not found.');
+
+        return $this->ok([
+            'id'           => $export->id,
+            'status'       => $export->status,
+            'contact_count'=> $export->contact_count,
+            'format'       => $export->format,
+            'in_progress'  => $export->isInProgress(),
+            'download_url' => $export->isReady() ? $this->signedDownloadUrl($export) : null,
+        ]);
+    }
+
+    /** Build a temporary signed URL so the mobile app can download without a bearer token. */
+    private function signedDownloadUrl(ContactExport $export): string
+    {
+        return URL::temporarySignedRoute(
+            'user.contacts.export.signed-download',
+            now()->addHours(24),
+            ['export' => $export->id]
+        );
     }
 
     private function stashPath(int $userId, string $token): string

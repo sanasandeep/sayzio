@@ -437,7 +437,7 @@ class BiolinkBlockController extends Controller
                 'occurred_at' => now(),
                 'data'        => [
                     'creator_name'   => $creator?->name,
-                    'creator_avatar' => $creator?->avatar,
+                    'creator_avatar' => \App\Support\PublicStorageUrl::resolve($creator?->avatar),
                     'link_alias'     => $link->alias,
                     'block_type'     => $block->type,
                     'block_label'    => BiolinkBlock::TYPES[$block->type] ?? $block->type,
@@ -1030,7 +1030,17 @@ class BiolinkBlockController extends Controller
         $validated = $request->validate([
             'biolink_title' => 'nullable|string|max:100',
             'biolink_description' => 'nullable|string|max:500',
-            'background_type' => 'nullable|string|in:color,gradient,image,slideshow,video,template',
+            'background_type' => 'nullable|string|in:color,gradient,image,slideshow,video,template,preset',
+            // CSS background preset key from BgPresetCatalog. Only stored when
+            // background_type === 'preset'; the public renderer resolves CSS from the
+            // catalog server-side, so raw CSS is never accepted from the client.
+            'bg_preset_key' => ['nullable', 'string', 'max:60', 'regex:/^[a-z0-9_]+$/',
+                function ($attribute, $value, $fail) {
+                    if ($value && !\App\Modules\User\Support\BgPresetCatalog::findByKey($value)) {
+                        $fail('The selected background preset is not valid.');
+                    }
+                }
+            ],
             'background_color' => ['nullable','string','max:20','regex:/^#[0-9a-fA-F]{3,8}$/'],
             'background_gradient' => 'nullable|string|max:500',
             'background_image' => \App\Services\UploadPolicy::rule('link.background_image', $request->user()),

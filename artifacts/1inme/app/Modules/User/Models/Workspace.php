@@ -51,7 +51,15 @@ class Workspace extends Model
         'layer-group'  => 'fa-layer-group',
     ];
 
-    /** Curated colour swatches a user may pick for a workspace icon. */
+    /**
+     * Curated colour swatches a user may pick for a workspace icon.
+     *
+     * Intentional CATEGORICAL palette (includes purple #8b5cf6) — these are
+     * user choices, not the brand accent, so they are exempt from the
+     * brand-color guard. Must stay in lockstep with the mobile mirror
+     * WORKSPACE_COLOR_CHOICES in artifacts/1inme-mobile/lib/api/workspaces.ts
+     * (PATCH validation uses Rule::in against this list).
+     */
     public const COLOR_CHOICES = [
         '#3d6bff', '#10b981', '#8b5cf6', '#ef4444',
         '#f59e0b', '#ec4899', '#06b6d4', '#64748b',
@@ -62,6 +70,21 @@ class Workspace extends Model
     {
         $val = (($this->settings ?? [])['appearance'] ?? [])[$key] ?? null;
         return (is_string($val) && $val !== '') ? $val : null;
+    }
+
+    /**
+     * The stored appearance icon key (one of ICON_CHOICES keys), or the
+     * automatic personal/team default when the user never picked one.
+     * Unlike iconSymbol() this returns the platform-agnostic key so
+     * non-web clients (mobile) can map it to their own icon set.
+     */
+    public function iconKey(): string
+    {
+        $chosen = $this->appearanceSetting('icon');
+        if ($chosen !== null && isset(self::ICON_CHOICES[$chosen])) {
+            return $chosen;
+        }
+        return $this->is_personal ? 'user' : 'users';
     }
 
     /**

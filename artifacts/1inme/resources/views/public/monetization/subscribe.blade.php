@@ -6,7 +6,7 @@
     {{-- Header --}}
     <div class="text-center mb-8">
         @if($creator->avatar)
-            <img src="{{ $creator->avatar }}" alt="" class="w-16 h-16 rounded-full mx-auto mb-3 object-cover ring-2 ring-blue-500/30">
+            <img src="{{ \App\Support\PublicStorageUrl::resolve($creator->avatar) }}" alt="" class="w-16 h-16 rounded-full mx-auto mb-3 object-cover ring-2 ring-blue-500/30">
         @endif
         <a href="{{ route('creator-profile.show', ['handle' => $creator->handle]) }}" class="text-sm" style="color: #5c83ff;">← Back to profile</a>
         <h1 class="text-3xl font-bold mt-2" style="color: var(--text-primary);">Support {{ $creator->name }}</h1>

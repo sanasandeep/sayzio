@@ -13,16 +13,7 @@
 import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { Stack } from "expo-router";
-import {
-  createContext,
-  Fragment,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { useEffect } from "react";
 import {
   Linking,
   Platform,
@@ -51,90 +42,6 @@ import {
 import type { EefindBlock, FounderBlock, InfoSection } from "./InfoPage";
 
 export type { EefindBlock, FounderBlock, InfoSection };
-
-// ---------------------------------------------------------------------------
-// CountUpStat — animates a numeric string (e.g. "4,000+") from 0 on reveal.
-// ---------------------------------------------------------------------------
-
-function parseStatValue(raw: string): { num: number; suffix: string } {
-  const trimmed = raw.trim();
-  const match = trimmed.match(/^([\d,]+)(.*)$/);
-  if (!match) return { num: 0, suffix: trimmed };
-  const num = parseInt(match[1].replace(/,/g, ""), 10);
-  return { num: Number.isFinite(num) ? num : 0, suffix: match[2] };
-}
-
-function CountUpStat({
-  value,
-  label,
-  reduceMotion,
-  revealed,
-}: {
-  value: string;
-  label: string;
-  reduceMotion: boolean;
-  revealed: boolean;
-}) {
-  const colors = useColors();
-  const parsed = useMemo(() => parseStatValue(value), [value]);
-  const [display, setDisplay] = useState(
-    reduceMotion ? value : `0${parsed.suffix}`,
-  );
-  const animFrame = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const started = useRef(false);
-
-  useEffect(() => {
-    if (!revealed || started.current || reduceMotion) {
-      if (reduceMotion) setDisplay(value);
-      return;
-    }
-    started.current = true;
-    const duration = 1400;
-    const startTime = Date.now();
-    const tick = () => {
-      const elapsed = Date.now() - startTime;
-      const progress = Math.min(elapsed / duration, 1);
-      // Cubic ease-out
-      const eased = 1 - Math.pow(1 - progress, 3);
-      const current = Math.round(eased * parsed.num);
-      setDisplay(`${current.toLocaleString("en-US")}${parsed.suffix}`);
-      if (progress < 1) {
-        animFrame.current = setTimeout(tick, 16);
-      }
-    };
-    tick();
-    return () => {
-      if (animFrame.current) clearTimeout(animFrame.current);
-    };
-  }, [revealed, reduceMotion, parsed.num, parsed.suffix, value]);
-
-  return (
-    <View style={statStyles.container}>
-      <Text style={[statStyles.value, { color: colors.primary }]}>
-        {display}
-      </Text>
-      <Text style={[statStyles.label, { color: colors.mutedForeground }]}>
-        {label}
-      </Text>
-    </View>
-  );
-}
-
-const statStyles = StyleSheet.create({
-  container: { alignItems: "center" },
-  value: {
-    fontFamily: "SpaceGrotesk_700Bold",
-    fontSize: 30,
-    letterSpacing: -0.5,
-  },
-  label: {
-    fontFamily: "SpaceGrotesk_400Regular",
-    fontSize: 12,
-    letterSpacing: 0.6,
-    textTransform: "uppercase",
-    marginTop: 2,
-  },
-});
 
 // ---------------------------------------------------------------------------
 // FeatureCard — icon + heading + body with press-scale micro-interaction.
@@ -284,29 +191,18 @@ const cardStyles = StyleSheet.create({
 // Main AboutPage component
 // ---------------------------------------------------------------------------
 
-// Bundled fallback hero stats, shown until (and if) the admin-editable values
-// load from the /about endpoint, or when the endpoint is unreachable / returns
-// no stats. Mirrors the web /about hero defaults.
-const FALLBACK_HERO_STATS: Array<{ value: string; label: string }> = [
-  { value: "120,000+", label: "Creators served" },
-  { value: "3", label: "Years young" },
-  { value: "9", label: "Teammates" },
-];
-
 export function AboutPage({
   title,
   intro,
   sections,
   founder,
   eefind,
-  heroStats,
 }: {
   title: string;
   intro?: string;
   sections: InfoSection[];
   founder?: FounderBlock;
   eefind?: EefindBlock;
-  heroStats?: Array<{ value: string; label: string }>;
 }) {
   const colors = useColors();
   const insets = useSafeAreaInsets();
@@ -333,12 +229,6 @@ export function AboutPage({
   }));
 
   const isDark = colors.scheme === "dark";
-
-  // Prefer the admin-editable stats from the /about endpoint; fall back to the
-  // bundled defaults when none were provided (offline / endpoint unavailable /
-  // no stats configured).
-  const resolvedHeroStats =
-    heroStats && heroStats.length > 0 ? heroStats : FALLBACK_HERO_STATS;
 
   return (
     <ScrollRevealCtx.Provider value={registry}>
@@ -438,33 +328,6 @@ export function AboutPage({
                   {intro}
                 </Text>
               ) : null}
-
-              {/* Hero stats row — admin-editable values from the /about
-                  endpoint, falling back to the bundled defaults. */}
-              <ScrollReveal delay={200} direction="up" reduceMotion={reduceMotion}>
-                {(revealed) => (
-                  <View style={styles.heroStats}>
-                    {resolvedHeroStats.map((stat, i) => (
-                      <Fragment key={`${stat.label}-${i}`}>
-                        {i > 0 ? (
-                          <View
-                            style={[
-                              styles.statDivider,
-                              { backgroundColor: colors.border },
-                            ]}
-                          />
-                        ) : null}
-                        <CountUpStat
-                          value={stat.value}
-                          label={stat.label}
-                          reduceMotion={reduceMotion}
-                          revealed={revealed}
-                        />
-                      </Fragment>
-                    ))}
-                  </View>
-                )}
-              </ScrollReveal>
             </Animated.View>
           </View>
 
@@ -643,7 +506,7 @@ export function AboutPage({
           {/* ── EEFind card ──────────────────────────────────────────── */}
           {eefind ? (
             <ScrollReveal delay={0} direction="up" reduceMotion={reduceMotion}>
-              {(revealed) => (
+              {() => (
                 <View
                   style={[
                     styles.eefindCard,
@@ -671,33 +534,6 @@ export function AboutPage({
                   >
                     {eefind.body}
                   </Text>
-
-                  {/* Animated stat row */}
-                  {eefind.stats.length > 0 ? (
-                    <View style={styles.eefindStats}>
-                      {eefind.stats.map((stat) => (
-                        <View
-                          key={stat.label}
-                          style={[
-                            styles.eefindStatCard,
-                            {
-                              backgroundColor: isDark
-                                ? "rgba(255,255,255,0.05)"
-                                : colors.muted,
-                              borderColor: colors.border,
-                            },
-                          ]}
-                        >
-                          <CountUpStat
-                            value={stat.value}
-                            label={stat.label}
-                            reduceMotion={reduceMotion}
-                            revealed={revealed}
-                          />
-                        </View>
-                      ))}
-                    </View>
-                  ) : null}
 
                   {/* Contact details */}
                   <View style={styles.eefindMeta}>
@@ -848,17 +684,6 @@ const styles = StyleSheet.create({
     lineHeight: 25,
     marginBottom: 28,
   },
-  heroStats: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 0,
-  },
-  statDivider: {
-    width: 1,
-    height: 36,
-    marginHorizontal: 20,
-  },
-
   // Feature section
   featureSection: {
     paddingHorizontal: 20,
@@ -967,20 +792,6 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     marginTop: 4,
     marginBottom: 4,
-  },
-  eefindStats: {
-    flexDirection: "row",
-    gap: 10,
-    marginTop: 14,
-    marginBottom: 6,
-  },
-  eefindStatCard: {
-    flex: 1,
-    borderRadius: 16,
-    borderWidth: StyleSheet.hairlineWidth,
-    paddingVertical: 14,
-    paddingHorizontal: 6,
-    alignItems: "center",
   },
   eefindMeta: { marginTop: 16, gap: 10 },
   metaRow: { flexDirection: "row", gap: 10, alignItems: "flex-start" },

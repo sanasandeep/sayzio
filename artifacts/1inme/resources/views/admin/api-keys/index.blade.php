@@ -84,9 +84,12 @@
                     @if($waHasToken)
                         <p class="text-xs text-white/60 mb-1">Stored: <span class="font-mono text-amber-300">{{ $waMaskedToken }}</span></p>
                     @endif
-                    <input type="password" name="wa_access_token" autocomplete="off"
-                           placeholder="{{ $waHasToken ? 'Paste a new token to replace' : 'EAAB…' }}"
-                           class="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-sm text-white">
+                    @include('common.partials.password-field', [
+                        'name' => 'wa_access_token',
+                        'autocomplete' => 'off',
+                        'placeholder' => $waHasToken ? 'Paste a new token to replace' : 'EAAB…',
+                        'inputClass' => 'w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-sm text-white',
+                    ])
                     @if($waHasToken)
                         <label class="mt-2 inline-flex items-center gap-2 text-xs text-white/60">
                             <input type="hidden" name="clear_wa_access_token" value="0">
@@ -155,9 +158,12 @@
                     @if($waHasVerifyToken)
                         <p class="text-xs text-white/60 mb-1">Stored: <span class="font-mono text-amber-300">{{ $waMaskedVerify }}</span></p>
                     @endif
-                    <input type="password" name="wa_webhook_verify_token" autocomplete="off"
-                           placeholder="{{ $waHasVerifyToken ? 'Paste to replace' : 'A secret string you choose' }}"
-                           class="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-sm text-white">
+                    @include('common.partials.password-field', [
+                        'name' => 'wa_webhook_verify_token',
+                        'autocomplete' => 'off',
+                        'placeholder' => $waHasVerifyToken ? 'Paste to replace' : 'A secret string you choose',
+                        'inputClass' => 'w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-sm text-white',
+                    ])
                     @if($waHasVerifyToken)
                         <label class="mt-2 inline-flex items-center gap-2 text-xs text-white/60">
                             <input type="hidden" name="clear_wa_verify_token" value="0">
@@ -172,9 +178,12 @@
                     @if($waHasAppSecret)
                         <p class="text-xs text-white/60 mb-1">Stored: <span class="font-mono text-amber-300">{{ $waMaskedAppSecret }}</span></p>
                     @endif
-                    <input type="password" name="wa_app_secret" autocomplete="off"
-                           placeholder="{{ $waHasAppSecret ? 'Paste to replace' : 'Meta app secret' }}"
-                           class="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-sm text-white">
+                    @include('common.partials.password-field', [
+                        'name' => 'wa_app_secret',
+                        'autocomplete' => 'off',
+                        'placeholder' => $waHasAppSecret ? 'Paste to replace' : 'Meta app secret',
+                        'inputClass' => 'w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-sm text-white',
+                    ])
                     @if($waHasAppSecret)
                         <label class="mt-2 inline-flex items-center gap-2 text-xs text-white/60">
                             <input type="hidden" name="clear_wa_app_secret" value="0">
@@ -253,9 +262,12 @@
                 @if($slackHasUrl)
                     <p class="text-xs text-white/60 mb-1">Stored: <span class="font-mono text-amber-300">{{ $slackMasked }}</span></p>
                 @endif
-                <input type="password" name="slack_webhook_url" autocomplete="off"
-                       placeholder="{{ $slackHasUrl ? 'Paste a new URL to replace' : 'https://hooks.slack.com/services/…' }}"
-                       class="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-sm text-white">
+                @include('common.partials.password-field', [
+                    'name' => 'slack_webhook_url',
+                    'autocomplete' => 'off',
+                    'placeholder' => $slackHasUrl ? 'Paste a new URL to replace' : 'https://hooks.slack.com/services/…',
+                    'inputClass' => 'w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-sm text-white',
+                ])
                 @if($slackHasUrl)
                     <label class="mt-2 inline-flex items-center gap-2 text-xs text-white/60">
                         <input type="hidden" name="clear_slack_webhook" value="0">
@@ -270,9 +282,12 @@
                 @if($discordHasUrl)
                     <p class="text-xs text-white/60 mb-1">Stored: <span class="font-mono text-amber-300">{{ $discordMasked }}</span></p>
                 @endif
-                <input type="password" name="discord_webhook_url" autocomplete="off"
-                       placeholder="{{ $discordHasUrl ? 'Paste a new URL to replace' : 'https://discord.com/api/webhooks/…' }}"
-                       class="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-sm text-white">
+                @include('common.partials.password-field', [
+                    'name' => 'discord_webhook_url',
+                    'autocomplete' => 'off',
+                    'placeholder' => $discordHasUrl ? 'Paste a new URL to replace' : 'https://discord.com/api/webhooks/…',
+                    'inputClass' => 'w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-sm text-white',
+                ])
                 @if($discordHasUrl)
                     <label class="mt-2 inline-flex items-center gap-2 text-xs text-white/60">
                         <input type="hidden" name="clear_discord_webhook" value="0">

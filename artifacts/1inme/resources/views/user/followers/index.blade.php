@@ -20,7 +20,7 @@
                 @if($u)
                 <div class="flex items-center gap-3 p-4">
                     @if($u->avatar)
-                        <img src="{{ $u->avatar }}" class="w-10 h-10 rounded-full object-cover" alt=""/>
+                        <img src="{{ \App\Support\PublicStorageUrl::resolve($u->avatar) }}" class="w-10 h-10 rounded-full object-cover" alt=""/>
                     @else
                         <div class="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-fuchsia-500 text-white flex items-center justify-center font-bold">{{ $u->getInitials() }}</div>
                     @endif

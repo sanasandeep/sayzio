@@ -7,7 +7,14 @@ id = "3B4_FFSkEVBkAeYMFRJ2e"
 [[services]]
 localPort = 8080
 name = "API Server"
-paths = ["/api"]
+# Only claim the specific paths this service natively implements.
+# DO NOT widen to "/api" — that prefix swallows all "/api/v1/*" Laravel
+# traffic in production, causing 502s because the fallthrough proxy cannot
+# reach localhost:5000 in a published deployment.
+# The shared proxy uses most-specific-first routing, so "/api/v1/*" falls
+# through to the Laravel service (mounted at "/") when it is not claimed here.
+# See: .agents/memory/laravel-api-proxy-shadow.md and task-5012.md
+paths = ["/api/healthz", "/api/contact"]
 
 [services.development]
 run = "pnpm --filter @workspace/api-server run dev"
@@ -21,8 +28,11 @@ args = ["pnpm", "--filter", "@workspace/api-server", "run", "build"]
 NODE_ENV = "production"
 
 [services.production.run]
-# we don't run through pnpm to make startup faster in production
-args = ["node", "--enable-source-maps", "artifacts/api-server/dist/index.mjs"]
+# we don't run through pnpm to make startup faster in production.
+# PROD_DATABASE_URL (secret) holds the production RDS hostname; when present it
+# overrides DB_HOST so the deployed API server talks to the production database
+# while the dev workspace keeps using the default DB_HOST secret.
+args = ["sh", "-c", 'if [ -n "${PROD_DATABASE_URL:-}" ]; then _pdh="$PROD_DATABASE_URL"; case "$_pdh" in *://*) _pdh="${_pdh#*://}"; _pdh="${_pdh#*@}"; _pdh="${_pdh%%/*}"; _pdh="${_pdh%%\\?*}"; _pdh="${_pdh%%:*}";; esac; export DB_HOST="$_pdh"; fi; exec node --enable-source-maps artifacts/api-server/dist/index.mjs']
 
 [services.production.run.env]
 PORT = "8080"

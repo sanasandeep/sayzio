@@ -52,7 +52,11 @@ async function setItem(key: string, value: string | null) {
       } catch {}
       return;
     }
-    await SecureStore.deleteItemAsync(key);
+    try {
+      await SecureStore.deleteItemAsync(key);
+    } catch {
+      // Deletion failure is non-fatal — the key is already gone or unreadable.
+    }
     return;
   }
   if (Platform.OS === "web") {
@@ -61,7 +65,11 @@ async function setItem(key: string, value: string | null) {
     } catch {}
     return;
   }
-  await SecureStore.setItemAsync(key, value);
+  try {
+    await SecureStore.setItemAsync(key, value);
+  } catch (e) {
+    if (__DEV__) console.warn(`[secure] setItem("${key}") failed:`, e);
+  }
 }
 
 async function getItem(key: string): Promise<string | null> {
@@ -72,7 +80,19 @@ async function getItem(key: string): Promise<string | null> {
       return null;
     }
   }
-  return SecureStore.getItemAsync(key);
+  try {
+    return await SecureStore.getItemAsync(key);
+  } catch (e) {
+    // On Android the keystore can become unreadable after an OS upgrade, a
+    // factory reset that didn't fully wipe secure storage, or a corrupted
+    // Keymaster state. Treat any read failure as a missing key so the app
+    // degrades gracefully to a logged-out / first-run state instead of
+    // crashing. Attempt a best-effort deletion so subsequent boots skip the
+    // failed read path.
+    if (__DEV__) console.warn(`[secure] getItem("${key}") failed, treating as null:`, e);
+    try { await SecureStore.deleteItemAsync(key); } catch {}
+    return null;
+  }
 }
 
 export const getToken = () => getItem(TOKEN_KEY);
@@ -235,7 +255,7 @@ export const setAutoShortenEnabled = (v: boolean) =>
 // AsyncStorage (not SecureStore): the payload is non-sensitive JSON that can
 // exceed SecureStore's small per-item size limits on native.
 // ---------------------------------------------------------------------------
-const ONBOARDING_SLIDES_CACHE_KEY = "1inme.onboarding.slides.cache.v1";
+const ONBOARDING_SLIDES_CACHE_KEY = "1inme.onboarding.slides.cache.v2";
 
 // Minimal structural shape we validate before trusting a cached entry, kept
 // intentionally loose so additive API fields never invalidate the cache.

@@ -20,6 +20,8 @@ import {
   pageIsSelfContained,
   stripScriptBlocks,
   discoverUnknownStandalonePages,
+  extractScriptBlocks,
+  findScriptWhiteText,
 } from "./check-light-mode-pairing.js";
 import { VIEWS_REL } from "./lib/blade-theme-scope.js";
 
@@ -468,8 +470,41 @@ describe("discoverUnknownStandalonePages", () => {
     ]);
     const found = discoverUnknownStandalonePages(files, []);
     expect(found).toEqual([
-      { rel: "common/waitlist.blade.php", missing: [{ selector: ".wl-title", property: "color" }] },
+      {
+        rel: "common/waitlist.blade.php",
+        missing: [{ selector: ".wl-title", property: "color" }],
+        scriptWhiteHits: [],
+      },
     ]);
+  });
+
+  it("flags a standalone theme-aware page whose <script>-built rows hardcode white text", () => {
+    const files = baseFiles([
+      [
+        "common/queue.blade.php",
+        standalone(
+          `<script>rows.push('<div class="text-white text-sm">' + name + '</div>');</script>`,
+        ),
+      ],
+    ]);
+    const found = discoverUnknownStandalonePages(files, []);
+    expect(found).toHaveLength(1);
+    expect(found[0]!.rel).toBe("common/queue.blade.php");
+    expect(found[0]!.missing).toEqual([]);
+    expect(found[0]!.scriptWhiteHits).toHaveLength(1);
+    expect(found[0]!.scriptWhiteHits[0]!.tokens).toEqual(["text-white"]);
+  });
+
+  it("stays quiet when a page's <script>-built rows use themed (non-white) classes", () => {
+    const files = baseFiles([
+      [
+        "common/queue-ok.blade.php",
+        standalone(
+          `<script>rows.push('<div class="qk-row text-sm">' + name + '</div>');</script>`,
+        ),
+      ],
+    ]);
+    expect(discoverUnknownStandalonePages(files, [])).toEqual([]);
   });
 
   it("treats a theme-bootstrap page (rsvp-form family) as theme-aware too", () => {
@@ -675,5 +710,104 @@ describe("checkPartial — count parity between inline colors and light override
       allowlist: [{ property: "color" as const, inlineWithoutOverride: 1, reason: "theme-neutral" }],
     };
     expect(checkPartial(partial, page, allowed)).toEqual([]);
+  });
+});
+
+/**
+ * Script-built markup white-text check.
+ *
+ * Markup a page assembles client-side in JS strings never touches a base CSS
+ * rule, so hardcoded white utility classes (`text-white`, …) inside <script>
+ * blocks slipped past the pairing check — exactly how the event page's
+ * "My swaps" rows shipped with invisible names in light mode. Both directions
+ * are pinned: a reintroduced `text-white` in a script-built row fails, themed
+ * classes (`.ev-strong`) and allowlisted always-dark islands pass.
+ */
+describe("extractScriptBlocks", () => {
+  it("returns each script body with its line offset", () => {
+    const src = "line0\n<script>\nvar a=1;\n</script>\n<script>b()</script>";
+    const blocks = extractScriptBlocks(src);
+    expect(blocks).toHaveLength(2);
+    expect(blocks[0]!.body).toContain("var a=1;");
+    expect(blocks[0]!.lineOffset).toBe(1);
+  });
+});
+
+describe("findScriptWhiteText", () => {
+  const scriptWrap = (js: string) => `<style>.x{color:#fff}</style>\n<script>\n${js}\n</script>`;
+
+  it("flags text-white in a JS-built class attribute (the swaps regression)", () => {
+    const src = scriptWrap(
+      `el.innerHTML = '<div class="text-sm font-semibold text-white truncate">' + name + '</div>';`,
+    );
+    const hits = findScriptWhiteText(src);
+    expect(hits).toHaveLength(1);
+    expect(hits[0]!.tokens).toEqual(["text-white"]);
+    expect(hits[0]!.classValue).toContain("truncate");
+  });
+
+  it("flags variant-prefixed, opacity-suffixed, arbitrary-hex and -50 gray tokens", () => {
+    const src = scriptWrap(
+      `x = '<span class="hover:text-white a">1</span>' +
+           '<span class="text-white/80 b">2</span>' +
+           '<span class="text-[#fff] c">3</span>' +
+           '<span class="text-slate-50 d">4</span>';`,
+    );
+    const tokens = findScriptWhiteText(src).flatMap((h) => h.tokens);
+    expect(tokens).toEqual(["hover:text-white", "text-white/80", "text-[#fff]", "text-slate-50"]);
+  });
+
+  it("handles escaped-quote class attributes inside double-quoted JS strings", () => {
+    const src = scriptWrap(`el.innerHTML = "<div class=\\"text-white row\\">x</div>";`);
+    expect(findScriptWhiteText(src)).toHaveLength(1);
+  });
+
+  it("stays quiet on themed classes and non-white utilities", () => {
+    const src = scriptWrap(
+      `el.innerHTML = '<div class="text-sm font-semibold ev-strong truncate">' + name +
+        '<span class="ev-muted-lite text-whitespace whitespace-nowrap text-slate-500">y</span></div>';`,
+    );
+    expect(findScriptWhiteText(src)).toEqual([]);
+  });
+
+  it("ignores text-white in page markup OUTSIDE script blocks (styled by CSS, other guards)", () => {
+    const src = `<div class="text-white">badge</div><script>var a = 1;</script>`;
+    expect(findScriptWhiteText(src)).toEqual([]);
+  });
+
+  it("respects a scriptAllowlist entry matching the class value", () => {
+    const src = scriptWrap(`x = '<span class="badge-on-gradient text-white">v</span>';`);
+    expect(findScriptWhiteText(src)).toHaveLength(1);
+    expect(
+      findScriptWhiteText(src, [
+        { match: "badge-on-gradient", reason: "white label on saturated gradient badge" },
+      ]),
+    ).toEqual([]);
+  });
+
+  it("reports a usable line number", () => {
+    const src = `a\nb\n<script>\nvar x;\nel.innerHTML='<i class="text-white"></i>';\n</script>`;
+    expect(findScriptWhiteText(src)[0]!.line).toBe(5);
+  });
+});
+
+describe("script white-text — live pages", () => {
+  it("every configured TARGETS page currently passes (event page uses .ev-strong)", () => {
+    for (const t of TARGETS) {
+      const src = fs.readFileSync(path.join(REPO_ROOT, t.page), "utf8");
+      const hits = findScriptWhiteText(src, t.scriptAllowlist);
+      expect(hits, `${t.label} (${t.page})`).toEqual([]);
+    }
+  });
+
+  it("a reintroduced text-white in the event page swaps renderer would fail via checkTarget shape", () => {
+    const eventPage = TARGETS.find((t) => t.page.endsWith("event-page.blade.php"))!;
+    const src = fs.readFileSync(path.join(REPO_ROOT, eventPage.page), "utf8");
+    // Sanity: the swaps renderer builds rows in a script block with the themed class.
+    expect(src).toContain("ev-strong truncate");
+    const regressed = src.replace("ev-strong truncate", "text-white truncate");
+    const hits = findScriptWhiteText(regressed, eventPage.scriptAllowlist);
+    expect(hits).toHaveLength(1);
+    expect(hits[0]!.tokens).toEqual(["text-white"]);
   });
 });

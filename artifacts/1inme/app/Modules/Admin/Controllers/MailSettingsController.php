@@ -3,6 +3,7 @@
 namespace App\Modules\Admin\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Modules\Admin\Rules\NotRetiredAdminEmail;
 use App\Services\Integrations\MailSettings;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
@@ -54,7 +55,7 @@ class MailSettingsController extends Controller
             'username'     => ['nullable', 'string', 'max:255'],
             'password'     => ['nullable', 'string', 'max:1024'],
             'clear_password' => ['nullable', 'boolean'],
-            'from_address' => ['required', 'email', 'max:255'],
+            'from_address' => ['required', 'email', 'max:255', new NotRetiredAdminEmail()],
             'from_name'    => ['required', 'string', 'max:255'],
         ], [
             'host.required_if' => 'The SMTP host is required when the SMTP mailer is selected.',

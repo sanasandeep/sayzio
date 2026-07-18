@@ -7,59 +7,85 @@ use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Storage;
 
 /**
- * Seeds the default audience-focused onboarding slides for the mobile
- * splash slider. Idempotent: re-running won't overwrite slides admin
- * has edited (firstOrCreate by slug).
+ * Seeds the AI-business-companion intro slides for the mobile splash slider.
+ * Idempotent: re-running won't overwrite slides admin has edited (firstOrCreate
+ * by slug).
  *
- * The matching photographs are pre-generated and live on the public
- * disk under onboarding/<slug>.png (served via storage:link). If a
- * file is missing the slide is still created — admin can upload one
- * later from the admin UI.
+ * Story arc (5 slides):
+ *   1. welcome          — introduce Sayzio as the AI-powered companion
+ *   2. every-business   — breadth of business types served
+ *   3. everything-you-need — 9 business tools in one place (icon grid)
+ *   4. work-smarter     — AI automation value prop
+ *   5. start-free       — call to action / get started
  */
 class OnboardingSlidesSeeder extends Seeder
 {
-    public function run(): void
+    /**
+     * The canonical default copy for every intro slide, keyed positionally
+     * (each row carries its own `slug`). This is the single source of truth
+     * for both:
+     *   - seeding fresh installs (see run()), and
+     *   - detecting when an admin has edited a live slide away from its
+     *     shipped default (see OnboardingSlide::customizationState()).
+     *
+     * Image discovery lives in run() — this method only owns the wording so
+     * the mobile bundled fallback, the seeder and the drift check all agree.
+     *
+     * @return array<int, array{slug:string, sort_order:int, category:string, title:string, body:string}>
+     */
+    public static function defaults(): array
     {
         $slides = [
+            // ── 1. Brand intro ──────────────────────────────────────────────
             [
-                'slug'     => 'creators',
-                'category' => 'For creators',
-                'title'    => 'Every link, every channel — one tap away',
-                'body'     => 'Bundle your latest video, store, sponsorships and socials into a single biolink your audience can save, share, or tap.',
+                'slug'       => 'welcome',
+                'sort_order' => 10,
+                'category'   => 'Welcome',
+                'title'      => 'Meet Zio',
+                'body'       => 'Your AI-powered business companion for smarter customer engagement.',
             ],
+            // ── 2. Audience breadth ─────────────────────────────────────────
             [
-                'slug'     => 'business',
-                'category' => 'For small businesses',
-                'title'    => 'Your menu, hours and reviews on the counter',
-                'body'     => 'Stick a Sayzio NFC tag at the till. Customers tap their phone to see your menu, opening hours, directions and leave a review — no app needed.',
+                'slug'       => 'every-business',
+                'sort_order' => 20,
+                'category'   => 'Built for Every Business',
+                'title'      => 'One Platform. Every Business.',
+                'body'       => "Whether you're a startup, coach, restaurant, retailer, clinic, freelancer, or nonprofit, Sayzio helps you connect and grow.",
             ],
+            // ── 3. Tools grid ───────────────────────────────────────────────
             [
-                'slug'     => 'freelancer',
-                'category' => 'For freelancers',
-                'title'    => 'Pitch your portfolio in one link',
-                'body'     => 'Send one tidy Sayzio profile instead of five attachments. Show case studies, rates and a booking link, and see exactly who clicked what.',
+                'slug'       => 'everything-you-need',
+                'sort_order' => 30,
+                'category'   => 'Everything You Need',
+                'title'      => 'All Your Business Tools in One Place',
+                'body'       => null,
             ],
+            // ── 4. AI value prop ────────────────────────────────────────────
             [
-                'slug'     => 'networker',
-                'category' => 'For networkers',
-                'title'    => 'Replace your business card',
-                'body'     => "Tap a Sayzio NFC card to share contact, LinkedIn, calendar and portfolio in seconds — and the other person doesn't need to install anything.",
+                'slug'       => 'work-smarter',
+                'sort_order' => 40,
+                'category'   => 'Work Smarter',
+                'title'      => 'Automate. Engage. Grow.',
+                'body'       => 'Let AI answer questions, capture leads, schedule appointments, and support customers 24/7.',
             ],
+            // ── 5. Call to action (final slide) ─────────────────────────────
             [
-                'slug'     => 'students',
-                'category' => 'For students & job seekers',
-                'title'    => 'One link for your CV, projects and socials',
-                'body'     => 'Hand recruiters a single Sayzio link with your résumé, GitHub, portfolio and contact info — and watch which sections they actually open.',
-            ],
-            [
-                'slug'     => 'coaches',
-                'category' => 'For coaches & educators',
-                'title'    => 'Sell, schedule and stay in touch',
-                'body'     => 'Group your courses, booking calendar, payment links and follower updates in one biolink — and broadcast announcements to everyone who follows you.',
+                'slug'       => 'start-free',
+                'sort_order' => 50,
+                'category'   => 'Start Free',
+                'title'      => 'Ready to Grow?',
+                'body'       => "Create your free workspace in minutes and upgrade whenever you're ready.",
             ],
         ];
 
-        foreach ($slides as $i => $row) {
+        return $slides;
+    }
+
+    public function run(): void
+    {
+        $slides = self::defaults();
+
+        foreach ($slides as $row) {
             // Primary background image (legacy single image).
             $imagePath = "onboarding/{$row['slug']}.png";
             $hasImage  = Storage::disk('public')->exists($imagePath);
@@ -85,7 +111,7 @@ class OnboardingSlidesSeeder extends Seeder
                     'image_path'     => $hasImage ? $imagePath : null,
                     'gallery_images' => !empty($gallery) ? $gallery : null,
                     'status'         => 'active',
-                    'sort_order'     => ($i + 1) * 10,
+                    'sort_order'     => $row['sort_order'],
                 ],
             );
 

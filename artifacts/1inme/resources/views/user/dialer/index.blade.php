@@ -9,7 +9,9 @@
      data-flag-url="{{ route('user.dialer.flag') }}"
      data-profile-url="{{ route('user.dialer.profile') }}"
      data-live-url="{{ route('user.dialer.live') }}"
-     data-live-cursor="{{ $liveCursor ?? '' }}">
+     data-live-cursor="{{ $liveCursor ?? '' }}"
+     data-speed-dial-assign-url="{{ route('user.dialer.speed-dial.assign') }}"
+     data-speed-dial-unassign-url="{{ route('user.dialer.speed-dial.unassign') }}">
     @include('user.partials.page-hero', [
         'title' => 'Dialer',
         'subtitle' => 'Speed-dial favorites, smart recents and T9 search — call, text, email or share your Link in Bio in one tap.',
@@ -21,7 +23,12 @@
     <div class="card-premium p-5 mb-6" id="favorites-card" @if(empty($favorites)) style="display:none" @endif>
         <div class="flex items-center justify-between mb-3">
             <h3 class="text-sm font-bold" style="color:var(--text-primary);"><i class="fas fa-star mr-1.5" style="color:#fbbf24;"></i> Speed dial</h3>
-            <span class="text-[11px]" style="color:var(--text-faint);">Drag to reorder</span>
+            <div class="flex items-center gap-2">
+                <button type="button" onclick="openSpeedDialManager()" class="text-[11px] font-medium inline-flex items-center gap-1" style="color:var(--text-muted);">
+                    <i class="fas fa-hashtag text-[10px]"></i> Digit slots
+                </button>
+                <span class="text-[11px]" style="color:var(--text-faint);">Drag to reorder · Long-press key to speed-dial</span>
+            </div>
         </div>
         <div id="favorites-grid" class="grid grid-cols-3 sm:grid-cols-5 gap-3">
             @foreach($favorites as $f)
@@ -62,9 +69,18 @@
             <div id="keypad-grid" class="grid grid-cols-3 gap-2 mb-4">
                 @php $sub = ['1'=>'','2'=>'ABC','3'=>'DEF','4'=>'GHI','5'=>'JKL','6'=>'MNO','7'=>'PQRS','8'=>'TUV','9'=>'WXYZ','*'=>'','0'=>'+','#'=>'']; @endphp
                 @foreach(['1','2','3','4','5','6','7','8','9','*','0','#'] as $key)
-                    <button type="button" onclick="dialerPress('{{ $key }}')" class="py-3 rounded-xl transition flex flex-col items-center" style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);color:var(--text-primary);" onmouseover="this.style.background='rgba(61,107,255,.12)'" onmouseout="this.style.background='rgba(255,255,255,.04)'">
+                    @php $isDigit = ctype_digit($key) && $key !== '0'; @endphp
+                    <button type="button" id="key-btn-{{ $key }}"
+                            onclick="dialerPress('{{ $key }}')"
+                            @if($isDigit)
+                            onmousedown="keyLongPressStart(event, '{{ $key }}')"
+                            onmouseup="keyLongPressCancel()"
+                            onmouseleave="keyLongPressCancel()"
+                            @endif
+                            class="py-3 rounded-xl transition flex flex-col items-center relative select-none" style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);color:var(--text-primary);" onmouseover="this.style.background='rgba(61,107,255,.12)'" onmouseout="this.style.background='rgba(255,255,255,.04)'">
                         <span class="text-lg font-semibold">{{ $key }}</span>
                         @if($sub[$key])<span class="text-[9px] tracking-wider" style="color:var(--text-faint);">{{ $sub[$key] }}</span>@endif
+                        @if($isDigit)<span id="key-hint-{{ $key }}" class="text-[8px] font-bold leading-none mt-0.5 hidden" style="color:#90acff;"></span>@endif
                     </button>
                 @endforeach
             </div>
@@ -116,10 +132,29 @@
                 </div>
 
                 <div id="search-results" class="mt-3 space-y-3"></div>
+
+                {{-- Scan-a-card nudge: shown when search has no results --}}
+                <div id="dialer-scan-nudge" class="mt-3 hidden">
+                    <a href="{{ route('user.contacts.scan.create', ['from' => 'dialer']) }}"
+                       class="flex items-center gap-2.5 px-3 py-2.5 rounded-xl transition text-left w-full"
+                       style="background:rgba(236,72,153,.08);border:1px solid rgba(236,72,153,.20);color:var(--text-primary);">
+                        <i class="fas fa-camera text-pink-400 text-sm"></i>
+                        <div class="min-w-0">
+                            <p class="text-xs font-semibold leading-tight" style="color:var(--text-primary);">Scan a business card</p>
+                            <p class="text-[11px] leading-tight mt-0.5" style="color:var(--text-muted);">Use AI to extract contact details from a photo</p>
+                        </div>
+                        <span class="ml-auto text-[10px] font-bold uppercase tracking-wide shrink-0" style="color:#ec4899;">AI</span>
+                    </a>
+                </div>
             </div>
 
             <div class="card-premium p-5" id="recent-card" @if(empty($recent)) style="display:none" @endif>
-                <h3 class="text-sm font-bold mb-3" style="color:var(--text-primary);">Recent</h3>
+                <div class="flex items-center justify-between mb-3">
+                    <h3 class="text-sm font-bold" style="color:var(--text-primary);">Recent</h3>
+                    <a href="{{ route('user.dialer.history') }}" class="text-[11px] font-medium inline-flex items-center gap-1" style="color:var(--text-muted);">
+                        <i class="fas fa-history text-[10px]"></i> View all history
+                    </a>
+                </div>
                 <div class="space-y-2" id="recent-list">
                     @foreach($recent as $r)
                         @include('user.dialer._recent', ['r' => $r])
@@ -404,6 +439,8 @@ function runUniversal() {
     _tu = setTimeout(async () => {
         const data = await fetchUniversal(q, uniFilters);
         renderGroups(box, data, 'No matches');
+        const nudge = document.getElementById('dialer-scan-nudge');
+        if (nudge) nudge.classList.toggle('hidden', !!(data && data.total > 0));
     }, 220);
 }
 
@@ -446,6 +483,230 @@ inp.addEventListener('input', liveFilter);
 if (searchInp) {
     searchInp.addEventListener('input', runUniversal);
     if (searchInp.value.trim()) runUniversal();
+}
+
+// ── Speed-dial digit management ───────────────────────────────────────
+const SPEED_DIAL_ASSIGN_URL   = dialerRoot.dataset.speedDialAssignUrl;
+const SPEED_DIAL_UNASSIGN_URL = dialerRoot.dataset.speedDialUnassignUrl;
+
+// Build a map of digit → favorite from the current favorites grid.
+function buildSpeedDialMap() {
+    const map = {};
+    if (!favGrid) return map;
+    Array.from(favGrid.children).forEach(el => {
+        const digit = el.dataset.speedDigit;
+        if (digit) map[parseInt(digit, 10)] = { id: parseInt(el.dataset.favId, 10), label: el.querySelector('.text-\\[11px\\]')?.textContent?.trim() || '' };
+    });
+    return map;
+}
+
+// Refresh the subtle digit hints under keys 1–9 on the keypad.
+function refreshKeypadDigitHints() {
+    const map = buildSpeedDialMap();
+    for (let d = 1; d <= 9; d++) {
+        const hint = document.getElementById('key-hint-' + d);
+        if (!hint) continue;
+        const fav = map[d];
+        if (fav) {
+            const initials = document.querySelector('#fav-' + fav.id + ' .text-sm.font-bold')?.textContent?.trim()
+                || document.querySelector('#fav-' + fav.id + ' .text-\\[11px\\].font-semibold')?.textContent?.trim()
+                || '•';
+            hint.textContent = initials.slice(0, 3);
+            hint.classList.remove('hidden');
+        } else {
+            hint.textContent = '';
+            hint.classList.add('hidden');
+        }
+    }
+}
+
+// Long-press on a digit key (1–9): reveal the speed-dial for that slot, or
+// let the user assign/unassign a favorite. Uses a 600ms threshold to
+// distinguish a tap (append digit) from a hold (open speed dial).
+let _longPressTimer = null;
+let _longPressDidFire = false;
+function keyLongPressStart(ev, digit) {
+    _longPressDidFire = false;
+    clearTimeout(_longPressTimer);
+    _longPressTimer = setTimeout(() => {
+        _longPressDidFire = true;
+        ev.preventDefault();
+        // Prevent the click from appending the digit after the hold fires.
+        const btn = document.getElementById('key-btn-' + digit);
+        if (btn) {
+            const origOnclick = btn.onclick;
+            btn.onclick = null;
+            setTimeout(() => { btn.onclick = origOnclick; }, 200);
+        }
+        const map = buildSpeedDialMap();
+        const existing = map[parseInt(digit, 10)];
+        if (existing) {
+            // A favorite already owns this digit — open its profile or let the user clear it.
+            openSpeedDialLaunch(digit, existing);
+        } else {
+            // Digit is free — offer to assign from the favorites list.
+            openSpeedDialPicker(null, null, null, parseInt(digit, 10));
+        }
+    }, 600);
+}
+function keyLongPressCancel() {
+    clearTimeout(_longPressTimer);
+    _longPressTimer = null;
+}
+
+// Open the quick-launch sheet for an already-assigned key.
+function openSpeedDialLaunch(digit, fav) {
+    document.getElementById('speed-dial-launch')?.remove();
+    const el = document.createElement('div');
+    el.id = 'speed-dial-launch';
+    el.className = 'fixed inset-0 z-[60] flex items-end sm:items-center justify-center p-4';
+    el.innerHTML = `
+        <div class="absolute inset-0" style="background:rgba(0,0,0,.55);" onclick="document.getElementById('speed-dial-launch').remove()"></div>
+        <div class="relative w-full max-w-sm rounded-2xl p-5" style="background:var(--surface-soft);border:1px solid var(--border-glass);">
+            <div class="flex items-center gap-3 mb-4">
+                <div class="w-10 h-10 rounded-full flex items-center justify-center text-base font-bold" style="background:rgba(61,107,255,.85);color:#fff;">${escapeHtml(String(digit))}</div>
+                <div>
+                    <div class="text-sm font-bold" style="color:var(--text-primary);">${escapeHtml(fav.label || 'Speed-dial ' + digit)}</div>
+                    <div class="text-xs" style="color:var(--text-muted);">Speed-dial key ${escapeHtml(String(digit))}</div>
+                </div>
+            </div>
+            <div class="grid grid-cols-2 gap-2">
+                <button type="button" onclick="document.getElementById('speed-dial-launch').remove(); window.location.href=profileHref(document.querySelector('#fav-${fav.id} a')?.href?.split('number=')[1]?.split('&')[0] ? decodeURIComponent(document.querySelector('#fav-${fav.id} a')?.href?.split('number=')[1]?.split('&')[0]) : '',null);" class="py-2.5 rounded-xl text-sm font-semibold text-white" style="background:linear-gradient(135deg,#3d6bff,#ec4899);">
+                    <i class="fas fa-id-card mr-1"></i> Open profile
+                </button>
+                <button type="button" onclick="document.getElementById('speed-dial-launch').remove(); openSpeedDialPicker(null, ${fav.id}, ${digit});" class="py-2.5 rounded-xl text-sm font-medium" style="background:var(--bg-glass-hover);color:var(--text-primary);border:1px solid var(--border-glass);">
+                    <i class="fas fa-exchange-alt mr-1"></i> Change
+                </button>
+            </div>
+            <button type="button" onclick="clearSpeedDial(${digit}, this)" class="mt-2 w-full py-2 rounded-xl text-sm font-medium" style="background:rgba(239,68,68,.10);color:#ef4444;border:1px solid rgba(239,68,68,.20);">
+                <i class="fas fa-times mr-1"></i> Clear key ${escapeHtml(String(digit))}
+            </button>
+        </div>`;
+    document.body.appendChild(el);
+}
+
+// Open the picker to assign a favorite to a speed-dial digit.
+// Can be called from the bubble's # button or from a long-press on the key.
+function openSpeedDialPicker(ev, favId, currentDigit, forDigit) {
+    if (ev) { ev.preventDefault(); ev.stopPropagation(); }
+    document.getElementById('speed-dial-picker')?.remove();
+    const map = buildSpeedDialMap();
+    const favItems = Array.from(favGrid?.children || []).map(el => ({
+        id:    parseInt(el.dataset.favId, 10),
+        label: el.querySelector('.text-\\[11px\\].font-semibold')?.textContent?.trim() || 'Favorite',
+        digit: el.dataset.speedDigit ? parseInt(el.dataset.speedDigit, 10) : null,
+    }));
+    const forStr = forDigit ? ` for key <strong>${forDigit}</strong>` : '';
+    const digits = [1,2,3,4,5,6,7,8,9];
+    const digitRows = digits.map(d => {
+        const owner = map[d];
+        const isCurrent = currentDigit && d === parseInt(currentDigit, 10);
+        const ownerLabel = owner ? `<span class="ml-1 text-[10px] font-bold truncate max-w-[80px]" style="color:#90acff;">${escapeHtml(owner.label)}</span>` : '';
+        return `<button type="button" onclick="doAssignDigit(${favId || 'null'}, ${d}, this)" class="flex items-center gap-2 px-3 py-2 rounded-xl text-sm transition" style="background:${isCurrent ? 'rgba(61,107,255,.2)' : 'var(--bg-glass-hover)'};border:1px solid ${isCurrent ? 'rgba(61,107,255,.5)' : 'var(--border-glass)'};color:var(--text-primary);">
+            <span class="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0" style="background:rgba(61,107,255,.3);color:#90acff;">${d}</span>
+            ${ownerLabel || '<span class="text-xs" style="color:var(--text-faint);">free</span>'}
+        </button>`;
+    }).join('');
+
+    const favSelect = forDigit ? `
+        <div class="mb-3">
+            <label class="text-[11px] font-semibold uppercase tracking-wide mb-1.5 block" style="color:var(--text-faint);">Assign favorite</label>
+            <select id="speed-dial-fav-select" class="w-full px-3 py-2 rounded-xl text-sm" style="background:var(--bg-glass-hover);border:1px solid var(--border-glass);color:var(--text-primary);">
+                ${favItems.map(f => `<option value="${f.id}" ${f.digit ? '' : ''}>${escapeHtml(f.label)}${f.digit ? ' (key '+f.digit+')' : ''}</option>`).join('')}
+            </select>
+        </div>` : '';
+
+    const el = document.createElement('div');
+    el.id = 'speed-dial-picker';
+    el.className = 'fixed inset-0 z-[60] flex items-center justify-center p-4';
+    el.innerHTML = `
+        <div class="absolute inset-0" style="background:rgba(0,0,0,.55);" onclick="document.getElementById('speed-dial-picker').remove()"></div>
+        <div class="relative w-full max-w-sm rounded-2xl p-5" style="background:var(--surface-soft);border:1px solid var(--border-glass);">
+            <h3 class="text-base font-bold mb-1" style="color:var(--text-primary);">Speed-dial digit</h3>
+            <p class="text-xs mb-4" style="color:var(--text-muted);">Pick a key${forStr}. Long-pressing that digit on the keypad will open this contact instantly.</p>
+            ${favSelect}
+            <div class="grid grid-cols-3 gap-2 mb-4">${digitRows}</div>
+            ${currentDigit ? `<button type="button" onclick="clearSpeedDial(${currentDigit}, this)" class="w-full py-2 rounded-xl text-sm font-medium" style="background:rgba(239,68,68,.10);color:#ef4444;border:1px solid rgba(239,68,68,.20);"><i class="fas fa-times mr-1"></i> Remove key ${currentDigit}</button>` : ''}
+            <button type="button" onclick="document.getElementById('speed-dial-picker').remove()" class="mt-2 w-full py-1.5 rounded-xl text-xs font-medium" style="background:var(--bg-glass-hover);color:var(--text-muted);border:1px solid var(--border-glass);">Cancel</button>
+        </div>`;
+    document.body.appendChild(el);
+}
+
+async function doAssignDigit(favId, digit, btn) {
+    const selectEl = document.getElementById('speed-dial-fav-select');
+    const resolvedFavId = favId || (selectEl ? parseInt(selectEl.value, 10) : null);
+    if (!resolvedFavId) { alert('Select a favorite first.'); return; }
+    btn.disabled = true;
+    try {
+        const res = await fetch(SPEED_DIAL_ASSIGN_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': CSRF, 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' },
+            body: JSON.stringify({ favorite_id: resolvedFavId, digit }),
+        });
+        if (!res.ok) throw new Error('assign failed');
+        document.getElementById('speed-dial-picker')?.remove();
+        // Force a full live refresh so all digit badges update.
+        liveCursor = null; pollLive();
+    } catch (e) {
+        btn.disabled = false;
+        alert('Could not assign digit. Please try again.');
+    }
+}
+
+async function clearSpeedDial(digit, btn) {
+    btn.disabled = true;
+    try {
+        const res = await fetch(SPEED_DIAL_UNASSIGN_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': CSRF, 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' },
+            body: JSON.stringify({ digit }),
+        });
+        if (!res.ok) throw new Error('unassign failed');
+        document.getElementById('speed-dial-launch')?.remove();
+        document.getElementById('speed-dial-picker')?.remove();
+        liveCursor = null; pollLive();
+    } catch (e) {
+        btn.disabled = false;
+        alert('Could not clear digit. Please try again.');
+    }
+}
+
+// Management overlay showing all 9 digit slots and their current owners.
+function openSpeedDialManager() {
+    document.getElementById('speed-dial-manager')?.remove();
+    const map = buildSpeedDialMap();
+    const rows = [1,2,3,4,5,6,7,8,9].map(d => {
+        const fav = map[d];
+        return `<div class="flex items-center gap-3 px-3 py-2.5 rounded-xl" style="background:var(--bg-glass-hover);border:1px solid var(--border-glass);">
+            <div class="w-7 h-7 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0" style="background:rgba(61,107,255,.3);color:#90acff;">${d}</div>
+            <div class="flex-1 min-w-0">
+                ${fav
+                    ? `<div class="text-sm font-semibold truncate" style="color:var(--text-primary);">${escapeHtml(fav.label)}</div>`
+                    : `<div class="text-sm" style="color:var(--text-faint);">— unassigned</div>`
+                }
+            </div>
+            ${fav
+                ? `<div class="flex gap-1">
+                    <button type="button" onclick="openSpeedDialPicker(null,${fav.id},${d},null)" class="px-2 py-1 rounded-lg text-[11px] font-medium" style="background:rgba(61,107,255,.15);color:#90acff;border:1px solid rgba(61,107,255,.25);">Change</button>
+                    <button type="button" onclick="clearSpeedDial(${d}, this)" class="px-2 py-1 rounded-lg text-[11px] font-medium" style="background:rgba(239,68,68,.12);color:#ef4444;border:1px solid rgba(239,68,68,.25);">Clear</button>
+                   </div>`
+                : `<button type="button" onclick="document.getElementById('speed-dial-manager').remove(); openSpeedDialPicker(null,null,null,${d})" class="px-2 py-1 rounded-lg text-[11px] font-medium" style="background:rgba(255,255,255,.06);color:var(--text-muted);border:1px solid var(--border-glass);">Assign</button>`
+            }
+        </div>`;
+    }).join('');
+
+    const el = document.createElement('div');
+    el.id = 'speed-dial-manager';
+    el.className = 'fixed inset-0 z-[60] flex items-center justify-center p-4';
+    el.innerHTML = `
+        <div class="absolute inset-0" style="background:rgba(0,0,0,.55);" onclick="document.getElementById('speed-dial-manager').remove()"></div>
+        <div class="relative w-full max-w-sm rounded-2xl p-5" style="background:var(--surface-soft);border:1px solid var(--border-glass);">
+            <h3 class="text-base font-bold mb-1" style="color:var(--text-primary);">Speed-dial key slots</h3>
+            <p class="text-xs mb-4" style="color:var(--text-muted);">Long-press any key 1–9 on the keypad to instantly reach the assigned favorite.</p>
+            <div class="space-y-2 max-h-[60vh] overflow-y-auto">${rows}</div>
+            <button type="button" onclick="document.getElementById('speed-dial-manager').remove()" class="mt-4 w-full py-1.5 rounded-xl text-xs font-medium" style="background:var(--bg-glass-hover);color:var(--text-muted);border:1px solid var(--border-glass);">Close</button>
+        </div>`;
+    document.body.appendChild(el);
 }
 
 // ── Favorites: remove + drag-to-reorder ──────────────────────────────
@@ -498,18 +759,27 @@ async function persistFavOrder() {
 // device changes favorites / flags / the call log, the cursor advances and
 // the fresh lists come back, so this page re-renders within a few seconds.
 function renderFav(f) {
-    return `<div id="fav-${f.id}" data-fav-id="${f.id}" draggable="true"
+    const digitBadge = f.speed_dial_digit
+        ? `<div class="absolute -top-1 -left-1 w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold z-10 pointer-events-none" style="background:rgba(61,107,255,.85);color:#fff;border:1.5px solid rgba(61,107,255,.3);">${f.speed_dial_digit}</div>`
+        : '';
+    return `<div id="fav-${f.id}" data-fav-id="${f.id}" data-speed-digit="${f.speed_dial_digit || ''}" draggable="true"
          ondragstart="favDragStart(event, ${f.id})" ondragover="favDragOver(event)" ondrop="favDrop(event, ${f.id})"
          class="relative group flex flex-col items-center text-center cursor-move">
+        ${digitBadge}
         <a href="${profileHref(f.number, f.contact_id)}" class="flex flex-col items-center w-full">
             <div class="w-14 h-14 rounded-full flex items-center justify-center text-sm font-bold text-white mb-1" style="background:linear-gradient(135deg,#3d6bff,#ec4899);">${escapeHtml(f.initials)}</div>
             <div class="text-[11px] font-semibold truncate w-full" style="color:var(--text-primary);">${escapeHtml(f.label)}</div>
             ${f.biolink ? '<span class="text-[8px] font-bold" style="color:#f472b6;">Sayzio</span>' : ''}
         </a>
         ${f.number ? `<div class="mt-1 w-full">${channelActions(f.number, 'sm')}</div>` : ''}
-        <button type="button" onclick="removeFavorite(event, ${f.id})" title="Remove favorite"
-                class="absolute -top-1 -right-1 w-5 h-5 rounded-full text-[10px] opacity-0 group-hover:opacity-100 transition"
-                style="background:rgba(239,68,68,.9);color:#fff;"><i class="fas fa-times"></i></button>
+        <div class="absolute -top-1 -right-1 flex gap-0.5 opacity-0 group-hover:opacity-100 transition">
+            <button type="button" onclick="openSpeedDialPicker(event,${f.id},${f.speed_dial_digit || 'null'},null)" title="Assign speed-dial digit"
+                    class="w-5 h-5 rounded-full text-[10px] flex items-center justify-center"
+                    style="background:rgba(61,107,255,.85);color:#fff;"><i class="fas fa-hashtag"></i></button>
+            <button type="button" onclick="removeFavorite(event, ${f.id})" title="Remove favorite"
+                    class="w-5 h-5 rounded-full text-[10px] flex items-center justify-center"
+                    style="background:rgba(239,68,68,.9);color:#fff;"><i class="fas fa-times"></i></button>
+        </div>
     </div>`;
 }
 
@@ -551,6 +821,7 @@ function applyLive(d) {
     if (favGrid && Array.isArray(d.favorites)) {
         favGrid.innerHTML = d.favorites.map(renderFav).join('');
         if (favCard) favCard.style.display = d.favorites.length ? '' : 'none';
+        refreshKeypadDigitHints();
     }
     const freqStrip = document.getElementById('frequent-strip');
     const freqCard  = document.getElementById('frequent-card');
@@ -589,6 +860,8 @@ setInterval(pollLive, 12000);
 document.addEventListener('DOMContentLoaded', () => {
     const box = document.getElementById('search-results');
     if (box) void loadSuggestions(box);
+    // Seed key-hint labels from the server-rendered favorites grid.
+    refreshKeypadDigitHints();
 });
 </script>
 @endsection

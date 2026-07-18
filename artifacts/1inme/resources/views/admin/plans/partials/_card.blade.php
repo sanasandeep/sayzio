@@ -1,6 +1,15 @@
-    <div class="glass rounded-2xl border border-white/10  p-6 {{ $plan->is_archived ? 'opacity-60' : '' }}">
-        <div class="flex items-center justify-between mb-2">
-            <h3 class="font-semibold text-white flex items-center gap-2">
+    <div class="glass rounded-2xl border border-white/10 p-6 {{ $plan->is_archived ? 'opacity-60' : '' }} relative">
+        {{-- Compare & Edit checkbox (visible when selection mode is implied by planIndex scope) --}}
+        <div class="absolute top-4 right-4 z-10" title="Select to compare">
+            <input type="checkbox"
+                   class="plan-card-checkbox"
+                   :checked="selected['{{ $plan->id }}'] ?? false"
+                   @change="toggle('{{ $plan->id }}')"
+                   aria-label="Select {{ addslashes($plan->name) }} for comparison">
+        </div>
+
+        <div class="flex items-center justify-between mb-2 pr-7">
+            <h3 class="font-semibold text-white flex items-center gap-2 flex-wrap">
                 {{ $plan->name }}
                 @if($plan->is_popular)
                     <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-blue-500/15 text-blue-300" title="Shown as Most Popular on the homepage">
@@ -27,14 +36,32 @@
         </div>
         <p class="text-sm text-white/40 mb-4">{{ $plan->description ?? 'No description' }}</p>
 
+        @php
+            $__mon = \App\Services\PricingResolver::adminDisplayPair($plan, 'monthly');
+            $__ann = \App\Services\PricingResolver::adminDisplayPair($plan, 'annual');
+        @endphp
         <div class="space-y-2 mb-4">
             <div class="flex justify-between text-sm">
                 <span class="text-white/40">Monthly</span>
-                <span class="font-semibold text-white">${{ number_format($plan->monthly_price, 2) }}</span>
+                <span class="font-semibold text-white">
+                    {{ $__mon['usd'] }}
+                    @if($__mon['inr'] !== null)
+                        <span class="text-white/50 font-normal"> / {{ $__mon['inr'] }}</span>
+                    @else
+                        <span class="text-white/30 font-normal"> / —</span>
+                    @endif
+                </span>
             </div>
             <div class="flex justify-between text-sm">
                 <span class="text-white/40">Annual</span>
-                <span class="font-semibold text-white">${{ number_format($plan->annual_price, 2) }}</span>
+                <span class="font-semibold text-white">
+                    {{ $__ann['usd'] }}
+                    @if($__ann['inr'] !== null)
+                        <span class="text-white/50 font-normal"> / {{ $__ann['inr'] }}</span>
+                    @else
+                        <span class="text-white/30 font-normal"> / —</span>
+                    @endif
+                </span>
             </div>
             <div class="flex justify-between text-sm">
                 <span class="text-white/40">Trial Days</span>

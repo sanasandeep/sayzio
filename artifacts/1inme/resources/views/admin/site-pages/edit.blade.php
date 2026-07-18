@@ -114,8 +114,10 @@
             }
         } else {
             $sectionsForJs = array_map(function ($s) {
+                $id = $s['id'] ?? '';
                 return [
-                    'id'      => $s['id'] ?? '',
+                    '_cid'    => $id !== '' ? $id : ('s' . uniqid()),
+                    'id'      => $id,
                     'heading' => $s['heading'] ?? '',
                     'body'    => $s['body'] ?? '',
                     'visible' => array_key_exists('visible', $s) ? (bool) $s['visible'] : true,
@@ -137,6 +139,8 @@
                     moveDown(i){ const a=this.sections; if(i<a.length-1){ [a[i+1],a[i]]=[a[i],a[i+1]]; } } }"
           @else
           x-data="{ sections: {{ json_encode($sectionsForJs) }},
+                    newBlank() { return {_cid:'n'+Date.now()+Math.random().toString(36).slice(2),id:'',heading:'',body:'',visible:true}; },
+                    insertAt(i){ this.sections.splice(i,0,this.newBlank()); },
                     moveUp(i){ if(i>0){ const a=this.sections; [a[i-1],a[i]]=[a[i],a[i-1]]; } },
                     moveDown(i){ const a=this.sections; if(i<a.length-1){ [a[i+1],a[i]]=[a[i],a[i+1]]; } } }"
           @endif
@@ -270,73 +274,96 @@
             <div>
                 <div class="flex items-center justify-between mb-2">
                     <label class="text-xs font-semibold uppercase tracking-wider text-white/60">Content sections</label>
-                    <button type="button" @click="sections.push({id:'',heading:'',body:'',visible:true})" class="text-xs px-3 py-1.5 bg-blue-600 hover:bg-blue-700 rounded-lg text-white">
+                    <button type="button" @click="sections.push(newBlank())" class="text-xs px-3 py-1.5 bg-blue-600 hover:bg-blue-700 rounded-lg text-white">
                         <i class="fas fa-plus mr-1"></i> Add section
                     </button>
                 </div>
-                <template x-for="(s, i) in sections" :key="i">
-                    <div class="bg-white/5 border border-white/10 rounded-xl p-4 mb-3 space-y-2"
-                         :class="{ 'opacity-60': !s.visible }">
-                        <div class="flex items-center justify-between gap-2 flex-wrap">
-                            <span class="text-[10px] uppercase tracking-wider text-white/40">Section <span x-text="i+1"></span></span>
-                            <div class="flex items-center gap-2">
-                                <label class="inline-flex items-center gap-1.5 text-[11px] text-white/70 cursor-pointer select-none">
-                                    <input type="hidden" :name="'sections['+i+'][visible]'" value="0">
-                                    <input type="checkbox" :name="'sections['+i+'][visible]'" value="1" x-model="s.visible" class="rounded border-white/20 bg-white/5">
-                                    <span x-text="s.visible ? 'Visible' : 'Hidden'"></span>
-                                </label>
-                                <button type="button" @click="moveUp(i)" :disabled="i===0" class="text-xs text-white/60 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed px-1.5 py-1" title="Move up"><i class="fas fa-arrow-up"></i></button>
-                                <button type="button" @click="moveDown(i)" :disabled="i===sections.length-1" class="text-xs text-white/60 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed px-1.5 py-1" title="Move down"><i class="fas fa-arrow-down"></i></button>
-                                <button type="button" @click="window.themedConfirm({title:'Delete this section?', message:'It will be removed when you save the page.', confirmText:'Delete', confirmIcon:'fa-trash', iconClass:'fa-trash', onConfirm: () => sections.splice(i,1)})" class="text-xs text-red-400 hover:text-red-300 px-1.5 py-1" title="Delete"><i class="fas fa-trash"></i></button>
-                            </div>
-                        </div>
-                        <input type="hidden" :name="'sections['+i+'][id]'" :value="s.id">
-                        <input type="text" :name="'sections['+i+'][heading]'" x-model="s.heading" placeholder="Section heading"
-                               class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
-                        <label class="block text-[10px] uppercase tracking-wider text-white/40">Body @if(!$isPolicy)<span class="normal-case tracking-normal text-white/40">(Markdown or basic HTML)</span>@endif</label>
-                        @if($isPolicy)
-                            <div x-data="rteEditor()"
-                                 x-init="mount($refs.editor, s.body || '', html => s.body = html)"
-                                 class="rounded-lg border border-white/10 overflow-hidden bg-white/5">
-                                <div class="flex flex-wrap items-center gap-1 px-2 py-1.5 border-b border-white/10 bg-white/5">
-                                    <button type="button" @mousedown.prevent="exec('bold')" title="Bold" class="rte-btn"><i class="fas fa-bold"></i></button>
-                                    <button type="button" @mousedown.prevent="exec('italic')" title="Italic" class="rte-btn"><i class="fas fa-italic"></i></button>
-                                    <button type="button" @mousedown.prevent="exec('underline')" title="Underline" class="rte-btn"><i class="fas fa-underline"></i></button>
-                                    <span class="w-px h-4 bg-white/10 mx-1"></span>
-                                    <button type="button" @mousedown.prevent="block('h3')" title="Heading 3" class="rte-btn font-semibold">H3</button>
-                                    <button type="button" @mousedown.prevent="block('h4')" title="Heading 4" class="rte-btn font-semibold">H4</button>
-                                    <button type="button" @mousedown.prevent="block('p')" title="Paragraph" class="rte-btn"><i class="fas fa-paragraph"></i></button>
-                                    <button type="button" @mousedown.prevent="block('blockquote')" title="Quote" class="rte-btn"><i class="fas fa-quote-right"></i></button>
-                                    <button type="button" @mousedown.prevent="wrapInline('code')" title="Inline code" class="rte-btn"><i class="fas fa-code"></i></button>
-                                    <span class="w-px h-4 bg-white/10 mx-1"></span>
-                                    <button type="button" @mousedown.prevent="exec('insertUnorderedList')" title="Bulleted list" class="rte-btn"><i class="fas fa-list-ul"></i></button>
-                                    <button type="button" @mousedown.prevent="exec('insertOrderedList')" title="Numbered list" class="rte-btn"><i class="fas fa-list-ol"></i></button>
-                                    <span class="w-px h-4 bg-white/10 mx-1"></span>
-                                    <button type="button" @mousedown.prevent="addLink()" title="Add link" class="rte-btn"><i class="fas fa-link"></i></button>
-                                    <button type="button" @mousedown.prevent="exec('unlink')" title="Remove link" class="rte-btn"><i class="fas fa-unlink"></i></button>
+                {{-- Insert-at-top strip (visible when list is non-empty) --}}
+                <div x-show="sections.length>0" class="relative flex items-center justify-center h-7 group -mb-1">
+                    <div class="absolute inset-x-0 top-1/2 -translate-y-1/2 h-px bg-white/5 group-hover:bg-blue-500/30 transition-colors"></div>
+                    <button type="button" @click="insertAt(0)" title="Insert section at top"
+                            class="relative z-10 opacity-0 group-hover:opacity-100 transition-opacity bg-[color:var(--bg-card,#1a1b2e)] border border-blue-500/50 hover:border-blue-400 text-blue-400 hover:text-blue-300 rounded-full w-6 h-6 flex items-center justify-center text-xs">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                </div>
+                <template x-for="(s, i) in sections" :key="s._cid">
+                    <div>
+                        <div class="bg-white/5 border border-white/10 rounded-xl p-4 space-y-2"
+                             :class="{ 'opacity-60': !s.visible }">
+                            <div class="flex items-center justify-between gap-2 flex-wrap">
+                                <span class="text-[10px] uppercase tracking-wider text-white/40">Section <span x-text="i+1"></span></span>
+                                <div class="flex items-center gap-2">
+                                    <label class="inline-flex items-center gap-1.5 text-[11px] text-white/70 cursor-pointer select-none">
+                                        <input type="hidden" :name="'sections['+i+'][visible]'" value="0">
+                                        <input type="checkbox" :name="'sections['+i+'][visible]'" value="1" x-model="s.visible" class="rounded border-white/20 bg-white/5">
+                                        <span x-text="s.visible ? 'Visible' : 'Hidden'"></span>
+                                    </label>
+                                    <button type="button" @click="moveUp(i)" :disabled="i===0" class="text-xs text-white/60 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed px-1.5 py-1" title="Move up"><i class="fas fa-arrow-up"></i></button>
+                                    <button type="button" @click="moveDown(i)" :disabled="i===sections.length-1" class="text-xs text-white/60 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed px-1.5 py-1" title="Move down"><i class="fas fa-arrow-down"></i></button>
+                                    <button type="button" @click="window.themedConfirm({title:'Delete this section?', message:'It will be removed when you save the page.', confirmText:'Delete', confirmIcon:'fa-trash', iconClass:'fa-trash', onConfirm: () => sections.splice(i,1)})" class="text-xs text-red-400 hover:text-red-300 px-1.5 py-1" title="Delete"><i class="fas fa-trash"></i></button>
                                 </div>
-                                <div x-ref="editor" contenteditable="true" spellcheck="true"
-                                     class="rte-content min-h-[160px] px-3 py-2 text-sm text-white focus:outline-none"></div>
                             </div>
-                            <input type="hidden" :name="'sections['+i+'][body]'" :value="s.body">
-                            <p class="text-[11px] text-white/40 leading-relaxed">
-                                Use the toolbar to format text. Allowed tags: <code class="text-white/60">a, strong, em, u, ul, ol, li, p, br, h3, h4, blockquote, code</code>. Output is sanitized on save — anything else (scripts, inline handlers, unsafe link protocols) is stripped.
-                            </p>
-                        @else
-                            <textarea :name="'sections['+i+'][body]'" x-model="s.body" rows="6" placeholder="Body — line breaks are preserved."
-                                      class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white font-mono"></textarea>
-                            <p class="text-[11px] text-white/40 leading-relaxed">
-                                Formatting: <code class="text-white/60">**bold**</code>,
-                                <code class="text-white/60">*italic*</code>,
-                                <code class="text-white/60">[text](https://url)</code>,
-                                lines starting with <code class="text-white/60">-</code> become bullet lists,
-                                <code class="text-white/60">1.</code> become numbered lists.
-                                Safe HTML tags (<code class="text-white/60">a, strong, em, ul, ol, li, p, br, h3, h4, blockquote, code</code>) are allowed; anything else (including scripts, inline event handlers, and unsafe link protocols) is filtered out.
-                            </p>
-                        @endif
+                            <input type="hidden" :name="'sections['+i+'][id]'" :value="s.id">
+                            <input type="text" :name="'sections['+i+'][heading]'" x-model="s.heading" placeholder="Section heading"
+                                   class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
+                            <label class="block text-[10px] uppercase tracking-wider text-white/40">Body @if(!$isPolicy)<span class="normal-case tracking-normal text-white/40">(Markdown or basic HTML)</span>@endif</label>
+                            @if($isPolicy)
+                                <div x-data="rteEditor()"
+                                     x-init="mount($refs.editor, s.body || '', html => s.body = html)"
+                                     class="rounded-lg border border-white/10 overflow-hidden bg-white/5">
+                                    <div class="flex flex-wrap items-center gap-1 px-2 py-1.5 border-b border-white/10 bg-white/5">
+                                        <button type="button" @mousedown.prevent="exec('bold')" title="Bold" class="rte-btn"><i class="fas fa-bold"></i></button>
+                                        <button type="button" @mousedown.prevent="exec('italic')" title="Italic" class="rte-btn"><i class="fas fa-italic"></i></button>
+                                        <button type="button" @mousedown.prevent="exec('underline')" title="Underline" class="rte-btn"><i class="fas fa-underline"></i></button>
+                                        <span class="w-px h-4 bg-white/10 mx-1"></span>
+                                        <button type="button" @mousedown.prevent="block('h3')" title="Heading 3" class="rte-btn font-semibold">H3</button>
+                                        <button type="button" @mousedown.prevent="block('h4')" title="Heading 4" class="rte-btn font-semibold">H4</button>
+                                        <button type="button" @mousedown.prevent="block('p')" title="Paragraph" class="rte-btn"><i class="fas fa-paragraph"></i></button>
+                                        <button type="button" @mousedown.prevent="block('blockquote')" title="Quote" class="rte-btn"><i class="fas fa-quote-right"></i></button>
+                                        <button type="button" @mousedown.prevent="wrapInline('code')" title="Inline code" class="rte-btn"><i class="fas fa-code"></i></button>
+                                        <span class="w-px h-4 bg-white/10 mx-1"></span>
+                                        <button type="button" @mousedown.prevent="exec('insertUnorderedList')" title="Bulleted list" class="rte-btn"><i class="fas fa-list-ul"></i></button>
+                                        <button type="button" @mousedown.prevent="exec('insertOrderedList')" title="Numbered list" class="rte-btn"><i class="fas fa-list-ol"></i></button>
+                                        <span class="w-px h-4 bg-white/10 mx-1"></span>
+                                        <button type="button" @mousedown.prevent="addLink()" title="Add link" class="rte-btn"><i class="fas fa-link"></i></button>
+                                        <button type="button" @mousedown.prevent="exec('unlink')" title="Remove link" class="rte-btn"><i class="fas fa-unlink"></i></button>
+                                    </div>
+                                    <div x-ref="editor" contenteditable="true" spellcheck="true"
+                                         class="rte-content min-h-[160px] px-3 py-2 text-sm text-white focus:outline-none"></div>
+                                </div>
+                                <input type="hidden" :name="'sections['+i+'][body]'" :value="s.body">
+                                <p class="text-[11px] text-white/40 leading-relaxed">
+                                    Use the toolbar to format text. Allowed tags: <code class="text-white/60">a, strong, em, u, ul, ol, li, p, br, h3, h4, blockquote, code</code>. Output is sanitized on save — anything else (scripts, inline handlers, unsafe link protocols) is stripped.
+                                </p>
+                            @else
+                                <textarea :name="'sections['+i+'][body]'" x-model="s.body" rows="6" placeholder="Body — line breaks are preserved."
+                                          class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white font-mono"></textarea>
+                                <p class="text-[11px] text-white/40 leading-relaxed">
+                                    Formatting: <code class="text-white/60">**bold**</code>,
+                                    <code class="text-white/60">*italic*</code>,
+                                    <code class="text-white/60">[text](https://url)</code>,
+                                    lines starting with <code class="text-white/60">-</code> become bullet lists,
+                                    <code class="text-white/60">1.</code> become numbered lists.
+                                    Safe HTML tags (<code class="text-white/60">a, strong, em, ul, ol, li, p, br, h3, h4, blockquote, code</code>) are allowed; anything else (including scripts, inline event handlers, and unsafe link protocols) is filtered out.
+                                </p>
+                            @endif
+                        </div>
+                        {{-- Insert-below strip between cards --}}
+                        <div class="relative flex items-center justify-center h-7 group -mt-1">
+                            <div class="absolute inset-x-0 top-1/2 -translate-y-1/2 h-px bg-white/5 group-hover:bg-blue-500/30 transition-colors"></div>
+                            <button type="button" @click="insertAt(i+1)" title="Insert section below"
+                                    class="relative z-10 opacity-0 group-hover:opacity-100 transition-opacity bg-[color:var(--bg-card,#1a1b2e)] border border-blue-500/50 hover:border-blue-400 text-blue-400 hover:text-blue-300 rounded-full w-6 h-6 flex items-center justify-center text-xs">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
                     </div>
                 </template>
                 <div x-show="sections.length===0" class="text-xs text-white/40 text-center py-4">No sections yet — click "Add section".</div>
+                <div class="pt-1">
+                    <button type="button" @click="sections.push(newBlank())" class="w-full text-xs px-3 py-2 border border-dashed border-white/20 hover:border-blue-500/50 hover:text-blue-400 rounded-xl text-white/40 transition-colors">
+                        <i class="fas fa-plus mr-1"></i> Add section
+                    </button>
+                </div>
             </div>
         @endif
 

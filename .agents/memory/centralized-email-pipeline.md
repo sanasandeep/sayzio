@@ -27,6 +27,14 @@ changing the actual content when unconfigured.
 - Register the key in `EmailTemplateRegistry` (with variables+samples) or it won't appear in the
   admin editor / preview and won't get a friendly category.
 - Send via `Emailer::send`/`sendMailable` (not raw Mail::) so it's logged + override-aware.
+  This is ENFORCED: `DirectMailSendAllowlistTest` (source-scan, no DB) fails if any `app/` file
+  uses `Mail::(to|raw|html|send|queue|later|mailer)(` or `Notification::route('mail'`) unless the
+  file path is in its `ALLOWLIST`. Only genuine SMTP connection-verify surfaces stay allowlisted
+  (Emailer.php itself + MailSettings/CompanyMailSettings + the two MailSettingsController). When you
+  route a stray sender through Emailer, PRUNE its path from the allowlist too. Gotcha: `Emailer::send`
+  takes a SINGLE string `$to` — for array recipients loop per-address (each gets its own email_logs
+  row). The regex only matches the `Mail::` facade, so Symfony `new EsmtpTransport(...)->send()`
+  branches (used by Inbox/Subscriber custom-SMTP paths) are NOT flagged and need no allowlist entry.
 - Web UI: Admin\EmailTemplateController + EmailLogController, User\EmailHistoryController;
   routes in routes/modules/{admin,user}.php; sidebar links in admin & user layouts (user nav is
   DUAL — desktop aside + mobile drawer).

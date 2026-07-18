@@ -589,6 +589,84 @@ class WorkspacePermissionsTest extends TestCase
         $this->assertFalse(\App\Modules\User\Services\WorkspacePermissions::roleCan('editor', 'delete', $wsB));
     }
 
+    public function test_member_can_leave_workspace_and_owner_is_notified(): void
+    {
+        $owner  = $this->makeUser();
+        $ws     = $owner->ownedWorkspaces()->first();
+        $member = $this->makeUser();
+        $this->memberOf($ws, $member, 'editor');
+
+        $this->actingAs($member);
+        $this->withSession([WorkspaceContext::SESSION_KEY => $ws->id]);
+
+        $resp = $this->post('/user/team/leave');
+        $resp->assertRedirect(route('user.dashboard'));
+
+        // Membership row is gone.
+        $this->assertDatabaseMissing('workspace_members', [
+            'workspace_id' => $ws->id,
+            'user_id'      => $member->id,
+        ]);
+
+        // Owner got an in-app notification.
+        $this->assertDatabaseHas('user_notifications', [
+            'user_id' => $owner->id,
+            'type'    => 'workspace_member_left',
+        ]);
+
+        // Leaving member is moved back to their personal workspace.
+        $personal = $member->fresh()->ownedWorkspaces()->where('is_personal', true)->first();
+        $this->assertNotNull($personal);
+        $this->assertSame($personal->id, session(WorkspaceContext::SESSION_KEY));
+    }
+
+    public function test_member_leaving_reassigns_their_content_to_owner(): void
+    {
+        $owner  = $this->makeUser();
+        $ws     = $owner->ownedWorkspaces()->first();
+        $member = $this->makeUser();
+        $this->memberOf($ws, $member, 'editor');
+
+        $link = (new \App\Modules\User\Models\Link)->forceFill([
+            'user_id'            => $member->id,
+            'workspace_id'       => $ws->id,
+            'created_by_user_id' => $member->id,
+            'type'               => 'url',
+            'alias'              => 'demo-' . Str::random(6),
+            'long_url'           => 'https://example.com',
+            'title'              => 'Member link',
+        ]);
+        $link->saveQuietly();
+
+        $this->actingAs($member);
+        $this->withSession([WorkspaceContext::SESSION_KEY => $ws->id]);
+        $this->post('/user/team/leave')->assertRedirect();
+
+        $this->assertSame(
+            $owner->id,
+            (int) \App\Modules\User\Models\Link::withoutGlobalScope('workspace')
+                ->find($link->id)->created_by_user_id,
+        );
+    }
+
+    public function test_owner_cannot_leave_their_own_workspace(): void
+    {
+        $owner = $this->makeUser();
+        $ws    = $owner->ownedWorkspaces()->first();
+
+        $this->actingAs($owner);
+        $this->withSession([WorkspaceContext::SESSION_KEY => $ws->id]);
+
+        $resp = $this->post('/user/team/leave');
+        $resp->assertRedirect();
+        $resp->assertSessionHas('error');
+
+        // Owner still owns the workspace; no spurious notification.
+        $this->assertDatabaseMissing('user_notifications', [
+            'type' => 'workspace_member_left',
+        ]);
+    }
+
     public function test_billing_remains_owner_only_for_admin_members_after_role_changes(): void
     {
         // Even after we let admins manage the team, owner-only routes

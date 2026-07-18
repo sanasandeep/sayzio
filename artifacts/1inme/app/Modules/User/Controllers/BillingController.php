@@ -44,6 +44,14 @@ use Illuminate\Http\Request;
  */
 class BillingController extends Controller
 {
+    /**
+     * How long the app-return flag stays honorable after /pricing?client=app
+     * was opened. Long enough to cover a real checkout round-trip, short
+     * enough that an abandoned app checkout can't linger and hijack a later
+     * plain-web upgrade in the same session with the "return to app" banner.
+     */
+    private const APP_RETURN_TTL_SECONDS = 3600;
+
     public function show(Request $request)
     {
         $user = $request->user();
@@ -81,10 +89,27 @@ class BillingController extends Controller
             ? Plan::find($subscription->scheduled_downgrade_plan_id)
             : null;
 
+        // When this billing page is the landing after a just-completed payment
+        // (`?paid=`) AND the checkout originated from the native app (flag set
+        // by PricingPagesController when /pricing?client=app was opened), fire
+        // the `sayzio://billing/refresh` deep link so the app auto-refreshes
+        // the plan the moment the user switches back. Pull-and-forget so it
+        // fires only once per return.
+        //
+        // The flag stores the unix time it was set; honor it only within a
+        // short window so a stale flag from an abandoned app checkout can't
+        // linger and make a later plain-web upgrade in the same session show
+        // the "return to app" banner. A legacy boolean `true` reads as 1 and
+        // is safely treated as expired.
+        $appReturnAt = (int) $request->session()->pull('billing.app_return', 0);
+        $appReturn = $request->filled('paid')
+            && $appReturnAt > 0
+            && (time() - $appReturnAt) <= self::APP_RETURN_TTL_SECONDS;
+
         return view('user.billing.show', compact(
             'subscription', 'invoices', 'creditNotes',
             'graceDaysRemaining', 'refundableInvoices', 'addons',
-            'scheduledDowngradePlan'
+            'scheduledDowngradePlan', 'appReturn'
         ));
     }
 

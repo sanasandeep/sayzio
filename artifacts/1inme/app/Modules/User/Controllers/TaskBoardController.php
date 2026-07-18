@@ -54,7 +54,7 @@ class TaskBoardController extends Controller
         // Auto-seed a personal board only inside the user's own personal workspace.
         $ws = app('current_workspace');
         if ($personal->isEmpty() && $ws && $ws->is_personal && (int) $ws->owner_user_id === (int) $userId) {
-            $personal = collect([$this->createBoard('My Tasks', 'personal', '#8b5cf6')])
+            $personal = collect([$this->createBoard('My Tasks', 'personal', '#3d6bff')])
                 ->each->loadCount(['cards as open_cards_count' => function ($q) {
                     $q->whereNull('completed_at')->whereNull('archived_at');
                 }]);
@@ -800,7 +800,7 @@ class TaskBoardController extends Controller
         $label = $board->labels()->create([
             'workspace_id' => $board->workspace_id,
             'name'         => $data['name'],
-            'color'        => $data['color'] ?? '#8b5cf6',
+            'color'        => $data['color'] ?? '#3d6bff', // default label color = brand accent (blue)
         ]);
         return response()->json(['ok' => true, 'label' => $label]);
     }

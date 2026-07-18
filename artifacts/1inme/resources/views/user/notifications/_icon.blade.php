@@ -18,6 +18,11 @@
          style="background: rgba(92,131,255,0.12); color:#3d6bff;">
         <i class="fas fa-user-shield"></i>
     </div>
+@elseif($n->type === 'workspace_member_left')
+    <div class="{{ $__iconSize }} rounded-full flex items-center justify-center flex-shrink-0"
+         style="background: rgba(239,68,68,0.12); color:#ef4444;">
+        <i class="fas fa-arrow-right-from-bracket"></i>
+    </div>
 @elseif($n->type === 'task_assigned')
     <div class="{{ $__iconSize }} rounded-full flex items-center justify-center flex-shrink-0"
          style="background: rgba(34,197,94,0.12); color:#16a34a;">

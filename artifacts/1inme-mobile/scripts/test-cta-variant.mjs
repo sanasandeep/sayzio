@@ -105,14 +105,13 @@ const screens = [
   {
     file: "app/onboarding.tsx",
     buttons: [
-      ['hasPresets ? "Open the AI designer"', "final onboarding CTA"],
       ['index === total - 1 ? "Get started" : "Continue"', "slide Continue/Get started"],
     ],
   },
   {
     file: "app/plans.tsx",
     buttons: [
-      ['label="Buy" variant="cta"', "purchase-modal Buy"],
+      ['label="Upgrade on the web"', "plan-card Upgrade on the web"],
       ['resume.isPending ? "Resuming…" : "Resume"', "resume-subscription"],
     ],
   },

@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Sayzio — Shorten & Bio-Link",
   "short_name": "Sayzio",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "One-click shorten the current tab through Sayzio and turn any page into a draft bio-link page.",
   "action": {
     "default_title": "Sayzio",
@@ -23,6 +23,23 @@
   "background": {
     "scripts": ["background.js"],
     "type": "module"
+  },
+  "omnibox": {
+    "keyword": "szo"
+  },
+  "commands": {
+    "shorten-tab": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+S"
+      },
+      "description": "Shorten the current tab URL with Sayzio"
+    },
+    "open-search": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+F"
+      },
+      "description": "Open Sayzio universal search"
+    }
   },
   "permissions": ["activeTab", "storage", "contextMenus", "scripting", "notifications", "tabs", "alarms"],
   "host_permissions": [

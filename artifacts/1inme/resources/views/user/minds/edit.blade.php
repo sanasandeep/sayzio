@@ -184,7 +184,13 @@
                 </div>
                 <div x-show="auth!=='none'" class="flex-1 min-w-[12rem]">
                     <label class="text-xs text-white/50 block mb-1" x-text="auth==='bearer' ? 'Bearer token' : 'API key value'"></label>
-                    <input name="credential" type="password" autocomplete="new-password" placeholder="••••••••" maxlength="2048" class="w-full bg-white/[0.04] border border-white/10 rounded-xl px-3 py-2 text-white text-sm">
+                    @include('common.partials.password-field', [
+                        'name' => 'credential',
+                        'autocomplete' => 'new-password',
+                        'placeholder' => '••••••••',
+                        'maxlength' => 2048,
+                        'inputClass' => 'w-full bg-white/[0.04] border border-white/10 rounded-xl px-3 py-2 text-white text-sm',
+                    ])
                 </div>
             </div>
             <div>

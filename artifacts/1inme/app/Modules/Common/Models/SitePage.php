@@ -183,7 +183,15 @@ class SitePage extends Model
         ];
 
         $fallback = $defaults[$slug] ?? $defaults['error-404'];
-        $record   = static::where('slug', $slug)->first();
+
+        try {
+            $record = static::where('slug', $slug)->first();
+        } catch (\Throwable $e) {
+            // The error page must never 500 — if the database is down or the
+            // site_pages table is missing (fresh/ephemeral DB), fall back to
+            // the built-in defaults instead of propagating the exception.
+            $record = null;
+        }
 
         return (object) [
             'slug'             => $slug,

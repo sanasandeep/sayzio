@@ -52,8 +52,25 @@
                 <input type="hidden" :name="`fields[${i}][file_max_kb]`" :value="f.file_max_kb ?? ''">
                 <input type="hidden" :name="`fields[${i}][file_types]`" :value="f.file_types || ''">
                 <input type="hidden" :name="`fields[${i}][parent]`" :value="f.parent || ''">
+                <input type="hidden" :name="`fields[${i}][auto_collect]`" :value="f.auto_collect || ''">
+                <input type="hidden" :name="`fields[${i}][auto_collect_param]`" :value="f.auto_collect_param || ''">
+                <input type="hidden" :name="`fields[${i}][step]`" :value="f.step ?? ''">
+                <input type="hidden" :name="`fields[${i}][unit]`" :value="f.unit || ''">
+                <input type="hidden" :name="`fields[${i}][default_val]`" :value="f.default_val ?? ''">
+                <input type="hidden" :name="`fields[${i}][currency_code]`" :value="f.currency_code || ''">
+                <input type="hidden" :name="`fields[${i}][first_label]`" :value="f.first_label || ''">
+                <input type="hidden" :name="`fields[${i}][last_label]`" :value="f.last_label || ''">
+                <input type="hidden" :name="`fields[${i}][min_date]`" :value="f.min_date || ''">
+                <input type="hidden" :name="`fields[${i}][max_date]`" :value="f.max_date || ''">
                 <template x-for="(opt, j) in (f.options || [])" :key="`${f.id}-opt-${j}`">
                     <input type="hidden" :name="`fields[${i}][options][${j}]`" :value="opt">
+                </template>
+                {{-- Image choice options [{label, url}] --}}
+                <template x-for="(io, j) in (f.image_options || [])" :key="`${f.id}-io-${j}`">
+                    <span>
+                        <input type="hidden" :name="`fields[${i}][image_options][${j}][label]`" :value="io.label || ''">
+                        <input type="hidden" :name="`fields[${i}][image_options][${j}][url]`"   :value="io.url || ''">
+                    </span>
                 </template>
                 {{-- Per-field pricing (cents). f.price / f.option_prices are kept
                      in dollars in the editor and serialized to cents here. --}}
@@ -78,17 +95,32 @@
                         <input type="hidden" :name="`fields[${i}][addons][${j}][price]`" :value="ad.price ?? 0">
                     </span>
                 </template>
+                {{-- Repeatable section settings (section fields only) --}}
+                <template x-if="f.type === 'section'">
+                    <div>
+                        <input type="hidden" :name="`fields[${i}][repeatable]`" :value="f.repeatable ? 1 : 0">
+                        <input type="hidden" :name="`fields[${i}][repeat_add_label]`" :value="f.repeat_add_label || ''">
+                        <input type="hidden" :name="`fields[${i}][repeat_min]`" :value="f.repeat_min || ''">
+                        <input type="hidden" :name="`fields[${i}][repeat_max]`" :value="f.repeat_max || ''">
+                    </div>
+                </template>
             </div>
         </template>
 
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
             {{-- LEFT: field type palette --}}
             <aside class="lg:col-span-3">
-                <div class="card-premium p-4 lg:sticky lg:top-4">
-                    <h4 class="text-xs font-bold uppercase tracking-wider mb-3" style="color: var(--text-faint);">Add a field</h4>
-                    <div class="space-y-1.5 max-h-[70vh] overflow-y-auto pr-1 custom-scrollbar">
+                <div class="card-premium p-4 lg:sticky lg:top-4 lg:max-h-[calc(100vh-2rem)] lg:overflow-y-auto lg:custom-scrollbar" x-data="{ search: '' }">
+                    <h4 class="text-xs font-bold uppercase tracking-wider mb-2" style="color: var(--text-faint);">Add a field</h4>
+                    <div class="relative mb-2">
+                        <i class="fas fa-search absolute left-2.5 top-1/2 -translate-y-1/2 text-[10px]" style="color: var(--text-faint);"></i>
+                        <input type="text" x-model.debounce.100ms="search" placeholder="Search fields…"
+                               class="theme-input w-full text-xs pl-7 py-1.5" style="font-size:0.7rem;">
+                    </div>
+                    <div class="space-y-1 pr-0.5">
                         <template x-for="(meta, type) in types" :key="type">
                             <button type="button" @click="addField(type)"
+                                    x-show="!search || meta.label.toLowerCase().includes(search.toLowerCase()) || type.toLowerCase().includes(search.toLowerCase())"
                                     class="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs text-left transition-all hover:translate-x-1"
                                     style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-secondary);">
                                 <i :class="`fas ${meta.icon}`" class="text-blue-400 text-xs w-4 text-center"></i>
@@ -96,6 +128,8 @@
                                 <i class="fas fa-plus text-[9px] opacity-40"></i>
                             </button>
                         </template>
+                        <p x-show="search && !Object.entries(types).some(([t,m]) => m.label.toLowerCase().includes(search.toLowerCase()) || t.toLowerCase().includes(search.toLowerCase()))"
+                           class="text-[11px] text-center py-3" style="color: var(--text-faint);">No fields match.</p>
                     </div>
                 </div>
             </aside>
@@ -123,7 +157,7 @@
                                         <i class="fas fa-grip-vertical text-xs handle" style="color: var(--text-faint); cursor: grab;"></i>
                                         <i class="fas fa-layer-group text-blue-400 text-xs"></i>
                                         <div class="flex-1 min-w-0">
-                                            <div class="text-[10px] uppercase tracking-wider font-bold" style="color: var(--text-faint);">Section</div>
+                                            <div class="text-[10px] uppercase tracking-wider font-bold flex items-center gap-1.5" style="color: var(--text-faint);">Section <template x-if="f.repeatable"><span class="text-[8px] px-1.5 py-0.5 rounded font-bold" style="background: rgba(99,102,241,0.18); color: #818cf8;">REPEATABLE</span></template></div>
                                             <div class="text-sm font-bold" style="color: var(--text-primary);" x-text="f.label || '(untitled section)'"></div>
                                         </div>
                                         <button type="button" @click.stop="addFieldToSection(f.id)" class="text-[10px] px-2.5 py-1.5 rounded-lg font-semibold" style="background: rgba(92,131,255,0.12); color: #3d6bff;">
@@ -255,7 +289,7 @@
 
             {{-- RIGHT: per-field editor --}}
             <aside class="lg:col-span-3">
-                <div class="card-premium p-5 lg:sticky lg:top-4">
+                <div x-ref="fieldPanel" class="card-premium p-5 lg:sticky lg:top-4 lg:max-h-[calc(100vh-2rem)] lg:overflow-y-auto lg:custom-scrollbar">
                     <h4 class="text-xs font-bold uppercase tracking-wider mb-3" style="color: var(--text-faint);">
                         <span x-show="selectedIndex === null">Field options</span>
                         <span x-show="selectedIndex !== null" x-text="`Editing: ${fields[selectedIndex]?.type}`"></span>
@@ -299,13 +333,148 @@
                                     <input type="number" x-model="fields[selectedIndex].max" class="theme-input w-full text-xs">
                                 </div>
                             </div>
-                            <div x-show="['select','radio','checkbox'].includes(fields[selectedIndex].type)">
+                            <div x-show="['select','radio','checkbox','ranking'].includes(fields[selectedIndex].type)">
                                 <label class="block text-[11px] font-medium mb-1" style="color: var(--text-muted);">Options <span class="text-[10px]" style="color: var(--text-faint);">— one per line</span></label>
                                 <textarea
                                     rows="5"
                                     class="theme-input w-full text-xs"
                                     @input="fields[selectedIndex].options = $event.target.value.split('\n').map(s => s.trim()).filter(Boolean)"
                                     x-text="(fields[selectedIndex].options || []).join('\n')"></textarea>
+                            </div>
+
+                            {{-- Full Name: first / last label overrides --}}
+                            <div x-show="fields[selectedIndex].type === 'full_name'" class="grid grid-cols-2 gap-2">
+                                <div>
+                                    <label class="block text-[11px] font-medium mb-1" style="color: var(--text-muted);">First-name label</label>
+                                    <input type="text" x-model="fields[selectedIndex].first_label" placeholder="First Name" class="theme-input w-full text-xs">
+                                </div>
+                                <div>
+                                    <label class="block text-[11px] font-medium mb-1" style="color: var(--text-muted);">Last-name label</label>
+                                    <input type="text" x-model="fields[selectedIndex].last_label" placeholder="Last Name" class="theme-input w-full text-xs">
+                                </div>
+                            </div>
+
+                            {{-- Currency: currency code --}}
+                            <div x-show="fields[selectedIndex].type === 'currency'">
+                                <label class="block text-[11px] font-medium mb-1" style="color: var(--text-muted);">Currency code</label>
+                                <select x-model="fields[selectedIndex].currency_code" class="theme-input w-full text-xs">
+                                    <template x-for="c in ['USD','EUR','GBP','INR','AUD','CAD','JPY','BRL','CHF','CNY','SGD','AED','SAR','MXN','HKD','SEK','NOK','DKK','NZD','ZAR']" :key="c">
+                                        <option :value="c" x-text="c"></option>
+                                    </template>
+                                </select>
+                            </div>
+
+                            {{-- Slider: min, max, step, unit, default --}}
+                            <div x-show="fields[selectedIndex].type === 'slider'" class="space-y-2">
+                                <div class="grid grid-cols-2 gap-2">
+                                    <div>
+                                        <label class="block text-[11px] font-medium mb-1" style="color: var(--text-muted);">Min</label>
+                                        <input type="number" x-model.number="fields[selectedIndex].min" class="theme-input w-full text-xs">
+                                    </div>
+                                    <div>
+                                        <label class="block text-[11px] font-medium mb-1" style="color: var(--text-muted);">Max</label>
+                                        <input type="number" x-model.number="fields[selectedIndex].max" class="theme-input w-full text-xs">
+                                    </div>
+                                </div>
+                                <div class="grid grid-cols-2 gap-2">
+                                    <div>
+                                        <label class="block text-[11px] font-medium mb-1" style="color: var(--text-muted);">Step</label>
+                                        <input type="number" x-model.number="fields[selectedIndex].step" min="0.01" class="theme-input w-full text-xs" placeholder="1">
+                                    </div>
+                                    <div>
+                                        <label class="block text-[11px] font-medium mb-1" style="color: var(--text-muted);">Unit suffix</label>
+                                        <input type="text" x-model="fields[selectedIndex].unit" class="theme-input w-full text-xs" placeholder="e.g. kg, %">
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="block text-[11px] font-medium mb-1" style="color: var(--text-muted);">Default value</label>
+                                    <input type="number" x-model.number="fields[selectedIndex].default_val" class="theme-input w-full text-xs">
+                                </div>
+                            </div>
+
+                            {{-- Date Range: min/max date --}}
+                            <div x-show="fields[selectedIndex].type === 'date_range'" class="grid grid-cols-2 gap-2">
+                                <div>
+                                    <label class="block text-[11px] font-medium mb-1" style="color: var(--text-muted);">Min selectable date</label>
+                                    <input type="date" x-model="fields[selectedIndex].min_date" class="theme-input w-full text-xs">
+                                </div>
+                                <div>
+                                    <label class="block text-[11px] font-medium mb-1" style="color: var(--text-muted);">Max selectable date</label>
+                                    <input type="date" x-model="fields[selectedIndex].max_date" class="theme-input w-full text-xs">
+                                </div>
+                            </div>
+
+                            {{-- Image Choice: image options editor --}}
+                            <div x-show="fields[selectedIndex].type === 'image_choice'" class="space-y-2">
+                                <div class="flex items-center justify-between">
+                                    <label class="block text-[11px] font-medium" style="color: var(--text-muted);">Image options</label>
+                                    <button type="button" @click="addImageOption()" class="text-[11px] font-semibold text-blue-400">
+                                        <i class="fas fa-plus mr-0.5"></i> Add
+                                    </button>
+                                </div>
+                                <template x-for="(io, j) in (fields[selectedIndex].image_options || [])" :key="`io-${j}`">
+                                    <div class="space-y-1 p-2 rounded-lg" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass);">
+                                        <input type="text" x-model="io.label" placeholder="Option label" class="theme-input w-full text-xs">
+                                        <input type="url" x-model="io.url" placeholder="Image URL (https://…)" class="theme-input w-full text-xs">
+                                        <button type="button" @click="removeImageOption(j)" class="text-[10px] text-rose-400">
+                                            <i class="fas fa-times mr-0.5"></i> Remove
+                                        </button>
+                                    </div>
+                                </template>
+                                <p x-show="!(fields[selectedIndex].image_options || []).length" class="text-[10px]" style="color: var(--text-faint);">
+                                    Add options with a label and image URL.
+                                </p>
+                            </div>
+
+                            {{-- Hidden field: auto-collect toggle --}}
+                            <div x-show="fields[selectedIndex].type === 'hidden'" class="space-y-2">
+                                <label class="flex items-center gap-2 text-xs cursor-pointer" style="color: var(--text-secondary);">
+                                    <input type="checkbox" :checked="!!fields[selectedIndex].auto_collect"
+                                           @change="fields[selectedIndex].auto_collect = $event.target.checked ? '1' : ''"
+                                           class="rounded text-blue-500">
+                                    Auto-collect visitor data
+                                </label>
+                                <div x-show="!!fields[selectedIndex].auto_collect" class="space-y-2">
+                                    <div>
+                                        <label class="block text-[11px] font-medium mb-1" style="color: var(--text-muted);">Collect what</label>
+                                        <select x-model="fields[selectedIndex].auto_collect_param" class="theme-input w-full text-xs">
+                                            <optgroup label="Visitor identity">
+                                                <option value="ip">IP address</option>
+                                                <option value="country">Country (requires GeoIP)</option>
+                                                <option value="city">City (requires GeoIP)</option>
+                                                <option value="browser">Browser (Chrome, Firefox…)</option>
+                                                <option value="os">Operating system</option>
+                                                <option value="device">Device type (Mobile/Desktop)</option>
+                                                <option value="ua">Raw user-agent string</option>
+                                                <option value="language">Browser language</option>
+                                            </optgroup>
+                                            <optgroup label="Page context">
+                                                <option value="landing_url">Form landing URL</option>
+                                                <option value="page_url">Submit page URL</option>
+                                                <option value="referer">Referring URL</option>
+                                                <option value="timestamp">Submission timestamp</option>
+                                                <option value="biolink_alias">Form alias / slug</option>
+                                            </optgroup>
+                                            <optgroup label="UTM / campaign">
+                                                <option value="utm_source">UTM source</option>
+                                                <option value="utm_medium">UTM medium</option>
+                                                <option value="utm_campaign">UTM campaign</option>
+                                                <option value="utm_term">UTM term</option>
+                                                <option value="utm_content">UTM content</option>
+                                            </optgroup>
+                                            <optgroup label="Custom">
+                                                <option value="query:custom">Custom query-string key (set below)</option>
+                                            </optgroup>
+                                        </select>
+                                    </div>
+                                    <div x-show="fields[selectedIndex].auto_collect_param === 'query:custom' || (fields[selectedIndex].auto_collect_param || '').startsWith('query:')">
+                                        <label class="block text-[11px] font-medium mb-1" style="color: var(--text-muted);">Query-string key name</label>
+                                        <input type="text" placeholder="e.g. ref, src, campaign_id"
+                                               class="theme-input w-full text-xs"
+                                               :value="(fields[selectedIndex].auto_collect_param || '').startsWith('query:') ? fields[selectedIndex].auto_collect_param.slice(6) : ''"
+                                               @input="fields[selectedIndex].auto_collect_param = 'query:' + $event.target.value.trim().replace(/[^a-z0-9_-]/gi, '')">
+                                    </div>
+                                </div>
                             </div>
 
                             {{-- Pricing / Package editor --}}
@@ -317,10 +486,12 @@
                                     </div>
                                     <div class="space-y-1.5">
                                         <template x-for="(po, j) in (fields[selectedIndex].price_options || [])" :key="`po-${j}`">
-                                            <div class="flex items-center gap-1.5">
-                                                <input type="text" x-model="po.label" placeholder="Label" class="theme-input flex-1 text-xs">
-                                                <input type="number" min="0" step="0.01" x-model.number="po.price" placeholder="0.00" class="theme-input w-20 text-xs">
-                                                <button type="button" @click="removePriceOption(j)" class="text-rose-400 px-1" title="Remove"><i class="fas fa-times"></i></button>
+                                            <div class="space-y-1">
+                                                <div class="flex items-center gap-1.5">
+                                                    <input type="text" x-model="po.label" :title="po.label" placeholder="Label" class="theme-input flex-1 min-w-0 text-xs">
+                                                    <button type="button" @click="removePriceOption(j)" class="text-rose-400 shrink-0 px-1" title="Remove"><i class="fas fa-times"></i></button>
+                                                </div>
+                                                <input type="text" inputmode="decimal" x-model.number="po.price" placeholder="0.00" class="theme-input w-full text-xs">
                                             </div>
                                         </template>
                                     </div>
@@ -332,10 +503,12 @@
                                     </div>
                                     <div class="space-y-1.5">
                                         <template x-for="(ad, j) in (fields[selectedIndex].addons || [])" :key="`ad-${j}`">
-                                            <div class="flex items-center gap-1.5">
-                                                <input type="text" x-model="ad.label" placeholder="Label" class="theme-input flex-1 text-xs">
-                                                <input type="number" min="0" step="0.01" x-model.number="ad.price" placeholder="0.00" class="theme-input w-20 text-xs">
-                                                <button type="button" @click="removeAddon(j)" class="text-rose-400 px-1" title="Remove"><i class="fas fa-times"></i></button>
+                                            <div class="space-y-1">
+                                                <div class="flex items-center gap-1.5">
+                                                    <input type="text" x-model="ad.label" :title="ad.label" placeholder="Label" class="theme-input flex-1 min-w-0 text-xs">
+                                                    <button type="button" @click="removeAddon(j)" class="text-rose-400 shrink-0 px-1" title="Remove"><i class="fas fa-times"></i></button>
+                                                </div>
+                                                <input type="text" inputmode="decimal" x-model.number="ad.price" placeholder="0.00" class="theme-input w-full text-xs">
                                             </div>
                                         </template>
                                     </div>
@@ -366,14 +539,14 @@
                                     {{-- number: price per unit (× quantity entered) --}}
                                     <div x-show="fields[selectedIndex].type === 'number'">
                                         <label class="block text-[10px] font-medium mb-1" style="color: var(--text-muted);">Price per unit</label>
-                                        <input type="number" min="0" step="0.01" x-model.number="fields[selectedIndex].price" class="theme-input w-full text-xs" placeholder="0.00">
+                                        <input type="text" inputmode="decimal" x-model.number="fields[selectedIndex].price" class="theme-input w-full text-xs" placeholder="0.00">
                                         <p class="text-[10px] mt-1" style="color: var(--text-faint);">Multiplied by the quantity the visitor enters.</p>
                                     </div>
 
                                     {{-- consent: flat add-on when ticked --}}
                                     <div x-show="fields[selectedIndex].type === 'consent'">
                                         <label class="block text-[10px] font-medium mb-1" style="color: var(--text-muted);">Add-on price</label>
-                                        <input type="number" min="0" step="0.01" x-model.number="fields[selectedIndex].price" class="theme-input w-full text-xs" placeholder="0.00">
+                                        <input type="text" inputmode="decimal" x-model.number="fields[selectedIndex].price" class="theme-input w-full text-xs" placeholder="0.00">
                                         <p class="text-[10px] mt-1" style="color: var(--text-faint);">Added to the total when the visitor ticks this box.</p>
                                     </div>
 
@@ -386,7 +559,7 @@
                                         <template x-for="opt in (fields[selectedIndex].options || [])" :key="opt">
                                             <div class="flex items-center gap-2">
                                                 <span class="text-[11px] flex-1 truncate" style="color: var(--text-secondary);" x-text="opt"></span>
-                                                <input type="number" min="0" step="0.01"
+                                                <input type="text" inputmode="decimal"
                                                        :value="(fields[selectedIndex].option_prices && fields[selectedIndex].option_prices[opt]) || ''"
                                                        @input="setOptionPrice(opt, $event.target.value)"
                                                        class="theme-input w-24 text-xs" placeholder="0.00">
@@ -395,6 +568,34 @@
                                     </div>
                                 </div>
                             </template>
+
+                            {{-- Repeatable group settings (section fields only) --}}
+                            <div x-show="fields[selectedIndex].type === 'section'" class="pt-3 mt-1" style="border-top: 1px solid var(--border-glass);">
+                                <label class="flex items-center gap-2 text-xs cursor-pointer" style="color: var(--text-secondary);">
+                                    <input type="checkbox" x-model="fields[selectedIndex].repeatable" class="rounded text-blue-500">
+                                    <span class="font-medium">Make this group repeatable</span>
+                                </label>
+                                <template x-if="fields[selectedIndex].repeatable">
+                                    <div class="mt-3 space-y-2.5">
+                                        <div>
+                                            <label class="block text-[10px] font-medium mb-1" style="color: var(--text-muted);">Add button label</label>
+                                            <input type="text" x-model="fields[selectedIndex].repeat_add_label" class="theme-input w-full text-xs" placeholder="Add another">
+                                        </div>
+                                        <div class="grid grid-cols-2 gap-2">
+                                            <div>
+                                                <label class="block text-[10px] font-medium mb-1" style="color: var(--text-muted);">Min copies</label>
+                                                <input type="number" min="1" x-model.number="fields[selectedIndex].repeat_min" class="theme-input w-full text-xs" placeholder="1">
+                                            </div>
+                                            <div>
+                                                <label class="block text-[10px] font-medium mb-1" style="color: var(--text-muted);">Max copies <span style="color: var(--text-faint);">(blank = no limit)</span></label>
+                                                <input type="number" min="1" x-model.number="fields[selectedIndex].repeat_max" class="theme-input w-full text-xs" placeholder="—">
+                                            </div>
+                                        </div>
+                                        <p class="text-[10px]" style="color: var(--text-faint);">Visitors can add/remove copies of this group when filling the form. Min/max are enforced server-side.</p>
+                                        <p class="text-[10px] text-amber-400"><i class="fas fa-triangle-exclamation mr-0.5"></i> File, signature, and pricing fields inside a repeatable group are skipped on submit.</p>
+                                    </div>
+                                </template>
+                            </div>
 
                             {{-- Section assignment (group fields into one card) --}}
                             <div x-show="fields[selectedIndex].type !== 'section' && sectionOptions.length > 0" class="pt-3 mt-1" style="border-top: 1px solid var(--border-glass);">
@@ -495,15 +696,27 @@ function formBuilder(initial) {
             // once on load. Hidden inputs convert back to cents on submit.
             (this.fields || []).forEach(f => {
                 if (f.price_cents != null && f.price == null) {
-                    f.price = (Number(f.price_cents) || 0) / 100;
+                    f.price = Number(((Number(f.price_cents) || 0) / 100).toFixed(2));
                 }
                 if (f.option_prices && typeof f.option_prices === 'object') {
                     const dollars = {};
                     Object.keys(f.option_prices).forEach(k => {
-                        dollars[k] = (Number(f.option_prices[k]) || 0) / 100;
+                        dollars[k] = Number(((Number(f.option_prices[k]) || 0) / 100).toFixed(2));
                     });
                     f.option_prices = dollars;
                 }
+            });
+
+            // When a different field is selected, the right panel's content
+            // height changes; reset its internal scroll to the top so the user
+            // always starts at the top of the new field's options rather than
+            // being stranded mid-scroll from the previous field.
+            this.$watch('selectedIndex', () => {
+                this.$nextTick(() => {
+                    if (this.$refs.fieldPanel) {
+                        this.$refs.fieldPanel.scrollTop = 0;
+                    }
+                });
             });
         },
 
@@ -555,9 +768,25 @@ function formBuilder(initial) {
                 f.price_options = [{ label: 'Standard', price: 9.99 }];
                 f.addons = [];
             }
+            // New field type defaults
+            if (type === 'full_name') { f.first_label = 'First Name'; f.last_label = 'Last Name'; }
+            if (type === 'ranking') { f.options = ['Option 1', 'Option 2', 'Option 3']; }
+            if (type === 'slider') { f.min = 0; f.max = 100; f.step = 1; f.unit = ''; f.default_val = 0; }
+            if (type === 'image_choice') { f.image_options = [{ label: 'Option 1', url: '' }]; }
+            if (type === 'currency') { f.currency_code = 'USD'; }
+            if (type === 'hidden') { f.label = 'Hidden Field'; f.auto_collect = ''; f.auto_collect_param = 'ip'; }
             this.fields.push(f);
             this.selectedIndex = this.fields.length - 1;
             this.$nextTick(() => this.initSortable());
+        },
+        addImageOption() {
+            const f = this.fields[this.selectedIndex];
+            if (!f.image_options) f.image_options = [];
+            f.image_options.push({ label: 'Option ' + (f.image_options.length + 1), url: '' });
+        },
+        removeImageOption(j) {
+            const f = this.fields[this.selectedIndex];
+            if (f.image_options) f.image_options.splice(j, 1);
         },
         addPriceOption() {
             const f = this.fields[this.selectedIndex];

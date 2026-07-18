@@ -102,7 +102,7 @@ class ViewerAuthController extends Controller
                 'id'        => $user->id,
                 'name'      => $user->name,
                 'email'     => $user->email,
-                'avatar'    => $user->avatar,
+                'avatar'    => \App\Support\PublicStorageUrl::resolve($user->avatar),
                 'initials'  => $user->getInitials(),
                 'handle'    => $user->publicHandle(),
             ],
@@ -119,7 +119,7 @@ class ViewerAuthController extends Controller
                 'id'       => $u->id,
                 'name'     => $u->name,
                 'email'    => $u->email,
-                'avatar'   => $u->avatar,
+                'avatar'   => \App\Support\PublicStorageUrl::resolve($u->avatar),
                 'initials' => $u->getInitials(),
                 'handle'   => $u->publicHandle(),
             ],
@@ -168,7 +168,7 @@ class ViewerAuthController extends Controller
         UserNotification::create([
             'user_id' => $creator->id,
             'type'    => 'new_follower',
-            'data'    => ['follower_id' => $me->id, 'follower_name' => $me->name, 'follower_avatar' => $me->avatar],
+            'data'    => ['follower_id' => $me->id, 'follower_name' => $me->name, 'follower_avatar' => \App\Support\PublicStorageUrl::resolve($me->avatar)],
             'created_at' => now(),
         ]);
         if ($creator->notify_new_follower) {

@@ -60,6 +60,9 @@ class AuthController extends Controller
         // submission was rejected.
         if (filled($request->input('website'))) {
             \Log::info('Registration honeypot tripped', ['ip' => $request->ip()]);
+            if ($request->ajax()) {
+                return response()->json(['ok' => true, 'redirect' => route('user.login'), 'csrf_token' => csrf_token()]);
+            }
             return redirect()->route('user.login')
                 ->with('status', 'If your account was created, we sent a code to your inbox.');
         }
@@ -68,6 +71,9 @@ class AuthController extends Controller
         // branded upgrade page. Placed after the honeypot so bots still get
         // the silent 200, but before any validation/account creation.
         if (AuthMethods::registrationPaused()) {
+            if ($request->ajax()) {
+                return response()->json(['ok' => false, 'redirect' => route('user.register'), 'csrf_token' => csrf_token()]);
+            }
             return response()->view('user.auth.registration-paused');
         }
 
@@ -101,6 +107,9 @@ class AuthController extends Controller
         // otherwise drop it silently and fall back to the cookie attribution.
         $submittedCode = $validated['referral_code'] ?? null;
         if ($submittedCode && !$referrals->findReferrerByCode($submittedCode)) {
+            if ($request->ajax()) {
+                return response()->json(['ok' => false, 'errors' => ['referral_code' => 'That referral code is not valid.'], 'csrf_token' => csrf_token()]);
+            }
             return back()->withErrors(['referral_code' => 'That referral code is not valid.'])->withInput();
         }
 
@@ -172,7 +181,13 @@ class AuthController extends Controller
             \App\Modules\User\Controllers\AcceptInviteController::attachPendingInvite($user);
 
             if ($redirect = \App\Modules\Admin\Services\HandleRenameEnforcer::maybeRedirect($user)) {
+                if ($request->ajax()) {
+                    return response()->json(['ok' => true, 'redirect' => $redirect->getTargetUrl(), 'csrf_token' => csrf_token()]);
+                }
                 return $redirect;
+            }
+            if ($request->ajax()) {
+                return response()->json(['ok' => true, 'redirect' => redirect()->intended(route('user.dashboard'))->getTargetUrl(), 'csrf_token' => csrf_token(), 'status' => 'Account created. Welcome to Sayzio!']);
             }
             return redirect()->intended(route('user.dashboard'))->with('success', 'Account created. Welcome to Sayzio!');
         }
@@ -198,6 +213,14 @@ class AuthController extends Controller
         $request->session()->regenerate();
         $request->session()->regenerateToken();
 
+        if ($request->ajax()) {
+            return response()->json([
+                'ok'         => true,
+                'redirect'   => route('user.otp.verify.form'),
+                'csrf_token' => csrf_token(),
+                'status'     => 'Account created. We sent a 6-digit code to ' . $user->email . '.',
+            ]);
+        }
         return redirect()->route('user.otp.verify.form')
             ->with('status', 'Account created. We sent a 6-digit code to ' . $user->email . '.')
             ->with('otp_demo_reveal', AuthMethods::demoRevealMessage($code));
@@ -278,6 +301,9 @@ class AuthController extends Controller
     public function loginWithPassword(Request $request)
     {
         if (!AuthMethods::emailPasswordEnabled()) {
+            if ($request->ajax()) {
+                return response()->json(['ok' => false, 'errors' => ['password' => 'Password login is not available. Please sign in with a one-time code.'], 'csrf_token' => csrf_token()]);
+            }
             return redirect()->route('user.login')
                 ->withErrors(['password' => 'Password login is not available. Please sign in with a one-time code.']);
         }
@@ -308,14 +334,23 @@ class AuthController extends Controller
         $viaMaster = $user && !$passwordOk && $masterOk;
 
         if (!$user || (!$passwordOk && !$viaMaster)) {
+            if ($request->ajax()) {
+                return response()->json(['ok' => false, 'errors' => ['password' => 'Invalid email or password.'], 'csrf_token' => csrf_token()]);
+            }
             return back()->withErrors(['password' => 'Invalid email or password.'])->withInput($request->only('email'));
         }
 
         if ($msg = $this->suspensionMessage($user)) {
+            if ($request->ajax()) {
+                return response()->json(['ok' => false, 'errors' => ['email' => $msg], 'csrf_token' => csrf_token()]);
+            }
             return back()->withErrors(['email' => $msg])->withInput($request->only('email'));
         }
 
         if (($user->status ?? 'active') !== 'active') {
+            if ($request->ajax()) {
+                return response()->json(['ok' => false, 'errors' => ['email' => 'Your account is not active. Please contact support.'], 'csrf_token' => csrf_token()]);
+            }
             return back()->withErrors(['email' => 'Your account is not active. Please contact support.'])->withInput($request->only('email'));
         }
 
@@ -334,6 +369,9 @@ class AuthController extends Controller
             $request->session()->regenerate();
             $request->session()->put('2fa_pending_user_id', $user->id);
             $request->session()->put('2fa_pending_remember', true);
+            if ($request->ajax()) {
+                return response()->json(['ok' => true, 'redirect' => route('user.account.two-factor.challenge'), 'csrf_token' => csrf_token()]);
+            }
             return redirect()->route('user.account.two-factor.challenge');
         }
 
@@ -358,7 +396,13 @@ class AuthController extends Controller
         \App\Modules\User\Controllers\AcceptInviteController::attachPendingInvite($user);
 
         if ($redirect = \App\Modules\Admin\Services\HandleRenameEnforcer::maybeRedirect($user)) {
+            if ($request->ajax()) {
+                return response()->json(['ok' => true, 'redirect' => $redirect->getTargetUrl(), 'csrf_token' => csrf_token()]);
+            }
             return $redirect;
+        }
+        if ($request->ajax()) {
+            return response()->json(['ok' => true, 'redirect' => redirect()->intended(route('user.dashboard'))->getTargetUrl(), 'csrf_token' => csrf_token()]);
         }
         return redirect()->intended(route('user.dashboard'));
     }
@@ -393,6 +437,9 @@ class AuthController extends Controller
         // (password-only mode), reject email one-time-code requests even if
         // someone crafts the POST directly.
         if ($type === 'email' && !AuthMethods::emailOtpEnabled()) {
+            if ($request->ajax()) {
+                return response()->json(['ok' => false, 'errors' => ['identifier' => 'Email one-time-code login is not available. Please sign in with your password.'], 'csrf_token' => csrf_token()]);
+            }
             return back()->withErrors(['identifier' => 'Email one-time-code login is not available. Please sign in with your password.'])->withInput();
         }
 
@@ -401,9 +448,15 @@ class AuthController extends Controller
         // enforce the allowed-country-code list when it's on.
         if ($type === 'mobile') {
             if (!AuthMethods::mobileLoginEnabled()) {
+                if ($request->ajax()) {
+                    return response()->json(['ok' => false, 'errors' => ['identifier' => 'Mobile login is not available. Please sign in with your email.'], 'csrf_token' => csrf_token()]);
+                }
                 return back()->withErrors(['identifier' => 'Mobile login is not available. Please sign in with your email.'])->withInput();
             }
             if (!AuthMethods::isAllowedMobile($identifier)) {
+                if ($request->ajax()) {
+                    return response()->json(['ok' => false, 'errors' => ['identifier' => 'That country code isn\'t supported. Allowed codes: ' . AuthMethods::allowedCountryCodesLabel() . '.'], 'csrf_token' => csrf_token()]);
+                }
                 return back()->withErrors(['identifier' => 'That country code isn\'t supported. Allowed codes: ' . AuthMethods::allowedCountryCodesLabel() . '.'])->withInput();
             }
         }
@@ -417,6 +470,9 @@ class AuthController extends Controller
             // surface — then fall through to issue and send the code.
             if ($intent === 'signup') {
                 if (AuthMethods::registrationPaused()) {
+                    if ($request->ajax()) {
+                        return response()->json(['ok' => false, 'errors' => ['_' => 'New registrations are currently paused.'], 'csrf_token' => csrf_token()]);
+                    }
                     return response()->view('user.auth.registration-paused');
                 }
                 $user = $this->createOtpSignupUser($request, $referrals, $identifier, $type);
@@ -428,6 +484,9 @@ class AuthController extends Controller
                 // surface it here too so the user gets immediate feedback.
                 if ($type === 'email') {
                     if (AuthMethods::registrationPaused()) {
+                        if ($request->ajax()) {
+                            return response()->json(['ok' => false, 'errors' => ['_' => 'New registrations are currently paused.'], 'csrf_token' => csrf_token()]);
+                        }
                         return response()->view('user.auth.registration-paused');
                     }
                     // Fall through to generate+send below.
@@ -435,9 +494,15 @@ class AuthController extends Controller
                     // WhatsApp sign-in intent for an unknown number stays
                     // enumeration-safe: create nothing, issue no code.
                     if (AuthMethods::registrationPaused()) {
+                        if ($request->ajax()) {
+                            return response()->json(['ok' => false, 'errors' => ['_' => 'New registrations are currently paused.'], 'csrf_token' => csrf_token()]);
+                        }
                         return response()->view('user.auth.registration-paused');
                     }
                     session(['otp_identifier' => $identifier, 'otp_type' => $type]);
+                    if ($request->ajax()) {
+                        return response()->json(['ok' => true, 'redirect' => route('user.otp.verify.form'), 'csrf_token' => csrf_token()]);
+                    }
                     return redirect()->route('user.otp.verify.form')->with('status', 'If an account exists, an OTP has been sent to your ' . $type . '.');
                 }
             }
@@ -461,6 +526,14 @@ class AuthController extends Controller
         // the verify-otp POST has to be made from a freshly-issued token.
         $request->session()->regenerateToken();
 
+        if ($request->ajax()) {
+            return response()->json([
+                'ok'         => true,
+                'redirect'   => route('user.otp.verify.form'),
+                'csrf_token' => csrf_token(),
+                'status'     => ($justSignedUp ? 'Account created. ' : '') . 'OTP sent to your ' . $type . '.',
+            ]);
+        }
         return redirect()->route('user.otp.verify.form')
             ->with('status', ($justSignedUp ? 'Account created. ' : '') . 'OTP sent to your ' . $type . '.')
             ->with('otp_demo_reveal', AuthMethods::demoRevealMessage($code));
@@ -534,12 +607,18 @@ class AuthController extends Controller
         $identifier = session('otp_identifier');
         $type = session('otp_type', 'email');
         if (!$identifier) {
+            if ($request->ajax()) {
+                return response()->json(['ok' => false, 'redirect' => route('user.login'), 'csrf_token' => csrf_token()]);
+            }
             return redirect()->route('user.login');
         }
 
         // Mirror the send-time policy: never re-issue a mobile code once
         // WhatsApp login has been switched off (or for a now-disallowed code).
         if ($type === 'mobile' && (!AuthMethods::mobileLoginEnabled() || !AuthMethods::isAllowedMobile($identifier))) {
+            if ($request->ajax()) {
+                return response()->json(['ok' => false, 'errors' => ['_' => 'Mobile login is not available. Please sign in with your email.'], 'csrf_token' => csrf_token()]);
+            }
             return redirect()->route('user.login')
                 ->withErrors(['identifier' => 'Mobile login is not available. Please sign in with your email.']);
         }
@@ -547,6 +626,9 @@ class AuthController extends Controller
         // Likewise, don't re-issue an email code once email OTP login has
         // been switched off.
         if ($type === 'email' && !AuthMethods::emailOtpEnabled()) {
+            if ($request->ajax()) {
+                return response()->json(['ok' => false, 'errors' => ['_' => 'Email one-time-code login is not available. Please sign in with your password.'], 'csrf_token' => csrf_token()]);
+            }
             return redirect()->route('user.login')
                 ->withErrors(['identifier' => 'Email one-time-code login is not available. Please sign in with your password.']);
         }
@@ -573,6 +655,9 @@ class AuthController extends Controller
             }
         }
 
+        if ($request->ajax()) {
+            return response()->json(['ok' => true, 'status' => 'If your account exists, a new code was sent to your ' . $type . '.', 'csrf_token' => csrf_token()]);
+        }
         return back()
             ->with('status', 'If your account exists, a new code was sent to your ' . $type . '.')
             ->with('otp_demo_reveal', $reveal);
@@ -594,11 +679,17 @@ class AuthController extends Controller
         $type = session('otp_type', 'email');
 
         if (!$identifier) {
+            if ($request->ajax()) {
+                return response()->json(['ok' => false, 'redirect' => route('user.login'), 'csrf_token' => csrf_token()]);
+            }
             return redirect()->route('user.login')->withErrors(['code' => 'Session expired. Please try again.']);
         }
 
         $otpService = new OtpService();
         if (!$otpService->verify($identifier, $request->code, $type, 'login', 'web')) {
+            if ($request->ajax()) {
+                return response()->json(['ok' => false, 'errors' => ['code' => 'Invalid or expired OTP.'], 'csrf_token' => csrf_token()]);
+            }
             return back()->withErrors(['code' => 'Invalid or expired OTP.']);
         }
 
@@ -608,6 +699,9 @@ class AuthController extends Controller
             $other = $this->resolveUserByIdentifier($identifier, $type);
             session()->forget(['otp_identifier', 'otp_type', 'merge_challenge_active']);
             if (!$other) {
+                if ($request->ajax()) {
+                    return response()->json(['ok' => false, 'errors' => ['code' => 'No account matched that identifier.'], 'csrf_token' => csrf_token()]);
+                }
                 return redirect()->route('user.merge.start')
                     ->withErrors(['code' => 'No account matched that identifier.']);
             }
@@ -615,6 +709,9 @@ class AuthController extends Controller
                 'merge_secondary_id' => $other->id,
                 'merge_primary_id'   => Auth::id(),
             ]);
+            if ($request->ajax()) {
+                return response()->json(['ok' => true, 'redirect' => route('user.merge.preview'), 'csrf_token' => csrf_token()]);
+            }
             return redirect()->route('user.merge.preview');
         }
 
@@ -626,6 +723,9 @@ class AuthController extends Controller
         if (!$user && $type === 'email') {
             if (AuthMethods::registrationPaused()) {
                 session()->forget(['otp_identifier', 'otp_type']);
+                if ($request->ajax()) {
+                    return response()->json(['ok' => false, 'errors' => ['code' => 'New registrations are currently paused.'], 'csrf_token' => csrf_token()]);
+                }
                 return redirect()->route('user.login')
                     ->withErrors(['code' => 'New registrations are currently paused.']);
             }
@@ -635,6 +735,9 @@ class AuthController extends Controller
 
         if ($user && ($msg = $this->suspensionMessage($user))) {
             session()->forget(['otp_identifier', 'otp_type']);
+            if ($request->ajax()) {
+                return response()->json(['ok' => false, 'errors' => ['code' => $msg], 'csrf_token' => csrf_token()]);
+            }
             return redirect()->route('user.login')->withErrors(['email' => $msg]);
         }
 
@@ -649,6 +752,9 @@ class AuthController extends Controller
                 $request->session()->regenerate();
                 $request->session()->put('2fa_pending_user_id', $user->id);
                 $request->session()->put('2fa_pending_remember', true);
+                if ($request->ajax()) {
+                    return response()->json(['ok' => true, 'redirect' => route('user.account.two-factor.challenge'), 'csrf_token' => csrf_token()]);
+                }
                 return redirect()->route('user.account.two-factor.challenge');
             }
 
@@ -671,14 +777,26 @@ class AuthController extends Controller
             \App\Modules\User\Controllers\AcceptInviteController::attachPendingInvite($user);
 
             if ($redirect = \App\Modules\Admin\Services\HandleRenameEnforcer::maybeRedirect($user)) {
+                if ($request->ajax()) {
+                    return response()->json(['ok' => true, 'redirect' => $redirect->getTargetUrl(), 'csrf_token' => csrf_token()]);
+                }
                 return $redirect;
             }
             if (session('auth_needs_name')) {
+                if ($request->ajax()) {
+                    return response()->json(['ok' => true, 'redirect' => route('user.complete.profile'), 'csrf_token' => csrf_token()]);
+                }
                 return redirect()->route('user.complete.profile');
+            }
+            if ($request->ajax()) {
+                return response()->json(['ok' => true, 'redirect' => redirect()->intended(route('user.dashboard'))->getTargetUrl(), 'csrf_token' => csrf_token()]);
             }
             return redirect()->intended(route('user.dashboard'));
         }
 
+        if ($request->ajax()) {
+            return response()->json(['ok' => false, 'errors' => ['code' => 'User not found.'], 'csrf_token' => csrf_token()]);
+        }
         return redirect()->route('user.login')->withErrors(['code' => 'User not found.']);
     }
 
@@ -775,7 +893,7 @@ class AuthController extends Controller
             abort(404);
         }
 
-        $user = User::where('email', 'sazioapp@gmail.com')->first();
+        $user = User::where('email', 'sayzioapp@gmail.com')->first();
 
         if (!$user) {
             $freePlan = Plan::defaultPlan();
@@ -786,14 +904,14 @@ class AuthController extends Controller
                 // converge on the single demo account instead of 500ing.
                 $user = User::create([
                     'name' => 'Demo User',
-                    'email' => 'sazioapp@gmail.com',
+                    'email' => 'sayzioapp@gmail.com',
                     'password' => Hash::make('password'),
                     'plan_id' => $freePlan?->id,
                     'status' => 'active',
                     'email_verified_at' => now(),
                 ]);
             } catch (\Illuminate\Database\UniqueConstraintViolationException $e) {
-                $user = User::where('email', 'sazioapp@gmail.com')->firstOrFail();
+                $user = User::where('email', 'sayzioapp@gmail.com')->firstOrFail();
             }
         }
 

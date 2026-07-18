@@ -394,6 +394,29 @@ class PlanFormCatalogue
     }
 
     /**
+     * Included coin grants per billing cycle. Stored as non-negative
+     * integers in `features['included_coins_monthly']` and
+     * `features['included_coins_yearly']`. Zero (or absent) means no grant.
+     * The coin grant is credited once per billing period via an idempotency
+     * key so webhook re-deliveries never double-credit.
+     */
+    public static function includedCoinGrants(): array
+    {
+        return [
+            [
+                'key'   => 'included_coins_monthly',
+                'label' => 'Coins per monthly cycle',
+                'hint'  => 'Credited to the user\'s wallet once per monthly billing period (0 = none).',
+            ],
+            [
+                'key'   => 'included_coins_yearly',
+                'label' => 'Coins per yearly cycle',
+                'hint'  => 'Credited to the user\'s wallet once per annual billing period (0 = none).',
+            ],
+        ];
+    }
+
+    /**
      * Sticky "On this page" jump-nav entries (id → label).
      */
     public static function sectionNav(): array
@@ -404,6 +427,7 @@ class PlanFormCatalogue
             'sec-intro'         => 'Intro discount',
             'sec-trial'         => 'Trial & retention',
             'sec-referral'      => 'Referral program',
+            'sec-coins'         => 'Included coins',
             'sec-modules'       => 'Modules',
             'sec-quantities'    => 'Quantity limits',
             'sec-team'          => 'Team management',

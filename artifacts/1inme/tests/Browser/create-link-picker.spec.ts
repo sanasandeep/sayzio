@@ -10,6 +10,7 @@ import {
 } from "@playwright/test";
 
 import { DEMO_LOGIN_EMAIL } from "./demo-account";
+import { loginAsDemo } from "./login-as-demo";
 
 // All tests share a single logged-in browser context (the demo-login route is
 // rate-limited at throttle:5,1, so a login per test would trip the limit).
@@ -124,25 +125,6 @@ echo 'SEED_OK';
  * (not the redirect target render) so the heavy post-login dashboard render
  * never blocks the suite.
  */
-async function loginAsDemo(page: Page): Promise<void> {
-  await page.goto("/user/login");
-  await Promise.all([
-    page.waitForResponse(
-      (r) =>
-        r.url().endsWith("/user/demo-login") &&
-        r.request().method() === "POST",
-      { timeout: 90_000 },
-    ),
-    page.evaluate(() => {
-      const form = document.querySelector<HTMLFormElement>(
-        'form[action$="/user/demo-login"]',
-      );
-      if (!form) throw new Error("demo-login form not found");
-      form.submit();
-    }),
-  ]);
-}
-
 /**
  * Open the Create Link picker at a given viewport and wait until the Alpine
  * `linkTypePicker` component on the form has hydrated (every goal/search/guard

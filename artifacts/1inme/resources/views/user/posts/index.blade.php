@@ -262,7 +262,7 @@
                             </div>
                             @if($post->title)<h3 class="font-bold" style="color: var(--text-primary);">{{ $post->title }}</h3>@endif
                             <p class="text-sm whitespace-pre-line mt-1" style="color: var(--text-muted);">{{ $post->body }}</p>
-                            @if($post->image)<img src="{{ $post->image }}" class="mt-3 rounded-lg max-h-72"/>@endif
+                            @if($post->image)<img src="{{ \App\Support\PublicStorageUrl::resolve($post->image) }}" class="mt-3 rounded-lg max-h-72"/>@endif
                             @if($post->cloudAttachments->isNotEmpty())
                                 <div class="mt-3 flex flex-wrap gap-2">
                                     @foreach($post->cloudAttachments as $att)

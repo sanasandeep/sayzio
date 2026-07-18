@@ -22,10 +22,40 @@ pnpm install --frozen-lockfile
 # are deliberately FATAL (no `|| echo`): the whole point is that they can never be
 # skipped. If one trips, post-merge fails loudly, the offender is fixed, and the
 # idempotent steps below re-run cleanly on the next attempt.
+# Run a guard, distinguishing a REAL violation from a transient crash.
+#
+# These tsx guards are deliberately fatal on a genuine violation (exit 1), but
+# when several merges land back-to-back each post-merge run spawns pnpm install +
+# tsx guards + an RDS schema sync concurrently, and a Node process can get killed
+# under the memory pressure — surfacing as a signal-level exit (>=128, e.g.
+# SIGABRT=134 / SIGKILL=137 / SIGSEGV=139), NOT as a guard finding. Retrying the
+# scan once clears that transient crash; a real violation (exit 1) still fails
+# fast on the first run and is never retried away.
+run_guard() {
+  # Call sites use the form `run_guard run <script>` (mirroring the underlying
+  # `pnpm run <script>`) so post-merge.sh keeps the literal `run check:...`
+  # wiring that check-view-guards.test.ts pins in lockstep with the combined
+  # check:view-guards runner and the pre-push hook.
+  if [ "$1" = "run" ]; then shift; fi
+  local script="$1"
+  local code=0
+  # `|| code=$?` keeps the failing command "tested" so `set -e` does not abort
+  # the function before we can inspect the exit status.
+  pnpm --filter @workspace/scripts run "$script" || code=$?
+  if [ "$code" -ge 128 ]; then
+    echo "post-merge: '$script' was killed by a signal (exit $code) — likely transient memory pressure under concurrent merges; retrying once..." >&2
+    code=0
+    pnpm --filter @workspace/scripts run "$script" || code=$?
+  fi
+  # A genuine violation (exit 1) reaches here unretried; returning non-zero at
+  # the top-level call site trips `set -e` and fails the merge, as intended.
+  return "$code"
+}
+
 echo "running blade/alpine attribute guards..."
-pnpm --filter @workspace/scripts run check:alpine-line-comments
-pnpm --filter @workspace/scripts run check:blade-json-in-attr
-pnpm --filter @workspace/scripts run check:blade-comment-echo
+run_guard run check:alpine-line-comments
+run_guard run check:blade-json-in-attr
+run_guard run check:blade-comment-echo
 
 # Apply the api-server's drizzle schema. We use the NON-force `push` on purpose:
 # drizzle.config.ts restricts drizzle-kit to the dedicated `drizzle` Postgres

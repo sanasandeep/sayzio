@@ -4,9 +4,12 @@ namespace App\Modules\Admin\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Modules\User\Models\BiolinkBlock;
+use App\Modules\User\Models\Link;
 use App\Modules\User\Support\BlockDefaults;
 use App\Modules\User\Support\BlockTypeRegistry;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 /**
  * Admin editor for first-paint defaults on new biolink blocks.
@@ -68,6 +71,22 @@ class BlockDefaultsController extends Controller
         return array_unique(BlockTypeRegistry::canonicalTypeSlugs());
     }
 
+    /**
+     * The full set of style tokens the editor form can override. Shared by
+     * update() (persist) and preview() (transient render) so they cannot
+     * drift apart.
+     */
+    private const STYLE_FIELDS = [
+        'font_family', 'font_size', 'font_weight', 'font_style',
+        'text_color', 'bg_color', 'bg_image', 'bg_opacity',
+        'border_color', 'border_radius', 'border_width', 'border_style',
+        'shadow_preset', 'glass_preset',
+        'display_mode', 'effect', 'padding',
+        'padding_top', 'padding_bottom', 'padding_left', 'padding_right',
+        'margin_top', 'margin_bottom', 'margin_left', 'margin_right',
+        'grid_span',
+    ];
+
     public function index()
     {
         $overrides = BlockDefaults::getAdminOverrides();
@@ -107,18 +126,8 @@ class BlockDefaultsController extends Controller
         $data = [];
 
         // --- Style overrides ---
-        $styleFields = [
-            'font_family', 'font_size', 'font_weight', 'font_style',
-            'text_color', 'bg_color', 'bg_image', 'bg_opacity',
-            'border_color', 'border_radius', 'border_width', 'border_style',
-            'shadow_preset', 'glass_preset',
-            'display_mode', 'effect', 'padding',
-            'padding_top', 'padding_bottom', 'padding_left', 'padding_right',
-            'margin_top', 'margin_bottom', 'margin_left', 'margin_right',
-            'grid_span',
-        ];
         $styleOverride = [];
-        foreach ($styleFields as $field) {
+        foreach (self::STYLE_FIELDS as $field) {
             $val = $request->input("style.{$field}");
             if ($val !== null && $val !== '') {
                 $styleOverride[$field] = $val;
@@ -149,6 +158,128 @@ class BlockDefaultsController extends Controller
 
         return redirect()->route('admin.block-defaults.edit', $type)
             ->with('success', 'Block defaults saved for "' . $type . '".');
+    }
+
+    /**
+     * Server-rendered live preview for the edit screen.
+     *
+     * Builds a transient (never persisted) BiolinkBlock from the current
+     * form state — system defaults + the submitted style/content overrides,
+     * exactly the merge BiolinkBlockController::store() would apply — and
+     * renders it through the same shared public renderer + wrapper
+     * semantics as common/biolink.blade.php. Returned as a standalone HTML
+     * document the editor injects into a sandboxed iframe.
+     */
+    public function preview(Request $request, string $type)
+    {
+        $type = BlockTypeRegistry::canonical($type);
+        abort_unless(in_array($type, self::allCanonicalTypes(), true), 404);
+
+        // Effective style = system defaults overlaid with non-empty form values.
+        $style = $this->rawSystemStyle($type);
+        foreach (self::STYLE_FIELDS as $field) {
+            $val = $request->input("style.{$field}");
+            if ($val !== null && $val !== '') {
+                $style[$field] = $val;
+            }
+        }
+
+        // Effective content = system defaults overlaid with the JSON override.
+        $content = $this->rawSystemContent($type);
+        $rawJson = trim((string) $request->input('content_json', ''));
+        if ($rawJson !== '') {
+            $decoded = json_decode($rawJson, true);
+            if (json_last_error() !== JSON_ERROR_NONE || !is_array($decoded)) {
+                return response()->json(['error' => ['message' => 'Invalid JSON in content overrides.']], 422);
+            }
+            unset($decoded['_style'], $decoded['_placeholder']);
+            $content = array_replace($content, $decoded);
+        }
+
+        // Transient models — never saved, just enough for the renderer.
+        $block = new BiolinkBlock();
+        $block->type = $type;
+        $block->id = 0;
+        $block->settings = $content + ['_style' => $style];
+
+        $link = new Link();
+        $link->alias = 'preview';
+        $link->type = 'biolink';
+        $link->settings = ['biolink' => []];
+
+        try {
+            $html = view('admin.block-defaults.preview-frame', [
+                'type'  => $type,
+                'block' => $block,
+                'link'  => $link,
+            ])->render();
+        } catch (\Throwable $e) {
+            // Some block partials need live records (feeds, embeds with real
+            // IDs, …). Fail soft with a simple placeholder frame instead of
+            // a broken iframe.
+            Log::info('Block-defaults preview render failed', ['type' => $type, 'error' => $e->getMessage()]);
+            $safeType = e($type);
+            $html = '<!DOCTYPE html><html><head><meta charset="UTF-8"></head>'
+                . '<body style="margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;'
+                . 'background:linear-gradient(135deg,#0b0f1a 0%,#101830 50%,#0b0f1a 100%);'
+                . 'font-family:sans-serif;color:rgba(255,255,255,0.65);font-size:13px;text-align:center;padding:24px;">'
+                . '<div>The &laquo; ' . $safeType . ' &raquo; block needs live page data and cannot be previewed here.<br>'
+                . 'Style overrides will still apply to new blocks.</div></body></html>';
+        }
+
+        return response($html)->header('Content-Type', 'text/html; charset=utf-8');
+    }
+
+    /**
+     * Bulk-copy one type's admin override onto several other types at once.
+     *
+     * The source type's stored override (content + style) fully replaces
+     * any existing override on each selected target type, so targets end
+     * up exactly matching the source.
+     */
+    public function copyTo(Request $request, string $type)
+    {
+        $type = BlockTypeRegistry::canonical($type);
+        abort_unless(in_array($type, self::allCanonicalTypes(), true), 404);
+
+        $source = BlockDefaults::getAdminOverrideForType($type);
+        if (empty($source)) {
+            return redirect()->route('admin.block-defaults.index')
+                ->withErrors(['copy' => '"' . $type . '" has no overrides to copy.']);
+        }
+
+        $validated = $request->validate([
+            'targets'   => ['required', 'array', 'min:1'],
+            'targets.*' => ['string'],
+        ]);
+
+        $valid = self::allCanonicalTypes();
+        $targets = [];
+        foreach ($validated['targets'] as $raw) {
+            $canonical = BlockTypeRegistry::canonical((string) $raw);
+            if ($canonical !== $type && in_array($canonical, $valid, true)) {
+                $targets[$canonical] = true;
+            }
+        }
+        $targets = array_keys($targets);
+
+        if (empty($targets)) {
+            return redirect()->route('admin.block-defaults.index')
+                ->withErrors(['copy' => 'No valid target types were selected.']);
+        }
+
+        foreach ($targets as $target) {
+            // Empty arrays clear any part the source doesn't override
+            // (saveAdminOverrideForType treats [] as "unset this part"), so
+            // the target ends up an exact copy of the source override.
+            BlockDefaults::saveAdminOverrideForType($target, [
+                'content' => $source['content'] ?? [],
+                'style'   => $source['style'] ?? [],
+            ]);
+        }
+
+        return redirect()->route('admin.block-defaults.index')
+            ->with('success', 'Copied "' . $type . '" overrides to ' . count($targets) . ' ' . Str::plural('type', count($targets)) . '.');
     }
 
     public function reset(string $type)

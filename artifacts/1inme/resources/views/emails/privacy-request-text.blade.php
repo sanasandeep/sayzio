@@ -31,7 +31,7 @@ Your email has been confirmed and your {{ $typeLabel }} request is now queued fo
 Good news — your {{ $typeLabel }} request has been approved.
 
 @if($pr->isDeletion())
-Your account is scheduled for permanent deletion after a {{ \App\Modules\Common\Models\PrivacyRequest::DELETION_GRACE_DAYS }}-day cooling-off period{{ $pr->scheduled_at ? ' (on or after '.$pr->scheduled_at->toDayDateTimeString().' UTC)' : '' }}. If you change your mind before then, contact our support team.
+Your account is scheduled for permanent deletion after a {{ \App\Modules\Common\Models\PrivacyRequest::DELETION_GRACE_DAYS }}-day cooling-off period{{ $pr->scheduled_at ? ' (on or after '.\App\Support\PlatformTimezone::display($pr->scheduled_at)->toDayDateTimeString().' IST)' : '' }}. If you change your mind before then, contact our support team.
 @else
 We're now preparing your data archive. You'll receive a separate email with a secure download link once it's ready.
 @endif
@@ -52,7 +52,7 @@ We're sorry to see you go.
 @break
 
 @case('ready')
-Your data export is ready. Download your archive using the secure link below. For your security, this link expires on {{ optional($pr->download_expires_at)->toDayDateTimeString() }} UTC.
+Your data export is ready. Download your archive using the secure link below. For your security, this link expires on {{ optional(\App\Support\PlatformTimezone::display($pr->download_expires_at))->toDayDateTimeString() }} IST.
 
 {{ $actionUrl }}
 

@@ -21,7 +21,7 @@ return new class extends Migration
                 $table->id();
                 $table->string('slug', 60)->unique();
                 $table->string('name', 100);
-                $table->string('icon', 60)->default('fa-calendar-star');
+                $table->string('icon', 60)->default('fa-calendar-days');
                 $table->string('color_from', 20)->default('#3d6bff');
                 $table->string('color_to', 20)->default('#2342c7');
                 $table->integer('sort_order')->default(0);

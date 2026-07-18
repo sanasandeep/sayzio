@@ -19,7 +19,6 @@ import { PinnedTopBar } from "@/components/PinnedTopBar";
 import { VoiceAssistant } from "@/components/VoiceAssistant";
 import { useAuth } from "@/contexts/AuthContext";
 import { DrawerProvider, useDrawer } from "@/contexts/DrawerContext";
-import { WorkspaceProvider } from "@/contexts/WorkspaceContext";
 import { TabBarProvider } from "@/contexts/TabBarContext";
 import { useColors } from "@/hooks/useColors";
 
@@ -80,44 +79,42 @@ function AnimatedContent({ children }: { children: React.ReactNode }) {
 
 function SignedInLayout() {
   return (
-    <WorkspaceProvider>
-      <TabBarProvider>
-        <AnimatedContent>
-          <Tabs
-            screenOptions={{
-              headerShown: false,
-              tabBarStyle: { display: "none" },
-            }}
-          >
-            <Tabs.Screen name="index" />
-            <Tabs.Screen name="links" />
-            <Tabs.Screen name="create" />
-            <Tabs.Screen name="inbox" />
-            <Tabs.Screen name="profile" />
-            <Tabs.Screen name="notifications" options={{ href: null }} />
-          </Tabs>
-        </AnimatedContent>
+    <TabBarProvider>
+      <AnimatedContent>
+        <Tabs
+          screenOptions={{
+            headerShown: false,
+            tabBarStyle: { display: "none" },
+          }}
+        >
+          <Tabs.Screen name="index" />
+          <Tabs.Screen name="links" />
+          <Tabs.Screen name="create" />
+          <Tabs.Screen name="inbox" />
+          <Tabs.Screen name="profile" />
+          <Tabs.Screen name="notifications" options={{ href: null }} />
+        </Tabs>
+      </AnimatedContent>
 
-        {/* Pinned top bar — hamburger chip + centered logo + bell chip. */}
-        <PinnedTopBar />
+      {/* Pinned top bar — hamburger chip + centered logo + bell chip. */}
+      <PinnedTopBar />
 
-        {/* Floating glassmorphic tab bar — rendered at the layout level so it
-            sits above all tab screens and overlays content uniformly. */}
-        <FloatingTabBar />
+      {/* Floating glassmorphic tab bar — rendered at the layout level so it
+          sits above all tab screens and overlays content uniformly. */}
+      <FloatingTabBar />
 
-        {/* Slide-in drawer navigation (menu button in each tab header). */}
-        <DrawerSidebar />
+      {/* Slide-in drawer navigation (menu button in each tab header). */}
+      <DrawerSidebar />
 
-        {/* Floating tap-to-talk mic, mirrors the web's voice assistant
-            widget. Mounted here so it stays above every signed-in screen. */}
-        <VoiceAssistant />
+      {/* Floating tap-to-talk mic, mirrors the web's voice assistant
+          widget. Mounted here so it stays above every signed-in screen. */}
+      <VoiceAssistant />
 
-        {/* Resilience prompt: re-shows the mandatory name modal if a new
-            account entered the app without setting a display name (dismissed
-            modal, backgrounded app, or cold launch). */}
-        <NameRequiredGate />
-      </TabBarProvider>
-    </WorkspaceProvider>
+      {/* Resilience prompt: re-shows the mandatory name modal if a new
+          account entered the app without setting a display name (dismissed
+          modal, backgrounded app, or cold launch). */}
+      <NameRequiredGate />
+    </TabBarProvider>
   );
 }
 

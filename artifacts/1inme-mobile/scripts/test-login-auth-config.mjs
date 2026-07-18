@@ -52,6 +52,10 @@ const screenSrc = readFileSync(
   join(root, "app", "(auth)", "index.tsx"),
   "utf8",
 );
+const onboardingSrc = readFileSync(
+  join(root, "app", "onboarding.tsx"),
+  "utf8",
+);
 
 let passed = 0;
 function ok(label) {
@@ -216,32 +220,73 @@ assert.ok(
 ok("screen defaults to email-only, forces email when disabled, and shows codes when gated");
 
 // ===========================================================================
-// 5. Google auth hook stays guarded (regression guard for the web crash)
+// 5. Google auth hook stays guarded (regression guard for web + native crash)
 //
-// expo-auth-session's useIdTokenAuthRequest throws on web when no webClientId
-// is configured, crashing the whole login screen. The screen must NOT call it
-// unconditionally at the top level — it must go through the guarded wrapper
-// that skips the hook on web without a webClientId.
+// expo-auth-session's useIdTokenAuthRequest can throw at render when no
+// usable client ID is compiled in — on web if webClientId is absent, and on
+// standalone Android/iOS builds when no Google client ID is configured at all.
+// The screen must NOT call it unconditionally; it must go through the guarded
+// wrapper that skips the hook when safe to do so.
 // ===========================================================================
-console.log("[test-login-auth-config] Google auth hook is guarded against the web crash");
+console.log("[test-login-auth-config] Google auth hook is guarded against web + native crash");
 
 // The raw hook must not be invoked directly inside the component render.
 assert.ok(
   !/=\s*Google\.useIdTokenAuthRequest\(/.test(screenSrc),
-  "the screen must NOT call Google.useIdTokenAuthRequest directly — it crashes on web without a webClientId; use the guarded wrapper",
+  "the screen must NOT call Google.useIdTokenAuthRequest directly — it can throw on web (no webClientId) and native (no client ID at all); use the guarded wrapper",
 );
 // The component must obtain the request/response/prompt via the guarded wrapper.
 assert.ok(
   /useGuardedGoogleAuth\(\)/.test(screenSrc),
   "the screen must obtain Google auth via useGuardedGoogleAuth()",
 );
-// The wrapper must skip the hook on web when no webClientId is configured.
+// On web the guard must check for a webClientId.
 assert.ok(
-  /Platform\.OS !== "web" \|\| !!process\.env\.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID/.test(
+  /Platform\.OS === "web"[\s\S]{0,80}EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID/.test(
     screenSrc,
   ),
-  "the guard must skip the hook on web unless EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID is set",
+  "the guard must check EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID when Platform.OS is 'web'",
 );
-ok("Google auth hook is wrapped so a missing webClientId can't crash the web login screen");
+// On native the guard must gate on HAS_GOOGLE_NATIVE (at least one client ID
+// compiled in) so the hook is skipped on a build with no Google credentials.
+assert.ok(
+  /HAS_GOOGLE_NATIVE/.test(screenSrc),
+  "the guard must reference HAS_GOOGLE_NATIVE so the hook is skipped on native builds with no Google client ID",
+);
+// HAS_GOOGLE_NATIVE must check all four env vars (generic + ios + android + web).
+assert.ok(
+  /EXPO_PUBLIC_GOOGLE_CLIENT_ID/.test(screenSrc) &&
+    /EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID/.test(screenSrc) &&
+    /EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID/.test(screenSrc),
+  "HAS_GOOGLE_NATIVE must cover the generic, iOS, and Android client ID env vars",
+);
+ok("Google auth hook is wrapped so missing client IDs can't crash web or native login");
+
+// ===========================================================================
+// 6. "Get started" finish() is resilient to storage failures
+//
+// setOnboardingComplete() writes to SecureStore on native; a failure there
+// must not dead-end the user. finish() must wrap the storage call in a
+// try/catch so navigation always happens regardless.
+// ===========================================================================
+console.log("[test-login-auth-config] finish() in onboarding is resilient to storage failure");
+
+// finish() must not let a bare await propagate — the storage write must be
+// inside a try block. We check that the try{await setOnboardingComplete}
+// pattern is present in the onboarding source.
+assert.ok(
+  /try\s*\{[\s\S]{0,200}await setOnboardingComplete\(true\)/.test(
+    onboardingSrc,
+  ),
+  "finish() must call setOnboardingComplete inside a try block so a storage failure doesn't prevent navigation",
+);
+// router.replace must appear AFTER the try block (outside it) so it is always
+// reached. We confirm it appears in the same finish() body and is not itself
+// inside a try block that could swallow a navigation error silently.
+assert.ok(
+  /catch\s*\{[\s\S]{0,200}\}[\s\S]{0,100}router\.replace/.test(onboardingSrc),
+  "router.replace must execute after the catch block in finish() so navigation always happens",
+);
+ok("finish() wraps setOnboardingComplete in try/catch so storage failures still route the user");
 
 console.log(`\n[test-login-auth-config] all ${passed} checks passed`);

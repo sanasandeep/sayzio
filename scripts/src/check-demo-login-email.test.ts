@@ -21,8 +21,8 @@ const emails = (src: string) => scanSource("x.spec.ts", src).map((o) => o.email)
 
 describe("scanSource — flags hardcoded demo-login emails in code", () => {
   it("flags the current constant value pasted into a seed string", () => {
-    expect(emails(`$u = User::where('email', 'sazioapp@gmail.com')->first();`)).toEqual([
-      "sazioapp@gmail.com",
+    expect(emails(`$u = User::where('email', 'sayzioapp@gmail.com')->first();`)).toEqual([
+      "sayzioapp@gmail.com",
     ]);
   });
 
@@ -37,21 +37,21 @@ describe("scanSource — flags hardcoded demo-login emails in code", () => {
   });
 
   it("reports the correct line for a multi-line seed string", () => {
-    const src = "const php = `\nuse App;\n$u = User::create(['email' => 'sazioapp@gmail.com']);\n`;";
+    const src = "const php = `\nuse App;\n$u = User::create(['email' => 'sayzioapp@gmail.com']);\n`;";
     const [o] = scanSource("f.spec.ts", src);
     expect(o?.line).toBe(3);
-    expect(o?.email).toBe("sazioapp@gmail.com");
+    expect(o?.email).toBe("sayzioapp@gmail.com");
   });
 
   it("flags multiple offenders in one file", () => {
-    const src = "'sazioapp@gmail.com'\n'demo@1inme.com'";
-    expect(emails(src)).toEqual(["sazioapp@gmail.com", "demo@1inme.com"]);
+    const src = "'sayzioapp@gmail.com'\n'demo@1inme.com'";
+    expect(emails(src)).toEqual(["sayzioapp@gmail.com", "demo@1inme.com"]);
   });
 });
 
 describe("scanSource — stays quiet on allowed usage", () => {
   it("ignores the email inside a JS // line comment", () => {
-    expect(emails(`// AuthController::demoLogin -> sazioapp@gmail.com`)).toEqual([]);
+    expect(emails(`// AuthController::demoLogin -> sayzioapp@gmail.com`)).toEqual([]);
   });
 
   it("ignores the email inside a PHP // comment embedded in a seed string", () => {
@@ -60,7 +60,7 @@ describe("scanSource — stays quiet on allowed usage", () => {
   });
 
   it("ignores the email inside a block comment", () => {
-    expect(emails(`/* seed as sazioapp@gmail.com */`)).toEqual([]);
+    expect(emails(`/* seed as sayzioapp@gmail.com */`)).toEqual([]);
   });
 
   it("ignores the required ${DEMO_LOGIN_EMAIL} interpolation", () => {
@@ -74,7 +74,7 @@ describe("scanSource — stays quiet on allowed usage", () => {
   });
 
   it("blanks a comment but keeps code before it on the same line", () => {
-    const src = `const e = 'demo@1inme.com'; // ok to mention sazioapp@gmail.com here`;
+    const src = `const e = 'demo@1inme.com'; // ok to mention sayzioapp@gmail.com here`;
     expect(emails(src)).toEqual(["demo@1inme.com"]);
   });
 });

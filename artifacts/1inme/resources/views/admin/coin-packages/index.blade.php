@@ -12,6 +12,21 @@
     <div class="mb-4 p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-sm">{{ session('success') }}</div>
 @endif
 
+<div class="glass rounded-2xl border border-white/10 p-5 mb-6">
+    <form method="POST" action="{{ route('admin.coin-packages.fx-rate') }}" class="flex flex-wrap items-end gap-4">
+        @csrf
+        <div>
+            <label class="block text-xs text-white/60 mb-1">INR exchange rate (₹ per $1)</label>
+            <input type="number" name="fx_rate_inr" min="0.0001" step="0.0001" required
+                   value="{{ old('fx_rate_inr', rtrim(rtrim(number_format($fxRate, 4, '.', ''), '0'), '.')) }}"
+                   class="w-44 px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white text-sm">
+            @error('fx_rate_inr')<p class="mt-1 text-sm text-red-400">{{ $message }}</p>@enderror
+        </div>
+        <button class="px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700">Save Rate</button>
+        <p class="text-xs text-white/40 basis-full sm:basis-auto sm:flex-1">Used to compute INR prices when seeding new packages and shown as a hint on the package forms. Existing package prices are not changed automatically.</p>
+    </form>
+</div>
+
 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
     @forelse($packages as $pkg)
     <div class="glass rounded-2xl border border-white/10 p-6 {{ $pkg->is_archived ? 'opacity-60' : '' }}">

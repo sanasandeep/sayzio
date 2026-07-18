@@ -212,14 +212,22 @@
             <div class="grid grid-cols-2 gap-4">
                 <div>
                     <label class="block text-xs font-medium text-white/40 uppercase mb-1">Password</label>
-                    <input type="password" name="password" required
-                           class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-sm text-white focus:ring-2 focus:ring-blue-500/40 outline-none">
+                    @include('common.partials.password-field', [
+                        'name' => 'password',
+                        'required' => true,
+                        'autocomplete' => 'new-password',
+                        'inputClass' => 'w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-sm text-white focus:ring-2 focus:ring-blue-500/40 outline-none',
+                    ])
                     @error('password')<p class="mt-1 text-sm text-red-400">{{ $message }}</p>@enderror
                 </div>
                 <div>
                     <label class="block text-xs font-medium text-white/40 uppercase mb-1">Confirm Password</label>
-                    <input type="password" name="password_confirmation" required
-                           class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-sm text-white focus:ring-2 focus:ring-blue-500/40 outline-none">
+                    @include('common.partials.password-field', [
+                        'name' => 'password_confirmation',
+                        'required' => true,
+                        'autocomplete' => 'new-password',
+                        'inputClass' => 'w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-sm text-white focus:ring-2 focus:ring-blue-500/40 outline-none',
+                    ])
                 </div>
             </div>
             <div class="grid grid-cols-2 gap-4">

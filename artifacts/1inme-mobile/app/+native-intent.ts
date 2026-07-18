@@ -49,6 +49,17 @@ export function redirectSystemPath({
     const first = segments[0];
     if (!first) return path;
 
+    // Post-payment hand-off (sayzio://billing/refresh): land the user on the
+    // billing/plans screen. DeepLinkRouter separately invalidates the cached
+    // billing queries + refreshes the user from the raw incoming URL, so the
+    // plan shows fresh the moment the app reopens.
+    if (
+      first.toLowerCase() === "billing" &&
+      (segments[1] ?? "").toLowerCase() === "refresh"
+    ) {
+      return "/plans";
+    }
+
     const decoded = decode(first);
     if (RESERVED.has(decoded.toLowerCase())) return path;
     if (decoded.startsWith("(")) return path;

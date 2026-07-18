@@ -6,9 +6,9 @@ use Illuminate\Database\Eloquent\Model;
 
 class DialerFavorite extends Model
 {
-    protected $fillable = ['user_id', 'contact_id', 'number_e164', 'label', 'sort_order'];
+    protected $fillable = ['user_id', 'contact_id', 'number_e164', 'label', 'sort_order', 'speed_dial_digit'];
 
-    protected $casts = ['sort_order' => 'integer'];
+    protected $casts = ['sort_order' => 'integer', 'speed_dial_digit' => 'integer'];
 
     public function contact() { return $this->belongsTo(Contact::class); }
 

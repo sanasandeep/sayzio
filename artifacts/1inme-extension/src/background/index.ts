@@ -200,6 +200,47 @@ async function setupContextMenus() {
       title: "Capture reviews for this business",
       contexts: ["page"],
     });
+    // ── New context menu items (v0.2) ──────────────────────────────
+    browser.contextMenus.create({
+      id: "1inme-separator-selection",
+      type: "separator",
+      contexts: ["selection"],
+    });
+    browser.contextMenus.create({
+      id: "1inme-shorten-selection",
+      title: "Shorten selected URL with Sayzio",
+      contexts: ["selection"],
+    });
+    browser.contextMenus.create({
+      id: "1inme-qr-selection",
+      title: "Create Sayzio QR from selection",
+      contexts: ["selection"],
+    });
+    browser.contextMenus.create({
+      id: "1inme-note-to-contact",
+      title: "Add selection as note to contact",
+      contexts: ["selection"],
+    });
+    browser.contextMenus.create({
+      id: "1inme-dialer-lookup",
+      title: "Look up this number in Sayzio Dialer",
+      contexts: ["selection"],
+    });
+    browser.contextMenus.create({
+      id: "1inme-save-image",
+      title: "Save image to Sayzio Files",
+      contexts: ["image"],
+    });
+    browser.contextMenus.create({
+      id: "1inme-separator-2",
+      type: "separator",
+      contexts: ["page"],
+    });
+    browser.contextMenus.create({
+      id: "1inme-send-to-subscribers",
+      title: "Send this page to my subscribers",
+      contexts: ["page"],
+    });
   } catch { /* context menus permission missing */ }
 }
 
@@ -547,6 +588,7 @@ async function stashPendingAction(action: {
   url: string;
   title: string;
   linkUrl?: string;
+  selectionText?: string;
 }) {
   await browser.storage.local.set({
     pendingAction: { ...action, at: Date.now() },
@@ -586,6 +628,48 @@ browser.contextMenus?.onClicked.addListener(async (info, tab) => {
     await stashPendingAction({ type: "ADD_TO_CALENDAR", url: tab.url || "", title: tab.title || "" });
   } else if (info.menuItemId === "1inme-capture-reviews") {
     await stashPendingAction({ type: "CAPTURE_REVIEWS", url: tab.url || "", title: tab.title || "" });
+  }
+  // ── New v0.2 context menu handlers ───────────────────────────────
+  else if (info.menuItemId === "1inme-shorten-selection") {
+    const sel = (info.selectionText || "").trim();
+    if (!sel) { notify("Sayzio", "No text selected."); return; }
+    let targetUrl = sel;
+    try { new URL(sel); } catch {
+      // Not a bare URL — try prefixing https://
+      try { targetUrl = new URL("https://" + sel).href; } catch {
+        notify("Sayzio — error", "Selected text is not a valid URL.");
+        return;
+      }
+    }
+    const result = await shortenAndCopy(targetUrl, undefined, tab.id);
+    if (!result.ok) notify("Sayzio — error", result.error);
+  } else if (info.menuItemId === "1inme-qr-selection") {
+    const sel = (info.selectionText || "").trim();
+    if (!sel) { notify("Sayzio", "No text selected."); return; }
+    await stashPendingAction({ type: "QR_SELECTION", url: tab.url || "", title: tab.title || "", selectionText: sel });
+  } else if (info.menuItemId === "1inme-note-to-contact") {
+    const sel = (info.selectionText || "").trim();
+    if (!sel) { notify("Sayzio", "No text selected."); return; }
+    await stashPendingAction({ type: "CONTACT_NOTE", url: tab.url || "", title: tab.title || "", selectionText: sel });
+  } else if (info.menuItemId === "1inme-dialer-lookup") {
+    const sel = (info.selectionText || "").trim();
+    if (!sel) { notify("Sayzio", "No text selected."); return; }
+    await stashPendingAction({ type: "DIALER_LOOKUP", url: tab.url || "", title: tab.title || "", selectionText: sel });
+  } else if (info.menuItemId === "1inme-save-image") {
+    const imageUrl = info.srcUrl || "";
+    if (!imageUrl) { notify("Sayzio — error", "No image URL found."); return; }
+    const settings = await getSettings();
+    if (!settings.token) { notify("Sayzio", "Sign in to Sayzio to save files."); return; }
+    try {
+      const filename = imageUrl.split("/").pop()?.split("?")[0] || "image.jpg";
+      await api.saveImageFromUrl(imageUrl, filename);
+      notify("Sayzio — Saved", `Image saved to Sayzio Files: ${filename}`);
+    } catch (e: any) {
+      const msg = e instanceof ApiError ? e.message : (e?.message || "Could not save image");
+      notify("Sayzio — error", msg);
+    }
+  } else if (info.menuItemId === "1inme-send-to-subscribers") {
+    await stashPendingAction({ type: "SEND_TO_SUBSCRIBERS", url: tab.url || "", title: tab.title || "" });
   }
 });
 
@@ -762,6 +846,81 @@ browser.runtime.onMessage.addListener(async (msg: any, sender: any) => {
     }
   }
 });
+
+// ── Omnibox (address-bar keyword "szo") ───────────────────────────────────
+// When the user types "szo <query>" in the omnibox and hits Enter, shorten the
+// query if it looks like a URL, otherwise open the Sayzio dashboard search.
+if ((browser as any).omnibox) {
+  (browser as any).omnibox.onInputEntered.addListener(async (text: string, disposition: string) => {
+    const q = text.trim();
+    if (!q) return;
+    const settings = await getSettings();
+    const base = settings.webBaseUrl || "https://1inme.com";
+    let targetUrl: string;
+    let isUrl = false;
+    try { new URL(q); isUrl = true; } catch { /* not a URL */ }
+    if (!isUrl) {
+      try { new URL("https://" + q); isUrl = true; } catch { /* still not */ }
+    }
+    if (isUrl) {
+      // Shorten a URL typed into the omnibox.
+      try {
+        const rawUrl = q.includes("://") ? q : "https://" + q;
+        const result = await api.createShortLink(rawUrl, undefined, settings.workspaceId ?? undefined, false);
+        const short = result.link.short_url || `${base}/${result.link.alias}`;
+        // Copy the result; notify the user.
+        notify("Sayzio — shortened", short);
+        targetUrl = short;
+      } catch (e: any) {
+        notify("Sayzio — error", e?.message || "Could not shorten URL");
+        return;
+      }
+    } else {
+      // Open dashboard universal search.
+      targetUrl = `${base}/dashboard?q=${encodeURIComponent(q)}`;
+    }
+    if (disposition === "currentTab") {
+      browser.tabs.update({ url: targetUrl });
+    } else if (disposition === "newForegroundTab") {
+      browser.tabs.create({ url: targetUrl });
+    } else {
+      browser.tabs.create({ url: targetUrl, active: false });
+    }
+  });
+
+  // Show a helpful default suggestion while the user is typing.
+  (browser as any).omnibox.onInputChanged.addListener(
+    (_text: string, suggest: (suggestions: Array<{ content: string; description: string }>) => void) => {
+      suggest([{
+        content: _text,
+        description: "Shorten or search Sayzio: type a URL to shorten it, or text to search your dashboard",
+      }]);
+    },
+  );
+}
+
+// ── Keyboard commands (Ctrl+Shift+S / Ctrl+Shift+F) ─────────────────────
+if ((browser as any).commands?.onCommand) {
+  (browser as any).commands.onCommand.addListener(async (command: string) => {
+    const tabs = await browser.tabs.query({ active: true, currentWindow: true });
+    const tab = tabs[0];
+    if (!tab) return;
+    const settings = await getSettings();
+    if (!settings.token) {
+      notify("Sayzio", "Sign in to Sayzio first.");
+      return;
+    }
+    if (command === "shorten-tab") {
+      // Ctrl+Shift+S: shorten the current tab URL silently
+      const result = await shortenAndCopy(tab.url || "", tab.title, tab.id);
+      if (!result.ok) notify("Sayzio — error", result.error);
+      else notify("Sayzio — copied!", result.shortUrl);
+    } else if (command === "open-search") {
+      // Ctrl+Shift+F: open the popup in search view
+      await stashPendingAction({ type: "OPEN_SEARCH", url: tab.url || "", title: tab.title || "" });
+    }
+  });
+}
 
 setupContextMenus();
 refreshHandshakeMatches();

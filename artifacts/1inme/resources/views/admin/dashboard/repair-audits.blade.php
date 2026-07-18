@@ -27,7 +27,7 @@
             <table class="w-full">
                 <thead class="bg-white/5">
                     <tr>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-white/40 uppercase">When (UTC)</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-white/40 uppercase">When (IST)</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-white/40 uppercase">Who</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-white/40 uppercase">Columns added</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-white/40 uppercase">Could not repair</th>
@@ -38,7 +38,7 @@
                     @forelse($audits as $audit)
                     <tr class="hover:bg-white/5 align-top">
                         <td class="px-6 py-4 text-sm text-white/80 whitespace-nowrap">
-                            {{ optional($audit->created_at)->toDayDateTimeString() }}
+                            {{ optional(\App\Support\PlatformTimezone::display($audit->created_at))->toDayDateTimeString() }}
                             <div class="text-xs text-white/40">{{ optional($audit->created_at)->diffForHumans() }}</div>
                         </td>
                         <td class="px-6 py-4 text-sm text-white/80">

@@ -24,6 +24,25 @@ export type EventInfoSection = {
   body?: string | null;
 };
 
+/** Task #5023: one agenda slot (may be grouped by day for multi-day events). */
+export type EventAgendaItem = {
+  time: string | null;
+  end_time: string | null;
+  title: string;
+  description: string | null;
+  day: number | null;
+};
+
+/** Task #5023: a downloadable document attached to an event. */
+export type EventDocument = {
+  file_id: number;
+  label: string;
+  filename: string;
+  size_bytes: number;
+  mime: string;
+  url: string;
+};
+
 /**
  * Organizer card (Task #3674) — always present when the event has a host,
  * regardless of whether that host has claimed a public handle. `handle` is
@@ -95,6 +114,10 @@ export type EventItem = {
   info_sections: EventInfoSection[];
   required_badge_id: number | null;
   award_badge_id: number | null;
+  /** Task #5023: structured agenda items for this event. */
+  agenda: EventAgendaItem[];
+  /** Task #5023: downloadable documents attached to this event. */
+  documents: EventDocument[];
   interested_count: number;
   not_interested_count: number;
   organizer: EventOrganizer | null;
@@ -442,4 +465,148 @@ export async function getCheckinProgress(
     `/links/${linkId}/event-checkin/progress`,
   );
   return res.data;
+}
+
+// ── Task #5008: Event contact exchange ─────────────────────────────
+
+/** The current user's "My card" payload — QR SVG + public profile info. */
+export type MyEventCard = {
+  profile_url: string;
+  handle: string | null;
+  name: string | null;
+  avatar_url: string | null;
+  bio: string | null;
+  qr_svg: string;
+};
+
+export async function getMyEventCard(): Promise<MyEventCard> {
+  const res = await apiFetch<{ data: MyEventCard }>("/me/event-card");
+  return res.data;
+}
+
+/** The current user's discoverability state for a specific event. */
+export type DiscoverabilityState = {
+  discoverable: boolean;
+  event_live: boolean;
+  is_attendee: boolean;
+};
+
+export async function getDiscoverability(
+  alias: string,
+): Promise<DiscoverabilityState> {
+  const res = await apiFetch<{ data: DiscoverabilityState }>(
+    `/events/${encodeURIComponent(alias)}/discoverability`,
+  );
+  return res.data;
+}
+
+export async function toggleDiscoverability(
+  alias: string,
+  discoverable: boolean,
+  coords?: { lat: number; lng: number },
+): Promise<{ discoverable: boolean }> {
+  const res = await apiFetch<{ data: { discoverable: boolean } }>(
+    `/events/${encodeURIComponent(alias)}/discoverability`,
+    {
+      method: "POST",
+      body: JSON.stringify({
+        discoverable,
+        lat: coords?.lat ?? null,
+        lng: coords?.lng ?? null,
+      }),
+    },
+  );
+  return res.data;
+}
+
+/** A discoverable attendee shown in the "People at this event" list. */
+export type EventAttendee = {
+  user: {
+    id: number;
+    name: string | null;
+    handle: string | null;
+    avatar_url: string | null;
+    bio: string | null;
+  };
+  exchange_status: "pending" | "accepted" | "declined" | null;
+  exchange_id: number | null;
+  sent_by_me: boolean | null;
+};
+
+export type AttendeesResponse = {
+  items: EventAttendee[];
+  total: number;
+  my_discoverable: boolean;
+};
+
+export async function listEventAttendees(
+  alias: string,
+): Promise<AttendeesResponse> {
+  const res = await apiFetch<{ data: AttendeesResponse }>(
+    `/events/${encodeURIComponent(alias)}/people`,
+  );
+  return res.data;
+}
+
+export type ExchangeResult = {
+  exchange_id: number;
+  status: "pending" | "accepted";
+};
+
+export async function requestContactExchange(
+  alias: string,
+  recipientId: number,
+): Promise<ExchangeResult> {
+  const res = await apiFetch<{ data: ExchangeResult }>(
+    `/events/${encodeURIComponent(alias)}/exchange`,
+    { method: "POST", body: JSON.stringify({ recipient_id: recipientId }) },
+  );
+  return res.data;
+}
+
+export async function acceptContactExchange(
+  exchangeId: number,
+): Promise<ExchangeResult> {
+  const res = await apiFetch<{ data: ExchangeResult }>(
+    `/me/contact-exchanges/${exchangeId}/accept`,
+    { method: "POST" },
+  );
+  return res.data;
+}
+
+// ── Task #5052: "My swaps" — review + withdraw own swap requests ────
+
+/** One of the viewer's own swap requests at an event. */
+export type MyEventSwap = {
+  exchange_id: number;
+  status: "pending" | "accepted";
+  sent_by_me: boolean;
+  /** True only for pending requests the viewer sent. */
+  can_cancel: boolean;
+  created_at: string | null;
+  accepted_at: string | null;
+  other: {
+    id: number;
+    name: string | null;
+    handle: string | null;
+    avatar_url: string | null;
+  } | null;
+};
+
+export async function listMyEventSwaps(
+  alias: string,
+): Promise<{ items: MyEventSwap[]; total: number }> {
+  const res = await apiFetch<{ data: { items: MyEventSwap[]; total: number } }>(
+    `/events/${encodeURIComponent(alias)}/my-swaps`,
+  );
+  return res.data;
+}
+
+/** Withdraw a pending swap request the viewer sent (sender-only). */
+export async function cancelContactExchange(
+  exchangeId: number,
+): Promise<void> {
+  await apiFetch(`/me/contact-exchanges/${exchangeId}/cancel`, {
+    method: "POST",
+  });
 }

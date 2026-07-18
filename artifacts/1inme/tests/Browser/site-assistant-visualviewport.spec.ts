@@ -11,6 +11,7 @@ import {
 } from "@playwright/test";
 
 import { DEMO_LOGIN_EMAIL } from "./demo-account";
+import { loginAsDemo } from "./login-as-demo";
 
 // Guards the Safari-iOS visible-viewport pinning added to the Ask Zio chat
 // panel (saSyncPanelViewport in
@@ -93,25 +94,6 @@ echo 'SEED_OK';
 }
 
 /** Log in as the demo user (non-prod quick-login) without blocking on the dashboard render. */
-async function loginAsDemo(page: Page): Promise<void> {
-  await page.goto("/user/login");
-  await Promise.all([
-    page.waitForResponse(
-      (r) =>
-        r.url().endsWith("/user/demo-login") &&
-        r.request().method() === "POST",
-      { timeout: 90_000 },
-    ),
-    page.evaluate(() => {
-      const form = document.querySelector<HTMLFormElement>(
-        'form[action$="/user/demo-login"]',
-      );
-      if (!form) throw new Error("demo-login form not found");
-      form.submit();
-    }),
-  ]);
-}
-
 /** Stub the chat bootstrap/session so opening the panel is deterministic and fast. */
 async function stubChat(page: Page): Promise<void> {
   await page.route("**/assistant/bootstrap*", (route: Route) =>
@@ -211,6 +193,20 @@ test.beforeAll(async ({ browser }) => {
       override = h;
       offsetTopOverride = offsetTop;
       vv.dispatchEvent(new Event("resize"));
+    };
+    // Simulate the user SCROLLING the page while the keyboard is already open:
+    // iOS fires only a `scroll` visualViewport event and shifts offsetTop WITHOUT
+    // changing height. This exercises the widget's `scroll` listener specifically
+    // (the `resize` helpers above never fire it), guarding against a refactor
+    // that drops the scroll listener and lets the composer slip behind the
+    // keyboard on scroll without failing any resize-driven test.
+    (
+      window as unknown as {
+        __scrollVisualViewport: (offsetTop: number) => void;
+      }
+    ).__scrollVisualViewport = (offsetTop: number) => {
+      offsetTopOverride = offsetTop;
+      vv.dispatchEvent(new Event("scroll"));
     };
   });
   const page = await sharedContext.newPage();
@@ -358,6 +354,80 @@ test.describe("Ask Zio panel — visualViewport pinning (mobile)", () => {
         { timeout: 10_000 },
       )
       .toBe("");
+  });
+
+  test("the composer re-anchors when the page scrolls with the keyboard already up", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 375, height: 800 });
+    await stubChat(page);
+    await page.goto("/user/links", { timeout: 120_000 });
+    await openPanel(page);
+
+    // The keyboard opens: visible viewport shrinks to 500 and shifts down 40px,
+    // so the visible area is [40, 540]. This fires a `resize` event.
+    const KB_HEIGHT = 500;
+    const INITIAL_OFFSET_TOP = 40;
+    await page.evaluate(
+      ([h, top]) =>
+        (
+          window as unknown as {
+            __setVisualViewport: (h: number, offsetTop: number) => void;
+          }
+        ).__setVisualViewport(h, top),
+      [KB_HEIGHT, INITIAL_OFFSET_TOP],
+    );
+
+    const composerRect = () =>
+      page
+        .locator("#sa-panel .sa-input-row")
+        .first()
+        .evaluate((el) => {
+          const r = el.getBoundingClientRect();
+          return { top: r.top, bottom: r.bottom };
+        });
+
+    // Composer sits inside the initial visible area [40, 540].
+    await expect
+      .poll(async () => (await composerRect()).bottom <= INITIAL_OFFSET_TOP + KB_HEIGHT, {
+        timeout: 10_000,
+      })
+      .toBe(true);
+
+    // Now the user SCROLLS the page while the keyboard stays open. iOS fires ONLY
+    // a `scroll` visualViewport event and shifts offsetTop further (40 -> 120)
+    // WITHOUT changing height. The visible area becomes [120, 620]. If the widget
+    // ignored the `scroll` event the composer would still be pinned to the old
+    // [40, 540] window and slip behind the keyboard.
+    const SCROLLED_OFFSET_TOP = 120;
+    const scrolledBottom = SCROLLED_OFFSET_TOP + KB_HEIGHT; // 620
+    await page.evaluate(
+      (top) =>
+        (
+          window as unknown as {
+            __scrollVisualViewport: (offsetTop: number) => void;
+          }
+        ).__scrollVisualViewport(top),
+      SCROLLED_OFFSET_TOP,
+    );
+
+    // Height is unchanged by a pure scroll (still 500 - 100 = 400).
+    await expect
+      .poll(() => inlineHeight(page), { timeout: 10_000 })
+      .toBe(KB_HEIGHT - SA_VV_RESERVE);
+
+    // After the scroll the whole composer row must sit inside the NEW visible
+    // window [offsetTop, offsetTop + height] = [120, 620].
+    await expect
+      .poll(async () => (await composerRect()).bottom <= scrolledBottom, {
+        timeout: 10_000,
+      })
+      .toBe(true);
+
+    const rect = await composerRect();
+    expect(rect.bottom).toBeLessThanOrEqual(scrolledBottom);
+    expect(rect.top).toBeGreaterThanOrEqual(SCROLLED_OFFSET_TOP);
+    await expect(page.locator("#sa-panel .sa-input-row").first()).toBeVisible();
   });
 });
 

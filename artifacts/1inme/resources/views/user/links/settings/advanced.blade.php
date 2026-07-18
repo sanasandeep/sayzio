@@ -216,7 +216,7 @@
                         </div>
                         @if($link->favicon)
                         <div class="flex items-center gap-2 p-2 rounded-lg mb-3" style="background: rgba(0,0,0,0.15); border: 1px solid var(--border-glass);">
-                            <img src="{{ $link->favicon }}" class="w-6 h-6 rounded object-contain" alt="Favicon"><span class="text-[10px]" style="color: var(--text-muted);">Current favicon</span>
+                            <img src="{{ \App\Support\PublicStorageUrl::resolve($link->favicon) }}" class="w-6 h-6 rounded object-contain" alt="Favicon"><span class="text-[10px]" style="color: var(--text-muted);">Current favicon</span>
                         </div>
                         @endif
                         <div class="space-y-2">

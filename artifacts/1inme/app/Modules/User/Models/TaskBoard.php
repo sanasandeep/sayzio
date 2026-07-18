@@ -71,11 +71,15 @@ class TaskBoard extends Model
     public static function uniqueSlug(string $base): string
     {
         $base = Str::slug(Str::limit($base, 50, '')) ?: Str::random(8);
-        $slug = $base;
-        $i = 1;
-        while (static::query()->withoutGlobalScope('workspace')->where('slug', $slug)->exists()) {
-            $slug = $base . '-' . (++$i);
-        }
-        return $slug;
+
+        // Single-query max-suffix lookup (see App\Support\UniqueSuffix). The
+        // previous probe-one-slug-at-a-time loop was O(collisions) round
+        // trips: every account gets a "My Tasks" board, so on a busy database
+        // a single sign-up was issuing hundreds of sequential `exists`
+        // queries (minutes over a remote DB) just to find "my-tasks-N".
+        return \App\Support\UniqueSuffix::resolve(
+            static::query()->withoutGlobalScope('workspace'),
+            $base
+        );
     }
 }

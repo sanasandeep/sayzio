@@ -289,6 +289,10 @@
             <a href="{{ route('site.pricing', ['view' => 'coins']) }}" @click="trackMarketingEvent('coins')" class="inline-flex items-center gap-1.5 text-blue-300 hover:text-blue-200 font-semibold transition">
                 <i class="fas fa-coins text-[11px] text-amber-400"></i> Coin packages
             </a>
+            <span class="text-gray-700">·</span>
+            <a href="{{ route('site.pricing') }}#custom-plan-request" class="inline-flex items-center gap-1.5 text-blue-300 hover:text-blue-200 font-semibold transition">
+                <i class="fas fa-gem text-[11px]"></i> Need a custom plan?
+            </a>
         </div>
     </div>
 </section>

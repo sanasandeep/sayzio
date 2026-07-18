@@ -219,6 +219,42 @@ class StorageHealthAlertTest extends TestCase
         );
     }
 
+    public function test_bridge_alert_fires_even_when_config_looks_complete(): void
+    {
+        $ops = $this->makeOpsAdmin();
+        $this->storeCompleteS3AdminConfig();
+
+        // Config looks complete, but the disk still threw at URL-resolution
+        // time (bad credentials, malformed region, SDK init failure).
+        StorageHealthAlerts::alertFromBridge(new \RuntimeException('Invalid region: "not-a-region"'));
+
+        $notes = UserNotification::where('user_id', $ops->id)
+            ->where('type', 'storage_misconfigured')->get();
+        $this->assertCount(1, $notes, 'bridge failure must alert even with complete-looking config');
+        $this->assertStringContainsString(
+            'URL resolution failed: Invalid region',
+            implode(', ', $notes->first()->data['missing'])
+        );
+
+        $state = AppSetting::get(StorageHealthAlerts::STATE_KEY, []);
+        $this->assertTrue((bool) ($state['alerting'] ?? false), 'episode must be open');
+    }
+
+    public function test_bridge_alert_is_cooldown_guarded(): void
+    {
+        $ops = $this->makeOpsAdmin();
+
+        StorageHealthAlerts::alertFromBridge(new \RuntimeException('boom'));
+        StorageHealthAlerts::alertFromBridge(new \RuntimeException('boom again'));
+        StorageHealthAlerts::alertFromBridge(new \RuntimeException('boom a third time'));
+
+        $this->assertSame(
+            1,
+            UserNotification::where('user_id', $ops->id)->where('type', 'storage_misconfigured')->count(),
+            'a burst of bridge failures must send at most one alert per cooldown window'
+        );
+    }
+
     public function test_no_alert_when_configured(): void
     {
         $ops = $this->makeOpsAdmin();

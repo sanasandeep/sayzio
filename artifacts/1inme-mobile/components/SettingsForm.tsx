@@ -30,11 +30,16 @@ export function SettingsForm({
   group,
   fields,
   blurb,
+  extra,
 }: {
   linkId: number;
   group: string;
   fields: FieldDef[];
   blurb?: string;
+  // Extra content rendered inside the scroll area after the generic
+  // fields — e.g. the Appearance screen's background preset gallery,
+  // which manages its own save flow outside this form's Apply button.
+  extra?: React.ReactNode;
 }) {
   const colors = useColors();
   const qc = useQueryClient();
@@ -209,6 +214,7 @@ export function SettingsForm({
             />
           );
         })}
+        {extra}
       </ScrollView>
 
       <View

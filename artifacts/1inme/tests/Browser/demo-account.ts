@@ -8,4 +8,4 @@
  * Keep this the single source of truth: import it and interpolate it into the
  * tinker seed strings instead of hardcoding the email per file.
  */
-export const DEMO_LOGIN_EMAIL = "sazioapp@gmail.com";
+export const DEMO_LOGIN_EMAIL = "sayzioapp@gmail.com";

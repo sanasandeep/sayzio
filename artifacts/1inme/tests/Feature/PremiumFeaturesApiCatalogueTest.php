@@ -14,7 +14,7 @@ use Tests\TestCase;
  * ({@see \App\Modules\Common\Support\PremiumFeatures::catalogue()}
  * + {@see \App\Modules\Common\Support\PremiumFeatures::resolveCell()}) via the
  * Sanctum billing endpoint GET /api/v1/billing/plans
- * ({@see \App\Modules\Api\Controllers\RevenueCatBillingController::plans}):
+ * ({@see \App\Modules\Api\Controllers\MobileBillingController::plans}):
  *   - `data.premium_features` carries every catalogue entry (group, name,
  *     description, unit + `unlocked_by` plan slugs); mobile billing clients
  *     group + list these.

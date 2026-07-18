@@ -50,6 +50,14 @@ class AiMindAdminController extends Controller
         $topByCredits   = $usage->topMinds(10);
         $dailySpend     = $usage->dailySpendGlobal();
 
+        // Read-only drift report for the platform default Mind's code-defined
+        // About + FAQ sources. Looked up (never provisioned) so this page
+        // never mutates anything; null when the default Mind isn't seeded yet.
+        $platformMind   = AiMind::whereNull('user_id')->where('is_default', true)->first();
+        $staticSources  = $platformMind
+            ? AiMindProvisioner::staticSourceSyncReport($platformMind)
+            : [];
+
         return view('admin.ai-minds.index', [
             'totals'        => $totals,
             'topUsers'      => $topUsers,
@@ -57,6 +65,7 @@ class AiMindAdminController extends Controller
             'caps'          => AiMindSettings::caps(),
             'topByCredits'  => $topByCredits,
             'dailySpend'    => $dailySpend,
+            'staticSources' => $staticSources,
         ]);
     }
 
@@ -95,10 +104,25 @@ class AiMindAdminController extends Controller
 
     public function reseedDefault()
     {
-        $mind = AiMindProvisioner::ensurePlatformDefault();
-        // Re-queue ingestion of every source on the platform mind so
-        // any new product knowledge picks up immediately.
+        // ensurePlatformDefault() first re-syncs the code-defined static
+        // sources (About + FAQ) from the current constants — so an edit to
+        // the product overview or an FAQ answer is written to the stored body
+        // and re-embedded. We then force a full re-queue of EVERY source so an
+        // admin clicking "Re-seed default" gets an unconditional refresh
+        // (including retrying any failed source), not just drifted ones.
+        //
+        // A source that drifted in THIS call was already re-queued + dispatched
+        // by ensurePlatformDefault(); dispatching it again in the loop below
+        // would embed it twice and waste paid AI/embedding credits — so skip
+        // any id it already handled.
+        $alreadyDispatched = [];
+        $mind = AiMindProvisioner::ensurePlatformDefault($alreadyDispatched);
+        $alreadyDispatched = array_flip($alreadyDispatched);
+
         foreach ($mind->sources as $s) {
+            if (isset($alreadyDispatched[$s->id])) {
+                continue;
+            }
             $s->forceFill(['status' => AiMindSource::STATUS_QUEUED])->save();
             \App\Jobs\IngestAiMindSourceJob::dispatch($s->id);
         }

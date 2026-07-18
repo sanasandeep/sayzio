@@ -224,6 +224,98 @@ args = "e2e-zio-visualviewport"
 task = "workflow.run"
 args = "e2e-mobile-info-pages"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-mobile-onboarding-reveal"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "auth-screen-gradient"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-mobile-plans-refresh"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-mobile-plans-downgrade-refresh"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-2fa-challenge"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-auth-ajax"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "claude-training-api-index"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "doc-constants"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "store-booking-e2e"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "form-template-keys"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-sidebar-findbar"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-sidebar-label-clip"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-voice-bridge"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-bg-preset-public"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-bg-preset-live"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-bg-tpl-live"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-bg-branches"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-mobile-bg-presets"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "admin-footer-manifest"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "footer-last-updated"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "eas-android-build"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "storage-url-resolve"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "dialer-contact-auto-sync"
+
 [[workflows.workflow]]
 name = "e2e"
 author = "agent"
@@ -233,7 +325,7 @@ isValidation = true
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "bash artifacts/1inme/tests/Browser/run-validation.sh home-auth-modal-mobile.spec.ts biolink-editor-card-gallery-preview.spec.ts biolink-editor-palette-dnd.spec.ts cookie-consent-footer-gap.spec.ts cookie-consent-layout-styles.spec.ts cookie-consent-theme-match.spec.ts voice-assistant-bridge.spec.ts voice-assistant-panel.spec.ts slides-mode.spec.ts cookie-consent-footer-reserve.spec.ts home-hero-orbit-popover.spec.ts home-hero-claim-handle.spec.ts brand-consistency-apply-fix.spec.ts create-link-picker.spec.ts marketing-background-seam.spec.ts home-section-structure.spec.ts home-ai-zone.spec.ts onboarding-flow.spec.ts dashboard-layout.spec.ts header-account-menu.spec.ts header-mobile-account-menu.spec.ts header-mobile-logged-out-cta.spec.ts dashboard-mobile-account.spec.ts header-desktop-logged-out-cta.spec.ts dialer-live-sync.spec.ts store-coming-soon-modal.spec.ts ai-dashboard-demo-perf.spec.ts event-rsvp-light-readability.spec.ts events-hero-band-gap.spec.ts header-autohide.spec.ts fontawesome-cached-visit.spec.ts home-showcase-editor-preview.spec.ts pricing-price-visible.spec.ts"
+args = "bash artifacts/1inme/tests/Browser/run-validation.sh home-auth-modal-mobile.spec.ts biolink-editor-card-gallery-preview.spec.ts biolink-editor-palette-dnd.spec.ts cookie-consent-footer-gap.spec.ts cookie-consent-layout-styles.spec.ts cookie-consent-theme-match.spec.ts voice-assistant-bridge.spec.ts voice-assistant-panel.spec.ts slides-mode.spec.ts cookie-consent-footer-reserve.spec.ts home-hero-orbit-popover.spec.ts home-hero-claim-handle.spec.ts brand-consistency-apply-fix.spec.ts create-link-picker.spec.ts marketing-background-seam.spec.ts home-section-structure.spec.ts home-ai-zone.spec.ts onboarding-flow.spec.ts dashboard-layout.spec.ts header-account-menu.spec.ts header-mobile-account-menu.spec.ts header-mobile-logged-out-cta.spec.ts dashboard-mobile-account.spec.ts header-desktop-logged-out-cta.spec.ts dialer-live-sync.spec.ts store-coming-soon-modal.spec.ts ai-dashboard-demo-perf.spec.ts event-rsvp-light-readability.spec.ts events-hero-band-gap.spec.ts header-autohide.spec.ts fontawesome-cached-visit.spec.ts home-showcase-editor-preview.spec.ts pricing-price-visible.spec.ts sidebar-findbar.spec.ts admin-sidebar-findbar.spec.ts"
 
 [[workflows.workflow]]
 name = "e2e-mobile-main"
@@ -796,6 +888,457 @@ args = "pnpm --filter @workspace/1inme-mobile run test:info-pages-e2e"
 [workflows.workflow.metadata]
 isValidation = true
 
+[[workflows.workflow]]
+name = "e2e-mobile-onboarding-reveal"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/1inme-mobile run test:onboarding-reveal-e2e"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "auth-screen-gradient"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/scripts run check:auth-screen-gradient"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-mobile-plans-refresh"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/1inme-mobile run test:plans-foreground-refresh-e2e"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-mobile-plans-downgrade-refresh"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/1inme-mobile run test:plans-downgrade-refresh-e2e"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-2fa-challenge"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "bash artifacts/1inme/tests/Browser/run-validation.sh two-factor-challenge-ajax.spec.ts"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-auth-ajax"
+author = "agent"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd artifacts/1inme && bash tests/Browser/run-validation.sh auth-ajax-flows.spec.ts --retries=0 --reporter=list"
+
+[[workflows.workflow]]
+name = "claude-training-api-index"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/scripts run check:claude-training-api-index"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "doc-constants"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/scripts run check:doc-constants"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "store-booking-e2e"
+author = "agent"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "bash artifacts/1inme/tests/Browser/run-validation.sh store-order.spec.ts service-booking-request.spec.ts"
+
+[[workflows.workflow]]
+name = "form-template-keys"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/scripts run check:form-template-keys"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-sidebar-findbar"
+author = "agent"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd artifacts/1inme && bash tests/Browser/run-validation.sh sidebar-findbar.spec.ts"
+
+[[workflows.workflow]]
+name = "e2e-sidebar-label-clip"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "bash artifacts/1inme/tests/Browser/run-validation.sh admin-sidebar-label-clip.spec.ts"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-form-builder-panel-scroll"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "bash artifacts/1inme/tests/Browser/run-validation.sh form-builder-panel-scroll-reset.spec.ts"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "demo-login-button"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/scripts run check:demo-login-button"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-mobile-workspace-owner-gear"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/1inme-mobile run test:workspace-owner-gear-refresh-e2e"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-mobile-workspaces-crud"
+author = "agent"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/1inme-mobile run test:workspaces-crud-e2e"
+
+[[workflows.workflow]]
+name = "e2e-otp-login"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "bash artifacts/1inme/tests/Browser/run-validation.sh otp-login-flow.spec.ts"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "mail-direct-sends"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd artifacts/1inme && composer check:mail-direct-sends"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-otp-login-whatsapp"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "bash artifacts/1inme/tests/Browser/run-validation.sh otp-login-whatsapp-flow.spec.ts"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-otp-login-mobile-disallowed"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "bash artifacts/1inme/tests/Browser/run-validation.sh otp-login-mobile-disallowed-code.spec.ts"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-otp-login-whatsapp-errors"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "bash artifacts/1inme/tests/Browser/run-validation.sh otp-login-whatsapp-error-paths.spec.ts"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-otp-login-whatsapp-unknown"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "bash artifacts/1inme/tests/Browser/run-validation.sh otp-login-whatsapp-unknown-number.spec.ts"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-otp-login-whatsapp-resend"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "bash artifacts/1inme/tests/Browser/run-validation.sh otp-login-whatsapp-resend.spec.ts"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-otp-signup-whatsapp-paused"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "bash artifacts/1inme/tests/Browser/run-validation.sh otp-signup-whatsapp-paused.spec.ts"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-otp-signup-email-paused"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "bash artifacts/1inme/tests/Browser/run-validation.sh otp-signup-email-paused.spec.ts"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-password-toggle"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "bash artifacts/1inme/tests/Browser/run-validation.sh password-toggle.spec.ts"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-otp-login-whatsapp-different"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "bash artifacts/1inme/tests/Browser/run-validation.sh otp-login-whatsapp-different-number.spec.ts"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-password-toggle-auth"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "bash artifacts/1inme/tests/Browser/run-validation.sh password-toggle-authenticated.spec.ts"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-block-defaults"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "bash artifacts/1inme/tests/Browser/run-validation.sh block-defaults-editor.spec.ts"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-voice-bridge-light"
+author = "agent"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "bash artifacts/1inme/tests/Browser/run-validation.sh voice-assistant-bridge.spec.ts -g \"light surface in light mode\""
+
+[[workflows.workflow]]
+name = "e2e-voice-bridge"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "bash artifacts/1inme/tests/Browser/run-validation.sh voice-assistant-bridge.spec.ts"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-bg-preset-public"
+author = "agent"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd artifacts/1inme && bash tests/Browser/run-validation.sh biolink-bg-preset-public-render.spec.ts"
+
+[[workflows.workflow]]
+name = "e2e-bg-preset-live"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "bash artifacts/1inme/tests/Browser/run-validation.sh biolink-bg-preset-live-preview.spec.ts"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-bg-tpl-live"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "bash artifacts/1inme/tests/Browser/run-validation.sh biolink-bg-template-live-preview.spec.ts"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-bg-branches"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd artifacts/1inme && bash tests/Browser/run-validation.sh biolink-bg-branches-public-render.spec.ts"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-mobile-bg-presets"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/1inme-mobile run test:bg-presets-e2e"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "admin-footer-manifest"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd artifacts/1inme && npm run build && TEST_LOCAL_MODE=artisan TEST_LOCAL_PORT=55467 bash scripts/test-local.sh --filter=AdminFooterLastUpdatedTest"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "footer-last-updated"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd artifacts/1inme && TEST_LOCAL_MODE=artisan TEST_LOCAL_PORT=55468 bash scripts/test-local.sh --filter=AdminFooterLastUpdatedTest"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "eas-android-build"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd artifacts/1inme-mobile && EAS_NO_VCS=1 npx -y eas-cli build --platform android --profile preview --non-interactive --no-wait"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "storage-url-resolve"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/scripts run check:storage-url-resolve"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "dialer-contact-auto-sync"
+author = "agent"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd sayzio-dialer-standalone && npm run test:contact-auto-sync && npm run test:device-contacts-fingerprint"
+
 [agent]
 stack = "PNPM_WORKSPACE"
 expertMode = true
@@ -827,8 +1370,20 @@ localPort = 5050
 externalPort = 3000
 
 [[ports]]
+localPort = 8080
+externalPort = 8080
+
+[[ports]]
+localPort = 8081
+externalPort = 8081
+
+[[ports]]
 localPort = 8082
 externalPort = 3001
+
+[[ports]]
+localPort = 23680
+externalPort = 3003
 
 [[ports]]
 localPort = 23681
