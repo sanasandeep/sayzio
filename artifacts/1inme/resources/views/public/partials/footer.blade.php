@@ -19,6 +19,7 @@
                     <li><a href="{{ route('site.workspace-team') }}" class="text-sm text-gray-500 hover:text-white">Workspace &amp; Team</a></li>
                     <li><a href="{{ route('site.ai-dashboard') }}" class="text-sm text-gray-500 hover:text-white">AI Dashboard</a></li>
                     <li><a href="{{ route('site.pricing') }}" class="text-sm text-gray-500 hover:text-white">Pricing</a></li>
+                    <li><a href="{{ route('site.download') }}" class="text-sm text-gray-500 hover:text-white">Download browser</a></li>
                     <li><a href="{{ route('site.api-docs') }}" class="text-sm text-gray-500 hover:text-white">API</a></li>
                 </ul>
             </div>

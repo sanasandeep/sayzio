@@ -40,7 +40,7 @@
 
     $features = [
         ['icon' => 'fa-bolt',        'title' => 'Built for creators', 'desc' => 'Your Sayzio dashboard, links, analytics and inbox one click away — in a fast, distraction-free desktop browser.'],
-        ['icon' => 'fa-rotate',      'title' => 'Always up to date',  'desc' => 'The app checks for new versions automatically, so you\'re always on the latest release without reinstalling.'],
+        ['icon' => 'fa-rotate',      'title' => 'Always up to date',  'desc' => 'On Windows, the app updates itself automatically. On Mac, grab new versions from this page for now — auto-updates arrive once builds are signed.'],
         ['icon' => 'fa-shield-halved','title' => 'Private by design', 'desc' => 'No trackers, no bloat. Just a clean browsing experience with Sayzio built in.'],
     ];
 @endphp
@@ -132,7 +132,8 @@
         </div>
 
         <p class="mt-10 text-center text-xs text-gray-600">
-            macOS installers are unsigned for now — if macOS warns on first open, right-click the app and choose “Open”.
+            Windows keeps itself up to date automatically. macOS installers are unsigned for now, so Mac updates are manual
+            (re-download from this page) until signing lands — if macOS warns on first open, right-click the app and choose “Open”.
             Windows SmartScreen may ask you to confirm with “More info → Run anyway”.
         </p>
     </div>
