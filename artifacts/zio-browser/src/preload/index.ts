@@ -97,9 +97,16 @@ const api = {
   // ── Downloads ─────────────────────────────────────────────────────────────
   downloads: {
     recent: () => ipcRenderer.invoke('downloads:recent'),
+    search: (q: string) => ipcRenderer.invoke('downloads:search', q),
     open: (filePath: string) => ipcRenderer.invoke('downloads:open', filePath),
     show: (filePath: string) => ipcRenderer.invoke('downloads:show', filePath),
     choosePath: () => ipcRenderer.invoke('downloads:choose-path'),
+    pause: (id: string) => ipcRenderer.invoke('downloads:pause', id),
+    resume: (id: string) => ipcRenderer.invoke('downloads:resume', id),
+    cancel: (id: string) => ipcRenderer.invoke('downloads:cancel', id),
+    retry: (url: string) => ipcRenderer.invoke('downloads:retry', url),
+    remove: (id: string) => ipcRenderer.invoke('downloads:remove', id),
+    clear: () => ipcRenderer.invoke('downloads:clear'),
   },
 
   // ── Sync ──────────────────────────────────────────────────────────────────
@@ -144,6 +151,10 @@ const api = {
       'biolink:add-page',
       'window:mode-changed',
       'sync:queue-changed',
+      // Downloads panel
+      'download:paused',
+      'download:resumed',
+      'download:cancelled',
     ]);
     if (!ALLOWED_CHANNELS.has(channel)) return;
     ipcRenderer.on(channel, (_, ...args) => listener(...args));

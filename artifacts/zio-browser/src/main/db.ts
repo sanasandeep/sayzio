@@ -409,3 +409,23 @@ export function getRecentDownloads(limit = 50): Download[] {
   const db = getDb();
   return db.prepare('SELECT * FROM downloads ORDER BY created_at DESC LIMIT ?').all(limit) as Download[];
 }
+
+export function searchDownloads(query: string, limit = 50): Download[] {
+  const db = getDb();
+  const like = `%${query.replace(/[%_]/g, c => `\\${c}`)}%`;
+  return db.prepare(`
+    SELECT * FROM downloads
+    WHERE (filename LIKE ? ESCAPE '\\' OR url LIKE ? ESCAPE '\\')
+    ORDER BY created_at DESC LIMIT ?
+  `).all(like, like, limit) as Download[];
+}
+
+export function deleteDownload(id: string): void {
+  const db = getDb();
+  db.prepare('DELETE FROM downloads WHERE id = ?').run(id);
+}
+
+export function clearAllDownloads(): void {
+  const db = getDb();
+  db.prepare("DELETE FROM downloads WHERE state IN ('completed', 'interrupted', 'cancelled')").run();
+}

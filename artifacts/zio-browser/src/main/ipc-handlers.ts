@@ -29,10 +29,14 @@ import {
   saveLinkToCollection,
   updateSavedLinkAiEnrichment,
   getRecentDownloads,
+  searchDownloads,
+  deleteDownload,
+  clearAllDownloads,
   getSyncState,
   enqueueSyncPush,
   countSyncQueue,
 } from './db';
+import { getActiveItem } from './download-manager';
 import { buildAutofillScript } from '../shared/form-autofill';
 import type { AutofillCard } from '../shared/form-autofill';
 import { storeToken, retrieveToken, clearToken, storeUser, retrieveUser, clearUser } from './auth-store';
@@ -198,17 +202,49 @@ export function registerIpcHandlers(tabManager: TabManager, modeManager?: Window
 
   // ── Downloads ────────────────────────────────────────────────────────────
   ipcMain.handle('downloads:recent', () => getRecentDownloads());
-  ipcMain.handle('downloads:open', async (_, path: string) => {
-    await shell.openPath(path);
-    return true;
+  ipcMain.handle('downloads:search', (_, q: string) => searchDownloads(q));
+  ipcMain.handle('downloads:open', async (_, filePath: string) => {
+    const err = await shell.openPath(filePath);
+    return err === '' ? { ok: true } : { ok: false, error: err };
   });
-  ipcMain.handle('downloads:show', async (_, path: string) => {
-    shell.showItemInFolder(path);
+  ipcMain.handle('downloads:show', async (_, filePath: string) => {
+    shell.showItemInFolder(filePath);
     return true;
   });
   ipcMain.handle('downloads:choose-path', async () => {
     const result = await dialog.showSaveDialog({ title: 'Save File' });
     return result.canceled ? null : result.filePath;
+  });
+  ipcMain.handle('downloads:pause', (_, id: string) => {
+    const item = getActiveItem(id);
+    if (!item) return false;
+    item.pause();
+    return true;
+  });
+  ipcMain.handle('downloads:resume', (_, id: string) => {
+    const item = getActiveItem(id);
+    if (!item) return false;
+    item.resume();
+    return true;
+  });
+  ipcMain.handle('downloads:cancel', (_, id: string) => {
+    const item = getActiveItem(id);
+    if (!item) return false;
+    item.cancel();
+    return true;
+  });
+  ipcMain.handle('downloads:retry', async (_, url: string) => {
+    if (!mainWindow) return false;
+    mainWindow.webContents.downloadURL(url);
+    return true;
+  });
+  ipcMain.handle('downloads:remove', (_, id: string) => {
+    deleteDownload(id);
+    return true;
+  });
+  ipcMain.handle('downloads:clear', () => {
+    clearAllDownloads();
+    return true;
   });
 
   // ── Sync ─────────────────────────────────────────────────────────────────

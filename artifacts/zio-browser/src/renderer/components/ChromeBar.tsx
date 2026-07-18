@@ -16,11 +16,22 @@ interface Props {
   onOpenAuth: () => void;
   /** If false, hides the mode switcher (used in split mode right pane). */
   showModeSwitcher?: boolean;
+  downloadsPanelOpen?: boolean;
+  onToggleDownloads?: () => void;
+  activeDownloadCount?: number;
 }
 
 const BASE_URL = 'https://1in.me';
 
-export function ChromeBar({ zioPanelOpen, onToggleZio, onOpenAuth, showModeSwitcher = true }: Props) {
+export function ChromeBar({
+  zioPanelOpen,
+  onToggleZio,
+  onOpenAuth,
+  showModeSwitcher = true,
+  downloadsPanelOpen = false,
+  onToggleDownloads,
+  activeDownloadCount = 0,
+}: Props) {
   const { tabs, tabOrder, activeTabId, createTab, closeTab, activateTab, navigate, goBack, goForward, reload, stop } = useTabStore();
   const { user } = useAuthStore();
   const { mode, setMode } = useModeStore();
@@ -280,6 +291,48 @@ export function ChromeBar({ zioPanelOpen, onToggleZio, onOpenAuth, showModeSwitc
 
         {/* Bookmark button */}
         <button style={{ fontSize: 16, padding: '2px 6px', opacity: 0.7 }} title="Bookmark">☆</button>
+
+        {/* Downloads button */}
+        {onToggleDownloads && (
+          <button
+            onClick={onToggleDownloads}
+            title="Downloads"
+            style={{
+              position: 'relative',
+              fontSize: 15,
+              padding: '2px 7px',
+              borderRadius: 8,
+              background: downloadsPanelOpen ? 'var(--color-primary)' : 'var(--color-bg-elevated)',
+              color: downloadsPanelOpen ? '#fff' : 'var(--color-text-muted)',
+              border: '1px solid var(--color-border)',
+              transition: 'all 0.12s',
+            }}
+          >
+            ⬇
+            {activeDownloadCount > 0 && (
+              <span style={{
+                position: 'absolute',
+                top: -5,
+                right: -5,
+                minWidth: 16,
+                height: 16,
+                borderRadius: 8,
+                background: 'var(--color-primary)',
+                color: '#fff',
+                fontSize: 9,
+                fontWeight: 700,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: '0 3px',
+                border: '1.5px solid var(--color-bg-surface)',
+                lineHeight: 1,
+              }}>
+                {activeDownloadCount}
+              </span>
+            )}
+          </button>
+        )}
 
         {/* Zio AI button */}
         <button

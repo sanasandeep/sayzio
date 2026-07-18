@@ -7,6 +7,7 @@ import { ModePicker } from './components/ModePicker';
 import { DashboardLayout } from './components/DashboardLayout';
 import { SplitLayout } from './components/SplitLayout';
 import { FindBar } from './components/FindBar';
+import { DownloadsPanel } from './components/DownloadsPanel';
 import { useTabStore } from './store/tab-store';
 import { useAuthStore } from './store/auth-store';
 import { useModeStore } from './store/mode-store';
@@ -19,6 +20,9 @@ export default function App() {
   const [zioPanelOpen, setZioPanelOpen] = useState(false);
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [showModePicker, setShowModePicker] = useState(false);
+  const [downloadsPanelOpen, setDownloadsPanelOpen] = useState(false);
+  const [activeDownloadCount, setActiveDownloadCount] = useState(0);
+
   const { tabs, activeTabId, initTabs } = useTabStore();
   const { init: initAuth, user } = useAuthStore();
   const { mode, splitRatio, isInitialized, setMode, setSplitRatio, init: initMode } = useModeStore();
@@ -26,13 +30,30 @@ export default function App() {
 
   useEffect(() => {
     void Promise.all([initAuth(), initTabs(), initMode()]).then(() => {
-      // Show the mode picker on first launch (no persisted mode choice)
       const shown = localStorage.getItem(FIRST_LAUNCH_KEY);
       if (!shown) {
         setShowModePicker(true);
       }
     });
   }, [initAuth, initTabs, initMode]);
+
+  // Track active download count for the chrome badge
+  useEffect(() => {
+    const onStarted = () => {
+      setActiveDownloadCount(n => n + 1);
+      // Auto-open the downloads panel when a download begins
+      setDownloadsPanelOpen(true);
+    };
+    const onDone = () => {
+      setActiveDownloadCount(n => Math.max(0, n - 1));
+    };
+    window.zio.on('download:started', onStarted);
+    window.zio.on('download:done', onDone);
+    return () => {
+      window.zio.off('download:started', onStarted);
+      window.zio.off('download:done', onDone);
+    };
+  }, []);
 
   const handlePickMode = useCallback((picked: WindowMode) => {
     localStorage.setItem(FIRST_LAUNCH_KEY, '1');
@@ -58,7 +79,10 @@ export default function App() {
     setZioPanelOpen(prev => !prev);
   }, [user]);
 
-  // Show mode picker before content is ready
+  const handleToggleDownloads = useCallback(() => {
+    setDownloadsPanelOpen(prev => !prev);
+  }, []);
+
   if (!isInitialized) {
     return <div style={{ width: '100%', height: '100%', background: 'var(--color-bg)' }} />;
   }
@@ -103,6 +127,9 @@ export default function App() {
         onToggleZio={handleToggleZio}
         onOpenAuth={() => setAuthModalOpen(true)}
         showModeSwitcher={true}
+        downloadsPanelOpen={downloadsPanelOpen}
+        onToggleDownloads={handleToggleDownloads}
+        activeDownloadCount={activeDownloadCount}
       />
 
       {/* Content area — position:relative so FindBar can anchor to top-right */}
@@ -129,6 +156,18 @@ export default function App() {
           <FindBar activeTabId={activeTabId} />
         )}
       </div>
+
+      {/* Downloads panel — anchored to top-right of the chrome bar */}
+      {downloadsPanelOpen && (
+        <div style={{
+          position: 'fixed',
+          top: 'var(--chrome-height)',
+          right: 12,
+          zIndex: 200,
+        }}>
+          <DownloadsPanel onClose={() => setDownloadsPanelOpen(false)} />
+        </div>
+      )}
 
       {authModalOpen && (
         <AuthModal onClose={() => setAuthModalOpen(false)} />
