@@ -238,6 +238,14 @@ const api = {
     warmSession: (profileId: string) => ipcRenderer.invoke('profiles:warm-session', profileId),
   },
 
+  // ── Sayzio links (local cache) ────────────────────────────────────────────
+  sayzioLinks: {
+    /** Read the locally cached Sayzio links (works offline / signed out). */
+    cached: () => ipcRenderer.invoke('sayzio-links:cached'),
+    /** Refresh the cache from the API when online + authenticated; returns the fresh list. */
+    refresh: (force?: boolean) => ipcRenderer.invoke('sayzio-links:refresh', force),
+  },
+
   // ── Device Lab ────────────────────────────────────────────────────────────
   deviceLab: {
     /** Fetch the authenticated user's biolinks from the Sayzio API. */

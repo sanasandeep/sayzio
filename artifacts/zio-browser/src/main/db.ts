@@ -25,6 +25,9 @@ import type { SyncRecord, SyncQueueItem, SyncEntityKind } from '../shared/sync-e
 import { nextAttemptAt } from '../shared/sync-engine';
 import { DEFAULT_PROFILE_ID, profileSyncEntityKey } from '../shared/profile-store';
 import type { BrowserProfile } from '../shared/profile-store';
+import type { CachedSayzioLink } from '../shared/db-schema';
+
+export type { CachedSayzioLink } from '../shared/db-schema';
 
 export interface HistoryEntry {
   id: string;
@@ -449,6 +452,39 @@ export function updateSavedLinkAiEnrichment(id: string, summary: string, tags: s
     SET ai_summary = ?, ai_tags = ?, ai_context = ?, ai_enriched = 1, ai_coins_used = ?, updated_at = ?
     WHERE id = ?
   `).run(summary, JSON.stringify(tags), context, coinsUsed, new Date().toISOString(), id);
+}
+
+// ── Sayzio links cache ───────────────────────────────────────────────────────
+
+export function getCachedSayzioLinks(limit = 200): CachedSayzioLink[] {
+  const db = getDb();
+  return db.prepare('SELECT * FROM sayzio_links ORDER BY cached_at DESC, id DESC LIMIT ?').all(limit) as CachedSayzioLink[];
+}
+
+/**
+ * Replace the entire Sayzio links cache with a fresh pull from the API.
+ * Wholesale replacement keeps the cache consistent with the server (links
+ * deleted server-side disappear locally too).
+ */
+export function replaceSayzioLinksCache(links: Array<Omit<CachedSayzioLink, 'cached_at'>>): void {
+  const db = getDb();
+  const now = new Date().toISOString();
+  db.transaction(() => {
+    db.prepare('DELETE FROM sayzio_links').run();
+    const insert = db.prepare(`
+      INSERT INTO sayzio_links(id, type, alias, title, long_url, short_url, cached_at)
+      VALUES(?, ?, ?, ?, ?, ?, ?)
+    `);
+    for (const l of links) {
+      insert.run(l.id, l.type, l.alias, l.title ?? null, l.long_url ?? null, l.short_url, now);
+    }
+  })();
+}
+
+/** Clear the Sayzio links cache (called on sign-out so links don't leak across accounts). */
+export function clearSayzioLinksCache(): void {
+  const db = getDb();
+  db.prepare('DELETE FROM sayzio_links').run();
 }
 
 // ── Sync helpers ─────────────────────────────────────────────────────────────

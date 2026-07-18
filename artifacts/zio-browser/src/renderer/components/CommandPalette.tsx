@@ -12,7 +12,7 @@
  * as custom DOM events so this component stays decoupled from ChromeBar.
  */
 import { useState, useEffect, useRef, useCallback } from 'react';
-import type { ApiLink } from '../../shared/api-client';
+import type { CachedSayzioLink } from '../../shared/db-schema';
 import {
   COMMAND_REGISTRY,
   KEYBOARD_SHORTCUTS,
@@ -102,7 +102,7 @@ export function CommandPalette({
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [bookmarks, setBookmarks] = useState<Array<{ url: string; title: string }>>([]);
   const [history, setHistory] = useState<Array<{ url: string; title: string | null }>>([]);
-  const [sayzioLinks, setSayzioLinks] = useState<ApiLink[]>([]);
+  const [sayzioLinks, setSayzioLinks] = useState<CachedSayzioLink[]>([]);
 
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
@@ -122,29 +122,25 @@ export function CommandPalette({
       }
     }).catch(() => { /* ignore */ });
 
-    // Load Sayzio links if logged in
+    // Sayzio links: read the local cache first so they appear instantly,
+    // even offline or signed out (main clears the cache on sign-out).
+    let cancelled = false;
+    void window.zio.sayzioLinks.cached().then((links: unknown) => {
+      if (!cancelled && Array.isArray(links)) {
+        setSayzioLinks(links as CachedSayzioLink[]);
+      }
+    }).catch(() => { /* ignore */ });
+
+    // Then refresh in the background when logged in — the main process
+    // no-ops without a token or when the cache is still fresh.
     if (user) {
-      void (async () => {
-        try {
-          const token = await window.zio.auth.getToken() as string | null;
-          if (!token) return;
-          const resp = await fetch('https://sayzio.com/api/v1/links?per_page=50', {
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Accept': 'application/json',
-              'X-App-Platform': 'desktop',
-            },
-          });
-          if (!resp.ok) return;
-          const json = await resp.json() as { data?: { items?: ApiLink[] } };
-          if (json?.data?.items) {
-            setSayzioLinks(json.data.items);
-          }
-        } catch {
-          // Network error or not logged in — silently skip
+      void window.zio.sayzioLinks.refresh().then((links: unknown) => {
+        if (!cancelled && Array.isArray(links)) {
+          setSayzioLinks(links as CachedSayzioLink[]);
         }
-      })();
+      }).catch(() => { /* network error — keep showing the cache */ });
     }
+    return () => { cancelled = true; };
   }, [user]);
 
   // Focus input on mount

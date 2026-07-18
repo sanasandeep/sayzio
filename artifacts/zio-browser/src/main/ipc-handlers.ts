@@ -13,6 +13,7 @@ import type { TabManager } from './tab-manager';
 import type { WindowModeManager } from './window-mode-manager';
 import { SyncRetryRunner } from './sync-retry';
 import type { SyncEntityKind } from '../shared/sync-engine';
+import { isSyncDue, SYNC_INTERVALS } from '../shared/sync-engine';
 import {
   initDb,
   getPreference,
@@ -41,7 +42,11 @@ import {
   deleteDownload,
   clearAllDownloads,
   getSyncState,
+  setSyncState,
   enqueueSyncPush,
+  getCachedSayzioLinks,
+  replaceSayzioLinksCache,
+  clearSayzioLinksCache,
   countSyncQueue,
   savePassword,
   getPasswordsForOrigin,
@@ -203,7 +208,7 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
   // ── Auth ─────────────────────────────────────────────────────────────────
   ipcMain.handle('auth:store-token', (_, token: string) => { storeToken(token); return true; });
   ipcMain.handle('auth:get-token', () => retrieveToken());
-  ipcMain.handle('auth:clear', () => { clearToken(); clearUser(); return true; });
+  ipcMain.handle('auth:clear', () => { clearToken(); clearUser(); clearSayzioLinksCache(); return true; });
   ipcMain.handle('auth:store-user', (_, user: Record<string, unknown>) => { storeUser(user); return true; });
   ipcMain.handle('auth:get-user', () => retrieveUser());
 
@@ -881,6 +886,68 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
     const { session: electronSession } = require('electron') as typeof import('electron');
     void electronSession.fromPartition(partition);
     return partition;
+  });
+
+  // ── Sayzio links cache ────────────────────────────────────────────────────
+
+  /**
+   * Return the locally cached Sayzio links. Works offline and when signed out
+   * (returns whatever was cached last, or [] after sign-out clears the cache).
+   * Private windows get nothing.
+   */
+  ipcMain.handle('sayzio-links:cached', (event) => {
+    if (senderIsPrivate(event)) return [];
+    return getCachedSayzioLinks();
+  });
+
+  /**
+   * Refresh the Sayzio links cache from the API in the background.
+   * No-ops when signed out or when the cache is still fresh (unless forced).
+   * Returns the up-to-date cached list either way.
+   */
+  ipcMain.handle('sayzio-links:refresh', async (event, force?: boolean) => {
+    if (senderIsPrivate(event)) return [];
+    const token = retrieveToken();
+    if (!token) return getCachedSayzioLinks();
+
+    const SAYZIO_LINKS_ENTITY = 'sayzio_links';
+    const { lastSyncAt } = getSyncState(SAYZIO_LINKS_ENTITY, DEFAULT_PROFILE_ID);
+    if (!force && !isSyncDue(lastSyncAt, SYNC_INTERVALS.BACKGROUND_MS)) {
+      return getCachedSayzioLinks();
+    }
+
+    const prefs = getAllPreferences();
+    const apiBase = prefs['sayzio_api_base_url'] ?? 'https://1in.me';
+    try {
+      const resp = await fetch(`${apiBase}/api/v1/links?per_page=50`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: 'application/json',
+          'X-App-Platform': 'desktop',
+        },
+      });
+      if (!resp.ok) {
+        setSyncState(SAYZIO_LINKS_ENTITY, lastSyncAt, `HTTP ${resp.status}`, DEFAULT_PROFILE_ID);
+        return getCachedSayzioLinks();
+      }
+      const json = await resp.json() as { data?: { items?: Array<Record<string, unknown>> } };
+      const items = json?.data?.items;
+      if (Array.isArray(items)) {
+        replaceSayzioLinksCache(items.map(item => ({
+          id: Number(item['id']),
+          type: String(item['type'] ?? 'short'),
+          alias: String(item['alias'] ?? ''),
+          title: (item['title'] as string | null) ?? null,
+          long_url: (item['long_url'] as string | null) ?? null,
+          short_url: String(item['short_url'] ?? ''),
+        })).filter(l => Number.isFinite(l.id) && l.short_url));
+        setSyncState(SAYZIO_LINKS_ENTITY, new Date().toISOString(), null, DEFAULT_PROFILE_ID);
+      }
+    } catch (err) {
+      // Offline or network error — keep serving the cache.
+      setSyncState(SAYZIO_LINKS_ENTITY, lastSyncAt, String(err), DEFAULT_PROFILE_ID);
+    }
+    return getCachedSayzioLinks();
   });
 
   // ── Device lab biolinks ───────────────────────────────────────────────────

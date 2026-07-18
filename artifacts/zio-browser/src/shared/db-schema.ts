@@ -6,7 +6,7 @@
  * importing better-sqlite3 (which requires native bindings).
  */
 
-export const SCHEMA_VERSION = 6;
+export const SCHEMA_VERSION = 7;
 
 export const CREATE_TABLES_SQL = `
 PRAGMA journal_mode = WAL;
@@ -139,6 +139,16 @@ CREATE TABLE IF NOT EXISTS sync_queue (
 
 CREATE INDEX IF NOT EXISTS sync_queue_due ON sync_queue(next_attempt_at);
 
+CREATE TABLE IF NOT EXISTS sayzio_links (
+  id         INTEGER PRIMARY KEY NOT NULL,
+  type       TEXT NOT NULL,
+  alias      TEXT NOT NULL,
+  title      TEXT,
+  long_url   TEXT,
+  short_url  TEXT NOT NULL,
+  cached_at  TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS saved_passwords (
   id           TEXT PRIMARY KEY NOT NULL,
   origin       TEXT NOT NULL,
@@ -198,7 +208,32 @@ export const MIGRATION_SQL: Record<number, string> = {
     CREATE INDEX IF NOT EXISTS bookmarks_profile_url   ON bookmarks(profile_id, normalized_url);
     CREATE INDEX IF NOT EXISTS bookmarks_profile_folder ON bookmarks(profile_id, folder);
   `,
+  7: `
+    CREATE TABLE IF NOT EXISTS sayzio_links (
+      id         INTEGER PRIMARY KEY NOT NULL,
+      type       TEXT NOT NULL,
+      alias      TEXT NOT NULL,
+      title      TEXT,
+      long_url   TEXT,
+      short_url  TEXT NOT NULL,
+      cached_at  TEXT NOT NULL
+    );
+  `,
 };
+
+/**
+ * Locally cached Sayzio link (row shape of the `sayzio_links` table).
+ * Pull-only cache: rows are replaced wholesale on each refresh.
+ */
+export interface CachedSayzioLink {
+  id: number;
+  type: string;
+  alias: string;
+  title: string | null;
+  long_url: string | null;
+  short_url: string;
+  cached_at: string;
+}
 
 export const PREFERENCE_KEYS = {
   SEARCH_ENGINE: 'search_engine',
