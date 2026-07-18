@@ -463,7 +463,7 @@ importers:
         version: 2.8.6
       drizzle-orm:
         specifier: 'catalog:'
-        version: 0.45.2(@types/better-sqlite3@7.6.13)(@types/pg@8.18.0)(better-sqlite3@9.6.0)(pg@8.20.0)
+        version: 0.45.2(@types/better-sqlite3@7.6.13)(@types/pg@8.18.0)(better-sqlite3@11.10.0)(pg@8.20.0)
       express:
         specifier: ^5
         version: 5.2.1
@@ -694,14 +694,14 @@ importers:
   artifacts/zio-browser:
     dependencies:
       better-sqlite3:
-        specifier: ^9.6.0
-        version: 9.6.0
+        specifier: ^11.10.0
+        version: 11.10.0
       electron-updater:
         specifier: ^6.1.8
         version: 6.8.9
     devDependencies:
       '@types/better-sqlite3':
-        specifier: ^7.6.11
+        specifier: ^7.6.13
         version: 7.6.13
       '@types/node':
         specifier: ^20.14.0
@@ -724,6 +724,9 @@ importers:
       electron-builder:
         specifier: ^24.9.4
         version: 24.13.3
+      prebuild-install:
+        specifier: ^7.1.3
+        version: 7.1.3
       react:
         specifier: 'catalog:'
         version: 19.1.0
@@ -762,10 +765,10 @@ importers:
     dependencies:
       drizzle-orm:
         specifier: 'catalog:'
-        version: 0.45.2(@types/better-sqlite3@7.6.13)(@types/pg@8.18.0)(better-sqlite3@9.6.0)(pg@8.20.0)
+        version: 0.45.2(@types/better-sqlite3@7.6.13)(@types/pg@8.18.0)(better-sqlite3@11.10.0)(pg@8.20.0)
       drizzle-zod:
         specifier: ^0.8.3
-        version: 0.8.3(drizzle-orm@0.45.2(@types/better-sqlite3@7.6.13)(@types/pg@8.18.0)(better-sqlite3@9.6.0)(pg@8.20.0))(zod@3.25.76)
+        version: 0.8.3(drizzle-orm@0.45.2(@types/better-sqlite3@7.6.13)(@types/pg@8.18.0)(better-sqlite3@11.10.0)(pg@8.20.0))(zod@3.25.76)
       pg:
         specifier: ^8.20.0
         version: 8.20.0
@@ -3280,8 +3283,8 @@ packages:
     resolution: {integrity: sha512-aVNobHnJqLiUelTaHat9DZ1qM2w0C0Eym4LPI/3JxOnSokGVdsl1T1kN7TFvsEAD8G47A6VKQ0TVHqbBnYMJlQ==}
     engines: {node: '>=12.0.0'}
 
-  better-sqlite3@9.6.0:
-    resolution: {integrity: sha512-yR5HATnqeYNVnkaUTf4bOP2dJSnyhP4puJN/QPRyx4YkBEEUxib422n2XzPqDEHjQQqazoYoADdAm5vE15+dAQ==}
+  better-sqlite3@11.10.0:
+    resolution: {integrity: sha512-EwhOpyXiOEL/lKzHz9AW1msWFNzGc/z+LzeB3/jnFJpxu+th2yqvzsSWas1v9jgs9+xiXJcD5A8CJxAG2TaghQ==}
 
   big-integer@1.6.52:
     resolution: {integrity: sha512-QxD8cf2eVqJOOz63z6JIN9BzvVs/dlySa5HGSBH5xtR8dPteIRQnBxxKqkNTiT6jbDTF6jAfrd4oMcND9RGbQg==}
@@ -10684,7 +10687,7 @@ snapshots:
     dependencies:
       open: 8.4.2
 
-  better-sqlite3@9.6.0:
+  better-sqlite3@11.10.0:
     dependencies:
       bindings: 1.5.0
       prebuild-install: 7.1.3
@@ -11325,16 +11328,16 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  drizzle-orm@0.45.2(@types/better-sqlite3@7.6.13)(@types/pg@8.18.0)(better-sqlite3@9.6.0)(pg@8.20.0):
+  drizzle-orm@0.45.2(@types/better-sqlite3@7.6.13)(@types/pg@8.18.0)(better-sqlite3@11.10.0)(pg@8.20.0):
     optionalDependencies:
       '@types/better-sqlite3': 7.6.13
       '@types/pg': 8.18.0
-      better-sqlite3: 9.6.0
+      better-sqlite3: 11.10.0
       pg: 8.20.0
 
-  drizzle-zod@0.8.3(drizzle-orm@0.45.2(@types/better-sqlite3@7.6.13)(@types/pg@8.18.0)(better-sqlite3@9.6.0)(pg@8.20.0))(zod@3.25.76):
+  drizzle-zod@0.8.3(drizzle-orm@0.45.2(@types/better-sqlite3@7.6.13)(@types/pg@8.18.0)(better-sqlite3@11.10.0)(pg@8.20.0))(zod@3.25.76):
     dependencies:
-      drizzle-orm: 0.45.2(@types/better-sqlite3@7.6.13)(@types/pg@8.18.0)(better-sqlite3@9.6.0)(pg@8.20.0)
+      drizzle-orm: 0.45.2(@types/better-sqlite3@7.6.13)(@types/pg@8.18.0)(better-sqlite3@11.10.0)(pg@8.20.0)
       zod: 3.25.76
 
   dunder-proto@1.0.1:

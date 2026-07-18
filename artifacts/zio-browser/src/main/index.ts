@@ -10,6 +10,7 @@ import { WindowModeManager, CHROME_HEIGHT } from './window-mode-manager';
 import { registerIpcHandlers } from './ipc-handlers';
 import { setupDownloadManager } from './download-manager';
 import type { WindowMode } from '../shared/window-mode';
+import { setupAutoUpdater } from './auto-updater';
 
 const isDev = process.env['NODE_ENV'] === 'development';
 
@@ -274,6 +275,7 @@ app.whenReady().then(() => {
     console.error('Failed to initialize database:', err);
   }
   createWindow();
+  setupAutoUpdater();
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
