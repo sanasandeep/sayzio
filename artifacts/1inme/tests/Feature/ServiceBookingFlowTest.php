@@ -641,4 +641,286 @@ class ServiceBookingFlowTest extends TestCase
             'status' => 'pending',
         ]);
     }
+
+    // ── Payment mode on services (Task #5284) ────────────────────────────────
+
+    public function test_service_stores_with_payment_mode_none_by_default(): void
+    {
+        $owner = $this->makeUser();
+        [$link] = $this->makePage($owner);
+
+        $res = $this->postJson(
+            "/api/v1/service-booking/links/{$link->id}/services",
+            [
+                'name'             => 'Trim',
+                'price'            => 20,
+                'duration_minutes' => 30,
+            ],
+            $this->auth($owner),
+        );
+
+        $res->assertCreated();
+        $this->assertSame('none', $res->json('data.service.payment_mode'));
+    }
+
+    public function test_service_stores_deposit_mode_with_percent(): void
+    {
+        $owner = $this->makeUser();
+        [$link] = $this->makePage($owner);
+
+        $res = $this->postJson(
+            "/api/v1/service-booking/links/{$link->id}/services",
+            [
+                'name'             => 'Cut',
+                'price'            => 100,
+                'duration_minutes' => 60,
+                'payment_mode'     => 'deposit',
+                'deposit_type'     => 'percent',
+                'deposit_value'    => 30,
+            ],
+            $this->auth($owner),
+        );
+
+        $res->assertCreated();
+        $this->assertSame('deposit', $res->json('data.service.payment_mode'));
+        $this->assertSame('percent', $res->json('data.service.deposit_type'));
+        $this->assertEquals(30, $res->json('data.service.deposit_value'));
+    }
+
+    public function test_service_update_changes_payment_mode_to_full(): void
+    {
+        $owner = $this->makeUser();
+        [$link, $config] = $this->makePage($owner);
+        $service = $this->addService($config, 80, 45);
+
+        $res = $this->patchJson(
+            "/api/v1/service-booking/links/{$link->id}/services/{$service->id}",
+            ['payment_mode' => 'full'],
+            $this->auth($owner),
+        );
+
+        $res->assertOk();
+        $this->assertSame('full', $res->json('data.service.payment_mode'));
+        $this->assertDatabaseHas('service_booking_services', [
+            'id'           => $service->id,
+            'payment_mode' => 'full',
+        ]);
+    }
+
+    // ── Payment mode persists into booking request ────────────────────────────
+
+    public function test_free_booking_request_places_with_status_pending(): void
+    {
+        $owner = $this->makeUser();
+        [$link, $config] = $this->makePage($owner);
+        $this->addRule($config);
+
+        // Service defaults to payment_mode=none — no payment required.
+        $res = $this->postJson("/{$link->alias}/book", [
+            'customer_name' => 'Visitor',
+            'customer_email' => 'visitor@example.com',
+            'slot_start'    => self::TODAY . 'T10:00:00Z',
+            'services'      => [['service_id' => $config->services()->first()->id]],
+        ]);
+
+        $res->assertCreated();
+        $this->assertSame('pending', $res->json('data.booking.status'));
+        $this->assertSame('none', $res->json('data.booking.payment_status'));
+        $this->assertNull($res->json('data.checkout_url'));
+    }
+
+    public function test_awaiting_payment_slot_is_blocked_while_checkout_not_expired(): void
+    {
+        $owner = $this->makeUser();
+        [$link, $config] = $this->makePage($owner);
+        $this->addRule($config);
+
+        // Create an AWAITING_PAYMENT request with an active checkout window.
+        ServiceBookingRequest::create([
+            'service_booking_id'   => $config->id,
+            'link_id'              => $link->id,
+            'status'               => ServiceBookingRequest::STATUS_AWAITING_PAYMENT,
+            'customer_name'        => 'Paying',
+            'slot_start'           => Carbon::parse(self::TODAY . ' 10:00:00'),
+            'slot_end'             => Carbon::parse(self::TODAY . ' 10:30:00'),
+            'duration_minutes'     => 30,
+            'subtotal'             => 50,
+            'total'                => 50,
+            'currency'             => 'USD',
+            'checkout_expires_at'  => now()->addMinutes(25), // still valid
+        ]);
+
+        $slots = $this->slots()->freeSlots($config, 30);
+        $today = $this->dayFor($slots, self::TODAY);
+        $starts = $this->slotStarts($today);
+
+        // 10:00 should be blocked by the in-checkout hold.
+        $this->assertNotContains('10:00', $starts);
+    }
+
+    public function test_awaiting_payment_slot_is_free_after_checkout_expires(): void
+    {
+        $owner = $this->makeUser();
+        [$link, $config] = $this->makePage($owner);
+        $this->addRule($config);
+
+        // Create an AWAITING_PAYMENT request with an EXPIRED checkout window.
+        ServiceBookingRequest::create([
+            'service_booking_id'   => $config->id,
+            'link_id'              => $link->id,
+            'status'               => ServiceBookingRequest::STATUS_AWAITING_PAYMENT,
+            'customer_name'        => 'Expired Checkout',
+            'slot_start'           => Carbon::parse(self::TODAY . ' 11:00:00'),
+            'slot_end'             => Carbon::parse(self::TODAY . ' 11:30:00'),
+            'duration_minutes'     => 30,
+            'subtotal'             => 50,
+            'total'                => 50,
+            'currency'             => 'USD',
+            'checkout_expires_at'  => now()->subMinutes(5), // already expired
+        ]);
+
+        $slots = $this->slots()->freeSlots($config, 30);
+        $today = $this->dayFor($slots, self::TODAY);
+        $starts = $this->slotStarts($today);
+
+        // 11:00 should be available because the checkout expired.
+        $this->assertContains('11:00', $starts);
+    }
+
+    // ── Reminder lead-time settings ───────────────────────────────────────────
+
+    public function test_saveSettings_stores_single_reminder_lead_minutes(): void
+    {
+        $owner = $this->makeUser();
+        [$link, $config] = $this->makePage($owner);
+
+        $res = $this->postJson(
+            "/api/v1/service-booking/links/{$link->id}/settings",
+            [
+                'mode'                  => 'booking',
+                'currency'              => 'USD',
+                'slot_length_minutes'   => 30,
+                'lead_time_minutes'     => 0,
+                'max_days_ahead'        => 30,
+                'reminder_lead_minutes' => 1440,
+            ],
+            $this->auth($owner),
+        );
+
+        $res->assertOk();
+        $this->assertSame(1440, $res->json('data.config.reminder_lead_minutes'));
+        $config->refresh();
+        $this->assertSame(1440, $config->settings['reminder_lead_minutes']);
+    }
+
+    public function test_saveSettings_stores_array_of_reminder_lead_minutes(): void
+    {
+        $owner = $this->makeUser();
+        [$link, $config] = $this->makePage($owner);
+
+        $res = $this->postJson(
+            "/api/v1/service-booking/links/{$link->id}/settings",
+            [
+                'mode'                  => 'booking',
+                'currency'              => 'USD',
+                'slot_length_minutes'   => 30,
+                'lead_time_minutes'     => 0,
+                'max_days_ahead'        => 30,
+                'reminder_lead_minutes' => [1440, 60],
+            ],
+            $this->auth($owner),
+        );
+
+        $res->assertOk();
+        $this->assertSame([1440, 60], $res->json('data.config.reminder_lead_minutes'));
+    }
+
+    public function test_saveSettings_clears_reminder_lead_minutes_when_empty(): void
+    {
+        $owner = $this->makeUser();
+        [$link, $config] = $this->makePage($owner);
+        $config->update(['settings' => array_merge($config->settings ?? [], ['reminder_lead_minutes' => 720])]);
+
+        $res = $this->postJson(
+            "/api/v1/service-booking/links/{$link->id}/settings",
+            [
+                'mode'                  => 'booking',
+                'currency'              => 'USD',
+                'slot_length_minutes'   => 30,
+                'lead_time_minutes'     => 0,
+                'max_days_ahead'        => 30,
+                'reminder_lead_minutes' => '',
+            ],
+            $this->auth($owner),
+        );
+
+        $res->assertOk();
+        $this->assertNull($res->json('data.config.reminder_lead_minutes'));
+        $config->refresh();
+        $this->assertArrayNotHasKey('reminder_lead_minutes', $config->settings ?? []);
+    }
+
+    // ── wasReminderSent / markReminderSent deduplication ─────────────────────
+
+    public function test_reminder_dedup_prevents_double_send(): void
+    {
+        $owner = $this->makeUser();
+        [$link, $config] = $this->makePage($owner);
+        $req = $this->holdSlot($link, $config, self::TODAY . ' 10:00:00', 30, ServiceBookingRequest::STATUS_CONFIRMED);
+
+        $this->assertFalse($req->wasReminderSent(1440));
+        $req->markReminderSent(1440);
+        $this->assertTrue($req->fresh()->wasReminderSent(1440));
+
+        // A different lead time is not yet marked.
+        $this->assertFalse($req->fresh()->wasReminderSent(60));
+    }
+
+    // ── Owner booking serializer exposes payment fields (API parity) ──────────
+
+    public function test_owner_booking_list_exposes_payment_fields(): void
+    {
+        $owner = $this->makeUser();
+        [$link, $config] = $this->makePage($owner);
+        $this->addRule($config);
+        $held = $this->holdSlot($link, $config, self::TODAY . ' 10:00:00');
+
+        $res = $this->getJson(
+            "/api/v1/service-booking/links/{$link->id}/bookings",
+            $this->auth($owner),
+        );
+
+        $res->assertOk();
+        $booking = $res->json('data.bookings.0');
+        $this->assertArrayHasKey('payment_mode', $booking);
+        $this->assertArrayHasKey('payment_status', $booking);
+        $this->assertArrayHasKey('payment_amount_cents', $booking);
+        $this->assertArrayHasKey('is_refundable', $booking);
+        $this->assertSame('none', $booking['payment_mode']);
+        $this->assertFalse($booking['is_refundable']);
+    }
+
+    public function test_owner_service_list_exposes_payment_mode(): void
+    {
+        $owner = $this->makeUser();
+        [$link, $config] = $this->makePage($owner);
+        $this->addService($config, 60, 30, [
+            'payment_mode'  => 'deposit',
+            'deposit_type'  => 'fixed',
+            'deposit_value' => 15,
+        ]);
+
+        $res = $this->getJson(
+            "/api/v1/service-booking/links/{$link->id}/config",
+            $this->auth($owner),
+        );
+
+        $res->assertOk();
+        // uncategorized has 2 services (1 from makePage + 1 above)
+        $services = $res->json('data.config.uncategorized');
+        $depositService = collect($services)->firstWhere('payment_mode', 'deposit');
+        $this->assertNotNull($depositService);
+        $this->assertSame('fixed', $depositService['deposit_type']);
+        $this->assertEquals(15, $depositService['deposit_value']);
+    }
 }

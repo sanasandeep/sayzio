@@ -68,19 +68,20 @@ class ServiceBookingController extends Controller
         $config = $this->bookingFor($link);
 
         $data = $request->validate([
-            'mode'                => 'required|in:display,booking',
-            'currency'            => 'required|string|size:3',
-            'accent_color'        => 'nullable|string|max:16',
-            'slot_length_minutes' => 'required|integer|min:5|max:1440',
-            'lead_time_minutes'   => 'required|integer|min:0|max:43200',
-            'max_days_ahead'      => 'required|integer|min:1|max:365',
-            'timezone'            => 'nullable|string|max:64',
-            'settings'            => 'nullable|array',
-            'tax_enabled'         => 'sometimes|boolean',
-            'tax_rate'            => 'nullable|numeric|min:0|max:100',
-            'tax_inclusive'       => 'sometimes|boolean',
-            'tax_label'           => 'nullable|string|max:24',
-            'whatsapp_number'     => 'sometimes|nullable|string|max:40',
+            'mode'                    => 'required|in:display,booking',
+            'currency'                => 'required|string|size:3',
+            'accent_color'            => 'nullable|string|max:16',
+            'slot_length_minutes'     => 'required|integer|min:5|max:1440',
+            'lead_time_minutes'       => 'required|integer|min:0|max:43200',
+            'max_days_ahead'          => 'required|integer|min:1|max:365',
+            'timezone'                => 'nullable|string|max:64',
+            'settings'                => 'nullable|array',
+            'tax_enabled'             => 'sometimes|boolean',
+            'tax_rate'                => 'nullable|numeric|min:0|max:100',
+            'tax_inclusive'           => 'sometimes|boolean',
+            'tax_label'               => 'nullable|string|max:24',
+            'whatsapp_number'         => 'sometimes|nullable|string|max:40',
+            'reminder_lead_minutes'   => 'sometimes|nullable',
         ]);
 
         $settings = $data['settings'] ?? ($config->settings ?? []);
@@ -93,6 +94,19 @@ class ServiceBookingController extends Controller
                 unset($settings['whatsapp_number']);
             } else {
                 $settings['whatsapp_number'] = $wa;
+            }
+        }
+
+        // Reminder lead time(s) — single int or comma-separated list (or array).
+        if ($request->has('reminder_lead_minutes')) {
+            $raw = $data['reminder_lead_minutes'] ?? null;
+            if ($raw === null || $raw === '') {
+                unset($settings['reminder_lead_minutes']);
+            } elseif (is_array($raw)) {
+                $settings['reminder_lead_minutes'] = array_values(array_filter(array_map('intval', $raw)));
+            } else {
+                $parsed = array_values(array_filter(array_map('intval', explode(',', (string) $raw))));
+                $settings['reminder_lead_minutes'] = count($parsed) === 1 ? $parsed[0] : $parsed;
             }
         }
 
@@ -203,6 +217,9 @@ class ServiceBookingController extends Controller
             'duration_minutes' => 'required|integer|min:5|max:1440',
             'photo_url'        => 'nullable|string|max:1024',
             'is_unavailable'   => 'sometimes|boolean',
+            'payment_mode'     => 'sometimes|in:none,deposit,full',
+            'deposit_type'     => 'sometimes|nullable|in:fixed,percent',
+            'deposit_value'    => 'sometimes|nullable|numeric|min:0|max:9999999',
         ]);
 
         if (!empty($data['category_id'])) {
@@ -219,6 +236,9 @@ class ServiceBookingController extends Controller
             'duration_minutes'   => $data['duration_minutes'],
             'photo_url'          => $data['photo_url'] ?? null,
             'is_unavailable'     => (bool) ($data['is_unavailable'] ?? false),
+            'payment_mode'       => $data['payment_mode'] ?? ServiceBookingService::PAYMENT_MODE_NONE,
+            'deposit_type'       => $data['deposit_type'] ?? null,
+            'deposit_value'      => $data['deposit_value'] ?? null,
             'sort_order'         => (int) ServiceBookingService::where('service_booking_id', $config->id)->max('sort_order') + 1,
         ]);
 
@@ -240,6 +260,9 @@ class ServiceBookingController extends Controller
             'photo_url'        => 'nullable|string|max:1024',
             'is_unavailable'   => 'sometimes|boolean',
             'is_active'        => 'sometimes|boolean',
+            'payment_mode'     => 'sometimes|in:none,deposit,full',
+            'deposit_type'     => 'sometimes|nullable|in:fixed,percent',
+            'deposit_value'    => 'sometimes|nullable|numeric|min:0|max:9999999',
         ]);
 
         if (array_key_exists('category_id', $data) && !empty($data['category_id'])) {
@@ -433,8 +456,22 @@ class ServiceBookingController extends Controller
         $booking->update(['status' => $data['status']]);
 
         if ($changed) {
+            $fresh = $booking->fresh(['items', 'serviceBooking', 'link']);
+
+            // When the owner cancels a paid booking, trigger a refund.
+            if ($data['status'] === ServiceBookingRequest::STATUS_CANCELLED && $fresh->isRefundable()) {
+                try {
+                    app(\App\Services\Monetization\MonetizationCheckout::class)
+                        ->refundBookingRequest($fresh->id);
+                } catch (\Throwable $e) {
+                    \Illuminate\Support\Facades\Log::warning('booking.cancel.refund_failed', [
+                        'booking' => $fresh->id, 'err' => $e->getMessage(),
+                    ]);
+                }
+            }
+
             app(\App\Modules\Common\Services\ServiceBookingRequestService::class)
-                ->notifyStatusChange($booking->fresh(['items', 'serviceBooking', 'link']));
+                ->notifyStatusChange($fresh);
         }
 
         return response()->json(['data' => ['booking' => $booking->fresh('items')]]);

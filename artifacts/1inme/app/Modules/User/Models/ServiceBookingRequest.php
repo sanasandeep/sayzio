@@ -6,21 +6,38 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 
 /**
- * A visitor's booking request against a Service Booking page (Task #3085).
- * Mirrors RestaurantOrder: a tokenized, no-payment record the owner advances
- * through a status workflow. The slot [slot_start, slot_end) is held by any
- * non-cancelled / non-declined request so visitors only ever see genuinely
- * free times.
+ * A visitor's booking request against a Service Booking page.
+ * Mirrors RestaurantOrder: a tokenized record the owner advances through a
+ * status workflow.
+ *
+ * Slot holding:
+ *   BLOCKING_STATUSES holds the slot so visitors only ever see free times.
+ *   STATUS_AWAITING_PAYMENT is treated as blocking while checkout_expires_at
+ *   is in the future (handled by SlotAvailabilityService::busyRanges).
+ *
+ * Payment state (added in task #5284):
+ *   payment_mode    — none | deposit | full  (snapshot from services at booking time)
+ *   payment_status  — none | pending | paid | refunded
+ *   payment_amount_cents — gross amount charged in cents
+ *   payment_currency     — ISO 4217 3-char
+ *   payment_gateway      — adapter key (stripe, paypal, …)
+ *   payment_charge_id    — gateway charge / transaction ID
+ *   checkout_expires_at  — slot hold expiry for AWAITING_PAYMENT bookings
+ *
+ * Reminder dedup is stored in meta['reminders_sent'] as an array of
+ * {lead_minutes: N, sent_at: ISO} objects.
  */
 class ServiceBookingRequest extends Model
 {
-    public const STATUS_PENDING   = 'pending';
-    public const STATUS_CONFIRMED = 'confirmed';
-    public const STATUS_COMPLETED = 'completed';
-    public const STATUS_CANCELLED = 'cancelled';
-    public const STATUS_DECLINED  = 'declined';
+    public const STATUS_AWAITING_PAYMENT = 'awaiting_payment';
+    public const STATUS_PENDING          = 'pending';
+    public const STATUS_CONFIRMED        = 'confirmed';
+    public const STATUS_COMPLETED        = 'completed';
+    public const STATUS_CANCELLED        = 'cancelled';
+    public const STATUS_DECLINED         = 'declined';
 
     public const STATUSES = [
+        self::STATUS_AWAITING_PAYMENT,
         self::STATUS_PENDING,
         self::STATUS_CONFIRMED,
         self::STATUS_COMPLETED,
@@ -35,8 +52,9 @@ class ServiceBookingRequest extends Model
     ];
 
     /**
-     * Statuses that HOLD a slot (so it disappears from public availability and
-     * blocks double-booking). Everything except cancelled / declined.
+     * Statuses that PERMANENTLY hold a slot (excluding awaiting_payment
+     * which holds only while checkout_expires_at is in the future —
+     * SlotAvailabilityService handles that case directly).
      */
     public const BLOCKING_STATUSES = [
         self::STATUS_PENDING,
@@ -44,25 +62,32 @@ class ServiceBookingRequest extends Model
         self::STATUS_COMPLETED,
     ];
 
+    public const PAYMENT_STATUS_NONE     = 'none';
+    public const PAYMENT_STATUS_PENDING  = 'pending';
+    public const PAYMENT_STATUS_PAID     = 'paid';
+    public const PAYMENT_STATUS_REFUNDED = 'refunded';
+
     public const STATUS_LABELS = [
-        self::STATUS_PENDING   => 'Pending',
-        self::STATUS_CONFIRMED => 'Confirmed',
-        self::STATUS_COMPLETED => 'Completed',
-        self::STATUS_CANCELLED => 'Cancelled',
-        self::STATUS_DECLINED  => 'Declined',
+        self::STATUS_AWAITING_PAYMENT => 'Awaiting Payment',
+        self::STATUS_PENDING          => 'Pending',
+        self::STATUS_CONFIRMED        => 'Confirmed',
+        self::STATUS_COMPLETED        => 'Completed',
+        self::STATUS_CANCELLED        => 'Cancelled',
+        self::STATUS_DECLINED         => 'Declined',
     ];
 
     /**
-     * Allowed owner transitions. A pending request can be confirmed, declined
-     * or cancelled; a confirmed one can be completed or cancelled; terminal
-     * states don't move. Enforced server-side so API clients can't jump state.
+     * Allowed owner transitions.
+     * awaiting_payment → the owner can cancel (payment expired) but the
+     * normal forward path is driven by payment confirmation (auto-confirmed).
      */
     public const STATUS_TRANSITIONS = [
-        self::STATUS_PENDING   => [self::STATUS_CONFIRMED, self::STATUS_DECLINED, self::STATUS_CANCELLED],
-        self::STATUS_CONFIRMED => [self::STATUS_COMPLETED, self::STATUS_CANCELLED],
-        self::STATUS_COMPLETED => [],
-        self::STATUS_CANCELLED => [],
-        self::STATUS_DECLINED  => [],
+        self::STATUS_AWAITING_PAYMENT => [self::STATUS_CANCELLED],
+        self::STATUS_PENDING          => [self::STATUS_CONFIRMED, self::STATUS_DECLINED, self::STATUS_CANCELLED],
+        self::STATUS_CONFIRMED        => [self::STATUS_COMPLETED, self::STATUS_CANCELLED],
+        self::STATUS_COMPLETED        => [],
+        self::STATUS_CANCELLED        => [],
+        self::STATUS_DECLINED         => [],
     ];
 
     public function canTransitionTo(string $next): bool
@@ -74,26 +99,43 @@ class ServiceBookingRequest extends Model
         return in_array($next, self::STATUS_TRANSITIONS[$this->status] ?? [], true);
     }
 
+    public function isPaid(): bool
+    {
+        return $this->payment_status === self::PAYMENT_STATUS_PAID;
+    }
+
+    public function isRefundable(): bool
+    {
+        return $this->isPaid()
+            && $this->payment_amount_cents > 0
+            && $this->payment_status !== self::PAYMENT_STATUS_REFUNDED;
+    }
+
     protected $fillable = [
         'service_booking_id', 'link_id', 'public_token', 'status',
         'customer_name', 'customer_email', 'customer_phone', 'customer_note',
         'slot_start', 'slot_end', 'duration_minutes',
         'subtotal', 'tax_rate', 'tax_inclusive', 'tax_amount', 'total',
         'currency', 'meta',
+        'payment_mode', 'payment_status', 'payment_amount_cents',
+        'payment_currency', 'payment_gateway', 'payment_charge_id',
+        'checkout_expires_at',
     ];
 
     protected function casts(): array
     {
         return [
-            'slot_start'       => 'datetime',
-            'slot_end'         => 'datetime',
-            'duration_minutes' => 'integer',
-            'subtotal'         => 'decimal:2',
-            'tax_rate'         => 'decimal:3',
-            'tax_inclusive'    => 'boolean',
-            'tax_amount'       => 'decimal:2',
-            'total'            => 'decimal:2',
-            'meta'             => 'array',
+            'slot_start'              => 'datetime',
+            'slot_end'                => 'datetime',
+            'checkout_expires_at'     => 'datetime',
+            'duration_minutes'        => 'integer',
+            'subtotal'                => 'decimal:2',
+            'tax_rate'                => 'decimal:3',
+            'tax_inclusive'           => 'boolean',
+            'tax_amount'              => 'decimal:2',
+            'total'                   => 'decimal:2',
+            'payment_amount_cents'    => 'integer',
+            'meta'                    => 'array',
         ];
     }
 
@@ -124,5 +166,30 @@ class ServiceBookingRequest extends Model
     public function getStatusLabelAttribute(): string
     {
         return self::STATUS_LABELS[$this->status] ?? ucfirst($this->status);
+    }
+
+    /**
+     * Record that a reminder at a given lead time was sent, stored in
+     * meta['reminders_sent'] for idempotent dedup by the reminder command.
+     */
+    public function markReminderSent(int $leadMinutes): void
+    {
+        $meta = $this->meta ?? [];
+        $sent = $meta['reminders_sent'] ?? [];
+        $sent[] = ['lead_minutes' => $leadMinutes, 'sent_at' => now()->toIso8601String()];
+        $this->meta = array_merge($meta, ['reminders_sent' => $sent]);
+        $this->save();
+    }
+
+    /** True when a reminder at this lead time was already dispatched. */
+    public function wasReminderSent(int $leadMinutes): bool
+    {
+        $sent = $this->meta['reminders_sent'] ?? [];
+        foreach ($sent as $entry) {
+            if ((int) ($entry['lead_minutes'] ?? 0) === $leadMinutes) {
+                return true;
+            }
+        }
+        return false;
     }
 }

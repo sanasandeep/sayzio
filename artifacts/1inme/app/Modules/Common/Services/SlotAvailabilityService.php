@@ -184,13 +184,27 @@ class SlotAvailabilityService
      * Load slot-holding requests as [start, end] Carbon pairs (absolute
      * instants — comparison is timezone-agnostic).
      *
+     * Permanently-blocking statuses (BLOCKING_STATUSES) hold the slot
+     * indefinitely. STATUS_AWAITING_PAYMENT holds the slot only while
+     * checkout_expires_at is still in the future, so expired checkout windows
+     * don't permanently freeze a slot when a visitor abandons the checkout.
+     *
      * @return array<int,array{0:Carbon,1:Carbon}>
      */
     private function busyRanges(ServiceBooking $config, Carbon $now, ?int $ignoreRequestId = null): array
     {
+        $cutoff = $now->copy()->subDay();
+
         $query = $config->requests()
-            ->whereIn('status', ServiceBookingRequest::BLOCKING_STATUSES)
-            ->where('slot_end', '>', $now->copy()->subDay());
+            ->where(function ($q) use ($now) {
+                $q->whereIn('status', ServiceBookingRequest::BLOCKING_STATUSES)
+                  ->orWhere(function ($q2) use ($now) {
+                      $q2->where('status', ServiceBookingRequest::STATUS_AWAITING_PAYMENT)
+                         ->where('checkout_expires_at', '>', $now);
+                  });
+            })
+            ->where('slot_end', '>', $cutoff);
+
         if ($ignoreRequestId) {
             $query->where('id', '!=', $ignoreRequestId);
         }

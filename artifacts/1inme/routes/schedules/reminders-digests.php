@@ -70,6 +70,11 @@ return [
         'cadence'     => ['hourly'],
     ],
     [
+        'key'         => 'bookings:send-reminders',
+        'description' => 'Email confirmed service-booking visitors a configurable lead-time reminder before their appointment.',
+        'cadence'     => ['hourly'],
+    ],
+    [
         'key'         => 'events:send-rsvp-reminders',
         'description' => 'Email confirmed RSVP guests the configured number of hours before each event occurrence.',
         'cadence'     => ['hourlyAt', 15],

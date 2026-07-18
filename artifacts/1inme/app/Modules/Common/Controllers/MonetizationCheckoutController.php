@@ -39,7 +39,7 @@ class MonetizationCheckoutController extends Controller
 
         $data = $request->validate([
             'provider'  => 'required|string|max:32',
-            'kind'      => 'required|in:subscription,ppv,tip,one_time,dm_msg,dm_att,product,form,event_ticket',
+            'kind'      => 'required|in:subscription,ppv,tip,one_time,dm_msg,dm_att,product,form,event_ticket,booking',
             'reference' => 'required|string|max:191',
             'token'     => 'required|string|max:64',
         ]);
@@ -71,7 +71,7 @@ class MonetizationCheckoutController extends Controller
         }
 
         $data = $request->validate([
-            'kind'      => 'required|in:subscription,ppv,tip,dm_msg,dm_att,product,form,event_ticket',
+            'kind'      => 'required|in:subscription,ppv,tip,dm_msg,dm_att,product,form,event_ticket,booking',
             'reference' => 'required|string|max:191',
             'token'     => 'required|string|max:64',
         ]);
@@ -81,7 +81,7 @@ class MonetizationCheckoutController extends Controller
     public function returnHandler(Request $request)
     {
         $data = $request->validate([
-            'kind'      => 'required|in:subscription,ppv,tip,dm_msg,dm_att,product,form,event_ticket',
+            'kind'      => 'required|in:subscription,ppv,tip,dm_msg,dm_att,product,form,event_ticket,booking',
             'reference' => 'required|string|max:191',
             'token'     => 'required|string|max:64',
         ]);
