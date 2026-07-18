@@ -21,8 +21,16 @@ CREATE TABLE IF NOT EXISTS preferences (
   value TEXT
 );
 
+CREATE TABLE IF NOT EXISTS profiles (
+  id            TEXT PRIMARY KEY NOT NULL,
+  workspace_id  TEXT,
+  name          TEXT NOT NULL,
+  created_at    TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS history (
   id             TEXT PRIMARY KEY NOT NULL,
+  profile_id     TEXT NOT NULL DEFAULT 'default',
   url            TEXT NOT NULL,
   normalized_url TEXT NOT NULL,
   title          TEXT,
@@ -35,11 +43,12 @@ CREATE TABLE IF NOT EXISTS history (
   synced_at      TEXT
 );
 
-CREATE INDEX IF NOT EXISTS history_url ON history(normalized_url);
-CREATE INDEX IF NOT EXISTS history_last_visited ON history(last_visited DESC);
+CREATE INDEX IF NOT EXISTS history_profile_url ON history(profile_id, normalized_url);
+CREATE INDEX IF NOT EXISTS history_profile_visited ON history(profile_id, last_visited DESC);
 
 CREATE TABLE IF NOT EXISTS bookmarks (
   id             TEXT PRIMARY KEY NOT NULL,
+  profile_id     TEXT NOT NULL DEFAULT 'default',
   url            TEXT NOT NULL,
   normalized_url TEXT NOT NULL,
   title          TEXT NOT NULL,
@@ -52,11 +61,12 @@ CREATE TABLE IF NOT EXISTS bookmarks (
   synced_at      TEXT
 );
 
-CREATE INDEX IF NOT EXISTS bookmarks_url ON bookmarks(normalized_url);
-CREATE INDEX IF NOT EXISTS bookmarks_folder ON bookmarks(folder);
+CREATE INDEX IF NOT EXISTS bookmarks_profile_url ON bookmarks(profile_id, normalized_url);
+CREATE INDEX IF NOT EXISTS bookmarks_profile_folder ON bookmarks(profile_id, folder);
 
 CREATE TABLE IF NOT EXISTS collections (
   id          TEXT PRIMARY KEY NOT NULL,
+  profile_id  TEXT NOT NULL DEFAULT 'default',
   name        TEXT NOT NULL,
   description TEXT,
   color       TEXT,
@@ -141,6 +151,28 @@ CREATE TABLE IF NOT EXISTS saved_passwords (
 CREATE INDEX IF NOT EXISTS saved_passwords_origin ON saved_passwords(origin);
 `;
 
+/**
+ * SQL statements run during schema version migrations.
+ * Each key is the target version; its SQL brings the DB from version-1 to version.
+ */
+export const MIGRATION_SQL: Record<number, string> = {
+  6: `
+    ALTER TABLE history    ADD COLUMN profile_id TEXT NOT NULL DEFAULT 'default';
+    ALTER TABLE bookmarks  ADD COLUMN profile_id TEXT NOT NULL DEFAULT 'default';
+    ALTER TABLE collections ADD COLUMN profile_id TEXT NOT NULL DEFAULT 'default';
+    CREATE TABLE IF NOT EXISTS profiles (
+      id            TEXT PRIMARY KEY NOT NULL,
+      workspace_id  TEXT,
+      name          TEXT NOT NULL,
+      created_at    TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS history_profile_url     ON history(profile_id, normalized_url);
+    CREATE INDEX IF NOT EXISTS history_profile_visited  ON history(profile_id, last_visited DESC);
+    CREATE INDEX IF NOT EXISTS bookmarks_profile_url   ON bookmarks(profile_id, normalized_url);
+    CREATE INDEX IF NOT EXISTS bookmarks_profile_folder ON bookmarks(profile_id, folder);
+  `,
+};
+
 export const PREFERENCE_KEYS = {
   SEARCH_ENGINE: 'search_engine',
   DEFAULT_ZOOM: 'default_zoom',
@@ -159,6 +191,7 @@ export const PREFERENCE_KEYS = {
   SPLIT_RATIO: 'split_ratio',
   ZIO_PANEL_WIDTH: 'zio_panel_width',
   ZIO_PANEL_DOCKED: 'zio_panel_docked',
+  ACTIVE_PROFILE: 'active_profile',
 } as const;
 
 export type PreferenceKey = typeof PREFERENCE_KEYS[keyof typeof PREFERENCE_KEYS];

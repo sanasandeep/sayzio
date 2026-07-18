@@ -4,8 +4,9 @@
 import path from 'path';
 import { app, BrowserWindow, Menu, session, nativeTheme } from 'electron';
 import type { BaseWindow } from 'electron';
-import { initDb, getPreference } from './db';
+import { initDb, getPreference, setActiveProfileId } from './db';
 import { PREFERENCE_KEYS } from '../shared/db-schema';
+import { sessionPartitionForProfile, DEFAULT_PROFILE_ID } from '../shared/profile-store';
 import { TabManager } from './tab-manager';
 import { WindowModeManager, CHROME_HEIGHT } from './window-mode-manager';
 import {
@@ -57,8 +58,20 @@ function createWindow(): BrowserWindow {
     show: false,
   });
 
+  // Restore the active profile from persisted preferences
+  const savedProfileId = getPreference(PREFERENCE_KEYS.ACTIVE_PROFILE) ?? DEFAULT_PROFILE_ID;
+  setActiveProfileId(savedProfileId);
+
+  // Pre-warm the profile session so it's available before the first tab opens
+  if (savedProfileId !== DEFAULT_PROFILE_ID) {
+    void session.fromPartition(sessionPartitionForProfile(savedProfileId));
+  }
+
+  // Initialize the tab manager with the restored profile session
   const tabManager = new TabManager(win);
+  tabManager.setActiveProfilePartition(savedProfileId);
   registerTabManager(win, tabManager);
+
 
   tabManager.setCallbacks({
     onTabStateChange: (tabId, state) => win.webContents.send('tab:state-changed', tabId, state),

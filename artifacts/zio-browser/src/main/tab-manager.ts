@@ -1,9 +1,13 @@
 /**
  * Tab manager for Zio Browser.
  * Manages WebContentsView instances, tab state, and navigation.
+ *
+ * Each tab uses the session associated with the active browser profile so
+ * workspace profiles are fully session-isolated.
  */
 import { BrowserWindow, WebContentsView, Menu, clipboard, session, type WebContents } from 'electron';
 import { parseOmniboxInput, type SearchEngineConfig, DEFAULT_SEARCH_ENGINE } from '../shared/omnibox';
+import { sessionPartitionForProfile, DEFAULT_PROFILE_ID } from '../shared/profile-store';
 
 export interface TabState {
   id: string;
@@ -55,6 +59,8 @@ export class TabManager {
   private tabOrder: TabId[] = [];
   private win: BrowserWindow;
   private searchEngine: SearchEngineConfig = DEFAULT_SEARCH_ENGINE;
+  /** Active session partition — changes when the user switches profiles. */
+  private activePartition: string = sessionPartitionForProfile(DEFAULT_PROFILE_ID);
   private onTabStateChange?: (tabId: TabId, state: Partial<TabState>) => void;
   private onTabCreated?: (tabId: TabId) => void;
   private onTabClosed?: (tabId: TabId) => void;
@@ -94,8 +100,23 @@ export class TabManager {
     this.searchEngine = engine;
   }
 
+  /**
+   * Switch all new tabs to use the session partition for the given profile.
+   * Existing tabs retain their current session (per Chromium design —
+   * you cannot change a WebContents' session after creation).
+   */
+  setActiveProfilePartition(profileId: string): void {
+    this.activePartition = sessionPartitionForProfile(profileId);
+  }
+
+  getActivePartition(): string {
+    return this.activePartition;
+  }
+
   createTab(url?: string, background = false): TabId {
     const id = crypto.randomUUID();
+
+    const tabSession = session.fromPartition(this.activePartition);
 
     const view = new WebContentsView({
       webPreferences: {
@@ -104,7 +125,7 @@ export class TabManager {
         sandbox: true,
         webSecurity: true,
         allowRunningInsecureContent: false,
-        session: this.tabSession,
+        session: this.isPrivate ? this.tabSession : tabSession,
       },
     });
 
@@ -167,24 +188,19 @@ export class TabManager {
     });
 
     // ── Context menu ─────────────────────────────────────────────────────────
-    // Adds "Add to my biolink" to the right-click menu on every page.
     wc.on('context-menu', (event, params) => {
       const pageUrl = params.pageURL || wc.getURL();
       const pageTitle = wc.getTitle();
-      // The URL that was right-clicked: prefer a link href if present, else the
-      // page URL itself so the user can add the current page to their biolink.
       const targetUrl = params.linkURL || params.srcURL || pageUrl;
 
       const menuItems: Electron.MenuItemConstructorOptions[] = [];
 
-      // Standard edit items when text is selected or on input fields
       if (params.isEditable) {
         menuItems.push({ role: 'cut' }, { role: 'copy' }, { role: 'paste' }, { type: 'separator' });
       } else if (params.selectionText) {
         menuItems.push({ role: 'copy' }, { type: 'separator' });
       }
 
-      // Link-specific items
       if (params.linkURL) {
         menuItems.push(
           { label: 'Open link in new tab', click: () => { this.createTab(params.linkURL); } },

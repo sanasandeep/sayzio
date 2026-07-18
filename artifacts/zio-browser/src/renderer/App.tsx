@@ -8,10 +8,12 @@ import { DashboardLayout } from './components/DashboardLayout';
 import { SplitLayout } from './components/SplitLayout';
 import { FindBar } from './components/FindBar';
 import { DownloadsPanel } from './components/DownloadsPanel';
+import { DeviceLab } from './components/DeviceLab';
 import { useTabStore } from './store/tab-store';
 import { useAuthStore } from './store/auth-store';
 import { useModeStore } from './store/mode-store';
 import { useFindStore } from './store/find-store';
+import { useProfileStore } from './store/profile-store';
 import type { WindowMode } from '../shared/window-mode';
 import {
   MIN_ZIO_PANEL_WIDTH,
@@ -28,8 +30,9 @@ export default function App() {
   const [downloadsPanelOpen, setDownloadsPanelOpen] = useState(false);
   const [activeDownloadCount, setActiveDownloadCount] = useState(0);
   const [isPrivate, setIsPrivate] = useState(false);
+  const [deviceLabOpen, setDeviceLabOpen] = useState(false);
   const { tabs, activeTabId, initTabs } = useTabStore();
-  const { init: initAuth, user } = useAuthStore();
+  const { init: initAuth, user, token } = useAuthStore();
   const {
     mode,
     splitRatio,
@@ -48,6 +51,7 @@ export default function App() {
   const containerRef = useRef<HTMLDivElement>(null);
 
   const { isOpen: findOpen, closeFind } = useFindStore();
+  const { init: initProfiles } = useProfileStore();
 
   useEffect(() => {
     void Promise.all([
@@ -55,15 +59,36 @@ export default function App() {
       initTabs(),
       initMode(),
       window.zio.window.isPrivate(),
-    ]).then(([,,,priv]) => {
-      setIsPrivate(Boolean(priv));
+    ]).then(async ([,,, priv]) => {
+      const isPriv = Boolean(priv);
+      setIsPrivate(isPriv);
+
+      // Show the mode picker on first launch (no persisted mode choice)
       // Don't show the mode picker for private windows — they're browser-only.
       const shown = localStorage.getItem(FIRST_LAUNCH_KEY);
-      if (!shown && !priv) {
+      if (!shown && !isPriv) {
         setShowModePicker(true);
       }
+
+      // Restore the active profile from preferences
+      const savedProfileId = await window.zio.prefs.get('active_profile') as string | null;
+      if (savedProfileId && savedProfileId !== 'default') {
+        await window.zio.profiles.switch(savedProfileId);
+        await window.zio.profiles.warmSession(savedProfileId);
+      }
+
+      // Sync workspace profiles (token may be available now)
+      const tok = await window.zio.auth.getToken() as string | null;
+      void initProfiles(tok);
     });
-  }, [initAuth, initTabs, initMode]);
+  }, [initAuth, initTabs, initMode, initProfiles]);
+
+  // When auth changes (sign-in/out), refresh workspace profiles
+  useEffect(() => {
+    if (token) {
+      void initProfiles(token);
+    }
+  }, [token, initProfiles]);
 
   // Track active download count for the chrome badge
   useEffect(() => {
@@ -138,6 +163,14 @@ export default function App() {
     document.addEventListener('mouseup', onUp);
   }, [setZioPanelWidth]);
 
+  const handleOpenDeviceLab = useCallback(() => {
+    if (!user) {
+      setAuthModalOpen(true);
+      return;
+    }
+    setDeviceLabOpen(true);
+  }, [user]);
+
   // Show mode picker before content is ready
   if (!isInitialized) {
     return <div style={{ width: '100%', height: '100%', background: isPrivate ? '#0d0d1a' : 'var(--color-bg)' }} />;
@@ -151,28 +184,34 @@ export default function App() {
   // Private windows never show dashboard mode.
   if (mode === 'dashboard' && !isPrivate) {
     return (
-      <DashboardLayout
-        mode={mode}
-        onSetMode={(m) => void setMode(m)}
-        authModalOpen={authModalOpen}
-        onOpenAuth={() => setAuthModalOpen(true)}
-        onCloseAuth={() => setAuthModalOpen(false)}
-      />
+      <>
+        <DashboardLayout
+          mode={mode}
+          onSetMode={(m) => void setMode(m)}
+          authModalOpen={authModalOpen}
+          onOpenAuth={() => setAuthModalOpen(true)}
+          onCloseAuth={() => setAuthModalOpen(false)}
+        />
+        {deviceLabOpen && <DeviceLab onClose={() => setDeviceLabOpen(false)} />}
+      </>
     );
   }
 
   // ── Split mode ────────────────────────────────────────────────────────────
   if (mode === 'split' && !isPrivate) {
     return (
-      <SplitLayout
-        mode={mode}
-        splitRatio={splitRatio}
-        onSetMode={(m) => void setMode(m)}
-        onSetSplitRatio={(r) => void setSplitRatio(r)}
-        authModalOpen={authModalOpen}
-        onOpenAuth={() => setAuthModalOpen(true)}
-        onCloseAuth={() => setAuthModalOpen(false)}
-      />
+      <>
+        <SplitLayout
+          mode={mode}
+          splitRatio={splitRatio}
+          onSetMode={(m) => void setMode(m)}
+          onSetSplitRatio={(r) => void setSplitRatio(r)}
+          authModalOpen={authModalOpen}
+          onOpenAuth={() => setAuthModalOpen(true)}
+          onCloseAuth={() => setAuthModalOpen(false)}
+        />
+        {deviceLabOpen && <DeviceLab onClose={() => setDeviceLabOpen(false)} />}
+      </>
     );
   }
 
@@ -200,6 +239,7 @@ export default function App() {
         onToggleDownloads={handleToggleDownloads}
         activeDownloadCount={activeDownloadCount}
         isPrivate={isPrivate}
+        onOpenDeviceLab={handleOpenDeviceLab}
       />
 
       {/* Content area */}
@@ -285,6 +325,9 @@ export default function App() {
       {authModalOpen && !isPrivate && (
         <AuthModal onClose={() => setAuthModalOpen(false)} />
       )}
+
+      {/* Device Lab overlays the entire window */}
+      {deviceLabOpen && <DeviceLab onClose={() => setDeviceLabOpen(false)} />}
     </div>
   );
 }

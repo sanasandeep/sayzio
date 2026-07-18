@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Validation\ValidationException;
 
 /**
  * BrowserSyncController — cloud sync endpoints for Zio Browser.
@@ -16,6 +15,10 @@ use Illuminate\Validation\ValidationException;
  *
  * Route prefix: /api/v1/browser
  * Auth: auth:sanctum
+ *
+ * Workspace profiles: each Zio Browser profile maps to a Sayzio workspace.
+ * Clients send X-Browser-Workspace-Id to scope their data bucket server-side.
+ * Records with workspace_id = NULL belong to the personal/default profile.
  */
 class BrowserSyncController extends Controller
 {
@@ -47,11 +50,11 @@ class BrowserSyncController extends Controller
             DB::table('browser_devices')
                 ->where('id', $device->id)
                 ->update([
-                    'label'       => $validated['label'],
-                    'platform'    => $validated['platform'],
-                    'app_version' => $validated['app_version'] ?? null,
+                    'label'        => $validated['label'],
+                    'platform'     => $validated['platform'],
+                    'app_version'  => $validated['app_version'] ?? null,
                     'last_seen_at' => now(),
-                    'updated_at'  => now(),
+                    'updated_at'   => now(),
                 ]);
         } else {
             DB::table('browser_devices')->insert([
@@ -85,10 +88,11 @@ class BrowserSyncController extends Controller
             'items.*.data'       => ['nullable', 'array'],
             'items.*.data.url'   => ['nullable', 'url'],
             'items.*.data.title' => ['nullable', 'string', 'max:512'],
-        ], function (int $userId, array $item): array {
+        ], function (int $userId, array $item, ?int $workspaceId): array {
             $data = $item['data'] ?? [];
             return [
                 'user_id'         => $userId,
+                'workspace_id'    => $workspaceId,
                 'local_id'        => $item['local_id'],
                 'url'             => $data['url'] ?? '',
                 'normalized_url'  => $this->normalizeUrl($data['url'] ?? ''),
@@ -115,10 +119,11 @@ class BrowserSyncController extends Controller
             'items.*.deleted'    => ['nullable', 'boolean'],
             'items.*.data'       => ['nullable', 'array'],
             'items.*.data.name'  => ['nullable', 'string', 'max:255'],
-        ], function (int $userId, array $item): array {
+        ], function (int $userId, array $item, ?int $workspaceId): array {
             $data = $item['data'] ?? [];
             return [
                 'user_id'         => $userId,
+                'workspace_id'    => $workspaceId,
                 'local_id'        => $item['local_id'],
                 'name'            => $data['name'] ?? 'Untitled',
                 'description'     => $data['description'] ?? null,
@@ -144,10 +149,11 @@ class BrowserSyncController extends Controller
             'items.*.deleted'    => ['nullable', 'boolean'],
             'items.*.data'       => ['nullable', 'array'],
             'items.*.data.url'   => ['nullable', 'url'],
-        ], function (int $userId, array $item): array {
+        ], function (int $userId, array $item, ?int $workspaceId): array {
             $data = $item['data'] ?? [];
             return [
                 'user_id'         => $userId,
+                'workspace_id'    => $workspaceId,
                 'local_id'        => $item['local_id'],
                 'url'             => $data['url'] ?? '',
                 'normalized_url'  => $this->normalizeUrl($data['url'] ?? ''),
@@ -165,24 +171,29 @@ class BrowserSyncController extends Controller
      * GET /api/v1/browser/devices/{deviceId}/pull
      * Pull all server-side data since a given timestamp.
      * ?since=ISO8601
+     *
+     * Workspace scoping: only returns records for the workspace profile
+     * identified by X-Browser-Workspace-Id (null = personal profile).
      */
     public function pullSync(Request $request, string $deviceId): JsonResponse
     {
         $this->validateDevice($request, $deviceId);
 
-        $userId = $request->user()->id;
-        $since = $request->query('since');
+        $userId      = $request->user()->id;
+        $since       = $request->query('since');
+        $workspaceId = $this->resolveWorkspaceId($request);
 
-        $bookmarks   = $this->pullEntity($userId, 'browser_bookmarks', $since);
-        $collections = $this->pullEntity($userId, 'browser_collections', $since);
-        $history     = $this->pullEntity($userId, 'browser_history_sync', $since);
+        $bookmarks   = $this->pullEntity($userId, 'browser_bookmarks', $since, $workspaceId);
+        $collections = $this->pullEntity($userId, 'browser_collections', $since, $workspaceId);
+        $history     = $this->pullEntity($userId, 'browser_history_sync', $since, $workspaceId);
 
         return response()->json([
             'data' => [
-                'bookmarks'   => $bookmarks,
-                'collections' => $collections,
-                'history'     => $history,
-                'server_time' => now()->toIso8601String(),
+                'bookmarks'    => $bookmarks,
+                'collections'  => $collections,
+                'history'      => $history,
+                'server_time'  => now()->toIso8601String(),
+                'workspace_id' => $workspaceId,
             ],
         ]);
     }
@@ -190,9 +201,48 @@ class BrowserSyncController extends Controller
     // ── Private helpers ───────────────────────────────────────────────────────
 
     /**
+     * Resolve the workspace_id from the request.
+     *
+     * Clients send the active profile's workspace ID in X-Browser-Workspace-Id.
+     * The personal/default profile sends no header (null = personal bucket).
+     * We verify the workspace belongs to this user before trusting it.
+     *
+     * @return int|null  Verified workspace ID, or null for the personal profile.
+     */
+    private function resolveWorkspaceId(Request $request): ?int
+    {
+        $raw = $request->header('X-Browser-Workspace-Id');
+        if (! $raw) {
+            return null;
+        }
+
+        $wsId = (int) $raw;
+        if ($wsId <= 0) {
+            return null;
+        }
+
+        // Verify the authenticated user is the owner or a member of this workspace
+        $isOwner = DB::table('workspaces')
+            ->where('id', $wsId)
+            ->where('owner_user_id', $request->user()->id)
+            ->exists();
+
+        if ($isOwner) {
+            return $wsId;
+        }
+
+        $isMember = DB::table('workspace_members')
+            ->where('workspace_id', $wsId)
+            ->where('user_id', $request->user()->id)
+            ->exists();
+
+        return $isMember ? $wsId : null;
+    }
+
+    /**
      * Generic sync push handler for any browser entity table.
      *
-     * @param callable(int, array): array $mapper Maps a validated sync item to a DB row
+     * @param callable(int, array, int|null): array $mapper Maps a validated sync item to a DB row
      */
     private function syncEntity(
         Request $request,
@@ -203,19 +253,21 @@ class BrowserSyncController extends Controller
     ): JsonResponse {
         $this->validateDevice($request, $deviceId);
 
-        $validated = $request->validate($rules);
-        $userId = $request->user()->id;
-        $accepted = [];
-        $conflicts = [];
-        $now = now();
+        $validated   = $request->validate($rules);
+        $userId      = $request->user()->id;
+        $workspaceId = $this->resolveWorkspaceId($request);
+        $accepted    = [];
+        $conflicts   = [];
+        $now         = now();
 
         foreach ($validated['items'] as $item) {
-            $localId = $item['local_id'];
+            $localId         = $item['local_id'];
             $clientUpdatedAt = $item['updated_at'];
 
             $existing = DB::table($table)
                 ->where('user_id', $userId)
                 ->where('local_id', $localId)
+                ->where('workspace_id', $workspaceId)   // scope to this profile
                 ->first();
 
             if ($existing) {
@@ -224,7 +276,7 @@ class BrowserSyncController extends Controller
                 $clientTs = strtotime($clientUpdatedAt);
 
                 if ($clientTs >= $serverTs) {
-                    $row = $mapper($userId, $item);
+                    $row = $mapper($userId, $item, $workspaceId);
                     DB::table($table)
                         ->where('id', $existing->id)
                         ->update(array_merge($row, ['updated_at' => $now]));
@@ -234,7 +286,7 @@ class BrowserSyncController extends Controller
                     $conflicts[] = $localId;
                 }
             } else {
-                $row = $mapper($userId, $item);
+                $row = $mapper($userId, $item, $workspaceId);
                 DB::table($table)->insert(array_merge($row, [
                     'created_at' => $now,
                     'updated_at' => $now,
@@ -245,22 +297,27 @@ class BrowserSyncController extends Controller
 
         return response()->json([
             'data' => [
-                'accepted'    => $accepted,
-                'conflicts'   => $conflicts,
-                'server_time' => $now->toIso8601String(),
+                'accepted'     => $accepted,
+                'conflicts'    => $conflicts,
+                'server_time'  => $now->toIso8601String(),
+                'workspace_id' => $workspaceId,
             ],
         ]);
     }
 
     /**
-     * Pull all records for a table since a timestamp.
+     * Pull all records for a table since a timestamp, scoped to a workspace profile.
      */
-    private function pullEntity(int $userId, string $table, ?string $since): array
+    private function pullEntity(int $userId, string $table, ?string $since, ?int $workspaceId): array
     {
-        $query = DB::table($table)->where('user_id', $userId);
+        $query = DB::table($table)
+            ->where('user_id', $userId)
+            ->where('workspace_id', $workspaceId);
+
         if ($since) {
             $query->where('updated_at', '>', $since);
         }
+
         $rows = $query->orderBy('updated_at')->get();
 
         return $rows->map(function ($row) {
@@ -278,8 +335,8 @@ class BrowserSyncController extends Controller
      */
     private function rowToData(object $row): array
     {
-        $exclude = ['id', 'user_id', 'local_id', 'deleted', 'item_updated_at', 'created_at', 'updated_at'];
-        $data = [];
+        $exclude = ['id', 'user_id', 'workspace_id', 'local_id', 'deleted', 'item_updated_at', 'created_at', 'updated_at'];
+        $data    = [];
         foreach ((array) $row as $key => $value) {
             if (! in_array($key, $exclude, true)) {
                 $data[$key] = $value;
@@ -312,9 +369,9 @@ class BrowserSyncController extends Controller
         $parsed = parse_url($url);
         if (! $parsed) return $url;
         $scheme = ($parsed['scheme'] ?? 'https') . '://';
-        $host = $parsed['host'] ?? '';
-        $path = rtrim($parsed['path'] ?? '', '/');
-        $query = isset($parsed['query']) ? '?' . $parsed['query'] : '';
+        $host   = $parsed['host'] ?? '';
+        $path   = rtrim($parsed['path'] ?? '', '/');
+        $query  = isset($parsed['query']) ? '?' . $parsed['query'] : '';
         return $scheme . $host . $path . $query;
     }
 }

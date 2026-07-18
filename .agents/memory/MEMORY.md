@@ -1,3 +1,4 @@
+- [Zio Browser workspace profiles + device lab](zio-browser-profiles-device-lab.md) — profiles scope SQLite/sessions/sync per workspace; Device Lab uses CSS-scaled iframes; server scoped by X-Browser-Workspace-Id header.
 - [GitHub sanitized snapshot push](github-sanitized-snapshot-push.md) — workspace history has plaintext secrets; push snapshot commits (strip .replit secrets, hash-object commit, parent=remote tip), never raw history.
 - [JSON-LD in <script> needs default JSON escaping](json-ld-html-context-escaping.md) — never pass JSON_UNESCAPED_SLASHES for JSON embedded in `<script>`; unescaped `/` lets `</script>` break out (stored XSS).
 - [Brand primary domain canonical vs redirect](brand-primary-domain-canonical-vs-redirect.md) — marketing pages get a hard 301 to the primary brand domain; user-content pages (biolinks/resumes/creator profiles) only get a soft canonical/og:url rewrite, never redirected.

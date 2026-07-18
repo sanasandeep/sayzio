@@ -1,12 +1,17 @@
 /**
  * Local SQLite database for Zio Browser.
  * Uses better-sqlite3 for synchronous access (Electron main process only).
+ *
+ * All data-access functions that scope by profile accept a profileId parameter
+ * (default 'default'). The active profile is tracked module-level and applied
+ * automatically via getActiveProfileId().
  */
 import path from 'path';
 import { app } from 'electron';
 import Database from 'better-sqlite3';
 import {
   CREATE_TABLES_SQL,
+  MIGRATION_SQL,
   SCHEMA_VERSION,
   PREFERENCE_KEYS,
   type PreferenceKey,
@@ -16,9 +21,12 @@ import { generateId, normalizeCollectionUrl } from '../shared/collection-store';
 import { normalizeUrlForHistory } from '../shared/omnibox';
 import type { SyncRecord, SyncQueueItem, SyncEntityKind } from '../shared/sync-engine';
 import { nextAttemptAt } from '../shared/sync-engine';
+import { DEFAULT_PROFILE_ID } from '../shared/profile-store';
+import type { BrowserProfile } from '../shared/profile-store';
 
 export interface HistoryEntry {
   id: string;
+  profile_id: string;
   url: string;
   normalized_url: string;
   title: string | null;
@@ -33,6 +41,7 @@ export interface HistoryEntry {
 
 export interface Bookmark {
   id: string;
+  profile_id: string;
   url: string;
   normalized_url: string;
   title: string;
@@ -69,6 +78,17 @@ export interface SavedPassword {
 
 let _db: Database.Database | null = null;
 
+/** Currently active browser profile — all scoped queries filter by this. */
+let _activeProfileId: string = DEFAULT_PROFILE_ID;
+
+export function getActiveProfileId(): string {
+  return _activeProfileId;
+}
+
+export function setActiveProfileId(profileId: string): void {
+  _activeProfileId = profileId;
+}
+
 export function getDb(): Database.Database {
   if (!_db) {
     throw new Error('Database not initialized. Call initDb() first.');
@@ -90,7 +110,25 @@ function migrateSchema(db: Database.Database): void {
 
   if (currentVersion < SCHEMA_VERSION) {
     db.transaction(() => {
-      // v6: add saved_passwords table (CREATE TABLE IF NOT EXISTS handles it above)
+      // Run incremental migration SQL for each missing version
+      for (let v = Math.max(1, currentVersion + 1); v <= SCHEMA_VERSION; v++) {
+        const sql = MIGRATION_SQL[v];
+        if (sql) {
+          // Split on ';' and run each statement individually (SQLite pragma)
+          for (const stmt of sql.split(';').map(s => s.trim()).filter(Boolean)) {
+            try {
+              db.exec(stmt + ';');
+            } catch (err) {
+              // Ignore "already exists" / "duplicate column" errors from idempotent migrations
+              const msg = String(err);
+              if (!msg.includes('already exists') && !msg.includes('duplicate column')) {
+                throw err;
+              }
+            }
+          }
+        }
+      }
+
       if (currentVersion === 0) {
         db.prepare('INSERT OR REPLACE INTO schema_version(version) VALUES(?)').run(SCHEMA_VERSION);
       } else {
@@ -98,6 +136,45 @@ function migrateSchema(db: Database.Database): void {
       }
     })();
   }
+}
+
+// ── Profiles ─────────────────────────────────────────────────────────────────
+
+export function listProfiles(): BrowserProfile[] {
+  const db = getDb();
+  const rows = db.prepare('SELECT * FROM profiles ORDER BY created_at ASC').all() as Array<{
+    id: string; workspace_id: string | null; name: string; created_at: string;
+  }>;
+  const profiles: BrowserProfile[] = [
+    { id: DEFAULT_PROFILE_ID, workspaceId: null, name: 'Personal', isPersonal: true },
+  ];
+  for (const row of rows) {
+    if (row.id !== DEFAULT_PROFILE_ID) {
+      profiles.push({
+        id: row.id,
+        workspaceId: row.workspace_id,
+        name: row.name,
+        isPersonal: false,
+      });
+    }
+  }
+  return profiles;
+}
+
+export function upsertProfile(profile: BrowserProfile): void {
+  if (profile.id === DEFAULT_PROFILE_ID) return; // Default profile is virtual
+  const db = getDb();
+  db.prepare(`
+    INSERT INTO profiles(id, workspace_id, name, created_at)
+    VALUES(?, ?, ?, ?)
+    ON CONFLICT(id) DO UPDATE SET name = excluded.name, workspace_id = excluded.workspace_id
+  `).run(profile.id, profile.workspaceId ?? null, profile.name, new Date().toISOString());
+}
+
+export function deleteProfile(profileId: string): void {
+  if (profileId === DEFAULT_PROFILE_ID) return;
+  const db = getDb();
+  db.prepare('DELETE FROM profiles WHERE id = ?').run(profileId);
 }
 
 // ── Preferences ─────────────────────────────────────────────────────────────
@@ -121,12 +198,13 @@ export function getAllPreferences(): Record<string, string> {
 
 // ── History ──────────────────────────────────────────────────────────────────
 
-export function recordVisit(url: string, title: string | null, faviconUrl?: string): HistoryEntry {
+export function recordVisit(url: string, title: string | null, faviconUrl?: string, profileId?: string): HistoryEntry {
   const db = getDb();
+  const pid = profileId ?? _activeProfileId;
   const normalized = normalizeUrlForHistory(url);
   const now = new Date().toISOString();
 
-  const existing = db.prepare('SELECT * FROM history WHERE normalized_url = ? AND deleted = 0').get(normalized) as HistoryEntry | undefined;
+  const existing = db.prepare('SELECT * FROM history WHERE profile_id = ? AND normalized_url = ? AND deleted = 0').get(pid, normalized) as HistoryEntry | undefined;
 
   if (existing) {
     db.prepare(`
@@ -140,31 +218,34 @@ export function recordVisit(url: string, title: string | null, faviconUrl?: stri
 
   const id = generateId();
   db.prepare(`
-    INSERT INTO history(id, url, normalized_url, title, favicon_url, visit_count, last_visited, created_at, updated_at, deleted)
-    VALUES(?, ?, ?, ?, ?, 1, ?, ?, ?, 0)
-  `).run(id, url, normalized, title, faviconUrl ?? null, now, now, now);
+    INSERT INTO history(id, profile_id, url, normalized_url, title, favicon_url, visit_count, last_visited, created_at, updated_at, deleted)
+    VALUES(?, ?, ?, ?, ?, ?, 1, ?, ?, ?, 0)
+  `).run(id, pid, url, normalized, title, faviconUrl ?? null, now, now, now);
   return db.prepare('SELECT * FROM history WHERE id = ?').get(id) as HistoryEntry;
 }
 
-export function searchHistory(query: string, limit = 20): HistoryEntry[] {
+export function searchHistory(query: string, limit = 20, profileId?: string): HistoryEntry[] {
   const db = getDb();
+  const pid = profileId ?? _activeProfileId;
   const like = `%${query.replace(/[%_]/g, c => `\\${c}`)}%`;
   return db.prepare(`
     SELECT * FROM history
-    WHERE deleted = 0 AND (url LIKE ? ESCAPE '\\' OR title LIKE ? ESCAPE '\\')
+    WHERE profile_id = ? AND deleted = 0 AND (url LIKE ? ESCAPE '\\' OR title LIKE ? ESCAPE '\\')
     ORDER BY last_visited DESC
     LIMIT ?
-  `).all(like, like, limit) as HistoryEntry[];
+  `).all(pid, like, like, limit) as HistoryEntry[];
 }
 
-export function getRecentHistory(limit = 50): HistoryEntry[] {
+export function getRecentHistory(limit = 50, profileId?: string): HistoryEntry[] {
   const db = getDb();
-  return db.prepare('SELECT * FROM history WHERE deleted = 0 ORDER BY last_visited DESC LIMIT ?').all(limit) as HistoryEntry[];
+  const pid = profileId ?? _activeProfileId;
+  return db.prepare('SELECT * FROM history WHERE profile_id = ? AND deleted = 0 ORDER BY last_visited DESC LIMIT ?').all(pid, limit) as HistoryEntry[];
 }
 
-export function clearHistory(): void {
+export function clearHistory(profileId?: string): void {
   const db = getDb();
-  db.prepare('UPDATE history SET deleted = 1, updated_at = ? WHERE deleted = 0').run(new Date().toISOString());
+  const pid = profileId ?? _activeProfileId;
+  db.prepare('UPDATE history SET deleted = 1, updated_at = ? WHERE profile_id = ? AND deleted = 0').run(new Date().toISOString(), pid);
 }
 
 export function deleteHistoryEntry(id: string): boolean {
@@ -176,71 +257,110 @@ export function deleteHistoryEntry(id: string): boolean {
 
 // ── Bookmarks ────────────────────────────────────────────────────────────────
 
-export function addBookmark(url: string, title: string, options: Partial<Bookmark> = {}): Bookmark {
+export function addBookmark(url: string, title: string, options: Partial<Bookmark> = {}, profileId?: string): Bookmark {
   const db = getDb();
+  const pid = profileId ?? _activeProfileId;
   const normalized = normalizeCollectionUrl(url);
   const now = new Date().toISOString();
 
-  const existing = db.prepare('SELECT * FROM bookmarks WHERE normalized_url = ? AND deleted = 0').get(normalized) as Bookmark | undefined;
+  const existing = db.prepare('SELECT * FROM bookmarks WHERE profile_id = ? AND normalized_url = ? AND deleted = 0').get(pid, normalized) as Bookmark | undefined;
   if (existing) return existing;
 
   const id = generateId();
   db.prepare(`
-    INSERT INTO bookmarks(id, url, normalized_url, title, description, favicon_url, folder, created_at, updated_at, deleted)
-    VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
-  `).run(id, url, normalized, title, options.description ?? null, options.favicon_url ?? null, options.folder ?? null, now, now);
+    INSERT INTO bookmarks(id, profile_id, url, normalized_url, title, description, favicon_url, folder, created_at, updated_at, deleted)
+    VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
+  `).run(id, pid, url, normalized, title, options.description ?? null, options.favicon_url ?? null, options.folder ?? null, now, now);
   return db.prepare('SELECT * FROM bookmarks WHERE id = ?').get(id) as Bookmark;
 }
 
-export function removeBookmark(url: string): boolean {
+export function removeBookmark(url: string, profileId?: string): boolean {
   const db = getDb();
+  const pid = profileId ?? _activeProfileId;
   const normalized = normalizeCollectionUrl(url);
   const now = new Date().toISOString();
-  const result = db.prepare('UPDATE bookmarks SET deleted = 1, updated_at = ? WHERE normalized_url = ? AND deleted = 0').run(now, normalized);
+  const result = db.prepare('UPDATE bookmarks SET deleted = 1, updated_at = ? WHERE profile_id = ? AND normalized_url = ? AND deleted = 0').run(now, pid, normalized);
   return (result.changes ?? 0) > 0;
 }
 
-export function isBookmarked(url: string): boolean {
+export function isBookmarked(url: string, profileId?: string): boolean {
   const db = getDb();
+  const pid = profileId ?? _activeProfileId;
   const normalized = normalizeCollectionUrl(url);
-  const row = db.prepare('SELECT id FROM bookmarks WHERE normalized_url = ? AND deleted = 0 LIMIT 1').get(normalized);
+  const row = db.prepare('SELECT id FROM bookmarks WHERE profile_id = ? AND normalized_url = ? AND deleted = 0 LIMIT 1').get(pid, normalized);
   return row !== undefined;
 }
 
-export function getAllBookmarks(folder?: string): Bookmark[] {
+export function getAllBookmarks(folder?: string, profileId?: string): Bookmark[] {
   const db = getDb();
+  const pid = profileId ?? _activeProfileId;
   if (folder) {
-    return db.prepare('SELECT * FROM bookmarks WHERE deleted = 0 AND folder = ? ORDER BY created_at DESC').all(folder) as Bookmark[];
+    return db.prepare('SELECT * FROM bookmarks WHERE profile_id = ? AND deleted = 0 AND folder = ? ORDER BY created_at DESC').all(pid, folder) as Bookmark[];
   }
-  return db.prepare('SELECT * FROM bookmarks WHERE deleted = 0 ORDER BY created_at DESC').all() as Bookmark[];
+  return db.prepare('SELECT * FROM bookmarks WHERE profile_id = ? AND deleted = 0 ORDER BY created_at DESC').all(pid) as Bookmark[];
 }
 
-export function searchBookmarks(query: string, limit = 20): Bookmark[] {
+export function searchBookmarks(query: string, limit = 20, profileId?: string): Bookmark[] {
   const db = getDb();
+  const pid = profileId ?? _activeProfileId;
   const like = `%${query.replace(/[%_]/g, c => `\\${c}`)}%`;
   return db.prepare(`
     SELECT * FROM bookmarks
-    WHERE deleted = 0 AND (url LIKE ? ESCAPE '\\' OR title LIKE ? ESCAPE '\\')
+    WHERE profile_id = ? AND deleted = 0 AND (url LIKE ? ESCAPE '\\' OR title LIKE ? ESCAPE '\\')
     ORDER BY created_at DESC LIMIT ?
-  `).all(like, like, limit) as Bookmark[];
+  `).all(pid, like, like, limit) as Bookmark[];
+}
+
+export function getBookmarksAsSyncRecords(profileId?: string): SyncRecord[] {
+  const db = getDb();
+  const pid = profileId ?? _activeProfileId;
+  const rows = db.prepare('SELECT * FROM bookmarks WHERE profile_id = ?').all(pid) as Bookmark[];
+  return rows.map(r => ({
+    local_id: r.id,
+    updated_at: r.updated_at,
+    deleted: Boolean(r.deleted),
+    synced_at: r.synced_at,
+    data: { url: r.url, title: r.title, description: r.description, folder: r.folder, favicon_url: r.favicon_url },
+  }));
+}
+
+export function upsertBookmarkFromSync(record: SyncRecord, profileId?: string): void {
+  const db = getDb();
+  const pid = profileId ?? _activeProfileId;
+  const data = record.data as { url: string; title: string; description?: string; folder?: string; favicon_url?: string };
+  const now = new Date().toISOString();
+  db.prepare(`
+    INSERT INTO bookmarks(id, profile_id, url, normalized_url, title, description, favicon_url, folder, created_at, updated_at, deleted, synced_at)
+    VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ON CONFLICT(id) DO UPDATE SET
+      url = excluded.url, title = excluded.title, description = excluded.description,
+      favicon_url = excluded.favicon_url, folder = excluded.folder,
+      updated_at = excluded.updated_at, deleted = excluded.deleted, synced_at = excluded.synced_at
+  `).run(
+    record.local_id, pid, data.url, normalizeCollectionUrl(data.url), data.title,
+    data.description ?? null, data.favicon_url ?? null, data.folder ?? null,
+    record.updated_at, record.updated_at, record.deleted ? 1 : 0, now,
+  );
 }
 
 // ── Collections ──────────────────────────────────────────────────────────────
 
-export function getAllCollections(): Collection[] {
+export function getAllCollections(profileId?: string): Collection[] {
   const db = getDb();
+  const pid = profileId ?? _activeProfileId;
   return (db.prepare(`
     SELECT c.*, (SELECT COUNT(*) FROM saved_links sl WHERE sl.collection_id = c.id AND sl.deleted = 0) as item_count
-    FROM collections c WHERE c.deleted = 0 ORDER BY c.updated_at DESC
-  `).all() as Array<Collection & { item_count: number }>).map(row => ({ ...row, deleted: Boolean(row.deleted) }));
+    FROM collections c WHERE c.profile_id = ? AND c.deleted = 0 ORDER BY c.updated_at DESC
+  `).all(pid) as Array<Collection & { item_count: number }>).map(row => ({ ...row, deleted: Boolean(row.deleted) }));
 }
 
-export function createCollectionInDb(collection: Collection): void {
+export function createCollectionInDb(collection: Collection, profileId?: string): void {
   const db = getDb();
+  const pid = profileId ?? _activeProfileId;
   db.prepare(`
-    INSERT INTO collections(id, name, description, color, icon, created_at, updated_at, deleted, synced_at)
-    VALUES(?, ?, ?, ?, ?, ?, ?, 0, NULL)
-  `).run(collection.id, collection.name, collection.description, collection.color, collection.icon, collection.created_at, collection.updated_at);
+    INSERT INTO collections(id, profile_id, name, description, color, icon, created_at, updated_at, deleted, synced_at)
+    VALUES(?, ?, ?, ?, ?, ?, ?, ?, 0, NULL)
+  `).run(collection.id, pid, collection.name, collection.description, collection.color, collection.icon, collection.created_at, collection.updated_at);
 }
 
 export function updateCollection(id: string, updates: Partial<Pick<Collection, 'name' | 'description' | 'color' | 'icon'>>): void {
@@ -302,36 +422,6 @@ export function updateSavedLinkAiEnrichment(id: string, summary: string, tags: s
 }
 
 // ── Sync helpers ─────────────────────────────────────────────────────────────
-
-export function getBookmarksAsSyncRecords(): SyncRecord[] {
-  const db = getDb();
-  const rows = db.prepare('SELECT * FROM bookmarks').all() as Bookmark[];
-  return rows.map(r => ({
-    local_id: r.id,
-    updated_at: r.updated_at,
-    deleted: Boolean(r.deleted),
-    synced_at: r.synced_at,
-    data: { url: r.url, title: r.title, description: r.description, folder: r.folder, favicon_url: r.favicon_url },
-  }));
-}
-
-export function upsertBookmarkFromSync(record: SyncRecord): void {
-  const db = getDb();
-  const data = record.data as { url: string; title: string; description?: string; folder?: string; favicon_url?: string };
-  const now = new Date().toISOString();
-  db.prepare(`
-    INSERT INTO bookmarks(id, url, normalized_url, title, description, favicon_url, folder, created_at, updated_at, deleted, synced_at)
-    VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    ON CONFLICT(id) DO UPDATE SET
-      url = excluded.url, title = excluded.title, description = excluded.description,
-      favicon_url = excluded.favicon_url, folder = excluded.folder,
-      updated_at = excluded.updated_at, deleted = excluded.deleted, synced_at = excluded.synced_at
-  `).run(
-    record.local_id, data.url, normalizeCollectionUrl(data.url), data.title,
-    data.description ?? null, data.favicon_url ?? null, data.folder ?? null,
-    record.updated_at, record.updated_at, record.deleted ? 1 : 0, now,
-  );
-}
 
 export function getSyncState(entity: string): { lastSyncAt: string | null; lastError: string | null } {
   const db = getDb();
@@ -494,4 +584,5 @@ export function deleteAllPasswords(): void {
   const db = getDb();
   db.prepare('DELETE FROM saved_passwords').run();
 }
-}
+
+export { PREFERENCE_KEYS };

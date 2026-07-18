@@ -171,6 +171,34 @@ const api = {
     version: () => ipcRenderer.invoke('app:version'),
   },
 
+  // ── Profiles ─────────────────────────────────────────────────────────────
+  profiles: {
+    /** List all locally known profiles (personal + workspace). */
+    list: () => ipcRenderer.invoke('profiles:list'),
+    /** Return the currently active profile ID. */
+    getActive: () => ipcRenderer.invoke('profiles:get-active'),
+    /**
+     * Switch to a different profile.
+     * Persists the choice, updates DB scope, and updates tab session partition.
+     * Emits 'profile:changed' back to the renderer.
+     */
+    switch: (profileId: string) => ipcRenderer.invoke('profiles:switch', profileId),
+    /**
+     * Upsert a profile from a workspace API response item.
+     * Call this after fetching /api/v1/workspaces.
+     */
+    upsertFromWorkspace: (ws: { id: number | string; name: string; is_personal?: boolean }) =>
+      ipcRenderer.invoke('profiles:upsert-from-workspace', ws),
+    /** Pre-warm the Electron session partition for the given profile. */
+    warmSession: (profileId: string) => ipcRenderer.invoke('profiles:warm-session', profileId),
+  },
+
+  // ── Device Lab ────────────────────────────────────────────────────────────
+  deviceLab: {
+    /** Fetch the authenticated user's biolinks from the Sayzio API. */
+    listBiolinks: () => ipcRenderer.invoke('device-lab:list-biolinks'),
+  },
+
   // ── Events (from main → renderer) ────────────────────────────────────────
   on: (channel: string, listener: IpcListener) => {
     const ALLOWED_CHANNELS = new Set([
@@ -194,6 +222,8 @@ const api = {
       'download:cancelled',
       // Password offer — main process detected a login form submission
       'password:detected',
+      // Profile events
+      'profile:changed',
     ]);
     if (!ALLOWED_CHANNELS.has(channel)) return;
     ipcRenderer.on(channel, (_, ...args) => listener(...args));

@@ -8,6 +8,7 @@ import {
   nextAttemptAt,
   isQueueItemDue,
   getDueQueueItems,
+  profileSyncEntityKey,
   SYNC_INTERVALS,
   RETRY_BACKOFF,
   type SyncRecord,
@@ -230,5 +231,36 @@ describe('isQueueItemDue / getDueQueueItems', () => {
     const item = makeQueueItem('a', { attempts: 20, next_attempt_at: nextAttemptAt(20, failedAt) });
     // One full cap-length backoff cycle later, the item is due
     expect(isQueueItemDue(item, failedAt + RETRY_BACKOFF.CAP_MS)).toBe(true);
+  });
+});
+
+// ── Profile-scoped sync entity keys ─────────────────────────────────────────
+
+describe('profileSyncEntityKey', () => {
+  it('builds a colon-separated entity:profileId key', () => {
+    expect(profileSyncEntityKey('bookmarks', 'default')).toBe('bookmarks:default');
+    expect(profileSyncEntityKey('history', '42')).toBe('history:42');
+    expect(profileSyncEntityKey('collections', 'ws-99')).toBe('collections:ws-99');
+  });
+
+  it('keeps the default profile key distinct from a numeric workspace id', () => {
+    const personalKey = profileSyncEntityKey('bookmarks', 'default');
+    const workspaceKey = profileSyncEntityKey('bookmarks', '1');
+    expect(personalKey).not.toBe(workspaceKey);
+  });
+
+  it('each entity kind produces a unique key for the same profile', () => {
+    const pid = 'default';
+    const keys = ['bookmarks', 'collections', 'history'].map(e => profileSyncEntityKey(e, pid));
+    const unique = new Set(keys);
+    expect(unique.size).toBe(3);
+  });
+
+  it('same entity + different profiles produce different keys', () => {
+    const k1 = profileSyncEntityKey('bookmarks', 'default');
+    const k2 = profileSyncEntityKey('bookmarks', '7');
+    const k3 = profileSyncEntityKey('bookmarks', '8');
+    expect(k1).not.toBe(k2);
+    expect(k2).not.toBe(k3);
   });
 });

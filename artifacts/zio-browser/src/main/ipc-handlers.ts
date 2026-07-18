@@ -45,6 +45,10 @@ import {
   getAllSavedPasswords,
   deletePassword,
   deleteAllPasswords,
+  listProfiles,
+  upsertProfile,
+  setActiveProfileId,
+  getActiveProfileId,
 } from './db';
 import { getActiveItem } from './download-manager';
 import { buildAutofillScript } from '../shared/form-autofill';
@@ -60,6 +64,8 @@ import {
   MAX_ZIO_PANEL_WIDTH,
 } from '../shared/window-mode';
 import { isPrivateWindow } from './private-session';
+import { profileFromWorkspace, sessionPartitionForProfile } from '../shared/profile-store';
+import type { BrowserProfile } from '../shared/profile-store';
 
 type PrefKey = typeof PREFERENCE_KEYS[keyof typeof PREFERENCE_KEYS];
 
@@ -578,5 +584,83 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
   ipcMain.handle('app:version', () => {
     const { app } = require('electron') as typeof import('electron');
     return { version: app.getVersion(), name: app.getName() };
+  });
+
+  // ── Profiles ─────────────────────────────────────────────────────────────
+
+  /** Return all locally known profiles (personal + any synced workspace profiles). */
+  ipcMain.handle('profiles:list', () => listProfiles());
+
+  /** Return the currently active profile ID. */
+  ipcMain.handle('profiles:get-active', () => getActiveProfileId());
+
+  /**
+   * Switch to a different profile:
+   *  1. Persist the choice in preferences.
+   *  2. Update the active profile ID in db.ts (scopes all future DB reads).
+   *  3. Update the tab manager's session partition (new tabs use the new session).
+   *  4. Notify the renderer via an IPC push.
+   */
+  ipcMain.handle('profiles:switch', (event, profileId: string) => {
+    setActiveProfileId(profileId);
+    setPreference('active_profile', profileId);
+    resolveTabManager(event)?.setActiveProfilePartition(profileId);
+    const win = BrowserWindow.fromWebContents(event.sender);
+    win?.webContents.send('profile:changed', profileId);
+    return { ok: true, profileId };
+  });
+
+  /**
+   * Upsert a profile derived from a workspace API item.
+   * Called by the renderer after fetching /api/v1/workspaces.
+   */
+  ipcMain.handle('profiles:upsert-from-workspace', (_, ws: { id: number | string; name: string; is_personal?: boolean }) => {
+    const profile = profileFromWorkspace(ws);
+    upsertProfile(profile);
+    return profile;
+  });
+
+  /**
+   * Pre-warm a session partition so cookies load before the user's first tab
+   * in that profile. Returns the partition string so the renderer can confirm.
+   */
+  ipcMain.handle('profiles:warm-session', (_, profileId: string) => {
+    const partition = sessionPartitionForProfile(profileId);
+    // Accessing the session via fromPartition creates + registers it.
+    const { session: electronSession } = require('electron') as typeof import('electron');
+    void electronSession.fromPartition(partition);
+    return partition;
+  });
+
+  // ── Device lab biolinks ───────────────────────────────────────────────────
+
+  /**
+   * Fetch the authenticated user's biolinks from the Sayzio API.
+   * Returns an array of { id, alias, title, public_url } objects or [] if not signed in.
+   */
+  ipcMain.handle('device-lab:list-biolinks', async () => {
+    const token = retrieveToken();
+    if (!token) return [];
+    const prefs = getAllPreferences();
+    const apiBase = prefs['sayzio_api_base_url'] ?? 'https://1in.me';
+    try {
+      const resp = await fetch(`${apiBase}/api/v1/links?type=biolink&limit=50`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: 'application/json',
+        },
+      });
+      if (!resp.ok) return [];
+      const json = await resp.json() as { data?: { items?: unknown[] } };
+      const items = json?.data?.items ?? [];
+      return (items as Array<Record<string, unknown>>).map(item => ({
+        id: item['id'],
+        alias: item['alias'],
+        title: item['title'] ?? item['alias'],
+        public_url: item['public_url'] ?? item['full_short_url'],
+      }));
+    } catch {
+      return [];
+    }
   });
 }

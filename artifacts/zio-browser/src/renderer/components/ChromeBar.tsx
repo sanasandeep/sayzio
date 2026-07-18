@@ -8,6 +8,7 @@ import { useTabStore } from '../store/tab-store';
 import { useAuthStore } from '../store/auth-store';
 import { ShortenPopover } from './ShortenPopover';
 import { ModeSwitcher } from './ModeSwitcher';
+import { ProfileSwitcher } from './ProfileSwitcher';
 import { useModeStore } from '../store/mode-store';
 
 interface Props {
@@ -21,6 +22,8 @@ interface Props {
   activeDownloadCount?: number;
   /** True when this window is an incognito/private window. */
   isPrivate?: boolean;
+  /** Called when the user clicks the Device Lab button. */
+  onOpenDeviceLab?: () => void;
 }
 
 const BASE_URL = 'https://1in.me';
@@ -34,6 +37,7 @@ export function ChromeBar({
   onToggleDownloads,
   activeDownloadCount = 0,
   isPrivate = false,
+  onOpenDeviceLab,
 }: Props) {
   const { tabs, tabOrder, activeTabId, createTab, closeTab, activateTab, navigate, goBack, goForward, reload, stop } = useTabStore();
   const { user } = useAuthStore();
@@ -283,6 +287,23 @@ export function ChromeBar({
           }}
         >🔗</button>
 
+        {/* Device Lab button */}
+        <button
+          onClick={onOpenDeviceLab}
+          title="Device Lab — preview this biolink in phone / tablet / desktop"
+          style={{
+            fontSize: 13,
+            padding: '3px 8px',
+            borderRadius: 8,
+            background: 'var(--color-bg-elevated)',
+            color: 'var(--color-text)',
+            border: '1px solid var(--color-border)',
+            whiteSpace: 'nowrap',
+            transition: 'all 0.12s',
+            cursor: 'pointer',
+          }}
+        >🔬</button>
+
         {/* Sync pending indicator */}
         {pendingSyncCount > 0 && (
           <div
@@ -396,39 +417,11 @@ export function ChromeBar({
           <ModeSwitcher currentMode={mode} onSetMode={setMode} />
         )}
 
-        {/* User avatar / sign in */}
-        {user ? (
-          <div style={{
-            width: 28,
-            height: 28,
-            borderRadius: '50%',
-            background: 'var(--color-primary)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: 12,
-            fontWeight: 700,
-            color: '#fff',
-            cursor: 'pointer',
-            flexShrink: 0,
-          }}
-            title={user.name}
-          >
-            {(user.name ?? 'U').charAt(0).toUpperCase()}
-          </div>
-        ) : (
-          <button
-            onClick={onOpenAuth}
-            style={{
-              padding: '4px 10px',
-              borderRadius: 12,
-              background: 'var(--color-bg-elevated)',
-              border: '1px solid var(--color-border)',
-              fontSize: 12,
-              whiteSpace: 'nowrap',
-            }}
-          >Sign in</button>
-        )}
+        {/* Profile switcher — shows workspace profiles when signed in */}
+        <ProfileSwitcher
+          isAuthenticated={!!user}
+          onOpenAuth={onOpenAuth}
+        />
       </div>
 
       {/* Shorten / QR popover */}

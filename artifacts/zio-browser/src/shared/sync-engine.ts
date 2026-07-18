@@ -210,3 +210,15 @@ export function computeSyncState(
     pendingCount: pending.length,
   };
 }
+
+/**
+ * Build the sync_state entity key that isolates sync cursors per profile.
+ * Keeps sync timestamps per profile so switching workspace doesn't replay
+ * another profile's already-synced records.
+ *
+ * @example profileSyncEntityKey('bookmarks', 'default') => 'bookmarks:default'
+ * @example profileSyncEntityKey('history', '42')       => 'history:42'
+ */
+export function profileSyncEntityKey(entity: string, profileId: string): string {
+  return `${entity}:${profileId}`;
+}
