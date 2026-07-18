@@ -1,23 +1,63 @@
 /**
  * ChromeBar — the browser chrome (tab strip + address bar + controls).
  * Runs in the renderer (app chrome window); actual web content is in WebContentsView.
+ * Used in both Browser mode (full-width) and the right pane of Split mode.
  */
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { useTabStore } from '../store/tab-store';
 import { useAuthStore } from '../store/auth-store';
+import { ShortenPopover } from './ShortenPopover';
+import { ModeSwitcher } from './ModeSwitcher';
+import { useModeStore } from '../store/mode-store';
 
 interface Props {
   zioPanelOpen: boolean;
   onToggleZio: () => void;
   onOpenAuth: () => void;
+  /** If false, hides the mode switcher (used in split mode right pane). */
+  showModeSwitcher?: boolean;
+  downloadsPanelOpen?: boolean;
+  onToggleDownloads?: () => void;
+  activeDownloadCount?: number;
 }
 
-export function ChromeBar({ zioPanelOpen, onToggleZio, onOpenAuth }: Props) {
+const BASE_URL = 'https://1in.me';
+
+export function ChromeBar({
+  zioPanelOpen,
+  onToggleZio,
+  onOpenAuth,
+  showModeSwitcher = true,
+  downloadsPanelOpen = false,
+  onToggleDownloads,
+  activeDownloadCount = 0,
+}: Props) {
   const { tabs, tabOrder, activeTabId, createTab, closeTab, activateTab, navigate, goBack, goForward, reload, stop } = useTabStore();
   const { user } = useAuthStore();
+  const { mode, setMode } = useModeStore();
   const [omniboxValue, setOmniboxValue] = useState('');
   const [omniboxFocused, setOmniboxFocused] = useState(false);
+  const [shortenOpen, setShortenOpen] = useState(false);
+  const [pendingSyncCount, setPendingSyncCount] = useState(0);
   const omniboxRef = useRef<HTMLInputElement>(null);
+
+  // Track queued (offline / failed) sync pushes for the pending indicator
+  useEffect(() => {
+    let cancelled = false;
+    void window.zio.sync.pendingCount().then((n: number) => {
+      if (!cancelled) setPendingSyncCount(n);
+    }).catch(() => { /* main not ready yet — event listener will update */ });
+
+    const listener = (...args: unknown[]) => {
+      const n = args[0];
+      if (typeof n === 'number') setPendingSyncCount(n);
+    };
+    window.zio.on('sync:queue-changed', listener);
+    return () => {
+      cancelled = true;
+      window.zio.off('sync:queue-changed', listener);
+    };
+  }, []);
 
   const activeTab = activeTabId ? tabs[activeTabId] : null;
 
@@ -27,6 +67,11 @@ export function ChromeBar({ zioPanelOpen, onToggleZio, onOpenAuth }: Props) {
       setOmniboxValue(activeTab?.url ?? '');
     }
   }, [activeTab?.url, omniboxFocused]);
+
+  // Close the shorten popover when the active tab changes
+  useEffect(() => {
+    setShortenOpen(false);
+  }, [activeTabId]);
 
   const handleOmniboxSubmit = useCallback((e: React.FormEvent) => {
     e.preventDefault();
@@ -40,6 +85,7 @@ export function ChromeBar({ zioPanelOpen, onToggleZio, onOpenAuth }: Props) {
   }, [createTab]);
 
   const activeTabState = activeTab;
+  const canShorten = !!(activeTab?.url && activeTab.url !== 'about:newtab' && activeTab.url !== '');
 
   return (
     <div style={{
@@ -49,6 +95,7 @@ export function ChromeBar({ zioPanelOpen, onToggleZio, onOpenAuth }: Props) {
       display: 'flex',
       flexDirection: 'column',
       WebkitAppRegion: 'drag',
+      position: 'relative',
     } as React.CSSProperties}>
 
       {/* Tab Strip */}
@@ -190,8 +237,102 @@ export function ChromeBar({ zioPanelOpen, onToggleZio, onOpenAuth }: Props) {
           />
         </form>
 
+        {/* ── Link tool buttons ─────────────────────────────────────────────── */}
+
+        {/* Shorten + QR popover trigger */}
+        <button
+          onClick={() => {
+            if (!canShorten) return;
+            setShortenOpen(prev => !prev);
+          }}
+          disabled={!canShorten}
+          title="Shorten this page / generate QR code"
+          style={{
+            fontSize: 13,
+            padding: '3px 8px',
+            borderRadius: 8,
+            background: shortenOpen ? 'var(--color-primary)' : 'var(--color-bg-elevated)',
+            color: shortenOpen ? '#fff' : 'var(--color-text)',
+            border: '1px solid var(--color-border)',
+            opacity: canShorten ? 1 : 0.35,
+            whiteSpace: 'nowrap',
+            transition: 'all 0.12s',
+          }}
+        >🔗</button>
+
+        {/* Sync pending indicator */}
+        {pendingSyncCount > 0 && (
+          <div
+            title={`${pendingSyncCount} change${pendingSyncCount === 1 ? '' : 's'} waiting to sync — will retry automatically`}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 4,
+              padding: '2px 8px',
+              borderRadius: 10,
+              background: 'var(--color-bg-elevated)',
+              border: '1px solid var(--color-border)',
+              fontSize: 11,
+              color: 'var(--color-text-muted)',
+              whiteSpace: 'nowrap',
+              flexShrink: 0,
+            }}
+          >
+            <span style={{
+              width: 6,
+              height: 6,
+              borderRadius: '50%',
+              background: '#f0a020',
+              flexShrink: 0,
+            }} />
+            Sync pending
+          </div>
+        )}
+
         {/* Bookmark button */}
         <button style={{ fontSize: 16, padding: '2px 6px', opacity: 0.7 }} title="Bookmark">☆</button>
+
+        {/* Downloads button */}
+        {onToggleDownloads && (
+          <button
+            onClick={onToggleDownloads}
+            title="Downloads"
+            style={{
+              position: 'relative',
+              fontSize: 15,
+              padding: '2px 7px',
+              borderRadius: 8,
+              background: downloadsPanelOpen ? 'var(--color-primary)' : 'var(--color-bg-elevated)',
+              color: downloadsPanelOpen ? '#fff' : 'var(--color-text-muted)',
+              border: '1px solid var(--color-border)',
+              transition: 'all 0.12s',
+            }}
+          >
+            ⬇
+            {activeDownloadCount > 0 && (
+              <span style={{
+                position: 'absolute',
+                top: -5,
+                right: -5,
+                minWidth: 16,
+                height: 16,
+                borderRadius: 8,
+                background: 'var(--color-primary)',
+                color: '#fff',
+                fontSize: 9,
+                fontWeight: 700,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: '0 3px',
+                border: '1.5px solid var(--color-bg-surface)',
+                lineHeight: 1,
+              }}>
+                {activeDownloadCount}
+              </span>
+            )}
+          </button>
+        )}
 
         {/* Zio AI button */}
         <button
@@ -208,6 +349,11 @@ export function ChromeBar({ zioPanelOpen, onToggleZio, onOpenAuth }: Props) {
           }}
           title="Open Zio AI Panel"
         >⚡ Zio</button>
+
+        {/* Mode switcher — shown in browser mode, hidden in split right-pane */}
+        {showModeSwitcher && (
+          <ModeSwitcher currentMode={mode} onSetMode={setMode} />
+        )}
 
         {/* User avatar / sign in */}
         {user ? (
@@ -243,6 +389,17 @@ export function ChromeBar({ zioPanelOpen, onToggleZio, onOpenAuth }: Props) {
           >Sign in</button>
         )}
       </div>
+
+      {/* Shorten / QR popover */}
+      {shortenOpen && activeTab && (
+        <ShortenPopover
+          pageUrl={activeTab.url}
+          pageTitle={activeTab.title ?? ''}
+          baseUrl={BASE_URL}
+          onClose={() => setShortenOpen(false)}
+          onOpenAuth={() => { setShortenOpen(false); onOpenAuth(); }}
+        />
+      )}
     </div>
   );
 }

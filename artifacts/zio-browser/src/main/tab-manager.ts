@@ -2,7 +2,7 @@
  * Tab manager for Zio Browser.
  * Manages WebContentsView instances, tab state, and navigation.
  */
-import { BrowserWindow, WebContentsView, session, type WebContents } from 'electron';
+import { BrowserWindow, WebContentsView, Menu, clipboard, session, type WebContents } from 'electron';
 import { parseOmniboxInput, type SearchEngineConfig, DEFAULT_SEARCH_ENGINE } from '../shared/omnibox';
 
 export interface TabState {
@@ -17,6 +17,13 @@ export interface TabState {
   isAudible: boolean;
   isMuted: boolean;
   zoomFactor: number;
+}
+
+export interface FindResult {
+  tabId: string;
+  activeMatchOrdinal: number;
+  matches: number;
+  finalUpdate: boolean;
 }
 
 type TabId = string;
@@ -48,6 +55,9 @@ export class TabManager {
   private onTabClosed?: (tabId: TabId) => void;
   private onActiveTabChange?: (tabId: TabId) => void;
   private onNavigate?: (tabId: TabId, url: string, title: string) => void;
+  /** Optional callback invoked when the user picks "Add to my biolink" from the context menu */
+  private onAddToBiolink?: (url: string, title: string) => void;
+  private onFindResult?: (result: FindResult) => void;
 
   constructor(win: BrowserWindow) {
     this.win = win;
@@ -59,12 +69,16 @@ export class TabManager {
     onTabClosed?: (tabId: TabId) => void;
     onActiveTabChange?: (tabId: TabId) => void;
     onNavigate?: (tabId: TabId, url: string, title: string) => void;
+    onAddToBiolink?: (url: string, title: string) => void;
+    onFindResult?: (result: FindResult) => void;
   }): void {
     this.onTabStateChange = cbs.onTabStateChange;
     this.onTabCreated = cbs.onTabCreated;
     this.onTabClosed = cbs.onTabClosed;
     this.onActiveTabChange = cbs.onActiveTabChange;
     this.onNavigate = cbs.onNavigate;
+    this.onAddToBiolink = cbs.onAddToBiolink;
+    this.onFindResult = cbs.onFindResult;
   }
 
   setSearchEngine(engine: SearchEngineConfig): void {
@@ -93,6 +107,11 @@ export class TabManager {
 
     // Wire up events
     wc.on('did-navigate', (_, navUrl) => {
+      // Stop any in-progress find and reset match state on navigation
+      if (isAlive(wc)) {
+        wc.stopFindInPage('clearSelection');
+      }
+      this.onFindResult?.({ tabId: id, activeMatchOrdinal: 0, matches: 0, finalUpdate: true });
       this.onTabStateChange?.(id, {
         url: navUrl,
         canGoBack: wc.canGoBack(),
@@ -136,6 +155,57 @@ export class TabManager {
 
     wc.on('audio-state-changed', ({ audible }) => {
       this.onTabStateChange?.(id, { isAudible: audible });
+    });
+
+    // ── Context menu ─────────────────────────────────────────────────────────
+    // Adds "Add to my biolink" to the right-click menu on every page.
+    wc.on('context-menu', (event, params) => {
+      const pageUrl = params.pageURL || wc.getURL();
+      const pageTitle = wc.getTitle();
+      // The URL that was right-clicked: prefer a link href if present, else the
+      // page URL itself so the user can add the current page to their biolink.
+      const targetUrl = params.linkURL || params.srcURL || pageUrl;
+
+      const menuItems: Electron.MenuItemConstructorOptions[] = [];
+
+      // Standard edit items when text is selected or on input fields
+      if (params.isEditable) {
+        menuItems.push({ role: 'cut' }, { role: 'copy' }, { role: 'paste' }, { type: 'separator' });
+      } else if (params.selectionText) {
+        menuItems.push({ role: 'copy' }, { type: 'separator' });
+      }
+
+      // Link-specific items
+      if (params.linkURL) {
+        menuItems.push(
+          { label: 'Open link in new tab', click: () => { this.createTab(params.linkURL); } },
+          { label: 'Copy link address', click: () => { clipboard.writeText(params.linkURL); } },
+          { type: 'separator' },
+        );
+      }
+
+      // ── Sayzio link tools ───────────────────────────────────────────────────
+      menuItems.push(
+        {
+          label: 'Add to my biolink…',
+          click: () => { this.onAddToBiolink?.(targetUrl, pageTitle); },
+        },
+      );
+
+      if (menuItems.length > 0) {
+        const menu = Menu.buildFromTemplate(menuItems);
+        menu.popup({ window: this.win });
+      }
+    });
+
+    // ── Find in page results ──────────────────────────────────────────────────
+    wc.on('found-in-page', (_, result) => {
+      this.onFindResult?.({
+        tabId: id,
+        activeMatchOrdinal: result.activeMatchOrdinal,
+        matches: result.matches,
+        finalUpdate: result.finalUpdate,
+      });
     });
 
     // Handle new-window requests (target="_blank" etc.)
@@ -260,12 +330,18 @@ export class TabManager {
     }
   }
 
-  findInPage(id: TabId, text: string, forward = true): void {
-    this.tabs.get(id)?.view.webContents.findInPage(text, { forward });
+  findInPage(id: TabId, text: string, forward = true, matchCase = false): void {
+    const wc = this.tabs.get(id)?.view.webContents;
+    if (!wc || !text) return;
+    wc.findInPage(text, { forward, matchCase });
   }
 
   stopFindInPage(id: TabId): void {
-    this.tabs.get(id)?.view.webContents.stopFindInPage('clearSelection');
+    const wc = this.tabs.get(id)?.view.webContents;
+    if (wc && isAlive(wc)) {
+      wc.stopFindInPage('clearSelection');
+    }
+    this.onFindResult?.({ tabId: id, activeMatchOrdinal: 0, matches: 0, finalUpdate: true });
   }
 
   muteTab(id: TabId, muted: boolean): void {
@@ -306,8 +382,26 @@ export class TabManager {
   }
 
   resizeTabs(bounds: { x: number; y: number; width: number; height: number }): void {
-    for (const [, tab] of this.tabs) {
+    for (const [id, tab] of this.tabs) {
       tab.view.setBounds(bounds);
+      if (id !== this.activeTabId) {
+        try { this.win.contentView.removeChildView(tab.view); } catch { }
+      }
+    }
+    if (this.activeTabId) {
+      const active = this.tabs.get(this.activeTabId);
+      if (active) {
+        try { this.win.contentView.addChildView(active.view); } catch { }
+      }
+    }
+  }
+
+  /**
+   * Move all tab views off-screen (used in dashboard mode where no tabs are visible).
+   */
+  hideAllTabs(): void {
+    for (const [, tab] of this.tabs) {
+      try { this.win.contentView.removeChildView(tab.view); } catch { }
     }
   }
 

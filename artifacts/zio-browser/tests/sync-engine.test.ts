@@ -4,8 +4,14 @@ import {
   getPendingUploads,
   isSyncDue,
   computeSyncState,
+  computeBackoffMs,
+  nextAttemptAt,
+  isQueueItemDue,
+  getDueQueueItems,
   SYNC_INTERVALS,
+  RETRY_BACKOFF,
   type SyncRecord,
+  type SyncQueueItem,
 } from '../src/shared/sync-engine';
 
 function makeRecord(id: string, updatedAt: string, syncedAt?: string | null, deleted = false): SyncRecord {
@@ -143,5 +149,86 @@ describe('computeSyncState', () => {
   it('includes lastError', () => {
     const state = computeSyncState([], null, 'Network error');
     expect(state.lastError).toBe('Network error');
+  });
+});
+
+function makeQueueItem(id: string, overrides: Partial<SyncQueueItem> = {}): SyncQueueItem {
+  return {
+    id,
+    entity: 'history',
+    payload: '[]',
+    attempts: 1,
+    next_attempt_at: '2025-01-01T00:00:00Z',
+    last_error: null,
+    created_at: '2025-01-01T00:00:00Z',
+    ...overrides,
+  };
+}
+
+describe('computeBackoffMs', () => {
+  it('starts at 1 second', () => {
+    expect(computeBackoffMs(0)).toBe(1000);
+  });
+
+  it('doubles per attempt: 1s → 2s → 4s → 8s', () => {
+    expect(computeBackoffMs(1)).toBe(2000);
+    expect(computeBackoffMs(2)).toBe(4000);
+    expect(computeBackoffMs(3)).toBe(8000);
+  });
+
+  it('caps at 5 minutes', () => {
+    expect(computeBackoffMs(9)).toBe(RETRY_BACKOFF.CAP_MS); // 512s > 300s
+    expect(computeBackoffMs(50)).toBe(RETRY_BACKOFF.CAP_MS);
+    expect(computeBackoffMs(1000)).toBe(RETRY_BACKOFF.CAP_MS);
+  });
+
+  it('clamps negative attempts to base delay', () => {
+    expect(computeBackoffMs(-3)).toBe(1000);
+  });
+});
+
+describe('nextAttemptAt', () => {
+  it('schedules the first retry 1s out', () => {
+    const now = Date.parse('2025-01-01T00:00:00Z');
+    expect(nextAttemptAt(1, now)).toBe(new Date(now + 1000).toISOString());
+  });
+
+  it('schedules later retries with exponential delay', () => {
+    const now = Date.parse('2025-01-01T00:00:00Z');
+    expect(nextAttemptAt(3, now)).toBe(new Date(now + 4000).toISOString());
+  });
+
+  it('never exceeds the 5-minute cap', () => {
+    const now = Date.parse('2025-01-01T00:00:00Z');
+    expect(nextAttemptAt(30, now)).toBe(new Date(now + RETRY_BACKOFF.CAP_MS).toISOString());
+  });
+});
+
+describe('isQueueItemDue / getDueQueueItems', () => {
+  const now = Date.parse('2025-01-01T00:01:00Z');
+
+  it('due when next_attempt_at is in the past', () => {
+    expect(isQueueItemDue(makeQueueItem('a', { next_attempt_at: '2025-01-01T00:00:30Z' }), now)).toBe(true);
+  });
+
+  it('not due when next_attempt_at is in the future', () => {
+    expect(isQueueItemDue(makeQueueItem('a', { next_attempt_at: '2025-01-01T00:02:00Z' }), now)).toBe(false);
+  });
+
+  it('filters to due items and sorts oldest first', () => {
+    const items = [
+      makeQueueItem('newer', { next_attempt_at: '2025-01-01T00:00:30Z', created_at: '2025-01-01T00:00:20Z' }),
+      makeQueueItem('future', { next_attempt_at: '2025-01-01T00:05:00Z' }),
+      makeQueueItem('older', { next_attempt_at: '2025-01-01T00:00:10Z', created_at: '2025-01-01T00:00:05Z' }),
+    ];
+    const due = getDueQueueItems(items, now);
+    expect(due.map(i => i.id)).toEqual(['older', 'newer']);
+  });
+
+  it('after network recovers, an item queued at max backoff is due within one cycle', () => {
+    const failedAt = Date.parse('2025-01-01T00:00:00Z');
+    const item = makeQueueItem('a', { attempts: 20, next_attempt_at: nextAttemptAt(20, failedAt) });
+    // One full cap-length backoff cycle later, the item is due
+    expect(isQueueItemDue(item, failedAt + RETRY_BACKOFF.CAP_MS)).toBe(true);
   });
 });

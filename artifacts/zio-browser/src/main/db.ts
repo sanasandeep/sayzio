@@ -14,7 +14,8 @@ import {
 import type { Collection, SavedLink } from '../shared/collection-store';
 import { generateId, normalizeCollectionUrl } from '../shared/collection-store';
 import { normalizeUrlForHistory } from '../shared/omnibox';
-import type { SyncRecord } from '../shared/sync-engine';
+import type { SyncRecord, SyncQueueItem, SyncEntityKind } from '../shared/sync-engine';
+import { nextAttemptAt } from '../shared/sync-engine';
 
 export interface HistoryEntry {
   id: string;
@@ -57,6 +58,15 @@ export interface Download {
   completed_at: string | null;
 }
 
+export interface SavedPassword {
+  id: string;
+  origin: string;
+  username: string;
+  password_enc: string;
+  created_at: string;
+  updated_at: string;
+}
+
 let _db: Database.Database | null = null;
 
 export function getDb(): Database.Database {
@@ -80,6 +90,7 @@ function migrateSchema(db: Database.Database): void {
 
   if (currentVersion < SCHEMA_VERSION) {
     db.transaction(() => {
+      // v6: add saved_passwords table (CREATE TABLE IF NOT EXISTS handles it above)
       if (currentVersion === 0) {
         db.prepare('INSERT OR REPLACE INTO schema_version(version) VALUES(?)').run(SCHEMA_VERSION);
       } else {
@@ -154,6 +165,13 @@ export function getRecentHistory(limit = 50): HistoryEntry[] {
 export function clearHistory(): void {
   const db = getDb();
   db.prepare('UPDATE history SET deleted = 1, updated_at = ? WHERE deleted = 0').run(new Date().toISOString());
+}
+
+export function deleteHistoryEntry(id: string): boolean {
+  const db = getDb();
+  const now = new Date().toISOString();
+  const result = db.prepare('UPDATE history SET deleted = 1, updated_at = ? WHERE id = ? AND deleted = 0').run(now, id);
+  return (result.changes ?? 0) > 0;
 }
 
 // ── Bookmarks ────────────────────────────────────────────────────────────────
@@ -326,6 +344,60 @@ export function setSyncState(entity: string, lastSyncAt: string | null, lastErro
   db.prepare('INSERT OR REPLACE INTO sync_state(entity, last_sync_at, last_error) VALUES(?, ?, ?)').run(entity, lastSyncAt, lastError);
 }
 
+// ── Sync retry queue ─────────────────────────────────────────────────────────
+
+export function enqueueSyncPush(entity: SyncEntityKind, payload: string, error: string | null = null): SyncQueueItem {
+  const db = getDb();
+  const now = new Date().toISOString();
+  const id = generateId();
+  db.prepare(`
+    INSERT INTO sync_queue(id, entity, payload, attempts, next_attempt_at, last_error, created_at)
+    VALUES(?, ?, ?, 1, ?, ?, ?)
+  `).run(id, entity, payload, nextAttemptAt(1), error, now);
+  return db.prepare('SELECT * FROM sync_queue WHERE id = ?').get(id) as SyncQueueItem;
+}
+
+export function getSyncQueueItems(): SyncQueueItem[] {
+  const db = getDb();
+  return db.prepare('SELECT * FROM sync_queue ORDER BY created_at ASC').all() as SyncQueueItem[];
+}
+
+export function countSyncQueue(): number {
+  const db = getDb();
+  const row = db.prepare('SELECT COUNT(*) as n FROM sync_queue').get() as { n: number };
+  return row.n;
+}
+
+export function markSyncQueueFailure(id: string, error: string): void {
+  const db = getDb();
+  const row = db.prepare('SELECT attempts FROM sync_queue WHERE id = ?').get(id) as { attempts: number } | undefined;
+  if (!row) return;
+  const attempts = row.attempts + 1;
+  db.prepare('UPDATE sync_queue SET attempts = ?, next_attempt_at = ?, last_error = ? WHERE id = ?')
+    .run(attempts, nextAttemptAt(attempts), error, id);
+}
+
+export function removeSyncQueueItem(id: string): void {
+  const db = getDb();
+  db.prepare('DELETE FROM sync_queue WHERE id = ?').run(id);
+}
+
+const SYNC_ENTITY_TABLES: Record<SyncEntityKind, string> = {
+  bookmarks: 'bookmarks',
+  collections: 'collections',
+  history: 'history',
+};
+
+/** Stamp synced_at on local rows after a queued push finally succeeds. */
+export function markRecordsSynced(entity: SyncEntityKind, ids: string[]): void {
+  if (ids.length === 0) return;
+  const db = getDb();
+  const table = SYNC_ENTITY_TABLES[entity];
+  const now = new Date().toISOString();
+  const placeholders = ids.map(() => '?').join(', ');
+  db.prepare(`UPDATE ${table} SET synced_at = ? WHERE id IN (${placeholders})`).run(now, ...ids);
+}
+
 // ── Downloads ────────────────────────────────────────────────────────────────
 
 export function recordDownload(download: Omit<Download, 'created_at' | 'completed_at'>): void {
@@ -352,4 +424,74 @@ export function updateDownload(id: string, updates: Partial<Pick<Download, 'save
 export function getRecentDownloads(limit = 50): Download[] {
   const db = getDb();
   return db.prepare('SELECT * FROM downloads ORDER BY created_at DESC LIMIT ?').all(limit) as Download[];
+}
+
+export function searchDownloads(query: string, limit = 50): Download[] {
+  const db = getDb();
+  const like = `%${query.replace(/[%_]/g, c => `\\${c}`)}%`;
+  return db.prepare(`
+    SELECT * FROM downloads
+    WHERE (filename LIKE ? ESCAPE '\\' OR url LIKE ? ESCAPE '\\')
+    ORDER BY created_at DESC LIMIT ?
+  `).all(like, like, limit) as Download[];
+}
+
+export function deleteDownload(id: string): void {
+  const db = getDb();
+  db.prepare('DELETE FROM downloads WHERE id = ?').run(id);
+}
+
+export function clearAllDownloads(): void {
+  const db = getDb();
+  db.prepare("DELETE FROM downloads WHERE state IN ('completed', 'interrupted', 'cancelled')").run();
+}
+
+// ── Saved passwords ──────────────────────────────────────────────────────────
+
+export function savePassword(origin: string, username: string, passwordEnc: string): SavedPassword {
+  const db = getDb();
+  const now = new Date().toISOString();
+  const existing = db.prepare(
+    'SELECT * FROM saved_passwords WHERE origin = ? AND username = ?',
+  ).get(origin, username) as SavedPassword | undefined;
+
+  if (existing) {
+    db.prepare(
+      'UPDATE saved_passwords SET password_enc = ?, updated_at = ? WHERE id = ?',
+    ).run(passwordEnc, now, existing.id);
+    return db.prepare('SELECT * FROM saved_passwords WHERE id = ?').get(existing.id) as SavedPassword;
+  }
+
+  const id = generateId();
+  db.prepare(`
+    INSERT INTO saved_passwords(id, origin, username, password_enc, created_at, updated_at)
+    VALUES(?, ?, ?, ?, ?, ?)
+  `).run(id, origin, username, passwordEnc, now, now);
+  return db.prepare('SELECT * FROM saved_passwords WHERE id = ?').get(id) as SavedPassword;
+}
+
+export function getPasswordsForOrigin(origin: string): SavedPassword[] {
+  const db = getDb();
+  return db.prepare(
+    'SELECT * FROM saved_passwords WHERE origin = ? ORDER BY updated_at DESC',
+  ).all(origin) as SavedPassword[];
+}
+
+export function getAllSavedPasswords(): SavedPassword[] {
+  const db = getDb();
+  return db.prepare(
+    'SELECT * FROM saved_passwords ORDER BY origin ASC, updated_at DESC',
+  ).all() as SavedPassword[];
+}
+
+export function deletePassword(id: string): boolean {
+  const db = getDb();
+  const result = db.prepare('DELETE FROM saved_passwords WHERE id = ?').run(id);
+  return (result.changes ?? 0) > 0;
+}
+
+export function deleteAllPasswords(): void {
+  const db = getDb();
+  db.prepare('DELETE FROM saved_passwords').run();
+}
 }

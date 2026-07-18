@@ -6,7 +6,7 @@
  * importing better-sqlite3 (which requires native bindings).
  */
 
-export const SCHEMA_VERSION = 4;
+export const SCHEMA_VERSION = 6;
 
 export const CREATE_TABLES_SQL = `
 PRAGMA journal_mode = WAL;
@@ -116,6 +116,29 @@ CREATE TABLE IF NOT EXISTS sync_state (
   last_sync_at TEXT,
   last_error   TEXT
 );
+
+CREATE TABLE IF NOT EXISTS sync_queue (
+  id              TEXT PRIMARY KEY NOT NULL,
+  entity          TEXT NOT NULL,
+  payload         TEXT NOT NULL,
+  attempts        INTEGER NOT NULL DEFAULT 0,
+  next_attempt_at TEXT NOT NULL,
+  last_error      TEXT,
+  created_at      TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS sync_queue_due ON sync_queue(next_attempt_at);
+
+CREATE TABLE IF NOT EXISTS saved_passwords (
+  id           TEXT PRIMARY KEY NOT NULL,
+  origin       TEXT NOT NULL,
+  username     TEXT NOT NULL,
+  password_enc TEXT NOT NULL,
+  created_at   TEXT NOT NULL,
+  updated_at   TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS saved_passwords_origin ON saved_passwords(origin);
 `;
 
 export const PREFERENCE_KEYS = {
@@ -132,6 +155,10 @@ export const PREFERENCE_KEYS = {
   NEW_TAB_PAGE: 'new_tab_page',
   DOWNLOAD_PATH: 'download_path',
   SAVE_PASSWORDS: 'save_passwords',
+  WINDOW_MODE: 'window_mode',
+  SPLIT_RATIO: 'split_ratio',
+  ZIO_PANEL_WIDTH: 'zio_panel_width',
+  ZIO_PANEL_DOCKED: 'zio_panel_docked',
 } as const;
 
 export type PreferenceKey = typeof PREFERENCE_KEYS[keyof typeof PREFERENCE_KEYS];
