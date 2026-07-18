@@ -351,8 +351,26 @@ export class TabManager {
   }
 
   resizeTabs(bounds: { x: number; y: number; width: number; height: number }): void {
-    for (const [, tab] of this.tabs) {
+    for (const [id, tab] of this.tabs) {
       tab.view.setBounds(bounds);
+      if (id !== this.activeTabId) {
+        try { this.win.contentView.removeChildView(tab.view); } catch { }
+      }
+    }
+    if (this.activeTabId) {
+      const active = this.tabs.get(this.activeTabId);
+      if (active) {
+        try { this.win.contentView.addChildView(active.view); } catch { }
+      }
+    }
+  }
+
+  /**
+   * Move all tab views off-screen (used in dashboard mode where no tabs are visible).
+   */
+  hideAllTabs(): void {
+    for (const [, tab] of this.tabs) {
+      try { this.win.contentView.removeChildView(tab.view); } catch { }
     }
   }
 

@@ -132,6 +132,8 @@ export const PREFERENCE_KEYS = {
   NEW_TAB_PAGE: 'new_tab_page',
   DOWNLOAD_PATH: 'download_path',
   SAVE_PASSWORDS: 'save_passwords',
+  WINDOW_MODE: 'window_mode',
+  SPLIT_RATIO: 'split_ratio',
 } as const;
 
 export type PreferenceKey = typeof PREFERENCE_KEYS[keyof typeof PREFERENCE_KEYS];

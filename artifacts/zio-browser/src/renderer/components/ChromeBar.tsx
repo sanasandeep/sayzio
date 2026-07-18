@@ -1,23 +1,29 @@
 /**
  * ChromeBar — the browser chrome (tab strip + address bar + controls).
  * Runs in the renderer (app chrome window); actual web content is in WebContentsView.
+ * Used in both Browser mode (full-width) and the right pane of Split mode.
  */
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { useTabStore } from '../store/tab-store';
 import { useAuthStore } from '../store/auth-store';
 import { ShortenPopover } from './ShortenPopover';
+import { ModeSwitcher } from './ModeSwitcher';
+import { useModeStore } from '../store/mode-store';
 
 interface Props {
   zioPanelOpen: boolean;
   onToggleZio: () => void;
   onOpenAuth: () => void;
+  /** If false, hides the mode switcher (used in split mode right pane). */
+  showModeSwitcher?: boolean;
 }
 
 const BASE_URL = 'https://1in.me';
 
-export function ChromeBar({ zioPanelOpen, onToggleZio, onOpenAuth }: Props) {
+export function ChromeBar({ zioPanelOpen, onToggleZio, onOpenAuth, showModeSwitcher = true }: Props) {
   const { tabs, tabOrder, activeTabId, createTab, closeTab, activateTab, navigate, goBack, goForward, reload, stop } = useTabStore();
   const { user } = useAuthStore();
+  const { mode, setMode } = useModeStore();
   const [omniboxValue, setOmniboxValue] = useState('');
   const [omniboxFocused, setOmniboxFocused] = useState(false);
   const [shortenOpen, setShortenOpen] = useState(false);
@@ -242,6 +248,11 @@ export function ChromeBar({ zioPanelOpen, onToggleZio, onOpenAuth }: Props) {
           }}
           title="Open Zio AI Panel"
         >⚡ Zio</button>
+
+        {/* Mode switcher — shown in browser mode, hidden in split right-pane */}
+        {showModeSwitcher && (
+          <ModeSwitcher currentMode={mode} onSetMode={setMode} />
+        )}
 
         {/* User avatar / sign in */}
         {user ? (

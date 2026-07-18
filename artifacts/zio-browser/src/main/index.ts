@@ -6,14 +6,16 @@ import { app, BrowserWindow, Menu, session, nativeTheme } from 'electron';
 import { initDb, getPreference } from './db';
 import { PREFERENCE_KEYS } from '../shared/db-schema';
 import { TabManager } from './tab-manager';
+import { WindowModeManager, CHROME_HEIGHT } from './window-mode-manager';
 import { registerIpcHandlers } from './ipc-handlers';
 import { setupDownloadManager } from './download-manager';
+import type { WindowMode } from '../shared/window-mode';
 
 const isDev = process.env['NODE_ENV'] === 'development';
-const CHROME_HEIGHT = 72; // height of the tab strip + address bar
 
 let mainWindow: BrowserWindow | null = null;
 let tabManager: TabManager | null = null;
+let modeManager: WindowModeManager | null = null;
 
 function getRendererUrl(): string {
   if (isDev) {
@@ -23,7 +25,6 @@ function getRendererUrl(): string {
 }
 
 function createWindow(): void {
-  // Security: Set up a restrictive CSP for all pages loaded by the app chrome
   session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
     callback({
       responseHeaders: {
@@ -43,7 +44,7 @@ function createWindow(): void {
       preload: path.join(__dirname, '../preload/index.js'),
       contextIsolation: true,
       nodeIntegration: false,
-      sandbox: false, // preload needs Node
+      sandbox: false,
       webSecurity: true,
     },
     titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',
@@ -76,17 +77,26 @@ function createWindow(): void {
     },
   });
 
+  // Read persisted mode and split ratio
+  const savedMode = (getPreference(PREFERENCE_KEYS.WINDOW_MODE) as WindowMode | null) ?? 'browser';
+  const savedRatio = parseFloat(getPreference(PREFERENCE_KEYS.SPLIT_RATIO) ?? '0.35') || 0.35;
+
+  // Initialize the window mode manager
+  modeManager = new WindowModeManager(mainWindow, tabManager, savedMode, savedRatio);
+  modeManager.setModeChangeCallback((mode) => {
+    mainWindow?.webContents.send('window:mode-changed', mode);
+  });
+
   // Register all IPC handlers
-  registerIpcHandlers(tabManager);
+  registerIpcHandlers(tabManager, modeManager);
 
   // Setup download manager
   setupDownloadManager(session.defaultSession, mainWindow);
 
-  // Handle window resize — update tab view bounds
+  // Handle window resize — update view bounds through the mode manager
   mainWindow.on('resize', () => {
-    if (!mainWindow || !tabManager) return;
-    const [w, h] = mainWindow.getContentSize();
-    tabManager.resizeTabs({ x: 0, y: CHROME_HEIGHT, width: w, height: h - CHROME_HEIGHT });
+    if (!mainWindow || !modeManager) return;
+    modeManager.applyBounds();
   });
 
   // Load the renderer (app chrome)
@@ -95,15 +105,14 @@ function createWindow(): void {
   mainWindow.once('ready-to-show', () => {
     mainWindow?.show();
 
-    // Load user preferences
-    const searchEngine = getPreference(PREFERENCE_KEYS.SEARCH_ENGINE);
-    if (searchEngine) {
-      // Apply search engine preference to tab manager
-    }
+    // Apply the initial mode (sets up views)
+    modeManager?.setMode(savedMode);
 
-    // Open the default new tab
-    const newTabUrl = getPreference(PREFERENCE_KEYS.NEW_TAB_PAGE) ?? undefined;
-    tabManager?.createTab(newTabUrl);
+    // In browser mode, also open the default new tab
+    if (savedMode === 'browser') {
+      const newTabUrl = getPreference(PREFERENCE_KEYS.NEW_TAB_PAGE) ?? undefined;
+      tabManager?.createTab(newTabUrl);
+    }
 
     if (isDev) {
       mainWindow?.webContents.openDevTools({ mode: 'detach' });
@@ -111,8 +120,11 @@ function createWindow(): void {
   });
 
   mainWindow.on('closed', () => {
+    modeManager?.destroy();
     tabManager?.destroyAll();
     mainWindow = null;
+    tabManager = null;
+    modeManager = null;
   });
 
   buildMenu();
@@ -136,11 +148,28 @@ function buildMenu(): void {
     {
       label: 'File',
       submenu: [
-        { label: 'New Tab', accelerator: 'CmdOrCtrl+T', click: () => tabManager?.createTab() },
-        { label: 'Close Tab', accelerator: 'CmdOrCtrl+W', click: () => {
-          const activeId = tabManager?.getActiveTabId();
-          if (activeId) tabManager?.closeTab(activeId);
-        }},
+        {
+          label: 'New Tab',
+          accelerator: 'CmdOrCtrl+T',
+          click: () => {
+            const mode = modeManager?.getMode() ?? 'browser';
+            if (mode === 'dashboard') {
+              // Switch to browser mode, then open a tab
+              modeManager?.setMode('browser');
+              tabManager?.createTab();
+            } else {
+              tabManager?.createTab();
+            }
+          },
+        },
+        {
+          label: 'Close Tab',
+          accelerator: 'CmdOrCtrl+W',
+          click: () => {
+            const activeId = tabManager?.getActiveTabId();
+            if (activeId) tabManager?.closeTab(activeId);
+          },
+        },
         { type: 'separator' },
         isMac ? { role: 'close' as const } : { role: 'quit' as const },
       ],
@@ -164,6 +193,22 @@ function buildMenu(): void {
     {
       label: 'View',
       submenu: [
+        {
+          label: 'Dashboard Mode',
+          accelerator: 'CmdOrCtrl+Shift+1',
+          click: () => { modeManager?.setMode('dashboard'); },
+        },
+        {
+          label: 'Split Mode',
+          accelerator: 'CmdOrCtrl+Shift+2',
+          click: () => { modeManager?.setMode('split'); },
+        },
+        {
+          label: 'Browser Mode',
+          accelerator: 'CmdOrCtrl+Shift+3',
+          click: () => { modeManager?.setMode('browser'); },
+        },
+        { type: 'separator' as const },
         { label: 'Zoom In', accelerator: 'CmdOrCtrl+=', click: () => {
           const id = tabManager?.getActiveTabId();
           if (id) { const s = tabManager?.getTabState(id); tabManager?.setZoom(id, (s?.zoomFactor ?? 1) + 0.1); }
@@ -239,7 +284,9 @@ app.on('window-all-closed', () => {
 // Security: Prevent new window creation from web content
 app.on('web-contents-created', (_, contents) => {
   contents.on('will-attach-webview', (event) => {
-    // Disallow webview tags in the app chrome
     event.preventDefault();
   });
 });
+
+// Silence the unused CHROME_HEIGHT import warning
+void CHROME_HEIGHT;

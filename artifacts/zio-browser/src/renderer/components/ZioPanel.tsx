@@ -17,6 +17,8 @@ const BASE_URL = 'https://1in.me';
 interface Props {
   pageContext: { url: string; title: string } | null;
   onClose: () => void;
+  /** When true, renders as a full-area panel (no fixed width) for the split-mode left pane. */
+  embedded?: boolean;
 }
 
 interface Message {
@@ -27,7 +29,7 @@ interface Message {
 
 type PanelTab = 'chat' | 'contacts' | 'collections' | 'stats';
 
-export function ZioPanel({ pageContext, onClose }: Props) {
+export function ZioPanel({ pageContext, onClose, embedded }: Props) {
   const { token } = useAuthStore();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
@@ -152,12 +154,13 @@ export function ZioPanel({ pageContext, onClose }: Props) {
 
   return (
     <div style={{
-      width: 'var(--sidebar-width)',
+      width: embedded ? '100%' : 'var(--sidebar-width)',
+      height: embedded ? '100%' : undefined,
       background: 'var(--color-bg-surface)',
-      borderLeft: '1px solid var(--color-border)',
+      borderLeft: embedded ? 'none' : '1px solid var(--color-border)',
       display: 'flex',
       flexDirection: 'column',
-      flexShrink: 0,
+      flexShrink: embedded ? 1 : 0,
     }}>
       {/* Header */}
       <div style={{

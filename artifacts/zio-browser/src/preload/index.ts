@@ -53,6 +53,15 @@ const api = {
     extractContext: (id: string) => ipcRenderer.invoke('tabs:extract-context', id),
   },
 
+  // ── Window mode ───────────────────────────────────────────────────────────
+  window: {
+    getMode: () => ipcRenderer.invoke('window:get-mode'),
+    setMode: (mode: string) => ipcRenderer.invoke('window:set-mode', mode),
+    getSplitRatio: () => ipcRenderer.invoke('window:get-split-ratio'),
+    setSplitRatio: (ratio: number) => ipcRenderer.invoke('window:set-split-ratio', ratio),
+    reloadDashboard: () => ipcRenderer.invoke('window:reload-dashboard'),
+  },
+
   // ── History ───────────────────────────────────────────────────────────────
   history: {
     record: (url: string, title: string | null, favicon?: string) => ipcRenderer.invoke('history:record', url, title, favicon),
@@ -126,6 +135,7 @@ const api = {
       'find:open',
       // Link tools — context menu "Add to my biolink" trigger
       'biolink:add-page',
+      'window:mode-changed',
     ]);
     if (!ALLOWED_CHANNELS.has(channel)) return;
     ipcRenderer.on(channel, (_, ...args) => listener(...args));

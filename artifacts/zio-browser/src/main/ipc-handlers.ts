@@ -2,8 +2,9 @@
  * IPC handlers — bridge between the renderer process and the main process.
  * All sensitive operations (DB, auth, downloads) run here.
  */
-import { ipcMain, shell, dialog, clipboard, nativeTheme } from 'electron';
+import { ipcMain, shell, dialog, clipboard, nativeTheme, BrowserWindow } from 'electron';
 import type { TabManager } from './tab-manager';
+import type { WindowModeManager } from './window-mode-manager';
 import {
   initDb,
   getPreference,
@@ -31,10 +32,11 @@ import {
 import { storeToken, retrieveToken, clearToken, storeUser, retrieveUser, clearUser } from './auth-store';
 import { createCollection, createSavedLink } from '../shared/collection-store';
 import type { PREFERENCE_KEYS } from '../shared/db-schema';
+import type { WindowMode } from '../shared/window-mode';
 
 type PrefKey = typeof PREFERENCE_KEYS[keyof typeof PREFERENCE_KEYS];
 
-export function registerIpcHandlers(tabManager: TabManager): void {
+export function registerIpcHandlers(tabManager: TabManager, modeManager?: WindowModeManager): void {
   // ── DB init ──────────────────────────────────────────────────────────────
   ipcMain.handle('db:init', () => {
     initDb();
@@ -113,6 +115,30 @@ export function registerIpcHandlers(tabManager: TabManager): void {
     } catch {
       return null;
     }
+  });
+
+  // ── Window mode ──────────────────────────────────────────────────────────
+  ipcMain.handle('window:get-mode', () => modeManager?.getMode() ?? 'browser');
+  ipcMain.handle('window:set-mode', (event, mode: WindowMode) => {
+    if (!modeManager) return false;
+    modeManager.setMode(mode);
+    // Persist as last-used mode
+    setPreference('window_mode', mode);
+    // Notify the renderer
+    const win = BrowserWindow.fromWebContents(event.sender);
+    win?.webContents.send('window:mode-changed', mode);
+    return true;
+  });
+  ipcMain.handle('window:get-split-ratio', () => modeManager?.getSplitRatio() ?? 0.35);
+  ipcMain.handle('window:set-split-ratio', (_, ratio: number) => {
+    if (!modeManager) return false;
+    modeManager.setSplitRatio(ratio);
+    setPreference('split_ratio', String(ratio));
+    return true;
+  });
+  ipcMain.handle('window:reload-dashboard', () => {
+    modeManager?.reloadDashboard();
+    return true;
   });
 
   // ── History ──────────────────────────────────────────────────────────────
