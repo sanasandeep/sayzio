@@ -241,6 +241,8 @@ const api = {
       'password:detected',
       // Profile events
       'profile:changed',
+      // Command palette — open from main process menu shortcut
+      'palette:open',
     ]);
     if (!ALLOWED_CHANNELS.has(channel)) return;
     ipcRenderer.on(channel, (_, ...args) => listener(...args));

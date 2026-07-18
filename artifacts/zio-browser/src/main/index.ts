@@ -288,6 +288,13 @@ function buildMenu(): void {
         { role: 'paste' as const },
         { role: 'selectAll' as const },
         { type: 'separator' as const },
+        {
+          label: 'Command Palette',
+          accelerator: 'CmdOrCtrl+K',
+          click: (_item, bw) => {
+            asBrowserWin(bw)?.webContents.send('palette:open');
+          },
+        },
         { label: 'Find on Page', accelerator: 'CmdOrCtrl+F', click: (_item, bw) => {
           asBrowserWin(bw)?.webContents.send('find:open');
         }},

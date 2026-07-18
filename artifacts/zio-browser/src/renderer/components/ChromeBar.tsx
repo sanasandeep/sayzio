@@ -361,6 +361,23 @@ export function ChromeBar({
     setShortenOpen(false);
   }, [activeTabId]);
 
+  // Listen for custom events dispatched by the command palette
+  useEffect(() => {
+    const onShortenOpen = () => {
+      if (canShorten) setShortenOpen(true);
+    };
+    const onFocusAddressBar = () => {
+      omniboxRef.current?.focus();
+      omniboxRef.current?.select();
+    };
+    document.addEventListener('zio:shorten-open', onShortenOpen);
+    document.addEventListener('zio:focus-address-bar', onFocusAddressBar);
+    return () => {
+      document.removeEventListener('zio:shorten-open', onShortenOpen);
+      document.removeEventListener('zio:focus-address-bar', onFocusAddressBar);
+    };
+  }, [canShorten]);
+
   const handleOmniboxSubmit = useCallback((e: React.FormEvent) => {
     e.preventDefault();
     if (!activeTabId || !omniboxValue.trim()) return;

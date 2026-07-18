@@ -11,6 +11,7 @@ import { DownloadsPanel } from './components/DownloadsPanel';
 import { DeviceLab } from './components/DeviceLab';
 import { TabSearchPopover } from './components/TabSearchPopover';
 import { ClearDataDialog } from './components/ClearDataDialog';
+import { CommandPalette } from './components/CommandPalette';
 import { useTabStore } from './store/tab-store';
 import { useAuthStore } from './store/auth-store';
 import { useModeStore } from './store/mode-store';
@@ -35,7 +36,8 @@ export default function App() {
   const [deviceLabOpen, setDeviceLabOpen] = useState(false);
   const [tabSearchOpen, setTabSearchOpen] = useState(false);
   const [clearDataShortcut, setClearDataShortcut] = useState(false);
-  const { tabs, activeTabId, initTabs, reopenClosedTab } = useTabStore();
+  const [paletteOpen, setPaletteOpen] = useState(false);
+  const { tabs, tabOrder, activeTabId, initTabs, reopenClosedTab } = useTabStore();
   const { init: initAuth, user, token } = useAuthStore();
   const {
     mode,
@@ -165,6 +167,37 @@ export default function App() {
     window.zio.on('tab:search-open', listener);
     return () => window.zio.off('tab:search-open', listener);
   }, []);
+
+  // ── Command palette global shortcut ───────────────────────────────────────
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const isMod = e.ctrlKey || e.metaKey;
+      if (isMod && e.key === 'k') {
+        e.preventDefault();
+        setPaletteOpen(prev => !prev);
+      }
+      if (e.key === 'Escape' && paletteOpen) {
+        setPaletteOpen(false);
+      }
+    };
+
+    // Also listen for the main-process menu shortcut
+    const handleIpcOpen = () => setPaletteOpen(true);
+    window.zio.on('palette:open', handleIpcOpen);
+    document.addEventListener('keydown', handleKeyDown);
+
+    // Listen for the shortcuts-open custom event dispatched by the palette's
+    // "Keyboard Shortcuts" command so we can re-open in shortcuts view
+    const handleShortcutsOpen = () => setPaletteOpen(true);
+    document.addEventListener('zio:shortcuts-open', handleShortcutsOpen);
+
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      window.zio.off('palette:open', handleIpcOpen);
+      document.removeEventListener('zio:shortcuts-open', handleShortcutsOpen);
+    };
+  }, [paletteOpen]);
 
   const activeTab = activeTabId ? tabs[activeTabId] : null;
   const showNewTab = !activeTab || activeTab.url === '' || activeTab.url === 'about:newtab';
@@ -391,6 +424,20 @@ export default function App() {
           onCleared={() => {
             // Nothing extra needed here — the dialog's own success state is shown
           }}
+        />
+      )}
+
+      {/* Command Palette — global Ctrl/Cmd+K overlay */}
+      {paletteOpen && (
+        <CommandPalette
+          onClose={() => setPaletteOpen(false)}
+          tabs={tabs}
+          tabOrder={tabOrder}
+          activeTabId={activeTabId}
+          user={user}
+          mode={mode}
+          isPrivate={isPrivate}
+          onSetMode={(m) => { setPaletteOpen(false); void setMode(m as WindowMode); }}
         />
       )}
     </div>
