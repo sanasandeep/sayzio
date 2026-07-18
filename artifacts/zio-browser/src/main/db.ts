@@ -549,14 +549,14 @@ export function setSyncState(entity: string, lastSyncAt: string | null, lastErro
 
 // ── Sync retry queue ─────────────────────────────────────────────────────────
 
-export function enqueueSyncPush(entity: SyncEntityKind, payload: string, error: string | null = null): SyncQueueItem {
+export function enqueueSyncPush(entity: SyncEntityKind, payload: string, error: string | null = null, profileId: string = getActiveProfileId()): SyncQueueItem {
   const db = getDb();
   const now = new Date().toISOString();
   const id = generateId();
   db.prepare(`
-    INSERT INTO sync_queue(id, entity, payload, attempts, next_attempt_at, last_error, created_at)
-    VALUES(?, ?, ?, 1, ?, ?, ?)
-  `).run(id, entity, payload, nextAttemptAt(1), error, now);
+    INSERT INTO sync_queue(id, entity, payload, attempts, next_attempt_at, last_error, created_at, profile_id)
+    VALUES(?, ?, ?, 1, ?, ?, ?, ?)
+  `).run(id, entity, payload, nextAttemptAt(1), error, now, profileId);
   return db.prepare('SELECT * FROM sync_queue WHERE id = ?').get(id) as SyncQueueItem;
 }
 

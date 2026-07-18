@@ -6,7 +6,7 @@
  * importing better-sqlite3 (which requires native bindings).
  */
 
-export const SCHEMA_VERSION = 7;
+export const SCHEMA_VERSION = 8;
 
 export const CREATE_TABLES_SQL = `
 PRAGMA journal_mode = WAL;
@@ -134,7 +134,8 @@ CREATE TABLE IF NOT EXISTS sync_queue (
   attempts        INTEGER NOT NULL DEFAULT 0,
   next_attempt_at TEXT NOT NULL,
   last_error      TEXT,
-  created_at      TEXT NOT NULL
+  created_at      TEXT NOT NULL,
+  profile_id      TEXT
 );
 
 CREATE INDEX IF NOT EXISTS sync_queue_due ON sync_queue(next_attempt_at);
@@ -218,6 +219,9 @@ export const MIGRATION_SQL: Record<number, string> = {
       short_url  TEXT NOT NULL,
       cached_at  TEXT NOT NULL
     );
+  `,
+  8: `
+    ALTER TABLE sync_queue ADD COLUMN profile_id TEXT;
   `,
 };
 

@@ -27,7 +27,7 @@ import {
 import { PREFERENCE_KEYS } from '../shared/db-schema';
 import { retrieveToken } from './auth-store';
 
-export type SyncPushFn = (entity: SyncEntityKind, items: SyncItem[]) => Promise<void>;
+export type SyncPushFn = (entity: SyncEntityKind, items: SyncItem[], profileId?: string | null) => Promise<void>;
 
 export interface SyncRetryRunnerOptions {
   /** Executes an actual push. Defaults to the ApiClient-based pusher. */
@@ -45,7 +45,7 @@ const DEFAULT_TICK_MS = 1000;
  * stored auth token, configured base URL, and registered device id.
  * Throws when auth/device configuration is missing so the item stays queued.
  */
-export async function defaultSyncPush(entity: SyncEntityKind, items: SyncItem[]): Promise<void> {
+export async function defaultSyncPush(entity: SyncEntityKind, items: SyncItem[], profileId?: string | null): Promise<void> {
   const token = retrieveToken();
   if (!token) throw new Error('Not signed in');
 
@@ -53,9 +53,12 @@ export async function defaultSyncPush(entity: SyncEntityKind, items: SyncItem[])
   const deviceId = getPreference(PREFERENCE_KEYS.DEVICE_ID);
   if (!baseUrl || !deviceId) throw new Error('Sync not configured (missing base URL or device id)');
 
-  // Scope the push to the active profile's workspace bucket. Workspace
-  // profiles carry X-Browser-Workspace-Id; the personal profile sends none.
-  const workspaceId = getProfileWorkspaceId(getActiveProfileId());
+  // Scope the push to the workspace bucket of the profile the item was
+  // enqueued under (so retries land in the right bucket even after a profile
+  // switch). Legacy rows without a recorded profile fall back to the active
+  // profile. Workspace profiles carry X-Browser-Workspace-Id; the personal
+  // profile sends none.
+  const workspaceId = getProfileWorkspaceId(profileId ?? getActiveProfileId());
 
   const client = new ApiClient({ baseUrl, token, workspaceId });
   if (entity === 'bookmarks') await client.syncBookmarks(deviceId, items);
@@ -132,7 +135,7 @@ export class SyncRetryRunner {
     }
 
     try {
-      await this.pushFn(item.entity, items);
+      await this.pushFn(item.entity, items, item.profile_id ?? null);
       removeSyncQueueItem(item.id);
       markRecordsSynced(item.entity, items.map(i => i.local_id));
       return true;

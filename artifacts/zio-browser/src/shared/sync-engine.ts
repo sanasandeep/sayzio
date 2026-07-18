@@ -152,6 +152,13 @@ export interface SyncQueueItem {
   next_attempt_at: string; // ISO-8601
   last_error: string | null;
   created_at: string;
+  /**
+   * Profile the item was enqueued under, so retries push to that profile's
+   * workspace bucket even if the user switches profiles meanwhile.
+   * Null on rows enqueued before this column existed — those fall back to
+   * the active profile at retry time (legacy behavior).
+   */
+  profile_id: string | null;
 }
 
 /**
