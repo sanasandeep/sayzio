@@ -67,7 +67,7 @@ function ActivityWatcher({ children }: { children: React.ReactNode }) {
 // Contacts screen's manual import remains the only permission-requesting path.
 function ContactAutoSync() {
   const { user, token, locked } = useAuth();
-  useContactAutoSync(Boolean(user && token && !locked));
+  useContactAutoSync(Boolean(user && token && !locked), user?.id ?? null);
   return null;
 }
 

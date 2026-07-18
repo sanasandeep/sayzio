@@ -1,4 +1,39 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
 import { bulkImportContacts, type ContactImportPayload } from "@/lib/api/contacts";
+
+// Per-user persisted fingerprint of the last synced contact payload, so cold
+// app starts with an unchanged address book skip the bulk POST too (the
+// in-memory ref in useContactAutoSync only survives while the app stays open).
+// Keyed by user id so switching accounts never skips a needed sync. The value
+// is a cheap non-sensitive payload hash — AsyncStorage, not SecureStore.
+const CONTACT_SYNC_FINGERPRINT_KEY_PREFIX = "contact_sync_fingerprint:";
+
+export async function getStoredContactSyncFingerprint(
+  userId: number | string,
+): Promise<string | null> {
+  try {
+    return await AsyncStorage.getItem(
+      `${CONTACT_SYNC_FINGERPRINT_KEY_PREFIX}${userId}`,
+    );
+  } catch {
+    return null;
+  }
+}
+
+export async function setStoredContactSyncFingerprint(
+  userId: number | string,
+  fingerprint: string,
+): Promise<void> {
+  try {
+    await AsyncStorage.setItem(
+      `${CONTACT_SYNC_FINGERPRINT_KEY_PREFIX}${userId}`,
+      fingerprint,
+    );
+  } catch {
+    // Best-effort cache; worst case the next cold start re-uploads once.
+  }
+}
 
 export type DeviceImportResult = {
   created: number;

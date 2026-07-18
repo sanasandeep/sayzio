@@ -25,6 +25,11 @@
 //      unchangedFingerprint, remembers the fingerprint from successful AND
 //      "unchanged" outcomes, and an unchanged address book never invalidates
 //      queries (the POST was skipped inside importDeviceContacts).
+//   4c. Persistence across restarts: on mount the in-memory fingerprint is
+//      seeded from the per-user persisted copy (so a cold app start with an
+//      unchanged address book skips the POST too), every fingerprint outcome
+//      is persisted for that user, and a different userId resets the seed so
+//      switching accounts still syncs.
 //   5. No alert is ever shown (the hook source never references Alert).
 //   6. enabled=false means no sync and no AppState listener at all.
 //
@@ -93,8 +98,10 @@ assert.ok(
   "_layout.tsx must import the useContactAutoSync hook",
 );
 assert.ok(
-  /useContactAutoSync\(Boolean\(user && token && !locked\)\)/.test(layoutSrc),
-  "ContactAutoSync must enable the sync only when signed in AND unlocked",
+  /useContactAutoSync\(Boolean\(user && token && !locked\), user\?\.id \?\? null\)/.test(
+    layoutSrc,
+  ),
+  "ContactAutoSync must enable the sync only when signed in AND unlocked, keyed per user id",
 );
 assert.ok(
   /<ContactAutoSync \/>/.test(layoutSrc),
@@ -109,7 +116,7 @@ console.log("[test-contact-auto-sync] behavioural checks on the lifted effect");
 
 function loadEffectBody() {
   const m = hookSrc.match(
-    /useEffect\((\(\) => \{[\s\S]*?\n {2}\}), \[enabled, qc\]\);/,
+    /useEffect\((\(\) => \{[\s\S]*?\n {2}\}), \[enabled, qc, userId\]\);/,
   );
   assert.ok(m, "could not find the useEffect body in useContactAutoSync.ts");
   return m[1];
@@ -119,7 +126,10 @@ const effectBody = loadEffectBody();
 // Harness: mount the lifted effect with a controllable clock, AppState, and
 // import outcome. Returns handles to advance time, fire foreground events,
 // resolve pending imports, and inspect calls/invalidations.
-function mount({ enabled = true } = {}) {
+// `stored` maps userId -> persisted fingerprint (the AsyncStorage mock);
+// `refs` lets a second mount reuse the SAME refs, modelling a re-run of the
+// effect within one component instance (e.g. an account switch).
+function mount({ enabled = true, userId = 1, stored = {}, refs = null } = {}) {
   const state = {
     now: 0,
     importCalls: [],
@@ -128,13 +138,21 @@ function mount({ enabled = true } = {}) {
     removed: 0,
     // Each import call pushes a deferred here; tests resolve them explicitly.
     pending: [],
+    stored,
   };
 
-  const scope = {
-    enabled,
+  const sharedRefs = refs ?? {
     running: { current: false },
     lastRun: { current: -60_000 }, // far enough back that the mount sync runs at t=0
     lastFingerprint: { current: null },
+    lastUserId: { current: null },
+  };
+  state.refs = sharedRefs;
+
+  const scope = {
+    enabled,
+    userId,
+    ...sharedRefs,
     MIN_INTERVAL_MS: 60_000,
     Date: { now: () => state.now },
     qc: {
@@ -145,6 +163,10 @@ function mount({ enabled = true } = {}) {
       return new Promise((resolve, reject) => {
         state.pending.push({ resolve, reject });
       });
+    },
+    getStoredContactSyncFingerprint: async (uid) => state.stored[uid] ?? null,
+    setStoredContactSyncFingerprint: async (uid, fp) => {
+      state.stored[uid] = fp;
     },
     AppState: {
       addEventListener: (event, cb) => {
@@ -183,6 +205,7 @@ const tick = () => new Promise((r) => setImmediate(r));
 // --- happy path: mount sync + invalidation on success -----------------------
 {
   const h = mount();
+  await tick(); // the mount sync first awaits the persisted-fingerprint read
   assert.equal(h.importCalls.length, 1, "must sync once on mount");
   assert.deepEqual(
     h.importCalls[0],
@@ -196,7 +219,12 @@ const tick = () => new Promise((r) => setImmediate(r));
     [JSON.stringify(["contact-duplicate-count"]), JSON.stringify(["contacts"])].sort(),
     "a successful import must invalidate contacts + contact-duplicate-count (and nothing else)",
   );
-  ok("mount sync runs silently and invalidates both queries on success");
+  assert.equal(
+    h.stored[1],
+    "fp-a",
+    "a successful import must persist the fingerprint for this user",
+  );
+  ok("mount sync runs silently, invalidates both queries and persists the fingerprint");
 
   // --- throttle: bounce within 60s is a no-op -------------------------------
   h.now = 30_000;
@@ -277,6 +305,7 @@ const tick = () => new Promise((r) => setImmediate(r));
 // --- skip path: unchanged address book never refreshes, fingerprint kept ----
 {
   const h = mount();
+  await tick();
   assert.equal(h.importCalls.length, 1);
   // First sync succeeds and establishes the fingerprint.
   h.pending[0].resolve({ ok: true, imported: 5, fingerprint: "fp-1" });
@@ -331,6 +360,76 @@ const tick = () => new Promise((r) => setImmediate(r));
   await tick();
   h.cleanup();
   ok("fingerprint survives failures and rolls forward on a changed book");
+}
+
+// --- persisted seed: cold restart with an unchanged book skips the POST -----
+{
+  // A previous session persisted "fp-cold" for user 1; a fresh mount (fresh
+  // refs = app restart) must seed the very FIRST import call with it so an
+  // unchanged address book never even attempts the bulk POST.
+  const h = mount({ userId: 1, stored: { 1: "fp-cold" } });
+  await tick();
+  assert.equal(h.importCalls.length, 1, "cold start must still run one import");
+  assert.deepEqual(
+    h.importCalls[0],
+    { requestPermission: false, unchangedFingerprint: "fp-cold" },
+    "the first import after a restart must carry the persisted fingerprint",
+  );
+  h.pending[0].resolve({ ok: false, reason: "unchanged", fingerprint: "fp-cold" });
+  await tick();
+  assert.equal(
+    h.invalidated.length,
+    0,
+    "an unchanged book on cold start must not invalidate anything",
+  );
+  assert.equal(h.stored[1], "fp-cold", "unchanged outcome keeps the persisted copy");
+  h.cleanup();
+  ok("cold restart seeds the fingerprint from storage so unchanged books skip the POST");
+}
+
+// --- per-user: switching accounts never reuses the old user's fingerprint ---
+{
+  const stored = { 1: "fp-user1", 2: "fp-user2" };
+  const h1 = mount({ userId: 1, stored });
+  await tick();
+  assert.deepEqual(
+    h1.importCalls[0],
+    { requestPermission: false, unchangedFingerprint: "fp-user1" },
+    "user 1 must be seeded from user 1's persisted fingerprint",
+  );
+  h1.pending[0].resolve({ ok: false, reason: "unchanged", fingerprint: "fp-user1" });
+  await tick();
+  h1.cleanup();
+
+  // Same component instance (same refs), new signed-in user: the in-memory
+  // fingerprint and throttle reset, and the seed comes from user 2's slot.
+  const h2 = mount({ userId: 2, stored, refs: h1.refs });
+  await tick();
+  assert.equal(
+    h2.importCalls.length,
+    1,
+    "switching accounts must sync immediately (throttle reset on user change)",
+  );
+  assert.deepEqual(
+    h2.importCalls[0],
+    { requestPermission: false, unchangedFingerprint: "fp-user2" },
+    "user 2 must never inherit user 1's fingerprint",
+  );
+  h2.pending[0].resolve({ ok: true, imported: 9, fingerprint: "fp-user2-new" });
+  await tick();
+  assert.equal(h2.stored[2], "fp-user2-new", "success persists into user 2's slot");
+  assert.equal(h2.stored[1], "fp-user1", "user 1's persisted slot is untouched");
+  h2.cleanup();
+  ok("fingerprint is per-user: account switch resets, seeds and persists per id");
+}
+
+// --- no user id: hook stays inert (nothing to key the persistence on) -------
+{
+  const h = mount({ userId: null });
+  await tick();
+  assert.equal(h.importCalls.length, 0, "no userId must mean no sync at all");
+  assert.equal(h.listeners.length, 0, "no userId must mean no AppState listener");
+  ok("userId=null: hook is inert");
 }
 
 console.log(`\n[test-contact-auto-sync] all ${passed} checks passed`);
