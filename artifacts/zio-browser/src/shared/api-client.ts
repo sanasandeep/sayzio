@@ -438,6 +438,14 @@ export class ApiClient {
     return this.get<AliasCheckResult>(`/links/check-alias?${qs.toString()}`);
   }
 
+  async getLink(id: number): Promise<{ link: ApiLink }> {
+    return this.get(`/links/${id}`);
+  }
+
+  async updateLink(id: number, data: UpdateLinkPayload): Promise<{ link: ApiLink }> {
+    return this.patch(`/links/${id}`, data);
+  }
+
   async getLinkAnalytics(id: number, from?: string, to?: string): Promise<LinkAnalytics> {
     const qs = new URLSearchParams();
     if (from) qs.set('from', from);
@@ -692,6 +700,15 @@ export interface CreateLinkPayload {
   visibility?: 'public' | 'registered' | 'followers' | 'subscribers';
   is_active?: boolean;
   settings?: Record<string, unknown>;
+}
+
+/** Partial update payload for PATCH /links/:id — only supplied keys change. */
+export interface UpdateLinkPayload {
+  title?: string | null;
+  alias?: string;
+  visibility?: 'public' | 'registered' | 'followers' | 'subscribers';
+  is_active?: boolean;
+  long_url?: string | null;
 }
 
 export interface AliasCheckResult {
