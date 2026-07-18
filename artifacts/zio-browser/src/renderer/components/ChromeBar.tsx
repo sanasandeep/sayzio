@@ -27,7 +27,26 @@ export function ChromeBar({ zioPanelOpen, onToggleZio, onOpenAuth, showModeSwitc
   const [omniboxValue, setOmniboxValue] = useState('');
   const [omniboxFocused, setOmniboxFocused] = useState(false);
   const [shortenOpen, setShortenOpen] = useState(false);
+  const [pendingSyncCount, setPendingSyncCount] = useState(0);
   const omniboxRef = useRef<HTMLInputElement>(null);
+
+  // Track queued (offline / failed) sync pushes for the pending indicator
+  useEffect(() => {
+    let cancelled = false;
+    void window.zio.sync.pendingCount().then((n: number) => {
+      if (!cancelled) setPendingSyncCount(n);
+    }).catch(() => { /* main not ready yet — event listener will update */ });
+
+    const listener = (...args: unknown[]) => {
+      const n = args[0];
+      if (typeof n === 'number') setPendingSyncCount(n);
+    };
+    window.zio.on('sync:queue-changed', listener);
+    return () => {
+      cancelled = true;
+      window.zio.off('sync:queue-changed', listener);
+    };
+  }, []);
 
   const activeTab = activeTabId ? tabs[activeTabId] : null;
 
@@ -229,6 +248,35 @@ export function ChromeBar({ zioPanelOpen, onToggleZio, onOpenAuth, showModeSwitc
             transition: 'all 0.12s',
           }}
         >🔗</button>
+
+        {/* Sync pending indicator */}
+        {pendingSyncCount > 0 && (
+          <div
+            title={`${pendingSyncCount} change${pendingSyncCount === 1 ? '' : 's'} waiting to sync — will retry automatically`}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 4,
+              padding: '2px 8px',
+              borderRadius: 10,
+              background: 'var(--color-bg-elevated)',
+              border: '1px solid var(--color-border)',
+              fontSize: 11,
+              color: 'var(--color-text-muted)',
+              whiteSpace: 'nowrap',
+              flexShrink: 0,
+            }}
+          >
+            <span style={{
+              width: 6,
+              height: 6,
+              borderRadius: '50%',
+              background: '#f0a020',
+              flexShrink: 0,
+            }} />
+            Sync pending
+          </div>
+        )}
 
         {/* Bookmark button */}
         <button style={{ fontSize: 16, padding: '2px 6px', opacity: 0.7 }} title="Bookmark">☆</button>

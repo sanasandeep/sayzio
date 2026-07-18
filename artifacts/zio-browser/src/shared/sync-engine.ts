@@ -130,6 +130,70 @@ export interface SyncState {
   pendingCount: number;
 }
 
+// ── Retry queue ──────────────────────────────────────────────────────────────
+
+export const RETRY_BACKOFF = {
+  /** First retry delay in ms (1 second) */
+  BASE_MS: 1000,
+  /** Maximum retry delay in ms (5 minutes) */
+  CAP_MS: 5 * 60 * 1000,
+} as const;
+
+/**
+ * A persisted sync push that failed and is awaiting retry.
+ * Mirrors a row in the `sync_queue` SQLite table.
+ */
+export interface SyncQueueItem {
+  id: string;
+  entity: SyncEntityKind;
+  /** JSON-serialized array of SyncItem payloads to re-push */
+  payload: string;
+  attempts: number;
+  next_attempt_at: string; // ISO-8601
+  last_error: string | null;
+  created_at: string;
+}
+
+/**
+ * Exponential back-off delay for a given attempt count:
+ * 1 s → 2 s → 4 s → 8 s → ... capped at 5 minutes.
+ *
+ * @param attempts - number of failed attempts so far (>= 0)
+ */
+export function computeBackoffMs(attempts: number): number {
+  const n = Math.max(0, attempts);
+  // Guard against overflow for large attempt counts: 2^19 s already > cap.
+  if (n >= 20) return RETRY_BACKOFF.CAP_MS;
+  return Math.min(RETRY_BACKOFF.BASE_MS * 2 ** n, RETRY_BACKOFF.CAP_MS);
+}
+
+/**
+ * Compute the next attempt timestamp after a failed push.
+ *
+ * @param attempts - the attempt count AFTER the failure (i.e. attempts so far)
+ * @param nowMs - current time in ms since epoch
+ */
+export function nextAttemptAt(attempts: number, nowMs: number = Date.now()): string {
+  return new Date(nowMs + computeBackoffMs(attempts - 1)).toISOString();
+}
+
+/**
+ * Whether a queue item is due for a retry attempt.
+ */
+export function isQueueItemDue(item: SyncQueueItem, nowMs: number = Date.now()): boolean {
+  return new Date(item.next_attempt_at).getTime() <= nowMs;
+}
+
+/**
+ * Filter the queue down to items due for retry, oldest first so pushes
+ * replay in the order they were originally attempted.
+ */
+export function getDueQueueItems(items: SyncQueueItem[], nowMs: number = Date.now()): SyncQueueItem[] {
+  return items
+    .filter(i => isQueueItemDue(i, nowMs))
+    .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+}
+
 /**
  * Compute a sync state summary from local records.
  */

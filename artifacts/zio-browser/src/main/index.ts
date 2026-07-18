@@ -88,7 +88,7 @@ function createWindow(): void {
   });
 
   // Register all IPC handlers
-  registerIpcHandlers(tabManager, modeManager);
+  registerIpcHandlers(tabManager, modeManager, mainWindow);
 
   // Setup download manager
   setupDownloadManager(session.defaultSession, mainWindow);

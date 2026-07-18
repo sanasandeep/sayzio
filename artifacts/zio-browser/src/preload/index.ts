@@ -103,6 +103,10 @@ const api = {
   // ── Sync ──────────────────────────────────────────────────────────────────
   sync: {
     state: (entity: string) => ipcRenderer.invoke('sync:state', entity),
+    queuePush: (entity: string, payloadJson: string, error?: string) =>
+      ipcRenderer.invoke('sync:queue-push', entity, payloadJson, error),
+    pendingCount: () => ipcRenderer.invoke('sync:pending-count'),
+    flush: () => ipcRenderer.invoke('sync:flush'),
   },
 
   // ── Clipboard ─────────────────────────────────────────────────────────────
@@ -136,6 +140,7 @@ const api = {
       // Link tools — context menu "Add to my biolink" trigger
       'biolink:add-page',
       'window:mode-changed',
+      'sync:queue-changed',
     ]);
     if (!ALLOWED_CHANNELS.has(channel)) return;
     ipcRenderer.on(channel, (_, ...args) => listener(...args));

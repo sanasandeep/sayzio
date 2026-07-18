@@ -5,6 +5,8 @@
 import { ipcMain, shell, dialog, clipboard, nativeTheme, BrowserWindow } from 'electron';
 import type { TabManager } from './tab-manager';
 import type { WindowModeManager } from './window-mode-manager';
+import { SyncRetryRunner } from './sync-retry';
+import type { SyncEntityKind } from '../shared/sync-engine';
 import {
   initDb,
   getPreference,
@@ -28,6 +30,8 @@ import {
   updateSavedLinkAiEnrichment,
   getRecentDownloads,
   getSyncState,
+  enqueueSyncPush,
+  countSyncQueue,
 } from './db';
 import { storeToken, retrieveToken, clearToken, storeUser, retrieveUser, clearUser } from './auth-store';
 import { createCollection, createSavedLink } from '../shared/collection-store';
@@ -36,7 +40,16 @@ import type { WindowMode } from '../shared/window-mode';
 
 type PrefKey = typeof PREFERENCE_KEYS[keyof typeof PREFERENCE_KEYS];
 
-export function registerIpcHandlers(tabManager: TabManager, modeManager?: WindowModeManager): void {
+export function registerIpcHandlers(tabManager: TabManager, modeManager?: WindowModeManager, mainWindow?: BrowserWindow): void {
+  // Background retry loop for failed sync pushes (persisted in sync_queue)
+  const syncRetryRunner = new SyncRetryRunner({
+    onQueueChanged: (pendingCount) => {
+      mainWindow?.webContents.send('sync:queue-changed', pendingCount);
+    },
+  });
+  syncRetryRunner.start();
+
+
   // ── DB init ──────────────────────────────────────────────────────────────
   ipcMain.handle('db:init', () => {
     initDb();
@@ -198,6 +211,16 @@ export function registerIpcHandlers(tabManager: TabManager, modeManager?: Window
 
   // ── Sync ─────────────────────────────────────────────────────────────────
   ipcMain.handle('sync:state', (_, entity: string) => getSyncState(entity));
+  ipcMain.handle('sync:queue-push', (_, entity: SyncEntityKind, payloadJson: string, error?: string) => {
+    const item = enqueueSyncPush(entity, payloadJson, error ?? null);
+    syncRetryRunner.notify();
+    return item.id;
+  });
+  ipcMain.handle('sync:pending-count', () => countSyncQueue());
+  ipcMain.handle('sync:flush', async () => {
+    const flushed = await syncRetryRunner.flushAll();
+    return { flushed, remaining: countSyncQueue() };
+  });
 
   // ── Clipboard ────────────────────────────────────────────────────────────
   ipcMain.handle('clipboard:write', (_, text: string) => { clipboard.writeText(text); return true; });

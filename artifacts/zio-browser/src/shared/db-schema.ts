@@ -6,7 +6,7 @@
  * importing better-sqlite3 (which requires native bindings).
  */
 
-export const SCHEMA_VERSION = 4;
+export const SCHEMA_VERSION = 5;
 
 export const CREATE_TABLES_SQL = `
 PRAGMA journal_mode = WAL;
@@ -116,6 +116,18 @@ CREATE TABLE IF NOT EXISTS sync_state (
   last_sync_at TEXT,
   last_error   TEXT
 );
+
+CREATE TABLE IF NOT EXISTS sync_queue (
+  id              TEXT PRIMARY KEY NOT NULL,
+  entity          TEXT NOT NULL,
+  payload         TEXT NOT NULL,
+  attempts        INTEGER NOT NULL DEFAULT 0,
+  next_attempt_at TEXT NOT NULL,
+  last_error      TEXT,
+  created_at      TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS sync_queue_due ON sync_queue(next_attempt_at);
 `;
 
 export const PREFERENCE_KEYS = {

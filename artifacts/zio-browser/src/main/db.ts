@@ -14,7 +14,8 @@ import {
 import type { Collection, SavedLink } from '../shared/collection-store';
 import { generateId, normalizeCollectionUrl } from '../shared/collection-store';
 import { normalizeUrlForHistory } from '../shared/omnibox';
-import type { SyncRecord } from '../shared/sync-engine';
+import type { SyncRecord, SyncQueueItem, SyncEntityKind } from '../shared/sync-engine';
+import { nextAttemptAt } from '../shared/sync-engine';
 
 export interface HistoryEntry {
   id: string;
@@ -324,6 +325,61 @@ export function getSyncState(entity: string): { lastSyncAt: string | null; lastE
 export function setSyncState(entity: string, lastSyncAt: string | null, lastError: string | null = null): void {
   const db = getDb();
   db.prepare('INSERT OR REPLACE INTO sync_state(entity, last_sync_at, last_error) VALUES(?, ?, ?)').run(entity, lastSyncAt, lastError);
+}
+
+// ── Sync retry queue ─────────────────────────────────────────────────────────
+
+export function enqueueSyncPush(entity: SyncEntityKind, payload: string, error: string | null = null): SyncQueueItem {
+  const db = getDb();
+  const now = new Date().toISOString();
+  const id = generateId();
+  // First retry after the base backoff (attempts = 1 after the initial failure)
+  db.prepare(`
+    INSERT INTO sync_queue(id, entity, payload, attempts, next_attempt_at, last_error, created_at)
+    VALUES(?, ?, ?, 1, ?, ?, ?)
+  `).run(id, entity, payload, nextAttemptAt(1), error, now);
+  return db.prepare('SELECT * FROM sync_queue WHERE id = ?').get(id) as SyncQueueItem;
+}
+
+export function getSyncQueueItems(): SyncQueueItem[] {
+  const db = getDb();
+  return db.prepare('SELECT * FROM sync_queue ORDER BY created_at ASC').all() as SyncQueueItem[];
+}
+
+export function countSyncQueue(): number {
+  const db = getDb();
+  const row = db.prepare('SELECT COUNT(*) as n FROM sync_queue').get() as { n: number };
+  return row.n;
+}
+
+export function markSyncQueueFailure(id: string, error: string): void {
+  const db = getDb();
+  const row = db.prepare('SELECT attempts FROM sync_queue WHERE id = ?').get(id) as { attempts: number } | undefined;
+  if (!row) return;
+  const attempts = row.attempts + 1;
+  db.prepare('UPDATE sync_queue SET attempts = ?, next_attempt_at = ?, last_error = ? WHERE id = ?')
+    .run(attempts, nextAttemptAt(attempts), error, id);
+}
+
+export function removeSyncQueueItem(id: string): void {
+  const db = getDb();
+  db.prepare('DELETE FROM sync_queue WHERE id = ?').run(id);
+}
+
+const SYNC_ENTITY_TABLES: Record<SyncEntityKind, string> = {
+  bookmarks: 'bookmarks',
+  collections: 'collections',
+  history: 'history',
+};
+
+/** Stamp synced_at on local rows after a queued push finally succeeds. */
+export function markRecordsSynced(entity: SyncEntityKind, ids: string[]): void {
+  if (ids.length === 0) return;
+  const db = getDb();
+  const table = SYNC_ENTITY_TABLES[entity];
+  const now = new Date().toISOString();
+  const placeholders = ids.map(() => '?').join(', ');
+  db.prepare(`UPDATE ${table} SET synced_at = ? WHERE id IN (${placeholders})`).run(now, ...ids);
 }
 
 // ── Downloads ────────────────────────────────────────────────────────────────
