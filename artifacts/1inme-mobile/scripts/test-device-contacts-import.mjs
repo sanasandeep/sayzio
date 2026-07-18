@@ -340,10 +340,26 @@ function sliceBetween(src, startMarker, endMarker, label) {
 // on the import mutation's mutationFn so we lift the right handlers.
 const importMutationSrc = sliceBetween(
   screenSrc,
-  "mutationFn: () => importDeviceContacts",
+  "mutationFn: async () =>",
   "\n  });",
   "device import mutation",
 );
+
+// The manual import must read the stored per-user fingerprint and hand it to
+// importDeviceContacts as unchangedFingerprint, so an unchanged phone book
+// skips the bulk POST entirely.
+assert.ok(
+  /unchangedFingerprint:/.test(importMutationSrc) &&
+    /getStoredContactSyncFingerprint\(user\.id\)/.test(importMutationSrc),
+  "manual import passes getStoredContactSyncFingerprint(user.id) as unchangedFingerprint",
+);
+assert.ok(
+  /user\?\.id != null\s*\?\s*await getStoredContactSyncFingerprint\(user\.id\)\s*:\s*null/.test(
+    importMutationSrc,
+  ),
+  "no stored-fingerprint read without a signed-in user id (falls back to null)",
+);
+ok("manual import wires the stored fingerprint into importDeviceContacts");
 
 const onSuccessSrc = sliceBetween(
   importMutationSrc,
@@ -409,6 +425,26 @@ function makeScreenHarness({ user = { id: 42 } } = {}) {
   }
 }
 ok("unavailable / denied / empty each raise a distinct visible alert");
+
+// ===========================================================================
+// 6b. "unchanged" (re-tapping Import with an unchanged phone book) shows a
+//     friendly "Already up to date" alert, refreshes nothing, and re-persists
+//     the fingerprint it carries (harmless same-value write).
+// ===========================================================================
+{
+  const h = makeScreenHarness({ user: { id: 42 } });
+  h.onSuccess({ ok: false, reason: "unchanged", fingerprint: "123:abcd" });
+  assert.equal(h.alerts.length, 1, "unchanged alerts exactly once");
+  assert.equal(h.alerts[0].title, "Already up to date", 'unchanged → "Already up to date" alert');
+  assert.equal(h.invalidated.length, 0, "unchanged does not invalidate queries");
+  assert.equal(h.pushes.length, 0, "unchanged does not navigate");
+  assert.deepEqual(
+    h.persisted,
+    [{ userId: 42, fingerprint: "123:abcd" }],
+    "unchanged still (re)persists the carried fingerprint per-user",
+  );
+}
+ok('unchanged phone book shows "Already up to date" with no query refresh');
 
 // ===========================================================================
 // 7. Success without duplicates: summary alert + query invalidation.
@@ -527,11 +563,11 @@ ok("a thrown import surfaces an 'Import failed' alert with the error message");
 // 10. Wiring guards — the screen actually uses these pieces.
 // ===========================================================================
 assert.ok(
-  /mutationFn: \(\) => importDeviceContacts\(\{ requestPermission: true \}\)/.test(screenSrc),
+  /importDeviceContacts\(\{\s*requestPermission: true,/.test(screenSrc),
   "the header button import PROMPTS for permission (user-initiated)",
 );
 assert.ok(
-  /import \{ importDeviceContacts, setStoredContactSyncFingerprint \} from "@\/lib\/deviceContacts"/.test(
+  /import \{[\s\S]*?getStoredContactSyncFingerprint,[\s\S]*?importDeviceContacts,[\s\S]*?setStoredContactSyncFingerprint,[\s\S]*?\} from "@\/lib\/deviceContacts"/.test(
     screenSrc,
   ),
   "the screen imports the shared importDeviceContacts + fingerprint helpers",

@@ -28,7 +28,11 @@ import {
   listContacts,
 } from "@/lib/api/contacts";
 import { useAuth } from "@/contexts/AuthContext";
-import { importDeviceContacts, setStoredContactSyncFingerprint } from "@/lib/deviceContacts";
+import {
+  getStoredContactSyncFingerprint,
+  importDeviceContacts,
+  setStoredContactSyncFingerprint,
+} from "@/lib/deviceContacts";
 import { showAlert } from "@/lib/webAlert";
 
 /** Keep the duplicate count fresh-enough without hammering the API on focus. */
@@ -123,7 +127,14 @@ export default function ContactsScreen() {
   // Device address-book import (expo-contacts). Hidden on web, where the
   // native contacts module isn't available.
   const importMutation = useMutation({
-    mutationFn: () => importDeviceContacts({ requestPermission: true }),
+    mutationFn: async () =>
+      importDeviceContacts({
+        requestPermission: true,
+        // Pass the last-synced fingerprint so an unchanged address book skips
+        // the bulk POST entirely (the "unchanged" branch below explains it).
+        unchangedFingerprint:
+          user?.id != null ? await getStoredContactSyncFingerprint(user.id) : null,
+      }),
     onSuccess: (out) => {
       // Remember what we just uploaded so the next silent auto-sync with an
       // unchanged address book skips its bulk POST (same per-user key the
@@ -132,7 +143,12 @@ export default function ContactsScreen() {
         void setStoredContactSyncFingerprint(user.id, out.fingerprint);
       }
       if (!out.ok) {
-        if (out.reason === "unavailable") {
+        if (out.reason === "unchanged") {
+          showAlert(
+            "Already up to date",
+            "Your phone contacts haven't changed since the last import.",
+          );
+        } else if (out.reason === "unavailable") {
           showAlert("Not available", "Device contact import isn't available on this build.");
         } else if (out.reason === "denied") {
           showAlert("Permission needed", "Allow access to your contacts to import them.");
