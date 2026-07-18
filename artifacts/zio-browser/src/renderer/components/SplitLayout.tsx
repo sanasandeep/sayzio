@@ -234,6 +234,8 @@ export function SplitLayout({
           downloadsPanelOpen={downloadsPanelOpen}
           onToggleDownloads={toggleDownloadsPanel}
           activeDownloadCount={activeDownloadCount}
+          readingListOpen={false}
+          onToggleReadingList={() => { /* reading list is not shown in split right pane */ }}
         />
         {/* Tab content area — transparent; WebContentsViews are positioned here.
             position:relative lets FindBar anchor to the top-right corner. */}

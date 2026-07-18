@@ -168,6 +168,16 @@ const api = {
     }) => ipcRenderer.invoke('browsing-data:clear', options),
   },
 
+  // ── Reading list ──────────────────────────────────────────────────────────
+  readingList: {
+    add: (url: string, title: string, favicon?: string) => ipcRenderer.invoke('reading-list:add', url, title, favicon),
+    isSaved: (url: string) => ipcRenderer.invoke('reading-list:is-saved', url),
+    all: () => ipcRenderer.invoke('reading-list:all'),
+    unreadCount: () => ipcRenderer.invoke('reading-list:unread-count'),
+    markRead: (id: string, isRead: boolean) => ipcRenderer.invoke('reading-list:mark-read', id, isRead),
+    remove: (id: string) => ipcRenderer.invoke('reading-list:remove', id),
+  },
+
   // ── Sync ──────────────────────────────────────────────────────────────────
   sync: {
     state: (entity: string) => ipcRenderer.invoke('sync:state', entity),

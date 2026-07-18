@@ -17,6 +17,7 @@ import { ScreenshotSheet } from './components/ScreenshotSheet';
 import { PermissionPrompt } from './components/PermissionPrompt';
 import type { PendingPermission } from './components/PermissionPrompt';
 import { SiteSettingsPanel } from './components/SiteSettingsPanel';
+import { ReadingListPanel } from './components/ReadingListPanel';
 import { useTabStore } from './store/tab-store';
 import { useAuthStore } from './store/auth-store';
 import { useModeStore } from './store/mode-store';
@@ -34,6 +35,7 @@ const FIRST_LAUNCH_KEY = 'zio_mode_picker_shown';
 
 export default function App() {
   const [zioPanelOpen, setZioPanelOpen] = useState(false);
+  const [readingListOpen, setReadingListOpen] = useState(false);
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [showModePicker, setShowModePicker] = useState(false);
   const [isPrivate, setIsPrivate] = useState(false);
@@ -226,6 +228,7 @@ export default function App() {
       return;
     }
     setZioPanelOpen(prev => !prev);
+    setReadingListOpen(false);
   }, [user, isPrivate]);
 
   // ── Screenshot handler ────────────────────────────────────────────────────
@@ -245,6 +248,11 @@ export default function App() {
       setScreenshotCapturing(false);
     }
   }, [activeTabId, screenshotCapturing, tabs]);
+
+  const handleToggleReadingList = useCallback(() => {
+    setReadingListOpen(prev => !prev);
+    setZioPanelOpen(false);
+  }, []);
 
   // ── Zio panel divider drag (browser mode, docked) ─────────────────────────
   const handleDividerMouseDown = useCallback((e: React.MouseEvent) => {
@@ -421,6 +429,8 @@ export default function App() {
         onScreenshot={handleScreenshot}
         screenshotCapturing={screenshotCapturing}
         onOpenSiteSettings={() => setSiteSettingsOpen(true)}
+        readingListOpen={readingListOpen}
+        onToggleReadingList={handleToggleReadingList}
       />
 
       {/* Content area */}
@@ -482,6 +492,17 @@ export default function App() {
             presentation="overlay"
             panelWidth={zioPanelWidth}
             onSetDocked={(d) => void setZioPanelDocked(d)}
+          />
+        )}
+
+        {readingListOpen && (
+          <ReadingListPanel
+            onClose={() => setReadingListOpen(false)}
+            onNavigate={(url) => {
+              if (activeTabId) {
+                void window.zio.tabs.navigate(activeTabId, url);
+              }
+            }}
           />
         )}
 

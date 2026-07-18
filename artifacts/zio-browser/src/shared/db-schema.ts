@@ -159,6 +159,23 @@ CREATE TABLE IF NOT EXISTS site_permissions (
 );
 
 CREATE INDEX IF NOT EXISTS site_permissions_origin ON site_permissions(origin);
+
+CREATE TABLE IF NOT EXISTS reading_list (
+  id          TEXT PRIMARY KEY NOT NULL,
+  url         TEXT NOT NULL,
+  normalized_url TEXT NOT NULL,
+  title       TEXT NOT NULL,
+  favicon_url TEXT,
+  is_read     INTEGER NOT NULL DEFAULT 0,
+  saved_at    TEXT NOT NULL,
+  created_at  TEXT NOT NULL,
+  updated_at  TEXT NOT NULL,
+  deleted     INTEGER NOT NULL DEFAULT 0,
+  synced_at   TEXT
+);
+
+CREATE INDEX IF NOT EXISTS reading_list_url ON reading_list(normalized_url);
+CREATE INDEX IF NOT EXISTS reading_list_is_read ON reading_list(is_read);
 `;
 
 /**
@@ -190,6 +207,7 @@ export const PREFERENCE_KEYS = {
   CLOUD_SYNC_BOOKMARKS: 'cloud_sync_bookmarks',
   CLOUD_SYNC_COLLECTIONS: 'cloud_sync_collections',
   CLOUD_SYNC_HISTORY: 'cloud_sync_history',
+  CLOUD_SYNC_READING_LIST: 'cloud_sync_reading_list',
   SAYZIO_API_BASE_URL: 'sayzio_api_base_url',
   THEME: 'theme',
   DEVICE_ID: 'device_id',

@@ -121,7 +121,7 @@ export const SYNC_INTERVALS = {
   MANUAL_MIN_MS: 30 * 1000,
 } as const;
 
-export type SyncEntityKind = 'bookmarks' | 'collections' | 'history';
+export type SyncEntityKind = 'bookmarks' | 'collections' | 'history' | 'reading_list';
 
 export interface SyncState {
   lastSyncAt: string | null;

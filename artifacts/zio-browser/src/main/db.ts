@@ -519,6 +519,7 @@ const SYNC_ENTITY_TABLES: Record<SyncEntityKind, string> = {
   bookmarks: 'bookmarks',
   collections: 'collections',
   history: 'history',
+  reading_list: 'reading_list',
 };
 
 /** Stamp synced_at on local rows after a queued push finally succeeds. */
@@ -569,6 +570,118 @@ export function revokeSitePermission(origin: string, permission: string): void {
 export function clearAllSitePermissions(): void {
   const db = getDb();
   db.prepare('DELETE FROM site_permissions').run();
+}
+
+// ── Reading list ─────────────────────────────────────────────────────────────
+
+export interface ReadingListEntry {
+  id: string;
+  url: string;
+  normalized_url: string;
+  title: string;
+  favicon_url: string | null;
+  is_read: boolean;
+  saved_at: string;
+  created_at: string;
+  updated_at: string;
+  deleted: boolean;
+  synced_at: string | null;
+}
+
+type SqliteReadingListEntry = Omit<ReadingListEntry, 'is_read' | 'deleted'> & {
+  is_read: number;
+  deleted: number;
+};
+
+function mapReadingListRow(r: SqliteReadingListEntry): ReadingListEntry {
+  return { ...r, is_read: Boolean(r.is_read), deleted: Boolean(r.deleted) };
+}
+
+export function addToReadingList(url: string, title: string, faviconUrl?: string): ReadingListEntry {
+  const db = getDb();
+  const normalized = normalizeCollectionUrl(url);
+  const now = new Date().toISOString();
+
+  const existing = db.prepare(
+    'SELECT * FROM reading_list WHERE normalized_url = ? AND deleted = 0',
+  ).get(normalized) as SqliteReadingListEntry | undefined;
+  if (existing) return mapReadingListRow(existing);
+
+  const id = generateId();
+  db.prepare(`
+    INSERT INTO reading_list(id, url, normalized_url, title, favicon_url, is_read, saved_at, created_at, updated_at, deleted)
+    VALUES(?, ?, ?, ?, ?, 0, ?, ?, ?, 0)
+  `).run(id, url, normalized, title, faviconUrl ?? null, now, now, now);
+  return mapReadingListRow(db.prepare('SELECT * FROM reading_list WHERE id = ?').get(id) as SqliteReadingListEntry);
+}
+
+export function isInReadingList(url: string): boolean {
+  const db = getDb();
+  const normalized = normalizeCollectionUrl(url);
+  return db.prepare('SELECT id FROM reading_list WHERE normalized_url = ? AND deleted = 0 LIMIT 1').get(normalized) !== undefined;
+}
+
+export function getReadingList(): ReadingListEntry[] {
+  const db = getDb();
+  const rows = db.prepare(
+    'SELECT * FROM reading_list WHERE deleted = 0 ORDER BY saved_at DESC',
+  ).all() as SqliteReadingListEntry[];
+  return rows.map(mapReadingListRow);
+}
+
+export function getUnreadCount(): number {
+  const db = getDb();
+  const row = db.prepare('SELECT COUNT(*) as n FROM reading_list WHERE deleted = 0 AND is_read = 0').get() as { n: number };
+  return row.n;
+}
+
+export function markReadingListItemRead(id: string, isRead: boolean): void {
+  const db = getDb();
+  db.prepare('UPDATE reading_list SET is_read = ?, updated_at = ? WHERE id = ?')
+    .run(isRead ? 1 : 0, new Date().toISOString(), id);
+}
+
+export function removeFromReadingList(id: string): void {
+  const db = getDb();
+  db.prepare('UPDATE reading_list SET deleted = 1, updated_at = ? WHERE id = ?')
+    .run(new Date().toISOString(), id);
+}
+
+export function getReadingListAsSyncRecords(): SyncRecord[] {
+  const db = getDb();
+  const rows = db.prepare('SELECT * FROM reading_list').all() as SqliteReadingListEntry[];
+  return rows.map(r => ({
+    local_id: r.id,
+    updated_at: r.updated_at,
+    deleted: Boolean(r.deleted),
+    synced_at: r.synced_at,
+    data: {
+      url: r.url,
+      title: r.title,
+      favicon_url: r.favicon_url,
+      is_read: Boolean(r.is_read),
+      saved_at: r.saved_at,
+    },
+  }));
+}
+
+export function upsertReadingListFromSync(record: SyncRecord): void {
+  const db = getDb();
+  const data = record.data as { url: string; title: string; favicon_url?: string; is_read?: boolean; saved_at?: string };
+  const now = new Date().toISOString();
+  db.prepare(`
+    INSERT INTO reading_list(id, url, normalized_url, title, favicon_url, is_read, saved_at, created_at, updated_at, deleted, synced_at)
+    VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ON CONFLICT(id) DO UPDATE SET
+      url = excluded.url, title = excluded.title, favicon_url = excluded.favicon_url,
+      is_read = excluded.is_read, saved_at = excluded.saved_at,
+      updated_at = excluded.updated_at, deleted = excluded.deleted, synced_at = excluded.synced_at
+  `).run(
+    record.local_id, data.url, normalizeCollectionUrl(data.url), data.title,
+    data.favicon_url ?? null, data.is_read ? 1 : 0, data.saved_at ?? now,
+    record.updated_at, record.updated_at, record.deleted ? 1 : 0, now,
+  );
+}
 }
 
 // ── Downloads ────────────────────────────────────────────────────────────────

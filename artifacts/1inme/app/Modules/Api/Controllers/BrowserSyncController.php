@@ -208,6 +208,38 @@ class BrowserSyncController extends Controller
     }
 
     /**
+     * POST /api/v1/browser/devices/{deviceId}/reading-list
+     * Push reading-list changes from client to server (last-write-wins).
+     */
+    public function syncReadingList(Request $request, string $deviceId): JsonResponse
+    {
+        return $this->syncEntity($request, $deviceId, 'browser_reading_list', [
+            'items'              => ['required', 'array', 'max:1000'],
+            'items.*.local_id'   => ['required', 'string', 'max:64'],
+            'items.*.updated_at' => ['required', 'date'],
+            'items.*.deleted'    => ['nullable', 'boolean'],
+            'items.*.data'       => ['nullable', 'array'],
+            'items.*.data.url'   => ['nullable', 'url'],
+            'items.*.data.title' => ['nullable', 'string', 'max:512'],
+            'items.*.data.is_read' => ['nullable', 'boolean'],
+        ], function (int $userId, array $item, ?int $workspaceId): array {
+            $data = $item['data'] ?? [];
+            return [
+                'user_id'         => $userId,
+                'workspace_id'    => $workspaceId,
+                'local_id'        => $item['local_id'],
+                'url'             => $data['url'] ?? '',
+                'normalized_url'  => $this->normalizeUrl($data['url'] ?? ''),
+                'title'           => $data['title'] ?? '',
+                'favicon_url'     => $data['favicon_url'] ?? null,
+                'is_read'         => (bool) ($data['is_read'] ?? false),
+                'deleted'         => $item['deleted'] ?? false,
+                'item_updated_at' => $item['updated_at'],
+            ];
+        });
+    }
+
+    /**
      * GET /api/v1/browser/devices/{deviceId}/pull
      * Pull all server-side data since a given timestamp.
      * ?since=ISO8601
@@ -226,12 +258,14 @@ class BrowserSyncController extends Controller
         $bookmarks   = $this->pullEntity($userId, 'browser_bookmarks', $since, $workspaceId);
         $collections = $this->pullEntity($userId, 'browser_collections', $since, $workspaceId);
         $history     = $this->pullEntity($userId, 'browser_history_sync', $since, $workspaceId);
+        $readingList = $this->pullEntity($userId, 'browser_reading_list', $since, $workspaceId);
 
         return response()->json([
             'data' => [
                 'bookmarks'    => $bookmarks,
                 'collections'  => $collections,
                 'history'      => $history,
+                'reading_list' => $readingList,
                 'server_time'  => now()->toIso8601String(),
                 'workspace_id' => $workspaceId,
             ],

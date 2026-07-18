@@ -33,6 +33,8 @@ interface Props {
   screenshotCapturing?: boolean;
   /** Callback to open the site settings / privacy panel. */
   onOpenSiteSettings?: () => void;
+  readingListOpen: boolean;
+  onToggleReadingList: () => void;
 }
 
 const BASE_URL = 'https://1in.me';
@@ -322,6 +324,8 @@ export function ChromeBar({
   onScreenshot,
   screenshotCapturing = false,
   onOpenSiteSettings,
+  readingListOpen,
+  onToggleReadingList,
 }: Props) {
   const {
     tabs, tabOrder, activeTabId, recentlyClosed,
@@ -341,8 +345,48 @@ export function ChromeBar({
   const [trackerEnabled, setTrackerEnabled] = useState(false);
   const [dropTargetId, setDropTargetId] = useState<string | null>(null);
   const dragTabIdRef = useRef<string | null>(null);
+  const [savedInReadingList, setSavedInReadingList] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
   const omniboxRef = useRef<HTMLInputElement>(null);
   const stripMenuBtnRef = useRef<HTMLButtonElement>(null);
+
+  const activeTab = activeTabId ? tabs[activeTabId] : null;
+
+  // Track reading list state for the active page
+  useEffect(() => {
+    const url = activeTab?.url;
+    if (!url || url === 'about:newtab' || url === '') {
+      setSavedInReadingList(false);
+      return;
+    }
+    let cancelled = false;
+    void window.zio.readingList.isSaved(url).then((saved: boolean) => {
+      if (!cancelled) setSavedInReadingList(saved);
+    }).catch(() => { /* main not ready */ });
+    return () => { cancelled = true; };
+  }, [activeTab?.url]);
+
+  // Load unread count on mount and when reading list panel closes
+  useEffect(() => {
+    let cancelled = false;
+    void window.zio.readingList.unreadCount().then((n: number) => {
+      if (!cancelled) setUnreadCount(n);
+    }).catch(() => { /* main not ready */ });
+    return () => { cancelled = true; };
+  }, [readingListOpen]);
+
+  const handleSaveToReadingList = useCallback(async () => {
+    if (!activeTab?.url || activeTab.url === 'about:newtab') return;
+    if (savedInReadingList) {
+      onToggleReadingList();
+      return;
+    }
+    try {
+      await window.zio.readingList.add(activeTab.url, activeTab.title ?? activeTab.url, activeTab.favicon ?? undefined);
+      setSavedInReadingList(true);
+      setUnreadCount(prev => prev + 1);
+    } catch { /* non-fatal */ }
+  }, [activeTab, savedInReadingList, onToggleReadingList]);
 
   // Track queued (offline / failed) sync pushes for the pending indicator
   useEffect(() => {
@@ -383,8 +427,6 @@ export function ChromeBar({
     if (!activeTabId) { setBlockedCount(0); return; }
     void window.zio.tracker.getCount(activeTabId).then((n: number) => setBlockedCount(n)).catch(() => setBlockedCount(0));
   }, [activeTabId]);
-
-  const activeTab = activeTabId ? tabs[activeTabId] : null;
 
   // Sync omnibox with active tab URL
   useEffect(() => {
@@ -959,6 +1001,49 @@ export function ChromeBar({
             </span>
           )}
         </button>
+
+        {/* Reading list button + unread badge */}
+        <div style={{ position: 'relative', flexShrink: 0 }}>
+          <button
+            onClick={() => {
+              if (!activeTab?.url || activeTab.url === 'about:newtab' || activeTab.url === '') {
+                onToggleReadingList();
+              } else {
+                void handleSaveToReadingList();
+              }
+            }}
+            title={savedInReadingList ? 'Saved — open reading list' : 'Save to reading list'}
+            style={{
+              fontSize: 16,
+              padding: '2px 6px',
+              color: savedInReadingList ? 'var(--color-primary)' : 'var(--color-text-muted)',
+              transition: 'color 0.15s',
+            }}
+          >
+            {savedInReadingList ? '🔖' : '📖'}
+          </button>
+          {unreadCount > 0 && (
+            <span style={{
+              position: 'absolute',
+              top: -2,
+              right: -2,
+              minWidth: 14,
+              height: 14,
+              borderRadius: 7,
+              background: 'var(--color-primary)',
+              color: '#fff',
+              fontSize: 9,
+              fontWeight: 700,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '0 2px',
+              pointerEvents: 'none',
+            }}>
+              {unreadCount > 99 ? '99+' : unreadCount}
+            </span>
+          )}
+        </div>
 
         {/* Bookmark button */}
         <button style={{ fontSize: 16, padding: '2px 6px', opacity: 0.7 }} title="Bookmark">☆</button>

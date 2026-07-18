@@ -55,6 +55,12 @@ import {
   setSitePermission,
   revokeSitePermission,
   clearAllSitePermissions,
+  addToReadingList,
+  isInReadingList,
+  getReadingList,
+  getUnreadCount,
+  markReadingListItemRead,
+  removeFromReadingList,
 } from './db';
 import { getActiveItem } from './download-manager';
 import { resolvePermissionRequest } from './permission-handler';
@@ -479,6 +485,22 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
   });
   ipcMain.handle('downloads:clear', () => {
     clearAllDownloads();
+    return true;
+  });
+
+  // ── Reading list ─────────────────────────────────────────────────────────
+  ipcMain.handle('reading-list:add', (_, url: string, title: string, favicon?: string) => {
+    return addToReadingList(url, title, favicon);
+  });
+  ipcMain.handle('reading-list:is-saved', (_, url: string) => isInReadingList(url));
+  ipcMain.handle('reading-list:all', () => getReadingList());
+  ipcMain.handle('reading-list:unread-count', () => getUnreadCount());
+  ipcMain.handle('reading-list:mark-read', (_, id: string, isRead: boolean) => {
+    markReadingListItemRead(id, isRead);
+    return true;
+  });
+  ipcMain.handle('reading-list:remove', (_, id: string) => {
+    removeFromReadingList(id);
     return true;
   });
 
