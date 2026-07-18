@@ -30,6 +30,13 @@ export interface RecentlyClosedEntry {
   favicon: string | null;
 }
 
+export interface SessionSnapshot {
+  /** URLs of the non-pinned tabs, in tab-strip order. */
+  urls: string[];
+  /** Index into `urls` of the active tab, or -1 if the active tab isn't in the list. */
+  activeIndex: number;
+}
+
 export interface FindResult {
   tabId: string;
   activeMatchOrdinal: number;
@@ -512,6 +519,39 @@ export class TabManager {
     for (const url of urls) {
       if (url) this.createTab(url, true, true);
     }
+  }
+
+  /**
+   * Snapshot the non-pinned tabs (URLs in order + active tab index) for
+   * session persistence. Pinned tabs are persisted separately.
+   */
+  getSessionSnapshot(): SessionSnapshot {
+    const urls: string[] = [];
+    let activeIndex = -1;
+    for (const id of this.tabOrder) {
+      if (this.pinnedTabs.has(id)) continue;
+      const wc = this.tabs.get(id)?.view.webContents;
+      if (!wc || !isAlive(wc)) continue;
+      const url = wc.getURL();
+      if (!url || url === 'about:newtab' || url === 'about:blank') continue;
+      if (id === this.activeTabId) activeIndex = urls.length;
+      urls.push(url);
+    }
+    return { urls, activeIndex };
+  }
+
+  /**
+   * Restore a previous session's non-pinned tabs (in order) and activate the
+   * saved active tab. Call after pinned tabs have been restored.
+   */
+  restoreSessionTabs(urls: string[], activeIndex = -1): void {
+    const ids: TabId[] = [];
+    for (const url of urls) {
+      if (url) ids.push(this.createTab(url, true));
+    }
+    if (ids.length === 0) return;
+    const target = ids[activeIndex] ?? ids[ids.length - 1];
+    if (target) this.activateTab(target);
   }
 
   activateTab(id: TabId): void {

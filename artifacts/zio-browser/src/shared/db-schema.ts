@@ -204,6 +204,7 @@ export const PREFERENCE_KEYS = {
   ZIO_PANEL_DOCKED: 'zio_panel_docked',
   ACTIVE_PROFILE: 'active_profile',
   PINNED_TABS: 'pinned_tabs',
+  SESSION_TABS: 'session_tabs',
   TRACKER_BLOCKING_ENABLED: 'tracker_blocking_enabled',
 } as const;
 

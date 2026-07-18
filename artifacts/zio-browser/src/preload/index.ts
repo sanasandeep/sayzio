@@ -69,6 +69,7 @@ const api = {
     reopenClosed: () => ipcRenderer.invoke('tabs:reopen-closed'),
     recentlyClosed: () => ipcRenderer.invoke('tabs:recently-closed'),
     reopenFromRecent: (url: string) => ipcRenderer.invoke('tabs:reopen-from-recent', url),
+    restoreSession: () => ipcRenderer.invoke('tabs:restore-session'),
   },
 
   // ── Window mode ───────────────────────────────────────────────────────────

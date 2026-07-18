@@ -50,7 +50,6 @@ import {
   deleteAllPasswords,
   listProfiles,
   upsertProfile,
-  setActiveProfileId,
   getActiveProfileId,
   getAllSitePermissions,
   setSitePermission,
@@ -259,6 +258,25 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
   });
   ipcMain.handle('tabs:reopen-from-recent', (event, url: string) => {
     return resolveTabManager(event)?.createTab(url);
+  });
+  // Restore the last saved browsing session (non-pinned tabs from the
+  // previous run). Returns the number of tabs restored.
+  ipcMain.handle('tabs:restore-session', (event) => {
+    const tm = resolveTabManager(event);
+    if (!tm || tm.isPrivate) return 0;
+    try {
+      const raw = getPreference(PREFERENCE_KEYS.SESSION_TABS);
+      if (!raw) return 0;
+      const snap = JSON.parse(raw) as { urls?: unknown; activeIndex?: unknown };
+      const urls = Array.isArray(snap?.urls)
+        ? snap.urls.filter((u): u is string => typeof u === 'string' && u.length > 0)
+        : [];
+      if (urls.length === 0) return 0;
+      tm.restoreSessionTabs(urls, typeof snap?.activeIndex === 'number' ? snap.activeIndex : -1);
+      return urls.length;
+    } catch {
+      return 0;
+    }
   });
 
   // Page context extraction

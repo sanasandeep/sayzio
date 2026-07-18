@@ -211,6 +211,7 @@ export function CommandPalette({
     if (cmd.action === 'reload-tab') return hasPage;
     if (cmd.action === 'find-on-page') return hasPage;
     if (cmd.action === 'new-private-window') return !isPrivate;
+    if (cmd.action === 'restore-session') return !isPrivate;
     if (cmd.action === 'mode-browser' || cmd.action === 'mode-split' || cmd.action === 'mode-dashboard') {
       return !isPrivate;
     }
@@ -326,6 +327,9 @@ export function CommandPalette({
           break;
         case 'find-on-page':
           if (activeTabId) openFind();
+          break;
+        case 'restore-session':
+          void window.zio.tabs.restoreSession();
           break;
         case 'shortcuts':
           // Re-open palette in shortcuts view via a micro-timeout so the close

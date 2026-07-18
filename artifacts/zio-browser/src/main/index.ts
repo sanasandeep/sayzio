@@ -139,11 +139,41 @@ function createWindow(): BrowserWindow {
         tabManager?.initPinnedUrls(savedPinnedUrls);
       }
 
-      // Open the default new tab (active, placed after pinned tabs)
-      const newTabUrl = getPreference(PREFERENCE_KEYS.NEW_TAB_PAGE) ?? undefined;
-      tabManager.createTab(newTabUrl);
+      // Restore the previous session's open tabs (in order, with active tab)
+      const savedSessionJson = getPreference(PREFERENCE_KEYS.SESSION_TABS) ?? '';
+      let sessionUrls: string[] = [];
+      let sessionActiveIndex = -1;
+      try {
+        const snap = JSON.parse(savedSessionJson) as { urls?: unknown; activeIndex?: unknown };
+        if (Array.isArray(snap?.urls)) {
+          sessionUrls = snap.urls.filter((u): u is string => typeof u === 'string' && u.length > 0);
+        }
+        if (typeof snap?.activeIndex === 'number') {
+          sessionActiveIndex = snap.activeIndex;
+        }
+      } catch {
+        // No / invalid saved session — fall through to a fresh new tab
+      }
+
+      if (sessionUrls.length > 0) {
+        tabManager.restoreSessionTabs(sessionUrls, sessionActiveIndex);
+      } else {
+        // Open the default new tab (active, placed after pinned tabs)
+        const newTabUrl = getPreference(PREFERENCE_KEYS.NEW_TAB_PAGE) ?? undefined;
+        tabManager.createTab(newTabUrl);
+      }
     }
     if (isDev) win.webContents.openDevTools({ mode: 'detach' });
+  });
+
+  // Persist the open (non-pinned) tabs so the next launch can restore them
+  win.on('close', () => {
+    try {
+      const snapshot = tabManager.getSessionSnapshot();
+      setPreference(PREFERENCE_KEYS.SESSION_TABS, JSON.stringify(snapshot));
+    } catch {
+      // Never block window close on persistence errors
+    }
   });
 
   win.on('closed', () => {

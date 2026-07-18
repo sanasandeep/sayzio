@@ -130,6 +130,14 @@ export const COMMAND_REGISTRY: CommandEntry[] = [
     keywords: ['search', 'find', 'text'],
   },
   {
+    id: 'restore-session',
+    title: 'Restore previous session',
+    subtitle: 'Reopen the tabs from your last browsing session',
+    icon: '🕐',
+    action: 'restore-session',
+    keywords: ['session', 'restore', 'reopen', 'tabs', 'previous', 'last'],
+  },
+  {
     id: 'shortcuts',
     title: 'Keyboard Shortcuts',
     subtitle: 'View all keyboard shortcuts',
