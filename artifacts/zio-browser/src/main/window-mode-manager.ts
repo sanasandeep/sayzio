@@ -15,6 +15,10 @@ import {
   DEFAULT_SPLIT_RATIO,
   MIN_SPLIT_RATIO,
   MAX_SPLIT_RATIO,
+  DEFAULT_ZIO_PANEL_WIDTH,
+  MIN_ZIO_PANEL_WIDTH,
+  MAX_ZIO_PANEL_WIDTH,
+  ZIO_PANEL_DIVIDER_WIDTH,
 } from '../shared/window-mode';
 import type { TabManager } from './tab-manager';
 
@@ -27,6 +31,8 @@ export class WindowModeManager {
   private tabManager: TabManager;
   private mode: WindowMode;
   private splitRatio: number;
+  private zioPanelWidth: number;
+  private zioPanelDocked: boolean;
   private dashboardView: WebContentsView | null = null;
   private onModeChange?: (mode: WindowMode) => void;
 
@@ -35,11 +41,15 @@ export class WindowModeManager {
     tabManager: TabManager,
     initialMode: WindowMode = 'browser',
     initialSplitRatio: number = DEFAULT_SPLIT_RATIO,
+    initialZioPanelWidth: number = DEFAULT_ZIO_PANEL_WIDTH,
+    initialZioPanelDocked = false,
   ) {
     this.win = win;
     this.tabManager = tabManager;
     this.mode = initialMode;
     this.splitRatio = Math.max(MIN_SPLIT_RATIO, Math.min(MAX_SPLIT_RATIO, initialSplitRatio));
+    this.zioPanelWidth = Math.max(MIN_ZIO_PANEL_WIDTH, Math.min(MAX_ZIO_PANEL_WIDTH, initialZioPanelWidth));
+    this.zioPanelDocked = initialZioPanelDocked;
   }
 
   setModeChangeCallback(cb: (mode: WindowMode) => void): void {
@@ -52,6 +62,14 @@ export class WindowModeManager {
 
   getSplitRatio(): number {
     return this.splitRatio;
+  }
+
+  getZioPanelWidth(): number {
+    return this.zioPanelWidth;
+  }
+
+  getZioPanelDocked(): boolean {
+    return this.zioPanelDocked;
   }
 
   /**
@@ -83,6 +101,20 @@ export class WindowModeManager {
   setSplitRatio(ratio: number): void {
     this.splitRatio = Math.max(MIN_SPLIT_RATIO, Math.min(MAX_SPLIT_RATIO, ratio));
     if (this.mode === 'split') {
+      this.applyBounds();
+    }
+  }
+
+  setZioPanelWidth(width: number): void {
+    this.zioPanelWidth = Math.max(MIN_ZIO_PANEL_WIDTH, Math.min(MAX_ZIO_PANEL_WIDTH, width));
+    if (this.mode === 'browser') {
+      this.applyBounds();
+    }
+  }
+
+  setZioPanelDocked(docked: boolean): void {
+    this.zioPanelDocked = docked;
+    if (this.mode === 'browser') {
       this.applyBounds();
     }
   }
@@ -144,10 +176,17 @@ export class WindowModeManager {
   }
 
   private applyBrowserBounds(w: number, h: number): void {
+    // When the Zio panel is docked, it occupies the right side. The tabs fill
+    // the remaining left portion. Overlay mode leaves tabs full-width.
+    const reservedRight = this.zioPanelDocked
+      ? this.zioPanelWidth + ZIO_PANEL_DIVIDER_WIDTH
+      : 0;
+    const tabWidth = Math.max(0, w - reservedRight);
+
     this.tabManager.resizeTabs({
       x: 0,
       y: CHROME_HEIGHT,
-      width: w,
+      width: tabWidth,
       height: Math.max(0, h - CHROME_HEIGHT),
     });
   }

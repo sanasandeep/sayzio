@@ -53,6 +53,9 @@ const api = {
     extractContext: (id: string) => ipcRenderer.invoke('tabs:extract-context', id),
     autofillForm: (id: string, card: Record<string, string | undefined>) =>
       ipcRenderer.invoke('tabs:autofill-form', id, card),
+    injectPasswordDetector: (id: string) => ipcRenderer.invoke('tabs:inject-password-detector', id),
+    popPendingCredential: (id: string) =>
+      ipcRenderer.invoke('tabs:pop-pending-credential', id),
   },
 
   // ── Window mode ───────────────────────────────────────────────────────────
@@ -62,6 +65,10 @@ const api = {
     getSplitRatio: () => ipcRenderer.invoke('window:get-split-ratio'),
     setSplitRatio: (ratio: number) => ipcRenderer.invoke('window:set-split-ratio', ratio),
     reloadDashboard: () => ipcRenderer.invoke('window:reload-dashboard'),
+    getZioPanelWidth: () => ipcRenderer.invoke('window:get-zio-panel-width'),
+    setZioPanelWidth: (width: number) => ipcRenderer.invoke('window:set-zio-panel-width', width),
+    getZioPanelDocked: () => ipcRenderer.invoke('window:get-zio-panel-docked'),
+    setZioPanelDocked: (docked: boolean) => ipcRenderer.invoke('window:set-zio-panel-docked', docked),
   },
 
   // ── History ───────────────────────────────────────────────────────────────
@@ -70,6 +77,7 @@ const api = {
     search: (q: string) => ipcRenderer.invoke('history:search', q),
     recent: () => ipcRenderer.invoke('history:recent'),
     clear: () => ipcRenderer.invoke('history:clear'),
+    delete: (id: string) => ipcRenderer.invoke('history:delete', id),
   },
 
   // ── Bookmarks ─────────────────────────────────────────────────────────────
@@ -107,6 +115,31 @@ const api = {
     retry: (url: string) => ipcRenderer.invoke('downloads:retry', url),
     remove: (id: string) => ipcRenderer.invoke('downloads:remove', id),
     clear: () => ipcRenderer.invoke('downloads:clear'),
+  },
+
+  // ── Cookies ───────────────────────────────────────────────────────────────
+  cookies: {
+    getForSite: (url: string) => ipcRenderer.invoke('cookies:get-for-site', url),
+    getAll: () => ipcRenderer.invoke('cookies:get-all'),
+    delete: (name: string, url: string) => ipcRenderer.invoke('cookies:delete', name, url),
+    clearForSite: (url: string) => ipcRenderer.invoke('cookies:clear-for-site', url),
+    clearAll: () => ipcRenderer.invoke('cookies:clear-all'),
+  },
+
+  // ── Passwords ─────────────────────────────────────────────────────────────
+  passwords: {
+    save: (origin: string, username: string, plainPassword: string) =>
+      ipcRenderer.invoke('passwords:save', origin, username, plainPassword),
+    list: () => ipcRenderer.invoke('passwords:list'),
+    getForOrigin: (origin: string) => ipcRenderer.invoke('passwords:get-for-origin', origin),
+    reveal: (id: string) => ipcRenderer.invoke('passwords:reveal', id),
+    delete: (id: string) => ipcRenderer.invoke('passwords:delete', id),
+    deleteAll: () => ipcRenderer.invoke('passwords:delete-all'),
+  },
+
+  // ── Browsing data ─────────────────────────────────────────────────────────
+  browsingData: {
+    clear: () => ipcRenderer.invoke('browsing-data:clear'),
   },
 
   // ── Sync ──────────────────────────────────────────────────────────────────
@@ -155,6 +188,8 @@ const api = {
       'download:paused',
       'download:resumed',
       'download:cancelled',
+      // Password offer — main process detected a login form submission
+      'password:detected',
     ]);
     if (!ALLOWED_CHANNELS.has(channel)) return;
     ipcRenderer.on(channel, (_, ...args) => listener(...args));

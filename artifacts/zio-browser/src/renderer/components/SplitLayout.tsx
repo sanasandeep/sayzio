@@ -188,7 +188,7 @@ export function SplitLayout({
             <ZioPanel
               pageContext={activeTab ? { url: activeTab.url, title: activeTab.title } : null}
               onClose={() => setLeftPane('dashboard')}
-              embedded
+              presentation="embedded"
             />
           )}
         </div>

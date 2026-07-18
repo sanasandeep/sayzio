@@ -31,3 +31,9 @@ export const SPLIT_DIVIDER_WIDTH = 4;
 
 export const SAYZIO_DASHBOARD_URL = 'https://1in.me/user/dashboard';
 export const SAYZIO_BASE_HOST = '1in.me';
+
+/** Zio panel width (px) in browser-mode docked presentation */
+export const DEFAULT_ZIO_PANEL_WIDTH = 360;
+export const MIN_ZIO_PANEL_WIDTH = 260;
+export const MAX_ZIO_PANEL_WIDTH = 640;
+export const ZIO_PANEL_DIVIDER_WIDTH = 4;

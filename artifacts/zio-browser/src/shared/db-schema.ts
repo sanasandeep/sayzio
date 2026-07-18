@@ -6,7 +6,7 @@
  * importing better-sqlite3 (which requires native bindings).
  */
 
-export const SCHEMA_VERSION = 5;
+export const SCHEMA_VERSION = 6;
 
 export const CREATE_TABLES_SQL = `
 PRAGMA journal_mode = WAL;
@@ -128,6 +128,17 @@ CREATE TABLE IF NOT EXISTS sync_queue (
 );
 
 CREATE INDEX IF NOT EXISTS sync_queue_due ON sync_queue(next_attempt_at);
+
+CREATE TABLE IF NOT EXISTS saved_passwords (
+  id           TEXT PRIMARY KEY NOT NULL,
+  origin       TEXT NOT NULL,
+  username     TEXT NOT NULL,
+  password_enc TEXT NOT NULL,
+  created_at   TEXT NOT NULL,
+  updated_at   TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS saved_passwords_origin ON saved_passwords(origin);
 `;
 
 export const PREFERENCE_KEYS = {
@@ -146,6 +157,8 @@ export const PREFERENCE_KEYS = {
   SAVE_PASSWORDS: 'save_passwords',
   WINDOW_MODE: 'window_mode',
   SPLIT_RATIO: 'split_ratio',
+  ZIO_PANEL_WIDTH: 'zio_panel_width',
+  ZIO_PANEL_DOCKED: 'zio_panel_docked',
 } as const;
 
 export type PreferenceKey = typeof PREFERENCE_KEYS[keyof typeof PREFERENCE_KEYS];
