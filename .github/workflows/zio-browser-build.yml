@@ -88,7 +88,7 @@ jobs:
       #   APPLE_ID / APPLE_APP_SPECIFIC_PASSWORD / APPLE_TEAM_ID → notarization
       # Without them electron-builder produces unsigned installers.
       - name: Package macOS
-        run: pnpm exec electron-builder --config electron-builder.config.ts --publish never
+        run: pnpm exec electron-builder --config electron-builder.config.cjs --publish never
         env:
           CSC_LINK: ${{ secrets.MAC_CERT_P12_BASE64 }}
           CSC_KEY_PASSWORD: ${{ secrets.MAC_CERT_PASSWORD }}
@@ -143,7 +143,7 @@ jobs:
       # Signing activates automatically when the secrets are set:
       #   WIN_CERT_P12_BASE64 / WIN_CERT_PASSWORD → Authenticode signing
       - name: Package Windows
-        run: pnpm exec electron-builder --config electron-builder.config.ts --publish never
+        run: pnpm exec electron-builder --config electron-builder.config.cjs --publish never
         env:
           WIN_CSC_LINK: ${{ secrets.WIN_CERT_P12_BASE64 }}
           WIN_CSC_KEY_PASSWORD: ${{ secrets.WIN_CERT_PASSWORD }}
