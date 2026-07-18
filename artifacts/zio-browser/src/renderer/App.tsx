@@ -22,6 +22,7 @@ import { useAuthStore } from './store/auth-store';
 import { useModeStore } from './store/mode-store';
 import { useFindStore } from './store/find-store';
 import { useProfileStore } from './store/profile-store';
+import { useDownloadStore } from './store/download-store';
 import type { WindowMode } from '../shared/window-mode';
 import {
   MIN_ZIO_PANEL_WIDTH,
@@ -35,8 +36,6 @@ export default function App() {
   const [zioPanelOpen, setZioPanelOpen] = useState(false);
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [showModePicker, setShowModePicker] = useState(false);
-  const [downloadsPanelOpen, setDownloadsPanelOpen] = useState(false);
-  const [activeDownloadCount, setActiveDownloadCount] = useState(0);
   const [isPrivate, setIsPrivate] = useState(false);
   const [deviceLabOpen, setDeviceLabOpen] = useState(false);
   const [deviceLabUrl, setDeviceLabUrl] = useState<string | undefined>(undefined);
@@ -74,6 +73,13 @@ export default function App() {
 
   const { isOpen: findOpen, closeFind } = useFindStore();
   const { init: initProfiles } = useProfileStore();
+  const {
+    activeDownloadCount,
+    panelOpen: downloadsPanelOpen,
+    togglePanel: handleToggleDownloads,
+    openPanel: openDownloadsPanel,
+    closePanel: closeDownloadsPanel,
+  } = useDownloadStore();
 
   useEffect(() => {
     void Promise.all([
@@ -122,22 +128,6 @@ export default function App() {
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, []);
-
-  // Track active download count for the chrome badge
-  useEffect(() => {
-    const onStarted = () => {
-      setActiveDownloadCount(n => n + 1);
-    };
-    const onDone = () => {
-      setActiveDownloadCount(n => Math.max(0, n - 1));
-    };
-    window.zio.on('download:started', onStarted);
-    window.zio.on('download:done', onDone);
-    return () => {
-      window.zio.off('download:started', onStarted);
-      window.zio.off('download:done', onDone);
-    };
   }, []);
 
   // Listen for permission requests from the main process
@@ -255,10 +245,6 @@ export default function App() {
       setScreenshotCapturing(false);
     }
   }, [activeTabId, screenshotCapturing, tabs]);
-
-  const handleToggleDownloads = useCallback(() => {
-    setDownloadsPanelOpen(prev => !prev);
-  }, []);
 
   // ── Zio panel divider drag (browser mode, docked) ─────────────────────────
   const handleDividerMouseDown = useCallback((e: React.MouseEvent) => {
@@ -513,12 +499,12 @@ export default function App() {
           right: 12,
           zIndex: 200,
         }}>
-          <DownloadsPanel onClose={() => setDownloadsPanelOpen(false)} />
+          <DownloadsPanel onClose={closeDownloadsPanel} />
         </div>
       )}
 
       {/* Download started toast — bottom-right, non-blocking */}
-      <DownloadToast onOpenDownloads={() => setDownloadsPanelOpen(true)} />
+      <DownloadToast onOpenDownloads={openDownloadsPanel} />
 
       {authModalOpen && !isPrivate && (
         <AuthModal onClose={() => setAuthModalOpen(false)} />

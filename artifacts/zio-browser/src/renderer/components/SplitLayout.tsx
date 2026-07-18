@@ -20,9 +20,11 @@ import { ZioPanel } from './ZioPanel';
 import { AuthModal } from './AuthModal';
 import { ModeSwitcher } from './ModeSwitcher';
 import { FindBar } from './FindBar';
+import { DownloadsPanel } from './DownloadsPanel';
 import { useTabStore } from '../store/tab-store';
 import { useAuthStore } from '../store/auth-store';
 import { useFindStore } from '../store/find-store';
+import { useDownloadStore } from '../store/download-store';
 import type { WindowMode } from '../../shared/window-mode';
 import { SPLIT_DIVIDER_WIDTH, MIN_SPLIT_RATIO, MAX_SPLIT_RATIO } from '../../shared/window-mode';
 
@@ -47,6 +49,12 @@ export function SplitLayout({
   const { tabs, activeTabId } = useTabStore();
   const { user } = useAuthStore();
   const { isOpen: findOpen } = useFindStore();
+  const {
+    activeDownloadCount,
+    panelOpen: downloadsPanelOpen,
+    togglePanel: toggleDownloadsPanel,
+    closePanel: closeDownloadsPanel,
+  } = useDownloadStore();
   const [leftPane, setLeftPane] = useState<LeftPane>('dashboard');
   const containerRef = useRef<HTMLDivElement>(null);
   const isDragging = useRef(false);
@@ -223,6 +231,9 @@ export function SplitLayout({
           onOpenAuth={onOpenAuth}
           onOpenTabSearch={() => { /* tab search is available in browser mode */ }}
           showModeSwitcher={false}
+          downloadsPanelOpen={downloadsPanelOpen}
+          onToggleDownloads={toggleDownloadsPanel}
+          activeDownloadCount={activeDownloadCount}
         />
         {/* Tab content area — transparent; WebContentsViews are positioned here.
             position:relative lets FindBar anchor to the top-right corner. */}
@@ -232,6 +243,18 @@ export function SplitLayout({
           )}
         </div>
       </div>
+
+      {/* Downloads panel — anchored to the top-right, below the chrome bar */}
+      {downloadsPanelOpen && (
+        <div style={{
+          position: 'fixed',
+          top: 'var(--chrome-height)',
+          right: 12,
+          zIndex: 200,
+        }}>
+          <DownloadsPanel onClose={closeDownloadsPanel} />
+        </div>
+      )}
 
       {authModalOpen && <AuthModal onClose={onCloseAuth} />}
     </div>
