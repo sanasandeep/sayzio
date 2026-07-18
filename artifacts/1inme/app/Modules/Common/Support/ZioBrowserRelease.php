@@ -39,6 +39,20 @@ class ZioBrowserRelease
     public const LAST_RELEASE_SETTING = 'zio_browser_last_release';
 
     /**
+     * app_settings key tracking refresh health so the scheduled
+     * `zio-browser:check-freshness` watchdog can alert admins when refreshes
+     * have been failing continuously beyond its staleness threshold:
+     *   - last_success_at — ISO-8601 of the last successful refresh
+     *   - failing_since   — ISO-8601 of the first failure after the last
+     *                       success; cleared on the next success
+     *   - last_failure_at — ISO-8601 of the most recent failed refresh
+     *   - last_error      — short reason string from the most recent failure
+     * The watchdog also stores its alert-episode state under this key
+     * (see CheckZioBrowserReleaseFreshness).
+     */
+    public const HEALTH_KEY = 'zio_browser_refresh_health';
+
+    /**
      * Last-resort bootstrap fallback (v0.1.0) used only when nothing is
      * cached AND no release has ever been persisted to app_settings. The
      * persisted last-good release (see self::LAST_RELEASE_SETTING)
@@ -80,11 +94,13 @@ class ZioBrowserRelease
             Log::warning('zio-browser release refresh failed; keeping last cached release', [
                 'has_cached' => Cache::has(self::CACHE_KEY),
             ]);
+            self::recordRefreshFailure();
 
             return false;
         }
 
         Cache::forever(self::CACHE_KEY, $fetched);
+        self::recordRefreshSuccess();
 
         return true;
     }
@@ -154,6 +170,44 @@ class ZioBrowserRelease
         }
 
         return null;
+    }
+
+    /**
+     * Stamp a successful refresh into the health state and end any open
+     * failure streak. Best-effort: health bookkeeping must never break the
+     * refresh path itself.
+     */
+    private static function recordRefreshSuccess(): void
+    {
+        try {
+            $state = AppSetting::get(self::HEALTH_KEY, []);
+            $state = is_array($state) ? $state : [];
+            $state['last_success_at'] = now()->toIso8601String();
+            unset($state['failing_since'], $state['last_error']);
+            AppSetting::put(self::HEALTH_KEY, $state);
+        } catch (\Throwable $e) {
+            // Best-effort only.
+        }
+    }
+
+    /**
+     * Stamp a failed refresh into the health state, opening a failure streak
+     * (failing_since) if one is not already running. Best-effort.
+     */
+    private static function recordRefreshFailure(): void
+    {
+        try {
+            $state = AppSetting::get(self::HEALTH_KEY, []);
+            $state = is_array($state) ? $state : [];
+            $state['last_failure_at'] = now()->toIso8601String();
+            $state['last_error'] = 'GitHub release fetch failed or returned no usable zio-browser release';
+            if (empty($state['failing_since'])) {
+                $state['failing_since'] = now()->toIso8601String();
+            }
+            AppSetting::put(self::HEALTH_KEY, $state);
+        } catch (\Throwable $e) {
+            // Best-effort only.
+        }
     }
 
     /**

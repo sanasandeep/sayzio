@@ -84,6 +84,11 @@ return [
         'cadence'     => ['dailyAt', '06:20'],
     ],
     [
+        'key'         => 'zio-browser:check-freshness',
+        'description' => 'Alert ops admins when the cached SayZio Browser release has not refreshed successfully for 24h+ (download links going stale), with an all-clear once a refresh succeeds.',
+        'cadence'     => ['hourlyAt', 45],
+    ],
+    [
         'key'         => 'bg-templates:check-library',
         'description' => 'Alert ops admins when the biolink background template library goes empty or drops below its expected floor, and all-clear once restored.',
         'cadence'     => ['hourlyAt', 50],

@@ -332,6 +332,10 @@ args = "e2e-sessions-revoke"
 task = "workflow.run"
 args = "zio-browser-test"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "zio-freshness-test"
+
 [[workflows.workflow]]
 name = "e2e"
 author = "agent"
@@ -1398,6 +1402,18 @@ isValidation = true
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "pnpm --filter @workspace/zio-browser run test"
+
+[[workflows.workflow]]
+name = "zio-freshness-test"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd artifacts/1inme && TEST_LOCAL_MODE=artisan bash scripts/test-local.sh --filter=CheckZioBrowserReleaseFreshnessTest"
+
+[workflows.workflow.metadata]
+isValidation = true
+
 
 [agent]
 stack = "PNPM_WORKSPACE"

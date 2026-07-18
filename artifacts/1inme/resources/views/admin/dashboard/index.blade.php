@@ -329,6 +329,41 @@
 </div>
 @endif
 
+@if(!empty($zioBrowserHealth))
+@php
+    $zbSince   = $zioBrowserHealth['failing_since'] ?? null;
+    $zbSuccess = $zioBrowserHealth['last_success_at'] ?? null;
+    $zbVersion = $zioBrowserHealth['version'] ?? null;
+    try { $zbSinceHuman = $zbSince ? \Carbon\Carbon::parse($zbSince)->diffForHumans() : null; } catch (\Throwable $e) { $zbSinceHuman = null; }
+    try { $zbSuccessHuman = $zbSuccess ? \Carbon\Carbon::parse($zbSuccess)->diffForHumans() : null; } catch (\Throwable $e) { $zbSuccessHuman = null; }
+@endphp
+<div class="mb-8 rounded-2xl p-5 border" style="border-color: rgba(245,158,11,0.35); background: rgba(245,158,11,0.08);">
+    <div class="flex items-start gap-4">
+        <div class="w-11 h-11 shrink-0 bg-amber-500/15 rounded-xl flex items-center justify-center">
+            <i class="fas fa-download text-amber-400 text-lg"></i>
+        </div>
+        <div class="min-w-0">
+            <h2 class="text-base font-semibold text-amber-300">SayZio Browser download links are going stale</h2>
+            <p class="text-sm text-white/70 mt-1">
+                The scheduled release refresh has been <span class="text-amber-200">failing continuously{{ $zbSinceHuman ? ' since ' . $zbSinceHuman : '' }}</span>,
+                so the public /download page keeps serving the last-known release{{ $zbVersion ? ' (v' . $zbVersion . ')' : '' }}.
+                Visitors still get working installer links, but they fall further behind every release that ships.
+                @if($zbSuccessHuman)
+                    Last successful refresh: <span class="text-amber-200">{{ $zbSuccessHuman }}</span>.
+                @endif
+                Check the GitHub release tag/asset names, then re-run the job. This banner clears automatically once a refresh succeeds.
+            </p>
+            <div class="mt-3">
+                <a href="{{ route('admin.cron-jobs.index') }}"
+                   class="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-semibold bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 border border-amber-500/40 transition">
+                    <i class="fas fa-clock"></i> Open Scheduled Jobs
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+@endif
+
 @if(!empty($contactRecipientHealth['available']) && empty($contactRecipientHealth['configured']))
 <div class="mb-8 rounded-2xl p-5 border" style="border-color: rgba(245,158,11,0.35); background: rgba(245,158,11,0.08);">
     <div class="flex items-start gap-4">
