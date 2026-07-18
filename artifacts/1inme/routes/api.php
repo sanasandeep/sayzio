@@ -1,6 +1,7 @@
 <?php
 
 use App\Modules\Api\Controllers\AccountMergeController;
+use App\Modules\Api\Controllers\BrowserSyncController;
 use App\Modules\Api\Controllers\AdminAccessController;
 use App\Modules\Api\Controllers\AuthController;
 use App\Modules\Api\Controllers\BiolinkBlockController;
@@ -1346,5 +1347,14 @@ Route::prefix('v1')->group(function () {
         Route::post  ('/dialer/log',                [DialerController::class, 'logCall']);
         Route::post  ('/dialer/callback',           [DialerController::class, 'setCallback']);
         Route::delete('/dialer/callback/{id}',      [DialerController::class, 'clearCallback'])->whereNumber('id');
+
+        // ── SayZio Browser cloud sync ──────────────────────────────────────────
+        // Sync protocol: last-write-wins on item_updated_at.
+        // Device registration is idempotent (UUID in X-Browser-Device-Id header).
+        Route::post  ('/browser/devices',                            [BrowserSyncController::class, 'registerDevice']);
+        Route::post  ('/browser/devices/{deviceId}/bookmarks',       [BrowserSyncController::class, 'syncBookmarks']);
+        Route::post  ('/browser/devices/{deviceId}/collections',     [BrowserSyncController::class, 'syncCollections']);
+        Route::post  ('/browser/devices/{deviceId}/history',         [BrowserSyncController::class, 'syncHistory'])->middleware('throttle:60,1');
+        Route::get   ('/browser/devices/{deviceId}/pull',            [BrowserSyncController::class, 'pullSync']);
     });
 });
