@@ -198,6 +198,16 @@ export class ApiClient {
     return this.get(`/browser/devices/${deviceId}/pull${qs}`);
   }
 
+  /**
+   * Bulk server-side history purge. Marks all server-stored history rows as
+   * deleted (tombstoned) so other devices see the wipe on next pull.
+   *
+   * @param since - ISO-8601 lower bound; null means purge all history.
+   */
+  async purgeHistory(since: string | null): Promise<{ deleted: number }> {
+    return this.post('/browser/history/purge', { since });
+  }
+
   // ── Contacts ─────────────────────────────────────────────────────────────
 
   async getProfile(): Promise<{ user: ApiUserProfile }> {

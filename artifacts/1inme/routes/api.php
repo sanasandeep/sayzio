@@ -1361,5 +1361,6 @@ Route::prefix('v1')->group(function () {
         Route::post  ('/browser/devices/{deviceId}/collections',     [BrowserSyncController::class, 'syncCollections']);
         Route::post  ('/browser/devices/{deviceId}/history',         [BrowserSyncController::class, 'syncHistory'])->middleware('throttle:60,1');
         Route::get   ('/browser/devices/{deviceId}/pull',            [BrowserSyncController::class, 'pullSync']);
+        Route::post  ('/browser/history/purge',                      [BrowserSyncController::class, 'purgeHistory'])->middleware('throttle:10,1');
     });
 });

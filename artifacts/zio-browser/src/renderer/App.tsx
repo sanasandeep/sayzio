@@ -10,6 +10,7 @@ import { FindBar } from './components/FindBar';
 import { DownloadsPanel } from './components/DownloadsPanel';
 import { DeviceLab } from './components/DeviceLab';
 import { TabSearchPopover } from './components/TabSearchPopover';
+import { ClearDataDialog } from './components/ClearDataDialog';
 import { useTabStore } from './store/tab-store';
 import { useAuthStore } from './store/auth-store';
 import { useModeStore } from './store/mode-store';
@@ -33,6 +34,7 @@ export default function App() {
   const [isPrivate, setIsPrivate] = useState(false);
   const [deviceLabOpen, setDeviceLabOpen] = useState(false);
   const [tabSearchOpen, setTabSearchOpen] = useState(false);
+  const [clearDataShortcut, setClearDataShortcut] = useState(false);
   const { tabs, activeTabId, initTabs, reopenClosedTab } = useTabStore();
   const { init: initAuth, user, token } = useAuthStore();
   const {
@@ -91,6 +93,18 @@ export default function App() {
       void initProfiles(token);
     }
   }, [token, initProfiles]);
+
+  // Ctrl+Shift+Delete → open the clear browsing data dialog
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'Delete') {
+        e.preventDefault();
+        setClearDataShortcut(true);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
 
   // Track active download count for the chrome badge
   useEffect(() => {
@@ -368,6 +382,16 @@ export default function App() {
       {/* Tab search popover */}
       {tabSearchOpen && (
         <TabSearchPopover onClose={() => setTabSearchOpen(false)} />
+      )}
+
+      {/* Clear browsing data — Ctrl+Shift+Delete shortcut */}
+      {clearDataShortcut && (
+        <ClearDataDialog
+          onClose={() => setClearDataShortcut(false)}
+          onCleared={() => {
+            // Nothing extra needed here — the dialog's own success state is shown
+          }}
+        />
       )}
     </div>
   );

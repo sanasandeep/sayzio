@@ -168,6 +168,46 @@ class BrowserSyncController extends Controller
     }
 
     /**
+     * POST /api/v1/browser/history/purge
+     * Bulk server-side history tombstone for the authenticated user.
+     *
+     * Marks all (or time-range-filtered) server-stored history rows as deleted
+     * so other devices receive the tombstones on the next pull.
+     *
+     * @body { since?: ISO-8601 }  — omit to purge all history.
+     */
+    public function purgeHistory(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'since' => ['nullable', 'date'],
+        ]);
+
+        $userId = $request->user()->id;
+        $query  = DB::table('browser_history_sync')->where('user_id', $userId);
+        $since  = $validated['since'] ?? null;
+
+        if ($since) {
+            $query->where('last_visited_at', '>=', $since);
+        }
+
+        $count = $query->count();
+
+        if ($count > 0) {
+            $now = now();
+            DB::table('browser_history_sync')
+                ->where('user_id', $userId)
+                ->when($since, fn ($q) => $q->where('last_visited_at', '>=', $since))
+                ->update([
+                    'deleted'         => true,
+                    'item_updated_at' => $now,
+                    'updated_at'      => $now,
+                ]);
+        }
+
+        return response()->json(['data' => ['deleted' => $count]]);
+    }
+
+    /**
      * GET /api/v1/browser/devices/{deviceId}/pull
      * Pull all server-side data since a given timestamp.
      * ?since=ISO8601

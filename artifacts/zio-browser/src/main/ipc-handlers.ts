@@ -20,6 +20,7 @@ import {
   searchHistory,
   getRecentHistory,
   clearHistory,
+  clearHistoryByRange,
   deleteHistoryEntry,
   addBookmark,
   removeBookmark,
@@ -56,7 +57,7 @@ import type { AutofillCard } from '../shared/form-autofill';
 import { storeToken, retrieveToken, clearToken, storeUser, retrieveUser, clearUser } from './auth-store';
 import { encryptPassword, decryptPassword } from './password-store';
 import { createCollection, createSavedLink } from '../shared/collection-store';
-import type { PREFERENCE_KEYS } from '../shared/db-schema';
+import { PREFERENCE_KEYS } from '../shared/db-schema';
 import type { WindowMode } from '../shared/window-mode';
 import {
   DEFAULT_ZIO_PANEL_WIDTH,
@@ -597,16 +598,71 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
     }
   });
 
-  // ── Clear all browsing data ───────────────────────────────────────────────
-  ipcMain.handle('browsing-data:clear', async () => {
+  // ── Clear browsing data (with range + type selection) ────────────────────
+  ipcMain.handle('browsing-data:clear', async (_, options: {
+    range: 'hour' | 'day' | 'week' | '4weeks' | 'all';
+    clearHistory: boolean;
+    clearCookies: boolean;
+    clearCache: boolean;
+  }) => {
     try {
-      await session.defaultSession.clearStorageData({
-        storages: ['cookies', 'localstorage', 'cachestorage', 'shadercache', 'indexdb', 'websql', 'serviceworkers'],
-      });
-      clearHistory();
-      return true;
+      const { range, clearHistory: doHistory, clearCookies: doCookies, clearCache: doCache } = options ?? {};
+
+      // Compute the lower-bound ISO timestamp for range-based clears.
+      const sinceIso: string | null = (() => {
+        if (range === 'all') return null;
+        const msMap: Record<string, number> = {
+          hour: 60 * 60 * 1000,
+          day: 24 * 60 * 60 * 1000,
+          week: 7 * 24 * 60 * 60 * 1000,
+          '4weeks': 28 * 24 * 60 * 60 * 1000,
+        };
+        const ms = msMap[range];
+        return ms ? new Date(Date.now() - ms).toISOString() : null;
+      })();
+
+      let deletedCount = 0;
+
+      // 1. History — soft-delete local SQLite rows by range.
+      if (doHistory) {
+        const deleted = clearHistoryByRange(sinceIso);
+        deletedCount = deleted.length;
+
+        // 2. Propagate tombstones to the server so other devices see the wipe.
+        if (deleted.length > 0) {
+          try {
+            const token = retrieveToken();
+            const baseUrl = getPreference(PREFERENCE_KEYS.SAYZIO_API_BASE_URL);
+            if (token && baseUrl) {
+              const { ApiClient } = await import('../shared/api-client');
+              const client = new ApiClient({ baseUrl, token });
+              // Use the bulk purge endpoint — far cheaper than per-entry tombstones.
+              await client.purgeHistory(sinceIso);
+            }
+          } catch {
+            // Non-fatal: the locally deleted records are already marked deleted=1
+            // and will be picked up as tombstones on the next incremental sync.
+          }
+        }
+      }
+
+      // 3. Cookies & site data via Electron session API.
+      if (doCookies) {
+        await session.defaultSession.clearStorageData({
+          storages: ['cookies', 'localstorage', 'indexdb', 'websql', 'serviceworkers'],
+        });
+      }
+
+      // 4. Cache files.
+      if (doCache) {
+        await session.defaultSession.clearStorageData({
+          storages: ['cachestorage', 'shadercache'],
+        });
+      }
+
+      return { ok: true, deletedCount };
     } catch {
-      return false;
+      return { ok: false, deletedCount: 0 };
     }
   });
 

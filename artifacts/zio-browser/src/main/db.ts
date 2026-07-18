@@ -248,6 +248,33 @@ export function clearHistory(profileId?: string): void {
   db.prepare('UPDATE history SET deleted = 1, updated_at = ? WHERE profile_id = ? AND deleted = 0').run(new Date().toISOString(), pid);
 }
 
+/**
+ * Soft-delete history entries created at or after `sinceIso` (or all entries
+ * when `sinceIso` is null). Returns the deleted rows so callers can propagate
+ * sync tombstones to the server.
+ */
+export function clearHistoryByRange(sinceIso: string | null): HistoryEntry[] {
+  const db = getDb();
+  const now = new Date().toISOString();
+  let rows: HistoryEntry[];
+  if (sinceIso) {
+    rows = db.prepare(
+      'SELECT * FROM history WHERE deleted = 0 AND last_visited >= ?',
+    ).all(sinceIso) as HistoryEntry[];
+    if (rows.length > 0) {
+      db.prepare(
+        'UPDATE history SET deleted = 1, updated_at = ? WHERE deleted = 0 AND last_visited >= ?',
+      ).run(now, sinceIso);
+    }
+  } else {
+    rows = db.prepare('SELECT * FROM history WHERE deleted = 0').all() as HistoryEntry[];
+    if (rows.length > 0) {
+      db.prepare('UPDATE history SET deleted = 1, updated_at = ?').run(now);
+    }
+  }
+  return rows;
+}
+
 export function deleteHistoryEntry(id: string): boolean {
   const db = getDb();
   const now = new Date().toISOString();

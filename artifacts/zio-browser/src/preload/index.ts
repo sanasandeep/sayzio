@@ -152,7 +152,12 @@ const api = {
 
   // ── Browsing data ─────────────────────────────────────────────────────────
   browsingData: {
-    clear: () => ipcRenderer.invoke('browsing-data:clear'),
+    clear: (options: {
+      range: 'hour' | 'day' | 'week' | '4weeks' | 'all';
+      clearHistory: boolean;
+      clearCookies: boolean;
+      clearCache: boolean;
+    }) => ipcRenderer.invoke('browsing-data:clear', options),
   },
 
   // ── Sync ──────────────────────────────────────────────────────────────────

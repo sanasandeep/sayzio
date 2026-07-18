@@ -4,6 +4,7 @@
  * All data stays on-device; nothing is sent to the Sayzio backend.
  */
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { ClearDataDialog } from './ClearDataDialog';
 
 // ── Shared types ──────────────────────────────────────────────────────────────
 
@@ -60,11 +61,16 @@ interface Props {
   /** When set, jump directly to this section (from a chat assistant intent). */
   focusSection?: BrowserSection | null;
   onFocusSectionConsumed?: () => void;
+  /** When true, open the clear-data dialog immediately (triggered by keyboard shortcut). */
+  openClearDialog?: boolean;
+  onClearDialogConsumed?: () => void;
 }
 
-export function BrowserToolsView({ currentUrl, focusSection, onFocusSectionConsumed }: Props) {
+export function BrowserToolsView({ currentUrl, focusSection, onFocusSectionConsumed, openClearDialog, onClearDialogConsumed }: Props) {
   const [section, setSection] = useState<BrowserSection>('history');
   const [confirm, setConfirm] = useState<ConfirmState | null>(null);
+  const [clearDialogOpen, setClearDialogOpen] = useState(false);
+  const historyRefreshRef = useRef<(() => void) | null>(null);
 
   // Jump to the section requested by the chat assistant
   useEffect(() => {
@@ -73,6 +79,14 @@ export function BrowserToolsView({ currentUrl, focusSection, onFocusSectionConsu
       onFocusSectionConsumed?.();
     }
   }, [focusSection, onFocusSectionConsumed]);
+
+  // Open the clear dialog when triggered by keyboard shortcut
+  useEffect(() => {
+    if (openClearDialog) {
+      setClearDialogOpen(true);
+      onClearDialogConsumed?.();
+    }
+  }, [openClearDialog, onClearDialogConsumed]);
 
   const requestConfirm = useCallback((message: string, onConfirm: () => void) => {
     setConfirm({ message, onConfirm });
@@ -125,14 +139,30 @@ export function BrowserToolsView({ currentUrl, focusSection, onFocusSectionConsu
 
       {/* Section content */}
       <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-        {section === 'history' && <HistorySection onConfirm={requestConfirm} />}
+        {section === 'history' && (
+          <HistorySection
+            onConfirm={requestConfirm}
+            onRegisterRefresh={(fn) => { historyRefreshRef.current = fn; }}
+          />
+        )}
         {section === 'cookies' && <CookiesSection currentUrl={currentUrl} onConfirm={requestConfirm} />}
         {section === 'passwords' && <PasswordsSection currentUrl={currentUrl} onConfirm={requestConfirm} />}
         {section === 'downloads' && <DownloadsSection />}
       </div>
 
-      {/* Clear all browsing data */}
-      <ClearAllBar onConfirm={requestConfirm} />
+      {/* Clear browsing data bar */}
+      <ClearAllBar onOpen={() => setClearDialogOpen(true)} />
+
+      {/* Clear browsing data dialog */}
+      {clearDialogOpen && (
+        <ClearDataDialog
+          onClose={() => setClearDialogOpen(false)}
+          onCleared={() => {
+            // Refresh the history list if it's visible
+            historyRefreshRef.current?.();
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -181,7 +211,13 @@ function ConfirmBanner({ message, onConfirm, onCancel }: { message: string; onCo
 
 // ── History section ───────────────────────────────────────────────────────────
 
-function HistorySection({ onConfirm }: { onConfirm: (msg: string, cb: () => void) => void }) {
+function HistorySection({
+  onConfirm,
+  onRegisterRefresh,
+}: {
+  onConfirm: (msg: string, cb: () => void) => void;
+  onRegisterRefresh?: (fn: () => void) => void;
+}) {
   const [entries, setEntries] = useState<HistoryEntry[]>([]);
   const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(false);
@@ -200,6 +236,12 @@ function HistorySection({ onConfirm }: { onConfirm: (msg: string, cb: () => void
   }, []);
 
   useEffect(() => { void load(); }, [load]);
+
+  // Register the refresh callback with the parent so the clear dialog can
+  // trigger a list reload after clearing.
+  useEffect(() => {
+    onRegisterRefresh?.(() => void load(query || undefined));
+  }, [onRegisterRefresh, load, query]);
 
   const handleSearch = (val: string) => {
     setQuery(val);
@@ -561,21 +603,15 @@ function DownloadsSection() {
 
 // ── Clear all bar ─────────────────────────────────────────────────────────────
 
-function ClearAllBar({ onConfirm }: { onConfirm: (msg: string, cb: () => void) => void }) {
-  const handleClear = () => {
-    onConfirm(
-      'Clear all browsing data — history, cookies, and cache? You will be signed out of all sites.',
-      () => { void window.zio.browsingData.clear(); },
-    );
-  };
-
+function ClearAllBar({ onOpen }: { onOpen: () => void }) {
   return (
     <div style={{
       padding: '10px 12px',
       borderTop: '1px solid var(--color-border)',
     }}>
       <button
-        onClick={handleClear}
+        onClick={onOpen}
+        title="Clear browsing data (Ctrl+Shift+Delete)"
         style={{
           width: '100%',
           padding: '7px 12px',
@@ -587,7 +623,7 @@ function ClearAllBar({ onConfirm }: { onConfirm: (msg: string, cb: () => void) =
           fontWeight: 600,
           cursor: 'pointer',
         }}
-      >🗑 Clear all browsing data</button>
+      >🗑 Clear browsing data…</button>
     </div>
   );
 }
