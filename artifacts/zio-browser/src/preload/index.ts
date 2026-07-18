@@ -124,6 +124,8 @@ const api = {
       'download:progress',
       'download:done',
       'find:open',
+      // Link tools — context menu "Add to my biolink" trigger
+      'biolink:add-page',
     ]);
     if (!ALLOWED_CHANNELS.has(channel)) return;
     ipcRenderer.on(channel, (_, ...args) => listener(...args));

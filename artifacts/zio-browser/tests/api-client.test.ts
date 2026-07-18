@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ApiClient, ApiClientError } from '../src/shared/api-client';
+import type { ApiLink, CreateLinkPayload, LinkAnalytics, ApiDomain, CreateQrPayload, ApiLinksPage } from '../src/shared/api-client';
 
 function mockFetch(response: { ok: boolean; status: number; body: unknown }) {
   return vi.fn().mockResolvedValue({
@@ -150,5 +151,179 @@ describe('ApiClient', () => {
       const apiErr = err as ApiClientError;
       expect(apiErr.details).toEqual({ email: ['The email field is required.'] });
     }
+  });
+
+  // ── Link tools: new methods ──────────────────────────────────────────────
+
+  it('listLinks returns items and meta', async () => {
+    const mockPage: ApiLinksPage = {
+      items: [
+        { id: 1, alias: 'abc', title: 'Test', type: 'short', short_url: 'https://1in.me/abc', destination_url: 'https://example.com', created_at: '2025-01-01' },
+      ],
+      total: 1,
+      page: 1,
+      per_page: 10,
+      last_page: 1,
+    };
+    global.fetch = mockFetch({ ok: true, status: 200, body: { data: mockPage } });
+
+    const result = await client.listLinks({ q: 'abc' });
+    expect(result.items).toHaveLength(1);
+    expect(result.items[0]!.alias).toBe('abc');
+    expect(result.total).toBe(1);
+  });
+
+  it('createLink posts payload and returns the new link', async () => {
+    const newLink: ApiLink = {
+      id: 42,
+      alias: 'mylink',
+      title: 'My Page',
+      type: 'short',
+      short_url: 'https://1in.me/mylink',
+      destination_url: 'https://example.com',
+      created_at: '2025-06-01',
+    };
+    let capturedBody = '';
+    global.fetch = vi.fn().mockImplementation((_url: string, opts: RequestInit) => {
+      capturedBody = opts.body as string;
+      return Promise.resolve({ ok: true, status: 201, json: async () => ({ data: newLink }) });
+    });
+
+    const payload: CreateLinkPayload = {
+      type: 'short',
+      destination_url: 'https://example.com',
+      alias: 'mylink',
+      title: 'My Page',
+    };
+    const result = await client.createLink(payload);
+    expect(result.id).toBe(42);
+    expect(result.alias).toBe('mylink');
+    expect(JSON.parse(capturedBody)).toMatchObject({ destination_url: 'https://example.com', alias: 'mylink' });
+  });
+
+  it('checkAlias returns available: true when alias is free', async () => {
+    global.fetch = mockFetch({ ok: true, status: 200, body: { data: { available: true, alias: 'free-alias' } } });
+
+    const result = await client.checkAlias('free-alias');
+    expect(result.available).toBe(true);
+    expect(result.alias).toBe('free-alias');
+  });
+
+  it('checkAlias returns available: false when alias is taken', async () => {
+    global.fetch = mockFetch({
+      ok: true,
+      status: 200,
+      body: {
+        data: {
+          available: false,
+          alias: 'taken',
+          suggestions: ['taken-1', 'taken-2'],
+        },
+      },
+    });
+
+    const result = await client.checkAlias('taken');
+    expect(result.available).toBe(false);
+    expect(result.suggestions).toContain('taken-1');
+  });
+
+  it('getLinkAnalytics returns stats with correct shape', async () => {
+    const mockAnalytics: LinkAnalytics = {
+      link_id: 5,
+      alias: 'demo',
+      total_clicks: 120,
+      unique_clicks: 80,
+      by_country: [{ country: 'US', clicks: 60 }, { country: 'IN', clicks: 30 }],
+      by_device: [{ device_type: 'mobile', clicks: 90 }, { device_type: 'desktop', clicks: 30 }],
+      by_day: [{ date: '2025-06-01', clicks: 10 }, { date: '2025-06-02', clicks: 5 }],
+      window: { from: '2025-05-01', to: '2025-05-31' },
+    };
+    global.fetch = mockFetch({ ok: true, status: 200, body: { data: mockAnalytics } });
+
+    const result = await client.getLinkAnalytics(5);
+    expect(result.total_clicks).toBe(120);
+    expect(result.by_country[0]!.country).toBe('US');
+    expect(result.by_device[0]!.device_type).toBe('mobile');
+    expect(result.by_day).toHaveLength(2);
+  });
+
+  it('listAvailableDomains returns domain array', async () => {
+    const domains: ApiDomain[] = [
+      { id: 1, name: '1in.me', is_global: true, is_verified: true },
+      { id: 2, name: 'custom.com', is_global: false, is_verified: true },
+    ];
+    global.fetch = mockFetch({ ok: true, status: 200, body: { data: domains } });
+
+    const result = await client.listAvailableDomains();
+    expect(result).toHaveLength(2);
+    expect(result[0]!.name).toBe('1in.me');
+    expect(result[0]!.is_global).toBe(true);
+  });
+
+  it('createQrCode posts payload and returns QR object', async () => {
+    const qrPayload: CreateQrPayload = {
+      content_type: 'url',
+      content: 'https://example.com',
+      label: 'Test QR',
+    };
+    global.fetch = vi.fn().mockImplementation((_url: string, opts: RequestInit) => {
+      const body = JSON.parse(opts.body as string) as CreateQrPayload;
+      return Promise.resolve({
+        ok: true,
+        status: 201,
+        json: async () => ({
+          data: { id: 99, content_type: body.content_type, content: body.content, label: body.label, created_at: '2025-06-01' },
+        }),
+      });
+    });
+
+    const result = await client.createQrCode(qrPayload);
+    expect(result.id).toBe(99);
+    expect(result.content_type).toBe('url');
+  });
+
+  it('listBiolinks returns only biolink-type links', async () => {
+    const mockPage: ApiLinksPage = {
+      items: [
+        { id: 10, alias: '@handle', title: 'My Biolink', type: 'biolink', short_url: 'https://1in.me/@handle', created_at: '2025-01-01' },
+      ],
+      total: 1,
+      page: 1,
+      per_page: 10,
+      last_page: 1,
+    };
+    let capturedUrl = '';
+    global.fetch = vi.fn().mockImplementation((url: string) => {
+      capturedUrl = url;
+      return Promise.resolve({ ok: true, status: 200, json: async () => ({ data: mockPage }) });
+    });
+
+    const result = await client.listBiolinks();
+    expect(result.items[0]!.type).toBe('biolink');
+    // Should include type=biolink filter in the query
+    expect(capturedUrl).toContain('type=biolink');
+  });
+
+  it('addBiolinkBlock sends correct payload to biolinks/:id/blocks', async () => {
+    let capturedUrl = '';
+    let capturedBody = '';
+    global.fetch = vi.fn().mockImplementation((url: string, opts: RequestInit) => {
+      capturedUrl = url;
+      capturedBody = opts.body as string;
+      return Promise.resolve({
+        ok: true,
+        status: 201,
+        json: async () => ({ data: { id: 7, type: 'link', label: 'Example', url: 'https://example.com' } }),
+      });
+    });
+
+    const result = await client.addBiolinkBlock(10, {
+      type: 'link',
+      label: 'Example',
+      url: 'https://example.com',
+    });
+    expect(capturedUrl).toContain('/api/v1/biolinks/10/blocks');
+    expect(JSON.parse(capturedBody)).toMatchObject({ type: 'link', label: 'Example' });
+    expect(result.type).toBe('link');
   });
 });

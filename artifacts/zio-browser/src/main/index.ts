@@ -69,6 +69,11 @@ function createWindow(): void {
     onNavigate: (tabId, url, title) => {
       mainWindow?.webContents.send('tab:navigated', tabId, url, title);
     },
+    onAddToBiolink: (url, title) => {
+      // Open the Zio panel (if not already open) and trigger the add-to-biolink
+      // modal in the renderer by sending a typed IPC push event.
+      mainWindow?.webContents.send('biolink:add-page', url, title);
+    },
   });
 
   // Register all IPC handlers

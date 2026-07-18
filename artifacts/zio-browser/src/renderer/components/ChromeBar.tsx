@@ -5,6 +5,7 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { useTabStore } from '../store/tab-store';
 import { useAuthStore } from '../store/auth-store';
+import { ShortenPopover } from './ShortenPopover';
 
 interface Props {
   zioPanelOpen: boolean;
@@ -12,11 +13,14 @@ interface Props {
   onOpenAuth: () => void;
 }
 
+const BASE_URL = 'https://1in.me';
+
 export function ChromeBar({ zioPanelOpen, onToggleZio, onOpenAuth }: Props) {
   const { tabs, tabOrder, activeTabId, createTab, closeTab, activateTab, navigate, goBack, goForward, reload, stop } = useTabStore();
   const { user } = useAuthStore();
   const [omniboxValue, setOmniboxValue] = useState('');
   const [omniboxFocused, setOmniboxFocused] = useState(false);
+  const [shortenOpen, setShortenOpen] = useState(false);
   const omniboxRef = useRef<HTMLInputElement>(null);
 
   const activeTab = activeTabId ? tabs[activeTabId] : null;
@@ -27,6 +31,11 @@ export function ChromeBar({ zioPanelOpen, onToggleZio, onOpenAuth }: Props) {
       setOmniboxValue(activeTab?.url ?? '');
     }
   }, [activeTab?.url, omniboxFocused]);
+
+  // Close the shorten popover when the active tab changes
+  useEffect(() => {
+    setShortenOpen(false);
+  }, [activeTabId]);
 
   const handleOmniboxSubmit = useCallback((e: React.FormEvent) => {
     e.preventDefault();
@@ -40,6 +49,7 @@ export function ChromeBar({ zioPanelOpen, onToggleZio, onOpenAuth }: Props) {
   }, [createTab]);
 
   const activeTabState = activeTab;
+  const canShorten = !!(activeTab?.url && activeTab.url !== 'about:newtab' && activeTab.url !== '');
 
   return (
     <div style={{
@@ -49,6 +59,7 @@ export function ChromeBar({ zioPanelOpen, onToggleZio, onOpenAuth }: Props) {
       display: 'flex',
       flexDirection: 'column',
       WebkitAppRegion: 'drag',
+      position: 'relative',
     } as React.CSSProperties}>
 
       {/* Tab Strip */}
@@ -190,6 +201,29 @@ export function ChromeBar({ zioPanelOpen, onToggleZio, onOpenAuth }: Props) {
           />
         </form>
 
+        {/* ── Link tool buttons ─────────────────────────────────────────────── */}
+
+        {/* Shorten + QR popover trigger */}
+        <button
+          onClick={() => {
+            if (!canShorten) return;
+            setShortenOpen(prev => !prev);
+          }}
+          disabled={!canShorten}
+          title="Shorten this page / generate QR code"
+          style={{
+            fontSize: 13,
+            padding: '3px 8px',
+            borderRadius: 8,
+            background: shortenOpen ? 'var(--color-primary)' : 'var(--color-bg-elevated)',
+            color: shortenOpen ? '#fff' : 'var(--color-text)',
+            border: '1px solid var(--color-border)',
+            opacity: canShorten ? 1 : 0.35,
+            whiteSpace: 'nowrap',
+            transition: 'all 0.12s',
+          }}
+        >🔗</button>
+
         {/* Bookmark button */}
         <button style={{ fontSize: 16, padding: '2px 6px', opacity: 0.7 }} title="Bookmark">☆</button>
 
@@ -243,6 +277,17 @@ export function ChromeBar({ zioPanelOpen, onToggleZio, onOpenAuth }: Props) {
           >Sign in</button>
         )}
       </div>
+
+      {/* Shorten / QR popover */}
+      {shortenOpen && activeTab && (
+        <ShortenPopover
+          pageUrl={activeTab.url}
+          pageTitle={activeTab.title ?? ''}
+          baseUrl={BASE_URL}
+          onClose={() => setShortenOpen(false)}
+          onOpenAuth={() => { setShortenOpen(false); onOpenAuth(); }}
+        />
+      )}
     </div>
   );
 }

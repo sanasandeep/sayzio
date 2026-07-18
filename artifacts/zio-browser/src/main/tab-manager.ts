@@ -2,7 +2,7 @@
  * Tab manager for Zio Browser.
  * Manages WebContentsView instances, tab state, and navigation.
  */
-import { BrowserWindow, WebContentsView, session, type WebContents } from 'electron';
+import { BrowserWindow, WebContentsView, Menu, clipboard, session, type WebContents } from 'electron';
 import { parseOmniboxInput, type SearchEngineConfig, DEFAULT_SEARCH_ENGINE } from '../shared/omnibox';
 
 export interface TabState {
@@ -48,6 +48,8 @@ export class TabManager {
   private onTabClosed?: (tabId: TabId) => void;
   private onActiveTabChange?: (tabId: TabId) => void;
   private onNavigate?: (tabId: TabId, url: string, title: string) => void;
+  /** Optional callback invoked when the user picks "Add to my biolink" from the context menu */
+  private onAddToBiolink?: (url: string, title: string) => void;
 
   constructor(win: BrowserWindow) {
     this.win = win;
@@ -59,12 +61,14 @@ export class TabManager {
     onTabClosed?: (tabId: TabId) => void;
     onActiveTabChange?: (tabId: TabId) => void;
     onNavigate?: (tabId: TabId, url: string, title: string) => void;
+    onAddToBiolink?: (url: string, title: string) => void;
   }): void {
     this.onTabStateChange = cbs.onTabStateChange;
     this.onTabCreated = cbs.onTabCreated;
     this.onTabClosed = cbs.onTabClosed;
     this.onActiveTabChange = cbs.onActiveTabChange;
     this.onNavigate = cbs.onNavigate;
+    this.onAddToBiolink = cbs.onAddToBiolink;
   }
 
   setSearchEngine(engine: SearchEngineConfig): void {
@@ -136,6 +140,47 @@ export class TabManager {
 
     wc.on('audio-state-changed', ({ audible }) => {
       this.onTabStateChange?.(id, { isAudible: audible });
+    });
+
+    // ── Context menu ─────────────────────────────────────────────────────────
+    // Adds "Add to my biolink" to the right-click menu on every page.
+    wc.on('context-menu', (event, params) => {
+      const pageUrl = params.pageURL || wc.getURL();
+      const pageTitle = wc.getTitle();
+      // The URL that was right-clicked: prefer a link href if present, else the
+      // page URL itself so the user can add the current page to their biolink.
+      const targetUrl = params.linkURL || params.srcURL || pageUrl;
+
+      const menuItems: Electron.MenuItemConstructorOptions[] = [];
+
+      // Standard edit items when text is selected or on input fields
+      if (params.isEditable) {
+        menuItems.push({ role: 'cut' }, { role: 'copy' }, { role: 'paste' }, { type: 'separator' });
+      } else if (params.selectionText) {
+        menuItems.push({ role: 'copy' }, { type: 'separator' });
+      }
+
+      // Link-specific items
+      if (params.linkURL) {
+        menuItems.push(
+          { label: 'Open link in new tab', click: () => { this.createTab(params.linkURL); } },
+          { label: 'Copy link address', click: () => { clipboard.writeText(params.linkURL); } },
+          { type: 'separator' },
+        );
+      }
+
+      // ── Sayzio link tools ───────────────────────────────────────────────────
+      menuItems.push(
+        {
+          label: 'Add to my biolink…',
+          click: () => { this.onAddToBiolink?.(targetUrl, pageTitle); },
+        },
+      );
+
+      if (menuItems.length > 0) {
+        const menu = Menu.buildFromTemplate(menuItems);
+        menu.popup({ window: this.win });
+      }
     });
 
     // Handle new-window requests (target="_blank" etc.)
