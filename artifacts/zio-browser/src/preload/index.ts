@@ -11,6 +11,9 @@ import { contextBridge, ipcRenderer } from 'electron';
 type IpcListener = (...args: unknown[]) => void;
 
 const api = {
+  // ── Platform (for platform-specific chrome, e.g. Windows/Linux title bars) ─
+  platform: process.platform,
+
   // ── DB / preferences ─────────────────────────────────────────────────────
   prefs: {
     get: (key: string) => ipcRenderer.invoke('prefs:get', key),

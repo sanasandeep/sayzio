@@ -177,7 +177,14 @@ export function createPrivateWindow(startUrl?: string): BrowserWindow {
       // The renderer (app chrome) uses its own default session.
       // Only the tab WebContentsViews use the isolated private session.
     },
-    titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',
+    // macOS: inset traffic lights over the app chrome.
+    // Windows/Linux: hide the default frame and draw a dark overlay title bar
+    // (with matching window controls) so the incognito window is unmistakably
+    // distinct — the renderer supplies the drag-region header row.
+    titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'hidden',
+    ...(process.platform !== 'darwin'
+      ? { titleBarOverlay: { color: '#0d0d1a', symbolColor: '#c9b3ff', height: 36 } }
+      : {}),
     trafficLightPosition: { x: 12, y: 20 },
     show: false,
   });

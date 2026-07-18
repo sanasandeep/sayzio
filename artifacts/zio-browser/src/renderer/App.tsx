@@ -397,6 +397,30 @@ export default function App() {
       height: '100%',
       background: isPrivate ? '#0d0d1a' : undefined,
     }}>
+      {isPrivate && window.zio.platform !== 'darwin' && (
+        // Windows/Linux private windows are frameless (titleBarStyle: 'hidden'
+        // + titleBarOverlay in the main process). This row is the drag region;
+        // the OS draws the window controls over its right edge.
+        <div
+          style={{
+            height: 36,
+            flexShrink: 0,
+            display: 'flex',
+            alignItems: 'center',
+            paddingLeft: 12,
+            // Leave room under the native titleBarOverlay window controls
+            paddingRight: 150,
+            background: '#0d0d1a',
+            borderBottom: '1px solid rgba(201, 179, 255, 0.15)',
+            WebkitAppRegion: 'drag',
+            userSelect: 'none',
+          } as React.CSSProperties}
+        >
+          <span style={{ fontSize: 12, fontWeight: 600, color: '#c9b3ff' }}>
+            🔒 Private – Zio Browser
+          </span>
+        </div>
+      )}
       <ChromeBar
         zioPanelOpen={zioPanelOpen}
         onToggleZio={handleToggleZio}
