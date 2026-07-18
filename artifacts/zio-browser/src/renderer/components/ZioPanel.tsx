@@ -5,8 +5,8 @@
  */
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { useAuthStore } from '../store/auth-store';
-import { ApiClient } from '../../shared/api-client';
-import type { LinkAnalytics } from '../../shared/api-client';
+import { ApiClient, ApiClientError } from '../../shared/api-client';
+import type { LinkAnalytics, AssistantPage } from '../../shared/api-client';
 import { trimPageContext } from '../../shared/context-extractor';
 import type { PageContext, TrimmedContext } from '../../shared/context-extractor';
 import { detectSayzioLink } from '../../shared/link-tools';
@@ -25,6 +25,18 @@ interface Message {
   role: 'user' | 'assistant';
   content: string;
   timestamp: number;
+  /** True while tokens are still streaming into this message */
+  streaming?: boolean;
+}
+
+const VISITOR_TOKEN_KEY = 'zio.assistant.visitor_token';
+
+function loadVisitorToken(): string | null {
+  try { return window.localStorage.getItem(VISITOR_TOKEN_KEY); } catch { return null; }
+}
+
+function storeVisitorToken(token: string): void {
+  try { window.localStorage.setItem(VISITOR_TOKEN_KEY, token); } catch { /* ignore */ }
 }
 
 type PanelTab = 'chat' | 'contacts' | 'collections' | 'stats';
@@ -34,13 +46,18 @@ export function ZioPanel({ pageContext, onClose, embedded }: Props) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [greeting, setGreeting] = useState<string | null>(null);
   const [trimmedCtx, setTrimmedCtx] = useState<TrimmedContext | null>(null);
   const [activeTab, setActiveTab] = useState<PanelTab>('chat');
   const [error, setError] = useState<string | null>(null);
   const [addToBiolinkOpen, setAddToBiolinkOpen] = useState(false);
   const [addToBiolinkPayload, setAddToBiolinkPayload] = useState<{ url: string; title: string } | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  // The conversation is keyed by a server-rotatable visitor token, mirroring
+  // the web Ask Zio widget. Kept in a ref so mid-stream rotation updates
+  // don't race React state.
+  const visitorTokenRef = useRef<string | null>(loadVisitorToken());
+  const sessionOpenedRef = useRef(false);
 
   const getClient = useCallback((): ApiClient | null => {
     if (!token) return null;
@@ -61,6 +78,18 @@ export function ZioPanel({ pageContext, onClose, embedded }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sayzioLink?.alias, token]);
 
+  const buildPage = useCallback((): AssistantPage | undefined => {
+    if (!pageContext) return undefined;
+    let path: string | undefined;
+    try { path = new URL(pageContext.url).pathname.slice(0, 240); } catch { path = undefined; }
+    const page: AssistantPage = {
+      url: pageContext.url.slice(0, 500),
+      title: pageContext.title.slice(0, 240),
+    };
+    if (path) page.path = path;
+    return page;
+  }, [pageContext]);
+
   // Extract page context from the active tab
   useEffect(() => {
     if (!pageContext) return;
@@ -78,6 +107,42 @@ export function ZioPanel({ pageContext, onClose, embedded }: Props) {
       }
     })();
   }, [pageContext?.url]);
+
+  // Open (or resume) the assistant session once we have a signed-in token.
+  useEffect(() => {
+    if (!token || sessionOpenedRef.current) return;
+    const client = getClient();
+    if (!client) return;
+    sessionOpenedRef.current = true;
+
+    void (async () => {
+      try {
+        const res = await client.assistantSession(visitorTokenRef.current, buildPage());
+        if (res.visitor_token) {
+          visitorTokenRef.current = res.visitor_token;
+          storeVisitorToken(res.visitor_token);
+        }
+        if (!res.ok) {
+          if (res.error) setError(res.error);
+          return;
+        }
+        if (res.greeting) setGreeting(res.greeting);
+        if (Array.isArray(res.messages) && res.messages.length > 0) {
+          setMessages(res.messages.map(m => ({
+            role: m.role,
+            content: m.content,
+            timestamp: m.created_at ? Date.parse(m.created_at) || Date.now() : Date.now(),
+          })));
+        }
+      } catch (err) {
+        sessionOpenedRef.current = false;
+        const msg = err instanceof ApiClientError && err.code === 'auth_required'
+          ? 'Sign in to use Zio AI'
+          : (err instanceof Error ? err.message : 'Could not reach Zio');
+        setError(msg);
+      }
+    })();
+  }, [token, getClient, buildPage]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -101,31 +166,117 @@ export function ZioPanel({ pageContext, onClose, embedded }: Props) {
     const client = getClient();
     if (!client) { setError('Sign in to use Zio AI'); return; }
 
-    const userMsg: Message = { role: 'user', content: input.trim(), timestamp: Date.now() };
+    const text = input.trim();
+    // Ground the first question in the extracted page content so the
+    // assistant can summarize / answer about the page. Subsequent turns
+    // ride on the server-side conversation history.
+    const excerpt = trimmedCtx?.excerpt?.trim();
+    const outgoing = trimmedCtx && excerpt
+      ? `${text}\n\n[Current page: ${trimmedCtx.title} (${trimmedCtx.url})]\n[Page content excerpt]:\n${excerpt.slice(0, 2500)}`
+      : text;
+
+    const userMsg: Message = { role: 'user', content: text, timestamp: Date.now() };
     setMessages(prev => [...prev, userMsg]);
     setInput('');
     setIsLoading(true);
     setError(null);
 
-    try {
-      let sid = sessionId;
-      if (!sid) {
-        const contextStr = trimmedCtx ? JSON.stringify(trimmedCtx) : undefined;
-        const res = await client.assistantSession(contextStr);
-        sid = res.session_id;
-        setSessionId(sid);
+    const runStream = async (): Promise<void> => {
+      let vt = visitorTokenRef.current;
+      if (!vt) {
+        const res = await client.assistantSession(null, buildPage());
+        vt = res.visitor_token;
+        visitorTokenRef.current = vt;
+        storeVisitorToken(vt);
       }
 
-      const contextStr = trimmedCtx ? JSON.stringify({ excerpt: trimmedCtx.excerpt.slice(0, 2000) }) : undefined;
-      const res = await client.assistantMessage(sid, userMsg.content, contextStr);
-      setMessages(prev => [...prev, { role: 'assistant', content: res.reply, timestamp: Date.now() }]);
+      let streamingStarted = false;
+      let rotatedRetry: string | null = null;
+      let streamError: string | null = null;
+
+      const appendDelta = (delta: string): void => {
+        if (!delta) return;
+        setMessages(prev => {
+          const next = [...prev];
+          const last = next[next.length - 1];
+          if (last && last.role === 'assistant' && last.streaming) {
+            next[next.length - 1] = { ...last, content: last.content + delta };
+          } else {
+            next.push({ role: 'assistant', content: delta, timestamp: Date.now(), streaming: true });
+          }
+          return next;
+        });
+      };
+
+      await client.assistantStream(vt, outgoing, buildPage(), {
+        onToken: (delta) => { streamingStarted = true; appendDelta(delta); },
+        onDone: (payload) => {
+          const finalText = payload.assistant_message?.content;
+          setMessages(prev => {
+            const next = [...prev];
+            const last = next[next.length - 1];
+            if (last && last.role === 'assistant' && last.streaming) {
+              next[next.length - 1] = {
+                ...last,
+                content: finalText && finalText.trim() !== '' ? finalText : last.content,
+                streaming: false,
+              };
+            } else if (finalText) {
+              next.push({ role: 'assistant', content: finalText, timestamp: Date.now() });
+            }
+            return next;
+          });
+        },
+        onError: (payload) => {
+          if (payload.rotated && payload.visitor_token && !streamingStarted) {
+            rotatedRetry = payload.visitor_token;
+          } else {
+            streamError = payload.error ?? 'The assistant could not respond right now.';
+          }
+        },
+      });
+
+      if (rotatedRetry) {
+        // Server rotated the session (e.g. sign-in changed) — retry once
+        // with the fresh token.
+        visitorTokenRef.current = rotatedRetry;
+        storeVisitorToken(rotatedRetry);
+        rotatedRetry = null;
+        await client.assistantStream(visitorTokenRef.current, outgoing, buildPage(), {
+          onToken: appendDelta,
+          onDone: (payload) => {
+            setMessages(prev => {
+              const next = [...prev];
+              const last = next[next.length - 1];
+              const finalText = payload.assistant_message?.content;
+              if (last && last.role === 'assistant' && last.streaming) {
+                next[next.length - 1] = { ...last, content: finalText || last.content, streaming: false };
+              } else if (finalText) {
+                next.push({ role: 'assistant', content: finalText, timestamp: Date.now() });
+              }
+              return next;
+            });
+          },
+          onError: (payload) => { streamError = payload.error ?? 'The assistant could not respond right now.'; },
+        });
+      }
+
+      if (streamError) setError(streamError);
+    };
+
+    try {
+      await runStream();
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Failed to send message';
+      const msg = err instanceof ApiClientError && err.code === 'auth_required'
+        ? 'Sign in to use Zio AI'
+        : (err instanceof Error ? err.message : 'Failed to send message');
       setError(msg);
     } finally {
+      // Ensure no message is left flagged as streaming.
+      setMessages(prev => prev.map(m => (m.streaming ? { ...m, streaming: false } : m)));
       setIsLoading(false);
     }
-  }, [input, isLoading, getClient, sessionId, trimmedCtx]);
+  }, [input, isLoading, getClient, trimmedCtx, buildPage]);
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -234,7 +385,7 @@ export function ZioPanel({ pageContext, onClose, embedded }: Props) {
               {messages.length === 0 && (
                 <div style={{ textAlign: 'center', color: 'var(--color-text-muted)', marginTop: 40 }}>
                   <div style={{ fontSize: 32, marginBottom: 12 }}>⚡</div>
-                  <p style={{ fontSize: 14 }}>Ask Zio anything about this page</p>
+                  <p style={{ fontSize: 14 }}>{greeting ?? 'Ask Zio anything about this page'}</p>
                   {trimmedCtx && (
                     <p style={{ fontSize: 11, marginTop: 8, opacity: 0.6 }}>
                       Context loaded: {trimmedCtx.title}
@@ -261,7 +412,7 @@ export function ZioPanel({ pageContext, onClose, embedded }: Props) {
                   </div>
                 </div>
               ))}
-              {isLoading && (
+              {isLoading && !messages[messages.length - 1]?.streaming && (
                 <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
                   <div style={{
                     padding: '8px 12px',

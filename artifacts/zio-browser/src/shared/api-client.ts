@@ -212,18 +212,153 @@ export class ApiClient {
     return this.get('/dialer/history');
   }
 
-  // ── AI / assistant ────────────────────────────────────────────────────────
+  // ── AI / assistant (Ask Zio) ──────────────────────────────────────────────
+  // The /assistant/* endpoints mirror the web Ask Zio widget and return RAW
+  // JSON payloads (ok/visitor_token/messages/...), NOT the {data} envelope
+  // used by the rest of /api/v1 — so they go through rawRequest().
 
-  async assistantMessage(sessionId: string, message: string, context?: string): Promise<{ reply: string; coins_used?: number }> {
-    return this.post('/assistant/message', {
-      session_id: sessionId,
-      message,
-      context,
+  private async rawRequest<T>(
+    method: string,
+    path: string,
+    body?: unknown,
+    signal?: AbortSignal,
+  ): Promise<T> {
+    const url = `${this.baseUrl}/api/v1${path}`;
+    const headers: Record<string, string> = {
+      'Accept': 'application/json',
+      'Content-Type': 'application/json',
+      'User-Agent': this.userAgent,
+      'X-App-Platform': 'desktop',
+    };
+    if (this.token) headers['Authorization'] = `Bearer ${this.token}`;
+
+    const response = await fetch(url, {
+      method,
+      headers,
+      body: body !== undefined ? JSON.stringify(body) : undefined,
+      signal,
+    });
+
+    const json = await response.json().catch(() => null) as (T & { error?: string; auth_required?: boolean }) | null;
+
+    if (!response.ok) {
+      const message = (json && typeof json.error === 'string' && json.error)
+        || `HTTP ${response.status}`;
+      throw new ApiClientError(
+        json?.auth_required ? 'auth_required' : 'assistant_error',
+        message,
+        response.status,
+      );
+    }
+
+    return json as T;
+  }
+
+  async assistantBootstrap(): Promise<AssistantBootstrap> {
+    return this.rawRequest<AssistantBootstrap>('GET', '/assistant/bootstrap');
+  }
+
+  async assistantSession(visitorToken: string | null, page?: AssistantPage): Promise<AssistantSession> {
+    return this.rawRequest<AssistantSession>('POST', '/assistant/session', {
+      visitor_token: visitorToken ?? undefined,
+      surface: 'app',
+      page,
     });
   }
 
-  async assistantSession(context?: string): Promise<{ session_id: string }> {
-    return this.post('/assistant/session', { context });
+  async assistantMessage(visitorToken: string, message: string, page?: AssistantPage): Promise<AssistantTurn> {
+    return this.rawRequest<AssistantTurn>('POST', '/assistant/message', {
+      visitor_token: visitorToken,
+      surface: 'app',
+      message,
+      page,
+    });
+  }
+
+  /**
+   * Streamed assistant reply over SSE (POST + fetch body reader).
+   * Emits `token` deltas as they arrive, then `done` with the persisted
+   * assistant message. Rejects (or calls onError) on failure.
+   */
+  async assistantStream(
+    visitorToken: string,
+    message: string,
+    page: AssistantPage | undefined,
+    handlers: AssistantStreamHandlers,
+    signal?: AbortSignal,
+  ): Promise<void> {
+    const url = `${this.baseUrl}/api/v1/assistant/stream`;
+    const headers: Record<string, string> = {
+      'Accept': 'text/event-stream',
+      'Content-Type': 'application/json',
+      'User-Agent': this.userAgent,
+      'X-App-Platform': 'desktop',
+    };
+    if (this.token) headers['Authorization'] = `Bearer ${this.token}`;
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ visitor_token: visitorToken, surface: 'app', message, page }),
+      signal,
+    });
+
+    const contentType = response.headers.get('content-type') ?? '';
+    if (!response.ok || !contentType.includes('text/event-stream')) {
+      // Auth gate / validation errors come back as JSON.
+      const json = await response.json().catch(() => null) as { error?: string; auth_required?: boolean } | null;
+      throw new ApiClientError(
+        json?.auth_required ? 'auth_required' : 'assistant_error',
+        json?.error ?? `HTTP ${response.status}`,
+        response.status,
+      );
+    }
+
+    if (!response.body) {
+      throw new ApiClientError('assistant_error', 'Streaming not supported', response.status);
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+
+    const dispatch = (rawFrame: string): void => {
+      let event = 'message';
+      const dataLines: string[] = [];
+      for (const line of rawFrame.split('\n')) {
+        if (line.startsWith('event:')) event = line.slice(6).trim();
+        else if (line.startsWith('data:')) dataLines.push(line.slice(5).trimStart());
+      }
+      if (dataLines.length === 0) return;
+      let payload: Record<string, unknown>;
+      try {
+        payload = JSON.parse(dataLines.join('\n')) as Record<string, unknown>;
+      } catch {
+        return;
+      }
+      if (event === 'token') {
+        handlers.onToken?.(String((payload as { delta?: unknown }).delta ?? ''));
+      } else if (event === 'done') {
+        handlers.onDone?.(payload as unknown as AssistantStreamDone);
+      } else if (event === 'error') {
+        handlers.onError?.(payload as { error?: string; rotated?: boolean; visitor_token?: string });
+      } else if (event === 'user') {
+        handlers.onUser?.(payload as { user_message?: AssistantMessagePayload });
+      }
+    };
+
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      let idx: number;
+      while ((idx = buffer.indexOf('\n\n')) !== -1) {
+        const frame = buffer.slice(0, idx);
+        buffer = buffer.slice(idx + 2);
+        if (frame.trim()) dispatch(frame);
+      }
+    }
+    if (buffer.trim()) dispatch(buffer);
   }
 
   async getWallet(): Promise<{ balance: number; currency: string }> {
@@ -339,6 +474,69 @@ export interface DialerSearchResult {
     label: string;
     items: unknown[];
   }>;
+}
+
+// ── Assistant (Ask Zio) types ────────────────────────────────────────────────
+
+export interface AssistantPage {
+  route?: string;
+  path?: string;
+  title?: string;
+  url?: string;
+}
+
+export interface AssistantBootstrap {
+  enabled: boolean;
+  surface?: string;
+  brand_name?: string;
+  greeting?: string;
+  starter_prompts?: string[];
+  input_placeholder?: string;
+  auth_required?: boolean;
+}
+
+export interface AssistantMessagePayload {
+  id: number;
+  role: 'user' | 'assistant';
+  content: string;
+  blocks?: unknown[] | null;
+  citations?: unknown[];
+  created_at?: string;
+}
+
+export interface AssistantSession {
+  ok: boolean;
+  is_disabled?: boolean;
+  error?: string;
+  conversation_id?: number;
+  visitor_token: string;
+  rotated?: boolean;
+  greeting?: string;
+  starter_prompts?: string[];
+  messages: AssistantMessagePayload[];
+}
+
+export interface AssistantTurn {
+  ok?: boolean;
+  error?: string;
+  rotated?: boolean;
+  visitor_token?: string;
+  user_message?: AssistantMessagePayload;
+  assistant_message?: AssistantMessagePayload;
+  handed_off?: boolean;
+}
+
+export interface AssistantStreamDone {
+  assistant_message?: AssistantMessagePayload;
+  handed_off?: boolean;
+  conversation_id?: number;
+}
+
+export interface AssistantStreamHandlers {
+  onToken?: (delta: string) => void;
+  onUser?: (payload: { user_message?: AssistantMessagePayload }) => void;
+  onDone?: (payload: AssistantStreamDone) => void;
+  onError?: (payload: { error?: string; rotated?: boolean; visitor_token?: string }) => void;
 }
 
 export interface DialerLookupResult {

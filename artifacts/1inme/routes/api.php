@@ -333,6 +333,11 @@ Route::prefix('v1')->group(function () {
         Route::get ('bootstrap',         [\App\Modules\Common\Controllers\SiteAssistantController::class, 'bootstrap'])->middleware('throttle:60,1');
         Route::post('session',           [\App\Modules\Common\Controllers\SiteAssistantController::class, 'session'])->middleware('throttle:60,1');
         Route::post('message',           [\App\Modules\Common\Controllers\SiteAssistantController::class, 'message'])->middleware('throttle:60,1');
+        // SSE mirror of the web /assistant/stream endpoint so desktop
+        // (Zio Browser) and other Bearer-token clients can stream
+        // assistant replies token-by-token instead of waiting for the
+        // full JSON turn.
+        Route::post('stream',            [\App\Modules\Common\Controllers\SiteAssistantController::class, 'stream'])->middleware('throttle:60,1');
         Route::post('choice',            [\App\Modules\Common\Controllers\SiteAssistantController::class, 'choice'])->middleware('throttle:60,1');
         Route::post('handoff',           [\App\Modules\Common\Controllers\SiteAssistantController::class, 'handoff'])->middleware('throttle:10,1');
         Route::post('low-balance-click', [\App\Modules\Common\Controllers\SiteAssistantController::class, 'lowBalanceClick'])->middleware('throttle:60,1');
