@@ -75,6 +75,9 @@ function createWindow(): void {
       // modal in the renderer by sending a typed IPC push event.
       mainWindow?.webContents.send('biolink:add-page', url, title);
     },
+    onFindResult: (result) => {
+      mainWindow?.webContents.send('tab:find-result', result);
+    },
   });
 
   // Read persisted mode and split ratio

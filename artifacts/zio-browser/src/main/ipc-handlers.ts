@@ -89,7 +89,7 @@ export function registerIpcHandlers(tabManager: TabManager, modeManager?: Window
   ipcMain.handle('tabs:reload', (_, id: string, force?: boolean) => { tabManager.reload(id, force); return true; });
   ipcMain.handle('tabs:stop', (_, id: string) => { tabManager.stop(id); return true; });
   ipcMain.handle('tabs:zoom', (_, id: string, factor: number) => { tabManager.setZoom(id, factor); return true; });
-  ipcMain.handle('tabs:find', (_, id: string, text: string, forward?: boolean) => { tabManager.findInPage(id, text, forward); return true; });
+  ipcMain.handle('tabs:find', (_, id: string, text: string, forward?: boolean, matchCase?: boolean) => { tabManager.findInPage(id, text, forward, matchCase); return true; });
   ipcMain.handle('tabs:find-stop', (_, id: string) => { tabManager.stopFindInPage(id); return true; });
   ipcMain.handle('tabs:mute', (_, id: string, muted: boolean) => { tabManager.muteTab(id, muted); return true; });
   ipcMain.handle('tabs:get-state', (_, id: string) => tabManager.getTabState(id));

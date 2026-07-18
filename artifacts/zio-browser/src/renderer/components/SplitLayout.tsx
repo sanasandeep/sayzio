@@ -19,8 +19,10 @@ import { ChromeBar } from './ChromeBar';
 import { ZioPanel } from './ZioPanel';
 import { AuthModal } from './AuthModal';
 import { ModeSwitcher } from './ModeSwitcher';
+import { FindBar } from './FindBar';
 import { useTabStore } from '../store/tab-store';
 import { useAuthStore } from '../store/auth-store';
+import { useFindStore } from '../store/find-store';
 import type { WindowMode } from '../../shared/window-mode';
 import { SPLIT_DIVIDER_WIDTH, MIN_SPLIT_RATIO, MAX_SPLIT_RATIO } from '../../shared/window-mode';
 
@@ -44,6 +46,7 @@ export function SplitLayout({
 }: Props) {
   const { tabs, activeTabId } = useTabStore();
   const { user } = useAuthStore();
+  const { isOpen: findOpen } = useFindStore();
   const [leftPane, setLeftPane] = useState<LeftPane>('dashboard');
   const containerRef = useRef<HTMLDivElement>(null);
   const isDragging = useRef(false);
@@ -220,8 +223,13 @@ export function SplitLayout({
           onOpenAuth={onOpenAuth}
           showModeSwitcher={false}
         />
-        {/* Tab content area — transparent; WebContentsViews are positioned here */}
-        <div style={{ flex: 1 }} />
+        {/* Tab content area — transparent; WebContentsViews are positioned here.
+            position:relative lets FindBar anchor to the top-right corner. */}
+        <div style={{ flex: 1, position: 'relative' }}>
+          {findOpen && (
+            <FindBar activeTabId={activeTabId} />
+          )}
+        </div>
       </div>
 
       {authModalOpen && <AuthModal onClose={onCloseAuth} />}

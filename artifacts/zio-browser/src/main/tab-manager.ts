@@ -19,6 +19,13 @@ export interface TabState {
   zoomFactor: number;
 }
 
+export interface FindResult {
+  tabId: string;
+  activeMatchOrdinal: number;
+  matches: number;
+  finalUpdate: boolean;
+}
+
 type TabId = string;
 
 interface ManagedTab {
@@ -50,6 +57,7 @@ export class TabManager {
   private onNavigate?: (tabId: TabId, url: string, title: string) => void;
   /** Optional callback invoked when the user picks "Add to my biolink" from the context menu */
   private onAddToBiolink?: (url: string, title: string) => void;
+  private onFindResult?: (result: FindResult) => void;
 
   constructor(win: BrowserWindow) {
     this.win = win;
@@ -62,6 +70,7 @@ export class TabManager {
     onActiveTabChange?: (tabId: TabId) => void;
     onNavigate?: (tabId: TabId, url: string, title: string) => void;
     onAddToBiolink?: (url: string, title: string) => void;
+    onFindResult?: (result: FindResult) => void;
   }): void {
     this.onTabStateChange = cbs.onTabStateChange;
     this.onTabCreated = cbs.onTabCreated;
@@ -69,6 +78,7 @@ export class TabManager {
     this.onActiveTabChange = cbs.onActiveTabChange;
     this.onNavigate = cbs.onNavigate;
     this.onAddToBiolink = cbs.onAddToBiolink;
+    this.onFindResult = cbs.onFindResult;
   }
 
   setSearchEngine(engine: SearchEngineConfig): void {
@@ -97,6 +107,11 @@ export class TabManager {
 
     // Wire up events
     wc.on('did-navigate', (_, navUrl) => {
+      // Stop any in-progress find and reset match state on navigation
+      if (isAlive(wc)) {
+        wc.stopFindInPage('clearSelection');
+      }
+      this.onFindResult?.({ tabId: id, activeMatchOrdinal: 0, matches: 0, finalUpdate: true });
       this.onTabStateChange?.(id, {
         url: navUrl,
         canGoBack: wc.canGoBack(),
@@ -181,6 +196,16 @@ export class TabManager {
         const menu = Menu.buildFromTemplate(menuItems);
         menu.popup({ window: this.win });
       }
+    });
+
+    // ── Find in page results ──────────────────────────────────────────────────
+    wc.on('found-in-page', (_, result) => {
+      this.onFindResult?.({
+        tabId: id,
+        activeMatchOrdinal: result.activeMatchOrdinal,
+        matches: result.matches,
+        finalUpdate: result.finalUpdate,
+      });
     });
 
     // Handle new-window requests (target="_blank" etc.)
@@ -305,12 +330,18 @@ export class TabManager {
     }
   }
 
-  findInPage(id: TabId, text: string, forward = true): void {
-    this.tabs.get(id)?.view.webContents.findInPage(text, { forward });
+  findInPage(id: TabId, text: string, forward = true, matchCase = false): void {
+    const wc = this.tabs.get(id)?.view.webContents;
+    if (!wc || !text) return;
+    wc.findInPage(text, { forward, matchCase });
   }
 
   stopFindInPage(id: TabId): void {
-    this.tabs.get(id)?.view.webContents.stopFindInPage('clearSelection');
+    const wc = this.tabs.get(id)?.view.webContents;
+    if (wc && isAlive(wc)) {
+      wc.stopFindInPage('clearSelection');
+    }
+    this.onFindResult?.({ tabId: id, activeMatchOrdinal: 0, matches: 0, finalUpdate: true });
   }
 
   muteTab(id: TabId, muted: boolean): void {

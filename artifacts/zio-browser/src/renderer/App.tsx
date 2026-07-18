@@ -6,9 +6,11 @@ import { AuthModal } from './components/AuthModal';
 import { ModePicker } from './components/ModePicker';
 import { DashboardLayout } from './components/DashboardLayout';
 import { SplitLayout } from './components/SplitLayout';
+import { FindBar } from './components/FindBar';
 import { useTabStore } from './store/tab-store';
 import { useAuthStore } from './store/auth-store';
 import { useModeStore } from './store/mode-store';
+import { useFindStore } from './store/find-store';
 import type { WindowMode } from '../shared/window-mode';
 
 const FIRST_LAUNCH_KEY = 'zio_mode_picker_shown';
@@ -20,6 +22,7 @@ export default function App() {
   const { tabs, activeTabId, initTabs } = useTabStore();
   const { init: initAuth, user } = useAuthStore();
   const { mode, splitRatio, isInitialized, setMode, setSplitRatio, init: initMode } = useModeStore();
+  const { isOpen: findOpen, closeFind } = useFindStore();
 
   useEffect(() => {
     void Promise.all([initAuth(), initTabs(), initMode()]).then(() => {
@@ -36,6 +39,13 @@ export default function App() {
     setShowModePicker(false);
     void setMode(picked);
   }, [setMode]);
+
+  // Close find bar when switching away from browser mode
+  useEffect(() => {
+    if (mode !== 'browser' && findOpen) {
+      closeFind(activeTabId);
+    }
+  }, [mode, findOpen, activeTabId, closeFind]);
 
   const activeTab = activeTabId ? tabs[activeTabId] : null;
   const showNewTab = !activeTab || activeTab.url === '' || activeTab.url === 'about:newtab';
@@ -95,7 +105,8 @@ export default function App() {
         showModeSwitcher={true}
       />
 
-      <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
+      {/* Content area — position:relative so FindBar can anchor to top-right */}
+      <div style={{ flex: 1, display: 'flex', overflow: 'hidden', position: 'relative' }}>
         {showNewTab && (
           <div style={{ flex: 1, display: 'flex', alignItems: 'stretch' }}>
             <NewTabPage onNavigate={(url) => {
@@ -111,6 +122,11 @@ export default function App() {
             pageContext={activeTab ? { url: activeTab.url, title: activeTab.title } : null}
             onClose={() => setZioPanelOpen(false)}
           />
+        )}
+
+        {/* Find bar — overlays the top-right corner of the browser content */}
+        {findOpen && mode === 'browser' && (
+          <FindBar activeTabId={activeTabId} />
         )}
       </div>
 
