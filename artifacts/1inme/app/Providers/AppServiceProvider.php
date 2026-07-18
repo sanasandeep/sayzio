@@ -77,6 +77,15 @@ class AppServiceProvider extends ServiceProvider
                 // (app_settings) override these at runtime, but the env values
                 // remain the fallback.
                 ['MAIL_MAILER', 'MAIL_HOST', 'MAIL_PORT', 'MAIL_USERNAME', 'MAIL_PASSWORD', 'MAIL_SCHEME', 'MAIL_FROM_ADDRESS', 'MAIL_FROM_NAME', 'MAIL_EHLO_DOMAIN'],
+                // Session driver override. Dev `.env` pins SESSION_DRIVER=file
+                // (a DB session write per request is too slow over the distant
+                // RDS), but the Devices & sessions revoke flows only operate on
+                // the database driver. The sessions-revoke e2e run exports
+                // SESSION_DRIVER=database when booting its server; without this
+                // passthrough the child `php -S` falls back to the .env value
+                // and the revoke-actually-logs-out spec can never exercise the
+                // real code path.
+                ['SESSION_DRIVER'],
                 // Env-only platform services now editable from the admin
                 // Integrations hub. These remain the fallback when no admin
                 // value is stored, so the child must still inherit them.

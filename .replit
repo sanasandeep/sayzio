@@ -324,6 +324,10 @@ args = "mobile-prod-build"
 task = "workflow.run"
 args = "config-secrets"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-sessions-revoke"
+
 [[workflows.workflow]]
 name = "e2e"
 author = "agent"
@@ -1365,6 +1369,17 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "pnpm --filter @workspace/scripts run check:config-secrets"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-sessions-revoke"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "SESSION_DRIVER=database bash artifacts/1inme/tests/Browser/run-validation.sh sessions-revoke-logout.spec.ts"
 
 [workflows.workflow.metadata]
 isValidation = true

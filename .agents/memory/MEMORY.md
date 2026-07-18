@@ -147,4 +147,5 @@
 - [Throwaway-Expo harness exit](expo-throwaway-harness-exit.md) — manager API is acquireServer (not start/stop); harness must process.exit(0) after PASS or the detached Expo child hangs the run forever.
 - [EC2 deploy pipeline lessons](ec2-deploy-pipeline-lessons.md) — pre-update checkout kills one-run script lag; pin pnpm via packageManager; CI=1 for no-TTY installs; sudo -n needs an in-grant command.
 - [Bulk export pattern (contacts/general)](bulk-export-pattern.md) — async threshold 500; sync=stream; async=ContactExport row+job+polling page; signed URL (temporarySignedRoute) for mobile/no-auth download.
+- [Session driver file vs database](session-driver-file-vs-database.md) — Devices & sessions revoke only works on the database driver; dev/e2e pin file, e2e must boot with SESSION_DRIVER=database (passthrough-listed); prod currently inherits file.
 - [storage-url-resolve guard](storage-url-resolve-guard.md) — payload emissions of storage-backed image columns must go through PublicStorageUrl::resolve() (CDN vs slow /storage 302); exceptions go in the guard's ALLOWLIST.
