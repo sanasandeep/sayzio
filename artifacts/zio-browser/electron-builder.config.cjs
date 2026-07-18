@@ -1,5 +1,3 @@
-import type { Configuration } from 'electron-builder';
-
 /**
  * SayZio Browser — electron-builder configuration.
  *
@@ -21,7 +19,8 @@ const macNotarizeEnabled = Boolean(
     process.env['APPLE_TEAM_ID'],
 );
 
-const config: Configuration = {
+/** @type {import('electron-builder').Configuration} */
+const config = {
   appId: 'com.sayzio.browser',
   productName: 'SayZio Browser',
   copyright: 'Copyright © 2026 SayZio',
@@ -57,7 +56,7 @@ const config: Configuration = {
           entitlements: 'build-resources/entitlements.mac.plist',
           entitlementsInherit: 'build-resources/entitlements.mac.plist',
           ...(macNotarizeEnabled
-            ? { notarize: { teamId: process.env['APPLE_TEAM_ID'] as string } }
+            ? { notarize: { teamId: process.env['APPLE_TEAM_ID'] } }
             : {}),
         }
       : {
@@ -100,4 +99,4 @@ const config: Configuration = {
   },
 };
 
-export default config;
+module.exports = config;
