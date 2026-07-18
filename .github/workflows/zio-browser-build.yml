@@ -38,7 +38,8 @@ jobs:
       - name: Allow platform-native binaries
         # The workspace blocks non-Linux native binaries (dev-env size
         # optimization); CI runners need their own platform's binaries.
-        run: node -e "const fs=require('fs');const p='pnpm-workspace.yaml';fs.writeFileSync(p,fs.readFileSync(p,'utf8').split('\n').filter(l=>!/: '-'$/.test(l)).join('\n'))"
+        run: |
+          node -e "const fs=require('fs');const p='pnpm-workspace.yaml';fs.writeFileSync(p,fs.readFileSync(p,'utf8').split('\n').filter(l=>!l.trimEnd().endsWith(\": '-'\")).join('\n'))"
         working-directory: .
 
       - name: Install dependencies
@@ -70,7 +71,8 @@ jobs:
       - name: Allow platform-native binaries
         # The workspace blocks non-Linux native binaries (dev-env size
         # optimization); CI runners need their own platform's binaries.
-        run: node -e "const fs=require('fs');const p='pnpm-workspace.yaml';fs.writeFileSync(p,fs.readFileSync(p,'utf8').split('\n').filter(l=>!/: '-'$/.test(l)).join('\n'))"
+        run: |
+          node -e "const fs=require('fs');const p='pnpm-workspace.yaml';fs.writeFileSync(p,fs.readFileSync(p,'utf8').split('\n').filter(l=>!l.trimEnd().endsWith(\": '-'\")).join('\n'))"
         working-directory: .
 
       - name: Install dependencies
@@ -127,7 +129,8 @@ jobs:
       - name: Allow platform-native binaries
         # The workspace blocks non-Linux native binaries (dev-env size
         # optimization); CI runners need their own platform's binaries.
-        run: node -e "const fs=require('fs');const p='pnpm-workspace.yaml';fs.writeFileSync(p,fs.readFileSync(p,'utf8').split('\n').filter(l=>!/: '-'$/.test(l)).join('\n'))"
+        run: |
+          node -e "const fs=require('fs');const p='pnpm-workspace.yaml';fs.writeFileSync(p,fs.readFileSync(p,'utf8').split('\n').filter(l=>!l.trimEnd().endsWith(\": '-'\")).join('\n'))"
         working-directory: .
 
       - name: Install dependencies
