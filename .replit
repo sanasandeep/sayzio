@@ -320,6 +320,10 @@ args = "dialer-contact-auto-sync"
 task = "workflow.run"
 args = "mobile-prod-build"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "config-secrets"
+
 [[workflows.workflow]]
 name = "e2e"
 author = "agent"
@@ -1353,6 +1357,17 @@ isValidation = true
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "pnpm --filter @workspace/1inme-mobile run build 2>&1 | tail -30"
+
+[[workflows.workflow]]
+name = "config-secrets"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/scripts run check:config-secrets"
+
+[workflows.workflow.metadata]
+isValidation = true
 
 [agent]
 stack = "PNPM_WORKSPACE"
