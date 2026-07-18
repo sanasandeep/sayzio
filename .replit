@@ -328,6 +328,10 @@ args = "config-secrets"
 task = "workflow.run"
 args = "e2e-sessions-revoke"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "zio-browser-test"
+
 [[workflows.workflow]]
 name = "e2e"
 author = "agent"
@@ -1383,6 +1387,17 @@ args = "SESSION_DRIVER=database bash artifacts/1inme/tests/Browser/run-validatio
 
 [workflows.workflow.metadata]
 isValidation = true
+
+[[workflows.workflow]]
+name = "zio-browser-test"
+author = "agent"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/zio-browser run test"
 
 [agent]
 stack = "PNPM_WORKSPACE"
