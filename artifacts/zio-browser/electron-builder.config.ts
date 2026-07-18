@@ -37,7 +37,7 @@ const config: Configuration = {
   ],
 
   extraMetadata: {
-    main: 'dist/main/index.js',
+    main: 'dist/main/main/index.js',
   },
 
   // macOS
