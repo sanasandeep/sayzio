@@ -51,6 +51,11 @@ interface ManagedTab {
   view: WebContentsView;
   pinned: boolean;
   favicon: string | null;
+  /**
+   * The user's explicit mute choice for THIS tab in this session
+   * (null = no explicit choice; auto-mute policy may apply on navigation).
+   */
+  muteOverride: boolean | null;
 }
 
 const MAX_RECENTLY_CLOSED = 10;
@@ -94,6 +99,10 @@ export class TabManager {
   private onTabOrderChange?: (order: TabId[]) => void;
   private onPinnedUrlsChange?: (urls: string[]) => void;
   private onRecentlyClosedChange?: (entries: RecentlyClosedEntry[]) => void;
+  /** Returns true when a URL should be auto-muted (domain memory or global policy). */
+  private resolveAutoMute?: (url: string) => boolean;
+  /** Fired when the USER explicitly mutes/unmutes a tab (for domain persistence). */
+  private onUserMuteChange?: (url: string, muted: boolean) => void;
 
   constructor(win: BrowserWindow, options: TabManagerOptions = {}) {
     this.win = win;
@@ -113,6 +122,8 @@ export class TabManager {
     onTabOrderChange?: (order: TabId[]) => void;
     onPinnedUrlsChange?: (urls: string[]) => void;
     onRecentlyClosedChange?: (entries: RecentlyClosedEntry[]) => void;
+    resolveAutoMute?: (url: string) => boolean;
+    onUserMuteChange?: (url: string, muted: boolean) => void;
   }): void {
     this.onTabStateChange = cbs.onTabStateChange;
     this.onTabCreated = cbs.onTabCreated;
@@ -125,6 +136,8 @@ export class TabManager {
     this.onTabOrderChange = cbs.onTabOrderChange;
     this.onPinnedUrlsChange = cbs.onPinnedUrlsChange;
     this.onRecentlyClosedChange = cbs.onRecentlyClosedChange;
+    this.resolveAutoMute = cbs.resolveAutoMute;
+    this.onUserMuteChange = cbs.onUserMuteChange;
   }
 
   setSearchEngine(engine: SearchEngineConfig): void {
@@ -201,6 +214,17 @@ export class TabManager {
         canGoForward: wc.canGoForward(),
         isLoading: false,
       });
+      // Auto-mute from domain memory / global policy — unless the user made an
+      // explicit choice for this tab in this session.
+      const tab = this.tabs.get(id);
+      if (
+        tab && tab.muteOverride === null &&
+        isAlive(wc) && !wc.isAudioMuted() &&
+        this.resolveAutoMute?.(navUrl)
+      ) {
+        wc.setAudioMuted(true);
+        this.onTabStateChange?.(id, { isMuted: true });
+      }
     });
 
     wc.on('did-navigate-in-page', (_, navUrl) => {
@@ -320,7 +344,7 @@ export class TabManager {
     });
 
     if (pinned) this.pinnedTabs.add(id);
-    const tab: ManagedTab = { id, view, pinned, favicon: null };
+    const tab: ManagedTab = { id, view, pinned, favicon: null, muteOverride: null };
     this.tabs.set(id, tab);
     this.insertInOrder(id, pinned);
 
@@ -337,6 +361,12 @@ export class TabManager {
     this.onTabCreated?.(id);
 
     const targetUrl = url ?? 'about:newtab';
+    // Apply the auto-mute policy up front so new/restored tabs never emit a
+    // blip of audio before did-navigate fires.
+    if (targetUrl !== 'about:newtab' && this.resolveAutoMute?.(targetUrl)) {
+      wc.setAudioMuted(true);
+      this.onTabStateChange?.(id, { isMuted: true });
+    }
     if (targetUrl !== 'about:newtab') {
       void wc.loadURL(targetUrl);
     }
@@ -473,11 +503,12 @@ export class TabManager {
   }
 
   /**
-   * Mute all open tabs.
+   * Mute (or unmute) all open tabs. Does NOT write per-domain mute memory —
+   * this is the session-level global action.
    */
-  muteAllTabs(): void {
+  muteAllTabs(muted = true): void {
     for (const [tid] of this.tabs) {
-      this.muteTab(tid, true);
+      this.muteTab(tid, muted, false);
     }
   }
 
@@ -618,9 +649,23 @@ export class TabManager {
     this.onFindResult?.({ tabId: id, activeMatchOrdinal: 0, matches: 0, finalUpdate: true });
   }
 
-  muteTab(id: TabId, muted: boolean): void {
-    this.tabs.get(id)?.view.webContents.setAudioMuted(muted);
+  /**
+   * Mute or unmute a single tab.
+   * When `rememberDomain` is true (a direct user action) the choice is
+   * recorded as this tab's session override and reported via
+   * onUserMuteChange so the host's mute preference can be persisted.
+   */
+  muteTab(id: TabId, muted: boolean, rememberDomain = true): void {
+    const tab = this.tabs.get(id);
+    if (!tab) return;
+    const wc = tab.view.webContents;
+    tab.muteOverride = muted;
+    if (isAlive(wc)) wc.setAudioMuted(muted);
     this.onTabStateChange?.(id, { isMuted: muted });
+    if (rememberDomain && isAlive(wc)) {
+      const url = wc.getURL();
+      if (url) this.onUserMuteChange?.(url, muted);
+    }
   }
 
   getTabState(id: TabId): TabState | null {

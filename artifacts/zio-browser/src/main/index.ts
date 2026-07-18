@@ -4,8 +4,9 @@
 import path from 'path';
 import { app, BrowserWindow, Menu, session, nativeTheme } from 'electron';
 import type { BaseWindow } from 'electron';
-import { initDb, getPreference, setPreference } from './db';
+import { initDb, getPreference, setPreference, getMuteAllTabs, isDomainMuted, setDomainMuted } from './db';
 import { PREFERENCE_KEYS } from '../shared/db-schema';
+import { hostForMutePolicy } from '../shared/mute-policy';
 import { sessionPartitionForProfile, DEFAULT_PROFILE_ID } from '../shared/profile-store';
 import { TabManager } from './tab-manager';
 import { WindowModeManager, CHROME_HEIGHT } from './window-mode-manager';
@@ -93,6 +94,17 @@ function createWindow(): BrowserWindow {
     onTabOrderChange: (order) => win.webContents.send('tab:order-changed', order),
     onPinnedUrlsChange: (urls) => { setPreference(PREFERENCE_KEYS.PINNED_TABS, JSON.stringify(urls)); },
     onRecentlyClosedChange: (entries: RecentlyClosedEntry[]) => win.webContents.send('tab:recently-closed-changed', entries),
+    // Auto-mute: global "mute all tabs" policy or per-domain mute memory.
+    resolveAutoMute: (url) => {
+      if (getMuteAllTabs()) return true;
+      const host = hostForMutePolicy(url);
+      return host !== null && isDomainMuted(host);
+    },
+    // Persist the user's explicit per-tab mute choice as domain memory.
+    onUserMuteChange: (url, muted) => {
+      const host = hostForMutePolicy(url);
+      if (host) setDomainMuted(host, muted);
+    },
   });
 
   const savedMode  = (getPreference(PREFERENCE_KEYS.WINDOW_MODE) as WindowMode | null) ?? 'browser';
@@ -242,6 +254,13 @@ export function createPrivateWindow(startUrl?: string): BrowserWindow {
     onAddToBiolink: (url, title) => win.webContents.send('biolink:add-page', url, title),
     onDeviceLabPreview: (url) => win.webContents.send('device-lab:preview-url', url),
     onFindResult: (result) => win.webContents.send('tab:find-result', result),
+    // Private windows still honor stored mute policy (read-only)…
+    resolveAutoMute: (url) => {
+      if (getMuteAllTabs()) return true;
+      const host = hostForMutePolicy(url);
+      return host !== null && isDomainMuted(host);
+    },
+    // …but never persist new mute preferences (no onUserMuteChange).
   });
 
   // Private windows are browser-only — no dashboard or split pane.

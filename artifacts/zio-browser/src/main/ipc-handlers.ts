@@ -66,6 +66,10 @@ import {
   getUnreadCount,
   markReadingListItemRead,
   removeFromReadingList,
+  getMutedDomains,
+  setDomainMuted,
+  getMuteAllTabs,
+  setMuteAllTabs,
 } from './db';
 import { getActiveItem } from './download-manager';
 import { resolvePermissionRequest } from './permission-handler';
@@ -257,8 +261,27 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
     resolveTabManager(event)?.closeTabsToRight(id);
     return true;
   });
-  ipcMain.handle('tabs:mute-all', (event) => {
-    resolveTabManager(event)?.muteAllTabs();
+  ipcMain.handle('tabs:mute-all', (event, muted?: boolean) => {
+    const target = muted ?? true;
+    resolveTabManager(event)?.muteAllTabs(target);
+    // Persist the global policy so it survives as the session-level default
+    // (never persisted from private windows).
+    if (!senderIsPrivate(event)) setMuteAllTabs(target);
+    return true;
+  });
+
+  // ── Audio policy (per-domain mute memory + global mute) ──────────────────
+  ipcMain.handle('audio:muted-domains', () => getMutedDomains());
+  ipcMain.handle('audio:set-domain-muted', (event, host: string, muted: boolean) => {
+    if (senderIsPrivate(event)) return false;
+    if (typeof host !== 'string' || host.length === 0) return false;
+    setDomainMuted(host, muted);
+    return true;
+  });
+  ipcMain.handle('audio:get-mute-all', () => getMuteAllTabs());
+  ipcMain.handle('audio:set-mute-all', (event, enabled: boolean) => {
+    if (senderIsPrivate(event)) return false;
+    setMuteAllTabs(enabled);
     return true;
   });
   ipcMain.handle('tabs:reopen-closed', (event) => {

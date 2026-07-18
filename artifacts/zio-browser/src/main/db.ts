@@ -26,6 +26,13 @@ import { nextAttemptAt } from '../shared/sync-engine';
 import { DEFAULT_PROFILE_ID, profileSyncEntityKey } from '../shared/profile-store';
 import type { BrowserProfile } from '../shared/profile-store';
 import type { CachedSayzioLink } from '../shared/db-schema';
+import {
+  parseMutedDomains,
+  serializeMutedDomains,
+  addMutedDomain,
+  removeMutedDomain,
+  isDomainInMuteList,
+} from '../shared/mute-policy';
 
 export type { CachedSayzioLink } from '../shared/db-schema';
 
@@ -200,6 +207,33 @@ export function getAllPreferences(): Record<string, string> {
   const db = getDb();
   const rows = db.prepare('SELECT key, value FROM preferences').all() as Array<{ key: string; value: string }>;
   return Object.fromEntries(rows.map(r => [r.key, r.value]));
+}
+
+// ── Audio / mute policy ──────────────────────────────────────────────────────
+
+/** All hosts with a stored "muted" preference. */
+export function getMutedDomains(): string[] {
+  return parseMutedDomains(getPreference(PREFERENCE_KEYS.MUTED_DOMAINS));
+}
+
+/** Remember (or forget) the mute preference for a host. */
+export function setDomainMuted(host: string, muted: boolean): void {
+  const list = getMutedDomains();
+  const next = muted ? addMutedDomain(list, host) : removeMutedDomain(list, host);
+  setPreference(PREFERENCE_KEYS.MUTED_DOMAINS, serializeMutedDomains(next));
+}
+
+export function isDomainMuted(host: string): boolean {
+  return isDomainInMuteList(getMutedDomains(), host);
+}
+
+/** Session-level "mute all tabs" global policy. */
+export function getMuteAllTabs(): boolean {
+  return getPreference(PREFERENCE_KEYS.MUTE_ALL_TABS) === '1';
+}
+
+export function setMuteAllTabs(enabled: boolean): void {
+  setPreference(PREFERENCE_KEYS.MUTE_ALL_TABS, enabled ? '1' : '0');
 }
 
 // ── History ──────────────────────────────────────────────────────────────────

@@ -47,7 +47,7 @@ interface DownloadEntry {
   completed_at: string | null;
 }
 
-type BrowserSection = 'history' | 'cookies' | 'passwords' | 'downloads';
+type BrowserSection = 'history' | 'cookies' | 'passwords' | 'downloads' | 'sound';
 
 interface ConfirmState {
   message: string;
@@ -97,6 +97,7 @@ export function BrowserToolsView({ currentUrl, focusSection, onFocusSectionConsu
     { id: 'cookies', label: '🍪 Cookies' },
     { id: 'passwords', label: '🔑 Passwords' },
     { id: 'downloads', label: '⬇ Downloads' },
+    { id: 'sound', label: '🔇 Sound' },
   ];
 
   return (
@@ -148,6 +149,7 @@ export function BrowserToolsView({ currentUrl, focusSection, onFocusSectionConsu
         {section === 'cookies' && <CookiesSection currentUrl={currentUrl} onConfirm={requestConfirm} />}
         {section === 'passwords' && <PasswordsSection currentUrl={currentUrl} onConfirm={requestConfirm} />}
         {section === 'downloads' && <DownloadsSection />}
+        {section === 'sound' && <SoundSection />}
       </div>
 
       {/* Clear browsing data bar */}
@@ -682,6 +684,93 @@ function DownloadsSection() {
           </div>
         ))}
       </div>
+    </div>
+  );
+}
+
+// ── Sound section ─────────────────────────────────────────────────────────────
+
+function SoundSection() {
+  const [muteAll, setMuteAll] = useState(false);
+  const [mutedDomains, setMutedDomains] = useState<string[]>([]);
+  const [loaded, setLoaded] = useState(false);
+
+  const refresh = useCallback(async () => {
+    const [all, domains] = await Promise.all([
+      window.zio.audio.getMuteAll(),
+      window.zio.audio.mutedDomains(),
+    ]);
+    setMuteAll(all);
+    setMutedDomains(domains);
+    setLoaded(true);
+  }, []);
+
+  useEffect(() => { void refresh(); }, [refresh]);
+
+  const toggleMuteAll = async () => {
+    const next = !muteAll;
+    setMuteAll(next);
+    await window.zio.audio.setMuteAll(next);
+    // Apply to currently open tabs too so the toggle has an immediate effect.
+    await window.zio.tabs.muteAll(next);
+  };
+
+  const removeDomain = async (host: string) => {
+    setMutedDomains(prev => prev.filter(h => h !== host));
+    await window.zio.audio.setDomainMuted(host, false);
+  };
+
+  return (
+    <div style={{ flex: 1, overflowY: 'auto', padding: '12px 16px' }}>
+      {/* Global mute-all policy */}
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '10px 12px', borderRadius: 10,
+        border: '1px solid var(--color-border)', background: 'var(--color-bg-elevated)',
+        marginBottom: 16,
+      }}>
+        <div>
+          <div style={{ fontSize: 13, fontWeight: 600 }}>Mute all tabs</div>
+          <div style={{ fontSize: 11, color: 'var(--color-text-muted)', marginTop: 2 }}>
+            When on, every new and existing tab starts muted.
+          </div>
+        </div>
+        <button
+          onClick={() => void toggleMuteAll()}
+          style={{
+            ...smallToggleBtn,
+            background: muteAll ? 'var(--color-primary)' : 'var(--color-bg-elevated)',
+            color: muteAll ? '#fff' : 'var(--color-text-muted)',
+          }}
+        >
+          {muteAll ? 'On' : 'Off'}
+        </button>
+      </div>
+
+      {/* Per-domain mute list */}
+      <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--color-text-muted)', marginBottom: 8, letterSpacing: 0.5 }}>
+        MUTED SITES
+      </div>
+      {loaded && mutedDomains.length === 0 && (
+        <EmptyMsg>No muted sites. Mute a tab from its tab strip to remember the site here.</EmptyMsg>
+      )}
+      {mutedDomains.map(host => (
+        <div
+          key={host}
+          style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            padding: '8px 12px', borderRadius: 8, marginBottom: 4,
+            border: '1px solid var(--color-border)',
+          }}
+        >
+          <span style={{ fontSize: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span>🔇</span>{host}
+          </span>
+          <button onClick={() => void removeDomain(host)} style={smallToggleBtn} title="Unmute this site">
+            Unmute
+          </button>
+        </div>
+      ))}
     </div>
   );
 }

@@ -65,7 +65,7 @@ const api = {
     duplicate: (id: string) => ipcRenderer.invoke('tabs:duplicate', id),
     closeOthers: (id: string) => ipcRenderer.invoke('tabs:close-others', id),
     closeToRight: (id: string) => ipcRenderer.invoke('tabs:close-to-right', id),
-    muteAll: () => ipcRenderer.invoke('tabs:mute-all'),
+    muteAll: (muted?: boolean) => ipcRenderer.invoke('tabs:mute-all', muted),
     reopenClosed: () => ipcRenderer.invoke('tabs:reopen-closed'),
     recentlyClosed: () => ipcRenderer.invoke('tabs:recently-closed'),
     reopenFromRecent: (url: string) => ipcRenderer.invoke('tabs:reopen-from-recent', url),
@@ -262,6 +262,20 @@ const api = {
     clearAll: () => ipcRenderer.invoke('permissions:clear-all'),
     respond: (requestId: string, decision: 'allow' | 'block', remember: boolean, origin: string, permission: string) =>
       ipcRenderer.invoke('permissions:respond', requestId, decision, remember, origin, permission),
+  },
+
+  // ── Audio policy (per-domain mute memory + global mute) ──────────────────
+  audio: {
+    /** List all hosts with a stored "muted" preference. */
+    mutedDomains: () => ipcRenderer.invoke('audio:muted-domains') as Promise<string[]>,
+    /** Add/remove a host from the muted-domain list. */
+    setDomainMuted: (host: string, muted: boolean) =>
+      ipcRenderer.invoke('audio:set-domain-muted', host, muted) as Promise<boolean>,
+    /** Session-level "mute all tabs" global policy. */
+    getMuteAll: () => ipcRenderer.invoke('audio:get-mute-all') as Promise<boolean>,
+    /** Set the global policy only (does not touch currently open tabs). */
+    setMuteAll: (enabled: boolean) =>
+      ipcRenderer.invoke('audio:set-mute-all', enabled) as Promise<boolean>,
   },
 
   // ── Tracker blocking ──────────────────────────────────────────────────────

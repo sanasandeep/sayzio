@@ -259,6 +259,8 @@ export const PREFERENCE_KEYS = {
   PINNED_TABS: 'pinned_tabs',
   SESSION_TABS: 'session_tabs',
   TRACKER_BLOCKING_ENABLED: 'tracker_blocking_enabled',
+  MUTED_DOMAINS: 'muted_domains',
+  MUTE_ALL_TABS: 'mute_all_tabs',
 } as const;
 
 export type PreferenceKey = typeof PREFERENCE_KEYS[keyof typeof PREFERENCE_KEYS];

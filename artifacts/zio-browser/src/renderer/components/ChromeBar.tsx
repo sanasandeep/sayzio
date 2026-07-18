@@ -194,12 +194,20 @@ interface StripMenuProps {
   recentlyClosed: RecentlyClosedEntry[];
   onClose: () => void;
   onReopenEntry: (url: string) => void;
-  onMuteAll: () => void;
+  onMuteAll: (muted: boolean) => void;
   onOpenSearch: () => void;
 }
 
 function StripMenu({ anchorRef, recentlyClosed, onClose, onReopenEntry, onMuteAll, onOpenSearch }: StripMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null);
+  // Global "mute all tabs" policy state — the menu item toggles it.
+  const [muteAllActive, setMuteAllActive] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    void window.zio.audio.getMuteAll().then((v) => { if (!cancelled) setMuteAllActive(v); });
+    return () => { cancelled = true; };
+  }, []);
 
   const rect = anchorRef.current?.getBoundingClientRect();
   const left = rect ? rect.right - 200 : 80;
@@ -297,12 +305,12 @@ function StripMenu({ anchorRef, recentlyClosed, onClose, onReopenEntry, onMuteAl
 
       <div
         style={itemStyle}
-        onMouseDown={action(onMuteAll)}
+        onMouseDown={action(() => onMuteAll(!muteAllActive))}
         onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg-elevated)')}
         onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
       >
-        <span>🔇</span>
-        Mute all tabs
+        <span>{muteAllActive ? '🔊' : '🔇'}</span>
+        {muteAllActive ? 'Unmute all tabs' : 'Mute all tabs'}
       </div>
     </div>
   );
@@ -1194,7 +1202,7 @@ export function ChromeBar({
           recentlyClosed={recentlyClosed}
           onClose={() => setStripMenuOpen(false)}
           onReopenEntry={(url) => void reopenFromRecent(url)}
-          onMuteAll={() => void muteAllTabs()}
+          onMuteAll={(muted) => void muteAllTabs(muted)}
           onOpenSearch={() => { setStripMenuOpen(false); onOpenTabSearch(); }}
         />
       )}

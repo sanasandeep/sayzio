@@ -31,7 +31,7 @@ interface TabStoreState {
   duplicateTab: (id: string) => Promise<string | null>;
   closeOtherTabs: (id: string) => Promise<void>;
   closeTabsToRight: (id: string) => Promise<void>;
-  muteAllTabs: () => Promise<void>;
+  muteAllTabs: (muted?: boolean) => Promise<void>;
   reopenClosedTab: () => Promise<string | null>;
   reopenFromRecent: (url: string) => Promise<string | null>;
 }
@@ -202,8 +202,8 @@ export function useTabStore(): TabStoreState {
     await window.zio.tabs.closeToRight(id);
   }, []);
 
-  const muteAllTabs = useCallback(async (): Promise<void> => {
-    await window.zio.tabs.muteAll();
+  const muteAllTabs = useCallback(async (muted?: boolean): Promise<void> => {
+    await window.zio.tabs.muteAll(muted);
   }, []);
 
   const reopenClosedTab = useCallback(async (): Promise<string | null> => {
