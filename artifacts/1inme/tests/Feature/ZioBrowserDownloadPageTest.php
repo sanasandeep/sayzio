@@ -2,7 +2,9 @@
 
 namespace Tests\Feature;
 
+use App\Modules\Common\Support\ZioBrowserRelease;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
@@ -10,9 +12,11 @@ use Tests\TestCase;
 /**
  * Covers the public /download page (SayZio Browser installers).
  *
- * The controller resolves installer URLs live from the GitHub Releases API
- * (cached 6h) and falls back to pinned v0.1.0 URLs on any failure. These
- * tests fake the GitHub HTTP call so the page can never silently blank its
+ * Stale-while-revalidate: the page ONLY reads the cached release (never
+ * calls GitHub inline). Freshness comes from the scheduled
+ * `zio-browser:refresh-release` command; a cache-miss page view triggers an
+ * after-response refresh so the next visitor sees live links. These tests
+ * fake the GitHub HTTP call so the page can never silently blank its
  * download buttons after a GitHub API change or outage.
  */
 class ZioBrowserDownloadPageTest extends TestCase
@@ -20,12 +24,12 @@ class ZioBrowserDownloadPageTest extends TestCase
     use RefreshDatabase;
 
     private const RELEASES_URL = 'https://api.github.com/repos/sanasandeep/sayzio/releases*';
-    private const CACHE_KEY = 'zio_browser_release_v1';
 
     protected function setUp(): void
     {
         parent::setUp();
-        Cache::forget(self::CACHE_KEY);
+        Cache::forget(ZioBrowserRelease::CACHE_KEY);
+        Cache::forget(ZioBrowserRelease::REFRESH_LOCK_KEY);
     }
 
     /** @param array<int,array<string,mixed>> $assets */
@@ -48,19 +52,31 @@ class ZioBrowserDownloadPageTest extends TestCase
         ];
     }
 
-    public function test_renders_installer_links_from_live_github_release(): void
+    private function fakeFullRelease(string $version = '9.9.9'): void
     {
         Http::fake([
             self::RELEASES_URL => Http::response([
-                $this->githubRelease('zio-browser-v9.9.9', [
-                    $this->asset('SayZio.Browser-9.9.9-arm64.dmg'),
-                    $this->asset('SayZio.Browser-9.9.9.dmg'),
-                    $this->asset('SayZio.Browser.Setup.9.9.9.exe'),
-                    $this->asset('SayZio.Browser-9.9.9-arm64-mac.zip'),
-                    $this->asset('SayZio.Browser-9.9.9-mac.zip'),
+                $this->githubRelease('zio-browser-v' . $version, [
+                    $this->asset("SayZio.Browser-{$version}-arm64.dmg"),
+                    $this->asset("SayZio.Browser-{$version}.dmg"),
+                    $this->asset("SayZio.Browser.Setup.{$version}.exe"),
+                    $this->asset("SayZio.Browser-{$version}-arm64-mac.zip"),
+                    $this->asset("SayZio.Browser-{$version}-mac.zip"),
                 ]),
             ]),
         ]);
+    }
+
+    public function test_page_renders_cached_release_without_any_github_call(): void
+    {
+        // Seed the cache the way the scheduled job does.
+        $this->fakeFullRelease();
+        $this->assertTrue(ZioBrowserRelease::refresh());
+
+        // A fresh fake with no allowed responses: any HTTP call would throw.
+        Http::fake(function (): void {
+            $this->fail('The /download page must not perform any live HTTP call.');
+        });
 
         $response = $this->get('/download');
 
@@ -75,7 +91,28 @@ class ZioBrowserDownloadPageTest extends TestCase
         $response->assertSee($base . 'SayZio.Browser-9.9.9-mac.zip');
     }
 
-    public function test_api_failure_renders_pinned_fallback_urls(): void
+    public function test_cache_miss_renders_fallback_instantly_and_self_heals_after_response(): void
+    {
+        $this->fakeFullRelease();
+
+        // No cache yet: the visitor gets the pinned fallback immediately …
+        $response = $this->get('/download');
+        $response->assertOk();
+        $response->assertSee('v0.1.0');
+        $fallback = 'https://github.com/sanasandeep/sayzio/releases/download/zio-browser-v0.1.0/';
+        $response->assertSee($fallback . 'SayZio.Browser-0.1.0-arm64.dmg');
+        $response->assertSee($fallback . 'SayZio.Browser-0.1.0.dmg');
+        $response->assertSee($fallback . 'SayZio.Browser.Setup.0.1.0.exe');
+
+        // … and the after-response refresh has populated the cache, so the
+        // NEXT visitor sees the live release.
+        $this->assertTrue(Cache::has(ZioBrowserRelease::CACHE_KEY));
+        $next = $this->get('/download');
+        $next->assertOk();
+        $next->assertSee('v9.9.9');
+    }
+
+    public function test_api_failure_renders_pinned_fallback_and_caches_nothing(): void
     {
         Http::fake([
             self::RELEASES_URL => Http::response('upstream broke', 502),
@@ -85,13 +122,9 @@ class ZioBrowserDownloadPageTest extends TestCase
 
         $response->assertOk();
         $response->assertSee('v0.1.0');
-        $fallback = 'https://github.com/sanasandeep/sayzio/releases/download/zio-browser-v0.1.0/';
-        $response->assertSee($fallback . 'SayZio.Browser-0.1.0-arm64.dmg');
-        $response->assertSee($fallback . 'SayZio.Browser-0.1.0.dmg');
-        $response->assertSee($fallback . 'SayZio.Browser.Setup.0.1.0.exe');
 
-        // A failed fetch must NOT be cached for 6h — the next request retries.
-        $this->assertFalse(Cache::has(self::CACHE_KEY));
+        // A failed refresh must never poison the cache.
+        $this->assertFalse(Cache::has(ZioBrowserRelease::CACHE_KEY));
     }
 
     public function test_connection_exception_renders_pinned_fallback_urls(): void
@@ -105,6 +138,73 @@ class ZioBrowserDownloadPageTest extends TestCase
         $response->assertOk();
         $response->assertSee('v0.1.0');
         $response->assertSee('zio-browser-v0.1.0/SayZio.Browser.Setup.0.1.0.exe');
+    }
+
+    public function test_cache_miss_refresh_is_throttled_by_lock(): void
+    {
+        // Lock held (a refresh recently ran/failed): the page must not
+        // trigger another fetch, only serve the fallback.
+        Cache::add(ZioBrowserRelease::REFRESH_LOCK_KEY, 1, ZioBrowserRelease::REFRESH_LOCK_TTL);
+        Http::fake(function (): void {
+            $this->fail('Throttled cache-miss view must not call GitHub.');
+        });
+
+        $response = $this->get('/download');
+        $response->assertOk();
+        $response->assertSee('v0.1.0');
+        $this->assertFalse(Cache::has(ZioBrowserRelease::CACHE_KEY));
+    }
+
+    public function test_cache_miss_serves_persisted_last_good_release_over_pinned_fallback(): void
+    {
+        // A previously successful fetch persisted the release durably; with
+        // a cold cache the page must serve it instead of the stale pinned
+        // v0.1.0 bootstrap fallback.
+        \App\Modules\Admin\Models\AppSetting::put(
+            ZioBrowserRelease::LAST_RELEASE_SETTING,
+            array_merge(ZioBrowserRelease::FALLBACK, ['version' => '7.7.7'])
+        );
+        Cache::add(ZioBrowserRelease::REFRESH_LOCK_KEY, 1, ZioBrowserRelease::REFRESH_LOCK_TTL);
+        Http::fake(function (): void {
+            $this->fail('Cache-miss view with lock held must not call GitHub.');
+        });
+
+        $response = $this->get('/download');
+        $response->assertOk();
+        $response->assertSee('v7.7.7');
+    }
+
+    public function test_successful_refresh_persists_last_good_release(): void
+    {
+        $this->fakeFullRelease('6.0.0');
+        $this->assertTrue(ZioBrowserRelease::refresh());
+
+        $stored = \App\Modules\Admin\Models\AppSetting::get(ZioBrowserRelease::LAST_RELEASE_SETTING);
+        $this->assertIsArray($stored);
+        $this->assertSame('6.0.0', $stored['version']);
+    }
+
+    public function test_refresh_command_populates_cache_and_reports_success(): void
+    {
+        $this->fakeFullRelease('5.0.0');
+
+        $this->assertSame(0, Artisan::call('zio-browser:refresh-release'));
+        $this->assertSame('5.0.0', ZioBrowserRelease::current()['version']);
+    }
+
+    public function test_refresh_command_failure_keeps_previous_cached_release(): void
+    {
+        // Seed the cache directly (Http::fake stubs stack, so re-faking the
+        // same URL with a failure would not override an earlier success).
+        Cache::forever(ZioBrowserRelease::CACHE_KEY, array_merge(ZioBrowserRelease::FALLBACK, ['version' => '5.0.0']));
+
+        Http::fake([
+            self::RELEASES_URL => Http::response('upstream broke', 502),
+        ]);
+
+        $this->assertSame(1, Artisan::call('zio-browser:refresh-release'));
+        // Stale-while-revalidate: the old release keeps serving.
+        $this->assertSame('5.0.0', ZioBrowserRelease::current()['version']);
     }
 
     public function test_asset_name_platform_mapping(): void
@@ -126,10 +226,9 @@ class ZioBrowserDownloadPageTest extends TestCase
             ]),
         ]);
 
-        $response = $this->get('/download');
-        $response->assertOk();
+        $this->assertTrue(ZioBrowserRelease::refresh());
+        $release = ZioBrowserRelease::current();
 
-        $release = $response->viewData('release');
         $base = 'https://github.com/sanasandeep/sayzio/releases/download/zio-browser-v9.9.9/';
         $this->assertSame('2.0.0', $release['version']);
         $this->assertSame($base . 'SayZio.Browser-2.0.0-arm64.dmg', $release['mac_arm64_dmg']);
@@ -164,15 +263,14 @@ class ZioBrowserDownloadPageTest extends TestCase
             ]),
         ]);
 
-        $response = $this->get('/download');
-        $response->assertOk();
-        $this->assertSame('2.8.0', $response->viewData('release')['version']);
+        $this->assertTrue(ZioBrowserRelease::refresh());
+        $this->assertSame('2.8.0', ZioBrowserRelease::current()['version']);
     }
 
-    public function test_release_missing_headline_installers_falls_back(): void
+    public function test_release_missing_headline_installers_is_not_trusted(): void
     {
         // A matching release without all three headline installers must not
-        // be trusted — the page falls back instead of rendering gaps.
+        // be cached — the page keeps its fallback instead of rendering gaps.
         Http::fake([
             self::RELEASES_URL => Http::response([
                 $this->githubRelease('zio-browser-v4.0.0', [
@@ -182,8 +280,8 @@ class ZioBrowserDownloadPageTest extends TestCase
             ]),
         ]);
 
-        $response = $this->get('/download');
-        $response->assertOk();
-        $this->assertSame('0.1.0', $response->viewData('release')['version']);
+        $this->assertFalse(ZioBrowserRelease::refresh());
+        $this->assertFalse(Cache::has(ZioBrowserRelease::CACHE_KEY));
+        $this->assertSame('0.1.0', ZioBrowserRelease::current()['version']);
     }
 }
