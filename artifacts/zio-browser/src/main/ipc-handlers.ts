@@ -6,7 +6,7 @@
  * private-mode suppression is determined dynamically from event.sender
  * rather than at registration time.
  */
-import { ipcMain, shell, dialog, clipboard, nativeTheme, BrowserWindow, session, nativeImage } from 'electron';
+import { app, ipcMain, shell, dialog, clipboard, nativeTheme, BrowserWindow, session, nativeImage } from 'electron';
 import * as fs from 'fs';
 import * as path from 'path';
 import type { TabManager } from './tab-manager';

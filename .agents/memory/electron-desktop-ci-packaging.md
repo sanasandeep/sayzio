@@ -14,3 +14,11 @@ Lessons from getting SayZio Browser (Electron) building on macOS/Windows GitHub 
 - **pnpm/action-setup `version:` conflicts with root `packageManager` field** — omit the version input.
 - Workflow YAML: a plain scalar `run:` line containing `": '-'"` (colon+space) is invalid YAML; GitHub then shows the run named by file path and `workflow_dispatch` returns 422 "no workflow_dispatch trigger".
 - Release job pattern: builds upload `release/*` + `latest*.yml` as artifacts; a final job downloads both and creates a draft GitHub Release tagged `zio-browser-v<version>` — that release feed is what electron-updater consumes (publish.provider=github in config).
+
+Auto-update feed verification lessons (v0.1.1 release, July 2026):
+- **Asset names with spaces break the feed**: GitHub converts spaces→dots on upload ("SayZio Browser Setup 0.1.1.exe" → `SayZio.Browser.Setup.0.1.1.exe`) but `latest.yml` refers to hyphenated names (`SayZio-Browser-Setup-0.1.1.exe`) → updater download 404s. Fix: space-free `artifactName` in the builder config; existing releases can be repaired by PATCHing asset names to match the yml.
+- **electron-updater ignores draft releases** — the CI-created draft must be PATCHed `draft:false` before installed apps see the update.
+- **If the same version is re-released, softprops updates the existing tag's release in place** (overwrites assets) instead of creating a new one — always confirm the version bump actually landed on the remote before dispatching.
+- **DMG target is flaky on GitHub macOS runners** (dmgbuild `background.tiff` ENOENT race, all retries fail) — mac ships ZIP-only; the ZIP is what electron-updater consumes on mac anyway.
+- Feed verification without a Windows machine: `releases/latest/download/latest.yml` → version + sha512, range-GET the referenced asset URL (must be 200/206), `openssl dgst -sha512 -binary | base64` must equal the yml sha512, and 7z-extract `resources/app-update.yml` from the NSIS exe (`$PLUGINSDIR/app-64.7z`) to confirm the embedded feed.
+- macOS auto-update still requires a signed app (Squirrel.Mac); unsigned mac builds only log the update error.

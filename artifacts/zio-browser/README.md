@@ -70,7 +70,15 @@ The build is **unsigned by default** (works on dev machines; macOS Gatekeeper wi
 - **macOS**: Set `CSC_LINK`, `CSC_KEY_PASSWORD`, `APPLE_ID`, `APPLE_APP_SPECIFIC_PASSWORD`, `APPLE_TEAM_ID` in CI secrets
 - **Windows**: Set `WIN_CSC_LINK`, `WIN_CSC_KEY_PASSWORD`
 
-See `electron-builder.config.ts` for details.
+See `electron-builder.config.cjs` for details.
+
+### Auto-updates
+
+Packaged builds check the GitHub Releases feed of `sanasandeep/sayzio` every 4 hours (electron-updater; see `src/main/auto-updater.ts`). CI (`zio-browser-build.yml`, dispatched with `release: true`) uploads the installers plus `latest.yml` / `latest-mac.yml` into a **draft** release tagged `zio-browser-v<version>` — the draft must be published before installed apps can see the update.
+
+- **Windows**: works unsigned — the app detects, downloads (sha512-verified), and installs on quit/restart.
+- **macOS**: auto-update requires a **code-signed** app (Squirrel.Mac refuses unsigned updates). Unsigned mac builds log the update error and keep running; users must download new versions manually until mac signing secrets are configured.
+- Asset names must not contain spaces (GitHub converts spaces to dots on upload, breaking the yml → asset URL match); `artifactName` in the builder config enforces this.
 
 ## Cloud sync (optional)
 

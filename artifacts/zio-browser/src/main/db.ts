@@ -459,6 +459,11 @@ export function updateSavedLinkAiEnrichment(id: string, summary: string, tags: s
  * cursor: a newly activated profile has no row yet and does a full pull of
  * its own cloud records, while each profile's timestamps survive switches.
  */
+/** The currently active browser profile, persisted as a preference. */
+export function getActiveProfileId(): string {
+  return getPreference(PREFERENCE_KEYS.ACTIVE_PROFILE) ?? DEFAULT_PROFILE_ID;
+}
+
 export function getSyncState(entity: string, profileId: string = getActiveProfileId()): { lastSyncAt: string | null; lastError: string | null } {
   const db = getDb();
   const key = profileSyncEntityKey(entity, profileId);
