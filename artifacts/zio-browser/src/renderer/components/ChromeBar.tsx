@@ -339,6 +339,8 @@ export function ChromeBar({
   const [stripMenuOpen, setStripMenuOpen] = useState(false);
   const [blockedCount, setBlockedCount] = useState(0);
   const [trackerEnabled, setTrackerEnabled] = useState(false);
+  const [dropTargetId, setDropTargetId] = useState<string | null>(null);
+  const dragTabIdRef = useRef<string | null>(null);
   const omniboxRef = useRef<HTMLInputElement>(null);
   const stripMenuBtnRef = useRef<HTMLButtonElement>(null);
 
@@ -435,6 +437,37 @@ export function ChromeBar({
 
   const closeContextMenu = useCallback(() => setContextMenu(null), []);
 
+  // ── Drag-to-reorder tabs ─────────────────────────────────────────────────
+  const handleTabDragStart = useCallback((e: React.DragEvent, tabId: string) => {
+    dragTabIdRef.current = tabId;
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', tabId);
+  }, []);
+
+  const handleTabDragOver = useCallback((e: React.DragEvent, tabId: string) => {
+    if (!dragTabIdRef.current || dragTabIdRef.current === tabId) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    setDropTargetId(tabId);
+  }, []);
+
+  const handleTabDrop = useCallback((e: React.DragEvent, targetId: string) => {
+    e.preventDefault();
+    const dragId = dragTabIdRef.current;
+    dragTabIdRef.current = null;
+    setDropTargetId(null);
+    if (!dragId || dragId === targetId) return;
+    const toIndex = tabOrder.indexOf(targetId);
+    if (toIndex === -1) return;
+    // Main clamps the index to the pinned/normal section of the dragged tab.
+    void window.zio.tabs.move(dragId, toIndex);
+  }, [tabOrder]);
+
+  const handleTabDragEnd = useCallback(() => {
+    dragTabIdRef.current = null;
+    setDropTargetId(null);
+  }, []);
+
   const activeTabState = activeTab;
 
   // Pinned tabs always first in tabOrder (maintained by tab-manager); split for rendering
@@ -493,10 +526,17 @@ export function ChromeBar({
           return (
             <div
               key={id}
+              draggable
+              onDragStart={(e) => handleTabDragStart(e, id)}
+              onDragOver={(e) => handleTabDragOver(e, id)}
+              onDragLeave={() => setDropTargetId(prev => (prev === id ? null : prev))}
+              onDrop={(e) => handleTabDrop(e, id)}
+              onDragEnd={handleTabDragEnd}
               onClick={() => void activateTab(id)}
               onContextMenu={(e) => openContextMenu(e, id)}
               title={tab?.title || 'New Tab'}
               style={{
+                boxShadow: dropTargetId === id ? 'inset 2px 0 0 var(--color-primary)' : 'none',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -577,9 +617,16 @@ export function ChromeBar({
           return (
             <div
               key={id}
+              draggable
+              onDragStart={(e) => handleTabDragStart(e, id)}
+              onDragOver={(e) => handleTabDragOver(e, id)}
+              onDragLeave={() => setDropTargetId(prev => (prev === id ? null : prev))}
+              onDrop={(e) => handleTabDrop(e, id)}
+              onDragEnd={handleTabDragEnd}
               onClick={() => void activateTab(id)}
               onContextMenu={(e) => openContextMenu(e, id)}
               style={{
+                boxShadow: dropTargetId === id ? 'inset 2px 0 0 var(--color-primary)' : 'none',
                 display: 'flex',
                 alignItems: 'center',
                 gap: 6,

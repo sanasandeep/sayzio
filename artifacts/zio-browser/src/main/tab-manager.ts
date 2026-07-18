@@ -407,6 +407,32 @@ export class TabManager {
   }
 
   /**
+   * Move a tab to a new index within the tab strip, keeping pinned tabs in
+   * the pinned section and normal tabs after it. `toIndex` is the desired
+   * index in tabOrder; it is clamped to the tab's section boundaries.
+   */
+  moveTab(id: TabId, toIndex: number): void {
+    const tab = this.tabs.get(id);
+    if (!tab) return;
+    const fromIndex = this.tabOrder.indexOf(id);
+    if (fromIndex === -1) return;
+
+    const pinnedCount = this.pinnedCount();
+    const min = tab.pinned ? 0 : pinnedCount;
+    const max = tab.pinned ? pinnedCount - 1 : this.tabOrder.length - 1;
+    const clamped = Math.max(min, Math.min(max, Math.trunc(toIndex)));
+    if (clamped === fromIndex) return;
+
+    this.tabOrder.splice(fromIndex, 1);
+    this.tabOrder.splice(clamped, 0, id);
+
+    this.onTabOrderChange?.(this.getTabOrder());
+    if (tab.pinned) {
+      this.onPinnedUrlsChange?.(this.getPinnedUrls());
+    }
+  }
+
+  /**
    * Duplicate a tab by opening a new tab with the same URL.
    */
   duplicateTab(id: TabId): TabId | null {

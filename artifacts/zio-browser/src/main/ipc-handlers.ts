@@ -232,6 +232,10 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
     resolveTabManager(event)?.pinTab(id, pinned);
     return true;
   });
+  ipcMain.handle('tabs:move', (event, id: string, toIndex: number) => {
+    resolveTabManager(event)?.moveTab(id, toIndex);
+    return true;
+  });
   ipcMain.handle('tabs:duplicate', (event, id: string) => {
     return resolveTabManager(event)?.duplicateTab(id);
   });

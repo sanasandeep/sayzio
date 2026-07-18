@@ -61,6 +61,7 @@ const api = {
       ipcRenderer.invoke('tabs:pop-pending-credential', id),
     // ── Tab management ──────────────────────────────────────────────────────
     pin: (id: string, pinned: boolean) => ipcRenderer.invoke('tabs:pin', id, pinned),
+    move: (id: string, toIndex: number) => ipcRenderer.invoke('tabs:move', id, toIndex),
     duplicate: (id: string) => ipcRenderer.invoke('tabs:duplicate', id),
     closeOthers: (id: string) => ipcRenderer.invoke('tabs:close-others', id),
     closeToRight: (id: string) => ipcRenderer.invoke('tabs:close-to-right', id),
