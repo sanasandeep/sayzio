@@ -21,7 +21,7 @@ import { generateId, normalizeCollectionUrl } from '../shared/collection-store';
 import { normalizeUrlForHistory } from '../shared/omnibox';
 import type { SyncRecord, SyncQueueItem, SyncEntityKind } from '../shared/sync-engine';
 import { nextAttemptAt } from '../shared/sync-engine';
-import { DEFAULT_PROFILE_ID } from '../shared/profile-store';
+import { DEFAULT_PROFILE_ID, profileSyncEntityKey } from '../shared/profile-store';
 import type { BrowserProfile } from '../shared/profile-store';
 
 export interface HistoryEntry {
@@ -169,6 +169,18 @@ export function upsertProfile(profile: BrowserProfile): void {
     VALUES(?, ?, ?, ?)
     ON CONFLICT(id) DO UPDATE SET name = excluded.name, workspace_id = excluded.workspace_id
   `).run(profile.id, profile.workspaceId ?? null, profile.name, new Date().toISOString());
+}
+
+/**
+ * Resolve the Sayzio workspace ID for a profile, or null for the personal
+ * profile (and unknown profiles). Used to scope cloud sync requests via the
+ * X-Browser-Workspace-Id header.
+ */
+export function getProfileWorkspaceId(profileId: string): string | null {
+  if (profileId === DEFAULT_PROFILE_ID) return null;
+  const db = getDb();
+  const row = db.prepare('SELECT workspace_id FROM profiles WHERE id = ?').get(profileId) as { workspace_id: string | null } | undefined;
+  return row?.workspace_id ?? null;
 }
 
 export function deleteProfile(profileId: string): void {
@@ -450,15 +462,23 @@ export function updateSavedLinkAiEnrichment(id: string, summary: string, tags: s
 
 // ── Sync helpers ─────────────────────────────────────────────────────────────
 
-export function getSyncState(entity: string): { lastSyncAt: string | null; lastError: string | null } {
+/**
+ * Sync cursors are stored per profile (entity key = `{entity}:{profileId}`
+ * via profileSyncEntityKey) so switching profiles effectively resets the
+ * cursor: a newly activated profile has no row yet and does a full pull of
+ * its own cloud records, while each profile's timestamps survive switches.
+ */
+export function getSyncState(entity: string, profileId: string = getActiveProfileId()): { lastSyncAt: string | null; lastError: string | null } {
   const db = getDb();
-  const row = db.prepare('SELECT last_sync_at, last_error FROM sync_state WHERE entity = ?').get(entity) as { last_sync_at: string | null; last_error: string | null } | undefined;
+  const key = profileSyncEntityKey(entity, profileId);
+  const row = db.prepare('SELECT last_sync_at, last_error FROM sync_state WHERE entity = ?').get(key) as { last_sync_at: string | null; last_error: string | null } | undefined;
   return { lastSyncAt: row?.last_sync_at ?? null, lastError: row?.last_error ?? null };
 }
 
-export function setSyncState(entity: string, lastSyncAt: string | null, lastError: string | null = null): void {
+export function setSyncState(entity: string, lastSyncAt: string | null, lastError: string | null = null, profileId: string = getActiveProfileId()): void {
   const db = getDb();
-  db.prepare('INSERT OR REPLACE INTO sync_state(entity, last_sync_at, last_error) VALUES(?, ?, ?)').run(entity, lastSyncAt, lastError);
+  const key = profileSyncEntityKey(entity, profileId);
+  db.prepare('INSERT OR REPLACE INTO sync_state(entity, last_sync_at, last_error) VALUES(?, ?, ?)').run(key, lastSyncAt, lastError);
 }
 
 // ── Sync retry queue ─────────────────────────────────────────────────────────

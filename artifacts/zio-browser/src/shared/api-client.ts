@@ -64,17 +64,25 @@ export interface ApiClientOptions {
   baseUrl: string;
   token?: string;
   userAgent?: string;
+  /**
+   * Sayzio workspace ID for workspace-scoped browser sync. When set, every
+   * request carries `X-Browser-Workspace-Id` so the server buckets bookmarks,
+   * collections, and history per workspace. Null/absent = personal bucket.
+   */
+  workspaceId?: string | null;
 }
 
 export class ApiClient {
   private baseUrl: string;
   private token: string | null;
   private userAgent: string;
+  private workspaceId: string | null;
 
   constructor(options: ApiClientOptions) {
     this.baseUrl = options.baseUrl.replace(/\/$/, '');
     this.token = options.token ?? null;
     this.userAgent = options.userAgent ?? 'SayZioBrowser/1.0';
+    this.workspaceId = options.workspaceId ?? null;
   }
 
   setToken(token: string | null): void {
@@ -83,6 +91,14 @@ export class ApiClient {
 
   getToken(): string | null {
     return this.token;
+  }
+
+  setWorkspaceId(workspaceId: string | null): void {
+    this.workspaceId = workspaceId;
+  }
+
+  getWorkspaceId(): string | null {
+    return this.workspaceId;
   }
 
   private async request<T>(
@@ -101,6 +117,9 @@ export class ApiClient {
 
     if (this.token) {
       headers['Authorization'] = `Bearer ${this.token}`;
+    }
+    if (this.workspaceId) {
+      headers['X-Browser-Workspace-Id'] = this.workspaceId;
     }
 
     const response = await fetch(url, {
@@ -263,6 +282,7 @@ export class ApiClient {
       'X-App-Platform': 'desktop',
     };
     if (this.token) headers['Authorization'] = `Bearer ${this.token}`;
+    if (this.workspaceId) headers['X-Browser-Workspace-Id'] = this.workspaceId;
 
     const response = await fetch(url, {
       method,

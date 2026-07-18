@@ -21,6 +21,8 @@ import {
   removeSyncQueueItem,
   markRecordsSynced,
   getPreference,
+  getActiveProfileId,
+  getProfileWorkspaceId,
 } from './db';
 import { PREFERENCE_KEYS } from '../shared/db-schema';
 import { retrieveToken } from './auth-store';
@@ -51,7 +53,11 @@ export async function defaultSyncPush(entity: SyncEntityKind, items: SyncItem[])
   const deviceId = getPreference(PREFERENCE_KEYS.DEVICE_ID);
   if (!baseUrl || !deviceId) throw new Error('Sync not configured (missing base URL or device id)');
 
-  const client = new ApiClient({ baseUrl, token });
+  // Scope the push to the active profile's workspace bucket. Workspace
+  // profiles carry X-Browser-Workspace-Id; the personal profile sends none.
+  const workspaceId = getProfileWorkspaceId(getActiveProfileId());
+
+  const client = new ApiClient({ baseUrl, token, workspaceId });
   if (entity === 'bookmarks') await client.syncBookmarks(deviceId, items);
   else if (entity === 'collections') await client.syncCollections(deviceId, items);
   else await client.syncHistory(deviceId, items);
