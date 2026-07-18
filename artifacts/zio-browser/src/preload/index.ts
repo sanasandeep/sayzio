@@ -244,6 +244,8 @@ const api = {
       'find:open',
       // Link tools — context menu "Add to my biolink" trigger
       'biolink:add-page',
+      // Device Lab — context menu "Preview in Device Lab" trigger
+      'device-lab:preview-url',
       'window:mode-changed',
       'sync:queue-changed',
       // Downloads panel

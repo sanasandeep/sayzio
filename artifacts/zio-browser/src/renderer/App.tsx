@@ -35,6 +35,7 @@ export default function App() {
   const [activeDownloadCount, setActiveDownloadCount] = useState(0);
   const [isPrivate, setIsPrivate] = useState(false);
   const [deviceLabOpen, setDeviceLabOpen] = useState(false);
+  const [deviceLabUrl, setDeviceLabUrl] = useState<string | undefined>(undefined);
   const [tabSearchOpen, setTabSearchOpen] = useState(false);
   const [clearDataShortcut, setClearDataShortcut] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
@@ -273,8 +274,26 @@ export default function App() {
       setAuthModalOpen(true);
       return;
     }
+    setDeviceLabUrl(undefined);
     setDeviceLabOpen(true);
   }, [user]);
+
+  const handleCloseDeviceLab = useCallback(() => {
+    setDeviceLabOpen(false);
+    setDeviceLabUrl(undefined);
+  }, []);
+
+  // Context menu → "Preview in Device Lab" on any page URL
+  useEffect(() => {
+    const onPreviewUrl = (...args: unknown[]) => {
+      const url = typeof args[0] === 'string' ? args[0] : '';
+      if (!url) return;
+      setDeviceLabUrl(url);
+      setDeviceLabOpen(true);
+    };
+    window.zio.on('device-lab:preview-url', onPreviewUrl);
+    return () => window.zio.off('device-lab:preview-url', onPreviewUrl);
+  }, []);
 
   const handleOpenTabSearch = useCallback(() => {
     setTabSearchOpen(true);
@@ -301,7 +320,7 @@ export default function App() {
           onOpenAuth={() => setAuthModalOpen(true)}
           onCloseAuth={() => setAuthModalOpen(false)}
         />
-        {deviceLabOpen && <DeviceLab onClose={() => setDeviceLabOpen(false)} />}
+        {deviceLabOpen && <DeviceLab onClose={handleCloseDeviceLab} initialUrl={deviceLabUrl} />}
       </>
     );
   }
@@ -319,7 +338,7 @@ export default function App() {
           onOpenAuth={() => setAuthModalOpen(true)}
           onCloseAuth={() => setAuthModalOpen(false)}
         />
-        {deviceLabOpen && <DeviceLab onClose={() => setDeviceLabOpen(false)} />}
+        {deviceLabOpen && <DeviceLab onClose={handleCloseDeviceLab} initialUrl={deviceLabUrl} />}
       </>
     );
   }
@@ -439,7 +458,7 @@ export default function App() {
       )}
 
       {/* Device Lab overlays the entire window */}
-      {deviceLabOpen && <DeviceLab onClose={() => setDeviceLabOpen(false)} />}
+      {deviceLabOpen && <DeviceLab onClose={handleCloseDeviceLab} initialUrl={deviceLabUrl} />}
 
       {/* Tab search popover */}
       {tabSearchOpen && (

@@ -80,6 +80,7 @@ export class TabManager {
   private onActiveTabChange?: (tabId: TabId) => void;
   private onNavigate?: (tabId: TabId, url: string, title: string) => void;
   private onAddToBiolink?: (url: string, title: string) => void;
+  private onDeviceLabPreview?: (url: string) => void;
   private onFindResult?: (result: FindResult) => void;
   private readonly tabSession: Electron.Session;
   readonly isPrivate: boolean;
@@ -100,6 +101,7 @@ export class TabManager {
     onActiveTabChange?: (tabId: TabId) => void;
     onNavigate?: (tabId: TabId, url: string, title: string) => void;
     onAddToBiolink?: (url: string, title: string) => void;
+    onDeviceLabPreview?: (url: string) => void;
     onFindResult?: (result: FindResult) => void;
     onTabOrderChange?: (order: TabId[]) => void;
     onPinnedUrlsChange?: (urls: string[]) => void;
@@ -111,6 +113,7 @@ export class TabManager {
     this.onActiveTabChange = cbs.onActiveTabChange;
     this.onNavigate = cbs.onNavigate;
     this.onAddToBiolink = cbs.onAddToBiolink;
+    this.onDeviceLabPreview = cbs.onDeviceLabPreview;
     this.onFindResult = cbs.onFindResult;
     this.onTabOrderChange = cbs.onTabOrderChange;
     this.onPinnedUrlsChange = cbs.onPinnedUrlsChange;
@@ -260,6 +263,10 @@ export class TabManager {
         {
           label: 'Add to my biolink…',
           click: () => { this.onAddToBiolink?.(targetUrl, pageTitle); },
+        },
+        {
+          label: 'Preview in Device Lab',
+          click: () => { this.onDeviceLabPreview?.(params.linkURL || pageUrl); },
         },
       );
 

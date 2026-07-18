@@ -81,6 +81,7 @@ function createWindow(): BrowserWindow {
     onActiveTabChange: (tabId)        => win.webContents.send('tab:activated', tabId),
     onNavigate:        (tabId, url, title) => win.webContents.send('tab:navigated', tabId, url, title),
     onAddToBiolink:    (url, title)   => win.webContents.send('biolink:add-page', url, title),
+    onDeviceLabPreview: (url)         => win.webContents.send('device-lab:preview-url', url),
     onFindResult:      (result) => win.webContents.send('tab:find-result', result),
     onTabOrderChange: (order) => win.webContents.send('tab:order-changed', order),
     onPinnedUrlsChange: (urls) => { setPreference(PREFERENCE_KEYS.PINNED_TABS, JSON.stringify(urls)); },
@@ -174,6 +175,7 @@ export function createPrivateWindow(): BrowserWindow {
     // Link tools (shorten/QR) still work in private mode — they require the
     // account credentials but the visited page itself is never recorded.
     onAddToBiolink: (url, title) => win.webContents.send('biolink:add-page', url, title),
+    onDeviceLabPreview: (url) => win.webContents.send('device-lab:preview-url', url),
     onFindResult: (result) => win.webContents.send('tab:find-result', result),
   });
 

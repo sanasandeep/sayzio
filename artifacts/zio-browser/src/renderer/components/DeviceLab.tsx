@@ -51,20 +51,47 @@ const DEVICE_FRAMES: DeviceFrame[] = [
 
 interface Props {
   onClose: () => void;
+  /**
+   * When set (e.g. from the tab context menu's "Preview in Device Lab"),
+   * the lab previews this URL directly and skips fetching the biolinks list.
+   */
+  initialUrl?: string;
 }
 
-export function DeviceLab({ onClose }: Props) {
+/** Normalize a manually typed URL — assume https:// when no scheme given. */
+function normalizeUrl(input: string): string {
+  const trimmed = input.trim();
+  if (!trimmed) return '';
+  if (/^https?:\/\//i.test(trimmed)) return trimmed;
+  return `https://${trimmed}`;
+}
+
+export function DeviceLab({ onClose, initialUrl }: Props) {
   const [biolinks, setBiolinks] = useState<Biolink[]>([]);
   const [selectedUrl, setSelectedUrl] = useState<string>('');
-  const [previewUrl, setPreviewUrl] = useState<string>('');
-  const [loading, setLoading] = useState(true);
+  const [previewUrl, setPreviewUrl] = useState<string>(initialUrl ?? '');
+  const [urlInput, setUrlInput] = useState<string>(initialUrl ?? '');
+  const [loading, setLoading] = useState(!initialUrl);
   const [error, setError] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
   const [frameWidth, setFrameWidth] = useState(0);
 
-  // Load the user's biolinks once
+  // When opened for a specific URL (context menu), follow updates to it
   useEffect(() => {
+    if (initialUrl) {
+      setPreviewUrl(initialUrl);
+      setUrlInput(initialUrl);
+      setSelectedUrl('');
+      setLoading(false);
+      setError(null);
+      setRefreshKey(k => k + 1);
+    }
+  }, [initialUrl]);
+
+  // Load the user's biolinks once — skipped when a URL was passed in directly
+  useEffect(() => {
+    if (initialUrl) return;
     const load = async () => {
       setLoading(true);
       setError(null);
@@ -75,6 +102,7 @@ export function DeviceLab({ onClose }: Props) {
           const url = String(items[0].public_url);
           setSelectedUrl(url);
           setPreviewUrl(url);
+          setUrlInput(url);
         }
       } catch {
         setError('Could not load biolinks. Make sure you are signed in.');
@@ -83,6 +111,7 @@ export function DeviceLab({ onClose }: Props) {
       }
     };
     void load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Measure available frame column width
@@ -103,8 +132,19 @@ export function DeviceLab({ onClose }: Props) {
   const handleSelectBiolink = useCallback((url: string) => {
     setSelectedUrl(url);
     setPreviewUrl(url);
+    setUrlInput(url);
     setRefreshKey(k => k + 1);
   }, []);
+
+  const handleUrlSubmit = useCallback(() => {
+    const url = normalizeUrl(urlInput);
+    if (!url) return;
+    setSelectedUrl('');
+    setPreviewUrl(url);
+    setUrlInput(url);
+    setError(null);
+    setRefreshKey(k => k + 1);
+  }, [urlInput]);
 
   const handleRefreshAll = useCallback(() => {
     setRefreshKey(k => k + 1);
@@ -136,7 +176,41 @@ export function DeviceLab({ onClose }: Props) {
           Device Lab
         </span>
 
-        {/* Biolink picker */}
+        {/* Manual URL entry — works for any page, not just biolinks */}
+        <input
+          type="text"
+          value={urlInput}
+          onChange={e => setUrlInput(e.target.value)}
+          onKeyDown={e => { if (e.key === 'Enter') handleUrlSubmit(); }}
+          placeholder="Enter a URL to preview…"
+          spellCheck={false}
+          style={{
+            padding: '4px 8px',
+            borderRadius: 8,
+            border: '1px solid var(--color-border)',
+            background: 'var(--color-bg-elevated)',
+            color: 'var(--color-text)',
+            fontSize: 12,
+            width: 260,
+            WebkitAppRegion: 'no-drag',
+          } as React.CSSProperties}
+        />
+        <button
+          onClick={handleUrlSubmit}
+          title="Preview this URL"
+          style={{
+            padding: '4px 10px',
+            borderRadius: 8,
+            border: '1px solid var(--color-border)',
+            background: 'var(--color-bg-elevated)',
+            color: 'var(--color-text)',
+            fontSize: 12,
+            cursor: 'pointer',
+            WebkitAppRegion: 'no-drag',
+          } as React.CSSProperties}
+        >Go</button>
+
+        {/* Biolink picker (optional — only when biolinks were loaded) */}
         {biolinks.length > 0 && (
           <select
             value={selectedUrl}
@@ -215,7 +289,7 @@ export function DeviceLab({ onClose }: Props) {
           </div>
         )}
 
-        {!loading && !error && biolinks.length === 0 && (
+        {!loading && !error && biolinks.length === 0 && !previewUrl && (
           <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 12 }}>
             <span style={{ fontSize: 40 }}>🔗</span>
             <p style={{ color: 'var(--color-text-muted)', fontSize: 14 }}>
