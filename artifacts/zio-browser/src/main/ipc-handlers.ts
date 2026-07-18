@@ -6,7 +6,9 @@
  * private-mode suppression is determined dynamically from event.sender
  * rather than at registration time.
  */
-import { ipcMain, shell, dialog, clipboard, nativeTheme, BrowserWindow, session } from 'electron';
+import { ipcMain, shell, dialog, clipboard, nativeTheme, BrowserWindow, session, nativeImage } from 'electron';
+import * as fs from 'fs';
+import * as path from 'path';
 import type { TabManager } from './tab-manager';
 import type { WindowModeManager } from './window-mode-manager';
 import { SyncRetryRunner } from './sync-retry';
@@ -595,6 +597,54 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
       return cred as { origin: string; username: string; password: string } | null;
     } catch {
       return null;
+    }
+  });
+
+  // ── Screenshot capture ────────────────────────────────────────────────────
+
+  /**
+   * Capture the active tab as a PNG, returned as a base64 data URL.
+   * fullPage=true resizes the WebContentsView to full scroll height, captures,
+   * then restores the original bounds.
+   */
+  ipcMain.handle('screenshot:capture', async (event, tabId: string, fullPage: boolean) => {
+    const tm = resolveTabManager(event);
+    if (!tm) return null;
+    const png = await tm.captureTab(tabId, fullPage);
+    if (!png) return null;
+    return `data:image/png;base64,${png.toString('base64')}`;
+  });
+
+  /**
+   * Open a save-file dialog and write the PNG data URL to disk.
+   * Returns the saved file path, or null if the user cancelled.
+   */
+  ipcMain.handle('screenshot:save-to-disk', async (_, dataUrl: string, suggestedName?: string) => {
+    const win = BrowserWindow.getAllWindows()[0];
+    const result = await dialog.showSaveDialog(win ?? null!, {
+      title: 'Save Screenshot',
+      defaultPath: suggestedName ?? `screenshot-${Date.now()}.png`,
+      filters: [{ name: 'PNG Image', extensions: ['png'] }],
+    });
+    if (result.canceled || !result.filePath) return null;
+    const base64 = dataUrl.replace(/^data:image\/png;base64,/, '');
+    const buf = Buffer.from(base64, 'base64');
+    fs.writeFileSync(result.filePath, buf);
+    return result.filePath;
+  });
+
+  /**
+   * Write a PNG data URL to the system clipboard as a native image.
+   */
+  ipcMain.handle('screenshot:copy-to-clipboard', (_, dataUrl: string) => {
+    try {
+      const base64 = dataUrl.replace(/^data:image\/png;base64,/, '');
+      const buf = Buffer.from(base64, 'base64');
+      const img = nativeImage.createFromBuffer(buf);
+      clipboard.writeImage(img);
+      return true;
+    } catch {
+      return false;
     }
   });
 

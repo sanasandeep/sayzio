@@ -467,9 +467,66 @@ export class ApiClient {
   async addBiolinkBlock(linkId: number, data: AddBiolinkBlockPayload): Promise<{ block: ApiBiolinkBlock }> {
     return this.post(`/biolinks/${linkId}/blocks`, data);
   }
+
+  // ── Files ──────────────────────────────────────────────────────────────────
+
+  /**
+   * Upload a screenshot PNG (as a base64 data URL) to the user's Sayzio file
+   * storage.  Returns the created file record on success.
+   *
+   * The Sayzio files API accepts multipart/form-data with a `file` field.
+   * We convert the data URL to a Blob so that the built-in `fetch` + FormData
+   * can encode it correctly — no Node.js Buffer needed in the renderer.
+   */
+  async uploadScreenshot(dataUrl: string, filename: string): Promise<ApiFile> {
+    const url = `${this.baseUrl}/api/v1/files`;
+    const headers: Record<string, string> = {
+      'Accept': 'application/json',
+      'User-Agent': this.userAgent,
+      'X-App-Platform': 'desktop',
+    };
+    if (this.token) headers['Authorization'] = `Bearer ${this.token}`;
+
+    // Convert base64 data URL → Blob
+    const base64 = dataUrl.replace(/^data:image\/png;base64,/, '');
+    const bytes = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
+    const blob = new Blob([bytes], { type: 'image/png' });
+
+    const formData = new FormData();
+    formData.append('file', blob, filename);
+
+    const response = await fetch(url, { method: 'POST', headers, body: formData });
+
+    if (response.status === 413) {
+      throw new ApiClientError('quota_exceeded', 'Storage quota exceeded', 413);
+    }
+
+    const json = await response.json() as ApiEnvelope<{ file: ApiFile }> | ApiError;
+    if (!response.ok) {
+      const err = json as ApiError;
+      throw new ApiClientError(
+        err.error?.code ?? 'upload_error',
+        err.error?.message ?? `HTTP ${response.status}`,
+        response.status,
+        err.error?.details,
+      );
+    }
+
+    return (json as ApiEnvelope<{ file: ApiFile }>).data.file;
+  }
 }
 
 // ── Shared types ─────────────────────────────────────────────────────────────
+
+export interface ApiFile {
+  id: number;
+  filename: string;
+  original_name: string;
+  mime_type: string;
+  size: number;
+  url: string;
+  created_at: string | null;
+}
 
 export interface BrowserDeviceInfo {
   label: string;

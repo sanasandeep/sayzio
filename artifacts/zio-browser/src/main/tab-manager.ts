@@ -598,6 +598,49 @@ export class TabManager {
     }
   }
 
+  /**
+   * Capture the active page as a PNG buffer.
+   * - `fullPage = false` (default): captures only the visible viewport.
+   * - `fullPage = true`: resizes the view to the page's full scroll height,
+   *   captures, then restores the original bounds.
+   *
+   * Returns null if the tab doesn't exist or capture fails.
+   */
+  async captureTab(id: TabId, fullPage = false): Promise<Buffer | null> {
+    const tab = this.tabs.get(id);
+    if (!tab) return null;
+    const wc = tab.view.webContents;
+    if (!isAlive(wc)) return null;
+
+    const MAX_DIMENSION = 16384;
+
+    try {
+      if (!fullPage) {
+        const image = await wc.capturePage();
+        return image.toPNG();
+      }
+
+      // Full-page: get full scroll dimensions via JS, temporarily resize the
+      // view so the renderer lays out the full document, then capture.
+      const dims = await wc.executeJavaScript(
+        '({ w: document.documentElement.scrollWidth, h: document.documentElement.scrollHeight })',
+      ) as { w: number; h: number };
+
+      const captureW = Math.min(Math.max(dims.w, 1), MAX_DIMENSION);
+      const captureH = Math.min(Math.max(dims.h, 1), MAX_DIMENSION);
+      const origBounds = tab.view.getBounds();
+
+      tab.view.setBounds({ x: origBounds.x, y: origBounds.y, width: captureW, height: captureH });
+      await new Promise<void>(resolve => setTimeout(resolve, 180));
+      const image = await wc.capturePage();
+      tab.view.setBounds(origBounds);
+
+      return image.toPNG();
+    } catch {
+      return null;
+    }
+  }
+
   destroyAll(): void {
     for (const [id] of this.tabs) {
       this.closeTab(id);

@@ -169,6 +169,19 @@ const api = {
     flush: () => ipcRenderer.invoke('sync:flush'),
   },
 
+  // ── Screenshot ────────────────────────────────────────────────────────────
+  screenshot: {
+    /** Capture the tab as a PNG data URL. fullPage=true stitches the full scroll height. */
+    capture: (tabId: string, fullPage: boolean) =>
+      ipcRenderer.invoke('screenshot:capture', tabId, fullPage) as Promise<string | null>,
+    /** Open a system save dialog and write the PNG to disk. Returns the file path or null. */
+    saveToDisk: (dataUrl: string, suggestedName?: string) =>
+      ipcRenderer.invoke('screenshot:save-to-disk', dataUrl, suggestedName) as Promise<string | null>,
+    /** Write the PNG to the system clipboard as a native image. */
+    copyToClipboard: (dataUrl: string) =>
+      ipcRenderer.invoke('screenshot:copy-to-clipboard', dataUrl) as Promise<boolean>,
+  },
+
   // ── Clipboard ─────────────────────────────────────────────────────────────
   clipboard: {
     write: (text: string) => ipcRenderer.invoke('clipboard:write', text),

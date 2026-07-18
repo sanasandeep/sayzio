@@ -12,6 +12,7 @@ import { DeviceLab } from './components/DeviceLab';
 import { TabSearchPopover } from './components/TabSearchPopover';
 import { ClearDataDialog } from './components/ClearDataDialog';
 import { CommandPalette } from './components/CommandPalette';
+import { ScreenshotSheet } from './components/ScreenshotSheet';
 import { useTabStore } from './store/tab-store';
 import { useAuthStore } from './store/auth-store';
 import { useModeStore } from './store/mode-store';
@@ -37,6 +38,14 @@ export default function App() {
   const [tabSearchOpen, setTabSearchOpen] = useState(false);
   const [clearDataShortcut, setClearDataShortcut] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
+
+  // ── Screenshot state ──────────────────────────────────────────────────────
+  const [screenshotCapturing, setScreenshotCapturing] = useState(false);
+  const [screenshotData, setScreenshotData] = useState<{
+    dataUrl: string;
+    pageTitle: string;
+    pageUrl: string;
+  } | null>(null);
   const { tabs, tabOrder, activeTabId, initTabs, reopenClosedTab } = useTabStore();
   const { init: initAuth, user, token } = useAuthStore();
   const {
@@ -212,6 +221,24 @@ export default function App() {
     setZioPanelOpen(prev => !prev);
   }, [user, isPrivate]);
 
+  // ── Screenshot handler ────────────────────────────────────────────────────
+  const handleScreenshot = useCallback(async (fullPage: boolean) => {
+    if (!activeTabId || screenshotCapturing) return;
+    setScreenshotCapturing(true);
+    try {
+      const dataUrl = await window.zio.screenshot.capture(activeTabId, fullPage);
+      if (!dataUrl) return;
+      const tab = activeTabId ? tabs[activeTabId] : null;
+      setScreenshotData({
+        dataUrl,
+        pageTitle: tab?.title ?? '',
+        pageUrl: tab?.url ?? '',
+      });
+    } finally {
+      setScreenshotCapturing(false);
+    }
+  }, [activeTabId, screenshotCapturing, tabs]);
+
   const handleToggleDownloads = useCallback(() => {
     setDownloadsPanelOpen(prev => !prev);
   }, []);
@@ -323,6 +350,8 @@ export default function App() {
         activeDownloadCount={activeDownloadCount}
         isPrivate={isPrivate}
         onOpenDeviceLab={handleOpenDeviceLab}
+        onScreenshot={handleScreenshot}
+        screenshotCapturing={screenshotCapturing}
       />
 
       {/* Content area */}
@@ -438,6 +467,17 @@ export default function App() {
           mode={mode}
           isPrivate={isPrivate}
           onSetMode={(m) => { setPaletteOpen(false); void setMode(m as WindowMode); }}
+        />
+      )}
+
+      {/* Screenshot preview sheet */}
+      {screenshotData && (
+        <ScreenshotSheet
+          dataUrl={screenshotData.dataUrl}
+          pageTitle={screenshotData.pageTitle}
+          pageUrl={screenshotData.pageUrl}
+          onClose={() => setScreenshotData(null)}
+          onOpenAuth={() => { setScreenshotData(null); setAuthModalOpen(true); }}
         />
       )}
     </div>

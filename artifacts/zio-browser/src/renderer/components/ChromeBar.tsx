@@ -27,6 +27,10 @@ interface Props {
   isPrivate?: boolean;
   /** Called when the user clicks the Device Lab button. */
   onOpenDeviceLab?: () => void;
+  /** Called when the user triggers a screenshot; fullPage indicates full-page vs. viewport. */
+  onScreenshot?: (fullPage: boolean) => void;
+  /** While a screenshot is being captured, show a busy state on the camera button. */
+  screenshotCapturing?: boolean;
 }
 
 const BASE_URL = 'https://1in.me';
@@ -313,6 +317,8 @@ export function ChromeBar({
   activeDownloadCount = 0,
   isPrivate = false,
   onOpenDeviceLab,
+  onScreenshot,
+  screenshotCapturing = false,
 }: Props) {
   const {
     tabs, tabOrder, activeTabId, recentlyClosed,
@@ -364,6 +370,8 @@ export function ChromeBar({
     setCreateOpen(false);
   }, [activeTabId]);
 
+  const canShorten = !!(activeTab?.url && activeTab.url !== 'about:newtab' && activeTab.url !== '');
+
   // Listen for custom events dispatched by the command palette
   useEffect(() => {
     const onShortenOpen = () => {
@@ -401,7 +409,6 @@ export function ChromeBar({
   const closeContextMenu = useCallback(() => setContextMenu(null), []);
 
   const activeTabState = activeTab;
-  const canShorten = !!(activeTab?.url && activeTab.url !== 'about:newtab' && activeTab.url !== '');
 
   // Pinned tabs always first in tabOrder (maintained by tab-manager); split for rendering
   const pinnedTabIds = tabOrder.filter(id => tabs[id]?.pinned);
@@ -779,6 +786,14 @@ export function ChromeBar({
           }}
         >🔬</button>
 
+        {/* Screenshot button — not shown on new tab or private windows */}
+        {canShorten && !isPrivate && onScreenshot && (
+          <ScreenshotButton
+            onCapture={onScreenshot}
+            capturing={screenshotCapturing}
+          />
+        )}
+
         {/* Sync pending indicator */}
         {pendingSyncCount > 0 && (
           <div
@@ -964,3 +979,92 @@ export function ChromeBar({
     </div>
   );
 }
+
+// ── Screenshot button ─────────────────────────────────────────────────────────
+// A small camera button with a right-click context menu offering
+// "Visible area" vs "Full page" modes.
+
+interface ScreenshotButtonProps {
+  onCapture: (fullPage: boolean) => void;
+  capturing: boolean;
+}
+
+function ScreenshotButton({ onCapture, capturing }: ScreenshotButtonProps) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    if (!menuOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [menuOpen]);
+
+  return (
+    <div ref={menuRef} style={{ position: 'relative', flexShrink: 0 }}>
+      <button
+        onClick={() => { if (!capturing) setMenuOpen(prev => !prev); }}
+        title="Screenshot — left-click for options"
+        style={{
+          fontSize: 15,
+          padding: '2px 7px',
+          borderRadius: 8,
+          background: menuOpen ? 'var(--color-primary)' : 'var(--color-bg-elevated)',
+          color: menuOpen ? '#fff' : 'var(--color-text-muted)',
+          border: '1px solid var(--color-border)',
+          opacity: capturing ? 0.5 : 1,
+          cursor: capturing ? 'default' : 'pointer',
+          transition: 'all 0.12s',
+        }}
+      >{capturing ? '⏳' : '📷'}</button>
+
+      {menuOpen && (
+        <div style={{
+          position: 'absolute',
+          top: 'calc(100% + 6px)',
+          right: 0,
+          background: 'var(--color-bg-surface)',
+          border: '1px solid var(--color-border)',
+          borderRadius: 10,
+          boxShadow: '0 8px 28px rgba(0,0,0,0.3)',
+          minWidth: 180,
+          zIndex: 2000,
+          overflow: 'hidden',
+        }}>
+          <button
+            onClick={() => { setMenuOpen(false); onCapture(false); }}
+            style={menuItemStyle}
+          >
+            <span>🖥</span>
+            <span>Visible area</span>
+          </button>
+          <button
+            onClick={() => { setMenuOpen(false); onCapture(true); }}
+            style={menuItemStyle}
+          >
+            <span>📄</span>
+            <span>Full page</span>
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+const menuItemStyle: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: 8,
+  width: '100%',
+  padding: '9px 14px',
+  fontSize: 12,
+  color: 'var(--color-text)',
+  textAlign: 'left',
+  cursor: 'pointer',
+  transition: 'background 0.1s',
+};

@@ -325,7 +325,7 @@ export function CommandPalette({
           if (activeTabId) void window.zio.tabs.reload(activeTabId);
           break;
         case 'find-on-page':
-          if (activeTabId) openFind(activeTabId);
+          if (activeTabId) openFind();
           break;
         case 'shortcuts':
           // Re-open palette in shortcuts view via a micro-timeout so the close
