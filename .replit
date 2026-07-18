@@ -1332,12 +1332,12 @@ isValidation = true
 name = "dialer-contact-auto-sync"
 author = "agent"
 
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "cd sayzio-dialer-standalone && npm run test:contact-auto-sync"
-
 [workflows.workflow.metadata]
 isValidation = true
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd sayzio-dialer-standalone && npm run test:contact-auto-sync && npm run test:device-contacts-fingerprint"
 
 [agent]
 stack = "PNPM_WORKSPACE"
