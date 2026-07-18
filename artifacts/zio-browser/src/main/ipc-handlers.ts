@@ -50,8 +50,6 @@ import {
   deleteAllPasswords,
   listProfiles,
   upsertProfile,
-  setActiveProfileId,
-  getActiveProfileId,
 } from './db';
 import { getActiveItem } from './download-manager';
 import { buildAutofillScript } from '../shared/form-autofill';
@@ -67,7 +65,7 @@ import {
   MAX_ZIO_PANEL_WIDTH,
 } from '../shared/window-mode';
 import { isPrivateWindow } from './private-session';
-import { profileFromWorkspace, sessionPartitionForProfile } from '../shared/profile-store';
+import { profileFromWorkspace, sessionPartitionForProfile, DEFAULT_PROFILE_ID } from '../shared/profile-store';
 import type { BrowserProfile } from '../shared/profile-store';
 
 type PrefKey = typeof PREFERENCE_KEYS[keyof typeof PREFERENCE_KEYS];
@@ -80,6 +78,26 @@ type PrefKey = typeof PREFERENCE_KEYS[keyof typeof PREFERENCE_KEYS];
  */
 const tabManagerRegistry = new Map<number, TabManager>();
 const modeManagerRegistry = new Map<number, WindowModeManager>();
+
+/**
+ * Maps BrowserWindow id → active profile ID. Each window carries its OWN
+ * active profile, so switching the profile in one window never changes the
+ * DB scope (or session partition) of any other window — including background
+ * sync running in another window.
+ */
+const windowProfileRegistry = new Map<number, string>();
+
+export function registerWindowProfile(win: BrowserWindow, profileId: string): void {
+  windowProfileRegistry.set(win.id, profileId);
+  win.once('closed', () => windowProfileRegistry.delete(win.id));
+}
+
+/** Resolve the active profile for the window that sent an IPC event. */
+function resolveProfileId(event: Electron.IpcMainInvokeEvent): string {
+  const win = BrowserWindow.fromWebContents(event.sender);
+  if (!win) return DEFAULT_PROFILE_ID;
+  return windowProfileRegistry.get(win.id) ?? DEFAULT_PROFILE_ID;
+}
 
 export function registerTabManager(win: BrowserWindow, tabManager: TabManager): void {
   tabManagerRegistry.set(win.id, tabManager);
@@ -317,27 +335,27 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
   // ── History ──────────────────────────────────────────────────────────────
   ipcMain.handle('history:record', (event, url: string, title: string | null, favicon?: string) => {
     if (senderIsPrivate(event)) return null;
-    return recordVisit(url, title, favicon);
+    return recordVisit(url, title, favicon, resolveProfileId(event));
   });
-  ipcMain.handle('history:search', (_, q: string) => searchHistory(q));
-  ipcMain.handle('history:recent', () => getRecentHistory());
-  ipcMain.handle('history:clear', () => { clearHistory(); return true; });
+  ipcMain.handle('history:search', (event, q: string) => searchHistory(q, 20, resolveProfileId(event)));
+  ipcMain.handle('history:recent', (event) => getRecentHistory(50, resolveProfileId(event)));
+  ipcMain.handle('history:clear', (event) => { clearHistory(resolveProfileId(event)); return true; });
   ipcMain.handle('history:delete', (_, id: string) => deleteHistoryEntry(id));
 
   // ── Bookmarks ────────────────────────────────────────────────────────────
-  ipcMain.handle('bookmarks:add', (_, url: string, title: string, opts?: Record<string, string>) =>
-    addBookmark(url, title, opts),
+  ipcMain.handle('bookmarks:add', (event, url: string, title: string, opts?: Record<string, string>) =>
+    addBookmark(url, title, opts, resolveProfileId(event)),
   );
-  ipcMain.handle('bookmarks:remove', (_, url: string) => removeBookmark(url));
-  ipcMain.handle('bookmarks:is-bookmarked', (_, url: string) => isBookmarked(url));
-  ipcMain.handle('bookmarks:all', (_, folder?: string) => getAllBookmarks(folder));
-  ipcMain.handle('bookmarks:search', (_, q: string) => searchBookmarks(q));
+  ipcMain.handle('bookmarks:remove', (event, url: string) => removeBookmark(url, resolveProfileId(event)));
+  ipcMain.handle('bookmarks:is-bookmarked', (event, url: string) => isBookmarked(url, resolveProfileId(event)));
+  ipcMain.handle('bookmarks:all', (event, folder?: string) => getAllBookmarks(folder, resolveProfileId(event)));
+  ipcMain.handle('bookmarks:search', (event, q: string) => searchBookmarks(q, 20, resolveProfileId(event)));
 
   // ── Collections ──────────────────────────────────────────────────────────
-  ipcMain.handle('collections:all', () => getAllCollections());
-  ipcMain.handle('collections:create', (_, name: string, opts?: Record<string, string>) => {
+  ipcMain.handle('collections:all', (event) => getAllCollections(resolveProfileId(event)));
+  ipcMain.handle('collections:create', (event, name: string, opts?: Record<string, string>) => {
     const c = createCollection(name, opts);
-    createCollectionInDb(c);
+    createCollectionInDb(c, resolveProfileId(event));
     return c;
   });
   ipcMain.handle('collections:update', (_, id: string, updates: Record<string, string>) => {
@@ -727,21 +745,23 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
   /** Return all locally known profiles (personal + any synced workspace profiles). */
   ipcMain.handle('profiles:list', () => listProfiles());
 
-  /** Return the currently active profile ID. */
-  ipcMain.handle('profiles:get-active', () => getActiveProfileId());
+  /** Return the currently active profile ID for the calling window. */
+  ipcMain.handle('profiles:get-active', (event) => resolveProfileId(event));
 
   /**
-   * Switch to a different profile:
-   *  1. Persist the choice in preferences.
-   *  2. Update the active profile ID in db.ts (scopes all future DB reads).
-   *  3. Update the tab manager's session partition (new tabs use the new session).
-   *  4. Notify the renderer via an IPC push.
+   * Switch to a different profile — scoped to the CALLING WINDOW only:
+   *  1. Update this window's entry in the per-window profile registry
+   *     (scopes all future DB reads from this window).
+   *  2. Persist the choice in preferences (used as the initial profile for
+   *     newly opened windows; existing windows are unaffected).
+   *  3. Update this window's tab manager session partition.
+   *  4. Notify this window's renderer via an IPC push.
    */
   ipcMain.handle('profiles:switch', (event, profileId: string) => {
-    setActiveProfileId(profileId);
+    const win = BrowserWindow.fromWebContents(event.sender);
+    if (win) windowProfileRegistry.set(win.id, profileId);
     setPreference('active_profile', profileId);
     resolveTabManager(event)?.setActiveProfilePartition(profileId);
-    const win = BrowserWindow.fromWebContents(event.sender);
     win?.webContents.send('profile:changed', profileId);
     return { ok: true, profileId };
   });

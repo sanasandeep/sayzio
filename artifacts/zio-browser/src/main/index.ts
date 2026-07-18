@@ -4,7 +4,7 @@
 import path from 'path';
 import { app, BrowserWindow, Menu, session, nativeTheme } from 'electron';
 import type { BaseWindow } from 'electron';
-import { initDb, getPreference, setPreference, setActiveProfileId } from './db';
+import { initDb, getPreference, setPreference } from './db';
 import { PREFERENCE_KEYS } from '../shared/db-schema';
 import { sessionPartitionForProfile, DEFAULT_PROFILE_ID } from '../shared/profile-store';
 import { TabManager } from './tab-manager';
@@ -13,6 +13,7 @@ import {
   registerIpcHandlers,
   registerTabManager,
   registerModeManager,
+  registerWindowProfile,
   getTabManagerForWindow,
   getModeManagerForWindow,
 } from './ipc-handlers';
@@ -59,9 +60,10 @@ function createWindow(): BrowserWindow {
     show: false,
   });
 
-  // Restore the active profile from persisted preferences
+  // Restore the last-used profile from persisted preferences and bind it to
+  // THIS window only (profiles are tracked per-window, never process-global).
   const savedProfileId = getPreference(PREFERENCE_KEYS.ACTIVE_PROFILE) ?? DEFAULT_PROFILE_ID;
-  setActiveProfileId(savedProfileId);
+  registerWindowProfile(win, savedProfileId);
 
   // Pre-warm the profile session so it's available before the first tab opens
   if (savedProfileId !== DEFAULT_PROFILE_ID) {
@@ -161,6 +163,11 @@ export function createPrivateWindow(): BrowserWindow {
 
   // Register before any 'closed' listener so teardown fires correctly.
   registerPrivateWindow(win);
+
+  // Private windows still read profile-scoped data (bookmarks/collections)
+  // for the user's last-used profile, but never write history.
+  const savedProfileId = getPreference(PREFERENCE_KEYS.ACTIVE_PROFILE) ?? DEFAULT_PROFILE_ID;
+  registerWindowProfile(win, savedProfileId);
 
   // Private TabManager uses the isolated in-memory session for all tabs.
   const tabManager = new TabManager(win, { privateSession });

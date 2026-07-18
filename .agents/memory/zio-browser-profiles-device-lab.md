@@ -9,13 +9,13 @@ description: Architecture decisions for workspace profiles and device lab featur
 
 **Session partition**: `persist:zio-profile-{profileId}` — one Electron session partition per profile, created via `session.fromPartition()`.
 
-**DB scoping**: `profile_id TEXT NOT NULL DEFAULT 'default'` on history/bookmarks/collections. Module-level `_activeProfileId` in `src/main/db.ts` gates all queries; updated via `setActiveProfileId()` / IPC `profiles:switch`.
+**DB scoping**: `profile_id TEXT NOT NULL DEFAULT 'default'` on history/bookmarks/collections. Active profile is tracked PER WINDOW (`windowProfileRegistry` in `ipc-handlers.ts`, keyed by BrowserWindow id) — there is intentionally no process-global active profile, so switching in one window never changes the DB scope or session partition of another window. IPC handlers resolve the profile from `event.sender`'s window; `profiles:switch` only mutates the calling window's entry (and persists `active_profile` preference as the initial profile for NEW windows).
 
 **Schema version**: bumped to 6; `MIGRATION_SQL[6]` ALTERs existing tables (splits on `;`, ignores "already exists").
 
 **Sync isolation**: `profileSyncEntityKey(entity, profileId)` → `'bookmarks:default'` / `'history:42'` — keeps sync_state cursors separate per profile.
 
-**Startup restore**: `main/index.ts` reads `active_profile` preference and calls `setActiveProfileId()` + `session.fromPartition()` before creating the first tab.
+**Startup restore**: `main/index.ts` reads `active_profile` preference and calls `registerWindowProfile(win, id)` + `session.fromPartition()` before creating the first tab (private windows register the same last-used profile for reads).
 
 **Renderer**: `useProfileStore` (module-level singleton, not React context) syncs workspaces from `/api/v1/workspaces` and calls `profiles:upsert-from-workspace` for each. `ProfileSwitcher` component in ChromeBar.
 
@@ -36,4 +36,4 @@ description: Architecture decisions for workspace profiles and device lab featur
 
 **Why:**
 - Profile isolation is the security boundary: a workspace user must not see another workspace's bookmarks/history.
-- Module-level `activeProfileId` is a known multi-window risk — see follow-up task #5166.
+- Per-window profile tracking exists precisely because a process-global active profile would let a switch in one window silently rescope background sync/reads in another.
