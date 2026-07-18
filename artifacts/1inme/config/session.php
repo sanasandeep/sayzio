@@ -112,9 +112,13 @@ return [
     | rid of old sessions from storage. Here are the chances that it will
     | happen on a given request. By default, the odds are 2 out of 100.
     |
+    | Disabled here (0-in-100): on a distant RDS the probabilistic sweep is a
+    | blocking DELETE that taxes whichever request draws the lottery. The
+    | nightly `sessions:prune` scheduled command owns cleanup instead.
+    |
     */
 
-    'lottery' => [2, 100],
+    'lottery' => [0, 100],
 
     /*
     |--------------------------------------------------------------------------
