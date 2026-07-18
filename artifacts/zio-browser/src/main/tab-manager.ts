@@ -253,6 +253,15 @@ export class TabManager {
       if (params.linkURL) {
         menuItems.push(
           { label: 'Open link in new tab', click: () => { this.createTab(params.linkURL); } },
+          {
+            label: 'Open in Private Window',
+            click: () => {
+              // Lazy require to avoid a circular dependency with ./index.
+              // eslint-disable-next-line @typescript-eslint/no-var-requires
+              const { createPrivateWindow } = require('./index') as typeof import('./index');
+              createPrivateWindow(params.linkURL);
+            },
+          },
           { label: 'Copy link address', click: () => { clipboard.writeText(params.linkURL); } },
           { type: 'separator' },
         );

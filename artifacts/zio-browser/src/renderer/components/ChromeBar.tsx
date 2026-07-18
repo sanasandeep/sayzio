@@ -813,6 +813,23 @@ export function ChromeBar({
           }}
         >🔬</button>
 
+        {/* New Private Window button */}
+        <button
+          onClick={() => { void window.zio.window.openPrivate(); }}
+          title="New Private Window (Ctrl+Shift+N)"
+          style={{
+            fontSize: 13,
+            padding: '3px 8px',
+            borderRadius: 8,
+            background: 'var(--color-bg-elevated)',
+            color: 'var(--color-text)',
+            border: '1px solid var(--color-border)',
+            whiteSpace: 'nowrap',
+            transition: 'all 0.12s',
+            cursor: 'pointer',
+          }}
+        >🕶️</button>
+
         {/* Screenshot button — not shown on new tab or private windows */}
         {canShorten && !isPrivate && onScreenshot && (
           <ScreenshotButton

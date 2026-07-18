@@ -316,10 +316,19 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
 
   // ── Open new private window (from renderer) ──────────────────────────────
   // Importing createPrivateWindow here would create a circular dep; use a lazy require.
-  ipcMain.handle('window:open-private', () => {
+  ipcMain.handle('window:open-private', (_event, url?: string) => {
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const { createPrivateWindow } = require('./index') as typeof import('./index');
-    createPrivateWindow();
+    let startUrl: string | undefined;
+    if (typeof url === 'string' && url.length > 0) {
+      try {
+        const proto = new URL(url).protocol;
+        if (proto === 'http:' || proto === 'https:') startUrl = url;
+      } catch {
+        // Ignore malformed URLs — open a blank private window instead.
+      }
+    }
+    createPrivateWindow(startUrl);
     return true;
   });
 

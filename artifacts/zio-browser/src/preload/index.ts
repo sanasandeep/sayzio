@@ -80,8 +80,8 @@ const api = {
     setZioPanelDocked: (docked: boolean) => ipcRenderer.invoke('window:set-zio-panel-docked', docked),
     /** Returns true when this renderer is running inside a private/incognito window. */
     isPrivate: () => ipcRenderer.invoke('window:is-private') as Promise<boolean>,
-    /** Ask the main process to open a new private window. */
-    openPrivate: () => ipcRenderer.invoke('window:open-private') as Promise<boolean>,
+    /** Ask the main process to open a new private window, optionally starting at a URL. */
+    openPrivate: (url?: string) => ipcRenderer.invoke('window:open-private', url) as Promise<boolean>,
   },
 
   // ── History ───────────────────────────────────────────────────────────────

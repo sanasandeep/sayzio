@@ -157,7 +157,7 @@ function createWindow(): BrowserWindow {
 
 // ── Private / incognito window ────────────────────────────────────────────────
 
-export function createPrivateWindow(): BrowserWindow {
+export function createPrivateWindow(startUrl?: string): BrowserWindow {
   const privateSession = getPrivateSession();
 
   const win = new BrowserWindow({
@@ -221,7 +221,7 @@ export function createPrivateWindow(): BrowserWindow {
   win.once('ready-to-show', () => {
     win.show();
     modeManager.setMode('browser');
-    tabManager.createTab();
+    tabManager.createTab(startUrl);
   });
 
   win.on('closed', () => {
