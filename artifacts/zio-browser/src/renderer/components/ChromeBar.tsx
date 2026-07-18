@@ -7,6 +7,7 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import { useTabStore } from '../store/tab-store';
 import { useAuthStore } from '../store/auth-store';
 import { ShortenPopover } from './ShortenPopover';
+import { CreateLinkPopover } from './CreateLinkPopover';
 import { ModeSwitcher } from './ModeSwitcher';
 import { ProfileSwitcher } from './ProfileSwitcher';
 import { useModeStore } from '../store/mode-store';
@@ -318,11 +319,12 @@ export function ChromeBar({
     createTab, closeTab, activateTab, navigate, goBack, goForward, reload, stop,
     pinTab, duplicateTab, closeOtherTabs, closeTabsToRight, muteAllTabs, reopenFromRecent,
   } = useTabStore();
-  const { user } = useAuthStore();
+  const { user, token } = useAuthStore();
   const { mode, setMode } = useModeStore();
   const [omniboxValue, setOmniboxValue] = useState('');
   const [omniboxFocused, setOmniboxFocused] = useState(false);
   const [shortenOpen, setShortenOpen] = useState(false);
+  const [createOpen, setCreateOpen] = useState(false);
   const [pendingSyncCount, setPendingSyncCount] = useState(0);
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
   const [stripMenuOpen, setStripMenuOpen] = useState(false);
@@ -356,9 +358,10 @@ export function ChromeBar({
     }
   }, [activeTab?.url, omniboxFocused]);
 
-  // Close the shorten popover when the active tab changes
+  // Close popovers when the active tab changes
   useEffect(() => {
     setShortenOpen(false);
+    setCreateOpen(false);
   }, [activeTabId]);
 
   // Listen for custom events dispatched by the command palette
@@ -712,10 +715,36 @@ export function ChromeBar({
           />
         </form>
 
+        {/* ── Link tool buttons ─────────────────────────────────────────────── */}
+
+        {/* Create link popover trigger */}
+        <button
+          onClick={() => {
+            if (!token) { onOpenAuth(); return; }
+            setShortenOpen(false);
+            setCreateOpen(prev => !prev);
+          }}
+          title="Create a link — short link, biolink, event, vCard, WiFi, and more"
+          style={{
+            fontSize: 12,
+            padding: '3px 10px',
+            borderRadius: 8,
+            background: createOpen ? 'var(--color-primary)' : 'var(--color-bg-elevated)',
+            color: createOpen ? '#fff' : 'var(--color-text)',
+            border: '1px solid var(--color-border)',
+            fontWeight: 600,
+            whiteSpace: 'nowrap',
+            transition: 'all 0.12s',
+            cursor: 'pointer',
+          }}
+        >+ Create</button>
+
+
         {/* Shorten + QR popover trigger */}
         <button
           onClick={() => {
             if (!canShorten) return;
+            setCreateOpen(false);
             setShortenOpen(prev => !prev);
           }}
           disabled={!canShorten}
@@ -870,6 +899,22 @@ export function ChromeBar({
         />
       </div>
 
+      {/* Create link popover */}
+      {createOpen && (
+        <CreateLinkPopover
+          pageUrl={activeTab?.url ?? ''}
+          pageTitle={activeTab?.title ?? ''}
+          baseUrl={BASE_URL}
+          onClose={() => setCreateOpen(false)}
+          onOpenAuth={() => { setCreateOpen(false); onOpenAuth(); }}
+          onNavigate={(url) => {
+            if (activeTabId) {
+              void window.zio.tabs.navigate(activeTabId, url);
+            }
+          }}
+        />
+      )}
+
       {/* Shorten / QR popover */}
       {shortenOpen && activeTab && (
         <ShortenPopover
@@ -878,6 +923,11 @@ export function ChromeBar({
           baseUrl={BASE_URL}
           onClose={() => setShortenOpen(false)}
           onOpenAuth={() => { setShortenOpen(false); onOpenAuth(); }}
+          onNavigate={(url) => {
+            if (activeTabId) {
+              void window.zio.tabs.navigate(activeTabId, url);
+            }
+          }}
         />
       )}
 

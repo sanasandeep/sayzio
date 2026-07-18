@@ -269,8 +269,11 @@ function buildMenu(): void {
         {
           label: 'Reopen Closed Tab',
           accelerator: 'CmdOrCtrl+Shift+T',
-          click: () => {
-            tabManager?.reopenClosedTab();
+          click: (_item, bw) => {
+            const browserWin = asBrowserWin(bw);
+            if (!browserWin) return;
+            const tm = getTabManagerForWindow(browserWin);
+            tm?.reopenClosedTab();
           },
         },
         { type: 'separator' },
