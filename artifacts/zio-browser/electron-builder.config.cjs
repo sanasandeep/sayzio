@@ -23,6 +23,9 @@ const macNotarizeEnabled = Boolean(
 const config = {
   appId: 'com.sayzio.browser',
   productName: 'SayZio Browser',
+  // No spaces in artifact names: GitHub converts spaces to dots on upload,
+  // which breaks the electron-updater feed (latest.yml uses hyphenated names).
+  artifactName: 'SayZio-Browser-${version}-${arch}.${ext}',
   copyright: 'Copyright © 2026 SayZio',
 
   directories: {
