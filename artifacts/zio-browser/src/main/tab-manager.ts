@@ -35,6 +35,11 @@ export interface SessionSnapshot {
   urls: string[];
   /** Index into `urls` of the active tab, or -1 if the active tab isn't in the list. */
   activeIndex: number;
+  /**
+   * When the active tab was a pinned tab: its index within the pinned
+   * section (matching the persisted pinned-URL order). -1 otherwise.
+   */
+  activePinnedIndex: number;
 }
 
 export interface FindResult {
@@ -546,10 +551,12 @@ export class TabManager {
   /**
    * Restore pinned tabs from persisted URLs. Call before opening the default new tab.
    */
-  initPinnedUrls(urls: string[]): void {
+  initPinnedUrls(urls: string[]): TabId[] {
+    const ids: TabId[] = [];
     for (const url of urls) {
-      if (url) this.createTab(url, true, true);
+      if (url) ids.push(this.createTab(url, true, true));
     }
+    return ids;
   }
 
   /**
@@ -559,16 +566,26 @@ export class TabManager {
   getSessionSnapshot(): SessionSnapshot {
     const urls: string[] = [];
     let activeIndex = -1;
+    let activePinnedIndex = -1;
+    let pinnedIdx = 0;
     for (const id of this.tabOrder) {
-      if (this.pinnedTabs.has(id)) continue;
       const wc = this.tabs.get(id)?.view.webContents;
       if (!wc || !isAlive(wc)) continue;
       const url = wc.getURL();
+      if (this.pinnedTabs.has(id)) {
+        // Mirror getPinnedUrls(): only persistable pinned tabs count toward
+        // the pinned index so it lines up with the restored pinned order.
+        if (url && url !== 'about:newtab' && url !== 'about:blank') {
+          if (id === this.activeTabId) activePinnedIndex = pinnedIdx;
+          pinnedIdx++;
+        }
+        continue;
+      }
       if (!url || url === 'about:newtab' || url === 'about:blank') continue;
       if (id === this.activeTabId) activeIndex = urls.length;
       urls.push(url);
     }
-    return { urls, activeIndex };
+    return { urls, activeIndex, activePinnedIndex };
   }
 
   /**

@@ -147,28 +147,45 @@ function createWindow(): BrowserWindow {
       } catch {
         savedPinnedUrls = [];
       }
+      let pinnedIds: string[] = [];
       if (savedPinnedUrls.length > 0) {
-        tabManager?.initPinnedUrls(savedPinnedUrls);
+        pinnedIds = tabManager?.initPinnedUrls(savedPinnedUrls) ?? [];
       }
 
       // Restore the previous session's open tabs (in order, with active tab)
       const savedSessionJson = getPreference(PREFERENCE_KEYS.SESSION_TABS) ?? '';
       let sessionUrls: string[] = [];
       let sessionActiveIndex = -1;
+      let sessionActivePinnedIndex = -1;
       try {
-        const snap = JSON.parse(savedSessionJson) as { urls?: unknown; activeIndex?: unknown };
+        const snap = JSON.parse(savedSessionJson) as { urls?: unknown; activeIndex?: unknown; activePinnedIndex?: unknown };
         if (Array.isArray(snap?.urls)) {
           sessionUrls = snap.urls.filter((u): u is string => typeof u === 'string' && u.length > 0);
         }
         if (typeof snap?.activeIndex === 'number') {
           sessionActiveIndex = snap.activeIndex;
         }
+        if (typeof snap?.activePinnedIndex === 'number') {
+          sessionActivePinnedIndex = snap.activePinnedIndex;
+        }
       } catch {
         // No / invalid saved session — fall through to a fresh new tab
       }
 
-      if (sessionUrls.length > 0) {
+      if (sessionUrls.length > 0 || (sessionActivePinnedIndex >= 0 && pinnedIds.length > 0)) {
         tabManager.restoreSessionTabs(sessionUrls, sessionActiveIndex);
+        // If the previously active tab was a pinned tab, re-activate it now
+        // (restoreSessionTabs only handles the non-pinned active case).
+        if (sessionActiveIndex === -1 && sessionActivePinnedIndex >= 0) {
+          const pinnedActive = pinnedIds[sessionActivePinnedIndex] ?? pinnedIds[pinnedIds.length - 1];
+          if (pinnedActive) tabManager.activateTab(pinnedActive);
+        }
+        if (sessionUrls.length === 0) {
+          // Only pinned tabs were open last session — nothing else to restore,
+          // but make sure a pinned tab (not a fresh new tab) is showing.
+          const fallback = pinnedIds[0];
+          if (!tabManager.getActiveTabId() && fallback) tabManager.activateTab(fallback);
+        }
       } else {
         // Open the default new tab (active, placed after pinned tabs)
         const newTabUrl = getPreference(PREFERENCE_KEYS.NEW_TAB_PAGE) ?? undefined;
