@@ -3,6 +3,7 @@
  * Intercepts Electron download events and tracks them in the local DB.
  * Maintains a live registry of in-progress DownloadItem references so the
  * renderer can pause, resume, and cancel active downloads via IPC.
+ * In private mode downloads complete normally but are NOT written to the DB.
  */
 import path from 'path';
 import { app, BrowserWindow } from 'electron';
@@ -78,7 +79,7 @@ export function setupDownloadManager(
       });
     }
 
-    // Notify renderer: download started
+    // Notify renderer: download started (always — private downloads still show in the active session UI)
     win.webContents.send('download:started', {
       id,
       url: item.getURL(),

@@ -19,6 +19,8 @@ interface Props {
   downloadsPanelOpen?: boolean;
   onToggleDownloads?: () => void;
   activeDownloadCount?: number;
+  /** True when this window is an incognito/private window. */
+  isPrivate?: boolean;
 }
 
 const BASE_URL = 'https://1in.me';
@@ -31,6 +33,7 @@ export function ChromeBar({
   downloadsPanelOpen = false,
   onToggleDownloads,
   activeDownloadCount = 0,
+  isPrivate = false,
 }: Props) {
   const { tabs, tabOrder, activeTabId, createTab, closeTab, activateTab, navigate, goBack, goForward, reload, stop } = useTabStore();
   const { user } = useAuthStore();
@@ -109,6 +112,26 @@ export function ChromeBar({
         overflowX: 'auto',
         overflowY: 'hidden',
       }}>
+        {/* Private mode badge — always visible at the left of the tab strip */}
+        {isPrivate && (
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 4,
+            padding: '2px 10px',
+            borderRadius: 12,
+            background: 'rgba(120,80,220,0.18)',
+            border: '1px solid rgba(140,100,240,0.45)',
+            color: '#c9b3ff',
+            fontSize: 11,
+            fontWeight: 600,
+            whiteSpace: 'nowrap',
+            flexShrink: 0,
+            letterSpacing: 0.2,
+          }}>
+            🔒 Private
+          </div>
+        )}
         {tabOrder.map(id => {
           const tab = tabs[id];
           const isActive = id === activeTabId;
@@ -334,21 +357,39 @@ export function ChromeBar({
           </button>
         )}
 
-        {/* Zio AI button */}
-        <button
-          onClick={onToggleZio}
-          style={{
-            padding: '4px 12px',
-            borderRadius: 14,
-            background: zioPanelOpen ? 'var(--color-primary)' : 'var(--color-bg-elevated)',
-            color: zioPanelOpen ? '#fff' : 'var(--color-text)',
-            border: '1px solid var(--color-primary)',
-            fontSize: 12,
-            fontWeight: 600,
-            transition: 'all 0.15s',
-          }}
-          title="Open Zio AI Panel"
-        >⚡ Zio</button>
+        {/* Zio AI button — hidden / disabled in private mode */}
+        {!isPrivate ? (
+          <button
+            onClick={onToggleZio}
+            style={{
+              padding: '4px 12px',
+              borderRadius: 14,
+              background: zioPanelOpen ? 'var(--color-primary)' : 'var(--color-bg-elevated)',
+              color: zioPanelOpen ? '#fff' : 'var(--color-text)',
+              border: '1px solid var(--color-primary)',
+              fontSize: 12,
+              fontWeight: 600,
+              transition: 'all 0.15s',
+            }}
+            title="Open Zio AI Panel"
+          >⚡ Zio</button>
+        ) : (
+          <div
+            title="Zio AI is not available in private windows"
+            style={{
+              padding: '4px 12px',
+              borderRadius: 14,
+              background: 'rgba(120,80,220,0.08)',
+              color: 'rgba(200,180,255,0.35)',
+              border: '1px solid rgba(140,100,240,0.2)',
+              fontSize: 12,
+              fontWeight: 600,
+              whiteSpace: 'nowrap',
+              cursor: 'default',
+              userSelect: 'none',
+            }}
+          >⚡ Zio</div>
+        )}
 
         {/* Mode switcher — shown in browser mode, hidden in split right-pane */}
         {showModeSwitcher && (

@@ -44,6 +44,11 @@ function isAlive(wc: WebContents): boolean {
   }
 }
 
+export interface TabManagerOptions {
+  /** When set, all tabs use this session instead of the default session. */
+  privateSession?: Electron.Session;
+}
+
 export class TabManager {
   private tabs: Map<TabId, ManagedTab> = new Map();
   private activeTabId: TabId | null = null;
@@ -58,9 +63,13 @@ export class TabManager {
   /** Optional callback invoked when the user picks "Add to my biolink" from the context menu */
   private onAddToBiolink?: (url: string, title: string) => void;
   private onFindResult?: (result: FindResult) => void;
+  private readonly tabSession: Electron.Session;
+  readonly isPrivate: boolean;
 
-  constructor(win: BrowserWindow) {
+  constructor(win: BrowserWindow, options: TabManagerOptions = {}) {
     this.win = win;
+    this.tabSession = options.privateSession ?? session.defaultSession;
+    this.isPrivate = options.privateSession !== undefined;
   }
 
   setCallbacks(cbs: {
@@ -95,7 +104,7 @@ export class TabManager {
         sandbox: true,
         webSecurity: true,
         allowRunningInsecureContent: false,
-        session: session.defaultSession,
+        session: this.tabSession,
       },
     });
 
@@ -184,7 +193,7 @@ export class TabManager {
         );
       }
 
-      // ── Sayzio link tools ───────────────────────────────────────────────────
+      // ── Sayzio link tools (available in both normal and private windows) ──
       menuItems.push(
         {
           label: 'Add to my biolink…',

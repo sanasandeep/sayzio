@@ -27,7 +27,7 @@ export default function App() {
   const [showModePicker, setShowModePicker] = useState(false);
   const [downloadsPanelOpen, setDownloadsPanelOpen] = useState(false);
   const [activeDownloadCount, setActiveDownloadCount] = useState(0);
-
+  const [isPrivate, setIsPrivate] = useState(false);
   const { tabs, activeTabId, initTabs } = useTabStore();
   const { init: initAuth, user } = useAuthStore();
   const {
@@ -50,9 +50,16 @@ export default function App() {
   const { isOpen: findOpen, closeFind } = useFindStore();
 
   useEffect(() => {
-    void Promise.all([initAuth(), initTabs(), initMode()]).then(() => {
+    void Promise.all([
+      initAuth(),
+      initTabs(),
+      initMode(),
+      window.zio.window.isPrivate(),
+    ]).then(([,,,priv]) => {
+      setIsPrivate(Boolean(priv));
+      // Don't show the mode picker for private windows — they're browser-only.
       const shown = localStorage.getItem(FIRST_LAUNCH_KEY);
-      if (!shown) {
+      if (!shown && !priv) {
         setShowModePicker(true);
       }
     });
@@ -93,12 +100,14 @@ export default function App() {
   const showNewTab = !activeTab || activeTab.url === '' || activeTab.url === 'about:newtab';
 
   const handleToggleZio = useCallback(() => {
+    // Zio AI panel is disabled in private windows.
+    if (isPrivate) return;
     if (!user) {
       setAuthModalOpen(true);
       return;
     }
     setZioPanelOpen(prev => !prev);
-  }, [user]);
+  }, [user, isPrivate]);
 
   const handleToggleDownloads = useCallback(() => {
     setDownloadsPanelOpen(prev => !prev);
@@ -131,7 +140,7 @@ export default function App() {
 
   // Show mode picker before content is ready
   if (!isInitialized) {
-    return <div style={{ width: '100%', height: '100%', background: 'var(--color-bg)' }} />;
+    return <div style={{ width: '100%', height: '100%', background: isPrivate ? '#0d0d1a' : 'var(--color-bg)' }} />;
   }
 
   if (showModePicker) {
@@ -139,7 +148,8 @@ export default function App() {
   }
 
   // ── Dashboard mode ────────────────────────────────────────────────────────
-  if (mode === 'dashboard') {
+  // Private windows never show dashboard mode.
+  if (mode === 'dashboard' && !isPrivate) {
     return (
       <DashboardLayout
         mode={mode}
@@ -152,7 +162,7 @@ export default function App() {
   }
 
   // ── Split mode ────────────────────────────────────────────────────────────
-  if (mode === 'split') {
+  if (mode === 'split' && !isPrivate) {
     return (
       <SplitLayout
         mode={mode}
@@ -170,19 +180,26 @@ export default function App() {
   // Layout:
   //   - Docked Zio panel: drag-resizable right pane, tab views resized by main process
   //   - Overlay Zio panel: floating card over the page, tab views full-width
-  const showDockedPanel = zioPanelOpen && zioPanelDocked;
-  const showOverlayPanel = zioPanelOpen && !zioPanelDocked;
+  // ── Browser mode (default; always used for private windows) ───────────────
+  const showDockedPanel = zioPanelOpen && zioPanelDocked && !isPrivate;
+  const showOverlayPanel = zioPanelOpen && !zioPanelDocked && !isPrivate;
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+    <div style={{
+      display: 'flex',
+      flexDirection: 'column',
+      height: '100%',
+      background: isPrivate ? '#0d0d1a' : undefined,
+    }}>
       <ChromeBar
         zioPanelOpen={zioPanelOpen}
         onToggleZio={handleToggleZio}
         onOpenAuth={() => setAuthModalOpen(true)}
-        showModeSwitcher={true}
+        showModeSwitcher={!isPrivate}
         downloadsPanelOpen={downloadsPanelOpen}
         onToggleDownloads={handleToggleDownloads}
         activeDownloadCount={activeDownloadCount}
+        isPrivate={isPrivate}
       />
 
       {/* Content area */}
@@ -197,11 +214,14 @@ export default function App() {
         }}>
           {showNewTab && (
             <div style={{ flex: 1, display: 'flex', alignItems: 'stretch' }}>
-              <NewTabPage onNavigate={(url) => {
-                if (activeTabId) {
-                  void window.zio.tabs.navigate(activeTabId, url);
-                }
-              }} />
+              <NewTabPage
+                isPrivate={isPrivate}
+                onNavigate={(url) => {
+                  if (activeTabId) {
+                    void window.zio.tabs.navigate(activeTabId, url);
+                  }
+                }}
+              />
             </div>
           )}
         </div>
@@ -262,7 +282,7 @@ export default function App() {
         </div>
       )}
 
-      {authModalOpen && (
+      {authModalOpen && !isPrivate && (
         <AuthModal onClose={() => setAuthModalOpen(false)} />
       )}
     </div>

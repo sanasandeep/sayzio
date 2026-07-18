@@ -1,6 +1,10 @@
 /**
  * IPC handlers — bridge between the renderer process and the main process.
  * All sensitive operations (DB, auth, downloads) run here.
+ *
+ * ipcMain.handle() registers GLOBAL handlers that serve every window, so
+ * private-mode suppression is determined dynamically from event.sender
+ * rather than at registration time.
  */
 import { ipcMain, shell, dialog, clipboard, nativeTheme, BrowserWindow, session } from 'electron';
 import type { TabManager } from './tab-manager';
@@ -55,24 +59,89 @@ import {
   MIN_ZIO_PANEL_WIDTH,
   MAX_ZIO_PANEL_WIDTH,
 } from '../shared/window-mode';
+import { isPrivateWindow } from './private-session';
 
 type PrefKey = typeof PREFERENCE_KEYS[keyof typeof PREFERENCE_KEYS];
 
-export function registerIpcHandlers(tabManager: TabManager, modeManager?: WindowModeManager, mainWindow?: BrowserWindow): void {
-  // Background retry loop for failed sync pushes (persisted in sync_queue)
+// ── Per-window registries ────────────────────────────────────────────────────
+
+/**
+ * Maps BrowserWindow id → TabManager so tab IPC handlers can resolve the
+ * correct manager for the calling window (normal vs. private).
+ */
+const tabManagerRegistry = new Map<number, TabManager>();
+const modeManagerRegistry = new Map<number, WindowModeManager>();
+
+export function registerTabManager(win: BrowserWindow, tabManager: TabManager): void {
+  tabManagerRegistry.set(win.id, tabManager);
+  win.once('closed', () => tabManagerRegistry.delete(win.id));
+}
+
+export function registerModeManager(win: BrowserWindow, modeManager: WindowModeManager): void {
+  modeManagerRegistry.set(win.id, modeManager);
+  win.once('closed', () => modeManagerRegistry.delete(win.id));
+}
+
+/**
+ * Public accessors used by the menu (menu click callbacks receive the
+ * focused BrowserWindow directly, so they bypass IPC entirely).
+ */
+export function getTabManagerForWindow(win: BrowserWindow): TabManager | null {
+  return tabManagerRegistry.get(win.id) ?? null;
+}
+
+export function getModeManagerForWindow(win: BrowserWindow): WindowModeManager | null {
+  return modeManagerRegistry.get(win.id) ?? null;
+}
+
+// ── IPC helpers ──────────────────────────────────────────────────────────────
+
+/**
+ * Resolve the TabManager for the window that sent an IPC event.
+ */
+function resolveTabManager(event: Electron.IpcMainInvokeEvent): TabManager | null {
+  const win = BrowserWindow.fromWebContents(event.sender);
+  if (!win) return null;
+  return tabManagerRegistry.get(win.id) ?? null;
+}
+
+function resolveModeManager(event: Electron.IpcMainInvokeEvent): WindowModeManager | null {
+  const win = BrowserWindow.fromWebContents(event.sender);
+  if (!win) return null;
+  return modeManagerRegistry.get(win.id) ?? null;
+}
+
+/**
+ * Return true when the IPC event was sent from a private/incognito window.
+ */
+function senderIsPrivate(event: Electron.IpcMainInvokeEvent): boolean {
+  const win = BrowserWindow.fromWebContents(event.sender);
+  return win !== null && isPrivateWindow(win);
+}
+
+// ── Handler registration ─────────────────────────────────────────────────────
+
+let _handlersRegistered = false;
+
+/**
+ * Register all IPC handlers.  Must be called exactly once after the first
+ * (normal) BrowserWindow has been created.  Private windows reuse the same
+ * global handlers; per-window routing is done via event.sender.
+ */
+export function registerIpcHandlers(mainWindow: BrowserWindow): void {
+  if (_handlersRegistered) return;
+  _handlersRegistered = true;
+
+  // Background retry loop for failed sync pushes.
   const syncRetryRunner = new SyncRetryRunner({
     onQueueChanged: (pendingCount) => {
-      mainWindow?.webContents.send('sync:queue-changed', pendingCount);
+      mainWindow.webContents.send('sync:queue-changed', pendingCount);
     },
   });
   syncRetryRunner.start();
 
-
   // ── DB init ──────────────────────────────────────────────────────────────
-  ipcMain.handle('db:init', () => {
-    initDb();
-    return { ok: true };
-  });
+  ipcMain.handle('db:init', () => { initDb(); return { ok: true }; });
 
   // ── Preferences ─────────────────────────────────────────────────────────
   ipcMain.handle('prefs:get', (_, key: PrefKey) => getPreference(key));
@@ -94,27 +163,33 @@ export function registerIpcHandlers(tabManager: TabManager, modeManager?: Window
   ipcMain.handle('auth:get-user', () => retrieveUser());
 
   // ── Tabs ─────────────────────────────────────────────────────────────────
-  ipcMain.handle('tabs:create', (_, url?: string, background?: boolean) => {
-    return tabManager.createTab(url, background);
+  ipcMain.handle('tabs:create', (event, url?: string, background?: boolean) =>
+    resolveTabManager(event)?.createTab(url, background) ?? null,
+  );
+  ipcMain.handle('tabs:close', (event, id: string) => { resolveTabManager(event)?.closeTab(id); return true; });
+  ipcMain.handle('tabs:activate', (event, id: string) => { resolveTabManager(event)?.activateTab(id); return true; });
+  ipcMain.handle('tabs:navigate', (event, id: string, input: string) => { resolveTabManager(event)?.navigate(id, input); return true; });
+  ipcMain.handle('tabs:back', (event, id: string) => { resolveTabManager(event)?.goBack(id); return true; });
+  ipcMain.handle('tabs:forward', (event, id: string) => { resolveTabManager(event)?.goForward(id); return true; });
+  ipcMain.handle('tabs:reload', (event, id: string, force?: boolean) => { resolveTabManager(event)?.reload(id, force); return true; });
+  ipcMain.handle('tabs:stop', (event, id: string) => { resolveTabManager(event)?.stop(id); return true; });
+  ipcMain.handle('tabs:zoom', (event, id: string, factor: number) => { resolveTabManager(event)?.setZoom(id, factor); return true; });
+  ipcMain.handle('tabs:find', (event, id: string, text: string, forward?: boolean, matchCase?: boolean) => {
+    resolveTabManager(event)?.findInPage(id, text, forward, matchCase);
+    return true;
   });
-  ipcMain.handle('tabs:close', (_, id: string) => { tabManager.closeTab(id); return true; });
-  ipcMain.handle('tabs:activate', (_, id: string) => { tabManager.activateTab(id); return true; });
-  ipcMain.handle('tabs:navigate', (_, id: string, input: string) => { tabManager.navigate(id, input); return true; });
-  ipcMain.handle('tabs:back', (_, id: string) => { tabManager.goBack(id); return true; });
-  ipcMain.handle('tabs:forward', (_, id: string) => { tabManager.goForward(id); return true; });
-  ipcMain.handle('tabs:reload', (_, id: string, force?: boolean) => { tabManager.reload(id, force); return true; });
-  ipcMain.handle('tabs:stop', (_, id: string) => { tabManager.stop(id); return true; });
-  ipcMain.handle('tabs:zoom', (_, id: string, factor: number) => { tabManager.setZoom(id, factor); return true; });
-  ipcMain.handle('tabs:find', (_, id: string, text: string, forward?: boolean, matchCase?: boolean) => { tabManager.findInPage(id, text, forward, matchCase); return true; });
-  ipcMain.handle('tabs:find-stop', (_, id: string) => { tabManager.stopFindInPage(id); return true; });
-  ipcMain.handle('tabs:mute', (_, id: string, muted: boolean) => { tabManager.muteTab(id, muted); return true; });
-  ipcMain.handle('tabs:get-state', (_, id: string) => tabManager.getTabState(id));
-  ipcMain.handle('tabs:get-order', () => tabManager.getTabOrder());
-  ipcMain.handle('tabs:get-active', () => tabManager.getActiveTabId());
+  ipcMain.handle('tabs:find-stop', (event, id: string) => {
+    resolveTabManager(event)?.stopFindInPage(id);
+    return true;
+  });
+  ipcMain.handle('tabs:mute', (event, id: string, muted: boolean) => { resolveTabManager(event)?.muteTab(id, muted); return true; });
+  ipcMain.handle('tabs:get-state', (event, id: string) => resolveTabManager(event)?.getTabState(id) ?? null);
+  ipcMain.handle('tabs:get-order', (event) => resolveTabManager(event)?.getTabOrder() ?? []);
+  ipcMain.handle('tabs:get-active', (event) => resolveTabManager(event)?.getActiveTabId() ?? null);
 
-  // Page context extraction — runs JS in the page via executeJavaScript
-  ipcMain.handle('tabs:extract-context', async (_, id: string) => {
-    const wc = tabManager.getWebContents(id);
+  // Page context extraction
+  ipcMain.handle('tabs:extract-context', async (event, id: string) => {
+    const wc = resolveTabManager(event)?.getWebContents(id);
     if (!wc) return null;
     try {
       const result = await wc.executeJavaScript(`
@@ -125,20 +200,14 @@ export function registerIpcHandlers(tabManager: TabManager, modeManager?: Window
           const lang = document.documentElement.lang || null;
           const author = document.querySelector('meta[name="author"]')?.content || null;
           const selection = window.getSelection()?.toString() || null;
-          
-          // Extract readable text using simple article extraction
           const article = document.querySelector('article, main, [role="main"]') || document.body;
           const clone = article.cloneNode(true);
-          // Remove scripts, styles, navs
           clone.querySelectorAll('script,style,nav,header,footer,aside,.ad,.advertisement').forEach(el => el.remove());
           const text = clone.innerText || clone.textContent || '';
-          
-          // Extract phone numbers and emails from the page text
           const phonePattern = /(?:\\+?1[-.\\s]?)?\\(?\\d{3}\\)?[-.\\s]?\\d{3}[-.\\s]?\\d{4}|\\+\\d{1,3}[-.\\s]?\\d{6,14}/g;
           const emailPattern = /[a-zA-Z0-9._%+\\-]+@[a-zA-Z0-9.\\-]+\\.[a-zA-Z]{2,}/g;
           const phones = [...new Set((text.match(phonePattern) || []))].slice(0, 20);
           const emails = [...new Set((text.match(emailPattern) || []).map(e => e.toLowerCase()))].slice(0, 20);
-          
           return { url, title, description: desc, text: text.slice(0, 50000), selection, lang, author, publishedAt: null, phones, emails };
         })()
       `);
@@ -149,26 +218,38 @@ export function registerIpcHandlers(tabManager: TabManager, modeManager?: Window
   });
 
   // ── Window mode ──────────────────────────────────────────────────────────
-  ipcMain.handle('window:get-mode', () => modeManager?.getMode() ?? 'browser');
+  ipcMain.handle('window:get-mode', (event) => resolveModeManager(event)?.getMode() ?? 'browser');
   ipcMain.handle('window:set-mode', (event, mode: WindowMode) => {
-    if (!modeManager) return false;
-    modeManager.setMode(mode);
-    // Persist as last-used mode
-    setPreference('window_mode', mode);
-    // Notify the renderer
+    const mm = resolveModeManager(event);
+    if (!mm) return false;
+    // Private windows are browser-only — ignore mode changes to other modes
+    if (senderIsPrivate(event) && mode !== 'browser') return false;
+    mm.setMode(mode);
+    if (!senderIsPrivate(event)) setPreference('window_mode', mode);
     const win = BrowserWindow.fromWebContents(event.sender);
     win?.webContents.send('window:mode-changed', mode);
     return true;
   });
-  ipcMain.handle('window:get-split-ratio', () => modeManager?.getSplitRatio() ?? 0.35);
-  ipcMain.handle('window:set-split-ratio', (_, ratio: number) => {
-    if (!modeManager) return false;
-    modeManager.setSplitRatio(ratio);
+  ipcMain.handle('window:get-split-ratio', (event) => resolveModeManager(event)?.getSplitRatio() ?? 0.35);
+  ipcMain.handle('window:set-split-ratio', (event, ratio: number) => {
+    if (senderIsPrivate(event)) return false;
+    const mm = resolveModeManager(event);
+    if (!mm) return false;
+    mm.setSplitRatio(ratio);
     setPreference('split_ratio', String(ratio));
     return true;
   });
-  ipcMain.handle('window:reload-dashboard', () => {
-    modeManager?.reloadDashboard();
+  ipcMain.handle('window:reload-dashboard', (event) => { resolveModeManager(event)?.reloadDashboard(); return true; });
+
+  // ── Private mode indicator ───────────────────────────────────────────────
+  ipcMain.handle('window:is-private', (event) => senderIsPrivate(event));
+
+  // ── Open new private window (from renderer) ──────────────────────────────
+  // Importing createPrivateWindow here would create a circular dep; use a lazy require.
+  ipcMain.handle('window:open-private', () => {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { createPrivateWindow } = require('./index') as typeof import('./index');
+    createPrivateWindow();
     return true;
   });
 
@@ -178,24 +259,25 @@ export function registerIpcHandlers(tabManager: TabManager, modeManager?: Window
     const n = stored ? Number(stored) : DEFAULT_ZIO_PANEL_WIDTH;
     return Math.max(MIN_ZIO_PANEL_WIDTH, Math.min(MAX_ZIO_PANEL_WIDTH, n));
   });
-  ipcMain.handle('window:set-zio-panel-width', (_, width: number) => {
+  ipcMain.handle('window:set-zio-panel-width', (event, width: number) => {
     const clamped = Math.max(MIN_ZIO_PANEL_WIDTH, Math.min(MAX_ZIO_PANEL_WIDTH, width));
     setPreference('zio_panel_width', String(clamped));
-    modeManager?.setZioPanelWidth(clamped);
+    resolveModeManager(event)?.setZioPanelWidth(clamped);
     return true;
   });
   ipcMain.handle('window:get-zio-panel-docked', () => {
     const stored = getPreference('zio_panel_docked');
     return stored === '1';
   });
-  ipcMain.handle('window:set-zio-panel-docked', (_, docked: boolean) => {
+  ipcMain.handle('window:set-zio-panel-docked', (event, docked: boolean) => {
     setPreference('zio_panel_docked', docked ? '1' : '0');
-    modeManager?.setZioPanelDocked(docked);
+    resolveModeManager(event)?.setZioPanelDocked(docked);
     return true;
   });
 
   // ── History ──────────────────────────────────────────────────────────────
-  ipcMain.handle('history:record', (_, url: string, title: string | null, favicon?: string) => {
+  ipcMain.handle('history:record', (event, url: string, title: string | null, favicon?: string) => {
+    if (senderIsPrivate(event)) return null;
     return recordVisit(url, title, favicon);
   });
   ipcMain.handle('history:search', (_, q: string) => searchHistory(q));
@@ -204,9 +286,9 @@ export function registerIpcHandlers(tabManager: TabManager, modeManager?: Window
   ipcMain.handle('history:delete', (_, id: string) => deleteHistoryEntry(id));
 
   // ── Bookmarks ────────────────────────────────────────────────────────────
-  ipcMain.handle('bookmarks:add', (_, url: string, title: string, opts?: Record<string, string>) => {
-    return addBookmark(url, title, opts);
-  });
+  ipcMain.handle('bookmarks:add', (_, url: string, title: string, opts?: Record<string, string>) =>
+    addBookmark(url, title, opts),
+  );
   ipcMain.handle('bookmarks:remove', (_, url: string) => removeBookmark(url));
   ipcMain.handle('bookmarks:is-bookmarked', (_, url: string) => isBookmarked(url));
   ipcMain.handle('bookmarks:all', (_, folder?: string) => getAllBookmarks(folder));
@@ -284,13 +366,15 @@ export function registerIpcHandlers(tabManager: TabManager, modeManager?: Window
 
   // ── Sync ─────────────────────────────────────────────────────────────────
   ipcMain.handle('sync:state', (_, entity: string) => getSyncState(entity));
-  ipcMain.handle('sync:queue-push', (_, entity: SyncEntityKind, payloadJson: string, error?: string) => {
+  ipcMain.handle('sync:queue-push', (event, entity: SyncEntityKind, payloadJson: string, error?: string) => {
+    if (senderIsPrivate(event)) return null;
     const item = enqueueSyncPush(entity, payloadJson, error ?? null);
     syncRetryRunner.notify();
     return item.id;
   });
-  ipcMain.handle('sync:pending-count', () => countSyncQueue());
-  ipcMain.handle('sync:flush', async () => {
+  ipcMain.handle('sync:pending-count', (event) => senderIsPrivate(event) ? 0 : countSyncQueue());
+  ipcMain.handle('sync:flush', async (event) => {
+    if (senderIsPrivate(event)) return { flushed: 0, remaining: 0 };
     const flushed = await syncRetryRunner.flushAll();
     return { flushed, remaining: countSyncQueue() };
   });
@@ -304,21 +388,17 @@ export function registerIpcHandlers(tabManager: TabManager, modeManager?: Window
     const allowed = ['https:', 'http:', 'mailto:', 'tel:'];
     try {
       const proto = new URL(url).protocol;
-      if (allowed.includes(proto)) {
-        await shell.openExternal(url);
-        return true;
-      }
+      if (allowed.includes(proto)) { await shell.openExternal(url); return true; }
     } catch { }
     return false;
   });
 
   // ── Form autofill ─────────────────────────────────────────────────────────
-  ipcMain.handle('tabs:autofill-form', async (_, id: string, card: AutofillCard) => {
-    const wc = tabManager.getWebContents(id);
+  ipcMain.handle('tabs:autofill-form', async (event, id: string, card: AutofillCard) => {
+    const wc = resolveTabManager(event)?.getWebContents(id);
     if (!wc) return { filled: 0, filled_fields: [] };
     try {
-      const script = buildAutofillScript(card);
-      const result = await wc.executeJavaScript(script);
+      const result = await wc.executeJavaScript(buildAutofillScript(card));
       return result ?? { filled: 0, filled_fields: [] };
     } catch {
       return { filled: 0, filled_fields: [] };
@@ -430,8 +510,8 @@ export function registerIpcHandlers(tabManager: TabManager, modeManager?: Window
   // ── Password credential detection (injected into tab pages) ──────────────
   // Injects a listener script that captures form-submitted credentials and
   // signals back via window.__zioPendingCredential.
-  ipcMain.handle('tabs:inject-password-detector', async (_, id: string) => {
-    const wc = tabManager.getWebContents(id);
+  ipcMain.handle('tabs:inject-password-detector', async (event, id: string) => {
+    const wc = resolveTabManager(event)?.getWebContents(id);
     if (!wc) return false;
     try {
       await wc.executeJavaScript(`
@@ -464,8 +544,8 @@ export function registerIpcHandlers(tabManager: TabManager, modeManager?: Window
   });
 
   // Read (and clear) any pending credential the detector captured.
-  ipcMain.handle('tabs:pop-pending-credential', async (_, id: string) => {
-    const wc = tabManager.getWebContents(id);
+  ipcMain.handle('tabs:pop-pending-credential', async (event, id: string) => {
+    const wc = resolveTabManager(event)?.getWebContents(id);
     if (!wc) return null;
     try {
       const cred = await wc.executeJavaScript(`
@@ -485,7 +565,7 @@ export function registerIpcHandlers(tabManager: TabManager, modeManager?: Window
   ipcMain.handle('browsing-data:clear', async () => {
     try {
       await session.defaultSession.clearStorageData({
-        storages: ['cookies', 'localstorage', 'caches', 'shadercache', 'indexdb', 'websql', 'serviceworkers'],
+        storages: ['cookies', 'localstorage', 'cachestorage', 'shadercache', 'indexdb', 'websql', 'serviceworkers'],
       });
       clearHistory();
       return true;

@@ -3,20 +3,26 @@
  */
 import path from 'path';
 import { app, BrowserWindow, Menu, session, nativeTheme } from 'electron';
+import type { BaseWindow } from 'electron';
 import { initDb, getPreference } from './db';
 import { PREFERENCE_KEYS } from '../shared/db-schema';
 import { TabManager } from './tab-manager';
 import { WindowModeManager, CHROME_HEIGHT } from './window-mode-manager';
-import { registerIpcHandlers } from './ipc-handlers';
+import {
+  registerIpcHandlers,
+  registerTabManager,
+  registerModeManager,
+  getTabManagerForWindow,
+  getModeManagerForWindow,
+} from './ipc-handlers';
 import { setupDownloadManager } from './download-manager';
+import { getPrivateSession, registerPrivateWindow } from './private-session';
 import type { WindowMode } from '../shared/window-mode';
 import { setupAutoUpdater } from './auto-updater';
 
 const isDev = process.env['NODE_ENV'] === 'development';
 
 let mainWindow: BrowserWindow | null = null;
-let tabManager: TabManager | null = null;
-let modeManager: WindowModeManager | null = null;
 
 function getRendererUrl(): string {
   if (isDev) {
@@ -25,16 +31,14 @@ function getRendererUrl(): string {
   return `file://${path.join(__dirname, '../renderer/index.html')}`;
 }
 
-function createWindow(): void {
+// ── Normal window ─────────────────────────────────────────────────────────────
+
+function createWindow(): BrowserWindow {
   session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
-    callback({
-      responseHeaders: {
-        ...details.responseHeaders,
-      },
-    });
+    callback({ responseHeaders: { ...details.responseHeaders } });
   });
 
-  mainWindow = new BrowserWindow({
+  const win = new BrowserWindow({
     width: 1280,
     height: 800,
     minWidth: 800,
@@ -53,86 +57,135 @@ function createWindow(): void {
     show: false,
   });
 
-  // Initialize the tab manager
-  tabManager = new TabManager(mainWindow);
+  const tabManager = new TabManager(win);
+  registerTabManager(win, tabManager);
+
   tabManager.setCallbacks({
-    onTabStateChange: (tabId, state) => {
-      mainWindow?.webContents.send('tab:state-changed', tabId, state);
-    },
-    onTabCreated: (tabId) => {
-      mainWindow?.webContents.send('tab:created', tabId);
-    },
-    onTabClosed: (tabId) => {
-      mainWindow?.webContents.send('tab:closed', tabId);
-    },
-    onActiveTabChange: (tabId) => {
-      mainWindow?.webContents.send('tab:activated', tabId);
-    },
-    onNavigate: (tabId, url, title) => {
-      mainWindow?.webContents.send('tab:navigated', tabId, url, title);
-    },
-    onAddToBiolink: (url, title) => {
-      // Open the Zio panel (if not already open) and trigger the add-to-biolink
-      // modal in the renderer by sending a typed IPC push event.
-      mainWindow?.webContents.send('biolink:add-page', url, title);
-    },
-    onFindResult: (result) => {
-      mainWindow?.webContents.send('tab:find-result', result);
-    },
+    onTabStateChange: (tabId, state) => win.webContents.send('tab:state-changed', tabId, state),
+    onTabCreated:      (tabId)        => win.webContents.send('tab:created', tabId),
+    onTabClosed:       (tabId)        => win.webContents.send('tab:closed', tabId),
+    onActiveTabChange: (tabId)        => win.webContents.send('tab:activated', tabId),
+    onNavigate:        (tabId, url, title) => win.webContents.send('tab:navigated', tabId, url, title),
+    onAddToBiolink:    (url, title)   => win.webContents.send('biolink:add-page', url, title),
+    onFindResult:      (result) => win.webContents.send('tab:find-result', result),
   });
 
-  // Read persisted mode and split ratio
-  const savedMode = (getPreference(PREFERENCE_KEYS.WINDOW_MODE) as WindowMode | null) ?? 'browser';
+  const savedMode  = (getPreference(PREFERENCE_KEYS.WINDOW_MODE) as WindowMode | null) ?? 'browser';
   const savedRatio = parseFloat(getPreference(PREFERENCE_KEYS.SPLIT_RATIO) ?? '0.35') || 0.35;
 
-  // Initialize the window mode manager
-  modeManager = new WindowModeManager(mainWindow, tabManager, savedMode, savedRatio);
-  modeManager.setModeChangeCallback((mode) => {
-    mainWindow?.webContents.send('window:mode-changed', mode);
-  });
+  const modeManager = new WindowModeManager(win, tabManager, savedMode, savedRatio);
+  registerModeManager(win, modeManager);
+  modeManager.setModeChangeCallback((mode) => win.webContents.send('window:mode-changed', mode));
 
-  // Register all IPC handlers
-  registerIpcHandlers(tabManager, modeManager, mainWindow);
+  setupDownloadManager(session.defaultSession, win, false);
 
-  // Setup download manager
-  setupDownloadManager(session.defaultSession, mainWindow);
+  win.on('resize', () => modeManager.applyBounds());
+  void win.loadURL(getRendererUrl());
 
-  // Handle window resize — update view bounds through the mode manager
-  mainWindow.on('resize', () => {
-    if (!mainWindow || !modeManager) return;
-    modeManager.applyBounds();
-  });
-
-  // Load the renderer (app chrome)
-  void mainWindow.loadURL(getRendererUrl());
-
-  mainWindow.once('ready-to-show', () => {
-    mainWindow?.show();
-
-    // Apply the initial mode (sets up views)
-    modeManager?.setMode(savedMode);
-
-    // In browser mode, also open the default new tab
+  win.once('ready-to-show', () => {
+    win.show();
+    modeManager.setMode(savedMode);
     if (savedMode === 'browser') {
       const newTabUrl = getPreference(PREFERENCE_KEYS.NEW_TAB_PAGE) ?? undefined;
-      tabManager?.createTab(newTabUrl);
+      tabManager.createTab(newTabUrl);
     }
-
-    if (isDev) {
-      mainWindow?.webContents.openDevTools({ mode: 'detach' });
-    }
+    if (isDev) win.webContents.openDevTools({ mode: 'detach' });
   });
 
-  mainWindow.on('closed', () => {
-    modeManager?.destroy();
-    tabManager?.destroyAll();
-    mainWindow = null;
-    tabManager = null;
-    modeManager = null;
+  win.on('closed', () => {
+    modeManager.destroy();
+    tabManager.destroyAll();
+    if (win === mainWindow) mainWindow = null;
   });
 
-  buildMenu();
+  return win;
 }
+
+// ── Private / incognito window ────────────────────────────────────────────────
+
+export function createPrivateWindow(): BrowserWindow {
+  const privateSession = getPrivateSession();
+
+  const win = new BrowserWindow({
+    width: 1280,
+    height: 800,
+    minWidth: 800,
+    minHeight: 600,
+    // Always dark — unmistakable visual signal that this is an incognito window
+    title: '🔒 Private – Zio Browser',
+    backgroundColor: '#0d0d1a',
+    webPreferences: {
+      preload: path.join(__dirname, '../preload/index.js'),
+      contextIsolation: true,
+      nodeIntegration: false,
+      sandbox: false,
+      webSecurity: true,
+      // The renderer (app chrome) uses its own default session.
+      // Only the tab WebContentsViews use the isolated private session.
+    },
+    titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',
+    trafficLightPosition: { x: 12, y: 20 },
+    show: false,
+  });
+
+  // Register before any 'closed' listener so teardown fires correctly.
+  registerPrivateWindow(win);
+
+  // Private TabManager uses the isolated in-memory session for all tabs.
+  const tabManager = new TabManager(win, { privateSession });
+  registerTabManager(win, tabManager);
+
+  tabManager.setCallbacks({
+    onTabStateChange: (tabId, state) => win.webContents.send('tab:state-changed', tabId, state),
+    onTabCreated:      (tabId)        => win.webContents.send('tab:created', tabId),
+    onTabClosed:       (tabId)        => win.webContents.send('tab:closed', tabId),
+    onActiveTabChange: (tabId)        => win.webContents.send('tab:activated', tabId),
+    onNavigate:        (tabId, url, title) => win.webContents.send('tab:navigated', tabId, url, title),
+    // Link tools (shorten/QR) still work in private mode — they require the
+    // account credentials but the visited page itself is never recorded.
+    onAddToBiolink: (url, title) => win.webContents.send('biolink:add-page', url, title),
+    onFindResult: (result) => win.webContents.send('tab:find-result', result),
+  });
+
+  // Private windows are browser-only — no dashboard or split pane.
+  const modeManager = new WindowModeManager(win, tabManager, 'browser', 0.35);
+  registerModeManager(win, modeManager);
+  modeManager.setModeChangeCallback((mode) => win.webContents.send('window:mode-changed', mode));
+
+  // Downloads complete normally but are NOT written to the persistent DB.
+  setupDownloadManager(privateSession, win, true);
+
+  win.on('resize', () => modeManager.applyBounds());
+  void win.loadURL(getRendererUrl());
+
+  win.once('ready-to-show', () => {
+    win.show();
+    modeManager.setMode('browser');
+    tabManager.createTab();
+  });
+
+  win.on('closed', () => {
+    modeManager.destroy();
+    tabManager.destroyAll();
+  });
+
+  return win;
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+/**
+ * Electron menu click callbacks type `win` as `BaseWindow | undefined`.
+ * Cast to `BrowserWindow` so our registry lookups compile.
+ * `BrowserWindow` IS a `BaseWindow`, so the cast is always safe when the
+ * menu is triggered from a `BrowserWindow` — which is always the case for
+ * this application.
+ */
+function asBrowserWin(win: BaseWindow | undefined): BrowserWindow | undefined {
+  return win as BrowserWindow | undefined;
+}
+
+// ── Application menu ──────────────────────────────────────────────────────────
 
 function buildMenu(): void {
   const isMac = process.platform === 'darwin';
@@ -155,23 +208,32 @@ function buildMenu(): void {
         {
           label: 'New Tab',
           accelerator: 'CmdOrCtrl+T',
-          click: () => {
-            const mode = modeManager?.getMode() ?? 'browser';
-            if (mode === 'dashboard') {
-              // Switch to browser mode, then open a tab
-              modeManager?.setMode('browser');
-              tabManager?.createTab();
-            } else {
-              tabManager?.createTab();
+          click: (_item, bw) => {
+            const browserWin = asBrowserWin(bw);
+            if (!browserWin) return;
+            const tm = getTabManagerForWindow(browserWin);
+            const mm = getModeManagerForWindow(browserWin);
+            if (!tm) return;
+            if (mm?.getMode() === 'dashboard') {
+              mm.setMode('browser');
             }
+            tm.createTab();
           },
+        },
+        {
+          label: 'New Private Window',
+          accelerator: 'CmdOrCtrl+Shift+N',
+          click: () => { createPrivateWindow(); },
         },
         {
           label: 'Close Tab',
           accelerator: 'CmdOrCtrl+W',
-          click: () => {
-            const activeId = tabManager?.getActiveTabId();
-            if (activeId) tabManager?.closeTab(activeId);
+          click: (_item, bw) => {
+            const browserWin = asBrowserWin(bw);
+            if (!browserWin) return;
+            const tm = getTabManagerForWindow(browserWin);
+            const id = tm?.getActiveTabId();
+            if (id) tm?.closeTab(id);
           },
         },
         { type: 'separator' },
@@ -189,8 +251,8 @@ function buildMenu(): void {
         { role: 'paste' as const },
         { role: 'selectAll' as const },
         { type: 'separator' as const },
-        { label: 'Find on Page', accelerator: 'CmdOrCtrl+F', click: () => {
-          mainWindow?.webContents.send('find:open');
+        { label: 'Find on Page', accelerator: 'CmdOrCtrl+F', click: (_item, bw) => {
+          asBrowserWin(bw)?.webContents.send('find:open');
         }},
       ],
     },
@@ -200,57 +262,93 @@ function buildMenu(): void {
         {
           label: 'Dashboard Mode',
           accelerator: 'CmdOrCtrl+Shift+1',
-          click: () => { modeManager?.setMode('dashboard'); },
+          click: (_item, bw) => {
+            const browserWin = asBrowserWin(bw);
+            if (!browserWin) return;
+            getModeManagerForWindow(browserWin)?.setMode('dashboard');
+          },
         },
         {
           label: 'Split Mode',
           accelerator: 'CmdOrCtrl+Shift+2',
-          click: () => { modeManager?.setMode('split'); },
+          click: (_item, bw) => {
+            const browserWin = asBrowserWin(bw);
+            if (!browserWin) return;
+            getModeManagerForWindow(browserWin)?.setMode('split');
+          },
         },
         {
           label: 'Browser Mode',
           accelerator: 'CmdOrCtrl+Shift+3',
-          click: () => { modeManager?.setMode('browser'); },
+          click: (_item, bw) => {
+            const browserWin = asBrowserWin(bw);
+            if (!browserWin) return;
+            getModeManagerForWindow(browserWin)?.setMode('browser');
+          },
         },
         { type: 'separator' as const },
-        { label: 'Zoom In', accelerator: 'CmdOrCtrl+=', click: () => {
-          const id = tabManager?.getActiveTabId();
-          if (id) { const s = tabManager?.getTabState(id); tabManager?.setZoom(id, (s?.zoomFactor ?? 1) + 0.1); }
+        { label: 'Zoom In', accelerator: 'CmdOrCtrl+=', click: (_item, bw) => {
+          const browserWin = asBrowserWin(bw);
+          if (!browserWin) return;
+          const tm = getTabManagerForWindow(browserWin);
+          const id = tm?.getActiveTabId();
+          if (id) { const s = tm?.getTabState(id); tm?.setZoom(id, (s?.zoomFactor ?? 1) + 0.1); }
         }},
-        { label: 'Zoom Out', accelerator: 'CmdOrCtrl+-', click: () => {
-          const id = tabManager?.getActiveTabId();
-          if (id) { const s = tabManager?.getTabState(id); tabManager?.setZoom(id, (s?.zoomFactor ?? 1) - 0.1); }
+        { label: 'Zoom Out', accelerator: 'CmdOrCtrl+-', click: (_item, bw) => {
+          const browserWin = asBrowserWin(bw);
+          if (!browserWin) return;
+          const tm = getTabManagerForWindow(browserWin);
+          const id = tm?.getActiveTabId();
+          if (id) { const s = tm?.getTabState(id); tm?.setZoom(id, (s?.zoomFactor ?? 1) - 0.1); }
         }},
-        { label: 'Reset Zoom', accelerator: 'CmdOrCtrl+0', click: () => {
-          const id = tabManager?.getActiveTabId();
-          if (id) tabManager?.setZoom(id, 1.0);
+        { label: 'Reset Zoom', accelerator: 'CmdOrCtrl+0', click: (_item, bw) => {
+          const browserWin = asBrowserWin(bw);
+          if (!browserWin) return;
+          const tm = getTabManagerForWindow(browserWin);
+          const id = tm?.getActiveTabId();
+          if (id) tm?.setZoom(id, 1.0);
         }},
         { type: 'separator' as const },
-        { label: 'Reload', accelerator: 'CmdOrCtrl+R', click: () => {
-          const id = tabManager?.getActiveTabId();
-          if (id) tabManager?.reload(id);
+        { label: 'Reload', accelerator: 'CmdOrCtrl+R', click: (_item, bw) => {
+          const browserWin = asBrowserWin(bw);
+          if (!browserWin) return;
+          const tm = getTabManagerForWindow(browserWin);
+          const id = tm?.getActiveTabId();
+          if (id) tm?.reload(id);
         }},
-        { label: 'Force Reload', accelerator: 'CmdOrCtrl+Shift+R', click: () => {
-          const id = tabManager?.getActiveTabId();
-          if (id) tabManager?.reload(id, true);
+        { label: 'Force Reload', accelerator: 'CmdOrCtrl+Shift+R', click: (_item, bw) => {
+          const browserWin = asBrowserWin(bw);
+          if (!browserWin) return;
+          const tm = getTabManagerForWindow(browserWin);
+          const id = tm?.getActiveTabId();
+          if (id) tm?.reload(id, true);
         }},
         { type: 'separator' as const },
-        { label: 'Developer Tools', accelerator: 'F12', click: () => {
-          const id = tabManager?.getActiveTabId();
-          if (id) tabManager?.getWebContents(id)?.openDevTools();
+        { label: 'Developer Tools', accelerator: 'F12', click: (_item, bw) => {
+          const browserWin = asBrowserWin(bw);
+          if (!browserWin) return;
+          const tm = getTabManagerForWindow(browserWin);
+          const id = tm?.getActiveTabId();
+          if (id) tm?.getWebContents(id)?.openDevTools();
         }},
       ],
     },
     {
       label: 'History',
       submenu: [
-        { label: 'Back', accelerator: 'Alt+Left', click: () => {
-          const id = tabManager?.getActiveTabId();
-          if (id) tabManager?.goBack(id);
+        { label: 'Back', accelerator: 'Alt+Left', click: (_item, bw) => {
+          const browserWin = asBrowserWin(bw);
+          if (!browserWin) return;
+          const tm = getTabManagerForWindow(browserWin);
+          const id = tm?.getActiveTabId();
+          if (id) tm?.goBack(id);
         }},
-        { label: 'Forward', accelerator: 'Alt+Right', click: () => {
-          const id = tabManager?.getActiveTabId();
-          if (id) tabManager?.goForward(id);
+        { label: 'Forward', accelerator: 'Alt+Right', click: (_item, bw) => {
+          const browserWin = asBrowserWin(bw);
+          if (!browserWin) return;
+          const tm = getTabManagerForWindow(browserWin);
+          const id = tm?.getActiveTabId();
+          if (id) tm?.goForward(id);
         }},
       ],
     },
@@ -267,18 +365,26 @@ function buildMenu(): void {
   Menu.setApplicationMenu(Menu.buildFromTemplate(template));
 }
 
-// App lifecycle
+// ── App lifecycle ─────────────────────────────────────────────────────────────
+
 app.whenReady().then(() => {
   try {
     initDb();
   } catch (err) {
     console.error('Failed to initialize database:', err);
   }
-  createWindow();
+  mainWindow = createWindow();
   setupAutoUpdater();
 
+  // Register IPC handlers once — global, serves all windows.
+  registerIpcHandlers(mainWindow);
+
+  buildMenu();
+
   app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow();
+    if (BrowserWindow.getAllWindows().length === 0) {
+      mainWindow = createWindow();
+    }
   });
 });
 
