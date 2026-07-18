@@ -31,6 +31,8 @@ interface Props {
   onScreenshot?: (fullPage: boolean) => void;
   /** While a screenshot is being captured, show a busy state on the camera button. */
   screenshotCapturing?: boolean;
+  /** Callback to open the site settings / privacy panel. */
+  onOpenSiteSettings?: () => void;
 }
 
 const BASE_URL = 'https://1in.me';
@@ -319,6 +321,7 @@ export function ChromeBar({
   onOpenDeviceLab,
   onScreenshot,
   screenshotCapturing = false,
+  onOpenSiteSettings,
 }: Props) {
   const {
     tabs, tabOrder, activeTabId, recentlyClosed,
@@ -334,6 +337,8 @@ export function ChromeBar({
   const [pendingSyncCount, setPendingSyncCount] = useState(0);
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
   const [stripMenuOpen, setStripMenuOpen] = useState(false);
+  const [blockedCount, setBlockedCount] = useState(0);
+  const [trackerEnabled, setTrackerEnabled] = useState(false);
   const omniboxRef = useRef<HTMLInputElement>(null);
   const stripMenuBtnRef = useRef<HTMLButtonElement>(null);
 
@@ -354,6 +359,28 @@ export function ChromeBar({
       window.zio.off('sync:queue-changed', listener);
     };
   }, []);
+
+  // Read initial tracker state
+  useEffect(() => {
+    void window.zio.tracker.isEnabled().then((v: boolean) => setTrackerEnabled(v)).catch(() => {});
+  }, []);
+
+  // Listen for per-tab blocked-count updates
+  useEffect(() => {
+    const listener = (...args: unknown[]) => {
+      const tabId = args[0] as string;
+      const count = args[1] as number;
+      if (tabId === activeTabId) setBlockedCount(count);
+    };
+    window.zio.on('tracker:blocked-count', listener);
+    return () => window.zio.off('tracker:blocked-count', listener);
+  }, [activeTabId]);
+
+  // Reset blocked count when active tab changes or navigates
+  useEffect(() => {
+    if (!activeTabId) { setBlockedCount(0); return; }
+    void window.zio.tracker.getCount(activeTabId).then((n: number) => setBlockedCount(n)).catch(() => setBlockedCount(0));
+  }, [activeTabId]);
 
   const activeTab = activeTabId ? tabs[activeTabId] : null;
 
@@ -822,6 +849,52 @@ export function ChromeBar({
             Sync pending
           </div>
         )}
+
+        {/* Shield / site settings button with tracker badge */}
+        <button
+          onClick={() => onOpenSiteSettings?.()}
+          title={trackerEnabled
+            ? `Privacy settings — ${blockedCount} tracker${blockedCount === 1 ? '' : 's'} blocked on this page`
+            : 'Site settings & permissions'}
+          style={{
+            position: 'relative',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: 28,
+            height: 28,
+            borderRadius: 8,
+            background: 'var(--color-bg-elevated)',
+            border: `1px solid ${blockedCount > 0 ? 'var(--color-success)' : 'var(--color-border)'}`,
+            fontSize: 14,
+            opacity: trackerEnabled || blockedCount > 0 ? 1 : 0.65,
+            transition: 'all 0.15s',
+            flexShrink: 0,
+          } as React.CSSProperties}
+        >
+          🛡️
+          {trackerEnabled && blockedCount > 0 && (
+            <span style={{
+              position: 'absolute',
+              top: -5,
+              right: -5,
+              minWidth: 14,
+              height: 14,
+              borderRadius: 7,
+              background: 'var(--color-success)',
+              color: '#fff',
+              fontSize: 9,
+              fontWeight: 700,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '0 3px',
+              lineHeight: 1,
+            }}>
+              {blockedCount > 99 ? '99+' : blockedCount}
+            </span>
+          )}
+        </button>
 
         {/* Bookmark button */}
         <button style={{ fontSize: 16, padding: '2px 6px', opacity: 0.7 }} title="Bookmark">☆</button>

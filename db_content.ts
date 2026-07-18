@@ -3,10 +3,8 @@
  * Uses better-sqlite3 for synchronous access (Electron main process only).
  *
  * All data-access functions that scope by profile accept a profileId parameter
- * (default 'default'). The active profile is tracked PER WINDOW in
- * ipc-handlers.ts (windowProfileRegistry) — there is intentionally no
- * process-global active profile, so switching the profile in one window can
- * never change the DB scope of another window.
+ * (default 'default'). The active profile is tracked module-level and applied
+ * automatically via getActiveProfileId().
  */
 import path from 'path';
 import { app } from 'electron';
@@ -23,7 +21,7 @@ import { generateId, normalizeCollectionUrl } from '../shared/collection-store';
 import { normalizeUrlForHistory } from '../shared/omnibox';
 import type { SyncRecord, SyncQueueItem, SyncEntityKind } from '../shared/sync-engine';
 import { nextAttemptAt } from '../shared/sync-engine';
-import { DEFAULT_PROFILE_ID, profileSyncEntityKey } from '../shared/profile-store';
+import { DEFAULT_PROFILE_ID } from '../shared/profile-store';
 import type { BrowserProfile } from '../shared/profile-store';
 
 export interface HistoryEntry {
@@ -79,6 +77,17 @@ export interface SavedPassword {
 }
 
 let _db: Database.Database | null = null;
+
+/** Currently active browser profile — all scoped queries filter by this. */
+let _activeProfileId: string = DEFAULT_PROFILE_ID;
+
+export function getActiveProfileId(): string {
+  return _activeProfileId;
+}
+
+export function setActiveProfileId(profileId: string): void {
+  _activeProfileId = profileId;
+}
 
 export function getDb(): Database.Database {
   if (!_db) {
@@ -162,18 +171,6 @@ export function upsertProfile(profile: BrowserProfile): void {
   `).run(profile.id, profile.workspaceId ?? null, profile.name, new Date().toISOString());
 }
 
-/**
- * Resolve the Sayzio workspace ID for a profile, or null for the personal
- * profile (and unknown profiles). Used to scope cloud sync requests via the
- * X-Browser-Workspace-Id header.
- */
-export function getProfileWorkspaceId(profileId: string): string | null {
-  if (profileId === DEFAULT_PROFILE_ID) return null;
-  const db = getDb();
-  const row = db.prepare('SELECT workspace_id FROM profiles WHERE id = ?').get(profileId) as { workspace_id: string | null } | undefined;
-  return row?.workspace_id ?? null;
-}
-
 export function deleteProfile(profileId: string): void {
   if (profileId === DEFAULT_PROFILE_ID) return;
   const db = getDb();
@@ -203,7 +200,7 @@ export function getAllPreferences(): Record<string, string> {
 
 export function recordVisit(url: string, title: string | null, faviconUrl?: string, profileId?: string): HistoryEntry {
   const db = getDb();
-  const pid = profileId ?? DEFAULT_PROFILE_ID;
+  const pid = profileId ?? _activeProfileId;
   const normalized = normalizeUrlForHistory(url);
   const now = new Date().toISOString();
 
@@ -229,7 +226,7 @@ export function recordVisit(url: string, title: string | null, faviconUrl?: stri
 
 export function searchHistory(query: string, limit = 20, profileId?: string): HistoryEntry[] {
   const db = getDb();
-  const pid = profileId ?? DEFAULT_PROFILE_ID;
+  const pid = profileId ?? _activeProfileId;
   const like = `%${query.replace(/[%_]/g, c => `\\${c}`)}%`;
   return db.prepare(`
     SELECT * FROM history
@@ -241,13 +238,13 @@ export function searchHistory(query: string, limit = 20, profileId?: string): Hi
 
 export function getRecentHistory(limit = 50, profileId?: string): HistoryEntry[] {
   const db = getDb();
-  const pid = profileId ?? DEFAULT_PROFILE_ID;
+  const pid = profileId ?? _activeProfileId;
   return db.prepare('SELECT * FROM history WHERE profile_id = ? AND deleted = 0 ORDER BY last_visited DESC LIMIT ?').all(pid, limit) as HistoryEntry[];
 }
 
 export function clearHistory(profileId?: string): void {
   const db = getDb();
-  const pid = profileId ?? DEFAULT_PROFILE_ID;
+  const pid = profileId ?? _activeProfileId;
   db.prepare('UPDATE history SET deleted = 1, updated_at = ? WHERE profile_id = ? AND deleted = 0').run(new Date().toISOString(), pid);
 }
 
@@ -289,7 +286,7 @@ export function deleteHistoryEntry(id: string): boolean {
 
 export function addBookmark(url: string, title: string, options: Partial<Bookmark> = {}, profileId?: string): Bookmark {
   const db = getDb();
-  const pid = profileId ?? DEFAULT_PROFILE_ID;
+  const pid = profileId ?? _activeProfileId;
   const normalized = normalizeCollectionUrl(url);
   const now = new Date().toISOString();
 
@@ -306,7 +303,7 @@ export function addBookmark(url: string, title: string, options: Partial<Bookmar
 
 export function removeBookmark(url: string, profileId?: string): boolean {
   const db = getDb();
-  const pid = profileId ?? DEFAULT_PROFILE_ID;
+  const pid = profileId ?? _activeProfileId;
   const normalized = normalizeCollectionUrl(url);
   const now = new Date().toISOString();
   const result = db.prepare('UPDATE bookmarks SET deleted = 1, updated_at = ? WHERE profile_id = ? AND normalized_url = ? AND deleted = 0').run(now, pid, normalized);
@@ -315,7 +312,7 @@ export function removeBookmark(url: string, profileId?: string): boolean {
 
 export function isBookmarked(url: string, profileId?: string): boolean {
   const db = getDb();
-  const pid = profileId ?? DEFAULT_PROFILE_ID;
+  const pid = profileId ?? _activeProfileId;
   const normalized = normalizeCollectionUrl(url);
   const row = db.prepare('SELECT id FROM bookmarks WHERE profile_id = ? AND normalized_url = ? AND deleted = 0 LIMIT 1').get(pid, normalized);
   return row !== undefined;
@@ -323,7 +320,7 @@ export function isBookmarked(url: string, profileId?: string): boolean {
 
 export function getAllBookmarks(folder?: string, profileId?: string): Bookmark[] {
   const db = getDb();
-  const pid = profileId ?? DEFAULT_PROFILE_ID;
+  const pid = profileId ?? _activeProfileId;
   if (folder) {
     return db.prepare('SELECT * FROM bookmarks WHERE profile_id = ? AND deleted = 0 AND folder = ? ORDER BY created_at DESC').all(pid, folder) as Bookmark[];
   }
@@ -332,7 +329,7 @@ export function getAllBookmarks(folder?: string, profileId?: string): Bookmark[]
 
 export function searchBookmarks(query: string, limit = 20, profileId?: string): Bookmark[] {
   const db = getDb();
-  const pid = profileId ?? DEFAULT_PROFILE_ID;
+  const pid = profileId ?? _activeProfileId;
   const like = `%${query.replace(/[%_]/g, c => `\\${c}`)}%`;
   return db.prepare(`
     SELECT * FROM bookmarks
@@ -343,7 +340,7 @@ export function searchBookmarks(query: string, limit = 20, profileId?: string): 
 
 export function getBookmarksAsSyncRecords(profileId?: string): SyncRecord[] {
   const db = getDb();
-  const pid = profileId ?? DEFAULT_PROFILE_ID;
+  const pid = profileId ?? _activeProfileId;
   const rows = db.prepare('SELECT * FROM bookmarks WHERE profile_id = ?').all(pid) as Bookmark[];
   return rows.map(r => ({
     local_id: r.id,
@@ -356,7 +353,7 @@ export function getBookmarksAsSyncRecords(profileId?: string): SyncRecord[] {
 
 export function upsertBookmarkFromSync(record: SyncRecord, profileId?: string): void {
   const db = getDb();
-  const pid = profileId ?? DEFAULT_PROFILE_ID;
+  const pid = profileId ?? _activeProfileId;
   const data = record.data as { url: string; title: string; description?: string; folder?: string; favicon_url?: string };
   const now = new Date().toISOString();
   db.prepare(`
@@ -377,7 +374,7 @@ export function upsertBookmarkFromSync(record: SyncRecord, profileId?: string): 
 
 export function getAllCollections(profileId?: string): Collection[] {
   const db = getDb();
-  const pid = profileId ?? DEFAULT_PROFILE_ID;
+  const pid = profileId ?? _activeProfileId;
   return (db.prepare(`
     SELECT c.*, (SELECT COUNT(*) FROM saved_links sl WHERE sl.collection_id = c.id AND sl.deleted = 0) as item_count
     FROM collections c WHERE c.profile_id = ? AND c.deleted = 0 ORDER BY c.updated_at DESC
@@ -386,7 +383,7 @@ export function getAllCollections(profileId?: string): Collection[] {
 
 export function createCollectionInDb(collection: Collection, profileId?: string): void {
   const db = getDb();
-  const pid = profileId ?? DEFAULT_PROFILE_ID;
+  const pid = profileId ?? _activeProfileId;
   db.prepare(`
     INSERT INTO collections(id, profile_id, name, description, color, icon, created_at, updated_at, deleted, synced_at)
     VALUES(?, ?, ?, ?, ?, ?, ?, ?, 0, NULL)
@@ -453,23 +450,15 @@ export function updateSavedLinkAiEnrichment(id: string, summary: string, tags: s
 
 // ── Sync helpers ─────────────────────────────────────────────────────────────
 
-/**
- * Sync cursors are stored per profile (entity key = `{entity}:{profileId}`
- * via profileSyncEntityKey) so switching profiles effectively resets the
- * cursor: a newly activated profile has no row yet and does a full pull of
- * its own cloud records, while each profile's timestamps survive switches.
- */
-export function getSyncState(entity: string, profileId: string = getActiveProfileId()): { lastSyncAt: string | null; lastError: string | null } {
+export function getSyncState(entity: string): { lastSyncAt: string | null; lastError: string | null } {
   const db = getDb();
-  const key = profileSyncEntityKey(entity, profileId);
-  const row = db.prepare('SELECT last_sync_at, last_error FROM sync_state WHERE entity = ?').get(key) as { last_sync_at: string | null; last_error: string | null } | undefined;
+  const row = db.prepare('SELECT last_sync_at, last_error FROM sync_state WHERE entity = ?').get(entity) as { last_sync_at: string | null; last_error: string | null } | undefined;
   return { lastSyncAt: row?.last_sync_at ?? null, lastError: row?.last_error ?? null };
 }
 
-export function setSyncState(entity: string, lastSyncAt: string | null, lastError: string | null = null, profileId: string = getActiveProfileId()): void {
+export function setSyncState(entity: string, lastSyncAt: string | null, lastError: string | null = null): void {
   const db = getDb();
-  const key = profileSyncEntityKey(entity, profileId);
-  db.prepare('INSERT OR REPLACE INTO sync_state(entity, last_sync_at, last_error) VALUES(?, ?, ?)').run(key, lastSyncAt, lastError);
+  db.prepare('INSERT OR REPLACE INTO sync_state(entity, last_sync_at, last_error) VALUES(?, ?, ?)').run(entity, lastSyncAt, lastError);
 }
 
 // ── Sync retry queue ─────────────────────────────────────────────────────────

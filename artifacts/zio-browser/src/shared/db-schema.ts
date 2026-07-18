@@ -149,6 +149,16 @@ CREATE TABLE IF NOT EXISTS saved_passwords (
 );
 
 CREATE INDEX IF NOT EXISTS saved_passwords_origin ON saved_passwords(origin);
+
+CREATE TABLE IF NOT EXISTS site_permissions (
+  origin     TEXT NOT NULL,
+  permission TEXT NOT NULL,
+  decision   TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  PRIMARY KEY (origin, permission)
+);
+
+CREATE INDEX IF NOT EXISTS site_permissions_origin ON site_permissions(origin);
 `;
 
 /**
@@ -194,6 +204,7 @@ export const PREFERENCE_KEYS = {
   ZIO_PANEL_DOCKED: 'zio_panel_docked',
   ACTIVE_PROFILE: 'active_profile',
   PINNED_TABS: 'pinned_tabs',
+  TRACKER_BLOCKING_ENABLED: 'tracker_blocking_enabled',
 } as const;
 
 export type PreferenceKey = typeof PREFERENCE_KEYS[keyof typeof PREFERENCE_KEYS];

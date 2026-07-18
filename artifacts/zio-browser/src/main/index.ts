@@ -19,6 +19,8 @@ import {
 } from './ipc-handlers';
 import { setupDownloadManager } from './download-manager';
 import { getPrivateSession, registerPrivateWindow } from './private-session';
+import { setupPermissionHandlers } from './permission-handler';
+import { setupTrackerBlocking, resetBlockedCount } from './tracker-blocker';
 import type { WindowMode } from '../shared/window-mode';
 import { setupAutoUpdater } from './auto-updater';
 import type { RecentlyClosedEntry } from './tab-manager';
@@ -81,7 +83,10 @@ function createWindow(): BrowserWindow {
     onTabCreated:      (tabId)        => win.webContents.send('tab:created', tabId),
     onTabClosed:       (tabId)        => win.webContents.send('tab:closed', tabId),
     onActiveTabChange: (tabId)        => win.webContents.send('tab:activated', tabId),
-    onNavigate:        (tabId, url, title) => win.webContents.send('tab:navigated', tabId, url, title),
+    onNavigate:        (tabId, url, title) => {
+      win.webContents.send('tab:navigated', tabId, url, title);
+      resetBlockedCount(tabId);
+    },
     onAddToBiolink:    (url, title)   => win.webContents.send('biolink:add-page', url, title),
     onDeviceLabPreview: (url)         => win.webContents.send('device-lab:preview-url', url),
     onFindResult:      (result) => win.webContents.send('tab:find-result', result),
@@ -101,6 +106,22 @@ function createWindow(): BrowserWindow {
 
   win.on('resize', () => modeManager.applyBounds());
   void win.loadURL(getRendererUrl());
+
+  // Setup permission request / check handlers
+  setupPermissionHandlers(
+    session.defaultSession,
+    win,
+    (wc) => tabManager?.getTabIdByWebContentsId(wc.id) !== null,
+  );
+
+  // Setup tracker / ad blocking
+  const trackerInitialEnabled = (getPreference(PREFERENCE_KEYS.TRACKER_BLOCKING_ENABLED) ?? '0') === '1';
+  setupTrackerBlocking(
+    session.defaultSession,
+    win,
+    trackerInitialEnabled,
+    (wcId) => tabManager?.getTabIdByWebContentsId(wcId) ?? null,
+  );
 
   win.once('ready-to-show', () => {
     win.show();

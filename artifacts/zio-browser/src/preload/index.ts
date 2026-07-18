@@ -228,6 +228,26 @@ const api = {
     listBiolinks: () => ipcRenderer.invoke('device-lab:list-biolinks'),
   },
 
+  // ── Site permissions ──────────────────────────────────────────────────────
+  permissions: {
+    getAll: () => ipcRenderer.invoke('permissions:get-all'),
+    set: (origin: string, permission: string, decision: 'allow' | 'block') =>
+      ipcRenderer.invoke('permissions:set', origin, permission, decision),
+    revoke: (origin: string, permission: string) =>
+      ipcRenderer.invoke('permissions:revoke', origin, permission),
+    clearAll: () => ipcRenderer.invoke('permissions:clear-all'),
+    respond: (requestId: string, decision: 'allow' | 'block', remember: boolean, origin: string, permission: string) =>
+      ipcRenderer.invoke('permissions:respond', requestId, decision, remember, origin, permission),
+  },
+
+  // ── Tracker blocking ──────────────────────────────────────────────────────
+  tracker: {
+    isEnabled: () => ipcRenderer.invoke('tracker:is-enabled'),
+    setEnabled: (enabled: boolean) => ipcRenderer.invoke('tracker:set-enabled', enabled),
+    getCount: (tabId: string) => ipcRenderer.invoke('tracker:get-count', tabId),
+    resetCount: (tabId: string) => ipcRenderer.invoke('tracker:reset-count', tabId),
+  },
+
   // ── Events (from main → renderer) ────────────────────────────────────────
   on: (channel: string, listener: IpcListener) => {
     const ALLOWED_CHANNELS = new Set([
@@ -260,6 +280,10 @@ const api = {
       'profile:changed',
       // Command palette — open from main process menu shortcut
       'palette:open',
+      // Permission prompts
+      'permission:request',
+      // Tracker blocking count updates
+      'tracker:blocked-count',
     ]);
     if (!ALLOWED_CHANNELS.has(channel)) return;
     ipcRenderer.on(channel, (_, ...args) => listener(...args));

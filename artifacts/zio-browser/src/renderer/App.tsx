@@ -14,6 +14,9 @@ import { TabSearchPopover } from './components/TabSearchPopover';
 import { ClearDataDialog } from './components/ClearDataDialog';
 import { CommandPalette } from './components/CommandPalette';
 import { ScreenshotSheet } from './components/ScreenshotSheet';
+import { PermissionPrompt } from './components/PermissionPrompt';
+import type { PendingPermission } from './components/PermissionPrompt';
+import { SiteSettingsPanel } from './components/SiteSettingsPanel';
 import { useTabStore } from './store/tab-store';
 import { useAuthStore } from './store/auth-store';
 import { useModeStore } from './store/mode-store';
@@ -48,6 +51,8 @@ export default function App() {
     pageTitle: string;
     pageUrl: string;
   } | null>(null);
+  const [siteSettingsOpen, setSiteSettingsOpen] = useState(false);
+  const [pendingPermission, setPendingPermission] = useState<PendingPermission | null>(null);
   const { tabs, tabOrder, activeTabId, initTabs, reopenClosedTab } = useTabStore();
   const { init: initAuth, user, token } = useAuthStore();
   const {
@@ -133,6 +138,18 @@ export default function App() {
       window.zio.off('download:started', onStarted);
       window.zio.off('download:done', onDone);
     };
+  }, []);
+
+  // Listen for permission requests from the main process
+  useEffect(() => {
+    const listener = (...args: unknown[]) => {
+      const req = args[0] as PendingPermission;
+      if (req && req.requestId) {
+        setPendingPermission(req);
+      }
+    };
+    window.zio.on('permission:request', listener);
+    return () => window.zio.off('permission:request', listener);
   }, []);
 
   const handlePickMode = useCallback((picked: WindowMode) => {
@@ -298,6 +315,17 @@ export default function App() {
     setTabSearchOpen(true);
   }, []);
 
+  // Current origin for the site settings panel
+  const currentOrigin = (() => {
+    try {
+      const url = activeTab?.url ?? '';
+      if (!url || url === 'about:newtab') return null;
+      return new URL(url).origin;
+    } catch {
+      return null;
+    }
+  })();
+
   // Show mode picker before content is ready
   if (!isInitialized) {
     return <div style={{ width: '100%', height: '100%', background: isPrivate ? '#0d0d1a' : 'var(--color-bg)' }} />;
@@ -320,6 +348,12 @@ export default function App() {
           onCloseAuth={() => setAuthModalOpen(false)}
         />
         {deviceLabOpen && <DeviceLab onClose={handleCloseDeviceLab} initialUrl={deviceLabUrl} />}
+        {pendingPermission && (
+          <PermissionPrompt
+            request={pendingPermission}
+            onDismiss={() => setPendingPermission(null)}
+          />
+        )}
       </>
     );
   }
@@ -338,6 +372,12 @@ export default function App() {
           onCloseAuth={() => setAuthModalOpen(false)}
         />
         {deviceLabOpen && <DeviceLab onClose={handleCloseDeviceLab} initialUrl={deviceLabUrl} />}
+        {pendingPermission && (
+          <PermissionPrompt
+            request={pendingPermission}
+            onDismiss={() => setPendingPermission(null)}
+          />
+        )}
       </>
     );
   }
@@ -370,6 +410,7 @@ export default function App() {
         onOpenDeviceLab={handleOpenDeviceLab}
         onScreenshot={handleScreenshot}
         screenshotCapturing={screenshotCapturing}
+        onOpenSiteSettings={() => setSiteSettingsOpen(true)}
       />
 
       {/* Content area */}
@@ -499,6 +540,22 @@ export default function App() {
           pageUrl={screenshotData.pageUrl}
           onClose={() => setScreenshotData(null)}
           onOpenAuth={() => { setScreenshotData(null); setAuthModalOpen(true); }}
+        />
+      )}
+
+      {/* Permission prompt — shown over everything */}
+      {pendingPermission && (
+        <PermissionPrompt
+          request={pendingPermission}
+          onDismiss={() => setPendingPermission(null)}
+        />
+      )}
+
+      {/* Site settings panel */}
+      {siteSettingsOpen && (
+        <SiteSettingsPanel
+          currentOrigin={currentOrigin}
+          onClose={() => setSiteSettingsOpen(false)}
         />
       )}
     </div>

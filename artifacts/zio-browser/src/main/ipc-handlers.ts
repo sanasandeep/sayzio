@@ -50,8 +50,21 @@ import {
   deleteAllPasswords,
   listProfiles,
   upsertProfile,
+  setActiveProfileId,
+  getActiveProfileId,
+  getAllSitePermissions,
+  setSitePermission,
+  revokeSitePermission,
+  clearAllSitePermissions,
 } from './db';
 import { getActiveItem } from './download-manager';
+import { resolvePermissionRequest } from './permission-handler';
+import {
+  setTrackerBlockingEnabled,
+  isTrackerBlockingEnabled,
+  getBlockedCount,
+  resetBlockedCount,
+} from './tracker-blocker';
 import { buildAutofillScript } from '../shared/form-autofill';
 import type { AutofillCard } from '../shared/form-autofill';
 import { storeToken, retrieveToken, clearToken, storeUser, retrieveUser, clearUser } from './auth-store';
@@ -828,5 +841,37 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
     } catch {
       return [];
     }
+  });
+
+  // ── Site permissions ──────────────────────────────────────────────────────
+  ipcMain.handle('permissions:get-all', () => getAllSitePermissions());
+  ipcMain.handle('permissions:set', (_, origin: string, permission: string, decision: 'allow' | 'block') => {
+    setSitePermission(origin, permission, decision);
+    return true;
+  });
+  ipcMain.handle('permissions:revoke', (_, origin: string, permission: string) => {
+    revokeSitePermission(origin, permission);
+    return true;
+  });
+  ipcMain.handle('permissions:clear-all', () => {
+    clearAllSitePermissions();
+    return true;
+  });
+  ipcMain.handle('permissions:respond', (_, requestId: string, decision: 'allow' | 'block', remember: boolean, origin: string, permission: string) => {
+    resolvePermissionRequest(requestId, decision, remember, origin, permission);
+    return true;
+  });
+
+  // ── Tracker blocking ──────────────────────────────────────────────────────
+  ipcMain.handle('tracker:is-enabled', () => isTrackerBlockingEnabled());
+  ipcMain.handle('tracker:set-enabled', (_, enabled: boolean) => {
+    setTrackerBlockingEnabled(enabled);
+    setPreference('tracker_blocking_enabled', enabled ? '1' : '0');
+    return true;
+  });
+  ipcMain.handle('tracker:get-count', (_, tabId: string) => getBlockedCount(tabId));
+  ipcMain.handle('tracker:reset-count', (_, tabId: string) => {
+    resetBlockedCount(tabId);
+    return true;
   });
 }

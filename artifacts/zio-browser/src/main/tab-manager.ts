@@ -653,4 +653,14 @@ export class TabManager {
       this.closeTab(id);
     }
   }
+
+  /** Return the tab ID that owns the given WebContents ID, or null. */
+  getTabIdByWebContentsId(wcId: number): string | null {
+    for (const [id, tab] of this.tabs) {
+      if (!tab.view.webContents.isDestroyed() && tab.view.webContents.id === wcId) {
+        return id;
+      }
+    }
+    return null;
+  }
 }
