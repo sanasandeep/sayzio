@@ -264,6 +264,20 @@
       "standalone": "app/events/ticket/[alias]/[code].tsx",
       "source": "app/events/ticket/[alias]/[code].tsx",
       "relation": "identical"
+    },
+    {
+      "standalone": "hooks/useContactAutoSync.ts",
+      "source": "hooks/useContactAutoSync.ts",
+      "relation": "adapted",
+      "note": "standalone prompts for the contacts permission on first open (requestPermission true on the initial run) and triggers the account's Google Contacts sync on open/foreground; main app is fully silent (never prompts) and additionally invalidates contact-duplicate-count. Core mechanics (persisted-fingerprint cold-start seed, account-switch retrigger via userId dep, foreground re-sync) must stay in lockstep.",
+      "sourceSha256": "57afb5e2d781a0f4e2132e6236e7bdf64fa4e3834bd1fd0ef2ac3dddda986639"
+    },
+    {
+      "standalone": "lib/deviceContacts.ts",
+      "source": "lib/deviceContacts.ts",
+      "relation": "adapted",
+      "note": "same import flow; main app adds ContactImportPayload typing, a stricter FNV hash (json.length-based fingerprint, unsigned mixing per step) and non-any filtering. Fingerprint formats differ but each app only compares its own persisted values, so this is benign; behavior changes to the import/skip logic must be mirrored.",
+      "sourceSha256": "b12f5395e9b271bc26fc818ffcceb08bc805e5064f3f616f773e1761af33ecb1"
     }
   ],
   "standaloneOnly": [
@@ -334,14 +348,6 @@
     {
       "path": "app/(tabs)/caller-id.tsx",
       "note": "dedicated Caller ID lookup tab (main app reaches caller-id via the dialer + dialer-profile flows)"
-    },
-    {
-      "path": "hooks/useContactAutoSync.ts",
-      "note": "auto device-contact import + Google Contacts sync trigger on app open / foreground"
-    },
-    {
-      "path": "lib/deviceContacts.ts",
-      "note": "shared device-contact import helper used by the contacts tab and useContactAutoSync"
     },
     {
       "path": "lib/eventsLocation.ts",
