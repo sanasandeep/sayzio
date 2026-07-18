@@ -217,6 +217,18 @@ export function ShortenPopover({ pageUrl, pageTitle, baseUrl, onClose, onOpenAut
                     {checkingAlias ? 'Checking…' : (aliasCheck?.message ?? '')}
                   </p>
                 )}
+                {alias && !checkingAlias && aliasCheck?.available === false && (aliasCheck.suggestions?.length ?? 0) > 0 && (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 4 }}>
+                    {aliasCheck.suggestions!.map(s => (
+                      <button
+                        key={s}
+                        type="button"
+                        onClick={() => { setAlias(s); setAliasCheck(null); }}
+                        style={{ ...secondaryBtn, padding: '2px 8px', fontSize: 10, borderRadius: 999 }}
+                      >{s}</button>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* Destination URL (read-only) */}

@@ -749,6 +749,18 @@ export function CreateLinkPopover({ pageUrl, pageTitle, baseUrl = BASE_URL, onCl
               {checkingAlias ? 'Checking…' : (aliasCheck?.message ?? '')}
             </p>
           )}
+          {alias && !checkingAlias && aliasCheck?.available === false && (aliasCheck.suggestions?.length ?? 0) > 0 && (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 4 }}>
+              {aliasCheck.suggestions!.map(s => (
+                <button
+                  key={s}
+                  type="button"
+                  onClick={() => { setAlias(s); setAliasCheck(null); }}
+                  style={{ ...secondaryBtn, padding: '2px 8px', fontSize: 10, borderRadius: 999 }}
+                >{s}</button>
+              ))}
+            </div>
+          )}
         </FormField>
 
         {/* ── Error + submit ──────────────────────────────────────────────── */}
