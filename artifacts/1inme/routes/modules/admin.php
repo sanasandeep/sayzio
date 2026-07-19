@@ -391,6 +391,15 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::post('verify', [\App\Modules\Admin\Controllers\MailSettingsController::class, 'verify'])->middleware(CheckPermission::class . ':settings.manage')->name('verify');
         });
 
+        // Android APK releases: upload/fetch, set live, delete.
+        Route::prefix('android-apk')->name('android-apk.')->middleware(CheckPermission::class . ':settings.manage')->group(function () {
+            Route::get('/',                                                        [\App\Modules\Admin\Controllers\AndroidApkController::class, 'index'])->name('index');
+            Route::post('upload',                                                  [\App\Modules\Admin\Controllers\AndroidApkController::class, 'upload'])->name('upload');
+            Route::post('fetch',                                                   [\App\Modules\Admin\Controllers\AndroidApkController::class, 'fetch'])->name('fetch');
+            Route::put('{release}/set-live', [\App\Modules\Admin\Controllers\AndroidApkController::class, 'setLive'])->whereNumber('release')->name('set-live');
+            Route::delete('{release}',        [\App\Modules\Admin\Controllers\AndroidApkController::class, 'destroy'])->whereNumber('release')->name('destroy');
+        });
+
         // Centralised email templates: edit/preview/reset per-template overrides.
         Route::prefix('email-templates')->name('email-templates.')->group(function () {
             Route::get('/', [\App\Modules\Admin\Controllers\EmailTemplateController::class, 'index'])->middleware(CheckPermission::class . ':settings.manage')->name('index');

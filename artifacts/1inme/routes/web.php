@@ -343,6 +343,10 @@ Route::middleware('brand.primary')->controller(\App\Modules\Common\Controllers\S
     // SayZio Browser desktop-app download page (installers resolved live
     // from the latest published GitHub release, cached).
     Route::get('/download', [\App\Modules\Common\Controllers\ZioBrowserDownloadController::class, 'show'])->name('site.download');
+    // Android APK public landing page. The actual file delivery is on a
+    // separate route below (outside this brand.primary group) so it works
+    // on any domain without a redirect.
+    Route::get('/android', [\App\Modules\Common\Controllers\AndroidApkPublicController::class, 'show'])->name('android.show');
     Route::get('/{slug}/history', [\App\Modules\Common\Controllers\SitePageController::class, 'history'])
         ->where('slug', 'terms|privacy|refunds|cookies|gdpr')
         ->name('site.policy.history');
@@ -352,6 +356,13 @@ Route::post('/contact', [\App\Modules\Common\Controllers\SitePageController::cla
 
 Route::post('/custom-plan-request', [\App\Modules\Common\Controllers\CustomPlanRequestController::class, 'store'])
     ->name('custom-plan-request.store')->middleware('throttle:5,10');
+
+// Android APK delivery endpoint — intentionally outside brand.primary so it
+// works on any Sayzio domain without redirecting. Serves the live APK with
+// correct Content-Type, Content-Disposition, Accept-Ranges and (for local
+// disk) full range/resume support. On S3, redirects to a signed URL.
+Route::get('/android/download', [\App\Modules\Common\Controllers\AndroidApkPublicController::class, 'download'])
+    ->name('android.download');
 
 // ---- Marketing XML sitemap + robots.txt (must precede the catch-all /{alias} routes) ----
 // URL list sourced from MarketingSeo so it stays in lockstep with per-page SEO meta.
