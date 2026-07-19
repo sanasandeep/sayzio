@@ -12,6 +12,7 @@
 <!doctype html>
 <html lang="en" @if($theme !== 'auto') data-theme="{{ $theme }}" @endif>
 <head>
+    @include('common.partials.toolbar-theme-color')
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <title>{{ $title }}</title>

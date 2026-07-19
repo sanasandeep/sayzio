@@ -97,6 +97,8 @@
         @if(!empty($manifestSettings['short_name']))
             <meta name="apple-mobile-web-app-title" content="{{ $manifestSettings['short_name'] }}">
         @endif
+    @else
+        @include('common.partials.toolbar-theme-color')
     @endif
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @include('common.partials.fontawesome')
