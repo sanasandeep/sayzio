@@ -352,6 +352,14 @@ args = "check:unbalanced-parens"
 task = "workflow.run"
 args = "toolbar-theme-color"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-inline-edit-v"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "dbg-onboarding-swipe"
+
 [[workflows.workflow]]
 name = "e2e"
 author = "agent"
@@ -1473,6 +1481,28 @@ args = "pnpm --filter @workspace/scripts run check:toolbar-theme-color"
 
 [workflows.workflow.metadata]
 outputType = "console"
+
+[[workflows.workflow]]
+name = "e2e-inline-edit-v"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "bash artifacts/1inme/tests/Browser/run-validation.sh biolink-editor-inline-edit.spec.ts"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "dbg-onboarding-swipe"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd artifacts/1inme-mobile && node scripts/debug-onboarding-swipe.mjs"
+
+[workflows.workflow.metadata]
+isValidation = true
 
 
 [agent]
