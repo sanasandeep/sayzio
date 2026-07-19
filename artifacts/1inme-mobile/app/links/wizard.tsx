@@ -711,12 +711,12 @@ export default function BiolinkWizardScreen() {
             {step === "group"
               ? "We'll generate an opinionated page tailored to your choice."
               : step === "persona"
-                ? "Choose who you are — then optionally refine your niche."
+                ? "Choose who you are, then optionally refine your niche."
                 : step === "design"
                   ? "Start from a ready-made design, or from scratch."
                   : step === "basics"
-                    ? "The essentials visitors see first — name, bio, photo and accent."
-                    : "Add what applies — skip the rest. Tweak any block afterwards."}
+                    ? "The essentials visitors see first: name, bio, photo and accent."
+                    : "Add what applies; skip the rest. Tweak any block afterwards."}
           </Text>
         </View>
 
@@ -809,7 +809,7 @@ export default function BiolinkWizardScreen() {
                   <Text
                     style={[styles.sub, { color: colors.mutedForeground }]}
                   >
-                    Just for the right accent and placeholder — skip if none fit.
+                    Just for the right accent and placeholder; skip if none fit.
                   </Text>
                 </View>
                 <View style={styles.industryGrid}>
@@ -850,7 +850,7 @@ export default function BiolinkWizardScreen() {
                   from scratch so the design step never becomes a dead end. */}
               <StartingDesignCard
                 title="Start from scratch"
-                blurb="A clean page built from your answers — no template."
+                blurb="A clean page built from your answers, no template."
                 icon="fa-wand-magic-sparkles"
                 selected={templateId === null}
                 onPress={() => pickTemplate(null)}
@@ -861,7 +861,7 @@ export default function BiolinkWizardScreen() {
               {/* Always-available "Start from scratch" option (templateId = null). */}
               <StartingDesignCard
                 title="Start from scratch"
-                blurb="A clean page built from your answers — no template."
+                blurb="A clean page built from your answers, no template."
                 icon="fa-wand-magic-sparkles"
                 selected={templateId === null}
                 onPress={() => pickTemplate(null)}
@@ -907,7 +907,7 @@ export default function BiolinkWizardScreen() {
                 desc={
                   step === "basics"
                     ? "Who the page is for."
-                    : "Add what applies — skip the rest."
+                    : "Add what applies; skip the rest."
                 }
                 icon={step === "basics" ? "fa-id-card" : "fa-sliders"}
                 items={
@@ -920,8 +920,8 @@ export default function BiolinkWizardScreen() {
                 }
                 emptyText={
                   step === "basics"
-                    ? "Nothing to set up here — continue to add your content."
-                    : "No extra fields for this page — generate when you're ready."
+                    ? "Nothing to set up here; continue to add your content."
+                    : "No extra fields for this page; generate when you're ready."
                 }
               />
 
@@ -962,7 +962,7 @@ export default function BiolinkWizardScreen() {
                           { color: colors.mutedForeground },
                         ]}
                       >
-                        Optional — leave blank to auto-generate one.
+                        Optional; leave blank to auto-generate one.
                       </Text>
                     </View>
                   </View>
@@ -1769,7 +1769,7 @@ function AiDraftResources({
             Ground your AI draft
           </Text>
           <Text style={[styles.sectionDesc, { color: colors.mutedForeground }]}>
-            Optional — pick AI Brains &amp; files to inform the auto-draft.
+            Optional; pick AI Brains &amp; files to inform the auto-draft.
           </Text>
         </View>
       </View>
@@ -1843,7 +1843,7 @@ function AiDraftResources({
             </View>
           ) : (
             <Text style={[styles.fieldHint, { color: colors.mutedForeground }]}>
-              No AI Brains yet — create one to teach the AI about you.
+              No AI Brains yet; create one to teach the AI about you.
             </Text>
           )}
         </View>
@@ -1893,7 +1893,7 @@ function AiDraftResources({
             </View>
           ) : (
             <Text style={[styles.fieldHint, { color: colors.mutedForeground }]}>
-              No files in your vault yet — upload some to use them here.
+              No files in your vault yet; upload some to use them here.
             </Text>
           )}
         </View>

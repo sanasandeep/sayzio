@@ -101,7 +101,7 @@ export default function QrScreen() {
     },
     onError: (e: any) => {
       if (handlePlanLockedError(e)) return;
-      setArtError(e?.message ?? "Generation failed — please try again.");
+      setArtError(e?.message ?? "Generation failed. Please try again.");
       artAvail.refetch();
     },
   });
@@ -289,7 +289,7 @@ export default function QrScreen() {
                 {designLocked ? (
                   <Text style={[styles.lockHint, { color: colors.mutedForeground }]}>
                     Styled QR templates are a plan feature. Your QR is created
-                    with the default look — upgrade to customize colors, dots and
+                    with the default look; upgrade to customize colors, dots and
                     frames.
                   </Text>
                 ) : null}
@@ -345,7 +345,7 @@ export default function QrScreen() {
                 <ActivityIndicator color={colors.primary} style={{ alignSelf: "flex-start" }} />
               ) : !artAvail.data?.enabled ? (
                 <Text style={[styles.lockHint, { color: colors.mutedForeground }]}>
-                  AI Artistic QR isn’t available yet — an administrator needs to
+                  AI Artistic QR isn’t available yet; an administrator needs to
                   connect an image provider.
                 </Text>
               ) : !artAvail.data.allowed ? (
@@ -353,7 +353,7 @@ export default function QrScreen() {
                   <Text style={[styles.lockHint, { color: colors.mutedForeground }]}>
                     Turn your QR into AI artwork. This is a plan feature
                     {artAvail.data.recommended_plan
-                      ? ` — upgrade to ${artAvail.data.recommended_plan.name} to unlock it.`
+                      ? `; upgrade to ${artAvail.data.recommended_plan.name} to unlock it.`
                       : "."}
                   </Text>
                   <Button
@@ -447,7 +447,7 @@ export default function QrScreen() {
                       <View style={[styles.caveat, { backgroundColor: colors.primary + "14", borderRadius: colors.radius - 4 }]}>
                         <Feather name="alert-triangle" size={13} color={colors.primary} />
                         <Text style={[styles.caveatText, { color: colors.foreground }]}>
-                          Artistic blending can reduce scan reliability — test the
+                          Artistic blending can reduce scan reliability; test the
                           final image before sharing.
                         </Text>
                       </View>

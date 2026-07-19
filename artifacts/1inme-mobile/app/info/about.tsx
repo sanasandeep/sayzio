@@ -6,7 +6,7 @@ import { getBaseUrl } from "@/lib/api";
 import { fetchAboutContent } from "@/lib/api/siteContent";
 
 const INTRO =
-  "Sayzio is the modern way to gather every link, contact, and channel that represents you into a single tap-shareable profile — on the web and in your pocket.";
+  "Sayzio is the modern way to gather every link, contact, and channel that represents you into a single tap-shareable profile, on the web and in your pocket.";
 
 // Static fallback copy used until (and if) the backend content loads. These
 // sections are the mobile-specific About copy (shown when offline / the
@@ -41,7 +41,7 @@ const FOUNDER: FounderBlock = {
 const FALLBACK_EEFIND: EefindBlock = {
   eyebrow: "Part of EEFind",
   heading: "Built by EEFind Private Limited",
-  body: 'Sayzio is a brand and product of EEFIND PVT LTD (EEFind Private Limited) — an aggregator marketplace on a mission to be "The All in One App for everything essential." From groceries home-delivered by neighbourhood stores to trusted home help like carpentry, plumbing and home cleaning, EEFind brings everyday essentials together in one place. Their promise sums up the philosophy Sayzio is built on: "We are not in a hurry to deliver in 10 mins. We drive safe."',
+  body: 'Sayzio is a brand and product of EEFIND PVT LTD (EEFind Private Limited), an aggregator marketplace on a mission to be "The All in One App for everything essential." From groceries home-delivered by neighbourhood stores to trusted home help like carpentry, plumbing and home cleaning, EEFind brings everyday essentials together in one place. Their promise sums up the philosophy Sayzio is built on: "We are not in a hurry to deliver in 10 mins. We drive safe."',
   stats: [
     { value: "4,000+", label: "Products" },
     { value: "2,000+", label: "Merchants" },

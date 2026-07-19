@@ -190,7 +190,7 @@ export default function VisitorsScreen() {
                 marginTop: 4,
               }}
             >
-              Create a link and share it — visitor insights will show up here.
+              Create a link and share it; visitor insights will show up here.
             </Text>
           </View>
         ) : data ? (

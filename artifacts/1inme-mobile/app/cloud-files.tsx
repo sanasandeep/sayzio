@@ -153,7 +153,7 @@ export default function CloudFilesScreen() {
               style={{ color: colors.mutedForeground, fontSize: 13, lineHeight: 18 }}
             >
               Connect a cloud account to browse and save files into your shared
-              workspace library. Files stay in the provider — Sayzio only keeps a
+              workspace library. Files stay in the provider; Sayzio only keeps a
               link.
             </Text>
 

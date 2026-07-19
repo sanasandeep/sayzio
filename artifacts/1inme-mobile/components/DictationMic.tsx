@@ -95,10 +95,10 @@ export function DictationMic({
       }}
       accessibilityLabel={
         short
-          ? "Dictation unavailable — not enough coins"
+          ? "Dictation unavailable: not enough coins"
           : dict.recording
             ? "Stop dictation"
-            : "Dictate — tap or hold to talk"
+            : "Dictate: tap or hold to talk"
       }
       style={[{ flexDirection: "row", alignItems: "center", gap: 6 }, style]}
     >

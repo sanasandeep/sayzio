@@ -926,7 +926,7 @@ function renderCalendarPanel(p: CalendarPanelProps) {
         </View>
       ) : p.extractQ.data && p.extractQ.data.source !== "title" ? (
         <Text style={{ color: colors.muted, fontSize: 12, marginBottom: 10 }}>
-          Event details detected from the page — review and adjust below.
+          Event details detected from the page. Review and adjust below.
         </Text>
       ) : null}
       {p.ownedCalendars.length > 1 ? (

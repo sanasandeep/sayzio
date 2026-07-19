@@ -268,7 +268,7 @@ function ProviderCard({
 
       {!conn && !provider.available ? (
         <Text style={{ color: colors.mutedForeground, fontSize: 12, marginTop: 10 }}>
-          {provider.label} isn't available yet — check back soon.
+          {provider.label} isn't available yet. Check back soon.
         </Text>
       ) : !conn ? (
         isGa ? (
@@ -445,7 +445,7 @@ function SyncStatus({
       )}
       {hasError ? (
         <Text style={{ color: colors.destructive, fontSize: 11, marginTop: 2 }}>
-          {conn.last_sync_error || "Last sync failed — try reconnecting."}
+          {conn.last_sync_error || "Last sync failed. Try reconnecting."}
         </Text>
       ) : null}
     </View>

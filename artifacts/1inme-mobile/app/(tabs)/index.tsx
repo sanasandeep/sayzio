@@ -101,7 +101,7 @@ export default function Home() {
                 onPress={() => router.push("/(tabs)/links")}
                 style={{ flex: 1 }}
                 accessibilityRole="button"
-                accessibilityLabel="NFC writes — tap to write a tag"
+                accessibilityLabel="NFC writes: tap to write a tag"
               >
                 <StatTile
                   label="NFC writes"

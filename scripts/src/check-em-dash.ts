@@ -10,7 +10,9 @@
  * What is scanned
  * ---------------
  *   1inme  resources/views/public/      — marketing Blade templates
+ *          resources/views/user|admin|common/ — dashboard/admin/shared Blade views
  *          resources/views/errors/      — error-page Blade templates
+ *          resources/views/emails/      — outbound email templates
  *          resources/views/layouts/site.blade.php  — page title template
  *          database/seeders/SitePagesSeeder.php
  *          database/seeders/MarketingBlogPostsSeeder.php
@@ -18,14 +20,11 @@
  *          database/seeders/PlansAndAddonsSeeder.php
  *          database/seeders/CoinPackagesSeeder.php
  *          app/Modules/Common/Support/SitePagesContent.php
+ *   1inme-mobile  app/ + components/    — Expo mobile app copy
  *
  * What is NOT scanned
  * -------------------
  *   resources/views/vendor/  — third-party views (do-not-touch per project rules)
- *   resources/views/user/    — dashboard / account UI (separate task scope)
- *   resources/views/admin/   — admin UI (separate task scope)
- *   resources/views/common/  — shared partials (separate task scope)
- *   Demo/showcase seeders    — internal demo data, not marketing copy
  *   Comment blocks: C-style /* *\/, Blade {{-- --}}, HTML <!-- -->, trailing //
  *   PHP/JS fallback placeholders: ?? '—' or || '—' patterns (no-price displays)
  *
@@ -81,6 +80,9 @@ const SCAN_TARGETS: string[] = [
   "artifacts/1inme/resources/views/admin",
   "artifacts/1inme/resources/views/common",
   "artifacts/1inme/resources/views/errors",
+  "artifacts/1inme/resources/views/emails",
+  "artifacts/1inme-mobile/app",
+  "artifacts/1inme-mobile/components",
   "artifacts/1inme/resources/views/public/layouts/site.blade.php",
   "artifacts/1inme/database/seeders/SitePagesSeeder.php",
   "artifacts/1inme/database/seeders/MarketingBlogPostsSeeder.php",

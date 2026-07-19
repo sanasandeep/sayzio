@@ -578,7 +578,7 @@ export function VoiceAssistant() {
         const err = e as { status?: number; message?: string } | undefined;
         if (err?.status === 402) {
           setError(
-            err.message ?? "You're out of coins — top up to keep going.",
+            err.message ?? "You're out of coins. Top up to keep going.",
           );
         } else {
           setError(err?.message ?? "Something went wrong. Try again.");

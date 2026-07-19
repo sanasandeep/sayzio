@@ -11,7 +11,7 @@
                 <tr><td style="padding:24px 28px 8px;">
                     <div style="font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:#16a34a;font-weight:700;">Shipped</div>
                     <h1 style="margin:8px 0 4px;font-size:22px;line-height:1.3;">{{ $title }}</h1>
-                    <div style="color:#6b7280;font-size:14px;">You upvoted this idea — it just went live on {{ $creator }}'s roadmap.</div>
+                    <div style="color:#6b7280;font-size:14px;">You upvoted this idea, and it just went live on {{ $creator }}'s roadmap.</div>
                 </td></tr>
                 @if (!empty($desc))
                 <tr><td style="padding:8px 28px 0;color:#374151;font-size:15px;line-height:1.55;">

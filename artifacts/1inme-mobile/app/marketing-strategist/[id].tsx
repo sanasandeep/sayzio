@@ -371,7 +371,7 @@ export default function MarketingStrategyDetail() {
             Refine with chat
           </Text>
           <Text style={[styles.sectionHint, { color: colors.mutedForeground }]}>
-            Ask follow-ups to tweak the plan — each reply uses your coins.
+            Ask follow-ups to tweak the plan; each reply uses your coins.
           </Text>
 
           {messages.map((m) => (

@@ -45,7 +45,7 @@
                 @else
                     <li>The mailbox is full, suspended, or no longer exists.</li>
                     <li>The receiving server is rejecting our messages as spam.</li>
-                    <li>The address has a typo — double-check spelling and domain.</li>
+                    <li>The address has a typo; double-check spelling and domain.</li>
                 @endif
             </ul>
 
@@ -57,7 +57,7 @@
             </p>
 
             <p style="font-size:13px; color:#64748b; line-height:1.6; margin:0;">
-                Once you've fixed the destination, you can re-run any failed deliveries from the same page — nothing is lost in the meantime.
+                Once you've fixed the destination, you can re-run any failed deliveries from the same page; nothing is lost in the meantime.
             </p>
 
             <p style="color:#94a3b8; font-size:12px; line-height:1.6; margin:24px 0 0 0; border-top:1px solid #e2e8f0; padding-top:20px;">

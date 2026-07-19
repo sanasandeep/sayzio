@@ -41,7 +41,7 @@ const SECTIONS: { heading: string; body: string }[] = [
   },
   {
     heading: "Signing in",
-    body: "After installing, click the extension icon and choose Sign in with Sayzio. A tab opens to log you in — once done, the extension is connected. You can revoke its access any time from Devices & sessions in Settings.",
+    body: "After installing, click the extension icon and choose Sign in with Sayzio. A tab opens to log you in; once done, the extension is connected. You can revoke its access any time from Devices & sessions in Settings.",
   },
 ];
 

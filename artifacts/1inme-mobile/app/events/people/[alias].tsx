@@ -427,7 +427,7 @@ export default function PeopleAtEventScreen() {
                     { color: colors.mutedForeground },
                   ]}
                 >
-                  Enable discoverability above — when other attendees do the
+                  Enable discoverability above; when other attendees do the
                   same, they&apos;ll appear here.
                 </Text>
               </View>

@@ -94,7 +94,7 @@ function annualBillingNote(plan: Plan, currency: Currency): string {
   const annualFmt = annual.formatted ?? "—";
   const monthlyFmt = monthly.formatted;
   return monthlyFmt && monthly.amount_minor
-    ? `Billed annually at ${annualFmt}/yr — or ${monthlyFmt}/mo month-to-month`
+    ? `Billed annually at ${annualFmt}/yr, or ${monthlyFmt}/mo month-to-month`
     : `Billed annually at ${annualFmt}/yr`;
 }
 
@@ -531,7 +531,7 @@ export default function PlansScreen() {
                       marginTop: 2,
                     }}
                   >
-                    Free forever — no card required
+                    Free forever, no card required
                   </Text>
                 ) : billingNote ? (
                   <Text

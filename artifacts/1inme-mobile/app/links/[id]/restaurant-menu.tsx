@@ -367,7 +367,7 @@ export default function RestaurantMenuBuilderScreen() {
           <Text style={[styles.helper, { color: colors.mutedForeground }]}>
             {mode === "order"
               ? "Visitors can place orders that land in your Orders dashboard."
-              : "Visitors browse the menu only — no ordering."}
+              : "Visitors browse the menu only, no ordering."}
           </Text>
 
           <View style={{ height: 12 }} />

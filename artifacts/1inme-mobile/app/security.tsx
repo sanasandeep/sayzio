@@ -90,7 +90,7 @@ export default function SecurityHub() {
       icon: "shield",
       title: "Two-factor authentication",
       body: codes?.enabled
-        ? "On — every new device has to enter a code from your authenticator app."
+        ? "On: every new device has to enter a code from your authenticator app."
         : "Add an authenticator app so a stolen password isn't enough to get in.",
       badge: codes ? (codes.enabled ? "On" : "Off") : null,
     },

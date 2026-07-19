@@ -256,7 +256,7 @@ export default function AuthLanding() {
             .find(Boolean)
         : null;
       let msg = fieldMsg ?? err?.message ?? "Could not send code";
-      if (err?.status === 429) msg = "Too many attempts — wait a minute and try again.";
+      if (err?.status === 429) msg = "Too many attempts. Wait a minute and try again.";
       if (err?.status && err.status >= 500) msg = "Our server is having trouble. Try again shortly.";
       setError(msg);
     } finally {
@@ -279,7 +279,7 @@ export default function AuthLanding() {
       const err = e as ApiError;
       let msg = err?.message ?? "Sign-in failed";
       if (err?.status === 401 || err?.status === 422) msg = "Incorrect email or password.";
-      if (err?.status === 429) msg = "Too many attempts — wait a minute and try again.";
+      if (err?.status === 429) msg = "Too many attempts. Wait a minute and try again.";
       setError(msg);
     } finally {
       setBusy(null);

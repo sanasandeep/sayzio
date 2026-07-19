@@ -141,7 +141,7 @@ export default function Identifiers() {
   const onPromote = (row: LinkedIdentifier) => {
     showAlert(
       "Make primary?",
-      `${row.value} will become your primary ${row.kind === "email" ? "email" : "phone"} — it's what shows on your account and receives key notifications.`,
+      `${row.value} will become your primary ${row.kind === "email" ? "email" : "phone"}; it's what shows on your account and receives key notifications.`,
       [
         { text: "Cancel", style: "cancel" },
         {

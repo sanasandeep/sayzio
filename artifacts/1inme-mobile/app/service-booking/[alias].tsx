@@ -394,7 +394,7 @@ export default function ServiceBookingScreen() {
                   style={[styles.disclaimer, { color: colors.mutedForeground }]}
                 >
                   This is an estimated price, not the final bill. No payment is
-                  collected here — settle directly with the provider.
+                  collected here; settle directly with the provider.
                 </Text>
               </View>
             ) : null}

@@ -403,7 +403,7 @@ export default function DashboardCustomizeScreen() {
                   ) : null}
                 </View>
                 <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>
-                  Pick specific widgets to guarantee they're included — the AI
+                  Pick specific widgets to guarantee they're included; the AI
                   still designs the rest of the layout around your goal.
                 </Text>
                 {data.grouped_catalog.map((group) => (

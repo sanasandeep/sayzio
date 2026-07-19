@@ -107,7 +107,7 @@ export default function MarketingStrategistList() {
             Marketing strategies
           </Text>
           <Text style={[styles.subtitle, { color: colors.mutedForeground }]}>
-            A growth plan built from your own links, audience and brand —
+            A growth plan built from your own links, audience and brand:
             organic plays, paid plays and one-tap actions.
           </Text>
         </View>

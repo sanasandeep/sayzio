@@ -11,7 +11,7 @@ import { useColors } from "@/hooks/useColors";
  */
 const FEATURE_BLURBS: Record<string, string> = {
   "AI Note Summarizer":
-    "AI Note Summarizer is your personal AI knowledge base — it learns from your sources so the assistant can answer in your voice.",
+    "AI Note Summarizer is your personal AI knowledge base: it learns from your sources so the assistant can answer in your voice.",
   "AI Knowledge Bases":
     "AI Knowledge Bases let you build and manage several AI knowledge bases, each trained on its own set of sources.",
   "AI Persona Generator":
@@ -27,11 +27,11 @@ const FEATURE_BLURBS: Record<string, string> = {
   "AI Coach":
     "AI Coach lets you chat with an AI advisor for tips on improving your account.",
   "Marketing Strategist":
-    "AI Marketing Strategist is your AI digital performer — it grounds an organic + paid plan in your own Sayzio data and lets you act on it with one tap.",
+    "AI Marketing Strategist is your AI digital performer: it grounds an organic + paid plan in your own Sayzio data and lets you act on it with one tap.",
   Voice:
     "Voice lets you talk to Sayzio hands-free to look things up and get around the app.",
   "Performer Specialist":
-    "Performer Specialist studies your links, audience and brand to draft a full marketing strategy — organic and paid plays with one-tap actions.",
+    "Performer Specialist studies your links, audience and brand to draft a full marketing strategy: organic and paid plays with one-tap actions.",
 };
 
 export function aiFeatureBlurb(feature?: string): string | null {
@@ -127,13 +127,13 @@ export function AiDisabledNotice({
               What you’re missing
             </Text>
             <Text style={[styles.infoBody, { color: colors.mutedForeground }]}>
-              AI features on Sayzio — like AI Knowledge Bases, AI Agents, AI Chat
-              and AI Growth Coach — help you draft content, answer questions about your account
+              AI features on Sayzio (like AI Knowledge Bases, AI Agents, AI Chat
+              and AI Growth Coach) help you draft content, answer questions about your account
               and build pages faster. They run on your coin balance once an
               administrator enables the engine.
             </Text>
             <Text style={[styles.infoBody, { color: colors.mutedForeground }]}>
-              You can’t switch this on yourself — it’s controlled by an
+              You can’t switch this on yourself; it’s controlled by an
               administrator. Ask them to turn AI on for your account.
             </Text>
           </View>

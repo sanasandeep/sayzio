@@ -640,7 +640,7 @@ function RsvpBlock({
   );
 }
 
-// Render a small "Thanks for responding — you picked X" card that replaces
+// Render a small "Thanks for responding, you picked X" card that replaces
 // the live poll/RSVP options once the viewer has answered. Tapping the
 // "Change response" affordance clears the remembered choice so the original
 // options come back. Used by both the poll and RSVP block branches.
@@ -662,7 +662,7 @@ function RespondedCard({
         {icon} {title}
       </Text>
       <Text style={[styles.body, { color: colors.foreground, textAlign: "left", fontSize: 14 }]}>
-        Thanks for responding — you picked “{responseLabel}”.
+        Thanks for responding, you picked “{responseLabel}”.
       </Text>
       <Pressable onPress={onChange} hitSlop={8} style={{ alignSelf: "flex-start" }}>
         <Text style={[styles.body, { color: colors.primary, textAlign: "left", fontSize: 13 }]}>
@@ -1602,7 +1602,7 @@ export function BlockView({ block, alias, allBlocks, openEmbed }: { block: Bioli
       >
         <Text style={[styles.btnLabel, { color: colors.foreground, textAlign: "left" }]}>🔗 {label}</Text>
         <Text style={[styles.body, { color: colors.mutedForeground, textAlign: "left", fontSize: 12, marginTop: 4 }]}>
-          Third-party embed — tap to open in-app
+          Third-party embed: tap to open in-app
         </Text>
       </Pressable>
     );

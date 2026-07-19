@@ -16,7 +16,7 @@
             </h1>
 
             <p style="font-size:14px; color:#334155; line-height:1.6; margin:0 0 16px 0;">
-                You (or someone using your email address) requested an unsubscribe link from our subscription center. Click the button below and you'll be removed from the email newsletter — no login required.
+                You (or someone using your email address) requested an unsubscribe link from our subscription center. Click the button below and you'll be removed from the email newsletter, no login required.
             </p>
 
             <p style="margin:0 0 24px 0;">
@@ -32,7 +32,7 @@
             </p>
 
             <p style="color:#94a3b8; font-size:12px; line-height:1.6; margin:24px 0 0 0; border-top:1px solid #e2e8f0; padding-top:20px;">
-                Didn't ask for this email? You can safely ignore it — no changes will be made to your subscription unless you click the button above.
+                Didn't ask for this email? You can safely ignore it; no changes will be made to your subscription unless you click the button above.
                 You can also visit <a href="{{ $siteUrl }}" style="color:#64748b; text-decoration:underline;">{{ $appName }}</a> directly.
             </p>
         </div>

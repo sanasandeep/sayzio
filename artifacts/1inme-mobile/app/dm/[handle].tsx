@@ -190,7 +190,7 @@ export default function ProfileDmScreen() {
           contentContainerStyle={{ padding: 12, gap: 6 }}
           ListEmptyComponent={
             <Text style={{ textAlign: "center", color: colors.mutedForeground, marginTop: 40 }}>
-              No messages yet — say hi 👋
+              No messages yet. Say hi 👋
             </Text>
           }
         />

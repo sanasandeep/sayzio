@@ -89,8 +89,8 @@ export default function MyEventSwapsScreen() {
           : accepted
             ? "Accepted"
             : item.sent_by_me
-              ? "Pending — sent by you"
-              : "Pending — awaiting you";
+              ? "Pending: sent by you"
+              : "Pending: awaiting you";
 
       return (
         <View

@@ -151,7 +151,7 @@ export function BiolinkBackgroundPreview({ linkId }: { linkId: number }) {
         )}
       </View>
       <Text style={[styles.caption, { color: colors.mutedForeground }]}>
-        {caption} — this is how your page looks to visitors.
+        {caption}. This is how your page looks to visitors.
       </Text>
     </View>
   );

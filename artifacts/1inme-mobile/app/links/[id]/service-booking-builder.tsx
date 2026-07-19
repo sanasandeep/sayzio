@@ -149,7 +149,7 @@ function SettingsSection({
         <Text style={{ color: colors.mutedForeground, flex: 1, fontSize: 13 }}>
           {mode === "booking"
             ? "Visitors can request bookings."
-            : "Display-only — no requests collected."}
+            : "Display-only; no requests collected."}
         </Text>
         <Switch
           value={mode === "booking"}

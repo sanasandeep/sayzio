@@ -395,7 +395,7 @@ export default function InvoiceForm(props: Props) {
             </View>
             <Text style={[styles.sub, { color: colors.mutedForeground }]}>
               {docType === "receipt"
-                ? "Record a payment already collected — no pay link is sent."
+                ? "Record a payment already collected; no pay link is sent."
                 : "Create an invoice and send it for payment from the detail screen."}
             </Text>
           </>
@@ -825,7 +825,7 @@ export default function InvoiceForm(props: Props) {
             }}
             style={[styles.pickRow, { borderColor: colors.border }]}
           >
-            <Text style={[styles.label, { color: colors.foreground }]}>— Default —</Text>
+            <Text style={[styles.label, { color: colors.foreground }]}>Default</Text>
           </Pressable>
           {(companiesQ.data ?? []).map((co) => (
             <Pressable

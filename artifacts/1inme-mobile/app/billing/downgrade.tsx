@@ -213,7 +213,7 @@ export default function DowngradeScreen() {
           <Text style={[styles.intro, { color: colors.mutedForeground }]}>
             {scheduled
               ? "Pick a different lower plan to reschedule your downgrade."
-              : "Pick a lower-priced paid plan. The change applies at the end of your current cycle — you keep everything you have until then."}
+              : "Pick a lower-priced paid plan. The change applies at the end of your current cycle; you keep everything you have until then."}
           </Text>
 
           {plans.length === 0 ? (

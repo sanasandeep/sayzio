@@ -294,7 +294,7 @@ export function PricingBlockView({
                 </Text>
                 {it.description ? (
                   <Text style={{ color: muted, fontSize: 11, flexShrink: 1 }} numberOfLines={1}>
-                    — {it.description}
+                    · {it.description}
                   </Text>
                 ) : null}
                 <Text

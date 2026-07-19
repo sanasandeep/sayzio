@@ -12,11 +12,11 @@
             </div>
 
             <h1 style="font-size:20px; color:#1e293b; margin:0 0 12px 0;">
-                You're on the list — welcome!
+                You're on the list. Welcome!
             </h1>
 
             <p style="font-size:14px; color:#334155; line-height:1.6; margin:0 0 16px 0;">
-                Thanks for subscribing to the {{ $appName }} newsletter. You'll get short, actionable notes on what's working for creators — no fluff, and never more than once a month.
+                Thanks for subscribing to the {{ $appName }} newsletter. You'll get short, actionable notes on what's working for creators: no fluff, and never more than once a month.
             </p>
 
             <p style="margin:0 0 24px 0;">

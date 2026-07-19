@@ -26,7 +26,7 @@
                     DNS for {{ $domain->domain }} stopped pointing at Sayzio
                 </h1>
                 <p style="font-size:14px; color:#334155; line-height:1.6; margin:0 0 16px 0;">
-                    Our background check noticed that <strong>{{ $domain->domain }}</strong> no longer resolves to our infrastructure. If this isn't fixed within {{ $payload['grace_hours'] ?? 168 }} hours of the first drift event, we'll automatically unverify the domain so you can recover it later — but in the meantime, traffic to this host may not resolve correctly.
+                    Our background check noticed that <strong>{{ $domain->domain }}</strong> no longer resolves to our infrastructure. If this isn't fixed within {{ $payload['grace_hours'] ?? 168 }} hours of the first drift event, we'll automatically unverify the domain so you can recover it later, but in the meantime, traffic to this host may not resolve correctly.
                 </p>
             @endif
 

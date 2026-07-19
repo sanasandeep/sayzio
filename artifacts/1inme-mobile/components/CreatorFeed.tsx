@@ -236,7 +236,7 @@ function PostBody({
     const ctaLabel = post.access.requires_ppv
       ? `Unlock for $${ppvDollars ?? "?"}`
       : post.access.lowest_tier
-        ? `Subscribe — from $${(post.access.lowest_tier.price_monthly_cents / 100).toFixed(0)}/mo`
+        ? `Subscribe from $${(post.access.lowest_tier.price_monthly_cents / 100).toFixed(0)}/mo`
         : "Subscribe to view";
     const onPress = () =>
       router.push(
@@ -563,7 +563,7 @@ function CommentsThread({
         <ActivityIndicator color={c.accent} />
       ) : flat.length === 0 ? (
         <Text style={{ color: c.mutedText, fontSize: 12 }}>
-          No comments yet — be the first.
+          No comments yet. Be the first.
         </Text>
       ) : (
         flat.map((cm) => (

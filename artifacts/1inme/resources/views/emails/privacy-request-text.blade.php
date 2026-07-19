@@ -1,4 +1,4 @@
-{{ config('app.name') }} — Privacy request
+{{ config('app.name') }}: Privacy request
 
 @switch($stage)
 @case('verify')
@@ -8,11 +8,11 @@ To confirm this was you, please verify your request by opening the link below. T
 
 {{ $actionUrl }}
 
-If you did not make this request, you can safely ignore this email — nothing will happen unless the link is opened.
+If you did not make this request, you can safely ignore this email; nothing will happen unless the link is opened.
 @break
 
 @case('received')
-Thanks — we've received your {{ $typeLabel }} request and our team will review it shortly.
+Thanks, we've received your {{ $typeLabel }} request and our team will review it shortly.
 
 @if($pr->isDeletion())
 If approved, your account and personal data will be permanently removed after a short cooling-off period of {{ \App\Modules\Common\Models\PrivacyRequest::DELETION_GRACE_DAYS }} days. We'll email you at each step.
@@ -28,7 +28,7 @@ Your email has been confirmed and your {{ $typeLabel }} request is now queued fo
 @break
 
 @case('approved')
-Good news — your {{ $typeLabel }} request has been approved.
+Good news: your {{ $typeLabel }} request has been approved.
 
 @if($pr->isDeletion())
 Your account is scheduled for permanent deletion after a {{ \App\Modules\Common\Models\PrivacyRequest::DELETION_GRACE_DAYS }}-day cooling-off period{{ $pr->scheduled_at ? ' (on or after '.\App\Support\PlatformTimezone::display($pr->scheduled_at)->toDayDateTimeString().' IST)' : '' }}. If you change your mind before then, contact our support team.
@@ -63,4 +63,4 @@ The archive contains a structured copy of your account data and your uploaded fi
 There has been an update to your {{ $typeLabel }} request.
 @endswitch
 
-— The {{ config('app.name') }} team
+- The {{ config('app.name') }} team

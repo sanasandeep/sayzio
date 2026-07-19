@@ -33,7 +33,7 @@ export default function UnlockScreen() {
           Linking.openURL(r.checkout_url);
         }
       } else if (r.already) {
-        showAlert("Already unlocked", "You already own this post — enjoy!");
+        showAlert("Already unlocked", "You already own this post. Enjoy!");
       } else {
         showAlert("Unlocked", "Enjoy the post!");
       }

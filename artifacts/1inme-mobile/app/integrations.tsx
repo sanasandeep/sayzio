@@ -106,7 +106,7 @@ export default function IntegrationsScreen() {
           ListFooterComponent={
             (q.data?.length ?? 0) > 0 ? (
               <Text style={[styles.footer, { color: colors.mutedForeground }]}>
-                Add new integrations from the web — most need an OAuth or credentials flow that lives there.
+                Add new integrations from the web; most need an OAuth or credentials flow that lives there.
               </Text>
             ) : null
           }

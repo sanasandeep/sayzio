@@ -123,7 +123,7 @@ export default function ContactPrivacyScreen() {
           <Text style={[styles.intro, { color: colors.mutedForeground }]}>
             By default, everything stays visible to strangers who look you up
             via caller-ID or search. People who've already saved you as a
-            contact — and you yourself — always see everything, no matter
+            contact, and you yourself, always see everything, no matter
             what you choose here.
           </Text>
 

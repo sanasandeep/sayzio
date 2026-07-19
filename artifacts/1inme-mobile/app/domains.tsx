@@ -199,7 +199,7 @@ export default function DomainsScreen() {
           ListFooterComponent={
             (q.data?.length ?? 0) > 0 ? (
               <Text style={[styles.footer, { color: colors.mutedForeground }]}>
-                Finish DNS verification on the web — your registrar may need a CNAME or TXT record.
+                Finish DNS verification on the web; your registrar may need a CNAME or TXT record.
               </Text>
             ) : null
           }
