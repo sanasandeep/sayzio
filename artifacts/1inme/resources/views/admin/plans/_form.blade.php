@@ -882,7 +882,7 @@
         {{-- ============================== STICKY SAVE FOOTER ============================== --}}
         <div class="sticky bottom-4 z-10">
             <div class="glass rounded-2xl border border-white/10 px-6 py-3 flex items-center justify-between">
-                <p class="text-xs text-white/40">{{ $isEdit ? 'Editing existing plan (make sure to keep INR pricing in sync.' : 'New plan) values you leave at defaults are still saved explicitly.' }}</p>
+                <p class="text-xs text-white/40">{{ $isEdit ? 'Editing existing plan: make sure to keep INR pricing in sync.' : 'New plan: values you leave at defaults are still saved explicitly.' }}</p>
                 <div class="flex items-center gap-3">
                     <a href="{{ route('admin.plans.index') }}" class="px-5 py-2 bg-white/10 text-white/80 rounded-xl font-medium hover:bg-white/[0.06] transition text-sm">Cancel</a>
                     <button type="submit" class="px-6 py-2 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition text-sm">{{ $isEdit ? 'Update Plan' : 'Create Plan' }}</button>

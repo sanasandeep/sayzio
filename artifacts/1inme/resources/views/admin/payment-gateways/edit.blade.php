@@ -53,7 +53,7 @@
                 'body' => '<strong>PayPal</strong> processes cards and PayPal-balance payments globally.
                     <ul class="list-disc pl-4 mt-1 space-y-0.5">
                         <li><strong>Client ID &amp; Client Secret</strong>, create a REST API app at <a class="underline" href="https://developer.paypal.com/dashboard/applications" target="_blank" rel="noopener">PayPal Developer → My Apps &amp; Credentials</a>. Create one app for Sandbox and one for Live.</li>
-                        <li><strong>Webhook ID</strong> (in the same app, add a webhook pointing to the URL below. PayPal shows a Webhook ID after creation) paste that here. The platform verifies PayPal\'s <code>PAYPAL-TRANSMISSION-SIG</code> header using this ID.</li>
+                        <li><strong>Webhook ID</strong>: in the same app, add a webhook pointing to the URL below. PayPal shows a Webhook ID after creation; paste that here. The platform verifies PayPal\'s <code>PAYPAL-TRANSMISSION-SIG</code> header using this ID.</li>
                         <li>Toggle <em>Live</em> mode here only when using Live credentials. PayPal Sandbox credentials start with a different prefix and won\'t work in Live mode.</li>
                     </ul>',
             ])

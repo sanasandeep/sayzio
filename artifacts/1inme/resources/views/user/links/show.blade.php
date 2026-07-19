@@ -1352,7 +1352,7 @@
             <span x-show="estimateError" x-text="estimateError" class="text-xs text-red-400" x-cloak></span>
             <span x-show="estimateFreshNote" x-text="estimateFreshNote" class="text-xs inline-flex items-center gap-1" style="color:#34d399;" x-cloak data-testid="text-estimate-fresh"></span>
             <button type="button" x-show="estimateFreshNote" x-cloak
-                    @click="if (confirm(@js($audienceAiCoins > 0 ? 'This will charge up to ' . number_format($audienceAiCoins) . ' ' . Str::plural('coin', $audienceAiCoins) . ' (run anyway?' : 'This will charge coins for a fresh run) run anyway?'))) runEstimate(true)"
+                    @click="if (confirm(@js($audienceAiCoins > 0 ? 'This will charge up to ' . number_format($audienceAiCoins) . ' ' . Str::plural('coin', $audienceAiCoins) . ', run anyway?' : 'This will charge coins for a fresh run, run anyway?'))) runEstimate(true)"
                     :disabled="estimating"
                     class="btn btn-xs" data-testid="button-estimate-force"
                     style="background:rgba(251,191,36,0.12);color:#fbbf24;border:1px solid rgba(251,191,36,0.3);border-radius:8px;padding:4px 12px;font-size:11px;font-weight:600;cursor:pointer;">

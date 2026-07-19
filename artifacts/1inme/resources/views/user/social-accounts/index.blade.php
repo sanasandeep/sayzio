@@ -125,7 +125,7 @@
                            color: {{ $brokenEmailsOn ? '#10b981' : 'var(--text-muted)' }};
                            border: 1px solid {{ $brokenEmailsOn ? 'rgba(16,185,129,0.3)' : 'var(--border-glass)' }};">
                 <i class="fas {{ $brokenEmailsOn ? 'fa-toggle-on' : 'fa-toggle-off' }}"></i>
-                {{ $brokenEmailsOn ? 'On (turn off' : 'Off) turn on' }}
+                {{ $brokenEmailsOn ? 'On (turn off)' : 'Off (turn on)' }}
             </button>
         </form>
     </div>

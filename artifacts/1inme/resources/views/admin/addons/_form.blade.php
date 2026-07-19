@@ -78,7 +78,7 @@
 
     <div class="border-t border-white/10 pt-5">
         <h3 class="text-sm font-medium text-white/80 mb-1">Pricing per country</h3>
-        <p class="text-[11px] text-white/40 mb-3">USD is shown to everyone by default. INR is shown to users whose billing country is India. The two amounts are independent (no FX conversion. <span class="text-white/30">Enter amounts as <strong>integer minor units</strong>) e.g. <code>999</code> = $9.99, <code>82900</code> = ₹829.</span></p>
+        <p class="text-[11px] text-white/40 mb-3">USD is shown to everyone by default. INR is shown to users whose billing country is India. The two amounts are independent, no FX conversion. <span class="text-white/30">Enter amounts as <strong>integer minor units</strong>, e.g. <code>999</code> = $9.99, <code>82900</code> = ₹829.</span></p>
         <div class="grid grid-cols-2 gap-6">
             <div class="rounded-xl border border-white/10 p-4 bg-white/[0.02]">
                 <div class="text-xs uppercase tracking-wider text-white/50 mb-3">USD <span class="text-white/30 normal-case"> - everyone outside India</span></div>
