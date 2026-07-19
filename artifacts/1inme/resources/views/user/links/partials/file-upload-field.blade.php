@@ -173,6 +173,9 @@ function fileUploadField_{{ $fieldId }}() {
             this.$watch('mode', (val) => {
                 if (val === 'browse' && this.browseFiles.length === 0) this.loadFiles();
             });
+            this.$watch('value', (val) => {
+                this.$dispatch('file-url-change', { url: val });
+            });
         },
 
         fileExt() {

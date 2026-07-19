@@ -67,6 +67,21 @@ class UploadPolicy
 
         // ── AI Agent (AI Companion / AI Chat) ─────────────────────────────
         'link.ai_avatar'         => ['label' => 'AI Agent Avatar',            'group' => 'AI Agent',           'max_mb' => 2,  'extensions' => ['jpg','jpeg','png','webp','gif'],          'multiple' => false],
+        // ── User profile ───────────────────────────────────────────────────
+        'user.avatar'            => ['label' => 'Profile Avatar',              'group' => 'Profile',            'max_mb' => 2,  'extensions' => ['jpg','jpeg','png','gif','webp'],          'multiple' => false],
+
+        // ── Billing companies (logo + letterhead) ──────────────────────────
+        'billing.logo'           => ['label' => 'Company Logo',               'group' => 'Billing',            'max_mb' => 2,  'extensions' => ['jpg','jpeg','png','gif','webp','svg'],    'multiple' => false],
+        'billing.letterhead'     => ['label' => 'Invoice Letterhead',         'group' => 'Billing',            'max_mb' => 5,  'extensions' => ['jpg','jpeg','png','webp'],                'multiple' => false],
+
+        // ── Resume / Portfolio ─────────────────────────────────────────────
+        'resume.photo'           => ['label' => 'Resume Header Photo',        'group' => 'Resume',             'max_mb' => 5,  'extensions' => ['jpg','jpeg','png','webp'],                'multiple' => false],
+
+        // ── Brand Kit ─────────────────────────────────────────────────────
+        'brand_kit.logo'         => ['label' => 'Brand Kit Logo',             'group' => 'Brand Kit',          'max_mb' => 2,  'extensions' => ['jpg','jpeg','png','webp','svg'],          'multiple' => false],
+
+        // ── Menu / Store item images ───────────────────────────────────────
+        'menu.item_photo'        => ['label' => 'Menu Item Photo',            'group' => 'Restaurant/Store',   'max_mb' => 2,  'extensions' => ['jpg','jpeg','png','gif','webp','svg'],    'multiple' => false],
     ];
 
     /**

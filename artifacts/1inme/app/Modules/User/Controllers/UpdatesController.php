@@ -255,7 +255,7 @@ class UpdatesController extends Controller
             'id'             => $entry->id,
             'title'          => $entry->title,
             'body'           => $entry->body,
-            'image'          => $entry->image,
+            'image'          => $entry->image ? \App\Support\PublicStorageUrl::resolve($entry->image) : null,
             'tag'            => $entry->tag,
             'published_date' => $entry->published_date?->toDateString(),
             'status'         => $entry->status,

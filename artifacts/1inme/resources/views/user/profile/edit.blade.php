@@ -288,64 +288,21 @@
             <div class="space-y-6">
 
                 {{-- Avatar Upload --}}
-                <div class="glass rounded-2xl p-6" x-data="{
-                    fileName: '',
-                    previewSrc: {{ $user->avatar ? ('\''. \App\Support\PublicStorageUrl::resolve($user->avatar) .'\'') : 'null' }},
-                    pick() {
-                        this.$refs.avatarInput.click();
-                    },
-                    onChange(e) {
-                        const f = e.target.files && e.target.files[0];
-                        if (!f) return;
-                        this.fileName = f.name;
-                        const reader = new FileReader();
-                        reader.onload = (ev) => { this.previewSrc = ev.target.result; };
-                        reader.readAsDataURL(f);
-                    }
-                }">
+                <div class="glass rounded-2xl p-6">
                     <h2 class="text-base font-semibold mb-4" style="color: var(--text-strong);">Photo</h2>
-
-                    <div class="flex flex-col items-center gap-4">
-                        {{-- Avatar preview circle --}}
-                        <div class="relative">
-                            <template x-if="previewSrc">
-                                <img :src="previewSrc" class="w-24 h-24 rounded-full object-cover ring-2 ring-white/10" alt="Avatar preview">
-                            </template>
-                            <template x-if="!previewSrc">
-                                <div class="w-24 h-24 rounded-full bg-white/8 border-2 border-dashed border-white/20 flex items-center justify-center">
-                                    <i class="fas fa-user text-3xl text-white/20"></i>
-                                </div>
-                            </template>
-                            {{-- Upload overlay badge --}}
-                            <button type="button" @click="pick()"
-                                    class="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-blue-600 hover:bg-blue-500 border-2 border-white/10 flex items-center justify-center transition-colors shadow-lg"
-                                    title="Change photo">
-                                <i class="fas fa-camera text-white text-xs"></i>
-                            </button>
-                        </div>
-
-                        {{-- Hidden real file input --}}
-                        <input type="file" name="avatar" accept="image/*"
-                               x-ref="avatarInput"
-                               @change="onChange($event)"
-                               class="hidden">
-
-                        {{-- Upload button --}}
-                        <button type="button" @click="pick()"
-                                class="profile-upload-btn inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all">
-                            <i class="fas fa-arrow-up-from-bracket text-sm"></i>
-                            <span x-text="previewSrc ? 'Change photo' : 'Upload avatar'"></span>
-                        </button>
-
-                        {{-- Selected file name --}}
-                        <p x-show="fileName" x-text="fileName"
-                           class="text-xs text-white/50 text-center truncate max-w-full px-2"
-                           style="display:none;"></p>
-
-                        <p class="text-[11px] text-center" style="color: var(--text-subtle, rgba(255,255,255,0.30));">
-                            JPG, PNG or GIF &middot; Max 2 MB
-                        </p>
-                    </div>
+                    @php
+                        $avatarPolicy = \App\Services\UploadPolicy::for('user.avatar', auth()->user());
+                        $avatarCurrentUrl = $user->avatar ? \App\Support\PublicStorageUrl::resolve($user->avatar) : null;
+                    @endphp
+                    @include('user.partials.dropzone-input', [
+                        'name'        => 'avatar',
+                        'policy'      => $avatarPolicy,
+                        'currentUrl'  => $avatarCurrentUrl,
+                        'currentName' => $user->avatar ? basename($user->avatar) : null,
+                        'label'       => null,
+                        'previewKind' => 'image',
+                        'compact'     => true,
+                    ])
                 </div>
 
                 {{-- Public Profile --}}
@@ -441,25 +398,6 @@
 </div>
 
 @push('styles')
-<style>
-    .profile-upload-btn {
-        background: rgba(var(--color-primary-rgb, 37,99,235), 0.12);
-        border: 1px solid rgba(var(--color-primary-rgb, 37,99,235), 0.30);
-        color: var(--color-primary-400, #60a5fa);
-    }
-    .profile-upload-btn:hover {
-        background: rgba(var(--color-primary-rgb, 37,99,235), 0.22);
-        border-color: rgba(var(--color-primary-rgb, 37,99,235), 0.50);
-    }
-    html.light-mode .profile-upload-btn {
-        background: rgba(37,99,235,0.08);
-        border-color: rgba(37,99,235,0.25);
-        color: #1d4ed8;
-    }
-    html.light-mode .profile-upload-btn:hover {
-        background: rgba(37,99,235,0.15);
-    }
-</style>
 @endpush
 
 @push('scripts')

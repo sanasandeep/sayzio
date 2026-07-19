@@ -127,11 +127,16 @@
                            class="w-full rounded-xl bg-black/30 border border-white/10 text-white text-sm px-3 py-2 focus:border-primary-400 focus:outline-none"
                            placeholder="https://yourbrand.com">
                 </div>
-                <div>
-                    <label class="block text-xs text-white/50 mb-1">Logo URL <span class="text-white/30">(optional)</span></label>
-                    <input x-model="form.logo_url" type="url"
-                           class="w-full rounded-xl bg-black/30 border border-white/10 text-white text-sm px-3 py-2 focus:border-primary-400 focus:outline-none"
-                           placeholder="https://.../logo.png">
+                <div @file-url-change.stop="form.logo_url = $event.detail.url">
+                    <label class="block text-xs text-white/50 mb-1.5">Logo <span class="text-white/30">(optional)</span></label>
+                    @include('user.links.partials.file-upload-field', [
+                        'fieldName'    => '_brand_kit_logo',
+                        'currentValue' => '',
+                        'acceptTypes'  => 'image',
+                        'labelText'    => '',
+                        'labelClass'   => 'hidden',
+                        'inputClass'   => 'w-full rounded-xl bg-black/30 border border-white/10 text-white text-sm px-3 py-2 focus:border-primary-400 focus:outline-none',
+                    ])
                 </div>
             </div>
 
