@@ -205,6 +205,7 @@ describe('private window leaves no trace after closing', () => {
     const syncResult = invoke('sync:queue-push', privateWin, 'history', JSON.stringify([{ local_id: 'x' }]));
     expect(syncResult).toBeNull();
     expect(invoke('sync:pending-count', privateWin)).toBe(0);
+    expect(invoke('sync:pending-by-profile', privateWin)).toEqual([]);
 
     // "Download a file" through the private session — must not touch the DB
     downloadManagerMod.setupDownloadManager(privateSession as never, privateWin as never, true);

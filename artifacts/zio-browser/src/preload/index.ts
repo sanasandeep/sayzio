@@ -184,6 +184,7 @@ const api = {
     queuePush: (entity: string, payloadJson: string, error?: string) =>
       ipcRenderer.invoke('sync:queue-push', entity, payloadJson, error),
     pendingCount: () => ipcRenderer.invoke('sync:pending-count'),
+    pendingByProfile: () => ipcRenderer.invoke('sync:pending-by-profile'),
     flush: () => ipcRenderer.invoke('sync:flush'),
   },
 

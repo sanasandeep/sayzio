@@ -12,6 +12,7 @@ import { ModeSwitcher } from './ModeSwitcher';
 import { ProfileSwitcher } from './ProfileSwitcher';
 import { useModeStore } from '../store/mode-store';
 import type { RecentlyClosedEntry } from '../../main/tab-manager';
+import type { SyncQueueProfileCount } from '../../main/db';
 
 interface Props {
   zioPanelOpen: boolean;
@@ -347,6 +348,7 @@ export function ChromeBar({
   const [shortenOpen, setShortenOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
   const [pendingSyncCount, setPendingSyncCount] = useState(0);
+  const [pendingSyncByProfile, setPendingSyncByProfile] = useState<SyncQueueProfileCount[]>([]);
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
   const [stripMenuOpen, setStripMenuOpen] = useState(false);
   const [blockedCount, setBlockedCount] = useState(0);
@@ -402,10 +404,15 @@ export function ChromeBar({
     void window.zio.sync.pendingCount().then((n: number) => {
       if (!cancelled) setPendingSyncCount(n);
     }).catch(() => { /* main not ready yet — event listener will update */ });
+    void window.zio.sync.pendingByProfile().then((rows: SyncQueueProfileCount[]) => {
+      if (!cancelled) setPendingSyncByProfile(rows);
+    }).catch(() => { /* main not ready yet — event listener will update */ });
 
     const listener = (...args: unknown[]) => {
       const n = args[0];
       if (typeof n === 'number') setPendingSyncCount(n);
+      const byProfile = args[1];
+      if (Array.isArray(byProfile)) setPendingSyncByProfile(byProfile as SyncQueueProfileCount[]);
     };
     window.zio.on('sync:queue-changed', listener);
     return () => {
@@ -938,7 +945,13 @@ export function ChromeBar({
         {/* Sync pending indicator */}
         {pendingSyncCount > 0 && (
           <div
-            title={`${pendingSyncCount} change${pendingSyncCount === 1 ? '' : 's'} waiting to sync — will retry automatically`}
+            title={
+              pendingSyncByProfile.length > 0
+                ? `Waiting to sync — will retry automatically: ${pendingSyncByProfile
+                    .map(p => `${p.count} pending for ${p.profileName}`)
+                    .join(', ')}`
+                : `${pendingSyncCount} change${pendingSyncCount === 1 ? '' : 's'} waiting to sync — will retry automatically`
+            }
             style={{
               display: 'flex',
               alignItems: 'center',

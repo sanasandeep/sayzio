@@ -581,6 +581,41 @@ export function countSyncQueue(): number {
   return row.n;
 }
 
+export interface SyncQueueProfileCount {
+  profileId: string;
+  profileName: string;
+  count: number;
+}
+
+/**
+ * Pending sync-queue counts broken down by the profile/workspace each item was
+ * enqueued under. Legacy rows without a recorded profile (and rows whose
+ * profile has since been removed) fall back to the personal profile bucket.
+ */
+export function countSyncQueueByProfile(): SyncQueueProfileCount[] {
+  const db = getDb();
+  const rows = db.prepare(`
+    SELECT COALESCE(q.profile_id, ?) AS profile_id, p.name AS profile_name, COUNT(*) AS n
+    FROM sync_queue q
+    LEFT JOIN profiles p ON p.id = q.profile_id
+    GROUP BY COALESCE(q.profile_id, ?), p.name
+    ORDER BY n DESC, profile_id ASC
+  `).all(DEFAULT_PROFILE_ID, DEFAULT_PROFILE_ID) as Array<{ profile_id: string; profile_name: string | null; n: number }>;
+
+  // Merge buckets that resolve to the personal profile (default id, or an
+  // unknown/removed profile with no name row).
+  const merged = new Map<string, SyncQueueProfileCount>();
+  for (const row of rows) {
+    const isPersonal = row.profile_id === DEFAULT_PROFILE_ID || row.profile_name === null;
+    const profileId = isPersonal ? DEFAULT_PROFILE_ID : row.profile_id;
+    const profileName = isPersonal ? 'Personal' : row.profile_name as string;
+    const existing = merged.get(profileId);
+    if (existing) existing.count += row.n;
+    else merged.set(profileId, { profileId, profileName, count: row.n });
+  }
+  return [...merged.values()].sort((a, b) => b.count - a.count || a.profileName.localeCompare(b.profileName));
+}
+
 export function markSyncQueueFailure(id: string, error: string): void {
   const db = getDb();
   const row = db.prepare('SELECT attempts FROM sync_queue WHERE id = ?').get(id) as { attempts: number } | undefined;

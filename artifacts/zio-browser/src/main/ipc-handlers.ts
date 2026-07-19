@@ -48,6 +48,7 @@ import {
   replaceSayzioLinksCache,
   clearSayzioLinksCache,
   countSyncQueue,
+  countSyncQueueByProfile,
   savePassword,
   getPasswordsForOrigin,
   getAllSavedPasswords,
@@ -189,7 +190,7 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
   // Background retry loop for failed sync pushes.
   const syncRetryRunner = new SyncRetryRunner({
     onQueueChanged: (pendingCount) => {
-      mainWindow.webContents.send('sync:queue-changed', pendingCount);
+      mainWindow.webContents.send('sync:queue-changed', pendingCount, countSyncQueueByProfile());
     },
   });
   syncRetryRunner.start();
@@ -551,6 +552,7 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
     return item.id;
   });
   ipcMain.handle('sync:pending-count', (event) => senderIsPrivate(event) ? 0 : countSyncQueue());
+  ipcMain.handle('sync:pending-by-profile', (event) => senderIsPrivate(event) ? [] : countSyncQueueByProfile());
   ipcMain.handle('sync:flush', async (event) => {
     // Secondary private-mode gate (see block comment above): private windows
     // must never trigger a queue drain to the server.
