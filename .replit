@@ -344,6 +344,10 @@ args = "check:em-dash"
 task = "workflow.run"
 args = "check:unbalanced-parens"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "toolbar-theme-color"
+
 [[workflows.workflow]]
 name = "e2e"
 author = "agent"
@@ -1443,6 +1447,17 @@ args = "pnpm --filter @workspace/scripts run check:unbalanced-parens"
 
 [workflows.workflow.metadata]
 isValidation = true
+
+[[workflows.workflow]]
+name = "toolbar-theme-color"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/scripts run check:toolbar-theme-color"
+
+[workflows.workflow.metadata]
+outputType = "console"
 
 
 [agent]
