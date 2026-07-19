@@ -340,6 +340,10 @@ args = "zio-freshness-test"
 task = "workflow.run"
 args = "check:em-dash"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "check:unbalanced-parens"
+
 [[workflows.workflow]]
 name = "e2e"
 author = "agent"
@@ -1425,6 +1429,17 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "pnpm --filter @workspace/scripts run check:em-dash"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "check:unbalanced-parens"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/scripts run check:unbalanced-parens"
 
 [workflows.workflow.metadata]
 isValidation = true

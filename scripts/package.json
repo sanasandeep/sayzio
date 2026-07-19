@@ -34,7 +34,8 @@
     "check:em-dash": "tsx ./src/check-em-dash.ts",
     "sync:branch-protection": "tsx ./src/sync-branch-protection.ts",
     "test": "vitest run",
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "check:unbalanced-parens": "tsx ./src/check-unbalanced-parens.ts"
   },
   "devDependencies": {
     "@types/node": "catalog:",
