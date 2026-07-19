@@ -15,6 +15,7 @@ class CreatorPaymentEvent extends Model
     public const SOURCE_SUB     = 'sub';
     public const SOURCE_PPV     = 'ppv';
     public const SOURCE_TIP     = 'tip';
+    public const SOURCE_TIP_JAR = 'tip_jar';
     public const SOURCE_PRODUCT = 'product';
     public const SOURCE_FORM    = 'form';
     public const SOURCE_EVENT   = 'event';

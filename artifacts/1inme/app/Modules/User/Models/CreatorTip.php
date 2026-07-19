@@ -18,6 +18,7 @@ class CreatorTip extends Model
         'creator_user_id', 'fan_user_id', 'post_id',
         'amount_cents', 'currency', 'note', 'anonymous',
         'status', 'gateway', 'gateway_charge_id', 'refunded_at',
+        'source',
     ];
 
     protected function casts(): array

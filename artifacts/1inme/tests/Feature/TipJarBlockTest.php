@@ -103,11 +103,13 @@ class TipJarBlockTest extends TestCase
         [$link, $block]   = $this->makeBiolinkWithTipJarBlock($creator);
 
         $this->actingAs($creator)
-            ->patch(route('user.biolink.blocks.update', ['link' => $link->id, 'block' => $block->id]), [
-                'settings[title]'       => 'Tip me',
-                'settings[amounts_csv]' => '2, 5, 15',
-                'settings[allow_custom]' => '1',
-                'settings[button_text]'  => 'Send Tip',
+            ->put(route('user.links.blocks.update', ['link' => $link->id, 'block' => $block->id]), [
+                'settings' => [
+                    'title'        => 'Tip me',
+                    'amounts_csv'  => '2, 5, 15',
+                    'allow_custom' => '1',
+                    'button_text'  => 'Send Tip',
+                ],
             ])
             ->assertRedirect();
 
@@ -243,5 +245,96 @@ class TipJarBlockTest extends TestCase
                 'amount'   => 5,
             ])
             ->assertStatus(422);
+    }
+
+    // ─── Earnings breakdown: tip_jar source (Task) ───────────────────────────
+
+    public function test_web_tip_jar_records_tip_with_tip_jar_source(): void
+    {
+        config(['monetization.allow_preview_checkout' => true]);
+
+        [$creator, $conn] = $this->makeCreatorWithConnection();
+        [$link, $block]   = $this->makeBiolinkWithTipJarBlock($creator);
+        $fan = User::factory()->create();
+
+        $this->actingAs($fan)
+            ->post(route('biolink.tip-jar', ['alias' => $link->alias]), [
+                'block_id' => $block->id,
+                'amount'   => 5,
+            ])
+            ->assertRedirect();
+
+        $tip = \App\Modules\User\Models\CreatorTip::query()
+            ->where('creator_user_id', $creator->id)
+            ->where('fan_user_id', $fan->id)
+            ->latest('id')->first();
+        $this->assertNotNull($tip);
+        $this->assertSame('tip_jar', $tip->source);
+    }
+
+    public function test_confirmed_tip_jar_tip_logs_tip_jar_ledger_event(): void
+    {
+        config(['monetization.allow_preview_checkout' => true]);
+
+        [$creator, $conn] = $this->makeCreatorWithConnection();
+        [$link, $block]   = $this->makeBiolinkWithTipJarBlock($creator);
+        $fan = User::factory()->create();
+
+        $response = $this->actingAs($fan)
+            ->post(route('biolink.tip-jar', ['alias' => $link->alias]), [
+                'block_id' => $block->id,
+                'amount'   => 5,
+            ]);
+        $response->assertRedirect();
+
+        // Preview checkout URL carries kind/reference/token; confirm via
+        // the return handler exactly like the hosted flow would.
+        parse_str(parse_url($response->headers->get('Location'), PHP_URL_QUERY) ?: '', $q);
+        $this->assertNotEmpty($q['token'] ?? null);
+        $this->get(route('checkout.return', [
+            'kind'      => 'tip',
+            'reference' => $q['reference'],
+            'token'     => $q['token'],
+        ]))->assertRedirect();
+
+        $this->assertDatabaseHas('creator_payment_events', [
+            'creator_user_id' => $creator->id,
+            'fan_user_id'     => $fan->id,
+            'source'          => 'tip_jar',
+            'type'            => \App\Modules\User\Models\CreatorPaymentEvent::TYPE_TIP_RECEIVED,
+            'amount_cents'    => 500,
+        ]);
+
+        // The mobile earnings API surfaces the same breakdown.
+        $token = $creator->createToken('test')->plainTextToken;
+        $this->withToken($token)
+            ->getJson('/api/v1/me/creator/earnings')
+            ->assertOk()
+            ->assertJsonPath('data.by_source.tip_jar', 500);
+    }
+
+    public function test_profile_tip_still_records_plain_tip_source(): void
+    {
+        config(['monetization.allow_preview_checkout' => true]);
+
+        [$creator, $conn] = $this->makeCreatorWithConnection();
+        $creator->forceFill(['handle' => 'tipcreator' . random_int(1000, 9999)])->save();
+        $fan = User::factory()->create();
+
+        $r = app(MonetizationCheckout::class)->startTip($fan, $creator, 500, 'USD');
+        $this->assertNull($r['tip']->source);
+
+        parse_str(parse_url($r['url'], PHP_URL_QUERY) ?: '', $q);
+        $this->get(route('checkout.return', [
+            'kind'      => 'tip',
+            'reference' => $q['reference'],
+            'token'     => $q['token'],
+        ]))->assertRedirect();
+
+        $this->assertDatabaseHas('creator_payment_events', [
+            'creator_user_id' => $creator->id,
+            'source'          => 'tip',
+            'type'            => \App\Modules\User\Models\CreatorPaymentEvent::TYPE_TIP_RECEIVED,
+        ]);
     }
 }

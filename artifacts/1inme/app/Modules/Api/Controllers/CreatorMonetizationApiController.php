@@ -172,6 +172,7 @@ class CreatorMonetizationApiController extends Controller
             $data['note'] ?? null,
             (bool) ($data['anonymous'] ?? false),
             $data['return_url'] ?? null,
+            CreatorPaymentEvent::SOURCE_TIP_JAR,
         );
         return $this->ok([
             'checkout_url' => $r['url'],
@@ -263,6 +264,13 @@ class CreatorMonetizationApiController extends Controller
                 ->where('creator_user_id', $user->id)
                 ->whereIn('status', [CreatorSubscription::STATUS_ACTIVE, CreatorSubscription::STATUS_TRIALING])
                 ->count(),
+            'by_source' => CreatorPaymentEvent::query()
+                ->selectRaw('source, SUM(amount_cents) as total')
+                ->where('creator_user_id', $user->id)
+                ->groupBy('source')
+                ->pluck('total', 'source')
+                ->map(fn ($v) => (int) $v)
+                ->all(),
             'currency' => $user->preferred_currency ?: 'USD',
         ]);
     }

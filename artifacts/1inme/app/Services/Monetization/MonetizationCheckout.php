@@ -198,6 +198,7 @@ class MonetizationCheckout
         ?string $note = null,
         bool $anonymous = false,
         ?string $returnUrl = null,
+        ?string $source = null,
     ): array {
         if ($fan->id === $creator->id) abort(422, 'You can\'t tip yourself.');
         if ($amountCents < 100) abort(422, 'Minimum tip is $1.00.');
@@ -218,6 +219,9 @@ class MonetizationCheckout
             'anonymous'       => $anonymous,
             'status'          => CreatorTip::STATUS_FAILED, // pending until confirm
             'gateway'         => $connection->provider,
+            'source'          => $source === CreatorPaymentEvent::SOURCE_TIP_JAR
+                ? CreatorPaymentEvent::SOURCE_TIP_JAR
+                : null, // null → plain 'tip'
         ]);
 
         $token = Str::random(32);
@@ -665,7 +669,7 @@ class MonetizationCheckout
         $creator = $tip->creator;
         $fan     = $tip->fan;
         if ($creator) {
-            $this->logEvent($creator, $fan, CreatorPaymentEvent::SOURCE_TIP, CreatorPaymentEvent::TYPE_TIP_RECEIVED, $tip, $tip->amount_cents, $tip->currency);
+            $this->logEvent($creator, $fan, $this->tipEventSource($tip), CreatorPaymentEvent::TYPE_TIP_RECEIVED, $tip, $tip->amount_cents, $tip->currency);
             if ($fan) $this->notifyCreatorOfTip($creator, $fan, $tip);
         }
         return [
@@ -707,6 +711,7 @@ class MonetizationCheckout
     {
         return match ($source) {
             CreatorPaymentEvent::SOURCE_TIP     => $this->refundTip($referenceId),
+            CreatorPaymentEvent::SOURCE_TIP_JAR => $this->refundTip($referenceId),
             CreatorPaymentEvent::SOURCE_PPV     => $this->refundPpv($referenceId),
             CreatorPaymentEvent::SOURCE_SUB     => $this->refundSubscription($referenceId),
             CreatorPaymentEvent::SOURCE_PRODUCT => $this->refundProductOrder($referenceId),
@@ -941,6 +946,17 @@ class MonetizationCheckout
         $this->emailCreatorBestEffort($buyer, 'Your Sayzio order was refunded', 'Order #' . $order->id . ' has been refunded for ' . $this->formatMoney((int) $order->subtotal_cents, $order->currency) . '.');
     }
 
+    /**
+     * Ledger source for a tip: tips started from a Tip Jar biolink
+     * block carry source 'tip_jar'; everything else is a plain 'tip'.
+     */
+    protected function tipEventSource(CreatorTip $tip): string
+    {
+        return $tip->source === CreatorPaymentEvent::SOURCE_TIP_JAR
+            ? CreatorPaymentEvent::SOURCE_TIP_JAR
+            : CreatorPaymentEvent::SOURCE_TIP;
+    }
+
     protected function refundTip(int $id): bool
     {
         $tip = CreatorTip::find($id);
@@ -955,7 +971,7 @@ class MonetizationCheckout
         $tip->status = CreatorTip::STATUS_REFUNDED;
         $tip->refunded_at = now();
         $tip->save();
-        $this->logEvent($tip->creator, $tip->fan, CreatorPaymentEvent::SOURCE_TIP, CreatorPaymentEvent::TYPE_TIP_REFUNDED, $tip, -1 * $tip->amount_cents, $tip->currency);
+        $this->logEvent($tip->creator, $tip->fan, $this->tipEventSource($tip), CreatorPaymentEvent::TYPE_TIP_REFUNDED, $tip, -1 * $tip->amount_cents, $tip->currency);
         return true;
     }
 

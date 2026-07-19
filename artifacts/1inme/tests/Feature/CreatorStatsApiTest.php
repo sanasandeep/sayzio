@@ -129,9 +129,20 @@ class CreatorStatsApiTest extends TestCase
             'published_at' => now()->subDay(),
         ]);
 
+        $tier = \App\Modules\User\Models\SubscriptionTier::create([
+            'user_id'             => $creator->id,
+            'name'                => 'Basic',
+            'slug'                => 'basic',
+            'is_free'             => false,
+            'is_active'           => true,
+            'price_monthly_cents' => 500,
+            'currency'            => 'USD',
+        ]);
+
         CreatorSubscription::create([
             'fan_user_id'     => $fan->id,
             'creator_user_id' => $creator->id,
+            'tier_id'         => $tier->id,
             'status'          => CreatorSubscription::STATUS_ACTIVE,
         ]);
 

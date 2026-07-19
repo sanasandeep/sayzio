@@ -348,8 +348,8 @@ class UpdatesPageTest extends TestCase
         ]);
     }
 
-    private function withToken(string $token)
+    public function withToken(string $token, string $type = 'Bearer')
     {
-        return $this->withHeaders(['Authorization' => 'Bearer ' . $token]);
+        return $this->withHeaders(['Authorization' => $type . ' ' . $token]);
     }
 }

@@ -275,6 +275,7 @@ class CreatorMonetizationPublicController extends Controller
             $data['note'] ?? null,
             (bool) ($data['anonymous'] ?? false),
             $returnUrl,
+            \App\Modules\User\Models\CreatorPaymentEvent::SOURCE_TIP_JAR,
         );
         return redirect()->away($r['url']);
     }

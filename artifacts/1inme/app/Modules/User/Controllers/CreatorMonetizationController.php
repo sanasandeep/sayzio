@@ -501,13 +501,13 @@ class CreatorMonetizationController extends Controller
     {
         $user = $request->user();
         $data = $request->validate([
-            'source'       => 'required|in:tip,ppv,sub',
+            'source'       => 'required|in:tip,tip_jar,ppv,sub',
             'reference_id' => 'required|integer|min:1',
         ]);
 
         // Authorize: the source row must belong to the current creator.
         $allowed = match ($data['source']) {
-            'tip' => (bool) CreatorTip::where('id', $data['reference_id'])->where('creator_user_id', $user->id)->exists(),
+            'tip', 'tip_jar' => (bool) CreatorTip::where('id', $data['reference_id'])->where('creator_user_id', $user->id)->exists(),
             'ppv' => (bool) PostUnlock::where('id', $data['reference_id'])->whereHas('post', fn ($q) => $q->withoutGlobalScope('workspace')->where('user_id', $user->id))->exists(),
             'sub' => (bool) CreatorSubscription::where('id', $data['reference_id'])->where('creator_user_id', $user->id)->exists(),
         };
