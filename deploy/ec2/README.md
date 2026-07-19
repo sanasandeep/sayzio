@@ -295,6 +295,7 @@ is a no-op there.
 curl -fsS https://yourdomain.com/up               # instant 200, no DB (LB health check)
 curl -fsS https://yourdomain.com/up/schema        # 200 = schema in sync (503 = drift)
 curl -fsS https://yourdomain.com/api/healthz      # Express API server alive
+curl -fsS https://yourdomain.com/api/v1/          # must return a Laravel JSON 404 (NOT a 502)
 curl -fsSI https://yourdomain.com/                # home page renders (200)
 curl -fsSI https://yourdomain.com/@somehandle     # a seeded/known biolink page
 curl -fsSI https://yourdomain.com/build/          # 403/404, but /build/assets/*.css from page source = 200
@@ -302,6 +303,10 @@ systemctl status sayzio-api sayzio-queue          # both active (running)
 systemctl list-timers | grep sayzio               # scheduler timer armed
 tail -f /var/www/sayzio/artifacts/1inme/storage/logs/laravel.log
 ```
+
+> **Mobile sign-in check**: the `/api/v1/` probe above is critical — if it returns a 502 or a JSON
+> `{"error":{"code":"upstream_unavailable",...}}` it means Nginx is still sending all `/api/*` traffic
+> to Express (the old broad `location /api` block). Apply the one-time rollout below.
 
 Also verify in-app: log in, upload a file (S3), send a test email
 (Admin → Mail settings → test), and check Admin dashboard for the schema
@@ -333,6 +338,40 @@ banner (should be absent).
   per-domain certificates.
 - **Env delivery**: Laravel reads `artifacts/1inme/.env`; the api-server reads
   `/etc/sayzio/api-server.env` via systemd. No Replit Secrets pane.
+
+## One-time rollout: fix Nginx `/api` routing (required on existing servers)
+
+Servers provisioned before this fix have a broad `location /api` block that
+routes ALL `/api/*` traffic to Express — including `/api/v1/*` Laravel traffic.
+This causes the "couldn't reach backend" 502 that breaks mobile sign-in.
+
+**Apply once per server (no redeploy needed — just copy + reload):**
+
+```bash
+cd /var/www/sayzio
+
+# 1. Pull the updated config
+sudo -u sayzio git pull
+
+# 2. Install the corrected Nginx config (Ubuntu)
+sudo cp deploy/ec2/nginx/sayzio.conf /etc/nginx/sites-available/sayzio.conf
+# Amazon Linux 2023: sudo cp deploy/ec2/nginx/sayzio.conf /etc/nginx/conf.d/sayzio.conf
+# (re-apply your server_name and fastcgi_pass socket edits if not scripted)
+
+# 3. Test and reload
+sudo nginx -t && sudo systemctl reload nginx
+
+# 4. Smoke test — /api/v1/ must now return a Laravel 404 JSON, NOT a 502
+curl -fsS https://yourdomain.com/api/v1/     # expect: {"error":{"code":"route_not_found",...}} or similar Laravel 404
+curl -fsS https://yourdomain.com/api/healthz # expect: {"status":"ok"}
+```
+
+**What changed**: the single `location /api` block was replaced with two specific
+blocks — `location = /api/healthz` and `location /api/contact` — so Express only
+receives the requests it actually handles. All `/api/v1/*` traffic now falls
+through to PHP-FPM/Laravel directly, as intended.
+
+---
 
 ## Routine operations
 
