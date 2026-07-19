@@ -64,16 +64,23 @@ function blankComments(src: string): string {
  * (declared out-of-scope in scratchpad).
  */
 function blankFallbackPlaceholders(src: string): string {
-  return src.replace(/(\?\?|\?:|\?[^:\n]*:[ \t]*|!=?=?|\|\|)[ \t]*'—'/g, (m) => m.replace(/[^\n]/g, " "));
+  // A quoted string containing ONLY an em dash is always a no-value display
+  // sentinel (`?? '—'`, `return '—';`, `: "—"`), never copy.
+  let out = src.replace(/(['"])—\1/g, (m) => " ".repeat(m.length));
+  // Same for an element whose entire text is a lone em dash: <td>—</td>
+  out = out.replace(/>[ \t]*—[ \t]*</g, (m) => " ".repeat(m.length));
+  // And a line whose entire content is a lone em dash (Blade @else fallbacks)
+  out = out.replace(/^[ \t]*—[ \t]*$/gm, (m) => " ".repeat(m.length));
+  return out;
 }
 
 /** Scan roots and individual files (relative to repo root). */
 const SCAN_TARGETS: string[] = [
   "artifacts/1inme/resources/views/public",
-  "artifacts/1inme/resources/views/errors",
   "artifacts/1inme/resources/views/user",
   "artifacts/1inme/resources/views/admin",
   "artifacts/1inme/resources/views/common",
+  "artifacts/1inme/resources/views/errors",
   "artifacts/1inme/resources/views/public/layouts/site.blade.php",
   "artifacts/1inme/database/seeders/SitePagesSeeder.php",
   "artifacts/1inme/database/seeders/MarketingBlogPostsSeeder.php",
