@@ -214,6 +214,7 @@ or as biolink blocks.
 | **Store** | An order-request storefront: list products in categories and take orders (name, contact, note) with **no online payment** — you fulfil them offline from an owner dashboard. |
 | **Service Booking** | An appointment-request page: list services with duration and price, publish your availability, and let visitors request a slot. You confirm bookings from a dashboard — no payment is collected, any total shown is an estimate. |
 | **Calendar** | A followable calendar of your events with an ICS feed; on supported plans it stays in two-way sync with your connected Google calendar. |
+| **Updates / Changelog** | A dated announcement feed for product updates, release notes, or announcements. Each entry has a title, body, tag (feature / fix / improvement / breaking / announcement), date, and draft/published status. |
 | **Brand / Press Kit** | A shareable page with your logos, colours, fonts, brand voice, and boilerplate — handy for press and partners. |
 | **Social** | Link and manage your connected social accounts. |
 
@@ -816,19 +817,27 @@ in the Sayzio mobile app.
 ### 24c. Service Booking (appointment requests)
 
 **What it is.** An appointment-request page where visitors browse your services
-and request a time slot. You confirm or decline bookings from a dashboard. **No
-payment is collected** — any pricing shown is for reference only. It has its own
-dedicated builder.
+and request a time slot. You confirm or decline bookings from a dashboard. It has
+its own dedicated builder.
 
 **Why use it.** Ideal for freelancers, coaches, therapists, personal trainers, and
 any service provider who wants a simple "here's what I offer, book a slot" page.
 
 **How to use it (owner).**
 1. Create a **Service Booking** link.
-2. Add **Services** (name, description, duration, price/rate — display only).
+2. Add **Services** (name, description, duration, price/rate).
 3. Set your **weekly availability** (which days and hours) and any blocked dates.
 4. When booking requests come in, manage them in the **Bookings Dashboard**:
    confirm or decline each request and add notes.
+
+**Paid bookings.** You can optionally require payment at booking time — choose
+**Full payment** (the full service price is collected upfront) or a **Deposit**
+(a fixed amount or percentage of the price). If payment mode is set to **None**,
+no payment is collected and any total shown is an estimate only. Payment is
+processed through your connected payout provider.
+
+**Appointment reminders.** Configure automatic reminders sent to visitors before
+their appointment — for example 24 hours ahead and again 1 hour before.
 
 **Visitor experience.** Visitors pick a service, choose an available slot on a
 calendar, enter their name and contact details, and submit the request. They see
@@ -1243,8 +1252,11 @@ hours you're open for each service) and block off specific dates (holidays, time
 off). Visitors only see slots that fall within your available hours.
 
 **Can I use Service Booking to take payment?**
-No — Service Booking only handles appointment requests. Any price shown on a service
-is for the visitor's reference; Sayzio does not process payment.
+Yes — you can optionally require a **deposit** or **full payment** at booking time.
+Go to your Service Booking settings and set the **Payment mode**. For a deposit,
+choose whether it's a fixed amount or a percentage of the service price. Payment is
+processed via your connected payout provider. If payment mode is set to **None**, no
+payment is collected and any total shown is an estimate only.
 
 **What's the Competitor Biolink Teardown?**
 It's an AI tool that analyzes a competitor's public page. Paste their URL, and you
@@ -1356,6 +1368,12 @@ format, and manage which notifications you receive per channel under
 **Notifications**.
 
 ## Mobile & developer
+
+**Is there a desktop app?**
+Yes — the **Zio Browser** is a desktop app (Windows / macOS / Linux) you can
+download from the **/download** page. It supports workspace profiles (isolated
+sessions per workspace), a Device Lab for side-by-side device previews, and offline
+access to your links and dashboard.
 
 **Is there a mobile app?**
 Yes — most features have native parity, including links, the biolink editor, QR

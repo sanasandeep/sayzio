@@ -399,6 +399,7 @@ Route::prefix('v1')->group(function () {
         // their own native reviews from the mobile "Manage reviews"
         // screen. Every action is scoped to the authenticated owner.
         // Owner-only Updates / Changelog entry CRUD and settings.
+        Route::get   ('/me/updates/{link}/entries',          [\App\Modules\Api\Controllers\UpdatesApiController::class, 'ownerEntries'])->whereNumber('link');
         Route::post  ('/me/updates/{link}/entries',          [\App\Modules\Api\Controllers\UpdatesApiController::class, 'storeEntry'])->whereNumber('link');
         Route::put   ('/me/updates/{link}/entries/{entry}',  [\App\Modules\Api\Controllers\UpdatesApiController::class, 'updateEntry'])->whereNumber('link')->whereNumber('entry');
         Route::delete('/me/updates/{link}/entries/{entry}',  [\App\Modules\Api\Controllers\UpdatesApiController::class, 'destroyEntry'])->whereNumber('link')->whereNumber('entry');

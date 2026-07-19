@@ -154,6 +154,23 @@ class UpdatesApiController extends Controller
         return response()->json(['data' => ['deleted' => true]]);
     }
 
+    /** Owner: list all entries (draft + published) for a link. */
+    public function ownerEntries(Request $request, Link $link): JsonResponse
+    {
+        $this->authorizeOwner($link);
+
+        $entries = UpdateEntry::where('link_id', $link->id)
+            ->orderByDesc('published_date')
+            ->orderByDesc('id')
+            ->get();
+
+        return response()->json([
+            'data' => [
+                'entries' => $entries->map(fn ($e) => $this->entryJson($e))->values(),
+            ],
+        ]);
+    }
+
     /** Owner: update page settings (heading / subheading / per_page). */
     public function updateSettings(Request $request, Link $link): JsonResponse
     {

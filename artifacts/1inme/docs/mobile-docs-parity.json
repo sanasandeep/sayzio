@@ -149,7 +149,7 @@
         "event_list": {
             "label": "Event List",
             "mobile": false,
-            "docs": false
+            "docs": true
         },
         "excel": {
             "label": "Spreadsheet (Excel)",
@@ -561,6 +561,11 @@
             "mobile": false,
             "docs": false
         },
+        "tip_jar": {
+            "label": "Tip Jar",
+            "mobile": true,
+            "docs": true
+        },
         "twitch": {
             "label": "Twitch",
             "mobile": false,
@@ -697,6 +702,10 @@
         },
         "store_menu": {
             "label": "Store Menu",
+            "docs": true
+        },
+        "updates": {
+            "label": "Updates Page",
             "docs": true
         },
         "url": {

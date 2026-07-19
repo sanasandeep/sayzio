@@ -1078,6 +1078,27 @@ ready → completed` (or `cancelled`); open statuses are `new`, `accepted`,
 a `wa.me` deep link is built server-side. Owners can pause intake via the
 `accepting_orders` toggle.
 
+## Updates / Changelog
+
+Public feed and owner CRUD for the `updates` link type. The `{link}` segment is
+the numeric link id; the `{alias}` segment is the link's public short handle.
+
+| Method | Path                                              | Auth     | Description                                                     |
+| ------ | ------------------------------------------------- | -------- | --------------------------------------------------------------- |
+| GET    | `/updates/{alias}`                                | optional | Public: paginated published entries + link meta.                |
+| GET    | `/updates/{alias}/entries/{entry}`               | optional | Public: single published entry.                                 |
+| GET    | `/me/updates/{link}/entries`                     | yes      | Owner: all entries (draft + published), ordered newest-first.   |
+| POST   | `/me/updates/{link}/entries`                     | yes      | Owner: create an entry. Body: `{ title, body?, tag?, published_date?, status?, image_url? }`. |
+| PUT    | `/me/updates/{link}/entries/{entry}`             | yes      | Owner: update an entry. Same fields as create; add `remove_image: true` to clear the image. |
+| DELETE | `/me/updates/{link}/entries/{entry}`             | yes      | Owner: delete an entry.                                         |
+| PATCH  | `/me/updates/{link}/settings`                    | yes      | Owner: update page settings (`heading`, `subheading`, `per_page`). |
+
+**Entry fields.** `title` (string), `body` (markdown string, nullable), `image`
+(URL nullable), `tag` (`feature` | `fix` | `improvement` | `breaking` |
+`announcement`, nullable), `published_date` (YYYY-MM-DD), `status` (`draft` |
+`published`), `notified_at` (ISO 8601 nullable — set automatically when followers
+are first notified). **Plan gates:** `module_updates` toggle, `max_updates` cap.
+
 ## Service booking
 
 Public appointment-request surface plus the owner builder + bookings dashboard
@@ -1110,10 +1131,19 @@ for the `service_booking` link type. Open slots are computed by
 | POST   | `/service-booking/links/{link}/config/blocked-dates`             | yes      | Owner: block a specific date.                                   |
 | DELETE | `/service-booking/links/{link}/config/blocked-dates/{blockedDate}` | yes    | Owner: unblock a date.                                          |
 
-**Estimated bill (no payment).** Any total shown is an estimate; no payment is
-collected in-app. Statuses flow `pending → confirmed → completed` (or `declined`
-/ `cancelled`); terminal cancel/decline transitions release the slot back to the
-public calendar.
+**Paid bookings.** The `POST /service-booking/links/{link}/config/settings`
+endpoint accepts `payment_mode` (`none` | `deposit` | `full`), `deposit_type`
+(`fixed` | `percent`), and `deposit_value` (numeric). When `payment_mode` is
+`none`, no payment is collected and any total shown is an estimate only. When
+`deposit` or `full`, payment is collected via the owner's connected payout provider.
+
+**Appointment reminders.** The settings endpoint also accepts
+`reminder_lead_minutes` (array of integers, e.g. `[1440, 60]` for 24 h and 1 h
+ahead). Reminders are dispatched by the `service_booking:send-reminders` scheduled
+command.
+
+Statuses flow `pending → confirmed → completed` (or `declined` / `cancelled`);
+terminal cancel/decline transitions release the slot back to the public calendar.
 
 ## Workspaces
 
@@ -1191,8 +1221,12 @@ and `trusted_emails` / `trusted_phones` allowlists.
 ### Forwarding
 
 Auto-forward inbound inbox items to an email address or webhook, optionally
-filtered by source. Each destination keeps a delivery log; deliveries can be
-test-fired or retried.
+filtered by source. Sources include both inbound-message types (biolink DMs, form
+submissions) and **link events** (`link_created`, `link_expired`,
+`click_milestone`). Link-event forwarding requires the `webhook_triggers` plan
+feature. Each destination keeps a delivery log; deliveries can be test-fired or
+retried. The `source_labels` key in the list response includes all valid source
+identifiers including the link-event types.
 
 | Method | Path                                       | Auth | Description                                                                |
 | ------ | ------------------------------------------ | ---- | ------------------------------------------------------------------------ |
