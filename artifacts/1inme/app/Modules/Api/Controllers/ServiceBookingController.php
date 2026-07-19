@@ -167,12 +167,33 @@ class ServiceBookingController extends Controller
         ]);
 
         try {
-            $booking = $this->requests->place($link, $config, $data);
+            $result = $this->requests->place($link, $config, $data);
         } catch (\InvalidArgumentException $e) {
             return $this->fail($e->getMessage(), 422, 'invalid_request');
         }
 
+        $booking = $result['request'];
         $booking->loadMissing('items');
+
+        // Paid booking: start a checkout and return the provider URL so the
+        // mobile client can hand the visitor off to payment.
+        if ($result['requires_payment']) {
+            $responseData = ['booking' => PublicServiceBookingController::serializeGuestBooking($booking)];
+            try {
+                $checkout = app(\App\Services\Monetization\MonetizationCheckout::class)->startBooking(
+                    $link->user,
+                    $booking,
+                    $data['customer_email'] ?? '',
+                );
+                $responseData['checkout_url']        = $checkout['url'];
+                $responseData['checkout_expires_at'] = optional($booking->checkout_expires_at)->toIso8601String();
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::warning('booking.checkout.start_failed', [
+                    'booking' => $booking->id, 'err' => $e->getMessage(),
+                ]);
+            }
+            return $this->created($responseData);
+        }
 
         return $this->created(['booking' => PublicServiceBookingController::serializeGuestBooking($booking)]);
     }
