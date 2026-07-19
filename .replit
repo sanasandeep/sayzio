@@ -364,6 +364,10 @@ args = "dbg-onboarding-swipe"
 task = "workflow.run"
 args = "eas-dialer-build"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "api-server-paths"
+
 [[workflows.workflow]]
 name = "e2e"
 author = "agent"
@@ -1515,6 +1519,17 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "cd sayzio-dialer-standalone && EAS_NO_VCS=1 npx -y eas-cli build --platform android --profile preview --non-interactive --no-wait"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "api-server-paths"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/scripts run check:api-server-paths"
 
 [workflows.workflow.metadata]
 isValidation = true
