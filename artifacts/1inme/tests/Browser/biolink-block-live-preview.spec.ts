@@ -162,7 +162,7 @@ test.beforeAll(async ({ browser }) => {
 });
 
 test.afterAll(async () => {
-  await sharedContext?.close();
+  try { await sharedContext?.close(); } catch {}
 });
 
 function bodySel(id: number): string {
@@ -580,7 +580,11 @@ test("unsupported field (countdown target_date) falls back to a reload", async (
     .fill("2030-01-01T12:00");
 
   await waitForAutosave(page, ids.countdownId);
+  // The fallback reload re-renders the full public page; over the distant
+  // RDS a cold re-render can exceed 20s, so give it the same generous budget
+  // the initial preview load gets. The old document (with the stamp) stays
+  // visible until the reloaded document commits.
   await expect(
     preview.locator('body[data-e2e-live-marker="1"]'),
-  ).toHaveCount(0, { timeout: 20_000 });
+  ).toHaveCount(0, { timeout: 90_000 });
 });

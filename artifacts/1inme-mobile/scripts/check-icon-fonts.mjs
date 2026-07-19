@@ -34,20 +34,12 @@ export const APP_URL =
 export const NAV_TIMEOUT_MS = 90_000;
 export const STEP_TIMEOUT_MS = 30_000;
 
-// The Google button only renders when a Google client id is configured
-// (HAS_GOOGLE_NATIVE in app/(auth)/index.tsx) — on web without
-// EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID it's intentionally hidden. The
-// web-browser providers below always render, so they're the minimum set
-// the test requires. Google is verified too, but only if it's present.
-const REQUIRED_SOCIAL_LABELS = [
-  "Continue with Instagram",
-  "Continue with Facebook",
-  "Continue with X",
-  "Continue with LinkedIn",
-  "Continue with Pinterest",
-  "Continue with TikTok",
-];
-const OPTIONAL_SOCIAL_LABELS = ["Continue with Google"];
+// The app currently supports two social providers: Google and LinkedIn.
+// Both render on Expo web via WEB_BROWSER_PROVIDERS (app/(auth)/index.tsx).
+// Buttons use accessibilityLabel="Log in with <Label>" (not "Continue with").
+// LinkedIn always renders; Google is optional (needs EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID).
+const REQUIRED_SOCIAL_LABELS = ["Log in with LinkedIn"];
+const OPTIONAL_SOCIAL_LABELS = ["Log in with Google"];
 
 function log(...args) {
   console.log("[check-icon-fonts]", ...args);

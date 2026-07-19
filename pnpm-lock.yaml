@@ -212,6 +212,8 @@ importers:
         specifier: ^8.0.16
         version: 8.1.4(@types/node@25.3.5)(esbuild@0.27.3)(jiti@2.6.1)(terser@5.46.1)(tsx@4.21.0)(yaml@2.9.0)
 
+  artifacts/1inme-com: {}
+
   artifacts/1inme-extension:
     devDependencies:
       '@types/chrome':

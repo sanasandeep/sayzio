@@ -234,10 +234,16 @@ async function signInWithPassword(page: Page): Promise<void> {
       { email: USER_EMAIL, password: USER_PASSWORD },
     ),
   ]);
-  // auth-ajax follows the JSON redirect to the challenge form.
+  // auth-ajax follows the JSON redirect to the challenge form; wait for the
+  // page to fully load so auth-ajax.js (a Vite module at the bottom of the
+  // body) has been fetched and executed before the test interacts with the
+  // form.  Using "commit" caused a timing race: the form became visible in the
+  // server-rendered HTML before the module script attached the submit handler,
+  // so the test's requestSubmit triggered a native POST instead of AJAX and
+  // the inline [data-err="code"] slot was never unhidden.
   await page.waitForURL("**/account/two-factor/challenge**", {
     timeout: 120_000,
-    waitUntil: "commit",
+    waitUntil: "load",
   });
 }
 

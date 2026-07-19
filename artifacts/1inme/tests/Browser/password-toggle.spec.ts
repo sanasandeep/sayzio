@@ -38,7 +38,6 @@ import { loginAsDemo } from "./login-as-demo";
 //   - /{handle}/resume for a seeded password-visibility resume — the
 //     resume-public locked card, which uses an INLINE JS toggle (the page
 //     has no Alpine) but must honor the same observable contract
->>>>>>> d20007f9c (Task #4786: Confirm the password eye toggle works on every converted screen)
 //
 // Contract asserted per field, through a full show -> hide round trip:
 //   - input `type` flips password -> text -> password

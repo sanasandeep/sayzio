@@ -205,7 +205,7 @@ test.describe("home showcase editor — Alpine live preview", () => {
   });
 
   test.afterAll(async () => {
-    await sharedContext?.close();
+    try { await sharedContext?.close(); } catch {}
   });
 
   test.beforeEach(async ({ page }) => {

@@ -724,7 +724,7 @@ class AuthController extends Controller
             if (AuthMethods::registrationPaused()) {
                 session()->forget(['otp_identifier', 'otp_type']);
                 if ($request->ajax()) {
-                    return response()->json(['ok' => false, 'errors' => ['code' => 'New registrations are currently paused.'], 'csrf_token' => csrf_token()]);
+                    return response()->json(['ok' => false, 'redirect' => route('user.login'), 'errors' => ['code' => 'New registrations are currently paused.'], 'csrf_token' => csrf_token()]);
                 }
                 return redirect()->route('user.login')
                     ->withErrors(['code' => 'New registrations are currently paused.']);
