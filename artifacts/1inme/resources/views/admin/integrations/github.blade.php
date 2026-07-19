@@ -132,7 +132,7 @@
         <button type="submit" class="px-4 py-2 bg-white/10 border border-white/10 text-white rounded-xl text-sm font-medium hover:bg-white/20">
             <i class="fas fa-plug mr-1"></i> Verify token
         </button>
-        <p class="text-[11px] text-white/30 mt-1">Runs a live check against GitHub and records the result above.</p>
+        <p class="text-[11px] text-white/30 mt-1">Runs a live check against GitHub and records the result above. Limited to a few checks per minute.</p>
     </form>
 
 </div>
