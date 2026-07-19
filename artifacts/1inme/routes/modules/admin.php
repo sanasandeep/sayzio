@@ -564,6 +564,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
             Route::get('github', [\App\Modules\Admin\Controllers\IntegrationsController::class, 'editGitHub'])->middleware(CheckPermission::class . ':settings.manage')->name('github.edit');
             Route::put('github', [\App\Modules\Admin\Controllers\IntegrationsController::class, 'updateGitHub'])->middleware(CheckPermission::class . ':settings.manage')->name('github.update');
+            Route::post('github/test', [\App\Modules\Admin\Controllers\IntegrationsController::class, 'testGitHub'])->middleware(CheckPermission::class . ':settings.manage')->name('github.test');
 
             Route::get('storage', [\App\Modules\Admin\Controllers\IntegrationsController::class, 'editStorage'])->middleware(CheckPermission::class . ':settings.manage')->name('storage.edit');
             Route::put('storage', [\App\Modules\Admin\Controllers\IntegrationsController::class, 'updateStorage'])->middleware(CheckPermission::class . ':settings.manage')->name('storage.update');

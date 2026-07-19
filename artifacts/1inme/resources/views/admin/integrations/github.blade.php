@@ -68,6 +68,38 @@
                 </span>
             </div>
 
+            @php
+                $probeTone = null;
+                if ($lastProbe) {
+                    $probeTone = match ($lastProbe['status']) {
+                        'ok'                    => 'green',
+                        'expiring'              => 'amber',
+                        'missing', 'rejected'   => 'red',
+                        default                 => 'slate',
+                    };
+                }
+            @endphp
+            @if ($lastProbe)
+                <div class="rounded-xl border p-3 text-xs space-y-1 {{ $toneClass($probeTone) }}">
+                    <p class="font-medium">
+                        <i class="fas {{ $lastProbe['status'] === 'ok' ? 'fa-check-circle' : ($lastProbe['status'] === 'inconclusive' ? 'fa-question-circle' : 'fa-exclamation-triangle') }} mr-1"></i>
+                        Last checked {{ \Carbon\Carbon::parse($lastProbe['checked_at'])->diffForHumans() }}
+                        ({{ $lastProbe['source'] === 'manual' ? 'via Verify token' : 'scheduled check' }})
+                        &mdash; {{ ucfirst($lastProbe['status']) }}
+                    </p>
+                    <p class="text-white/60">{{ $lastProbe['detail'] }}</p>
+                    @if ($lastProbe['expires_at'])
+                        <p class="text-white/60">Token expires {{ \Carbon\Carbon::parse($lastProbe['expires_at'])->toFormattedDateString() }} ({{ \Carbon\Carbon::parse($lastProbe['expires_at'])->diffForHumans() }}).</p>
+                    @endif
+                </div>
+            @else
+                <div class="rounded-xl border border-white/10 bg-white/5 p-3 text-xs text-white/50">
+                    <i class="fas fa-question-circle mr-1"></i>
+                    Never verified yet &mdash; use <strong>Verify token</strong> below or wait for the daily
+                    <span class="font-mono">github:check-token</span> probe.
+                </div>
+            @endif
+
             <div>
                 <label class="text-xs uppercase tracking-wider text-white/40 mb-1 block">GitHub token</label>
                 @if($hasValue)
@@ -93,6 +125,14 @@
         <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700">
             <i class="fas fa-save mr-1"></i> Save settings
         </button>
+    </form>
+
+    <form method="POST" action="{{ route('admin.integrations.github.test') }}" class="pt-1">
+        @csrf
+        <button type="submit" class="px-4 py-2 bg-white/10 border border-white/10 text-white rounded-xl text-sm font-medium hover:bg-white/20">
+            <i class="fas fa-plug mr-1"></i> Verify token
+        </button>
+        <p class="text-[11px] text-white/30 mt-1">Runs a live check against GitHub and records the result above.</p>
     </form>
 
 </div>

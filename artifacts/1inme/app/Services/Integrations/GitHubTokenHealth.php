@@ -35,6 +35,9 @@ use Illuminate\Support\Facades\Log;
  *   - alerting      — true while a broken/expiring episode is open
  *   - last_sent_at  — ISO-8601 of the last alert (cooldown)
  *   - last_status   — the status at the last alert
+ *   - last_probe    — last probe outcome {status,detail,expires_at,checked_at,source}
+ *                     shared by the scheduled check and the admin "Verify token"
+ *                     button, rendered on the GitHub Token admin page.
  */
 class GitHubTokenHealth
 {
@@ -56,6 +59,7 @@ class GitHubTokenHealth
     public static function check(bool $force = false): array
     {
         $probe = self::probe();
+        self::recordProbe($probe, 'scheduled');
 
         if ($probe['status'] === 'inconclusive') {
             // Network hiccup or GitHub outage — say nothing, try again next run.
@@ -163,6 +167,60 @@ class GitHubTokenHealth
                 . ($expiresAt ? ' (expires ' . $expiresAt->toDateString() . ').' : '.'),
             'expires_at' => $expiresAt?->toIso8601String(),
         ];
+    }
+
+    /**
+     * On-demand probe for the admin "Verify token" button: runs the probe,
+     * persists the outcome as the last-known health, and returns it. Never
+     * sends alerts — that stays with the scheduled check's episode logic.
+     *
+     * @return array{status:string,detail:string,expires_at:?string}
+     */
+    public static function verify(): array
+    {
+        $probe = self::probe();
+        self::recordProbe($probe, 'manual');
+        return $probe;
+    }
+
+    /**
+     * The last persisted probe outcome (from the scheduled check or the
+     * "Verify token" button), or null if never probed.
+     *
+     * @return array{status:string,detail:string,expires_at:?string,checked_at:string,source:string}|null
+     */
+    public static function lastProbe(): ?array
+    {
+        $probe = self::state('last_probe');
+        if (! is_array($probe) || empty($probe['checked_at']) || empty($probe['status'])) {
+            return null;
+        }
+        return [
+            'status'     => (string) $probe['status'],
+            'detail'     => (string) ($probe['detail'] ?? ''),
+            'expires_at' => isset($probe['expires_at']) && $probe['expires_at'] !== '' ? (string) $probe['expires_at'] : null,
+            'checked_at' => (string) $probe['checked_at'],
+            'source'     => (string) ($probe['source'] ?? 'scheduled'),
+        ];
+    }
+
+    /**
+     * Persist a probe outcome as the last-known health so the admin page
+     * can always show current state, not just a transient flash.
+     *
+     * @param array{status:string,detail:string,expires_at:?string} $probe
+     */
+    private static function recordProbe(array $probe, string $source): void
+    {
+        self::putState([
+            'last_probe' => [
+                'status'     => $probe['status'],
+                'detail'     => $probe['detail'],
+                'expires_at' => $probe['expires_at'],
+                'checked_at' => now()->toIso8601String(),
+                'source'     => $source,
+            ],
+        ]);
     }
 
     // ─────────────────────────────────────────────────────────────

@@ -135,11 +135,23 @@ class IntegrationsController extends Controller
     public function editGitHub()
     {
         return view('admin.integrations.github', [
-            'status'   => PlatformServiceSettings::githubStatus(),
-            'hasValue' => PlatformServiceSettings::githubToken() !== null,
-            'masked'   => PlatformServiceSettings::maskedGithubToken(),
-            'repo'     => (string) config('services.github.repo', ''),
+            'status'    => PlatformServiceSettings::githubStatus(),
+            'hasValue'  => PlatformServiceSettings::githubToken() !== null,
+            'masked'    => PlatformServiceSettings::maskedGithubToken(),
+            'repo'      => (string) config('services.github.repo', ''),
+            'lastProbe' => \App\Services\Integrations\GitHubTokenHealth::lastProbe(),
         ]);
+    }
+
+    public function testGitHub()
+    {
+        $probe = \App\Services\Integrations\GitHubTokenHealth::verify();
+
+        // The admin layout renders session('success') / session('error') only.
+        $flashKey = $probe['status'] === 'ok' ? 'success' : 'error';
+
+        return redirect()->route('admin.integrations.github.edit')
+            ->with($flashKey, ($probe['status'] === 'inconclusive' ? 'Inconclusive — ' : '') . $probe['detail']);
     }
 
     public function updateGitHub(Request $request)
