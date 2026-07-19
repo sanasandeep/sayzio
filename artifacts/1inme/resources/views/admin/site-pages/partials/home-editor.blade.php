@@ -114,7 +114,7 @@
             <label class="text-sm font-semibold text-white">&ldquo;What you can create&rdquo; link types</label>
             <p class="text-[11px] text-white/50 mt-1">The cards in the home-page showcase. Edit each type's name, description, icon, accent colour and &ldquo;New&rdquo; badge, and drag to reorder. Leaving the whole list empty restores the built-in defaults.</p>
             <p class="text-[11px] mt-1" :class="featuredCount() >= featuredCap ? 'text-amber-400/80' : 'text-white/50'">
-                <i class="fas fa-star mr-1 text-amber-400/80"></i><span x-text="featuredCount()"></span>/<span x-text="featuredCap"></span> featured — featured types render as the big headline cards; everything else appears in the compact &ldquo;And plenty more&rdquo; strip below them.
+                <i class="fas fa-star mr-1 text-amber-400/80"></i><span x-text="featuredCount()"></span>/<span x-text="featuredCap"></span> featured, featured types render as the big headline cards; everything else appears in the compact &ldquo;And plenty more&rdquo; strip below them.
             </p>
         </div>
         <div class="flex items-center gap-2 shrink-0">
@@ -136,7 +136,7 @@
          saving and round-tripping to the home page. --}}
     <div x-show="rows.length > 0" class="mb-4 bg-black/20 border border-white/10 rounded-xl p-4" data-home-showcase-preview>
         <div class="flex items-center justify-between mb-3">
-            <span class="text-[10px] uppercase tracking-[.2em] font-bold text-white/40"><i class="fas fa-eye mr-1.5"></i>Live preview — &ldquo;What you can create&rdquo;</span>
+            <span class="text-[10px] uppercase tracking-[.2em] font-bold text-white/40"><i class="fas fa-eye mr-1.5"></i>Live preview, &ldquo;What you can create&rdquo;</span>
             <span class="text-[10px] text-white/30">Updates as you reorder &amp; toggle &middot; nothing is saved until you click Save changes</span>
         </div>
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
@@ -158,7 +158,7 @@
                 </div>
             </template>
         </div>
-        <div x-show="previewFeatured().length === 0" class="text-[11px] text-white/40 text-center py-2">No featured types — star up to <span x-text="featuredCap"></span> to fill the big-card tier.</div>
+        <div x-show="previewFeatured().length === 0" class="text-[11px] text-white/40 text-center py-2">No featured types, star up to <span x-text="featuredCap"></span> to fill the big-card tier.</div>
         <template x-if="previewMore().length > 0">
             <div>
                 <div class="mt-3 mb-2 flex items-center gap-2" aria-hidden="true">
@@ -250,7 +250,7 @@
                     </label>
                     <label class="flex items-center gap-2 text-sm"
                            :class="(!lt.featured && featuredCount() >= featuredCap) ? 'text-white/40 cursor-not-allowed' : 'text-white/80 cursor-pointer'"
-                           :title="(!lt.featured && featuredCount() >= featuredCap) ? 'Featured tier is full — un-feature another type first' : 'Show this type as a big featured card'">
+                           :title="(!lt.featured && featuredCount() >= featuredCap) ? 'Featured tier is full, un-feature another type first' : 'Show this type as a big featured card'">
                         <input type="hidden" :name="'extra[link_types]['+i+'][featured]'" value="0">
                         <input type="checkbox" :name="'extra[link_types]['+i+'][featured]'" value="1"
                                :checked="lt.featured"
@@ -264,5 +264,5 @@
         </template>
     </div>
 
-    <div x-show="rows.length===0" class="text-xs text-white/40 text-center py-4">No link types — the &ldquo;What you can create&rdquo; section falls back to the built-in defaults.</div>
+    <div x-show="rows.length===0" class="text-xs text-white/40 text-center py-4">No link types, the &ldquo;What you can create&rdquo; section falls back to the built-in defaults.</div>
 </div>

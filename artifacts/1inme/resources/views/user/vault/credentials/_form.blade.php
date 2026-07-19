@@ -36,7 +36,7 @@
         <span class="text-xs uppercase tracking-wider" style="color: var(--text-faint);">Visibility</span>
         <select name="visibility" class="mt-1 w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm">
             <option value="shared" @selected(old('visibility', $item->visibility ?? 'shared') === 'shared')>Shared with workspace</option>
-            <option value="private" @selected(old('visibility', $item->visibility ?? '') === 'private')>Private — creator + owner only</option>
+            <option value="private" @selected(old('visibility', $item->visibility ?? '') === 'private')>Private, creator + owner only</option>
         </select>
     </label>
 </div>

@@ -462,6 +462,11 @@ Route::prefix('user')->name('user.')->group(function () {
             // Developer API keys (task #1393). Gated behind the `api_access`
             // plan feature inside the controller.
             Route::get   ('settings/developer',  [\App\Modules\User\Controllers\ApiKeyController::class, 'index'])->name('api-keys.index');
+
+            // Webhook triggers — Settings → Developer / API → Webhooks.
+            Route::prefix('settings/webhooks')->name('settings.webhooks.')->group(function () {
+                Route::get('/', [\App\Modules\User\Controllers\WebhookSettingsController::class, 'index'])->name('index');
+            });
             Route::post  ('api-keys',            [\App\Modules\User\Controllers\ApiKeyController::class, 'store'])->middleware('throttle:20,1')->name('api-keys.store');
             Route::delete('api-keys/{key}',      [\App\Modules\User\Controllers\ApiKeyController::class, 'destroy'])->whereNumber('key')->name('api-keys.destroy');
 
@@ -843,6 +848,8 @@ Route::prefix('user')->name('user.')->group(function () {
         // Standalone Brand / Press Kit link: step-2 create + dedicated editor.
         // The editor is prefilled from the owner's saved AI Brand Kit.
         Route::get ('links-brand-kit/create', [LinkController::class, 'createBrandKit'])->middleware('workspace.can:links.create')->name('links.brand-kit.create');
+        // Standalone Updates / Changelog page: step-2 create + dedicated editor.
+        Route::get ('links-updates/create', [LinkController::class, 'createUpdates'])->middleware('workspace.can:links.create')->name('links.updates.create');
         // Followable Calendar link type: step-2 create + dedicated event editor,
         // per-calendar settings, event CRUD, and the cross-calendar "My Calendar"
         // agenda (owned + followed). Distinct from the external CalendarAccount
@@ -862,6 +869,12 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::post('links/{link}/paid-page', [\App\Modules\User\Controllers\PaidPageController::class, 'update'])->whereNumber('link')->middleware('workspace.can:links.edit')->name('links.paid-page.update');
         Route::get ('links/{link}/brand-kit', [\App\Modules\User\Controllers\BrandKitPageController::class, 'editor'])->whereNumber('link')->middleware('workspace.can:links.view')->name('links.brand-kit.editor');
         Route::post('links/{link}/brand-kit', [\App\Modules\User\Controllers\BrandKitPageController::class, 'update'])->whereNumber('link')->middleware('workspace.can:links.edit')->name('links.brand-kit.update');
+        // Updates / Changelog page: editor view, page settings, and entry CRUD.
+        Route::get   ('links/{link}/updates',                  [\App\Modules\User\Controllers\UpdatesController::class, 'editor'])->whereNumber('link')->middleware('workspace.can:links.view')->name('links.updates.editor');
+        Route::post  ('links/{link}/updates/settings',         [\App\Modules\User\Controllers\UpdatesController::class, 'updateSettings'])->whereNumber('link')->middleware('workspace.can:links.edit')->name('links.updates.settings');
+        Route::post  ('links/{link}/updates-entries',          [\App\Modules\User\Controllers\UpdatesController::class, 'storeEntry'])->whereNumber('link')->middleware('workspace.can:links.edit')->name('links.updates.entries.store');
+        Route::put   ('links/{link}/updates-entries/{entry}',  [\App\Modules\User\Controllers\UpdatesController::class, 'updateEntry'])->whereNumber('link')->whereNumber('entry')->middleware('workspace.can:links.edit')->name('links.updates.entries.update');
+        Route::delete('links/{link}/updates-entries/{entry}',  [\App\Modules\User\Controllers\UpdatesController::class, 'destroyEntry'])->whereNumber('link')->whereNumber('entry')->middleware('workspace.can:links.edit')->name('links.updates.entries.destroy');
         Route::get ('links/{link}/reviews', [\App\Modules\User\Controllers\ReviewsController::class, 'editor'])->whereNumber('link')->middleware('workspace.can:links.view')->name('links.reviews.editor');
         Route::post('links/{link}/reviews/settings', [\App\Modules\User\Controllers\ReviewsController::class, 'updateSettings'])->whereNumber('link')->middleware('workspace.can:links.edit')->name('links.reviews.settings');
         Route::post('links/{link}/reviews/questions', [\App\Modules\User\Controllers\ReviewsController::class, 'storeQuestion'])->whereNumber('link')->middleware('workspace.can:links.edit')->name('links.reviews.questions.store');

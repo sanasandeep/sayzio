@@ -12,7 +12,7 @@
 
     <div class="rounded-2xl border p-5" style="background: var(--bg-card); border-color: var(--border-soft);">
         @if($writes->isEmpty())
-            <p class="text-sm" style="color: var(--text-muted);">No NFC writes yet. Use the Sayzio mobile app's NFC writer to encode this link onto a physical NFC tag — every write you perform will appear here with the device, platform, and tag details.</p>
+            <p class="text-sm" style="color: var(--text-muted);">No NFC writes yet. Use the Sayzio mobile app's NFC writer to encode this link onto a physical NFC tag, every write you perform will appear here with the device, platform, and tag details.</p>
         @else
             <div class="overflow-x-auto">
                 <table class="w-full text-sm">
@@ -50,7 +50,7 @@
                                             {{ number_format((float) $w->lat, 3) }}, {{ number_format((float) $w->lng, 3) }}
                                         </a>
                                     @else
-                                        —
+ -
                                     @endif
                                 </td>
                                 <td class="py-2 text-xs" style="color: var(--text-muted);">{{ ucfirst($w->platform ?? '—') }}</td>

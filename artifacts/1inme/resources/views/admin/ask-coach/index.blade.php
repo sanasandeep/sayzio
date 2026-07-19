@@ -315,7 +315,7 @@
                         </label>
                     @endforeach
                 </div>
-                <p class="text-xs text-amber-400/70 mt-2">⚠ Disabling a category removes it from both the AI tool-calling loop and the keyword-router fallback — Coach will answer without that data.</p>
+                <p class="text-xs text-amber-400/70 mt-2">⚠ Disabling a category removes it from both the AI tool-calling loop and the keyword-router fallback, Coach will answer without that data.</p>
             </div>
         </div>
 
@@ -330,7 +330,7 @@
     <div class="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
         <h2 class="text-lg font-semibold text-white mb-3">Recent thumbs-down replies</h2>
         @if($recentDowns->isEmpty())
-            <p class="text-sm text-white/50">No 👎 feedback in this window — looking healthy.</p>
+            <p class="text-sm text-white/50">No 👎 feedback in this window, looking healthy.</p>
         @else
             <ul class="space-y-3">
                 @foreach($recentDowns as $m)

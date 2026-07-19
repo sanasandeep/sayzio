@@ -39,61 +39,68 @@
             </div>
         </section>
 
+        @php
+            $logoPolicy = \App\Services\UploadPolicy::for('billing.logo', auth()->user());
+            $logoUrl = ($company->exists && $company->logo_path) ? asset('storage/' . $company->logo_path) : null;
+            $letterheadPolicy = \App\Services\UploadPolicy::for('billing.letterhead', auth()->user());
+            $letterheadUrl = ($company->exists && $company->letterhead_path) ? asset('storage/' . $company->letterhead_path) : null;
+        @endphp
+
         <section class="p-4 rounded-xl border" style="border-color: var(--border-soft); background: var(--bg-card);">
             <h2 class="font-bold mb-1" style="color: var(--text-primary);">Logo</h2>
             <p class="text-xs mb-3" style="color: var(--text-muted);">Shown on this company's invoice &amp; receipt PDFs. PNG, JPG, GIF, WEBP or SVG, up to 2&nbsp;MB.</p>
-            <div class="flex items-center gap-4">
-                @if($company->exists && $company->logo_path)
-                    <img src="{{ asset('storage/' . $company->logo_path) }}" alt="Company logo"
-                         class="w-16 h-16 rounded-xl object-contain bg-white p-1" style="border: 1px solid var(--border-soft);">
-                @endif
-                <div class="flex-1">
-                    <input type="file" name="logo" accept="image/png,image/jpeg,image/gif,image/webp,image/svg+xml"
-                           class="block w-full text-xs" style="color: var(--text-primary);">
-                    @if($company->exists && $company->logo_path)
-                        <label class="flex items-center gap-2 mt-2 text-[11px]" style="color: var(--text-muted);">
-                            <input type="hidden" name="remove_logo" value="0">
-                            <input type="checkbox" name="remove_logo" value="1" class="accent-rose-500">
-                            Remove the current logo
-                        </label>
-                    @endif
-                </div>
-            </div>
+            @include('user.partials.dropzone-input', [
+                'name'        => 'logo',
+                'policy'      => $logoPolicy,
+                'currentUrl'  => $logoUrl,
+                'currentName' => $company->logo_path ? basename($company->logo_path) : null,
+                'label'       => null,
+                'previewKind' => 'image',
+                'compact'     => true,
+            ])
+            @if($company->exists && $company->logo_path)
+                <label class="flex items-center gap-2 mt-2 text-[11px]" style="color: var(--text-muted);">
+                    <input type="hidden" name="remove_logo" value="0">
+                    <input type="checkbox" name="remove_logo" value="1" class="accent-rose-500">
+                    Remove the current logo
+                </label>
+            @endif
         </section>
 
         <section class="p-4 rounded-xl border" style="border-color: var(--border-soft); background: var(--bg-card);">
             <h2 class="font-bold mb-1" style="color: var(--text-primary);">Letterhead</h2>
             <p class="text-xs mb-3" style="color: var(--text-muted);">Full-page background used on this company's invoice &amp; receipt PDFs (unless a specific invoice overrides it). JPG, PNG or WEBP, up to 5&nbsp;MB, between 400&times;400 and 6000&times;6000&nbsp;px, matching the chosen orientation.</p>
-            <div class="flex items-start gap-4">
-                @if($company->exists && $company->letterhead_path)
-                    <img src="{{ asset('storage/' . $company->letterhead_path) }}" alt="Letterhead preview"
-                         class="w-16 h-20 rounded-xl object-cover bg-white p-1" style="border: 1px solid var(--border-soft);">
-                @endif
-                <div class="flex-1 space-y-2">
-                    <input type="file" name="letterhead" accept="image/png,image/jpeg,image/webp"
-                           class="block w-full text-xs" style="color: var(--text-primary);">
-                    @if($company->exists && $company->letterhead_path)
-                        <label class="flex items-center gap-2 text-[11px]" style="color: var(--text-muted);">
-                            <input type="hidden" name="remove_letterhead" value="0">
-                            <input type="checkbox" name="remove_letterhead" value="1" class="accent-rose-500">
-                            Remove the current letterhead
+            @include('user.partials.dropzone-input', [
+                'name'        => 'letterhead',
+                'policy'      => $letterheadPolicy,
+                'currentUrl'  => $letterheadUrl,
+                'currentName' => $company->letterhead_path ? basename($company->letterhead_path) : null,
+                'label'       => null,
+                'previewKind' => 'image',
+                'compact'     => true,
+            ])
+            @if($company->exists && $company->letterhead_path)
+                <label class="flex items-center gap-2 mt-2 text-[11px]" style="color: var(--text-muted);">
+                    <input type="hidden" name="remove_letterhead" value="0">
+                    <input type="checkbox" name="remove_letterhead" value="1" class="accent-rose-500">
+                    Remove the current letterhead
+                </label>
+            @endif
+            <div class="mt-3 space-y-2">
+                <div class="grid grid-cols-2 gap-2">
+                    <label class="text-xs" style="color: var(--text-muted);">Orientation
+                        <select name="letterhead_orientation" class="block w-full mt-1 p-2 rounded-lg border" style="background: var(--bg-glass-input); border-color: var(--border-soft); color: var(--text-primary);">
+                            <option value="portrait" @selected(old('letterhead_orientation', $company->letterhead_orientation ?: 'portrait') === 'portrait')>Portrait</option>
+                            <option value="landscape" @selected(old('letterhead_orientation', $company->letterhead_orientation ?: 'portrait') === 'landscape')>Landscape</option>
+                        </select>
+                    </label>
+                </div>
+                <div class="grid grid-cols-4 gap-2">
+                    @foreach(['top' => 'Top', 'right' => 'Right', 'bottom' => 'Bottom', 'left' => 'Left'] as $side => $label)
+                        <label class="text-xs" style="color: var(--text-muted);">{{ $label }} margin (mm)
+                            <input type="number" min="0" max="60" name="letterhead_margin_{{ $side }}" value="{{ old('letterhead_margin_' . $side, $company->{'letterhead_margin_' . $side} ?? 0) }}" class="block w-full mt-1 p-2 rounded-lg border" style="background: var(--bg-glass-input); border-color: var(--border-soft); color: var(--text-primary);">
                         </label>
-                    @endif
-                    <div class="grid grid-cols-2 gap-2">
-                        <label class="text-xs" style="color: var(--text-muted);">Orientation
-                            <select name="letterhead_orientation" class="block w-full mt-1 p-2 rounded-lg border" style="background: var(--bg-glass-input); border-color: var(--border-soft); color: var(--text-primary);">
-                                <option value="portrait" @selected(old('letterhead_orientation', $company->letterhead_orientation ?: 'portrait') === 'portrait')>Portrait</option>
-                                <option value="landscape" @selected(old('letterhead_orientation', $company->letterhead_orientation ?: 'portrait') === 'landscape')>Landscape</option>
-                            </select>
-                        </label>
-                    </div>
-                    <div class="grid grid-cols-4 gap-2">
-                        @foreach(['top' => 'Top', 'right' => 'Right', 'bottom' => 'Bottom', 'left' => 'Left'] as $side => $label)
-                            <label class="text-xs" style="color: var(--text-muted);">{{ $label }} margin (mm)
-                                <input type="number" min="0" max="60" name="letterhead_margin_{{ $side }}" value="{{ old('letterhead_margin_' . $side, $company->{'letterhead_margin_' . $side} ?? 0) }}" class="block w-full mt-1 p-2 rounded-lg border" style="background: var(--bg-glass-input); border-color: var(--border-soft); color: var(--text-primary);">
-                            </label>
-                        @endforeach
-                    </div>
+                    @endforeach
                 </div>
             </div>
         </section>
@@ -120,7 +127,7 @@
                 {!! $field('invoice_prefix', 'Invoice number prefix') !!}
                 <label class="text-xs" style="color: var(--text-muted);">Default tax rule
                     <select name="default_tax_rule_id" class="block w-full mt-1 p-2 rounded-lg border" style="background: var(--bg-glass-input); border-color: var(--border-soft); color: var(--text-primary);">
-                        <option value="">— None —</option>
+                        <option value="">None</option>
                         @foreach($taxRules as $rule)
                             <option value="{{ $rule->id }}" @selected(old('default_tax_rule_id', $company->default_tax_rule_id) == $rule->id)>{{ $rule->name }} ({{ number_format($rule->rate_bps / 100, 2) }}%)</option>
                         @endforeach

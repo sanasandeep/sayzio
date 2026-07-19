@@ -2859,7 +2859,7 @@ function SpecialCreateModal(props: {
                           ? (toggleDisabled.error as { message?: string })
                               ?.message || "Couldn't update. Try again."
                           : selectedPersona.is_disabled
-                            ? "Retired — turn on to use this agent again."
+                            ? "Retired. Turn on to use this agent again."
                             : "Turn off to retire this agent without deleting it."}
                       </Text>
                     </View>

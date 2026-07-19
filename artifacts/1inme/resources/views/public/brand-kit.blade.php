@@ -30,11 +30,12 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    @include('common.partials.toolbar-theme-color')
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>{{ $link->title ?: ($brandName . ' — Brand & Press Kit') }} - {{ config('app.name') }}</title>
+<title>{{ $link->title ?: ($brandName . ' : Brand & Press Kit') }} - {{ config('app.name') }}</title>
 <meta name="description" content="{{ Str::limit($config['tagline'] ?: $config['about'] ?: ($brandName . ' brand & press kit'), 180) }}">
-<meta property="og:title" content="{{ $brandName }} — Brand & Press Kit">
+<meta property="og:title" content="{{ $brandName }} : Brand & Press Kit">
 <meta property="og:description" content="{{ Str::limit($config['tagline'] ?: $config['about'] ?: ('Brand assets for ' . $brandName), 180) }}">
 <meta property="og:type" content="website">
 @if(!empty($logos[0]['url']))<meta property="og:image" content="{{ $logos[0]['url'] }}">@endif
@@ -177,7 +178,7 @@
             <div class="bk-font">
                 <span class="bk-font-role">Heading</span>
                 <span style="font-family:var(--bk-heading); font-size:30px; font-weight:700;">{{ $headingFont }}</span>
-                <span class="bk-font-name">Aa Bb Cc — The quick brown fox</span>
+                <span class="bk-font-name">Aa Bb Cc · The quick brown fox</span>
             </div>
             <div class="bk-font">
                 <span class="bk-font-role">Body</span>

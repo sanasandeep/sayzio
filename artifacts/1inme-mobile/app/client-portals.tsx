@@ -163,7 +163,7 @@ export default function ClientPortalsScreen() {
               New client portal
             </Text>
             <Text style={[styles.sub, { color: colors.mutedForeground }]}>
-              Give it a name — you can add shares and send a magic link from the
+              Give it a name; you can add shares and send a magic link from the
               detail screen.
             </Text>
             <TextInput

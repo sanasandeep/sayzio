@@ -236,7 +236,7 @@
                 Build a résumé and portfolio<br><span class="grad-text">that lands the interview.</span>
             </h2>
             <p class="reveal rd-2 text-lg text-gray-400">
-                Drag-and-drop sections, AI-polished copy, and a public portfolio link that lives at <span class="font-semibold text-white">1inme.com/you/cv</span>. Export to PDF in one click — no Word, no fiddling, no recruiter rejection.
+                Drag-and-drop sections, AI-polished copy, and a public portfolio link that lives at <span class="font-semibold text-white">1inme.com/you/cv</span>. Export to PDF in one click. No Word, no fiddling, no recruiter rejection.
             </p>
         </div>
 
@@ -270,7 +270,7 @@
                     $rbP = ($resumePersonas ?? [])[0] ?? [
                         'initials' => 'MA', 'name' => 'Maya Anders', 'role' => 'Senior Product Designer',
                         'location' => 'Berlin', 'tags' => ['Figma', 'Design Systems', 'Prototyping', 'UX Research'],
-                        'company' => 'Linear · 2023 — Now',
+                        'company' => 'Linear · 2023 to Now',
                         'experience' => 'Shipped onboarding redesign, +28% activation. Led design system across 4 squads.',
                         'skills' => [
                             ['label' => 'Product design', 'value' => 95],

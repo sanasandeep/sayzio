@@ -10,7 +10,7 @@
     <div class="flex items-end justify-between gap-3">
         <div>
             <h1 class="text-2xl font-bold text-white"><i class="fas fa-palette text-primary-300 mr-2"></i>AI Brand Kit</h1>
-            <p class="text-sm text-white/50 mt-1">Generate a cohesive brand identity — palette, fonts, voice, taglines and a recommended theme — then apply it to your Link in Bio pages and QR codes.</p>
+            <p class="text-sm text-white/50 mt-1">Generate a cohesive brand identity (palette, fonts, voice, taglines and a recommended theme) then apply it to your Link in Bio pages and QR codes.</p>
             <p class="text-[11px] text-white/40 mt-1">
                 {{ $count }} of {{ $cap == -1 ? '∞' : $cap }} brand kits used
                 @if($aiEnabled) &middot; {{ number_format($balance) }} AI credits @endif
@@ -102,7 +102,7 @@
                 @endif
             </p>
             <p class="text-sm text-white/60 mt-1 max-w-lg mx-auto">
-                Upgrade to generate AI brand kits — a full palette, font pairing, voice/tone, taglines and bio you can apply across your links and QR codes in one click.
+                Upgrade to generate AI brand kits, a full palette, font pairing, voice/tone, taglines and bio you can apply across your links and QR codes in one click.
             </p>
             <a href="{{ route('user.upgrade') }}"
                class="inline-block mt-4 px-5 py-2.5 rounded-xl bg-primary-600 hover:bg-primary-500 text-white text-sm font-medium">
@@ -118,7 +118,7 @@
                 <label class="block text-xs text-white/50 mb-1">Describe your brand</label>
                 <textarea x-model="form.prompt" rows="3"
                           class="w-full rounded-xl bg-black/30 border border-white/10 text-white text-sm px-3 py-2 focus:border-primary-400 focus:outline-none"
-                          placeholder="e.g. A calm, modern wellness studio for busy professionals — earthy but premium."></textarea>
+                          placeholder="e.g. A calm, modern wellness studio for busy professionals, earthy but premium."></textarea>
             </div>
             <div class="grid sm:grid-cols-2 gap-4">
                 <div>
@@ -127,11 +127,16 @@
                            class="w-full rounded-xl bg-black/30 border border-white/10 text-white text-sm px-3 py-2 focus:border-primary-400 focus:outline-none"
                            placeholder="https://yourbrand.com">
                 </div>
-                <div>
-                    <label class="block text-xs text-white/50 mb-1">Logo URL <span class="text-white/30">(optional)</span></label>
-                    <input x-model="form.logo_url" type="url"
-                           class="w-full rounded-xl bg-black/30 border border-white/10 text-white text-sm px-3 py-2 focus:border-primary-400 focus:outline-none"
-                           placeholder="https://.../logo.png">
+                <div @file-url-change.stop="form.logo_url = $event.detail.url">
+                    <label class="block text-xs text-white/50 mb-1.5">Logo <span class="text-white/30">(optional)</span></label>
+                    @include('user.links.partials.file-upload-field', [
+                        'fieldName'    => '_brand_kit_logo',
+                        'currentValue' => '',
+                        'acceptTypes'  => 'image',
+                        'labelText'    => '',
+                        'labelClass'   => 'hidden',
+                        'inputClass'   => 'w-full rounded-xl bg-black/30 border border-white/10 text-white text-sm px-3 py-2 focus:border-primary-400 focus:outline-none',
+                    ])
                 </div>
             </div>
 

@@ -13,7 +13,8 @@ use Illuminate\Support\Facades\Log;
  * Proactive admin alerting for the GitHub push credential going stale.
  *
  * Code is mirrored to GitHub (config('services.github.repo')) using a
- * fine-grained personal access token stored in the GITHUB_TOKEN secret.
+ * fine-grained personal access token managed at Admin > Integrations >
+ * GitHub Token (with the GITHUB_TOKEN env secret as fallback).
  * Fine-grained tokens expire (the current one around mid-October 2026);
  * when that happens every "push to GitHub after publishing" step fails
  * with an auth error and the repo silently drifts behind the workspace.
@@ -35,6 +36,9 @@ use Illuminate\Support\Facades\Log;
  *   - alerting      — true while a broken/expiring episode is open
  *   - last_sent_at  — ISO-8601 of the last alert (cooldown)
  *   - last_status   — the status at the last alert
+ *   - last_probe    — last probe outcome {status,detail,expires_at,checked_at,source}
+ *                     shared by the scheduled check and the admin "Verify token"
+ *                     button, rendered on the GitHub Token admin page.
  */
 class GitHubTokenHealth
 {
@@ -56,6 +60,7 @@ class GitHubTokenHealth
     public static function check(bool $force = false): array
     {
         $probe = self::probe();
+        self::recordProbe($probe, 'scheduled');
 
         if ($probe['status'] === 'inconclusive') {
             // Network hiccup or GitHub outage — say nothing, try again next run.
@@ -99,7 +104,7 @@ class GitHubTokenHealth
         if ($token === '') {
             return [
                 'status'     => 'missing',
-                'detail'     => 'The GITHUB_TOKEN secret is not set — pushes to ' . $repo . ' cannot authenticate.',
+                'detail'     => 'No GitHub token is configured — pushes to ' . $repo . ' cannot authenticate. Add one at Admin > Integrations > GitHub Token.',
                 'expires_at' => null,
             ];
         }
@@ -152,7 +157,7 @@ class GitHubTokenHealth
             return [
                 'status'     => 'expiring',
                 'detail'     => "The GitHub token for {$repo} expires on " . $expiresAt->toDateString()
-                    . " ({$days} day(s) from now). Generate a new fine-grained token and update the GITHUB_TOKEN secret before then.",
+                    . " ({$days} day(s) from now). Generate a new fine-grained token and save it at Admin > Integrations > GitHub Token before then.",
                 'expires_at' => $expiresAt->toIso8601String(),
             ];
         }
@@ -163,6 +168,60 @@ class GitHubTokenHealth
                 . ($expiresAt ? ' (expires ' . $expiresAt->toDateString() . ').' : '.'),
             'expires_at' => $expiresAt?->toIso8601String(),
         ];
+    }
+
+    /**
+     * On-demand probe for the admin "Verify token" button: runs the probe,
+     * persists the outcome as the last-known health, and returns it. Never
+     * sends alerts — that stays with the scheduled check's episode logic.
+     *
+     * @return array{status:string,detail:string,expires_at:?string}
+     */
+    public static function verify(): array
+    {
+        $probe = self::probe();
+        self::recordProbe($probe, 'manual');
+        return $probe;
+    }
+
+    /**
+     * The last persisted probe outcome (from the scheduled check or the
+     * "Verify token" button), or null if never probed.
+     *
+     * @return array{status:string,detail:string,expires_at:?string,checked_at:string,source:string}|null
+     */
+    public static function lastProbe(): ?array
+    {
+        $probe = self::state('last_probe');
+        if (! is_array($probe) || empty($probe['checked_at']) || empty($probe['status'])) {
+            return null;
+        }
+        return [
+            'status'     => (string) $probe['status'],
+            'detail'     => (string) ($probe['detail'] ?? ''),
+            'expires_at' => isset($probe['expires_at']) && $probe['expires_at'] !== '' ? (string) $probe['expires_at'] : null,
+            'checked_at' => (string) $probe['checked_at'],
+            'source'     => (string) ($probe['source'] ?? 'scheduled'),
+        ];
+    }
+
+    /**
+     * Persist a probe outcome as the last-known health so the admin page
+     * can always show current state, not just a transient flash.
+     *
+     * @param array{status:string,detail:string,expires_at:?string} $probe
+     */
+    private static function recordProbe(array $probe, string $source): void
+    {
+        self::putState([
+            'last_probe' => [
+                'status'     => $probe['status'],
+                'detail'     => $probe['detail'],
+                'expires_at' => $probe['expires_at'],
+                'checked_at' => now()->toIso8601String(),
+                'source'     => $source,
+            ],
+        ]);
     }
 
     // ─────────────────────────────────────────────────────────────
@@ -182,7 +241,9 @@ class GitHubTokenHealth
         $body = $probe['detail'] . ' Without a working token, code stops being mirrored to '
             . 'https://github.com/' . $repo . ' after each publish and the repo silently drifts behind the workspace. '
             . 'Fix: create a new fine-grained personal access token (with contents read/write on the repo) at '
-            . 'https://github.com/settings/personal-access-tokens and update the GITHUB_TOKEN secret in Replit.';
+            . 'https://github.com/settings/personal-access-tokens and save it in the admin panel at '
+            . route('admin.integrations.github.edit') . ' (Admin > Integrations > GitHub Token). '
+            . 'As a fallback, the GITHUB_TOKEN environment secret can be updated instead.';
 
         $inApp  = self::fanOutInApp($admins, 'github_token_unhealthy', $subject, $body, [
             'status'     => $probe['status'],
@@ -193,7 +254,7 @@ class GitHubTokenHealth
         try {
             InternalAlertDispatcher::send(
                 $subject,
-                $probe['detail'] . ' Renew the token and update the GITHUB_TOKEN secret.',
+                $probe['detail'] . ' Renew the token via Admin > Integrations > GitHub Token (or the GITHUB_TOKEN env secret as fallback).',
                 $probe['status'] === 'expiring' ? 'warning' : 'error',
                 ['Repo' => $repo, 'Status' => $probe['status']]
             );

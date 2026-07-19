@@ -3,8 +3,10 @@
 namespace App\Modules\Common\Controllers;
 
 use App\Modules\Common\Services\ViewerSession;
+use App\Modules\User\Models\BiolinkBlock;
 use App\Modules\User\Models\CreatorPost;
 use App\Modules\User\Models\CreatorSubscription;
+use App\Modules\User\Models\Link;
 use App\Modules\User\Models\SubscriptionPromoCode;
 use App\Modules\User\Models\SubscriptionTier;
 use App\Modules\User\Models\User;
@@ -221,6 +223,74 @@ class CreatorMonetizationPublicController extends Controller
         $sub->status = CreatorSubscription::STATUS_ACTIVE;
         $sub->save();
         return back()->with('success', 'Subscription resumed.');
+    }
+
+    /**
+     * Tip-Jar block endpoint. A fan hits this from a biolink block of
+     * type `tip_jar`. We look up the link by alias, confirm the block
+     * belongs to it and is a tip_jar, then delegate to startTip exactly
+     * like the /@handle/tip route does.
+     *
+     * The fan must hold a ViewerSession (or be authenticated). If not,
+     * we redirect them back to the biolink page with a flash so the
+     * viewer OTP modal can open.
+     */
+    public function biolinkTip(Request $request, string $alias)
+    {
+        $link = Link::where('alias', $alias)->first();
+        if (!$link) abort(404);
+
+        $creator = $link->user;
+        if (!$creator) abort(404);
+
+        $viewer = $this->requireViewerForBiolink($request, $alias);
+
+        $data = $request->validate([
+            'block_id'  => 'required|integer',
+            'amount'    => 'required|numeric|min:1|max:1000',
+            'note'      => 'nullable|string|max:280',
+            'anonymous' => 'nullable|boolean',
+            'return_url' => 'nullable|url',
+        ]);
+
+        $block = BiolinkBlock::withoutGlobalScope('workspace')
+            ->where('link_id', $link->id)
+            ->where('type', 'tip_jar')
+            ->whereKey((int) $data['block_id'])
+            ->first();
+        if (!$block) abort(404);
+
+        $connection = $creator->defaultPaymentConnection();
+        if (!$connection || !$connection->charges_enabled) {
+            return redirect(url('/' . $alias))->with('error', 'Tips are not available for this creator right now.');
+        }
+
+        $returnUrl = $data['return_url'] ?? url('/' . $alias . '?tipped=1');
+
+        $r = app(MonetizationCheckout::class)->startTip(
+            $viewer, $creator,
+            (int) round(((float) $data['amount']) * 100),
+            $creator->preferred_currency ?: 'USD',
+            null,
+            $data['note'] ?? null,
+            (bool) ($data['anonymous'] ?? false),
+            $returnUrl,
+            \App\Modules\User\Models\CreatorPaymentEvent::SOURCE_TIP_JAR,
+        );
+        return redirect()->away($r['url']);
+    }
+
+    protected function requireViewerForBiolink(Request $request, string $alias): User
+    {
+        $viewer = ViewerSession::user() ?: $request->user();
+        if (!$viewer) {
+            throw new HttpResponseException(
+                redirect(url('/' . $alias))
+                    ->with('viewer_login_required', true)
+                    ->with('error', 'Please sign in with your email to send a tip.')
+            );
+        }
+        return $viewer;
     }
 
     protected function creatorOr404(string $handle): User

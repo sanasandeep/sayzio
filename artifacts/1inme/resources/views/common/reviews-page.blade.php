@@ -1,6 +1,6 @@
 @php
     $heading = $settings['heading'] ?? ($link->title ?: 'Reviews');
-    $subheading = $settings['subheading'] ?? 'See what people are saying — and leave your own.';
+    $subheading = $settings['subheading'] ?? 'See what people are saying, and leave your own.';
     $showSummary = $settings['show_summary'] ?? true;
     $allowSub = $settings['allow_submissions'] ?? true;
     $collectMedia = $settings['collect_media'] ?? true;
@@ -8,12 +8,13 @@
     $collectEmail = ($settings['collect_email'] ?? true) || $requireVerification;
     $layout = $settings['layout'] ?? 'grid';
     $avg = $summary['average'] ?? 0;
-    $pageTitle = $link->seo_title ?? ($link->title ? $link->title . ' — Reviews' : 'Reviews');
+    $pageTitle = $link->seo_title ?? ($link->title ? $link->title . ', Reviews' : 'Reviews');
     $pageDesc = $link->seo_description ?? $subheading;
 @endphp
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    @include('common.partials.toolbar-theme-color')
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ $pageTitle }}</title>
@@ -227,7 +228,7 @@
 
         @if($collectEmail)
         <div class="field">
-            <label>Email {{ $requireVerification ? '(required to verify — not shown publicly)' : '(optional, not shown publicly)' }}</label>
+            <label>Email {{ $requireVerification ? '(required to verify, not shown publicly)' : '(optional, not shown publicly)' }}</label>
             <input type="email" name="author_email" maxlength="255" placeholder="you@example.com" {{ $requireVerification ? 'required' : '' }}>
         </div>
         @endif

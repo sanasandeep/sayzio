@@ -67,7 +67,7 @@
                             @if ($log->status === 'failed')
                                 <span class="text-[10px] px-1.5 py-0.5 rounded-full bg-red-500/15 border border-red-500/25 text-red-300">Failed</span>
                             @elseif (in_array($log->transport, ['log', 'array'], true))
-                                <span class="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/25 text-amber-300" title="Written to the {{ $log->transport }} driver — not actually delivered.">Log driver (not delivered)</span>
+                                <span class="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/25 text-amber-300" title="Written to the {{ $log->transport }} driver, not actually delivered.">Log driver (not delivered)</span>
                             @else
                                 <span class="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/25 text-emerald-300">Sent</span>
                             @endif

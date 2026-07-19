@@ -125,7 +125,7 @@ export default function TwoFactorScreen() {
         err?.status === 400
           ? "That code didn't match. Wait for a fresh one and try again."
           : err?.status === 409
-            ? "Enrolment expired — start again."
+            ? "Enrolment expired. Start again."
             : (err?.message ?? "Couldn't enable two-factor"),
       );
     } finally {
@@ -180,7 +180,7 @@ export default function TwoFactorScreen() {
     if (!freshCodes) return;
     try {
       await Share.share({
-        message: `Sayzio backup codes — store somewhere safe.\n\n${freshCodes.join("\n")}`,
+        message: `Sayzio backup codes: store somewhere safe.\n\n${freshCodes.join("\n")}`,
       });
     } catch {
       // user dismissed; ignore
@@ -260,7 +260,7 @@ export default function TwoFactorScreen() {
               </Text>
               {statusLoadError ? (
                 <Text style={[styles.error, { color: colors.destructive, marginTop: 6 }]}>
-                  {statusLoadError} — pull to retry.
+                  {statusLoadError}. Pull to retry.
                 </Text>
               ) : null}
             </View>

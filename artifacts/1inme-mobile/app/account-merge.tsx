@@ -63,7 +63,7 @@ export default function AccountMerge() {
           <Header
             colors={colors}
             title="Sign in to the account you'll keep"
-            sub="Merging pulls a second account's data into this one. First sign in to the account you want to keep — then you can prove you own the other one and merge it in."
+            sub="Merging pulls a second account's data into this one. First sign in to the account you want to keep; then you can prove you own the other one and merge it in."
           />
           <View style={{ height: 20 }} />
           <Button
@@ -311,7 +311,7 @@ export default function AccountMerge() {
               </Text>
               {preview.items.length === 0 ? (
                 <Text style={[styles.muted, { color: colors.mutedForeground }]}>
-                  The other account has no content to move — merging will just
+                  The other account has no content to move; merging will just
                   free up its email and phone for this account.
                 </Text>
               ) : (

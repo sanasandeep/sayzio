@@ -20,7 +20,7 @@
             </h1>
 
             <p style="font-size:14px; color:#334155; line-height:1.6; margin:0 0 16px 0;">
-                You asked us to let you know when <strong>{{ $featureLabel }}</strong> went live — it just did. You can start using it right now.
+                You asked us to let you know when <strong>{{ $featureLabel }}</strong> went live, and it just did. You can start using it right now.
             </p>
 
             @if(!empty($blurb))

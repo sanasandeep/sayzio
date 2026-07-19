@@ -24,7 +24,7 @@
         <div class="p-4 rounded-2xl bg-red-500/10 border border-red-500/30 flex items-start gap-3">
             <i class="fas fa-triangle-exclamation text-red-400 mt-0.5"></i>
             <div class="space-y-1">
-                <p class="text-sm font-semibold text-red-300">S3 storage is misconfigured — user uploads are failing</p>
+                <p class="text-sm font-semibold text-red-300">S3 storage is misconfigured, user uploads are failing</p>
                 <p class="text-xs text-red-300/80">
                     Missing: <span class="font-medium">{{ implode(', ', $missing) }}</span>.
                     User content is S3-only with no local-disk fallback, so every file upload fails with an error
@@ -47,12 +47,12 @@
     @include('admin.partials.help-note', [
         'body' => '<strong>S3 bucket setup checklist</strong>
             <ol class="list-decimal pl-4 mt-1 space-y-0.5">
-                <li><strong>IAM credentials</strong> — create a dedicated IAM user in <a class="underline" href="https://console.aws.amazon.com/iam/home#/users" target="_blank" rel="noopener">AWS IAM</a> with programmatic access. Attach a policy granting <code>s3:GetObject</code>, <code>s3:PutObject</code>, <code>s3:DeleteObject</code>, and <code>s3:ListBucket</code> on your bucket ARN only.</li>
-                <li><strong>ACLs disabled</strong> — create the bucket with <em>Object Ownership: Bucket owner enforced</em> (ACLs disabled). The platform never sets per-object ACLs; enabling them is not required and can break uploads.</li>
-                <li><strong>Public access</strong> — for public user content, either attach a bucket policy granting <code>s3:GetObject</code> to <code>*</code>, or front the bucket with a CloudFront distribution and enter the distribution domain as the Public URL.</li>
-                <li><strong>CORS</strong> — if the browser uploads directly (presigned URLs), add a CORS rule allowing <code>PUT</code> / <code>GET</code> from your domain. If all uploads go server-side, CORS is not required.</li>
-                <li><strong>Region</strong> — use the short-form region code, e.g. <code>us-east-1</code>, <code>eu-west-2</code>.</li>
-                <li><strong>S3-compatible providers</strong> (Cloudflare R2, MinIO, DigitalOcean Spaces) — enter the provider\'s S3-compatible endpoint and enable path-style if needed.</li>
+                <li><strong>IAM credentials</strong>, create a dedicated IAM user in <a class="underline" href="https://console.aws.amazon.com/iam/home#/users" target="_blank" rel="noopener">AWS IAM</a> with programmatic access. Attach a policy granting <code>s3:GetObject</code>, <code>s3:PutObject</code>, <code>s3:DeleteObject</code>, and <code>s3:ListBucket</code> on your bucket ARN only.</li>
+                <li><strong>ACLs disabled</strong>, create the bucket with <em>Object Ownership: Bucket owner enforced</em> (ACLs disabled). The platform never sets per-object ACLs; enabling them is not required and can break uploads.</li>
+                <li><strong>Public access</strong>, for public user content, either attach a bucket policy granting <code>s3:GetObject</code> to <code>*</code>, or front the bucket with a CloudFront distribution and enter the distribution domain as the Public URL.</li>
+                <li><strong>CORS</strong>, if the browser uploads directly (presigned URLs), add a CORS rule allowing <code>PUT</code> / <code>GET</code> from your domain. If all uploads go server-side, CORS is not required.</li>
+                <li><strong>Region</strong>, use the short-form region code, e.g. <code>us-east-1</code>, <code>eu-west-2</code>.</li>
+                <li><strong>S3-compatible providers</strong> (Cloudflare R2, MinIO, DigitalOcean Spaces), enter the provider\'s S3-compatible endpoint and enable path-style if needed.</li>
             </ol>',
     ])
 
@@ -103,7 +103,7 @@
                         'placeholder' => $hasKey ? 'Paste a new key to replace' : 'AKIA…',
                         'inputClass' => 'w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-sm text-white',
                     ])
-                    <p class="text-[11px] text-white/30 mt-1">IAM access key ID — starts with <code>AKIA</code>.</p>
+                    <p class="text-[11px] text-white/30 mt-1">IAM access key ID, starts with <code>AKIA</code>.</p>
                     @if($hasKey)
                         <label class="mt-2 inline-flex items-center gap-2 text-xs text-white/60">
                             <input type="hidden" name="clear_s3_key" value="0">
@@ -123,7 +123,7 @@
                         'placeholder' => $hasSecret ? 'Paste a new secret to replace' : '••••••••',
                         'inputClass' => 'w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-sm text-white',
                     ])
-                    <p class="text-[11px] text-white/30 mt-1">IAM secret key — encrypted at rest, never displayed back.</p>
+                    <p class="text-[11px] text-white/30 mt-1">IAM secret key, encrypted at rest, never displayed back.</p>
                     @if($hasSecret)
                         <label class="mt-2 inline-flex items-center gap-2 text-xs text-white/60">
                             <input type="hidden" name="clear_s3_secret" value="0">
@@ -144,14 +144,14 @@
                     <input type="text" name="s3_bucket" value="{{ old('s3_bucket', $bucket) }}" autocomplete="off"
                            placeholder="my-bucket"
                            class="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-sm text-white">
-                    <p class="text-[11px] text-white/30 mt-1">Bucket name only — no <code>s3://</code> prefix or path.</p>
+                    <p class="text-[11px] text-white/30 mt-1">Bucket name only, no <code>s3://</code> prefix or path.</p>
                 </div>
                 <div class="sm:col-span-2">
                     <label class="text-xs uppercase tracking-wider text-white/40 mb-1 block">Public URL (CDN / CloudFront)</label>
                     <input type="text" name="s3_url" value="{{ old('s3_url', $url) }}" autocomplete="off"
                            placeholder="https://cdn.example.com"
                            class="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-sm text-white">
-                    <p class="text-[11px] text-white/30 mt-1">Optional. Base URL used when generating public links to stored objects — use your CloudFront or CDN domain here to avoid direct S3 traffic costs.</p>
+                    <p class="text-[11px] text-white/30 mt-1">Optional. Base URL used when generating public links to stored objects, use your CloudFront or CDN domain here to avoid direct S3 traffic costs.</p>
                 </div>
                 <div class="sm:col-span-2">
                     <label class="text-xs uppercase tracking-wider text-white/40 mb-1 block">Custom endpoint</label>

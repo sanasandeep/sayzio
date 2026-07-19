@@ -66,7 +66,7 @@
                                         <button type="submit" class="text-xs font-medium" style="color:#dc2626;">This wasn't me</button>
                                     </form>
                                 @else
-                                    <span class="text-xs" style="color: var(--text-muted);">—</span>
+                                    <span class="text-xs" style="color: var(--text-muted);">-</span>
                                 @endif
                             </td>
                         </tr>

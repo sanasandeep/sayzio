@@ -7,12 +7,12 @@
         [
             'icon'  => 'fa-user-plus',
             'title' => 'Viewer accounts & follows',
-            'desc'  => 'Visitors create lightweight viewer accounts in seconds — by email, phone OTP or social — and follow the creators they love. No third-party network in the middle.',
+            'desc'  => 'Visitors create lightweight viewer accounts in seconds, by email, phone OTP or social, and follow the creators they love. No third-party network in the middle.',
         ],
         [
             'icon'  => 'fa-bolt',
             'title' => 'Live follower counts everywhere',
-            'desc'  => 'Your follower count updates live across your Link in Bio, creator profile, and every social block — visitors see real momentum without you lifting a finger.',
+            'desc'  => 'Your follower count updates live across your Link in Bio, creator profile, and every social block, so visitors see real momentum without you lifting a finger.',
         ],
         [
             'icon'  => 'fa-compass',
@@ -22,12 +22,12 @@
         [
             'icon'  => 'fa-envelope-open-text',
             'title' => 'Daily digest email',
-            'desc'  => 'Followers get a clean digest of your latest posts — with thumbnails, send-time controls, a preview window before it goes out, and a one-click test send for you.',
+            'desc'  => 'Followers get a clean digest of your latest posts, with thumbnails, send-time controls, a preview window before it goes out, and a one-click test send for you.',
         ],
         [
             'icon'  => 'fa-share-from-square',
             'title' => 'Follow buttons on social blocks',
-            'desc'  => 'Every social block can show a one-tap follow button, so visitors join your audience right where they discovered you — without leaving the page.',
+            'desc'  => 'Every social block can show a one-tap follow button, so visitors join your audience right where they discovered you, without leaving the page.',
         ],
     ];
     $faqAnchors = [
@@ -173,7 +173,7 @@
 
 @include('public.partials.subscribe-block', [
     'heading' => 'Audience-growth playbooks, when we ship them.',
-    'subtext' => 'Once-a-month notes on what is helping creators on Sayzio grow — email, WhatsApp Channel, or DM, your call.',
+    'subtext' => 'Once-a-month notes on what is helping creators on Sayzio grow: email, WhatsApp Channel, or DM, your call.',
     'source'  => 'audience',
 ])
 @endsection

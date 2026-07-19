@@ -261,7 +261,7 @@ export default function StoreScreen() {
               </View>
               <Text style={[styles.disclaimer, { color: colors.mutedForeground }]}>
                 This is an estimated total, not the actual bill. The seller
-                confirms the final amount — no payment is collected here.
+                confirms the final amount; no payment is collected here.
               </Text>
             </View>
           </View>

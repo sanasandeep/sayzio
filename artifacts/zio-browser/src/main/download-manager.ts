@@ -3,6 +3,7 @@
  * Intercepts Electron download events and tracks them in the local DB.
  * Maintains a live registry of in-progress DownloadItem references so the
  * renderer can pause, resume, and cancel active downloads via IPC.
+ * In private mode downloads complete normally but are NOT written to the DB.
  */
 import path from 'path';
 import { app, BrowserWindow } from 'electron';
@@ -57,8 +58,16 @@ export function setupDownloadManager(
     // Determine save path from user preference
     const prefPath = getPreference(PREFERENCE_KEYS.DOWNLOAD_PATH);
     const downloadDir = prefPath ?? app.getPath('downloads');
-    const savePath = path.join(downloadDir, filename);
-    item.setSavePath(savePath);
+    const alwaysAsk = getPreference(PREFERENCE_KEYS.DOWNLOAD_ASK) === '1';
+    let savePath = path.join(downloadDir, filename);
+    if (alwaysAsk) {
+      // Let Electron show the native "Save As" dialog for this download.
+      // Not calling setSavePath() triggers the OS picker automatically.
+      item.setSaveDialogOptions({ title: 'Save File', defaultPath: savePath });
+      savePath = '';
+    } else {
+      item.setSavePath(savePath);
+    }
 
     // Register live item reference
     _activeItems.set(id, item);
@@ -78,7 +87,7 @@ export function setupDownloadManager(
       });
     }
 
-    // Notify renderer: download started
+    // Notify renderer: download started (always — private downloads still show in the active session UI)
     win.webContents.send('download:started', {
       id,
       url: item.getURL(),

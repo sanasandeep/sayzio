@@ -7,17 +7,17 @@
         [
             'icon'  => 'fa-shapes',
             'title' => '21 field types',
-            'desc'  => 'Short and long text, email, phone, number, dropdowns, multiple choice, checkboxes, star ratings, dates, times, file uploads, hidden fields and more — drag, drop and reorder them however you like.',
+            'desc'  => 'Short and long text, email, phone, number, dropdowns, multiple choice, checkboxes, star ratings, dates, times, file uploads, hidden fields and more. Drag, drop and reorder them however you like.',
         ],
         [
             'icon'  => 'fa-palette',
             'title' => 'Designed to match your brand',
-            'desc'  => 'Control colors, fonts, spacing, button styles, backgrounds and corner radius. Every form looks like it belongs on your page — no code, no generic third-party styling.',
+            'desc'  => 'Control colors, fonts, spacing, button styles, backgrounds and corner radius. Every form looks like it belongs on your page, no code, no generic third-party styling.',
         ],
         [
             'icon'  => 'fa-bell-concierge',
             'title' => 'Instant submission alerts',
-            'desc'  => 'Get notified the moment someone responds — by email, SMS or webhook. Pipe leads straight into your CRM, Slack, Zapier or any endpoint you point us at.',
+            'desc'  => 'Get notified the moment someone responds: by email, SMS or webhook. Pipe leads straight into your CRM, Slack, Zapier or any endpoint you point us at.',
         ],
         [
             'icon'  => 'fa-link',
@@ -58,7 +58,7 @@
                     <span class="block grad-text">right from your page.</span>
                 </h1>
                 <p class="mt-5 text-lg text-gray-400 max-w-xl leading-relaxed">
-                    A drag-and-drop form builder with 21 field types, full design control, and instant email, SMS and webhook notifications on every submission — embeddable in any biolink in seconds.
+                    A drag-and-drop form builder with 21 field types, full design control, and instant email, SMS and webhook notifications on every submission, embeddable in any biolink in seconds.
                 </p>
                 <div class="mt-7 flex flex-wrap items-center gap-3">
                     @guest
@@ -179,7 +179,7 @@
 
 @include('public.partials.subscribe-block', [
     'heading' => 'Tips for forms that actually convert.',
-    'subtext' => 'Once-a-month notes on capturing more leads, fewer drop-offs and better follow-up on Sayzio — email, WhatsApp Channel, or DM, your call.',
+    'subtext' => 'Once-a-month notes on capturing more leads, fewer drop-offs and better follow-up on Sayzio: email, WhatsApp Channel, or DM, your call.',
     'source'  => 'forms',
 ])
 @endsection

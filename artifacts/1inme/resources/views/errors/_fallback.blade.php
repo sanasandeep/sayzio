@@ -16,7 +16,7 @@
         405 => ["That isn't a valid page", "This link can't be opened the way you reached it. Head back to where you started."],
         419 => ['Your session expired', 'For your security, your session timed out. Please refresh and try again.'],
         429 => ['Slow down a moment', "You've made a few too many requests. Please wait a little and try again."],
-        500 => ['Something went wrong on our end', "Sorry — an unexpected error occurred. Our team has been notified. Please try again in a few minutes."],
+        500 => ['Something went wrong on our end', "Sorry, an unexpected error occurred. Our team has been notified. Please try again in a few minutes."],
         503 => ["We'll be right back", 'The site is temporarily down for maintenance. Please check back shortly.'],
     ];
     [$title, $body] = $map[$sc] ?? ['Something went wrong', 'An unexpected error occurred on our side. Please try again in a moment.'];
@@ -27,6 +27,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="robots" content="noindex,nofollow">
+    @include('common.partials.toolbar-theme-color')
     <title>{{ $title }} &mdash; Sayzio</title>
     <style>
         :root { color-scheme: dark; }

@@ -1,8 +1,9 @@
 <!DOCTYPE html>
 <html lang="en"><head>
+    @include('common.partials.toolbar-theme-color')
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="csrf-token" content="{{ csrf_token() }}">
-<title>DMCA Takedown — {{ config('app.name') }}</title>
+<title>DMCA Takedown | {{ config('app.name') }}</title>
 @vite(['resources/css/app.css', 'resources/js/app.js'])
 @include('common.partials.fontawesome')
 </head>
@@ -10,7 +11,7 @@
 <div class="max-w-2xl mx-auto px-4 py-10">
     <div class="bg-white rounded-2xl border border-slate-200 p-6">
         <h1 class="text-2xl font-extrabold text-slate-900">DMCA / IP Takedown</h1>
-        <p class="text-sm text-slate-600 mt-1">Use this form to report content you believe infringes your copyright. Filing a false claim has legal consequences — please review your work and the linked content carefully.</p>
+        <p class="text-sm text-slate-600 mt-1">Use this form to report content you believe infringes your copyright. Filing a false claim has legal consequences; please review your work and the linked content carefully.</p>
 
         @if(session('error'))
             <div class="mt-4 p-3 rounded-lg bg-rose-50 border border-rose-200 text-rose-800 text-sm">{{ session('error') }}</div>

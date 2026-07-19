@@ -507,7 +507,7 @@
             if (this.cycle === 'annual' && this.hasAnnual(plan)) {
                 const annualTotal = this.money(plan, 'annual');
                 return monthly && monthly !== '—'
-                    ? 'Billed annually at ' + annualTotal + '/yr — or ' + monthly + '/mo month-to-month'
+                    ? 'Billed annually at ' + annualTotal + '/yr, or ' + monthly + '/mo month-to-month'
                     : 'Billed annually at ' + annualTotal + '/yr';
             }
             if (this.hasAnnual(plan)) {
@@ -613,7 +613,7 @@
                 Pricing that <span class="grad-text">scales with you.</span>
             </h1>
             <p class="text-lg text-gray-300/90 max-w-xl mx-auto">
-                Start free, upgrade only when you outgrow it. Powerful features, transparent pricing — cancel anytime.
+                Start free, upgrade only when you outgrow it. Powerful features, transparent pricing, cancel anytime.
             </p>
             <div class="flex flex-wrap items-center justify-center gap-x-2.5 gap-y-2 pt-1 pb-4 text-xs">
                 <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/[0.04] border border-white/10 text-gray-300"><i class="fas fa-circle-check text-emerald-400"></i> No card to start</span>
@@ -724,7 +724,7 @@
             {{-- Savings callout — emphasised on annual, teasing on monthly --}}
             <div class="h-5 text-xs" aria-live="polite">
                 <span x-show="cycle==='annual'" x-cloak class="inline-flex items-center gap-1.5 font-semibold text-emerald-300">
-                    <i class="fas fa-circle-check"></i> You're saving 2 months — that's ~17% off every year
+                    <i class="fas fa-circle-check"></i> You're saving 2 months, that's ~17% off every year
                 </span>
                 <span x-show="cycle==='monthly'" x-cloak class="inline-flex items-center gap-1.5 text-gray-400">
                     <i class="fas fa-piggy-bank text-emerald-400/80"></i> Switch to annual and save 2 months (~17%)
@@ -1050,7 +1050,7 @@
                                             <span class="font-semibold text-gray-500 line-through decoration-2 decoration-gray-400/60" x-text="cycle==='annual' ? introNormalPerMonth(plan) : (intro(plan)?.normal_formatted ?? '')"></span>
                                         </div>
                                         <div class="text-[11px] text-emerald-300/90 mt-0.5">
-                                            First <span x-text="cycle==='annual' ? 'year' : 'month'"></span> only — renews at <span x-text="cycle==='annual' ? introNormalPerMonth(plan) : (intro(plan)?.normal_formatted ?? '')"></span>/mo
+                                            First <span x-text="cycle==='annual' ? 'year' : 'month'"></span> only, renews at <span x-text="cycle==='annual' ? introNormalPerMonth(plan) : (intro(plan)?.normal_formatted ?? '')"></span>/mo
                                         </div>
                                     </div>
                                 </template>
@@ -1061,7 +1061,7 @@
                             <div class="mt-auto pt-2">
                                 {{-- Billing note (Linktree fineprint under the price) --}}
                                 @if(!empty($row['is_free']))
-                                    <div class="text-xs text-gray-400 min-h-[2.5rem]">Free forever — no card required</div>
+                                    <div class="text-xs text-gray-400 min-h-[2.5rem]">Free forever, no card required</div>
                                 @else
                                     <div class="text-xs text-gray-400 min-h-[2.5rem]" x-text="billingNote(plan)"></div>
                                 @endif
@@ -1331,7 +1331,7 @@
             <div class="text-center max-w-2xl mx-auto mb-6">
                 <div class="text-xs font-bold uppercase tracking-[.2em] text-blue-400 mb-2">Side by side</div>
                 <h2 class="text-3xl sm:text-4xl font-bold tracking-tight">Compare features at a glance</h2>
-                <p class="text-gray-400 mt-2">Every plan, every important feature — laid out so you can spot the deltas in seconds.</p>
+                <p class="text-gray-400 mt-2">Every plan, every important feature, laid out so you can spot the deltas in seconds.</p>
             </div>
             <div class="rounded-3xl border border-white/10 bg-white/[0.02] overflow-hidden">
                 <div class="feat-matrix-scroll">
@@ -1379,7 +1379,7 @@
                 </div>
                 <h2 class="text-3xl sm:text-4xl font-bold tracking-tight">Out of API calls? Just grab some coins.</h2>
                 <p class="text-gray-400 mt-2">
-                    Coins are Sayzio's pay-as-you-go top-up currency — one flexible balance
+                    Coins are Sayzio's pay-as-you-go top-up currency, one flexible balance
                     you keep on hand and only spend when you need more than your plan includes.
                     No overage bills, no hard stops, no jumping to a bigger plan just for a busy week.
                 </p>
@@ -1399,7 +1399,7 @@
                     <div class="text-sm font-semibold text-white">API overage</div>
                     <p class="text-xs text-gray-400 mt-1 leading-relaxed flex-grow">
                         Blow past your monthly API-call allowance and coins quietly cover the
-                        extra calls — nothing breaks.
+                        extra calls, nothing breaks.
                     </p>
                     <p class="text-[11px] text-amber-300/80 mt-2">e.g. a viral week that doubles your traffic.</p>
                 </div>
@@ -1419,7 +1419,7 @@
                     </div>
                     <div class="text-sm font-semibold text-white">AI features</div>
                     <p class="text-xs text-gray-400 mt-1 leading-relaxed flex-grow">
-                        Power OpenAI tools billed straight from your balance — pay only for what you use.
+                        Power OpenAI tools billed straight from your balance; pay only for what you use.
                     </p>
                     <p class="text-[11px] text-blue-300/80 mt-2">e.g. generating a persona or scanning business cards.</p>
                 </div>
@@ -1430,7 +1430,7 @@
             @if(!$wallet_enabled)
                 <div class="max-w-2xl mx-auto rounded-2xl border border-amber-400/20 bg-amber-400/5 p-6 text-amber-200 text-center">
                     <i class="fas fa-coins text-2xl float-coin mb-2 block"></i>
-                    Coin top-ups aren't enabled on this site yet — check back soon.
+                    Coin top-ups aren't enabled on this site yet. Check back soon.
                 </div>
             @elseif($packages->isEmpty())
                 <div class="max-w-2xl mx-auto rounded-2xl border border-white/10 bg-white/[0.02] p-6 text-gray-400 text-center">
@@ -1449,7 +1449,7 @@
                         if ($total < 1000) return 'One-off campaigns or activating a single add-on.';
                         if ($total < 5000) return 'A batch of NFC tag activations or a short ad burst.';
                         if ($total < 20000) return 'AI credit top-ups + a few add-on activations.';
-                        return 'Power-users — months of AI generation, gifting credits, or running multiple add-ons in parallel.';
+                        return 'Power users who need months of AI generation, gifting credits, or running multiple add-ons in parallel.';
                     };
                 @endphp
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 mt-10">
@@ -1537,7 +1537,7 @@
                     <div class="text-[11px] font-bold uppercase tracking-[.2em] text-blue-300 mb-1">Referral program</div>
                     <div class="text-white font-semibold leading-snug">Tell a friend, both get credit.</div>
                     <p class="text-sm text-gray-400 mt-1 leading-relaxed">
-                        Share your personal <span class="font-mono text-blue-300">/r/&lt;your-code&gt;</span> link — every signup is tracked back to you, and your referrals land on the right plan with a thank-you discount applied automatically.
+                        Share your personal <span class="font-mono text-blue-300">/r/&lt;your-code&gt;</span> link. Every signup is tracked back to you, and your referrals land on the right plan with a thank-you discount applied automatically.
                     </p>
                 </div>
                 @auth
@@ -1567,7 +1567,7 @@
 
 @include('public.partials.subscribe-block', [
     'heading' => 'Pricing changes, deals, and new plans.',
-    'subtext' => 'Be the first to know about coin packages and seasonal offers — pick email, WhatsApp Channel, or DM.',
+    'subtext' => 'Pick email, WhatsApp Channel, or DM to be first to know about coin packages and seasonal offers.',
     'source'  => 'pricing',
 ])
 @endsection

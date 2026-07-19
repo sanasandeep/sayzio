@@ -284,7 +284,7 @@ export default function BillingCompaniesScreen() {
                       {lowBalance ? (
                         <Text style={[styles.summaryWarn, { color: colors.warning }]}>
                           <Feather name="alert-triangle" size={11} /> Balance below{" "}
-                          {walletBalance!.low_balance_threshold.toLocaleString()} coins — top up to
+                          {walletBalance!.low_balance_threshold.toLocaleString()} coins; top up to
                           keep using coin add-ons.
                         </Text>
                       ) : null}

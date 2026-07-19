@@ -8,7 +8,7 @@
     $aiMeta = [
         'ai-chatbot' => [
             'eyebrow' => 'AI Chatbot',
-            'tagline' => 'A 24/7 chatbot for your Link in Bio — trained on you, on-brand, never asleep.',
+            'tagline' => 'A 24/7 chatbot for your Link in Bio, trained on you, on-brand, never asleep.',
             'icon'    => 'fa-comments',
             'accent'  => '#3d6bff',
         ],
@@ -26,7 +26,7 @@
         ],
         'ai-voice-assistant' => [
             'eyebrow' => 'AI Voice Assistant',
-            'tagline' => "Pick up every call in your voice — never miss another lead.",
+            'tagline' => "Pick up every call in your voice, never miss another lead.",
             'icon'    => 'fa-headset',
             'accent'  => '#ff8a3c',
         ],
@@ -218,7 +218,7 @@
 
 @include('public.partials.subscribe-block', [
     'heading' => 'New AI features, the moment they ship.',
-    'subtext' => 'Pick how you want to hear from us — email, WhatsApp Channel, or DM. Once-a-month notes on the AI suite, no fluff.',
+    'subtext' => 'Pick how you want to hear from us: email, WhatsApp Channel, or DM. Once-a-month notes on the AI suite, no fluff.',
     'source'  => $slug,
 ])
 @endsection

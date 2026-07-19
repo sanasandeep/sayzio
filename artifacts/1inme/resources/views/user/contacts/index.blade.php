@@ -7,7 +7,7 @@
 <div class="max-w-7xl mx-auto">
     @include('user.partials.page-hero', [
         'title' => 'Contacts',
-        'subtitle' => 'Your address book — synced two-way with Google Contacts and silently linked to Sayzio Link in Bio pages.',
+        'subtitle' => 'Your address book, synced two-way with Google Contacts and silently linked to Sayzio Link in Bio pages.',
         'icon' => 'fa-address-book',
         'chips' => [
             ['icon' => 'fa-database text-cyan-400', 'text' => $stats['total'] . ' contacts'],
@@ -78,7 +78,7 @@
                     <div class="text-[11px] mb-3" style="color: var(--text-faint);">
                         Last sync: {{ $googleAccount->last_synced_at ? $googleAccount->last_synced_at->diffForHumans() : 'never' }}
                         @if($googleAccount->last_sync_status === 'error')
-                            <span class="text-red-400">— error</span>
+                            <span class="text-red-400"> - error</span>
                         @endif
                     </div>
                     <form method="POST" action="{{ route('user.contacts.google.sync', $googleAccount) }}" class="mb-2">

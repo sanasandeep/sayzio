@@ -42,7 +42,7 @@
                         <i class="fas fa-paper-plane text-[10px]"></i> Compose
                     </a>
                     @else
-                    <span class="btn-primary text-xs py-2 cursor-not-allowed opacity-60" title="Your role doesn't allow composing campaigns — ask a workspace admin">
+                    <span class="btn-primary text-xs py-2 cursor-not-allowed opacity-60" title="Your role doesn't allow composing campaigns, ask a workspace admin">
                         <i class="fas fa-lock text-[10px]"></i> Compose
                     </span>
                     @endif
@@ -51,7 +51,7 @@
                         <i class="fas fa-cog text-[10px]"></i> Settings
                     </a>
                     @else
-                    <span class="btn-ghost text-xs py-2 cursor-not-allowed opacity-60" title="Your role doesn't allow editing leads settings — ask a workspace admin">
+                    <span class="btn-ghost text-xs py-2 cursor-not-allowed opacity-60" title="Your role doesn't allow editing leads settings, ask a workspace admin">
                         <i class="fas fa-lock text-[10px]"></i> Settings
                     </span>
                     @endif
@@ -214,7 +214,7 @@
                                     </button>
                                 </form>
                                 @else
-                                <span class="p-1.5 rounded-lg cursor-not-allowed opacity-60" style="color: var(--text-faint);" title="Your role doesn't allow changing lead status — ask a workspace admin">
+                                <span class="p-1.5 rounded-lg cursor-not-allowed opacity-60" style="color: var(--text-faint);" title="Your role doesn't allow changing lead status, ask a workspace admin">
                                     <i class="fas fa-lock text-xs"></i>
                                 </span>
                                 @endif
@@ -226,7 +226,7 @@
                                     </button>
                                 </form>
                                 @else
-                                <span class="p-1.5 rounded-lg cursor-not-allowed opacity-60" style="color: var(--text-faint);" title="Your role doesn't allow deleting leads — ask a workspace admin">
+                                <span class="p-1.5 rounded-lg cursor-not-allowed opacity-60" style="color: var(--text-faint);" title="Your role doesn't allow deleting leads, ask a workspace admin">
                                     <i class="fas fa-lock text-xs"></i>
                                 </span>
                                 @endif

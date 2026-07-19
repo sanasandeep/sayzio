@@ -123,6 +123,7 @@ export function DownloadsPanel({ onClose }: Props) {
   const [entries, setEntries] = useState<DownloadEntry[]>([]);
   const [search, setSearch] = useState('');
   const [searching, setSearching] = useState(false);
+  const [missingIds, setMissingIds] = useState<Set<string>>(new Set());
   const searchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Load persisted history on mount
@@ -131,6 +132,30 @@ export function DownloadsPanel({ onClose }: Props) {
       setEntries(rows.map(r => ({ ...r })));
     });
   }, []);
+
+  // Proactively flag completed entries whose file no longer exists on disk
+  useEffect(() => {
+    let cancelled = false;
+    const toCheck = entries.filter(e => e.state === 'completed' && e.save_path && !missingIds.has(e.id));
+    if (toCheck.length === 0) return;
+    void Promise.all(
+      toCheck.map(async e => ({
+        id: e.id,
+        exists: await window.zio.downloads.exists(e.save_path!) as boolean,
+      })),
+    ).then(results => {
+      if (cancelled) return;
+      const gone = results.filter(r => !r.exists).map(r => r.id);
+      if (gone.length === 0) return;
+      setMissingIds(prev => {
+        const next = new Set(prev);
+        gone.forEach(id => next.add(id));
+        return next;
+      });
+    });
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [entries]);
 
   // Live IPC event listeners
   useEffect(() => {
@@ -267,15 +292,18 @@ export function DownloadsPanel({ onClose }: Props) {
     void window.zio.downloads.retry(url);
   }, []);
 
-  const handleOpen = useCallback(async (savePath: string) => {
-    const result = await window.zio.downloads.open(savePath) as { ok: boolean; error?: string };
-    if (!result.ok) {
-      // file missing or cannot be opened — nothing else to do for now
+  const handleOpen = useCallback(async (id: string, savePath: string) => {
+    const result = await window.zio.downloads.open(savePath) as { ok: boolean; error?: string; missing?: boolean };
+    if (!result.ok && result.missing) {
+      setMissingIds(prev => new Set(prev).add(id));
     }
   }, []);
 
-  const handleReveal = useCallback((savePath: string) => {
-    void window.zio.downloads.show(savePath);
+  const handleReveal = useCallback(async (id: string, savePath: string) => {
+    const result = await window.zio.downloads.show(savePath) as { ok: boolean; error?: string; missing?: boolean };
+    if (!result.ok && result.missing) {
+      setMissingIds(prev => new Set(prev).add(id));
+    }
   }, []);
 
   const activeDownloads = entries.filter(e => isActive(e));
@@ -463,6 +491,7 @@ export function DownloadsPanel({ onClose }: Props) {
             {activeDownloads.length > 0 && <div style={sectionLabelStyle}>History</div>}
             {historyEntries.map(entry => {
               const isComplete = entry.state === 'completed';
+              const isMissing = missingIds.has(entry.id);
               const isFailed = entry.state === 'interrupted';
               const isCancelled = entry.state === 'cancelled';
               return (
@@ -527,19 +556,51 @@ export function DownloadsPanel({ onClose }: Props) {
                       {isComplete && entry.save_path && (
                         <>
                           <button
-                            onClick={() => void handleOpen(entry.save_path!)}
-                            style={iconBtnStyle}
-                            title="Open file"
+                            onClick={() => void handleOpen(entry.id, entry.save_path!)}
+                            disabled={isMissing}
+                            style={isMissing ? { ...iconBtnStyle, opacity: 0.4, cursor: 'default' } : iconBtnStyle}
+                            title={isMissing ? 'File not found' : 'Open file'}
                           >Open</button>
                           <button
-                            onClick={() => handleReveal(entry.save_path!)}
-                            style={iconBtnStyle}
-                            title="Show in folder"
+                            onClick={() => void handleReveal(entry.id, entry.save_path!)}
+                            disabled={isMissing}
+                            style={isMissing ? { ...iconBtnStyle, opacity: 0.4, cursor: 'default' } : iconBtnStyle}
+                            title={isMissing ? 'File not found' : 'Show in folder'}
                           >📂</button>
                         </>
                       )}
                     </div>
                   </div>
+
+                  {/* Missing-file inline error */}
+                  {isMissing && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: '#ef4444' }}>
+                      <span>File not found —</span>
+                      <button
+                        onClick={() => handleRetry(entry.url)}
+                        style={{
+                          ...iconBtnStyle,
+                          fontSize: 11,
+                          color: 'var(--color-text-accent, #3b82f6)',
+                          textDecoration: 'underline',
+                          padding: 0,
+                        }}
+                        title="Re-download this file from its original URL"
+                      >Download again</button>
+                      <span>·</span>
+                      <button
+                        onClick={() => void handleRemove(entry.id)}
+                        style={{
+                          ...iconBtnStyle,
+                          fontSize: 11,
+                          color: '#ef4444',
+                          textDecoration: 'underline',
+                          padding: 0,
+                        }}
+                        title="Remove this entry from the downloads list"
+                      >Remove from list</button>
+                    </div>
+                  )}
                 </div>
               );
             })}

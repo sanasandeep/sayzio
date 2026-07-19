@@ -100,7 +100,7 @@ export function EmbedModal({ visible, url, title, sandboxed, onClose }: EmbedMod
           >
             <Feather name="alert-triangle" size={14} color={colors.mutedForeground} />
             <Text style={[styles.noticeText, { color: colors.mutedForeground }]}>
-              Third-party embed — content is provided by the creator.
+              Third-party embed: content is provided by the creator.
             </Text>
           </View>
         ) : null}

@@ -118,7 +118,7 @@
                                 @if($row->anchor_text)
                                     <span class="block truncate max-w-[24ch]" title="{{ $row->anchor_text }}">“{{ $row->anchor_text }}”</span>
                                 @else
-                                    <span style="color: var(--text-faint);">—</span>
+                                    <span style="color: var(--text-faint);">-</span>
                                 @endif
                             </td>
                             <td class="px-5 py-3 align-top">

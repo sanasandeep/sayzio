@@ -16,7 +16,7 @@
 --}}
 @php
     $aiCoinFeatures = [
-        ['icon' => 'fa-brain',            'name' => 'AI Knowledge Bases','desc' => 'Train knowledge bases — ingestion & embeddings'],
+        ['icon' => 'fa-brain',            'name' => 'AI Knowledge Bases','desc' => 'Train knowledge bases for ingestion and embeddings'],
         ['icon' => 'fa-user-astronaut',   'name' => 'AI Agents',         'desc' => 'Public chat agents & persona generation'],
         ['icon' => 'fa-robot',            'name' => 'Chat Widgets',      'desc' => 'Always-on chatbots on your biolink'],
         ['icon' => 'fa-headset',          'name' => 'Site Assistant',    'desc' => 'On-site help & support chat widget'],
@@ -35,7 +35,7 @@
         </div>
         <p class="text-sm text-gray-400 max-w-xl mx-auto">
             Spend coins directly on these OpenAI-powered features. Each call
-            draws on your own coin balance — you only pay for what you use,
+            draws on your own coin balance; you only pay for what you use,
             with no separate credits to buy or convert.
         </p>
     </div>
@@ -46,7 +46,7 @@
             <i class="fas fa-coins text-amber-300 text-sm"></i>
         </span>
         <span class="text-sm sm:text-base text-white">
-            AI usage is billed <span class="font-bold text-blue-200">straight from your coin wallet</span> — pay only for what you use.
+            AI usage is billed <span class="font-bold text-blue-200">straight from your coin wallet</span>, so you pay only for what you use.
         </span>
     </div>
 

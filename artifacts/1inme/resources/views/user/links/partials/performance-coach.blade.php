@@ -114,7 +114,7 @@
                         <div class="pc-score">{{ $score }}</div>
                         <div class="pc-grade" style="color: {{ $gradeColor }};">{{ $p['grade'] }}</div>
                     @else
-                        <div class="pc-score" style="font-size: 1.1rem; line-height:1;">—</div>
+                        <div class="pc-score" style="font-size: 1.1rem; line-height:1;">-</div>
                         <div class="pc-grade" style="color: {{ $gradeColor }}; font-size:.7rem;">NEW</div>
                     @endif
                 </div>
@@ -156,7 +156,7 @@
                                         $dateLabel = (string) $rawDate;
                                     }
                                     $pointScore = (int) ($row['score'] ?? 0);
-                                    $pointTitle = trim($dateLabel . ($dateLabel !== '' ? ' — ' : '') . $pointScore . ' pts');
+                                    $pointTitle = trim($dateLabel . ($dateLabel !== '' ? ', ' : '') . $pointScore . ' pts');
                                 @endphp
                                 <circle class="pc-spark-point"
                                         cx="{{ $cx }}" cy="{{ $cy }}" r="6"
@@ -192,7 +192,7 @@
                                 $pct = $val === null ? 0 : (int) round($val * 100);
                                 $isWeakest = $key === $weakestKey;
                                 $title = $meta['label'] . ': ' . ($val === null ? 'n/a' : $pct . '%')
-                                       . ($isWeakest ? ' — weakest factor' : '');
+                                       . ($isWeakest ? ', weakest factor' : '');
                             @endphp
                             <div class="pc-bd-col {{ $isWeakest ? 'pc-bd-weak' : '' }}"
                                  title="{{ $title }}" aria-label="{{ $title }}">
@@ -236,7 +236,7 @@
             @if(empty($p['insights']))
                 <div class="text-sm py-6 text-center" style="color: var(--text-faint);">
                     <i class="fas fa-check-circle text-emerald-400 mr-1"></i>
-                    No recommendations — all metrics look healthy.
+                    No recommendations, all metrics look healthy.
                 </div>
             @else
                 <div class="flex flex-col gap-2">

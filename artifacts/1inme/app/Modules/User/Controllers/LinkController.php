@@ -268,7 +268,7 @@ class LinkController extends Controller
         $limits = workspace_owner()->getAliasLengthLimits();
 
         $validated = $request->validate([
-            'type'  => 'required|in:url,biolink,conversational,slides,ai_chat,restaurant_menu,store_menu,service_booking,file,ics,vcf,reviews,resume,paid_page,calendar,brand_kit',
+            'type'  => 'required|in:url,biolink,conversational,slides,ai_chat,restaurant_menu,store_menu,service_booking,file,ics,vcf,reviews,resume,paid_page,calendar,brand_kit,updates',
             'alias' => [
                 'nullable', 'string', new \App\Modules\User\Rules\AliasFormat(),
                 'min:' . $limits['min'],
@@ -311,6 +311,7 @@ class LinkController extends Controller
             'paid_page'      => redirect()->route('user.links.paid-page.create', $params),
             'brand_kit'      => redirect()->route('user.links.brand-kit.create', $params),
             'calendar'       => redirect()->route('user.calendars.create', $params),
+            'updates'        => redirect()->route('user.links.updates.create', $params),
         };
     }
 
@@ -376,6 +377,26 @@ class LinkController extends Controller
             'prefillAlias' => (string) $request->query('alias', ''),
             'aliasLimits' => workspace_owner()->getAliasLengthLimits(),
             'kits' => $kits,
+        ]);
+    }
+
+    /**
+     * Step 2 for the standalone Updates / Changelog page — name + alias +
+     * project only. On store() the link is created and the user drops into
+     * the dedicated updates editor where they post entries.
+     */
+    public function createUpdates(Request $request)
+    {
+        $projects = workspace_owner()->projects()->orderBy('name')->get();
+        $domains  = \App\Modules\User\Models\Domain::availableTo($request->user())->get();
+
+        return view('user.links.create-updates', [
+            'projects'       => $projects,
+            'domains'        => $domains,
+            'defaultDomainId'=> $this->resolveDefaultDomainId($request, $domains),
+            'prefillAlias'   => (string) $request->query('alias', ''),
+            'aliasLimits'    => workspace_owner()->getAliasLengthLimits(),
+            'domainHost'     => \App\Modules\Common\Support\PlatformHosts::primary(),
         ]);
     }
 
@@ -490,6 +511,7 @@ class LinkController extends Controller
             'paid_page'       => ['module' => 'module_paid_page',       'cap' => 'max_paid_page',       'label' => 'Bizs Profile'],
             'calendar'        => ['module' => 'module_calendar',        'cap' => 'max_calendars',       'label' => 'Calendar'],
             'brand_kit'       => ['module' => 'module_brand_kit',       'cap' => 'max_brand_kit_pages', 'label' => 'Brand / Press Kit'],
+            'updates'         => ['module' => 'module_updates',         'cap' => 'max_updates_pages',   'label' => 'Updates'],
         ];
         $cfg = $map[$type] ?? null;
         if (!$cfg) {
@@ -516,7 +538,7 @@ class LinkController extends Controller
         $userId = workspace_owner_id();
 
         $validated = $request->validate([
-            'type' => 'required|in:url,biolink,conversational,slides,ai_chat,restaurant_menu,store_menu,service_booking,file,ics,vcf,reviews,resume,paid_page,calendar,brand_kit',
+            'type' => 'required|in:url,biolink,conversational,slides,ai_chat,restaurant_menu,store_menu,service_booking,file,ics,vcf,reviews,resume,paid_page,calendar,brand_kit,updates',
             'paid_page_template' => 'nullable|string|in:' . implode(',', \App\Modules\User\Support\PaidPageTemplates::ids()),
             'brand_kit_id' => "nullable|integer|exists:brand_kits,id,user_id,{$userId}",
             'long_url' => 'required_if:type,url|nullable|url|max:2048',
@@ -743,6 +765,14 @@ class LinkController extends Controller
             $link->pixels()->sync($pixelIds);
         }
 
+        // Fire link_created webhook/email triggers (plan-gated; no-op when feature off).
+        try {
+            app(\App\Modules\User\Services\InboxForwarder::class)
+                ->dispatchForLinkCreated($link->user_id, $link->fresh() ?? $link);
+        } catch (\Throwable $e) {
+            \Log::warning('link_created trigger dispatch failed: ' . $e->getMessage());
+        }
+
         // Push a "link_published" feed event so followers see the new link.
         if (($link->is_active ?? true) && in_array($link->type, array_merge(Link::BIOLINK_FAMILY, ['short', 'file', 'splash', 'rsvp']))) {
             try {
@@ -812,6 +842,10 @@ class LinkController extends Controller
         if ($link->type === 'calendar') {
             return redirect()->route('user.calendars.editor', $link)
                 ->with('success', 'Calendar created — add your events and share it so people can follow.');
+        }
+        if ($link->type === 'updates') {
+            return redirect()->route('user.links.updates.editor', $link)
+                ->with('success', 'Updates page created — post your first entry to get started.');
         }
 
         // "Build with AI" start mode — skip the picker and send the user to

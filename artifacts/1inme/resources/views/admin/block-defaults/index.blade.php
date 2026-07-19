@@ -25,7 +25,7 @@
                 <p class="text-sm text-white/50 mt-1 max-w-2xl">
                     Configure the sample text, placeholder images/media URLs, and structural styling that
                     freshly-added biolink blocks start with. Overrides only affect <strong>new</strong> blocks
-                    — existing blocks are never changed.
+                   , existing blocks are never changed.
                 </p>
             </div>
             @if($customized > 0)

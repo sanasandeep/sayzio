@@ -25,6 +25,7 @@
 <!doctype html>
 <html lang="en">
 <head>
+    @include('common.partials.toolbar-theme-color')
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="robots" content="noindex">
@@ -139,7 +140,7 @@
         @endif
 
         @if ($state === 'gated')
-            <p class="footnote">Private link — open to view if you have access.</p>
+            <p class="footnote">Private link, open to view if you have access.</p>
         @elseif ($state === 'unavailable')
             <p class="footnote">This link is currently unavailable.</p>
         @endif

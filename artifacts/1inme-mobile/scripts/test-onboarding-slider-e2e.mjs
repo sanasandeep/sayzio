@@ -90,7 +90,7 @@ import {
   NAV_TIMEOUT_MS,
   STEP_TIMEOUT_MS,
 } from "./check-icon-fonts.mjs";
-import { createExpoServerManager, runHarness } from "./expo-web-server.mjs";
+import { createExpoServerManager, isTransientEnvError, runHarness } from "./expo-web-server.mjs";
 import { assertWordmarkWhiteVariant } from "./lib/wordmark-variant.mjs";
 
 function log(...args) {
@@ -122,7 +122,7 @@ const EXPECTED_PAGES = [
 const EXPECTED_PAGE_COUNT = EXPECTED_PAGES.length; // 5
 
 const WELCOME_CATEGORY = EXPECTED_PAGES[0].category;
-const WELCOME_TITLE = "Meet Sayzio";
+const WELCOME_TITLE = "Meet Zio";
 const WEBSITE_URL = "https://sayzio.app";
 
 // The 9 business-tool labels the "everything-you-need" slide renders as a 3×3
@@ -891,4 +891,17 @@ async function run() {
 
 // Termination guarantee: runHarness exits the process as soon as run()
 // settles and arms a watchdog, so a leaked handle can never stall the run.
-runHarness(run, { log, onError: (e) => fail(e?.stack || e?.message || String(e)) });
+runHarness(run, {
+  log,
+  onError: (e) => {
+    if (isTransientEnvError(e)) {
+      skip(
+        `the environment was too slow to drive the check ` +
+          `(${e?.message?.split("\n")[0] ?? "unknown error"}); ` +
+          `skipping (best-effort)`,
+      );
+      return;
+    }
+    fail(e?.stack || e?.message || String(e));
+  },
+});

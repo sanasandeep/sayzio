@@ -9,7 +9,7 @@
                 <h1 class="text-xl font-semibold text-white">User access</h1>
                 <p class="text-sm text-white/50">
                     Promote or demote other users on the user pool. Roles listed
-                    here are scoped to the user-facing app — back-office admin
+                    here are scoped to the user-facing app, back-office admin
                     roles are managed separately.
                 </p>
             </div>

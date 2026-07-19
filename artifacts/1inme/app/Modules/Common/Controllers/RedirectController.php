@@ -478,6 +478,7 @@ class RedirectController extends Controller
             'paid_page' => $this->handlePaidPage($request, $link),
             'brand_kit' => $this->handleBrandKitPage($request, $link),
             'calendar' => $this->handleCalendarPage($request, $link),
+            'updates' => $this->handleUpdatesPage($request, $link),
             default => abort(404),
         };
     }
@@ -1633,6 +1634,41 @@ class RedirectController extends Controller
             ]),
             $request
         );
+    }
+
+    /**
+     * Public Updates / Changelog page renderer.
+     *
+     * Fetches published entries newest-first, paginates them at the per-page
+     * setting set in the editor, and renders the standalone public page view.
+     * Link-level gates (password / expiry / visibility) already ran in handle()
+     * before this match arm is reached.
+     */
+    protected function handleUpdatesPage(Request $request, Link $link)
+    {
+        $settings = array_merge(
+            \App\Modules\User\Controllers\UpdatesController::DEFAULT_SETTINGS,
+            $link->settings['updates'] ?? []
+        );
+
+        $perPage = max(1, min(100, (int) ($settings['per_page'] ?? 10)));
+
+        $entries = \App\Modules\User\Models\UpdateEntry::where('link_id', $link->id)
+            ->published()
+            ->orderByDesc('published_date')
+            ->orderByDesc('id')
+            ->paginate($perPage);
+
+        $creator = \App\Modules\User\Models\User::find($link->user_id);
+
+        $pageTitle = ($link->title ?: $settings['heading'])
+            . ($creator ? ' — ' . $creator->name : '');
+
+        $themeClass = 'dark';
+
+        return response()->view('common.updates-page', compact(
+            'link', 'settings', 'entries', 'creator', 'pageTitle', 'themeClass'
+        ));
     }
 
     public function subscribe(Request $request, string $alias)

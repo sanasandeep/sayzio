@@ -59,6 +59,15 @@ const requireAdmin: RequestHandler = (req, res, next) => {
   next();
 };
 
+// GET /contact — instant 200 for deployment health checks. The Replit promote
+// probe GETs every path this service claims in artifact.toml (here
+// /api/contact); without this handler a GET fell through to the Laravel proxy
+// and returned 404/500, which stalled the Promote step until the deploy
+// failed. Contact submissions remain POST-only below.
+router.get("/contact", (_req, res) => {
+  res.status(200).json({ ok: true });
+});
+
 router.post("/contact", contactRateLimiter, async (req, res) => {
   const parsed = SubmitContactMessageBody.safeParse(req.body);
 

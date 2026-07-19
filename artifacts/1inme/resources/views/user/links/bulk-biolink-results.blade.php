@@ -1,5 +1,5 @@
 @extends('user.layouts.app')
-@section('title', 'Bulk Link in Bio — Results')
+@section('title', 'Bulk Link in Bio: Results')
 
 @section('content')
 <div class="max-w-5xl mx-auto" x-data="bulkBiolinkResults({{ \Illuminate\Support\Js::from($results) }})">

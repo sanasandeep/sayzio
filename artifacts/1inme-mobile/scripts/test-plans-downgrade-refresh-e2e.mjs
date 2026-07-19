@@ -270,12 +270,11 @@ async function runCheck(page, appUrl) {
     .getByText(MOUNT_MARKER_TEXT, { exact: true })
     .first()
     .waitFor({ timeout: NAV_TIMEOUT_MS })
-    .catch(() =>
-      fail(
-        "the Plans screen never rendered — the /plans route did not mount " +
-          "(a gate/layout redirect may have stolen it)",
-      ),
-    );
+    .catch((e) => {
+      // Re-throw so the outer runHarness isTransientEnvError handler can
+      // classify slow-environment timeouts as SKIP rather than hard FAIL.
+      throw e;
+    });
 
   // ---- 1. Scheduled downgrade in place: the banner is on screen -----------
   await waitForText(

@@ -62,7 +62,7 @@
         @if($pendingName)
             <div role="status" style="display:flex;gap:0.5rem;align-items:flex-start;margin-bottom:0.5rem;padding:0.55rem 0.7rem;border-radius:8px;background:rgba(245,158,11,0.12);border:1px solid rgba(245,158,11,0.4);color:#b45309;font-size:0.8rem;line-height:1.35;">
                 <i class="fas fa-triangle-exclamation" style="margin-top:0.12rem;"></i>
-                <span>Please re-attach <strong>{{ $pendingName }}</strong> — uploaded files can’t be saved when the form is returned with errors, so this one needs to be selected again.</span>
+                <span>Please re-attach <strong>{{ $pendingName }}</strong>, uploaded files can’t be saved when the form is returned with errors, so this one needs to be selected again.</span>
             </div>
         @endif
         @include('user.partials.dropzone-input', [
@@ -101,7 +101,7 @@
         @case('select')
             <select id="frep_{{ $sectionId }}_{{ $repCopyIdx }}_{{ $id }}" name="{{ $repName }}"
                     class="form-select {{ $hasError ? 'is-invalid' : '' }}" @if($required) required @endif>
-                <option value="">— Choose —</option>
+                <option value="">Choose</option>
                 @foreach(($field['options'] ?? []) as $opt)
                     <option value="{{ $opt }}" @selected((string) $oldVal === (string) $opt)>{{ $opt }}</option>
                 @endforeach

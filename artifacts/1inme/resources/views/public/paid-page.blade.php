@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    @include('common.partials.toolbar-theme-color')
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="csrf-token" content="{{ csrf_token() }}">
@@ -287,7 +288,7 @@
             <span>
                 This is your Bizs Profile preview. It's
                 <strong>{{ ($link->visibility ?? 'public') === 'public' ? 'public' : 'gated (sign-in required)' }}</strong>.
-                Your posts &amp; tiers appear here automatically — there's no linking step; just publish them from your dashboard.
+                Your posts &amp; tiers appear here automatically. There's no linking step; just publish them from your dashboard.
             </span>
         </div>
     @endif
@@ -300,7 +301,7 @@
         @if($posts->count() === 0)
             <div class="cp-card p-10 text-center">
                 <i class="fas fa-feather text-2xl opacity-30 mb-2"></i>
-                <p class="text-sm opacity-70">{{ $isOwner ? 'You haven\'t shared anything yet — create a post to fill this page.' : 'No posts yet — check back soon.' }}</p>
+                <p class="text-sm opacity-70">{{ $isOwner ? 'You haven\'t shared anything yet. Create a post to fill this page.' : 'No posts yet. Check back soon.' }}</p>
             </div>
         @else
             <div class="space-y-4">

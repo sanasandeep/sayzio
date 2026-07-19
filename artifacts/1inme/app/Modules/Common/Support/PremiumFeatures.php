@@ -56,6 +56,7 @@ class PremiumFeatures
             ['key' => 'max_calendar_events', 'group' => 'Pages & link types', 'name' => 'Events per calendar', 'description' => 'How many events each calendar page can hold.', 'unit' => 'events / calendar'],
             ['key' => 'max_brand_kit_pages', 'group' => 'Pages & link types', 'name' => 'Brand / Press Kit pages', 'description' => 'How many shareable Brand / Press Kit pages (logos, colours, fonts, voice, boilerplate) you can publish.', 'unit' => 'pages'],
             ['key' => 'max_paid_page', 'group' => 'Pages & link types', 'name' => 'Paid / members pages', 'description' => 'How many paid, members-only content pages you can publish — gated behind a follow, subscription or one-off payment.', 'unit' => 'pages'],
+            ['key' => 'max_updates_pages', 'group' => 'Pages & link types', 'name' => 'Updates / Changelog pages', 'description' => 'How many public changelog pages — dated entries with follower notifications — you can publish.', 'unit' => 'pages'],
             ['key' => 'calendar_sync', 'group' => 'Pages & link types', 'name' => 'Calendar sync', 'description' => 'Two-way sync between your calendar events and Google Calendar so updates flow both ways automatically.'],
 
             // ---- Short links & aliases ----
@@ -130,6 +131,9 @@ class PremiumFeatures
             ['key' => 'events', 'group' => 'Tools & extras', 'name' => 'Events', 'description' => 'Publish public event listings on your profile with details, dates and RSVPs.'],
             ['key' => 'max_events', 'group' => 'Tools & extras', 'name' => 'Events included', 'description' => 'How many event listings you can publish.', 'unit' => 'events'],
             ['key' => 'templates_premium', 'group' => 'Tools & extras', 'name' => 'Premium templates', 'description' => 'Unlock the premium template library for Link in Bio pages and the other page types.'],
+
+            // ---- Webhooks & integrations ----
+            ['key' => 'webhook_triggers', 'group' => 'Webhooks & integrations', 'name' => 'Outbound webhook triggers', 'description' => 'Receive real-time HTTP notifications (or email alerts) whenever a link is created, expires, or reaches a click milestone — connect Sayzio events to any automation tool, CRM or custom pipeline.'],
 
             // ---- Included coins ----
             ['key' => 'included_coins_monthly', 'group' => 'Included coins', 'name' => 'Monthly coin grant', 'description' => 'Coins credited to your wallet automatically each month as part of this plan — spend them on AI features, API overage and other coin-priced add-ons.', 'unit' => 'coins / mo'],

@@ -107,7 +107,7 @@ export default function WalletScreen() {
           )}
           {lowBalance && (
             <Text style={[styles.warn, { color: colors.warning }]}>
-              <Feather name="alert-triangle" size={12} /> Low balance — top up to keep using coin add-ons.
+              <Feather name="alert-triangle" size={12} /> Low balance: top up to keep using coin add-ons.
             </Text>
           )}
         </View>

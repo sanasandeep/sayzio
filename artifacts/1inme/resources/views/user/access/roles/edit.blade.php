@@ -12,7 +12,7 @@
         <h1 class="text-xl font-semibold text-white">{{ $isNew ? 'New role' : 'Edit role' }}</h1>
         <p class="text-sm text-white/50">
             Define a name, slug, and the permissions this role grants. Permissions are limited
-            to the user-app group — back-office permissions are managed separately.
+            to the user-app group, back-office permissions are managed separately.
         </p>
     </header>
 

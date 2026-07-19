@@ -73,13 +73,13 @@
                     </p>
                 </div>
                 <div>
-                    <label class="block text-xs font-medium mb-1" style="color: var(--text-muted);">Site key <span style="color: var(--text-faint);">(public — shown in the browser)</span></label>
+                    <label class="block text-xs font-medium mb-1" style="color: var(--text-muted);">Site key <span style="color: var(--text-faint);">(public, shown in the browser)</span></label>
                     <input type="text" name="site_key" class="theme-input w-full text-xs font-mono"
                            placeholder="Paste your site key here"
                            value="{{ $captcha['site_key'] ?? '' }}">
                 </div>
                 <div>
-                    <label class="block text-xs font-medium mb-1" style="color: var(--text-muted);">Secret key <span style="color: var(--text-faint);">(server-only — never sent to the browser)</span></label>
+                    <label class="block text-xs font-medium mb-1" style="color: var(--text-muted);">Secret key <span style="color: var(--text-faint);">(server-only, never sent to the browser)</span></label>
                     @include('common.partials.password-field', [
                         'name' => 'secret_key',
                         'placeholder' => !empty($captcha['secret_key']) ? '••••••••••••••••••••' : 'Paste your secret key here',

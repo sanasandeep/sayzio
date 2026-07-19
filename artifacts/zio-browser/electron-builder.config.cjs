@@ -46,9 +46,16 @@ const config = {
   mac: {
     category: 'public.app-category.productivity',
     icon: 'build-resources/icon.png',
-    // ZIP only: it is what electron-updater consumes on macOS, and the DMG
-    // target is flaky on GitHub macOS runners (dmgbuild background.tiff race).
-    target: [{ target: 'zip', arch: ['x64', 'arm64'] }],
+    // ZIP feeds electron-updater on macOS; DMG is the headline installer the
+    // /download page requires. The DMG target was flaky on GitHub macOS
+    // runners (dmgbuild default-background tiff ENOENT race when both arch
+    // builds run in one invocation) — mitigated by the solid backgroundColor
+    // below (skips the generated tiff entirely) plus sequential per-arch
+    // packaging in CI (see zio-browser-build.yml).
+    target: [
+      { target: 'zip', arch: ['x64', 'arm64'] },
+      { target: 'dmg', arch: ['x64', 'arm64'] },
+    ],
     // Signed builds require hardened runtime for notarization to pass.
     // Unsigned (no CSC_LINK): identity null keeps local/dev builds working.
     ...(macSigningEnabled
@@ -66,6 +73,14 @@ const config = {
           hardenedRuntime: false,
           gatekeeperAssess: false,
         }),
+  },
+
+  // Solid background color makes dmgbuild skip generating its default
+  // background.tiff — the file whose ENOENT race broke DMG builds on GitHub
+  // macOS runners. The update feed uses the mac ZIPs, not the DMGs.
+  dmg: {
+    backgroundColor: '#ffffff',
+    writeUpdateInfo: false,
   },
 
   // Windows — WIN_CSC_LINK / WIN_CSC_KEY_PASSWORD enable signing when present.

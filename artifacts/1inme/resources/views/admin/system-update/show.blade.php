@@ -33,7 +33,7 @@
             <div>
                 <h2 class="text-base font-semibold text-white">Managed by Replit</h2>
                 <p class="text-sm text-white/60 mt-1">
-                    This environment is hosted on Replit. Deployments are managed through the Replit platform — use
+                    This environment is hosted on Replit. Deployments are managed through the Replit platform, use
                     the <strong class="text-white/80">Publish</strong> button in your Replit workspace to deploy a
                     new version. GitHub push mirroring then keeps the repository in sync automatically.
                 </p>
@@ -51,9 +51,14 @@
             <div>
                 <h2 class="text-base font-semibold text-white">GitHub credentials not configured</h2>
                 <p class="text-sm text-white/60 mt-1">
-                    The update check and one-click deploy require a <code class="px-1 py-0.5 rounded bg-black/30">GITHUB_TOKEN</code>
-                    and <code class="px-1 py-0.5 rounded bg-black/30">GITHUB_REPO</code> in your
-                    <span class="text-white/80">EC2 <code>.env</code></span> file. Set them to enable this feature.
+                    The update check and one-click deploy need a GitHub token. Add one on the
+                    <a href="{{ route('admin.integrations.github.edit') }}" class="text-blue-300 hover:text-blue-200 underline">GitHub Token</a>
+                    page (Admin &gt; Integrations &gt; GitHub Token); no server access needed.
+                </p>
+                <p class="text-xs text-white/40 mt-2">
+                    Fallback: set <code class="px-1 py-0.5 rounded bg-black/30">GITHUB_TOKEN</code> and
+                    <code class="px-1 py-0.5 rounded bg-black/30">GITHUB_REPO</code> as environment variables
+                    (e.g. in the <span class="text-white/60">EC2 <code>.env</code></span> file).
                 </p>
                 <div class="mt-3 space-y-1 text-xs font-mono text-white/50 bg-black/20 rounded-lg p-3">
                     <p>GITHUB_TOKEN=ghp_xxxxxxxxxxxxxxxxxxxx</p>
@@ -86,7 +91,7 @@
     <div x-show="!pollActive && deployDone" class="p-4 rounded-xl border"
          :class="deploySuccess ? 'border-emerald-500/30 bg-emerald-500/10' : 'border-red-500/30 bg-red-500/10'">
         <p class="text-sm font-semibold" :class="deploySuccess ? 'text-emerald-200' : 'text-red-200'"
-           x-text="deploySuccess ? 'Deploy completed successfully!' : 'Deploy failed — check GitHub Actions for details.'"></p>
+           x-text="deploySuccess ? 'Deploy completed successfully!' : 'Deploy failed, check GitHub Actions for details.'"></p>
     </div>
     @endif
 
@@ -253,8 +258,8 @@
         <p>
             "Update now" dispatches the <code class="px-1 rounded bg-black/20">deploy-ec2.yml</code> GitHub Actions
             workflow via <code class="px-1 rounded bg-black/20">workflow_dispatch</code>. GitHub then SSHs into the
-            EC2 server and runs <code class="px-1 rounded bg-black/20">deploy.sh</code> — the same script used by
-            automatic push-to-deploy — pulling the latest code, rebuilding assets, running migrations, and reloading
+            EC2 server and runs <code class="px-1 rounded bg-black/20">deploy.sh</code>, the same script used by
+            automatic push-to-deploy, pulling the latest code, rebuilding assets, running migrations, and reloading
             services. The result appears in the GitHub Actions run log.
         </p>
         <p class="mt-1">
@@ -300,13 +305,13 @@ function systemUpdate() {
                     const run = data.latest_run;
                     this.runUrl = run.html_url || '';
                     if (run.status === 'queued') {
-                        this.runStatus = 'Queued — waiting for a runner…';
+                        this.runStatus = 'Queued, waiting for a runner…';
                     } else if (run.status === 'in_progress') {
                         this.runStatus = 'Running on GitHub Actions…';
                     } else if (run.status === 'completed') {
                         this.runStatus = run.conclusion === 'success'
-                            ? 'Completed successfully — the server has been updated.'
-                            : 'Completed with errors — check GitHub Actions for details.';
+                            ? 'Completed successfully, the server has been updated.'
+                            : 'Completed with errors, check GitHub Actions for details.';
                     }
                 }
 

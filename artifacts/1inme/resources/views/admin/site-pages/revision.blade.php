@@ -1,5 +1,5 @@
 @extends('admin.layouts.app')
-@section('title', 'Revision #' . $revision->id . ' — ' . $page->title)
+@section('title', 'Revision #' . $revision->id . ': ' . $page->title)
 @section('content')
 @php
     $current = [

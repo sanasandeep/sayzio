@@ -1,5 +1,5 @@
 @extends('user.layouts.app')
-@section('title', 'Vault — Export')
+@section('title', 'Vault: Export')
 @section('content')
 @include('user.vault._tabs')
 
@@ -7,7 +7,7 @@
     <h2 class="text-lg font-semibold mb-2">Export the vault</h2>
     <p class="text-sm mb-6" style="color: var(--text-muted);">
         Download every credential and client record as an AES-256-GCM encrypted JSON file.
-        Choose a strong passphrase — it is the only thing that can open the export and is
+        Choose a strong passphrase, it is the only thing that can open the export and is
         never stored on the server.
     </p>
     <form method="post" action="{{ route('user.vault.export.download') }}" class="space-y-4">

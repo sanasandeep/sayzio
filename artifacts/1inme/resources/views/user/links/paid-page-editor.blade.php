@@ -52,7 +52,7 @@
                 {{-- Template picker --}}
                 <div class="glass rounded-2xl p-6">
                     <h2 class="text-sm font-semibold text-white mb-1">Design template</h2>
-                    <p class="text-xs text-white/40 mb-4">Pick a vibe — the preview updates live. {{ count($templates) }} themes across {{ count($categories) }} styles.</p>
+                    <p class="text-xs text-white/40 mb-4">Pick a vibe, the preview updates live. {{ count($templates) }} themes across {{ count($categories) }} styles.</p>
                     <div class="space-y-5 max-h-[520px] overflow-y-auto pr-1 -mr-1">
                         @foreach($categories as $group)
                             <div>
@@ -145,17 +145,17 @@
                         tierStoreUrl: '{{ route('user.monetization.tiers.store') }}',
                      })">
                     <h2 class="text-sm font-semibold text-white mb-1">Your posts &amp; tiers</h2>
-                    <p class="text-xs text-white/40 mb-4">Everything you publish shows here automatically — there's no "add to page" step. Posts &amp; tiers are shared across all your pages.</p>
+                    <p class="text-xs text-white/40 mb-4">Everything you publish shows here automatically, there's no "add to page" step. Posts &amp; tiers are shared across all your pages.</p>
 
                     {{-- Empty-state banner (refreshes in place via Alpine) --}}
                     <div x-show="postCount === 0 || tierCount === 0" x-cloak
                          class="mb-4 rounded-xl border border-blue-500/30 bg-blue-500/10 px-4 py-3 text-xs text-white/70 leading-relaxed">
                         <i class="fas fa-wand-magic-sparkles mr-1 text-blue-300"></i>
-                        This page fills itself in. The moment you publish a post or add a paid tier, it appears here for fans —
+                        This page fills itself in. The moment you publish a post or add a paid tier, it appears here for fans -
                         <span x-show="postCount === 0 && tierCount === 0">you don't have any posts or tiers yet.</span>
                         <span x-show="postCount === 0 && tierCount > 0">you don't have any posts yet.</span>
                         <span x-show="postCount > 0 && tierCount === 0">you don't have any paid tiers yet.</span>
-                        Create them right here — no need to leave this page.
+                        Create them right here, no need to leave this page.
                     </div>
 
                     {{-- Success toast --}}
@@ -312,7 +312,7 @@
                         </div>
                         <div class="mt-4 p-4 shadow-lg" :style="`background: ${current.card_bg}; color: ${current.card_text}; border-radius: ${current.radius};`">
                             <div class="text-sm font-semibold">Latest post</div>
-                            <div class="text-xs opacity-70 mt-1">Your monetized posts, reactions and comments appear here — styled to match.</div>
+                            <div class="text-xs opacity-70 mt-1">Your monetized posts, reactions and comments appear here, styled to match.</div>
                             <div class="mt-3 flex gap-2">
                                 <span class="px-2 py-1 rounded-lg text-[11px] border" :style="`border-color: ${current.accent}; color: ${current.accent};`">❤️ 12</span>
                                 <span class="px-2 py-1 rounded-lg text-[11px] border border-black/10">🔥 5</span>

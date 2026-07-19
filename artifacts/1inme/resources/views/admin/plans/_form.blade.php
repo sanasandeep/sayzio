@@ -149,7 +149,7 @@
                                class="rounded border-white/10 text-blue-400">
                         Internal plan (admin/staff only)
                     </label>
-                    <p class="text-[11px] text-white/40 mt-1 ml-2">Hides this plan from the public pricing page, the in-app upgrade page and the smart-upgrade recommender. It stays assignable to users by admins/staff — use it for private/comp plans that should never appear in self-serve checkout.</p>
+                    <p class="text-[11px] text-white/40 mt-1 ml-2">Hides this plan from the public pricing page, the in-app upgrade page and the smart-upgrade recommender. It stays assignable to users by admins/staff, use it for private/comp plans that should never appear in self-serve checkout.</p>
                 </div>
             </div>
         </section>
@@ -168,7 +168,7 @@
                     $as = old('annual_price_secondary',  $isEdit ? (int) round(((float) $plan->annual_price_secondary) * 100) : 0);
                 @endphp
                 <div class="rounded-xl border border-white/10 p-4 bg-white/[0.02]">
-                    <div class="text-xs uppercase tracking-wider text-white/50 mb-3">USD <span class="text-white/30 normal-case">— shown to everyone outside India</span></div>
+                    <div class="text-xs uppercase tracking-wider text-white/50 mb-3">USD <span class="text-white/30 normal-case"> - shown to everyone outside India</span></div>
                     <div class="space-y-3">
                         <div>
                             <label class="block text-xs text-white/40 mb-1">Monthly (USD, cents)</label>
@@ -183,7 +183,7 @@
                     </div>
                 </div>
                 <div class="rounded-xl border border-white/10 p-4 bg-white/[0.02]">
-                    <div class="text-xs uppercase tracking-wider text-white/50 mb-3">INR <span class="text-white/30 normal-case">— shown to users in India</span></div>
+                    <div class="text-xs uppercase tracking-wider text-white/50 mb-3">INR <span class="text-white/30 normal-case"> - shown to users in India</span></div>
                     <div class="space-y-3">
                         <div>
                             <label class="block text-xs text-white/40 mb-1">Monthly (INR, paise)</label>
@@ -240,7 +240,7 @@
                  x-init="syncBase(); $el.closest('form')?.addEventListener('input', () => syncBase())">
             <header class="mb-4">
                 <h2 class="text-base font-semibold text-white">First-term intro discount</h2>
-                <p class="text-xs text-white/40">A one-time discount applied to the <strong>first billing term only</strong> of a brand-new subscription. Renewals and upgrades always charge the normal price. This is the only automatic discount — it never stacks with promo codes. The <strong>normal price shows struck through</strong> and the discounted first-term price becomes the headline buyers see.</p>
+                <p class="text-xs text-white/40">A one-time discount applied to the <strong>first billing term only</strong> of a brand-new subscription. Renewals and upgrades always charge the normal price. This is the only automatic discount, it never stacks with promo codes. The <strong>normal price shows struck through</strong> and the discounted first-term price becomes the headline buyers see.</p>
             </header>
 
             {{-- Off switch (always submits a value so unchecking persists) --}}
@@ -311,7 +311,7 @@
                 {{-- Optional marketing label --}}
                 <div>
                     <label class="block text-xs text-white/40 mb-1">Badge label <span class="text-white/30">(optional, max 120 chars)</span></label>
-                    <input type="text" name="intro_discount[label]" value="{{ $introLabel }}" maxlength="120" placeholder="e.g. Launch offer — 50% off your first month"
+                    <input type="text" name="intro_discount[label]" value="{{ $introLabel }}" maxlength="120" placeholder="e.g. Launch offer, 50% off your first month"
                            class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white text-sm focus:ring-2 focus:ring-blue-500/40 outline-none">
                 </div>
 
@@ -321,7 +321,7 @@
                      pricing page will show without saving + reloading. --}}
                 <div class="rounded-xl border border-blue-400/20 bg-blue-500/[0.06] p-4">
                     <div class="text-xs font-semibold text-white/80 mb-1 flex items-center gap-1.5">
-                        <i class="fas fa-eye text-blue-300"></i> Live preview — normal vs. discounted first term
+                        <i class="fas fa-eye text-blue-300"></i> Live preview, normal vs. discounted first term
                     </div>
                     <p class="text-[11px] text-white/40 mb-3">Buyers see the struck-through normal price with the discounted first-term price as the headline. Renewals always charge the normal price.</p>
                     <div class="grid grid-cols-2 gap-3">
@@ -412,7 +412,7 @@
                 @endforeach
             </div>
             <div class="mt-3 rounded-xl border border-blue-400/20 bg-blue-500/[0.06] p-3">
-                <p class="text-[11px] text-blue-200/70"><i class="fas fa-info-circle mr-1"></i>Each grant is idempotent — re-delivered webhooks and retries never double-credit the same billing period. Transactions show as "Included with your &lt;Plan&gt; plan" in the user's coin history.</p>
+                <p class="text-[11px] text-blue-200/70"><i class="fas fa-info-circle mr-1"></i>Each grant is idempotent, re-delivered webhooks and retries never double-credit the same billing period. Transactions show as "Included with your &lt;Plan&gt; plan" in the user's coin history.</p>
             </div>
         </section>
 
@@ -501,7 +501,7 @@
                         class="flex items-center gap-2 text-sm font-medium text-white/80 hover:text-white">
                     <i class="fas" :class="open ? 'fa-chevron-down' : 'fa-chevron-right'"></i>
                     Per-link-type alias overrides
-                    <span class="text-[10px] text-white/40 font-normal">— optional; blank inherits the global "Extra aliases per link"</span>
+                    <span class="text-[10px] text-white/40 font-normal"> - optional; blank inherits the global "Extra aliases per link"</span>
                 </button>
                 <div x-show="open" x-cloak class="mt-3 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
                     @foreach($aliasTypes as $slug => $label)
@@ -882,7 +882,7 @@
         {{-- ============================== STICKY SAVE FOOTER ============================== --}}
         <div class="sticky bottom-4 z-10">
             <div class="glass rounded-2xl border border-white/10 px-6 py-3 flex items-center justify-between">
-                <p class="text-xs text-white/40">{{ $isEdit ? 'Editing existing plan — make sure to keep INR pricing in sync.' : 'New plan — values you leave at defaults are still saved explicitly.' }}</p>
+                <p class="text-xs text-white/40">{{ $isEdit ? 'Editing existing plan: make sure to keep INR pricing in sync.' : 'New plan: values you leave at defaults are still saved explicitly.' }}</p>
                 <div class="flex items-center gap-3">
                     <a href="{{ route('admin.plans.index') }}" class="px-5 py-2 bg-white/10 text-white/80 rounded-xl font-medium hover:bg-white/[0.06] transition text-sm">Cancel</a>
                     <button type="submit" class="px-6 py-2 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition text-sm">{{ $isEdit ? 'Update Plan' : 'Create Plan' }}</button>

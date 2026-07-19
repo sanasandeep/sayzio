@@ -65,11 +65,11 @@
             @if($accounts->where('push_enabled', true)->isNotEmpty())
                 <div class="card-premium p-5 mt-5">
                     <h3 class="text-base font-bold mb-1" style="color: var(--text-primary);"><i class="fas fa-bolt mr-1 text-blue-400"></i> Auto-sync new events</h3>
-                    <p class="text-xs mb-3" style="color: var(--text-muted);">Pick a default calendar — every new Event Invite link you create will automatically save to it in "Keep in sync" mode.</p>
+                    <p class="text-xs mb-3" style="color: var(--text-muted);">Pick a default calendar, every new Event Invite link you create will automatically save to it in "Keep in sync" mode.</p>
                     <form method="POST" action="{{ route('user.calendar.auto-sync') }}">
                         @csrf
                         <select name="account_id" class="w-full px-3 py-2.5 rounded-xl text-sm" style="background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.10); color: var(--text-primary);" onchange="this.form.submit()">
-                            <option value="">— Off (don't push by default) —</option>
+                            <option value="">Off (don't push by default)</option>
                             @foreach($accounts->where('push_enabled', true) as $a)
                                 <option value="{{ $a->id }}" {{ (int)($autoSyncAccountId ?? 0) === (int)$a->id ? 'selected' : '' }}>
                                     {{ $a->providerLabel() }} · {{ $a->display_name ?: $a->external_account_id }}

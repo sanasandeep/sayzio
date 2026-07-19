@@ -58,11 +58,11 @@
                 <label class="block text-xs font-semibold text-white/70 mb-1">Body</label>
                 <textarea name="body" rows="14" x-model="body"
                           class="w-full rounded-xl bg-white/5 border border-white/10 px-3 py-2 text-xs font-mono text-white focus:outline-none focus:border-white/30"
-                          placeholder="{{ $entry['view'] ?? '' ? 'Leave the saved/default content — view-rendered templates only customise here if you provide full markup.' : '' }}">{{ old('body', $override['body'] ?? ($entry['body'] ?? $preview['body'])) }}</textarea>
+                          placeholder="{{ $entry['view'] ?? '' ? 'Leave the saved/default content, view-rendered templates only customise here if you provide full markup.' : '' }}">{{ old('body', $override['body'] ?? ($entry['body'] ?? $preview['body'])) }}</textarea>
                 @if (!empty($entry['view']))
                     <p class="text-[11px] text-amber-300/70 mt-1">
                         This template's default body is a rich Blade layout ({{ $entry['view'] }}). Saving an
-                        override replaces it entirely with the text above — leave it on the pre-filled content
+                        override replaces it entirely with the text above, leave it on the pre-filled content
                         unless you intend to fully replace the design.
                     </p>
                 @endif

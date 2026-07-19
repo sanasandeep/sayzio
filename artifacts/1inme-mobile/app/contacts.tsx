@@ -345,8 +345,8 @@ export default function ContactsScreen() {
             numberOfLines={2}
           >
             {duplicateCount === 1
-              ? "1 possible duplicate group found — tap to review"
-              : `${duplicateCount} possible duplicate groups found — tap to review`}
+              ? "1 possible duplicate group found. Tap to review"
+              : `${duplicateCount} possible duplicate groups found. Tap to review`}
           </Text>
           <Feather name="chevron-right" size={16} color={colors.primary} />
         </Pressable>

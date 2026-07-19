@@ -574,6 +574,15 @@ export const TARGETS: Target[] = [
     label: "admin company identity page",
     allowlist: [],
   },
+  {
+    // Public Creator Updates / Changelog page (RedirectController::
+    // handleUpdatesPage). Standalone theme-aware document (dark default,
+    // html.light-mode flips) — discovered with unpaired rules (.entry-anchor
+    // :hover, pagination, tag-badge border-colors), now fully paired.
+    page: "artifacts/1inme/resources/views/common/updates-page.blade.php",
+    label: "creator updates page",
+    allowlist: [],
+  },
 ];
 
 function makeIsAllowed(allowlist: AllowEntry[]) {

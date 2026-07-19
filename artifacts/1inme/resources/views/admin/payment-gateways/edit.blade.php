@@ -21,13 +21,13 @@
             @include('admin.partials.help-note', [
                 'body' => '<strong>Razorpay</strong> processes cards, UPI, net-banking, and wallets for Indian customers.
                     <ul class="list-disc pl-4 mt-1 space-y-0.5">
-                        <li><strong>Key ID &amp; Key Secret</strong> — from <a class="underline" href="https://dashboard.razorpay.com/app/keys" target="_blank" rel="noopener">Dashboard → Settings → API Keys</a>. Generate a separate key pair for Test and Live modes.</li>
-                        <li><strong>Webhook Secret</strong> — create a webhook at <a class="underline" href="https://dashboard.razorpay.com/app/webhooks" target="_blank" rel="noopener">Dashboard → Developer Controls → Webhooks</a>. Paste the webhook URL below into the "Webhook URL" field and copy the secret back here.</li>
+                        <li><strong>Key ID &amp; Key Secret</strong>, from <a class="underline" href="https://dashboard.razorpay.com/app/keys" target="_blank" rel="noopener">Dashboard → Settings → API Keys</a>. Generate a separate key pair for Test and Live modes.</li>
+                        <li><strong>Webhook Secret</strong>, create a webhook at <a class="underline" href="https://dashboard.razorpay.com/app/webhooks" target="_blank" rel="noopener">Dashboard → Developer Controls → Webhooks</a>. Paste the webhook URL below into the "Webhook URL" field and copy the secret back here.</li>
                         <li>Switch to <em>Live</em> mode here once you have live API keys. Test and Live key pairs are separate.</li>
                     </ul>',
             ])
             @include('admin.partials.copy-uri', [
-                'label' => 'Webhook URL — register this in Razorpay → Developer Controls → Webhooks',
+                'label' => 'Webhook URL, register this in Razorpay → Developer Controls → Webhooks',
                 'value' => route('webhooks.handle', ['gateway' => 'razorpay']),
             ])
             @break
@@ -36,14 +36,14 @@
             @include('admin.partials.help-note', [
                 'body' => '<strong>Stripe</strong> processes cards and local payment methods globally.
                     <ul class="list-disc pl-4 mt-1 space-y-0.5">
-                        <li><strong>Publishable Key</strong> — the <code>pk_test_…</code> / <code>pk_live_…</code> key from <a class="underline" href="https://dashboard.stripe.com/apikeys" target="_blank" rel="noopener">Stripe Dashboard → Developers → API Keys</a>. Not a secret — it\'s embedded in the checkout page.</li>
-                        <li><strong>Secret Key</strong> — the <code>sk_test_…</code> / <code>sk_live_…</code> key from the same page. Keep this private; it can do anything on your Stripe account.</li>
-                        <li><strong>Webhook Secret</strong> — add an endpoint at <a class="underline" href="https://dashboard.stripe.com/webhooks" target="_blank" rel="noopener">Stripe → Developers → Webhooks</a> pointing to the URL below. Stripe generates a <code>whsec_…</code> signing secret for that endpoint — paste it here.</li>
+                        <li><strong>Publishable Key</strong>, the <code>pk_test_…</code> / <code>pk_live_…</code> key from <a class="underline" href="https://dashboard.stripe.com/apikeys" target="_blank" rel="noopener">Stripe Dashboard → Developers → API Keys</a>. Not a secret, it\'s embedded in the checkout page.</li>
+                        <li><strong>Secret Key</strong>, the <code>sk_test_…</code> / <code>sk_live_…</code> key from the same page. Keep this private; it can do anything on your Stripe account.</li>
+                        <li><strong>Webhook Secret</strong>, add an endpoint at <a class="underline" href="https://dashboard.stripe.com/webhooks" target="_blank" rel="noopener">Stripe → Developers → Webhooks</a> pointing to the URL below. Stripe generates a <code>whsec_…</code> signing secret for that endpoint, paste it here.</li>
                         <li>Test and Live keys are separate. Set <em>Test</em> mode here while using test keys.</li>
                     </ul>',
             ])
             @include('admin.partials.copy-uri', [
-                'label' => 'Webhook URL — register this in Stripe → Developers → Webhooks',
+                'label' => 'Webhook URL, register this in Stripe → Developers → Webhooks',
                 'value' => route('webhooks.handle', ['gateway' => 'stripe']),
             ])
             @break
@@ -52,13 +52,13 @@
             @include('admin.partials.help-note', [
                 'body' => '<strong>PayPal</strong> processes cards and PayPal-balance payments globally.
                     <ul class="list-disc pl-4 mt-1 space-y-0.5">
-                        <li><strong>Client ID &amp; Client Secret</strong> — create a REST API app at <a class="underline" href="https://developer.paypal.com/dashboard/applications" target="_blank" rel="noopener">PayPal Developer → My Apps &amp; Credentials</a>. Create one app for Sandbox and one for Live.</li>
-                        <li><strong>Webhook ID</strong> — in the same app, add a webhook pointing to the URL below. PayPal shows a Webhook ID after creation — paste that here. The platform verifies PayPal\'s <code>PAYPAL-TRANSMISSION-SIG</code> header using this ID.</li>
+                        <li><strong>Client ID &amp; Client Secret</strong>, create a REST API app at <a class="underline" href="https://developer.paypal.com/dashboard/applications" target="_blank" rel="noopener">PayPal Developer → My Apps &amp; Credentials</a>. Create one app for Sandbox and one for Live.</li>
+                        <li><strong>Webhook ID</strong>: in the same app, add a webhook pointing to the URL below. PayPal shows a Webhook ID after creation; paste that here. The platform verifies PayPal\'s <code>PAYPAL-TRANSMISSION-SIG</code> header using this ID.</li>
                         <li>Toggle <em>Live</em> mode here only when using Live credentials. PayPal Sandbox credentials start with a different prefix and won\'t work in Live mode.</li>
                     </ul>',
             ])
             @include('admin.partials.copy-uri', [
-                'label' => 'Webhook URL — register this in PayPal → My Apps & Credentials → Webhooks',
+                'label' => 'Webhook URL, register this in PayPal → My Apps & Credentials → Webhooks',
                 'value' => route('webhooks.handle', ['gateway' => 'paypal']),
             ])
             @break
@@ -67,13 +67,13 @@
             @include('admin.partials.help-note', [
                 'body' => '<strong>Cashfree Payments</strong> processes cards, UPI, and net-banking for Indian customers.
                     <ul class="list-disc pl-4 mt-1 space-y-0.5">
-                        <li><strong>App ID &amp; Secret Key</strong> — from <a class="underline" href="https://merchant.cashfree.com/merchants/developers" target="_blank" rel="noopener">Cashfree Merchant Dashboard → Developers → API Keys</a>. Sandbox and Production keys are separate.</li>
-                        <li><strong>Webhook Secret</strong> — add a webhook in <a class="underline" href="https://merchant.cashfree.com/merchants/pg/settings/webhook" target="_blank" rel="noopener">Dashboard → Payment Gateway → Webhooks</a>. Paste the URL below and copy the signing secret back here.</li>
+                        <li><strong>App ID &amp; Secret Key</strong>, from <a class="underline" href="https://merchant.cashfree.com/merchants/developers" target="_blank" rel="noopener">Cashfree Merchant Dashboard → Developers → API Keys</a>. Sandbox and Production keys are separate.</li>
+                        <li><strong>Webhook Secret</strong>, add a webhook in <a class="underline" href="https://merchant.cashfree.com/merchants/pg/settings/webhook" target="_blank" rel="noopener">Dashboard → Payment Gateway → Webhooks</a>. Paste the URL below and copy the signing secret back here.</li>
                         <li>Use <em>Test</em> mode with Sandbox credentials; switch to <em>Live</em> with Production credentials.</li>
                     </ul>',
             ])
             @include('admin.partials.copy-uri', [
-                'label' => 'Webhook URL — register this in Cashfree → Payment Gateway → Webhooks',
+                'label' => 'Webhook URL, register this in Cashfree → Payment Gateway → Webhooks',
                 'value' => route('webhooks.handle', ['gateway' => 'cashfree']),
             ])
             @break
@@ -82,8 +82,8 @@
             @include('admin.partials.help-note', [
                 'body' => '<strong>PayUMoney</strong> processes cards, net-banking, UPI, and wallets (India).
                     <ul class="list-disc pl-4 mt-1 space-y-0.5">
-                        <li><strong>Merchant Key &amp; Salt</strong> — from <a class="underline" href="https://onboarding.payu.in/app/account/api-keys" target="_blank" rel="noopener">PayU Dashboard → My Account → API Keys &amp; Salt</a>. Test and Production keys are separate.</li>
-                        <li>PayU uses a browser-redirect payment flow — no separate webhook endpoint is required. Payment results are verified server-side via hash validation.</li>
+                        <li><strong>Merchant Key &amp; Salt</strong>, from <a class="underline" href="https://onboarding.payu.in/app/account/api-keys" target="_blank" rel="noopener">PayU Dashboard → My Account → API Keys &amp; Salt</a>. Test and Production keys are separate.</li>
+                        <li>PayU uses a browser-redirect payment flow, no separate webhook endpoint is required. Payment results are verified server-side via hash validation.</li>
                         <li>Use <em>Test</em> mode with test credentials; switch to <em>Live</em> once verified by PayU.</li>
                     </ul>',
             ])
@@ -92,11 +92,11 @@
         @case('offline')
             @include('admin.partials.help-note', [
                 'type' => 'tip',
-                'body' => '<strong>Manual / offline payment</strong> — no third-party service. Customers see your payment instructions (bank transfer details, UPI ID, etc.) at checkout and pay outside the platform. You activate their plan manually after confirming receipt.
+                'body' => '<strong>Manual / offline payment</strong>, no third-party service. Customers see your payment instructions (bank transfer details, UPI ID, etc.) at checkout and pay outside the platform. You activate their plan manually after confirming receipt.
                     <ul class="list-disc pl-4 mt-1 space-y-0.5">
-                        <li><strong>Payee name</strong> — the account/business name customers should transfer to.</li>
-                        <li><strong>Bank details</strong> — full instructions shown to the customer at checkout (account number, sort/IFSC code, UPI ID, etc.).</li>
-                        <li><strong>Instructions</strong> — any extra notes, e.g. how to submit a payment reference.</li>
+                        <li><strong>Payee name</strong>, the account/business name customers should transfer to.</li>
+                        <li><strong>Bank details</strong>, full instructions shown to the customer at checkout (account number, sort/IFSC code, UPI ID, etc.).</li>
+                        <li><strong>Instructions</strong>, any extra notes, e.g. how to submit a payment reference.</li>
                     </ul>',
             ])
             @break
@@ -151,17 +151,17 @@
                     $isLong = in_array($f, ['bank_details','instructions']);
                     $fieldHints = [
                         'key_id'          => 'Razorpay Key ID (starts with rzp_test_ or rzp_live_). Not a secret.',
-                        'key_secret'      => 'Razorpay Key Secret — keep private.',
+                        'key_secret'      => 'Razorpay Key Secret, keep private.',
                         'webhook_secret'  => 'Signing secret provided by the gateway when you register the webhook URL above.',
                         'publishable_key' => 'Stripe Publishable Key (pk_test_… / pk_live_…). Safe to display in checkout pages.',
-                        'secret_key'      => 'Stripe Secret Key (sk_test_… / sk_live_…) — keep private.',
+                        'secret_key'      => 'Stripe Secret Key (sk_test_… / sk_live_…), keep private.',
                         'client_id'       => 'OAuth Client ID / App ID from the provider\'s developer console.',
-                        'client_secret'   => 'OAuth Client Secret — keep private.',
-                        'webhook_id'      => 'PayPal Webhook ID (not the secret) — shown in the dashboard after creating the webhook endpoint.',
+                        'client_secret'   => 'OAuth Client Secret, keep private.',
+                        'webhook_id'      => 'PayPal Webhook ID (not the secret), shown in the dashboard after creating the webhook endpoint.',
                         'app_id'          => 'Cashfree App ID from Developers → API Keys.',
-                        'secret_key'      => 'Secret Key from the provider\'s developer console — keep private.',
-                        'merchant_key'    => 'PayU Merchant Key — from PayU Dashboard → API Keys.',
-                        'salt'            => 'PayU Salt — used to sign payment hashes. Keep private.',
+                        'secret_key'      => 'Secret Key from the provider\'s developer console, keep private.',
+                        'merchant_key'    => 'PayU Merchant Key, from PayU Dashboard → API Keys.',
+                        'salt'            => 'PayU Salt, used to sign payment hashes. Keep private.',
                         'payee_name'      => 'Name of the bank account or UPI holder customers should transfer money to.',
                         'bank_details'    => 'Full bank / UPI transfer instructions shown to the customer at checkout.',
                         'instructions'    => 'Any additional guidance, e.g. how to submit a payment reference after transferring.',

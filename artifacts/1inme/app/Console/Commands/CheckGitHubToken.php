@@ -6,7 +6,8 @@ use App\Services\Integrations\GitHubTokenHealth;
 use Illuminate\Console\Command;
 
 /**
- * Scheduled safety net for the GitHub push credential (GITHUB_TOKEN secret).
+ * Scheduled safety net for the GitHub push credential (managed at
+ * Admin > Integrations > GitHub Token; GITHUB_TOKEN env secret as fallback).
  *
  * Code is mirrored to GitHub after each publish using a fine-grained
  * personal access token that expires (~90-day lifetime). When it dies,

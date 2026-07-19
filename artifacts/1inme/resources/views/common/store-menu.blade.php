@@ -14,6 +14,7 @@
 <!doctype html>
 <html lang="en">
 <head>
+    @include('common.partials.toolbar-theme-color')
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
@@ -128,7 +129,7 @@
         <textarea class="field" id="fNote" rows="2" placeholder="Notes for your order (optional)"></textarea>
         <button class="primary" id="placeBtn" type="button" onclick="SM.place()">Send order request</button>
         <button class="ghost" type="button" onclick="SM.closeCart()">Keep browsing</button>
-        <p class="note">This is an order request, not a checkout. No online payment is collected — the store will contact you to arrange fulfilment and payment.</p>
+        <p class="note">This is an order request, not a checkout. No online payment is collected, the store will contact you to arrange fulfilment and payment.</p>
     </div>
 </div>
 

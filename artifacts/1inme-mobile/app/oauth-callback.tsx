@@ -221,7 +221,7 @@ export default function OAuthCallback() {
           </Text>
           {providerLabel ? (
             <Text style={[styles.body, { color: colors.foreground }]}>
-              {providerLabel} sign-in is having issues right now — you can use
+              {providerLabel} sign-in is having issues right now; you can use
               email instead.
             </Text>
           ) : null}

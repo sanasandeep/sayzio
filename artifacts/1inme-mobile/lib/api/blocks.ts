@@ -118,6 +118,16 @@ export const BLOCK_KINDS: BlockKind[] = [
     blurb: "An address or pinned coordinate with a map preview.",
     fields: [],
   },
+  {
+    type: "tip_jar",
+    label: "Tip Jar",
+    blurb: "Let visitors send you a tip with preset amounts or a custom value.",
+    fields: [
+      { key: "title", label: "Heading" },
+      { key: "message", label: "Message" },
+      { key: "button_text", label: "Button text" },
+    ],
+  },
 ];
 
 export function blockKind(type: string): BlockKind | null {

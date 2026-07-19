@@ -47,7 +47,7 @@
     <div class="rounded-xl px-4 py-3 mb-5 bg-sky-500/10 border border-sky-500/30 text-sky-100 text-sm">
         <i class="fas fa-circle-info mr-1.5"></i>
         {{ $createCount }} row{{ $createCount === 1 ? '' : 's' }} with an unrecognised slug can be created as
-        <strong>new plan{{ $createCount === 1 ? '' : 's' }}</strong>. Tick the ones you want to add — new plans are
+        <strong>new plan{{ $createCount === 1 ? '' : 's' }}</strong>. Tick the ones you want to add, new plans are
         created <strong>inactive &amp; internal</strong> unless their Status / Internal columns say otherwise.
     </div>
     @endif
@@ -129,7 +129,7 @@
             <span class="text-xs text-white/50">Only ticked new plans are created.</span>
             @endif
             @else
-            <span class="text-sm text-white/50">Nothing to apply — no rows changed a value.</span>
+            <span class="text-sm text-white/50">Nothing to apply, no rows changed a value.</span>
             @endif
             <a href="{{ route('admin.plans.index') }}" class="text-sm text-white/60 hover:text-white transition">Cancel</a>
         </div>

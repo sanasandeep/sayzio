@@ -72,7 +72,7 @@
                                 </div>
                                 <div style="font-size: 10px; color: var(--text-muted,#9ca3af); margin-top: 6px;"
                                      x-show="coverPersonas.length"
-                                     x-text="coverPersonaId ? 'Letter will be styled in this saved voice.' : 'No voice — uses your resume and tone only.'"></div>
+                                     x-text="coverPersonaId ? 'Letter will be styled in this saved voice.' : 'No voice, uses your resume and tone only.'"></div>
                             </div>
 
                             <div class="resume-tailor-cost">

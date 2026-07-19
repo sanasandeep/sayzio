@@ -39,7 +39,7 @@
                 <span class="flex items-center gap-2 text-xs text-white">
                     <i :class="'fas ' + $store.iconPicker.hover + ' text-blue-300'"></i>
                     <code class="text-white/90" x-text="$store.iconPicker.hover"></code>
-                    <span class="text-white/40 hidden sm:inline">— tap again to select</span>
+                    <span class="text-white/40 hidden sm:inline"> - tap again to select</span>
                 </span>
             </template>
             <template x-if="!$store.iconPicker.hover">

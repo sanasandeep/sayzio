@@ -231,7 +231,7 @@ export default function NewPostScreen() {
               label="Track title (optional)"
               value={media2}
               onChangeText={setMedia2}
-              placeholder="Episode 14 — guest spot"
+              placeholder="Episode 14: guest spot"
             />
           </>
         ) : null}

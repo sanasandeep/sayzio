@@ -33,8 +33,8 @@
                 <ol class="list-decimal pl-4 mt-1 space-y-0.5">
                     <li>Sign up or log in at <a class="underline" href="https://platform.openai.com/" target="_blank" rel="noopener">platform.openai.com</a>.</li>
                     <li>Go to <a class="underline" href="https://platform.openai.com/api-keys" target="_blank" rel="noopener">API Keys</a> and click <em>Create new secret key</em>. Keys start with <code>sk-proj-…</code> (project-scoped) or <code>sk-…</code> (legacy org-scoped).</li>
-                    <li>Prefer <strong>project-scoped keys</strong> (<code>sk-proj-…</code>) — they can be scoped to a single project and revoked without touching other integrations.</li>
-                    <li>Add billing credits at <a class="underline" href="https://platform.openai.com/settings/organization/billing/overview" target="_blank" rel="noopener">Billing</a>. API calls fail with a quota error if the balance reaches zero — the AI usage report shows consumption, but the actual USD balance lives on OpenAI\'s side.</li>
+                    <li>Prefer <strong>project-scoped keys</strong> (<code>sk-proj-…</code>), they can be scoped to a single project and revoked without touching other integrations.</li>
+                    <li>Add billing credits at <a class="underline" href="https://platform.openai.com/settings/organization/billing/overview" target="_blank" rel="noopener">Billing</a>. API calls fail with a quota error if the balance reaches zero, the AI usage report shows consumption, but the actual USD balance lives on OpenAI\'s side.</li>
                 </ol>',
         ])
 
@@ -78,7 +78,7 @@
                     <i class="fas fa-arrow-up-right-from-square mr-1"></i> Check OpenAI balance
                 </a>
             </div>
-            <p class="text-[11px] text-white/30">Live USD balance lives on OpenAI's side — open their billing dashboard to check it. Internal token &amp; coin consumption is in the AI usage report.</p>
+            <p class="text-[11px] text-white/30">Live USD balance lives on OpenAI's side, open their billing dashboard to check it. Internal token &amp; coin consumption is in the AI usage report.</p>
         </div>
     </div>
 
@@ -125,7 +125,7 @@
                                 @endforeach
                             </div>
                         @else
-                            <span class="text-white/30 text-xs">—</span>
+                            <span class="text-white/30 text-xs">-</span>
                         @endif
                     </td>
                     <td><select name="models[{{ $i }}][kind]" class="bg-white/5 border border-white/10 rounded px-2 py-1 text-white text-sm">
@@ -273,7 +273,7 @@
                     </button>
                     <span id="whisper-test-result" class="text-xs text-white/50"></span>
                 </div>
-                <p class="text-white/40 text-[11px] mt-1">Falls back to the main OpenAI key when blank. Test lists OpenAI models to validate the key — no coins charged.</p>
+                <p class="text-white/40 text-[11px] mt-1">Falls back to the main OpenAI key when blank. Test lists OpenAI models to validate the key, no coins charged.</p>
             </div>
             <div>
                 <label class="text-white/70 text-xs">Whisper model</label>
@@ -308,7 +308,7 @@
                     </button>
                     <span id="elevenlabs-test-result" class="text-xs text-white/50"></span>
                 </div>
-                <p class="text-white/40 text-[11px] mt-1">Checks the ElevenLabs voices endpoint to validate the key — no coins charged.</p>
+                <p class="text-white/40 text-[11px] mt-1">Checks the ElevenLabs voices endpoint to validate the key, no coins charged.</p>
             </div>
             <div>
                 <label class="text-white/70 text-xs">ElevenLabs voice id</label>
@@ -373,8 +373,8 @@
                 <ol class="list-decimal pl-4 mt-1 space-y-0.5">
                     <li>Sign up or log in at <a class="underline" href="https://replicate.com/" target="_blank" rel="noopener">replicate.com</a>.</li>
                     <li>Go to <a class="underline" href="https://replicate.com/account/api-tokens" target="_blank" rel="noopener">Account → API Tokens</a> and create a new token. Tokens start with <code>r8_…</code>.</li>
-                    <li>Replicate bills per-second of GPU time used by each prediction run — add a payment method in your Replicate account before enabling this in production.</li>
-                    <li>Without a token, the QR Studio <em>AI Artistic</em> tab is hidden or shown in preview mode — no charges occur.</li>
+                    <li>Replicate bills per-second of GPU time used by each prediction run, add a payment method in your Replicate account before enabling this in production.</li>
+                    <li>Without a token, the QR Studio <em>AI Artistic</em> tab is hidden or shown in preview mode, no charges occur.</li>
                 </ol>',
         ])
 
@@ -385,7 +385,7 @@
             @elseif($hasReplicateKey)
                 <p class="text-xs text-white/60 mb-2">Using environment token <span class="font-mono text-amber-300">{{ $maskedReplicateKey }}</span> (<code>REPLICATE_API_TOKEN</code>).</p>
             @else
-                <p class="text-xs text-amber-300/80 mb-2">No token configured — AI Artistic QR is in preview / disabled mode.</p>
+                <p class="text-xs text-amber-300/80 mb-2">No token configured, AI Artistic QR is in preview / disabled mode.</p>
             @endif
             @include('common.partials.password-field', [
                 'name' => 'replicate_api_key',
@@ -555,7 +555,7 @@ function addModelRow() {
     row.setAttribute('data-features', '');
     row.innerHTML = `
         <td class="py-2"><input name="models[${i}][name]" class="w-full bg-white/5 border border-white/10 rounded px-2 py-1 text-white text-sm" required></td>
-        <td class="py-2"><span class="text-white/30 text-xs">—</span></td>
+        <td class="py-2"><span class="text-white/30 text-xs">-</span></td>
         <td><select name="models[${i}][kind]" class="bg-white/5 border border-white/10 rounded px-2 py-1 text-white text-sm"><option value="chat">chat</option><option value="embedding">embedding</option></select></td>
         <td><input type="hidden" name="models[${i}][enabled]" value="0"><input type="checkbox" data-enabled-toggle name="models[${i}][enabled]" value="1" checked class="accent-blue-500"><p data-disable-warning class="hidden mt-1 text-[11px] text-amber-300 flex items-start gap-1"><i class="fas fa-triangle-exclamation mt-0.5"></i><span data-disable-warning-text></span></p></td>
         <td class="text-right"><input type="number" min="0" step="0.01" name="models[${i}][in_coins_per_1k]" value="0" class="w-24 text-right bg-white/5 border border-white/10 rounded px-2 py-1 text-white text-sm"></td>
@@ -579,7 +579,7 @@ function addModelRow() {
         const cell = row.children[1];
         if (!cell) return;
         if (!features.length) {
-            cell.innerHTML = '<span class="text-white/30 text-xs">—</span>';
+            cell.innerHTML = '<span class="text-white/30 text-xs">-</span>';
             return;
         }
         cell.innerHTML = '<div class="flex flex-wrap gap-1">' + features.map(function (f) {
@@ -593,7 +593,7 @@ function addModelRow() {
         if (!toggle || !warn) return;
         if (features.length && !toggle.checked) {
             warn.querySelector('[data-disable-warning-text]').textContent =
-                'In use by ' + features.join(', ') + ' — those features will fail until reassigned.';
+                'In use by ' + features.join(', ') + ', those features will fail until reassigned.';
             warn.classList.remove('hidden');
         } else {
             warn.classList.add('hidden');

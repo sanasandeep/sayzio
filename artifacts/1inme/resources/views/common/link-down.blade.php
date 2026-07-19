@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang="en">
 <head>
+    @include('common.partials.toolbar-theme-color')
     <meta charset="utf-8">
     <title>Temporarily unavailable</title>
     <meta name="robots" content="noindex">

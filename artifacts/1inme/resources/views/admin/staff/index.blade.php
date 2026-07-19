@@ -70,7 +70,7 @@
                     <div class="flex items-center justify-end gap-2">
                         <a href="{{ route('admin.staff.edit', $member) }}" class="text-white/30 hover:text-blue-400"><i class="fas fa-edit"></i></a>
                         @if(isset($protectedEmails) && $protectedEmails->has(strtolower(trim((string) $member->email))))
-                        <span class="text-emerald-400/70" title="Protected — cannot be deleted or deactivated"><i class="fas fa-shield-alt"></i></span>
+                        <span class="text-emerald-400/70" title="Protected, cannot be deleted or deactivated"><i class="fas fa-shield-alt"></i></span>
                         @elseif($member->id !== auth()->guard('admin')->id())
                         <form action="{{ route('admin.staff.destroy', $member) }}" method="POST" class="inline" onsubmit="return window.themedConfirmSubmit(this, {title: 'Remove this staff member?', message: 'They will lose admin access immediately.', confirmText: 'Remove', confirmIcon: 'fa-user-minus', iconClass: 'fa-user-minus'})">
                             @csrf @method('DELETE')
@@ -147,7 +147,7 @@
                     <div class="min-w-0">
                         <div class="text-sm font-medium text-white truncate" x-text="selected.name"></div>
                         <div class="text-xs text-white/40 truncate" x-text="selected.email"></div>
-                        <div x-show="selected.is_admin" class="text-[11px] text-amber-400 mt-0.5">This user already has admin access — granting will update their role.</div>
+                        <div x-show="selected.is_admin" class="text-[11px] text-amber-400 mt-0.5">This user already has admin access, granting will update their role.</div>
                     </div>
                     <button type="button" @click="clear()" class="shrink-0 text-white/30 hover:text-white text-sm"><i class="fas fa-times mr-1"></i>Change</button>
                 </div>

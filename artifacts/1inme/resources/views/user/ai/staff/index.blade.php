@@ -6,7 +6,7 @@
     @include('user.ai._partials.header', [
         'kicker'   => 'AI',
         'title'    => 'AI Staff',
-        'subtitle' => 'Hire configurable AI agents that work billing, contacts, inbox and general questions for you — grounded in your own data, and they always confirm before sending anything.',
+        'subtitle' => 'Hire configurable AI agents that work billing, contacts, inbox and general questions for you, grounded in your own data, and they always confirm before sending anything.',
         'balance'  => $balance,
     ])
 

@@ -17,7 +17,7 @@
 
         <div class="glass rounded-2xl p-6 space-y-4">
             <p class="text-sm text-white/50">
-                A shareable, followable calendar. Publish events with times, locations and hashtags — people can <strong class="text-white/70">follow</strong> your calendar, get reminders, and subscribe in Google Calendar or Apple Calendar via an ICS feed. You'll add events next in the editor.
+                A shareable, followable calendar. Publish events with times, locations and hashtags, people can <strong class="text-white/70">follow</strong> your calendar, get reminders, and subscribe in Google Calendar or Apple Calendar via an ICS feed. You'll add events next in the editor.
             </p>
 
             <div>

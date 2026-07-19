@@ -12,7 +12,7 @@
     <div class="glass rounded-2xl p-6">
         <h1 class="text-xl font-semibold text-white">Login &amp; OTP</h1>
         <p class="text-sm text-white/60 mt-1">
-            Choose how users sign in. You can independently enable <strong class="text-white/80">email + password</strong> and a one-time code sent over <strong class="text-white/80">email</strong> — at least one of these must stay on. You can additionally let users sign in with a one-time code sent over <strong class="text-white/80">WhatsApp</strong>, restricted to an allow-list of country dialling codes.
+            Choose how users sign in. You can independently enable <strong class="text-white/80">email + password</strong> and a one-time code sent over <strong class="text-white/80">email</strong>, at least one of these must stay on. You can additionally let users sign in with a one-time code sent over <strong class="text-white/80">WhatsApp</strong>, restricted to an allow-list of country dialling codes.
         </p>
     </div>
 
@@ -67,7 +67,7 @@
                         @endif
                     </div>
                     <p class="text-xs text-white/50 mt-0.5">
-                        Users request a 6-digit code emailed to them each time they sign in — no password required.
+                        Users request a 6-digit code emailed to them each time they sign in, no password required.
                     </p>
                 </div>
             </label>
@@ -87,7 +87,7 @@
                         @endif
                     </div>
                     <p class="text-xs text-white/50 mt-0.5">
-                        When on, new users must enter the 6-digit code emailed to them before reaching their dashboard. Turn it off to sign new users in immediately after they register — they can verify later.
+                        When on, new users must enter the 6-digit code emailed to them before reaching their dashboard. Turn it off to sign new users in immediately after they register, they can verify later.
                     </p>
                     <p class="text-xs text-amber-300/80 mt-1">
                         Only applies when <strong>email + password login</strong> is enabled. With one-time-code login only, the emailed code is the sole way to sign in, so verification can't be skipped.
@@ -99,7 +99,7 @@
         <div class="glass rounded-2xl p-6 space-y-4">
             <div>
                 <h2 class="text-base font-semibold text-white">New registrations</h2>
-                <p class="text-xs text-white/50">Temporarily stop creating brand-new accounts. Existing users are never affected — they keep signing in and using everything as normal.</p>
+                <p class="text-xs text-white/50">Temporarily stop creating brand-new accounts. Existing users are never affected, they keep signing in and using everything as normal.</p>
             </div>
 
             <label class="flex items-start gap-4 p-4 rounded-xl border border-white/10 bg-white/[0.03] hover:bg-white/[0.05] transition cursor-pointer">
@@ -147,7 +147,7 @@
                         @endif
                     </div>
                     <p class="text-xs text-white/50 mt-0.5">
-                        When on, every verification code is shown to the user on the screen right after it's sent (login, sign-up, account merge, and adding a new email/phone). Codes are still emailed/messaged as usual — this only also displays them.
+                        When on, every verification code is shown to the user on the screen right after it's sent (login, sign-up, account merge, and adding a new email/phone). Codes are still emailed/messaged as usual, this only also displays them.
                     </p>
                     <p class="text-xs text-amber-300/80 mt-1">
                         Turn this <strong>off</strong> for production: while on, anyone reaching a verification screen can read the live code.
@@ -189,7 +189,7 @@
                 <i class="fab fa-whatsapp mt-0.5 {{ $credsConfigured ? 'text-emerald-300' : 'text-amber-300' }}"></i>
                 <div class="text-xs {{ $credsConfigured ? 'text-emerald-200' : 'text-amber-200' }}">
                     @if($credsConfigured)
-                        WhatsApp Cloud API credentials are configured — codes will be delivered live.
+                        WhatsApp Cloud API credentials are configured, codes will be delivered live.
                     @else
                         WhatsApp Cloud API credentials are not configured. The provider runs in <strong>preview mode</strong>: codes are written to the application log instead of being sent. Set <code>WHATSAPP_PHONE_NUMBER_ID</code> and <code>WHATSAPP_ACCESS_TOKEN</code> to go live.
                     @endif

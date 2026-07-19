@@ -11,7 +11,7 @@
             <div><strong>Plan:</strong> {{ $subscription->plan?->name }} ({{ $subscription->billing_cycle }})</div>
             <div><strong>Status:</strong> <span class="badge bg-secondary">{{ $subscription->status }}</span></div>
             <div><strong>Period:</strong>
-                {{ optional($subscription->current_period_start)->toDateString() }} —
+                {{ optional($subscription->current_period_start)->toDateString() }} -
                 {{ optional($subscription->current_period_end)->toDateString() }}
             </div>
             @if ($subscription->grace_until)

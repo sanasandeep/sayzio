@@ -48,7 +48,7 @@
             @elseif($__activeExp && $__activeExp->isAdaptive())
                 <span class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider"
                       style="background:rgba(61,107,255,0.18); color:#90acff;">
-                    Paused — adaptive is on
+                    Paused, adaptive is on
                 </span>
             @elseif($__lastExp && $__lastExp->status === 'completed')
                 <span class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider"
@@ -82,13 +82,13 @@
 
     @if($__activeExp && $__activeExp->isAdaptive())
         <p class="text-xs theme-text-muted mb-1">
-            Adaptive optimization is running for this link — manual A/B testing is
+            Adaptive optimization is running for this link, manual A/B testing is
             disabled while it's on. Manage it in the <strong>Adaptive optimization</strong>
             panel below.
         </p>
     @elseif(!$__activeExp)
         <p class="text-xs theme-text-muted mb-3">
-            Snapshot the current layout as <strong>Variant A</strong>, then keep editing —
+            Snapshot the current layout as <strong>Variant A</strong>, then keep editing,
             your edits become <strong>Variant B</strong>. Visitors are split 50/50 (sticky per visitor).
         </p>
         <form method="POST" action="{{ route('user.links.experiment.start', $link) }}"
@@ -242,7 +242,7 @@
             keeps learning as clicks come in. No manual variants to manage.
         </p>
         <div id="adaptive-segments" class="space-y-2">
-            <p class="text-xs theme-text-dimmed" data-adaptive-empty>Collecting data — check back once visitors arrive.</p>
+            <p class="text-xs theme-text-dimmed" data-adaptive-empty>Collecting data, check back once visitors arrive.</p>
         </div>
     @elseif($__abBlocking)
         <p class="text-xs theme-text-muted">
@@ -251,7 +251,7 @@
     @else
         <p class="text-xs theme-text-muted mb-3">
             Let Sayzio pick which block to feature for each visitor segment, and keep
-            improving automatically — no manual variants to manage.
+            improving automatically, no manual variants to manage.
         </p>
         <form method="POST" action="{{ route('user.links.experiment.adaptive.enable', $link) }}">
             @csrf
@@ -277,7 +277,7 @@
         var host = document.getElementById('adaptive-segments');
         if (!host) return;
         if (!segments || !segments.length) {
-            host.innerHTML = '<p class="text-xs theme-text-dimmed">Collecting data — check back once visitors arrive.</p>';
+            host.innerHTML = '<p class="text-xs theme-text-dimmed">Collecting data, check back once visitors arrive.</p>';
             return;
         }
         var rows = segments.map(function(s){
@@ -285,7 +285,7 @@
             var leaderLabel = leader ? escapeHtml(leader.featured_label) : '—';
             var leaderRate = leader ? (leader.rate * 100).toFixed(1) + '%' : '—';
             var baseRate = s.baseline ? (s.baseline.rate * 100).toFixed(1) + '%' : '—';
-            var lift = (s.lift_pct === null || s.lift_pct === undefined) ? '—' : (s.lift_pct > 0 ? '+' : '') + s.lift_pct + '%';
+            var lift = (s.lift_pct === null || s.lift_pct === undefined) ? '-' : (s.lift_pct > 0 ? '+' : '') + s.lift_pct + '%';
             var liftColor = (s.lift_pct !== null && s.lift_pct > 0) ? '#10b981' : (s.lift_pct !== null && s.lift_pct < 0 ? '#f87171' : 'inherit');
             return '<div class="rounded-xl border border-white/10 p-3 flex items-center justify-between gap-3 flex-wrap" style="background:rgba(255,255,255,0.03);">' +
                 '<div>' +

@@ -25,7 +25,7 @@
                         <span class="text-red-300">Failed</span> &middot; <span class="text-white/50">{{ $log->error }}</span>
                     @elseif (in_array($log->transport, ['log', 'array'], true))
                         <span class="text-amber-300">Log driver (not delivered)</span>
-                        <div class="text-white/40 mt-0.5">Written to the <code>{{ $log->transport }}</code> driver — recorded as sent but not actually delivered.</div>
+                        <div class="text-white/40 mt-0.5">Written to the <code>{{ $log->transport }}</code> driver, recorded as sent but not actually delivered.</div>
                     @else
                         <span class="text-emerald-300">Sent</span>
                     @endif

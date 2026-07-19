@@ -29,7 +29,7 @@
 
     @unless($planAllows)
         <div class="mb-4 px-4 py-3 rounded-xl text-sm flex items-center justify-between gap-3" style="background: rgba(92,131,255,0.1); border: 1px solid rgba(92,131,255,0.25); color: #bccfff;">
-            <span><i class="fas fa-lock mr-1.5"></i>The AI Inbox Agent isn't included in your current plan@if($upgradePlan) — upgrade to <strong>{{ $upgradePlan->name }}</strong> to unlock AI triage, drafting, and autopilot@endif.</span>
+            <span><i class="fas fa-lock mr-1.5"></i>The AI Inbox Agent isn't included in your current plan@if($upgradePlan), upgrade to <strong>{{ $upgradePlan->name }}</strong> to unlock AI triage, drafting, and autopilot@endif.</span>
             <a href="{{ route('user.upgrade') }}" class="px-3 py-1.5 rounded-lg text-xs font-bold text-white flex-shrink-0" style="background: linear-gradient(135deg,#5c83ff,#2342c7);">Upgrade</a>
         </div>
     @endunless
@@ -73,7 +73,7 @@
 
             <div>
                 <label class="block text-[10px] font-bold uppercase tracking-wider mb-1.5" style="color: var(--text-faint);">Signature</label>
-                <textarea name="signature" rows="2" maxlength="500" placeholder="Appended to AI replies, e.g. — Mia"
+                <textarea name="signature" rows="2" maxlength="500" placeholder="Appended to AI replies, e.g., Mia"
                           class="w-full px-3 py-2 rounded-lg text-sm" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-primary);">{{ $settings['signature'] }}</textarea>
             </div>
         </div>
@@ -106,7 +106,7 @@
 
                 <div>
                     <label class="block text-[10px] font-bold uppercase tracking-wider mb-2" style="color: var(--text-faint);">
-                        Confidence threshold — <span x-text="Math.round(threshold * 100) + '%'"></span>
+                        Confidence threshold, <span x-text="Math.round(threshold * 100) + '%'"></span>
                     </label>
                     <input type="range" name="confidence_threshold" min="0.5" max="0.99" step="0.01" x-model="threshold" class="w-full">
                     <div class="text-[11px] mt-1" style="color: var(--text-muted);">Only send automatically when triage confidence is at or above this. Anything lower goes to the review queue.</div>

@@ -73,10 +73,11 @@
                 ['key' => 'sub', 'label' => 'Subscriptions', 'tint' => '#5c83ff'],
                 ['key' => 'ppv', 'label' => 'Pay-per-view',  'tint' => '#3b82f6'],
                 ['key' => 'tip', 'label' => 'Tips',          'tint' => '#10b981'],
+                ['key' => 'tip_jar', 'label' => 'Tip Jar',   'tint' => '#ec4899'],
                 ['key' => 'product', 'label' => 'Products',   'tint' => '#f59e0b'],
                 ['key' => 'form', 'label' => 'Paid forms',  'tint' => '#06b6d4'],
             ];
-            $totalPositive = max(1, ($bySource['sub'] ?? 0) + ($bySource['ppv'] ?? 0) + ($bySource['tip'] ?? 0) + ($bySource['product'] ?? 0) + ($bySource['form'] ?? 0));
+            $totalPositive = max(1, ($bySource['sub'] ?? 0) + ($bySource['ppv'] ?? 0) + ($bySource['tip'] ?? 0) + ($bySource['tip_jar'] ?? 0) + ($bySource['product'] ?? 0) + ($bySource['form'] ?? 0));
         @endphp
         @foreach($sources as $s)
             @php
@@ -132,6 +133,7 @@
                                 'sub' => ['fa-user-plus', '#5c83ff'],
                                 'ppv' => ['fa-lock-open', '#3b82f6'],
                                 'tip' => ['fa-heart',     '#ec4899'],
+                                'tip_jar' => ['fa-jar',   '#ec4899'],
                                 'product' => ['fa-bag-shopping', '#f59e0b'],
                                 'form' => ['fa-wpforms', '#06b6d4'],
                             ];

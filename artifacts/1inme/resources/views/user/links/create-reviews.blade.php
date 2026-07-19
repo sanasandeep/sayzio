@@ -16,7 +16,7 @@
         <input type="hidden" name="type" value="reviews">
         <div class="glass rounded-2xl p-6 space-y-4">
             <p class="text-sm text-white/50">
-                A public, Google-style reviews page. Visitors can leave star ratings, written reviews, photos, audio and video — no account required. You moderate, reply, and can sync reviews from Google and Trustpilot.
+                A public, Google-style reviews page. Visitors can leave star ratings, written reviews, photos, audio and video, no account required. You moderate, reply, and can sync reviews from Google and Trustpilot.
             </p>
 
             <div>

@@ -1,5 +1,5 @@
 @extends('user.layouts.app')
-@section('title', 'Vault — Credentials')
+@section('title', 'Vault: Credentials')
 @section('content')
 @include('user.vault._tabs')
 

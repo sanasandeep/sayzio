@@ -483,7 +483,7 @@
 
 @include('public.partials.subscribe-block', [
     'heading' => 'Stay close to the Sayzio story.',
-    'subtext' => 'Pick the channel that fits — email, WhatsApp Channel, or DM. Updates from the team and what we are building next.',
+    'subtext' => 'Pick the channel that fits: email, WhatsApp Channel, or DM. Updates from the team and what we are building next.',
     'source'  => 'about',
 ])
 @endsection

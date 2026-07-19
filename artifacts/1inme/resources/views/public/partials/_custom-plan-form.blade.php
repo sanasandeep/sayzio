@@ -14,7 +14,7 @@
                 Need something <span class="grad-text">tailored?</span>
             </h2>
             <p class="text-base leading-relaxed" style="color:var(--text-muted)">
-                Tell us about your requirements and we'll design a plan with the exact features, limits, and price that fits your business — no compromise.
+                Tell us about your requirements and we'll design a plan with the exact features, limits, and price that fits your business, with no compromise.
             </p>
         </div>
 

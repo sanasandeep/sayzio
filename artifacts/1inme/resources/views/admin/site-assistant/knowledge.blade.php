@@ -1,6 +1,6 @@
 @extends('admin.layouts.app')
-@section('title', 'Site Assistant — AI Knowledge Bases')
-@section('page-title', 'Site Assistant — AI Knowledge Bases')
+@section('title', 'Site Assistant: AI Knowledge Bases')
+@section('page-title', 'Site Assistant, AI Knowledge Bases')
 
 @section('content')
 <div class="max-w-6xl space-y-6">

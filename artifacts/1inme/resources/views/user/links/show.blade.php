@@ -485,7 +485,7 @@
     if ($canExportStats) {
         $heroActions[] = ['label' => 'Export CSV', 'url' => route('user.links.clicks.export', $link).'?'.http_build_query($qs), 'icon' => 'fa-file-csv', 'class' => 'btn-ghost'];
     } else {
-        $heroActions[] = ['label' => 'Upgrade to export', 'url' => route('user.upgrade'), 'icon' => 'fa-lock', 'class' => 'btn-ghost', 'title' => 'CSV export is a paid feature — upgrade your plan to download stats.'];
+        $heroActions[] = ['label' => 'Upgrade to export', 'url' => route('user.upgrade'), 'icon' => 'fa-lock', 'class' => 'btn-ghost', 'title' => 'CSV export is a paid feature, upgrade your plan to download stats.'];
     }
     $heroActions[] = ['label' => 'QR', 'url' => route('user.qr-codes.create', ['link_id' => $link->id]), 'icon' => 'fa-qrcode', 'class' => 'btn-ghost'];
     if ($link->type === 'biolink') {
@@ -598,7 +598,7 @@
         // Show "(all variants)" so creators understand this rolls up regional
         // locales (en-US + en-GB + en_CA → English) rather than matching one.
         $blfValue = $blf['name'] . ' (all variants)';
-        $activeFilters[] = ['key' => 'lang_base', 'label' => 'Language', 'value' => $blfValue, 'icon' => 'fa-layer-group', 'clearUrl' => $buildUrl(['lang_base' => null]), 'title' => 'Remove base-language filter (' . $baseLanguageFilter . ' — rollup of all regional variants)', 'iconTitle' => 'Rollup of all regional variants'];
+        $activeFilters[] = ['key' => 'lang_base', 'label' => 'Language', 'value' => $blfValue, 'icon' => 'fa-layer-group', 'clearUrl' => $buildUrl(['lang_base' => null]), 'title' => 'Remove base-language filter (' . $baseLanguageFilter . ', rollup of all regional variants)', 'iconTitle' => 'Rollup of all regional variants'];
     }
     if (!empty($channelFilter)) {
         $activeFilters[] = ['key' => 'channel', 'label' => 'Channel', 'value' => \App\Modules\Common\Services\ChannelClassifier::labelFor($channelFilter), 'icon' => 'fa-window-restore', 'clearUrl' => $buildUrl(['channel' => null])];
@@ -770,7 +770,7 @@
             </a>
             @else
             <a href="{{ route('user.upgrade') }}"
-               class="section-pill" title="CSV export is a paid feature — upgrade your plan to download stats.">
+               class="section-pill" title="CSV export is a paid feature, upgrade your plan to download stats.">
                 <i class="fas fa-lock mr-1"></i> Upgrade to export
             </a>
             @endif
@@ -785,7 +785,7 @@
             $botCoveragePct = $botClicksInRange > 0 ? round(($botBreakdownTotal / $botClicksInRange) * 100) : 100;
         @endphp
         <p class="text-[12px] mb-3" style="color: var(--text-faint);">
-            Grouped by bot family — based on the user-agent string. Counts respect the filters above.
+            Grouped by bot family, based on the user-agent string. Counts respect the filters above.
             @if($botCoveragePct < 100)
                 Showing the top user-agents, which cover {{ number_format($botBreakdownTotal) }} of {{ number_format($botClicksInRange) }} bot hits ({{ $botCoveragePct }}%); the long tail is omitted.
             @endif
@@ -946,7 +946,7 @@
 <div class="section-card mb-7" style="--sc-accent: linear-gradient(90deg,#06b6d4,#22d3ee); --sc-glow: rgba(6,182,212,0.35); --sc-color: #67e8f9; --sc-border: rgba(6,182,212,0.3);">
     <div class="section-head">
         <div class="section-title"><div class="section-icon"><i class="fas fa-mobile-screen"></i></div> Traffic source</div>
-        <div class="text-xs" style="color: var(--text-faint);">Where each visit came from — the in-app viewer or the web</div>
+        <div class="text-xs" style="color: var(--text-faint);">Where each visit came from, the in-app viewer or the web</div>
     </div>
     @if($sourceStats->isEmpty() || $sourceTotal === 0)
         <p class="text-sm text-center py-8" style="color: var(--text-faint);">No data</p>
@@ -1083,7 +1083,7 @@
             @endif
             @if(!empty($baseLanguageFilter))
                 @php $blf = $languageLabel($baseLanguageFilter); @endphp
-                <a href="{{ $buildUrl(['lang_base' => null]) }}" class="section-pill" title="Clear base-language filter ({{ $baseLanguageFilter }} — all variants)"><i class="fas fa-times mr-1"></i>{{ $blf['name'] }} (all variants)</a>
+                <a href="{{ $buildUrl(['lang_base' => null]) }}" class="section-pill" title="Clear base-language filter ({{ $baseLanguageFilter }}, all variants)"><i class="fas fa-times mr-1"></i>{{ $blf['name'] }} (all variants)</a>
             @endif
         </div>
     </div>
@@ -1231,8 +1231,8 @@
                          const t = Date.parse(json.generated_at ?? '');
                          const mins = isNaN(t) ? null : Math.max(1, Math.round((Date.now() - t) / 60000));
                          this.estimateFreshNote = mins !== null
-                             ? `Estimate is fresh — generated ${mins} minute${mins === 1 ? '' : 's'} ago. No coins were charged.`
-                             : 'Estimate is fresh — no coins were charged.';
+                             ? `Estimate is fresh, generated ${mins} minute${mins === 1 ? '' : 's'} ago. No coins were charged.`
+                             : 'Estimate is fresh, no coins were charged.';
                      } else {
                          this.estimateRows = json.estimated ?? [];
                          this.estimateDone = true;
@@ -1347,12 +1347,12 @@
                 <span x-show="estimating"> &nbsp;<i class="fas fa-spinner fa-spin text-[10px]"></i></span>
             </button>
             <span x-show="estimateStale" x-cloak class="text-xs inline-flex items-center gap-1" style="color:#fbbf24;" data-testid="text-estimate-stale">
-                <i class="fas fa-clock text-[10px]"></i> Estimate is over 30 days old — re-estimate?
+                <i class="fas fa-clock text-[10px]"></i> Estimate is over 30 days old, re-estimate?
             </span>
             <span x-show="estimateError" x-text="estimateError" class="text-xs text-red-400" x-cloak></span>
             <span x-show="estimateFreshNote" x-text="estimateFreshNote" class="text-xs inline-flex items-center gap-1" style="color:#34d399;" x-cloak data-testid="text-estimate-fresh"></span>
             <button type="button" x-show="estimateFreshNote" x-cloak
-                    @click="if (confirm(@js($audienceAiCoins > 0 ? 'This will charge up to ' . number_format($audienceAiCoins) . ' ' . Str::plural('coin', $audienceAiCoins) . ' — run anyway?' : 'This will charge coins for a fresh run — run anyway?'))) runEstimate(true)"
+                    @click="if (confirm(@js($audienceAiCoins > 0 ? 'This will charge up to ' . number_format($audienceAiCoins) . ' ' . Str::plural('coin', $audienceAiCoins) . ', run anyway?' : 'This will charge coins for a fresh run, run anyway?'))) runEstimate(true)"
                     :disabled="estimating"
                     class="btn btn-xs" data-testid="button-estimate-force"
                     style="background:rgba(251,191,36,0.12);color:#fbbf24;border:1px solid rgba(251,191,36,0.3);border-radius:8px;padding:4px 12px;font-size:11px;font-weight:600;cursor:pointer;">
@@ -1458,7 +1458,7 @@
     </style>
     <div id="heatmap-empty" style="display:none; padding: 2rem 0; text-align:center; color: var(--text-faint); font-size: 0.875rem;">
         <i class="fas fa-globe-americas" style="font-size: 2rem; opacity: 0.4; margin-bottom: 0.75rem; display:block;"></i>
-        No geographic data yet for this period — clicks will appear on the map as they come in.
+        No geographic data yet for this period, clicks will appear on the map as they come in.
     </div>
     <div id="heatmap-container" style="position: relative; height: 420px; border-radius: 14px; overflow: hidden; border: 1px solid var(--border-glass); background: var(--bg-glass-input);">
         <div id="heatmap" style="width:100%; height:100%;"></div>
@@ -1665,7 +1665,7 @@
         function _blockDeltaPill($curr, $prev) {
             $curr = (int) $curr; $prev = (int) $prev;
             if ($prev === 0 && $curr === 0) {
-                return '<span class="delta-pill delta-flat" title="No data in either period">—</span>';
+                return '<span class="delta-pill delta-flat" title="No data in either period">-</span>';
             }
             if ($prev === 0) {
                 return '<span class="delta-pill delta-up" title="New in this period"><i class="fas fa-arrow-up"></i> NEW</span>';
@@ -1733,7 +1733,7 @@
                 <div class="cmp-tile-sub">{{ number_format($topBlock->count) }} clicks · prev: {{ number_format($topBlockPrev) }}</div>
             @else
                 <div class="cmp-tile-row">
-                    <div class="cmp-tile-value-sm">—</div>
+                    <div class="cmp-tile-value-sm">-</div>
                 </div>
                 <div class="cmp-tile-sub">no blocks clicked yet</div>
             @endif
@@ -1744,7 +1744,7 @@
         <div class="text-center py-10 px-6 rounded-xl" style="background: var(--bg-glass-input); border: 1px dashed var(--border-glass);">
             <i class="fas fa-th-large text-2xl mb-2" style="color: var(--text-faint);"></i>
             <p class="text-sm font-semibold mb-1" style="color: var(--text-primary);">No block clicks recorded yet</p>
-            <p class="text-xs" style="color: var(--text-faint);">Visit your public Link in Bio page and click a block — it will appear here within seconds.</p>
+            <p class="text-xs" style="color: var(--text-faint);">Visit your public Link in Bio page and click a block, it will appear here within seconds.</p>
             <a href="{{ url('/' . $link->alias) }}" target="_blank" rel="noopener" class="btn-ghost text-xs py-2 mt-3 inline-flex">
                 <i class="fas fa-external-link-alt text-[10px]"></i> Open my Link in Bio
             </a>
@@ -1821,7 +1821,7 @@
     @endphp
     @if($zeroClickBlocks->isNotEmpty())
         <div class="mt-4 pt-4" style="border-top: 1px dashed var(--border-glass);">
-            <div class="text-[11px] uppercase tracking-wider mb-2" style="color: var(--text-faint);">No clicks in this period — click to drill down</div>
+            <div class="text-[11px] uppercase tracking-wider mb-2" style="color: var(--text-faint);">No clicks in this period, click to drill down</div>
             <div class="flex flex-wrap gap-2">
                 @foreach($zeroClickBlocks as $zb)
                     <button type="button"
@@ -2273,10 +2273,10 @@
         <div class="section-title"><div class="section-icon"><i class="fas fa-list"></i></div> Recent Clicks</div>
         <div class="flex items-center gap-2">
             @if($canExportStats)
-            <a href="{{ route('user.links.clicks.export', $link) }}?{{ http_build_query($qs) }}" class="table-action" title="Real visitors only — bot/scraper hits excluded"><i class="fas fa-file-csv"></i> Export full log</a>
+            <a href="{{ route('user.links.clicks.export', $link) }}?{{ http_build_query($qs) }}" class="table-action" title="Real visitors only, bot/scraper hits excluded"><i class="fas fa-file-csv"></i> Export full log</a>
             <a href="{{ route('user.links.clicks.export', $link) }}?{{ http_build_query(array_merge($qs, ['include_bots' => 1])) }}" class="table-action" title="Includes bot/scraper hits with an Is Bot column"><i class="fas fa-robot"></i> Include bots</a>
             @else
-            <a href="{{ route('user.upgrade') }}" class="table-action" title="CSV export is a paid feature — upgrade your plan to download stats."><i class="fas fa-lock"></i> Upgrade to export</a>
+            <a href="{{ route('user.upgrade') }}" class="table-action" title="CSV export is a paid feature, upgrade your plan to download stats."><i class="fas fa-lock"></i> Upgrade to export</a>
             @endif
         </div>
     </div>
@@ -2905,7 +2905,7 @@
             // user can pick copy / X / LinkedIn instead of silently doing nothing.
             const menu = document.getElementById('heatmap-share-menu');
             if (menu) menu.style.display = 'block';
-            showShareToast('Sharing isn\u2019t available here — pick a destination below.', true);
+            showShareToast('Sharing isn\u2019t available here, pick a destination below.', true);
             return;
         }
 
@@ -2915,19 +2915,19 @@
         catch (e) { console.warn('Clipboard image copy failed', e); }
 
         if (action === 'copy') {
-            showShareToast(copied ? 'Image copied to clipboard.' : 'Clipboard not available — try Download instead.', !copied);
+            showShareToast(copied ? 'Image copied to clipboard.' : 'Clipboard not available, try Download instead.', !copied);
             return;
         }
         if (action === 'x') {
             const intent = 'https://twitter.com/intent/tweet?text=' + encodeURIComponent(caption) + '&url=' + encodeURIComponent(shareUrl);
             window.open(intent, '_blank', 'noopener,noreferrer');
-            showShareToast(copied ? 'Image copied — paste into your post.' : 'Opened X. Use Download to attach the image.', !copied);
+            showShareToast(copied ? 'Image copied, paste into your post.' : 'Opened X. Use Download to attach the image.', !copied);
             return;
         }
         if (action === 'linkedin') {
             const intent = 'https://www.linkedin.com/sharing/share-offsite/?url=' + encodeURIComponent(shareUrl);
             window.open(intent, '_blank', 'noopener,noreferrer');
-            showShareToast(copied ? 'Image copied — paste into your post.' : 'Opened LinkedIn. Use Download to attach the image.', !copied);
+            showShareToast(copied ? 'Image copied, paste into your post.' : 'Opened LinkedIn. Use Download to attach the image.', !copied);
             return;
         }
     }

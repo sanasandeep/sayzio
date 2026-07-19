@@ -14,7 +14,9 @@
     "build:preload": "tsc -p tsconfig.preload.json",
     "package": "pnpm run build && pnpm run build:preload && electron-builder --config electron-builder.config.cjs",
     "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.main.json --noEmit && tsc -p tsconfig.preload.json --noEmit",
+    "pretest": "node scripts/ensure-better-sqlite3.cjs",
     "test": "vitest run",
+    "pretest:watch": "node scripts/ensure-better-sqlite3.cjs",
     "test:watch": "vitest"
   },
   "dependencies": {

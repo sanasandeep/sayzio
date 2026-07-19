@@ -12,7 +12,7 @@ export default function Privacy() {
         },
         {
           heading: "What we send to the server",
-          body: "Only the requests you make — viewing your dashboard, editing links, sending an OTP, writing an NFC tag, or placing a call — are sent to our servers. We do not collect your contact list, photos, or other on-device data without an explicit action.",
+          body: "Only the requests you make (viewing your dashboard, editing links, sending an OTP, writing an NFC tag, or placing a call) are sent to our servers. We do not collect your contact list, photos, or other on-device data without an explicit action.",
         },
         {
           heading: "Analytics",

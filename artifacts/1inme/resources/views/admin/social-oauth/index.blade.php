@@ -30,13 +30,13 @@
         <h2 class="text-sm font-semibold text-white">How this works</h2>
         <p class="text-xs text-white/50 leading-relaxed">
             Each social platform below offers a one-click "Continue with…" button to users when its OAuth credentials are configured.
-            Enter the <strong>Client ID</strong> and <strong>Client Secret</strong> from the provider's developer console here — they are stored encrypted and take effect immediately, no restart or redeploy needed. If you leave a provider blank, the matching server environment variables are used as a fallback.
+            Enter the <strong>Client ID</strong> and <strong>Client Secret</strong> from the provider's developer console here, they are stored encrypted and take effect immediately, no restart or redeploy needed. If you leave a provider blank, the matching server environment variables are used as a fallback.
         </p>
         @include('admin.partials.help-note', [
             'body' => '<strong>General setup steps for each provider</strong>
                 <ol class="list-decimal pl-4 mt-1 space-y-0.5">
                     <li>Click <em>Register a developer app</em> on any provider card below to open its developer console.</li>
-                    <li>Create a new OAuth app (type: <strong>Web application</strong> or server-side app — not a CLI or mobile app).</li>
+                    <li>Create a new OAuth app (type: <strong>Web application</strong> or server-side app, not a CLI or mobile app).</li>
                     <li>Add the exact <strong>redirect URI</strong> shown on each card to the app\'s allowed redirect URIs. Even a trailing-slash mismatch will cause OAuth to fail.</li>
                     <li>Paste the <code>Client ID</code> and <code>Client Secret</code> into the card and click <strong>Save</strong>.</li>
                     <li>Values saved here are stored encrypted in the admin database and override any server environment variables.</li>
@@ -95,7 +95,7 @@
                             <label class="block text-[10px] uppercase tracking-wider text-white/40 mb-1">
                                 Client Secret
                                 @if($p['has_admin_secret'])
-                                    <span class="text-emerald-300/70 normal-case tracking-normal">— saved</span>
+                                    <span class="text-emerald-300/70 normal-case tracking-normal"> - saved</span>
                                 @endif
                             </label>
                             @include('common.partials.password-field', [

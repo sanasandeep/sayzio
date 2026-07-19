@@ -80,7 +80,7 @@ export default function TicketViewScreen() {
         {offline ? (
           <View style={[styles.offlineBanner, { borderColor: colors.border }]}>
             <Text style={[styles.offlineText, { color: colors.mutedForeground }]}>
-              You&apos;re offline — showing your saved ticket
+              You&apos;re offline; showing your saved ticket
             </Text>
           </View>
         ) : null}

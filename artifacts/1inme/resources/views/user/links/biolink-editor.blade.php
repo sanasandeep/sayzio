@@ -805,7 +805,7 @@ $catColors = [
             <div class="palette-panel">
                 <div class="palette-head">
                     <h3 class="text-sm font-bold gradient-text">Add blocks</h3>
-                    <p class="text-[10px] mt-0.5" style="color: var(--text-faint);"><i class="fas fa-hand-pointer mr-1"></i>Drag onto your page — or click to add</p>
+                    <p class="text-[10px] mt-0.5" style="color: var(--text-faint);"><i class="fas fa-hand-pointer mr-1"></i>Drag onto your page, or click to add</p>
                     <div class="relative mt-2.5">
                         <i class="fas fa-search absolute left-2.5 top-1/2 -translate-y-1/2 text-[10px]" style="color: var(--text-faint);"></i>
                         <input type="text" x-model="paletteSearch" placeholder="Search blocks…" class="theme-input w-full pl-7 text-xs py-1.5" aria-label="Search blocks">
@@ -1186,7 +1186,7 @@ function _hasPendingDesignError() {
 
 function _confirmDiscardDesignChange() {
     if (!_hasPendingDesignError()) return true;
-    return confirm('You have an unsaved design change — discard it?');
+    return confirm('You have an unsaved design change, discard it?');
 }
 
 var _editingBlockId = null;

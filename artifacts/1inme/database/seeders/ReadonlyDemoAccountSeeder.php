@@ -27,7 +27,7 @@ class ReadonlyDemoAccountSeeder extends ShowcaseAccountSeeder
     public const PASSWORD = 'ReadOnlyDemo@2026';
     public const HANDLE = 'sayziodemo';
     public const NAME = 'Sayzio Demo';
-    public const BIO = 'Public read-only demo account — explore every Sayzio feature freely. Changes you make here are never saved.';
+    public const BIO = 'Public read-only demo account. Explore every Sayzio feature freely. Changes you make here are never saved.';
 
     protected function isReadonlyDemo(): bool
     {

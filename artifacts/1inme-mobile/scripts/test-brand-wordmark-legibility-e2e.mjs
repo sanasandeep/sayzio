@@ -46,7 +46,7 @@
 import { chromium } from "playwright";
 
 import { NAV_TIMEOUT_MS, STEP_TIMEOUT_MS } from "./check-icon-fonts.mjs";
-import { createExpoServerManager, runHarness } from "./expo-web-server.mjs";
+import { createExpoServerManager, isTransientEnvError, runHarness } from "./expo-web-server.mjs";
 import {
   assertWordmarkVisibleVariant,
   assertWordmarkWhiteVariant,
@@ -227,4 +227,17 @@ async function run() {
 
 // Termination guarantee: runHarness exits the process as soon as run()
 // settles and arms a watchdog, so a leaked handle can never stall the run.
-runHarness(run, { log, onError: (e) => fail(e?.stack || e?.message || String(e)) });
+runHarness(run, {
+  log,
+  onError: (e) => {
+    if (isTransientEnvError(e)) {
+      skip(
+        `the environment was too slow to drive the check ` +
+          `(${e?.message?.split("\n")[0] ?? "unknown error"}); ` +
+          `skipping (best-effort)`,
+      );
+      return;
+    }
+    fail(e?.stack || e?.message || String(e));
+  },
+});

@@ -3130,9 +3130,9 @@ function SettingsView({
       <h3 className="section-h" style={{ marginTop: 14 }}>Click-to-dial</h3>
       <label className="toggle-row">
         <input type="checkbox" checked={!!settings.dialEnabled} onChange={(e) => toggleDial(e.target.checked)} />
-        <span>Detect phone numbers on pages and show a Sayzio dialer overlay</span>
+        <span>Detect phone numbers on pages and show a Zio dialer overlay</span>
       </label>
-      <div className="muted">Hovering a detected number shows a pop-up with the contact, biolink, and activity from your Sayzio dialer.</div>
+      <div className="muted">Hovering a detected number shows a pop-up with the contact, biolink, and activity from your Zio dialer.</div>
 
       <ThankTemplatesEditor settings={settings} onSaved={onSaved} showToast={showToast} />
 

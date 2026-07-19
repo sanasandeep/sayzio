@@ -110,14 +110,14 @@
                             </a>
                             @if($a->target_email)<span class="block text-xs text-white/30">{{ $a->target_email }}</span>@endif
                         @else
-                            <span class="text-white/30">—</span>
+                            <span class="text-white/30">-</span>
                         @endif
                     </td>
                     <td class="text-white/50 text-xs max-w-xs">
                         @if(!empty($a->details))
                             <code class="break-words">{{ \Illuminate\Support\Str::limit(json_encode($a->details), 160) }}</code>
                         @else
-                            —
+ -
                         @endif
                     </td>
                     <td class="text-white/30 text-xs whitespace-nowrap">{{ $a->ip ?: '—' }}</td>

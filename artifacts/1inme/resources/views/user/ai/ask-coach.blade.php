@@ -6,7 +6,7 @@
     @include('user.ai._partials.header', [
         'kicker'   => 'AI',
         'title'    => 'AI Coach',
-        'subtitle' => 'Read-only self-support — the assistant pulls from your live links, audience, payments and account to answer.',
+        'subtitle' => 'Read-only self-support, the assistant pulls from your live links, audience, payments and account to answer.',
         'balance'  => $balance,
     ])
 

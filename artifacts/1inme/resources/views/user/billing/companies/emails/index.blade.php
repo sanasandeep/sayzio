@@ -5,7 +5,7 @@
     <div class="page-hero mb-6 flex items-center justify-between">
         <div>
             <h1 class="hero-title">Client email templates</h1>
-            <p class="hero-subtitle">{{ $company->name }} — subject &amp; body of the emails sent to your clients.</p>
+            <p class="hero-subtitle">{{ $company->name }}, subject &amp; body of the emails sent to your clients.</p>
         </div>
         <a href="{{ route('user.billing.companies.edit', $company) }}" class="hero-back"><i class="fas fa-arrow-left"></i></a>
     </div>

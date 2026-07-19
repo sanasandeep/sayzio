@@ -1,0 +1,87 @@
+name: SayZio Browser Tests
+
+# PR gate for the SayZio Browser (Electron) artifact.
+#
+# IMPORTANT — why there is no `paths:` filter on the triggers below, and a
+# `changes` detection job instead:
+#   A workflow-level `paths:` filter means the WHOLE workflow never triggers for
+#   a PR that doesn't touch those paths — so GitHub never receives a status for
+#   this job. If it were ever marked as a *required* status check, any PR that
+#   changes nothing under artifacts/zio-browser/** would hang forever waiting on
+#   a check that never runs — the classic path-filter + required-check deadlock.
+#   The fix (same passthrough scheme as laravel-tests.yml / laravel-migrations.yml):
+#   trigger on every PR, detect in a cheap `changes` job whether zio-browser
+#   files actually changed, then either run the real test job (relevant change)
+#   or a passthrough companion with the SAME check name that short-circuits to
+#   green. Either way the check name is ALWAYS reported.
+#
+# The build/package/release pipeline lives in zio-browser-build.yml, which is
+# push-to-main / manual-dispatch only and therefore never gates PRs.
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  changes:
+    name: Detect zio-browser changes
+    runs-on: ubuntu-latest
+    outputs:
+      onein: ${{ steps.filter.outputs.onein }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Filter changed paths
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            onein:
+              - 'artifacts/zio-browser/**'
+              - '.github/workflows/zio-browser-tests.yml'
+
+  test:
+    name: SayZio Browser test & typecheck
+    needs: changes
+    if: needs.changes.outputs.onein == 'true' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: artifacts/zio-browser
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Allow platform-native binaries
+        # The workspace blocks non-Linux native binaries (dev-env size
+        # optimization); CI runners need their own platform's binaries.
+        run: node artifacts/zio-browser/scripts/allow-native-binaries.cjs
+        working-directory: .
+
+      - name: Install dependencies
+        run: pnpm install --no-frozen-lockfile
+        working-directory: .
+
+      - name: Typecheck
+        run: pnpm run typecheck
+
+      - name: Run tests
+        run: pnpm run test
+
+  # Passthrough companion: reports the EXACT SAME check name as the real job
+  # when the PR touches nothing under artifacts/zio-browser/**, so the check
+  # can be safely marked required without deadlocking unrelated PRs.
+  test-passthrough:
+    name: SayZio Browser test & typecheck
+    needs: changes
+    if: needs.changes.outputs.onein != 'true' && github.event_name != 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Passthrough (no zio-browser changes)
+        run: echo "No changes under artifacts/zio-browser/** — passthrough green."

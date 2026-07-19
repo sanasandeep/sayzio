@@ -261,6 +261,7 @@ what each one is for:
 | **Store** | An order-request storefront: list products in categories and take orders (name, contact, note) with **no online payment** — you fulfil them offline from an owner dashboard. |
 | **Service Booking** | An appointment-request page: list services with duration and price, publish your availability, and let visitors request a slot. You confirm bookings from a dashboard — no payment is collected, any total shown is an estimate. |
 | **Calendar** | A followable calendar of your events with an ICS feed; on supported plans it stays in two-way sync with your connected Google calendar. |
+| **Updates / Changelog** | A public feed of dated announcements and release notes. Each entry has a title, body, tag (feature / fix / improvement / breaking / announcement), publish date, and draft/published status. Followers can be notified on new entries. |
 | **Brand / Press Kit** | A shareable page with your logos, colours, fonts, brand voice, and boilerplate — handy for press and partners. |
 | **Social** | Link and manage your connected social accounts. |
 
@@ -1062,8 +1063,7 @@ in the Sayzio mobile app.
 
 **What it is.** An appointment-request page where visitors browse your services
 and request a time slot. You review and confirm (or decline) bookings from a
-dashboard. **No payment is collected** — any pricing shown is for reference only.
-It has its own dedicated builder.
+dashboard. It has its own dedicated builder.
 
 **Why use it.** Ideal for freelancers, coaches, therapists, personal trainers,
 and any service provider who wants a simple "here's what I offer, book a slot"
@@ -1071,9 +1071,8 @@ page without needing a third-party scheduling tool.
 
 **How to use it (owner).**
 1. Create a **Service Booking** link.
-2. Add **Services** (name, description, duration, price/rate — display only).
-3. Set your **weekly availability** (which days and hours you're open for each
-   service) and any blocked-off dates.
+2. Add **Services** (name, description, duration, price/rate).
+3. Set your **weekly availability** (which days and hours) and any blocked-off dates.
 4. When booking requests come in, manage them in the **Bookings Dashboard**:
    confirm or decline each request and add notes. Visitors receive a
    confirmation or decline notification.
@@ -1081,6 +1080,20 @@ page without needing a third-party scheduling tool.
 **Visitor experience.** Visitors pick a service, choose from the available slots
 on a calendar, enter their name and contact details, and submit the request. They
 see a clear "request sent — awaiting confirmation" status after submitting.
+
+**Paid bookings.** Services can optionally collect payment at booking time. In
+your service settings choose a **Payment mode**:
+- **None** — request only, no payment collected (the original behaviour).
+- **Deposit** — a partial amount is collected upfront. Set whether it's a **fixed**
+  amount or a **percentage** of the service price.
+- **Full** — the full service price is collected at booking.
+
+Payment is processed via your connected payout provider. When payment mode is
+set to *None*, no payment is collected and the total shown is an estimate only.
+
+**Appointment reminders.** Set up one or more automatic reminder notifications sent
+to the visitor before their appointment (e.g. 24 hours and 1 hour ahead). Configure
+them in the service booking settings under **Reminders**.
 
 **Mobile.** The service booking builder and bookings dashboard have full native
 parity in the Sayzio mobile app.
@@ -1116,9 +1129,12 @@ word that triggered it). Open **Spam Settings** to tune this:
 
 **Forwarding.** Want inbox items to reach you elsewhere? Set up **forwarding** to
 an **email address** or a **webhook**, and optionally limit it to certain sources
-(e.g. only form submissions). You can **send a test** to confirm a destination
-works, turn destinations on/off, and retry any delivery that failed. Sayzio also
-warns you if a destination starts failing.
+(e.g. only form submissions, or only link events). Available trigger sources include
+inbound messages (DMs, form submissions) and **link events** — notified when a link
+is created, expires, or hits a click milestone. You can **send a test** to confirm a
+destination works, turn destinations on/off, and retry any delivery that failed.
+Sayzio also warns you if a destination starts failing. Link-event webhook triggers
+require a plan that includes the webhook-triggers feature.
 
 ---
 
@@ -1211,6 +1227,17 @@ and code check come first.
 ---
 
 ## 28. Mobile app & browser extension
+
+### Zio Browser desktop app
+
+A desktop app (Windows / macOS / Linux) you can download from the **/download**
+page. It gives you:
+
+- **Workspace profiles** — separate sessions (cookies, storage, sync state) per
+  workspace, so you can stay signed into multiple accounts at once.
+- **Device Lab** — side-by-side device previews using CSS-scaled iframes.
+- **Offline access** — links and the dashboard are accessible without a live
+  connection.
 
 ### Sayzio mobile app
 

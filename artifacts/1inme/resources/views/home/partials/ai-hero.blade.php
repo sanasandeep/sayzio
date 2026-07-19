@@ -57,7 +57,7 @@
                 </h2>
 
                 <p class="reveal rd-2 text-lg sm:text-xl text-gray-400 max-w-xl mx-auto lg:mx-0 mb-8 leading-relaxed">
-                    Describe your idea in a sentence and <strong class="text-white">your AI</strong> builds the whole Link in Bio — it writes the copy, picks a matching theme and lays out every block in seconds. Everything stays <strong class="text-white">fully editable</strong>, so you tweak any block and publish the moment it looks right. No templates to wrestle, no design skills needed.
+                    Describe your idea in a sentence and <strong class="text-white">your AI</strong> builds the whole Link in Bio. It writes the copy, picks a matching theme and lays out every block in seconds. Everything stays <strong class="text-white">fully editable</strong>, so you tweak any block and publish the moment it looks right. No templates to wrestle, no design skills needed.
                 </p>
 
                 <div class="reveal rd-3 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-5 justify-center lg:justify-start">

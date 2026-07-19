@@ -83,7 +83,7 @@
                 {{ count($pendingMigrations) }} {{ \Illuminate\Support\Str::plural('migration', count($pendingMigrations)) }}
                 {{ count($pendingMigrations) === 1 ? 'has' : 'have' }} not been applied. This usually means the deploy's
                 <code class="px-1 py-0.5 rounded bg-black/30 text-red-200">php artisan migrate --force</code> step failed,
-                leaving tables/columns missing — some pages may return errors until it's fixed.
+                leaving tables/columns missing, some pages may return errors until it's fixed.
                 Run <code class="px-1 py-0.5 rounded bg-black/30 text-red-200">php artisan migrate --force</code> against production.
             </p>
             <details class="mt-3">
@@ -118,7 +118,7 @@
                 {{ count($missingColumns) === 1 ? 'is' : 'are' }} missing a
                 <code class="px-1 py-0.5 rounded bg-black/30 text-red-200">workspace_id</code> /
                 <code class="px-1 py-0.5 rounded bg-black/30 text-red-200">created_by_user_id</code> column even though
-                their migration is recorded as applied — a half-applied migration. Workspace-scoped pages for these
+                their migration is recorded as applied, a half-applied migration. Workspace-scoped pages for these
                 tables will return errors until it's fixed. Run
                 <code class="px-1 py-0.5 rounded bg-black/30 text-red-200">php artisan db:check-workspace-columns --repair</code>
                 against production.
@@ -153,7 +153,7 @@
             <p class="text-sm text-white/70 mt-1">
                 {{ count($missingExpected) }} {{ \Illuminate\Support\Str::plural('table', count($missingExpected)) }}
                 {{ count($missingExpected) === 1 ? 'is' : 'are' }} missing a column the app depends on even though
-                their migration is recorded as applied — an <span class="text-red-200">edited-after-applied</span>
+                their migration is recorded as applied, an <span class="text-red-200">edited-after-applied</span>
                 migration (a recorded migration was later changed to add columns, so Laravel never re-ran it and
                 <code class="px-1 py-0.5 rounded bg-black/30 text-red-200">migrate:status</code> still shows 0 pending).
                 Pages that read these columns will return errors until it's fixed.
@@ -166,7 +166,7 @@
                     <code class="px-1 py-0.5 rounded bg-black/30 text-red-200">php artisan migrate --force</code>
                     against production.
                 @else
-                    Some entries are whole missing tables that need a full migration — run
+                    Some entries are whole missing tables that need a full migration, run
                     <code class="px-1 py-0.5 rounded bg-black/30 text-red-200">php artisan migrate --force</code>
                     against production. Fix now will repair any missing columns it can.
                 @endif
@@ -256,13 +256,13 @@
                     <span class="text-amber-200 font-semibold">no active recommended page templates</span>:
                     <span class="text-amber-200 font-semibold">{{ $tghNames->join(', ', ' and ') }}</span>.
                     New users who pick {{ $tghNames->count() === 1 ? 'that persona' : 'those personas' }} in
-                    onboarding get no tailored "Recommended for you" row — only the generic browse-all list. Add a
+                    onboarding get no tailored "Recommended for you" row, only the generic browse-all list. Add a
                     template (or tag an existing one) for each so onboarding can recommend a starting point.
                 </p>
             @endif
             @if($tghGatedNames->isNotEmpty())
                 <p class="text-xs text-white/50 mt-2">
-                    Also worth noting — every recommended template is locked behind a paid tier for:
+                    Also worth noting, every recommended template is locked behind a paid tier for:
                     <span class="text-white/70">{{ $tghGatedNames->join(', ', ' and ') }}</span>, so entry-level
                     users see an all-locked recommended row.
                 </p>
@@ -322,6 +322,41 @@
                 <a href="{{ route('admin.bg-templates.index') }}"
                    class="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-semibold bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 border border-amber-500/40 transition">
                     <i class="fas fa-image"></i> Manage background templates
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+@endif
+
+@if(!empty($zioBrowserHealth))
+@php
+    $zbSince   = $zioBrowserHealth['failing_since'] ?? null;
+    $zbSuccess = $zioBrowserHealth['last_success_at'] ?? null;
+    $zbVersion = $zioBrowserHealth['version'] ?? null;
+    try { $zbSinceHuman = $zbSince ? \Carbon\Carbon::parse($zbSince)->diffForHumans() : null; } catch (\Throwable $e) { $zbSinceHuman = null; }
+    try { $zbSuccessHuman = $zbSuccess ? \Carbon\Carbon::parse($zbSuccess)->diffForHumans() : null; } catch (\Throwable $e) { $zbSuccessHuman = null; }
+@endphp
+<div class="mb-8 rounded-2xl p-5 border" style="border-color: rgba(245,158,11,0.35); background: rgba(245,158,11,0.08);">
+    <div class="flex items-start gap-4">
+        <div class="w-11 h-11 shrink-0 bg-amber-500/15 rounded-xl flex items-center justify-center">
+            <i class="fas fa-download text-amber-400 text-lg"></i>
+        </div>
+        <div class="min-w-0">
+            <h2 class="text-base font-semibold text-amber-300">SayZio Browser download links are going stale</h2>
+            <p class="text-sm text-white/70 mt-1">
+                The scheduled release refresh has been <span class="text-amber-200">failing continuously{{ $zbSinceHuman ? ' since ' . $zbSinceHuman : '' }}</span>,
+                so the public /download page keeps serving the last-known release{{ $zbVersion ? ' (v' . $zbVersion . ')' : '' }}.
+                Visitors still get working installer links, but they fall further behind every release that ships.
+                @if($zbSuccessHuman)
+                    Last successful refresh: <span class="text-amber-200">{{ $zbSuccessHuman }}</span>.
+                @endif
+                Check the GitHub release tag/asset names, then re-run the job. This banner clears automatically once a refresh succeeds.
+            </p>
+            <div class="mt-3">
+                <a href="{{ route('admin.cron-jobs.index') }}"
+                   class="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-semibold bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 border border-amber-500/40 transition">
+                    <i class="fas fa-clock"></i> Open Scheduled Jobs
                 </a>
             </div>
         </div>

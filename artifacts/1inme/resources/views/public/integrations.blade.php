@@ -20,7 +20,7 @@
         [
             'icon'  => 'fa-arrows-rotate',
             'title' => 'Auto-retry on broken connections',
-            'desc'  => 'When a token expires or a platform forces a re-auth, we keep trying with smart back-off and only ping you when we actually need a one-click reconnect — no silent failures.',
+            'desc'  => 'When a token expires or a platform forces a re-auth, we keep trying with smart back-off and only ping you when we actually need a one-click reconnect, no silent failures.',
         ],
         [
             'icon'  => 'fa-circle-check',
@@ -30,7 +30,7 @@
         [
             'icon'  => 'fa-bell',
             'title' => 'Notifications when something breaks',
-            'desc'  => 'In-app, email and (optionally) push alerts the moment a connection goes stale — with a one-tap reconnect flow that takes seconds to clear.',
+            'desc'  => 'In-app, email and (optionally) push alerts the moment a connection goes stale, with a one-tap reconnect flow that takes seconds to clear.',
         ],
     ];
     $faqAnchors = [
@@ -171,7 +171,7 @@
                 <p class="mt-4 text-gray-300 max-w-2xl mx-auto">Spin up your free Sayzio, connect every network you live on, and let auto-retry keep things running while you ship.</p>
                 <div class="mt-7 flex flex-wrap items-center justify-center gap-3">
                     @guest
-                        <a href="{{ route('register.page') }}" class="px-7 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-full text-sm font-bold">Connect now — free</a>
+                        <a href="{{ route('register.page') }}" class="px-7 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-full text-sm font-bold">Connect now, free</a>
                     @else
                         <a href="{{ route('user.dashboard') }}" class="px-7 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-full text-sm font-bold">Go to your dashboard</a>
                     @endguest
@@ -184,7 +184,7 @@
 
 @include('public.partials.subscribe-block', [
     'heading' => 'New integrations the moment they ship.',
-    'subtext' => 'A short note when we add a network or polish an existing connector — pick email, WhatsApp Channel, or DM.',
+    'subtext' => 'A short note when we add a network or polish an existing connector; pick email, WhatsApp Channel, or DM.',
     'source'  => 'integrations',
 ])
 @endsection

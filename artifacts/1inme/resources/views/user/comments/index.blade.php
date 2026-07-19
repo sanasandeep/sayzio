@@ -1,6 +1,6 @@
 @extends('user.layouts.app')
 
-@section('title', 'Comments — ' . $link->title)
+@section('title', 'Comments: ' . $link->title)
 
 @section('content')
 <div class="max-w-6xl mx-auto">

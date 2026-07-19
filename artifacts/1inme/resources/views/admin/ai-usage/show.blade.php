@@ -1,6 +1,6 @@
 @extends('admin.layouts.app')
-@section('title', 'AI Usage — '.$user->name)
-@section('page-title', 'AI Usage — '.$user->name)
+@section('title', 'AI Usage: '.$user->name)
+@section('page-title', 'AI Usage, '.$user->name)
 
 @section('content')
 <div class="max-w-4xl space-y-5">

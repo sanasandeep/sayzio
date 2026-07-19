@@ -120,7 +120,7 @@ class MarketingSeo
                 'url' => '/dialer-contacts',
                 'title' => 'Smart Dialer & Contacts — Call, Sync & Turn Numbers Into Profiles',
                 'description' => 'A T9 smart dialer, quick call / SMS / WhatsApp / Telegram channels, two-way Google Contacts sync, phone-to-biolink resolution, an AI business-card scanner and shareable vCards — your whole address book, supercharged on Sayzio.',
-                'keywords' => 'smart dialer, contacts, t9 dialer, google contacts sync, business card scanner, vcard, phone to biolink, speed dial, call log, caller id, sayzio dialer',
+                'keywords' => 'smart dialer, contacts, t9 dialer, google contacts sync, business card scanner, vcard, phone to biolink, speed dial, call log, caller id, zio dialer',
             ],
             'ai-marketing-strategist' => [
                 'label' => 'AI Marketing Strategist',
@@ -145,6 +145,14 @@ class MarketingSeo
                 'title' => 'Notifications — In-App, Email & Push Alerts Your Way',
                 'description' => 'Stay on top of everything on Sayzio with a unified notification feed plus in-app, email and mobile push alerts, and per-event preferences across 20+ event types.',
                 'keywords' => 'notifications, notification preferences, push notifications, email alerts, in-app notifications, notification feed, sayzio notifications',
+            ],
+            'download' => [
+                'label' => 'Download (SayZio Browser)',
+                'group' => 'Capabilities',
+                'url' => '/download',
+                'title' => 'Download SayZio Browser for Mac & Windows',
+                'description' => 'Get the SayZio Browser desktop app — your links, Link in Bio pages and analytics in a fast, distraction-free browser. Free download for macOS (Intel & Apple Silicon) and Windows.',
+                'keywords' => 'sayzio browser, download sayzio, sayzio desktop app, sayzio for mac, sayzio for windows, link in bio desktop',
             ],
             'compare-index' => [
                 'label' => 'Compare overview',

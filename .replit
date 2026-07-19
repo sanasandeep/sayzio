@@ -316,6 +316,50 @@ args = "storage-url-resolve"
 task = "workflow.run"
 args = "dialer-contact-auto-sync"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "mobile-prod-build"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "config-secrets"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-main"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-sessions-revoke"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "zio-browser-test"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "zio-freshness-test"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "check:em-dash"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "check:unbalanced-parens"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "toolbar-theme-color"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-inline-edit-v"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "dbg-onboarding-swipe"
+
 [[workflows.workflow]]
 name = "e2e"
 author = "agent"
@@ -1339,6 +1383,128 @@ isValidation = true
 task = "shell.exec"
 args = "cd sayzio-dialer-standalone && npm run test:contact-auto-sync && npm run test:device-contacts-fingerprint"
 
+[[workflows.workflow]]
+name = "mobile-prod-build"
+author = "agent"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/1inme-mobile run build 2>&1 | tail -30"
+
+[[workflows.workflow]]
+name = "config-secrets"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/scripts run check:config-secrets"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-main"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "bash artifacts/1inme/tests/Browser/run-validation.sh home-auth-modal-mobile.spec.ts biolink-editor-card-gallery-preview.spec.ts biolink-editor-palette-dnd.spec.ts cookie-consent-footer-gap.spec.ts cookie-consent-layout-styles.spec.ts cookie-consent-theme-match.spec.ts voice-assistant-bridge.spec.ts voice-assistant-panel.spec.ts slides-mode.spec.ts cookie-consent-footer-reserve.spec.ts home-hero-orbit-popover.spec.ts home-hero-claim-handle.spec.ts brand-consistency-apply-fix.spec.ts create-link-picker.spec.ts marketing-background-seam.spec.ts home-section-structure.spec.ts home-ai-zone.spec.ts onboarding-flow.spec.ts dashboard-layout.spec.ts header-account-menu.spec.ts header-mobile-account-menu.spec.ts header-mobile-logged-out-cta.spec.ts dashboard-mobile-account.spec.ts header-desktop-logged-out-cta.spec.ts dialer-live-sync.spec.ts store-coming-soon-modal.spec.ts ai-dashboard-demo-perf.spec.ts event-rsvp-light-readability.spec.ts events-hero-band-gap.spec.ts header-autohide.spec.ts fontawesome-cached-visit.spec.ts home-showcase-editor-preview.spec.ts pricing-price-visible.spec.ts sidebar-findbar.spec.ts admin-sidebar-findbar.spec.ts"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-sessions-revoke"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "SESSION_DRIVER=database bash artifacts/1inme/tests/Browser/run-validation.sh sessions-revoke-logout.spec.ts"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "zio-browser-test"
+author = "agent"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/zio-browser run test"
+
+[[workflows.workflow]]
+name = "zio-freshness-test"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd artifacts/1inme && TEST_LOCAL_MODE=artisan bash scripts/test-local.sh --filter=CheckZioBrowserReleaseFreshnessTest"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "check:em-dash"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/scripts run check:em-dash"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "check:unbalanced-parens"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/scripts run check:unbalanced-parens"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "toolbar-theme-color"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/scripts run check:toolbar-theme-color"
+
+[workflows.workflow.metadata]
+outputType = "console"
+
+[[workflows.workflow]]
+name = "e2e-inline-edit-v"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "bash artifacts/1inme/tests/Browser/run-validation.sh biolink-editor-inline-edit.spec.ts"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "dbg-onboarding-swipe"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd artifacts/1inme-mobile && node scripts/debug-onboarding-swipe.mjs"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+
 [agent]
 stack = "PNPM_WORKSPACE"
 expertMode = true
@@ -1358,7 +1524,7 @@ AWS_DEFAULT_REGION = "ap-south-2"
 AWS_URL = "https://d3l7wvr1shk1cg.cloudfront.net"
 AWS_USE_PATH_STYLE_ENDPOINT = "true"
 USER_CONTENT_DISK = "s3"
-CONTACT_ADMIN_TOKEN = "RP8TvxVjeyRZabgOUgSjT-fBNw-IaNBA"
+CONTACT_ADMIN_TOKEN = "secret stripped"
 APP_NAME = "Sayzio"
 
 [[ports]]

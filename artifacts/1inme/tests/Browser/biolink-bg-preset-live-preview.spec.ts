@@ -129,7 +129,7 @@ test.beforeAll(async ({ browser }) => {
 });
 
 test.afterAll(async () => {
-  await sharedContext?.close();
+  try { await sharedContext?.close(); } catch {}
 });
 
 test("clicking a background preset swatch updates the live phone preview without saving", async ({

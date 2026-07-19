@@ -1,5 +1,5 @@
 @extends('user.layouts.app')
-@section('title', 'Bulk Create — Results')
+@section('title', 'Bulk Create: Results')
 
 @section('content')
 <div class="max-w-5xl mx-auto" x-data="bulkResults({{ \Illuminate\Support\Js::from($results) }})">

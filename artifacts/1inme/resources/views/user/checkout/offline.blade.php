@@ -2,7 +2,7 @@
 @section('title', 'Manual payment instructions')
 @section('content')
 <div class="max-w-2xl mx-auto p-6 space-y-4">
-    <h1 class="text-2xl font-semibold text-white">Thanks — your order is pending approval</h1>
+    <h1 class="text-2xl font-semibold text-white">Thanks, your order is pending approval</h1>
     <p class="text-white/60 text-sm">Your invoice <span class="font-mono text-white">{{ $invoice->number }}</span> has been created. Pay the amount below through bank transfer / UPI and your plan will be activated within one business day.</p>
 
     @if(session('success'))
@@ -56,7 +56,7 @@
           class="rounded-2xl border border-white/10 bg-white/[0.02] p-5 space-y-3">
         @csrf
         <label for="upi_reference" class="block text-white font-medium text-sm">UPI transaction reference / UTR <span class="text-white/40 font-normal">(optional)</span></label>
-        <p class="text-xs text-white/50">If you've already paid, enter the reference / UTR number from your UPI app. This helps us confirm your payment faster. It's optional — we'll still verify manually.</p>
+        <p class="text-xs text-white/50">If you've already paid, enter the reference / UTR number from your UPI app. This helps us confirm your payment faster. It's optional, we'll still verify manually.</p>
         <div class="flex flex-col sm:flex-row gap-2">
             <input type="text" id="upi_reference" name="upi_reference" maxlength="190"
                    value="{{ old('upi_reference', $buyer_reference) }}"

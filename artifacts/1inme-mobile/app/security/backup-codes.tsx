@@ -100,7 +100,7 @@ export default function BackupCodesScreen() {
     if (!freshCodes) return;
     try {
       await Share.share({
-        message: `Sayzio backup codes — store somewhere safe.\n\n${freshCodes.join("\n")}`,
+        message: `Sayzio backup codes: store somewhere safe.\n\n${freshCodes.join("\n")}`,
       });
     } catch {
       // user dismissed; ignore
@@ -129,7 +129,7 @@ export default function BackupCodesScreen() {
       <ScrollView contentContainerStyle={{ padding: 20, gap: 16, paddingBottom: 40 }}>
         <Text style={[styles.intro, { color: colors.mutedForeground }]}>
           Backup codes are single-use fallbacks for your two-factor sign-in.
-          Print them or save them somewhere offline — we can't recover them
+          Print them or save them somewhere offline; we can't recover them
           for you later.
         </Text>
 
@@ -211,7 +211,7 @@ export default function BackupCodesScreen() {
             ]}
           >
             <Text style={[styles.title, { color: colors.foreground }]}>
-              Your new codes — save them now
+              Your new codes: save them now
             </Text>
             <Text style={[styles.body, { color: colors.mutedForeground }]}>
               We won't show them again. Copy or share them somewhere only you

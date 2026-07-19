@@ -32,7 +32,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-
     </div>
 
     @if($paid)
-        <p class="paid" style="margin-top: 20px;">✓ Paid on {{ optional($invoice->paid_at)->format('Y-m-d') }} — thank you!</p>
+        <p class="paid" style="margin-top: 20px;">✓ Paid on {{ optional($invoice->paid_at)->format('Y-m-d') }}, thank you!</p>
     @else
         {{-- url()->full() preserves the ?expires=…&signature=… query
              string so hasValidSignature() still passes on the POST. --}}

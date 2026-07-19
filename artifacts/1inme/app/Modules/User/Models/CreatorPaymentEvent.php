@@ -12,12 +12,14 @@ use Illuminate\Database\Eloquent\Model;
  */
 class CreatorPaymentEvent extends Model
 {
-    public const SOURCE_SUB = 'sub';
-    public const SOURCE_PPV = 'ppv';
-    public const SOURCE_TIP = 'tip';
+    public const SOURCE_SUB     = 'sub';
+    public const SOURCE_PPV     = 'ppv';
+    public const SOURCE_TIP     = 'tip';
+    public const SOURCE_TIP_JAR = 'tip_jar';
     public const SOURCE_PRODUCT = 'product';
-    public const SOURCE_FORM = 'form';
-    public const SOURCE_EVENT = 'event';
+    public const SOURCE_FORM    = 'form';
+    public const SOURCE_EVENT   = 'event';
+    public const SOURCE_BOOKING = 'booking';
 
     public const TYPE_SUB_CREATED   = 'sub.created';
     public const TYPE_SUB_RENEWED   = 'sub.renewed';
@@ -33,6 +35,8 @@ class CreatorPaymentEvent extends Model
     public const TYPE_FORM_REFUNDED = 'form.refunded';
     public const TYPE_TICKET_PURCHASED = 'ticket.purchased';
     public const TYPE_TICKET_REFUNDED  = 'ticket.refunded';
+    public const TYPE_BOOKING_PAID     = 'booking.paid';
+    public const TYPE_BOOKING_REFUNDED = 'booking.refunded';
 
     protected $fillable = [
         'creator_user_id', 'fan_user_id',
@@ -61,21 +65,23 @@ class CreatorPaymentEvent extends Model
     public function describeShort(): string
     {
         return match ($this->type) {
-            self::TYPE_SUB_CREATED  => 'New subscriber',
-            self::TYPE_SUB_RENEWED  => 'Subscription renewal',
-            self::TYPE_SUB_CANCELED => 'Subscription canceled',
-            self::TYPE_SUB_REFUNDED => 'Subscription refund',
-            self::TYPE_PPV_UNLOCKED => 'Post unlocked',
-            self::TYPE_PPV_REFUNDED => 'Post unlock refunded',
-            self::TYPE_TIP_RECEIVED => 'Tip received',
-            self::TYPE_TIP_REFUNDED => 'Tip refunded',
+            self::TYPE_SUB_CREATED      => 'New subscriber',
+            self::TYPE_SUB_RENEWED      => 'Subscription renewal',
+            self::TYPE_SUB_CANCELED     => 'Subscription canceled',
+            self::TYPE_SUB_REFUNDED     => 'Subscription refund',
+            self::TYPE_PPV_UNLOCKED     => 'Post unlocked',
+            self::TYPE_PPV_REFUNDED     => 'Post unlock refunded',
+            self::TYPE_TIP_RECEIVED     => 'Tip received',
+            self::TYPE_TIP_REFUNDED     => 'Tip refunded',
             self::TYPE_PRODUCT_PURCHASED => 'Product sale',
             self::TYPE_PRODUCT_REFUNDED  => 'Product refund',
-            self::TYPE_FORM_PAID     => 'Paid form submission',
-            self::TYPE_FORM_REFUNDED => 'Form payment refund',
+            self::TYPE_FORM_PAID        => 'Paid form submission',
+            self::TYPE_FORM_REFUNDED    => 'Form payment refund',
             self::TYPE_TICKET_PURCHASED => 'Ticket sale',
             self::TYPE_TICKET_REFUNDED  => 'Ticket refund',
-            default                 => $this->type,
+            self::TYPE_BOOKING_PAID     => 'Booking payment',
+            self::TYPE_BOOKING_REFUNDED => 'Booking refund',
+            default                     => $this->type,
         };
     }
 }

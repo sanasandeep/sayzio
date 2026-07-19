@@ -13,7 +13,7 @@
     <div class="glass rounded-2xl p-6 mb-6">
         <h2 class="text-lg font-semibold text-white mb-3">What will move</h2>
         @if(empty($counts))
-            <p class="text-white/60 text-sm">The other account doesn't own any data — only its identifiers will be moved.</p>
+            <p class="text-white/60 text-sm">The other account doesn't own any data, only its identifiers will be moved.</p>
         @else
             <ul class="text-sm text-white/80 grid grid-cols-1 sm:grid-cols-2 gap-x-6">
                 @foreach($counts as $label => $n)
@@ -50,7 +50,7 @@
             <div class="glass rounded-2xl p-6 mb-6 border border-amber-500/30">
                 <h2 class="text-lg font-semibold text-white mb-2">Choose which paid plan to keep</h2>
                 <p class="text-sm text-amber-100/80 mb-4">
-                    Both accounts have an active paid plan. Pick which one survives —
+                    Both accounts have an active paid plan. Pick which one survives,
                     the other plan is cancelled immediately, with no refund or proration.
                     Any remaining time on the cancelled plan is forfeited.
                 </p>

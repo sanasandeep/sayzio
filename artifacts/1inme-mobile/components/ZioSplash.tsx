@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   AccessibilityInfo,
   Dimensions,
+  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -355,7 +356,10 @@ export function ZioSplash({
   }, [appReady, tryDone]);
 
   return (
-    <Animated.View style={styles.root} exiting={FadeOut.duration(380)}>
+    <Animated.View
+      style={styles.root}
+      exiting={Platform.OS === "web" ? undefined : FadeOut.duration(380)}
+    >
       {/* Deep dark background */}
       <View style={StyleSheet.absoluteFill}>
         <LinearGradient

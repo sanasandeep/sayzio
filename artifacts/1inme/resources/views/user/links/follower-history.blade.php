@@ -74,7 +74,7 @@
                             <td class="truncate" style="max-width: 240px; color: var(--text-muted);">
                                 @if($v->destination_url)
                                     <a href="{{ $v->destination_url }}" target="_blank" rel="noopener" class="hover:underline">{{ \Illuminate\Support\Str::limit($v->destination_url, 60) }}</a>
-                                @else <span style="color: var(--text-faint);">—</span> @endif
+                                @else <span style="color: var(--text-faint);">-</span> @endif
                             </td>
                             <td class="text-xs">{{ trim(($v->device_type ?? '') . ' · ' . ($v->browser ?? '') . ' · ' . ($v->os ?? ''), ' · ') ?: '—' }}</td>
                             <td class="text-xs">{{ trim(($v->city ?? '') . ', ' . ($v->country_code ?? ''), ', ') ?: '—' }}</td>

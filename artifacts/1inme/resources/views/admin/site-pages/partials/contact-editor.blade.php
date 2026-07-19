@@ -39,7 +39,7 @@
     {{-- ========== HERO ========== --}}
     <div>
         <h3 class="text-sm font-semibold text-white">Hero</h3>
-        <p class="text-xs text-white/50 mb-3">Top of /contact — badge pill, availability/language line, side image and the small "Friendly humans" floating card.</p>
+        <p class="text-xs text-white/50 mb-3">Top of /contact, badge pill, availability/language line, side image and the small "Friendly humans" floating card.</p>
         <div class="bg-white/5 border border-white/10 rounded-xl p-4 space-y-4">
             <div class="grid sm:grid-cols-2 gap-3">
                 <div>
@@ -234,7 +234,7 @@
                         <textarea :name="'extra[feature_cards]['+i+'][desc]'" x-model="c.desc" rows="2" maxlength="500" placeholder="Short description shown under the title." class="w-full px-2.5 py-1.5 bg-white/5 border border-white/10 rounded text-sm text-white"></textarea>
                     </div>
                 </template>
-                <div x-show="rows.length===0" class="text-xs text-white/40 text-center py-3">No feature cards — the row will be hidden on /contact.</div>
+                <div x-show="rows.length===0" class="text-xs text-white/40 text-center py-3">No feature cards, the row will be hidden on /contact.</div>
             </div>
         </div>
     </div>
@@ -292,7 +292,7 @@
             </div>
             <div>
                 <label class="block text-[10px] uppercase tracking-wider text-white/40 mb-1">Intro line <span class="normal-case tracking-normal text-white/40">(optional)</span></label>
-                <textarea name="extra[form][intro]" rows="2" maxlength="500" placeholder="Optional sentence under the heading — e.g. Tell us a bit about what you need." class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">{{ $contactForm['intro'] }}</textarea>
+                <textarea name="extra[form][intro]" rows="2" maxlength="500" placeholder="Optional sentence under the heading, e.g. Tell us a bit about what you need." class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">{{ $contactForm['intro'] }}</textarea>
                 @error('extra.form.intro')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
             </div>
 
@@ -367,7 +367,7 @@
                     </div>
                     <div>
                         <label class="block text-[10px] uppercase tracking-wider text-white/40 mb-1">Rate-limit banner</label>
-                        <input type="text" name="extra[messages][rate_limited]" value="{{ $contactMessages['rate_limited'] }}" maxlength="200" placeholder="Too many submissions — please try again in a few minutes." class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
+                        <input type="text" name="extra[messages][rate_limited]" value="{{ $contactMessages['rate_limited'] }}" maxlength="200" placeholder="Too many submissions, please try again in a few minutes." class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
                         @error('extra.messages.rate_limited')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
                         <p class="mt-1 text-[11px] text-white/40">Shown above the form after more than 3 submissions in 10 minutes from the same visitor.</p>
                     </div>

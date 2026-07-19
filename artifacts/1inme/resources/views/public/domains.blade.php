@@ -14,17 +14,17 @@
         [
             'icon'  => 'fa-layer-group',
             'title' => 'Multiple branded global domains',
-            'desc'  => 'Skip the DNS setup entirely. Pick one of our shared, branded domains when you create a link or Link in Bio — ' . $globalDomainsPhrase . ' — and you’re live instantly with a clean, memorable URL.',
+            'desc'  => 'Skip the DNS setup entirely. Pick one of our shared, branded domains when you create a link or Link in Bio (' . $globalDomainsPhrase . ') and you're live instantly with a clean, memorable URL.',
         ],
         [
             'icon'  => 'fa-globe',
             'title' => 'Bring your own custom domain',
-            'desc'  => 'Connect a personal or brand domain like links.yourbrand.com so every link looks 100% you. Point one CNAME record at us, we verify it automatically, and your domain is ready to attach to links — no token juggling.',
+            'desc'  => 'Connect a personal or brand domain like links.yourbrand.com so every link looks 100% you. Point one CNAME record at us, we verify it automatically, and your domain is ready to attach to links, no token juggling.',
         ],
         [
             'icon'  => 'fa-tags',
             'title' => 'Custom URL aliases',
-            'desc'  => 'Every link gets a memorable primary slug, and you can add multiple extra aliases that all open the same page with no redirect — perfect for campaign variants, typos you want to catch, and channel-specific URLs.',
+            'desc'  => 'Every link gets a memorable primary slug, and you can add multiple extra aliases that all open the same page with no redirect, perfect for campaign variants, typos you want to catch, and channel-specific URLs.',
         ],
         [
             'icon'  => 'fa-shield-halved',
@@ -56,7 +56,7 @@
                     <span class="block grad-text">Or bring your own.</span>
                 </h1>
                 <p class="mt-5 text-lg text-gray-400 max-w-xl leading-relaxed">
-                    Launch on one of our branded shared domains, connect your own custom domain with a single CNAME record, or give any link a memorable slug — with multiple aliases pointing at the same page.
+                    Launch on one of our branded shared domains, connect your own custom domain with a single CNAME record, or give any link a memorable slug, with multiple aliases pointing at the same page.
                 </p>
                 <div class="mt-7 flex flex-wrap items-center gap-3">
                     @guest
@@ -131,7 +131,7 @@
         <div class="text-center mb-8" data-anim="fade-up">
             <div class="text-xs font-bold uppercase tracking-[.2em] mb-3" style="color: #bccfff;">Branded domains</div>
             <h3 class="text-2xl sm:text-3xl font-bold tracking-tight">Choose a domain that <span class="grad-text">matches your vibe</span>.</h3>
-            <p class="mt-3 text-gray-400 max-w-2xl mx-auto">Every account can build on one of our shared, branded domains — no purchase, no DNS, no waiting. Just pick one and your link is live.</p>
+            <p class="mt-3 text-gray-400 max-w-2xl mx-auto">Every account can build on one of our shared, branded domains, no purchase, no DNS, no waiting. Just pick one and your link is live.</p>
         </div>
         <div class="grid grid-cols-2 sm:grid-cols-[repeat(auto-fit,minmax(180px,1fr))] gap-4" data-anim="fade-up" data-stagger>
             @foreach($globalDomains as $dom)
@@ -155,7 +155,7 @@
             <div class="relative">
                 <div class="text-xs font-bold uppercase tracking-[.2em] mb-2" style="color: #bccfff;">One page, many doors</div>
                 <h3 class="text-2xl sm:text-3xl font-bold tracking-tight">A primary slug, plus all the aliases you need.</h3>
-                <p class="mt-3 text-gray-400">Set a memorable primary slug for any link, then add extra aliases that all open the very same page — with no redirect hop. Great for campaign variants, channel-specific URLs, and catching the typos people make.</p>
+                <p class="mt-3 text-gray-400">Set a memorable primary slug for any link, then add extra aliases that all open the very same page, with no redirect hop. Great for campaign variants, channel-specific URLs, and catching the typos people make.</p>
             </div>
             <div class="relative space-y-2.5" aria-hidden="true">
                 <div class="flex items-center gap-2 px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-sm font-mono">
@@ -225,7 +225,7 @@
             <div class="mesh-bg opacity-50"></div>
             <div class="relative">
                 <h3 class="text-3xl sm:text-4xl font-bold tracking-tight">Your link. <span class="grad-text">Your domain.</span></h3>
-                <p class="mt-4 text-gray-300 max-w-2xl mx-auto">Spin up a free Sayzio, pick a branded domain, and add a memorable slug in under a minute — then connect your own domain whenever you’re ready.</p>
+                <p class="mt-4 text-gray-300 max-w-2xl mx-auto">Spin up a free Sayzio, pick a branded domain, and add a memorable slug in under a minute, then connect your own domain whenever you’re ready.</p>
                 <div class="mt-7 flex flex-wrap items-center justify-center gap-3">
                     @guest
                         <a href="{{ route('register.page') }}" class="px-7 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-full text-sm font-bold">Get started free</a>
@@ -241,7 +241,7 @@
 
 @include('public.partials.subscribe-block', [
     'heading' => 'New domain options when we add them.',
-    'subtext' => 'A short note when we ship a new branded domain or improve custom-domain tooling — pick email, WhatsApp Channel, or DM.',
+    'subtext' => 'A short note when we ship a new branded domain or improve custom-domain tooling; pick email, WhatsApp Channel, or DM.',
     'source'  => 'domains',
 ])
 @endsection

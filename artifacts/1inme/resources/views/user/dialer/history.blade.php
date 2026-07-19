@@ -13,7 +13,7 @@
 
     @include('user.partials.page-hero', [
         'title'    => 'Call history',
-        'subtitle' => 'Your full lookup and call log — search, filter, and act on every entry.',
+        'subtitle' => 'Your full lookup and call log, search, filter, and act on every entry.',
         'icon'     => 'fa-history',
         'chips'    => [],
     ])
@@ -189,7 +189,7 @@
                 <label class="text-xs font-semibold block mb-1.5" style="color:var(--text-muted);">Outcome</label>
                 <select x-model="editFields.outcome"
                         class="w-full appearance-none px-3 py-2 rounded-xl text-sm" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.10);color:var(--text-primary);">
-                    <option value="">— none —</option>
+                    <option value="">none</option>
                     <option value="called">Called</option>
                     <option value="messaged">Messaged</option>
                     <option value="no_answer">No answer</option>

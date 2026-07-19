@@ -81,6 +81,9 @@ class PlanFormCatalogue
             ['key' => 'min_alias_length',     'label' => 'Min alias length',        'default' => 4,   'module' => 'module_short_links', 'hint' => 'Minimum length for the visitor-facing alias. Free/entry plans should keep the largest minimum; paid tiers can step down.', 'max' => 191],
             ['key' => 'max_alias_length',     'label' => 'Max alias length',        'default' => 50,  'module' => 'module_short_links', 'hint' => 'Hard cap is 191 characters.', 'max' => 191],
             ['key' => 'max_forms',            'label' => 'Max forms',               'default' => 1,   'module' => 'module_forms',       'hint' => 'Custom form definitions a user can publish.'],
+            ['key' => 'max_minds',            'label' => 'Max AI Knowledge Bases',  'default' => 1,   'module' => 'module_ai_suite',    'hint' => 'How many AI Knowledge Bases (Minds) a user can create. -1 = unlimited.'],
+            ['key' => 'max_personas',         'label' => 'Max AI Agents',           'default' => 1,   'module' => 'module_ai_suite',    'hint' => 'How many configurable AI Agent personas a user can create. -1 = unlimited.'],
+            ['key' => 'max_companions',       'label' => 'Max Chat Widgets',        'default' => 1,   'module' => 'module_ai_suite',    'hint' => 'How many AI Companion chat widgets (chatbot, website embed, or inbox bot) a user can deploy. -1 = unlimited.'],
             ['key' => 'max_brand_kits',       'label' => 'Max AI brand kits',       'default' => 0,   'module' => 'module_branding',    'hint' => 'AI-generated brand kits (palette, fonts, voice, taglines) a user can save. 0 = feature hidden / upgrade prompt; -1 = unlimited.'],
             ['key' => 'max_buzz_items',       'label' => 'Max buzz pop-ups',        'default' => 0,   'module' => null,                 'hint' => 'On-site notification pop-ups.'],
             ['key' => 'max_buzz_impressions', 'label' => 'Max buzz views / mo',     'default' => -1,  'module' => null,                 'hint' => 'Monthly Buzz notification views (impressions). Beyond this, widgets pause until next month. -1 = unlimited.'],
@@ -186,6 +189,7 @@ class PlanFormCatalogue
             ['key' => 'social_proof_popup',   'type' => 'bool',   'module' => null],
             ['key' => 'templates_premium',    'type' => 'bool',   'module' => null],
             ['key' => 'api_access',           'type' => 'bool',   'module' => null],
+            ['key' => 'webhook_triggers',     'type' => 'bool',   'module' => null],
             ['key' => 'link_password',        'type' => 'bool',   'module' => 'module_short_links'],
             ['key' => 'link_expiry',          'type' => 'bool',   'module' => 'module_short_links'],
             ['key' => 'link_geo_targeting',   'type' => 'bool',   'module' => 'module_short_links'],
@@ -213,6 +217,8 @@ class PlanFormCatalogue
             ['key' => 'qr_art',               'module' => 'module_ai_suite'],
             ['key' => 'whatsapp_agent',       'module' => 'module_ai_suite'],
             ['key' => 'marketing_strategist', 'module' => 'module_ai_suite'],
+            ['key' => 'card_scan',            'module' => 'module_ai_suite'],
+            ['key' => 'ai_resume_tools',      'module' => 'module_ai_suite'],
         ];
     }
 
@@ -284,6 +290,7 @@ class PlanFormCatalogue
             'social_proof_popup'    => ['name' => 'Social proof pop-ups',  'description' => 'Live "X people just signed up" style notifications on Link in Bio pages.'],
             'templates_premium'     => ['name' => 'Premium templates',     'description' => 'Unlocks the premium template library for Link in Bio and pages.'],
             'api_access'            => ['name' => 'Public API access',     'description' => 'Allows the user to generate API tokens and call the public API.'],
+            'webhook_triggers'      => ['name' => 'Outbound webhook triggers', 'description' => 'Receive real-time HTTP/email notifications for link_created, link_expired, and click_milestone events.'],
             'link_password'         => ['name' => 'Password-protected links', 'description' => 'Require a visitor-supplied password before redirecting.'],
             'link_expiry'           => ['name' => 'Link expiry',           'description' => 'Schedule a link to stop redirecting after a date / click count.'],
             'link_geo_targeting'    => ['name' => 'Geo targeting',         'description' => 'Send visitors to different destinations by country / region.'],

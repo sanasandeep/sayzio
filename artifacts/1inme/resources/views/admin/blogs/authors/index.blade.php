@@ -30,7 +30,7 @@
                 <a href="{{ route('admin.blogs.posts.index', ['author' => $a->id]) }}" class="px-3 py-1.5 text-xs bg-blue-600 hover:bg-blue-700 rounded text-white">View posts</a>
             </div>
         @empty
-            <div class="p-12 text-center text-white/50">No authors yet — create your first post to populate this list.</div>
+            <div class="p-12 text-center text-white/50">No authors yet, create your first post to populate this list.</div>
         @endforelse
     </div>
 </div>

@@ -49,7 +49,7 @@
                 <div>
                     <label class="block text-xs opacity-70 mb-1">Vault client</label>
                     <select name="vault_client_id" class="w-full px-3 py-2 rounded border" style="border-color: var(--border-strong); background: var(--bg-input);">
-                        <option value="">— None —</option>
+                        <option value="">None</option>
                         @foreach($clients as $c)
                             <option value="{{ $c->id }}" @selected($portal->vault_client_id == $c->id)>{{ $c->name }}</option>
                         @endforeach
@@ -144,7 +144,7 @@
                                 <option data-type="creator_post" value="{{ $d->id }}">[Draft] {{ $d->title ?: \Illuminate\Support\Str::limit($d->body, 40) }}</option>
                             @endforeach
                             @foreach($invoices as $inv)
-                                <option data-type="invoice" value="{{ $inv->id }}">[Invoice] {{ $inv->number }} — {{ strtoupper($inv->currency) }} {{ number_format($inv->grand_total_minor / 100, 2) }}</option>
+                                <option data-type="invoice" value="{{ $inv->id }}">[Invoice] {{ $inv->number }}, {{ strtoupper($inv->currency) }} {{ number_format($inv->grand_total_minor / 100, 2) }}</option>
                             @endforeach
                             @foreach($links as $l)
                                 <option data-type="link_performance" value="{{ $l->id }}">[Report] {{ $l->title ?: $l->slug }}</option>
@@ -227,7 +227,7 @@
         <div class="rounded-xl border p-5" style="border-color: var(--border-strong); background: var(--bg-card);">
             <h2 class="font-semibold mb-3"><i class="fas fa-bolt mr-1"></i> Recent client activity</h2>
             @if($recentActions->isEmpty())
-                <p class="text-sm opacity-60">No activity yet — the portal will record every view, download, comment and approval.</p>
+                <p class="text-sm opacity-60">No activity yet, the portal will record every view, download, comment and approval.</p>
             @else
                 <ul class="space-y-2 text-sm">
                     @foreach($recentActions as $a)

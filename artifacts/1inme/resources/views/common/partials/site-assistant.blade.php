@@ -391,7 +391,7 @@ window.__SA_LOGIN_URL = @json(url('/login'));
     subheading: 'How can I help?',
     typing_indicator: 'Ask Zio is typing…',
     handoff_note: 'Our team will reply by email.',
-    cutoff_notice: '⚠ This reply was cut off —',
+    cutoff_notice: '⚠ This reply was cut off - ',
     cutoff_retry_label: 'Retry',
     error_network: 'Network error.',
     error_generic: 'Sorry, something went wrong.',
@@ -804,7 +804,7 @@ window.__SA_LOGIN_URL = @json(url('/login'));
     var step='identifier', busyG=false;
     var type = EMAIL_OTP_ENABLED ? 'email' : 'mobile';
 
-    var note=el('div',{class:'sa-gate-note'}, CHROME.auth_required || @json(__('Sign in or create your account to start chatting — no password needed.')));
+    var note=el('div',{class:'sa-gate-note'}, CHROME.auth_required || @json(__('Sign in or create your account to start chatting, no password needed.')));
     var tabs=el('div',{class:'sa-gate-tabs'});
     // Honeypot: a decoy field kept off-screen; bots fill it, humans don't.
     var trap=el('input',{type:'text',name:'website',tabindex:'-1',autocomplete:'off','aria-hidden':'true',class:'sa-gate-trap'});
@@ -1035,7 +1035,7 @@ window.__SA_LOGIN_URL = @json(url('/login'));
       } else {
         afterReply();
       }
-    }).catch(function(){ setVoiceStatus('Network error — please retry.'); });
+    }).catch(function(){ setVoiceStatus('Network error, please retry.'); });
   }
 
   function afterReply(){

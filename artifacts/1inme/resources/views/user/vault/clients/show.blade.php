@@ -35,13 +35,13 @@
             <h3 class="text-xs uppercase mb-2" style="color: var(--text-faint);">Emails</h3>
             @forelse($item->emails as $e)
                 <div class="text-sm">{{ $e->email }} <span class="text-xs" style="color: var(--text-muted);">{{ $e->label }}</span>@if($e->is_primary)<span class="ml-1 text-[10px] text-amber-400">primary</span>@endif</div>
-            @empty<div class="text-sm" style="color: var(--text-muted);">—</div>@endforelse
+            @empty<div class="text-sm" style="color: var(--text-muted);">-</div>@endforelse
         </div>
         <div class="rounded-lg p-3 bg-white/5">
             <h3 class="text-xs uppercase mb-2" style="color: var(--text-faint);">Phones</h3>
             @forelse($item->phones as $p)
                 <div class="text-sm">{{ $p->phone }} <span class="text-xs" style="color: var(--text-muted);">{{ $p->label }}</span>@if($p->is_primary)<span class="ml-1 text-[10px] text-amber-400">primary</span>@endif</div>
-            @empty<div class="text-sm" style="color: var(--text-muted);">—</div>@endforelse
+            @empty<div class="text-sm" style="color: var(--text-muted);">-</div>@endforelse
         </div>
     </div>
 
@@ -63,7 +63,7 @@
             <button @click="reveal()" class="text-amber-400 hover:underline text-xs"><i class="fas fa-eye mr-1"></i><span x-text="shown ? 'Hide' : 'Reveal'"></span></button>
         </h3>
         <pre x-show="shown" class="whitespace-pre-wrap text-sm" x-text="value"></pre>
-        <p x-show="!shown" class="text-sm" style="color: var(--text-muted);">Hidden — click reveal to view (logged).</p>
+        <p x-show="!shown" class="text-sm" style="color: var(--text-muted);">Hidden, click reveal to view (logged).</p>
         <p x-show="error" class="text-red-300 text-xs mt-2" x-text="error"></p>
     </div>
 

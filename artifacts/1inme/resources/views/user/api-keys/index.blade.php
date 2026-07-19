@@ -6,7 +6,7 @@
 <div>
     @include('user.partials.page-hero', [
         'title' => 'API keys',
-        'subtitle' => 'Generate keys to call the Sayzio REST API programmatically. Each call counts against your monthly allowance — overage is paid with coins.',
+        'subtitle' => 'Generate keys to call the Sayzio REST API programmatically. Each call counts against your monthly allowance, overage is paid with coins.',
         'icon' => 'fa-key',
         'chips' => [
             ['icon' => 'fa-plug text-blue-400', 'text' => count($keys) . ' active'],
@@ -33,7 +33,7 @@
                 Your new key &ldquo;{{ $newTokenName }}&rdquo; is ready
             </div>
             <p class="text-xs mb-3" style="color: var(--text-muted);">
-                Copy it now — for security we won't show it again.
+                Copy it now, for security we won't show it again.
             </p>
             <div class="flex items-stretch gap-2">
                 <code class="flex-1 px-3 py-2.5 rounded-xl text-xs break-all font-mono"

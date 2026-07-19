@@ -124,10 +124,19 @@ class AuthMethods
      */
     public static function registrationPaused(): bool
     {
-        return (bool) AppSetting::get(
-            self::SETTING_REGISTRATION_PAUSED,
-            self::DEFAULT_REGISTRATION_PAUSED
-        );
+        // Always read the live value from the database — registration pause is a
+        // security gate that must reflect admin changes immediately without any
+        // cache warm-up window. Auth flows are not hot paths.
+        $row = \DB::table('app_settings')
+            ->where('key', self::SETTING_REGISTRATION_PAUSED)
+            ->first();
+        if ($row === null) {
+            return self::DEFAULT_REGISTRATION_PAUSED;
+        }
+        // The `value` column uses Eloquent's 'array' cast (JSONB storage).
+        // DB::table() returns the raw JSON string, so decode it before casting.
+        // Note: (bool) "false" === true in PHP — json_decode is mandatory here.
+        return (bool) json_decode($row->value, true);
     }
 
     /**

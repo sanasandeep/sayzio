@@ -4,7 +4,7 @@
 <div class="container py-4">
   <h1 class="h3 mb-3">Change to a lower plan</h1>
   <p class="text-muted">
-    A downgrade is scheduled and applies at the end of your current billing period —
+    A downgrade is scheduled and applies at the end of your current billing period,
     you keep your current plan and its features until then, and nothing is charged now.
     Looking to move to the Free plan instead? Use <a href="{{ route('user.billing.show') }}">Cancel at period end</a>.
   </p>

@@ -96,7 +96,7 @@
                 <div x-show="visibility === 'tier'" x-cloak class="mt-2">
                     @if($monetizationTiers->isEmpty())
                         <p class="text-xs" style="color: var(--text-faint);">
-                            No paid tiers yet — <a href="{{ route('user.monetization.tiers') }}" class="underline" style="color: #5c83ff;">create one</a> first.
+                            No paid tiers yet, <a href="{{ route('user.monetization.tiers') }}" class="underline" style="color: #5c83ff;">create one</a> first.
                         </p>
                     @else
                         <p class="text-[11px] mb-1.5" style="color: var(--text-faint);">Visible to subscribers of:</p>

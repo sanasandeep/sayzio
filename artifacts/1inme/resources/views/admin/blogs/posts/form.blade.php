@@ -44,7 +44,7 @@ function blogForm(initialBody) {
             this.exec('createLink', url);
         },
         image() {
-            const choice = window.prompt('Paste an image URL — or leave blank to upload from your computer.');
+            const choice = window.prompt('Paste an image URL, or leave blank to upload from your computer.');
             if (choice && choice.trim() !== '') { this.exec('insertImage', choice.trim()); return; }
             const input = document.createElement('input');
             input.type = 'file'; input.accept = 'image/*';
@@ -112,7 +112,7 @@ window.blogUploadCover = async function(input) {
                     @error('title')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
                 </div>
                 <div>
-                    <label class="block text-xs uppercase tracking-wider text-white/60 mb-1.5">Slug <span class="text-white/40 normal-case">(optional — auto-generated)</span></label>
+                    <label class="block text-xs uppercase tracking-wider text-white/60 mb-1.5">Slug <span class="text-white/40 normal-case">(optional, auto-generated)</span></label>
                     <input type="text" name="slug" value="{{ old('slug', $post->slug) }}" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white font-mono text-sm">
                     @error('slug')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
                 </div>
@@ -209,7 +209,7 @@ window.blogUploadCover = async function(input) {
                     <label class="block text-xs uppercase tracking-wider text-white/60 mb-1.5">Author</label>
                     @php $authorId = old('author_id', $post->author_id ?? auth('admin')->id()); @endphp
                     <select name="author_id" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm">
-                        <option value="">— Unassigned —</option>
+                        <option value="">Unassigned</option>
                         @foreach($authors as $a)
                             <option value="{{ $a->id }}" @selected((int)$authorId === (int)$a->id)>{{ $a->name }}</option>
                         @endforeach
@@ -237,7 +237,7 @@ window.blogUploadCover = async function(input) {
                 <div>
                     <label class="block text-xs uppercase tracking-wider text-white/60 mb-1.5">Featured slot</label>
                     <select name="featured_slot" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm">
-                        <option value="">— None —</option>
+                        <option value="">None</option>
                         <option value="hero"     @selected(old('featured_slot', $post->featured_slot)==='hero')>Hero</option>
                         <option value="carousel" @selected(old('featured_slot', $post->featured_slot)==='carousel')>Carousel</option>
                     </select>

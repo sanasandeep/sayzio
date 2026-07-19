@@ -86,7 +86,7 @@
             </h2>
             <p class="text-sm text-gray-300 mb-4">
                 Filing a report flags this event for review and notifies the workspace
-                owners. The action itself can't be reversed from here — for help
+                owners. The action itself can't be reversed from here, for help
                 rolling it back, contact support after submitting.
             </p>
             <textarea name="note" rows="3"

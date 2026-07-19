@@ -135,7 +135,7 @@ export default function CoolOffScreen() {
     onError: (e: { message?: string; status?: number }) => {
       if (e?.status === 409) {
         setStageError(
-          "There's already a pending change of this kind — cancel it first.",
+          "There's already a pending change of this kind. Cancel it first.",
         );
       } else {
         setStageError(e?.message ?? "Couldn't stage that change.");

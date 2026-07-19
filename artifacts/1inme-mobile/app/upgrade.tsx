@@ -52,7 +52,7 @@ function upgradeAnnualNote(plan: Plan, currency: Currency): string {
   const monthly = planPrice(plan, currency, "monthly");
   if (!annual.amount_minor) return "";
   return monthly.amount_minor
-    ? `Billed annually at ${annual.formatted ?? "—"}/yr — or ${monthly.formatted ?? "—"}/mo month-to-month`
+    ? `Billed annually at ${annual.formatted ?? "—"}/yr, or ${monthly.formatted ?? "—"}/mo month-to-month`
     : `Billed annually at ${annual.formatted ?? "—"}/yr`;
 }
 
@@ -207,7 +207,7 @@ export default function UpgradeScreen() {
             <Text style={{ color: colors.primary, fontFamily: "SpaceGrotesk_600SemiBold" }}>
               Upgrade on the web
             </Text>{" "}
-            below — your browser will open the pricing page.
+            below; your browser will open the pricing page.
           </Text>
         </View>
 
@@ -338,7 +338,7 @@ export default function UpgradeScreen() {
                       marginTop: 2,
                     }}
                   >
-                    Free forever — no card required
+                    Free forever, no card required
                   </Text>
                 ) : billingNote ? (
                   <Text

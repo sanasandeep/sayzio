@@ -268,6 +268,37 @@ class LinkController extends Controller
 
         $attrs['settings'] = $settingsPayload;
 
+        // Per-link-type plan caps + on/off module toggles for page types that
+        // the mobile client can create. Mirrors the web enforceLinkTypeQuota()
+        // so mobile callers hit the same plan limits as the web form. Absent
+        // plan keys default to "enabled / unlimited" for forward-compatibility.
+        $typeQuotaMap = [
+            'conversational' => ['module' => 'module_conversational', 'cap' => 'max_conversational', 'label' => 'Conversational'],
+            'slides'         => ['module' => 'module_slides',         'cap' => 'max_slides',         'label' => 'Slides'],
+            'ai_chat'        => ['module' => 'module_ai_chat',        'cap' => 'max_ai_chat',        'label' => 'AI Chatbot'],
+            'resume'         => ['module' => 'module_resume',         'cap' => 'max_resume',         'label' => 'Resume / Portfolio'],
+            'paid_page'      => ['module' => 'module_paid_page',      'cap' => 'max_paid_page',      'label' => 'Paid Page'],
+            'brand_kit'      => ['module' => 'module_brand_kit',      'cap' => 'max_brand_kit_pages','label' => 'Brand / Press Kit'],
+        ];
+        if (isset($typeQuotaMap[$attrs['type']])) {
+            $qcfg  = $typeQuotaMap[$attrs['type']];
+            $owner = $request->user();
+            if (!$owner->getPlanFeature($qcfg['module'], true)) {
+                return $this->planLimitError(
+                    "{$qcfg['label']} pages aren't available on your current plan. Upgrade to enable them.",
+                    $owner, $qcfg['module']
+                );
+            }
+            $count = $owner->links()->where('type', $attrs['type'])->count();
+            if (!$owner->planUnderLimit($qcfg['cap'], $count, -1)) {
+                $max = (int) $owner->getPlanFeature($qcfg['cap'], -1);
+                return $this->planLimitError(
+                    "You've reached your plan's {$qcfg['label']} page limit ({$max}). Upgrade your plan for more.",
+                    $owner, $qcfg['cap'], $count
+                );
+            }
+        }
+
         $link = new Link($attrs);
         if ($workspaceId !== null && $hasWorkspaceColumn) {
             $link->workspace_id = (int) $workspaceId;

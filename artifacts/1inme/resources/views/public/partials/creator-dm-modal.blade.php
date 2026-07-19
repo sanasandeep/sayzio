@@ -57,7 +57,7 @@
                 </div>
             </template>
             <div x-show="state.messages.length === 0 && !state.loading" class="text-center text-xs text-slate-400 py-10">
-                No messages yet — say hi 👋
+                No messages yet. Say hi 👋
             </div>
         </div>
 
@@ -218,7 +218,7 @@ function cpDm(opts) {
         statusLabel() {
             const m = this.state.policy?.mode || 'open';
             if (m === 'paid' && !this.state.policy.paid && !this.state.policy.subscribed) {
-                return `Pay-to-message — $${((this.state.policy.price_cents||0)/100).toFixed(2)} to start`;
+                return `Pay-to-message: $${((this.state.policy.price_cents||0)/100).toFixed(2)} to start`;
             }
             if (m === 'subs') return 'Subscribers only';
             return 'Direct message';

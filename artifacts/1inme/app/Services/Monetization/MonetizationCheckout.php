@@ -198,6 +198,7 @@ class MonetizationCheckout
         ?string $note = null,
         bool $anonymous = false,
         ?string $returnUrl = null,
+        ?string $source = null,
     ): array {
         if ($fan->id === $creator->id) abort(422, 'You can\'t tip yourself.');
         if ($amountCents < 100) abort(422, 'Minimum tip is $1.00.');
@@ -218,6 +219,9 @@ class MonetizationCheckout
             'anonymous'       => $anonymous,
             'status'          => CreatorTip::STATUS_FAILED, // pending until confirm
             'gateway'         => $connection->provider,
+            'source'          => $source === CreatorPaymentEvent::SOURCE_TIP_JAR
+                ? CreatorPaymentEvent::SOURCE_TIP_JAR
+                : null, // null → plain 'tip'
         ]);
 
         $token = Str::random(32);
@@ -436,6 +440,7 @@ class MonetizationCheckout
             'product'      => $this->confirmProductOrder($payload),
             'form'         => $this->confirmFormPayment($payload),
             'event_ticket' => $this->confirmEventTicket($payload),
+            'booking'      => $this->confirmBooking($payload),
             default        => null,
         };
     }
@@ -664,7 +669,7 @@ class MonetizationCheckout
         $creator = $tip->creator;
         $fan     = $tip->fan;
         if ($creator) {
-            $this->logEvent($creator, $fan, CreatorPaymentEvent::SOURCE_TIP, CreatorPaymentEvent::TYPE_TIP_RECEIVED, $tip, $tip->amount_cents, $tip->currency);
+            $this->logEvent($creator, $fan, $this->tipEventSource($tip), CreatorPaymentEvent::TYPE_TIP_RECEIVED, $tip, $tip->amount_cents, $tip->currency);
             if ($fan) $this->notifyCreatorOfTip($creator, $fan, $tip);
         }
         return [
@@ -706,11 +711,13 @@ class MonetizationCheckout
     {
         return match ($source) {
             CreatorPaymentEvent::SOURCE_TIP     => $this->refundTip($referenceId),
+            CreatorPaymentEvent::SOURCE_TIP_JAR => $this->refundTip($referenceId),
             CreatorPaymentEvent::SOURCE_PPV     => $this->refundPpv($referenceId),
             CreatorPaymentEvent::SOURCE_SUB     => $this->refundSubscription($referenceId),
             CreatorPaymentEvent::SOURCE_PRODUCT => $this->refundProductOrder($referenceId),
             CreatorPaymentEvent::SOURCE_FORM    => $this->refundFormSubmission($referenceId),
             CreatorPaymentEvent::SOURCE_EVENT   => $this->refundEventTicket($referenceId),
+            CreatorPaymentEvent::SOURCE_BOOKING => $this->refundBookingRequest($referenceId),
             default => false,
         };
     }
@@ -939,6 +946,17 @@ class MonetizationCheckout
         $this->emailCreatorBestEffort($buyer, 'Your Sayzio order was refunded', 'Order #' . $order->id . ' has been refunded for ' . $this->formatMoney((int) $order->subtotal_cents, $order->currency) . '.');
     }
 
+    /**
+     * Ledger source for a tip: tips started from a Tip Jar biolink
+     * block carry source 'tip_jar'; everything else is a plain 'tip'.
+     */
+    protected function tipEventSource(CreatorTip $tip): string
+    {
+        return $tip->source === CreatorPaymentEvent::SOURCE_TIP_JAR
+            ? CreatorPaymentEvent::SOURCE_TIP_JAR
+            : CreatorPaymentEvent::SOURCE_TIP;
+    }
+
     protected function refundTip(int $id): bool
     {
         $tip = CreatorTip::find($id);
@@ -953,7 +971,7 @@ class MonetizationCheckout
         $tip->status = CreatorTip::STATUS_REFUNDED;
         $tip->refunded_at = now();
         $tip->save();
-        $this->logEvent($tip->creator, $tip->fan, CreatorPaymentEvent::SOURCE_TIP, CreatorPaymentEvent::TYPE_TIP_REFUNDED, $tip, -1 * $tip->amount_cents, $tip->currency);
+        $this->logEvent($tip->creator, $tip->fan, $this->tipEventSource($tip), CreatorPaymentEvent::TYPE_TIP_REFUNDED, $tip, -1 * $tip->amount_cents, $tip->currency);
         return true;
     }
 
@@ -1440,6 +1458,161 @@ class MonetizationCheckout
             // event_ticket_{tierId}_{fanId}
             return $this->cacheKey('event', (int) $parts[2], $token);
         }
+        if ($kind === 'booking' && count($parts) === 2) {
+            // booking_{requestId}
+            return $this->cacheKey('booking', (int) $parts[1], $token);
+        }
         return null;
+    }
+
+    // ── Service Booking (paid appointments) ──────────────────────────────────
+
+    /**
+     * Start a paid booking checkout. The ServiceBookingRequest must already
+     * be persisted in STATUS_AWAITING_PAYMENT by the caller. This method
+     * attaches a gateway, caches the reconciliation payload, and returns the
+     * provider checkout URL.
+     *
+     * The visitor may not have a registered account (anonymous booking), so
+     * $fan is nullable. fan_email is always passed for the provider UI.
+     *
+     * Returns ['url' => string, 'request' => ServiceBookingRequest].
+     */
+    public function startBooking(
+        User $owner,
+        \App\Modules\User\Models\ServiceBookingRequest $booking,
+        string $fanEmail,
+        ?string $returnUrl = null,
+    ): array {
+        $connection = $owner->defaultPaymentConnection()
+            ?: new CreatorPaymentConnection(['provider' => 'stripe', 'user_id' => $owner->id]);
+
+        $booking->payment_gateway = $connection->provider;
+        $booking->save();
+
+        $token     = Str::random(32);
+        $reference = 'booking_' . $booking->id;
+
+        cache()->put($this->cacheKey('booking', $booking->id, $token), [
+            'booking_id'   => $booking->id,
+            'creator_id'   => $owner->id,
+            'amount'       => $booking->payment_amount_cents,
+            'currency'     => $booking->payment_currency ?? $booking->currency,
+            'return_url'   => $returnUrl,
+        ], now()->addMinutes(30));
+
+        $url = PayoutProviderRegistry::adapter($connection->provider)->createOneTimeCheckout($connection, [
+            'kind'       => 'booking',
+            'reference'  => $reference,
+            'token'      => $token,
+            'amount'     => $booking->payment_amount_cents,
+            'currency'   => $booking->payment_currency ?? $booking->currency,
+            'fan_email'  => $fanEmail,
+            'return_url' => route('checkout.return', [
+                'kind'      => 'booking',
+                'reference' => $reference,
+                'token'     => $token,
+            ]),
+        ]);
+
+        return ['url' => $url, 'request' => $booking];
+    }
+
+    /**
+     * Reconcile a paid booking: mark paid, auto-confirm, log revenue, and
+     * fire confirmation emails. Idempotent — a re-delivered return must not
+     * double-credit or double-notify.
+     */
+    protected function confirmBooking(array $p): array
+    {
+        $booking = \App\Modules\User\Models\ServiceBookingRequest::with(['items', 'serviceBooking', 'link'])
+            ->find($p['booking_id'] ?? 0);
+        if (!$booking) {
+            return ['url' => $p['return_url'] ?? '/'];
+        }
+
+        $statusUrl = route('sb.public.booking.page', ['token' => $booking->public_token]);
+
+        // Idempotent: already paid.
+        if ($booking->isPaid()) {
+            return ['url' => $p['return_url'] ?? $statusUrl, 'message' => 'Your booking is confirmed!'];
+        }
+
+        $booking->payment_status    = \App\Modules\User\Models\ServiceBookingRequest::PAYMENT_STATUS_PAID;
+        $booking->payment_charge_id = $booking->payment_charge_id
+            ?: ('preview_booking_' . Str::random(10));
+        $booking->status            = \App\Modules\User\Models\ServiceBookingRequest::STATUS_CONFIRMED;
+        $booking->checkout_expires_at = null;
+        $booking->save();
+
+        $owner = User::find($p['creator_id']);
+        if ($owner) {
+            $this->logEvent(
+                $owner, null,
+                CreatorPaymentEvent::SOURCE_BOOKING, CreatorPaymentEvent::TYPE_BOOKING_PAID,
+                $booking, (int) $booking->payment_amount_cents,
+                (string) ($booking->payment_currency ?? $booking->currency ?? 'USD'),
+            );
+        }
+
+        // Fire confirmation emails via ServiceBookingRequestService.
+        try {
+            app(\App\Modules\Common\Services\ServiceBookingRequestService::class)
+                ->notifyPaymentConfirmed($booking);
+        } catch (\Throwable $e) {
+            Log::warning('booking.confirm.notify_failed', ['booking' => $booking->id, 'err' => $e->getMessage()]);
+        }
+
+        return [
+            'url'     => $p['return_url'] ?? $statusUrl,
+            'message' => 'Payment confirmed — your booking is set!',
+        ];
+    }
+
+    /**
+     * Refund a paid booking request. Reverses the gateway charge best-effort,
+     * updates payment_status to refunded, writes a negative ledger row, and
+     * notifies the visitor by email. Idempotent. Returns true on success.
+     */
+    public function refundBookingRequest(int $id): bool
+    {
+        $booking = \App\Modules\User\Models\ServiceBookingRequest::with(['serviceBooking', 'link'])
+            ->find($id);
+        if (!$booking || !$booking->isRefundable()) {
+            return false;
+        }
+
+        try {
+            if ($booking->payment_gateway && $booking->payment_charge_id
+                && !str_starts_with((string) $booking->payment_charge_id, 'preview_')) {
+                PayoutProviderRegistry::adapter($booking->payment_gateway)
+                    ->refundCharge($booking->payment_charge_id, (int) $booking->payment_amount_cents);
+            }
+        } catch (\Throwable $e) {
+            Log::warning('refund.booking.adapter_failed', ['booking' => $id, 'err' => $e->getMessage()]);
+        }
+
+        $booking->payment_status = \App\Modules\User\Models\ServiceBookingRequest::PAYMENT_STATUS_REFUNDED;
+        $booking->save();
+
+        $config = $booking->serviceBooking;
+        $owner  = $config?->user ?? ($booking->link?->user ?? null);
+
+        $this->logEvent(
+            $owner, null,
+            CreatorPaymentEvent::SOURCE_BOOKING, CreatorPaymentEvent::TYPE_BOOKING_REFUNDED,
+            $booking, -1 * (int) $booking->payment_amount_cents,
+            (string) ($booking->payment_currency ?? $booking->currency ?? 'USD'),
+        );
+
+        // Notify visitor of refund.
+        try {
+            app(\App\Modules\Common\Services\ServiceBookingRequestService::class)
+                ->notifyRefund($booking);
+        } catch (\Throwable $e) {
+            Log::warning('refund.booking.notify_failed', ['booking' => $id, 'err' => $e->getMessage()]);
+        }
+
+        return true;
     }
 }

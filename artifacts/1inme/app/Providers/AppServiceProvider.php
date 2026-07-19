@@ -77,6 +77,15 @@ class AppServiceProvider extends ServiceProvider
                 // (app_settings) override these at runtime, but the env values
                 // remain the fallback.
                 ['MAIL_MAILER', 'MAIL_HOST', 'MAIL_PORT', 'MAIL_USERNAME', 'MAIL_PASSWORD', 'MAIL_SCHEME', 'MAIL_FROM_ADDRESS', 'MAIL_FROM_NAME', 'MAIL_EHLO_DOMAIN'],
+                // Session driver override. Dev `.env` pins SESSION_DRIVER=file
+                // (a DB session write per request is too slow over the distant
+                // RDS), but the Devices & sessions revoke flows only operate on
+                // the database driver. The sessions-revoke e2e run exports
+                // SESSION_DRIVER=database when booting its server; without this
+                // passthrough the child `php -S` falls back to the .env value
+                // and the revoke-actually-logs-out spec can never exercise the
+                // real code path.
+                ['SESSION_DRIVER'],
                 // Env-only platform services now editable from the admin
                 // Integrations hub. These remain the fallback when no admin
                 // value is stored, so the child must still inherit them.
@@ -305,9 +314,31 @@ class AppServiceProvider extends ServiceProvider
         \Illuminate\Support\Facades\Event::listen(
             \Illuminate\Console\Events\ScheduledTaskStarting::class,
             function (\Illuminate\Console\Events\ScheduledTaskStarting $event): void {
+                $recorder = app(\App\Modules\Admin\Support\ScheduledJobRunRecorder::class);
+
                 // Durable per-run DB row (insert-on-start), completing on
                 // Finished/Failed below. Best-effort like the cache log.
-                app(\App\Modules\Admin\Support\ScheduledJobRunRecorder::class)->starting($event->task);
+                $recorder->starting($event->task);
+
+                // Redirect the task's output to a temp file so the
+                // Finished/Failed listener can surface the actual error text
+                // (e.g. $this->error() lines) in the run-row instead of
+                // "Exited with code N". Only set up capture when the task
+                // hasn't already been redirected to an explicit output file.
+                try {
+                    $key = $recorder->keyFor($event->task);
+                    $defaultOutputs = ['/dev/null', 'NUL', ''];
+                    $existingOutput = $event->task->output ?? '/dev/null';
+
+                    if ($key !== null && in_array($existingOutput, $defaultOutputs, true)) {
+                        $tmpDir  = storage_path('logs');
+                        $tmpFile = tempnam($tmpDir ?: sys_get_temp_dir(), 'sched_out_') . '.log';
+                        $event->task->sendOutputTo($tmpFile);
+                        $recorder->setOutputFile($key, $tmpFile);
+                    }
+                } catch (\Throwable $e) {
+                    // Output capture is best-effort — never break the scheduler.
+                }
             }
         );
 
@@ -319,18 +350,37 @@ class AppServiceProvider extends ServiceProvider
                 // throwing (Command::FAILURE); treat that as a failed run.
                 $ok = $exit === null || (int) $exit === 0;
 
+                $recorder = app(\App\Modules\Admin\Support\ScheduledJobRunRecorder::class);
+
+                // When the run failed, try to include the actual command output
+                // so the run-row shows the real reason rather than just "Exited
+                // with code N".
+                $error = null;
+                if (!$ok) {
+                    try {
+                        $key       = $recorder->keyFor($event->task);
+                        $outputTail = $key !== null ? $recorder->readOutputTail($key) : null;
+                        $exitStr   = 'Exited with code ' . $exit;
+                        $error     = $outputTail !== null
+                            ? $exitStr . '. Output: ' . $outputTail
+                            : $exitStr;
+                    } catch (\Throwable $e) {
+                        $error = 'Exited with code ' . $exit;
+                    }
+                }
+
                 app(\App\Modules\Admin\Support\CronRunLog::class)->record(
                     $event->task,
                     $ok,
                     $event->runtime ?? null,
-                    $ok ? null : 'Exited with code ' . $exit,
+                    $error,
                 );
 
-                app(\App\Modules\Admin\Support\ScheduledJobRunRecorder::class)->finished(
+                $recorder->finished(
                     $event->task,
                     $ok,
                     $event->runtime ?? null,
-                    $ok ? null : 'Exited with code ' . $exit,
+                    $error,
                     $exit !== null ? (int) $exit : null,
                 );
             }
@@ -339,7 +389,21 @@ class AppServiceProvider extends ServiceProvider
         \Illuminate\Support\Facades\Event::listen(
             \Illuminate\Console\Events\ScheduledTaskFailed::class,
             function (\Illuminate\Console\Events\ScheduledTaskFailed $event): void {
-                $message = \Illuminate\Support\Str::limit($event->exception->getMessage(), 300);
+                $exceptionMsg = \Illuminate\Support\Str::limit($event->exception->getMessage(), 300);
+
+                // Append any captured output to the exception message for full
+                // context (the output may contain earlier warnings that explain
+                // why the exception was thrown).
+                $recorder = app(\App\Modules\Admin\Support\ScheduledJobRunRecorder::class);
+                try {
+                    $key        = $recorder->keyFor($event->task);
+                    $outputTail = $key !== null ? $recorder->readOutputTail($key) : null;
+                    $message    = $outputTail !== null
+                        ? $exceptionMsg . ' Output: ' . $outputTail
+                        : $exceptionMsg;
+                } catch (\Throwable $e) {
+                    $message = $exceptionMsg;
+                }
 
                 app(\App\Modules\Admin\Support\CronRunLog::class)->record(
                     $event->task,
@@ -348,7 +412,7 @@ class AppServiceProvider extends ServiceProvider
                     $message,
                 );
 
-                app(\App\Modules\Admin\Support\ScheduledJobRunRecorder::class)->finished(
+                $recorder->finished(
                     $event->task,
                     false,
                     null,

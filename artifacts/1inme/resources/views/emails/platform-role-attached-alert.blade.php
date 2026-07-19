@@ -23,10 +23,10 @@
             @endif
             to <strong>{{ $targetLabel }}</strong>.
             @if(count($grants) === 1)
-                This role carries platform-admin powers — please confirm it
+                This role carries platform-admin powers; please confirm it
                 was authorised.
             @else
-                These roles all carry platform-admin powers — please confirm
+                These roles all carry platform-admin powers; please confirm
                 the grants were authorised.
             @endif
         </p>

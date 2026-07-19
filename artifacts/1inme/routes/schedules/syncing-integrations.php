@@ -72,6 +72,15 @@ return [
         'cadence'     => ['dailyAt', '03:30'],
     ],
     [
+        // Stale-while-revalidate for the public /download page: the page only
+        // ever reads the cached release (never calls GitHub inline), so this
+        // job owns freshness. Failures log a warning and keep the last-known
+        // release serving.
+        'key'         => 'zio-browser:refresh-release',
+        'description' => 'Refresh the cached SayZio Browser GitHub release powering the /download page installer links.',
+        'cadence'     => ['everyFourHours'],
+    ],
+    [
         'key'         => 'reviews:sync',
         'description' => 'Pull third-party reviews (Google, Trustpilot, …) into external_reviews for connected providers.',
         'cadence'     => ['everyThirtyMinutes'],

@@ -19,6 +19,7 @@
                     <li><a href="{{ route('site.workspace-team') }}" class="text-sm text-gray-500 hover:text-white">Workspace &amp; Team</a></li>
                     <li><a href="{{ route('site.ai-dashboard') }}" class="text-sm text-gray-500 hover:text-white">AI Dashboard</a></li>
                     <li><a href="{{ route('site.pricing') }}" class="text-sm text-gray-500 hover:text-white">Pricing</a></li>
+                    <li><a href="{{ route('site.download') }}" class="text-sm text-gray-500 hover:text-white">Download browser</a></li>
                     <li><a href="{{ route('site.api-docs') }}" class="text-sm text-gray-500 hover:text-white">API</a></li>
                 </ul>
             </div>
@@ -81,7 +82,7 @@
                     <span class="text-gray-600">{{ $__footerCur === 'INR' ? '₹ INR' : '$ USD' }}</span>
                     <span class="text-white/10">·</span>
                     <span class="text-gray-600">
-                        Set by your billing country —
+                        Set by your billing country:
                         <a href="{{ route('user.profile.edit') }}" class="text-gray-500 hover:text-white transition-colors">change</a>
                     </span>
                 @else
@@ -123,7 +124,7 @@
                                 aria-label="Show prices in Indian rupees">₹ INR</button>
                     </div>
                     @if($__footerAutodet)
-                        <span class="text-gray-700 hidden sm:inline" aria-live="polite">auto-detected — switch anytime</span>
+                        <span class="text-gray-700 hidden sm:inline" aria-live="polite">auto-detected; switch anytime</span>
                     @endif
                 @endif
             </div>

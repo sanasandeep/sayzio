@@ -16,7 +16,7 @@
         <div class="inline-flex items-center gap-2 mt-3 px-3 py-1 rounded-full text-xs"
              style="background: rgba(16,185,129,0.12); color: #10b981;">
             <i class="fas fa-shield-check"></i>
-            100% goes to {{ $creator->name }} — Sayzio takes 0%
+            100% goes to {{ $creator->name }}. Sayzio takes 0%
         </div>
     </div>
 
@@ -206,7 +206,7 @@ document.addEventListener('click', async (e) => {
         });
         const data = await res.json().catch(() => ({}));
         if (data && data.ok) {
-            box.innerHTML = '<span style="font-weight:600;">' + data.describe + '</span> applied — '
+            box.innerHTML = '<span style="font-weight:600;">' + data.describe + '</span> applied: '
                 + '<span style="text-decoration:line-through;opacity:.6;">' + data.original + '</span> '
                 + '<span style="font-weight:700;">' + data.final + '</span>'
                 + (data.savings && data.final_cents < data.original_cents

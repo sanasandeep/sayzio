@@ -33,7 +33,7 @@
                 <li>Open <a class="underline" href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener">Google Cloud Console → APIs &amp; Services → Credentials</a>.</li>
                 <li>Click <strong>Create Credentials → API Key</strong>. Restrict the key to <em>Places API (New)</em> to limit exposure.</li>
                 <li>Enable <strong>Places API (New)</strong> under <a class="underline" href="https://console.cloud.google.com/apis/library" target="_blank" rel="noopener">APIs &amp; Services → Library</a>.</li>
-                <li>Your Google Cloud project must have a <strong>billing account attached</strong> — the Places API has a free monthly credit but requires billing to be enabled.</li>
+                <li>Your Google Cloud project must have a <strong>billing account attached</strong>, the Places API has a free monthly credit but requires billing to be enabled.</li>
                 <li>Paste the generated key (<code>AIza…</code>) in the field below.</li>
             </ol>',
     ])

@@ -50,7 +50,7 @@
                 <select name="project_id"
                         class="w-full px-3 py-2 text-sm rounded-lg outline-none"
                         style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-primary);">
-                    <option value="">— None —</option>
+                    <option value="">None</option>
                     @foreach($projects as $p)
                         <option value="{{ $p->id }}" @selected(old('project_id', $splashPage->project_id) == $p->id)>{{ $p->name }}</option>
                     @endforeach

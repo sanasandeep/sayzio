@@ -35,7 +35,7 @@
             </p>
 
             <p style="font-size:13px; color:#64748b; line-height:1.6; margin:0;">
-                Reconnecting takes about 10 seconds — you'll be redirected to {{ $platformLabel }} to re-grant access, then back to your Sayzio dashboard.
+                Reconnecting takes about 10 seconds; you'll be redirected to {{ $platformLabel }} to re-grant access, then back to your Sayzio dashboard.
             </p>
 
             <p style="color:#94a3b8; font-size:12px; line-height:1.6; margin:24px 0 0 0; border-top:1px solid #e2e8f0; padding-top:20px;">

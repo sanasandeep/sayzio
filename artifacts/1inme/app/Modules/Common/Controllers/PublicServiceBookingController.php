@@ -115,12 +115,33 @@ class PublicServiceBookingController extends Controller
         ]);
 
         try {
-            $booking = $this->requests->place($link, $config, $data);
+            $result = $this->requests->place($link, $config, $data);
         } catch (\InvalidArgumentException $e) {
             return response()->json(['error' => ['message' => $e->getMessage(), 'code' => 'invalid_request']], 422);
         }
 
+        $booking = $result['request'];
         $booking->loadMissing('items');
+
+        // Paid booking: start a checkout and return the provider URL.
+        if ($result['requires_payment']) {
+            $owner = $link->user;
+            $responseData = ['booking' => $this->serializeGuestBooking($booking)];
+            try {
+                $checkout = app(\App\Services\Monetization\MonetizationCheckout::class)->startBooking(
+                    $owner,
+                    $booking,
+                    $data['customer_email'] ?? '',
+                );
+                $responseData['checkout_url']      = $checkout['url'];
+                $responseData['checkout_expires_at'] = optional($booking->checkout_expires_at)->toIso8601String();
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::warning('booking.checkout.start_failed', [
+                    'booking' => $booking->id, 'err' => $e->getMessage(),
+                ]);
+            }
+            return response()->json(['data' => $responseData], 201);
+        }
 
         return response()->json(['data' => [
             'booking' => $this->serializeGuestBooking($booking),
@@ -210,23 +231,28 @@ class PublicServiceBookingController extends Controller
             : null;
 
         return [
-            'public_token'     => $booking->public_token,
-            'status'           => $booking->status,
-            'status_label'     => $booking->status_label,
-            'whatsapp'         => $whatsapp,
-            'customer_name'    => $booking->customer_name,
-            'slot_start'       => optional($booking->slot_start)->toIso8601String(),
-            'slot_end'         => optional($booking->slot_end)->toIso8601String(),
-            'duration_minutes' => $booking->duration_minutes,
-            'subtotal'         => $booking->subtotal,
-            'tax_inclusive'    => (bool) $booking->tax_inclusive,
-            'tax_rate'         => $booking->tax_rate,
-            'tax_amount'       => $booking->tax_amount,
-            'total'            => $booking->total,
-            'currency'         => $booking->currency,
-            'is_estimate'      => true,
-            'created_at'       => optional($booking->created_at)->toIso8601String(),
-            'items'            => $booking->relationLoaded('items')
+            'public_token'          => $booking->public_token,
+            'status'                => $booking->status,
+            'status_label'          => $booking->status_label,
+            'whatsapp'              => $whatsapp,
+            'customer_name'         => $booking->customer_name,
+            'slot_start'            => optional($booking->slot_start)->toIso8601String(),
+            'slot_end'              => optional($booking->slot_end)->toIso8601String(),
+            'duration_minutes'      => $booking->duration_minutes,
+            'subtotal'              => $booking->subtotal,
+            'tax_inclusive'         => (bool) $booking->tax_inclusive,
+            'tax_rate'              => $booking->tax_rate,
+            'tax_amount'            => $booking->tax_amount,
+            'total'                 => $booking->total,
+            'currency'              => $booking->currency,
+            'is_estimate'           => true,
+            'payment_mode'          => $booking->payment_mode ?? 'none',
+            'payment_status'        => $booking->payment_status ?? 'none',
+            'payment_amount_cents'  => (int) ($booking->payment_amount_cents ?? 0),
+            'payment_currency'      => $booking->payment_currency,
+            'checkout_expires_at'   => optional($booking->checkout_expires_at)->toIso8601String(),
+            'created_at'            => optional($booking->created_at)->toIso8601String(),
+            'items'                 => $booking->relationLoaded('items')
                 ? $booking->items->map(fn ($i) => [
                     'name'       => $i->name,
                     'quantity'   => $i->quantity,

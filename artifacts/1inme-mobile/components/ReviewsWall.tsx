@@ -626,7 +626,7 @@ export function ReviewsWall({
             <View style={{ paddingVertical: 24, alignItems: "center", gap: 6 }}>
               <Feather name="message-square" size={28} color={colors.mutedForeground} />
               <Text style={[styles.helper, { color: colors.mutedForeground }]}>
-                No reviews yet — be the first to leave one.
+                No reviews yet. Be the first to leave one.
               </Text>
             </View>
           ) : (

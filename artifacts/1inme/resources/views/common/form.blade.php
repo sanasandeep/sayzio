@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    @include('common.partials.toolbar-theme-color')
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     @php
@@ -415,7 +416,7 @@
                     <div class="form-success">
                         <div class="form-success-icon"><i class="fas fa-check-circle"></i></div>
                         <h2 style="font-size: 1.4rem; font-weight: 800; margin: 0 0 0.5rem;">All done!</h2>
-                        <p style="opacity: 0.75; margin: 0;">{{ session('form_success') ?: (request('paid') ? (session('success') ?: 'Payment received — your response has been recorded. Thank you!') : '') }}</p>
+                        <p style="opacity: 0.75; margin: 0;">{{ session('form_success') ?: (request('paid') ? (session('success') ?: 'Payment received, your response has been recorded. Thank you!') : '') }}</p>
                         @if(($settings['allow_multiple'] ?? true))
                             <button type="button" onclick="window.location.reload()" class="form-button" style="margin-top: 1.5rem;">
                                 <i class="fas fa-redo text-xs"></i> Submit another response
@@ -556,7 +557,7 @@
                                         @if($form->description)<p class="form-desc">{{ $form->description }}</p>@endif
                                         @if($errors->any())
                                             <div style="margin-top: 1rem; background: rgba(239,68,68,0.10); border: 1px solid rgba(239,68,68,0.25); color: #b91c1c; padding: 0.75rem 1rem; border-radius: var(--form-radius-sm); font-size: 0.85rem;">
-                                                <i class="fas fa-exclamation-triangle"></i> Please fix the errors below — we jumped to the first one.
+                                                <i class="fas fa-exclamation-triangle"></i> Please fix the errors below, we jumped to the first one.
                                             </div>
                                         @endif
                                     </div>

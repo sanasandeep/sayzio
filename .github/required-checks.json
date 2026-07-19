@@ -1,5 +1,5 @@
 {
-  "description": "Single source of truth for the status-check names that branch protection marks as *required*. The scripts/src/check-ci-passthrough-names.ts guard asserts every name below is (a) produced by some real guard job AND (b) covered by a passthrough companion, across ALL workflows in .github/workflows/. If a whole safety workflow is deleted or renamed so that a required name no longer has a producer, the guard fails loudly instead of letting the required-check deadlock silently return. When you add or remove a required check in branch protection, update this list in the same PR.",
+  "description": "Single source of truth for the status-check names that branch protection marks as *required*. The scripts/src/check-ci-passthrough-names.ts guard asserts every name below is (a) produced by some real guard job AND (b) covered by a passthrough companion, across ALL workflows in .github/workflows/. If a whole safety workflow is deleted or renamed so that a required name no longer has a producer, the guard fails loudly instead of letting the required-check deadlock silently return. When you add or remove a required check in branch protection, update this list in the same PR. After editing this list, run `pnpm --filter @workspace/scripts run sync:branch-protection` (scripts/src/sync-branch-protection.ts) to push the contexts to GitHub's live branch-protection settings — the JSON and GitHub are two separate copies and drift silently otherwise.",
   "requiredChecks": [
     "migrate cycle (PostgreSQL)",
     "migrate cycle (MySQL)",
@@ -7,7 +7,8 @@
     "Dev-database safety net guard",
     "PHP 8.4 deprecation guard",
     "Migration ordering guard (no database)",
-    "Mobile/docs parity guard (no database)"
+    "Mobile/docs parity guard (no database)",
+    "SayZio Browser test & typecheck"
   ],
   "advisoryDescription": "Check names produced by a real guard job in a passthrough-scheme (safety) workflow that are INTENTIONALLY not marked required in branch protection — i.e. they run and report but a red result does not block merges. Listing a name here is an explicit acknowledgement that the job is advisory. The guard flags any real safety-guard check that is in NEITHER requiredChecks NOR this list, so a brand-new safety job that someone forgot to make required cannot silently ship toothless. Keep this list minimal; prefer making a real safety check required.",
   "advisoryChecks": []

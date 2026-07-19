@@ -3,9 +3,12 @@
 namespace App\Modules\Admin\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Services\Integrations\GitHubTokenHealth;
 use App\Services\Integrations\IntegrationCatalog;
 use App\Services\Integrations\PlatformServiceSettings;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\RateLimiter;
 
 /**
  * Single admin "Integrations" hub. The landing page (index) groups every
@@ -126,6 +129,81 @@ class IntegrationsController extends Controller
 
         return redirect()->route('admin.integrations.google-contacts.edit')
             ->with('success', 'Google Contacts OAuth settings saved.');
+    }
+
+    // ═════════════════════════════════════════════════════════════
+    // GitHub personal access token
+    // ═════════════════════════════════════════════════════════════
+
+    public function editGitHub()
+    {
+        return view('admin.integrations.github', [
+            'status'    => PlatformServiceSettings::githubStatus(),
+            'hasValue'  => PlatformServiceSettings::githubToken() !== null,
+            'masked'    => PlatformServiceSettings::maskedGithubToken(),
+            'repo'      => (string) config('services.github.repo', ''),
+            'lastProbe' => \App\Services\Integrations\GitHubTokenHealth::lastProbe(),
+        ]);
+    }
+
+    public function testGitHub()
+    {
+        $probe = \App\Services\Integrations\GitHubTokenHealth::verify();
+
+        // The admin layout renders session('success') / session('error') only.
+        $flashKey = $probe['status'] === 'ok' ? 'success' : 'error';
+
+        return redirect()->route('admin.integrations.github.edit')
+            ->with($flashKey, ($probe['status'] === 'inconclusive' ? 'Inconclusive — ' : '') . $probe['detail']);
+    }
+
+    public function updateGitHub(Request $request)
+    {
+        $data = $request->validate([
+            'token'       => 'nullable|string|max:255',
+            'clear_token' => 'nullable|boolean',
+        ]);
+
+        if ($request->boolean('clear_token')) {
+            PlatformServiceSettings::setGithubToken(null);
+        } elseif (!empty($data['token'])) {
+            PlatformServiceSettings::setGithubToken($data['token']);
+        }
+
+        return redirect()->route('admin.integrations.github.edit')
+            ->with('success', 'GitHub token settings saved.');
+    }
+
+    /**
+     * "Verify token" button: live probe of the stored GitHub token.
+     *
+     * Each click makes a real GitHub API call, so the endpoint is throttled
+     * per admin (6/min) — a stuck or spammed button must not burn the
+     * authenticated rate limit (or the anonymous 60/hr limit when no token
+     * is configured).
+     */
+    public function testGitHub(Request $request)
+    {
+        // Resolve the admin identity explicitly — admin routes use the custom
+        // AdminAuth middleware (no Auth::shouldUse('admin')), so a plain
+        // $request->user() reads the default web guard and can be null,
+        // silently collapsing the throttle to per-IP.
+        $actor = Auth::guard('admin')->user() ?: $request->user();
+        $key   = 'github-token-test:' . ($actor?->id ?? $request->ip());
+
+        if (RateLimiter::tooManyAttempts($key, 6)) {
+            $seconds = RateLimiter::availableIn($key);
+            return back()->with('error', 'Please wait ' . max(1, $seconds) . ' seconds before checking the GitHub token again.');
+        }
+        RateLimiter::hit($key, 60);
+
+        $probe = GitHubTokenHealth::probe();
+
+        if ($probe['status'] === 'ok') {
+            return back()->with('success', $probe['detail']);
+        }
+
+        return back()->with('error', 'GitHub token check: ' . $probe['detail']);
     }
 
     // ═════════════════════════════════════════════════════════════

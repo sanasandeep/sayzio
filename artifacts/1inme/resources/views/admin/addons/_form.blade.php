@@ -56,7 +56,7 @@
             $formatCurrentPrice = function (string $currency, string $cycle) use ($currentPrices) {
                 $key = $currency . '|' . $cycle;
                 if (!array_key_exists($key, $currentPrices)) {
-                    return '—';
+                    return '-';
                 }
                 $symbol = $currency === 'INR' ? '₹' : '$';
                 return $symbol . number_format($currentPrices[$key] / 100, 2);
@@ -64,7 +64,7 @@
         @endphp
         <div class="border-t border-white/10 pt-5">
             <h3 class="text-sm font-medium text-white/80 mb-1">Current prices</h3>
-            <p class="text-[11px] text-white/40 mb-3">Read-only — what's currently saved in the price table. Edit the fields below and save to change these.</p>
+            <p class="text-[11px] text-white/40 mb-3">Read-only, what's currently saved in the price table. Edit the fields below and save to change these.</p>
             <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 @foreach([['USD','monthly','USD Monthly'],['USD','annual','USD Annual'],['INR','monthly','INR Monthly'],['INR','annual','INR Annual']] as [$curCurrency, $curCycle, $curLabel])
                     <div class="rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2.5">
@@ -78,10 +78,10 @@
 
     <div class="border-t border-white/10 pt-5">
         <h3 class="text-sm font-medium text-white/80 mb-1">Pricing per country</h3>
-        <p class="text-[11px] text-white/40 mb-3">USD is shown to everyone by default. INR is shown to users whose billing country is India. The two amounts are independent — no FX conversion. <span class="text-white/30">Enter amounts as <strong>integer minor units</strong> — e.g. <code>999</code> = $9.99, <code>82900</code> = ₹829.</span></p>
+        <p class="text-[11px] text-white/40 mb-3">USD is shown to everyone by default. INR is shown to users whose billing country is India. The two amounts are independent, no FX conversion. <span class="text-white/30">Enter amounts as <strong>integer minor units</strong>, e.g. <code>999</code> = $9.99, <code>82900</code> = ₹829.</span></p>
         <div class="grid grid-cols-2 gap-6">
             <div class="rounded-xl border border-white/10 p-4 bg-white/[0.02]">
-                <div class="text-xs uppercase tracking-wider text-white/50 mb-3">USD <span class="text-white/30 normal-case">— everyone outside India</span></div>
+                <div class="text-xs uppercase tracking-wider text-white/50 mb-3">USD <span class="text-white/30 normal-case"> - everyone outside India</span></div>
                 <div class="space-y-3">
                     <div>
                         <label class="block text-xs text-white/40 mb-1">Monthly (USD, cents)</label>
@@ -98,7 +98,7 @@
                 </div>
             </div>
             <div class="rounded-xl border border-white/10 p-4 bg-white/[0.02]">
-                <div class="text-xs uppercase tracking-wider text-white/50 mb-3">INR <span class="text-white/30 normal-case">— users in India</span></div>
+                <div class="text-xs uppercase tracking-wider text-white/50 mb-3">INR <span class="text-white/30 normal-case"> - users in India</span></div>
                 <div class="space-y-3">
                     <div>
                         <label class="block text-xs text-white/40 mb-1">Monthly (INR, paise)</label>
@@ -113,7 +113,7 @@
                                class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white text-sm focus:ring-2 focus:ring-blue-500/40 outline-none">
                     </div>
                 </div>
-                <p class="text-[10px] text-white/30 mt-2">INR is required — every addon has explicit USD <em>and</em> INR pricing.</p>
+                <p class="text-[10px] text-white/30 mt-2">INR is required, every addon has explicit USD <em>and</em> INR pricing.</p>
             </div>
         </div>
     </div>

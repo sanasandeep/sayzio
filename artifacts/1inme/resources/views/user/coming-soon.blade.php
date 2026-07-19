@@ -1,6 +1,6 @@
 @extends('user.layouts.app')
 
-@section('title', $feature['label'].' — Coming soon')
+@section('title', $feature['label'].': Coming soon')
 
 @php
     $__user = auth()->user();
@@ -51,7 +51,7 @@
             @if($notified)
                 <span class="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-white/70">
                     <i class="fas fa-bell-slash text-xs" style="color: {{ $__tint }};"></i>
-                    You’re on the list — we’ll email you
+                    You’re on the list, we’ll email you
                 </span>
             @else
                 <form action="{{ route('user.coming-soon.notify', ['feature' => $featureKey]) }}" method="POST">

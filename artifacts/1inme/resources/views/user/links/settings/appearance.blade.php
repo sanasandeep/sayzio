@@ -173,12 +173,12 @@
                     <div x-ref="expHelp" class="hidden mb-4 p-3 rounded-lg text-[11px] leading-relaxed" style="background: rgba(245,158,11,0.06); border: 1px solid rgba(245,158,11,0.2); color: var(--text-muted);">
                         <p class="mb-1.5"><strong style="color: var(--text-primary);">When would I use this?</strong></p>
                         <ul class="list-disc pl-4 space-y-0.5">
-                            <li><strong>Password</strong> — keep prying eyes out of a private page (a portfolio share, an early-access drop).</li>
-                            <li><strong>Schedule</strong> — pre-publish a launch link today and have it go live exactly at sale time.</li>
-                            <li><strong>Expire on date</strong> — promo or coupon page that should auto-close after a deadline.</li>
-                            <li><strong>Click limit</strong> — limited offers ("first 100 visitors only"), invite caps for events.</li>
-                            <li><strong>One-Time</strong> — secret reveals, single-use tickets, password reset URLs.</li>
-                            <li><strong>Redirect after expired</strong> — instead of showing the default "expired" page, send leftover visitors to your homepage or sale page.</li>
+                            <li><strong>Password</strong>, keep prying eyes out of a private page (a portfolio share, an early-access drop).</li>
+                            <li><strong>Schedule</strong>, pre-publish a launch link today and have it go live exactly at sale time.</li>
+                            <li><strong>Expire on date</strong>, promo or coupon page that should auto-close after a deadline.</li>
+                            <li><strong>Click limit</strong>, limited offers ("first 100 visitors only"), invite caps for events.</li>
+                            <li><strong>One-Time</strong>, secret reveals, single-use tickets, password reset URLs.</li>
+                            <li><strong>Redirect after expired</strong>, instead of showing the default "expired" page, send leftover visitors to your homepage or sale page.</li>
                         </ul>
                     </div>
                     <div class="space-y-5">
@@ -269,16 +269,16 @@
                         <button type="button" @click="help = !help" class="text-[10px] px-2 py-1 rounded-md flex-shrink-0" style="background: var(--bg-glass-input); color: var(--text-faint);"><i class="fas fa-question-circle mr-1"></i> Why this matters</button>
                     </div>
                     <div x-show="help" x-transition x-cloak class="mb-4 p-3 rounded-lg text-[11px] leading-relaxed" style="background: rgba(99,102,241,0.06); border: 1px solid rgba(99,102,241,0.2); color: var(--text-muted);">
-                        When someone pastes your link in a chat or shares it on social media, those apps show a small preview card with a title, description and image. By default they grab whatever your page contains — which can look ugly or wrong. Filling these in lets you <strong style="color: var(--text-primary);">control exactly what people see before they click</strong>, which dramatically increases the number of people who actually open the link.
+                        When someone pastes your link in a chat or shares it on social media, those apps show a small preview card with a title, description and image. By default they grab whatever your page contains, which can look ugly or wrong. Filling these in lets you <strong style="color: var(--text-primary);">control exactly what people see before they click</strong>, which dramatically increases the number of people who actually open the link.
                     </div>
                     <div class="space-y-4">
                         <div>
-                            <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Page Title <span class="text-[10px]" style="color: var(--text-faint);">— shown in browser tabs & Google results</span></label>
+                            <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Page Title <span class="text-[10px]" style="color: var(--text-faint);"> - shown in browser tabs & Google results</span></label>
                             <input type="text" name="seo_title" value="{{ old('seo_title', $link->seo_title) }}" maxlength="60" placeholder="e.g. Sarah's Photography Portfolio" class="theme-input w-full">
                             <p class="text-[10px] mt-1" style="color: var(--text-faint);"><i class="fas fa-lightbulb text-amber-400 mr-1"></i> Keep it under 60 characters. Lead with the most interesting word.</p>
                         </div>
                         <div>
-                            <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Description <span class="text-[10px]" style="color: var(--text-faint);">— the small grey text below the title</span></label>
+                            <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Description <span class="text-[10px]" style="color: var(--text-faint);"> - the small grey text below the title</span></label>
                             <textarea name="seo_description" maxlength="160" placeholder="Two short sentences telling people why to click." rows="2" class="theme-input w-full">{{ old('seo_description', $link->seo_description) }}</textarea>
                             <p class="text-[10px] mt-1" style="color: var(--text-faint);"><i class="fas fa-lightbulb text-amber-400 mr-1"></i> Aim for ~150 characters. Think of it as a one-line elevator pitch.</p>
                         </div>
@@ -319,7 +319,7 @@
                     </div>
                     <div x-show="help" x-transition x-cloak class="mb-4 p-3 rounded-lg text-[11px] leading-relaxed" style="background: rgba(236,72,153,0.06); border: 1px solid rgba(236,72,153,0.2); color: var(--text-muted);">
                         <p class="mb-2"><strong style="color: var(--text-primary);">In one sentence:</strong> these are sticky labels you add to your link so analytics tools (like Google Analytics on the destination site) can tell you "this visitor came from your Instagram bio" instead of just "this visitor came from somewhere".</p>
-                        <p class="mb-1.5"><strong style="color: var(--text-primary);">Skip this if</strong> you don't run paid ads or use Google Analytics on the page you link to. The settings below only matter for tracking — they don't change what visitors see.</p>
+                        <p class="mb-1.5"><strong style="color: var(--text-primary);">Skip this if</strong> you don't run paid ads or use Google Analytics on the page you link to. The settings below only matter for tracking, they don't change what visitors see.</p>
                         <div class="mt-2 p-2 rounded" style="background: var(--bg-glass-input);">
                             <p class="text-[10px] mb-1" style="color: var(--text-faint);">Example for an Instagram Link in Bio sending people to your shop:</p>
                             <p class="font-mono text-[10px]"><strong>Source</strong>: instagram &nbsp; <strong>Medium</strong>: social &nbsp; <strong>Campaign</strong>: spring_sale</p>
@@ -328,16 +328,16 @@
                     <div class="space-y-3">
                         @php
                             $utmFields = [
-                                'utm_source'   => ['Source',   'instagram, newsletter, podcast', 'WHERE the click came from — the platform or website name.'],
-                                'utm_medium'   => ['Medium',   'social, email, cpc, banner',     'HOW you reached them — the channel type. Use "social" for organic posts, "cpc" for paid ads, "email" for newsletters.'],
-                                'utm_campaign' => ['Campaign', 'spring_sale, product_launch',    'WHICH campaign — a name only you understand. Use the same value across every link in one campaign so analytics groups them together.'],
+                                'utm_source'   => ['Source',   'instagram, newsletter, podcast', 'WHERE the click came from, the platform or website name.'],
+                                'utm_medium'   => ['Medium',   'social, email, cpc, banner',     'HOW you reached them, the channel type. Use "social" for organic posts, "cpc" for paid ads, "email" for newsletters.'],
+                                'utm_campaign' => ['Campaign', 'spring_sale, product_launch',    'WHICH campaign, a name only you understand. Use the same value across every link in one campaign so analytics groups them together.'],
                                 'utm_term'     => ['Term',     'running shoes, vegan recipes',   'Optional. The keyword you bid on (mostly for Google Ads).'],
                                 'utm_content'  => ['Content',  'header_button, footer_link',     'Optional. Tells you which version of an ad/email got the click when you have multiple links going to the same page.'],
                             ];
                         @endphp
                         @foreach($utmFields as $field => [$label, $eg, $explain])
                         <div>
-                            <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">{{ $label }} <span class="text-[10px] font-normal" style="color: var(--text-faint);">— {{ $explain }}</span></label>
+                            <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">{{ $label }} <span class="text-[10px] font-normal" style="color: var(--text-faint);"> - {{ $explain }}</span></label>
                             <input type="text" name="{{ $field }}" value="{{ old($field, $link->$field) }}" placeholder="e.g. {{ $eg }}" class="theme-input w-full">
                         </div>
                         @endforeach
@@ -358,7 +358,7 @@
                         <button type="button" @click="help = !help" class="text-[10px] px-2 py-1 rounded-md flex-shrink-0" style="background: var(--bg-glass-input); color: var(--text-faint);"><i class="fas fa-question-circle mr-1"></i> What's a tracker?</button>
                     </div>
                     <div x-show="help" x-transition x-cloak class="mb-4 p-3 rounded-lg text-[11px] leading-relaxed" style="background: rgba(6,182,212,0.06); border: 1px solid rgba(6,182,212,0.2); color: var(--text-muted);">
-                        <p class="mb-2">A <strong style="color: var(--text-primary);">tracker</strong> is a tiny invisible snippet from an advertising platform. When a visitor opens your page, the tracker fires and the ad platform remembers them. Later you can run an ad campaign that targets <em>only people who already visited this link</em> — that audience converts way better than strangers.</p>
+                        <p class="mb-2">A <strong style="color: var(--text-primary);">tracker</strong> is a tiny invisible snippet from an advertising platform. When a visitor opens your page, the tracker fires and the ad platform remembers them. Later you can run an ad campaign that targets <em>only people who already visited this link</em>, that audience converts way better than strangers.</p>
                         <p class="mb-1.5"><strong style="color: var(--text-primary);">When to use:</strong> if you advertise on Facebook/Instagram/Google/TikTok and want to re-engage people who clicked your link but didn't buy. Skip this otherwise.</p>
                         <p class="text-[10px]"><i class="fas fa-cog mr-1"></i> Trackers are configured once in <a href="{{ route('user.dashboard') }}" class="underline">Account → Tracking</a>; here you just tick which ones to fire on this specific link.</p>
                     </div>

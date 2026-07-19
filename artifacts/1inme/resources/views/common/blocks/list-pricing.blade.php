@@ -119,7 +119,7 @@
                             <div class="flex items-baseline gap-2 px-4 py-3" @if($idx > 0) style="border-top: 1px solid {{ $fontColor }}1a; color: {{ $fontColor }}dd;" @else style="color: {{ $fontColor }}dd;" @endif>
                                 <span class="text-sm font-medium">{{ $it['name'] }}</span>
                                 @if($it['description'])
-                                    <span class="text-xs opacity-60 truncate">— {{ $it['description'] }}</span>
+                                    <span class="text-xs opacity-60 truncate"> - {{ $it['description'] }}</span>
                                 @endif
                                 <span class="flex-1 border-b border-dotted opacity-30" style="border-color: {{ $fontColor }};"></span>
                                 <span class="text-sm font-semibold whitespace-nowrap" style="color: {{ $_pAccent }};">{{ $it['price'] }}<span class="text-xs opacity-70">{{ $it['period'] }}</span></span>

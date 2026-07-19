@@ -230,7 +230,7 @@ test.describe("admin block-defaults editor save/clear", () => {
     } catch {
       /* best-effort cleanup */
     }
-    await sharedContext?.close();
+    try { await sharedContext?.close(); } catch {}
   });
 
   test("save persists a field from a collapsed section, clear-section empties it, and re-save removes the stored override", async ({

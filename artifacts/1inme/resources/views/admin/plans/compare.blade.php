@@ -43,9 +43,9 @@ $coreSections = [
          'hint' => 'Hidden from public pricing & the recommender.'],
     ],
     'Pricing (minor units)' => [
-        ['key' => 'monthly_price',           'label' => 'Monthly USD',  'type' => 'number', 'min' => 0, 'hint' => 'Cents — e.g. 999 = $9.99'],
+        ['key' => 'monthly_price',           'label' => 'Monthly USD',  'type' => 'number', 'min' => 0, 'hint' => 'Cents, e.g. 999 = $9.99'],
         ['key' => 'annual_price',            'label' => 'Annual USD',   'type' => 'number', 'min' => 0, 'hint' => 'Cents'],
-        ['key' => 'monthly_price_secondary', 'label' => 'Monthly INR',  'type' => 'number', 'min' => 0, 'hint' => 'Paise — e.g. 79900 = ₹799'],
+        ['key' => 'monthly_price_secondary', 'label' => 'Monthly INR',  'type' => 'number', 'min' => 0, 'hint' => 'Paise, e.g. 79900 = ₹799'],
         ['key' => 'annual_price_secondary',  'label' => 'Annual INR',   'type' => 'number', 'min' => 0, 'hint' => 'Paise'],
     ],
     'Days & Policy' => [
@@ -943,7 +943,7 @@ html.light-mode .cmp-modal-footer { border-top-color: #e2e8f0; }
         <div class="cmp-modal-box">
             <div class="cmp-modal-header">
                 <div>
-                    <h3 class="text-sm font-semibold text-white" x-text="'Block types — ' + planNameById(blockModalPlanId)"></h3>
+                    <h3 class="text-sm font-semibold text-white" x-text="'Block types, ' + planNameById(blockModalPlanId)"></h3>
                     <p class="text-[11px] text-white/40 mt-0.5">
                         <span x-text="plans[blockModalPlanId]?.block_types.length"></span> selected of {{ count($allBlockSlugs) }} total
                     </p>
@@ -993,7 +993,7 @@ html.light-mode .cmp-modal-footer { border-top-color: #e2e8f0; }
         <div class="cmp-modal-box">
             <div class="cmp-modal-header">
                 <div>
-                    <h3 class="text-sm font-semibold text-white" x-text="'Provider allowlist — ' + planNameById(intModalState.planId)"></h3>
+                    <h3 class="text-sm font-semibold text-white" x-text="'Provider allowlist, ' + planNameById(intModalState.planId)"></h3>
                     <p class="text-[11px] text-white/40 mt-0.5" x-text="'Integration kind: ' + intModalState.kind"></p>
                 </div>
                 <button type="button" @click="closeIntModal()" class="text-white/40 hover:text-white text-lg leading-none transition"><i class="fas fa-times"></i></button>

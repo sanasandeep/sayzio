@@ -479,7 +479,7 @@ export default function CalendarDetailScreen() {
                   >
                     <Feather name="rss" size={14} color={colors.mutedForeground} />
                     <Text style={[styles.subscribeText, { color: colors.mutedForeground }]} numberOfLines={1}>
-                      Subscribe — keep this calendar in sync
+                      Subscribe to keep this calendar in sync
                     </Text>
                     <Feather name="external-link" size={14} color={colors.mutedForeground} />
                   </Pressable>
@@ -528,7 +528,7 @@ export default function CalendarDetailScreen() {
                   color={colors.mutedForeground}
                 />
                 <Text style={[styles.pastToggleText, { color: colors.mutedForeground }]}>
-                  {showPast ? "Showing past & upcoming" : "Upcoming only — tap to include past"}
+                  {showPast ? "Showing past & upcoming" : "Upcoming only. Tap to include past"}
                 </Text>
               </Pressable>
             </View>

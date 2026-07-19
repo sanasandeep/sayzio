@@ -1,6 +1,6 @@
-# Sayzio Dialer (standalone mobile app)
+# Zio Dialer (standalone mobile app)
 
-A standalone Expo / React Native app that is **just the Sayzio dialer** — Dialer,
+A standalone Expo / React Native app that is **just the Zio dialer** — Dialer,
 Contacts, Caller ID and universal Search — signed in with the **same Sayzio
 account** as the main app. It has no backend of its own: it talks to your
 existing Sayzio REST API (`/api/v1/...`).

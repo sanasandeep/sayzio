@@ -152,7 +152,7 @@ export default function ComingSoonScreen() {
           >
             <Feather name="bell-off" size={14} color={tint} />
             <Text style={[styles.notifiedText, { color: colors.foreground }]}>
-              You’re on the list — we’ll let you know
+              You’re on the list; we’ll let you know
             </Text>
           </View>
         ) : (

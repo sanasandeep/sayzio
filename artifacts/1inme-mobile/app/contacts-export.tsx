@@ -25,7 +25,7 @@ const FORMAT_OPTIONS: FormatOption[] = [
   {
     format: "csv",
     label: "CSV",
-    sub: "Opens in Excel, Google Sheets. Re-importable — all fields preserved.",
+    sub: "Opens in Excel, Google Sheets. Re-importable, all fields preserved.",
     icon: "📄",
   },
   {

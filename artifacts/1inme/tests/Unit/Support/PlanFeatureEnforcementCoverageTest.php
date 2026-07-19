@@ -143,17 +143,12 @@ class PlanFeatureEnforcementCoverageTest extends TestCase
         'ab_max_variants' => 'TODO: register in quantityLimits(). Enforced in LinkController::planMaxAbVariants(); not yet in the admin plan form.',
         'ask_coach' => 'TODO: register in aiSuite(). Enforced via AiPlanAccess::featureAllowed(); not yet in the admin plan form (see AiPlanAccess::legacyAvailabilityFallback()).',
         'audience_type_estimation' => 'TODO: register in aiSuite(). Enforced via AudienceTypeEstimationService::FEATURE_KEY + AiPlanAccess::featureAllowed(); not yet in the admin plan form.',
-        'card_scan' => 'TODO: register in aiSuite(). Enforced via AiPlanAccess::featureAllowed(); not yet in the admin plan form.',
-        'ai_resume_tools' => 'TODO: register in aiSuite(). Enforced via GatesResumeAiTools + AiPlanAccess::featureAllowed(); not yet in the admin plan form.',
         'competitor_teardown' => 'TODO: register in aiSuite(). Enforced via AiPlanAccess::featureAllowed(); not yet in the admin plan form.',
         'dashboard_designer' => 'TODO: register in aiSuite(). Enforced via DashboardAiDesignerService::FEATURE + AiPlanAccess::featureAllowed(); not yet in the admin plan form.',
         'ai_staff_billing' => 'TODO: register in aiSuite(). Enforced via AiStaff::featureKey() ("ai_staff_" . domain) + AiPlanAccess::featureAllowed(); not yet in the admin plan form.',
         'ai_staff_contacts' => 'TODO: register in aiSuite(). See ai_staff_billing.',
         'ai_staff_inbox' => 'TODO: register in aiSuite(). See ai_staff_billing.',
         'ai_staff_general' => 'TODO: register in aiSuite(). See ai_staff_billing.',
-        'max_minds' => "TODO: register in quantityLimits(). Enforced via AiPlanAccess::QUANTITY_KEYS['minds'] + CheckPlanLimit(ai_minds); not yet in the admin plan form.",
-        'max_personas' => "TODO: register in quantityLimits(). Enforced via AiPlanAccess::QUANTITY_KEYS['personas'] + CheckPlanLimit(ai_personas); not yet in the admin plan form.",
-        'max_companions' => "TODO: register in quantityLimits(). Enforced via AiPlanAccess::QUANTITY_KEYS['companions'] + CheckPlanLimit(ai_companions); not yet in the admin plan form.",
         'max_marketing_strategies' => "TODO: register in quantityLimits(). Enforced via AiPlanAccess::QUANTITY_KEYS['marketing_strategies']; not yet in the admin plan form.",
     ];
 

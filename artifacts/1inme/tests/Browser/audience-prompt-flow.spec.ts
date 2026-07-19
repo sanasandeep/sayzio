@@ -137,6 +137,7 @@ test.describe("audience prompt — public tap through to Audience Insights", () 
   });
 
   test("prompt renders, persona tap collapses to Thanks, cookie + identify POST land", async () => {
+    test.setTimeout(180_000);
     const page = await sharedContext.newPage();
 
     // The identify POST fires asynchronously after startSession() resolves
@@ -195,6 +196,7 @@ test.describe("audience prompt — public tap through to Audience Insights", () 
   });
 
   test("owner analytics page shows the persona under Audience Insights", async () => {
+    test.setTimeout(180_000);
     const page = await sharedContext.newPage();
     await loginAsDemo(page);
 

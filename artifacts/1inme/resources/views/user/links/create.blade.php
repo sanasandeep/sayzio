@@ -162,7 +162,7 @@
             @include('user.links.partials.alias-checker')
             <div class="mb-6" x-data="aliasChecker('{{ route('user.links.check-alias') }}')" x-init="init()">
                 <label for="create-link-alias" class="block text-sm font-medium text-white mb-1.5">
-                    Your link address <span class="font-normal text-white/40">— optional</span>
+                    Your link address <span class="font-normal text-white/40"> - optional</span>
                 </label>
                 <div class="flex items-stretch rounded-xl bg-white/5 border overflow-hidden transition-colors"
                      :class="state === 'available' ? 'border-emerald-500/40 focus-within:ring-2 focus-within:ring-emerald-500/40'

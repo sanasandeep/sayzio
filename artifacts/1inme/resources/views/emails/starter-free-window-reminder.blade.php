@@ -15,7 +15,7 @@
             @else
                 is coming up for renewal.
             @endif
-            Good news: Starter is free forever — we just like to check in once a year. Renewing keeps your account and all your links exactly as they are. Nothing changes, nothing is locked, and you won't lose anything.
+            Good news: Starter is free forever; we just like to check in once a year. Renewing keeps your account and all your links exactly as they are. Nothing changes, nothing is locked, and you won't lose anything.
         </p>
         <div style="text-align: center; margin: 30px 0;">
             <a href="{{ $renewUrl }}" style="background-color: #3d6bff; color: white; padding: 12px 32px; border-radius: 8px; text-decoration: none; font-size: 14px; font-weight: 600;">Renew free for another year</a>
@@ -25,7 +25,7 @@
         </p>
         <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 28px 0 16px;">
         <p style="color: #94a3b8; font-size: 12px; line-height: 1.6;">
-            This is just a friendly reminder — your account stays active whether or not you renew. You can manage these reminders in your notification settings.
+            This is just a friendly reminder; your account stays active whether or not you renew. You can manage these reminders in your notification settings.
         </p>
     </div>
 </body>

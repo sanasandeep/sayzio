@@ -407,7 +407,7 @@ export default function Setup() {
             {[
               { n: "1", t: "Pick your persona", d: "so we can suggest templates that fit you." },
               { n: "2", t: "Choose a template", d: "and we'll build your first page from it." },
-              { n: "3", t: "Connect WhatsApp", d: "optional — sign in faster and stay reachable." },
+              { n: "3", t: "Connect WhatsApp", d: "optional: sign in faster and stay reachable." },
             ].map((row) => (
               <View key={row.n} style={styles.bulletRow}>
                 <View style={[styles.bulletNum, { backgroundColor: colors.card, borderColor: colors.border }]}>
@@ -430,7 +430,7 @@ export default function Setup() {
           <View style={styles.section}>
             <Text style={[styles.h2, { color: colors.foreground }]}>Who are you?</Text>
             <Text style={[styles.sub, { color: colors.mutedForeground }]}>
-              Pick the closest fit — you can change this anytime.
+              Pick the closest fit; you can change this anytime.
             </Text>
             <View style={{ height: 16 }} />
             {taxonomy.isLoading ? (
@@ -541,7 +541,7 @@ export default function Setup() {
               ))
             ) : (
               <Text style={[styles.sub, { color: colors.mutedForeground }]}>
-                No templates to show right now — skip and start from a blank page anytime.
+                No templates to show right now; skip and start from a blank page anytime.
               </Text>
             )}
             <View style={{ height: 12 }} />
@@ -563,7 +563,7 @@ export default function Setup() {
             </View>
             <Text style={[styles.h2, { color: colors.foreground }]}>Add your WhatsApp number</Text>
             <Text style={[styles.sub, { color: colors.mutedForeground }]}>
-              Verify a number to sign in faster with a one-time code and stay reachable. Optional —
+              Verify a number to sign in faster with a one-time code and stay reachable. Optional;
               you can skip.
             </Text>
             <View style={{ height: 16 }} />
@@ -641,7 +641,7 @@ export default function Setup() {
             <Text style={[styles.sub, { color: colors.mutedForeground }]}>
               By default everything stays visible when a stranger looks you up.
               People who've already saved you (and you) always see everything.
-              Optional — you can change this anytime in Settings.
+              Optional; you can change this anytime in Settings.
             </Text>
             <View style={{ height: 16 }} />
             {contactPrivacy.isLoading || !privacyPrefs ? (
@@ -714,8 +714,8 @@ export default function Setup() {
             <Text style={[styles.h1, { color: colors.foreground, textAlign: "center" }]}>You're all set</Text>
             <Text style={[styles.sub, { color: colors.mutedForeground, textAlign: "center" }]}>
               {createdLinkId != null
-                ? "Your page is ready — let's customize it, add your links, and make it yours."
-                : "Your dashboard is ready — tweak your page, add links, and share it anywhere."}
+                ? "Your page is ready. Let's customize it, add your links, and make it yours."
+                : "Your dashboard is ready. Tweak your page, add links, and share it anywhere."}
             </Text>
             <View style={{ height: 24 }} />
             <View style={{ alignSelf: "stretch" }}>

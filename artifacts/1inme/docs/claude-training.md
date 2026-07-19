@@ -115,6 +115,7 @@ Every link is created via **Create Link → Step 1** (type + alias) **→ Step 2
 | Paid Page | `paid_page` | Creator feed/gating; template in `settings['paid_page']` |
 | Reviews Page | `reviews` | Standalone review wall |
 | Brand / Press Kit | `brand_kit` | Press kit with logos, palette, fonts, brand voice |
+| Updates / Changelog | `updates` | Dated announcement feed; entries have title/body/image/tag/status/published_date; owner CRUD via `/me/updates/{link}/entries`; toggle `module_updates`, cap `max_updates`. |
 
 ### 3.4 AI-powered (their own types)
 
@@ -208,12 +209,18 @@ without tables/QR, without tax/coupon, and without payment. Tables:
 ### 5.3 Service Booking / appointment requests (`service_booking`)
 
 A service catalog with weekly availability. Visitors request a time slot; the owner
-confirms or declines from a bookings dashboard. No payment collected.
+confirms or declines from a bookings dashboard.
 
-- **Builder:** Services (name, desc, duration, price/rate — display only).
+- **Builder:** Services (name, desc, duration, price/rate).
 - **Availability:** weekly day/hour schedule + blocked-off dates.
 - **Bookings dashboard:** confirm or decline each request; notes can be added.
 - **Visitor flow:** pick service → pick slot → submit request → "awaiting confirmation".
+- **Paid bookings:** `payment_mode` field on the ServiceBooking root: `none`
+  (request only, no payment), `deposit` (partial upfront), or `full` (full price
+  upfront). Deposit is shaped by `deposit_type` (`fixed` | `percent`) +
+  `deposit_value`. Payment via owner's connected payout provider.
+- **Appointment reminders:** `reminder_lead_minutes` array (e.g. `[1440, 60]`);
+  dispatched by `service_booking:send-reminders` scheduled command.
 - **Mobile:** full native parity.
 
 ### 5.4 QR Studio Pro
@@ -280,7 +287,11 @@ separately) against the workspace **owner**; auto-refund on parse failure.
 **Spam filtering.** Configurable blocked keywords (platform defaults + user-added);
 blocked keywords can be individually toggled off. Trusted-senders allowlist
 (importable from CSV). Forwarding to email or webhook (source-filtered, test-send,
-retry, failure alerts).
+retry, failure alerts). Forward sources include inbound-message types (biolink DMs,
+form submissions) and **link events** (`link_created`, `link_expired`,
+`click_milestone`). Link-event forwarding requires the `webhook_triggers` plan
+feature. `InboxAggregator::linkEventLabels()` is the single source of link-event
+source keys.
 
 ---
 
@@ -620,6 +631,20 @@ Key mobile-specific notes:
 - **Audience Insights:** Link analytics → Audience Insights tab.
 - **Credit notes:** shown alongside invoices in the Billing section.
 - **Competitor Biolink Teardown:** available in the mobile app.
+- **Updates / Changelog:** native screen (`app/links/[id]/updates.tsx`) — lists all
+  entries (draft + published), shows status/tag badges, create/edit/delete via modal.
+  API lib at `lib/api/updates.ts` uses `GET|POST /me/updates/{link}/entries` +
+  `PUT|DELETE /me/updates/{link}/entries/{entry}` + `PATCH /me/updates/{link}/settings`.
+
+### 14.1b Zio Browser desktop app
+
+Cross-platform Electron app (Windows / macOS / Linux); downloaded from `/download`
+(`ZioBrowserDownloadController`). Key additions over the web app:
+
+- **Workspace profiles** — isolated SQLite-backed sessions scoped per workspace;
+  `X-Browser-Workspace-Id` header lets the server scope responses per profile.
+- **Device Lab** — CSS-scaled iframe grid for multi-device previews.
+- **Offline access** — links and dashboard readable without a connection.
 
 ### 14.2 Browser extension (`artifacts/1inme-extension`)
 

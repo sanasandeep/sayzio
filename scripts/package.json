@@ -10,10 +10,12 @@
     "check:ai-tool-names": "tsx ./src/check-ai-tool-names.ts",
     "check:doc-constants": "tsx ./src/check-doc-constants.ts",
     "check:light-mode-pairing": "tsx ./src/check-light-mode-pairing.ts",
+    "check:toolbar-theme-color": "tsx ./src/check-toolbar-theme-color.ts",
     "check:undefined-css-var": "tsx ./src/check-undefined-css-var-fallback.ts",
     "check:home-preview-blocks": "tsx ./src/check-home-preview-blocks.ts",
     "check:form-template-keys": "tsx ./src/check-form-template-keys.ts",
     "check:ci-passthrough-names": "tsx ./src/check-ci-passthrough-names.ts",
+    "check:config-secrets": "tsx ./src/check-config-secrets.ts",
     "check:blade-comment-echo": "tsx ./src/check-blade-comment-echo.ts",
     "check:storage-url-resolve": "tsx ./src/check-storage-url-resolve.ts",
     "check:blade-json-in-attr": "tsx ./src/check-blade-json-in-attr.ts",
@@ -30,8 +32,11 @@
     "check:dialer-typecheck": "tsx ./src/check-dialer-standalone-typecheck.ts",
     "check:claude-training-api-index": "tsx ./src/check-claude-training-api-index.ts",
     "check:api-server-paths": "tsx ./src/check-api-server-paths.ts",
+    "check:em-dash": "tsx ./src/check-em-dash.ts",
+    "sync:branch-protection": "tsx ./src/sync-branch-protection.ts",
     "test": "vitest run",
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "check:unbalanced-parens": "tsx ./src/check-unbalanced-parens.ts"
   },
   "devDependencies": {
     "@types/node": "catalog:",

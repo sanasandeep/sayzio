@@ -216,7 +216,7 @@
 
                         <template x-if="!tailorHasAnyChanges()">
                             <div class="resume-import-note">
-                                Your resume already matches this JD well — nothing to change.
+                                Your resume already matches this JD well, nothing to change.
                             </div>
                         </template>
 

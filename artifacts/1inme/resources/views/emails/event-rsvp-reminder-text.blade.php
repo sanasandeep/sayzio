@@ -10,4 +10,4 @@ Where: {{ $link->icsData->location }}
 Need to update your RSVP?
 {{ $rsvp->manageUrl() }}
 
-— Sent automatically by Sayzio
+- Sent automatically by Sayzio

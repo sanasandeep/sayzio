@@ -6,7 +6,7 @@
     @include('user.ai._partials.header', [
         'kicker'   => 'AI',
         'title'    => 'Marketing projects',
-        'subtitle' => 'Save a named project once — its offer, audience, budget and brand pre-fill every new strategy you build for it.',
+        'subtitle' => 'Save a named project once, its offer, audience, budget and brand pre-fill every new strategy you build for it.',
         'balance'  => $balance,
     ])
 
@@ -30,7 +30,7 @@
             <i class="fas fa-folder-open text-3xl text-indigo-300/70"></i>
             <h2 class="text-lg font-semibold text-white mt-4">No projects yet</h2>
             <p class="text-sm text-white/50 mt-1 max-w-md mx-auto">
-                Create a project to store the business, offer, audience and brand behind your marketing —
+                Create a project to store the business, offer, audience and brand behind your marketing,
                 then reuse it every time you build a strategy.
             </p>
             <a href="{{ route('user.ai.marketing-strategist.projects.create') }}"

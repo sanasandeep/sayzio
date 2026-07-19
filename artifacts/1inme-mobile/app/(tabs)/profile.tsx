@@ -661,8 +661,8 @@ export default function Profile() {
                     {!biometricSupported
                       ? "Set up a fingerprint or face in your device settings to use this."
                       : biometricEnabled
-                        ? "On — you'll be asked when you open the app."
-                        : "Off — sign in with your code each time."}
+                        ? "On: you'll be asked when you open the app."
+                        : "Off: sign in with your code each time."}
                   </Text>
                 </View>
                 {biometricBusy ? (
@@ -723,8 +723,8 @@ export default function Profile() {
                     ]}
                   >
                     {wakeWordEnabled
-                      ? "On — listens while the app is open. Wake checks don't use AI credits."
-                      : "Off — tap the floating mic to start the AI Voice Assistant."}
+                      ? "On: listens while the app is open. Wake checks don't use AI credits."
+                      : "Off: tap the floating mic to start the AI Voice Assistant."}
                   </Text>
                 </View>
                 {wakeWordBusy ? (
@@ -1223,7 +1223,7 @@ export default function Profile() {
               {clampedCustomMs == null
                 ? "Enter a number to continue."
                 : customOutOfRange
-                  ? `Out of range — will be saved as ${formatIdleTimeout(clampedCustomMs)}.`
+                  ? `Out of range; will be saved as ${formatIdleTimeout(clampedCustomMs)}.`
                   : `Re-locks after ${formatIdleTimeout(clampedCustomMs)} of inactivity.`}
             </Text>
 

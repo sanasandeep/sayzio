@@ -21,7 +21,7 @@
 
     @include('user.partials.page-hero', [
         'title' => 'Design: ' . $form->title,
-        'subtitle' => 'Match your brand — colors, fonts, layout and custom CSS.',
+        'subtitle' => 'Match your brand, colors, fonts, layout and custom CSS.',
         'icon' => 'fa-palette',
         'back' => route('user.forms.show', $form),
     ])
@@ -116,7 +116,7 @@
                         </select>
                     </div>
                     <div class="sm:col-span-2">
-                        <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Image opacity (<span x-text="cardImageOpacity"></span>%) <span class="text-[10px]" style="color: var(--text-faint);">— lower = more card color showing through</span></label>
+                        <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Image opacity (<span x-text="cardImageOpacity"></span>%) <span class="text-[10px]" style="color: var(--text-faint);"> - lower = more card color showing through</span></label>
                         <input type="range" name="card_image_opacity" min="0" max="100" x-model.number="cardImageOpacity" class="w-full accent-blue-500">
                     </div>
                 </div>
@@ -213,7 +213,7 @@
             <div class="card-premium p-6" x-data="{ open: {{ !empty($design['custom_css']) ? 'true' : 'false' }} }">
                 <button type="button" @click="open = !open" class="flex items-center gap-3 w-full text-left">
                     <i class="fas fa-code text-cyan-400 text-xs"></i>
-                    <h3 class="text-sm font-bold flex-1" style="color: var(--text-primary);">Advanced — custom CSS</h3>
+                    <h3 class="text-sm font-bold flex-1" style="color: var(--text-primary);">Advanced, custom CSS</h3>
                     <i class="fas fa-chevron-down text-xs" :class="open ? 'rotate-180' : ''" style="color: var(--text-faint); transition: transform 0.2s;"></i>
                 </button>
                 <div x-show="open" x-transition class="mt-4">
@@ -252,10 +252,10 @@
                     <i class="fas fa-save text-xs"></i> Save Design
                 </button>
                 @else
-                <button type="button" disabled class="btn-primary w-full mt-4 px-6 py-3 text-sm font-semibold inline-flex items-center justify-center gap-2 opacity-60 cursor-not-allowed" title="Your role doesn't allow editing forms — ask a workspace admin">
+                <button type="button" disabled class="btn-primary w-full mt-4 px-6 py-3 text-sm font-semibold inline-flex items-center justify-center gap-2 opacity-60 cursor-not-allowed" title="Your role doesn't allow editing forms, ask a workspace admin">
                     <i class="fas fa-lock text-xs"></i> Save Design
                 </button>
-                <p class="text-xs mt-2 text-center" style="color:#b45309;"><i class="fas fa-lock"></i> View-only — saving is reserved for admins.</p>
+                <p class="text-xs mt-2 text-center" style="color:#b45309;"><i class="fas fa-lock"></i> View-only, saving is reserved for admins.</p>
                 @endcanInWorkspace
             </div>
         </aside>

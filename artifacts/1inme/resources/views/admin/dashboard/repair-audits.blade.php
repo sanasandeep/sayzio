@@ -9,11 +9,11 @@
             <h2 class="text-lg font-semibold text-white">Schema repair audit log</h2>
             <p class="text-sm text-white/50 max-w-3xl">
                 Every run of the dashboard's one-click <span class="text-white/70 font-medium">Fix now</span>
-                schema repair — who ran it, when, and exactly which columns were
+                schema repair, who ran it, when, and exactly which columns were
                 added/backfilled per table. Whole-missing tables the repair could
                 not recreate are listed too (those still need
                 <code class="px-1 py-0.5 rounded bg-black/30 text-white/70">php artisan migrate --force</code>).
-                Only schema metadata is recorded — never row data.
+                Only schema metadata is recorded, never row data.
             </p>
         </div>
         <a href="{{ route('admin.dashboard') }}"

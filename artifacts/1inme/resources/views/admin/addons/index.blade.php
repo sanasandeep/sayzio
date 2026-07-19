@@ -46,7 +46,7 @@
                     @if($monthly['inr'] !== null)
                         <span class="text-white/50 font-normal"> / {{ $monthly['inr'] }}</span>
                     @else
-                        <span class="text-white/30 font-normal"> / —</span>
+                        <span class="text-white/30 font-normal"> / - </span>
                     @endif
                 </span>
             </div>
@@ -57,7 +57,7 @@
                     @if($annual['inr'] !== null)
                         <span class="text-white/50 font-normal"> / {{ $annual['inr'] }}</span>
                     @else
-                        <span class="text-white/30 font-normal"> / —</span>
+                        <span class="text-white/30 font-normal"> / - </span>
                     @endif
                 </span>
             </div>

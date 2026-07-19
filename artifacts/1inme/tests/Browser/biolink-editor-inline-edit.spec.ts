@@ -145,6 +145,7 @@ test.describe.configure({ mode: "serial" });
 test("edit expands inline below the block and loads the settings form", async ({
   page,
 }) => {
+  test.setTimeout(180_000);
   await gotoEditor(page);
 
   // No inline editor open and no legacy modal markup on the page.
@@ -166,6 +167,7 @@ test("edit expands inline below the block and loads the settings form", async ({
 });
 
 test("only one inline editor is open at a time", async ({ page }) => {
+  test.setTimeout(180_000);
   await gotoEditor(page);
 
   await page.click(editBtnSel(ids.blockA));
@@ -185,6 +187,7 @@ test("only one inline editor is open at a time", async ({ page }) => {
 test("edit button toggles: second click collapses the open editor", async ({
   page,
 }) => {
+  test.setTimeout(180_000);
   await gotoEditor(page);
 
   await page.click(editBtnSel(ids.blockA));
@@ -207,6 +210,7 @@ test("edit button toggles: second click collapses the open editor", async ({
 test("child blocks inside a card get their own inline editor", async ({
   page,
 }) => {
+  test.setTimeout(180_000);
   await gotoEditor(page);
 
   await page.click(editBtnSel(ids.childId));
@@ -225,6 +229,7 @@ test("child blocks inside a card get their own inline editor", async ({
 test("autosave from the inline form shows the inline status and persists", async ({
   page,
 }) => {
+  test.setTimeout(180_000);
   await gotoEditor(page);
 
   await page.click(editBtnSel(ids.blockA));

@@ -72,6 +72,12 @@ class DashboardController extends Controller
         // a persistent dashboard surface. Cached.
         $bgTemplateHealth = BgTemplateHealth::cached();
 
+        // Proactive stale-download-links warning: the SayZio Browser release
+        // refresh has been failing continuously beyond the watchdog threshold
+        // and an alert episode is open (see zio-browser:check-freshness).
+        // Cheap: one AppSetting read.
+        $zioBrowserHealth = \App\Console\Commands\CheckZioBrowserReleaseFreshness::openEpisode();
+
         // Proactive failing-scheduled-job warning: jobs with an open failure
         // episode (last run failed, no success since) surfaced at a glance,
         // mirroring the SchemaHealth banner. Cheap: one cached AppSetting read.
@@ -90,7 +96,7 @@ class DashboardController extends Controller
             // best-effort — never let a GitHub API blip break the dashboard
         }
 
-        return view('admin.dashboard.index', compact('stats', 'schemaHealth', 'workspaceColumnHealth', 'expectedSchemaHealth', 'statsStorage', 'contactRecipientHealth', 'templateGalleryHealth', 'bgTemplateHealth', 'failureEpisodes', 'updateStatus'));
+        return view('admin.dashboard.index', compact('stats', 'schemaHealth', 'workspaceColumnHealth', 'expectedSchemaHealth', 'statsStorage', 'contactRecipientHealth', 'templateGalleryHealth', 'bgTemplateHealth', 'zioBrowserHealth', 'failureEpisodes', 'updateStatus'));
     }
 
     /**

@@ -146,7 +146,7 @@ export default function CreateTab() {
           Create a new link
         </Text>
         <Text style={[styles.subtitle, { color: colors.mutedForeground }]}>
-          Pick one to continue — we&apos;ll only ask for the fields that matter
+          Pick one to continue; we&apos;ll only ask for the fields that matter
           for that type.
         </Text>
       </View>

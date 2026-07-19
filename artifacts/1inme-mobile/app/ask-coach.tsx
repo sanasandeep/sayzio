@@ -205,7 +205,7 @@ export default function AskCoachScreen() {
           >
             {history.length === 0 ? (
               <Text style={[styles.hint, { color: colors.mutedForeground }]}>
-                Ask anything about your Sayzio — &quot;What was my best link last
+                Ask anything about your Sayzio, like &quot;What was my best link last
                 week?&quot;, &quot;How many sales last month?&quot;
               </Text>
             ) : (

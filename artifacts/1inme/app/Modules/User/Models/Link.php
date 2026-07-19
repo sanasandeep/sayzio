@@ -727,6 +727,15 @@ protected $fillable = [
      */
     public const TYPE_BRAND_KIT      = 'brand_kit';
 
+    /**
+     * Standalone "Updates" (Changelog) page. Creators post dated
+     * announcements / changelog entries here; followers are notified on
+     * first publish. Entries are stored in `update_entries` and rendered
+     * newest-first with pagination. Deliberately NOT part of BIOLINK_FAMILY:
+     * it has its own public view and entry-CRUD controller.
+     */
+    public const TYPE_UPDATES        = 'updates';
+
     public const BIOLINK_FAMILY = [
         self::TYPE_BIOLINK,
         self::TYPE_CONVERSATIONAL,
@@ -747,6 +756,14 @@ protected $fillable = [
     public function scopeBiolinkFamily($query)
     {
         return $query->whereIn('type', self::BIOLINK_FAMILY);
+    }
+
+    /**
+     * UpdateEntry relationship — changelog entries on this Updates-page link.
+     */
+    public function updateEntries()
+    {
+        return $this->hasMany(\App\Modules\User\Models\UpdateEntry::class);
     }
 
     /** Reviews relationship — native reviews submitted on this link. */

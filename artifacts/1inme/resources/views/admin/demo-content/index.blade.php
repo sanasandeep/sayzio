@@ -75,10 +75,10 @@
                 tiers. Existing real users are never touched.
             </p>
             <ul class="text-xs mb-4 space-y-1.5" style="color: var(--text-dimmed);">
-                <li><span class="inline-block w-2 h-2 rounded-full bg-emerald-400 mr-2"></span><strong>Public</strong> — visible to anyone</li>
-                <li><span class="inline-block w-2 h-2 rounded-full bg-sky-400 mr-2"></span><strong>Registered</strong> — visible to logged-in viewers</li>
-                <li><span class="inline-block w-2 h-2 rounded-full bg-fuchsia-400 mr-2"></span><strong>Followers-only</strong> — must follow first</li>
-                <li><span class="inline-block w-2 h-2 rounded-full bg-amber-400 mr-2"></span><strong>Subscribers-only</strong> — paid / subscribed</li>
+                <li><span class="inline-block w-2 h-2 rounded-full bg-emerald-400 mr-2"></span><strong>Public</strong>, visible to anyone</li>
+                <li><span class="inline-block w-2 h-2 rounded-full bg-sky-400 mr-2"></span><strong>Registered</strong>, visible to logged-in viewers</li>
+                <li><span class="inline-block w-2 h-2 rounded-full bg-fuchsia-400 mr-2"></span><strong>Followers-only</strong>, must follow first</li>
+                <li><span class="inline-block w-2 h-2 rounded-full bg-amber-400 mr-2"></span><strong>Subscribers-only</strong>, paid / subscribed</li>
             </ul>
             <form method="POST" action="{{ route('admin.demo-content.seed') }}"
                   onsubmit="return window.themedConfirmSubmit(this, {title: 'Re-seed demo content?', message: 'Any existing demo rows will be replaced.', confirmText: 'Re-seed', confirmIcon: 'fa-rotate', iconClass: 'fa-rotate'})">

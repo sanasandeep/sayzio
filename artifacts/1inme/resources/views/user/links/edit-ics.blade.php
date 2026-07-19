@@ -198,14 +198,14 @@
                     }
                     if (this.freq === 'monthly' && this.monthlyMode === 'weekday_ordinal') {
                         var ord = { '1':'first', '2':'second', '3':'third', '4':'fourth', '-1':'last' }[this.monthlyOrdinal] || 'first';
-                        s += ' — on the ' + ord + ' weekday';
+                        s += ', on the ' + ord + ' weekday';
                     }
                     if (this.endMode === 'count') {
                         var n = document.querySelector('[name=recurrence_count]')?.value;
-                        if (n) s += ' — ends after ' + n + ' time' + (n == 1 ? '' : 's');
+                        if (n) s += ', ends after ' + n + ' time' + (n == 1 ? '' : 's');
                     } else if (this.endMode === 'until') {
                         var u = document.querySelector('[name=recurrence_until]')?.value;
-                        if (u) s += ' — until ' + u;
+                        if (u) s += ', until ' + u;
                     }
                     return s + '.';
                 }
@@ -225,7 +225,7 @@
         <div class="ics-section">
             <div class="ics-section-head">
                 <div class="ics-section-icon"><i class="fas fa-info-circle"></i></div>
-                <div><h2 class="ics-section-title">About the event</h2><p class="ics-section-sub">The basics — what it's called, where, and what it's about.</p></div>
+                <div><h2 class="ics-section-title">About the event</h2><p class="ics-section-sub">The basics, what it's called, where, and what it's about.</p></div>
             </div>
             <div class="space-y-4">
                 <div>
@@ -322,7 +322,7 @@
                     <div>
                         <label class="ics-label">When does it stop?</label>
                         <select x-model="endMode" class="ics-input">
-                            <option value="none">Never — keeps going forever</option>
+                            <option value="none">Never, keeps going forever</option>
                             <option value="count">After a certain number of times</option>
                             <option value="until">On a specific date</option>
                         </select>
@@ -364,7 +364,7 @@
                 <div x-show="freq === 'yearly'" x-cloak>
                     <label class="ics-label">Which month?</label>
                     <select name="yearly_month" x-model.number="yearlyMonth" class="ics-input md:w-64">
-                        <option value="0">— Same month as the start date —</option>
+                        <option value="0">Same month as the start date</option>
                         @foreach([1=>'January',2=>'February',3=>'March',4=>'April',5=>'May',6=>'June',7=>'July',8=>'August',9=>'September',10=>'October',11=>'November',12=>'December'] as $n => $name)
                             <option value="{{ $n }}">{{ $name }}</option>
                         @endforeach
@@ -439,7 +439,7 @@
         <div class="ics-section">
             <div class="ics-section-head">
                 <div class="ics-section-icon"><i class="fas fa-list-ul"></i></div>
-                <div><h2 class="ics-section-title">Agenda</h2><p class="ics-section-sub">Optional — add a schedule of sessions or activities. Shown on your public event page.</p></div>
+                <div><h2 class="ics-section-title">Agenda</h2><p class="ics-section-sub">Optional, add a schedule of sessions or activities. Shown on your public event page.</p></div>
             </div>
             <template x-if="agendaItems.length === 0">
                 <p class="text-xs mb-3" style="color: var(--text-muted);">No agenda items yet. Add sessions, talks, or activities below.</p>
@@ -485,7 +485,7 @@
         <div class="ics-section">
             <div class="ics-section-head">
                 <div class="ics-section-icon"><i class="fas fa-file-download"></i></div>
-                <div><h2 class="ics-section-title">Documents</h2><p class="ics-section-sub">Optional — attach PDFs, slides, or other files for attendees to download. Max 20 files.</p></div>
+                <div><h2 class="ics-section-title">Documents</h2><p class="ics-section-sub">Optional, attach PDFs, slides, or other files for attendees to download. Max 20 files.</p></div>
             </div>
             <template x-if="documents.length === 0 && !showFilePicker">
                 <p class="text-xs mb-3" style="color: var(--text-muted);">No documents attached yet.</p>
@@ -545,7 +545,7 @@
         <div class="ics-section">
             <div class="ics-section-head">
                 <div class="ics-section-icon"><i class="fas fa-user"></i></div>
-                <div><h2 class="ics-section-title">Who's organizing?</h2><p class="ics-section-sub">Optional — shown to guests in their calendar app.</p></div>
+                <div><h2 class="ics-section-title">Who's organizing?</h2><p class="ics-section-sub">Optional, shown to guests in their calendar app.</p></div>
             </div>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
@@ -600,7 +600,7 @@
                         <div class="text-sm font-semibold" style="color: var(--text-primary);"><i class="fas fa-calendar-check mr-1.5" style="color: var(--c-primary);"></i>RSVPs</div>
                         <p class="text-xs mt-0.5" style="color: var(--text-muted);">
                             @if(!empty($s['ticketing_enabled']))
-                                Not applicable — this event sells tickets instead of collecting RSVPs.
+                                Not applicable, this event sells tickets instead of collecting RSVPs.
                             @else
                                 Free events accept RSVPs by default. Turn this off if you don't want guests to be able to RSVP.
                             @endif
@@ -667,7 +667,7 @@
                                 <i class="fas fa-plus mr-1"></i>Add question
                             </button>
                         </div>
-                        <template x-if="questions.length === 0"><p class="text-xs" style="color: var(--text-muted);">No custom questions yet — guests will only see the default fields.</p></template>
+                        <template x-if="questions.length === 0"><p class="text-xs" style="color: var(--text-muted);">No custom questions yet, guests will only see the default fields.</p></template>
                         <div class="space-y-2">
                             <template x-for="(q, i) in questions" :key="i">
                                 <div class="ics-tile-strong p-3 space-y-2">
@@ -707,7 +707,7 @@
 
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-2 mb-4">
                     @foreach([
-                        'off' => ['Don\'t sync', 'Just create the .ics file — nothing pushed to a calendar.', 'fa-circle-xmark'],
+                        'off' => ['Don\'t sync', 'Just create the .ics file, nothing pushed to a calendar.', 'fa-circle-xmark'],
                         'one_time' => ['Push once', 'Save it to a connected calendar now. Future edits won\'t auto-update.', 'fa-arrow-up-from-bracket'],
                         'keep_in_sync' => ['Keep in sync', 'Push now and re-sync every time you save changes here.', 'fa-rotate'],
                     ] as $mode => $meta)
@@ -728,7 +728,7 @@
                     @else
                         <label class="ics-label">Push to which calendar?</label>
                         <select name="push_calendar_account_id" class="ics-input">
-                            <option value="">— pick a calendar —</option>
+                            <option value="">pick a calendar</option>
                             @foreach($calAccounts as $a)
                                 <option value="{{ $a->id }}" {{ (string)old('push_calendar_account_id', $s['push_calendar_account_id'] ?? '') === (string)$a->id ? 'selected' : '' }}>
                                     {{ ucfirst($a->provider) }} · {{ $a->display_name ?: $a->external_account_id }}

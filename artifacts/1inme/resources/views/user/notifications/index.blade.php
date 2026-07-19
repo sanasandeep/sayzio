@@ -61,7 +61,7 @@
                             <p class="text-sm" style="color: var(--text-primary);">
                                 <span class="font-semibold">{{ $d['requester_name'] ?? 'A teammate' }}</span>
                                 is asking for access to
-                                <span class="font-semibold">{{ $d['workspace_name'] ?? 'a workspace' }}</span>@if(!empty($d['path'])) — they tried to open <code class="text-xs px-1 rounded" style="background: var(--bg-subtle);">/{{ ltrim($d['path'], '/') }}</code>@endif.
+                                <span class="font-semibold">{{ $d['workspace_name'] ?? 'a workspace' }}</span>@if(!empty($d['path'])), they tried to open <code class="text-xs px-1 rounded" style="background: var(--bg-subtle);">/{{ ltrim($d['path'], '/') }}</code>@endif.
                             </p>
                             @if(!empty($d['note']))
                                 <blockquote class="mt-2 text-sm italic border-l-2 pl-3 py-1"
@@ -75,7 +75,7 @@
                         @elseif($n->type === 'workspace_member_left')
                             <p class="text-sm" style="color: var(--text-primary);">
                                 <span class="font-semibold">{{ $d['user_name'] ?? 'A teammate' }}</span>
-                                left <span class="font-semibold">{{ $d['workspace_name'] ?? 'your workspace' }}</span>@if(!empty($d['reassigned'])) — their {{ $d['reassigned'] }} item{{ $d['reassigned'] == 1 ? '' : 's' }} moved to you@endif.
+                                left <span class="font-semibold">{{ $d['workspace_name'] ?? 'your workspace' }}</span>@if(!empty($d['reassigned'])), their {{ $d['reassigned'] }} item{{ $d['reassigned'] == 1 ? '' : 's' }} moved to you@endif.
                             </p>
                             <a href="{{ route('user.team.index') }}" class="inline-flex items-center gap-1 mt-1 text-xs font-semibold text-blue-600 hover:underline">
                                 <i class="fas fa-users"></i> View team
@@ -123,7 +123,7 @@
                                 <span class="font-semibold text-red-600">Overdue:</span>
                                 a card you're assigned to in
                                 <span class="font-semibold">{{ $d['board_name'] ?? 'a board' }}</span>
-                                — <span class="italic">{{ \Illuminate\Support\Str::limit($d['message'] ?? '', 80) }}</span>
+                               , <span class="italic">{{ \Illuminate\Support\Str::limit($d['message'] ?? '', 80) }}</span>
                                 @if(!empty($d['due_date'])) <span class="text-xs" style="color: var(--text-faint);">(was due {{ $d['due_date'] }})</span>@endif
                             </p>
                             @if(!empty($d['url']))
@@ -146,7 +146,7 @@
                                 <i class="fas fa-comment-dots mr-1" style="color:#3d6bff;"></i>
                                 {{ $d['message'] ?? 'A client commented on a delivery project' }}
                                 @if(!empty($d['snippet']))
-                                    <span class="italic">— {{ \Illuminate\Support\Str::limit($d['snippet'], 100) }}</span>
+                                    <span class="italic"> - {{ \Illuminate\Support\Str::limit($d['snippet'], 100) }}</span>
                                 @endif
                             </p>
                             @if(!empty($d['url']))
@@ -209,7 +209,7 @@
             <div class="flex items-center gap-2 mb-3">
                 <i class="fas fa-trash-can-arrow-up text-sm" style="color: var(--text-faint);"></i>
                 <h2 class="text-sm font-semibold" style="color: var(--text-muted);">Recently dismissed</h2>
-                <span class="text-xs" style="color: var(--text-faint);">— restore within 30 days</span>
+                <span class="text-xs" style="color: var(--text-faint);"> - restore within 30 days</span>
             </div>
             <div class="rounded-2xl border divide-y" style="background: var(--bg-card); border-color: var(--border-soft);">
                 @foreach($dismissed as $n)

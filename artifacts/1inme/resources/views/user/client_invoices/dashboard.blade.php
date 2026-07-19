@@ -51,7 +51,7 @@
                     <td class="p-3">
                         <span class="text-[10px] font-bold px-2 py-0.5 rounded-full" style="background: rgba(61,107,255,0.12); color: #3d6bff;">{{ strtoupper($inv->status) }}</span>
                         @if(!empty($sendFailedMap[$inv->id]) && $inv->status !== 'paid')
-                            <span class="ml-1 inline-flex items-center text-[10px] font-bold px-2 py-0.5 rounded-full" style="background: rgba(225,29,72,0.12); color:#e11d48;" title="The last attempt to email this invoice failed — it was not delivered.">
+                            <span class="ml-1 inline-flex items-center text-[10px] font-bold px-2 py-0.5 rounded-full" style="background: rgba(225,29,72,0.12); color:#e11d48;" title="The last attempt to email this invoice failed, it was not delivered.">
                                 <i class="fas fa-triangle-exclamation mr-1"></i> SEND FAILED
                             </span>
                         @endif

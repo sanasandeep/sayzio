@@ -24,7 +24,7 @@
     <div class="glass rounded-2xl p-6">
         <h1 class="text-xl font-semibold text-white">Email verification reminders</h1>
         <p class="text-sm text-white/60 mt-1">
-            A scheduled job emails users who still haven't verified their email a gentle, rate-limited nudge. Tune how often it runs — or switch it off entirely — below. Reminders always stop the moment a user verifies, respect each user's email preference, and never apply when email verification isn't meaningful under your login policy.
+            A scheduled job emails users who still haven't verified their email a gentle, rate-limited nudge. Tune how often it runs (or switch it off entirely) below. Reminders always stop the moment a user verifies, respect each user's email preference, and never apply when email verification isn't meaningful under your login policy.
         </p>
     </div>
 
@@ -94,7 +94,7 @@
                 <div>
                     <h3 class="text-sm font-semibold text-white">Weekly trend</h3>
                     <p class="text-[11px] text-white/40">
-                        Last {{ count($trend) }} weeks — users reminded (by their most recent reminder) and verifications after a reminder.
+                        Last {{ count($trend) }} weeks, users reminded (by their most recent reminder) and verifications after a reminder.
                     </p>
                 </div>
                 <div class="flex items-center gap-4 text-[11px] text-white/60">
@@ -217,7 +217,7 @@
         <div>
             <h2 class="text-base font-semibold text-white">Preview before going live</h2>
             <p class="text-xs text-white/50 mt-0.5">
-                Send the exact reminder email — with sample verification and unsubscribe links — to your own address ({{ optional(auth('admin')->user())->email ?? auth()->user()?->email }}) to confirm it looks right and that your SMTP is delivering. It goes through the same mailer the real reminders use.
+                Send the exact reminder email (with sample verification and unsubscribe links) to your own address ({{ optional(auth('admin')->user())->email ?? auth()->user()?->email }}) to confirm it looks right and that your SMTP is delivering. It goes through the same mailer the real reminders use.
             </p>
         </div>
         <form method="POST" action="{{ route('admin.email-verification-reminders.sample') }}">

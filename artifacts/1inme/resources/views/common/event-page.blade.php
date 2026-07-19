@@ -471,7 +471,7 @@
             if (it.status === 'accepted') {
                 status = '<span class="text-[11px] ev-accent-text font-semibold"><i class="fas fa-check mr-1"></i>Accepted' + (it.accepted_at ? ' ' + esc(fmtDate(it.accepted_at)) : '') + '</span>';
             } else {
-                status = '<span class="text-[11px] ev-muted-lite">' + (it.sent_by_me ? 'Pending — sent by you' : 'Pending — awaiting you') + '</span>';
+                status = '<span class="text-[11px] ev-muted-lite">' + (it.sent_by_me ? 'Pending (sent by you)' : 'Pending (awaiting you)') + '</span>';
             }
             var action = it.can_cancel
                 ? '<button type="button" data-cancel-id="' + it.exchange_id + '" class="ev-chip text-[11px] font-semibold px-2.5 py-1.5 rounded-lg hover:opacity-80 transition flex-shrink-0">Withdraw</button>'

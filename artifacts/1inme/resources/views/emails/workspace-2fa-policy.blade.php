@@ -10,13 +10,13 @@
 
             @if($alreadyEnrolled)
                 <p style="background:#ecfdf5; border:1px solid #a7f3d0; padding:12px; border-radius:8px; color:#065f46;">
-                    Good news — you already have 2FA enabled, so nothing changes for you.
+                    Good news: you already have 2FA enabled, so nothing changes for you.
                 </p>
             @else
                 @if($graceDeadline)
                     <p>You have until <strong>{{ $graceDeadline }}</strong> to enroll. After that, you'll be walked through setup the next time you sign in and won't be able to access {{ $workspace->name }} until enrollment is complete.</p>
                 @else
-                    <p>Enrollment is required immediately — you'll be walked through setup the next time you sign in.</p>
+                    <p>Enrollment is required immediately; you'll be walked through setup the next time you sign in.</p>
                 @endif
 
                 <p style="text-align:center; margin:24px 0;">
@@ -24,7 +24,7 @@
                 </p>
             @endif
 
-            <p style="font-size:12px; color:#6b7280; margin-top:24px;">If you weren't expecting this email, reply to your workspace owner — they made the change.</p>
+            <p style="font-size:12px; color:#6b7280; margin-top:24px;">If you weren't expecting this email, reply to your workspace owner; they made the change.</p>
         </td></tr>
     </table>
 </body>

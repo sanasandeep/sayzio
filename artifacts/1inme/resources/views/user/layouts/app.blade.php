@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
+    <meta name="theme-color" content="#0a0a14">
     <title>@yield('title', 'Dashboard') - {{ config('app.name') }}</title>
     @include('common.partials.default-icons')
     @vite(['resources/css/app.css', 'resources/js/app.js'])
@@ -544,7 +545,7 @@
                         @php $__topInbox = (new \App\Modules\User\Services\InboxAggregator(auth()->id()))->unreadCount(); @endphp
                         @if($__topInbox)<span class="ml-1 inline-block px-1.5 rounded-full text-[10px] bg-blue-500 text-white">{{ $__topInbox > 99 ? '99+' : $__topInbox }}</span>@endif
                     </span>
-                    <span class="sidebar-tooltip">Inbox 2.0 — triaged across forms, DMs &amp; sponsorships</span>
+                    <span class="sidebar-tooltip">Inbox 2.0, triaged across forms, DMs &amp; sponsorships</span>
                 </a>
                 @endif
                 <a href="{{ route('user.notifications.index') }}"
@@ -653,7 +654,7 @@
                            style="--nav-tint:#06b6d4; --nav-tint-soft:rgba(6,182,212,0.12);">
                             <div class="nav-icon-wrap"><i class="fas fa-folder-open"></i></div>
                             <span class="nav-label">Files</span>
-                            <span class="sidebar-tooltip">Files — your vault &amp; cloud library</span>
+                            <span class="sidebar-tooltip">Files, your vault &amp; cloud library</span>
                         </a>
                         @endif
                     </div>

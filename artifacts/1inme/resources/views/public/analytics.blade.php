@@ -7,27 +7,27 @@
         [
             'icon'  => 'fa-globe',
             'title' => 'Live geo heatmap & visitor pins',
-            'desc'  => 'Watch visitors land on your Link in Bio in real time on a world map, with city-level heat density so you instantly see where your audience is right now — perfect for timing posts, drops and AMAs.',
+            'desc'  => 'Watch visitors land on your Link in Bio in real time on a world map, with city-level heat density so you instantly see where your audience is right now. Perfect for timing posts, drops and AMAs.',
         ],
         [
             'icon'  => 'fa-camera',
             'title' => 'Snapshot share',
-            'desc'  => 'One-click share a styled, branded snapshot of any analytics view — clicks, geo, top followers — straight to a client, a sponsor, or your own socials. No screenshots, no hand-cropping.',
+            'desc'  => 'One-click share a styled, branded snapshot of any analytics view, covering clicks, geo and top followers, straight to a client, a sponsor, or your own socials. No screenshots, no hand-cropping.',
         ],
         [
             'icon'  => 'fa-bolt',
             'title' => 'Performance Coach',
-            'desc'  => 'A score, a trend line, and a prioritised list of what to fix next — every recommendation is one-click actionable: rewrite a headline, add a missing block, or A/B test a layout in seconds.',
+            'desc'  => 'A score, a trend line, and a prioritised list of what to fix next. Every recommendation is one-click actionable: rewrite a headline, add a missing block, or A/B test a layout in seconds.',
         ],
         [
             'icon'  => 'fa-users',
             'title' => 'Followers tab & cohort retention',
-            'desc'  => 'See who is following, who is sticking around, and how each weekly cohort compares — retention curves built right into the dashboard so you spot churn before it bites.',
+            'desc'  => 'See who is following, who is sticking around, and how each weekly cohort compares, with retention curves built right into the dashboard so you spot churn before it bites.',
         ],
         [
             'icon'  => 'fa-file-csv',
             'title' => 'Top Followers CSV export',
-            'desc'  => 'Export your most engaged followers as CSV for outreach, gifting, sponsorship pitches or paid ads lookalikes — yours to keep, no platform lock-in.',
+            'desc'  => 'Export your most engaged followers as CSV for outreach, gifting, sponsorship pitches or paid ads lookalikes. Yours to keep, no platform lock-in.',
         ],
     ];
     $faqAnchors = [
@@ -51,10 +51,10 @@
                 </span>
                 <h1 class="mt-5 text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight leading-[1.05]">
                     See exactly what works.
-                    <span class="block grad-text">Then fix what doesn’t — in one click.</span>
+                    <span class="block grad-text">Then fix what doesn’t, in one click.</span>
                 </h1>
                 <p class="mt-5 text-lg text-gray-400 max-w-xl leading-relaxed">
-                    Live visitor pins, a geo heatmap, snapshot sharing, the AI Performance Coach, follower retention cohorts, and CSV exports of your top followers — every number you need to grow, in one dashboard.
+                    Live visitor pins, a geo heatmap, snapshot sharing, the AI Performance Coach, follower retention cohorts, and CSV exports of your top followers: every number you need to grow, in one dashboard.
                 </p>
                 <div class="mt-7 flex flex-wrap items-center gap-3">
                     @guest
@@ -178,7 +178,7 @@
 
 @include('public.partials.subscribe-block', [
     'heading' => 'Get analytics tips when we ship them.',
-    'subtext' => 'Once-a-month playbooks on what is moving the needle for creators on Sayzio — pick email, WhatsApp Channel, or DM.',
+    'subtext' => 'Once-a-month playbooks on what is moving the needle for creators on Sayzio; pick email, WhatsApp Channel, or DM.',
     'source'  => 'analytics',
 ])
 @endsection

@@ -57,7 +57,7 @@ export default function InsiderScreen() {
     if (!referralUrl) return;
     try {
       await Share.share({
-        message: `Join me on Sayzio — ${referralUrl}`,
+        message: `Join me on Sayzio: ${referralUrl}`,
         url: Platform.OS === "ios" ? referralUrl : undefined,
       });
     } catch {
@@ -82,7 +82,7 @@ export default function InsiderScreen() {
         <EmptyState
           icon="user"
           title="Set a handle to start referring"
-          body="Pick a Sayzio handle from the profile screen — your referral link uses it."
+          body="Pick a Sayzio handle from the profile screen; your referral link uses it."
         />
       ) : (
         <ScrollView contentContainerStyle={styles.body}>
@@ -103,7 +103,7 @@ export default function InsiderScreen() {
               Your referral link
             </Text>
             <Text style={[styles.blurb, { color: colors.mutedForeground }]}>
-              Share this link — when someone signs up through it, you both
+              Share this link: when someone signs up through it, you both
               unlock insider perks on your next plan.
             </Text>
             <Pressable
@@ -172,7 +172,7 @@ export default function InsiderScreen() {
           </View>
 
           <Text style={[styles.hint, { color: colors.mutedForeground }]}>
-            Detailed referral history and tier progress live on the web for now —
+            Detailed referral history and tier progress live on the web for now;
             we'll surface them natively in a future update.
           </Text>
         </ScrollView>

@@ -127,7 +127,7 @@
             <input type="number" step="0.01" min="1" max="1000" name="price_monthly" placeholder="Monthly ($)" required
                    class="px-3 py-2 rounded-lg border bg-transparent"
                    style="border-color: var(--border-color); color: var(--text-primary);">
-            <input type="number" step="0.01" min="1" max="10000" name="price_yearly" placeholder="Yearly ($) — optional"
+            <input type="number" step="0.01" min="1" max="10000" name="price_yearly" placeholder="Yearly ($), optional"
                    class="px-3 py-2 rounded-lg border bg-transparent"
                    style="border-color: var(--border-color); color: var(--text-primary);">
             <select name="color" class="px-3 py-2 rounded-lg border bg-transparent"
@@ -136,7 +136,7 @@
                     <option value="{{ $col }}">{{ ucfirst($col) }}</option>
                 @endforeach
             </select>
-            <textarea name="perks" rows="3" placeholder="Perks — one per line" class="md:col-span-3 px-3 py-2 rounded-lg border bg-transparent text-sm"
+            <textarea name="perks" rows="3" placeholder="Perks, one per line" class="md:col-span-3 px-3 py-2 rounded-lg border bg-transparent text-sm"
                       style="border-color: var(--border-color); color: var(--text-primary);"></textarea>
             <div class="md:col-span-3 flex justify-end">
                 <button type="submit" class="px-4 py-2 rounded-lg text-sm font-semibold" style="background: #5c83ff; color: white;">

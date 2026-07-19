@@ -37,7 +37,7 @@
             {{-- Links --}}
             <div>
                 <label class="block text-sm font-medium text-white/70 mb-1.5">Your links <span class="text-white/30 font-normal">(optional)</span></label>
-                <p class="text-xs text-white/30 mb-2">Paste the URLs you want on the page — portfolio, socials, shop, booking, etc. AI will place them in the right spots.</p>
+                <p class="text-xs text-white/30 mb-2">Paste the URLs you want on the page, portfolio, socials, shop, booking, etc. AI will place them in the right spots.</p>
                 <div class="space-y-2">
                     <template x-for="(link, i) in links" :key="i">
                         <div class="flex items-center gap-2">
@@ -95,7 +95,7 @@
                 <input type="checkbox" x-model="useBrandKit" class="mt-0.5 rounded border-white/20 bg-white/5 text-blue-500">
                 <span class="text-sm">
                     <span class="text-white font-medium"><i class="fas fa-palette text-blue-300 mr-1"></i> Keep it on-brand</span>
-                    <span class="block text-xs text-white/40 mt-0.5">Use your “{{ $brandKit->name }}” AI Brand Kit — its voice, tone and palette — to guide the page.</span>
+                    <span class="block text-xs text-white/40 mt-0.5">Use your “{{ $brandKit->name }}” AI Brand Kit (its voice, tone and palette) to guide the page.</span>
                 </span>
             </label>
             @endif
@@ -154,7 +154,7 @@
         <p class="text-sm text-red-400 mb-3" x-show="error" x-text="error"></p>
 
         <div class="flex items-center justify-end gap-3">
-            <a href="{{ route('user.links.blocks.editor', $link) }}" class="px-5 py-2.5 text-sm text-white/40 hover:text-white hover:bg-white/5 rounded-xl transition-all">Skip — build manually</a>
+            <a href="{{ route('user.links.blocks.editor', $link) }}" class="px-5 py-2.5 text-sm text-white/40 hover:text-white hover:bg-white/5 rounded-xl transition-all">Skip, build manually</a>
             <button type="submit" :disabled="!canSubmit || generating || uploading"
                     class="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white px-6 py-2.5 rounded-xl text-sm font-medium transition-all hover:shadow-lg hover:shadow-blue-500/20">
                 <i class="fas fa-spinner fa-spin mr-1.5" x-show="generating"></i>

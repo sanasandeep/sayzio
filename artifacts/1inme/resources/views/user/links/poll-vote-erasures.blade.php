@@ -1,6 +1,6 @@
 @extends('user.layouts.app')
 
-@section('title', 'Poll voter erasures — ' . $link->title)
+@section('title', 'Poll voter erasures: ' . $link->title)
 
 @section('content')
 <div class="max-w-7xl mx-auto">
@@ -43,7 +43,7 @@
                                         {{ $e->link->title ?: $e->link->alias }}
                                     </a>
                                 @else
-                                    <span style="color: var(--text-faint);">— deleted poll —</span>
+                                    <span style="color: var(--text-faint);">deleted poll</span>
                                 @endif
                             </td>
                             <td class="py-3 text-right">

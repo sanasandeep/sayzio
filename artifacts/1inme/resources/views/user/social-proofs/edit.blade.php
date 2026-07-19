@@ -92,7 +92,7 @@ html.light-mode .bz-tpl-desc{color:#64748b}
     <div>
         <a href="{{ route('user.social-proofs.index') }}" class="text-white/50 hover:text-white text-xs"><i class="fas fa-arrow-left mr-1"></i> Back to Buzz</a>
         <h1 class="text-2xl font-bold text-white mt-1">{{ $proof->name }}</h1>
-        <p class="text-white/40 text-xs mt-0.5">{{ $proof->notificationCount() }} notification(s) — embed this widget on your biolinks or any external site.</p>
+        <p class="text-white/40 text-xs mt-0.5">{{ $proof->notificationCount() }} notification(s), embed this widget on your biolinks or any external site.</p>
     </div>
     <div class="flex items-center gap-3 text-xs text-white/60">
         <div><span class="text-white text-base font-semibold">{{ number_format($stats['impressions_30d']) }}</span> imp / 30d</div>
@@ -332,7 +332,7 @@ html.light-mode .bz-tpl-desc{color:#64748b}
         </template>
 
         <div x-show="notifications.length === 0" class="bz-card text-center py-8">
-            <p class="text-white/50 text-sm mb-3">No notifications yet — add your first one!</p>
+            <p class="text-white/50 text-sm mb-3">No notifications yet, add your first one!</p>
             <button type="button" @click="openTypePicker = true" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-sm">Add notification</button>
         </div>
     </div>
@@ -403,7 +403,7 @@ html.light-mode .bz-tpl-desc{color:#64748b}
                 <input type="number" min="0" name="targeting[interval]" x-model.number="targeting.interval" @input="livePreview()" class="bz-input">
             </div>
             <div>
-                <label class="bz-label">Visible duration (sec) — 0 = persistent</label>
+                <label class="bz-label">Visible duration (sec), 0 = persistent</label>
                 <input type="number" min="0" name="targeting[duration]" x-model.number="targeting.duration" @input="livePreview()" class="bz-input">
             </div>
             <div>
@@ -555,7 +555,7 @@ function buzzEditor() {
                     '<div class="tpl-card" style="max-width:180px"><div class="tpl-body">'+
                     '<div style="font-size:14px;color:#3d6bff;line-height:1">"</div>'+
                     '<div class="tpl-t2" style="font-style:italic;color:#0f172a">A total game-changer for our team.</div>'+
-                    '<div class="tpl-t2" style="margin-top:3px">— Alex K.</div></div></div>',
+                    '<div class="tpl-t2" style="margin-top:3px"> - Alex K.</div></div></div>',
                 email_signup:
                     '<div class="tpl-card" style="max-width:180px;flex-direction:column;align-items:stretch;gap:5px"><div class="tpl-t1">Get 10% off</div>'+
                     '<div style="display:flex;gap:4px"><div style="flex:1;height:18px;background:#f1f5f9;border-radius:4px"></div><div style="height:18px;padding:0 8px;background:#3d6bff;color:#fff;border-radius:4px;font-size:9px;display:flex;align-items:center">Join</div></div></div>',
@@ -813,7 +813,7 @@ function buzzEditor() {
                     ]);
                 case 'custom_html':
                     return this.tpl([
-                        '<div><label class="bz-label">HTML (sanitized — script/iframe/event handlers stripped)</label>'
+                        '<div><label class="bz-label">HTML (sanitized, script/iframe/event handlers stripped)</label>'
                         + '<textarea x-model="getNotif(\''+n.id+'\').settings.html" @input="livePreview()" rows="6" class="bz-input font-mono text-xs"></textarea></div>'
                     ]);
             }

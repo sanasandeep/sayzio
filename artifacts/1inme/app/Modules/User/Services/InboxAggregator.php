@@ -22,6 +22,27 @@ class InboxAggregator
     public const SOURCE_WHATSAPP_NUMBER = 'whatsapp_number';
     public const SOURCE_RSVP = 'rsvp';
 
+    // Link-event trigger sources (webhook/email only; not surfaced in the inbox UI)
+    public const SOURCE_LINK_CREATED = 'link_created';
+    public const SOURCE_LINK_EXPIRED = 'link_expired';
+    public const SOURCE_CLICK_MILESTONE = 'click_milestone';
+
+    /** Sources that appear in the inbox unified feed. */
+    public static function inboxSources(): array
+    {
+        return [
+            self::SOURCE_FORM,
+            self::SOURCE_EMAIL_SUBSCRIBE,
+            self::SOURCE_EMAIL_COLLECTOR,
+            self::SOURCE_PHONE_COLLECTOR,
+            self::SOURCE_CONTACT_FORM,
+            self::SOURCE_WHATSAPP_CHANNEL,
+            self::SOURCE_WHATSAPP_NUMBER,
+            self::SOURCE_RSVP,
+        ];
+    }
+
+    /** Human-readable labels for ALL source types (inbox + link events). */
     public static function sourceLabels(): array
     {
         return [
@@ -33,6 +54,20 @@ class InboxAggregator
             self::SOURCE_WHATSAPP_CHANNEL => 'WhatsApp Channel',
             self::SOURCE_WHATSAPP_NUMBER => 'WhatsApp Number',
             self::SOURCE_RSVP => 'Event RSVP',
+            // Link-event trigger sources
+            self::SOURCE_LINK_CREATED => 'Link Created',
+            self::SOURCE_LINK_EXPIRED => 'Link Expired',
+            self::SOURCE_CLICK_MILESTONE => 'Click Milestone',
+        ];
+    }
+
+    /** Human-readable labels for link-event trigger sources only. */
+    public static function linkEventLabels(): array
+    {
+        return [
+            self::SOURCE_LINK_CREATED   => 'Link Created',
+            self::SOURCE_LINK_EXPIRED   => 'Link Expired',
+            self::SOURCE_CLICK_MILESTONE => 'Click Milestone',
         ];
     }
 

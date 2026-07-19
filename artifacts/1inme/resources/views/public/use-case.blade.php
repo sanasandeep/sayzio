@@ -227,7 +227,7 @@
 
 @include('public.partials.subscribe-block', [
     'heading' => 'Playbooks for ' . \Illuminate\Support\Str::lower($eyebrow) . ', straight to you.',
-    'subtext' => 'Templates, tips and product updates tuned to how you work — email, WhatsApp Channel, or DM. No fluff.',
+    'subtext' => 'Templates, tips and product updates tuned to how you work: email, WhatsApp Channel, or DM. No fluff.',
     'source'  => 'use-case-' . $persona,
 ])
 @endsection

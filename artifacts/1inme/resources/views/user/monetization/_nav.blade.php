@@ -18,7 +18,7 @@
         <div>
             <h1 class="text-2xl font-bold" style="color: var(--text-primary);">Monetization</h1>
             <p class="text-sm" style="color: var(--text-faint);">
-                Subscriptions, paywalled posts, and tips — paid out through your connected provider.
+                Subscriptions, paywalled posts, and tips, paid out through your connected provider.
                 <span class="inline-flex items-center gap-1 ml-2 px-2 py-0.5 rounded-full text-[11px] font-semibold"
                       style="background: rgba(16,185,129,0.12); color: #10b981;">
                     <i class="fas fa-check-circle"></i> 0% platform fee

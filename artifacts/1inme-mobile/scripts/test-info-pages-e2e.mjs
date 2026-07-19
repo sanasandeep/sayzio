@@ -264,8 +264,7 @@ async function assertContactOffline(page, appUrl) {
       () => document.body && document.body.innerText.trim().length > 0,
       null,
       { timeout: NAV_TIMEOUT_MS },
-    )
-    .catch(() => fail(`${ctx}: the app never mounted any visible content.`));
+    );
 
   // Screen header proves the route mounted; the details card heading proves the
   // ContactDetailsCard rendered (not a blank card).
@@ -335,8 +334,7 @@ async function run() {
           () => document.body && document.body.innerText.trim().length > 0,
           null,
           { timeout: NAV_TIMEOUT_MS },
-        )
-        .catch(() => fail(`${ctx}: the app never mounted any visible content.`));
+        );
 
       // Title + (optionally) a section heading must be present and painted. The
       // title proves the screen mounted; the heading proves the section copy

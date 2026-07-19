@@ -6,7 +6,7 @@
 <div class="flex items-center justify-between mb-6">
     <div>
         <h1 class="text-2xl font-bold text-white">Buzz</h1>
-        <p class="text-white/40 text-sm mt-1">Build trust with notification widgets you can embed anywhere — including your Link in Bio pages.</p>
+        <p class="text-white/40 text-sm mt-1">Build trust with notification widgets you can embed anywhere, including your Link in Bio pages.</p>
     </div>
     <a href="{{ route('user.social-proofs.create') }}" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-sm font-medium flex items-center gap-2">
         <i class="fas fa-plus"></i> New Notification
@@ -23,7 +23,7 @@
         </div>
         @if($buzzUsage['paused'])
             <span class="px-2 py-1 rounded-md text-xs bg-rose-500/15 text-rose-300 border border-rose-500/20">
-                <i class="fas fa-pause mr-1"></i> Limit reached — widgets paused until next month.
+                <i class="fas fa-pause mr-1"></i> Limit reached, widgets paused until next month.
                 <a href="{{ route('user.upgrade') }}" class="underline hover:text-rose-200">Upgrade</a>
             </span>
         @elseif(!$buzzUsage['unlimited'])

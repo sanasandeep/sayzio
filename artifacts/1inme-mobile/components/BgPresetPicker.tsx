@@ -133,7 +133,7 @@ export function BgPresetPicker({ linkId }: { linkId: number }) {
         ]}
       >
         <LinearGradient
-          colors={["#f97316", "#ec4899", "#8b5cf6"]}
+          colors={["#f97316", "#ec4899", "#06b6d4"]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.typeSwatch}

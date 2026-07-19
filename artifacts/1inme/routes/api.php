@@ -1,6 +1,7 @@
 <?php
 
 use App\Modules\Api\Controllers\AccountMergeController;
+use App\Modules\Api\Controllers\BrowserSyncController;
 use App\Modules\Api\Controllers\AdminAccessController;
 use App\Modules\Api\Controllers\AuthController;
 use App\Modules\Api\Controllers\BiolinkBlockController;
@@ -116,6 +117,10 @@ Route::prefix('v1')->group(function () {
         // Public reviews feed + summary for a standalone Reviews page.
         Route::get('/reviews/{alias}',             [\App\Modules\Api\Controllers\ReviewApiController::class, 'index']);
         Route::get('/reviews/{alias}/summary',     [\App\Modules\Api\Controllers\ReviewApiController::class, 'summary']);
+
+        // Public Updates / Changelog page: paginated published entries.
+        Route::get('/updates/{alias}',             [\App\Modules\Api\Controllers\UpdatesApiController::class, 'index']);
+        Route::get('/updates/{alias}/entries/{entry}', [\App\Modules\Api\Controllers\UpdatesApiController::class, 'show'])->whereNumber('entry');
         Route::get('/discovery/creators',          [DiscoveryController::class, 'creators']);
         Route::get('/discovery/creators/{handle}', [DiscoveryController::class, 'creator']);
 
@@ -148,6 +153,7 @@ Route::prefix('v1')->group(function () {
         Route::post('/creators/{handle}/subscribe',              [\App\Modules\Api\Controllers\CreatorMonetizationApiController::class, 'subscribe'])->middleware('throttle:30,1');
         Route::post('/creators/{handle}/posts/{post}/unlock',    [\App\Modules\Api\Controllers\CreatorMonetizationApiController::class, 'unlockPost'])->whereNumber('post')->middleware('throttle:30,1');
         Route::post('/creators/{handle}/tip',                    [\App\Modules\Api\Controllers\CreatorMonetizationApiController::class, 'tip'])->middleware('throttle:30,1');
+        Route::post('/biolinks/{alias}/tip-jar',                 [\App\Modules\Api\Controllers\CreatorMonetizationApiController::class, 'biolinkTip'])->where('alias', '[^/]+')->middleware('throttle:30,1');
         Route::get ('/creators/{handle}/my-subscription',        [\App\Modules\Api\Controllers\CreatorMonetizationApiController::class, 'mySubscription']);
         Route::post('/creators/{handle}/my-subscription/cancel', [\App\Modules\Api\Controllers\CreatorMonetizationApiController::class, 'cancelSubscription']);
         Route::post('/creators/{handle}/my-subscription/resume', [\App\Modules\Api\Controllers\CreatorMonetizationApiController::class, 'resumeSubscription']);
@@ -332,6 +338,11 @@ Route::prefix('v1')->group(function () {
         Route::get ('bootstrap',         [\App\Modules\Common\Controllers\SiteAssistantController::class, 'bootstrap'])->middleware('throttle:60,1');
         Route::post('session',           [\App\Modules\Common\Controllers\SiteAssistantController::class, 'session'])->middleware('throttle:60,1');
         Route::post('message',           [\App\Modules\Common\Controllers\SiteAssistantController::class, 'message'])->middleware('throttle:60,1');
+        // SSE mirror of the web /assistant/stream endpoint so desktop
+        // (Zio Browser) and other Bearer-token clients can stream
+        // assistant replies token-by-token instead of waiting for the
+        // full JSON turn.
+        Route::post('stream',            [\App\Modules\Common\Controllers\SiteAssistantController::class, 'stream'])->middleware('throttle:60,1');
         Route::post('choice',            [\App\Modules\Common\Controllers\SiteAssistantController::class, 'choice'])->middleware('throttle:60,1');
         Route::post('handoff',           [\App\Modules\Common\Controllers\SiteAssistantController::class, 'handoff'])->middleware('throttle:10,1');
         Route::post('low-balance-click', [\App\Modules\Common\Controllers\SiteAssistantController::class, 'lowBalanceClick'])->middleware('throttle:60,1');
@@ -387,6 +398,13 @@ Route::prefix('v1')->group(function () {
         // actions so creators can approve / hide / pin / reply / delete
         // their own native reviews from the mobile "Manage reviews"
         // screen. Every action is scoped to the authenticated owner.
+        // Owner-only Updates / Changelog entry CRUD and settings.
+        Route::get   ('/me/updates/{link}/entries',          [\App\Modules\Api\Controllers\UpdatesApiController::class, 'ownerEntries'])->whereNumber('link');
+        Route::post  ('/me/updates/{link}/entries',          [\App\Modules\Api\Controllers\UpdatesApiController::class, 'storeEntry'])->whereNumber('link');
+        Route::put   ('/me/updates/{link}/entries/{entry}',  [\App\Modules\Api\Controllers\UpdatesApiController::class, 'updateEntry'])->whereNumber('link')->whereNumber('entry');
+        Route::delete('/me/updates/{link}/entries/{entry}',  [\App\Modules\Api\Controllers\UpdatesApiController::class, 'destroyEntry'])->whereNumber('link')->whereNumber('entry');
+        Route::patch ('/me/updates/{link}/settings',         [\App\Modules\Api\Controllers\UpdatesApiController::class, 'updateSettings'])->whereNumber('link');
+
         Route::get   ('/me/reviews',                  [\App\Modules\Api\Controllers\ReviewApiController::class, 'mine']);
         Route::post  ('/me/reviews/{review}/approve', [\App\Modules\Api\Controllers\ReviewApiController::class, 'approve'])->whereNumber('review');
         Route::post  ('/me/reviews/{review}/hide',    [\App\Modules\Api\Controllers\ReviewApiController::class, 'hide'])->whereNumber('review');
@@ -1346,5 +1364,16 @@ Route::prefix('v1')->group(function () {
         Route::post  ('/dialer/log',                [DialerController::class, 'logCall']);
         Route::post  ('/dialer/callback',           [DialerController::class, 'setCallback']);
         Route::delete('/dialer/callback/{id}',      [DialerController::class, 'clearCallback'])->whereNumber('id');
+
+        // ── Zio Browser cloud sync ──────────────────────────────────────────
+        // Sync protocol: last-write-wins on item_updated_at.
+        // Device registration is idempotent (UUID in X-Browser-Device-Id header).
+        Route::post  ('/browser/devices',                            [BrowserSyncController::class, 'registerDevice']);
+        Route::post  ('/browser/devices/{deviceId}/bookmarks',       [BrowserSyncController::class, 'syncBookmarks']);
+        Route::post  ('/browser/devices/{deviceId}/collections',     [BrowserSyncController::class, 'syncCollections']);
+        Route::post  ('/browser/devices/{deviceId}/history',         [BrowserSyncController::class, 'syncHistory'])->middleware('throttle:60,1');
+        Route::post  ('/browser/devices/{deviceId}/reading-list',   [BrowserSyncController::class, 'syncReadingList']);
+        Route::get   ('/browser/devices/{deviceId}/pull',            [BrowserSyncController::class, 'pullSync']);
+        Route::post  ('/browser/history/purge',                      [BrowserSyncController::class, 'purgeHistory'])->middleware('throttle:10,1');
     });
 });

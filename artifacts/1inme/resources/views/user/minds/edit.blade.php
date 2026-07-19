@@ -267,20 +267,20 @@
                         @php($whToken = ($revealed && (int)($revealed['id'] ?? 0) === (int)$s->id) ? $revealed['token'] : null)
                         <div class="mt-2 ml-11 rounded-xl border border-white/10 bg-black/20 p-3 space-y-2 text-[11px]">
                             <div>
-                                <span class="text-white/40 block mb-1">Inbound URL — POST your content here</span>
+                                <span class="text-white/40 block mb-1">Inbound URL, POST your content here</span>
                                 <div class="flex items-center gap-2">
                                     <code class="flex-1 min-w-0 truncate text-cyan-200 bg-white/5 rounded px-2 py-1">{{ $whUrl }}</code>
                                     <button type="button" onclick="navigator.clipboard.writeText(@js($whUrl)); window.toast && window.toast('Copied URL')" class="text-white/60 hover:text-white px-2 py-1"><i class="fas fa-copy"></i></button>
                                 </div>
                             </div>
                             <div>
-                                <span class="text-white/40 block mb-1">Signing token — send as <code class="text-white/60">X-Mind-Webhook-Token</code> header (or <code class="text-white/60">?token=</code>)</span>
+                                <span class="text-white/40 block mb-1">Signing token, send as <code class="text-white/60">X-Mind-Webhook-Token</code> header (or <code class="text-white/60">?token=</code>)</span>
                                 @if($whToken)
                                 <div class="flex items-center gap-2">
                                     <code class="flex-1 min-w-0 truncate text-amber-200 bg-white/5 rounded px-2 py-1">{{ $whToken }}</code>
                                     <button type="button" onclick="navigator.clipboard.writeText(@js($whToken)); window.toast && window.toast('Copied token')" class="text-white/60 hover:text-white px-2 py-1"><i class="fas fa-copy"></i></button>
                                 </div>
-                                <p class="text-amber-300/70 mt-1">Copy it now — for security this token is shown only once.</p>
+                                <p class="text-amber-300/70 mt-1">Copy it now, for security this token is shown only once.</p>
                                 @else
                                 <div class="flex items-center gap-2">
                                     <code class="flex-1 min-w-0 truncate text-white/30 bg-white/5 rounded px-2 py-1 select-none">••••••••••••••••••••••••••••</code>

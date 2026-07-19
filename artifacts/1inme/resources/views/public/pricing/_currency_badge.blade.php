@@ -21,7 +21,7 @@
      role="group" aria-label="Currency selection">
     @if($isCountry)
         <span class="text-[11px] text-gray-500">
-            {{ $currency === 'INR' ? '₹ INR' : '$ USD' }} — Set from your billing country (<span class="uppercase">{{ $user->country }}</span>) —
+            {{ $currency === 'INR' ? '₹ INR' : '$ USD' }}: set from your billing country (<span class="uppercase">{{ $user->country }}</span>).
             <a href="{{ route('user.profile.edit') }}" class="text-blue-400 hover:underline">change</a>
         </span>
     @else
@@ -38,7 +38,7 @@
                     aria-label="Show prices in Indian rupees">INR (₹)</button>
         </div>
         @if($isAuto)
-            <span class="text-[11px] text-gray-500">auto-detected — switch anytime</span>
+            <span class="text-[11px] text-gray-500">auto-detected; switch anytime</span>
         @endif
     @endif
 </div>

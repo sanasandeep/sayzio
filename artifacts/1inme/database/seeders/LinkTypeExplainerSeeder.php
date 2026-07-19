@@ -35,7 +35,7 @@ class LinkTypeExplainerSeeder extends Seeder
      * untouched pages get refreshed on the next seed. Edited pages are
      * still left alone (see refresh guard in seedPage()).
      */
-    private const SEED_VERSION = 6;
+    private const SEED_VERSION = 7;
 
     /**
      * Bump when the live demo restaurant menu (`/demo-restaurant`) content
@@ -291,7 +291,7 @@ class LinkTypeExplainerSeeder extends Seeder
             $link->settings = [
                 'biolink' => [
                     'biolink_title'       => 'Olive & Ember',
-                    'biolink_description' => 'Wood-fired kitchen — order right from your table.',
+                    'biolink_description' => 'Wood-fired kitchen: order right from your table.',
                 ],
                 'demo' => ['seed_version' => self::DEMO_MENU_VERSION],
             ];
@@ -349,7 +349,7 @@ class LinkTypeExplainerSeeder extends Seeder
                 ['Margherita Pizza', 'San Marzano, fior di latte, basil', 14.00, false],
                 ['Diavola Pizza', 'Spicy salami, chilli honey', 16.50, false],
                 ['Roasted Half Chicken', 'Charred lemon, herb jus', 21.00, false],
-                ['Ember Ribeye', "300g, smoked butter — today's special", 29.00, true],
+                ['Ember Ribeye', "300g, smoked butter, today's special", 29.00, true],
             ]],
             ['name' => 'Desserts', 'items' => [
                 ['Olive Oil Cake', 'Citrus, mascarpone', 9.00, false],
@@ -399,12 +399,12 @@ class LinkTypeExplainerSeeder extends Seeder
             [
                 'alias' => 'demo-type-short-link',
                 'link_type' => 'short',
-                'title' => 'Short Link — explained',
+                'title' => 'Short Link: explained',
                 'heading' => 'Short Links 🔗',
                 'intro' => 'Turn long, ugly URLs into clean, branded links you can share anywhere. Perfect for marketers, creators and anyone who wants tidy, trackable links.',
                 'features' => [
                     'Shorten any URL into a clean, on-brand link',
-                    'Repoint the destination any time — the link never changes',
+                    'Repoint the destination any time, the link never changes',
                     'Add UTMs, password protection and expiry rules',
                     'Route visitors by country, device or language',
                     'See every click in real-time analytics',
@@ -416,7 +416,7 @@ class LinkTypeExplainerSeeder extends Seeder
             [
                 'alias' => 'demo-type-link-in-bio',
                 'link_type' => 'biolink',
-                'title' => 'Link in Bio — explained',
+                'title' => 'Link in Bio: explained',
                 'heading' => 'Link in Bio 🌟',
                 'intro' => 'One beautiful page for all your links. Built for creators, coaches and small businesses who live in the "link in bio" slot on social media.',
                 'features' => [
@@ -433,7 +433,7 @@ class LinkTypeExplainerSeeder extends Seeder
             [
                 'alias' => 'demo-type-conversational',
                 'link_type' => 'conversational',
-                'title' => 'Conversational — explained',
+                'title' => 'Conversational: explained',
                 'heading' => 'Conversational 💬',
                 'intro' => 'Guide visitors through your links one friendly message at a time. Great for onboarding, storytelling or walking people to the right place.',
                 'features' => [
@@ -450,7 +450,7 @@ class LinkTypeExplainerSeeder extends Seeder
             [
                 'alias' => 'demo-type-slides',
                 'link_type' => 'slides',
-                'title' => 'Slides — explained',
+                'title' => 'Slides: explained',
                 'heading' => 'Slides 🖼️',
                 'intro' => 'Tell your story as a swipeable, story-style presentation. Ideal for portfolios, product tours and step-by-step pitches.',
                 'features' => [
@@ -467,7 +467,7 @@ class LinkTypeExplainerSeeder extends Seeder
             [
                 'alias' => 'demo-type-ai-chatbot',
                 'link_type' => 'ai_chat',
-                'title' => 'AI Chatbot — explained',
+                'title' => 'AI Chatbot: explained',
                 'heading' => 'AI Chatbot 🤖',
                 'intro' => 'A smart AI companion that answers questions about you or your business 24/7. Built for creators and brands who get the same questions over and over.',
                 'features' => [
@@ -484,15 +484,15 @@ class LinkTypeExplainerSeeder extends Seeder
             [
                 'alias' => 'demo-type-restaurant-menu',
                 'link_type' => 'restaurant_menu',
-                'title' => 'Restaurant Menu — explained',
+                'title' => 'Restaurant Menu: explained',
                 'heading' => 'Restaurant Menu 🍽️',
                 'intro' => 'A digital menu with photos, prices and table-side ordering. Made for restaurants, cafés and food trucks that want a QR menu that works.',
                 'features' => [
                     'Build categories and items with photos and prices',
                     'Each table gets its own QR code and ordering link',
-                    'Take orders from the page — or confirm them over WhatsApp in one tap',
+                    'Take orders from the page, or confirm them over WhatsApp in one tap',
                     'Live staff dashboard tracks every order',
-                    'Update the menu any time — no reprinting',
+                    'Update the menu any time, no reprinting',
                 ],
                 'cta_label' => 'Order from the live demo menu',
                 'cta_url' => url('/demo-restaurant'),
@@ -501,12 +501,12 @@ class LinkTypeExplainerSeeder extends Seeder
             [
                 'alias' => 'demo-type-store-menu',
                 'link_type' => 'store_menu',
-                'title' => 'Store Menu — explained',
+                'title' => 'Store Menu: explained',
                 'heading' => 'Store Menu 🛍️',
-                'intro' => 'A simple online store you can share as a link — list products by category and let visitors send you an order request. No checkout, no fees.',
+                'intro' => 'A simple online store you can share as a link: list products by category and let visitors send you an order request. No checkout, no fees.',
                 'features' => [
                     'Organise products into categories with photos and prices',
-                    'Visitors build a cart and send an order request — no payment needed',
+                    'Visitors build a cart and send an order request, no payment needed',
                     'New orders land in your dashboard with a New → Completed flow',
                     'Pause ordering any time with a single toggle',
                     'Optional one-tap “send my order on WhatsApp” button',
@@ -518,7 +518,7 @@ class LinkTypeExplainerSeeder extends Seeder
             [
                 'alias' => 'demo-type-file-share',
                 'link_type' => 'file',
-                'title' => 'File Share — explained',
+                'title' => 'File Share: explained',
                 'heading' => 'File Share 📁',
                 'intro' => 'Share files behind a clean, branded download link. Perfect for sending PDFs, media kits, lead magnets and resources.',
                 'features' => [
@@ -535,7 +535,7 @@ class LinkTypeExplainerSeeder extends Seeder
             [
                 'alias' => 'demo-type-event',
                 'link_type' => 'event',
-                'title' => 'Event — explained',
+                'title' => 'Event: explained',
                 'heading' => 'Event 📅',
                 'intro' => 'Promote an event and collect RSVPs from one link. Built for organizers, communities and anyone hosting something worth showing up to.',
                 'features' => [
@@ -552,7 +552,7 @@ class LinkTypeExplainerSeeder extends Seeder
             [
                 'alias' => 'demo-type-calendar',
                 'link_type' => 'calendar',
-                'title' => 'Calendar — explained',
+                'title' => 'Calendar: explained',
                 'heading' => 'Calendar 🗓️',
                 'intro' => 'Share all your upcoming events from a single link visitors can follow and sync. Great for communities, classes and anyone with a recurring schedule.',
                 'features' => [
@@ -569,7 +569,7 @@ class LinkTypeExplainerSeeder extends Seeder
             [
                 'alias' => 'demo-type-contact-card',
                 'link_type' => 'vcard',
-                'title' => 'Contact Card — explained',
+                'title' => 'Contact Card: explained',
                 'heading' => 'Contact Card 📇',
                 'intro' => 'A digital business card people can save in one tap. Ideal for networkers, sales teams and professionals who hate paper cards.',
                 'features' => [
@@ -586,7 +586,7 @@ class LinkTypeExplainerSeeder extends Seeder
             [
                 'alias' => 'demo-type-resume-portfolio',
                 'link_type' => 'resume',
-                'title' => 'Resume / Portfolio — explained',
+                'title' => 'Resume / Portfolio: explained',
                 'heading' => 'Resume / Portfolio 📄',
                 'intro' => 'Turn your CV into a polished, shareable page with a one-tap PDF download. Built for job seekers, freelancers and anyone with work worth showing.',
                 'features' => [
@@ -603,9 +603,9 @@ class LinkTypeExplainerSeeder extends Seeder
             [
                 'alias' => 'demo-type-bizs-profile',
                 'link_type' => 'paid_page',
-                'title' => 'Bizs Profile — explained',
+                'title' => 'Bizs Profile: explained',
                 'heading' => 'Bizs Profile 👑',
-                'intro' => 'A themeable home for your whole creator brand that automatically shows your posts, membership tiers and tips — no manual linking needed.',
+                'intro' => 'A themeable home for your whole creator brand that automatically shows your posts, membership tiers and tips, no manual linking needed.',
                 'features' => [
                     'Automatically surfaces all your posts in one feed',
                     'Offer membership tiers and collect tips in-page',
@@ -620,7 +620,7 @@ class LinkTypeExplainerSeeder extends Seeder
             [
                 'alias' => 'demo-type-reviews-page',
                 'link_type' => 'reviews',
-                'title' => 'Reviews Page — explained',
+                'title' => 'Reviews Page: explained',
                 'heading' => 'Reviews Page ⭐',
                 'intro' => 'Collect and showcase glowing reviews in one place. Built for businesses and creators who want social proof that converts.',
                 'features' => [
@@ -637,12 +637,12 @@ class LinkTypeExplainerSeeder extends Seeder
             [
                 'alias' => 'demo-type-brand-press-kit',
                 'link_type' => 'brand_kit',
-                'title' => 'Brand / Press Kit — explained',
+                'title' => 'Brand / Press Kit: explained',
                 'heading' => 'Brand / Press Kit 🎨',
-                'intro' => 'Turn your saved Brand Kit into a polished, shareable press page — everything journalists, partners and collaborators need to represent you correctly, in one link.',
+                'intro' => 'Turn your saved Brand Kit into a polished, shareable press page, with everything journalists, partners and collaborators need to represent you correctly, in one link.',
                 'features' => [
                     'One-tap logo downloads in every variant you add',
-                    'Copy-able colour swatches — click any hex to copy',
+                    'Copy-able colour swatches; click any hex to copy',
                     'Your heading and body font pairing, shown live',
                     'Brand voice, taglines and a copy-able press boilerplate',
                     'Social links and a press contact, all themeable',
@@ -654,9 +654,9 @@ class LinkTypeExplainerSeeder extends Seeder
             [
                 'alias' => 'demo-type-paid-page',
                 'link_type' => 'paid_page',
-                'title' => 'Paid Page — explained',
+                'title' => 'Paid Page: explained',
                 'heading' => 'Paid Page 🔒',
-                'intro' => 'A gated page that only unlocks after a one-time payment or subscription — perfect for premium content, courses and exclusive drops.',
+                'intro' => 'A gated page that only unlocks after a one-time payment or subscription, perfect for premium content, courses and exclusive drops.',
                 'features' => [
                     'Gate the whole page behind a one-time payment or subscription',
                     'Reuse the same creator feed and blocks as your other pages',
@@ -671,9 +671,9 @@ class LinkTypeExplainerSeeder extends Seeder
             [
                 'alias' => 'demo-type-qr-code',
                 'link_type' => 'qr',
-                'title' => 'QR Code — explained',
+                'title' => 'QR Code: explained',
                 'heading' => 'QR Code 📱',
-                'intro' => 'A dynamic, styleable QR code that redirects anywhere you choose. Print it once and keep it working forever — the destination is editable any time.',
+                'intro' => 'A dynamic, styleable QR code that redirects anywhere you choose. Print it once and keep it working forever; the destination is editable any time.',
                 'features' => [
                     'Style the code with your logo, colours and a design template',
                     'Re-point the destination any time without reprinting',
@@ -688,9 +688,9 @@ class LinkTypeExplainerSeeder extends Seeder
             [
                 'alias' => 'demo-type-forms',
                 'link_type' => 'form',
-                'title' => 'Forms — explained',
+                'title' => 'Forms: explained',
                 'heading' => 'Forms 📝',
-                'intro' => 'A standalone form page with dozens of field types, conditional logic and instant notifications — built for signups, surveys, applications and lead capture.',
+                'intro' => 'A standalone form page with dozens of field types, conditional logic and instant notifications, built for signups, surveys, applications and lead capture.',
                 'features' => [
                     'Add dozens of field types with conditional logic',
                     'Match your brand with full design customization',

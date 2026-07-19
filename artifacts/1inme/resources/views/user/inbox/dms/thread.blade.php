@@ -64,7 +64,7 @@
     @if(!$conversation->owner_replied)
         <div class="mb-4 px-4 py-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-200 text-xs">
             <i class="fas fa-info-circle mr-1"></i>
-            New viewer — they're capped at {{ \App\Modules\Common\Models\ViewerDmConversation::VIEWER_INITIAL_LIMIT }} intro messages
+            New viewer, they're capped at {{ \App\Modules\Common\Models\ViewerDmConversation::VIEWER_INITIAL_LIMIT }} intro messages
             ({{ $conversation->viewer_msg_count }} sent) until you reply. Your first reply unlocks unlimited replies on both sides.
         </div>
     @endif
@@ -92,7 +92,7 @@
             <i class="fas fa-robot text-blue-300"></i>
             <span class="text-white/80">Auto-reply with</span>
             <select name="companion_id" class="bg-black/30 border border-white/10 rounded-lg px-2 py-1 text-sm text-white">
-                <option value="">— Off —</option>
+                <option value="">Off</option>
                 @foreach($companions as $cmp)
                     <option value="{{ $cmp->id }}" @selected((int) $conversation->auto_reply_companion_id === (int) $cmp->id)>{{ $cmp->name }}</option>
                 @endforeach

@@ -130,7 +130,7 @@ async function openDialPopup(number: string, anchor: HTMLElement) {
   el.style.cssText = `top:0;left:0;opacity:0`;
   el.innerHTML = `
     <button class="inme-dial-popup-close" title="Close">✕</button>
-    <div class="inme-dial-popup-title">📞 Sayzio Dialer</div>
+    <div class="inme-dial-popup-title">📞 Zio Dialer</div>
     <div class="inme-dial-popup-name" id="inme-cn">…</div>
     <div class="inme-dial-popup-num">${e164}</div>
     <div class="inme-dial-popup-row">

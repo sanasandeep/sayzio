@@ -289,7 +289,7 @@ export default function StoreMenuBuilderScreen() {
           <Text style={[styles.helper, { color: colors.mutedForeground }]}>
             {mode === "order"
               ? "Visitors can send order requests that land in your Requests dashboard. No payment is collected."
-              : "Visitors browse the catalog only — no ordering."}
+              : "Visitors browse the catalog only, no ordering."}
           </Text>
 
           <View style={{ height: 12 }} />

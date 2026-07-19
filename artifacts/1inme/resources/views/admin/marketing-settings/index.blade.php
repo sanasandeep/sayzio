@@ -56,7 +56,7 @@
             </div>
             <div class="grid sm:grid-cols-2 gap-4">
                 <div>
-                    <label class="block text-xs font-semibold uppercase tracking-wider text-white/60 mb-1.5">Google Analytics 4 — Measurement ID</label>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-white/60 mb-1.5">Google Analytics 4, Measurement ID</label>
                     <input type="text" name="ga4_id" value="{{ old('ga4_id', $ga4_id) }}" placeholder="G-XXXXXXX"
                            class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white font-mono">
                     @error('ga4_id')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
@@ -136,7 +136,7 @@
         {{-- Subscribe block — WhatsApp settings --}}
         <div class="glass rounded-2xl p-6 space-y-5">
             <div>
-                <h2 class="text-lg font-semibold text-white">3-way Subscribe block — WhatsApp</h2>
+                <h2 class="text-lg font-semibold text-white">3-way Subscribe block, WhatsApp</h2>
                 <p class="text-xs text-white/50">Powers the WhatsApp Channel and WhatsApp DM cards in the public Subscribe block (every marketing page) and the compact version in the site footer. Leave a field blank to hide that card.</p>
             </div>
             <div>
@@ -196,7 +196,7 @@
                     <button type="button" @click="trust.splice(i,1)" class="text-red-400 hover:text-red-300 text-xs px-2"><i class="fas fa-trash"></i></button>
                 </div>
             </template>
-            <p x-show="trust.length===0" class="text-xs text-white/40">No metrics yet — add at least one to show the strip.</p>
+            <p x-show="trust.length===0" class="text-xs text-white/40">No metrics yet, add at least one to show the strip.</p>
 
             {{-- Live preview --}}
             <div x-show="trust.length>0" class="mt-2 pt-4 border-t border-white/5">
@@ -251,7 +251,7 @@
                     <button type="button" @click="why.splice(i,1)" class="text-red-400 hover:text-red-300 text-xs px-2"><i class="fas fa-trash"></i></button>
                 </div>
             </template>
-            <p x-show="why.length===0" class="text-xs text-white/40">No rows yet — the comparison section will be hidden on the landing page.</p>
+            <p x-show="why.length===0" class="text-xs text-white/40">No rows yet, the comparison section will be hidden on the landing page.</p>
 
             {{-- Live preview --}}
             <div x-show="why.length>0" class="mt-2 pt-4 border-t border-white/5">

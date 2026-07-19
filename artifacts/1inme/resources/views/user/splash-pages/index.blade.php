@@ -12,7 +12,7 @@
 <div class="max-w-7xl mx-auto">
     @include('user.partials.page-hero', [
         'title'    => 'Intros',
-        'subtitle' => 'Reusable transition pages — attach one to any link.',
+        'subtitle' => 'Reusable transition pages, attach one to any link.',
         'icon'     => 'fa-rocket',
         'chips'    => [
             ['icon' => 'fa-layer-group', 'text' => $splashPages->total() . ' total'],
@@ -101,7 +101,7 @@
                         @if($__canEdit)
                             <a href="{{ route('user.splash-pages.edit', $sp) }}" class="flex-1 text-center px-3 py-1.5 text-xs rounded-lg font-semibold" style="background: var(--bg-glass-hover); color: var(--text-primary);"><i class="fas fa-pen mr-1"></i> Edit</a>
                         @else
-                            <span class="flex-1 text-center px-3 py-1.5 text-xs rounded-lg font-semibold cursor-not-allowed opacity-60" style="background: var(--bg-glass-hover); color: var(--text-faint);" title="Your role doesn't allow editing intros — ask a workspace admin"><i class="fas fa-lock mr-1"></i> Edit</span>
+                            <span class="flex-1 text-center px-3 py-1.5 text-xs rounded-lg font-semibold cursor-not-allowed opacity-60" style="background: var(--bg-glass-hover); color: var(--text-faint);" title="Your role doesn't allow editing intros, ask a workspace admin"><i class="fas fa-lock mr-1"></i> Edit</span>
                         @endif
                         <a href="{{ route('user.splash-pages.preview', $sp) }}" target="_blank" class="px-3 py-1.5 text-xs rounded-lg" style="background: var(--bg-glass-hover); color: var(--text-secondary);" title="Preview"><i class="fas fa-eye"></i></a>
                         @if($__canEdit)
@@ -110,7 +110,7 @@
                                 <button type="submit" class="px-3 py-1.5 text-xs rounded-lg" style="background: var(--bg-glass-hover); color: var(--c-danger);" title="Delete"><i class="fas fa-trash"></i></button>
                             </form>
                         @else
-                            <span class="px-3 py-1.5 text-xs rounded-lg cursor-not-allowed opacity-60" style="background: var(--bg-glass-hover); color: var(--text-faint);" title="Your role doesn't allow deleting intros — ask a workspace admin"><i class="fas fa-lock"></i></span>
+                            <span class="px-3 py-1.5 text-xs rounded-lg cursor-not-allowed opacity-60" style="background: var(--bg-glass-hover); color: var(--text-faint);" title="Your role doesn't allow deleting intros, ask a workspace admin"><i class="fas fa-lock"></i></span>
                         @endif
                     </div>
                 </div>

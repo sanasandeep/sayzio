@@ -39,7 +39,7 @@
                     <i class="fas fa-times-circle text-red-400 mr-1"></i>
                     Scan failed: {{ $scan->error ?: 'unknown error' }}
                 @else
-                    <i class="fas fa-spinner fa-spin mr-1"></i> Processing — refresh in a moment.
+                    <i class="fas fa-spinner fa-spin mr-1"></i> Processing, refresh in a moment.
                 @endif
             </p>
             <a href="{{ route('user.contacts.scan.create') }}" class="inline-block mt-4 text-xs font-semibold" style="color:#90acff;">
@@ -55,7 +55,7 @@
         <ul class="text-xs space-y-1" style="color: var(--text-muted);">
             @foreach($duplicates as $d)
             <li>
-                Existing contact{{ count($d['contacts']) === 1 ? '' : 's' }} share this {{ $d['type'] }}: <strong>{{ $d['value'] }}</strong> —
+                Existing contact{{ count($d['contacts']) === 1 ? '' : 's' }} share this {{ $d['type'] }}: <strong>{{ $d['value'] }}</strong> -
                 @foreach($d['contacts'] as $c)
                     <a class="underline" href="{{ route('user.contacts.show', $c['id']) }}">{{ $c['name'] }}</a>{{ !$loop->last ? ',' : '' }}
                 @endforeach
@@ -72,7 +72,7 @@
                     <i class="fas fa-wand-magic-sparkles text-fuchsia-400 mr-1"></i> Re-scan with a new focus
                 </h3>
                 <p class="text-xs mt-1" style="color: var(--text-muted);">
-                    Run the AI over the same upload again with a different instruction — no need to upload it again. This scan's results stay saved so you can compare.
+                    Run the AI over the same upload again with a different instruction, no need to upload it again. This scan's results stay saved so you can compare.
                 </p>
             </div>
             <button type="button" @click="open = !open"
@@ -111,7 +111,7 @@
                 <div class="flex items-center justify-center p-4 rounded-lg" style="background: rgba(255,255,255,.04);">
                     <img src="{{ $extracted['logo_url'] }}" alt="Detected logo" style="max-height: 140px; max-width: 100%; object-fit: contain;">
                 </div>
-                <p class="mt-2 text-[11px]" style="color: var(--text-faint);">Saved to your vault — used as the avatar when seeding a Link in Bio page.</p>
+                <p class="mt-2 text-[11px]" style="color: var(--text-faint);">Saved to your vault, used as the avatar when seeding a Link in Bio page.</p>
             </div>
             @endif
 
@@ -241,7 +241,7 @@
                 </div>
                 @if(!$hasColors)
                     <p class="text-xs mb-3" style="color: var(--text-faint);">
-                        We didn't detect any brand colors — pick your own below to theme the page.
+                        We didn't detect any brand colors, pick your own below to theme the page.
                     </p>
                 @endif
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">

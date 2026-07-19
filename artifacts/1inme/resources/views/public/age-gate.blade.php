@@ -1,10 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    @include('common.partials.toolbar-theme-color')
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="csrf-token" content="{{ csrf_token() }}">
-<title>Age verification — {{ $creator->name }}</title>
+<title>Age verification | {{ $creator->name }}</title>
 {{-- This full-page interstitial (still used by the Paid Page adult gate)
      is a thin, content-free page — explicitly keep it out of search so
      Google never indexes the gate itself in place of the real content

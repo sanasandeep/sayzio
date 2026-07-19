@@ -270,7 +270,7 @@
                     <template x-if="atsReport && atsReport.has_unresolved">
                         <span class="ats-badge ats-badge-corner"
                               :class="atsReport.fail_count > 0 ? 'fail' : 'warn'"
-                              :title="(atsReport.fail_count + atsReport.warn_count) + ' unresolved ATS warning(s) — open Check ATS readiness for details.'"
+                              :title="(atsReport.fail_count + atsReport.warn_count) + ' unresolved ATS warning(s), open Check ATS readiness for details.'"
                               x-text="atsReport.fail_count + atsReport.warn_count"></span>
                     </template>
                 </button>
@@ -551,7 +551,7 @@
                                    @change="savePublishing()">
                             <p class="text-[11px] mt-1" style="color: var(--text-muted,#9ca3af);">
                                 <span x-show="publishing.is_share_expired" style="color:#f87171;">
-                                    <i class="fas fa-clock"></i> This share has expired — visitors see an expiry message.
+                                    <i class="fas fa-clock"></i> This share has expired, visitors see an expiry message.
                                 </span>
                                 <span x-show="!publishing.is_share_expired && publishing.expires_at_local">
                                     Visitors will be blocked after this date and time.
@@ -750,16 +750,44 @@
                     <div class="resume-field-row full">
                         <div class="resume-field">
                             <label>Photo</label>
-                            <div class="flex items-center gap-3 flex-wrap">
+                            {{-- Current photo preview --}}
+                            <div class="flex items-center gap-3 mb-2">
                                 <template x-if="resume.sections.header.photo_url">
                                     <img :src="resume.sections.header.photo_url" alt=""
-                                         style="width:56px;height:56px;border-radius:50%;object-fit:cover;border:1px solid var(--border-glass,#2a2a32);background:#fff;">
+                                         style="width:48px;height:48px;border-radius:50%;object-fit:cover;border:1px solid var(--border-glass,#2a2a32);background:#fff;flex-shrink:0;">
                                 </template>
                                 <template x-if="!resume.sections.header.photo_url">
-                                    <div style="width:56px;height:56px;border-radius:50%;background:rgba(61,107,255,0.10);display:flex;align-items:center;justify-content:center;color:#90acff;font-size:18px;border:1px dashed rgba(61,107,255,0.35);">
+                                    <div style="width:48px;height:48px;border-radius:50%;background:rgba(61,107,255,0.10);display:flex;align-items:center;justify-content:center;color:#90acff;font-size:16px;border:1px dashed rgba(61,107,255,0.35);flex-shrink:0;">
                                         <i class="fas fa-user"></i>
                                     </div>
                                 </template>
+                                <button type="button" class="resume-icon-btn danger"
+                                        x-show="resume.sections.header.photo_url"
+                                        :disabled="photoUploading"
+                                        @click="removePhoto()" title="Remove photo" style="display:none;">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                            {{-- Mode tabs --}}
+                            <div class="flex items-center gap-1 mb-2">
+                                <button type="button" class="resume-add-btn"
+                                        :style="photoMode==='upload' ? '' : 'opacity:0.5'"
+                                        @click="photoMode='upload'">
+                                    <i class="fas fa-arrow-up-from-bracket"></i> Upload
+                                </button>
+                                <button type="button" class="resume-add-btn"
+                                        :style="photoMode==='url' ? '' : 'opacity:0.5'"
+                                        @click="photoMode='url'">
+                                    <i class="fas fa-link"></i> URL
+                                </button>
+                                <button type="button" class="resume-add-btn"
+                                        :style="photoMode==='vault' ? '' : 'opacity:0.5'"
+                                        @click="photoMode='vault'; if(!photoVaultFiles.length) loadPhotoVault()">
+                                    <i class="fas fa-folder-open"></i> My Files
+                                </button>
+                            </div>
+                            {{-- Upload mode --}}
+                            <div x-show="photoMode==='upload'" style="display:none;">
                                 <input type="file" accept="image/jpeg,image/png,image/webp"
                                        x-ref="photoInput" style="display:none;"
                                        @change="uploadPhoto($event)">
@@ -768,14 +796,49 @@
                                         :style="photoUploading ? 'opacity:0.6;cursor:not-allowed;' : ''"
                                         @click="$refs.photoInput.click()">
                                     <i class="fas" :class="photoUploading ? 'fa-spinner fa-spin' : 'fa-arrow-up-from-bracket'"></i>
-                                    <span x-text="resume.sections.header.photo_url ? 'Change photo' : 'Upload photo'"></span>
+                                    <span x-text="photoUploading ? 'Uploading…' : (resume.sections.header.photo_url ? 'Change photo' : 'Upload photo')"></span>
                                 </button>
-                                <button type="button" class="resume-icon-btn danger"
-                                        x-show="resume.sections.header.photo_url"
-                                        :disabled="photoUploading"
-                                        @click="removePhoto()" title="Remove photo">
-                                    <i class="fas fa-trash"></i>
-                                </button>
+                            </div>
+                            {{-- URL mode --}}
+                            <div x-show="photoMode==='url'" style="display:none;">
+                                <div class="flex gap-2">
+                                    <input class="resume-input" type="url" placeholder="https://…"
+                                           x-ref="photoUrlInput" style="flex:1">
+                                    <button type="button" class="resume-add-btn" @click="setPhotoUrl($refs.photoUrlInput.value.trim())">
+                                        Set
+                                    </button>
+                                </div>
+                            </div>
+                            {{-- Vault / My Files mode --}}
+                            <div x-show="photoMode==='vault'" style="display:none;">
+                                <div style="border:1px solid var(--border-glass,#2a2a32);border-radius:10px;overflow:hidden">
+                                    <div style="padding:6px;border-bottom:1px solid var(--border-glass,#2a2a32);display:flex;gap:6px">
+                                        <input type="text" x-model="photoVaultSearch" placeholder="Search…"
+                                               style="flex:1;font-size:11px;padding:4px 8px;border-radius:6px;background:var(--bg-input,rgba(0,0,0,0.25));color:var(--text-primary,#fff);border:1px solid var(--border-glass,#2a2a32);outline:none">
+                                        <button type="button" @click="loadPhotoVault()" style="font-size:11px;color:#90acff;padding:2px 4px;"><i class="fas fa-sync-alt"></i></button>
+                                    </div>
+                                    <div style="max-height:160px;overflow-y:auto;padding:6px">
+                                        <template x-if="photoVaultLoading">
+                                            <div style="padding:20px;text-align:center;"><i class="fas fa-spinner fa-spin" style="color:#90acff;"></i></div>
+                                        </template>
+                                        <template x-if="!photoVaultLoading && filteredPhotoVault.length === 0">
+                                            <div style="padding:20px;text-align:center;font-size:11px;color:var(--text-muted,#9ca3af);">No images in your vault yet</div>
+                                        </template>
+                                        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px">
+                                            <template x-for="f in filteredPhotoVault" :key="f.id">
+                                                <button type="button" @click="pickPhotoVault(f)"
+                                                        style="border-radius:6px;overflow:hidden;aspect-ratio:1;cursor:pointer;padding:0;border:2px solid transparent"
+                                                        :style="resume.sections.header.photo_url===f.url?'border-color:#3b82f6':''">
+                                                    <img :src="f.url" :alt="f.original_name" style="width:100%;height:100%;object-fit:cover">
+                                                </button>
+                                            </template>
+                                        </div>
+                                        <template x-if="!photoVaultLoading && photoVaultHasMore">
+                                            <button type="button" @click="loadMorePhotoVault()"
+                                                    style="width:100%;font-size:10px;color:#90acff;padding:6px;text-align:center;">Load more…</button>
+                                        </template>
+                                    </div>
+                                </div>
                             </div>
                             <p class="text-[10px] mt-2" style="color: var(--text-muted,#9ca3af);">
                                 JPG, PNG or WebP, up to 5&nbsp;MB. A square image works best.
@@ -1119,6 +1182,12 @@ function resumeEditor() {
         pdfSize: (window.localStorage && localStorage.getItem('resume_pdf_size')) === 'letter' ? 'letter' : 'a4',
         downloading: false,
         photoUploading: false,
+        photoMode: 'upload',
+        photoVaultFiles: [],
+        photoVaultLoading: false,
+        photoVaultSearch: '',
+        photoVaultPage: 1,
+        photoVaultHasMore: false,
 
         // ── ATS readiness ─────────────────────────────────────
         atsOpen: false,
@@ -1288,7 +1357,7 @@ function resumeEditor() {
                 if (!res.ok) {
                     let msg = 'Could not generate PDF.';
                     try { const j = await res.json(); if (j && j.message) msg = j.message; } catch (e) {}
-                    if (res.status === 429) msg = 'Too many downloads — please wait a moment and try again.';
+                    if (res.status === 429) msg = 'Too many downloads, please wait a moment and try again.';
                     throw new Error(msg);
                 }
                 const blob = await res.blob();
@@ -1440,7 +1509,7 @@ function resumeEditor() {
             }
         },
         formatViewedAt(iso) {
-            if (!iso) return '—';
+            if (!iso) return '-';
             try {
                 const d = new Date(iso);
                 return d.toLocaleString();
@@ -1452,7 +1521,7 @@ function resumeEditor() {
                 this.copied = true;
                 setTimeout(() => { this.copied = false; }, 1500);
             } catch (_) {
-                this.showToast('Could not copy — select and copy manually.', 'error');
+                this.showToast('Could not copy, select and copy manually.', 'error');
             }
         },
 
@@ -1657,6 +1726,103 @@ function resumeEditor() {
             } finally {
                 this.photoUploading = false;
             }
+        },
+
+        async setPhotoUrl(url) {
+            if (!url) return;
+            this.photoUploading = true;
+            this.markSaving();
+            try {
+                const fd = new FormData();
+                fd.append('photo_url', url);
+                const res = await fetch('{{ route('user.resume.header.photo.upload') }}', {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    body: fd,
+                });
+                if (!res.ok) {
+                    let msg = 'Could not set photo URL.';
+                    try { const j = await res.json(); if (j && j.message) msg = j.message; } catch (e) {}
+                    throw new Error(msg);
+                }
+                const j = await res.json();
+                this.hydrate(j.resume);
+                this.renderPreview();
+                this.markSaved();
+                this.showToast('Photo updated.', 'success');
+                this.photoMode = 'upload';
+            } catch (e) {
+                this.markError(e.message);
+            } finally {
+                this.photoUploading = false;
+            }
+        },
+
+        async loadPhotoVault() {
+            this.photoVaultLoading = true;
+            this.photoVaultPage = 1;
+            try {
+                const r = await fetch('{{ route('user.files.index') }}?type=image&page=1', { headers: { 'Accept': 'application/json' } });
+                const d = await r.json();
+                this.photoVaultFiles = d.files || [];
+                this.photoVaultHasMore = d.pagination && d.pagination.current_page < d.pagination.last_page;
+            } catch (e) { this.photoVaultFiles = []; }
+            this.photoVaultLoading = false;
+        },
+
+        async loadMorePhotoVault() {
+            this.photoVaultPage++;
+            try {
+                const r = await fetch('{{ route('user.files.index') }}?type=image&page=' + this.photoVaultPage, { headers: { 'Accept': 'application/json' } });
+                const d = await r.json();
+                this.photoVaultFiles = this.photoVaultFiles.concat(d.files || []);
+                this.photoVaultHasMore = d.pagination && d.pagination.current_page < d.pagination.last_page;
+            } catch (e) {}
+        },
+
+        async pickPhotoVault(f) {
+            this.photoUploading = true;
+            this.markSaving();
+            try {
+                const fd = new FormData();
+                fd.append('vault_file_id', f.id);
+                const res = await fetch('{{ route('user.resume.header.photo.upload') }}', {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    body: fd,
+                });
+                if (!res.ok) {
+                    let msg = 'Could not use that file.';
+                    try { const j = await res.json(); if (j && j.message) msg = j.message; } catch (e) {}
+                    throw new Error(msg);
+                }
+                const j = await res.json();
+                this.hydrate(j.resume);
+                this.renderPreview();
+                this.markSaved();
+                this.showToast('Photo updated.', 'success');
+                this.photoMode = 'upload';
+            } catch (e) {
+                this.markError(e.message);
+            } finally {
+                this.photoUploading = false;
+            }
+        },
+
+        get filteredPhotoVault() {
+            if (!this.photoVaultSearch) return this.photoVaultFiles;
+            const s = this.photoVaultSearch.toLowerCase();
+            return this.photoVaultFiles.filter(f => f.original_name.toLowerCase().includes(s));
         },
         onSummary(value) {
             this.resume.sections.summary = value;
@@ -2445,7 +2611,7 @@ function resumeEditor() {
             const d = cand.data || {};
             switch (cand.section_type) {
                 case 'experience':     return [d.role, d.company].filter(Boolean).join(' @ ') || '(unnamed role)';
-                case 'education':      return [d.school, d.degree].filter(Boolean).join(' — ') || '(unnamed school)';
+                case 'education':      return [d.school, d.degree].filter(Boolean).join(', ') || '(unnamed school)';
                 case 'skills':         return d.name || '(skill)';
                 case 'projects':       return d.name || '(project)';
                 case 'certifications': return d.name || '(certification)';

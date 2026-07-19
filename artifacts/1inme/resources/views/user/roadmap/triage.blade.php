@@ -8,7 +8,7 @@
         <div>
             <h1 class="text-2xl font-bold flex items-center gap-2">
                 <i class="fas fa-route text-indigo-500"></i>
-                Roadmap — {{ $link->title ?? $link->alias }}
+                Roadmap, {{ $link->title ?? $link->alias }}
             </h1>
             <p class="text-sm mt-1" style="color: var(--text-muted);">Triage public submissions, push them to your kanban, ship and notify upvoters.</p>
         </div>

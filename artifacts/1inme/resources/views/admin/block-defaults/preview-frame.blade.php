@@ -30,7 +30,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex,nofollow">
-    <title>Preview — {{ $type }}</title>
+    <title>Preview: {{ $type }}</title>
     @vite(['resources/css/app.css'])
     @include('common.partials.fontawesome')
     <link rel="preconnect" href="https://fonts.googleapis.com">

@@ -38,7 +38,7 @@
                 <p class="text-xs text-white/50 mt-1 max-w-2xl">
                     These users and link aliases were created before <span class="font-mono">{{ $item->name }}</span>
                     was added to the banned list. New signups can no longer claim it, but existing values
-                    aren't renamed automatically — review them below. You can acknowledge each row to clear
+                    aren't renamed automatically, review them below. You can acknowledge each row to clear
                     it from the badge, nudge the owner, or rename / remove it directly.
                 </p>
             </div>
@@ -97,7 +97,7 @@
                                 <div>{{ $row['owner']->name ?: 'Unnamed' }}</div>
                                 <div class="text-white/40">{{ $row['owner']->email }}</div>
                             @else
-                                <span class="text-white/30">—</span>
+                                <span class="text-white/30">-</span>
                             @endif
                         </td>
                         <td class="px-5 py-3">
@@ -121,7 +121,7 @@
                                             <input type="hidden" name="conflict_id" value="{{ $row['id'] }}">
                                             <button type="submit"
                                                     class="px-2.5 py-1.5 rounded-lg text-xs bg-white/5 hover:bg-white/10 text-white/60 border border-white/10"
-                                                    title="Acknowledged {{ $row['acknowledged']->diffForHumans() }} — click to re-open.">
+                                                    title="Acknowledged {{ $row['acknowledged']->diffForHumans() }}, click to re-open.">
                                                 <i class="fas fa-rotate-left text-[10px]"></i> Re-open
                                             </button>
                                         </form>

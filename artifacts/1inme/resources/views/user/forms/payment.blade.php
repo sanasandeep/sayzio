@@ -5,7 +5,7 @@
 <div class="max-w-3xl mx-auto" x-data="{ paidEnabled: {{ ($payment['enabled'] ?? false) ? 'true' : 'false' }}, payMode: '{{ ($payment['mode'] ?? 'fixed') === 'per_field' ? 'per_field' : 'fixed' }}' }">
     @include('user.partials.page-hero', [
         'title' => 'Payments',
-        'subtitle' => 'Charge customers to submit this form. Funds go straight to your connected payment gateway — Sayzio takes 0%.',
+        'subtitle' => 'Charge customers to submit this form. Funds go straight to your connected payment gateway, Sayzio takes 0%.',
         'icon' => 'fa-credit-card',
         'back' => route('user.forms.show', $form),
     ])
@@ -45,7 +45,7 @@
         <div class="mb-6 px-4 py-3 rounded-xl text-sm flex items-start gap-2" style="background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.25); color: #b45309;">
             <i class="fas fa-plug mt-0.5"></i>
             <span>
-                Connect a payment gateway before you can charge for this form — funds are paid straight to your own gateway.
+                Connect a payment gateway before you can charge for this form, funds are paid straight to your own gateway.
                 <a href="{{ route('user.payouts') }}" class="underline font-semibold">Set up payouts →</a>
             </span>
         </div>
@@ -99,7 +99,7 @@
                     <div>
                         <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">
                             <span x-show="payMode === 'fixed'">Price</span>
-                            <span x-show="payMode === 'per_field'" x-cloak>Base fee <span class="text-[10px]" style="color: var(--text-faint);">— optional</span></span>
+                            <span x-show="payMode === 'per_field'" x-cloak>Base fee <span class="text-[10px]" style="color: var(--text-faint);"> - optional</span></span>
                         </label>
                         <input type="number" name="amount" step="0.01" min="0" value="{{ old('amount', number_format(($payment['amount_cents'] ?? 0) / 100, 2, '.', '')) }}" placeholder="9.99" class="theme-input w-full">
                     </div>
@@ -108,7 +108,7 @@
                         <input type="text" name="currency" maxlength="3" value="{{ old('currency', strtoupper($payment['currency'] ?? 'USD')) }}" placeholder="USD" class="theme-input w-full uppercase">
                     </div>
                     <div>
-                        <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Button label <span class="text-[10px]" style="color: var(--text-faint);">— optional</span></label>
+                        <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Button label <span class="text-[10px]" style="color: var(--text-faint);"> - optional</span></label>
                         <input type="text" name="label" maxlength="60" value="{{ old('label', $payment['label'] ?? '') }}" placeholder="Pay &amp; submit" class="theme-input w-full">
                     </div>
                 </div>

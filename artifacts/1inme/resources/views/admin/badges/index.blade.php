@@ -80,7 +80,7 @@
                             <button type="submit" class="text-white/30 hover:text-red-400" title="Delete"><i class="fas fa-trash"></i></button>
                         </form>
                         @else
-                        <span class="text-white/20">—</span>
+                        <span class="text-white/20">-</span>
                         @endif
                     </td>
                 </tr>

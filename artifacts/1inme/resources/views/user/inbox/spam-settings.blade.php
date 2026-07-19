@@ -230,7 +230,7 @@
             </div>
             @if(!empty($spam['blocked_keywords'] ?? []))
             <div class="mb-3">
-                <div class="text-[10px] uppercase font-bold tracking-wider mb-2" style="color: var(--text-faint);">Currently blocked — click × to stop blocking</div>
+                <div class="text-[10px] uppercase font-bold tracking-wider mb-2" style="color: var(--text-faint);">Currently blocked, click × to stop blocking</div>
                 <div class="flex flex-wrap gap-1.5">
                     @foreach($spam['blocked_keywords'] as $kw)
                         <span class="inline-flex items-center text-xs pl-2 pr-1 py-1 rounded-lg" style="background: rgba(61,107,255,0.15); color: #bccfff;">

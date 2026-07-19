@@ -1,7 +1,8 @@
 <!DOCTYPE html>
 <html lang="en"><head>
+    @include('common.partials.toolbar-theme-color')
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Not available in your region — {{ config('app.name') }}</title>
+<title>Not available in your region | {{ config('app.name') }}</title>
 @vite(['resources/css/app.css', 'resources/js/app.js'])
 @include('common.partials.fontawesome')
 </head>

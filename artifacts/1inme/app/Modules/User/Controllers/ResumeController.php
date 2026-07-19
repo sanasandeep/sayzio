@@ -223,41 +223,113 @@ class ResumeController extends Controller
     }
 
     /**
-     * POST — upload a header photo. Stores it in the user's vault as a
-     * normal UserFile so quota / serving / cleanup logic stays uniform,
-     * then records its id on `sections.header.photo_user_file_id`.
-     * Replacing an existing photo deletes the previous vault entry so we
-     * don't accumulate orphaned uploads.
+     * POST — set the header photo. Accepts three mutually exclusive modes:
+     *
+     *  • `photo`        (file)   — direct upload; stored in the user's vault.
+     *  • `vault_file_id` (int)   — borrow an existing vault file; no copy made.
+     *  • `photo_url`    (string) — fetch a remote image and store it in vault.
+     *
+     * Uploaded or fetched files are added to the vault so quota / serving /
+     * cleanup logic stays uniform. "Borrowed" vault files are NOT deleted when
+     * the photo is later replaced, since they remain useful in the vault.
+     * Owned uploads (non-borrowed) ARE cleaned up on replacement.
      */
     public function uploadHeaderPhoto(Request $request): JsonResponse
     {
-        $request->validate([
-            'photo' => ['required', 'file', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
-        ]);
-
         $user   = $request->user();
         $resume = $user->resolveResume($request);
 
-        try {
-            $userFile = UserFile::createFromUpload($request->file('photo'), $user, [
-                'max_size_mb'    => 5,
-                'compress_image' => true,
-                'max_width'      => 800,
-                'max_height'     => 800,
-                'quality'        => 85,
+        $borrowed = false;
+
+        if ($request->hasFile('photo')) {
+            // ── Direct file upload ────────────────────────────────────────
+            $request->validate([
+                'photo' => ['required', 'file', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
             ]);
-        } catch (\RuntimeException $e) {
-            return response()->json(['message' => $e->getMessage()], 422);
+            try {
+                $userFile = UserFile::createFromUpload($request->file('photo'), $user, [
+                    'max_size_mb'    => 5,
+                    'compress_image' => true,
+                    'max_width'      => 800,
+                    'max_height'     => 800,
+                    'quality'        => 85,
+                ]);
+            } catch (\RuntimeException $e) {
+                return response()->json(['message' => $e->getMessage()], 422);
+            }
+
+        } elseif ($request->filled('vault_file_id')) {
+            // ── Vault pick — borrow an existing vault file ────────────────
+            $request->validate([
+                'vault_file_id' => ['required', 'integer'],
+            ]);
+            $userFile = UserFile::where('id', $request->integer('vault_file_id'))
+                ->where('user_id', $user->id)
+                ->first();
+            if (! $userFile) {
+                return response()->json(['message' => 'File not found in your vault.'], 422);
+            }
+            $borrowed = true;
+
+        } elseif ($request->filled('photo_url')) {
+            // ── Remote URL — fetch and store in vault ─────────────────────
+            $request->validate([
+                'photo_url' => ['required', 'url', 'max:2048'],
+            ]);
+            $photoUrl = $request->input('photo_url');
+            try {
+                $response = \Illuminate\Support\Facades\Http::timeout(15)->get($photoUrl);
+                if (! $response->ok()) {
+                    return response()->json(['message' => 'Could not fetch the image at that URL.'], 422);
+                }
+                $mime    = strtolower(explode(';', $response->header('Content-Type') ?? 'image/jpeg')[0]);
+                $allowed = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+                if (! in_array($mime, $allowed)) {
+                    return response()->json(['message' => 'The URL does not point to a supported image (JPG, PNG, WebP, GIF).'], 422);
+                }
+                $ext = match ($mime) {
+                    'image/png'  => 'png',
+                    'image/webp' => 'webp',
+                    'image/gif'  => 'gif',
+                    default      => 'jpg',
+                };
+                $userFile = UserFile::createFromBytes(
+                    $response->body(),
+                    'resume-photo.' . $ext,
+                    $mime,
+                    $user,
+                    [
+                        'max_size_mb'    => 5,
+                        'compress_image' => true,
+                        'max_width'      => 800,
+                        'max_height'     => 800,
+                        'quality'        => 85,
+                    ]
+                );
+            } catch (\RuntimeException $e) {
+                return response()->json(['message' => $e->getMessage()], 422);
+            } catch (\Throwable $e) {
+                return response()->json(['message' => 'Could not import the photo from that URL.'], 422);
+            }
+
+        } else {
+            return response()->json(['message' => 'Please provide a photo file, vault file ID, or URL.'], 422);
         }
 
-        $sections = $resume->getMergedSections();
-        $oldId    = $sections['header']['photo_user_file_id'] ?? null;
+        $sections    = $resume->getMergedSections();
+        $oldId       = $sections['header']['photo_user_file_id'] ?? null;
+        $oldBorrowed = $sections['header']['photo_borrowed'] ?? false;
+
         $sections['header']['photo_user_file_id'] = $userFile->id;
+        $sections['header']['photo_borrowed']     = $borrowed;
         $resume->update(['sections' => $sections]);
 
-        if ($oldId && (int) $oldId !== (int) $userFile->id) {
+        // Delete the old file only if it was a dedicated upload (not borrowed).
+        if ($oldId && ! $oldBorrowed && (int) $oldId !== (int) $userFile->id) {
             $old = UserFile::where('id', $oldId)->where('user_id', $user->id)->first();
-            if ($old) $old->deleteFile();
+            if ($old) {
+                $old->deleteFile();
+            }
         }
 
         return response()->json(['resume' => $this->present($resume->fresh('items'))]);
@@ -265,22 +337,26 @@ class ResumeController extends Controller
 
     /**
      * DELETE — remove the header photo. Clears the reference and deletes
-     * the underlying vault file (it was uploaded explicitly for this slot,
-     * so dropping it back into the vault would be surprising).
+     * the underlying vault file only when it was a dedicated upload
+     * (photo_borrowed=false). Vault-picked files stay in the vault.
      */
     public function removeHeaderPhoto(Request $request): JsonResponse
     {
-        $user   = $request->user();
-        $resume = $user->resolveResume($request);
+        $user     = $request->user();
+        $resume   = $user->resolveResume($request);
         $sections = $resume->getMergedSections();
-        $oldId = $sections['header']['photo_user_file_id'] ?? null;
+        $oldId       = $sections['header']['photo_user_file_id'] ?? null;
+        $oldBorrowed = $sections['header']['photo_borrowed'] ?? false;
 
         $sections['header']['photo_user_file_id'] = null;
+        $sections['header']['photo_borrowed']     = false;
         $resume->update(['sections' => $sections]);
 
-        if ($oldId) {
+        if ($oldId && ! $oldBorrowed) {
             $old = UserFile::where('id', $oldId)->where('user_id', $user->id)->first();
-            if ($old) $old->deleteFile();
+            if ($old) {
+                $old->deleteFile();
+            }
         }
 
         return response()->json(['resume' => $this->present($resume->fresh('items'))]);

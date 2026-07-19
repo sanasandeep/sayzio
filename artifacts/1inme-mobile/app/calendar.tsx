@@ -91,7 +91,7 @@ export default function CalendarScreen() {
           ListFooterComponent={
             (q.data?.length ?? 0) > 0 ? (
               <Text style={[styles.footer, { color: colors.mutedForeground }]}>
-                Add or re-authorise calendars from the web — Google's OAuth flow lives there.
+                Add or re-authorise calendars from the web; Google's OAuth flow lives there.
               </Text>
             ) : null
           }

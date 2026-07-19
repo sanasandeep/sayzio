@@ -52,7 +52,7 @@
                                 @endforeach
                             </div>
                         @else
-                            <div class="mt-2 text-[10px] text-white/30">No specific feature permissions — baseline access only.</div>
+                            <div class="mt-2 text-[10px] text-white/30">No specific feature permissions, baseline access only.</div>
                         @endif
                     </div>
                 </label>
@@ -135,7 +135,7 @@
                         <div class="rounded-xl border border-white/5 bg-white/[0.02] p-3">
                             <div class="text-xs font-medium text-white">{{ $r->name }} <span class="text-white/30">· {{ $r->slug }}</span></div>
                             @if($r->slug === 'super-admin')
-                                <div class="mt-1 text-[10px] text-blue-200">Unrestricted — every permission.</div>
+                                <div class="mt-1 text-[10px] text-blue-200">Unrestricted, every permission.</div>
                             @elseif($r->permissions->isNotEmpty())
                                 <div class="mt-1.5 flex flex-wrap gap-1">
                                     @foreach($r->permissions as $perm)

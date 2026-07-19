@@ -67,6 +67,7 @@
         "buy_me_coffee"                    => 'common.blocks.buy-me-coffee',
         "patreon"                          => 'common.blocks.buy-me-coffee',
         "ko_fi"                            => 'common.blocks.buy-me-coffee',
+        "tip_jar"                          => 'common.blocks.tip-jar',
         "latest_youtube"                   => 'common.blocks.latest-youtube',
         "latest_instagram"                 => 'common.blocks.latest-instagram',
         "featured_pin"                     => 'common.blocks.featured-pin',
@@ -357,7 +358,7 @@
                             <div class="inline-flex items-center justify-center w-12 h-12 rounded-full mb-3" style="background: rgba(34,197,94,0.15);">
                                 <i class="fas fa-check text-green-400 text-xl"></i>
                             </div>
-                            <p class="text-sm font-semibold text-green-400">{{ $s['success_message'] ?? 'Message sent — thanks!' }}</p>
+                            <p class="text-sm font-semibold text-green-400">{{ $s['success_message'] ?? 'Message sent, thanks!' }}</p>
                         </div>
                     </template>
                 </div>
@@ -365,7 +366,7 @@
             @elseif($block->type === 'direct_message')
                 @php
                     $dmTitle  = $s['title']  ?? 'Send a direct message';
-                    $dmDesc   = $s['description'] ?? 'Reach out — replies arrive in your inbox.';
+                    $dmDesc   = $s['description'] ?? 'Reach out, replies arrive in your inbox.';
                     $dmPh     = $s['placeholder'] ?? 'Write your message…';
                     $dmBtn    = $s['button_text'] ?? 'Send message';
                     $dmLimit  = (int) (\App\Modules\Common\Models\ViewerDmConversation::VIEWER_INITIAL_LIMIT);
@@ -544,7 +545,7 @@
                             @endif
                         </div>
                         @empty
-                        <p class="text-sm text-center py-4" style="color:{{ $fontColor }}66">No reviews yet — be the first!</p>
+                        <p class="text-sm text-center py-4" style="color:{{ $fontColor }}66">No reviews yet, be the first!</p>
                         @endforelse
                     </div>
                     @if($s['allow_submissions'] ?? true)

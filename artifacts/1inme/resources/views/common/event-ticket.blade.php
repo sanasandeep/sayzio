@@ -1,9 +1,10 @@
 <!DOCTYPE html>
 <html lang="en" class="{{ request()->cookie('1inme_theme') === 'light' ? 'light-mode' : '' }}">
 <head>
+    @include('common.partials.toolbar-theme-color')
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Your ticket — {{ $link->title }}</title>
+    <title>Your ticket: {{ $link->title }}</title>
     @include('common.partials.theme-bootstrap')
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
     @include('common.partials.fontawesome')
@@ -53,7 +54,7 @@
         @elseif(in_array($ticket->status, ['cancelled', 'refunded']))
             <span class="badge bg-secondary status-badge">{{ ucfirst($ticket->status) }}</span>
         @else
-            <span class="badge bg-primary status-badge">Valid — show this at the door</span>
+            <span class="badge bg-primary status-badge">Valid, show this at the door</span>
         @endif
     </div>
 </div>

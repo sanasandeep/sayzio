@@ -16,7 +16,7 @@
                 </div>
                 <div class="text-xs mt-0.5 leading-relaxed" style="color:var(--text-muted)">
                     @if($__customOffer->provisionedPlan)
-                        <strong class="text-blue-300">{{ $__customOffer->provisionedPlan->name }}</strong> —
+                        <strong class="text-blue-300">{{ $__customOffer->provisionedPlan->name }}</strong> -
                         @if($__customOffer->offer_cycle === 'annual')
                             ${{ number_format($__customOffer->provisionedPlan->annual_price, 2) }}/year
                         @else

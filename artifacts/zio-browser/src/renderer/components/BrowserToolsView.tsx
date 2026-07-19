@@ -4,6 +4,7 @@
  * All data stays on-device; nothing is sent to the Sayzio backend.
  */
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { ClearDataDialog } from './ClearDataDialog';
 
 // ── Shared types ──────────────────────────────────────────────────────────────
 
@@ -46,7 +47,7 @@ interface DownloadEntry {
   completed_at: string | null;
 }
 
-type BrowserSection = 'history' | 'cookies' | 'passwords' | 'downloads';
+type BrowserSection = 'history' | 'cookies' | 'passwords' | 'downloads' | 'sound';
 
 interface ConfirmState {
   message: string;
@@ -60,11 +61,16 @@ interface Props {
   /** When set, jump directly to this section (from a chat assistant intent). */
   focusSection?: BrowserSection | null;
   onFocusSectionConsumed?: () => void;
+  /** When true, open the clear-data dialog immediately (triggered by keyboard shortcut). */
+  openClearDialog?: boolean;
+  onClearDialogConsumed?: () => void;
 }
 
-export function BrowserToolsView({ currentUrl, focusSection, onFocusSectionConsumed }: Props) {
+export function BrowserToolsView({ currentUrl, focusSection, onFocusSectionConsumed, openClearDialog, onClearDialogConsumed }: Props) {
   const [section, setSection] = useState<BrowserSection>('history');
   const [confirm, setConfirm] = useState<ConfirmState | null>(null);
+  const [clearDialogOpen, setClearDialogOpen] = useState(false);
+  const historyRefreshRef = useRef<(() => void) | null>(null);
 
   // Jump to the section requested by the chat assistant
   useEffect(() => {
@@ -73,6 +79,14 @@ export function BrowserToolsView({ currentUrl, focusSection, onFocusSectionConsu
       onFocusSectionConsumed?.();
     }
   }, [focusSection, onFocusSectionConsumed]);
+
+  // Open the clear dialog when triggered by keyboard shortcut
+  useEffect(() => {
+    if (openClearDialog) {
+      setClearDialogOpen(true);
+      onClearDialogConsumed?.();
+    }
+  }, [openClearDialog, onClearDialogConsumed]);
 
   const requestConfirm = useCallback((message: string, onConfirm: () => void) => {
     setConfirm({ message, onConfirm });
@@ -83,6 +97,7 @@ export function BrowserToolsView({ currentUrl, focusSection, onFocusSectionConsu
     { id: 'cookies', label: '🍪 Cookies' },
     { id: 'passwords', label: '🔑 Passwords' },
     { id: 'downloads', label: '⬇ Downloads' },
+    { id: 'sound', label: '🔇 Sound' },
   ];
 
   return (
@@ -125,14 +140,31 @@ export function BrowserToolsView({ currentUrl, focusSection, onFocusSectionConsu
 
       {/* Section content */}
       <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-        {section === 'history' && <HistorySection onConfirm={requestConfirm} />}
+        {section === 'history' && (
+          <HistorySection
+            onConfirm={requestConfirm}
+            onRegisterRefresh={(fn) => { historyRefreshRef.current = fn; }}
+          />
+        )}
         {section === 'cookies' && <CookiesSection currentUrl={currentUrl} onConfirm={requestConfirm} />}
         {section === 'passwords' && <PasswordsSection currentUrl={currentUrl} onConfirm={requestConfirm} />}
         {section === 'downloads' && <DownloadsSection />}
+        {section === 'sound' && <SoundSection />}
       </div>
 
-      {/* Clear all browsing data */}
-      <ClearAllBar onConfirm={requestConfirm} />
+      {/* Clear browsing data bar */}
+      <ClearAllBar onOpen={() => setClearDialogOpen(true)} />
+
+      {/* Clear browsing data dialog */}
+      {clearDialogOpen && (
+        <ClearDataDialog
+          onClose={() => setClearDialogOpen(false)}
+          onCleared={() => {
+            // Refresh the history list if it's visible
+            historyRefreshRef.current?.();
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -181,7 +213,13 @@ function ConfirmBanner({ message, onConfirm, onCancel }: { message: string; onCo
 
 // ── History section ───────────────────────────────────────────────────────────
 
-function HistorySection({ onConfirm }: { onConfirm: (msg: string, cb: () => void) => void }) {
+function HistorySection({
+  onConfirm,
+  onRegisterRefresh,
+}: {
+  onConfirm: (msg: string, cb: () => void) => void;
+  onRegisterRefresh?: (fn: () => void) => void;
+}) {
   const [entries, setEntries] = useState<HistoryEntry[]>([]);
   const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(false);
@@ -200,6 +238,12 @@ function HistorySection({ onConfirm }: { onConfirm: (msg: string, cb: () => void
   }, []);
 
   useEffect(() => { void load(); }, [load]);
+
+  // Register the refresh callback with the parent so the clear dialog can
+  // trigger a list reload after clearing.
+  useEffect(() => {
+    onRegisterRefresh?.(() => void load(query || undefined));
+  }, [onRegisterRefresh, load, query]);
 
   const handleSearch = (val: string) => {
     setQuery(val);
@@ -472,6 +516,43 @@ function PasswordsSection({ currentUrl, onConfirm }: { currentUrl: string | null
 function DownloadsSection() {
   const [downloads, setDownloads] = useState<DownloadEntry[]>([]);
   const [loading, setLoading] = useState(false);
+  const [downloadDir, setDownloadDir] = useState<string | null>(null);
+  const [defaultDir, setDefaultDir] = useState<string>('');
+  const [alwaysAsk, setAlwaysAsk] = useState(false);
+
+  // Load download preferences
+  useEffect(() => {
+    void (async () => {
+      const [dir, def, ask] = await Promise.all([
+        window.zio.prefs.get('download_path') as Promise<string | null>,
+        window.zio.downloads.defaultDirectory() as Promise<string>,
+        window.zio.prefs.get('download_ask') as Promise<string | null>,
+      ]);
+      setDownloadDir(dir);
+      setDefaultDir(def);
+      setAlwaysAsk(ask === '1');
+    })();
+  }, []);
+
+  const handleChangeDir = async () => {
+    const picked = await window.zio.downloads.chooseDirectory() as string | null;
+    if (picked) {
+      await window.zio.prefs.set('download_path', picked);
+      setDownloadDir(picked);
+    }
+  };
+
+  const handleResetDir = async () => {
+    // Store the platform default explicitly so the manager falls back cleanly
+    await window.zio.prefs.set('download_path', defaultDir);
+    setDownloadDir(defaultDir);
+  };
+
+  const handleToggleAsk = async () => {
+    const next = !alwaysAsk;
+    setAlwaysAsk(next);
+    await window.zio.prefs.set('download_ask', next ? '1' : '0');
+  };
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -513,6 +594,54 @@ function DownloadsSection() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
+      {/* Download preferences */}
+      <div style={{
+        margin: '8px 12px 0',
+        padding: '10px 12px',
+        borderRadius: 10,
+        background: 'var(--color-bg-elevated)',
+        border: '1px solid var(--color-border)',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 8,
+      }}>
+        <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--color-text)' }}>Save downloaded files to</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span
+            title={downloadDir ?? defaultDir}
+            style={{
+              flex: 1,
+              minWidth: 0,
+              fontSize: 11,
+              fontFamily: 'monospace',
+              color: 'var(--color-text-muted)',
+              background: 'var(--color-bg)',
+              border: '1px solid var(--color-border)',
+              borderRadius: 6,
+              padding: '4px 8px',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+              direction: 'rtl',
+              textAlign: 'left',
+            }}
+          >{downloadDir ?? defaultDir ?? '…'}</span>
+          <button onClick={() => void handleChangeDir()} style={smallToggleBtn} title="Choose a different folder">Change…</button>
+          {downloadDir != null && defaultDir !== '' && downloadDir !== defaultDir && (
+            <button onClick={() => void handleResetDir()} style={smallToggleBtn} title="Use the system Downloads folder">Reset</button>
+          )}
+        </div>
+        <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: 'var(--color-text)', cursor: 'pointer' }}>
+          <input
+            type="checkbox"
+            checked={alwaysAsk}
+            onChange={() => void handleToggleAsk()}
+            style={{ accentColor: 'var(--color-primary)' }}
+          />
+          Always ask where to save each file
+        </label>
+      </div>
+
       <div style={{ padding: '8px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <span style={{ fontSize: 11, color: 'var(--color-text-muted)' }}>Recent downloads</span>
         <button onClick={() => void load()} style={smallToggleBtn} title="Refresh">↻</button>
@@ -559,23 +688,104 @@ function DownloadsSection() {
   );
 }
 
-// ── Clear all bar ─────────────────────────────────────────────────────────────
+// ── Sound section ─────────────────────────────────────────────────────────────
 
-function ClearAllBar({ onConfirm }: { onConfirm: (msg: string, cb: () => void) => void }) {
-  const handleClear = () => {
-    onConfirm(
-      'Clear all browsing data — history, cookies, and cache? You will be signed out of all sites.',
-      () => { void window.zio.browsingData.clear(); },
-    );
+function SoundSection() {
+  const [muteAll, setMuteAll] = useState(false);
+  const [mutedDomains, setMutedDomains] = useState<string[]>([]);
+  const [loaded, setLoaded] = useState(false);
+
+  const refresh = useCallback(async () => {
+    const [all, domains] = await Promise.all([
+      window.zio.audio.getMuteAll(),
+      window.zio.audio.mutedDomains(),
+    ]);
+    setMuteAll(all);
+    setMutedDomains(domains);
+    setLoaded(true);
+  }, []);
+
+  useEffect(() => { void refresh(); }, [refresh]);
+
+  const toggleMuteAll = async () => {
+    const next = !muteAll;
+    setMuteAll(next);
+    await window.zio.audio.setMuteAll(next);
+    // Apply to currently open tabs too so the toggle has an immediate effect.
+    await window.zio.tabs.muteAll(next);
   };
 
+  const removeDomain = async (host: string) => {
+    setMutedDomains(prev => prev.filter(h => h !== host));
+    await window.zio.audio.setDomainMuted(host, false);
+  };
+
+  return (
+    <div style={{ flex: 1, overflowY: 'auto', padding: '12px 16px' }}>
+      {/* Global mute-all policy */}
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '10px 12px', borderRadius: 10,
+        border: '1px solid var(--color-border)', background: 'var(--color-bg-elevated)',
+        marginBottom: 16,
+      }}>
+        <div>
+          <div style={{ fontSize: 13, fontWeight: 600 }}>Mute all tabs</div>
+          <div style={{ fontSize: 11, color: 'var(--color-text-muted)', marginTop: 2 }}>
+            When on, every new and existing tab starts muted.
+          </div>
+        </div>
+        <button
+          onClick={() => void toggleMuteAll()}
+          style={{
+            ...smallToggleBtn,
+            background: muteAll ? 'var(--color-primary)' : 'var(--color-bg-elevated)',
+            color: muteAll ? '#fff' : 'var(--color-text-muted)',
+          }}
+        >
+          {muteAll ? 'On' : 'Off'}
+        </button>
+      </div>
+
+      {/* Per-domain mute list */}
+      <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--color-text-muted)', marginBottom: 8, letterSpacing: 0.5 }}>
+        MUTED SITES
+      </div>
+      {loaded && mutedDomains.length === 0 && (
+        <EmptyMsg>No muted sites. Mute a tab from its tab strip to remember the site here.</EmptyMsg>
+      )}
+      {mutedDomains.map(host => (
+        <div
+          key={host}
+          style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            padding: '8px 12px', borderRadius: 8, marginBottom: 4,
+            border: '1px solid var(--color-border)',
+          }}
+        >
+          <span style={{ fontSize: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span>🔇</span>{host}
+          </span>
+          <button onClick={() => void removeDomain(host)} style={smallToggleBtn} title="Unmute this site">
+            Unmute
+          </button>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ── Clear all bar ─────────────────────────────────────────────────────────────
+
+function ClearAllBar({ onOpen }: { onOpen: () => void }) {
   return (
     <div style={{
       padding: '10px 12px',
       borderTop: '1px solid var(--color-border)',
     }}>
       <button
-        onClick={handleClear}
+        onClick={onOpen}
+        title="Clear browsing data (Ctrl+Shift+Delete)"
         style={{
           width: '100%',
           padding: '7px 12px',
@@ -587,7 +797,7 @@ function ClearAllBar({ onConfirm }: { onConfirm: (msg: string, cb: () => void) =
           fontWeight: 600,
           cursor: 'pointer',
         }}
-      >🗑 Clear all browsing data</button>
+      >🗑 Clear browsing data…</button>
     </div>
   );
 }

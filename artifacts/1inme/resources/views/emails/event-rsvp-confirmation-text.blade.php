@@ -3,7 +3,7 @@ Hi {{ $rsvp->name }},
 @if($rsvp->status === 'waitlist')
 You've been added to the waitlist for {{ $title }}. We'll email you the moment a spot opens up.
 @else
-Thanks for your RSVP — you're {{ $rsvp->response === 'yes' ? 'confirmed' : ($rsvp->response === 'maybe' ? 'down as a maybe' : 'marked as not attending') }} for {{ $title }}.
+Thanks for your RSVP: you're {{ $rsvp->response === 'yes' ? 'confirmed' : ($rsvp->response === 'maybe' ? 'down as a maybe' : 'marked as not attending') }} for {{ $title }}.
 @endif
 
 @php
@@ -32,4 +32,4 @@ Show this at the door (or the QR code on your manage page):
 Edit or cancel your RSVP any time:
 {{ $rsvp->manageUrl() }}
 
-— Sent automatically by Sayzio
+- Sent automatically by Sayzio

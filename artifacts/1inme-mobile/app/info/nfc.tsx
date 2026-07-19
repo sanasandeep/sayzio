@@ -16,7 +16,7 @@ export default function HowNfcWorks() {
         },
         {
           heading: "Reading is universal",
-          body: "Almost every modern smartphone reads NFC tags by default. Your audience does not need the Sayzio app — tapping the tag simply opens their browser to your profile.",
+          body: "Almost every modern smartphone reads NFC tags by default. Your audience does not need the Sayzio app; tapping the tag simply opens their browser to your profile.",
         },
         {
           heading: "Re-writing and locking",

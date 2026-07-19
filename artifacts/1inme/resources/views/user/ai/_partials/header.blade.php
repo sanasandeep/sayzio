@@ -32,7 +32,7 @@
                 You’re out of coins. AI actions are paid from your coin wallet, so they’ll fail until you top up.
             @else
                 You have only <span class="font-semibold text-amber-100">{{ number_format($balance) }}</span>
-                {{ \Illuminate\Support\Str::plural('coin', (int) $balance) }} left — AI actions are paid from your coin wallet and may run out part-way.
+                {{ \Illuminate\Support\Str::plural('coin', (int) $balance) }} left, AI actions are paid from your coin wallet and may run out part-way.
             @endif
             <a href="{{ route('user.wallet.buy') }}" class="font-semibold text-amber-100 underline hover:no-underline">Top up coins</a>.
         </div>

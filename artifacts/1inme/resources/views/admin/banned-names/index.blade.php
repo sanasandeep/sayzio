@@ -12,7 +12,7 @@
                 <p class="text-xs text-white/50 mt-1 max-w-2xl">
                     Names on this list cannot be claimed as a profile handle or as any link alias
                     (regular, file, calendar or contact). Matching is case-insensitive. Existing
-                    handles/aliases are not retroactively renamed — the conflict count below shows
+                    handles/aliases are not retroactively renamed, the conflict count below shows
                     where current values already match a banned entry.
                 </p>
             </div>
@@ -22,7 +22,7 @@
                     <i class="fas fa-file-import text-xs"></i> Bulk import
                 </a>
                 <form method="POST" action="{{ route('admin.banned-names.restore-defaults') }}"
-                      onsubmit="return window.themedConfirmSubmit(this, {title: 'Re-apply the curated default list?', message: 'Existing entries are kept untouched — only missing defaults will be added.', confirmText: 'Re-apply defaults', confirmIcon: 'fa-rotate-left', iconClass: 'fa-rotate-left'})"
+                      onsubmit="return window.themedConfirmSubmit(this, {title: 'Re-apply the curated default list?', message: 'Existing entries are kept untouched, only missing defaults will be added.', confirmText: 'Re-apply defaults', confirmIcon: 'fa-rotate-left', iconClass: 'fa-rotate-left'})"
                       class="inline">
                     @csrf
                     <button type="submit"
@@ -92,7 +92,7 @@
                         @foreach($bulkRejected as $r)
                             <li class="text-white/70">
                                 <span class="font-mono text-white/80">{{ $r['name'] }}</span>
-                                <span class="text-white/40">— {{ $r['reason'] }}</span>
+                                <span class="text-white/40"> - {{ $r['reason'] }}</span>
                             </li>
                         @endforeach
                     </ul>
@@ -111,7 +111,7 @@
                     </div>
                     <p class="text-xs text-white/50 mt-1 max-w-2xl">
                         These names ship in the default reserved-handle list but are already
-                        claimed on this install. They are <em>not</em> retroactively renamed —
+                        claimed on this install. They are <em>not</em> retroactively renamed,
                         review each one and decide whether to rename, contact, or grandfather
                         the existing owner.
                     </p>
@@ -223,13 +223,13 @@
                                 @csrf
                                 @if($item->force_rename_on_login)
                                     <button type="submit"
-                                            title="Currently ON — affected users are prompted on next login. Click to disable."
+                                            title="Currently ON: affected users are prompted on next login. Click to disable."
                                             class="px-2 py-1 rounded-lg text-[11px] bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-200 border border-emerald-500/30 inline-flex items-center gap-1">
                                         <i class="fas fa-toggle-on"></i> On
                                     </button>
                                 @else
                                     <button type="submit"
-                                            title="Currently OFF — affected users keep their handle. Click to require a rename on next login."
+                                            title="Currently OFF: affected users keep their handle. Click to require a rename on next login."
                                             class="px-2 py-1 rounded-lg text-[11px] bg-white/5 hover:bg-white/10 text-white/50 border border-white/10 inline-flex items-center gap-1">
                                         <i class="fas fa-toggle-off"></i> Off
                                     </button>

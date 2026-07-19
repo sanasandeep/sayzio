@@ -20,7 +20,7 @@
             </h1>
 
             <p style="font-size:14px; color:#334155; line-height:1.6; margin:0 0 16px 0;">
-                You asked us to let you know the moment the {{ $appName ?? 'Sayzio' }} app hit the stores — it just did.
+                You asked us to let you know the moment the {{ $appName ?? 'Sayzio' }} app hit the stores, and it just did.
                 Manage your links, biolinks and QR codes, chat with your audience and watch your stats
                 live, all from your pocket.
             </p>

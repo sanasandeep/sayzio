@@ -915,7 +915,7 @@ export function BlockSettingsEditor({
                 }}
               >
                 <Text style={{ fontWeight: "700" }}>We dropped in placeholder content </Text>
-                so this block looks great right away. Tap any text or media field below to replace it — this notice will disappear once you edit a seeded field.
+                so this block looks great right away. Tap any text or media field below to replace it; this notice will disappear once you edit a seeded field.
               </Text>
             </View>
             {/* Compact "Sample" pill row — visual reminder kept right
@@ -937,7 +937,7 @@ export function BlockSettingsEditor({
             >
               <Feather name="edit-3" size={11} color="#fbbf24" />
               <Text style={{ color: "#fbbf24", fontSize: 10, fontWeight: "700", letterSpacing: 0.4, textTransform: "uppercase" }}>
-                Sample — tap to replace
+                Sample: tap to replace
               </Text>
             </View>
           </>

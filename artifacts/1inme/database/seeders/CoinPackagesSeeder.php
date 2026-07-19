@@ -66,7 +66,7 @@ class CoinPackagesSeeder extends Seeder
             [
                 'slug'        => 'ai-credits-10',
                 'name'        => 'Micro Pack',
-                'description' => '10 coins — a small top-up to try AI-powered features.',
+                'description' => '10 coins: a small top-up to try AI-powered features.',
                 'coin_amount' => 10,
                 'sort_order'  => 10,
                 'prices'      => ['USD' => 960, 'INR' => BillingFxRate::usdMinorToInrMinor(960, $fxRate)],
@@ -82,7 +82,7 @@ class CoinPackagesSeeder extends Seeder
             [
                 'slug'        => 'ai-credits-100',
                 'name'        => 'Basic Pack',
-                'description' => '100 coins — a comfortable reserve for regular AI use.',
+                'description' => '100 coins: a comfortable reserve for regular AI use.',
                 'coin_amount' => 100,
                 'sort_order'  => 30,
                 'prices'      => ['USD' => 9600, 'INR' => BillingFxRate::usdMinorToInrMinor(9600, $fxRate)],
@@ -98,7 +98,7 @@ class CoinPackagesSeeder extends Seeder
             [
                 'slug'        => 'ai-credits-500',
                 'name'        => 'Plus Pack',
-                'description' => '500 coins — solid headroom for active AI-assisted workflows.',
+                'description' => '500 coins: solid headroom for active AI-assisted workflows.',
                 'coin_amount' => 500,
                 'sort_order'  => 50,
                 'prices'      => ['USD' => 48000, 'INR' => BillingFxRate::usdMinorToInrMinor(48000, $fxRate)],
@@ -122,7 +122,7 @@ class CoinPackagesSeeder extends Seeder
             [
                 'slug'        => 'ai-credits-3500',
                 'name'        => 'Scale Pack',
-                'description' => '3,500 coins — the sweet spot for high-volume AI usage.',
+                'description' => '3,500 coins: the sweet spot for high-volume AI usage.',
                 'coin_amount' => 3500,
                 'sort_order'  => 80,
                 'prices'      => ['USD' => 336000, 'INR' => BillingFxRate::usdMinorToInrMinor(336000, $fxRate)],
@@ -138,7 +138,7 @@ class CoinPackagesSeeder extends Seeder
             [
                 'slug'        => 'ai-credits-10000',
                 'name'        => 'Enterprise Pack',
-                'description' => '10,000 coins — maximum reserve for enterprise-scale AI automation.',
+                'description' => '10,000 coins: maximum reserve for enterprise-scale AI automation.',
                 'coin_amount' => 10000,
                 'sort_order'  => 100,
                 'prices'      => ['USD' => 960000, 'INR' => BillingFxRate::usdMinorToInrMinor(960000, $fxRate)],

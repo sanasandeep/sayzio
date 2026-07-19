@@ -44,7 +44,7 @@
             <p class="text-xs text-white/70 mt-1">
                 Showing only page templates <span class="text-amber-200">not yet recommended</span> for
                 {{ $coverNames->count() === 1 ? 'this persona' : 'these personas' }}. Edit any one and its
-                persona box will be pre-checked — save to clear the dashboard warning. Or
+                persona box will be pre-checked, save to clear the dashboard warning. Or
                 <a href="{{ route('admin.templates.create', ['kind' => 'page', 'persona' => $coverParam]) }}" class="underline text-amber-200 hover:text-amber-100">add a new template</a>
                 pre-tagged for {{ $coverNames->count() === 1 ? 'it' : 'them' }}.
             </p>
@@ -130,7 +130,7 @@
             <button type="button" @click="customized = 'no'"
                     :class="customized === 'no' ? 'bg-blue-600 text-white' : 'text-white/50 hover:text-white'"
                     class="px-3 py-1.5 text-xs font-semibold rounded-lg transition"
-                    title="Untouched seed defaults — never edited in the admin panel">
+                    title="Untouched seed defaults, never edited in the admin panel">
                 <i class="fas fa-seedling mr-1 text-[10px]"></i>Untouched ({{ $untouchedCount }})
             </button>
         </div>
@@ -268,14 +268,14 @@
                     @if(!empty($tplDesignIssues))
                         <a href="{{ route('admin.templates.design.fix', ['kind' => $tab, 'id' => $tpl->id]) }}"
                            class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-red-500/10 text-red-300 hover:bg-red-500/20"
-                           title="{{ count($tplDesignIssues) }} design issue(s) — unknown block types or stale design-variant keys that would silently degrade on the public page. Click to fix.">
+                           title="{{ count($tplDesignIssues) }} design issue(s), unknown block types or stale design-variant keys that would silently degrade on the public page. Click to fix.">
                             <i class="fas fa-bug mr-1 text-[9px]"></i>Design issues ({{ count($tplDesignIssues) }})
                         </a>
                     @endif
                     @if($tab === 'page' && $tplOutdated)
                         <a href="{{ route('admin.templates.blueprint.diff', ['id' => $tpl->id]) }}"
                            class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-amber-500/10 text-amber-300 hover:bg-amber-500/20"
-                           title="Stored blueprint v{{ $tpl->seedVersion() }} — current design is v{{ $currentSeedVersion }}. Click to compare and optionally reset.">
+                           title="Stored blueprint v{{ $tpl->seedVersion() }}, current design is v{{ $currentSeedVersion }}. Click to compare and optionally reset.">
                             <i class="fas fa-triangle-exclamation mr-1 text-[9px]"></i>Outdated v{{ $tpl->seedVersion() }}
                         </a>
                     @endif

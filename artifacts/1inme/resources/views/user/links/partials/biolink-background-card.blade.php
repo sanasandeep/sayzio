@@ -374,7 +374,7 @@ function bgSettings() {
         types: [
             { key: 'color',     label: 'Solid Color', icon: 'fa-fill',    preview: 'linear-gradient(135deg, #2139a1, #3b0764)' },
             { key: 'gradient',  label: 'Gradient',    icon: 'fa-rainbow', preview: 'linear-gradient(135deg, #ec4899, #5c83ff, #06b6d4)' },
-            { key: 'preset',    label: 'Presets',     icon: 'fa-th-large', preview: 'linear-gradient(135deg, #f97316, #ec4899, #8b5cf6)' },
+            { key: 'preset',    label: 'Presets',     icon: 'fa-th-large', preview: 'linear-gradient(135deg, #f97316, #ec4899, #06b6d4)' },
             { key: 'image',     label: 'Image',       icon: 'fa-image',   preview: 'rgba(99,102,241,0.15)' },
             { key: 'slideshow', label: 'Slideshow',   icon: 'fa-images',  preview: 'rgba(236,72,153,0.15)' },
             { key: 'video',     label: 'Video',       icon: 'fa-film',    preview: 'rgba(61,107,255,0.15)' },

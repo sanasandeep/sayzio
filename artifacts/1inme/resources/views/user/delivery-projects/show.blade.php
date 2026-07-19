@@ -112,7 +112,7 @@
                         </div>
                     </div>
                 </template>
-                <p x-show="tasks.length === 0" class="text-sm" style="color: var(--text-tertiary);">No tasks yet — add your first below.</p>
+                <p x-show="tasks.length === 0" class="text-sm" style="color: var(--text-tertiary);">No tasks yet, add your first below.</p>
             </div>
 
             <form @submit.prevent="addTask()" class="flex gap-2">

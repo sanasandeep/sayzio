@@ -80,7 +80,7 @@
                 Never miss what matters.<br><span class="grad-text">You choose how you hear it.</span>
             </h2>
             <p class="reveal rd-2 text-lg text-gray-400">
-                A unified notification feed plus in-app, email and mobile push alerts — with a per-event preferences matrix so every follower, order, mention or security alert reaches you exactly the way you want.
+                A unified notification feed plus in-app, email and mobile push alerts, with a per-event preferences matrix so every follower, order, mention or security alert reaches you exactly the way you want.
             </p>
         </div>
 

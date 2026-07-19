@@ -14,11 +14,13 @@ interface Props {
   baseUrl: string;
   onClose: () => void;
   onOpenAuth: () => void;
+  /** Called after successful creation with the new short URL — navigates the active browser tab. */
+  onNavigate?: (url: string) => void;
 }
 
 type View = 'shorten' | 'qr';
 
-export function ShortenPopover({ pageUrl, pageTitle, baseUrl, onClose, onOpenAuth }: Props) {
+export function ShortenPopover({ pageUrl, pageTitle, baseUrl, onClose, onOpenAuth, onNavigate }: Props) {
   const { token } = useAuthStore();
   const popoverRef = useRef<HTMLDivElement>(null);
 
@@ -92,6 +94,9 @@ export function ShortenPopover({ pageUrl, pageTitle, baseUrl, onClose, onOpenAut
       };
       const res = await client.createLink(payload);
       setCreatedLink(res.link);
+      if (res.link.short_url && onNavigate) {
+        onNavigate(res.link.short_url);
+      }
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Failed to create short link';
       setError(msg);
@@ -212,6 +217,18 @@ export function ShortenPopover({ pageUrl, pageTitle, baseUrl, onClose, onOpenAut
                     {checkingAlias ? 'Checking…' : (aliasCheck?.message ?? '')}
                   </p>
                 )}
+                {alias && !checkingAlias && aliasCheck?.available === false && (aliasCheck.suggestions?.length ?? 0) > 0 && (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 4 }}>
+                    {aliasCheck.suggestions!.map(s => (
+                      <button
+                        key={s}
+                        type="button"
+                        onClick={() => { setAlias(s); setAliasCheck(null); }}
+                        style={{ ...secondaryBtn, padding: '2px 8px', fontSize: 10, borderRadius: 999 }}
+                      >{s}</button>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* Destination URL (read-only) */}
@@ -263,7 +280,10 @@ function QrView({ url, title, baseUrl, token, existingLinkId, onOpenAuth }: {
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
-  const imgSrc = quickQrImageUrl(url, 220);
+  /** Real Sayzio-styled QR preview URL returned after saving to Sayzio. */
+  const [sayzioQrUrl, setSayzioQrUrl] = useState<string | null>(null);
+  const fallbackImgSrc = quickQrImageUrl(url, 220);
+  const imgSrc = sayzioQrUrl ?? fallbackImgSrc;
 
   const handleSaveToSayzio = useCallback(async () => {
     if (!token) { onOpenAuth(); return; }
@@ -271,13 +291,18 @@ function QrView({ url, title, baseUrl, token, existingLinkId, onOpenAuth }: {
     setSaving(true);
     setSaveError(null);
     try {
-      await client.createQrCode({
+      const res = await client.createQrCode({
         name: title || url,
         type: 'url',
         link_id: existingLinkId ?? null,
         payload: existingLinkId ? {} : { url },
       });
       setSaved(true);
+      // Use the real Sayzio-rendered QR image (styled, branded) instead of the
+      // generic third-party fallback used for preview.
+      if (res.qr_code.preview_url) {
+        setSayzioQrUrl(res.qr_code.preview_url);
+      }
     } catch (err) {
       setSaveError(err instanceof Error ? err.message : 'Save failed');
     } finally {
@@ -294,13 +319,18 @@ function QrView({ url, title, baseUrl, token, existingLinkId, onOpenAuth }: {
         height={220}
         style={{ borderRadius: 8, display: 'block', margin: '0 auto 12px' }}
       />
+      {saved && sayzioQrUrl && (
+        <p style={{ fontSize: 10, color: 'var(--color-text-muted)', marginBottom: 4 }}>
+          ✓ Sayzio QR — styled with your branding
+        </p>
+      )}
       <p style={{ fontSize: 11, color: 'var(--color-text-muted)', marginBottom: 10, wordBreak: 'break-all' }}>
         {url}
       </p>
       <div style={{ display: 'flex', gap: 8 }}>
         <a
           href={imgSrc}
-          download={`qr-${Date.now()}.png`}
+          download={`qr-${Date.now()}.${sayzioQrUrl ? 'png' : 'png'}`}
           style={{ ...secondaryBtn, flex: 1, textDecoration: 'none', textAlign: 'center' }}
         >⬇ Download</a>
         {token ? (

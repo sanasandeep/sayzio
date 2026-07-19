@@ -80,7 +80,7 @@
 
 <div>
     <label class="block text-[11px] uppercase tracking-wider text-white/50 font-bold mb-1.5">
-        JavaScript <span class="text-white/30 normal-case">(optional — runs after the layer mounts)</span>
+        JavaScript <span class="text-white/30 normal-case">(optional, runs after the layer mounts)</span>
     </label>
     <textarea name="js" rows="6"
               class="w-full bg-black/40 border border-white/15 rounded-lg px-3 py-2 text-xs text-white font-mono leading-relaxed"

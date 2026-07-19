@@ -6,7 +6,7 @@
 <div class="max-w-6xl mx-auto px-4 py-8">
     <div class="flex items-center justify-between mb-6 flex-wrap gap-3">
         <div>
-            <h1 class="text-2xl font-bold" style="color: var(--text-primary);">{{ $workspace->name }} — Activity</h1>
+            <h1 class="text-2xl font-bold" style="color: var(--text-primary);">{{ $workspace->name }}, Activity</h1>
             <p class="text-sm opacity-70 mt-1">
                 Audit who did what in this workspace. Filter the list and export the result to CSV.
             </p>
@@ -124,7 +124,7 @@
                             @elseif($e->object_id)
                                 <span class="opacity-60">#{{ $e->object_id }}</span>
                             @else
-                                <span class="opacity-40">—</span>
+                                <span class="opacity-40">-</span>
                             @endif
                             @if(!empty($e->payload))
                                 <details class="mt-1">

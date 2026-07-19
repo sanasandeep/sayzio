@@ -26,7 +26,7 @@
                     <img src="{{ $logos['logo_light'] }}" alt="Light mode logo preview" class="max-h-20 w-auto">
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-white mb-1">Wordmark — light mode</label>
+                    <label class="block text-sm font-medium text-white mb-1">Wordmark, light mode</label>
                     <p class="text-xs text-white/50 mb-2">Shown on light backgrounds. Use the dark/colored version of your logo.</p>
                     <input type="file" name="logo_light" accept="image/png,image/jpeg,image/webp,image/svg+xml"
                            class="block w-full text-xs text-white/70 file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-medium file:bg-blue-600 file:text-white hover:file:bg-blue-700 file:cursor-pointer">
@@ -40,7 +40,7 @@
                     <img src="{{ $logos['logo_dark'] }}" alt="Dark mode logo preview" class="max-h-20 w-auto">
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-white mb-1">Wordmark — dark mode</label>
+                    <label class="block text-sm font-medium text-white mb-1">Wordmark, dark mode</label>
                     <p class="text-xs text-white/50 mb-2">Shown on dark backgrounds. Use the white/light version of your logo.</p>
                     <input type="file" name="logo_dark" accept="image/png,image/jpeg,image/webp,image/svg+xml"
                            class="block w-full text-xs text-white/70 file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-medium file:bg-blue-600 file:text-white hover:file:bg-blue-700 file:cursor-pointer">

@@ -1,6 +1,6 @@
 @extends('admin.layouts.app')
 @section('title', 'Fix design issues')
-@section('page-title', 'Fix design issues — ' . $tpl->name)
+@section('page-title', 'Fix design issues, ' . $tpl->name)
 
 @php
     $snapshotJson = json_encode($tpl->snapshot, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
@@ -22,7 +22,7 @@
                 </div>
                 <p class="text-xs text-white/60">
                     Unknown block types and stale design-variant keys silently fall back to
-                    default styling on the public page — visitors see a broken or plain version
+                    default styling on the public page, visitors see a broken or plain version
                     of this template. Fix it below, then the "Design issues" badge will clear.
                 </p>
             </div>
@@ -64,7 +64,7 @@
                 @if($stripFullyFixes)
                     <span class="block mt-2 text-emerald-300"><i class="fas fa-check mr-1"></i>This alone fully resolves every issue on this template.</span>
                 @else
-                    <span class="block mt-2 text-amber-300"><i class="fas fa-triangle-exclamation mr-1"></i>This won't fully fix the row — other issues (e.g. unknown block types) would remain. Use re-capture instead.</span>
+                    <span class="block mt-2 text-amber-300"><i class="fas fa-triangle-exclamation mr-1"></i>This won't fully fix the row, other issues (e.g. unknown block types) would remain. Use re-capture instead.</span>
                 @endif
             </p>
             <form action="{{ route('admin.templates.design.repair', ['kind' => $kind, 'id' => $tpl->id]) }}"
@@ -118,7 +118,7 @@
                     <div class="mb-3" x-show="cards.length" x-cloak>
                         <label class="block text-xs font-medium text-white/60 mb-1.5">Card block in this link</label>
                         <select name="source_card_id" x-model="sourceCardId" class="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white">
-                            <option value="" class="bg-[#0d0818]">— pick a card —</option>
+                            <option value="" class="bg-[#0d0818]">pick a card</option>
                             <template x-for="c in cards" :key="c.id">
                                 <option :value="c.id" x-text="c.label" class="bg-[#0d0818]"></option>
                             </template>

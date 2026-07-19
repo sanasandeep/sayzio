@@ -40,7 +40,7 @@
                                             <span class="text-sm" style="color: var(--text-secondary);">{{ $e->fan->name }}</span>
                                         </div>
                                     @else
-                                        <span style="color: var(--text-faint);">—</span>
+                                        <span style="color: var(--text-faint);">-</span>
                                     @endif
                                 </td>
                                 <td class="px-4 py-3 text-xs" style="color: var(--text-secondary);">{{ $e->gateway ?: '—' }}</td>
@@ -48,10 +48,10 @@
                                     {{ $e->amount_cents >= 0 ? '+' : '−' }}${{ number_format(abs($e->amount_cents) / 100, 2) }} {{ strtoupper($e->currency) }}
                                 </td>
                                 <td class="px-4 py-3 text-right">
-                                    @if($e->source === 'tip' && $e->amount_cents > 0 && $e->reference_id)
+                                    @if(in_array($e->source, ['tip', 'tip_jar'], true) && $e->amount_cents > 0 && $e->reference_id)
                                         <form method="POST" action="{{ route('user.monetization.refund') }}" onsubmit="return confirm('Refund this tip?');">
                                             @csrf
-                                            <input type="hidden" name="source" value="tip">
+                                            <input type="hidden" name="source" value="{{ $e->source }}">
                                             <input type="hidden" name="reference_id" value="{{ $e->reference_id }}">
                                             <button type="submit" class="text-xs px-2 py-1 rounded border" style="border-color: var(--border-color); color: var(--text-secondary);">Refund</button>
                                         </form>

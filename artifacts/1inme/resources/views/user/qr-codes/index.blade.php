@@ -47,7 +47,7 @@
                 <i class="fas fa-qrcode text-2xl" style="color: var(--c-primary);"></i>
             </div>
             <h3 class="text-lg font-bold mb-2" style="color: var(--text-primary);">No QR codes yet</h3>
-            <p class="text-sm mb-5" style="color: var(--text-muted);">Create your first branded QR code — pick a type, customize colors and frames, and download.</p>
+            <p class="text-sm mb-5" style="color: var(--text-muted);">Create your first branded QR code, pick a type, customize colors and frames, and download.</p>
             <a href="{{ route('user.qr-codes.create') }}" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold" style="background: var(--accent); color: #fff;">
                 <i class="fas fa-plus"></i> Create your first
             </a>

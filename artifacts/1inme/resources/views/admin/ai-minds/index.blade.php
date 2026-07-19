@@ -73,7 +73,7 @@
                             <td>
                                 @php $st = $s['status']; @endphp
                                 @if(!$st)
-                                    <span class="text-white/40 text-xs">—</span>
+                                    <span class="text-white/40 text-xs">-</span>
                                 @elseif($st === \App\Modules\User\Models\AiMindSource::STATUS_READY)
                                     <span class="text-emerald-300 text-xs">Ready</span>
                                 @elseif($st === \App\Modules\User\Models\AiMindSource::STATUS_FAILED)
@@ -151,7 +151,7 @@
                                 @if($row['mind']->isPlatform())<span class="text-[10px] uppercase tracking-wider text-cyan-300/80 ml-1">Default</span>@endif
                             </td>
                             <td>
-                                {{ $row['mind']->user?->name ?: '— platform —' }}
+                                {{ $row['mind']->user?->name ?: 'platform' }}
                                 <br><span class="text-[11px] text-white/40">{{ $row['mind']->user?->email }}</span>
                             </td>
                             <td class="text-right text-cyan-300">{{ number_format($row['ingest']) }}</td>
@@ -199,7 +199,7 @@
                 @foreach($minds as $m)
                     <tr class="text-white/80">
                         <td class="py-2">{{ $m->name }} @if($m->isPlatform())<span class="text-[10px] uppercase tracking-wider text-cyan-300/80 ml-1">Default</span>@endif</td>
-                        <td>{{ $m->user?->name ?: '— platform —' }}<br><span class="text-[11px] text-white/40">{{ $m->user?->email }}</span></td>
+                        <td>{{ $m->user?->name ?: 'platform' }}<br><span class="text-[11px] text-white/40">{{ $m->user?->email }}</span></td>
                         <td>{{ $m->sources_count }}</td>
                         <td>{{ $m->chunks_count }}</td>
                         <td>

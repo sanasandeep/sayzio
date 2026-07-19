@@ -35,7 +35,7 @@
                 @foreach($newPosts as $p)
                     <li style="margin-bottom:6px;font-size:14px;color:#0f172a;">
                         <strong>{{ $p->title ?: \Illuminate\Support\Str::limit($p->body, 60) }}</strong>
-                        <span style="color:#64748b;font-size:12px;"> — {{ optional($p->published_at)->diffForHumans() }}</span>
+                        <span style="color:#64748b;font-size:12px;"> · {{ optional($p->published_at)->diffForHumans() }}</span>
                     </li>
                 @endforeach
             </ul>

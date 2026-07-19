@@ -120,7 +120,7 @@
             <div class="flex items-start justify-between gap-3 mb-4 flex-wrap">
                 <div>
                     <h2 class="text-white font-semibold"><i class="fas fa-heart-pulse text-emerald-300 mr-1"></i> Marketing health</h2>
-                    <p class="text-xs text-white/45 mt-0.5">Scored 0–100 from your own data. Re-score any time — it's free.</p>
+                    <p class="text-xs text-white/45 mt-0.5">Scored 0–100 from your own data. Re-score any time, it's free.</p>
                 </div>
                 <form method="POST" action="{{ route('user.ai.marketing-strategist.rescore', $strategy->id) }}">
                     @csrf
@@ -196,7 +196,7 @@
     @if($bands)
         @php $fMetric = (string) ($forecast['metric'] ?? $strategy->goal_metric ?? 'clicks'); @endphp
         <section class="mb-8 rounded-2xl border border-white/10 bg-white/[0.03] p-5">
-            <h2 class="text-white font-semibold mb-1"><i class="fas fa-chart-simple text-sky-300 mr-1"></i> Forecast <span class="text-white/40 font-normal text-sm">— {{ $fMetric }}</span></h2>
+            <h2 class="text-white font-semibold mb-1"><i class="fas fa-chart-simple text-sky-300 mr-1"></i> Forecast <span class="text-white/40 font-normal text-sm"> - {{ $fMetric }}</span></h2>
             <p class="text-xs text-white/45 mb-4">Projected outcomes across three scenarios if you follow the plan.</p>
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 @php

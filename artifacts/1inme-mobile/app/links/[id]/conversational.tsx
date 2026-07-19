@@ -151,7 +151,7 @@ export default function ConversationalEditorScreen() {
 
   const stepKeyOptions = (
     excludeKey?: string,
-    emptyLabel = "— ends here —",
+    emptyLabel = "(ends here)",
   ): Option[] => [
     { label: emptyLabel, value: "" },
     ...steps
@@ -159,7 +159,7 @@ export default function ConversationalEditorScreen() {
       .map((s) => ({ label: s.key, value: s.key })),
   ];
 
-  const actionOptions = (emptyLabel = "— No action —"): Option[] => [
+  const actionOptions = (emptyLabel = "(no action)"): Option[] => [
     { label: emptyLabel, value: "" },
     ...actions.map((a) => ({
       label: `⚡ ${a.label || a.kind}`,
@@ -364,7 +364,7 @@ export default function ConversationalEditorScreen() {
                     label="Target block"
                     value={a.payload?.block_id != null ? String(a.payload.block_id) : ""}
                     options={[
-                      { label: "— pick a block —", value: "" },
+                      { label: "(pick a block)", value: "" },
                       ...meta.blocks.map((b) => ({
                         label: b.label,
                         value: String(b.id),
@@ -587,13 +587,13 @@ function StepCard({
       <SelectField
         label="Next step (default)"
         value={s.next_step_key ?? ""}
-        options={stepKeyOptions(s.key, "— ends here —")}
+        options={stepKeyOptions(s.key, "(ends here)")}
         onChange={(v) => set((x) => ({ ...x, next_step_key: v || null }))}
       />
       <SelectField
         label="Action on completion"
         value={s.action_client_id ?? ""}
-        options={actionOptions("— No action —")}
+        options={actionOptions("(no action)")}
         onChange={(v) => set((x) => ({ ...x, action_client_id: v || null }))}
       />
       <TextField
@@ -1095,7 +1095,7 @@ function AiPanel({
           <SelectField
             label="Route to"
             value={it.next_step_key ?? ""}
-            options={stepKeyOptions(step.key, "— route to —")}
+            options={stepKeyOptions(step.key, "(route to)")}
             onChange={(v) =>
               setIntents(
                 intents.map((x, idx) =>
@@ -1129,7 +1129,7 @@ function AiPanel({
       <SelectField
         label="Fallback step"
         value={ai.fallback_step_key ?? ""}
-        options={stepKeyOptions(step.key, "— pick a fallback step —")}
+        options={stepKeyOptions(step.key, "(pick a fallback step)")}
         onChange={(v) => onPatch({ ai: { ...ai, fallback_step_key: v } })}
       />
       <TextField
@@ -1279,7 +1279,7 @@ function ChoicesEditor({
             <SelectField
               label="Next step"
               value={c.next_step_key ?? ""}
-              options={stepKeyOptions(step.key, "— next step —")}
+              options={stepKeyOptions(step.key, "(next step)")}
               onChange={(v) =>
                 setChoices(
                   choices.map((x, idx) =>
@@ -1291,7 +1291,7 @@ function ChoicesEditor({
             <SelectField
               label="Action"
               value={c.action_client_id ?? ""}
-              options={actionOptions("— action —")}
+              options={actionOptions("(action)")}
               onChange={(v) =>
                 setChoices(
                   choices.map((x, idx) =>
@@ -1325,7 +1325,7 @@ function ChoicesEditor({
             <SelectField
               label="Override goto"
               value={c.settings.condition?.goto ?? ""}
-              options={stepKeyOptions(step.key, "— override goto —")}
+              options={stepKeyOptions(step.key, "(override goto)")}
               onChange={(v) => patchCond(ci, { goto: v || null })}
             />
           </View>
@@ -1437,7 +1437,7 @@ function BranchConditions({
             <SelectField
               label="Go to"
               value={c.goto ?? ""}
-              options={stepKeyOptions(step.key, "— go to —")}
+              options={stepKeyOptions(step.key, "(go to)")}
               onChange={(v) =>
                 setConds(
                   conds.map((x, idx) =>

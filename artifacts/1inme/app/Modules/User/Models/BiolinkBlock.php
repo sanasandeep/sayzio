@@ -259,6 +259,7 @@ class BiolinkBlock extends Model
         'buy_me_coffee'    => ['label' => 'Buy Me a Coffee',     'icon' => 'fa-coffee',                     'category' => 'business'],
         'patreon'          => ['label' => 'Patreon',             'icon' => 'fa-hand-holding-usd',           'category' => 'business'],
         'ko_fi'            => ['label' => 'Ko-fi',               'icon' => 'fa-mug-hot',                    'category' => 'business'],
+        'tip_jar'          => ['label' => 'Tip Jar',             'icon' => 'fa-jar',                        'category' => 'business'],
         // featured_pin is a back-compat alias; the canonical way to mark a
         // link as featured is now the `is_featured` flag on a regular link.
         'featured_pin'     => ['label' => 'Featured Pinned Link','icon' => 'fa-thumbtack',                  'category' => 'basic', 'system' => true],

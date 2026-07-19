@@ -48,7 +48,7 @@
         <div>
             <h1 class="text-2xl font-bold tracking-tight" style="color: var(--text-primary);">Asset Vault</h1>
             <p class="text-sm mt-1" style="color: var(--text-faint);">
-                Centralised storage for admin uploads — organised into folders, backed by local disk or S3.
+                Centralised storage for admin uploads, organised into folders, backed by local disk or S3.
             </p>
         </div>
         <div class="flex items-center gap-2">
@@ -291,7 +291,7 @@
             <select x-model="moveTarget"
                     class="w-full px-3 py-2 text-sm rounded-lg mb-4"
                     style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-primary);">
-                <option value="">— Unfiled —</option>
+                <option value="">Unfiled</option>
                 <template x-for="f in folders.filter(f => !f.system)" :key="f.slug">
                     <option :value="f.slug" x-text="f.name"></option>
                 </template>
@@ -525,7 +525,7 @@ function adminAssetVault() {
                     document.body.removeChild(ta);
                 }
             } catch (_) { ok = false; }
-            this.showToast(ok ? 'URL copied to clipboard' : 'Copy failed — long-press to copy');
+            this.showToast(ok ? 'URL copied to clipboard' : 'Copy failed, long-press to copy');
         },
 
         showToast(msg) {

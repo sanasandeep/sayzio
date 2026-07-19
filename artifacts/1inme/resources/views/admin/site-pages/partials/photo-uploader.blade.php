@@ -106,7 +106,7 @@
                     img.onerror = () => {
                         this.cropping = false;
                         this._releasePreview();
-                        this.error = 'Could not load this image for re-cropping. The host may block cross-origin access — re-upload the file instead.';
+                        this.error = 'Could not load this image for re-cropping. The host may block cross-origin access, re-upload the file instead.';
                     };
                     img.src = url;
                 },

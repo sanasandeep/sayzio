@@ -108,7 +108,7 @@ export default function CompanySmtpScreen() {
       setError(null);
       setNotice(
         r.verify && !r.verify.ok
-          ? "Saved, but the connection check failed — see below."
+          ? "Saved, but the connection check failed; see below."
           : "SMTP settings saved.",
       );
     },

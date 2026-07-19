@@ -52,7 +52,7 @@
             </p>
 
             <p style="font-size:12px; color:#94a3b8; line-height:1.6; margin:24px 0 0 0; border-top:1px solid #e2e8f0; padding-top:20px;">
-                You're receiving this because a sign-in was detected from a new device, browser, or country. We send this only when the login looks unusual — there's nothing to manage in preferences.
+                You're receiving this because a sign-in was detected from a new device, browser, or country. We send this only when the login looks unusual; there's nothing to manage in preferences.
             </p>
         </div>
     </div>

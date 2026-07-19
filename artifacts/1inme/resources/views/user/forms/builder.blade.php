@@ -232,7 +232,7 @@
                                             </div>
                                             <div x-show="f.type === 'signature'" class="px-3 py-3 rounded-lg text-center" style="background: var(--bg-glass-input); border: 1px dashed var(--border-glass); color: var(--text-muted);">
                                                 <i class="fas fa-signature text-base mb-1" style="color: #90acff;"></i>
-                                                <div class="text-[11px]">Signature pad — drawn by user</div>
+                                                <div class="text-[11px]">Signature pad, drawn by user</div>
                                             </div>
                                             <div x-show="f.type === 'file'" class="px-3 py-2 rounded-lg text-xs" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-faint);">
                                                 <i class="fas fa-paperclip mr-1"></i> File upload
@@ -276,10 +276,10 @@
                         <i class="fas fa-save text-xs"></i> Save Form
                     </button>
                     @else
-                    <button type="button" disabled class="btn-primary px-8 py-3 text-sm font-semibold inline-flex items-center gap-2 shadow-lg opacity-60 cursor-not-allowed" title="Your role doesn't allow editing forms — ask a workspace admin">
+                    <button type="button" disabled class="btn-primary px-8 py-3 text-sm font-semibold inline-flex items-center gap-2 shadow-lg opacity-60 cursor-not-allowed" title="Your role doesn't allow editing forms, ask a workspace admin">
                         <i class="fas fa-lock text-xs"></i> Save Form
                     </button>
-                    <span class="text-xs" style="color:#b45309;"><i class="fas fa-lock"></i> View-only — saving is reserved for admins.</span>
+                    <span class="text-xs" style="color:#b45309;"><i class="fas fa-lock"></i> View-only, saving is reserved for admins.</span>
                     @endcanInWorkspace
                     <a href="{{ $form->getPublicUrl() }}" target="_blank" class="text-xs px-4 py-2 rounded-lg" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-secondary);">
                         <i class="fas fa-external-link-alt text-[10px] mr-1"></i> Preview live
@@ -316,7 +316,7 @@
                                 <input type="text" x-model="fields[selectedIndex].placeholder" class="theme-input w-full text-xs">
                             </div>
                             <div>
-                                <label class="block text-[11px] font-medium mb-1" style="color: var(--text-muted);">Help text <span class="text-[10px]" style="color: var(--text-faint);">— shown under field</span></label>
+                                <label class="block text-[11px] font-medium mb-1" style="color: var(--text-muted);">Help text <span class="text-[10px]" style="color: var(--text-faint);"> - shown under field</span></label>
                                 <input type="text" x-model="fields[selectedIndex].help" class="theme-input w-full text-xs">
                             </div>
                             <div x-show="fields[selectedIndex].type === 'textarea'">
@@ -334,7 +334,7 @@
                                 </div>
                             </div>
                             <div x-show="['select','radio','checkbox','ranking'].includes(fields[selectedIndex].type)">
-                                <label class="block text-[11px] font-medium mb-1" style="color: var(--text-muted);">Options <span class="text-[10px]" style="color: var(--text-faint);">— one per line</span></label>
+                                <label class="block text-[11px] font-medium mb-1" style="color: var(--text-muted);">Options <span class="text-[10px]" style="color: var(--text-faint);"> - one per line</span></label>
                                 <textarea
                                     rows="5"
                                     class="theme-input w-full text-xs"
@@ -481,7 +481,7 @@
                             <div x-show="fields[selectedIndex].type === 'pricing'" class="space-y-3">
                                 <div>
                                     <div class="flex items-center justify-between mb-1">
-                                        <label class="block text-[11px] font-medium" style="color: var(--text-muted);">Pricing options <span class="text-[10px]" style="color: var(--text-faint);">— pick one (radio)</span></label>
+                                        <label class="block text-[11px] font-medium" style="color: var(--text-muted);">Pricing options <span class="text-[10px]" style="color: var(--text-faint);"> - pick one (radio)</span></label>
                                         <button type="button" @click="addPriceOption()" class="text-[11px] font-semibold text-blue-400"><i class="fas fa-plus mr-0.5"></i> Add</button>
                                     </div>
                                     <div class="space-y-1.5">
@@ -498,7 +498,7 @@
                                 </div>
                                 <div>
                                     <div class="flex items-center justify-between mb-1">
-                                        <label class="block text-[11px] font-medium" style="color: var(--text-muted);">Add-on services <span class="text-[10px]" style="color: var(--text-faint);">— optional (checkboxes)</span></label>
+                                        <label class="block text-[11px] font-medium" style="color: var(--text-muted);">Add-on services <span class="text-[10px]" style="color: var(--text-faint);"> - optional (checkboxes)</span></label>
                                         <button type="button" @click="addAddon()" class="text-[11px] font-semibold text-blue-400"><i class="fas fa-plus mr-0.5"></i> Add</button>
                                     </div>
                                     <div class="space-y-1.5">
@@ -518,7 +518,7 @@
                                     @if(!$canPaidForms)
                                         <span class="block mt-1 text-amber-400"><i class="fas fa-triangle-exclamation mr-0.5"></i> Your plan doesn't include paid forms, so selections are captured but not charged.</span>
                                     @elseif(!$hasGateway)
-                                        <span class="block mt-1 text-amber-400"><i class="fas fa-triangle-exclamation mr-0.5"></i> Connect a payment gateway in Payouts to actually collect — until then selections are captured but not charged.</span>
+                                        <span class="block mt-1 text-amber-400"><i class="fas fa-triangle-exclamation mr-0.5"></i> Connect a payment gateway in Payouts to actually collect, until then selections are captured but not charged.</span>
                                     @endif
                                 </p>
                             </div>
@@ -533,7 +533,7 @@
                                 <div class="pt-3 mt-1" style="border-top: 1px solid var(--border-glass);">
                                     <label class="block text-[11px] font-medium mb-1.5" style="color: var(--text-muted);">
                                         <i class="fas fa-tag text-emerald-400 mr-1"></i> Pricing
-                                        <span class="text-[10px]" style="color: var(--text-faint);">— amounts in {{ $priceCurrency }}</span>
+                                        <span class="text-[10px]" style="color: var(--text-faint);"> - amounts in {{ $priceCurrency }}</span>
                                     </label>
 
                                     {{-- number: price per unit (× quantity entered) --}}
@@ -552,7 +552,7 @@
 
                                     {{-- select/radio/checkbox: per-option price --}}
                                     <div x-show="['select','radio','checkbox'].includes(fields[selectedIndex].type)" class="space-y-1.5">
-                                        <p class="text-[10px]" style="color: var(--text-faint);">Set a price per option — leave blank for free options.</p>
+                                        <p class="text-[10px]" style="color: var(--text-faint);">Set a price per option, leave blank for free options.</p>
                                         <template x-if="(fields[selectedIndex].options || []).length === 0">
                                             <p class="text-[10px]" style="color: var(--text-faint);">Add options above to price them.</p>
                                         </template>
@@ -588,7 +588,7 @@
                                             </div>
                                             <div>
                                                 <label class="block text-[10px] font-medium mb-1" style="color: var(--text-muted);">Max copies <span style="color: var(--text-faint);">(blank = no limit)</span></label>
-                                                <input type="number" min="1" x-model.number="fields[selectedIndex].repeat_max" class="theme-input w-full text-xs" placeholder="—">
+                                                <input type="number" min="1" x-model.number="fields[selectedIndex].repeat_max" class="theme-input w-full text-xs" placeholder="-">
                                             </div>
                                         </div>
                                         <p class="text-[10px]" style="color: var(--text-faint);">Visitors can add/remove copies of this group when filling the form. Min/max are enforced server-side.</p>
@@ -601,10 +601,10 @@
                             <div x-show="fields[selectedIndex].type !== 'section' && sectionOptions.length > 0" class="pt-3 mt-1" style="border-top: 1px solid var(--border-glass);">
                                 <label class="block text-[11px] font-medium mb-1.5" style="color: var(--text-muted);">
                                     <i class="fas fa-layer-group text-blue-400 mr-1"></i> Place in section
-                                    <span class="text-[10px]" style="color: var(--text-faint);">— groups multiple fields into one card</span>
+                                    <span class="text-[10px]" style="color: var(--text-faint);"> - groups multiple fields into one card</span>
                                 </label>
                                 <select x-model="fields[selectedIndex].parent" class="theme-input w-full text-xs">
-                                    <option value="">— Top level (own card) —</option>
+                                    <option value="">Top level (own card)</option>
                                     <template x-for="s in sectionOptions" :key="s.id">
                                         <option :value="s.id" x-text="s.label || '(untitled section)'"></option>
                                     </template>
@@ -613,7 +613,7 @@
 
                             {{-- Width / column layout --}}
                             <div x-show="!['hidden','page_break','section'].includes(fields[selectedIndex].type)" class="pt-3 mt-1" style="border-top: 1px solid var(--border-glass);">
-                                <label class="block text-[11px] font-medium mb-1.5" style="color: var(--text-muted);">Field width <span class="text-[10px]" style="color: var(--text-faint);">— place 2+ fields per row</span></label>
+                                <label class="block text-[11px] font-medium mb-1.5" style="color: var(--text-muted);">Field width <span class="text-[10px]" style="color: var(--text-faint);"> - place 2+ fields per row</span></label>
                                 <div class="grid grid-cols-4 gap-1">
                                     <template x-for="opt in [{v:12,l:'Full'},{v:8,l:'⅔'},{v:6,l:'½'},{v:4,l:'⅓'}]" :key="opt.v">
                                         <button type="button" @click="fields[selectedIndex].width = opt.v"
@@ -655,7 +655,7 @@
                                     {{-- File upload extras --}}
                                     <div x-show="fields[selectedIndex].type === 'file'" class="space-y-2">
                                         <div>
-                                            <label class="block text-[10px] font-medium mb-1" style="color: var(--text-muted);">Allowed file types <span class="text-[10px]" style="color: var(--text-faint);">— comma-separated extensions</span></label>
+                                            <label class="block text-[10px] font-medium mb-1" style="color: var(--text-muted);">Allowed file types <span class="text-[10px]" style="color: var(--text-faint);"> - comma-separated extensions</span></label>
                                             <input type="text" x-model="fields[selectedIndex].file_types" class="theme-input w-full text-xs font-mono" placeholder="jpg,png,pdf">
                                         </div>
                                         <div>
@@ -665,7 +665,7 @@
                                     </div>
                                     {{-- Custom required-error message --}}
                                     <div>
-                                        <label class="block text-[10px] font-medium mb-1" style="color: var(--text-muted);">Custom error message <span class="text-[10px]" style="color: var(--text-faint);">— shown on any validation failure</span></label>
+                                        <label class="block text-[10px] font-medium mb-1" style="color: var(--text-muted);">Custom error message <span class="text-[10px]" style="color: var(--text-faint);"> - shown on any validation failure</span></label>
                                         <input type="text" x-model="fields[selectedIndex].error_message" class="theme-input w-full text-xs" placeholder="This field is invalid">
                                     </div>
                                 </div>

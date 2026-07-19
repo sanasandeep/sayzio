@@ -6,7 +6,7 @@
 <div class="max-w-3xl mx-auto">
     @include('user.partials.page-hero', [
         'title' => 'Scan a card or brochure',
-        'subtitle' => 'Snap a business card or upload a brochure PDF — our AI pulls the name, contact details, socials and tagline so you can save it as a contact or seed a Link in Bio page in one click.',
+        'subtitle' => 'Snap a business card or upload a brochure PDF, our AI pulls the name, contact details, socials and tagline so you can save it as a contact or seed a Link in Bio page in one click.',
         'icon' => 'fa-camera-retro',
         'chips' => [
             ['icon' => 'fa-bolt text-pink-400', 'text' => 'Powered by AI credits'],

@@ -1,6 +1,6 @@
 @extends('admin.layouts.app')
-@section('title', 'Site Assistant — Conversations')
-@section('page-title', 'Site Assistant — Conversations')
+@section('title', 'Site Assistant: Conversations')
+@section('page-title', 'Site Assistant, Conversations')
 
 @section('content')
 <div class="max-w-7xl space-y-6">

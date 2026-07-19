@@ -183,6 +183,7 @@ Visitors who don't meet the tier are blocked or prompted to follow/subscribe.
 | **Bizs Profile / Paid Page** | `paid_page` | A themeable home that auto-shows your posts, tiers & tips. |
 | **Reviews Page** | `reviews` | Collect and showcase reviews from your audience (see [§5.9](#59-reviews)). |
 | **Brand / Press Kit** | `brand_kit` | A shareable press kit — logo downloads, colours, fonts & brand voice. |
+| **Updates / Changelog** | `updates` | A dated announcement feed with optional follower notifications (see [§5.11c](#511c-updates--changelog)). |
 
 **Paid Page (`paid_page`)** — a standalone type that repackages the creator
 monetization stack (posts / tiers / PPV / tipping) into a single page. On
@@ -206,6 +207,14 @@ from the owner's saved AI Brand Kit** (see [§8](#8-ai-engine--ai-features)). It
 not part of the biolink family — it has its own public renderer. Toggle
 `module_brand_kit`, cap `max_brand_kit_pages` (distinct from the AI brand-kit save
 limit `max_brand_kits`). *Web.*
+
+**Updates / Changelog (`updates`)** — a public dated announcement feed for product
+updates, release notes, and announcements. Each **entry** carries a title, optional
+rich body, optional image, a publish date, and a tag (`feature`, `fix`,
+`improvement`, `breaking`, `announcement`). Published entries are shown
+chronologically (newest first) on the public page; when an entry is first published,
+opted-in followers are notified. Entries can be **drafted** before publishing.
+Toggle `module_updates`, cap `max_updates`. *Web · REST · Mobile.*
 
 ### 2.4 AI-powered
 
@@ -329,7 +338,9 @@ defaults** (`BlockDefaults`): placeholder text/media + a seeded `_style` and a
   Testimonials, Reviews / Reviews Wall, Timeline, Chat Widget (embedded chatbot),
   Buzz / Social Proof.
 - **Commerce** — Product / Service, Catalog / Storefront, Coupon, Limited Offer
-  (countdown), Donation, Buy Me a Coffee, Ko-fi, Patreon.
+  (countdown), Donation, Buy Me a Coffee, Ko-fi, Patreon, **Tip Jar** (native
+  preset-amount tipping via the platform payment stack; 0% platform fee; settings:
+  `title`, `message`, `button_text`, `amounts` array, `allow_custom`).
 - **Contact & lead capture** — Email Collector / Phone Collector, Contact Form,
   WhatsApp Chat / Button / Number, Direct Message (to your Sayzio inbox).
 - **Social profiles & feeds** — Social Icons / Hub, platform feeds (YouTube,
@@ -553,7 +564,7 @@ A personal CRM plus an in-app dialer with identity resolution.
 - **Scan a card or brochure** — AI tool (see [§8](#8-ai-engine--ai-features))
   that extracts contact details + logo from a photo/PDF to save a contact and/or
   seed a biolink draft.
-- **Sayzio Dialer (standalone companion app)** — the T9 dialer, quick channels and
+- **Zio Dialer (standalone companion app)** — the T9 dialer, quick channels and
   caller-ID experience is also distributed as its own dedicated mobile app
   download, in addition to being built into the main Sayzio app; both surfaces
   read/write the same account data.
@@ -672,13 +683,44 @@ editor) that turns a link into an appointment-request page.
   (`service_booking.new_request`; in-app + push + email); the visitor gets an
   immediate confirmation email, status-change emails, and an optional WhatsApp
   click-to-chat link.
-- **Estimated bill** — like the restaurant/store builders, any total shown is an
-  estimate; no payment is collected in-app.
+- **Paid bookings** — each service can optionally require upfront payment with three
+  `payment_mode` values: `none` (request only, no payment), `deposit` (partial
+  amount collected at booking), or `full` (full service price collected). Deposit
+  can be `fixed` (flat amount) or `percent` (percentage of the service price),
+  controlled by `deposit_type` + `deposit_value`. Payment is processed via the
+  owner's connected payout provider; no payment is collected if `payment_mode` is
+  `none`.
+- **Appointment reminders** — `reminder_lead_minutes` is an array of minutes-before
+  values (e.g. `[1440, 60]` for 24 h and 1 h ahead) at which the visitor receives
+  an automated reminder. Reminders are sent via the scheduled
+  `service_booking:send-reminders` command.
 
 *Web · REST (public `GET /service-booking/{alias}`, `POST /service-booking/{alias}/slots`,
 `/quote`, `/book`, `GET /service-booking/bookings/{token}/status`; owner
 `/service-booking/links/{link}/bookings` + `/poll` + status + full `/config/*`
-CRUD) · Mobile (native builder, ordering & bookings polling).*
+CRUD, including `/config/settings` accepting `payment_mode`, `deposit_type`,
+`deposit_value`, `reminder_lead_minutes`) · Mobile (native builder, ordering &
+bookings polling).*
+
+### 5.11c Updates / Changelog
+
+A dated announcement feed for the `updates` link type. Each **entry** carries:
+a `title`, optional Markdown-rendered `body`, optional `image`, a `published_date`,
+a `status` (`draft` or `published`), and a `tag` (`feature` / `fix` /
+`improvement` / `breaking` / `announcement`).
+
+- **Public renderer** — entries appear newest-first; visitors can subscribe to
+  be notified of new entries.
+- **Owner dashboard** — create, edit, and delete entries; toggle draft/published;
+  pick a tag and date.
+- **Follower notifications** — when an entry's `status` first becomes `published`,
+  opted-in followers receive a notification.
+- **Gating** — `module_updates` plan toggle; `max_updates` caps the total entry
+  count.
+
+*Web · REST (`GET /updates/{alias}`, `GET /updates/{alias}/entries/{entry}`;
+owner: `GET|POST /me/updates/{link}/entries`, `PUT|DELETE /me/updates/{link}/entries/{entry}`,
+`PATCH /me/updates/{link}/settings`) · Mobile (native entry list + create/edit/delete).*
 
 ### 5.12 Audience, feed & engagement
 
@@ -709,10 +751,13 @@ CRUD) · Mobile (native builder, ordering & bookings polling).*
   `trusted_emails` / `trusted_phones` allowlists exempt known senders, and a CSV
   import bulk-adds trusted senders. State lives in `user.settings['spam']`.
 - **Forwarding + test forward** — auto-forward inbound items to an **email**
-  address or a **webhook**, optionally filtered by source. Each destination keeps
+  address or a **webhook**, optionally filtered by source. Sources include both
+  inbound-message types (biolink DMs, form submissions) and **link events**
+  (`link_created`, `link_expired`, `click_milestone`). Each destination keeps
   a delivery log, can be enabled/disabled, **test-fired**, and individual failed
   deliveries retried; a scheduled health check emails you when a destination
-  starts failing.
+  starts failing. The link-event webhook surface requires the `webhook_triggers`
+  plan feature.
 - **Notifications** — in-app activity feed (new subscribers, reviews, comments,
   security alerts, API-usage warnings); mark read, dismiss (restorable 30 days),
   mark all read; per-channel preferences.
@@ -1234,6 +1279,9 @@ over `/api/v1`.
   health.
 - **Engagement** — native poll voting, RSVPs, block taps reported via API for
   analytics parity; mobile dashboard fetches visit/click trends.
+- **Updates / Changelog** — native screen for the `updates` link type: lists all
+  entries (draft + published), shows status and tag badges, lets the owner
+  create/edit/delete entries from a modal form.
 - **Share-sheet / URL import** (`app/import-url.tsx`) — reachable via deep link
   (`sayzio://import-url?url=…` or `https://sayzio.app/import-url?url=…`) and
   from the iOS/Android share sheet. On share-intent arrival the screen
@@ -1248,6 +1296,21 @@ over `/api/v1`.
   handled by `ShareIntentHandler` when the app is already running.
 
 ---
+
+### 14.1b Zio Browser desktop app
+
+A cross-platform **Electron desktop app** built from the Sayzio web app,
+available for Windows, macOS, and Linux. Downloaded from the `/download` page
+(served by `ZioBrowserDownloadController`). The desktop app adds:
+
+- **Workspace profiles** — isolated sessions per workspace (separate
+  cookies/localStorage); profile scope is tracked by an `X-Browser-Workspace-Id`
+  header; profiles store SQLite-backed session data and sync state.
+- **Device Lab** — side-by-side multi-device previews using CSS-scaled iframes.
+- **Offline access** — links and basic dashboard content accessible without a
+  live connection.
+
+*Web download page (`/download`) · Electron desktop.*
 
 ### 14.2 Browser extension (`artifacts/1inme-extension`)
 

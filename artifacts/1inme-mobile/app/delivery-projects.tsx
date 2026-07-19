@@ -142,7 +142,7 @@ export default function DeliveryProjectsScreen() {
             <EmptyState
               icon="clipboard"
               title="No delivery projects yet"
-              body="Turn a finalized sale — an invoice, order, or form submission — into a shared project from the website to track delivery here."
+              body="Turn a finalized sale (an invoice, order, or form submission) into a shared project from the website to track delivery here."
             />
           }
           refreshControl={

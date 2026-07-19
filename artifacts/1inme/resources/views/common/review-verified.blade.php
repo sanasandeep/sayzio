@@ -7,9 +7,10 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    @include('common.partials.toolbar-theme-color')
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Review verified — {{ $title }}</title>
+    <title>Review verified: {{ $title }}</title>
     <meta name="robots" content="noindex">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -29,7 +30,7 @@
         <div class="badge">&#10003;</div>
         @if($already)
             <h1>You're all set</h1>
-            <p>This review has already been confirmed. Thanks for verifying — there's nothing more to do.</p>
+            <p>This review has already been confirmed. Thanks for verifying, there's nothing more to do.</p>
         @elseif($pending)
             <h1>Email confirmed</h1>
             <p>Thanks! Your review is verified and has been sent to {{ $title }} for approval. It'll appear with a “Verified customer” badge once approved.</p>

@@ -1,6 +1,6 @@
 @extends('admin.layouts.app')
 @section('title', 'Edit Template')
-@section('page-title', 'Edit ' . ucfirst($kind) . ' Template — ' . $tpl->name)
+@section('page-title', 'Edit ' . ucfirst($kind) . ' Template, ' . $tpl->name)
 
 @section('content')
 <div class="max-w-4xl">

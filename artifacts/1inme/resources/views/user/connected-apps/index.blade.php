@@ -105,7 +105,7 @@
                         @if($hasError)
                             <div class="mt-1 pt-1 flex items-start gap-1.5" style="border-top:1px solid var(--border-glass); color:#ef4444;">
                                 <i class="fas fa-triangle-exclamation mt-0.5"></i>
-                                <span>{{ $conn['last_sync_error'] ?: 'Last sync failed — try reconnecting.' }}</span>
+                                <span>{{ $conn['last_sync_error'] ?: 'Last sync failed, try reconnecting.' }}</span>
                             </div>
                         @endif
                     </div>

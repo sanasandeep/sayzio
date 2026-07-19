@@ -6,7 +6,7 @@
     @include('user.ai._partials.header', [
         'kicker'   => 'AI',
         'title'    => 'AI Chat',
-        'subtitle' => 'Ask anything — past conversations are saved so you can pick up where you left off.',
+        'subtitle' => 'Ask anything, past conversations are saved so you can pick up where you left off.',
         'balance'  => $balance,
     ])
 

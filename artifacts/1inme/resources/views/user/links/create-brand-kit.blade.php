@@ -17,7 +17,7 @@
 
         <div class="glass rounded-2xl p-6 space-y-4">
             <p class="text-sm text-white/50">
-                A polished, shareable <strong class="text-white/70">press kit</strong> built from your saved AI Brand Kit — logo downloads, copy-able colour swatches, your font pairing, brand voice and a press boilerplate. We'll fill it in from your kit automatically; you can refine everything in the editor.
+                A polished, shareable <strong class="text-white/70">press kit</strong> built from your saved AI Brand Kit, logo downloads, copy-able colour swatches, your font pairing, brand voice and a press boilerplate. We'll fill it in from your kit automatically; you can refine everything in the editor.
             </p>
 
             @if(($kits ?? collect())->count() > 0)
@@ -33,13 +33,13 @@
             @else
             <div class="rounded-xl border border-amber-400/20 bg-amber-400/10 px-4 py-3 text-sm text-amber-200/90">
                 <i class="fas fa-wand-magic-sparkles mr-1.5"></i>
-                You don't have a saved AI Brand Kit yet. We'll start your page with sensible defaults — generate an AI Brand Kit any time and re-sync it from the editor.
+                You don't have a saved AI Brand Kit yet. We'll start your page with sensible defaults, generate an AI Brand Kit any time and re-sync it from the editor.
             </div>
             @endif
 
             <div>
                 <label class="block text-sm font-medium text-white/60 mb-1">Page Title</label>
-                <input type="text" name="title" value="{{ old('title') }}" placeholder="e.g. Acme — Brand & Press Kit" class="w-full border border-white/10 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500/40">
+                <input type="text" name="title" value="{{ old('title') }}" placeholder="e.g. Acme, Brand & Press Kit" class="w-full border border-white/10 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500/40">
                 @error('title') <p class="text-red-500 text-sm mt-1">{{ $message }}</p> @enderror
             </div>
 

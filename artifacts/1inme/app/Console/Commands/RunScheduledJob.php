@@ -56,8 +56,23 @@ class RunScheduledJob extends Command
                 [$class, $method] = explode('@', $def['callback'], 2);
                 app($class)->{$method}();
                 $exit = 0;
+                $capturedOutput = null;
             } else {
-                $exit = Artisan::call($def['command'], [], $this->getOutput());
+                // Capture the sub-command's output into a buffer so we can
+                // include it in the run-row error detail when the command
+                // fails. The buffer is also echoed to the parent output so
+                // the "Run now" UI sees it in real time (deferred until done).
+                $buffer = new \Symfony\Component\Console\Output\BufferedOutput(
+                    $this->getOutput()->getVerbosity(),
+                    $this->getOutput()->isDecorated(),
+                );
+                $exit = Artisan::call($def['command'], [], $buffer);
+                $capturedOutput = $buffer->fetch();
+
+                // Forward buffered output to the parent console.
+                if ($capturedOutput !== '') {
+                    $this->getOutput()->write($capturedOutput);
+                }
             }
         } catch (\Throwable $e) {
             $this->finish($run, false, microtime(true) - $startedAt, null, Str::limit($e->getMessage(), 1000));
@@ -67,7 +82,21 @@ class RunScheduledJob extends Command
         }
 
         $ok = (int) $exit === 0;
-        $this->finish($run, $ok, microtime(true) - $startedAt, (int) $exit, $ok ? null : 'Exited with code ' . (int) $exit);
+
+        // On failure, include a tail of the captured output so the run-row
+        // shows the real error text (e.g. the $this->error() lines from the
+        // sub-command) rather than just "Exited with code N".
+        $errorDetail = null;
+        if (!$ok) {
+            if (!empty($capturedOutput)) {
+                $tail = Str::limit(trim($capturedOutput), 800);
+                $errorDetail = "Exited with code {$exit}. Output: {$tail}";
+            } else {
+                $errorDetail = 'Exited with code ' . (int) $exit;
+            }
+        }
+
+        $this->finish($run, $ok, microtime(true) - $startedAt, (int) $exit, $errorDetail);
 
         $this->{$ok ? 'info' : 'error'}(
             "Job '{$key}' finished with exit code " . (int) $exit . '.'

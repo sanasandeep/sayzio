@@ -79,7 +79,7 @@ const CHANNELS: {
     value: "email",
     label: "Email",
     icon: "mail",
-    blurb: "We'll reply by email — no phone needed.",
+    blurb: "We'll reply by email, no phone needed.",
   },
 ];
 

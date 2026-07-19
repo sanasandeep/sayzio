@@ -71,6 +71,11 @@ return [
         'protected'   => true,
     ],
     [
+        'key'         => 'sessions:prune',
+        'description' => 'Delete database session rows idle longer than session.lifetime (the probabilistic GC lottery is disabled; this nightly sweep owns cleanup).',
+        'cadence'     => ['dailyAt', '03:50'],
+    ],
+    [
         'key'         => 'stats:prune-history',
         'description' => 'Delete click and visitor-session history older than the largest stats-retention window across all active plans (no-op while any plan keeps history forever).',
         'cadence'     => ['dailyAt', '04:05'],

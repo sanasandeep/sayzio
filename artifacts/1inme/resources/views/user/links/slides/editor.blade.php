@@ -494,7 +494,7 @@ function renderSlides() {
                 <div class="sl-chips" style="margin-bottom:8px;"></div>
                 <div style="display:flex;gap:8px;">
                     <select class="sl-select sl-add-block" style="flex:1;">
-                        <option value="">— Add a block —</option>
+                        <option value="">Add a block</option>
                         ${BLOCKS.map(b => `<option value="${b.id}">${escAttr((b.label?b.label+' · ':'')+b.type)}</option>`).join('')}
                     </select>
                 </div>
@@ -542,7 +542,7 @@ function renderSlides() {
         // Block chips + per-block animation/width rows
         const chips = card.querySelector('.sl-chips');
         if (!s.block_ids.length) {
-            chips.innerHTML = '<span class="sl-empty">No blocks yet — pick one below.</span>';
+            chips.innerHTML = '<span class="sl-empty">No blocks yet, pick one below.</span>';
         } else {
             s.block_ids.forEach((bid, bi) => {
                 const ov = (slides[i].block_settings && slides[i].block_settings[bid]) || {};

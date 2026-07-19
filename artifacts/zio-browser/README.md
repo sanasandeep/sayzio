@@ -65,16 +65,32 @@ pnpm run package      # Build + electron-builder (creates release/)
 
 ### Code signing
 
-The build is **unsigned by default** (works on dev machines; macOS Gatekeeper will warn on first launch). To enable:
+The build is **unsigned by default** (works on dev machines; macOS Gatekeeper will warn on first launch). Signing activates automatically in CI when the GitHub repo secrets below are set — no workflow or config changes needed.
 
-- **macOS**: Set `CSC_LINK`, `CSC_KEY_PASSWORD`, `APPLE_ID`, `APPLE_APP_SPECIFIC_PASSWORD`, `APPLE_TEAM_ID` in CI secrets
-- **Windows**: Set `WIN_CSC_LINK`, `WIN_CSC_KEY_PASSWORD`
+**GitHub repo secrets (Settings → Secrets and variables → Actions):**
 
-See `electron-builder.config.cjs` for details.
+| Secret | Purpose |
+| --- | --- |
+| `MAC_CERT_P12_BASE64` | Developer ID Application certificate (`.p12`), base64-encoded |
+| `MAC_CERT_PASSWORD` | Password chosen when exporting the `.p12` |
+| `APPLE_ID` | Apple ID email of the developer account |
+| `APPLE_APP_SPECIFIC_PASSWORD` | App-specific password for notarization |
+| `APPLE_TEAM_ID` | 10-character Team ID |
+| `WIN_CERT_P12_BASE64` / `WIN_CERT_PASSWORD` | (optional) Windows Authenticode `.pfx` |
+
+**Obtaining the macOS values** (requires a paid [Apple Developer Program](https://developer.apple.com/programs/) membership):
+
+1. **Developer ID certificate**: at <https://developer.apple.com/account/resources/certificates/list>, create a **Developer ID Application** certificate (upload a CSR generated in Keychain Access → Certificate Assistant → *Request a Certificate From a Certificate Authority*). Download and open it so it lands in your login keychain.
+2. **Export as `.p12`**: in Keychain Access, right-click the "Developer ID Application: …" certificate (expand it so the private key is included) → *Export* → `.p12`, and set a password (= `MAC_CERT_PASSWORD`).
+3. **Base64-encode**: `base64 -i certificate.p12 | pbcopy` (= `MAC_CERT_P12_BASE64`).
+4. **App-specific password**: at <https://account.apple.com> → Sign-In and Security → App-Specific Passwords (= `APPLE_APP_SPECIFIC_PASSWORD`; format `xxxx-xxxx-xxxx-xxxx`).
+5. **Team ID**: shown on <https://developer.apple.com/account> under Membership details (= `APPLE_TEAM_ID`).
+
+The workflow maps these into electron-builder's `CSC_LINK` / `CSC_KEY_PASSWORD` / `APPLE_ID` / `APPLE_APP_SPECIFIC_PASSWORD` / `APPLE_TEAM_ID` env vars only when non-empty, enabling hardened runtime + notarization (see `electron-builder.config.cjs`). Once set, dispatch **SayZio Browser Build & Package** with `release: true` to produce signed + notarized mac ZIPs; publish the draft release so installed apps pick up the update.
 
 ### Auto-updates
 
-Packaged builds check the GitHub Releases feed of `sanasandeep/sayzio` every 4 hours (electron-updater; see `src/main/auto-updater.ts`). CI (`zio-browser-build.yml`, dispatched with `release: true`) uploads the installers plus `latest.yml` / `latest-mac.yml` into a **draft** release tagged `zio-browser-v<version>` — the draft must be published before installed apps can see the update.
+Packaged builds check the GitHub Releases feed of `sanasandeep/sayzio` every 4 hours (electron-updater; see `src/main/auto-updater.ts`). CI (`zio-browser-build.yml`, dispatched with `release: true`) uploads the installers plus `latest.yml` / `latest-mac.yml` into a **published** release tagged `zio-browser-v<version>` — installed apps see the update immediately (electron-updater ignores drafts, which is why the release is published, not drafted). A guard step fails the release job if the tag or release already exists, so bump the version in `package.json` before dispatching.
 
 - **Windows**: works unsigned — the app detects, downloads (sha512-verified), and installs on quit/restart.
 - **macOS**: auto-update requires a **code-signed** app (Squirrel.Mac refuses unsigned updates). Unsigned mac builds log the update error and keep running; users must download new versions manually until mac signing secrets are configured.
@@ -106,6 +122,6 @@ pnpm run test         # vitest unit tests (omnibox, context-extractor, sync, col
 1. **Test job** — typecheck + vitest (Ubuntu, no Electron)
 2. **macOS build** — `electron-builder` → `.dmg` + `.zip` (x64 + arm64)
 3. **Windows build** — `electron-builder` → NSIS installer (x64)
-4. **Release job** — triggered manually; creates a draft GitHub Release with all artifacts
+4. **Release job** — triggered manually; publishes a GitHub Release with all artifacts (refuses to overwrite an existing version's tag/release)
 
 Set `workflow_dispatch.inputs.release = true` to publish a release.

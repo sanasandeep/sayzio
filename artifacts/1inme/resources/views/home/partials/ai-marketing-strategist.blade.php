@@ -32,11 +32,11 @@
                 <p class="reveal rd-2 text-lg text-gray-400 leading-relaxed mb-8 max-w-xl">
                     Tell it your goal. The strategist reads your real links, analytics and audience,
                     then types out a practical organic + paid plan built around the Sayzio features
-                    you already have — with one-click actions you can apply on the spot.
+                    you already have, with one-click actions you can apply on the spot.
                 </p>
                 <ul class="reveal rd-3 space-y-3 mb-9 max-w-xl">
                     @foreach ([
-                        'Grounded in your real account — never invented metrics',
+                        'Grounded in your real account, never invented metrics',
                         'Organic &amp; paid plans, each play naming the exact feature',
                         'One-click actions you can apply right inside Sayzio',
                         'Refine it by chat, then export and keep every plan',

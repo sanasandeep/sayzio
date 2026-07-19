@@ -9,7 +9,7 @@
     @if (empty($user->email))
         <div class="mb-4 p-3 rounded-xl bg-blue-500/10 border border-blue-500/30 text-blue-200 text-sm">
             <i class="fas fa-envelope text-[10px] mr-1"></i>
-            Your account doesn't have an email address yet. Add and verify one below — it becomes the email on your account and unlocks email-based features.
+            Your account doesn't have an email address yet. Add and verify one below, it becomes the email on your account and unlocks email-based features.
         </div>
     @endif
 

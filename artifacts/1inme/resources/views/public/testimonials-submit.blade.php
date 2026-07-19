@@ -1,10 +1,11 @@
 <!DOCTYPE html>
 <html lang="en" class="dark">
 <head>
+    @include('common.partials.toolbar-theme-color')
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex">
-    <title>Share your experience — {{ config('app.name') }}</title>
+    <title>Share your experience | {{ config('app.name') }}</title>
     @include('common.partials.theme-bootstrap')
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @include('common.partials.fontawesome')
@@ -128,7 +129,7 @@
             </div>
             <h1 class="text-2xl font-bold ts-heading mb-2">Thank you!</h1>
             <p class="ts-body text-sm leading-relaxed">
-                Your testimonial has been received. Our team will review it shortly — if approved, it'll appear on the homepage.
+                Your testimonial has been received. Our team will review it shortly; if approved, it'll appear on the homepage.
             </p>
             <a href="{{ url('/') }}"
                class="mt-6 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium">
@@ -173,7 +174,7 @@
                         <textarea id="ts_quote" name="quote" rows="4" required maxlength="600"
                                   class="ts-input w-full rounded-xl px-3 py-2.5 text-sm resize-none"
                                   placeholder="What do you love about Sayzio? What has it helped you achieve?">{{ old('quote') }}</textarea>
-                        <p class="ts-hint text-[11px] mt-1">Up to 600 characters. Please don't include quote marks — they're added automatically.</p>
+                        <p class="ts-hint text-[11px] mt-1">Up to 600 characters. Please don't include quote marks; they're added automatically.</p>
                     </div>
 
                     {{-- Name + Role --}}
@@ -218,7 +219,7 @@
                     {{-- Email (optional) --}}
                     <div>
                         <label for="ts_email" class="block text-xs font-semibold ts-label mb-1.5">
-                            Email <span class="ts-hint font-normal">(optional — only used to contact you if needed)</span>
+                            Email <span class="ts-hint font-normal">(optional, only used to contact you if needed)</span>
                         </label>
                         <input id="ts_email" type="email" name="submitter_email" maxlength="200"
                                value="{{ old('submitter_email') }}"

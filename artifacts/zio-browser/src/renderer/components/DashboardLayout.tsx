@@ -11,7 +11,9 @@
 import { useCallback } from 'react';
 import { ModeSwitcher } from './ModeSwitcher';
 import { AuthModal } from './AuthModal';
+import { DownloadsPanel } from './DownloadsPanel';
 import { useAuthStore } from '../store/auth-store';
+import { useDownloadStore } from '../store/download-store';
 import type { WindowMode } from '../../shared/window-mode';
 
 const DASHBOARD_HEADER_HEIGHT = 44;
@@ -26,6 +28,12 @@ interface Props {
 
 export function DashboardLayout({ mode, onSetMode, authModalOpen, onOpenAuth, onCloseAuth }: Props) {
   const { user } = useAuthStore();
+  const {
+    activeDownloadCount,
+    panelOpen: downloadsPanelOpen,
+    togglePanel: toggleDownloadsPanel,
+    closePanel: closeDownloadsPanel,
+  } = useDownloadStore();
 
   const handleBack = useCallback(() => {
     void window.zio.window.reloadDashboard();
@@ -61,6 +69,43 @@ export function DashboardLayout({ mode, onSetMode, authModalOpen, onOpenAuth, on
         <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-muted)', flex: 1, WebkitAppRegion: 'drag' } as React.CSSProperties}>
           Sayzio Dashboard
         </span>
+
+        {/* Downloads button with active-count badge */}
+        <button
+          onClick={toggleDownloadsPanel}
+          title="Downloads"
+          style={{
+            position: 'relative',
+            padding: '3px 8px',
+            borderRadius: 6,
+            fontSize: 14,
+            color: downloadsPanelOpen ? 'var(--color-text)' : 'var(--color-text-muted)',
+            background: downloadsPanelOpen ? 'var(--color-bg-elevated)' : 'transparent',
+            WebkitAppRegion: 'no-drag',
+          } as React.CSSProperties}
+        >
+          ⬇
+          {activeDownloadCount > 0 && (
+            <span style={{
+              position: 'absolute',
+              top: -2,
+              right: -2,
+              minWidth: 14,
+              height: 14,
+              padding: '0 3px',
+              borderRadius: 7,
+              background: 'var(--color-primary)',
+              color: '#fff',
+              fontSize: 9,
+              fontWeight: 700,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}>
+              {activeDownloadCount}
+            </span>
+          )}
+        </button>
 
         <div style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
           <ModeSwitcher currentMode={mode} onSetMode={onSetMode} />
@@ -103,6 +148,18 @@ export function DashboardLayout({ mode, onSetMode, authModalOpen, onOpenAuth, on
       {/* The rest of the area is transparent — the dashboard WebContentsView
           is positioned here by the main process (WindowModeManager). */}
       <div style={{ flex: 1 }} />
+
+      {/* Downloads panel — anchored below the header, top-right */}
+      {downloadsPanelOpen && (
+        <div style={{
+          position: 'fixed',
+          top: DASHBOARD_HEADER_HEIGHT,
+          right: 12,
+          zIndex: 200,
+        }}>
+          <DownloadsPanel onClose={closeDownloadsPanel} />
+        </div>
+      )}
 
       {authModalOpen && <AuthModal onClose={onCloseAuth} />}
     </div>

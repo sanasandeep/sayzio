@@ -47,7 +47,7 @@
 
     {{-- Required scopes --}}
     <div class="rounded-xl border border-white/10 bg-white/[0.03] p-3 text-xs space-y-1.5">
-        <div class="text-[10px] uppercase tracking-wider text-white/40">Required OAuth scopes — add these to your consent screen</div>
+        <div class="text-[10px] uppercase tracking-wider text-white/40">Required OAuth scopes, add these to your consent screen</div>
         <div class="flex flex-wrap gap-1.5">
             <code class="px-2 py-0.5 rounded-md bg-white/5 border border-white/10 text-white/80 text-[11px] font-mono">https://www.googleapis.com/auth/contacts</code>
             <code class="px-2 py-0.5 rounded-md bg-white/5 border border-white/10 text-white/80 text-[11px] font-mono">https://www.googleapis.com/auth/contacts.readonly</code>
@@ -56,7 +56,7 @@
 
     {{-- Redirect URI --}}
     @include('admin.partials.copy-uri', [
-        'label' => 'Authorised redirect URI — add this exact value in Google Cloud Console → OAuth client',
+        'label' => 'Authorised redirect URI, add this exact value in Google Cloud Console → OAuth client',
         'value' => route('contacts.google.callback'),
     ])
 
@@ -89,7 +89,7 @@
                 <input type="text" name="client_id" value="{{ old('client_id', $clientId) }}" autocomplete="off"
                        placeholder="1234567890-abc.apps.googleusercontent.com"
                        class="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-sm text-white">
-                <p class="text-[11px] text-white/30 mt-1">Plain configuration (not a secret) — ends in <code>.apps.googleusercontent.com</code>.</p>
+                <p class="text-[11px] text-white/30 mt-1">Plain configuration (not a secret), ends in <code>.apps.googleusercontent.com</code>.</p>
             </div>
 
             <div>

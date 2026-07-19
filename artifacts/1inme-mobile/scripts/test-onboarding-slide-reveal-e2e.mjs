@@ -23,14 +23,13 @@
  * at opacity 0 still reports visible, so we walk the ancestor chain and multiply
  * the computed opacities (same technique as test-info-pages-e2e.mjs).
  *
- * The carousel ends with a DISTINCT final slide, AiDashboardSlide, which does
- * NOT use the SlideCard/AnimatedSlide render path — it renders its own blobs,
- * floating icons and the interactive AiDashboardDemo widget inside a ScrollView.
- * Because it has separate render paths the active-slide checks above never
- * reach, this harness ALSO swipes to that final slide and asserts its heading /
- * CTA copy paints (effective opacity > 0, in-frame) and at least one of ITS
- * floating icons ends non-transparent — so a regression that leaves the AI
- * dashboard slide blank fails here instead of shipping unnoticed.
+ * The harness ALSO swipes the pager forward one slide and asserts the SECOND
+ * slide's copy paints in-frame plus one of its floating icons ends
+ * non-transparent — catching a pager/reveal regression that only bites slides
+ * entering via a swipe (their entrance reveal fires on activation, not mount).
+ * (The old hard-coded final "AI dashboard" slide was removed in the July 2026
+ * 5-slide carousel redesign, so the swipe target is just a second mocked
+ * slide now; AiDashboardDemo lives in app/dashboard-customize.tsx.)
  *
  * The slides endpoint is intercepted with a deterministic slide so the
  * assertions never depend on admin-managed content; every other /api/** call is
@@ -81,6 +80,11 @@ const VIEWPORT = { width: 400, height: 720 };
 const SLIDE_CATEGORY = "E2E reveal category";
 const SLIDE_TITLE = "E2E reveal slide title";
 const SLIDE_BODY = "E2E reveal slide body copy that must paint on screen.";
+// Second slide: the swipe target. slug "start-free" matches a real
+// SLIDE_THEMES entry so its FloatingIcon layer renders.
+const SLIDE2_CATEGORY = "E2E second category";
+const SLIDE2_TITLE = "E2E second slide title";
+const SLIDE2_BODY = "E2E second slide body copy that must paint after a swipe.";
 const MOCK_SLIDES = [
   {
     id: 9101,
@@ -92,65 +96,17 @@ const MOCK_SLIDES = [
     image_urls: [],
     sort_order: 10,
   },
-];
-
-// Copy for the DISTINCT final AiDashboardSlide (hard-coded in app/onboarding.tsx
-// as AI_DASHBOARD_SLIDE — it is NOT admin-managed, so it always appends after
-// the mocked slides). Signed out (no auth token), the slide has no dashboard
-// presets, so it renders its teaser + the "Set up my dashboard" CTA label.
-const AI_SLIDE_CATEGORY = "AI dashboard";
-const AI_SLIDE_TITLE = "Let AI arrange your dashboard";
-const AI_SLIDE_CTA = "Set up my dashboard";
-
-// ── Signed-in variant of the final slide ──────────────────────────────────
-// When a user IS signed in AND GET /api/v1/dashboard/layout returns real
-// presets, AiDashboardSlide's `hasPresets` branch swaps the static teaser for
-// the interactive AiDashboardDemo widget (components/AiDashboardDemo.tsx) and
-// the CTA label flips to "Open the AI designer". The demo types out the
-// preset's description in a prompt console, "arranges", then staggers in the
-// preset's real widget tiles via Animated.Value opacity/translateY. NONE of
-// that reveal path is reached by the signed-out phase above, so a regression
-// that leaves the console / board / tiles blank would ship unnoticed. The
-// signed-in phase below seeds a token in localStorage, mocks the layout
-// endpoint with ONE preset (single preset ⇒ no auto-advance, no tab dots — the
-// tiles animate once and stay), and asserts the demo actually paints.
-const AI_SLIDE_CTA_SIGNED_IN = "Open the AI designer";
-
-// A synthetic bearer token + user for the signed-in launch. AuthContext loads
-// these straight from storage on boot and does NOT re-validate them against the
-// server, so a mocked token is enough to make `token` truthy — which is the
-// only thing that gates the onboarding preset fetch (app/onboarding.tsx ~L931).
-const SIGNED_IN_TOKEN = "e2e-onboarding-reveal-signed-in-token";
-const SIGNED_IN_USER = {
-  id: 987654,
-  display_name: "E2E Signed-in User",
-  email: "e2e-onboarding-reveal@example.com",
-};
-
-// One deterministic dashboard preset served from the mocked /dashboard/layout.
-// The board title renders `label`; each widget key maps to a fixed tile label
-// via AiDashboardDemo's WIDGET_META (stat_total_clicks → "Total Clicks").
-const DEMO_PRESET_LABEL = "Growth focus";
-const DEMO_TILE_LABEL = "Total Clicks"; // WIDGET_META["stat_total_clicks"].label
-const DEMO_CONSOLE_BADGE = "AI DESIGNER"; // static badge inside the prompt console
-const MOCK_DASHBOARD_LAYOUT = {
-  data: {
-    presets: [
-      {
-        key: "growth",
-        label: DEMO_PRESET_LABEL,
-        description: "Track how my links are growing over time",
-        icon: "fa-arrow-trend-up",
-        widgets: [
-          "stat_total_clicks",
-          "stat_today",
-          "recent_links",
-          "traffic_channels",
-        ],
-      },
-    ],
+  {
+    id: 9102,
+    slug: "start-free",
+    category: SLIDE2_CATEGORY,
+    title: SLIDE2_TITLE,
+    body: SLIDE2_BODY,
+    image_url: null,
+    image_urls: [],
+    sort_order: 20,
   },
-};
+];
 
 // Build a browser context wired for a fresh onboarding launch: a signed-out,
 // not-yet-onboarded install, with the slides endpoint mocked and every other
@@ -193,69 +149,6 @@ async function prepareContext(browser) {
   await context.route("**/api/**", (route) => {
     const path = new URL(route.request().url()).pathname;
     if (/\/api\/v1\/onboarding\/slides$/.test(path)) return route.fallback();
-    return route.fulfill({
-      status: 200,
-      contentType: "application/json",
-      body: JSON.stringify({ data: [] }),
-    });
-  });
-
-  return context;
-}
-
-// Build a browser context wired for a SIGNED-IN, not-yet-onboarded launch: a
-// bearer token + user seeded into localStorage so the onboarding preset fetch
-// fires, the slides endpoint mocked as before, and GET /api/v1/dashboard/layout
-// answered with a deterministic one-preset payload so AiDashboardSlide takes its
-// `hasPresets` branch and renders the interactive AiDashboardDemo widget.
-async function prepareSignedInContext(browser) {
-  const context = await browser.newContext({ viewport: VIEWPORT });
-
-  // Onboarding NOT complete (so the launch gate still routes to /onboarding),
-  // but SIGNED IN — seed the same storage keys AuthContext reads on boot.
-  await context.addInitScript(
-    ([token, userJson]) => {
-      try {
-        window.localStorage.removeItem("1inme.onboarding.complete");
-        window.localStorage.setItem("1inme.auth.token", token);
-        window.localStorage.setItem("1inme.auth.user", userJson);
-      } catch {}
-    },
-    [SIGNED_IN_TOKEN, JSON.stringify(SIGNED_IN_USER)],
-  );
-
-  await context.route("**/branding.json**", (route) =>
-    route.fulfill({ status: 200, contentType: "application/json", body: "{}" }),
-  );
-
-  await context.route("**/api/v1/onboarding/slides**", (route) =>
-    route.fulfill({
-      status: 200,
-      contentType: "application/json",
-      body: JSON.stringify({ items: MOCK_SLIDES }),
-    }),
-  );
-
-  // The signed-in-only endpoint that supplies the demo's real presets. The
-  // mobile client unwraps a { data } envelope (getDashboardLayout → res.data).
-  await context.route("**/api/v1/dashboard/layout**", (route) =>
-    route.fulfill({
-      status: 200,
-      contentType: "application/json",
-      body: JSON.stringify(MOCK_DASHBOARD_LAYOUT),
-    }),
-  );
-
-  // Catch-all, registered last (consulted first): defer the two specific paths
-  // above to their handlers, benign {data:[]} for everything else.
-  await context.route("**/api/**", (route) => {
-    const path = new URL(route.request().url()).pathname;
-    if (
-      /\/api\/v1\/onboarding\/slides$/.test(path) ||
-      /\/api\/v1\/dashboard\/layout$/.test(path)
-    ) {
-      return route.fallback();
-    }
     return route.fulfill({
       status: 200,
       contentType: "application/json",
@@ -315,28 +208,46 @@ async function assertPainted(page, text, label) {
   );
 }
 
-// Assert at least one FloatingIcon tile ends non-transparent. Each tile is an
-// absolutely-positioned Animated.View with a distinctive translucent blue
-// border (borderColor "rgba(100,160,255,0.20)" in FloatingIcon), fading in from
-// opacity 0 via an UNCONDITIONAL mount effect. We find tiles by that border
-// signature and poll their effective opacity — a broken reveal (or a shared
-// value that never reaches the DOM) would leave every tile stuck at 0.
+// Assert at least one FloatingIcon ends non-transparent. Since the "make Zio
+// the star" redesign, each icon is a bare absolutely-positioned Animated.View
+// wrapping an expo-image that loads a bundled `zio-nodes/*.png` asset (the old
+// translucent-blue tile border was removed), fading in from opacity 0 via an
+// UNCONDITIONAL mount effect. We find icons by locating elements whose <img>
+// src (or CSS background-image) references a zio-node asset, take their
+// absolutely-positioned wrapper, and poll effective opacity — a broken reveal
+// (or a shared value that never reaches the DOM) would leave every icon at 0.
 async function assertFloatingIconPainted(page) {
   const deadline = Date.now() + 6000;
   let best = 0;
   let found = 0;
   while (Date.now() < deadline) {
     const result = await page.evaluate(() => {
-      // Match the FloatingIcon tile by its computed translucent-blue border
-      // (rgb 100,160,255) — a signature no other onboarding element uses.
-      const tiles = Array.from(document.querySelectorAll("div")).filter((n) => {
-        const cs = getComputedStyle(n);
-        const bc = cs.borderColor || cs.borderTopColor || "";
-        return (
-          cs.position === "absolute" &&
-          /\b100,\s*160,\s*255\b/.test(bc.replace(/\s+/g, " "))
-        );
-      });
+      // Match FloatingIcon by its bundled zio-node asset: expo-image on web
+      // renders an <img> (or a background-image div) whose URL contains the
+      // asset path/name (e.g. ".../zio-nodes/ai.<hash>.png" or an
+      // unstable_path-encoded equivalent) — a signature no other onboarding
+      // element uses. Walk up to the absolutely-positioned wrapper the reveal
+      // animates.
+      const matchesZioNode = (url) => /zio-node/i.test(url || "");
+      const carriers = [];
+      for (const img of Array.from(document.querySelectorAll("img"))) {
+        if (matchesZioNode(img.currentSrc || img.src)) carriers.push(img);
+      }
+      for (const n of Array.from(document.querySelectorAll("div"))) {
+        const bg = getComputedStyle(n).backgroundImage;
+        if (bg && bg !== "none" && matchesZioNode(bg)) carriers.push(n);
+      }
+      const tiles = [];
+      for (const c of carriers) {
+        let node = c;
+        while (node && node instanceof Element) {
+          if (getComputedStyle(node).position === "absolute") {
+            tiles.push(node);
+            break;
+          }
+          node = node.parentElement;
+        }
+      }
       let count = tiles.length;
       let max = 0;
       for (const tile of tiles) {
@@ -387,20 +298,36 @@ async function assertFloatingIconPainted(page) {
 // onScroll/index logic as a finger swipe. (Same technique as
 // test-onboarding-slider-e2e.mjs.)
 async function swipeToNextSlide(page) {
-  const advanced = await page.evaluate(() => {
-    const scroller = Array.from(document.querySelectorAll("div")).find((n) => {
-      if (n.scrollWidth <= n.clientWidth + 10) return false;
-      const cs = getComputedStyle(n);
-      return (
-        cs.overflowX === "auto" ||
-        cs.overflowX === "scroll" ||
-        (cs.scrollSnapType && cs.scrollSnapType.includes("x"))
+  // Poll: the FlatList pager can mount a beat after the slide copy paints, and
+  // RNW style output has shifted before (overflow-x hidden vs scroll), so
+  // after the style-based match fails we fall back to ANY horizontally
+  // overflowing element where assigning scrollLeft actually takes effect
+  // (assignment works — and fires the same scroll events — even when
+  // overflow-x is hidden).
+  const deadline = Date.now() + 10000;
+  let advanced = false;
+  while (!advanced && Date.now() < deadline) {
+    advanced = await page.evaluate(() => {
+      const candidates = Array.from(document.querySelectorAll("div")).filter(
+        (n) => n.scrollWidth > n.clientWidth + 10,
       );
+      const styled = candidates.filter((n) => {
+        const cs = getComputedStyle(n);
+        return (
+          cs.overflowX === "auto" ||
+          cs.overflowX === "scroll" ||
+          (cs.scrollSnapType && cs.scrollSnapType.includes("x"))
+        );
+      });
+      for (const scroller of styled.length ? styled : candidates) {
+        const before = scroller.scrollLeft;
+        scroller.scrollLeft = before + scroller.clientWidth;
+        if (scroller.scrollLeft !== before) return true;
+      }
+      return false;
     });
-    if (!scroller) return false;
-    scroller.scrollLeft = scroller.scrollLeft + scroller.clientWidth;
-    return true;
-  });
+    if (!advanced) await page.waitForTimeout(250);
+  }
   if (!advanced) fail("could not find the horizontal slider to swipe");
   log("swiped the carousel forward by one slide width");
 }
@@ -455,34 +382,45 @@ async function assertPaintedInFrame(page, text, label) {
   );
 }
 
-// Assert at least one FloatingIcon tile BELONGING TO THE AI DASHBOARD SLIDE ends
-// non-transparent. The AI slide renders the SAME FloatingIcon component (same
-// translucent-blue border signature) as the earlier slides, so after swiping we
-// must ignore the previous slide's tiles — those are translated one viewport
-// width to the LEFT (off-frame). We therefore only count tiles whose bounding
-// rect sits inside the current viewport horizontally, then poll their effective
-// opacity: a broken AI-slide reveal (or a shared value that never reaches the
-// DOM) leaves every in-frame tile stuck at 0.
-async function assertAiSlideFloatingIconPainted(page) {
+// Assert at least one FloatingIcon tile BELONGING TO THE CURRENT (post-swipe)
+// slide ends non-transparent. The second slide renders the SAME FloatingIcon
+// component (zio-node image assets) as the first, so after swiping we must
+// ignore the previous slide's tiles — those are translated one viewport width
+// to the LEFT (off-frame). We therefore only count zio-node tiles whose
+// bounding rect sits inside the current viewport horizontally, then poll their
+// effective opacity: a broken activation reveal (or a shared value that never
+// reaches the DOM) leaves every in-frame tile stuck at 0.
+async function assertInFrameFloatingIconPainted(page) {
   const deadline = Date.now() + 6000;
   let best = 0;
   let found = 0;
   while (Date.now() < deadline) {
     const result = await page.evaluate(() => {
-      const tiles = Array.from(document.querySelectorAll("div")).filter((n) => {
-        const cs = getComputedStyle(n);
-        const bc = cs.borderColor || cs.borderTopColor || "";
-        if (
-          cs.position !== "absolute" ||
-          !/\b100,\s*160,\s*255\b/.test(bc.replace(/\s+/g, " "))
-        ) {
-          return false;
+      const matchesZioNode = (url) => /zio-node/i.test(url || "");
+      const carriers = [];
+      for (const img of Array.from(document.querySelectorAll("img"))) {
+        if (matchesZioNode(img.currentSrc || img.src)) carriers.push(img);
+      }
+      for (const n of Array.from(document.querySelectorAll("div"))) {
+        const bg = getComputedStyle(n).backgroundImage;
+        if (bg && bg !== "none" && matchesZioNode(bg)) carriers.push(n);
+      }
+      const tiles = [];
+      for (const c of carriers) {
+        let node = c;
+        while (node && node instanceof Element) {
+          if (getComputedStyle(node).position === "absolute") {
+            // Only tiles inside the current viewport horizontally — excludes
+            // the previous slide's tiles, now paged one screen to the left.
+            const r = node.getBoundingClientRect();
+            if (r.width > 0 && r.left >= -1 && r.right <= window.innerWidth + 1) {
+              tiles.push(node);
+            }
+            break;
+          }
+          node = node.parentElement;
         }
-        // Only tiles inside the current viewport horizontally — this excludes
-        // the previous slide's tiles, now paged one screen to the left.
-        const r = n.getBoundingClientRect();
-        return r.width > 0 && r.left >= -1 && r.right <= window.innerWidth + 1;
-      });
+      }
       let count = tiles.length;
       let max = 0;
       for (const tile of tiles) {
@@ -501,8 +439,8 @@ async function assertAiSlideFloatingIconPainted(page) {
     best = result.max;
     if (found > 0 && best > 0) {
       log(
-        `ok — AI-slide FloatingIcon tile painted (${found} in-frame tile(s), ` +
-          `best effective opacity ${best.toFixed(2)})`,
+        `ok — in-frame FloatingIcon tile painted after the swipe (${found} ` +
+          `tile(s), best effective opacity ${best.toFixed(2)})`,
       );
       return;
     }
@@ -511,23 +449,21 @@ async function assertAiSlideFloatingIconPainted(page) {
 
   if (found === 0) {
     fail(
-      "no in-frame FloatingIcon tile was found on the AI dashboard slide " +
-        "(expected the bobbing AI feature-icon tiles with the translucent blue " +
-        "border) — the AI slide's floating-icon layer did not render at all.",
+      "no in-frame FloatingIcon tile was found on the second slide after the " +
+        "swipe — its floating-icon layer did not render at all.",
     );
   }
   fail(
-    `found ${found} in-frame AI-slide FloatingIcon tile(s) but none ever ` +
-      `painted — best effective opacity stayed at ${best} for 6s (the AI ` +
-      `slide's mount fade-in reveal never applied its opacity).`,
+    `found ${found} in-frame FloatingIcon tile(s) on the second slide but ` +
+      `none ever painted — best effective opacity stayed at ${best} for 6s.`,
   );
 }
 
-// ── Phase 1: signed-out launch ─────────────────────────────────────────────
+// ── Launch phase ───────────────────────────────────────────────────────────
 // The active slide's card copy + a floating icon must paint, then swipe to the
-// final AI dashboard slide and assert its (teaser) heading/CTA copy + a floating
-// icon paint. Signed out there are no presets, so the interactive demo is NOT
-// rendered here — that is phase 2's job.
+// SECOND mocked slide and assert its copy paints in-frame plus one of its own
+// floating icons — slides entering via a swipe run their entrance reveal on
+// activation, a path the first-slide checks never exercise.
 async function runSignedOutPhase(browser, appUrl) {
   const context = await prepareContext(browser);
   const page = await context.newPage();
@@ -550,94 +486,31 @@ async function runSignedOutPhase(browser, appUrl) {
   // ---- At least one FloatingIcon tile must end non-transparent -------------
   await assertFloatingIconPainted(page);
 
-  // ---- Swipe to the DISTINCT final AI dashboard slide ---------------------
-  // It has its OWN render path (blobs + floating icons + AiDashboardDemo in a
-  // ScrollView, not a SlideCard), so the active-slide checks above never reach
-  // it. Only the mocked slide + the appended AI_DASHBOARD_SLIDE exist, so one
-  // swipe lands on it. Wait for its category chip to be present before asserting.
+  // ---- Swipe to the second mocked slide ------------------------------------
   await swipeToNextSlide(page);
   await page
-    .getByText(AI_SLIDE_CATEGORY, { exact: true })
+    .getByText(SLIDE2_CATEGORY, { exact: true })
     .first()
     .waitFor({ state: "visible", timeout: STEP_TIMEOUT_MS })
     .catch(() =>
       fail(
-        "the AI dashboard slide's category chip never appeared after swiping " +
-          "to the final slide.",
+        "the second slide's category chip never appeared after swiping " +
+          "forward one slide.",
       ),
     );
 
-  // Its heading + CTA copy must paint (effective opacity > 0) AND land inside
-  // the frame — proving the AI slide actually rendered on screen, not blank.
-  await assertPaintedInFrame(page, AI_SLIDE_CATEGORY, "AI slide category chip");
-  await assertPaintedInFrame(page, AI_SLIDE_TITLE, "AI slide title");
-  await assertPaintedInFrame(page, AI_SLIDE_CTA, "AI slide CTA");
+  // Its copy must paint (effective opacity > 0) AND land inside the frame —
+  // proving the swipe actually landed and the slide rendered on screen.
+  await assertPaintedInFrame(page, SLIDE2_CATEGORY, "second slide category chip");
+  await assertPaintedInFrame(page, SLIDE2_TITLE, "second slide title");
+  await assertPaintedInFrame(page, SLIDE2_BODY, "second slide body");
 
-  // And at least one of the AI slide's OWN floating icons must end painted.
-  await assertAiSlideFloatingIconPainted(page);
-
-  log(
-    "[signed-out] ok — the active slide AND the final AI dashboard slide's " +
-      "teaser copy plus a floating icon each paint on screen",
-  );
-  await context.close().catch(() => {});
-}
-
-// ── Phase 2: signed-in launch (the interactive AiDashboardDemo) ────────────
-// With a token seeded and /dashboard/layout returning a preset, the final slide
-// takes its `hasPresets` branch and renders AiDashboardDemo instead of the
-// teaser. Assert the prompt console badge + board title paint AND at least one
-// of the preset's real widget TILES reaches effective opacity > 0 — i.e. the
-// Animated.Value stagger reveal actually applied to the rendered tile rather
-// than leaving it stuck at 0 (a blank demo board regression).
-async function runSignedInPhase(browser, appUrl) {
-  const context = await prepareSignedInContext(browser);
-  const page = await context.newPage();
-  page.setDefaultTimeout(STEP_TIMEOUT_MS);
-  page.setDefaultNavigationTimeout(NAV_TIMEOUT_MS);
-  page.on("pageerror", (e) => log("[signed-in] pageerror:", e.message));
-
-  log(`[signed-in] navigating to ${appUrl} (launch gate → /onboarding)`);
-  await page.goto(appUrl, { waitUntil: "domcontentloaded" });
-
-  // The first mocked slide still paints before we page forward.
-  await assertPainted(page, SLIDE_TITLE, "slide title");
-
-  // Swipe to the final AI dashboard slide and confirm the swipe landed.
-  await swipeToNextSlide(page);
-  await page
-    .getByText(AI_SLIDE_CATEGORY, { exact: true })
-    .first()
-    .waitFor({ state: "visible", timeout: STEP_TIMEOUT_MS })
-    .catch(() =>
-      fail(
-        "[signed-in] the AI dashboard slide's category chip never appeared " +
-          "after swiping to the final slide.",
-      ),
-    );
-  await assertPaintedInFrame(
-    page,
-    AI_SLIDE_CATEGORY,
-    "AI slide category chip (signed in)",
-  );
-
-  // hasPresets branch active: the CTA label flips and the interactive demo's
-  // prompt console + board render. These are opacity-only checks (the demo sits
-  // lower in the ScrollView so it may be below the fold, but its opacity is what
-  // a blank-demo regression would zero out).
-  await assertPainted(page, AI_SLIDE_CTA_SIGNED_IN, "AI slide CTA (presets)");
-  await assertPainted(page, DEMO_CONSOLE_BADGE, "AiDashboardDemo prompt console");
-  await assertPainted(page, DEMO_PRESET_LABEL, "AiDashboardDemo board title");
-
-  // The core assertion: at least one real widget tile's staggered reveal
-  // actually raised its effective opacity above 0 (the tiles START at 0 and
-  // animate to 1 — assertPainted polls until the reveal lands).
-  await assertPainted(page, DEMO_TILE_LABEL, "AiDashboardDemo widget tile");
+  // And at least one of the second slide's OWN floating icons must paint.
+  await assertInFrameFloatingIconPainted(page);
 
   log(
-    "[signed-in] ok — the interactive AiDashboardDemo prompt console, board " +
-      "and at least one animated widget tile paint on screen (effective " +
-      "opacity > 0)",
+    "[signed-out] ok — the active slide AND the swiped-to second slide's " +
+      "copy plus a floating icon each paint on screen",
   );
   await context.close().catch(() => {});
 }
@@ -664,12 +537,10 @@ async function run() {
 
   try {
     await runSignedOutPhase(browser, appUrl);
-    await runSignedInPhase(browser, appUrl);
 
     log(
-      "PASS: the onboarding carousel paints for BOTH a signed-out install " +
-        "(teaser AI slide) AND a signed-in one (interactive AiDashboardDemo " +
-        "console + board + animated widget tile)",
+      "PASS: the onboarding carousel paints its first slide AND the " +
+        "swiped-to second slide (copy + floating icons, effective opacity > 0)",
     );
     await browser.close().catch(() => {});
     // Explicit exit (like the sibling harnesses): the throwaway Metro child

@@ -32,7 +32,7 @@ New in v0.2.0 — right-click context menu additions:
 15. **Shorten selected text as URL** (right-click on selected text) — shortens the selected URL directly, without opening the popup.
 16. **QR code for selected text** (right-click on selected text) — opens the Quick QR view in the popup with the selected text pre-filled; content type (URL / plain text / phone number) is auto-detected.
 17. **Note to contact from selection** (right-click on selected text) — opens a contact picker in the popup and appends the selected text as a note to the chosen contact (`PATCH /api/v1/contacts/{id}` with `notes_append`).
-18. **Look up in Sayzio Dialer** (right-click on selected text) — resolves a selected phone number against your Sayzio Contacts + bio-links and shows the matching person, or lets you add them.
+18. **Look up in Zio Dialer** (right-click on selected text) — resolves a selected phone number against your Sayzio Contacts + bio-links and shows the matching person, or lets you add them.
 19. **Save image to Sayzio Files** (right-click on any image) — saves the image to your Sayzio Files storage via `POST /api/v1/me/files/fetch-url`; the backend fetches the binary so the service worker doesn't need to.
 20. **Send page to my subscribers** (right-click anywhere on a page) — shortcut to the subscriber broadcast compose view.
 
@@ -55,7 +55,7 @@ A **right-click context menu** mirrors these actions:
 - **Shorten selected text as URL** *(new)* (right-click on a text selection)
 - **QR code for selected text** *(new)* (right-click on a text selection)
 - **Note to contact from selection** *(new)* (right-click on a text selection)
-- **Look up in Sayzio Dialer** *(new)* (right-click on a text selection)
+- **Look up in Zio Dialer** *(new)* (right-click on a text selection)
 - **Save image to Sayzio Files** *(new)* (right-click on an image)
 - **Send page to my subscribers** *(new)* (right-click anywhere on a page)
 

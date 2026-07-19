@@ -297,7 +297,7 @@ export default function LinkAnalyticsScreen() {
                 style={{ color: "#fbbf24", fontSize: 12, marginTop: 10 }}
                 testID="text-estimate-stale"
               >
-                This estimate is over 30 days old — re-run it from the web
+                This estimate is over 30 days old; re-run it from the web
                 dashboard for a fresh read.
               </Text>
             ) : null}
@@ -357,8 +357,8 @@ function AudienceInsightsSection({
           : Math.max(1, Math.round((Date.now() - t) / 60000));
         setFreshNote(
           mins !== null
-            ? `Estimate is fresh — generated ${mins} minute${mins === 1 ? "" : "s"} ago. No coins were charged.`
-            : "Estimate is fresh — no coins were charged.",
+            ? `Estimate is fresh: generated ${mins} minute${mins === 1 ? "" : "s"} ago. No coins were charged.`
+            : "Estimate is fresh; no coins were charged.",
         );
       } else {
         setFreshNote(null);
@@ -590,8 +590,8 @@ function AudienceInsightsSection({
                 showAlert(
                   "Run a fresh estimate?",
                   estimateCoins > 0
-                    ? `This will charge up to ${estimateCoins} coin${estimateCoins === 1 ? "" : "s"} — run anyway?`
-                    : "This will charge coins for a fresh run — run anyway?",
+                    ? `This will charge up to ${estimateCoins} coin${estimateCoins === 1 ? "" : "s"}. Run anyway?`
+                    : "This will charge coins for a fresh run. Run anyway?",
                   [
                     { text: "Cancel", style: "cancel" },
                     {
@@ -949,7 +949,7 @@ function RateLimitSection({
                 marginTop: 2,
               }}
             >
-              When off, every visitor is recorded — even obvious bots.
+              When off, every visitor is recorded, even obvious bots.
             </Text>
           </View>
           <Switch value={enabled} onValueChange={setEnabled} />

@@ -1,0 +1,10 @@
+{
+  "name": "@workspace/1inme-com",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check:favicons": "node src/check-favicons.mjs",
+    "test": "node src/check-favicons.mjs"
+  }
+}

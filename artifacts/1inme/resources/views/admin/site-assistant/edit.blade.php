@@ -251,8 +251,8 @@
                 </div>
                 <div>
                     <label class="block text-xs text-white/60 mb-1">Cut-off banner notice</label>
-                    <input type="text" maxlength="200" name="assistant_cutoff_notice" value="{{ $cfg['assistant_cutoff_notice'] ?? '' }}" placeholder="⚠ This reply was cut off —" class="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white">
-                    <p class="text-xs text-white/40 mt-1">Shown when a streamed reply is interrupted. Leave blank to use <code>⚠ This reply was cut off —</code>.</p>
+                    <input type="text" maxlength="200" name="assistant_cutoff_notice" value="{{ $cfg['assistant_cutoff_notice'] ?? '' }}" placeholder="⚠ This reply was cut off - " class="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white">
+                    <p class="text-xs text-white/40 mt-1">Shown when a streamed reply is interrupted. Leave blank to use <code>⚠ This reply was cut off - </code>.</p>
                 </div>
                 <div>
                     <label class="block text-xs text-white/60 mb-1">Cut-off retry button</label>
@@ -325,7 +325,7 @@
                                     <input type="text" maxlength="240" data-intro-handoff class="mt-1 w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white" placeholder="Our team will reply by email.">
                                 </label>
                                 <label class="block text-xs text-white/60">Cut-off banner notice
-                                    <input type="text" maxlength="200" data-intro-cutoff class="mt-1 w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white" placeholder="⚠ This reply was cut off —">
+                                    <input type="text" maxlength="200" data-intro-cutoff class="mt-1 w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white" placeholder="⚠ This reply was cut off - ">
                                 </label>
                                 <label class="block text-xs text-white/60">Cut-off retry button
                                     <input type="text" maxlength="40" data-intro-retry class="mt-1 w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white" placeholder="Retry">
@@ -734,7 +734,7 @@
                         picked = pickLocale(available, acceptVal);
                         note = picked
                             ? 'Accept-Language matched configured locale: ' + picked
-                            : 'No configured locale matched — showing default copy.';
+                            : 'No configured locale matched, showing default copy.';
                     } else if (sel.value && sel.value !== '__default__' && available.indexOf(sel.value) >= 0) {
                         // Direct selection from the dropdown — skip the matcher
                         // entirely so locale codes that use `_` (allowed by the
@@ -831,7 +831,7 @@
                         }
                         var msgEl = box.querySelector('[data-lb-msg]');
                         if (!msg) {
-                            msgEl.textContent = '(empty — bubble will not appear)';
+                            msgEl.textContent = '(empty, bubble will not appear)';
                             box.style.opacity = '0.5';
                         } else {
                             msgEl.textContent = msg;
@@ -1037,7 +1037,7 @@
             <div>
                 <label class="block text-xs text-white/60 mb-1">Anonymous visitor message</label>
                 <input type="text" maxlength="500" name="low_balance_message_anonymous" value="{{ $cfg['low_balance_message_anonymous'] }}" class="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white">
-                <p class="text-xs text-white/40 mt-1">No numbers are leaked to anonymous visitors — keep this generic.</p>
+                <p class="text-xs text-white/40 mt-1">No numbers are leaked to anonymous visitors, keep this generic.</p>
             </div>
             <div>
                 <label class="block text-xs text-white/60 mb-1">CTA button label</label>
@@ -1163,7 +1163,7 @@
         <div class="glass rounded-2xl border border-white/10 p-6 space-y-4">
             <div>
                 <h3 class="font-semibold text-white">Cut-off retry alerts</h3>
-                <p class="text-xs text-white/50 mt-1">A scheduled check looks at the last 24h of cut-off / failed assistant streams and notifies admins (in-app + email) when the abandon rate — the share of cut-offs visitors never clicked Retry on — exceeds the threshold below. Useful for catching upstream regressions before users complain.</p>
+                <p class="text-xs text-white/50 mt-1">A scheduled check looks at the last 24h of cut-off / failed assistant streams and notifies admins (in-app + email) when the abandon rate (the share of cut-offs visitors never clicked Retry on) exceeds the threshold below. Useful for catching upstream regressions before users complain.</p>
             </div>
             <label class="flex items-center gap-3 cursor-pointer">
                 <input type="hidden" name="cutoff_alert_enabled" value="0">

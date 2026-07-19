@@ -1,15 +1,106 @@
 /**
  * New Tab page — shown when no URL is loaded.
  * Shows a search bar, quick links, and recent history.
+ * In private/incognito mode shows a minimalist private-mode splash instead.
  */
 import { useState, useEffect, useCallback } from 'react';
 import type { HistoryEntry } from '../../main/db';
+import { ProfileBadge } from './ProfileBadge';
 
 interface Props {
   onNavigate: (url: string) => void;
+  /** True when the window is running in incognito/private mode. */
+  isPrivate?: boolean;
 }
 
-export function NewTabPage({ onNavigate }: Props) {
+// ── Private mode splash ───────────────────────────────────────────────────────
+
+function PrivateNewTabPage({ onNavigate }: Pick<Props, 'onNavigate'>) {
+  const [query, setQuery] = useState('');
+  const [currentTime, setCurrentTime] = useState(new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const handleSearch = useCallback((e: React.FormEvent) => {
+    e.preventDefault();
+    if (!query.trim()) return;
+    onNavigate(query.trim());
+  }, [query, onNavigate]);
+
+  const formatTime = (d: Date) =>
+    d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+  return (
+    <div style={{
+      flex: 1,
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: 40,
+      background: '#0d0d1a',
+      overflowY: 'auto',
+      color: '#e0d7ff',
+    }}>
+      {/* Clock */}
+      <div style={{ textAlign: 'center', marginBottom: 32 }}>
+        <div style={{ fontSize: 52, fontWeight: 200, letterSpacing: -2, color: '#e0d7ff' }}>
+          {formatTime(currentTime)}
+        </div>
+      </div>
+
+      {/* Private mode icon + label */}
+      <div style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: 10,
+        marginBottom: 36,
+      }}>
+        <div style={{ fontSize: 40 }}>🔒</div>
+        <div style={{ fontSize: 20, fontWeight: 700, color: '#c9b3ff', letterSpacing: -0.5 }}>
+          You&apos;re browsing privately
+        </div>
+        <div style={{ fontSize: 13, color: 'rgba(200,180,255,0.55)', textAlign: 'center', maxWidth: 440, lineHeight: 1.6 }}>
+          Pages you visit won&apos;t appear in history and won&apos;t be synced.
+          Downloads are not saved to the download list.
+          Bookmarks and link tools still work normally.
+        </div>
+      </div>
+
+      {/* Search bar */}
+      <form onSubmit={handleSearch} style={{ width: '100%', maxWidth: 520, marginBottom: 16 }}>
+        <input
+          value={query}
+          onChange={e => setQuery(e.target.value)}
+          placeholder="Search or enter URL"
+          autoFocus
+          style={{
+            width: '100%',
+            height: 48,
+            borderRadius: 24,
+            border: '2px solid rgba(140,100,240,0.4)',
+            background: 'rgba(30,20,50,0.8)',
+            color: '#e0d7ff',
+            padding: '0 20px',
+            fontSize: 15,
+            outline: 'none',
+            transition: 'border-color 0.15s',
+          }}
+          onFocus={e => { e.target.style.borderColor = 'rgba(160,120,255,0.8)'; }}
+          onBlur={e => { e.target.style.borderColor = 'rgba(140,100,240,0.4)'; }}
+        />
+      </form>
+    </div>
+  );
+}
+
+// ── Normal new tab page ───────────────────────────────────────────────────────
+
+export function NewTabPage({ onNavigate, isPrivate = false }: Props) {
   const [query, setQuery] = useState('');
   const [recentHistory, setRecentHistory] = useState<HistoryEntry[]>([]);
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -33,6 +124,10 @@ export function NewTabPage({ onNavigate }: Props) {
     if (!query.trim()) return;
     onNavigate(query.trim());
   }, [query, onNavigate]);
+
+  if (isPrivate) {
+    return <PrivateNewTabPage onNavigate={onNavigate} />;
+  }
 
   const formatTime = (d: Date) =>
     d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -59,7 +154,13 @@ export function NewTabPage({ onNavigate }: Props) {
       padding: 40,
       background: 'var(--color-bg)',
       overflowY: 'auto',
+      position: 'relative',
     }}>
+      {/* Active profile ribbon (top corner) */}
+      <div style={{ position: 'absolute', top: 16, right: 16 }}>
+        <ProfileBadge variant="ribbon" />
+      </div>
+
       {/* Clock */}
       <div style={{ textAlign: 'center', marginBottom: 40 }}>
         <div style={{ fontSize: 56, fontWeight: 200, letterSpacing: -2, color: 'var(--color-text)' }}>

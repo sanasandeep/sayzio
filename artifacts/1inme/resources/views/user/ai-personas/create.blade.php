@@ -6,7 +6,7 @@
     <div>
         <a href="{{ route('user.ai-personas.index') }}" class="text-xs text-white/50 hover:text-white"><i class="fas fa-arrow-left"></i> Back</a>
         <h1 class="text-2xl font-bold text-white mt-2">New AI Agent</h1>
-        <p class="text-sm text-white/50 mt-1">Pick a template to seed the system prompt and tone — you can customize everything after.</p>
+        <p class="text-sm text-white/50 mt-1">Pick a template to seed the system prompt and tone, you can customize everything after.</p>
     </div>
 
     <form method="POST" action="{{ route('user.ai-personas.store') }}" class="space-y-6">

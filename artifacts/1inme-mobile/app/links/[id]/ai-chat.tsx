@@ -286,7 +286,7 @@ export default function AiChatEditorScreen() {
           </Text>
           {personas.length === 0 ? (
             <Text style={[styles.hint, { color: colors.mutedForeground }]}>
-              No personas yet — a default assistant was created for this page.
+              No personas yet; a default assistant was created for this page.
               Manage personas & knowledge on the web app.
             </Text>
           ) : (

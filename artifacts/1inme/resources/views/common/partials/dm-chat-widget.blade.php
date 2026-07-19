@@ -19,7 +19,7 @@
 --}}
 @php
     $dmTitle          = $dmTitle          ?? 'Send a direct message';
-    $dmDesc           = $dmDesc           ?? 'Reach out — replies arrive in your inbox.';
+    $dmDesc           = $dmDesc           ?? 'Reach out, replies arrive in your inbox.';
     $dmPh             = $dmPh             ?? 'Write your message…';
     $dmBtn            = $dmBtn            ?? 'Send message';
     $fontColor        = $fontColor        ?? 'inherit';

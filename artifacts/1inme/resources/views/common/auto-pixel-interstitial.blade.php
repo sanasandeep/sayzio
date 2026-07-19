@@ -16,6 +16,7 @@
 @endphp<!doctype html>
 <html lang="en">
 <head>
+    @include('common.partials.toolbar-theme-color')
 <meta charset="utf-8">
 <meta http-equiv="refresh" content="1.5;url={{ $destination }}">
 <meta name="referrer" content="no-referrer-when-downgrade">
@@ -27,7 +28,7 @@
   <div class="s" aria-hidden="true"></div>
   <div>Loading…</div>
   <div class="m">
-    Tracking by {{ $workspaceName ?: 'this creator' }} —
+    Tracking by {{ $workspaceName ?: 'this creator' }} -
     <noscript>continue: <a href="{{ $destination }}">go to destination</a></noscript>
   </div>
 </div>

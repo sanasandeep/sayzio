@@ -50,7 +50,7 @@
 <div class="max-w-3xl mx-auto">
     @include('user.partials.page-hero', [
         'title' => 'Create a New Form',
-        'subtitle' => 'Pick a starting template — you can fully customize fields and design afterwards.',
+        'subtitle' => 'Pick a starting template, you can fully customize fields and design afterwards.',
         'icon' => 'fa-wpforms',
         'back' => route('user.forms.index'),
     ])
@@ -70,14 +70,14 @@
                     <input type="text" name="title" value="{{ old('title') }}" placeholder="e.g. Contact Us" class="theme-input w-full" required maxlength="160">
                 </div>
                 <div>
-                    <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Description <span class="text-[10px]" style="color: var(--text-faint);">— shown below the title on the public form</span></label>
-                    <textarea name="description" rows="2" maxlength="1000" placeholder="Optional — a short message to set expectations" class="theme-input w-full">{{ old('description') }}</textarea>
+                    <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Description <span class="text-[10px]" style="color: var(--text-faint);"> - shown below the title on the public form</span></label>
+                    <textarea name="description" rows="2" maxlength="1000" placeholder="Optional, a short message to set expectations" class="theme-input w-full">{{ old('description') }}</textarea>
                 </div>
                 @if(auth()->user()->projects()->exists())
                 <div>
-                    <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Project <span class="text-[10px]" style="color: var(--text-faint);">— optional</span></label>
+                    <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Project <span class="text-[10px]" style="color: var(--text-faint);"> - optional</span></label>
                     <select name="project_id" class="theme-input w-full">
-                        <option value="">— No project —</option>
+                        <option value="">No project</option>
                         @foreach(auth()->user()->projects()->orderBy('name')->get() as $p)
                             <option value="{{ $p->id }}">{{ $p->name }}</option>
                         @endforeach
@@ -87,7 +87,7 @@
                 @if(($domains ?? collect())->isNotEmpty())
                 @php $selectedDomainId = old('domain_id', $defaultDomainId ?? ''); @endphp
                 <div>
-                    <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Domain <span class="text-[10px]" style="color: var(--text-faint);">— the address your form link uses</span></label>
+                    <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Domain <span class="text-[10px]" style="color: var(--text-faint);"> - the address your form link uses</span></label>
                     <select name="domain_id" class="theme-input w-full">
                         @php $primaryDomainId = $domains->firstWhere('is_primary', true)?->id; @endphp
                         @unless($primaryDomainId)
@@ -106,7 +106,7 @@
         {{-- Template Picker --}}
         <div class="card-premium p-6">
             <h3 class="text-sm font-bold mb-1" style="color: var(--text-primary);">Choose a template</h3>
-            <p class="text-[11px] mb-4" style="color: var(--text-faint);">Start with a ready-made set of fields — or pick Blank and design from scratch.</p>
+            <p class="text-[11px] mb-4" style="color: var(--text-faint);">Start with a ready-made set of fields, or pick Blank and design from scratch.</p>
 
             @if(!empty($templateUnavailable))
             {{-- A deep link pointed at a template key that has since been retired
@@ -115,7 +115,7 @@
             <div class="flex items-start gap-2.5 mb-4 p-3 rounded-xl text-[11px]"
                  style="background: rgba(245,158,11,0.10); border: 1px solid rgba(245,158,11,0.35); color: var(--text-muted);">
                 <i class="fas fa-triangle-exclamation mt-0.5" style="color: rgb(245 158 11);"></i>
-                <span>The template <strong style="color: var(--text-primary);">“{{ $requestedTemplate }}”</strong> is no longer available. We’ve started you from <strong style="color: var(--text-primary);">Contact</strong> — pick any template below to continue.</span>
+                <span>The template <strong style="color: var(--text-primary);">“{{ $requestedTemplate }}”</strong> is no longer available. We’ve started you from <strong style="color: var(--text-primary);">Contact</strong>, pick any template below to continue.</span>
             </div>
             @endif
 

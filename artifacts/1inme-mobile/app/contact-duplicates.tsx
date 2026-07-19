@@ -193,7 +193,7 @@ export default function ContactDuplicatesScreen() {
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color="#7c3aed" />
+        <ActivityIndicator size="large" color="#3d6bff" />
         <Text style={styles.loadingText}>Scanning for duplicates…</Text>
       </View>
     );
@@ -366,8 +366,8 @@ function formatReason(reason: string): string {
   }
 }
 
-const PRIMARY_COLOR = "#7c3aed";
-const SURFACE = "#1e1b4b";
+const PRIMARY_COLOR = "#3d6bff";
+const SURFACE = "#0d1a3a";
 
 const styles = StyleSheet.create({
   container: {
@@ -456,7 +456,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     overflow: "hidden",
     borderWidth: 1,
-    borderColor: "rgba(124,58,237,0.20)",
+    borderColor: "rgba(61,107,255,0.20)",
   },
   cardHeader: {
     paddingHorizontal: 16,
@@ -466,7 +466,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   reasonBadge: {
-    backgroundColor: "rgba(124,58,237,0.15)",
+    backgroundColor: "rgba(61,107,255,0.15)",
     borderRadius: 20,
     paddingHorizontal: 10,
     paddingVertical: 3,
@@ -474,7 +474,7 @@ const styles = StyleSheet.create({
   reasonText: {
     fontSize: 11,
     fontWeight: "600",
-    color: "#a78bfa",
+    color: "#93c5fd",
     textTransform: "uppercase",
     letterSpacing: 0.5,
   },
@@ -487,7 +487,7 @@ const styles = StyleSheet.create({
     borderTopColor: "rgba(255,255,255,0.06)",
   },
   contactRowPrimary: {
-    backgroundColor: "rgba(124,58,237,0.10)",
+    backgroundColor: "rgba(61,107,255,0.10)",
   },
   contactAvatar: {
     position: "relative",
@@ -507,7 +507,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   avatarPlaceholderPrimary: {
-    backgroundColor: "rgba(124,58,237,0.30)",
+    backgroundColor: "rgba(61,107,255,0.30)",
   },
   avatarInitial: {
     fontSize: 18,

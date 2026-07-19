@@ -7,7 +7,7 @@
         <a href="{{ route('user.links.create') }}" class="text-white/30 hover:text-white transition-colors" title="Back"><i class="fas fa-arrow-left"></i></a>
         <div>
             <h1 class="text-2xl font-bold text-white">Bulk Create Short Links</h1>
-            <p class="text-xs text-white/40 mt-0.5">Paste a list or upload a CSV — apply the same settings to every link.</p>
+            <p class="text-xs text-white/40 mt-0.5">Paste a list or upload a CSV, apply the same settings to every link.</p>
         </div>
     </div>
 
@@ -22,7 +22,7 @@
         @csrf
 
         <div class="glass rounded-2xl p-6 mb-6">
-            <h2 class="text-base font-semibold text-white mb-1">Step 1 — Add your URLs</h2>
+            <h2 class="text-base font-semibold text-white mb-1">Step 1, Add your URLs</h2>
             <p class="text-xs text-white/40 mb-4">Up to {{ $maxRows }} rows per batch.</p>
 
             <div class="flex gap-1 mb-4 bg-white/5 p-1 rounded-xl w-fit">
@@ -57,7 +57,7 @@
         </div>
 
         <div class="glass rounded-2xl p-6 mb-6">
-            <h2 class="text-base font-semibold text-white mb-1">Step 2 — Shared settings</h2>
+            <h2 class="text-base font-semibold text-white mb-1">Step 2, Shared settings</h2>
             <p class="text-xs text-white/40 mb-4">These apply to every link in the batch. Per-row alias and title still win.</p>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
@@ -84,8 +84,8 @@
                 <div>
                     <label class="block text-sm font-medium text-white/60 mb-1.5">Redirect type</label>
                     <select name="redirect_type" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:ring-2 focus:ring-blue-500/40 outline-none">
-                        <option value="301" class="bg-[#0d0818]">301 — Permanent</option>
-                        <option value="302" {{ old('redirect_type') == 302 ? 'selected' : '' }} class="bg-[#0d0818]">302 — Temporary</option>
+                        <option value="301" class="bg-[#0d0818]">301, Permanent</option>
+                        <option value="302" {{ old('redirect_type') == 302 ? 'selected' : '' }} class="bg-[#0d0818]">302, Temporary</option>
                     </select>
                 </div>
                 <div>

@@ -140,8 +140,22 @@ class SettingsTabs
                 'label' => 'Developer / API',
                 'icon'  => 'fa-key',
                 'route' => 'user.api-keys.index',
-                'match' => ['user.api-keys.*'],
+                'match' => ['user.api-keys.*', 'user.settings.webhooks.*'],
                 'gate'  => 'api_access',
+                'subs'  => [
+                    'api-keys' => [
+                        'label' => 'API Keys',
+                        'icon'  => 'fa-key',
+                        'route' => 'user.api-keys.index',
+                        'match' => ['user.api-keys.*'],
+                    ],
+                    'webhooks' => [
+                        'label' => 'Webhooks',
+                        'icon'  => 'fa-bolt',
+                        'route' => 'user.settings.webhooks.index',
+                        'match' => ['user.settings.webhooks.*'],
+                    ],
+                ],
             ],
             'verification' => [
                 'label' => 'Verification & Badges',

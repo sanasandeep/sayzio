@@ -215,7 +215,7 @@ export default function CardScanScreen() {
             Card or brochure photos
           </Text>
           <Text style={[styles.hint, { color: colors.mutedForeground }]}>
-            Pick up to 6 images — front and back of a card, or brochure pages.
+            Pick up to 6 images: front and back of a card, or brochure pages.
           </Text>
 
           <Pressable
@@ -327,7 +327,7 @@ export default function CardScanScreen() {
                 <View style={[styles.dupWarning, { backgroundColor: "rgba(245,158,11,0.10)", borderColor: "rgba(245,158,11,0.3)" }]}>
                   <Feather name="alert-triangle" size={14} color="#f59e0b" />
                   <Text style={[styles.dupText, { color: "#f59e0b" }]}>
-                    Possible duplicate contact detected — review before saving.
+                    Possible duplicate contact detected. Review before saving.
                   </Text>
                 </View>
               )}
@@ -360,7 +360,7 @@ export default function CardScanScreen() {
                 Not quite right?
               </Text>
               <Text style={[styles.hint, { color: colors.mutedForeground }]}>
-                Change the focus above and re-scan the same photos — no need to
+                Change the focus above and re-scan the same photos; no need to
                 re-upload. Your first scan is kept so you can compare.
               </Text>
               <Button

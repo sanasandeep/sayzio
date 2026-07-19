@@ -340,6 +340,9 @@ Route::middleware('brand.primary')->controller(\App\Modules\Common\Controllers\S
     })->name('site.coins');
     // Public gallery linking every live "explainer" biolink demo page.
     Route::get('/demos', [\App\Modules\Common\Controllers\SitePageController::class, 'demos'])->name('site.demos');
+    // SayZio Browser desktop-app download page (installers resolved live
+    // from the latest published GitHub release, cached).
+    Route::get('/download', [\App\Modules\Common\Controllers\ZioBrowserDownloadController::class, 'show'])->name('site.download');
     Route::get('/{slug}/history', [\App\Modules\Common\Controllers\SitePageController::class, 'history'])
         ->where('slug', 'terms|privacy|refunds|cookies|gdpr')
         ->name('site.policy.history');
@@ -692,11 +695,17 @@ Route::get('/sb/booking/{token}', [\App\Modules\Common\Controllers\PublicService
 
 Route::post('/{alias}/track/session', [\App\Modules\Common\Controllers\EngagementController::class, 'startSession'])->name('track.session.start')->where('alias', '[^/]+')->middleware('throttle:60,1');
 Route::post('/{alias}/track/heartbeat', [\App\Modules\Common\Controllers\EngagementController::class, 'heartbeat'])->name('track.heartbeat')->where('alias', '[^/]+')->middleware('throttle:120,1');
-Route::post('/{alias}/track/identify', [\App\Modules\Common\Controllers\EngagementController::class, 'recordVisitorType'])->name('track.visitor.type')->where('alias', '[^/]+')->middleware('throttle:10,1');
+Route::post('/{alias}/track/identify', [\App\Modules\Common\Controllers\EngagementController::class, 'recordVisitorType'])->name('track.visitor.type')->where('alias', '[^/]+')->middleware('throttle:500,1');
 Route::post('/{alias}/subscribe', [RedirectController::class, 'subscribe'])->name('redirect.subscribe')->where('alias', '^(?!user|admin|qr|storage|sanctum|api|webhooks).*$')->middleware('throttle:10,1');
 
 // Public, no-login review submission for a standalone Reviews page. Honeypot
 // + SpamChecker live inside the controller; per-IP throttle here.
+// Tip-Jar block tip checkout — two-segment path so it precedes the
+// single-segment /{alias} catch-all. Multi-segment keeps it clear of
+// Route::post('/{alias}', RedirectController::handle).
+Route::post('/{alias}/tip-jar', [\App\Modules\Common\Controllers\CreatorMonetizationPublicController::class, 'biolinkTip'])
+    ->where('alias', '[^/]+')->middleware('throttle:30,1')->name('biolink.tip-jar');
+
 Route::post('/{alias}/reviews', [\App\Modules\Common\Controllers\ReviewSubmissionController::class, 'submit'])
     ->name('redirect.reviews.submit')
     ->where('alias', '^(?!user|admin|qr|storage|sanctum|api|webhooks).*$')

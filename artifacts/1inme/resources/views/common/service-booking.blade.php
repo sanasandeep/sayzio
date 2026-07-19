@@ -24,6 +24,7 @@
 <!doctype html>
 <html lang="en">
 <head>
+    @include('common.partials.toolbar-theme-color')
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
@@ -175,7 +176,7 @@
 
         <button class="primary" id="bookBtn" type="button" onclick="SB.book()" disabled>Request booking</button>
         <button class="ghost" type="button" onclick="SB.closeCart()">Keep browsing</button>
-        <p class="note">This is an estimated price, not a final bill. No online payment is taken — you'll settle with the provider directly. Your slot is a request and isn't confirmed until the provider accepts it.</p>
+        <p class="note">This is an estimated price, not a final bill. No online payment is taken, you'll settle with the provider directly. Your slot is a request and isn't confirmed until the provider accepts it.</p>
     </div>
 </div>
 

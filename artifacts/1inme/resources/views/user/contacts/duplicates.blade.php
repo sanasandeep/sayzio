@@ -28,7 +28,7 @@
     <div class="card-premium p-10 text-center">
         <div class="text-5xl mb-4" style="color:var(--text-faint);">✓</div>
         <p class="text-base font-semibold mb-1" style="color:var(--text-primary);">No duplicates found</p>
-        <p class="text-sm" style="color:var(--text-muted);">Your address book looks clean — every contact is unique.</p>
+        <p class="text-sm" style="color:var(--text-muted);">Your address book looks clean, every contact is unique.</p>
         <a href="{{ route('user.contacts.index') }}" class="inline-flex items-center gap-2 mt-5 px-4 py-2 rounded-lg text-sm font-medium" style="background:rgba(61,107,255,.15);color:#90acff;border:1px solid rgba(61,107,255,.30);">
             <i class="fas fa-arrow-left text-xs"></i> Back to Contacts
         </a>
@@ -39,7 +39,7 @@
     <div class="mb-5 flex items-center justify-between gap-3 flex-wrap card-premium p-4">
         <p class="text-xs" style="color:var(--text-muted);">
             <i class="fas fa-bolt mr-1.5 text-amber-400"></i>
-            In a hurry? Merge all {{ $groupCount }} group{{ $groupCount === 1 ? '' : 's' }} at once — the first contact in each group becomes the primary.
+            In a hurry? Merge all {{ $groupCount }} group{{ $groupCount === 1 ? '' : 's' }} at once, the first contact in each group becomes the primary.
         </p>
         <form method="POST" action="{{ route('user.contacts.duplicates.merge-all') }}">
             @csrf
@@ -184,7 +184,7 @@
                 </button>
                 <p class="text-xs" style="color:var(--text-faint);">
                     <i class="fas fa-info-circle mr-1"></i>
-                    Phones, emails, tags, and notes are combined — nothing is lost.
+                    Phones, emails, tags, and notes are combined, nothing is lost.
                 </p>
             </div>
         </form>

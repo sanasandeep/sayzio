@@ -13,7 +13,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { useAuthStore } from '../store/auth-store';
 import { ApiClient, ApiClientError } from '../../shared/api-client';
-import type { LinkAnalytics, AssistantPage, ApiContact, ApiUserProfile } from '../../shared/api-client';
+import type { LinkAnalytics, AssistantPage, ApiContact, ApiUserProfile, ApiLink, UpdateLinkPayload } from '../../shared/api-client';
 import { trimPageContext } from '../../shared/context-extractor';
 import type { PageContext, TrimmedContext } from '../../shared/context-extractor';
 import { detectSayzioLink } from '../../shared/link-tools';
@@ -22,6 +22,7 @@ import type { AutofillCard, AutofillResult } from '../../shared/form-autofill';
 import { BrowserToolsView } from './BrowserToolsView';
 import { detectBrowserIntent, describeIntent } from '../../shared/browser-intents';
 import type { BrowserIntent } from '../../shared/browser-intents';
+import { ProfileBadge } from './ProfileBadge';
 
 const BASE_URL = 'https://1in.me';
 
@@ -529,6 +530,7 @@ export function ZioPanel({ pageContext, onClose, presentation = 'embedded', pane
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0, flex: 1 }}>
           <span style={{ fontSize: 18, flexShrink: 0 }}>⚡</span>
           <span style={{ fontWeight: 700, fontSize: 15, flexShrink: 0 }}>Zio</span>
+          <ProfileBadge variant="pill" style={{ flexShrink: 0 }} />
           {pageContext && (
             <span style={{ fontSize: 11, color: 'var(--color-text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               — {pageContext.title}
@@ -830,7 +832,9 @@ function StatsView({ alias, baseUrl, token }: { alias: string; baseUrl: string; 
   const [analytics, setAnalytics] = useState<LinkAnalytics | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [linkId, setLinkId] = useState<number | null>(null);
+  const [link, setLink] = useState<ApiLink | null>(null);
+  const [subTab, setSubTab] = useState<'stats' | 'edit'>('stats');
+  const [currentAlias, setCurrentAlias] = useState(alias);
 
   useEffect(() => {
     if (!token) return;
@@ -838,6 +842,9 @@ function StatsView({ alias, baseUrl, token }: { alias: string; baseUrl: string; 
     setLoading(true);
     setError(null);
     setAnalytics(null);
+    setLink(null);
+    setSubTab('stats');
+    setCurrentAlias(alias);
 
     void (async () => {
       try {
@@ -848,7 +855,7 @@ function StatsView({ alias, baseUrl, token }: { alias: string; baseUrl: string; 
           setLoading(false);
           return;
         }
-        setLinkId(match.id);
+        setLink(match);
         const stats = await client.getLinkAnalytics(match.id);
         setAnalytics(stats);
       } catch (err) {
@@ -859,6 +866,8 @@ function StatsView({ alias, baseUrl, token }: { alias: string; baseUrl: string; 
     })();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [alias, token]);
+
+  const linkId = link?.id ?? null;
 
   const handleOpenDashboard = useCallback(() => {
     if (!linkId) return;
@@ -890,11 +899,11 @@ function StatsView({ alias, baseUrl, token }: { alias: string; baseUrl: string; 
     );
   }
 
-  if (!analytics) return null;
+  if (!analytics || !link) return null;
 
-  return (
-    <div style={{ padding: 16, overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: 16 }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+  const header = (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
         <span style={{
           fontSize: 12,
           fontWeight: 600,
@@ -902,14 +911,55 @@ function StatsView({ alias, baseUrl, token }: { alias: string; baseUrl: string; 
           background: 'color-mix(in srgb, var(--color-primary) 12%, transparent)',
           padding: '3px 10px',
           borderRadius: 20,
-        }}>/{analytics.alias}</span>
-        {linkId && (
-          <button
-            onClick={handleOpenDashboard}
-            style={{ fontSize: 11, color: 'var(--color-text-muted)', textDecoration: 'underline', cursor: 'pointer' }}
-          >Full dashboard ↗</button>
-        )}
+        }}>/{currentAlias}</span>
+        {/* Stats / Edit sub-tab switch (only shown for owned links) */}
+        <div style={{ display: 'flex', gap: 2, background: 'var(--color-bg-elevated)', borderRadius: 8, padding: 2 }}>
+          {(['stats', 'edit'] as const).map(st => (
+            <button
+              key={st}
+              onClick={() => setSubTab(st)}
+              style={{
+                fontSize: 11,
+                fontWeight: subTab === st ? 600 : 400,
+                padding: '3px 10px',
+                borderRadius: 6,
+                background: subTab === st ? 'var(--color-bg-surface)' : 'transparent',
+                color: subTab === st ? 'var(--color-text)' : 'var(--color-text-muted)',
+                boxShadow: subTab === st ? '0 1px 2px rgba(0,0,0,0.12)' : 'none',
+              }}
+            >{st === 'stats' ? 'Stats' : 'Edit'}</button>
+          ))}
+        </div>
       </div>
+      {linkId && subTab === 'stats' && (
+        <button
+          onClick={handleOpenDashboard}
+          style={{ fontSize: 11, color: 'var(--color-text-muted)', textDecoration: 'underline', cursor: 'pointer' }}
+        >Full dashboard ↗</button>
+      )}
+    </div>
+  );
+
+  if (subTab === 'edit') {
+    return (
+      <div style={{ padding: 16, overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: 16 }}>
+        {header}
+        <LinkEditForm
+          link={link}
+          baseUrl={baseUrl}
+          token={token}
+          onSaved={updated => {
+            setLink(updated);
+            setCurrentAlias(updated.alias);
+          }}
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ padding: 16, overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: 16 }}>
+      {header}
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
         <StatCard label="Total clicks" value={analytics.total_clicks.toLocaleString()} />
@@ -943,6 +993,176 @@ function StatsView({ alias, baseUrl, token }: { alias: string; baseUrl: string; 
 
       <p style={{ fontSize: 10, color: 'var(--color-text-muted)', marginTop: 'auto' }}>
         30-day window · {new Date(analytics.window.from).toLocaleDateString()} – {new Date(analytics.window.to).toLocaleDateString()}
+      </p>
+    </div>
+  );
+}
+
+// ── Inline link edit form (Edit sub-tab of the Stats view) ───────────────────
+
+const VISIBILITY_OPTIONS: Array<{ value: 'public' | 'registered' | 'followers' | 'subscribers'; label: string }> = [
+  { value: 'public', label: 'Public' },
+  { value: 'registered', label: 'Signed-in users' },
+  { value: 'followers', label: 'Followers' },
+  { value: 'subscribers', label: 'Subscribers' },
+];
+
+/** Pull the first field-level validation message out of a 422 error payload. */
+function firstValidationMessage(details: unknown): string | null {
+  if (!details || typeof details !== 'object') return null;
+  for (const value of Object.values(details as Record<string, unknown>)) {
+    if (Array.isArray(value) && typeof value[0] === 'string') return value[0];
+    if (typeof value === 'string') return value;
+  }
+  return null;
+}
+
+function LinkEditForm({
+  link,
+  baseUrl,
+  token,
+  onSaved,
+}: {
+  link: ApiLink;
+  baseUrl: string;
+  token: string;
+  onSaved: (updated: ApiLink) => void;
+}) {
+  const [title, setTitle] = useState(link.title ?? '');
+  const [aliasValue, setAliasValue] = useState(link.alias);
+  const [visibility, setVisibility] = useState(link.visibility);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [savedAt, setSavedAt] = useState<number | null>(null);
+
+  const dirty =
+    title !== (link.title ?? '') ||
+    aliasValue !== link.alias ||
+    visibility !== link.visibility;
+
+  const handleSave = useCallback(async () => {
+    setSaving(true);
+    setSaveError(null);
+    setSavedAt(null);
+    try {
+      const payload: UpdateLinkPayload = {};
+      if (title !== (link.title ?? '')) payload.title = title.trim() === '' ? null : title.trim();
+      if (aliasValue !== link.alias) payload.alias = aliasValue.trim();
+      if (visibility !== link.visibility) payload.visibility = visibility as UpdateLinkPayload['visibility'];
+      if (Object.keys(payload).length === 0) { setSaving(false); return; }
+
+      const client = new ApiClient({ baseUrl, token });
+      const res = await client.updateLink(link.id, payload);
+      onSaved(res.link);
+      setSavedAt(Date.now());
+    } catch (err) {
+      if (err instanceof ApiClientError) {
+        setSaveError(firstValidationMessage(err.details) ?? err.message);
+      } else {
+        setSaveError(err instanceof Error ? err.message : 'Failed to save changes');
+      }
+    } finally {
+      setSaving(false);
+    }
+  }, [title, aliasValue, visibility, link, baseUrl, token, onSaved]);
+
+  const handleOpenFullEditor = useCallback(() => {
+    // /user/links/{id}/edit type-routes to the right editor server-side
+    // (biolink → appearance settings, vcf → vCard builder, etc).
+    void window.zio.shell.openExternal(`${baseUrl}/user/links/${link.id}/edit`);
+  }, [baseUrl, link.id]);
+
+  const fieldLabel: React.CSSProperties = {
+    fontSize: 11,
+    fontWeight: 600,
+    color: 'var(--color-text-muted)',
+    textTransform: 'uppercase',
+    letterSpacing: '0.06em',
+    marginBottom: 4,
+    display: 'block',
+  };
+  const fieldInput: React.CSSProperties = {
+    width: '100%',
+    borderRadius: 8,
+    border: '1px solid var(--color-border)',
+    background: 'var(--color-bg)',
+    color: 'var(--color-text)',
+    padding: '8px 10px',
+    fontSize: 13,
+    outline: 'none',
+    fontFamily: 'inherit',
+  };
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+      <div>
+        <label style={fieldLabel}>Title</label>
+        <input
+          value={title}
+          onChange={e => setTitle(e.target.value)}
+          maxLength={200}
+          placeholder="Untitled link"
+          style={fieldInput}
+        />
+      </div>
+
+      <div>
+        <label style={fieldLabel}>Alias</label>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span style={{ fontSize: 13, color: 'var(--color-text-muted)', flexShrink: 0 }}>/</span>
+          <input
+            value={aliasValue}
+            onChange={e => setAliasValue(e.target.value)}
+            maxLength={100}
+            spellCheck={false}
+            style={{ ...fieldInput, fontFamily: 'ui-monospace, monospace' }}
+          />
+        </div>
+      </div>
+
+      <div>
+        <label style={fieldLabel}>Visibility</label>
+        <select
+          value={visibility}
+          onChange={e => setVisibility(e.target.value)}
+          style={{ ...fieldInput, appearance: 'auto', cursor: 'pointer' }}
+        >
+          {VISIBILITY_OPTIONS.map(opt => (
+            <option key={opt.value} value={opt.value}>{opt.label}</option>
+          ))}
+        </select>
+      </div>
+
+      {saveError && (
+        <p style={{ fontSize: 12, color: 'var(--color-danger, #ef4444)' }}>{saveError}</p>
+      )}
+      {savedAt !== null && !dirty && !saveError && (
+        <p style={{ fontSize: 12, color: 'var(--color-success, #22c55e)' }}>Changes saved ✓</p>
+      )}
+
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+        <button
+          onClick={() => void handleSave()}
+          disabled={!dirty || saving}
+          style={{
+            padding: '8px 16px',
+            borderRadius: 10,
+            background: 'var(--color-primary)',
+            color: '#fff',
+            fontSize: 13,
+            fontWeight: 600,
+            opacity: !dirty || saving ? 0.5 : 1,
+            cursor: !dirty || saving ? 'default' : 'pointer',
+          }}
+        >{saving ? 'Saving…' : 'Save changes'}</button>
+        <button
+          onClick={handleOpenFullEditor}
+          style={{ fontSize: 12, color: 'var(--color-primary)', textDecoration: 'underline', cursor: 'pointer' }}
+        >Full editor →</button>
+      </div>
+
+      <p style={{ fontSize: 10, color: 'var(--color-text-muted)' }}>
+        Blocks, appearance, and advanced settings live in the full editor.
       </p>
     </div>
   );
@@ -1349,6 +1569,11 @@ function CollectionsView({ onSaveCurrent, currentUrl }: { onSaveCurrent: () => P
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
+      {/* Active profile ribbon — collections are scoped to this profile */}
+      <div style={{ padding: '10px 16px 0' }}>
+        <ProfileBadge variant="ribbon" />
+      </div>
+
       {currentUrl && (
         <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--color-border)', background: 'var(--color-bg-elevated)' }}>
           <button

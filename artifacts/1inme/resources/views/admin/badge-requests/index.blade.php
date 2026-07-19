@@ -53,7 +53,7 @@
                                 @if(filled($r->reason))
                                     <span title="{{ $r->reason }}">{{ \Illuminate\Support\Str::limit($r->reason, 80) }}</span>
                                 @else
-                                    <span style="color: var(--text-faint);">—</span>
+                                    <span style="color: var(--text-faint);">-</span>
                                 @endif
                             </td>
                             <td class="px-4 py-3">

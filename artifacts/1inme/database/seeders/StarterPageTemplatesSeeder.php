@@ -132,20 +132,20 @@ class StarterPageTemplatesSeeder extends Seeder
                 'description' => 'A friendly intro page with a glass profile, a short about, a quick FAQ, a few featured links, and your socials.',
                 'recommended_personas' => ['creator', 'business', 'other'],
                 'snapshot' => $this->snapshot([
-                    $this->profile('Your Name', 'Welcome — here\'s where to find me online.', $img('personal-avatar', 200, 200), $kits['personal'], $img('personal-cover', 1200, 480)),
+                    $this->profile('Your Name', 'Welcome! Here\'s where to find me online.', $img('personal-avatar', 200, 200), $kits['personal'], $img('personal-cover', 1200, 480)),
                     $this->badge('👋 Thanks for stopping by', '#0ea5e9', '#ffffff'),
                     $this->heading('About me', 'h3'),
                     $this->paragraph("I'm a maker and lifelong learner who loves turning ideas into things people can actually use. This page is the easiest way to follow along and get in touch."),
-                    $this->paragraph("Working on something together? The links below are the fastest way in — or skim the FAQ first."),
+                    $this->paragraph("Working on something together? The links below are the fastest way in, or skim the FAQ first."),
                     $this->faqV2([
-                        ['question' => 'What do you do?', 'answer' => 'I help people bring their projects to life — from the first rough idea all the way to something polished and shipped.', 'icon' => 'fa-briefcase'],
-                        ['question' => 'How can I reach you?', 'answer' => 'Use any of the links below — I read every message that comes in and reply as quickly as I can.', 'icon' => 'fa-envelope'],
+                        ['question' => 'What do you do?', 'answer' => 'I help people bring their projects to life, from the first rough idea all the way to something polished and shipped.', 'icon' => 'fa-briefcase'],
+                        ['question' => 'How can I reach you?', 'answer' => 'Use any of the links below; I read every message that comes in and reply as quickly as I can.', 'icon' => 'fa-envelope'],
                         ['question' => 'Where are you based?', 'answer' => 'I work remotely across time zones and answer messages within a business day, wherever you are.', 'icon' => 'fa-location-dot'],
                     ]),
                     $this->link('My website', 'https://example.com', 'fa-globe', $kits['personal']),
                     $this->link('Latest project', 'https://example.com', 'fa-bookmark', $kits['personal']),
                     $this->link('Get in touch', 'mailto:hi@example.com', 'fa-envelope', $kits['personal']),
-                    $this->review('Taylor M.', 5, "Friendly, fast, and genuinely good at what they do — exactly who you want to work with.", $img('personal-rev', 80, 80)),
+                    $this->review('Taylor M.', 5, "Friendly, fast, and genuinely good at what they do; exactly who you want to work with.", $img('personal-rev', 80, 80)),
                     $this->socials(),
                 ], [
                     'background_type'    => 'gradient',
@@ -164,7 +164,7 @@ class StarterPageTemplatesSeeder extends Seeder
                 'slug' => 'starter-link-in-bio',
                 'name' => 'Link in Bio',
                 'category' => 'general',
-                'description' => 'Classic link-in-bio layout — a cover-hero profile, a stack of big featured buttons, real testimonials, and socials.',
+                'description' => 'Classic link-in-bio layout: a cover-hero profile, a stack of big featured buttons, real testimonials, and socials.',
                 'recommended_personas' => ['creator', 'influencer', 'artist'],
                 'snapshot' => $this->snapshot([
                     $this->profile('Your Name', 'All my links in one place.', $img('linkbio-avatar', 200, 200), $kits['linkbio'], $img('linkbio-cover', 1200, 480)),
@@ -177,7 +177,7 @@ class StarterPageTemplatesSeeder extends Seeder
                         ['name' => 'Riya A.', 'avatar' => $img('linkbio-t1', 80, 80), 'rating' => 5, 'text' => "Followed for the videos, stayed for everything else. So good."],
                         ['name' => 'Kofi B.', 'avatar' => $img('linkbio-t2', 80, 80), 'rating' => 5, 'text' => "The newsletter alone is worth the follow. Highly recommend."],
                     ]),
-                    $this->buyMeCoffee('yourname', 'Enjoying the content?', 'A small tip keeps the new videos coming — thank you for the support!', [3, 5, 10]),
+                    $this->buyMeCoffee('yourname', 'Enjoying the content?', 'A small tip keeps the new videos coming. Thank you for the support!', [3, 5, 10]),
                     $this->socials(),
                 ], [
                     'background_type'    => 'gradient',
@@ -199,7 +199,7 @@ class StarterPageTemplatesSeeder extends Seeder
                 'description' => 'A badge profile header, today\'s menu as a list, a promo coupon, a diner review, and a clear "book a table" call-to-action.',
                 'recommended_personas' => ['business'],
                 'snapshot' => $this->snapshot([
-                    $this->profile('Casa Verde', 'Open today · 12:00 — 22:00', $img('restaurant-avatar', 200, 200), $kits['restaurant'], $img('restaurant-cover', 1200, 480), [
+                    $this->profile('Casa Verde', 'Open today · 12:00 to 22:00', $img('restaurant-avatar', 200, 200), $kits['restaurant'], $img('restaurant-cover', 1200, 480), [
                         'badges' => [['label' => 'Open now'], ['label' => 'Reservations'], ['label' => 'Vegan options']],
                     ]),
                     $this->image($img('restaurant-hero', 1200, 600)),
@@ -242,7 +242,7 @@ class StarterPageTemplatesSeeder extends Seeder
                     $this->paragraph('Saturday, August 22 · Doors at 7pm'),
                     $this->countdown('Starts in', '+30 days'),
                     $this->image($img('event-hero', 1200, 600)),
-                    $this->oneTimeOffer('Early-bird ticket', 'Grab your spot before prices go up — early-bird pricing ends as soon as the first 100 tickets sell.', '$25', '$40', 'https://example.com'),
+                    $this->oneTimeOffer('Early-bird ticket', 'Grab your spot before prices go up; early-bird pricing ends as soon as the first 100 tickets sell.', '$25', '$40', 'https://example.com'),
                     $this->progress([
                         ['label' => 'Tickets claimed', 'value' => 78, 'color' => '#a855f7'],
                     ]),
@@ -274,10 +274,10 @@ class StarterPageTemplatesSeeder extends Seeder
                 'slug' => 'starter-portfolio',
                 'name' => 'Portfolio',
                 'category' => 'portfolio',
-                'description' => 'Editorial portfolio layout — a stats profile, a six-shot image grid, client testimonials, a print to buy, and an inquiry CTA.',
+                'description' => 'Editorial portfolio layout: a stats profile, a six-shot image grid, client testimonials, a print to buy, and an inquiry CTA.',
                 'recommended_personas' => ['artist', 'photographer', 'developer', 'writer'],
                 'snapshot' => $this->snapshot([
-                    $this->profile('Your Name', 'Selected work, 2024 — present.', $img('portfolio-avatar', 200, 200), $kits['portfolio'], $img('portfolio-cover', 1200, 480)),
+                    $this->profile('Your Name', 'Selected work, 2024 to present.', $img('portfolio-avatar', 200, 200), $kits['portfolio'], $img('portfolio-cover', 1200, 480)),
                     $this->badge('🏆 Available for commissions', '#f5f5f5', '#0a0a0a'),
                     $this->heading('Selected work', 'h3'),
                     $this->imageGrid([
@@ -318,7 +318,7 @@ class StarterPageTemplatesSeeder extends Seeder
                 'slug' => 'starter-photo-portfolio',
                 'name' => 'Photo Portfolio',
                 'category' => 'gallery',
-                'description' => 'A gallery-forward page — a stats profile, a six-shot grid, a full-width slider, a live reviews wall, and a booking CTA.',
+                'description' => 'A gallery-forward page: a stats profile, a six-shot grid, a full-width slider, a live reviews wall, and a booking CTA.',
                 'recommended_personas' => ['photographer', 'artist', 'creator'],
                 'snapshot' => $this->snapshot([
                     $this->profile('Your Studio', 'Photography & visual storytelling.', $img('portfolio-avatar', 200, 200), $kits['portfolio'], $img('portfolio-cover', 1200, 480)),
@@ -363,14 +363,14 @@ class StarterPageTemplatesSeeder extends Seeder
                 'slug' => 'starter-music-artist',
                 'name' => 'Music Artist',
                 'category' => 'general',
-                'description' => 'A release-ready page — streaming embeds, an audio playlist, a tour-date ticker, fan reviews, and a tip jar.',
+                'description' => 'A release-ready page: streaming embeds, an audio playlist, a tour-date ticker, fan reviews, and a tip jar.',
                 'recommended_personas' => ['musician', 'artist', 'creator'],
                 'snapshot' => $this->snapshot([
-                    $this->profile('The Artist', 'New single out now — stream it everywhere.', $img('personal-avatar', 200, 200), $kits['linkbio'], $img('linkbio-cover', 1200, 480)),
+                    $this->profile('The Artist', 'New single out now. Stream it everywhere.', $img('personal-avatar', 200, 200), $kits['linkbio'], $img('linkbio-cover', 1200, 480)),
                     $this->ticker([
-                        '🎫 Aug 22 — Brooklyn, NY',
-                        '🎫 Sep 04 — Chicago, IL',
-                        '🎫 Sep 19 — Austin, TX',
+                        '🎫 Aug 22: Brooklyn, NY',
+                        '🎫 Sep 04: Chicago, IL',
+                        '🎫 Sep 19: Austin, TX',
                     ]),
                     $this->heading('Latest single', 'h3'),
                     $this->spotify(),
@@ -384,9 +384,9 @@ class StarterPageTemplatesSeeder extends Seeder
                     ]),
                     $this->testimonialCarousel([
                         ['quote' => 'On repeat all summer. Can\'t wait for the album.', 'name' => 'Riya A.', 'title' => 'Fan'],
-                        ['quote' => 'Saw them live — unreal energy.', 'name' => 'Kofi B.', 'title' => 'Fan'],
+                        ['quote' => 'Saw them live. Unreal energy.', 'name' => 'Kofi B.', 'title' => 'Fan'],
                     ]),
-                    $this->buyMeCoffee('theartist', 'Support the music', 'Tips help fund the next record — thank you!', [5, 10, 25]),
+                    $this->buyMeCoffee('theartist', 'Support the music', 'Tips help fund the next record. Thank you!', [5, 10, 25]),
                     $this->socials(),
                 ], [
                     'background_type'    => 'gradient',
@@ -405,7 +405,7 @@ class StarterPageTemplatesSeeder extends Seeder
                 'slug' => 'starter-creator-embeds',
                 'name' => 'Content Creator',
                 'category' => 'general',
-                'description' => 'Showcase your best posts — Instagram, TikTok and X embeds in one place, plus testimonials and a newsletter sign-up.',
+                'description' => 'Showcase your best posts: Instagram, TikTok and X embeds in one place, plus testimonials and a newsletter sign-up.',
                 'recommended_personas' => ['creator', 'influencer', 'artist'],
                 'snapshot' => $this->snapshot([
                     $this->profile('Your Name', 'Creator · daily posts on the things I love.', $img('linkbio-avatar', 200, 200), $kits['linkbio'], $img('linkbio-cover', 1200, 480)),
@@ -439,7 +439,7 @@ class StarterPageTemplatesSeeder extends Seeder
                 'slug' => 'starter-knowledge-hub',
                 'name' => 'Knowledge Hub',
                 'category' => 'general',
-                'description' => 'An information-dense page — tabbed sections, an accordion FAQ, a downloadable guide, and a ticker of the latest updates.',
+                'description' => 'An information-dense page: tabbed sections, an accordion FAQ, a downloadable guide, and a ticker of the latest updates.',
                 'recommended_personas' => ['business', 'coach', 'other'],
                 'snapshot' => $this->snapshot([
                     $this->profile('Help Center', 'Everything you need, in one place.', $img('personal-avatar', 200, 200), $kits['personal'], $img('personal-cover', 1200, 480)),
@@ -456,9 +456,9 @@ class StarterPageTemplatesSeeder extends Seeder
                     ]),
                     $this->heading('Frequently asked', 'h3'),
                     $this->accordion([
-                        ['title' => 'How do I reset my password?', 'body' => 'Use the "Forgot password" link on the login screen — you\'ll get an email within a minute.'],
+                        ['title' => 'How do I reset my password?', 'body' => 'Use the "Forgot password" link on the login screen; you\'ll get an email within a minute.'],
                         ['title' => 'Can I use a custom domain?', 'body' => 'Yes, on any paid plan. Add it from Settings → Domains and follow the DNS steps.'],
-                        ['title' => 'How do I contact support?', 'body' => 'Reply to any email from us, or use the contact link below — we answer within a business day.'],
+                        ['title' => 'How do I contact support?', 'body' => 'Reply to any email from us, or use the contact link below; we answer within a business day.'],
                     ]),
                     $this->pdfDocument('Complete getting-started guide (PDF)'),
                     $this->ctaButton('Contact support', 'mailto:help@example.com', '#0ea5e9', '#ffffff'),
@@ -480,7 +480,7 @@ class StarterPageTemplatesSeeder extends Seeder
                 'slug' => 'starter-press-kit',
                 'name' => 'Press & Media Kit',
                 'category' => 'general',
-                'description' => 'A press-ready page — a stats band, brand assets to download, a brand image grid, press quotes, and a contact CTA.',
+                'description' => 'A press-ready page: a stats band, brand assets to download, a brand image grid, press quotes, and a contact CTA.',
                 'recommended_personas' => ['business', 'creator', 'other'],
                 'snapshot' => $this->snapshot([
                     $this->profile('Your Brand', 'Press & media resources.', $img('personal-avatar', 200, 200), $kits['portfolio'], $img('personal-cover', 1200, 480)),

@@ -865,7 +865,7 @@ function PublishSheet({
                 />
                 {resume.is_share_expired ? (
                   <Text style={{ color: colors.destructive, fontSize: 11 }}>
-                    This share has expired — visitors are seeing an expiry message.
+                    This share has expired; visitors are seeing an expiry message.
                   </Text>
                 ) : expiresDate ? (
                   <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>
@@ -2129,7 +2129,7 @@ function PreviewCard({ resume }: { resume: Resume }) {
 
       {renderGroup("Certifications", "certifications", (it) => (
         <Text style={{ fontSize: 12, color: "#222" }}>
-          {String(it.data.name || "")}{it.data.issuer ? ` — ${String(it.data.issuer)}` : ""}
+          {String(it.data.name || "")}{it.data.issuer ? ` · ${String(it.data.issuer)}` : ""}
         </Text>
       ))}
 
@@ -2153,7 +2153,7 @@ function PreviewCard({ resume }: { resume: Resume }) {
           <Text style={[styles.pvSectionTitle, { color: accent, borderColor: accent }]}>LINKS</Text>
           {(items.links ?? []).map((l) => (
             <Text key={l.id} style={{ fontSize: 11, color: "#1d4ed8", marginTop: 2 }}>
-              {String(l.data.label)} — {String(l.data.url)}
+              {String(l.data.label)} · {String(l.data.url)}
             </Text>
           ))}
         </View>

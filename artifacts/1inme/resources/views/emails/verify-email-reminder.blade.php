@@ -9,7 +9,7 @@
         <h2 style="font-size: 18px; color: #334155; margin-bottom: 20px;">Your email isn't verified yet</h2>
         <p style="color: #64748b; font-size: 14px; line-height: 1.6;">
             Hi {{ $user->name }},<br><br>
-            We noticed your Sayzio email address still hasn't been verified. Verifying it keeps your account secure and makes sure you never miss important updates. It only takes a moment — just click the button below.
+            We noticed your Sayzio email address still hasn't been verified. Verifying it keeps your account secure and makes sure you never miss important updates. It only takes a moment: just click the button below.
         </p>
         <div style="text-align: center; margin: 30px 0;">
             <a href="{{ $verificationUrl }}" style="background-color: #2563eb; color: white; padding: 12px 32px; border-radius: 8px; text-decoration: none; font-size: 14px; font-weight: 600;">Verify Email</a>

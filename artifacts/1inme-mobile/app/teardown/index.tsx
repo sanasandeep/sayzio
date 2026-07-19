@@ -111,7 +111,7 @@ export default function TeardownIndexScreen() {
           <View style={{ gap: 12, marginBottom: 8 }}>
             <Text style={[styles.intro, { color: colors.mutedForeground }]}>
               Paste a competitor's public Link in Bio (or any page) URL. AI
-              will score it and suggest what your page should do better —
+              will score it and suggest what your page should do better;
               then you can build an improved version in one tap.
             </Text>
             <TextField

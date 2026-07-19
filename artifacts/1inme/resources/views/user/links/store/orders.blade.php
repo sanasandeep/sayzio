@@ -61,7 +61,7 @@
             </div>
             <div class="ro-note" x-show="o.customer_note" x-text="'“' + o.customer_note + '”'"></div>
             <div class="ro-total"><span>Estimated total</span><span x-text="money(o.total != null ? o.total : o.subtotal, o.currency)"></span></div>
-            <p class="ro-estimate-note">Estimated total — no payment is collected here.</p>
+            <p class="ro-estimate-note">Estimated total, no payment is collected here.</p>
             <div class="ro-actions">
                 <template x-for="s in nextStatuses(o.status)" :key="s">
                     <button class="ro-btn" @click="setStatus(o, s)" x-text="actionLabel(s)"></button>

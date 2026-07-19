@@ -72,7 +72,7 @@
                     <div>
                         <label class="text-[11px] uppercase tracking-wider text-white/50">Tone preset</label>
                         <select name="tone_preset" class="mt-1 w-full bg-white/[0.04] border border-white/10 rounded-xl px-3 py-2 text-white text-sm">
-                            <option value="">— None —</option>
+                            <option value="">None</option>
                             @foreach($tones as $t)
                                 <option value="{{ $t }}" @selected(old('tone_preset', $persona->tone_preset) === $t)>{{ ucfirst($t) }}</option>
                             @endforeach

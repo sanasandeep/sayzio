@@ -6,7 +6,7 @@
         <div>
             <h1 class="text-2xl font-bold" style="color: var(--text-primary);">Blocked bots</h1>
             <p class="text-sm mt-1" style="color: var(--text-muted);">
-                Hits from these bot families are dropped before they reach your analytics —
+                Hits from these bot families are dropped before they reach your analytics,
                 they don't count toward totals, breakdowns, exports, or the "bot hits filtered" badge.
             </p>
         </div>
@@ -91,7 +91,7 @@
             </button>
         </form>
         <p class="px-4 pb-4 text-[11px]" style="color: var(--text-faint);">
-            Blocking applies to every link you own going forward. Past hits stay in your history — only future ones are dropped.
+            Blocking applies to every link you own going forward. Past hits stay in your history, only future ones are dropped.
         </p>
     </div>
 </div>

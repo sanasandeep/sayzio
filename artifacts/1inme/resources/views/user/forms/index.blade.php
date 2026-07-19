@@ -11,7 +11,7 @@
 <div class="max-w-7xl mx-auto">
     @include('user.partials.page-hero', [
         'title' => 'Forms',
-        'subtitle' => 'Build branded forms — embed anywhere, collect leads, automate replies.',
+        'subtitle' => 'Build branded forms, embed anywhere, collect leads, automate replies.',
         'icon' => 'fa-wpforms',
         'chips' => [
             ['icon' => 'fa-database text-pink-400', 'text' => $forms->total() . ' total'],
@@ -57,7 +57,7 @@
             </div>
             <h3 class="text-xl font-bold mb-2" style="color: var(--text-primary);">No forms yet</h3>
             <p class="text-sm mb-6" style="color: var(--text-muted); max-width: 32rem; margin: 0 auto;">
-                Build a form once and use it everywhere — share a public link, embed it in any website, or drop it into a Link in Bio page as a block.
+                Build a form once and use it everywhere, share a public link, embed it in any website, or drop it into a Link in Bio page as a block.
             </p>
             @if($__can('inbox.create'))
                 <a href="{{ route('user.forms.create') }}" class="btn-primary inline-flex items-center gap-2 px-6 py-3">
@@ -65,7 +65,7 @@
                 </a>
             @else
                 <p class="text-xs inline-flex items-center gap-2 px-3 py-2 rounded-lg" style="background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.25); color: #b45309;">
-                    <i class="fas fa-lock"></i> Your role doesn't allow creating forms — ask a workspace admin.
+                    <i class="fas fa-lock"></i> Your role doesn't allow creating forms, ask a workspace admin.
                 </p>
             @endif
         </div>
@@ -116,7 +116,7 @@
                                 <i class="fas fa-pen text-[9px] mr-1"></i> Edit
                             </a>
                         @else
-                            <span class="text-[11px] px-3 py-1.5 rounded-lg font-semibold cursor-not-allowed opacity-60" style="background: var(--bg-glass-input); color: var(--text-faint);" title="Your role doesn't allow editing forms — ask a workspace admin">
+                            <span class="text-[11px] px-3 py-1.5 rounded-lg font-semibold cursor-not-allowed opacity-60" style="background: var(--bg-glass-input); color: var(--text-faint);" title="Your role doesn't allow editing forms, ask a workspace admin">
                                 <i class="fas fa-lock text-[9px] mr-1"></i> Edit
                             </span>
                         @endif

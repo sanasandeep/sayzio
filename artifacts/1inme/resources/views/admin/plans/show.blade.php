@@ -15,7 +15,7 @@
 
     $fmt = function ($v) {
         if ($v === -1) return 'Unlimited';
-        if ($v === null || $v === '') return '—';
+        if ($v === null || $v === '') return '-';
         return (string) $v;
     };
     $bool = fn($v) => !empty($v)

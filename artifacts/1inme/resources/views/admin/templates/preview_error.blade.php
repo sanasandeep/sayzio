@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Preview unavailable — {{ $tpl->name }}</title>
+    <title>Preview unavailable: {{ $tpl->name }}</title>
     <style>
         body { margin: 0; font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background: #0d0818; color: #e9e4f5; display: flex; align-items: center; justify-content: center; min-height: 100vh; }
         .box { max-width: 30rem; padding: 2rem; text-align: center; }

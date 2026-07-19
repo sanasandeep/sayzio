@@ -7,39 +7,396 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import { useTabStore } from '../store/tab-store';
 import { useAuthStore } from '../store/auth-store';
 import { ShortenPopover } from './ShortenPopover';
+import { CreateLinkPopover } from './CreateLinkPopover';
 import { ModeSwitcher } from './ModeSwitcher';
+import { ProfileSwitcher } from './ProfileSwitcher';
 import { useModeStore } from '../store/mode-store';
+import type { RecentlyClosedEntry } from '../../main/tab-manager';
+import type { SyncQueueProfileCount } from '../../main/db';
 
 interface Props {
   zioPanelOpen: boolean;
   onToggleZio: () => void;
   onOpenAuth: () => void;
+  onOpenTabSearch: () => void;
   /** If false, hides the mode switcher (used in split mode right pane). */
   showModeSwitcher?: boolean;
   downloadsPanelOpen?: boolean;
   onToggleDownloads?: () => void;
   activeDownloadCount?: number;
+  /** True when this window is an incognito/private window. */
+  isPrivate?: boolean;
+  /** Called when the user clicks the Device Lab button. */
+  onOpenDeviceLab?: () => void;
+  /** Called when the user triggers a screenshot; fullPage indicates full-page vs. viewport. */
+  onScreenshot?: (fullPage: boolean) => void;
+  /** While a screenshot is being captured, show a busy state on the camera button. */
+  screenshotCapturing?: boolean;
+  /** Callback to open the site settings / privacy panel. */
+  onOpenSiteSettings?: () => void;
+  readingListOpen: boolean;
+  onToggleReadingList: () => void;
 }
 
 const BASE_URL = 'https://1in.me';
+
+// ── Tiny inline context menu ──────────────────────────────────────────────────
+
+interface ContextMenuState {
+  tabId: string;
+  x: number;
+  y: number;
+}
+
+interface TabContextMenuProps {
+  state: ContextMenuState;
+  isPinned: boolean;
+  isMuted: boolean;
+  isAudible: boolean;
+  tabCount: number;
+  tabIndex: number;
+  onClose: () => void;
+  onPin: () => void;
+  onMute: () => void;
+  onDuplicate: () => void;
+  onCloseTab: () => void;
+  onCloseOthers: () => void;
+  onCloseToRight: () => void;
+}
+
+function TabContextMenu({
+  state, isPinned, isMuted, isAudible,
+  tabCount, tabIndex,
+  onClose, onPin, onMute, onDuplicate,
+  onCloseTab, onCloseOthers, onCloseToRight,
+}: TabContextMenuProps) {
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        onClose();
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [onClose]);
+
+  const menuStyle: React.CSSProperties = {
+    position: 'fixed',
+    left: state.x,
+    top: state.y,
+    background: 'var(--color-bg-surface)',
+    border: '1px solid var(--color-border)',
+    borderRadius: 8,
+    boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
+    zIndex: 9999,
+    minWidth: 180,
+    padding: '4px 0',
+    fontSize: 13,
+    color: 'var(--color-text)',
+  };
+
+  const itemStyle: React.CSSProperties = {
+    padding: '6px 14px',
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    gap: 8,
+    whiteSpace: 'nowrap',
+  };
+
+  const sepStyle: React.CSSProperties = {
+    borderTop: '1px solid var(--color-border)',
+    margin: '4px 0',
+  };
+
+  const action = (fn: () => void) => () => { fn(); onClose(); };
+
+  return (
+    <div ref={menuRef} style={menuStyle}>
+      <div
+        style={itemStyle}
+        onMouseDown={action(onPin)}
+        onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg-elevated)')}
+        onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+      >
+        <span>📌</span>
+        {isPinned ? 'Unpin tab' : 'Pin tab'}
+      </div>
+
+      {(isAudible || isMuted) && (
+        <div
+          style={itemStyle}
+          onMouseDown={action(onMute)}
+          onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg-elevated)')}
+          onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+        >
+          <span>{isMuted ? '🔊' : '🔇'}</span>
+          {isMuted ? 'Unmute tab' : 'Mute tab'}
+        </div>
+      )}
+
+      <div
+        style={itemStyle}
+        onMouseDown={action(onDuplicate)}
+        onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg-elevated)')}
+        onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+      >
+        <span>⧉</span>
+        Duplicate tab
+      </div>
+
+      <div style={sepStyle} />
+
+      {tabCount > 1 && (
+        <div
+          style={itemStyle}
+          onMouseDown={action(onCloseOthers)}
+          onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg-elevated)')}
+          onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+        >
+          <span>✕</span>
+          Close other tabs
+        </div>
+      )}
+
+      {tabIndex < tabCount - 1 && (
+        <div
+          style={itemStyle}
+          onMouseDown={action(onCloseToRight)}
+          onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg-elevated)')}
+          onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+        >
+          <span>→✕</span>
+          Close tabs to the right
+        </div>
+      )}
+
+      <div style={sepStyle} />
+
+      <div
+        style={{ ...itemStyle, color: 'var(--color-danger, #e55)' }}
+        onMouseDown={action(onCloseTab)}
+        onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg-elevated)')}
+        onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+      >
+        <span>✕</span>
+        Close tab
+      </div>
+    </div>
+  );
+}
+
+// ── Recently-closed / tab-strip menu ─────────────────────────────────────────
+
+interface StripMenuProps {
+  anchorRef: React.RefObject<HTMLButtonElement | null>;
+  recentlyClosed: RecentlyClosedEntry[];
+  onClose: () => void;
+  onReopenEntry: (url: string) => void;
+  onMuteAll: (muted: boolean) => void;
+  onOpenSearch: () => void;
+}
+
+function StripMenu({ anchorRef, recentlyClosed, onClose, onReopenEntry, onMuteAll, onOpenSearch }: StripMenuProps) {
+  const menuRef = useRef<HTMLDivElement>(null);
+  // Global "mute all tabs" policy state — the menu item toggles it.
+  const [muteAllActive, setMuteAllActive] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    void window.zio.audio.getMuteAll().then((v) => { if (!cancelled) setMuteAllActive(v); });
+    return () => { cancelled = true; };
+  }, []);
+
+  const rect = anchorRef.current?.getBoundingClientRect();
+  const left = rect ? rect.right - 200 : 80;
+  const top = rect ? rect.bottom + 4 : 40;
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node) &&
+          !anchorRef.current?.contains(e.target as Node)) {
+        onClose();
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [onClose, anchorRef]);
+
+  const menuStyle: React.CSSProperties = {
+    position: 'fixed',
+    left,
+    top,
+    background: 'var(--color-bg-surface)',
+    border: '1px solid var(--color-border)',
+    borderRadius: 8,
+    boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
+    zIndex: 9999,
+    minWidth: 220,
+    padding: '4px 0',
+    fontSize: 13,
+    color: 'var(--color-text)',
+    maxHeight: 360,
+    overflowY: 'auto',
+  };
+
+  const itemStyle: React.CSSProperties = {
+    padding: '6px 14px',
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    gap: 8,
+    whiteSpace: 'nowrap',
+  };
+
+  const sepStyle: React.CSSProperties = {
+    borderTop: '1px solid var(--color-border)',
+    margin: '4px 0',
+  };
+
+  const action = (fn: () => void) => () => { fn(); onClose(); };
+
+  return (
+    <div ref={menuRef} style={menuStyle}>
+      <div
+        style={{ ...itemStyle, fontSize: 11, color: 'var(--color-text-muted)', cursor: 'default' }}
+      >
+        RECENTLY CLOSED
+      </div>
+
+      {recentlyClosed.length === 0 ? (
+        <div style={{ ...itemStyle, color: 'var(--color-text-muted)', fontSize: 12 }}>
+          No recently closed tabs
+        </div>
+      ) : (
+        recentlyClosed.map((entry, idx) => (
+          <div
+            key={`${entry.url}-${idx}`}
+            style={itemStyle}
+            onMouseDown={action(() => onReopenEntry(entry.url))}
+            onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg-elevated)')}
+            onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+          >
+            {entry.favicon ? (
+              <img src={entry.favicon} width={12} height={12} style={{ borderRadius: 2, flexShrink: 0 }} alt="" />
+            ) : (
+              <div style={{ width: 12, height: 12, borderRadius: 2, background: 'var(--color-border)', flexShrink: 0 }} />
+            )}
+            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 160 }}>
+              {entry.title || entry.url}
+            </span>
+          </div>
+        ))
+      )}
+
+      <div style={sepStyle} />
+
+      <div
+        style={itemStyle}
+        onMouseDown={action(onOpenSearch)}
+        onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg-elevated)')}
+        onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+      >
+        <span>🔍</span>
+        Search tabs
+        <span style={{ marginLeft: 'auto', fontSize: 10, opacity: 0.6 }}>⌘⇧A</span>
+      </div>
+
+      <div
+        style={itemStyle}
+        onMouseDown={action(() => onMuteAll(!muteAllActive))}
+        onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg-elevated)')}
+        onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+      >
+        <span>{muteAllActive ? '🔊' : '🔇'}</span>
+        {muteAllActive ? 'Unmute all tabs' : 'Mute all tabs'}
+      </div>
+    </div>
+  );
+}
+
+// ── ChromeBar ─────────────────────────────────────────────────────────────────
 
 export function ChromeBar({
   zioPanelOpen,
   onToggleZio,
   onOpenAuth,
+  onOpenTabSearch,
   showModeSwitcher = true,
   downloadsPanelOpen = false,
   onToggleDownloads,
   activeDownloadCount = 0,
+  isPrivate = false,
+  onOpenDeviceLab,
+  onScreenshot,
+  screenshotCapturing = false,
+  onOpenSiteSettings,
+  readingListOpen,
+  onToggleReadingList,
 }: Props) {
-  const { tabs, tabOrder, activeTabId, createTab, closeTab, activateTab, navigate, goBack, goForward, reload, stop } = useTabStore();
-  const { user } = useAuthStore();
+  const {
+    tabs, tabOrder, activeTabId, recentlyClosed,
+    createTab, closeTab, activateTab, navigate, goBack, goForward, reload, stop,
+    pinTab, duplicateTab, closeOtherTabs, closeTabsToRight, muteAllTabs, reopenFromRecent,
+  } = useTabStore();
+  const { user, token } = useAuthStore();
   const { mode, setMode } = useModeStore();
   const [omniboxValue, setOmniboxValue] = useState('');
   const [omniboxFocused, setOmniboxFocused] = useState(false);
   const [shortenOpen, setShortenOpen] = useState(false);
+  const [createOpen, setCreateOpen] = useState(false);
   const [pendingSyncCount, setPendingSyncCount] = useState(0);
+  const [pendingSyncByProfile, setPendingSyncByProfile] = useState<SyncQueueProfileCount[]>([]);
+  const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
+  const [stripMenuOpen, setStripMenuOpen] = useState(false);
+  const [blockedCount, setBlockedCount] = useState(0);
+  const [trackerEnabled, setTrackerEnabled] = useState(false);
+  const [dropTargetId, setDropTargetId] = useState<string | null>(null);
+  const dragTabIdRef = useRef<string | null>(null);
+  const [savedInReadingList, setSavedInReadingList] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
   const omniboxRef = useRef<HTMLInputElement>(null);
+  const stripMenuBtnRef = useRef<HTMLButtonElement>(null);
+
+  const activeTab = activeTabId ? tabs[activeTabId] : null;
+
+  // Track reading list state for the active page
+  useEffect(() => {
+    const url = activeTab?.url;
+    if (!url || url === 'about:newtab' || url === '') {
+      setSavedInReadingList(false);
+      return;
+    }
+    let cancelled = false;
+    void window.zio.readingList.isSaved(url).then((saved: boolean) => {
+      if (!cancelled) setSavedInReadingList(saved);
+    }).catch(() => { /* main not ready */ });
+    return () => { cancelled = true; };
+  }, [activeTab?.url]);
+
+  // Load unread count on mount and when reading list panel closes
+  useEffect(() => {
+    let cancelled = false;
+    void window.zio.readingList.unreadCount().then((n: number) => {
+      if (!cancelled) setUnreadCount(n);
+    }).catch(() => { /* main not ready */ });
+    return () => { cancelled = true; };
+  }, [readingListOpen]);
+
+  const handleSaveToReadingList = useCallback(async () => {
+    if (!activeTab?.url || activeTab.url === 'about:newtab') return;
+    if (savedInReadingList) {
+      onToggleReadingList();
+      return;
+    }
+    try {
+      await window.zio.readingList.add(activeTab.url, activeTab.title ?? activeTab.url, activeTab.favicon ?? undefined);
+      setSavedInReadingList(true);
+      setUnreadCount(prev => prev + 1);
+    } catch { /* non-fatal */ }
+  }, [activeTab, savedInReadingList, onToggleReadingList]);
 
   // Track queued (offline / failed) sync pushes for the pending indicator
   useEffect(() => {
@@ -47,10 +404,15 @@ export function ChromeBar({
     void window.zio.sync.pendingCount().then((n: number) => {
       if (!cancelled) setPendingSyncCount(n);
     }).catch(() => { /* main not ready yet — event listener will update */ });
+    void window.zio.sync.pendingByProfile().then((rows: SyncQueueProfileCount[]) => {
+      if (!cancelled) setPendingSyncByProfile(rows);
+    }).catch(() => { /* main not ready yet — event listener will update */ });
 
     const listener = (...args: unknown[]) => {
       const n = args[0];
       if (typeof n === 'number') setPendingSyncCount(n);
+      const byProfile = args[1];
+      if (Array.isArray(byProfile)) setPendingSyncByProfile(byProfile as SyncQueueProfileCount[]);
     };
     window.zio.on('sync:queue-changed', listener);
     return () => {
@@ -59,7 +421,27 @@ export function ChromeBar({
     };
   }, []);
 
-  const activeTab = activeTabId ? tabs[activeTabId] : null;
+  // Read initial tracker state
+  useEffect(() => {
+    void window.zio.tracker.isEnabled().then((v: boolean) => setTrackerEnabled(v)).catch(() => {});
+  }, []);
+
+  // Listen for per-tab blocked-count updates
+  useEffect(() => {
+    const listener = (...args: unknown[]) => {
+      const tabId = args[0] as string;
+      const count = args[1] as number;
+      if (tabId === activeTabId) setBlockedCount(count);
+    };
+    window.zio.on('tracker:blocked-count', listener);
+    return () => window.zio.off('tracker:blocked-count', listener);
+  }, [activeTabId]);
+
+  // Reset blocked count when active tab changes or navigates
+  useEffect(() => {
+    if (!activeTabId) { setBlockedCount(0); return; }
+    void window.zio.tracker.getCount(activeTabId).then((n: number) => setBlockedCount(n)).catch(() => setBlockedCount(0));
+  }, [activeTabId]);
 
   // Sync omnibox with active tab URL
   useEffect(() => {
@@ -68,10 +450,30 @@ export function ChromeBar({
     }
   }, [activeTab?.url, omniboxFocused]);
 
-  // Close the shorten popover when the active tab changes
+  // Close popovers when the active tab changes
   useEffect(() => {
     setShortenOpen(false);
+    setCreateOpen(false);
   }, [activeTabId]);
+
+  const canShorten = !!(activeTab?.url && activeTab.url !== 'about:newtab' && activeTab.url !== '');
+
+  // Listen for custom events dispatched by the command palette
+  useEffect(() => {
+    const onShortenOpen = () => {
+      if (canShorten) setShortenOpen(true);
+    };
+    const onFocusAddressBar = () => {
+      omniboxRef.current?.focus();
+      omniboxRef.current?.select();
+    };
+    document.addEventListener('zio:shorten-open', onShortenOpen);
+    document.addEventListener('zio:focus-address-bar', onFocusAddressBar);
+    return () => {
+      document.removeEventListener('zio:shorten-open', onShortenOpen);
+      document.removeEventListener('zio:focus-address-bar', onFocusAddressBar);
+    };
+  }, [canShorten]);
 
   const handleOmniboxSubmit = useCallback((e: React.FormEvent) => {
     e.preventDefault();
@@ -84,8 +486,53 @@ export function ChromeBar({
     void createTab();
   }, [createTab]);
 
+  const openContextMenu = useCallback((e: React.MouseEvent, tabId: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setContextMenu({ tabId, x: e.clientX, y: e.clientY });
+  }, []);
+
+  const closeContextMenu = useCallback(() => setContextMenu(null), []);
+
+  // ── Drag-to-reorder tabs ─────────────────────────────────────────────────
+  const handleTabDragStart = useCallback((e: React.DragEvent, tabId: string) => {
+    dragTabIdRef.current = tabId;
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', tabId);
+  }, []);
+
+  const handleTabDragOver = useCallback((e: React.DragEvent, tabId: string) => {
+    if (!dragTabIdRef.current || dragTabIdRef.current === tabId) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    setDropTargetId(tabId);
+  }, []);
+
+  const handleTabDrop = useCallback((e: React.DragEvent, targetId: string) => {
+    e.preventDefault();
+    const dragId = dragTabIdRef.current;
+    dragTabIdRef.current = null;
+    setDropTargetId(null);
+    if (!dragId || dragId === targetId) return;
+    const toIndex = tabOrder.indexOf(targetId);
+    if (toIndex === -1) return;
+    // Main clamps the index to the pinned/normal section of the dragged tab.
+    void window.zio.tabs.move(dragId, toIndex);
+  }, [tabOrder]);
+
+  const handleTabDragEnd = useCallback(() => {
+    dragTabIdRef.current = null;
+    setDropTargetId(null);
+  }, []);
+
   const activeTabState = activeTab;
-  const canShorten = !!(activeTab?.url && activeTab.url !== 'about:newtab' && activeTab.url !== '');
+
+  // Pinned tabs always first in tabOrder (maintained by tab-manager); split for rendering
+  const pinnedTabIds = tabOrder.filter(id => tabs[id]?.pinned);
+  const normalTabIds = tabOrder.filter(id => !tabs[id]?.pinned);
+
+  const ctxTab = contextMenu ? tabs[contextMenu.tabId] : null;
+  const ctxTabIndex = contextMenu ? tabOrder.indexOf(contextMenu.tabId) : -1;
 
   return (
     <div style={{
@@ -104,23 +551,143 @@ export function ChromeBar({
         display: 'flex',
         alignItems: 'center',
         paddingLeft: process.platform === 'darwin' ? 80 : 8,
-        paddingRight: 8,
+        paddingRight: 4,
         gap: 2,
         overflowX: 'auto',
         overflowY: 'hidden',
       }}>
-        {tabOrder.map(id => {
+        {/* Private mode badge — always visible at the left of the tab strip */}
+        {isPrivate && (
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 4,
+            padding: '2px 10px',
+            borderRadius: 12,
+            background: 'rgba(120,80,220,0.18)',
+            border: '1px solid rgba(140,100,240,0.45)',
+            color: '#c9b3ff',
+            fontSize: 11,
+            fontWeight: 600,
+            whiteSpace: 'nowrap',
+            flexShrink: 0,
+            letterSpacing: 0.2,
+          }}>
+            🔒 Private
+          </div>
+        )}
+        {/* Pinned tabs — icon-only, compact */}
+        {pinnedTabIds.map(id => {
           const tab = tabs[id];
           const isActive = id === activeTabId;
           return (
             <div
               key={id}
+              draggable
+              onDragStart={(e) => handleTabDragStart(e, id)}
+              onDragOver={(e) => handleTabDragOver(e, id)}
+              onDragLeave={() => setDropTargetId(prev => (prev === id ? null : prev))}
+              onDrop={(e) => handleTabDrop(e, id)}
+              onDragEnd={handleTabDragEnd}
               onClick={() => void activateTab(id)}
+              onContextMenu={(e) => openContextMenu(e, id)}
+              title={tab?.title || 'New Tab'}
               style={{
+                boxShadow: dropTargetId === id ? 'inset 2px 0 0 var(--color-primary)' : 'none',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 4,
+                padding: '0 6px',
+                height: 28,
+                width: 36,
+                borderRadius: 6,
+                background: isActive ? 'var(--color-bg-elevated)' : 'transparent',
+                border: isActive ? '1px solid var(--color-border)' : '1px solid transparent',
+                cursor: 'pointer',
+                WebkitAppRegion: 'no-drag',
+                flexShrink: 0,
+                position: 'relative',
+              } as React.CSSProperties}
+            >
+              {tab?.favicon ? (
+                <img src={tab.favicon} width={14} height={14} style={{ borderRadius: 2 }} alt="" />
+              ) : (
+                <div style={{ width: 14, height: 14, borderRadius: 2, background: 'var(--color-border)' }} />
+              )}
+              {/* Pin indicator dot */}
+              <div style={{
+                position: 'absolute',
+                top: 2,
+                right: 2,
+                width: 5,
+                height: 5,
+                borderRadius: '50%',
+                background: 'var(--color-primary)',
+              }} />
+              {/* Audio indicator */}
+              {tab?.isAudible && !tab.isMuted && (
+                <div
+                  style={{
+                    position: 'absolute',
+                    bottom: 1,
+                    right: 1,
+                    fontSize: 8,
+                    lineHeight: 1,
+                  }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    void window.zio.tabs.mute(id, true);
+                  }}
+                  title="Mute tab"
+                >🔊</div>
+              )}
+              {tab?.isMuted && (
+                <div
+                  style={{ position: 'absolute', bottom: 1, right: 1, fontSize: 8, lineHeight: 1 }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    void window.zio.tabs.mute(id, false);
+                  }}
+                  title="Unmute tab"
+                >🔇</div>
+              )}
+            </div>
+          );
+        })}
+
+        {/* Divider between pinned and normal tabs */}
+        {pinnedTabIds.length > 0 && normalTabIds.length > 0 && (
+          <div style={{
+            width: 1,
+            height: 20,
+            background: 'var(--color-border)',
+            flexShrink: 0,
+            margin: '0 2px',
+          }} />
+        )}
+
+        {/* Normal tabs */}
+        {normalTabIds.map(id => {
+          const tab = tabs[id];
+          const isActive = id === activeTabId;
+          return (
+            <div
+              key={id}
+              draggable
+              onDragStart={(e) => handleTabDragStart(e, id)}
+              onDragOver={(e) => handleTabDragOver(e, id)}
+              onDragLeave={() => setDropTargetId(prev => (prev === id ? null : prev))}
+              onDrop={(e) => handleTabDrop(e, id)}
+              onDragEnd={handleTabDragEnd}
+              onClick={() => void activateTab(id)}
+              onContextMenu={(e) => openContextMenu(e, id)}
+              style={{
+                boxShadow: dropTargetId === id ? 'inset 2px 0 0 var(--color-primary)' : 'none',
                 display: 'flex',
                 alignItems: 'center',
                 gap: 6,
-                padding: '0 10px',
+                padding: '0 8px 0 10px',
                 height: 28,
                 minWidth: 120,
                 maxWidth: 200,
@@ -130,13 +697,15 @@ export function ChromeBar({
                 cursor: 'pointer',
                 WebkitAppRegion: 'no-drag',
                 flexShrink: 0,
+                position: 'relative',
               } as React.CSSProperties}
             >
               {tab?.favicon ? (
-                <img src={tab.favicon} width={14} height={14} style={{ borderRadius: 2 }} alt="" />
+                <img src={tab.favicon} width={14} height={14} style={{ borderRadius: 2, flexShrink: 0 }} alt="" />
               ) : (
-                <div style={{ width: 14, height: 14, borderRadius: 2, background: 'var(--color-border)' }} />
+                <div style={{ width: 14, height: 14, borderRadius: 2, background: 'var(--color-border)', flexShrink: 0 }} />
               )}
+
               <span style={{
                 flex: 1,
                 overflow: 'hidden',
@@ -147,18 +716,40 @@ export function ChromeBar({
               }}>
                 {tab?.title || 'New Tab'}
               </span>
+
+              {/* Audio indicator — click to mute */}
+              {tab?.isAudible && !tab.isMuted && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); void window.zio.tabs.mute(id, true); }}
+                  title="Mute tab"
+                  style={{
+                    width: 16, height: 16, borderRadius: 4,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: 10, flexShrink: 0,
+                    WebkitAppRegion: 'no-drag',
+                  } as React.CSSProperties}
+                >🔊</button>
+              )}
+              {tab?.isMuted && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); void window.zio.tabs.mute(id, false); }}
+                  title="Unmute tab"
+                  style={{
+                    width: 16, height: 16, borderRadius: 4,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: 10, flexShrink: 0, opacity: 0.7,
+                    WebkitAppRegion: 'no-drag',
+                  } as React.CSSProperties}
+                >🔇</button>
+              )}
+
+              {/* Close button — hidden for pinned tabs */}
               <button
                 onClick={(e) => { e.stopPropagation(); void closeTab(id); }}
                 style={{
-                  width: 16,
-                  height: 16,
-                  borderRadius: 4,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: 10,
-                  opacity: 0.6,
-                  flexShrink: 0,
+                  width: 16, height: 16, borderRadius: 4,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 10, opacity: 0.6, flexShrink: 0,
                   WebkitAppRegion: 'no-drag',
                 } as React.CSSProperties}
               >✕</button>
@@ -170,17 +761,42 @@ export function ChromeBar({
         <button
           onClick={handleNewTab}
           style={{
-            width: 28,
-            height: 28,
-            borderRadius: 6,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: 16,
-            color: 'var(--color-text-muted)',
+            width: 28, height: 28, borderRadius: 6,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 16, color: 'var(--color-text-muted)',
             WebkitAppRegion: 'no-drag',
+            flexShrink: 0,
           } as React.CSSProperties}
+          title="New tab (Ctrl+T)"
         >+</button>
+
+        {/* Tab strip menu — recently closed + tab actions */}
+        <button
+          ref={stripMenuBtnRef}
+          onClick={() => setStripMenuOpen(v => !v)}
+          style={{
+            width: 24, height: 24, borderRadius: 5,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 13, color: 'var(--color-text-muted)',
+            WebkitAppRegion: 'no-drag',
+            background: stripMenuOpen ? 'var(--color-bg-elevated)' : 'transparent',
+            flexShrink: 0,
+          } as React.CSSProperties}
+          title="Recently closed tabs & tab actions"
+        >⋮</button>
+
+        {/* Tab search button */}
+        <button
+          onClick={onOpenTabSearch}
+          style={{
+            width: 24, height: 24, borderRadius: 5,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 11, color: 'var(--color-text-muted)',
+            WebkitAppRegion: 'no-drag',
+            flexShrink: 0,
+          } as React.CSSProperties}
+          title="Search tabs (Ctrl+Shift+A)"
+        >🔍</button>
       </div>
 
       {/* Address Bar Row */}
@@ -239,10 +855,34 @@ export function ChromeBar({
 
         {/* ── Link tool buttons ─────────────────────────────────────────────── */}
 
+        {/* Create link popover trigger */}
+        <button
+          onClick={() => {
+            if (!token) { onOpenAuth(); return; }
+            setShortenOpen(false);
+            setCreateOpen(prev => !prev);
+          }}
+          title="Create a link — short link, biolink, event, vCard, WiFi, and more"
+          style={{
+            fontSize: 12,
+            padding: '3px 10px',
+            borderRadius: 8,
+            background: createOpen ? 'var(--color-primary)' : 'var(--color-bg-elevated)',
+            color: createOpen ? '#fff' : 'var(--color-text)',
+            border: '1px solid var(--color-border)',
+            fontWeight: 600,
+            whiteSpace: 'nowrap',
+            transition: 'all 0.12s',
+            cursor: 'pointer',
+          }}
+        >+ Create</button>
+
+
         {/* Shorten + QR popover trigger */}
         <button
           onClick={() => {
             if (!canShorten) return;
+            setCreateOpen(false);
             setShortenOpen(prev => !prev);
           }}
           disabled={!canShorten}
@@ -260,10 +900,58 @@ export function ChromeBar({
           }}
         >🔗</button>
 
+        {/* Device Lab button */}
+        <button
+          onClick={onOpenDeviceLab}
+          title="Device Lab — preview this biolink in phone / tablet / desktop"
+          style={{
+            fontSize: 13,
+            padding: '3px 8px',
+            borderRadius: 8,
+            background: 'var(--color-bg-elevated)',
+            color: 'var(--color-text)',
+            border: '1px solid var(--color-border)',
+            whiteSpace: 'nowrap',
+            transition: 'all 0.12s',
+            cursor: 'pointer',
+          }}
+        >🔬</button>
+
+        {/* New Private Window button */}
+        <button
+          onClick={() => { void window.zio.window.openPrivate(); }}
+          title="New Private Window (Ctrl+Shift+N)"
+          style={{
+            fontSize: 13,
+            padding: '3px 8px',
+            borderRadius: 8,
+            background: 'var(--color-bg-elevated)',
+            color: 'var(--color-text)',
+            border: '1px solid var(--color-border)',
+            whiteSpace: 'nowrap',
+            transition: 'all 0.12s',
+            cursor: 'pointer',
+          }}
+        >🕶️</button>
+
+        {/* Screenshot button — not shown on new tab or private windows */}
+        {canShorten && !isPrivate && onScreenshot && (
+          <ScreenshotButton
+            onCapture={onScreenshot}
+            capturing={screenshotCapturing}
+          />
+        )}
+
         {/* Sync pending indicator */}
         {pendingSyncCount > 0 && (
           <div
-            title={`${pendingSyncCount} change${pendingSyncCount === 1 ? '' : 's'} waiting to sync — will retry automatically`}
+            title={
+              pendingSyncByProfile.length > 0
+                ? `Waiting to sync — will retry automatically: ${pendingSyncByProfile
+                    .map(p => `${p.count} pending for ${p.profileName}`)
+                    .join(', ')}`
+                : `${pendingSyncCount} change${pendingSyncCount === 1 ? '' : 's'} waiting to sync — will retry automatically`
+            }
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -288,6 +976,95 @@ export function ChromeBar({
             Sync pending
           </div>
         )}
+
+        {/* Shield / site settings button with tracker badge */}
+        <button
+          onClick={() => onOpenSiteSettings?.()}
+          title={trackerEnabled
+            ? `Privacy settings — ${blockedCount} tracker${blockedCount === 1 ? '' : 's'} blocked on this page`
+            : 'Site settings & permissions'}
+          style={{
+            position: 'relative',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: 28,
+            height: 28,
+            borderRadius: 8,
+            background: 'var(--color-bg-elevated)',
+            border: `1px solid ${blockedCount > 0 ? 'var(--color-success)' : 'var(--color-border)'}`,
+            fontSize: 14,
+            opacity: trackerEnabled || blockedCount > 0 ? 1 : 0.65,
+            transition: 'all 0.15s',
+            flexShrink: 0,
+          } as React.CSSProperties}
+        >
+          🛡️
+          {trackerEnabled && blockedCount > 0 && (
+            <span style={{
+              position: 'absolute',
+              top: -5,
+              right: -5,
+              minWidth: 14,
+              height: 14,
+              borderRadius: 7,
+              background: 'var(--color-success)',
+              color: '#fff',
+              fontSize: 9,
+              fontWeight: 700,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '0 3px',
+              lineHeight: 1,
+            }}>
+              {blockedCount > 99 ? '99+' : blockedCount}
+            </span>
+          )}
+        </button>
+
+        {/* Reading list button + unread badge */}
+        <div style={{ position: 'relative', flexShrink: 0 }}>
+          <button
+            onClick={() => {
+              if (!activeTab?.url || activeTab.url === 'about:newtab' || activeTab.url === '') {
+                onToggleReadingList();
+              } else {
+                void handleSaveToReadingList();
+              }
+            }}
+            title={savedInReadingList ? 'Saved — open reading list' : 'Save to reading list'}
+            style={{
+              fontSize: 16,
+              padding: '2px 6px',
+              color: savedInReadingList ? 'var(--color-primary)' : 'var(--color-text-muted)',
+              transition: 'color 0.15s',
+            }}
+          >
+            {savedInReadingList ? '🔖' : '📖'}
+          </button>
+          {unreadCount > 0 && (
+            <span style={{
+              position: 'absolute',
+              top: -2,
+              right: -2,
+              minWidth: 14,
+              height: 14,
+              borderRadius: 7,
+              background: 'var(--color-primary)',
+              color: '#fff',
+              fontSize: 9,
+              fontWeight: 700,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '0 2px',
+              pointerEvents: 'none',
+            }}>
+              {unreadCount > 99 ? '99+' : unreadCount}
+            </span>
+          )}
+        </div>
 
         {/* Bookmark button */}
         <button style={{ fontSize: 16, padding: '2px 6px', opacity: 0.7 }} title="Bookmark">☆</button>
@@ -334,61 +1111,67 @@ export function ChromeBar({
           </button>
         )}
 
-        {/* Zio AI button */}
-        <button
-          onClick={onToggleZio}
-          style={{
-            padding: '4px 12px',
-            borderRadius: 14,
-            background: zioPanelOpen ? 'var(--color-primary)' : 'var(--color-bg-elevated)',
-            color: zioPanelOpen ? '#fff' : 'var(--color-text)',
-            border: '1px solid var(--color-primary)',
-            fontSize: 12,
-            fontWeight: 600,
-            transition: 'all 0.15s',
-          }}
-          title="Open Zio AI Panel"
-        >⚡ Zio</button>
+        {/* Zio AI button — hidden / disabled in private mode */}
+        {!isPrivate ? (
+          <button
+            onClick={onToggleZio}
+            style={{
+              padding: '4px 12px',
+              borderRadius: 14,
+              background: zioPanelOpen ? 'var(--color-primary)' : 'var(--color-bg-elevated)',
+              color: zioPanelOpen ? '#fff' : 'var(--color-text)',
+              border: '1px solid var(--color-primary)',
+              fontSize: 12,
+              fontWeight: 600,
+              transition: 'all 0.15s',
+            }}
+            title="Open Zio AI Panel"
+          >⚡ Zio</button>
+        ) : (
+          <div
+            title="Zio AI is not available in private windows"
+            style={{
+              padding: '4px 12px',
+              borderRadius: 14,
+              background: 'rgba(120,80,220,0.08)',
+              color: 'rgba(200,180,255,0.35)',
+              border: '1px solid rgba(140,100,240,0.2)',
+              fontSize: 12,
+              fontWeight: 600,
+              whiteSpace: 'nowrap',
+              cursor: 'default',
+              userSelect: 'none',
+            }}
+          >⚡ Zio</div>
+        )}
 
         {/* Mode switcher — shown in browser mode, hidden in split right-pane */}
         {showModeSwitcher && (
           <ModeSwitcher currentMode={mode} onSetMode={setMode} />
         )}
 
-        {/* User avatar / sign in */}
-        {user ? (
-          <div style={{
-            width: 28,
-            height: 28,
-            borderRadius: '50%',
-            background: 'var(--color-primary)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: 12,
-            fontWeight: 700,
-            color: '#fff',
-            cursor: 'pointer',
-            flexShrink: 0,
-          }}
-            title={user.name}
-          >
-            {(user.name ?? 'U').charAt(0).toUpperCase()}
-          </div>
-        ) : (
-          <button
-            onClick={onOpenAuth}
-            style={{
-              padding: '4px 10px',
-              borderRadius: 12,
-              background: 'var(--color-bg-elevated)',
-              border: '1px solid var(--color-border)',
-              fontSize: 12,
-              whiteSpace: 'nowrap',
-            }}
-          >Sign in</button>
-        )}
+        {/* Profile switcher — shows workspace profiles when signed in */}
+        <ProfileSwitcher
+          isAuthenticated={!!user}
+          onOpenAuth={onOpenAuth}
+        />
       </div>
+
+      {/* Create link popover */}
+      {createOpen && (
+        <CreateLinkPopover
+          pageUrl={activeTab?.url ?? ''}
+          pageTitle={activeTab?.title ?? ''}
+          baseUrl={BASE_URL}
+          onClose={() => setCreateOpen(false)}
+          onOpenAuth={() => { setCreateOpen(false); onOpenAuth(); }}
+          onNavigate={(url) => {
+            if (activeTabId) {
+              void window.zio.tabs.navigate(activeTabId, url);
+            }
+          }}
+        />
+      )}
 
       {/* Shorten / QR popover */}
       {shortenOpen && activeTab && (
@@ -398,8 +1181,133 @@ export function ChromeBar({
           baseUrl={BASE_URL}
           onClose={() => setShortenOpen(false)}
           onOpenAuth={() => { setShortenOpen(false); onOpenAuth(); }}
+          onNavigate={(url) => {
+            if (activeTabId) {
+              void window.zio.tabs.navigate(activeTabId, url);
+            }
+          }}
+        />
+      )}
+
+      {/* Tab context menu */}
+      {contextMenu && ctxTab && (
+        <TabContextMenu
+          state={contextMenu}
+          isPinned={ctxTab.pinned ?? false}
+          isMuted={ctxTab.isMuted ?? false}
+          isAudible={ctxTab.isAudible ?? false}
+          tabCount={tabOrder.length}
+          tabIndex={ctxTabIndex}
+          onClose={closeContextMenu}
+          onPin={() => void pinTab(contextMenu.tabId, !(ctxTab.pinned ?? false))}
+          onMute={() => void window.zio.tabs.mute(contextMenu.tabId, !(ctxTab.isMuted ?? false))}
+          onDuplicate={() => void duplicateTab(contextMenu.tabId)}
+          onCloseTab={() => void closeTab(contextMenu.tabId)}
+          onCloseOthers={() => void closeOtherTabs(contextMenu.tabId)}
+          onCloseToRight={() => void closeTabsToRight(contextMenu.tabId)}
+        />
+      )}
+
+      {/* Tab strip menu */}
+      {stripMenuOpen && (
+        <StripMenu
+          anchorRef={stripMenuBtnRef}
+          recentlyClosed={recentlyClosed}
+          onClose={() => setStripMenuOpen(false)}
+          onReopenEntry={(url) => void reopenFromRecent(url)}
+          onMuteAll={(muted) => void muteAllTabs(muted)}
+          onOpenSearch={() => { setStripMenuOpen(false); onOpenTabSearch(); }}
         />
       )}
     </div>
   );
 }
+
+// ── Screenshot button ─────────────────────────────────────────────────────────
+// A small camera button with a right-click context menu offering
+// "Visible area" vs "Full page" modes.
+
+interface ScreenshotButtonProps {
+  onCapture: (fullPage: boolean) => void;
+  capturing: boolean;
+}
+
+function ScreenshotButton({ onCapture, capturing }: ScreenshotButtonProps) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    if (!menuOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [menuOpen]);
+
+  return (
+    <div ref={menuRef} style={{ position: 'relative', flexShrink: 0 }}>
+      <button
+        onClick={() => { if (!capturing) setMenuOpen(prev => !prev); }}
+        title="Screenshot — left-click for options"
+        style={{
+          fontSize: 15,
+          padding: '2px 7px',
+          borderRadius: 8,
+          background: menuOpen ? 'var(--color-primary)' : 'var(--color-bg-elevated)',
+          color: menuOpen ? '#fff' : 'var(--color-text-muted)',
+          border: '1px solid var(--color-border)',
+          opacity: capturing ? 0.5 : 1,
+          cursor: capturing ? 'default' : 'pointer',
+          transition: 'all 0.12s',
+        }}
+      >{capturing ? '⏳' : '📷'}</button>
+
+      {menuOpen && (
+        <div style={{
+          position: 'absolute',
+          top: 'calc(100% + 6px)',
+          right: 0,
+          background: 'var(--color-bg-surface)',
+          border: '1px solid var(--color-border)',
+          borderRadius: 10,
+          boxShadow: '0 8px 28px rgba(0,0,0,0.3)',
+          minWidth: 180,
+          zIndex: 2000,
+          overflow: 'hidden',
+        }}>
+          <button
+            onClick={() => { setMenuOpen(false); onCapture(false); }}
+            style={menuItemStyle}
+          >
+            <span>🖥</span>
+            <span>Visible area</span>
+          </button>
+          <button
+            onClick={() => { setMenuOpen(false); onCapture(true); }}
+            style={menuItemStyle}
+          >
+            <span>📄</span>
+            <span>Full page</span>
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+const menuItemStyle: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: 8,
+  width: '100%',
+  padding: '9px 14px',
+  fontSize: 12,
+  color: 'var(--color-text)',
+  textAlign: 'left',
+  cursor: 'pointer',
+  transition: 'background 0.1s',
+};

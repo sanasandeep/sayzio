@@ -1,3 +1,4 @@
+- [Zio Browser workspace profiles + device lab](zio-browser-profiles-device-lab.md) — profiles scope SQLite/sessions/sync per workspace; Device Lab uses CSS-scaled iframes; server scoped by X-Browser-Workspace-Id header.
 - [GitHub sanitized snapshot push](github-sanitized-snapshot-push.md) — workspace history has plaintext secrets; push snapshot commits (strip .replit secrets, hash-object commit, parent=remote tip), never raw history.
 - [JSON-LD in <script> needs default JSON escaping](json-ld-html-context-escaping.md) — never pass JSON_UNESCAPED_SLASHES for JSON embedded in `<script>`; unescaped `/` lets `</script>` break out (stored XSS).
 - [Brand primary domain canonical vs redirect](brand-primary-domain-canonical-vs-redirect.md) — marketing pages get a hard 301 to the primary brand domain; user-content pages (biolinks/resumes/creator profiles) only get a soft canonical/og:url rewrite, never redirected.
@@ -142,7 +143,13 @@
 - [Catalog CSS strings need trailing ';' when emitted in Blade](css-string-emission-trailing-semicolon.md) — raw multi-decl CSS mid-rule silently drops its last property + the next declaration.
 - [Playwright Chromium system libs](playwright-chromium-system-libs.md) — fresh envs mass-fail every browser spec on missing shared libs; install the chromium dep set + libgbm + systemdLibs, verify via ldd.
 - [EAS Android APK builds](eas-android-build.md) — EXPO_TOKEN robot under account "eefind"; needs EAS_NO_VCS=1 (git blocked), placeholder projectId blocks init, share-intent duplicate appExtensions fatal, run upload via validation workflow.
+- [GitHub sync via API squash](github-sync-api-squash.md) — push protection blocks full history (old PAT in a `.replit` commit); sync via API blob/tree/commit squash; never use the allow-secret bypass (public repo).
+- [Promote probes every claimed path with GET](deploy-health-probe-slow-home.md) — publish healthcheck GETs each artifact.toml `paths` entry; a POST-only path 404s and fails the publish; every claimed path needs an instant GET 200.
 - [Throwaway-Expo harness exit](expo-throwaway-harness-exit.md) — manager API is acquireServer (not start/stop); harness must process.exit(0) after PASS or the detached Expo child hangs the run forever.
 - [EC2 deploy pipeline lessons](ec2-deploy-pipeline-lessons.md) — pre-update checkout kills one-run script lag; pin pnpm via packageManager; CI=1 for no-TTY installs; sudo -n needs an in-grant command.
 - [Bulk export pattern (contacts/general)](bulk-export-pattern.md) — async threshold 500; sync=stream; async=ContactExport row+job+polling page; signed URL (temporarySignedRoute) for mobile/no-auth download.
+- [Session driver file vs database](session-driver-file-vs-database.md) — Devices & sessions revoke only works on the database driver; dev/e2e pin file, e2e must boot with SESSION_DRIVER=database (passthrough-listed); prod currently inherits file.
 - [storage-url-resolve guard](storage-url-resolve-guard.md) — payload emissions of storage-backed image columns must go through PublicStorageUrl::resolve() (CDN vs slow /storage 302); exceptions go in the guard's ALLOWLIST.
+- [better-sqlite3 needs source build on Node 24](better-sqlite3-node24-source-build.md) — no prebuilt binary; background node-gyp rebuild in node_modules, ignore the bogus node_gyp_bins ENOENT.
+- [Electron desktop CI packaging](electron-desktop-ci-packaging.md) — workspace blocks non-Linux native binaries (strip ': -' overrides in CI); electron-builder needs explicit .cjs --config; empty WIN_CSC_LINK breaks signing.
+- [Bulk copy sweeps via guard file:line output](text-sweep-guard-line-numbers.md) — span-blanking scanners must preserve newlines or line numbers drift and bulk fixers edit the wrong lines.

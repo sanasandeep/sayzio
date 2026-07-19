@@ -28,7 +28,7 @@
                     <span class="hero-chip"><i class="fas fa-user-plus"></i> {{ number_format($totalPending) }} pending</span>
                 </div>
                 <h1 class="hero-title gradient-text truncate" style="font-size: clamp(1.5rem, 3.2vw, 2.1rem);">Leads</h1>
-                <p class="hero-subtitle">People captured across your links — review and add them to Contacts, or dismiss.</p>
+                <p class="hero-subtitle">People captured across your links, review and add them to Contacts, or dismiss.</p>
             </div>
         </div>
     </div>

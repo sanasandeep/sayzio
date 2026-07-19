@@ -154,7 +154,7 @@
             </div>
             @if($eventQuotaReached)
                 <a href="{{ route('user.upgrade') }}" class="px-4 py-2 rounded-xl text-sm font-semibold bg-amber-500/15 border border-amber-500/30 text-amber-200 hover:bg-amber-500/25">
-                    <i class="fas fa-lock mr-1"></i> Event limit reached — Upgrade
+                    <i class="fas fa-lock mr-1"></i> Event limit reached, Upgrade
                 </a>
             @else
                 <button type="button" @click="open = !open" class="px-4 py-2 rounded-xl text-sm font-semibold bg-blue-600 hover:bg-blue-500 text-white">

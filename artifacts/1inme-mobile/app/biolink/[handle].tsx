@@ -640,7 +640,7 @@ function RsvpBlock({
   );
 }
 
-// Render a small "Thanks for responding — you picked X" card that replaces
+// Render a small "Thanks for responding, you picked X" card that replaces
 // the live poll/RSVP options once the viewer has answered. Tapping the
 // "Change response" affordance clears the remembered choice so the original
 // options come back. Used by both the poll and RSVP block branches.
@@ -662,7 +662,7 @@ function RespondedCard({
         {icon} {title}
       </Text>
       <Text style={[styles.body, { color: colors.foreground, textAlign: "left", fontSize: 14 }]}>
-        Thanks for responding — you picked “{responseLabel}”.
+        Thanks for responding, you picked “{responseLabel}”.
       </Text>
       <Pressable onPress={onChange} hitSlop={8} style={{ alignSelf: "flex-start" }}>
         <Text style={[styles.body, { color: colors.primary, textAlign: "left", fontSize: 13 }]}>
@@ -1229,6 +1229,66 @@ export function BlockView({ block, alias, allBlocks, openEmbed }: { block: Bioli
     );
   }
 
+  if (t === "tip_jar") {
+    const title = pickStr(s, "title") ?? "Send me a tip";
+    const message = pickStr(s, "message");
+    const btnText = pickStr(s, "button_text") ?? "Send Tip";
+    const rawAmounts = Array.isArray(s.amounts) ? (s.amounts as unknown[]) : [];
+    const parsedAmounts = rawAmounts
+      .map((n) => (typeof n === "number" ? n : typeof n === "string" ? parseInt(n, 10) : 0))
+      .filter((n) => n > 0)
+      .slice(0, 6);
+    const presets = parsedAmounts.length > 0 ? parsedAmounts : [3, 5, 10, 25];
+    const tipUrl = `${publicBiolinkUrl(alias)}/tip-jar`;
+    return (
+      <View style={[styles.cardContainer, blockCardStyle(block, colors), { padding: 16 }]}>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: message ? 4 : 12 }}>
+          <Text style={{ fontSize: 18 }}>🫙</Text>
+          <Text style={[styles.heading, { color: blockTextColor(block, colors.foreground), marginBottom: 0, fontSize: 16, flex: 1 }]}>
+            {title}
+          </Text>
+        </View>
+        {message ? (
+          <Text style={[styles.body, { color: blockTextColor(block, colors.foreground) + "99", marginBottom: 12, fontSize: 12 }]}>
+            {message}
+          </Text>
+        ) : null}
+        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 12 }}>
+          {presets.map((amt, i) => (
+            <Pressable
+              key={i}
+              onPress={() => {
+                trackBiolinkBlockTap(alias, block.id, tipUrl);
+                openEmbed({ url: tipUrl, title: btnText });
+              }}
+              style={[
+                styles.socialIcon,
+                blockCardStyle(block, colors),
+                { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, minWidth: 52, alignItems: "center" },
+              ]}
+            >
+              <Text style={[styles.btnLabel, { color: blockTextColor(block, colors.foreground), fontSize: 13 }]}>
+                ${amt}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+        <Pressable
+          onPress={() => {
+            trackBiolinkBlockTap(alias, block.id, tipUrl);
+            openEmbed({ url: tipUrl, title: btnText });
+          }}
+          style={[styles.btn, { backgroundColor: "#f59e0b", borderColor: "#f59e0b" }]}
+        >
+          <Text style={[styles.btnLabel, { color: "#0D0C22" }]}>🫙 {btnText}</Text>
+        </Pressable>
+        <Text style={{ fontSize: 10, textAlign: "center", marginTop: 6, color: blockTextColor(block, colors.foreground) + "55" }}>
+          0% platform fee · goes directly to the creator
+        </Text>
+      </View>
+    );
+  }
+
   if (t === "buy_me_coffee" || t === "patreon" || t === "ko_fi") {
     const username = pickStr(s, "username") ?? "";
     const base =
@@ -1602,7 +1662,7 @@ export function BlockView({ block, alias, allBlocks, openEmbed }: { block: Bioli
       >
         <Text style={[styles.btnLabel, { color: colors.foreground, textAlign: "left" }]}>🔗 {label}</Text>
         <Text style={[styles.body, { color: colors.mutedForeground, textAlign: "left", fontSize: 12, marginTop: 4 }]}>
-          Third-party embed — tap to open in-app
+          Third-party embed: tap to open in-app
         </Text>
       </Pressable>
     );

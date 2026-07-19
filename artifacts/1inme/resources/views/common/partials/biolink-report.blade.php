@@ -148,15 +148,15 @@
             }).then(function (res) {
                 if (res.ok && res.body.ok) {
                     setStatus(res.body.coalesced
-                        ? 'Thanks — we already received reports about this page and counted yours.'
-                        : 'Thanks — your report has been submitted.', true);
+                        ? 'Thanks, we already received reports about this page and counted yours.'
+                        : 'Thanks, your report has been submitted.', true);
                     form.reset();
                     newCaptcha();
                     setTimeout(hideModal, 1800);
                 } else if (res.status === 429) {
                     setStatus('You\u2019ve submitted several reports recently. Try again later.', false);
                 } else if (res.body && res.body.error === 'captcha') {
-                    setStatus('That answer wasn\u2019t right — please try the new question.', false);
+                    setStatus('That answer wasn\u2019t right, please try the new question.', false);
                     newCaptcha();
                 } else {
                     setStatus('Something went wrong. Please try again.', false);

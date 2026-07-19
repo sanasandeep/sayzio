@@ -286,7 +286,7 @@ function dropzoneInput_{{ $dzId }}() {
             const accepted = [];
             for (const f of dropped) {
                 if (!this.matchesAccept(f)) { this.error = `"${f.name}" is not an allowed file type.`; continue; }
-                if (this.maxMb && f.size > this.maxMb * 1024 * 1024) { this.error = `"${f.name}" is ${this.formatSize(f.size)} — over the ${this.maxMb} MB limit.`; continue; }
+                if (this.maxMb && f.size > this.maxMb * 1024 * 1024) { this.error = `"${f.name}" is ${this.formatSize(f.size)}, over the ${this.maxMb} MB limit.`; continue; }
                 accepted.push(f);
             }
             if (!accepted.length) return;
@@ -303,7 +303,7 @@ function dropzoneInput_{{ $dzId }}() {
             const dt = new DataTransfer();
             for (const f of picked) {
                 if (!this.matchesAccept(f)) { this.error = `"${f.name}" is not an allowed file type.`; continue; }
-                if (this.maxMb && f.size > this.maxMb * 1024 * 1024) { this.error = `"${f.name}" is ${this.formatSize(f.size)} — over the ${this.maxMb} MB limit.`; continue; }
+                if (this.maxMb && f.size > this.maxMb * 1024 * 1024) { this.error = `"${f.name}" is ${this.formatSize(f.size)}, over the ${this.maxMb} MB limit.`; continue; }
                 dt.items.add(f);
             }
             this.$refs.input.files = dt.files;
@@ -367,7 +367,7 @@ function dropzoneInput_{{ $dzId }}() {
             const blob = await r.blob();
             const file = new File([blob], f.original_name || ('file' + (f.id || '')), { type: f.mime_type || blob.type || 'application/octet-stream' });
             if (this.maxMb && file.size > this.maxMb * 1024 * 1024) {
-                this.error = `"${file.name}" is ${this.formatSize(file.size)} — over the ${this.maxMb} MB limit.`;
+                this.error = `"${file.name}" is ${this.formatSize(file.size)}, over the ${this.maxMb} MB limit.`;
                 return;
             }
             if (!this.matchesAccept(file)) {

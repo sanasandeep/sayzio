@@ -14,7 +14,7 @@
      data-speed-dial-unassign-url="{{ route('user.dialer.speed-dial.unassign') }}">
     @include('user.partials.page-hero', [
         'title' => 'Dialer',
-        'subtitle' => 'Speed-dial favorites, smart recents and T9 search — call, text, email or share your Link in Bio in one tap.',
+        'subtitle' => 'Speed-dial favorites, smart recents and T9 search, call, text, email or share your Link in Bio in one tap.',
         'icon' => 'fa-phone',
         'chips' => [],
     ])
@@ -51,7 +51,7 @@
         {{-- Number pad --}}
         <div class="card-premium p-6">
             <div class="flex items-center justify-between mb-3">
-                <h3 class="text-sm font-bold" style="color:var(--text-primary);">Number pad <span class="text-[10px] font-normal" style="color:var(--text-faint);">— search everything</span></h3>
+                <h3 class="text-sm font-bold" style="color:var(--text-primary);">Number pad <span class="text-[10px] font-normal" style="color:var(--text-faint);"> - search everything</span></h3>
                 {{-- Keypad mode toggle: T9 digit grid ↔ alphanumeric keyboard.
                      Both modes write to the same input and feed the same
                      universal search, so results never differ by mode. --}}
@@ -110,7 +110,7 @@
         {{-- Search + recent --}}
         <div class="space-y-4">
             <div class="card-premium p-5">
-                <h3 class="text-sm font-bold mb-3" style="color:var(--text-primary);">Search everything <span class="text-[10px] font-normal" style="color:var(--text-faint);">— contacts, people, links, workspaces</span></h3>
+                <h3 class="text-sm font-bold mb-3" style="color:var(--text-primary);">Search everything <span class="text-[10px] font-normal" style="color:var(--text-faint);"> - contacts, people, links, workspaces</span></h3>
                 <div class="relative">
                     <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-xs" style="color:var(--text-faint);"></i>
                     <input type="text" id="universal-q" value="{{ $q }}" placeholder="Name, handle, alias, keyword…"
@@ -682,7 +682,7 @@ function openSpeedDialManager() {
             <div class="flex-1 min-w-0">
                 ${fav
                     ? `<div class="text-sm font-semibold truncate" style="color:var(--text-primary);">${escapeHtml(fav.label)}</div>`
-                    : `<div class="text-sm" style="color:var(--text-faint);">— unassigned</div>`
+                    : `<div class="text-sm" style="color:var(--text-faint);"> - unassigned</div>`
                 }
             </div>
             ${fav

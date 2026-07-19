@@ -11,6 +11,9 @@ import { contextBridge, ipcRenderer } from 'electron';
 type IpcListener = (...args: unknown[]) => void;
 
 const api = {
+  // ── Platform (for platform-specific chrome, e.g. Windows/Linux title bars) ─
+  platform: process.platform,
+
   // ── DB / preferences ─────────────────────────────────────────────────────
   prefs: {
     get: (key: string) => ipcRenderer.invoke('prefs:get', key),
@@ -56,6 +59,17 @@ const api = {
     injectPasswordDetector: (id: string) => ipcRenderer.invoke('tabs:inject-password-detector', id),
     popPendingCredential: (id: string) =>
       ipcRenderer.invoke('tabs:pop-pending-credential', id),
+    // ── Tab management ──────────────────────────────────────────────────────
+    pin: (id: string, pinned: boolean) => ipcRenderer.invoke('tabs:pin', id, pinned),
+    move: (id: string, toIndex: number) => ipcRenderer.invoke('tabs:move', id, toIndex),
+    duplicate: (id: string) => ipcRenderer.invoke('tabs:duplicate', id),
+    closeOthers: (id: string) => ipcRenderer.invoke('tabs:close-others', id),
+    closeToRight: (id: string) => ipcRenderer.invoke('tabs:close-to-right', id),
+    muteAll: (muted?: boolean) => ipcRenderer.invoke('tabs:mute-all', muted),
+    reopenClosed: () => ipcRenderer.invoke('tabs:reopen-closed'),
+    recentlyClosed: () => ipcRenderer.invoke('tabs:recently-closed'),
+    reopenFromRecent: (url: string) => ipcRenderer.invoke('tabs:reopen-from-recent', url),
+    restoreSession: () => ipcRenderer.invoke('tabs:restore-session'),
   },
 
   // ── Window mode ───────────────────────────────────────────────────────────
@@ -69,6 +83,10 @@ const api = {
     setZioPanelWidth: (width: number) => ipcRenderer.invoke('window:set-zio-panel-width', width),
     getZioPanelDocked: () => ipcRenderer.invoke('window:get-zio-panel-docked'),
     setZioPanelDocked: (docked: boolean) => ipcRenderer.invoke('window:set-zio-panel-docked', docked),
+    /** Returns true when this renderer is running inside a private/incognito window. */
+    isPrivate: () => ipcRenderer.invoke('window:is-private') as Promise<boolean>,
+    /** Ask the main process to open a new private window, optionally starting at a URL. */
+    openPrivate: (url?: string) => ipcRenderer.invoke('window:open-private', url) as Promise<boolean>,
   },
 
   // ── History ───────────────────────────────────────────────────────────────
@@ -108,7 +126,10 @@ const api = {
     search: (q: string) => ipcRenderer.invoke('downloads:search', q),
     open: (filePath: string) => ipcRenderer.invoke('downloads:open', filePath),
     show: (filePath: string) => ipcRenderer.invoke('downloads:show', filePath),
+    exists: (filePath: string) => ipcRenderer.invoke('downloads:exists', filePath),
     choosePath: () => ipcRenderer.invoke('downloads:choose-path'),
+    chooseDirectory: () => ipcRenderer.invoke('downloads:choose-directory'),
+    defaultDirectory: () => ipcRenderer.invoke('downloads:default-directory'),
     pause: (id: string) => ipcRenderer.invoke('downloads:pause', id),
     resume: (id: string) => ipcRenderer.invoke('downloads:resume', id),
     cancel: (id: string) => ipcRenderer.invoke('downloads:cancel', id),
@@ -139,7 +160,22 @@ const api = {
 
   // ── Browsing data ─────────────────────────────────────────────────────────
   browsingData: {
-    clear: () => ipcRenderer.invoke('browsing-data:clear'),
+    clear: (options: {
+      range: 'hour' | 'day' | 'week' | '4weeks' | 'all';
+      clearHistory: boolean;
+      clearCookies: boolean;
+      clearCache: boolean;
+    }) => ipcRenderer.invoke('browsing-data:clear', options),
+  },
+
+  // ── Reading list ──────────────────────────────────────────────────────────
+  readingList: {
+    add: (url: string, title: string, favicon?: string) => ipcRenderer.invoke('reading-list:add', url, title, favicon),
+    isSaved: (url: string) => ipcRenderer.invoke('reading-list:is-saved', url),
+    all: () => ipcRenderer.invoke('reading-list:all'),
+    unreadCount: () => ipcRenderer.invoke('reading-list:unread-count'),
+    markRead: (id: string, isRead: boolean) => ipcRenderer.invoke('reading-list:mark-read', id, isRead),
+    remove: (id: string) => ipcRenderer.invoke('reading-list:remove', id),
   },
 
   // ── Sync ──────────────────────────────────────────────────────────────────
@@ -148,7 +184,21 @@ const api = {
     queuePush: (entity: string, payloadJson: string, error?: string) =>
       ipcRenderer.invoke('sync:queue-push', entity, payloadJson, error),
     pendingCount: () => ipcRenderer.invoke('sync:pending-count'),
+    pendingByProfile: () => ipcRenderer.invoke('sync:pending-by-profile'),
     flush: () => ipcRenderer.invoke('sync:flush'),
+  },
+
+  // ── Screenshot ────────────────────────────────────────────────────────────
+  screenshot: {
+    /** Capture the tab as a PNG data URL. fullPage=true stitches the full scroll height. */
+    capture: (tabId: string, fullPage: boolean) =>
+      ipcRenderer.invoke('screenshot:capture', tabId, fullPage) as Promise<string | null>,
+    /** Open a system save dialog and write the PNG to disk. Returns the file path or null. */
+    saveToDisk: (dataUrl: string, suggestedName?: string) =>
+      ipcRenderer.invoke('screenshot:save-to-disk', dataUrl, suggestedName) as Promise<string | null>,
+    /** Write the PNG to the system clipboard as a native image. */
+    copyToClipboard: (dataUrl: string) =>
+      ipcRenderer.invoke('screenshot:copy-to-clipboard', dataUrl) as Promise<boolean>,
   },
 
   // ── Clipboard ─────────────────────────────────────────────────────────────
@@ -167,6 +217,76 @@ const api = {
     version: () => ipcRenderer.invoke('app:version'),
   },
 
+  // ── Profiles ─────────────────────────────────────────────────────────────
+  profiles: {
+    /** List all locally known profiles (personal + workspace). */
+    list: () => ipcRenderer.invoke('profiles:list'),
+    /** Return the currently active profile ID. */
+    getActive: () => ipcRenderer.invoke('profiles:get-active'),
+    /**
+     * Switch to a different profile.
+     * Persists the choice, updates DB scope, and updates tab session partition.
+     * Emits 'profile:changed' back to the renderer.
+     */
+    switch: (profileId: string) => ipcRenderer.invoke('profiles:switch', profileId),
+    /**
+     * Upsert a profile from a workspace API response item.
+     * Call this after fetching /api/v1/workspaces.
+     */
+    upsertFromWorkspace: (ws: { id: number | string; name: string; is_personal?: boolean }) =>
+      ipcRenderer.invoke('profiles:upsert-from-workspace', ws),
+    /** Pre-warm the Electron session partition for the given profile. */
+    warmSession: (profileId: string) => ipcRenderer.invoke('profiles:warm-session', profileId),
+  },
+
+  // ── Sayzio links (local cache) ────────────────────────────────────────────
+  sayzioLinks: {
+    /** Read the locally cached Sayzio links (works offline / signed out). */
+    cached: () => ipcRenderer.invoke('sayzio-links:cached'),
+    /** Refresh the cache from the API when online + authenticated; returns the fresh list. */
+    refresh: (force?: boolean) => ipcRenderer.invoke('sayzio-links:refresh', force),
+  },
+
+  // ── Device Lab ────────────────────────────────────────────────────────────
+  deviceLab: {
+    /** Fetch the authenticated user's biolinks from the Sayzio API. */
+    listBiolinks: () => ipcRenderer.invoke('device-lab:list-biolinks'),
+  },
+
+  // ── Site permissions ──────────────────────────────────────────────────────
+  permissions: {
+    getAll: () => ipcRenderer.invoke('permissions:get-all'),
+    set: (origin: string, permission: string, decision: 'allow' | 'block') =>
+      ipcRenderer.invoke('permissions:set', origin, permission, decision),
+    revoke: (origin: string, permission: string) =>
+      ipcRenderer.invoke('permissions:revoke', origin, permission),
+    clearAll: () => ipcRenderer.invoke('permissions:clear-all'),
+    respond: (requestId: string, decision: 'allow' | 'block', remember: boolean, origin: string, permission: string) =>
+      ipcRenderer.invoke('permissions:respond', requestId, decision, remember, origin, permission),
+  },
+
+  // ── Audio policy (per-domain mute memory + global mute) ──────────────────
+  audio: {
+    /** List all hosts with a stored "muted" preference. */
+    mutedDomains: () => ipcRenderer.invoke('audio:muted-domains') as Promise<string[]>,
+    /** Add/remove a host from the muted-domain list. */
+    setDomainMuted: (host: string, muted: boolean) =>
+      ipcRenderer.invoke('audio:set-domain-muted', host, muted) as Promise<boolean>,
+    /** Session-level "mute all tabs" global policy. */
+    getMuteAll: () => ipcRenderer.invoke('audio:get-mute-all') as Promise<boolean>,
+    /** Set the global policy only (does not touch currently open tabs). */
+    setMuteAll: (enabled: boolean) =>
+      ipcRenderer.invoke('audio:set-mute-all', enabled) as Promise<boolean>,
+  },
+
+  // ── Tracker blocking ──────────────────────────────────────────────────────
+  tracker: {
+    isEnabled: () => ipcRenderer.invoke('tracker:is-enabled'),
+    setEnabled: (enabled: boolean) => ipcRenderer.invoke('tracker:set-enabled', enabled),
+    getCount: (tabId: string) => ipcRenderer.invoke('tracker:get-count', tabId),
+    resetCount: (tabId: string) => ipcRenderer.invoke('tracker:reset-count', tabId),
+  },
+
   // ── Events (from main → renderer) ────────────────────────────────────────
   on: (channel: string, listener: IpcListener) => {
     const ALLOWED_CHANNELS = new Set([
@@ -176,12 +296,17 @@ const api = {
       'tab:activated',
       'tab:navigated',
       'tab:find-result',
+      'tab:order-changed',
+      'tab:recently-closed-changed',
+      'tab:search-open',
       'download:started',
       'download:progress',
       'download:done',
       'find:open',
       // Link tools — context menu "Add to my biolink" trigger
       'biolink:add-page',
+      // Device Lab — context menu "Preview in Device Lab" trigger
+      'device-lab:preview-url',
       'window:mode-changed',
       'sync:queue-changed',
       // Downloads panel
@@ -190,6 +315,14 @@ const api = {
       'download:cancelled',
       // Password offer — main process detected a login form submission
       'password:detected',
+      // Profile events
+      'profile:changed',
+      // Command palette — open from main process menu shortcut
+      'palette:open',
+      // Permission prompts
+      'permission:request',
+      // Tracker blocking count updates
+      'tracker:blocked-count',
     ]);
     if (!ALLOWED_CHANNELS.has(channel)) return;
     ipcRenderer.on(channel, (_, ...args) => listener(...args));

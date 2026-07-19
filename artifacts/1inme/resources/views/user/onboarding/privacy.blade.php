@@ -25,7 +25,7 @@
             <h1 class="text-xl sm:text-2xl font-bold text-white">Who can see your contact info?</h1>
             <p class="text-sm text-white/60 mt-2 max-w-md mx-auto">
                 By default, everything stays visible when a stranger looks you up via caller-ID or search.
-                You can hide any of these — people who've already saved you as a contact (and you yourself)
+                You can hide any of these, people who've already saved you as a contact (and you yourself)
                 always see everything, no matter what you pick.
             </p>
         </div>

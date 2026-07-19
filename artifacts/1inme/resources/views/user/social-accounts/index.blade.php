@@ -45,7 +45,7 @@
                 </div>
                 <div class="text-xs mt-0.5" style="color: var(--text-muted);">
                     It's linked to <span class="font-semibold">{{ $__mergeOffer['label'] ?? 'another account' }}</span>.
-                    Do you want to merge that account into this one? Everything from it will move here — this can't be undone.
+                    Do you want to merge that account into this one? Everything from it will move here, this can't be undone.
                 </div>
                 @if($__canEdit)
                     <div class="flex items-center gap-2 mt-3">
@@ -125,7 +125,7 @@
                            color: {{ $brokenEmailsOn ? '#10b981' : 'var(--text-muted)' }};
                            border: 1px solid {{ $brokenEmailsOn ? 'rgba(16,185,129,0.3)' : 'var(--border-glass)' }};">
                 <i class="fas {{ $brokenEmailsOn ? 'fa-toggle-on' : 'fa-toggle-off' }}"></i>
-                {{ $brokenEmailsOn ? 'On — turn off' : 'Off — turn on' }}
+                {{ $brokenEmailsOn ? 'On (turn off)' : 'Off (turn on)' }}
             </button>
         </form>
     </div>
@@ -285,7 +285,7 @@
                                         </div>
                                     @elseif($health === "unsupported")
                                         <div class="mt-1 text-[11px]" style="color: var(--text-faint);">
-                                            Auto-refresh isn"t wired up for this platform yet — paste an access token to enable.
+                                            Auto-refresh isn"t wired up for this platform yet, paste an access token to enable.
                                         </div>
                                     @endif
                                 </div>
@@ -339,12 +339,12 @@
                                         </button>
                                     </form>
                                     @else
-                                    <span title="Your role doesn't allow refreshing connections — ask a workspace admin"
+                                    <span title="Your role doesn't allow refreshing connections, ask a workspace admin"
                                           class="w-8 h-8 rounded-lg flex items-center justify-center text-xs cursor-not-allowed opacity-60"
                                           style="background: var(--bg-glass-input); color: var(--text-faint);">
                                         <i class="fas fa-lock"></i>
                                     </span>
-                                    <span title="Your role doesn't allow disconnecting accounts — ask a workspace admin"
+                                    <span title="Your role doesn't allow disconnecting accounts, ask a workspace admin"
                                           class="w-8 h-8 rounded-lg flex items-center justify-center text-xs cursor-not-allowed opacity-60"
                                           style="background: rgba(239,68,68,0.05); color: var(--text-faint);">
                                         <i class="fas fa-lock"></i>
@@ -432,7 +432,7 @@
                         <i class="fas fa-circle-check mt-0.5" style="color:#10b981;"></i>
                         <div>
                             <span class="font-semibold" style="color:#10b981;">One-click connect available.</span>
-                            Authorize with {{ $meta['label'] }} below — no token to copy or paste.
+                            Authorize with {{ $meta['label'] }} below, no token to copy or paste.
                         </div>
                     </div>
                     <a href="{{ route('user.social-oauth.connect', ['provider' => $key]) }}"
@@ -478,7 +478,7 @@
                             <label class="block text-xs mb-1" style="color: var(--text-muted);">
                                 Access token
                                 @if($oauthReady)
-                                    <span class="text-white/30">(advanced — prefer "Connect with {{ $meta['label'] }}" above)</span>
+                                    <span class="text-white/30">(advanced, prefer "Connect with {{ $meta['label'] }}" above)</span>
                                 @endif
                             </label>
                             @include('common.partials.password-field', [
@@ -501,7 +501,7 @@
                     @else
                         <p class="text-[11px]" style="color: var(--text-faint);">
                             @if($key === 'github')
-                                GitHub follower counts are public — no token needed.
+                                GitHub follower counts are public, no token needed.
                             @elseif($key === 'youtube')
                                 YouTube uses the public Data API. Counts will appear once the server has YOUTUBE_API_KEY configured.
                             @elseif($key === 'twitch')

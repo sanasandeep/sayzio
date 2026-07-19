@@ -53,3 +53,8 @@ the `postgresql` nix binaries (`initdb`,`pg_ctl`,`psql`) are on PATH. Spin a pri
 **Gotcha 6 — killed runner leaves a live cluster on 55432:** if a `test-local.sh` invocation is killed by the tool timeout, BOTH the ephemeral postgres AND the `php artisan test` child can survive into later tool sessions. The next run then fails at `pg_ctl: could not start server` (port/dir collision). Recovery: `pkill -f 1inme-testpg; rm -rf /tmp/1inme-testpg.*` then rerun. Also: the surviving `php artisan test` may still be progressing — check `ps` + tail its log before assuming the run died; waiting on the pid can salvage the result without paying migrate:fresh again.
 
 **Admin actingAs status gotcha:** `Admin::create` without `status` leaves the in-memory model's status NULL (the DB default 'active' isn't reflected back), and `AdminAuth` treats any non-'active' status as deactivated → every admin request 302s to /admin/login even though `Auth::guard('admin')->check()` is true pre-request. Symptom: whole admin feature class fails with login redirects on a fresh DB. Fix: always pass `status => 'active'` in test admin helpers.
+
+## workspace.can web routes in feature tests
+`workspace.can:*`-gated web routes deny with 403 unless the workspace context is bound. In feature tests, after creating the user do:
+`$ws = app(WorkspaceContext::class)->resolve($user); app()->instance('current_workspace', $ws); app()->instance('workspace_owner', $user);`
+(Note: RequireWorkspacePermission's non-JSON deny renders a 403 view — a raw `assertRedirect()` won't catch it, but a "row not created" symptom will.)

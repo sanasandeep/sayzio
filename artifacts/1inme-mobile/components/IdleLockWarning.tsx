@@ -15,8 +15,8 @@ export function IdleLockWarning() {
   const seconds = lockWarningSecondsRemaining;
   const label =
     seconds === 1
-      ? "Locking in 1 second — tap to stay"
-      : `Locking in ${seconds} seconds — tap to stay`;
+      ? "Locking in 1 second. Tap to stay"
+      : `Locking in ${seconds} seconds. Tap to stay`;
 
   return (
     <View

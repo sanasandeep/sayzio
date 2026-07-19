@@ -52,6 +52,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    @include('common.partials.toolbar-theme-color')
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="csrf-token" content="{{ csrf_token() }}">
@@ -372,7 +373,7 @@
             @if($posts->count() === 0)
                 <div class="cp-card p-8 text-center">
                     <i class="fas fa-feather text-2xl text-slate-300 mb-2"></i>
-                    <p class="text-slate-500 text-sm">{{ $isOwner ? 'You haven\'t shared anything yet.' : 'No posts yet — check back soon.' }}</p>
+                    <p class="text-slate-500 text-sm">{{ $isOwner ? 'You haven\'t shared anything yet.' : 'No posts yet. Check back soon.' }}</p>
                 </div>
             @else
                 <div class="space-y-3">

@@ -23,7 +23,7 @@
                 @if($tpl->thumbnail_url)
                     <img src="{{ $tpl->thumbnail_url }}" alt="Current thumbnail" class="w-full h-full object-cover">
                 @else
-                    <span class="text-[11px] text-white/30 px-2 text-center">No upload yet — auto-blueprint will be shown.</span>
+                    <span class="text-[11px] text-white/30 px-2 text-center">No upload yet, auto-blueprint will be shown.</span>
                 @endif
             </div>
             <div class="flex flex-col gap-2">
@@ -138,7 +138,7 @@
                         <p class="text-[11px] text-amber-300 mb-2">
                             <i class="fas fa-wand-magic-sparkles mr-1"></i>Pre-checked to cover
                             {{ count($prefillPersonas) === 1 ? 'a persona gap' : count($prefillPersonas) . ' persona gaps' }}
-                            flagged on the dashboard — save to fix the coverage warning.
+                            flagged on the dashboard, save to fix the coverage warning.
                         </p>
                     @endif
                     <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-72 overflow-y-auto pr-1 rounded-xl">
@@ -196,7 +196,7 @@
                 <div class="mt-3" x-show="cards.length" x-cloak>
                     <label class="block text-xs font-medium text-white/60 mb-1.5">Card block in this link</label>
                     <select name="source_card_id" x-model="sourceCardId" class="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white">
-                        <option value="" class="bg-[#0d0818]">— pick a card —</option>
+                        <option value="" class="bg-[#0d0818]">pick a card</option>
                         <template x-for="c in cards" :key="c.id">
                             <option :value="c.id" x-text="c.label" class="bg-[#0d0818]"></option>
                         </template>

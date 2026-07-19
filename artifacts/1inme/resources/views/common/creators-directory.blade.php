@@ -4,13 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="csrf-token" content="{{ csrf_token() }}">
-{{-- Safari uses theme-color to fill the area behind rounded page corners;
-     this page is always light, so a static light value is enough. --}}
-<meta name="theme-color" content="#f8fafc">
+{{-- Safari uses theme-color to tint the browser toolbar. Always dark so the
+     tab bar matches the brand regardless of the site's light/dark mode. --}}
+<meta name="theme-color" content="#0a0a14">
 @php
     $__seo = \App\Modules\Common\Support\MarketingSeo::resolveForView(['seoKey' => 'creators']);
 @endphp
-<title>{{ $__seo['title'] }} — {{ config('app.name') }}</title>
+<title>{{ $__seo['title'] }}: {{ config('app.name') }}</title>
 <meta name="description" content="{{ $__seo['description'] }}">
 @if(($__seo['keywords'] ?? '') !== '')
 <meta name="keywords" content="{{ $__seo['keywords'] }}">

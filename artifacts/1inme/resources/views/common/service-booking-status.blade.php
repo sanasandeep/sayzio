@@ -12,6 +12,7 @@
 <!doctype html>
 <html lang="en">
 <head>
+    @include('common.partials.toolbar-theme-color')
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <title>Booking status · {{ $title }}</title>
@@ -57,7 +58,7 @@
         @endif
         <div class="total"><span>Estimated total</span><span>{{ $fmt($booking->total) }}</span></div>
 
-        <p class="note">This is an estimated price, not a final bill. No online payment is taken — you'll settle with the provider directly. This page updates automatically.</p>
+        <p class="note">This is an estimated price, not a final bill. No online payment is taken, you'll settle with the provider directly. This page updates automatically.</p>
 
         @if(!empty($whatsapp))
             <a class="wa-btn" href="{{ $whatsapp['url'] }}" target="_blank" rel="noopener">

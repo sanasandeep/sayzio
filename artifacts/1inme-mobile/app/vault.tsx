@@ -115,7 +115,7 @@ export default function VaultScreen() {
             <EmptyState
               icon="briefcase"
               title="No clients yet"
-              body="Vault clients live in your workspace — add them from the web."
+              body="Vault clients live in your workspace; add them from the web."
             />
           }
           refreshControl={
@@ -156,7 +156,7 @@ export default function VaultScreen() {
             <EmptyState
               icon="key"
               title="No credentials yet"
-              body="Reveal secrets on the web — the encryption flow is anchored there for safety."
+              body="Reveal secrets on the web; the encryption flow is anchored there for safety."
             />
           }
           refreshControl={

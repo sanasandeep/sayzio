@@ -54,7 +54,7 @@
                 @if($q !== '')
                     No Link in Bio pages match "<span class="text-white">{{ $q }}</span>" yet.
                 @else
-                    No public Link in Bio pages yet — check back soon.
+                    No public Link in Bio pages yet. Check back soon.
                 @endif
             </div>
         @else

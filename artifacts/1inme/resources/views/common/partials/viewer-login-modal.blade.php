@@ -128,7 +128,7 @@ function viewerLoginModal(creatorId, initialMe) {
                     this.step='otp';
                     // Demo mode (admin toggle): when on, the backend returns
                     // the actual code so it can be shown on screen.
-                    this.message = d.demo_reveal || ('Code sent — check your '+(this.channel==='email'?'inbox':'messages')+'.');
+                    this.message = d.demo_reveal || ('Code sent, check your '+(this.channel==='email'?'inbox':'messages')+'.');
                 }
                 else this.message = d.message || 'Could not send code.';
             } catch(e) { this.message = 'Network error.'; }

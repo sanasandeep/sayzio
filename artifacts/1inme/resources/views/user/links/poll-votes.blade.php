@@ -1,12 +1,12 @@
 @extends('user.layouts.app')
 
-@section('title', 'Poll votes — ' . $link->title)
+@section('title', 'Poll votes: ' . $link->title)
 
 @section('content')
 <div class="max-w-7xl mx-auto">
     @include('user.partials.page-hero', [
         'title' => 'Poll votes',
-        'subtitle' => $link->title . ' — ' . $question,
+        'subtitle' => $link->title . ', ' . $question,
         'icon' => 'fa-poll',
         'back' => route('user.links.show', $link),
         'chips' => [
@@ -82,7 +82,7 @@
                             style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06);">
                             <div class="min-w-0 flex-1">
                                 <span class="font-semibold" style="color: var(--text-primary);">{{ $e->identifier }}</span>
-                                <span style="color: var(--text-muted);">— {{ $e->removed_count }} {{ \Illuminate\Support\Str::plural('vote', $e->removed_count) }} removed</span>
+                                <span style="color: var(--text-muted);"> - {{ $e->removed_count }} {{ \Illuminate\Support\Str::plural('vote', $e->removed_count) }} removed</span>
                             </div>
                             <span class="flex-shrink-0" style="color: var(--text-faint);" title="{{ $e->created_at?->toDateTimeString() }}">
                                 {{ $e->created_at?->diffForHumans() }}

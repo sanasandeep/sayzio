@@ -21,7 +21,7 @@
             </div>
             <h1 class="text-xl sm:text-2xl font-bold text-white">Add your WhatsApp number</h1>
             <p class="text-sm text-white/60 mt-2 max-w-md mx-auto">
-                Verify a WhatsApp number to sign in faster with a one-time code — no password needed — and stay reachable.
+                Verify a WhatsApp number to sign in faster with a one-time code (no password needed) and stay reachable.
                 It only takes a moment, and you can skip for now.
             </p>
         </div>

@@ -60,7 +60,7 @@ const FEATURE_CARDS: Array<{
   {
     icon: "🛍️",
     heading: "Storefronts & Menus",
-    body: "Digital storefronts and restaurant menus with live ordering — no app download needed.",
+    body: "Digital storefronts and restaurant menus with live ordering, no app download needed.",
   },
   {
     icon: "📱",
@@ -70,7 +70,7 @@ const FEATURE_CARDS: Array<{
   {
     icon: "📊",
     heading: "Deep Analytics",
-    body: "Click heatmaps, visitor trends, device breakdowns, and geo insights — all in real time.",
+    body: "Click heatmaps, visitor trends, device breakdowns, and geo insights, all in real time.",
   },
   {
     icon: "🤖",

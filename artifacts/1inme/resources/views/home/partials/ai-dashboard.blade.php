@@ -10,7 +10,7 @@
                 Design a dashboard <span class="grad-text">only you would build.</span>
             </h2>
             <p class="reveal rd-2 text-lg text-gray-400">
-                Pick one of 5 curated presets, or just tell the AI designer what you care about — it arranges the
+                Pick one of 5 curated presets, or just tell the AI designer what you care about and it arranges the
                 right widgets from your existing dashboard, nothing invented, nothing hidden.
             </p>
         </div>

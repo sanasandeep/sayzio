@@ -40,7 +40,7 @@
             </div>
         </div>
     </template>
-    <p x-show="{{ $modelKey }}.length===0" class="text-xs text-white/40">No testimonials yet — add one to show the section publicly.</p>
+    <p x-show="{{ $modelKey }}.length===0" class="text-xs text-white/40">No testimonials yet, add one to show the section publicly.</p>
 
     {{-- Live preview --}}
     <div x-show="{{ $modelKey }}.length>0" class="mt-2 pt-4 border-t border-white/5">

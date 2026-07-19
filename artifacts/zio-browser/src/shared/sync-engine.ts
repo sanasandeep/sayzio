@@ -121,7 +121,7 @@ export const SYNC_INTERVALS = {
   MANUAL_MIN_MS: 30 * 1000,
 } as const;
 
-export type SyncEntityKind = 'bookmarks' | 'collections' | 'history';
+export type SyncEntityKind = 'bookmarks' | 'collections' | 'history' | 'reading_list';
 
 export interface SyncState {
   lastSyncAt: string | null;
@@ -152,6 +152,13 @@ export interface SyncQueueItem {
   next_attempt_at: string; // ISO-8601
   last_error: string | null;
   created_at: string;
+  /**
+   * Profile the item was enqueued under, so retries push to that profile's
+   * workspace bucket even if the user switches profiles meanwhile.
+   * Null on rows enqueued before this column existed — those fall back to
+   * the active profile at retry time (legacy behavior).
+   */
+  profile_id: string | null;
 }
 
 /**
@@ -209,4 +216,16 @@ export function computeSyncState(
     lastError,
     pendingCount: pending.length,
   };
+}
+
+/**
+ * Build the sync_state entity key that isolates sync cursors per profile.
+ * Keeps sync timestamps per profile so switching workspace doesn't replay
+ * another profile's already-synced records.
+ *
+ * @example profileSyncEntityKey('bookmarks', 'default') => 'bookmarks:default'
+ * @example profileSyncEntityKey('history', '42')       => 'history:42'
+ */
+export function profileSyncEntityKey(entity: string, profileId: string): string {
+  return `${entity}:${profileId}`;
 }

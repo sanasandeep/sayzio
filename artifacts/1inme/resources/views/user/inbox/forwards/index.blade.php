@@ -143,7 +143,7 @@
                                     @elseif($del->last_error)
                                         <span style="color:#fca5a5;">{{ \Illuminate\Support\Str::limit($del->last_error, 90) }}</span>
                                     @else
-                                        —
+ -
                                     @endif
                                 </td>
                                 <td class="py-2 text-right">

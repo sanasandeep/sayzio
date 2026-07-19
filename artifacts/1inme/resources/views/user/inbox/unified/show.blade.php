@@ -359,11 +359,11 @@
                     <input type="hidden" name="value" value="{{ $thread->is_private ? 0 : 1 }}">
                     <button class="w-full px-2 py-1.5 rounded-lg text-xs text-left" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-secondary);">
                         <i class="fas {{ $thread->is_private ? 'fa-lock text-amber-400' : 'fa-lock-open' }} mr-2"></i>
-                        {{ $thread->is_private ? 'Private — owner & assignee only' : 'Visible to whole workspace' }}
+                        {{ $thread->is_private ? 'Private, owner & assignee only' : 'Visible to whole workspace' }}
                     </button>
                 </form>
 
-                <div class="text-[10px] font-bold uppercase tracking-wider mt-4 mb-2" style="color: var(--text-faint);">SLA — respond within</div>
+                <div class="text-[10px] font-bold uppercase tracking-wider mt-4 mb-2" style="color: var(--text-faint);">SLA, respond within</div>
                 <form method="POST" action="{{ route('user.inbox.unified.update', $thread->id) }}">@csrf
                     <input type="hidden" name="action" value="set_sla">
                     <div class="flex gap-1 flex-wrap">

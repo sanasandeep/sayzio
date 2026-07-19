@@ -108,7 +108,7 @@
                         <label><input type="radio" value="display" x-model="menu.mode" @change="saveSettings()"><span>Display only</span></label>
                         <label><input type="radio" value="order" x-model="menu.mode" @change="saveSettings()"><span>Order requests</span></label>
                     </div>
-                    <p class="text-xs mt-2" style="color:var(--text-muted)">Order mode lets shoppers build a cart and send you an order request. No online payment — you arrange fulfilment and payment directly.</p>
+                    <p class="text-xs mt-2" style="color:var(--text-muted)">Order mode lets shoppers build a cart and send you an order request. No online payment, you arrange fulfilment and payment directly.</p>
                 </div>
                 <div class="rm-row" x-show="menu.mode === 'order'">
                     <label style="display:flex;gap:8px;align-items:center;color:var(--text-primary)">
@@ -156,18 +156,55 @@
             <div class="rm-row"><label class="rm-label">Price</label><input class="rm-input" type="number" step="0.01" min="0" x-model="productModal.price"></div>
             <div class="rm-row">
                 <label class="rm-label">Photo</label>
-                <input class="rm-input" x-model="productModal.photo_url" placeholder="https://… or upload below">
-                <div style="display:flex;gap:8px;align-items:center;margin-top:8px">
-                    <button type="button" class="rm-btn sm ghost" @click="$refs.photoInput.click()" :disabled="photoUploading">
-                        <i class="fas" :class="photoUploading ? 'fa-spinner fa-spin' : 'fa-cloud-upload-alt'"></i>
-                        <span x-text="photoUploading ? ('Uploading… ' + photoProgress + '%') : 'Upload photo'"></span>
-                    </button>
-                    <button type="button" class="rm-btn sm ghost" x-show="productModal.photo_url" @click="productModal.photo_url=''">Remove</button>
-                    <input type="file" x-ref="photoInput" accept=".jpg,.jpeg,.png,.gif,.webp,.svg" class="hidden" @change="uploadPhoto($event)">
+                {{-- Mode tabs --}}
+                <div style="display:flex;gap:6px;margin-bottom:8px">
+                    <button type="button" class="rm-btn sm ghost" :class="photoMode==='url'?'active':''" @click="photoMode='url'"><i class="fas fa-link"></i> URL</button>
+                    <button type="button" class="rm-btn sm ghost" :class="photoMode==='upload'?'active':''" @click="photoMode='upload'"><i class="fas fa-cloud-upload-alt"></i> Upload</button>
+                    <button type="button" class="rm-btn sm ghost" :class="photoMode==='vault'?'active':''" @click="photoMode='vault'; if(!vaultFiles.length) loadVault()"><i class="fas fa-folder-open"></i> My Files</button>
+                </div>
+                {{-- URL mode --}}
+                <div x-show="photoMode==='url'" style="display:none;">
+                    <input class="rm-input" x-model="productModal.photo_url" placeholder="https://…">
+                </div>
+                {{-- Upload mode --}}
+                <div x-show="photoMode==='upload'" style="display:none;">
+                    <div style="display:flex;gap:8px;align-items:center">
+                        <button type="button" class="rm-btn sm ghost" @click="$refs.photoInput.click()" :disabled="photoUploading">
+                            <i class="fas" :class="photoUploading ? 'fa-spinner fa-spin' : 'fa-cloud-upload-alt'"></i>
+                            <span x-text="photoUploading ? ('Uploading… ' + photoProgress + '%') : 'Upload photo'"></span>
+                        </button>
+                        <input type="file" x-ref="photoInput" accept=".jpg,.jpeg,.png,.gif,.webp,.svg" class="hidden" @change="uploadPhoto($event)">
+                    </div>
+                </div>
+                {{-- My Files mode --}}
+                <div x-show="photoMode==='vault'" style="display:none;border:1px solid var(--border-glass,#2a2a32);border-radius:10px;overflow:hidden">
+                    <div style="padding:6px;border-bottom:1px solid var(--border-glass,#2a2a32);display:flex;gap:6px">
+                        <input type="text" x-model="vaultSearch" placeholder="Search…" style="flex:1;font-size:11px;padding:4px 8px;border-radius:6px;background:var(--bg-glass-input,rgba(0,0,0,0.2));color:var(--text-primary,#fff);border:1px solid var(--border-glass,#2a2a32);outline:none">
+                        <button type="button" @click="loadVault()" style="font-size:11px;color:var(--accent)"><i class="fas fa-sync-alt"></i></button>
+                    </div>
+                    <div style="max-height:160px;overflow-y:auto;padding:6px">
+                        <template x-if="vaultLoading"><div style="padding:20px;text-align:center"><i class="fas fa-spinner fa-spin" style="color:#60a5fa"></i></div></template>
+                        <template x-if="!vaultLoading && vaultFiles.length===0"><div style="padding:20px;text-align:center;font-size:11px;color:var(--text-muted,#9ca3af)">No images yet, upload some to My Files first</div></template>
+                        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px">
+                            <template x-for="f in filteredVault" :key="f.id">
+                                <button type="button" @click="productModal.photo_url=f.url; photoMode='url'"
+                                        style="border-radius:6px;overflow:hidden;aspect-ratio:1;cursor:pointer;padding:0;border:2px solid transparent;background:var(--bg-glass-input,rgba(0,0,0,0.2))"
+                                        :style="productModal.photo_url===f.url?'border-color:#3b82f6':''">
+                                    <img :src="f.url" :alt="f.original_name" style="width:100%;height:100%;object-fit:cover">
+                                </button>
+                            </template>
+                        </div>
+                        <template x-if="!vaultLoading && vaultHasMore">
+                            <button type="button" @click="loadMoreVault()" style="width:100%;font-size:10px;color:#60a5fa;padding:6px;text-align:center">Load more…</button>
+                        </template>
+                    </div>
                 </div>
                 <p class="text-xs" style="color:var(--accent-danger,#f87171)" x-show="photoError" x-text="photoError"></p>
-                <template x-if="productModal.photo_url">
-                    <img :src="productModal.photo_url" alt="Preview" style="margin-top:8px;max-height:120px;border-radius:10px;object-fit:contain" x-on:error="$el.style.display='none'" x-on:load="$el.style.display='block'">
+                <template x-if="productModal.photo_url && photoMode!=='vault'">
+                    <div style="margin-top:8px;display:flex;align-items:center;gap:6px">
+                        <img :src="productModal.photo_url" alt="Preview" style="max-height:80px;max-width:80px;border-radius:8px;object-fit:contain" x-on:error="$el.style.display='none'" x-on:load="$el.style.display='block'">
+                        <button type="button" class="rm-btn sm ghost" @click="productModal.photo_url=''">Remove</button>
+                    </div>
                 </template>
             </div>
             <div class="rm-row"><label style="display:flex;gap:8px;align-items:center;color:var(--text-primary)"><input type="checkbox" x-model="productModal.is_out_of_stock"> Out of stock</label></div>
@@ -206,6 +243,8 @@ function storeEditor() {
         photoUploading: false,
         photoProgress: 0,
         photoError: '',
+        photoMode: 'url',
+        vaultFiles: [], vaultLoading: false, vaultSearch: '', vaultPage: 1, vaultHasMore: false,
         init(){},
         uploadPhoto(e){
             const file = e.target.files && e.target.files[0];
@@ -278,7 +317,34 @@ function storeEditor() {
             this.products = others.concat(list);
             await this.api('POST','/products/reorder', { order: ids });
         },
-        openProduct(catId, product){ this.productModal = product ? {open:true,id:product.id,category_id:catId,name:product.name,description:product.description||'',price:product.price,photo_url:product.photo_url||'',is_out_of_stock:!!product.is_out_of_stock} : {open:true,id:null,category_id:catId,name:'',description:'',price:'',photo_url:'',is_out_of_stock:false}; },
+        async loadVault() {
+            this.vaultLoading = true; this.vaultPage = 1;
+            try {
+                const r = await fetch(@json(route('user.files.index')) + '?type=image&page=1', { headers: { 'Accept': 'application/json' } });
+                const d = await r.json();
+                this.vaultFiles = d.files || [];
+                this.vaultHasMore = d.pagination && d.pagination.current_page < d.pagination.last_page;
+            } catch(e) { this.vaultFiles = []; }
+            this.vaultLoading = false;
+        },
+        async loadMoreVault() {
+            this.vaultPage++;
+            try {
+                const r = await fetch(@json(route('user.files.index')) + '?type=image&page=' + this.vaultPage, { headers: { 'Accept': 'application/json' } });
+                const d = await r.json();
+                this.vaultFiles = this.vaultFiles.concat(d.files || []);
+                this.vaultHasMore = d.pagination && d.pagination.current_page < d.pagination.last_page;
+            } catch(e) {}
+        },
+        get filteredVault() {
+            if (!this.vaultSearch) return this.vaultFiles;
+            const s = this.vaultSearch.toLowerCase();
+            return this.vaultFiles.filter(f => f.original_name.toLowerCase().includes(s));
+        },
+        openProduct(catId, product){
+            this.productModal = product ? {open:true,id:product.id,category_id:catId,name:product.name,description:product.description||'',price:product.price,photo_url:product.photo_url||'',is_out_of_stock:!!product.is_out_of_stock} : {open:true,id:null,category_id:catId,name:'',description:'',price:'',photo_url:'',is_out_of_stock:false};
+            this.photoMode = 'url'; this.photoError = '';
+        },
         async saveProduct(){
             if (!this.productModal.name.trim()) return;
             const payload = { category_id:this.productModal.category_id, name:this.productModal.name, description:this.productModal.description, price:parseFloat(this.productModal.price||0), photo_url:this.productModal.photo_url||null, is_out_of_stock:this.productModal.is_out_of_stock };

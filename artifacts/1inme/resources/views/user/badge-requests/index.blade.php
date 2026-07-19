@@ -61,7 +61,7 @@
             <div class="mb-4">
                 <label class="block text-xs font-semibold uppercase tracking-wider mb-1.5" style="color: var(--text-muted);">Badge to give</label>
                 <select name="account_badge_id" required class="w-full px-3 py-2.5 rounded-lg text-sm" style="background: var(--bg-subtle); border:1px solid var(--border-soft); color: var(--text-primary);">
-                    <option value="">— Choose one of your badges —</option>
+                    <option value="">Choose one of your badges</option>
                     @foreach($mine as $b)
                         <option value="{{ $b->id }}" {{ (string) old('account_badge_id') === (string) $b->id ? 'selected' : '' }}>{{ $b->name }}</option>
                     @endforeach
@@ -122,7 +122,7 @@
             <div x-show="mode === 'existing'" class="mb-4">
                 <label class="block text-xs font-semibold uppercase tracking-wider mb-1.5" style="color: var(--text-muted);">Badge</label>
                 <select name="account_badge_id" :disabled="mode !== 'existing'" class="w-full px-3 py-2.5 rounded-lg text-sm" style="background: var(--bg-subtle); border:1px solid var(--border-soft); color: var(--text-primary);">
-                    <option value="">— Choose a badge —</option>
+                    <option value="">Choose a badge</option>
                     @foreach($badges as $b)
                         <option value="{{ $b->id }}" @disabled(in_array($b->id, $ownedIds)) {{ (string) old('account_badge_id') === (string) $b->id ? 'selected' : '' }}>
                             {{ $b->name }}@if(in_array($b->id, $ownedIds)) (already yours)@endif
@@ -130,7 +130,7 @@
                     @endforeach
                 </select>
                 @if($badges->isEmpty())
-                    <p class="text-xs mt-2" style="color: var(--text-faint);">No badges are defined yet — describe a custom one instead.</p>
+                    <p class="text-xs mt-2" style="color: var(--text-faint);">No badges are defined yet, describe a custom one instead.</p>
                 @endif
             </div>
 
@@ -157,7 +157,7 @@
     @else
         <div class="rounded-2xl border divide-y" style="background: var(--bg-card); border-color: var(--border-soft);">
             @foreach($requests as $r)
-                @php $meta = ['pending' => ['Pending', '#f59e0b'], 'approved' => ['Approved', '#10b981'], 'rejected' => ['Rejected', '#ef4444']][$r->status] ?? ['—', '#64748b']; @endphp
+                @php $meta = ['pending' => ['Pending', '#f59e0b'], 'approved' => ['Approved', '#10b981'], 'rejected' => ['Rejected', '#ef4444']][$r->status] ?? ['-', '#64748b']; @endphp
                 <div class="p-4">
                     <div class="flex items-center justify-between gap-3">
                         <div class="font-semibold text-sm" style="color: var(--text-primary);">

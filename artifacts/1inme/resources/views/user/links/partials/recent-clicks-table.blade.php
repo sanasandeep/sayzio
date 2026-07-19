@@ -22,11 +22,11 @@
             <td class="py-2 px-2 font-mono" style="color: var(--text-muted);">{{ $c->ip_address }}</td>
             <td class="py-2 px-2" style="color: var(--text-muted);">{{ $c->city ? $c->city.', ' : '' }}{{ $c->country_code ?? '—' }}</td>
             <td class="py-2 px-2 capitalize" style="color: var(--text-muted);">{{ $c->device_type ?? '—' }}</td>
-            <td class="py-2 px-2" style="color: var(--text-muted);">@if($c->channel)<span class="badge text-[10px]" style="background:rgba(56,189,248,0.10); color:#7dd3fc;" title="{{ $c->channel }}">{{ \App\Modules\Common\Services\ChannelClassifier::labelFor($c->channel) }}</span>@else<span style="color:var(--text-faint);">—</span>@endif</td>
+            <td class="py-2 px-2" style="color: var(--text-muted);">@if($c->channel)<span class="badge text-[10px]" style="background:rgba(56,189,248,0.10); color:#7dd3fc;" title="{{ $c->channel }}">{{ \App\Modules\Common\Services\ChannelClassifier::labelFor($c->channel) }}</span>@else<span style="color:var(--text-faint);">-</span>@endif</td>
             <td class="py-2 px-2" style="color: var(--text-muted);">{{ $c->browser ?? '—' }}</td>
             <td class="py-2 px-2" style="color: var(--text-muted);">{{ $c->os ?? '—' }}</td>
             <td class="py-2 px-2" style="color: var(--text-muted);">{{ $c->language ?? '—' }}</td>
-            <td class="py-2 px-2 truncate max-w-xs" style="color: var(--text-faint);">{{ $c->referrer ? (parse_url($c->referrer, PHP_URL_HOST) ?: '—') : '—' }}</td>
+            <td class="py-2 px-2 truncate max-w-xs" style="color: var(--text-faint);">{{ $c->referrer ? (parse_url($c->referrer, PHP_URL_HOST) ?: '-') : '-' }}</td>
             <td class="py-2 px-2" style="color: var(--text-muted);">@if($c->block_id)<span class="badge text-[10px]" style="background:rgba(61,107,255,0.08); color:#90acff;">{{ ($blockTypes[$c->block_type]['label'] ?? $c->block_type) }}</span>@else<span style="color:var(--text-faint);">page</span>@endif</td>
         </tr>
         @endforeach

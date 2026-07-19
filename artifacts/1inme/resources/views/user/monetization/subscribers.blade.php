@@ -64,7 +64,7 @@
                                             {{ $sub->tier->badge ? $sub->tier->badge . ' ' : '' }}{{ $sub->tier->name }}
                                         </span>
                                     @else
-                                        <span style="color: var(--text-faint);">—</span>
+                                        <span style="color: var(--text-faint);">-</span>
                                     @endif
                                 </td>
                                 <td class="px-4 py-3" style="color: var(--text-secondary);">{{ ucfirst($sub->billing_cycle) }}</td>

@@ -354,7 +354,7 @@ export default function InvoiceDetailScreen() {
               <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
                 <Feather name="alert-triangle" size={18} color={colors.destructive} />
                 <Text style={[styles.label, { color: colors.destructive, flex: 1 }]}>
-                  Last send failed — not delivered
+                  Last send failed: not delivered
                 </Text>
               </View>
               {inv.last_send_reason ? (

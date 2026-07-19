@@ -169,7 +169,7 @@ x-init="fetchPreview(); $watch('styleData', () => schedulePreview()); $watch('co
                                     <select name="style[display_mode]" class="bd-select"
                                             x-model="styleData.display_mode"
                                             @change="setStyle('display_mode', $event.target.value)">
-                                        <option value="">— system ({{ $systemStyle['display_mode'] ?? 'card' }}) —</option>
+                                        <option value="">system ({{ $systemStyle['display_mode'] ?? 'card' }})</option>
                                         <option value="card">card</option>
                                         <option value="content">content</option>
                                         <option value="overlay">overlay</option>
@@ -212,7 +212,7 @@ x-init="fetchPreview(); $watch('styleData', () => schedulePreview()); $watch('co
                             <p class="bd-hint mb-3">All values in px. Leave blank to use system default.</p>
                             <div class="mb-3">
                                 <label class="bd-label">
-                                    Padding — all sides shorthand
+                                    Padding, all sides shorthand
                                     <input type="text" name="style[padding]" class="bd-input"
                                            :value="getStyle('padding')"
                                            @input="setStyle('padding', $event.target.value)"
@@ -287,7 +287,7 @@ x-init="fetchPreview(); $watch('styleData', () => schedulePreview()); $watch('co
                                     <select name="style[font_weight]" class="bd-select"
                                             x-model="styleData.font_weight"
                                             @change="setStyle('font_weight', $event.target.value)">
-                                        <option value="">— system default —</option>
+                                        <option value="">system default</option>
                                         @foreach(['400','500','600','700','800','900'] as $w)
                                             <option value="{{ $w }}">{{ $w }}</option>
                                         @endforeach
@@ -298,7 +298,7 @@ x-init="fetchPreview(); $watch('styleData', () => schedulePreview()); $watch('co
                                     <select name="style[font_style]" class="bd-select"
                                             x-model="styleData.font_style"
                                             @change="setStyle('font_style', $event.target.value)">
-                                        <option value="">— system default —</option>
+                                        <option value="">system default</option>
                                         <option value="normal">normal</option>
                                         <option value="italic">italic</option>
                                     </select>
@@ -398,7 +398,7 @@ x-init="fetchPreview(); $watch('styleData', () => schedulePreview()); $watch('co
                                     <select name="style[border_style]" class="bd-select"
                                             x-model="styleData.border_style"
                                             @change="setStyle('border_style', $event.target.value)">
-                                        <option value="">— system default —</option>
+                                        <option value="">system default</option>
                                         @foreach(['none','solid','dashed','dotted','double'] as $bs)
                                             <option value="{{ $bs }}">{{ $bs }}</option>
                                         @endforeach
@@ -461,7 +461,7 @@ x-init="fetchPreview(); $watch('styleData', () => schedulePreview()); $watch('co
                                     <select name="style[shadow_preset]" class="bd-select"
                                             x-model="styleData.shadow_preset"
                                             @change="setStyle('shadow_preset', $event.target.value)">
-                                        <option value="">— system ({{ $systemStyle['shadow_preset'] ?? 'none' }}) —</option>
+                                        <option value="">system ({{ $systemStyle['shadow_preset'] ?? 'none' }})</option>
                                         @foreach(['none','soft','medium','strong'] as $sp)
                                             <option value="{{ $sp }}">{{ $sp }}</option>
                                         @endforeach
@@ -472,7 +472,7 @@ x-init="fetchPreview(); $watch('styleData', () => schedulePreview()); $watch('co
                                     <select name="style[glass_preset]" class="bd-select"
                                             x-model="styleData.glass_preset"
                                             @change="setStyle('glass_preset', $event.target.value)">
-                                        <option value="">— system ({{ $systemStyle['glass_preset'] ?? 'off' }}) —</option>
+                                        <option value="">system ({{ $systemStyle['glass_preset'] ?? 'off' }})</option>
                                         @foreach(['off','light','heavy'] as $gp)
                                             <option value="{{ $gp }}">{{ $gp }}</option>
                                         @endforeach
@@ -483,7 +483,7 @@ x-init="fetchPreview(); $watch('styleData', () => schedulePreview()); $watch('co
                                     <select name="style[effect]" class="bd-select"
                                             x-model="styleData.effect"
                                             @change="setStyle('effect', $event.target.value)">
-                                        <option value="">— system default —</option>
+                                        <option value="">system default</option>
                                         @foreach(['none','blur','glow','gradient','shimmer'] as $ef)
                                             <option value="{{ $ef }}">{{ $ef }}</option>
                                         @endforeach
@@ -581,7 +581,7 @@ x-init="fetchPreview(); $watch('styleData', () => schedulePreview()); $watch('co
                         </div>
                         <p x-show="jsonInvalid" x-cloak class="bd-json-warn">
                             <i class="fas fa-triangle-exclamation mr-1"></i>
-                            Content JSON is invalid — preview paused until it parses.
+                            Content JSON is invalid, preview paused until it parses.
                         </p>
 
                         {{-- Effective style tokens --}}

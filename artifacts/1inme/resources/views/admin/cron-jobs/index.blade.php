@@ -200,13 +200,13 @@
                                             <span class="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-white/40">Closure</span>
                                         @endif
                                         @if($job['protected'])
-                                            <span class="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-blue-500/10 border border-blue-400/30 text-blue-300" title="Critical for billing, data integrity or platform health — cannot be paused."><i class="fas fa-shield-halved text-[9px] mr-0.5"></i>Protected</span>
+                                            <span class="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-blue-500/10 border border-blue-400/30 text-blue-300" title="Critical for billing, data integrity or platform health, cannot be paused."><i class="fas fa-shield-halved text-[9px] mr-0.5"></i>Protected</span>
                                         @endif
                                         @if($job['paused'])
                                             <span class="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-500/15 border border-amber-400/30 text-amber-300"><i class="fas fa-pause text-[9px] mr-0.5"></i>Paused</span>
                                         @endif
                                         @if($job['key'] && in_array($job['key'], $mutedAlertJobs, true))
-                                            <span class="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-white/40" title="Failure alerts for this job are muted — it still runs on schedule, but ops admins are not notified when it fails."><i class="fas fa-bell-slash text-[9px] mr-0.5"></i>Alerts muted</span>
+                                            <span class="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-white/40" title="Failure alerts for this job are muted, it still runs on schedule, but ops admins are not notified when it fails."><i class="fas fa-bell-slash text-[9px] mr-0.5"></i>Alerts muted</span>
                                         @endif
                                         @if($job['key'])
                                             {{-- Live badge: driven by the polling loop so it appears/disappears without a reload. --}}
@@ -219,7 +219,7 @@
                                             <span class="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-emerald-500/15 border border-emerald-400/30 text-emerald-300">Running now</span>
                                         @endif
                                         @if(!empty($job['failing_repeatedly']))
-                                            <span class="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-rose-500/15 border border-rose-400/30 text-rose-300 font-semibold" title="Every run since this job's last success has failed. Inspect the run history and error output, then fix the cause or use Run now to retry — the badge clears once the job succeeds again."><i class="fas fa-triangle-exclamation text-[9px] mr-0.5"></i>Failing repeatedly ({{ $job['failing_streak'] }} in a row)</span>
+                                            <span class="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-rose-500/15 border border-rose-400/30 text-rose-300 font-semibold" title="Every run since this job's last success has failed. Inspect the run history and error output, then fix the cause or use Run now to retry, the badge clears once the job succeeds again."><i class="fas fa-triangle-exclamation text-[9px] mr-0.5"></i>Failing repeatedly ({{ $job['failing_streak'] }} in a row)</span>
                                         @endif
                                     </div>
                                     <p class="text-xs text-white/50 mt-1 leading-relaxed">{{ $job['purpose'] }}</p>
@@ -345,7 +345,7 @@
                                                     </button>
                                                 </form>
                                             @else
-                                                <span class="w-8 h-8 rounded-lg bg-white/[0.02] border border-white/5 text-white/20 flex items-center justify-center" title="Protected — cannot be paused.">
+                                                <span class="w-8 h-8 rounded-lg bg-white/[0.02] border border-white/5 text-white/20 flex items-center justify-center" title="Protected, cannot be paused.">
                                                     <i class="fas fa-pause text-[11px]"></i>
                                                 </span>
                                             @endif
@@ -354,7 +354,7 @@
                                             @if(in_array($job['key'], $mutedAlertJobs, true))
                                                 <form method="POST" action="{{ route('admin.cron-jobs.unmute-alerts', ['key' => $job['key']]) }}">
                                                     @csrf
-                                                    <button type="submit" title="Alerts are muted for this job — click to re-enable failure alerts"
+                                                    <button type="submit" title="Alerts are muted for this job, click to re-enable failure alerts"
                                                             class="w-8 h-8 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 border border-amber-400/20 text-amber-300 transition flex items-center justify-center">
                                                         <i class="fas fa-bell-slash text-[11px]"></i>
                                                     </button>
@@ -420,7 +420,32 @@
                                                             <td class="px-4 py-2 whitespace-nowrap text-white/60" x-text="run.runtime !== null ? (Math.round(run.runtime * 100) / 100) + 's' : '—'"></td>
                                                             <td class="px-4 py-2 whitespace-nowrap text-white/60" x-text="run.exit_code !== null ? run.exit_code : '—'"></td>
                                                             <td class="px-4 py-2 whitespace-nowrap text-white/60" x-text="run.source"></td>
-                                                            <td class="px-4 py-2 text-rose-300/70 max-w-[18rem] truncate" :title="run.error || ''" x-text="run.error || '—'"></td>
+                                                            <td class="px-4 py-2 align-top max-w-[28rem]">
+                                                                <template x-if="! run.error">
+                                                                    <span class="text-white/30">&mdash;</span>
+                                                                </template>
+                                                                <template x-if="run.error">
+                                                                    <div>
+                                                                        <div class="flex items-center gap-2 mb-1">
+                                                                            <button type="button"
+                                                                                class="text-[10px] uppercase tracking-wider font-semibold px-1.5 py-0.5 rounded border border-white/15 text-white/50 hover:text-white/80 hover:border-white/30 transition"
+                                                                                @click="copy(run.error, 'run-err-' + run.id)">
+                                                                                <i class="fas text-[9px] mr-0.5" :class="copied === 'run-err-' + run.id ? 'fa-check text-emerald-300' : 'fa-copy'"></i>
+                                                                                <span x-text="copied === 'run-err-' + run.id ? 'Copied' : 'Copy error'"></span>
+                                                                            </button>
+                                                                            <template x-if="errorLineCount(run) > 5">
+                                                                                <button type="button"
+                                                                                    class="text-[10px] uppercase tracking-wider font-semibold px-1.5 py-0.5 rounded border border-white/15 text-white/50 hover:text-white/80 hover:border-white/30 transition"
+                                                                                    @click="toggleErrorExpand(run.id)">
+                                                                                    <i class="fas text-[9px] mr-0.5" :class="isErrorExpanded(run.id) ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
+                                                                                    <span x-text="isErrorExpanded(run.id) ? 'Show less' : ('Show all ' + errorLineCount(run) + ' lines')"></span>
+                                                                                </button>
+                                                                            </template>
+                                                                        </div>
+                                                                        <pre class="font-mono text-[11px] leading-4 text-rose-300/80 bg-black/30 border border-rose-400/15 rounded-lg px-2.5 py-2 whitespace-pre-wrap break-words max-h-72 overflow-y-auto" x-text="errorDisplay(run)"></pre>
+                                                                    </div>
+                                                                </template>
+                                                            </td>
                                                         </tr>
                                                     </template>
                                                 </tbody>
@@ -452,6 +477,8 @@
             historyKey: null,
             historyRuns: [],
             historyLoading: false,
+            // Run ids whose error output is expanded past the 5-line preview.
+            expandedErrors: [],
             // Per-job live status map, seeded server-side and refreshed by a
             // light polling loop while any run is in flight, so badges and
             // last-run details update in place without a manual page reload.
@@ -551,6 +578,7 @@
                 }
                 this.historyKey = key;
                 this.historyRuns = [];
+                this.expandedErrors = [];
                 await this.fetchRuns(key);
             },
             async fetchRuns(key, { quiet = false } = {}) {
@@ -568,8 +596,30 @@
                     if (this.historyKey === key && ! quiet) this.historyLoading = false;
                 }
             },
+            errorLineCount(run) {
+                if (! run.error) return 0;
+                return String(run.error).split('\n').length;
+            },
+            isErrorExpanded(id) {
+                return this.expandedErrors.includes(id);
+            },
+            toggleErrorExpand(id) {
+                if (this.isErrorExpanded(id)) {
+                    this.expandedErrors = this.expandedErrors.filter((x) => x !== id);
+                } else {
+                    this.expandedErrors = this.expandedErrors.concat([id]);
+                }
+            },
+            errorDisplay(run) {
+                const text = String(run.error || '');
+                const lines = text.split('\n');
+                if (lines.length <= 5 || this.isErrorExpanded(run.id)) {
+                    return text;
+                }
+                return lines.slice(0, 5).join('\n') + '\n…';
+            },
             formatWhen(iso) {
-                if (! iso) return '—';
+                if (! iso) return '-';
                 try {
                     return new Date(iso).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
                 } catch (e) {

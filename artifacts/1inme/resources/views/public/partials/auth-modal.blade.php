@@ -117,7 +117,7 @@
                             <i class="fas fa-paper-plane mr-1 text-xs"></i> Send 6-digit code
                         </button>
                         @if(!$emailPasswordEnabled)
-                        <p class="text-center text-xs text-gray-500">No password — we'll email you a code.</p>
+                        <p class="text-center text-xs text-gray-500">No password needed; we'll email you a code.</p>
                         @endif
                     </form>
                     @endif

@@ -9,7 +9,7 @@
     $autoTranslateSettings = $link->settings['biolink']['auto_translate'] ?? [];
     $__biolinkOwnerName = $link->user?->name ?? null;
     $pageTitle = $link->seo_title ?? $metaSettings['seo_title'] ?? $link->title
-        ?? ($__biolinkOwnerName ? $__biolinkOwnerName . ' — Link in Bio' : 'Link in Bio');
+        ?? ($__biolinkOwnerName ? $__biolinkOwnerName . ', Link in Bio' : 'Link in Bio');
     $pageDesc = $link->seo_description ?? $metaSettings['seo_description']
         ?? ($__biolinkOwnerName ? ('Visit ' . $__biolinkOwnerName . "'s Link in Bio page on Sayzio.") : '');
     $pageImage = $link->seo_image ?? $ogSettings['image_url'] ?? '';
@@ -97,6 +97,8 @@
         @if(!empty($manifestSettings['short_name']))
             <meta name="apple-mobile-web-app-title" content="{{ $manifestSettings['short_name'] }}">
         @endif
+    @else
+        @include('common.partials.toolbar-theme-color')
     @endif
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @include('common.partials.fontawesome')
@@ -2586,7 +2588,7 @@
             try {
                 var qs = new URLSearchParams(location.search);
                 if (qs.get('ar') !== 'unsupported') return;
-                var msg = "AR isn't supported on this device or browser — here's the standard Link in Bio instead.";
+                var msg = "AR isn't supported on this device or browser, here's the standard Link in Bio instead.";
                 var t = document.createElement('div');
                 t.setAttribute('role', 'status');
                 t.style.cssText = 'position:fixed;left:50%;bottom:22px;transform:translateX(-50%);'

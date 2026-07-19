@@ -64,17 +64,25 @@ export interface ApiClientOptions {
   baseUrl: string;
   token?: string;
   userAgent?: string;
+  /**
+   * Sayzio workspace ID for workspace-scoped browser sync. When set, every
+   * request carries `X-Browser-Workspace-Id` so the server buckets bookmarks,
+   * collections, and history per workspace. Null/absent = personal bucket.
+   */
+  workspaceId?: string | null;
 }
 
 export class ApiClient {
   private baseUrl: string;
   private token: string | null;
   private userAgent: string;
+  private workspaceId: string | null;
 
   constructor(options: ApiClientOptions) {
     this.baseUrl = options.baseUrl.replace(/\/$/, '');
     this.token = options.token ?? null;
     this.userAgent = options.userAgent ?? 'SayZioBrowser/1.0';
+    this.workspaceId = options.workspaceId ?? null;
   }
 
   setToken(token: string | null): void {
@@ -83,6 +91,14 @@ export class ApiClient {
 
   getToken(): string | null {
     return this.token;
+  }
+
+  setWorkspaceId(workspaceId: string | null): void {
+    this.workspaceId = workspaceId;
+  }
+
+  getWorkspaceId(): string | null {
+    return this.workspaceId;
   }
 
   private async request<T>(
@@ -101,6 +117,9 @@ export class ApiClient {
 
     if (this.token) {
       headers['Authorization'] = `Bearer ${this.token}`;
+    }
+    if (this.workspaceId) {
+      headers['X-Browser-Workspace-Id'] = this.workspaceId;
     }
 
     const response = await fetch(url, {
@@ -198,6 +217,16 @@ export class ApiClient {
     return this.get(`/browser/devices/${deviceId}/pull${qs}`);
   }
 
+  /**
+   * Bulk server-side history purge. Marks all server-stored history rows as
+   * deleted (tombstoned) so other devices see the wipe on next pull.
+   *
+   * @param since - ISO-8601 lower bound; null means purge all history.
+   */
+  async purgeHistory(since: string | null): Promise<{ deleted: number }> {
+    return this.post('/browser/history/purge', { since });
+  }
+
   // ── Contacts ─────────────────────────────────────────────────────────────
 
   async getProfile(): Promise<{ user: ApiUserProfile }> {
@@ -253,6 +282,7 @@ export class ApiClient {
       'X-App-Platform': 'desktop',
     };
     if (this.token) headers['Authorization'] = `Bearer ${this.token}`;
+    if (this.workspaceId) headers['X-Browser-Workspace-Id'] = this.workspaceId;
 
     const response = await fetch(url, {
       method,
@@ -408,6 +438,14 @@ export class ApiClient {
     return this.get<AliasCheckResult>(`/links/check-alias?${qs.toString()}`);
   }
 
+  async getLink(id: number): Promise<{ link: ApiLink }> {
+    return this.get(`/links/${id}`);
+  }
+
+  async updateLink(id: number, data: UpdateLinkPayload): Promise<{ link: ApiLink }> {
+    return this.patch(`/links/${id}`, data);
+  }
+
   async getLinkAnalytics(id: number, from?: string, to?: string): Promise<LinkAnalytics> {
     const qs = new URLSearchParams();
     if (from) qs.set('from', from);
@@ -437,9 +475,66 @@ export class ApiClient {
   async addBiolinkBlock(linkId: number, data: AddBiolinkBlockPayload): Promise<{ block: ApiBiolinkBlock }> {
     return this.post(`/biolinks/${linkId}/blocks`, data);
   }
+
+  // ── Files ──────────────────────────────────────────────────────────────────
+
+  /**
+   * Upload a screenshot PNG (as a base64 data URL) to the user's Sayzio file
+   * storage.  Returns the created file record on success.
+   *
+   * The Sayzio files API accepts multipart/form-data with a `file` field.
+   * We convert the data URL to a Blob so that the built-in `fetch` + FormData
+   * can encode it correctly — no Node.js Buffer needed in the renderer.
+   */
+  async uploadScreenshot(dataUrl: string, filename: string): Promise<ApiFile> {
+    const url = `${this.baseUrl}/api/v1/files`;
+    const headers: Record<string, string> = {
+      'Accept': 'application/json',
+      'User-Agent': this.userAgent,
+      'X-App-Platform': 'desktop',
+    };
+    if (this.token) headers['Authorization'] = `Bearer ${this.token}`;
+
+    // Convert base64 data URL → Blob
+    const base64 = dataUrl.replace(/^data:image\/png;base64,/, '');
+    const bytes = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
+    const blob = new Blob([bytes], { type: 'image/png' });
+
+    const formData = new FormData();
+    formData.append('file', blob, filename);
+
+    const response = await fetch(url, { method: 'POST', headers, body: formData });
+
+    if (response.status === 413) {
+      throw new ApiClientError('quota_exceeded', 'Storage quota exceeded', 413);
+    }
+
+    const json = await response.json() as ApiEnvelope<{ file: ApiFile }> | ApiError;
+    if (!response.ok) {
+      const err = json as ApiError;
+      throw new ApiClientError(
+        err.error?.code ?? 'upload_error',
+        err.error?.message ?? `HTTP ${response.status}`,
+        response.status,
+        err.error?.details,
+      );
+    }
+
+    return (json as ApiEnvelope<{ file: ApiFile }>).data.file;
+  }
 }
 
 // ── Shared types ─────────────────────────────────────────────────────────────
+
+export interface ApiFile {
+  id: number;
+  filename: string;
+  original_name: string;
+  mime_type: string;
+  size: number;
+  url: string;
+  created_at: string | null;
+}
 
 export interface BrowserDeviceInfo {
   label: string;
@@ -605,6 +700,15 @@ export interface CreateLinkPayload {
   visibility?: 'public' | 'registered' | 'followers' | 'subscribers';
   is_active?: boolean;
   settings?: Record<string, unknown>;
+}
+
+/** Partial update payload for PATCH /links/:id — only supplied keys change. */
+export interface UpdateLinkPayload {
+  title?: string | null;
+  alias?: string;
+  visibility?: 'public' | 'registered' | 'followers' | 'subscribers';
+  is_active?: boolean;
+  long_url?: string | null;
 }
 
 export interface AliasCheckResult {

@@ -17,7 +17,7 @@
                     </div>
                     @if(!empty($handleSuggestions))
                         <div class="mt-3">
-                            <div class="text-xs uppercase tracking-wider text-amber-200/70 mb-1.5">Available suggestions — click to use</div>
+                            <div class="text-xs uppercase tracking-wider text-amber-200/70 mb-1.5">Available suggestions, click to use</div>
                             <div class="flex flex-wrap gap-2" data-handle-suggestions>
                                 @foreach($handleSuggestions as $suggestion)
                                     <button type="button"
@@ -132,7 +132,7 @@
                                 {{-- Dropdown for India / US; free-text for every other country --}}
                                 <template x-if="billingCountry === 'IN' || billingCountry === 'US'">
                                     <select name="billing_region" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white outline-none focus:ring-2 focus:ring-blue-500/40">
-                                        <option value="" class="bg-[#0d0818]">— None / N/A —</option>
+                                        <option value="" class="bg-[#0d0818]">None / N/A</option>
                                         <optgroup label="India" class="bg-[#0d0818]">
                                             @foreach($inStates as $code => $label)
                                                 <option value="{{ $code }}" {{ old('billing_region', $billing->region ?? '') === $code ? 'selected' : '' }} class="bg-[#0d0818]">IN-{{ $code }} · {{ $label }}</option>
@@ -207,15 +207,15 @@
                             <div class="space-y-2 pl-1">
                                 <label class="flex items-start gap-2 text-sm text-white/70">
                                     <input type="radio" name="follower_updates_mode" value="instant" {{ $mode === 'instant' ? 'checked' : '' }} class="w-4 h-4 mt-0.5">
-                                    <span><span class="text-white">Instant</span> — email me as soon as something happens</span>
+                                    <span><span class="text-white">Instant</span>, email me as soon as something happens</span>
                                 </label>
                                 <label class="flex items-start gap-2 text-sm text-white/70">
                                     <input type="radio" name="follower_updates_mode" value="digest" {{ $mode === 'digest' ? 'checked' : '' }} class="w-4 h-4 mt-0.5">
-                                    <span><span class="text-white">Daily digest</span> — one email per day with everything new (recommended)</span>
+                                    <span><span class="text-white">Daily digest</span>, one email per day with everything new (recommended)</span>
                                 </label>
                                 <label class="flex items-start gap-2 text-sm text-white/70">
                                     <input type="radio" name="follower_updates_mode" value="off" {{ $mode === 'off' ? 'checked' : '' }} class="w-4 h-4 mt-0.5">
-                                    <span><span class="text-white">Off</span> — don't email me about creator updates</span>
+                                    <span><span class="text-white">Off</span>, don't email me about creator updates</span>
                                 </label>
                             </div>
 
@@ -288,64 +288,21 @@
             <div class="space-y-6">
 
                 {{-- Avatar Upload --}}
-                <div class="glass rounded-2xl p-6" x-data="{
-                    fileName: '',
-                    previewSrc: {{ $user->avatar ? ('\''. \App\Support\PublicStorageUrl::resolve($user->avatar) .'\'') : 'null' }},
-                    pick() {
-                        this.$refs.avatarInput.click();
-                    },
-                    onChange(e) {
-                        const f = e.target.files && e.target.files[0];
-                        if (!f) return;
-                        this.fileName = f.name;
-                        const reader = new FileReader();
-                        reader.onload = (ev) => { this.previewSrc = ev.target.result; };
-                        reader.readAsDataURL(f);
-                    }
-                }">
+                <div class="glass rounded-2xl p-6">
                     <h2 class="text-base font-semibold mb-4" style="color: var(--text-strong);">Photo</h2>
-
-                    <div class="flex flex-col items-center gap-4">
-                        {{-- Avatar preview circle --}}
-                        <div class="relative">
-                            <template x-if="previewSrc">
-                                <img :src="previewSrc" class="w-24 h-24 rounded-full object-cover ring-2 ring-white/10" alt="Avatar preview">
-                            </template>
-                            <template x-if="!previewSrc">
-                                <div class="w-24 h-24 rounded-full bg-white/8 border-2 border-dashed border-white/20 flex items-center justify-center">
-                                    <i class="fas fa-user text-3xl text-white/20"></i>
-                                </div>
-                            </template>
-                            {{-- Upload overlay badge --}}
-                            <button type="button" @click="pick()"
-                                    class="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-blue-600 hover:bg-blue-500 border-2 border-white/10 flex items-center justify-center transition-colors shadow-lg"
-                                    title="Change photo">
-                                <i class="fas fa-camera text-white text-xs"></i>
-                            </button>
-                        </div>
-
-                        {{-- Hidden real file input --}}
-                        <input type="file" name="avatar" accept="image/*"
-                               x-ref="avatarInput"
-                               @change="onChange($event)"
-                               class="hidden">
-
-                        {{-- Upload button --}}
-                        <button type="button" @click="pick()"
-                                class="profile-upload-btn inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all">
-                            <i class="fas fa-arrow-up-from-bracket text-sm"></i>
-                            <span x-text="previewSrc ? 'Change photo' : 'Upload avatar'"></span>
-                        </button>
-
-                        {{-- Selected file name --}}
-                        <p x-show="fileName" x-text="fileName"
-                           class="text-xs text-white/50 text-center truncate max-w-full px-2"
-                           style="display:none;"></p>
-
-                        <p class="text-[11px] text-center" style="color: var(--text-subtle, rgba(255,255,255,0.30));">
-                            JPG, PNG or GIF &middot; Max 2 MB
-                        </p>
-                    </div>
+                    @php
+                        $avatarPolicy = \App\Services\UploadPolicy::for('user.avatar', auth()->user());
+                        $avatarCurrentUrl = $user->avatar ? \App\Support\PublicStorageUrl::resolve($user->avatar) : null;
+                    @endphp
+                    @include('user.partials.dropzone-input', [
+                        'name'        => 'avatar',
+                        'policy'      => $avatarPolicy,
+                        'currentUrl'  => $avatarCurrentUrl,
+                        'currentName' => $user->avatar ? basename($user->avatar) : null,
+                        'label'       => null,
+                        'previewKind' => 'image',
+                        'compact'     => true,
+                    ])
                 </div>
 
                 {{-- Public Profile --}}
@@ -427,7 +384,7 @@
 
         <div class="glass rounded-2xl p-6">
             <h2 class="text-base font-semibold mb-1" style="color: var(--text-strong);">Sign-in security</h2>
-            <p class="text-sm text-white/50 mb-4">Your account is protected by one-time codes — there's no password to manage.</p>
+            <p class="text-sm text-white/50 mb-4">Your account is protected by one-time codes, there's no password to manage.</p>
             <div class="flex items-start gap-3 rounded-xl px-4 py-3" style="background: rgba(61,107,255,0.08); border: 1px solid rgba(61,107,255,0.20);">
                 <i class="fas fa-shield-alt text-blue-400 mt-0.5"></i>
                 <div class="text-sm text-white/70">
@@ -441,25 +398,6 @@
 </div>
 
 @push('styles')
-<style>
-    .profile-upload-btn {
-        background: rgba(var(--color-primary-rgb, 37,99,235), 0.12);
-        border: 1px solid rgba(var(--color-primary-rgb, 37,99,235), 0.30);
-        color: var(--color-primary-400, #60a5fa);
-    }
-    .profile-upload-btn:hover {
-        background: rgba(var(--color-primary-rgb, 37,99,235), 0.22);
-        border-color: rgba(var(--color-primary-rgb, 37,99,235), 0.50);
-    }
-    html.light-mode .profile-upload-btn {
-        background: rgba(37,99,235,0.08);
-        border-color: rgba(37,99,235,0.25);
-        color: #1d4ed8;
-    }
-    html.light-mode .profile-upload-btn:hover {
-        background: rgba(37,99,235,0.15);
-    }
-</style>
 @endpush
 
 @push('scripts')

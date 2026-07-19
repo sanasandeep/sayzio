@@ -305,7 +305,7 @@ export default function InsuranceSettingsScreen() {
             label="Fallback message (shown if everything is down)"
             value={fallbackMessage}
             onChangeText={setFallbackMessage}
-            placeholder="Optional — leave blank to keep redirecting"
+            placeholder="Optional; leave blank to keep redirecting"
           />
         </View>
 
@@ -350,7 +350,7 @@ export default function InsuranceSettingsScreen() {
                   <Text style={{ color: colors.mutedForeground, fontSize: 12, marginTop: 6 }}>
                     Last probe: {probed.last_status}
                     {probed.last_http_code ? ` (HTTP ${probed.last_http_code})` : ""}
-                    {probed.last_checked_at ? ` — ${timeAgo(probed.last_checked_at)}` : ""}
+                    {probed.last_checked_at ? ` · ${timeAgo(probed.last_checked_at)}` : ""}
                   </Text>
                 ) : null}
               </View>

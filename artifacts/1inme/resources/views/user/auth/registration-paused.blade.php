@@ -94,7 +94,7 @@
                         We&rsquo;re upgrading {{ config('app.name') }}.
                     </h1>
                     <p class="mt-3 text-sm" style="color: var(--text-muted);">
-                        We&rsquo;ve temporarily paused new sign-ups while we put the finishing touches on something better. New accounts will reopen shortly — thanks for your patience.
+                        We&rsquo;ve temporarily paused new sign-ups while we put the finishing touches on something better. New accounts will reopen shortly, thanks for your patience.
                     </p>
                 </div>
 
@@ -131,7 +131,7 @@
 
                 <div class="mt-7 rounded-2xl px-5 py-5 text-center lg:text-left" style="background: rgba(125,155,255,0.07); border:1px solid rgba(125,155,255,0.18);">
                     <p class="text-sm font-medium" style="color: var(--text-secondary);">Already have an account?</p>
-                    <p class="text-xs mt-1" style="color: var(--text-dimmed);">Existing members aren&rsquo;t affected — sign in and keep going as usual.</p>
+                    <p class="text-xs mt-1" style="color: var(--text-dimmed);">Existing members aren&rsquo;t affected, sign in and keep going as usual.</p>
                     <a href="{{ route('user.login') }}" class="btn-primary justify-center mt-4 px-6 py-2.5 text-sm">
                         <i class="fas fa-arrow-right-to-bracket text-[12px]"></i> Log in to your account
                     </a>

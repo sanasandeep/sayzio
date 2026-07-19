@@ -5,7 +5,7 @@
     $summary  = (string) ($resume->getMergedSections()['summary'] ?? '');
     $name     = trim($h['name'] ?? '') ?: $user->name;
     $headline = trim($h['headline'] ?? '');
-    $title    = $name . ($headline ? ' — '.$headline : "'s resume");
+    $title    = $name . ($headline ? ', '.$headline : "'s resume");
     $description = trim($resume->meta_description ?? '') ?: ($headline ?: \Illuminate\Support\Str::limit($summary, 200));
     // Canonical/og:url/JSON-LD `url` use the request-derived canonical URL
     // (host normalised to the primary brand domain) so a visit on any
@@ -38,6 +38,7 @@
 <!doctype html>
 <html lang="en">
 <head>
+    @include('common.partials.toolbar-theme-color')
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
@@ -151,7 +152,7 @@
             <i class="fas fa-eye"></i>
             <span>You're viewing your own resume page.
                 @if (!$resume->is_public)
-                    It's currently <strong>not public</strong> — only you can see it.
+                    It's currently <strong>not public</strong>, only you can see it.
                 @endif
                 <a href="{{ route('user.resume.editor') }}" style="color:#2139a1; font-weight:700; margin-left:4px;">Manage</a>
             </span>

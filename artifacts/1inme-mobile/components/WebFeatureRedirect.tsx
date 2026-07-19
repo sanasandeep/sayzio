@@ -121,7 +121,7 @@ export function WebFeatureRedirect({
 
         <Text style={[styles.hint, { color: colors.mutedForeground }]}>
           We're rolling this experience out natively on mobile. In the meantime,
-          tap the button below to use it on the web — you'll stay signed in
+          tap the button below to use it on the web; you'll stay signed in
           inside the in-app browser.
         </Text>
 

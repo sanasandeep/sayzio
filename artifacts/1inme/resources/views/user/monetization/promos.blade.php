@@ -85,7 +85,7 @@
                                            style="border-color: var(--border-color); color: var(--text-primary);">
                                 </div>
                                 <div>
-                                    <label class="text-xs" style="color: var(--text-faint);">{{ $promo->describe() }} — value</label>
+                                    <label class="text-xs" style="color: var(--text-faint);">{{ $promo->describe() }}, value</label>
                                     <input type="number" name="value" value="{{ $promo->value }}" min="0" max="100000" required
                                            class="w-full mt-1 px-3 py-2 rounded-lg border bg-transparent text-sm"
                                            style="border-color: var(--border-color); color: var(--text-primary);">

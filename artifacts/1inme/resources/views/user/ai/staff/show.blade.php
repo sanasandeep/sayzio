@@ -56,7 +56,7 @@
         <div class="rounded-2xl border border-white/10 bg-white/[0.03] p-5 mb-6">
             <h3 class="text-white font-semibold mb-2"><i class="fas fa-inbox text-blue-300/80 mr-1.5"></i>AI Inbox Agent</h3>
             <p class="text-sm text-white/50">This staff member is a face on top of your existing AI Inbox Agent. Configure autopilot rules, tone and reply drafting from
-                <a href="{{ url('/user/settings/inbox') }}" class="text-blue-300 hover:text-blue-200">Settings → Inbox</a> — nothing here duplicates that setup.</p>
+                <a href="{{ url('/user/settings/inbox') }}" class="text-blue-300 hover:text-blue-200">Settings → Inbox</a>, nothing here duplicates that setup.</p>
         </div>
     @endif
 
@@ -108,7 +108,7 @@
             <select x-model="contactId" class="w-full rounded-xl bg-white/5 border border-white/10 px-3 py-2 text-white text-sm mb-3">
                 <option value="">Pick a contact…</option>
                 @foreach($contacts as $c)
-                    <option value="{{ $c->id }}">{{ $c->display_name ?: trim(($c->given_name ?? '').' '.($c->family_name ?? '')) }}{{ $c->organization ? ' — '.$c->organization : '' }}</option>
+                    <option value="{{ $c->id }}">{{ $c->display_name ?: trim(($c->given_name ?? '').' '.($c->family_name ?? '')) }}{{ $c->organization ? ', '.$c->organization : '' }}</option>
                 @endforeach
             </select>
             <div class="flex gap-2 mb-3">
