@@ -177,6 +177,13 @@ else
     log "  Subsequent deploys will sync it automatically."
   elif diff -q "$_repo_conf" "$_installed_conf" >/dev/null 2>&1; then
     log "Nginx config is up to date — no sync needed."
+  elif grep -q "server_name yourdomain.com;" "$_repo_conf" && ! grep -q "server_name yourdomain.com;" "$_installed_conf"; then
+    # The installed config has been customized on the server (real domains,
+    # certbot SSL blocks, distro FPM socket) while the repo copy is still the
+    # generic template. Overwriting it would clobber server_name + SSL and
+    # take the site down with certificate errors (this happened July 2026).
+    log "Nginx config on server is site-customized; repo copy is the generic template — leaving installed config untouched."
+    log "  To intentionally update it, edit /etc/nginx/conf.d/sayzio.conf (or sites-available) by hand, or commit a real config to deploy/ec2/nginx/sayzio.conf."
   else
     log "Nginx config has changed — installing updated config to $_installed_conf ..."
     _backup_conf="${_installed_conf}.bak"

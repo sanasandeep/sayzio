@@ -23,3 +23,5 @@ Rules that keep it green:
 - Server: AL2023, ec2-user, app at /var/www/sayzio, FPM user apache. Domains on the box: sayzio.app, 1in.me (301→sayzio.app), getbio.one, bizs.club (+www). sayzio.link DNS points at the Replit deployment, not EC2.
 
 **SSH access (user machine):** the user connects from their laptop with the key file `~/Downloads/1INME.pem` — full command: `ssh -i ~/Downloads/1INME.pem ec2-user@16.113.25.149`. Remind them of this exact command when guiding EC2 deploys.
+
+**Nginx clobber incident (July 2026):** deploy.sh nginx sync overwrote the live customized /etc/nginx/conf.d/sayzio.conf with the repo TEMPLATE (yourdomain.com, Ubuntu socket, no SSL) → site served the wrong cert (mobile "Network request failed"). deploy.sh now skips sync when the installed config is customized but the repo copy still has the `server_name yourdomain.com;` placeholder. Recovery = sed real server_names + AL2023 socket back in, then `sudo certbot install --cert-name 1in.me` to re-add the 443 blocks (combined cert lives at /etc/letsencrypt/live/1in.me/).
