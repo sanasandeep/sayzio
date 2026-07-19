@@ -23,6 +23,7 @@ import {
   FlatList,
   Image,
   Keyboard,
+  KeyboardAvoidingView,
   Modal,
   Platform,
   Pressable,
@@ -863,9 +864,14 @@ export function VoiceAssistant() {
         visible={open}
         transparent
         animationType="slide"
+        statusBarTranslucent
+        navigationBarTranslucent
         onRequestClose={closeSheet}
       >
-        <View style={styles.backdrop}>
+        <KeyboardAvoidingView
+          style={styles.backdrop}
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
+        >
           <View
             style={[
               styles.sheet,
@@ -1048,7 +1054,7 @@ export function VoiceAssistant() {
               />
             )}
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* ── NFC follow-up sheet (stacks on top) ───────────────── */}
