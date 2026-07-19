@@ -1,0 +1,14 @@
+**/node_modules
+**/.expo
+.git
+.local
+.agents
+.cache
+artifacts/1inme/vendor
+artifacts/1inme/storage
+artifacts/1inme/public/build
+artifacts/1inme/tests
+attached_assets
+screenshots
+sayzio-desktop
+zio-browser

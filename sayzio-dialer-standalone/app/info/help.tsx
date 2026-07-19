@@ -16,11 +16,11 @@ export default function Help() {
         },
         {
           heading: "NFC tag will not write",
-          body: "Hold the tag still against the back of your phone for at least two seconds. Some tags ship pre-locked — try a fresh one.",
+          body: "Hold the tag still against the back of your phone for at least two seconds. Some tags ship pre-locked; try a fresh one.",
         },
         {
           heading: "Contact us",
-          body: "Tap \"Contact us\" on your Profile to request a call back, a WhatsApp call, or an email reply — our team picks it up from there. You can also email support@sayzio.app or visit https://sayzio.app/help for live chat.",
+          body: "Tap \"Contact us\" on your Profile to request a call back, a WhatsApp call, or an email reply; our team picks it up from there. You can also email support@sayzio.app or visit https://sayzio.app/help for live chat.",
         },
       ]}
     />

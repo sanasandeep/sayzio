@@ -23,7 +23,7 @@
       "source": "app/info/about.tsx",
       "relation": "adapted",
       "note": "standalone copy keeps the contacts/dialer mentions the main app removed when its dialer surfaces were dropped",
-      "sourceSha256": "33685c9f7305b34c57147598142690a9e190baf433a0474de0085fa50e089b77"
+      "sourceSha256": "c262697ea0058e9490cb04b39ad7a5383f8bc09da419490c7728c53273adc49f"
     },
     {
       "standalone": "app/info/help.tsx",
@@ -53,6 +53,16 @@
     {
       "standalone": "components/Brand.tsx",
       "source": "components/Brand.tsx",
+      "relation": "identical"
+    },
+    {
+      "standalone": "components/ErrorBoundary.tsx",
+      "source": "components/ErrorBoundary.tsx",
+      "relation": "identical"
+    },
+    {
+      "standalone": "components/ErrorFallback.tsx",
+      "source": "components/ErrorFallback.tsx",
       "relation": "identical"
     },
     {
@@ -104,7 +114,7 @@
       "source": "components/SocialMergePrompt.tsx",
       "relation": "adapted",
       "note": "standalone has no native /account-merge screen; 'Merge now' opens the web /user/merge page via Linking instead of router.push",
-      "sourceSha256": "b968ae5d595c4b3205cec89caa882806cfd66fece3137f00f2d11a0606d5b1e7"
+      "sourceSha256": "54d8d2c0e7f1029eed399b7834fcc93d7895ea77276142010deae0100a1bf78e"
     },
     {
       "standalone": "components/TextField.tsx",
@@ -219,7 +229,7 @@
       "standalone": "app/(auth)/index.tsx",
       "source": "app/(auth)/index.tsx",
       "relation": "adapted",
-      "sourceSha256": "61daf1a67643dba1ec8516ce54c27fc909bb38c9c3176e4f410e7bf3dcfd3117",
+      "sourceSha256": "9dd31cc1090f641324a51b081e6c652e748185994fd7bdb6c600520a5be2a536",
       "note": "dev-only missing-env alert text reworded (no monorepo path); also omits the intro-style reanimated AnimatedBlob decorative background the main app adds, because the standalone deliberately does not depend on react-native-reanimated (same policy as the static InfoPage entry); everything else must match the main app"
     },
     {
@@ -233,14 +243,14 @@
       "standalone": "app/_layout.tsx",
       "source": "app/_layout.tsx",
       "relation": "adapted",
-      "note": "root providers trimmed to what the dialer needs (no VoiceAssistant, DeepLinkRouter, ErrorBoundary, ImpersonationBanner, IdleLockWarning, KeyboardProvider, RevenueCat/SubscriptionProvider, push registration, @workspace/api-client-react wiring); mounts useContactAutoSync; Stack.Screen list only carries dialer-relevant routes (search/dialer-profile/call/contacts/info/oauth-callback) — new main-app-only screens (calendars, brand-kits, delivery-projects, marketing-strategist, etc.) are not dialer surfaces and intentionally omitted",
+      "note": "root providers trimmed to what the dialer needs (no VoiceAssistant, DeepLinkRouter, ImpersonationBanner, IdleLockWarning, KeyboardProvider, RevenueCat/SubscriptionProvider, push registration, @workspace/api-client-react wiring); mounts useContactAutoSync; Stack.Screen list only carries dialer-relevant routes (search/dialer-profile/call/contacts/info/oauth-callback) — new main-app-only screens (calendars, brand-kits, delivery-projects, marketing-strategist, etc.) are not dialer surfaces and intentionally omitted",
       "sourceSha256": "4bb1b301311e2488a09305c93d0a9d427776112ce6f95952066d0dab914aa714"
     },
     {
       "standalone": "app/oauth-callback.tsx",
       "source": "app/oauth-callback.tsx",
       "relation": "adapted",
-      "sourceSha256": "63ea63af3a730239191f0badc2f7c736cc3772128faf7b89c400aafb73029c02",
+      "sourceSha256": "4f838a43054fa6077c8bfb3b606fdc3fd74c04414f65b04fd25fd349da2e9dcb",
       "note": "Connected-Apps OAuth completion branch removed (standalone has no connected-apps screen); session handling must match"
     },
     {

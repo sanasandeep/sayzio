@@ -364,6 +364,10 @@ args = "dbg-onboarding-swipe"
 task = "workflow.run"
 args = "eas-dialer-build"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "api-server-paths"
+
 [[workflows.workflow]]
 name = "e2e"
 author = "agent"
@@ -1519,6 +1523,17 @@ args = "cd sayzio-dialer-standalone && EAS_NO_VCS=1 npx -y eas-cli build --platf
 [workflows.workflow.metadata]
 isValidation = true
 
+[[workflows.workflow]]
+name = "api-server-paths"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/scripts run check:api-server-paths"
+
+[workflows.workflow.metadata]
+isValidation = true
+
 
 [agent]
 stack = "PNPM_WORKSPACE"
@@ -1539,7 +1554,7 @@ AWS_DEFAULT_REGION = "ap-south-2"
 AWS_URL = "https://d3l7wvr1shk1cg.cloudfront.net"
 AWS_USE_PATH_STYLE_ENDPOINT = "true"
 USER_CONTENT_DISK = "s3"
-CONTACT_ADMIN_TOKEN = "qNApHcj3SDKCnQRrNcTyWOXdsxQMmeyhRy4Mf0"
+CONTACT_ADMIN_TOKEN = "secret stripped"
 APP_NAME = "Sayzio"
 
 [[ports]]

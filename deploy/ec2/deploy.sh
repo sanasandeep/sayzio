@@ -12,6 +12,8 @@
 #                                       KEEP SERVING on failure (loud log, no exit)
 #   -> config/route/view cache
 #   -> build api-server
+#   -> sync Nginx config (diff repo sayzio.conf vs installed; backup, copy,
+#                         nginx -t, restore-on-failure; no-op if unchanged)
 #   -> reload/restart services
 #
 # Run as the deploy user (not root); it uses sudo only for service reloads:
@@ -137,12 +139,14 @@ log "Building Express API server..."
 NODE_ENV=production pnpm --filter @workspace/api-server run build
 
 # ---------------------------------------------------------------------------
-# Service reloads
+# Nginx config sync (before service reloads, so the reload picks up the
+# new config in the same deploy pass).
 # ---------------------------------------------------------------------------
 if [ "${SKIP_SERVICES:-0}" = "1" ]; then
-  log "SKIP_SERVICES=1 — skipping service reloads."
+  log "SKIP_SERVICES=1 — skipping Nginx config sync."
 else
-  log "Reloading services..."
+  log "Syncing Nginx config..."
+
   # -n = never prompt for a password (an automated deploy has no terminal).
   # If passwordless sudo isn't configured for the deploy user, fail with
   # actionable instructions instead of a hanging/opaque password prompt.
@@ -150,11 +154,113 @@ else
   # (systemctl/nginx), in which case `sudo -n true` would falsely fail.
   if ! sudo -n systemctl --version >/dev/null 2>&1; then
     echo "ERROR: the deploy user '$(id -un)' cannot use passwordless sudo, so services cannot be reloaded." >&2
-    echo "Fix once on the server (as ec2-user or root):" >&2
-    echo "  echo 'sayzio ALL=(root) NOPASSWD: /usr/bin/systemctl, /usr/sbin/nginx, /usr/bin/nginx' | sudo tee /etc/sudoers.d/sayzio-deploy" >&2
-    echo "  sudo chmod 440 /etc/sudoers.d/sayzio-deploy" >&2
+    echo "Fix once on the server (as ec2-user or root) — use the sudoers block from deploy/ec2/README.md Step 4." >&2
+    echo "  sudo visudo -f /etc/sudoers.d/sayzio-deploy" >&2
     exit 1
   fi
+
+  _repo_conf="$APP_DIR/deploy/ec2/nginx/sayzio.conf"
+
+  # Detect distro layout: Ubuntu uses sites-available + symlink in
+  # sites-enabled; Amazon Linux 2023 loads /etc/nginx/conf.d/*.conf directly.
+  if [ -d /etc/nginx/sites-available ]; then
+    _nginx_layout="ubuntu"
+    _installed_conf="/etc/nginx/sites-available/sayzio.conf"
+  else
+    _nginx_layout="al2023"
+    _installed_conf="/etc/nginx/conf.d/sayzio.conf"
+  fi
+
+  if [ ! -f "$_installed_conf" ]; then
+    log "Nginx config not found at $_installed_conf — skipping auto-sync."
+    log "  Run 'Step 4 — Install Nginx' from deploy/ec2/README.md once to set up the initial config."
+    log "  Subsequent deploys will sync it automatically."
+  elif diff -q "$_repo_conf" "$_installed_conf" >/dev/null 2>&1; then
+    log "Nginx config is up to date — no sync needed."
+  else
+    log "Nginx config has changed — installing updated config to $_installed_conf ..."
+    _backup_conf="${_installed_conf}.bak"
+
+    # 1. Back up the current installed config.
+    if ! sudo -n cp "$_installed_conf" "$_backup_conf"; then
+      echo "ERROR: could not back up $_installed_conf to $_backup_conf — aborting Nginx sync." >&2
+      echo "Check that the sudoers grant covers: /usr/bin/cp $_installed_conf $_backup_conf" >&2
+      exit 1
+    fi
+
+    # 2. Install the new config.
+    if ! sudo -n cp "$_repo_conf" "$_installed_conf"; then
+      echo "ERROR: could not install new Nginx config — restoring backup." >&2
+      sudo -n mv "$_backup_conf" "$_installed_conf" || true
+      exit 1
+    fi
+
+    # 3. Validate the new config; restore backup and abort on failure.
+    if ! sudo -n nginx -t 2>&1; then
+      echo "" >&2
+      echo "::1inme:: NGINX CONFIG INVALID — restoring previous config to prevent an outage." >&2
+      echo "  The broken config is preserved in the repo at: $APP_DIR/deploy/ec2/nginx/sayzio.conf" >&2
+      echo "  Fix the config and redeploy." >&2
+      if sudo -n mv "$_backup_conf" "$_installed_conf"; then
+        echo "  Previous config restored successfully." >&2
+      else
+        echo "  CRITICAL: could not restore backup — Nginx may be broken. Restore manually:" >&2
+        echo "    sudo mv $_backup_conf $_installed_conf && sudo nginx -t && sudo systemctl reload nginx" >&2
+      fi
+      exit 1
+    fi
+
+    log "Nginx config synced and validated (layout: $_nginx_layout)."
+    # Nginx reload is handled in the service-reloads section below.
+  fi
+
+  # ---------------------------------------------------------------------------
+  # Custom-domain vhost template drift check.
+  # The custom-domain.conf.template is rendered into per-domain vhosts by
+  # issue-domain-cert.sh. If the template has changed since it was last used
+  # to generate vhosts, the installed vhosts may be stale. We cannot
+  # auto-regenerate them here (each requires a live certbot run), so we warn
+  # the operator loudly when drift is detected.
+  # ---------------------------------------------------------------------------
+  _template="$APP_DIR/deploy/ec2/nginx/custom-domain.conf.template"
+  _template_hash_file="$APP_DIR/.nginx-custom-template-sha256"
+  _template_current_hash="$(sha256sum "$_template" | awk '{print $1}')"
+
+  # Check for installed per-domain vhosts (readable without sudo on both distros).
+  _has_domain_vhosts=0
+  for _vhost_dir in /etc/nginx/conf.d /etc/nginx/sites-enabled; do
+    if ls "${_vhost_dir}"/sayzio-domain-*.conf >/dev/null 2>&1; then
+      _has_domain_vhosts=1
+      break
+    fi
+  done
+
+  if [ -f "$_template_hash_file" ]; then
+    _template_prev_hash="$(cat "$_template_hash_file")"
+    if [ "$_template_current_hash" != "$_template_prev_hash" ] && [ "$_has_domain_vhosts" -eq 1 ]; then
+      echo "" >&2
+      echo "::1inme:: WARNING — custom-domain Nginx template has changed since it last generated vhosts." >&2
+      echo "  Installed per-domain vhosts (/etc/nginx/*/sayzio-domain-*.conf) were built" >&2
+      echo "  from an older version of deploy/ec2/nginx/custom-domain.conf.template." >&2
+      echo "  To update them, re-run the domain-cert helper for each customer domain:" >&2
+      echo "    sudo /usr/local/sbin/sayzio-issue-cert <customerdomain.com>" >&2
+      echo "  Or use the artisan command to re-issue all verified domains:" >&2
+      echo "    php artisan domains:issue-certificates --force" >&2
+      echo "" >&2
+    fi
+  fi
+
+  # Store the current template hash for future drift comparisons.
+  echo "$_template_current_hash" > "$_template_hash_file"
+fi
+
+# ---------------------------------------------------------------------------
+# Service reloads
+# ---------------------------------------------------------------------------
+if [ "${SKIP_SERVICES:-0}" = "1" ]; then
+  log "SKIP_SERVICES=1 — skipping service reloads."
+else
+  log "Reloading services..."
   sudo -n systemctl reload "$PHP_FPM_SERVICE"
   sudo -n systemctl restart sayzio-api.service
   sudo -n systemctl restart sayzio-queue.service
