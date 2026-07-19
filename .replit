@@ -360,6 +360,10 @@ args = "e2e-inline-edit-v"
 task = "workflow.run"
 args = "dbg-onboarding-swipe"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "eas-dialer-build"
+
 [[workflows.workflow]]
 name = "e2e"
 author = "agent"
@@ -1500,6 +1504,17 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "cd artifacts/1inme-mobile && node scripts/debug-onboarding-swipe.mjs"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "eas-dialer-build"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd sayzio-dialer-standalone && EAS_NO_VCS=1 npx -y eas-cli build --platform android --profile preview --non-interactive --no-wait"
 
 [workflows.workflow.metadata]
 isValidation = true
