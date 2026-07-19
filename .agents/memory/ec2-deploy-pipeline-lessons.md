@@ -15,3 +15,9 @@ Rules that keep it green:
 
 **Why:** runs #7–#18 each failed on one of these; #19 was the first fully hands-off green run.
 **How to apply:** any change to the deploy pipeline must preserve these invariants; verify via GitHub API (workflow runs endpoint + logs zip, extract with python zipfile).
+
+## Nginx conf sync clobbers certbot state (July 2026 incident)
+- Installing repo `deploy/ec2/nginx/sayzio.conf` over the live conf wipes certbot's edits: real `server_name` list AND the 443/ssl directives. Symptoms: wrong cert (another vhost's CN) served, then 502 on PHP routes.
+- **Recovery recipe:** sed real domains into `server_name`; on AL2023 sed `fastcgi_pass unix:/run/php/php8.4-fpm.sock` → `unix:/run/php-fpm/www.sock`; then ONE combined `certbot --nginx -d …` covering ALL domains that share the server block — per-domain certbot runs each rewrite the block's ssl_certificate, so the last domain's cert "wins" and breaks the others.
+- deploy.sh's own nginx sync step needs passwordless sudo for the exact cp commands or it aborts ("sudo: a password is required"); running the copy manually as ec2-user works.
+- Server: AL2023, ec2-user, app at /var/www/sayzio, FPM user apache. Domains on the box: sayzio.app, 1in.me (301→sayzio.app), getbio.one, bizs.club (+www). sayzio.link DNS points at the Replit deployment, not EC2.
