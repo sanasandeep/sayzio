@@ -15,6 +15,14 @@ the `/`-mounted Laravel app on the shared proxy. The guard
 `pnpm --filter @workspace/scripts run check:api-server-paths` (registered as
 the `api-server-paths` validation) fails if those paths are ever widened back.
 
+**previewPath matters in PRODUCTION:** the deployed edge router routes by the
+artifact's `previewPath` prefix even when `[[services]].paths` is narrow.
+With `previewPath = "/api"` every prod `/api/v1/*` request still hit Express
+(502 upstream_unavailable) despite narrowed paths; fix was pinning
+`previewPath = "/api/healthz"`. The guard script now checks previewPath too.
+The Express fallthrough proxy also retries localhost/[::1] variants and
+surfaces the fetch error code in the 502 `details.cause` for prod diagnosis.
+
 **Why:** Laravel's `/api/v1` REST API (auth, links, qr-codes, etc.) lives
 inside the `/`-mounted Laravel app, but `/api` is owned by a different
 artifact on the shared proxy in production. The Express fallthrough proxy

@@ -77,6 +77,31 @@ if (tomlPaths.length === 0) {
   process.exit(1);
 }
 
+// previewPath is ALSO routing-significant: the production edge router routes
+// by the previewPath prefix even when [[services]].paths is narrow (verified
+// July 2026 — previewPath = "/api" sent all /api/v1/* to Express in prod).
+const previewMatch = toml.match(/^previewPath\s*=\s*"([^"]+)"/m);
+if (!previewMatch) {
+  console.error(
+    "check-api-server-paths: could not find `previewPath = \"...\"` in artifact.toml",
+  );
+  process.exit(1);
+}
+const previewPath = previewMatch[1];
+if (isShadowing(previewPath)) {
+  console.error(
+    [
+      "check-api-server-paths: FAIL",
+      "",
+      `previewPath "${previewPath}" shadows Laravel's /api/v1/* routes in`,
+      "production (the edge router routes by the previewPath prefix).",
+      "",
+      'Fix: pin it to a concrete Express endpoint, e.g. previewPath = "/api/healthz"',
+    ].join("\n"),
+  );
+  process.exit(1);
+}
+
 // ---------------------------------------------------------------------------
 // Unsafe-prefix check on artifact.toml paths
 // ---------------------------------------------------------------------------

@@ -1,5 +1,10 @@
 kind = "api"
-previewPath = "/api" # TODO - should be excluded from preview in the first place
+# previewPath must NOT be the broad "/api" prefix: the PRODUCTION edge router
+# routes by this prefix (verified July 2026 — narrowing [[services]].paths fixed
+# dev routing but production still sent every /api/* request, including
+# Laravel's /api/v1/*, to this Express service, producing 502
+# upstream_unavailable). Keep it pinned to the health endpoint.
+previewPath = "/api/healthz"
 title = "API Server"
 version = "1.0.0"
 id = "3B4_FFSkEVBkAeYMFRJ2e"

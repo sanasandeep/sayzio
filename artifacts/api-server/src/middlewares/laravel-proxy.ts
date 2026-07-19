@@ -114,26 +114,58 @@ export const laravelProxy: RequestHandler = async (req, res) => {
     }
   }
 
-  let upstream: Response;
-  try {
-    upstream = await fetch(target, {
-      method,
-      headers,
-      body,
-      redirect: "manual",
-      // Required when sending a streaming body.
-      ...(body instanceof ReadableStream ? { duplex: "half" } : {}),
-    } as RequestInit);
-  } catch (err) {
-    req.log.error(
-      { err, target, method },
-      "laravel-proxy: failed to reach Laravel backend",
-    );
+  // A streaming body can only be consumed once, so alternate-target retries
+  // are only safe for re-serializable bodies (string/undefined).
+  const canRetry = !(body instanceof ReadableStream);
+  const targets = [target];
+  if (canRetry) {
+    for (const alt of ["http://localhost:5000", "http://[::1]:5000"]) {
+      const altTarget = `${alt}${req.originalUrl}`;
+      if (!targets.includes(altTarget) && !process.env["LARAVEL_BACKEND_URL"]) {
+        targets.push(altTarget);
+      }
+    }
+  }
+
+  let upstream: Response | undefined;
+  let lastErr: unknown;
+  for (const t of targets) {
+    try {
+      upstream = await fetch(t, {
+        method,
+        headers,
+        body,
+        redirect: "manual",
+        // Required when sending a streaming body.
+        ...(body instanceof ReadableStream ? { duplex: "half" } : {}),
+      } as RequestInit);
+      break;
+    } catch (err) {
+      lastErr = err;
+      req.log.error(
+        { err, target: t, method },
+        "laravel-proxy: failed to reach Laravel backend",
+      );
+    }
+  }
+  if (!upstream) {
+    // Surface a non-sensitive error code (e.g. ECONNREFUSED, UND_ERR_*) so
+    // production failures are diagnosable from the response alone — the
+    // deployment logs do not reliably surface request-time app logs.
+    const cause = (lastErr as { cause?: { code?: string } } | undefined)
+      ?.cause;
+    const causeCode =
+      typeof cause?.code === "string"
+        ? cause.code
+        : lastErr instanceof Error
+          ? lastErr.name
+          : "unknown";
     res.status(502).json({
       error: {
         message:
           "We couldn't reach the application backend. Please try again.",
         code: "upstream_unavailable",
+        details: { cause: causeCode },
       },
     });
     return;
