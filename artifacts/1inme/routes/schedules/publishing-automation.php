@@ -61,4 +61,9 @@ return [
         'description' => 'Issue Let\'s Encrypt certificates for verified custom domains without one (EC2 kit only; no-op unless SSL_AUTO_ISSUE=true).',
         'cadence'     => ['everyTenMinutes'],
     ],
+    [
+        'key'         => 'webhooks:check-link-expiry',
+        'description' => 'Fire link_expired webhook/email triggers for newly expired links (date, max-clicks, first-click). Stamps each link once to prevent re-fires.',
+        'cadence'     => ['everyFiveMinutes'],
+    ],
 ];

@@ -132,6 +132,9 @@ class PremiumFeatures
             ['key' => 'max_events', 'group' => 'Tools & extras', 'name' => 'Events included', 'description' => 'How many event listings you can publish.', 'unit' => 'events'],
             ['key' => 'templates_premium', 'group' => 'Tools & extras', 'name' => 'Premium templates', 'description' => 'Unlock the premium template library for Link in Bio pages and the other page types.'],
 
+            // ---- Webhooks & integrations ----
+            ['key' => 'webhook_triggers', 'group' => 'Webhooks & integrations', 'name' => 'Outbound webhook triggers', 'description' => 'Receive real-time HTTP notifications (or email alerts) whenever a link is created, expires, or reaches a click milestone — connect Sayzio events to any automation tool, CRM or custom pipeline.'],
+
             // ---- Included coins ----
             ['key' => 'included_coins_monthly', 'group' => 'Included coins', 'name' => 'Monthly coin grant', 'description' => 'Coins credited to your wallet automatically each month as part of this plan — spend them on AI features, API overage and other coin-priced add-ons.', 'unit' => 'coins / mo'],
             ['key' => 'included_coins_yearly', 'group' => 'Included coins', 'name' => 'Yearly coin grant', 'description' => 'Coins credited to your wallet automatically each year as part of this plan — spend them on AI features, API overage and other coin-priced add-ons.', 'unit' => 'coins / yr'],

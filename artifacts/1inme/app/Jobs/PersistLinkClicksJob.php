@@ -149,6 +149,26 @@ class PersistLinkClicksJob implements ShouldQueue
 
         $this->appendCounterDeltas($linkDeltas, $blockDeltas);
         $this->dispatchEvents($events, $linkCache);
+        $this->dispatchMilestoneChecks($linkDeltas);
+    }
+
+    /**
+     * Dispatch milestone-check jobs for each link that received human clicks.
+     * Each job checks idempotency itself via `link_click_milestone_fires`.
+     *
+     * @param array<int, array{total:int,unique:int}> $linkDeltas
+     */
+    private function dispatchMilestoneChecks(array $linkDeltas): void
+    {
+        $affectedLinkIds = array_keys(array_filter($linkDeltas, fn ($d) => $d['total'] > 0));
+        if (empty($affectedLinkIds)) {
+            return;
+        }
+        try {
+            \App\Jobs\CheckClickMilestonesJob::dispatch($affectedLinkIds);
+        } catch (\Throwable $e) {
+            Log::warning('PersistLinkClicksJob: failed to dispatch milestone check: ' . $e->getMessage());
+        }
     }
 
     /**

@@ -124,16 +124,18 @@ class InboxForwardController extends Controller
     {
         $allowedSources = array_keys(InboxAggregator::sourceLabels());
         $data = $request->validate([
-            'label'        => ['required', 'string', 'max:120'],
-            'type'         => ['required', 'in:email,webhook'],
-            'target'       => ['required', 'string', 'max:500'],
-            'method'       => ['nullable', 'in:POST,PUT,GET'],
-            'sources'      => ['nullable', 'array'],
-            'sources.*'    => ['string', 'in:' . implode(',', $allowedSources)],
-            'header_key'   => ['nullable', 'string', 'max:120'],
-            'header_value' => ['nullable', 'string', 'max:500'],
-            'secret'       => ['nullable', 'string', 'max:120'],
-            'is_active'    => ['nullable', 'boolean'],
+            'label'             => ['required', 'string', 'max:120'],
+            'type'              => ['required', 'in:email,webhook'],
+            'target'            => ['required', 'string', 'max:500'],
+            'method'            => ['nullable', 'in:POST,PUT,GET'],
+            'sources'           => ['nullable', 'array'],
+            'sources.*'         => ['string', 'in:' . implode(',', $allowedSources)],
+            'click_milestones'  => ['nullable', 'array', 'max:20'],
+            'click_milestones.*' => ['integer', 'min:1', 'max:1000000000'],
+            'header_key'        => ['nullable', 'string', 'max:120'],
+            'header_value'      => ['nullable', 'string', 'max:500'],
+            'secret'            => ['nullable', 'string', 'max:120'],
+            'is_active'         => ['nullable', 'boolean'],
         ]);
 
         if ($data['type'] === 'email') {
@@ -150,6 +152,16 @@ class InboxForwardController extends Controller
         }
 
         $data['sources'] = !empty($data['sources']) ? array_values(array_unique($data['sources'])) : null;
+
+        // Normalise milestones: unique, positive ints, sorted, capped at 20.
+        if (!empty($data['click_milestones'])) {
+            $ms = array_values(array_unique(array_filter(array_map('intval', $data['click_milestones']), fn ($v) => $v > 0)));
+            sort($ms);
+            $data['click_milestones'] = array_slice($ms, 0, 20) ?: null;
+        } else {
+            $data['click_milestones'] = null;
+        }
+
         $data['is_active'] = $request->boolean('is_active', true);
 
         return $data;
@@ -164,6 +176,7 @@ class InboxForwardController extends Controller
             'target'            => $d->target,
             'method'            => $d->method,
             'sources'           => $d->sources ?: [],
+            'click_milestones'  => $d->clickMilestoneThresholds(),
             'header_key'        => $d->header_key,
             'has_secret'        => !empty($d->secret),
             'is_active'         => (bool) $d->is_active,

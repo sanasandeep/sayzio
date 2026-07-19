@@ -5,11 +5,11 @@ namespace App\Modules\User\Services;
 use App\Modules\User\Models\FormSubmission;
 use App\Modules\User\Models\InboxForwardDelivery;
 use App\Modules\User\Models\InboxForwardDestination;
+use App\Modules\User\Models\Link;
 use App\Modules\User\Models\Rsvp;
 use App\Modules\User\Models\Subscriber;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
-use App\Modules\User\Services\InboxForwarderHealthMail;
 
 class InboxForwarder
 {
@@ -71,6 +71,89 @@ class InboxForwarder
             'files'       => [],
         ];
     }
+
+    // ---- link-event triggers ----------------------------------------
+
+    /**
+     * Fire link_created event to all matching destinations for this user.
+     * Called synchronously from LinkController::store() after creation.
+     *
+     * Plan-gated: only dispatches when the workspace owner has the
+     * `webhook_triggers` plan feature enabled.
+     */
+    public function dispatchForLinkCreated(int $userId, Link $link): void
+    {
+        if (!$this->ownerHasWebhookTriggers($userId)) {
+            return;
+        }
+        $payload = $this->buildLinkCreatedPayload($link);
+        $this->dispatchAll($userId, InboxAggregator::SOURCE_LINK_CREATED, $link->id, $payload);
+    }
+
+    /**
+     * Fire link_expired event to all matching destinations for this user.
+     * Called from CheckLinkExpiryWebhooksCommand (scheduled every 5 min).
+     */
+    public function dispatchForLinkExpired(int $userId, Link $link): void
+    {
+        if (!$this->ownerHasWebhookTriggers($userId)) {
+            return;
+        }
+        $payload = $this->buildLinkExpiredPayload($link);
+        $this->dispatchAll($userId, InboxAggregator::SOURCE_LINK_EXPIRED, $link->id, $payload);
+    }
+
+    /**
+     * Fire click_milestone event to a specific destination.
+     * Called from CheckClickMilestonesJob after idempotency is confirmed.
+     *
+     * @param int                     $userId
+     * @param Link                    $link
+     * @param int                     $milestone  Threshold that was just crossed
+     * @param int                     $total      Current total click count
+     * @param InboxForwardDestination $dest       Pre-selected destination (idempotency already checked)
+     */
+    public function dispatchForClickMilestone(
+        int $userId,
+        Link $link,
+        int $milestone,
+        int $total,
+        InboxForwardDestination $dest
+    ): void {
+        if (!$this->ownerHasWebhookTriggers($userId)) {
+            return;
+        }
+        $payload = $this->buildClickMilestonePayload($link, $milestone, $total);
+
+        $delivery = \App\Modules\User\Models\InboxForwardDelivery::create([
+            'destination_id'   => $dest->id,
+            'user_id'          => $userId,
+            'source_type'      => InboxAggregator::SOURCE_CLICK_MILESTONE,
+            'source_id'        => $link->id,
+            'status'           => 'pending',
+            'payload_snapshot' => $payload,
+        ]);
+
+        try {
+            $this->deliver($delivery);
+        } catch (\Throwable $e) {
+            logger()->warning("Click milestone deliver error (link={$link->id} threshold={$milestone}): " . $e->getMessage());
+        }
+    }
+
+    // ---- plan gate --------------------------------------------------
+
+    private function ownerHasWebhookTriggers(int $userId): bool
+    {
+        static $cache = [];
+        if (!array_key_exists($userId, $cache)) {
+            $user = \App\Modules\User\Models\User::find($userId);
+            $cache[$userId] = $user && (bool) $user->getPlanFeature('webhook_triggers', false);
+        }
+        return $cache[$userId];
+    }
+
+    // ---- inbox sources (unchanged) ----------------------------------
 
     public function dispatchForFormSubmission(int $userId, FormSubmission $submission): void
     {
@@ -235,7 +318,63 @@ class InboxForwarder
         }
     }
 
-    /* ----------------------- payload builders ----------------------- */
+    /* ----------------------- link-event payload builders ------------ */
+
+    protected function buildLinkCreatedPayload(Link $link): array
+    {
+        return [
+            'event'       => InboxAggregator::SOURCE_LINK_CREATED,
+            'occurred_at' => optional($link->created_at)->toIso8601String(),
+            'link'        => $this->linkSummary($link),
+        ];
+    }
+
+    protected function buildLinkExpiredPayload(Link $link): array
+    {
+        $reason = 'date';
+        if ($link->expires_at && $link->expires_at->isPast()) {
+            $reason = 'date';
+        } elseif (!empty($link->settings['expire_on_first_click']) && (int) $link->total_clicks >= 1) {
+            $reason = 'first_click';
+        } elseif (!empty($link->settings['max_clicks']) && (int) $link->total_clicks >= (int) $link->settings['max_clicks']) {
+            $reason = 'max_clicks';
+        }
+
+        return [
+            'event'       => InboxAggregator::SOURCE_LINK_EXPIRED,
+            'occurred_at' => now()->toIso8601String(),
+            'reason'      => $reason,
+            'link'        => array_merge($this->linkSummary($link), [
+                'expires_at'   => optional($link->expires_at)->toIso8601String(),
+                'total_clicks' => (int) $link->total_clicks,
+                'max_clicks'   => isset($link->settings['max_clicks']) ? (int) $link->settings['max_clicks'] : null,
+            ]),
+        ];
+    }
+
+    protected function buildClickMilestonePayload(Link $link, int $milestone, int $total): array
+    {
+        return [
+            'event'       => InboxAggregator::SOURCE_CLICK_MILESTONE,
+            'occurred_at' => now()->toIso8601String(),
+            'milestone'   => $milestone,
+            'total_clicks' => $total,
+            'link'         => $this->linkSummary($link),
+        ];
+    }
+
+    /** Minimal link representation shared across link-event payloads. */
+    protected function linkSummary(Link $link): array
+    {
+        return [
+            'id'    => $link->id,
+            'alias' => $link->alias,
+            'type'  => $link->type,
+            'title' => $link->title,
+        ];
+    }
+
+    /* ----------------------- inbox payload builders ----------------------- */
 
     protected function buildFormPayload(FormSubmission $submission): array
     {

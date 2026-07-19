@@ -765,6 +765,14 @@ class LinkController extends Controller
             $link->pixels()->sync($pixelIds);
         }
 
+        // Fire link_created webhook/email triggers (plan-gated; no-op when feature off).
+        try {
+            app(\App\Modules\User\Services\InboxForwarder::class)
+                ->dispatchForLinkCreated($link->user_id, $link->fresh() ?? $link);
+        } catch (\Throwable $e) {
+            \Log::warning('link_created trigger dispatch failed: ' . $e->getMessage());
+        }
+
         // Push a "link_published" feed event so followers see the new link.
         if (($link->is_active ?? true) && in_array($link->type, array_merge(Link::BIOLINK_FAMILY, ['short', 'file', 'splash', 'rsvp']))) {
             try {

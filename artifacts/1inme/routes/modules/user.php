@@ -462,6 +462,11 @@ Route::prefix('user')->name('user.')->group(function () {
             // Developer API keys (task #1393). Gated behind the `api_access`
             // plan feature inside the controller.
             Route::get   ('settings/developer',  [\App\Modules\User\Controllers\ApiKeyController::class, 'index'])->name('api-keys.index');
+
+            // Webhook triggers — Settings → Developer / API → Webhooks.
+            Route::prefix('settings/webhooks')->name('settings.webhooks.')->group(function () {
+                Route::get('/', [\App\Modules\User\Controllers\WebhookSettingsController::class, 'index'])->name('index');
+            });
             Route::post  ('api-keys',            [\App\Modules\User\Controllers\ApiKeyController::class, 'store'])->middleware('throttle:20,1')->name('api-keys.store');
             Route::delete('api-keys/{key}',      [\App\Modules\User\Controllers\ApiKeyController::class, 'destroy'])->whereNumber('key')->name('api-keys.destroy');
 
