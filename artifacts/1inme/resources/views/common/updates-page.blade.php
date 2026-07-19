@@ -84,19 +84,20 @@
         .tag-Breaking     { background: rgba(239,68,68,.15);  color: #fca5a5; border-color: rgba(239,68,68,.3); }
         .tag-Deprecation  { background: rgba(244,63,94,.15);  color: #fda4af; border-color: rgba(244,63,94,.3); }
         .tag-Security     { background: rgba(249,115,22,.15); color: #fdba74; border-color: rgba(249,115,22,.3); }
-        html.light-mode .tag-New { background: rgba(16,185,129,.1); color: #059669; }
-        html.light-mode .tag-Improvement { background: rgba(59,130,246,.1); color: #2563eb; }
-        html.light-mode .tag-Fix { background: rgba(245,158,11,.1); color: #d97706; }
-        html.light-mode .tag-Announcement { background: rgba(139,92,246,.1); color: #7c3aed; }
-        html.light-mode .tag-Breaking { background: rgba(239,68,68,.1); color: #dc2626; }
-        html.light-mode .tag-Deprecation { background: rgba(244,63,94,.1); color: #e11d48; }
-        html.light-mode .tag-Security { background: rgba(249,115,22,.1); color: #ea580c; }
+        html.light-mode .tag-New { background: rgba(16,185,129,.1); color: #059669; border-color: rgba(16,185,129,.35); }
+        html.light-mode .tag-Improvement { background: rgba(59,130,246,.1); color: #2563eb; border-color: rgba(59,130,246,.35); }
+        html.light-mode .tag-Fix { background: rgba(245,158,11,.1); color: #d97706; border-color: rgba(245,158,11,.35); }
+        html.light-mode .tag-Announcement { background: rgba(139,92,246,.1); color: #7c3aed; border-color: rgba(139,92,246,.35); }
+        html.light-mode .tag-Breaking { background: rgba(239,68,68,.1); color: #dc2626; border-color: rgba(239,68,68,.35); }
+        html.light-mode .tag-Deprecation { background: rgba(244,63,94,.1); color: #e11d48; border-color: rgba(244,63,94,.35); }
+        html.light-mode .tag-Security { background: rgba(249,115,22,.1); color: #ea580c; border-color: rgba(249,115,22,.35); }
 
         .entry-date { font-size: .78rem; color: rgba(255,255,255,.4); }
         html.light-mode .entry-date { color: rgba(24,23,43,.4); }
         .entry-anchor { font-size: .72rem; color: rgba(255,255,255,.25); text-decoration: none; }
         html.light-mode .entry-anchor { color: rgba(24,23,43,.25); }
         .entry-anchor:hover { color: rgba(255,255,255,.5); }
+        html.light-mode .entry-anchor:hover { color: rgba(24,23,43,.5); }
         .entry-title { font-size: 1.2rem; font-weight: 700; margin: 0 0 10px; line-height: 1.3; }
         html.light-mode .entry-title { color: #18172b; }
         .entry-content { font-size: .92rem; line-height: 1.7; color: rgba(255,255,255,.7); }
@@ -126,8 +127,11 @@
         .pagination a:hover { background: rgba(255,255,255,.1); }
         .pagination span.current { background: #7c3aed; border-color: #7c3aed; color: #fff; }
         .pagination span.dots { border: none; background: none; color: rgba(255,255,255,.3); width: auto; }
+        html.light-mode .pagination a, html.light-mode .pagination span { border-color: rgba(24,23,43,.12); }
         html.light-mode .pagination a { color: rgba(24,23,43,.7); border-color: rgba(24,23,43,.12); background: #fff; }
-        html.light-mode .pagination span.current { background: #7c3aed; color: #fff; }
+        html.light-mode .pagination a:hover { background: rgba(24,23,43,.06); }
+        html.light-mode .pagination span.current { background: #7c3aed; border-color: #7c3aed; color: #fff; }
+        html.light-mode .pagination span.dots { color: rgba(24,23,43,.3); }
 
         /* Tracking pixels --*/
         .pixel-container { display: none; }

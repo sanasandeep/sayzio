@@ -180,7 +180,7 @@
                 <div x-show="photoMode==='vault'" style="display:none;border:1px solid var(--border-glass,#2a2a32);border-radius:10px;overflow:hidden">
                     <div style="padding:6px;border-bottom:1px solid var(--border-glass,#2a2a32);display:flex;gap:6px">
                         <input type="text" x-model="vaultSearch" placeholder="Search…" style="flex:1;font-size:11px;padding:4px 8px;border-radius:6px;background:var(--bg-glass-input,rgba(0,0,0,0.2));color:var(--text-primary,#fff);border:1px solid var(--border-glass,#2a2a32);outline:none">
-                        <button type="button" @click="loadVault()" style="font-size:11px;color:var(--accent-primary,#60a5fa)"><i class="fas fa-sync-alt"></i></button>
+                        <button type="button" @click="loadVault()" style="font-size:11px;color:var(--accent)"><i class="fas fa-sync-alt"></i></button>
                     </div>
                     <div style="max-height:160px;overflow-y:auto;padding:6px">
                         <template x-if="vaultLoading"><div style="padding:20px;text-align:center"><i class="fas fa-spinner fa-spin" style="color:#60a5fa"></i></div></template>
