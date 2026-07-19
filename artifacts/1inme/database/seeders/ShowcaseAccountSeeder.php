@@ -70,7 +70,7 @@ class ShowcaseAccountSeeder extends Seeder
     public const PASSWORD = 'DiaryLabs@1906';
     public const HANDLE = 'sanashowcase';
     public const NAME = 'Sana Rahman';
-    public const BIO = 'Full-product showcase account — every Sayzio feature, populated end to end.';
+    public const BIO = 'Full-product showcase account: every Sayzio feature, populated end to end.';
 
     private User $user;
     private Workspace $workspace;
@@ -102,7 +102,7 @@ class ShowcaseAccountSeeder extends Seeder
     {
         $plan = Plan::where('slug', 'unlimited')->first();
         if (!$plan) {
-            $this->command?->warn('ShowcaseAccountSeeder: "unlimited" plan not found — run PlansAndAddonsSeeder first. Skipping.');
+            $this->command?->warn('ShowcaseAccountSeeder: "unlimited" plan not found; run PlansAndAddonsSeeder first. Skipping.');
             return;
         }
 
@@ -211,7 +211,7 @@ class ShowcaseAccountSeeder extends Seeder
     {
         $user = User::where('email', static::EMAIL)->first();
         if (!$user) {
-            $this->command?->warn('ShowcaseAccountSeeder: account not found — run the main seeder first.');
+            $this->command?->warn('ShowcaseAccountSeeder: account not found; run the main seeder first.');
             return;
         }
 
@@ -459,7 +459,7 @@ class ShowcaseAccountSeeder extends Seeder
             IcsData::create([
                 'link_id' => $link->id,
                 'event_name' => $eventName,
-                'description' => "Join us for the {$eventName} — a showcase demo event.",
+                'description' => "Join us for the {$eventName}, a showcase demo event.",
                 'location' => 'Online / Sayzio HQ',
                 'organizer' => $this->user->name,
                 'organizer_email' => static::EMAIL,
@@ -510,7 +510,7 @@ class ShowcaseAccountSeeder extends Seeder
     /** @return Link[] */
     private function seedBiolinks(): array
     {
-        $personal = $this->makeLink('biolink', 'bio-personal', 'Sana — Personal Bio');
+        $personal = $this->makeLink('biolink', 'bio-personal', 'Sana: Personal Bio');
         $this->blocks($personal, [
             ['heading', ['mode' => 'with_logo']],
             ['avatar', []],
@@ -520,7 +520,7 @@ class ShowcaseAccountSeeder extends Seeder
             ['link', ['_mode' => 'featured']],
         ]);
 
-        $business = $this->makeLink('biolink', 'bio-business', 'Sana — Business Bio');
+        $business = $this->makeLink('biolink', 'bio-business', 'Sana: Business Bio');
         $this->blocks($business, [
             ['heading', []],
             ['profile_card', ['_layout' => 'cover']],
@@ -530,7 +530,7 @@ class ShowcaseAccountSeeder extends Seeder
             ['map', []],
         ]);
 
-        $catalog = $this->makeLink('biolink', 'bio-widget-catalog', 'Widget Catalog — Every Block Type');
+        $catalog = $this->makeLink('biolink', 'bio-widget-catalog', 'Widget Catalog: Every Block Type');
 
         return [$personal, $business, $catalog];
     }
@@ -648,7 +648,7 @@ class ShowcaseAccountSeeder extends Seeder
         $defs = ['downtown', 'rooftop', 'weekend-brunch'];
         $out = [];
         foreach ($defs as $i => $suffix) {
-            $link = $this->makeLink('restaurant_menu', "menu-{$suffix}", 'Restaurant Menu — ' . Str::headline($suffix));
+            $link = $this->makeLink('restaurant_menu', "menu-{$suffix}", 'Restaurant Menu: ' . Str::headline($suffix));
             $menu = RestaurantMenu::create([
                 'link_id' => $link->id,
                 'user_id' => $this->user->id,
@@ -699,7 +699,7 @@ class ShowcaseAccountSeeder extends Seeder
         $defs = ['apparel', 'accessories', 'seasonal'];
         $out = [];
         foreach ($defs as $i => $suffix) {
-            $link = $this->makeLink('store_menu', "store-{$suffix}", 'Store — ' . Str::headline($suffix));
+            $link = $this->makeLink('store_menu', "store-{$suffix}", 'Store: ' . Str::headline($suffix));
             $menu = StoreMenu::create([
                 'link_id' => $link->id,
                 'user_id' => $this->user->id,
@@ -784,10 +784,10 @@ class ShowcaseAccountSeeder extends Seeder
         $defs = ['product-designer', 'growth-marketer', 'software-engineer'];
         $out = [];
         foreach ($defs as $i => $suffix) {
-            $link = $this->makeLink('resume', "resume-{$suffix}", 'Resume — ' . Str::headline($suffix));
+            $link = $this->makeLink('resume', "resume-{$suffix}", 'Resume: ' . Str::headline($suffix));
             $resume = Resume::create([
                 'user_id' => $this->user->id,
-                'name' => 'Resume — ' . Str::headline($suffix),
+                'name' => 'Resume: ' . Str::headline($suffix),
                 'slug' => static::HANDLE . '-resume-' . $suffix,
                 'is_public' => true,
                 'visibility' => 'public',
@@ -825,11 +825,11 @@ class ShowcaseAccountSeeder extends Seeder
         $defs = ['events', 'office-hours', 'community'];
         $out = [];
         foreach ($defs as $i => $suffix) {
-            $link = $this->makeLink('calendar', "cal-{$suffix}", 'Calendar — ' . Str::headline($suffix));
+            $link = $this->makeLink('calendar', "cal-{$suffix}", 'Calendar: ' . Str::headline($suffix));
             $calendar = Calendar::create([
                 'link_id' => $link->id,
                 'user_id' => $this->user->id,
-                'title' => 'Calendar — ' . Str::headline($suffix),
+                'title' => 'Calendar: ' . Str::headline($suffix),
                 'slug' => static::HANDLE . '-cal-' . $suffix,
                 'description' => 'Showcase calendar of upcoming events.',
                 'timezone' => 'UTC',
@@ -840,7 +840,7 @@ class ShowcaseAccountSeeder extends Seeder
                 $eventRows[] = [
                     'calendar_id' => $calendar->id,
                     'user_id' => $this->user->id,
-                    'title' => "Event {$e} — " . Str::headline($suffix),
+                    'title' => "Event {$e}: " . Str::headline($suffix),
                     'description' => 'A showcase calendar event.',
                     'start_at' => now()->addDays($i * 5 + $e),
                     'end_at' => now()->addDays($i * 5 + $e)->addHours(1),
@@ -864,12 +864,12 @@ class ShowcaseAccountSeeder extends Seeder
         $defs = ['creator-hub', 'membership', 'exclusive-content'];
         $out = [];
         foreach ($defs as $suffix) {
-            $out[] = $this->makeLink('paid_page', "paid-{$suffix}", 'Paid Page — ' . Str::headline($suffix), [
+            $out[] = $this->makeLink('paid_page', "paid-{$suffix}", 'Paid Page: ' . Str::headline($suffix), [
                 'settings' => [
                     'paid_page' => [
                         'id' => 'classic',
                         'name' => 'Classic',
-                        'tagline' => 'Exclusive posts, tiers & tips — all in one place.',
+                        'tagline' => 'Exclusive posts, tiers & tips, all in one place.',
                         'accent' => '#7c3aed',
                         'text' => '#f8fafc',
                         'card_bg' => 'rgba(255,255,255,0.06)',
@@ -891,7 +891,7 @@ class ShowcaseAccountSeeder extends Seeder
         $defs = ['product', 'service', 'general'];
         $out = [];
         foreach ($defs as $suffix) {
-            $out[] = $this->makeLink('reviews', "reviews-{$suffix}", 'Reviews — ' . Str::headline($suffix));
+            $out[] = $this->makeLink('reviews', "reviews-{$suffix}", 'Reviews: ' . Str::headline($suffix));
         }
         return $out;
     }
@@ -908,7 +908,7 @@ class ShowcaseAccountSeeder extends Seeder
         ];
         $out = [];
         foreach ($defs as $i => [$suffix, $name, $palette, $tone]) {
-            $link = $this->makeLink('brand_kit', "brandkit-{$suffix}", 'Brand Kit — ' . Str::headline($suffix));
+            $link = $this->makeLink('brand_kit', "brandkit-{$suffix}", 'Brand Kit: ' . Str::headline($suffix));
             BrandKit::create([
                 'user_id' => $this->user->id,
                 'name' => $name,
@@ -947,12 +947,12 @@ class ShowcaseAccountSeeder extends Seeder
         $defs = ['support-bot', 'sales-bot', 'faq-bot'];
         $out = [];
         foreach ($defs as $suffix) {
-            $link = $this->makeLink('ai_chat', "aichat-{$suffix}", 'AI Chatbot — ' . Str::headline($suffix));
+            $link = $this->makeLink('ai_chat', "aichat-{$suffix}", 'AI Chatbot: ' . Str::headline($suffix));
             $companion = AiCompanion::create([
                 'user_id' => $this->user->id,
                 'persona_id' => $persona->id,
                 'public_id' => AiCompanion::newPublicId(),
-                'name' => 'Showcase Assistant — ' . Str::headline($suffix),
+                'name' => 'Showcase Assistant: ' . Str::headline($suffix),
                 'placement' => 'page',
                 'config' => [
                     'greeting' => 'Hi! Ask me anything about this showcase.',
@@ -979,11 +979,11 @@ class ShowcaseAccountSeeder extends Seeder
         $defs = ['discover', 'onboarding', 'survey'];
         $out = [];
         foreach ($defs as $suffix) {
-            $link = $this->makeLink('conversational', "conv-{$suffix}", 'Conversational — ' . Str::headline($suffix));
+            $link = $this->makeLink('conversational', "conv-{$suffix}", 'Conversational: ' . Str::headline($suffix));
             $flow = ConversationFlow::create([
                 'link_id' => $link->id,
                 'workspace_id' => $this->workspace->id,
-                'name' => 'Showcase Flow — ' . Str::headline($suffix),
+                'name' => 'Showcase Flow: ' . Str::headline($suffix),
                 'version' => 1,
                 'is_published' => true,
                 'is_active' => true,
@@ -1134,7 +1134,7 @@ class ShowcaseAccountSeeder extends Seeder
             QrCode::create([
                 'user_id' => $this->user->id,
                 'link_id' => $link?->id,
-                'name' => 'Showcase QR — ' . Str::headline($type),
+                'name' => 'Showcase QR: ' . Str::headline($type),
                 'type' => $type,
                 'payload' => $payload,
                 'design' => ['fg_color' => '#111827', 'bg_color' => '#ffffff'],
@@ -1173,7 +1173,7 @@ class ShowcaseAccountSeeder extends Seeder
             'provider' => 'google_places',
             'external_ref' => 'showcase-place-id',
             'status' => ReviewProvider::STATUS_PREVIEW,
-            'status_reason' => 'No API key configured — preview mode.',
+            'status_reason' => 'No API key configured; preview mode.',
             'settings' => [],
         ]);
         ReviewProvider::create([
@@ -1181,12 +1181,12 @@ class ShowcaseAccountSeeder extends Seeder
             'provider' => 'trustpilot',
             'external_ref' => 'showcase-domain.example.com',
             'status' => ReviewProvider::STATUS_PREVIEW,
-            'status_reason' => 'No API key configured — preview mode.',
+            'status_reason' => 'No API key configured; preview mode.',
             'settings' => [],
         ]);
 
         $reviewers = [
-            ['Sarah K.', 5, 'Absolutely love using this — the setup took minutes.'],
+            ['Sarah K.', 5, 'Absolutely love using this. The setup took minutes.'],
             ['Marcus D.', 4, 'Great feature set, a couple of small UI quirks.'],
             ['Elena R.', 5, 'Best link-in-bio tool I have tried.'],
             ['James P.', 3, 'Solid product, would like more templates.'],
@@ -1512,7 +1512,7 @@ class ShowcaseAccountSeeder extends Seeder
             $exitCode = Artisan::call($command, $args);
             if ($exitCode !== 0) {
                 throw new \RuntimeException(sprintf(
-                    'ShowcaseAccountSeeder: `%s` exited with code %d — %s',
+                    'ShowcaseAccountSeeder: `%s` exited with code %d: %s',
                     $command,
                     $exitCode,
                     trim(Artisan::output())

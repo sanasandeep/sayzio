@@ -67,7 +67,7 @@ class DemoContentSeeder extends Seeder
             $user->organizer_profile = [
                 'logo'          => 'https://picsum.photos/seed/demo-organizer/200/200',
                 'name'          => 'Demo Events Co.',
-                'description'   => 'We host community meetups, workshops, and pop-up experiences around the city — come say hi!',
+                'description'   => 'We host community meetups, workshops, and pop-up experiences around the city. Come say hi!',
                 'website'       => 'https://1in.me',
                 'contact_name'  => 'Demo User',
                 'contact_email' => 'sayzioapp@gmail.com',
@@ -314,7 +314,7 @@ class DemoContentSeeder extends Seeder
         $samples = [
             ['demo-yt-lofi',     'Lo-fi Beats Playlist',         'https://www.youtube.com/results?search_query=lofi+beats'],
             ['demo-gh-laravel',  'Laravel on GitHub',            'https://github.com/laravel/laravel'],
-            ['demo-wiki-qr',     'QR Codes — Wikipedia',         'https://en.wikipedia.org/wiki/QR_code'],
+            ['demo-wiki-qr',     'QR Codes on Wikipedia',         'https://en.wikipedia.org/wiki/QR_code'],
             ['demo-maps-eiffel', 'Eiffel Tower on Google Maps',  'https://www.google.com/maps?q=Eiffel+Tower'],
             ['demo-news-hn',     'Hacker News Front Page',       'https://news.ycombinator.com/'],
             ['demo-dribbble',    'Inspiration on Dribbble',      'https://dribbble.com/shots/popular'],
@@ -324,12 +324,12 @@ class DemoContentSeeder extends Seeder
             ['demo-blog-launch','Blog: Why we launched',         'https://example.com/blog/why-we-launched'],
             ['demo-store-tee',  'Limited Edition Tee',           'https://example.com/store/tee'],
             ['demo-store-mug',  'Ceramic Mug · Sold Out Soon',   'https://example.com/store/mug'],
-            ['demo-coupon-fall','Autumn Sale — 25% off',         'https://example.com/sale/fall'],
+            ['demo-coupon-fall','Autumn Sale: 25% off',         'https://example.com/sale/fall'],
             ['demo-newsletter', 'Subscribe to the Newsletter',   'https://example.com/newsletter'],
-            ['demo-investors',  'Investors — pitch deck',        'https://example.com/investors/deck'],
-            ['demo-careers',    'We\'re hiring — Careers',       'https://example.com/careers'],
+            ['demo-investors',  'Investors: pitch deck',        'https://example.com/investors/deck'],
+            ['demo-careers',    'We\'re hiring: Careers',       'https://example.com/careers'],
             ['demo-press-kit',  'Press Kit (logos + bios)',      'https://example.com/press-kit'],
-            ['demo-yt-tour',    'Studio tour — YouTube',         'https://www.youtube.com/watch?v=dQw4w9WgXcQ'],
+            ['demo-yt-tour',    'Studio tour on YouTube',         'https://www.youtube.com/watch?v=dQw4w9WgXcQ'],
             ['demo-tw-thread',  'Thread: 10 launch lessons',     'https://twitter.com/example/status/1'],
             ['demo-li-post',    'LinkedIn announcement',         'https://www.linkedin.com/posts/example-activity-1'],
             ['demo-affiliate',  'Affiliate signup link',         'https://example.com/partner?ref=demo'],
@@ -436,7 +436,7 @@ class DemoContentSeeder extends Seeder
             ],
             [
                 'alias' => 'demo-bio-shop',
-                'title' => 'Studio Otter — Shop',
+                'title' => 'Studio Otter Shop',
                 'heading' => 'Studio Otter 🛍️',
                 'paragraph' => 'Hand-printed posters and homewares. New drops every month.',
                 'visibility' => 'public',
@@ -448,7 +448,7 @@ class DemoContentSeeder extends Seeder
             ],
             [
                 'alias' => 'demo-bio-restaurant',
-                'title' => 'Casa Nori — Reservations',
+                'title' => 'Casa Nori Reservations',
                 'heading' => 'Casa Nori 🍣',
                 'paragraph' => 'Modern Japanese in the Mission. Open Tue–Sun.',
                 'visibility' => 'public',
@@ -542,7 +542,7 @@ class DemoContentSeeder extends Seeder
     private function seedFileShares(User $user, Workspace $ws): void
     {
         $files = [
-            ['demo-file-resume',  'Sample-Resume.txt',    "JANE DOE — Senior Designer\n\n10+ years of experience.\nemail: jane@example.com"],
+            ['demo-file-resume',  'Sample-Resume.txt',    "JANE DOE, Senior Designer\n\n10+ years of experience.\nemail: jane@example.com"],
             ['demo-file-pricing', 'Pricing-Guide.txt',    "PRICING\n\nStarter \$10\nPro \$25\nTeam \$60"],
             ['demo-file-deck',    'Pitch-Deck-Q3.txt',    "Q3 Pitch Deck\n\nSlide 1: Problem\nSlide 2: Solution\nSlide 3: Market"],
             ['demo-file-contract','Standard-Contract.txt',"STANDARD SERVICES AGREEMENT\n\nThis Agreement is entered into…"],
@@ -588,7 +588,7 @@ class DemoContentSeeder extends Seeder
             ['demo-ics-launch',  'Product Launch Party',     'Online',           '+3 days',  'technology',  true,  false, ['launch', 'product', 'tech']],
             ['demo-ics-meetup',  'SF Designers Meetup',      'San Francisco',    '+10 days', 'community',   false, false, ['design', 'meetup', 'sf']],
             ['demo-ics-webinar', 'Q4 Strategy Webinar',      'Online (Zoom)',    '+14 days', 'business',    true,  false, ['webinar', 'strategy']],
-            ['demo-ics-dinner',  'Founder Dinner — Series A','New York',         '+21 days', 'business',    false, true,  ['founders', 'dinner']],
+            ['demo-ics-dinner',  'Founder Dinner: Series A','New York',         '+21 days', 'business',    false, true,  ['founders', 'dinner']],
             ['demo-ics-hackday', 'Hack Day for Climate',     'Brooklyn, NY',     '+30 days', 'technology',  false, false, ['climate', 'hackathon']],
             ['demo-ics-pastevent','Recap: Spring Showcase',  'Los Angeles',      '-15 days', 'arts',        false, false, ['recap', 'showcase']],
         ];
@@ -618,21 +618,21 @@ class DemoContentSeeder extends Seeder
         // real-world happenings rather than "Event #42".
         $templates = [
             'music'           => [['{c} Live Sessions', ['livemusic', 'gig']], ['Indie Night at {c}', ['indie', 'music']], ['{c} Jazz Evening', ['jazz', 'music']]],
-            'nightlife'       => [['{c} Rooftop Party', ['party', 'nightlife']], ['Sunset Social — {c}', ['social', 'drinks']], ['Neon Nights: {c}', ['nightlife', 'dj']]],
-            'arts'            => [['{c} Gallery Opening', ['art', 'gallery']], ['Sculpture Walk — {c}', ['sculpture', 'arts']], ['{c} Photography Exhibit', ['photography', 'exhibit']]],
-            'film'            => [['{c} Short Film Night', ['shortfilm', 'cinema']], ['Documentary Screening — {c}', ['documentary', 'film']], ['{c} Film Festival Kickoff', ['filmfest', 'movies']]],
-            'comedy'          => [['Stand-Up Night — {c}', ['standup', 'comedy']], ['{c} Improv Showcase', ['improv', 'comedy']], ['Laugh Lab: {c}', ['comedy', 'funny']]],
-            'food_drink'      => [['{c} Street Food Fair', ['streetfood', 'foodie']], ['Craft Beer Tasting — {c}', ['craftbeer', 'tasting']], ['{c} Wine & Cheese Night', ['wine', 'foodpairing']]],
-            'technology'      => [['{c} Startup Demo Day', ['startup', 'demoday']], ['AI Builders Meetup — {c}', ['ai', 'buildinpublic']], ['{c} DevOps Summit', ['devops', 'engineering']]],
-            'business'        => [['{c} Founders Breakfast', ['founders', 'networking']], ['Growth Marketing Panel — {c}', ['marketing', 'growth']], ['{c} Leadership Roundtable', ['leadership', 'business']]],
-            'education'       => [['{c} Career Workshop', ['careers', 'workshop']], ['Public Speaking Bootcamp — {c}', ['publicspeaking', 'learning']], ['{c} Coding for Beginners', ['coding', 'education']]],
-            'community'       => [['{c} Neighbors Meetup', ['community', 'meetup']], ['Volunteers Day — {c}', ['volunteer', 'giveback']], ['{c} Newcomers Social', ['newcomers', 'community']]],
-            'sports_fitness'  => [['{c} 5K Fun Run', ['5k', 'running']], ['Yoga in the Park — {c}', ['yoga', 'wellness']], ['{c} Pickup Basketball League', ['basketball', 'sports']]],
-            'health_wellness' => [['Mindfulness Retreat — {c}', ['mindfulness', 'wellness']], ['{c} Nutrition Workshop', ['nutrition', 'health']], ['Sound Bath Session — {c}', ['soundbath', 'relax']]],
-            'outdoor_travel'  => [['{c} Hiking Club Meetup', ['hiking', 'outdoors']], ['Sunrise Kayak Tour — {c}', ['kayak', 'adventure']], ['{c} Weekend Camping Trip', ['camping', 'travel']]],
-            'gaming'          => [['{c} Esports Tournament', ['esports', 'gaming']], ['Board Game Night — {c}', ['boardgames', 'gamenight']], ['{c} Retro Arcade Meetup', ['retrogaming', 'arcade']]],
-            'fashion'         => [['{c} Streetwear Pop-Up', ['streetwear', 'fashion']], ['Runway Show — {c}', ['runway', 'fashionweek']], ['{c} Vintage Swap Meet', ['vintage', 'thrift']]],
-            'charity'         => [['{c} Charity Gala', ['charity', 'gala']], ['Fundraiser 5K — {c}', ['fundraiser', 'charity']], ['{c} Food Drive Kickoff', ['fooddrive', 'giveback']]],
+            'nightlife'       => [['{c} Rooftop Party', ['party', 'nightlife']], ['Sunset Social: {c}', ['social', 'drinks']], ['Neon Nights: {c}', ['nightlife', 'dj']]],
+            'arts'            => [['{c} Gallery Opening', ['art', 'gallery']], ['Sculpture Walk: {c}', ['sculpture', 'arts']], ['{c} Photography Exhibit', ['photography', 'exhibit']]],
+            'film'            => [['{c} Short Film Night', ['shortfilm', 'cinema']], ['Documentary Screening: {c}', ['documentary', 'film']], ['{c} Film Festival Kickoff', ['filmfest', 'movies']]],
+            'comedy'          => [['Stand-Up Night: {c}', ['standup', 'comedy']], ['{c} Improv Showcase', ['improv', 'comedy']], ['Laugh Lab: {c}', ['comedy', 'funny']]],
+            'food_drink'      => [['{c} Street Food Fair', ['streetfood', 'foodie']], ['Craft Beer Tasting: {c}', ['craftbeer', 'tasting']], ['{c} Wine & Cheese Night', ['wine', 'foodpairing']]],
+            'technology'      => [['{c} Startup Demo Day', ['startup', 'demoday']], ['AI Builders Meetup: {c}', ['ai', 'buildinpublic']], ['{c} DevOps Summit', ['devops', 'engineering']]],
+            'business'        => [['{c} Founders Breakfast', ['founders', 'networking']], ['Growth Marketing Panel: {c}', ['marketing', 'growth']], ['{c} Leadership Roundtable', ['leadership', 'business']]],
+            'education'       => [['{c} Career Workshop', ['careers', 'workshop']], ['Public Speaking Bootcamp: {c}', ['publicspeaking', 'learning']], ['{c} Coding for Beginners', ['coding', 'education']]],
+            'community'       => [['{c} Neighbors Meetup', ['community', 'meetup']], ['Volunteers Day: {c}', ['volunteer', 'giveback']], ['{c} Newcomers Social', ['newcomers', 'community']]],
+            'sports_fitness'  => [['{c} 5K Fun Run', ['5k', 'running']], ['Yoga in the Park: {c}', ['yoga', 'wellness']], ['{c} Pickup Basketball League', ['basketball', 'sports']]],
+            'health_wellness' => [['Mindfulness Retreat: {c}', ['mindfulness', 'wellness']], ['{c} Nutrition Workshop', ['nutrition', 'health']], ['Sound Bath Session: {c}', ['soundbath', 'relax']]],
+            'outdoor_travel'  => [['{c} Hiking Club Meetup', ['hiking', 'outdoors']], ['Sunrise Kayak Tour: {c}', ['kayak', 'adventure']], ['{c} Weekend Camping Trip', ['camping', 'travel']]],
+            'gaming'          => [['{c} Esports Tournament', ['esports', 'gaming']], ['Board Game Night: {c}', ['boardgames', 'gamenight']], ['{c} Retro Arcade Meetup', ['retrogaming', 'arcade']]],
+            'fashion'         => [['{c} Streetwear Pop-Up', ['streetwear', 'fashion']], ['Runway Show: {c}', ['runway', 'fashionweek']], ['{c} Vintage Swap Meet', ['vintage', 'thrift']]],
+            'charity'         => [['{c} Charity Gala', ['charity', 'gala']], ['Fundraiser 5K: {c}', ['fundraiser', 'charity']], ['{c} Food Drive Kickoff', ['fooddrive', 'giveback']]],
         ];
 
         $categorySlugs = array_keys($templates);
@@ -748,7 +748,7 @@ class DemoContentSeeder extends Seeder
             ['link_id' => $link->id],
             [
                 'event_name'  => $spec['title'],
-                'description' => "Join us for {$spec['title']}" . ($spec['online'] ? ' — streamed online, link shared after RSVP.' : " in {$spec['location']}.") . ' ' . ($isPast ? 'Thanks to everyone who came out!' : "We can't wait to see you there."),
+                'description' => "Join us for {$spec['title']}" . ($spec['online'] ? ', streamed online with the link shared after RSVP.' : " in {$spec['location']}.") . ' ' . ($isPast ? 'Thanks to everyone who came out!' : "We can't wait to see you there."),
                 'location'    => $spec['location'],
                 'organizer'   => $user->name,
                 'start_date'  => $spec['start'],
@@ -800,7 +800,7 @@ class DemoContentSeeder extends Seeder
                 'user_id' => $user->id,
                 'created_by_user_id' => $user->id,
                 'type' => 'vcf', 'alias' => $alias,
-                'title'   => "$first $last — $org",
+                'title'   => "$first $last ($org)",
                 'is_active' => true, 'visibility' => 'public', 'is_demo' => true,
                 'total_clicks' => 18 + $i * 4,
                 'unique_clicks' => 12 + $i * 3,
@@ -961,7 +961,7 @@ class DemoContentSeeder extends Seeder
                     'owner_user_id'      => $isPersonal ? $admin->id : null,
                     'name'               => $boardTpl['name'],
                     'color'              => $boardTpl['color'],
-                    'description'        => 'Demo board — ' . $boardTpl['name'],
+                    'description'        => 'Demo board: ' . $boardTpl['name'],
                     'position'           => $bIdx + 1,
                 ]);
 
@@ -1013,8 +1013,8 @@ class DemoContentSeeder extends Seeder
                         'column_id'          => $col->id,
                         'created_by_user_id' => $admin->id,
                         'title'              => $title,
-                        'description'        => "Demo task — {$title}. This card was created by the demo seeder so the board feels populated.",
-                        'description_html'   => "<p>Demo task — <strong>{$title}</strong>.</p>",
+                        'description'        => "Demo task: {$title}. This card was created by the demo seeder so the board feels populated.",
+                        'description_html'   => "<p>Demo task: <strong>{$title}</strong>.</p>",
                         'position'           => $cIdx + 1,
                         'due_date'           => $due,
                         'priority'           => $priority,
@@ -1070,7 +1070,7 @@ class DemoContentSeeder extends Seeder
                         'workspace_id' => $ws->id,
                         'card_id'      => $card->id,
                         'user_id'      => $admin->id,
-                        'body'         => "Kicking this off — let's aim to have a v1 by Friday.",
+                        'body'         => "Kicking this off. Let's aim to have a v1 by Friday.",
                     ]);
                     if (!$isPersonal && !empty($teamMembers)) {
                         $teammate = $teamMembers[$cIdx % count($teamMembers)];
@@ -1078,7 +1078,7 @@ class DemoContentSeeder extends Seeder
                             'workspace_id' => $ws->id,
                             'card_id'      => $card->id,
                             'user_id'      => $teammate->id,
-                            'body'         => "Got it — I'll pick this up after standup.",
+                            'body'         => "Got it, I'll pick this up after standup.",
                         ]);
                     }
 
@@ -1115,7 +1115,7 @@ class DemoContentSeeder extends Seeder
             ['devon',   'Devon Walker',  'Podcaster · Build Notes',        '🎙️ Interviewing the people building the future.'],
             // Slideshow-background showcase profiles.
             ['lyric',   'Lyric Moreau',  'Visual Artist · Aurora Studio',  '🎨 Bold prints + behind-the-scenes from the studio.'],
-            ['aurora',  'Aurora Patel',  'Travel Photographer',            '✈️ Slow travel and quiet places — fortnightly drops.'],
+            ['aurora',  'Aurora Patel',  'Travel Photographer',            '✈️ Slow travel and quiet places. Fortnightly drops.'],
             // Conversational-mode showcase profiles.
             ['echo',    'Echo Nakamura', 'Coach · Echo Habits',            '🧘 1-1 habit coaching. Tap below for a free intro chat.'],
             ['pixel',   'Pixel Brooks',  'Brand Designer',                 '✨ Logo + identity work. Quick chat to brief me in.'],
@@ -1275,7 +1275,7 @@ class DemoContentSeeder extends Seeder
             'link_id'       => $link->id,
             'workspace_id'  => $link->workspace_id ?? null,
             'name'          => 'Demo Conversational Flow',
-            'intro_message' => "Hey 👋 I'm {$creator->name}'s assistant — quick chat to point you the right way.",
+            'intro_message' => "Hey 👋 I'm {$creator->name}'s assistant. Quick chat to point you the right way.",
             'is_published'  => true,
             'is_active'     => true,
             'version'       => 1,
@@ -1295,7 +1295,7 @@ class DemoContentSeeder extends Seeder
         $thanksMsg = $flow->actions()->create([
             'kind'    => ConversationAction::KIND_MESSAGE,
             'label'   => 'Thanks',
-            'payload' => ['text' => "Thanks — I'll be in touch soon!"],
+            'payload' => ['text' => "Thanks, I'll be in touch soon!"],
         ]);
 
         // Step 1 — entry: pick intent.
@@ -1318,7 +1318,7 @@ class DemoContentSeeder extends Seeder
         $flow->steps()->create([
             'key'           => 'ask_email',
             'kind'          => ConversationStep::KIND_INPUT,
-            'message_text'  => "Awesome — what's the best email for the booking?",
+            'message_text'  => "Awesome! What's the best email for the booking?",
             'answer_field'  => 'email',
             'sort_order'    => 1,
             'next_step_key' => 'book_done',
@@ -1329,7 +1329,7 @@ class DemoContentSeeder extends Seeder
         $flow->steps()->create([
             'key'           => 'book_done',
             'kind'          => ConversationStep::KIND_END,
-            'message_text'  => "Perfect — tap below to pick a time.",
+            'message_text'  => "Perfect. Tap below to pick a time.",
             'sort_order'    => 2,
             'action_id'     => $bookCall->id,
         ]);
@@ -1359,15 +1359,15 @@ class DemoContentSeeder extends Seeder
         $tiers = ['public', 'registered', 'followers', 'subscribers'];
         $kinds = [
             ['🎬 Behind the scenes from this week\'s shoot.',   'photo'],
-            ['🔥 New project just dropped — link in bio.',      'launch'],
-            ['💌 Quick update for my supporters — thank you!',  'update'],
+            ['🔥 New project just dropped. Link in bio.',      'launch'],
+            ['💌 Quick update for my supporters. Thank you!',  'update'],
             ['🎁 Subscriber-only sneak peek of what\'s next.',  'gift'],
             ['📅 New session opens tomorrow at 9am.',           'event'],
             ['📸 Just posted a new gallery, take a look.',      'post'],
-            ['🎙️ New episode is live — tap to listen.',         'audio'],
+            ['🎙️ New episode is live. Tap to listen.',         'audio'],
             ['📝 Long read: lessons from the past quarter.',    'article'],
-            ['🛍️ Restocked the shop — limited quantities.',    'shop'],
-            ['🌍 On the road this week — full route inside.',  'travel'],
+            ['🛍️ Restocked the shop. Limited quantities.',    'shop'],
+            ['🌍 On the road this week. Full route inside.',  'travel'],
         ];
         $subjectTypes = ['demo', 'biolink', 'short_link', 'event', 'post'];
 

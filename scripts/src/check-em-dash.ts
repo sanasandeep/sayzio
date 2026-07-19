@@ -77,6 +77,10 @@ const SCAN_TARGETS: string[] = [
   "artifacts/1inme/database/seeders/LinkTypeExplainerSeeder.php",
   "artifacts/1inme/database/seeders/PlansAndAddonsSeeder.php",
   "artifacts/1inme/database/seeders/CoinPackagesSeeder.php",
+  "artifacts/1inme/database/seeders/DemoContentSeeder.php",
+  "artifacts/1inme/database/seeders/ShowcaseAccountSeeder.php",
+  "artifacts/1inme/database/seeders/StarterPageTemplatesSeeder.php",
+  "artifacts/1inme/database/seeders/ReadonlyDemoAccountSeeder.php",
   "artifacts/1inme/app/Modules/Common/Support/SitePagesContent.php",
 ];
 
