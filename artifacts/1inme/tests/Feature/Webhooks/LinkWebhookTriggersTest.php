@@ -27,18 +27,32 @@ class LinkWebhookTriggersTest extends TestCase
 
         $this->user  = User::factory()->create();
         $this->token = $this->user->createToken('test')->plainTextToken;
+
+        // Bind the workspace context so `workspace.can:*` gated web routes
+        // and workspace_owner_id() resolve to this user.
+        $ws = app(\App\Modules\User\Services\WorkspaceContext::class)->resolve($this->user);
+        app()->instance('current_workspace', $ws);
+        app()->instance('workspace_owner', $this->user);
     }
 
     // ─── helpers ────────────────────────────────────────────────────────
 
     private function grantWebhookFeature(): void
     {
-        // Force the plan-feature check to return true for this user.
-        $this->user->plan_features = array_merge(
-            (array) $this->user->plan_features,
-            ['webhook_triggers' => true]
-        );
+        // Assign a plan that has the webhook_triggers feature enabled.
+        $slug = 'plan-' . strtolower(str()->random(6));
+        $plan = \App\Modules\Admin\Models\Plan::create([
+            'name'          => $slug,
+            'slug'          => $slug,
+            'monthly_price' => 0,
+            'annual_price'  => 0,
+            'trial_days'    => 0,
+            'status'        => 'active',
+            'features'      => ['webhook_triggers' => true],
+        ]);
+        $this->user->plan_id = $plan->id;
         $this->user->save();
+        $this->user->refresh();
     }
 
     private function createDestination(array $overrides = []): InboxForwardDestination
@@ -229,6 +243,128 @@ class LinkWebhookTriggersTest extends TestCase
         Http::assertNothingSent();
     }
 
+    // ─── Bearer auth header + delivery row shape ────────────────────────
+
+    private function createBearerDestination(array $overrides = []): InboxForwardDestination
+    {
+        return $this->createDestination(array_merge([
+            'header_key'   => 'Authorization',
+            'header_value' => 'Bearer secret-token-123',
+        ], $overrides));
+    }
+
+    public function test_link_created_webhook_carries_bearer_auth_header_and_queues_delivery(): void
+    {
+        $this->grantWebhookFeature();
+        Http::fake(['https://example.com/hook' => Http::response('OK', 200)]);
+
+        $dest = $this->createBearerDestination(['sources' => ['link_created']]);
+        $link = $this->createLink();
+
+        app(InboxForwarder::class)->dispatchForLinkCreated($this->user->id, $link);
+
+        Http::assertSent(function ($r) use ($link) {
+            $b = json_decode($r->body(), true);
+            return $r->hasHeader('Authorization', 'Bearer secret-token-123')
+                && $r->hasHeader('X-Sayzio-Event', 'link_created')
+                && $b['event'] === 'link_created'
+                && isset($b['occurred_at'])
+                && $b['link']['id'] === $link->id
+                && $b['link']['alias'] === $link->alias
+                && $b['link']['type'] === $link->type
+                && array_key_exists('title', $b['link']);
+        });
+
+        $delivery = \App\Modules\User\Models\InboxForwardDelivery::where('destination_id', $dest->id)->first();
+        $this->assertNotNull($delivery);
+        $this->assertSame('link_created', $delivery->source_type);
+        $this->assertSame($link->id, (int) $delivery->source_id);
+        $this->assertSame('success', $delivery->status);
+        $this->assertSame('link_created', $delivery->payload_snapshot['event'] ?? null);
+        $this->assertSame($link->id, $delivery->payload_snapshot['link']['id'] ?? null);
+    }
+
+    public function test_link_expired_webhook_carries_bearer_auth_header_and_queues_delivery(): void
+    {
+        $this->grantWebhookFeature();
+        Http::fake(['https://example.com/hook' => Http::response('OK', 200)]);
+
+        $dest = $this->createBearerDestination(['sources' => ['link_expired']]);
+        $link = $this->createLink(['expires_at' => now()->subHour()]);
+
+        app(InboxForwarder::class)->dispatchForLinkExpired($this->user->id, $link);
+
+        Http::assertSent(function ($r) use ($link) {
+            $b = json_decode($r->body(), true);
+            return $r->hasHeader('Authorization', 'Bearer secret-token-123')
+                && $r->hasHeader('X-Sayzio-Event', 'link_expired')
+                && $b['event'] === 'link_expired'
+                && $b['reason'] === 'date'
+                && isset($b['occurred_at'])
+                && $b['link']['id'] === $link->id
+                && array_key_exists('expires_at', $b['link'])
+                && array_key_exists('total_clicks', $b['link']);
+        });
+
+        $delivery = \App\Modules\User\Models\InboxForwardDelivery::where('destination_id', $dest->id)->first();
+        $this->assertNotNull($delivery);
+        $this->assertSame('link_expired', $delivery->source_type);
+        $this->assertSame('success', $delivery->status);
+        $this->assertSame('link_expired', $delivery->payload_snapshot['event'] ?? null);
+    }
+
+    public function test_click_milestone_webhook_carries_bearer_auth_header_and_queues_delivery(): void
+    {
+        $this->grantWebhookFeature();
+        Http::fake(['https://example.com/hook' => Http::response('OK', 200)]);
+
+        $dest = $this->createBearerDestination([
+            'sources'          => ['click_milestone'],
+            'click_milestones' => [500],
+        ]);
+        $link = $this->createLink(['total_clicks' => 512]);
+
+        app(InboxForwarder::class)->dispatchForClickMilestone(
+            $this->user->id, $link, 500, 512, $dest
+        );
+
+        Http::assertSent(function ($r) use ($link) {
+            $b = json_decode($r->body(), true);
+            return $r->hasHeader('Authorization', 'Bearer secret-token-123')
+                && $r->hasHeader('X-Sayzio-Event', 'click_milestone')
+                && $b['event'] === 'click_milestone'
+                && $b['milestone'] === 500
+                && $b['total_clicks'] === 512
+                && isset($b['occurred_at'])
+                && $b['link']['id'] === $link->id;
+        });
+
+        $delivery = \App\Modules\User\Models\InboxForwardDelivery::where('destination_id', $dest->id)->first();
+        $this->assertNotNull($delivery);
+        $this->assertSame('click_milestone', $delivery->source_type);
+        $this->assertSame($link->id, (int) $delivery->source_id);
+        $this->assertSame('success', $delivery->status);
+        $this->assertSame(500, $delivery->payload_snapshot['milestone'] ?? null);
+    }
+
+    public function test_plan_gate_creates_no_delivery_rows_when_feature_off(): void
+    {
+        Http::fake(['*' => Http::response('OK', 200)]);
+        $dest = $this->createBearerDestination(['click_milestones' => [100]]);
+        $link = $this->createLink(['total_clicks' => 100]);
+
+        $forwarder = app(InboxForwarder::class);
+        $forwarder->dispatchForLinkCreated($this->user->id, $link);
+        $forwarder->dispatchForLinkExpired($this->user->id, $link);
+        $forwarder->dispatchForClickMilestone($this->user->id, $link, 100, 100, $dest);
+
+        Http::assertNothingSent();
+        $this->assertSame(
+            0,
+            \App\Modules\User\Models\InboxForwardDelivery::where('user_id', $this->user->id)->count()
+        );
+    }
+
     // ─── CheckClickMilestonesJob idempotency ────────────────────────────
 
     public function test_milestone_job_does_not_double_fire_same_threshold(): void
@@ -305,12 +441,16 @@ class LinkWebhookTriggersTest extends TestCase
                  'label'              => 'Deduped milestones',
                  'type'               => 'webhook',
                  'target'             => 'https://example.com/hook',
-                 'click_milestones'   => [1000, 100, 100, 0],
+                 // Note: 0 / negatives are rejected by validation (min:1),
+                 // so only duplicates + ordering are normalised here.
+                 'click_milestones'   => [1000, 100, 100],
                  'is_active'          => '1',
              ])
-             ->assertRedirect();
+             ->assertSessionHasNoErrors()
+             ->assertRedirect(route('user.inbox.forwards.index'));
 
         $dest = InboxForwardDestination::where('user_id', $this->user->id)->latest()->first();
+        $this->assertNotNull($dest);
         $this->assertSame([100, 1000], $dest->clickMilestoneThresholds());
     }
 
@@ -328,7 +468,7 @@ class LinkWebhookTriggersTest extends TestCase
                      ]);
 
         $resp->assertStatus(201);
-        $resp->assertJsonPath('data.click_milestones', [100, 1000]);
+        $resp->assertJsonPath('data.destination.click_milestones', [100, 1000]);
     }
 
     public function test_api_create_rejects_invalid_milestone_values(): void
@@ -343,7 +483,12 @@ class LinkWebhookTriggersTest extends TestCase
                      ]);
 
         $resp->assertStatus(422);
-        $resp->assertJsonValidationErrors(['click_milestones.0', 'click_milestones.1']);
+        // API errors use the unified envelope: {error:{message,code,details}}.
+        $resp->assertJsonPath('error.code', 'validation_failed');
+        $details = $resp->json('error.details');
+        $this->assertArrayHasKey('click_milestones.0', $details);
+        $this->assertArrayHasKey('click_milestones.1', $details);
+        $this->assertArrayHasKey('click_milestones.2', $details);
     }
 
     // ─── Webhook settings page ───────────────────────────────────────────
