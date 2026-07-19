@@ -84,7 +84,7 @@ export const ENTRY_TAG_LABELS: Record<string, string> = {
 /** Public: paginated list of published entries for an updates-type link. */
 export async function getUpdatesPage(alias: string, page = 1): Promise<UpdatesPageData> {
   const res = await apiFetch<{ data: UpdatesPageData }>(
-    `/api/v1/updates/${encodeURIComponent(alias)}?page=${page}`,
+    `/updates/${encodeURIComponent(alias)}?page=${page}`,
   );
   return res.data;
 }
@@ -92,7 +92,7 @@ export async function getUpdatesPage(alias: string, page = 1): Promise<UpdatesPa
 /** Owner: list all entries (draft + published) for a link by numeric ID. */
 export async function listOwnerEntries(linkId: number): Promise<UpdateEntry[]> {
   const res = await apiFetch<{ data: { entries: UpdateEntry[] } }>(
-    `/api/v1/me/updates/${linkId}/entries`,
+    `/me/updates/${linkId}/entries`,
   );
   return res.data.entries;
 }
@@ -100,7 +100,7 @@ export async function listOwnerEntries(linkId: number): Promise<UpdateEntry[]> {
 /** Owner: create a new entry. */
 export async function createUpdateEntry(linkId: number, input: CreateEntryInput): Promise<UpdateEntry> {
   const res = await apiFetch<{ data: UpdateEntry }>(
-    `/api/v1/me/updates/${linkId}/entries`,
+    `/me/updates/${linkId}/entries`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -117,7 +117,7 @@ export async function updateUpdateEntry(
   input: UpdateEntryInput,
 ): Promise<UpdateEntry> {
   const res = await apiFetch<{ data: UpdateEntry }>(
-    `/api/v1/me/updates/${linkId}/entries/${entryId}`,
+    `/me/updates/${linkId}/entries/${entryId}`,
     {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
@@ -129,14 +129,14 @@ export async function updateUpdateEntry(
 
 /** Owner: delete an entry. */
 export async function deleteUpdateEntry(linkId: number, entryId: number): Promise<void> {
-  await apiFetch<void>(`/api/v1/me/updates/${linkId}/entries/${entryId}`, {
+  await apiFetch<void>(`/me/updates/${linkId}/entries/${entryId}`, {
     method: "DELETE",
   });
 }
 
 /** Owner: update page settings (heading / subheading / per_page). */
 export async function saveUpdatesSettings(linkId: number, settings: UpdatesSettings): Promise<void> {
-  await apiFetch<void>(`/api/v1/me/updates/${linkId}/settings`, {
+  await apiFetch<void>(`/me/updates/${linkId}/settings`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(settings),
