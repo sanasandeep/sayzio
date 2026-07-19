@@ -187,7 +187,17 @@ export function getProfileWorkspaceId(profileId: string): string | null {
 export function deleteProfile(profileId: string): void {
   if (profileId === DEFAULT_PROFILE_ID) return;
   const db = getDb();
+  // Drop any queued sync pushes recorded under this profile so retries never
+  // land the deleted workspace's data in the personal bucket.
+  db.prepare('DELETE FROM sync_queue WHERE profile_id = ?').run(profileId);
   db.prepare('DELETE FROM profiles WHERE id = ?').run(profileId);
+}
+
+/** Whether a profile row still exists (the personal profile always does). */
+export function profileExists(profileId: string): boolean {
+  if (profileId === DEFAULT_PROFILE_ID) return true;
+  const db = getDb();
+  return db.prepare('SELECT 1 FROM profiles WHERE id = ?').get(profileId) !== undefined;
 }
 
 // ── Preferences ─────────────────────────────────────────────────────────────

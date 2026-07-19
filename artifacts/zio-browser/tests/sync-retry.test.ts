@@ -12,13 +12,14 @@ vi.mock('../src/main/db', () => ({
   getPreference: vi.fn(() => null),
   getActiveProfileId: vi.fn(() => 'default'),
   getProfileWorkspaceId: vi.fn(() => null),
+  profileExists: vi.fn(() => true),
 }));
 vi.mock('../src/main/auth-store', () => ({
   retrieveToken: vi.fn(() => null),
 }));
 
 import { SyncRetryRunner } from '../src/main/sync-retry';
-import { getSyncQueueItems, removeSyncQueueItem, markSyncQueueFailure } from '../src/main/db';
+import { getSyncQueueItems, removeSyncQueueItem, markSyncQueueFailure, markRecordsSynced, profileExists } from '../src/main/db';
 
 function makeItem(overrides: Partial<SyncQueueItem> = {}): SyncQueueItem {
   return {
@@ -76,6 +77,38 @@ describe('SyncRetryRunner profile scoping', () => {
     expect(flushed).toBe(0);
     expect(markSyncQueueFailure).toHaveBeenCalledWith('q1', 'offline');
     expect(removeSyncQueueItem).not.toHaveBeenCalled();
+  });
+
+  it('drops items whose recorded profile has been deleted without pushing', async () => {
+    vi.mocked(getSyncQueueItems).mockReturnValue([
+      makeItem({ id: 'q1', profile_id: 'deleted-profile' }),
+      makeItem({ id: 'q2', profile_id: 'live-profile' }),
+    ]);
+    vi.mocked(profileExists).mockImplementation((id: string) => id !== 'deleted-profile');
+
+    const pushFn = vi.fn().mockResolvedValue(undefined);
+    const runner = new SyncRetryRunner({ pushFn });
+    const flushed = await runner.tick(Date.now());
+
+    expect(flushed).toBe(2);
+    // The deleted profile's item was never pushed (would land in the wrong bucket)
+    expect(pushFn).toHaveBeenCalledTimes(1);
+    expect(pushFn).toHaveBeenCalledWith('bookmarks', expect.any(Array), 'live-profile');
+    expect(removeSyncQueueItem).toHaveBeenCalledWith('q1');
+    expect(removeSyncQueueItem).toHaveBeenCalledWith('q2');
+    // Dropped items are not marked as synced
+    expect(markRecordsSynced).toHaveBeenCalledTimes(1);
+  });
+
+  it('still pushes legacy items without a recorded profile (active-profile fallback)', async () => {
+    vi.mocked(getSyncQueueItems).mockReturnValue([makeItem({ profile_id: null })]);
+    vi.mocked(profileExists).mockReturnValue(false);
+
+    const pushFn = vi.fn().mockResolvedValue(undefined);
+    const runner = new SyncRetryRunner({ pushFn });
+    await runner.tick(Date.now());
+
+    expect(pushFn).toHaveBeenCalledWith('bookmarks', expect.any(Array), null);
   });
 });
 

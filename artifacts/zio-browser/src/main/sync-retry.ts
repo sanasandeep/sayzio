@@ -23,6 +23,7 @@ import {
   getPreference,
   getActiveProfileId,
   getProfileWorkspaceId,
+  profileExists,
 } from './db';
 import { PREFERENCE_KEYS } from '../shared/db-schema';
 import { retrieveToken } from './auth-store';
@@ -130,6 +131,14 @@ export class SyncRetryRunner {
       items = JSON.parse(item.payload) as SyncItem[];
     } catch {
       // Corrupt payload — drop it rather than retrying forever
+      removeSyncQueueItem(item.id);
+      return true;
+    }
+
+    // If the profile this item was enqueued under has since been deleted,
+    // drop the item instead of pushing — otherwise the workspace lookup
+    // would resolve to null and the data would land in the personal bucket.
+    if (item.profile_id !== null && !profileExists(item.profile_id)) {
       removeSyncQueueItem(item.id);
       return true;
     }
