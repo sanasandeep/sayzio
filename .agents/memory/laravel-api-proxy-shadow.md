@@ -18,8 +18,15 @@ the `api-server-paths` validation) fails if those paths are ever widened back.
 **previewPath matters in PRODUCTION:** the deployed edge router routes by the
 artifact's `previewPath` prefix even when `[[services]].paths` is narrow.
 With `previewPath = "/api"` every prod `/api/v1/*` request still hit Express
-(502 upstream_unavailable) despite narrowed paths; fix was pinning
-`previewPath = "/api/healthz"`. The guard script now checks previewPath too.
+(502 upstream_unavailable) despite narrowed paths; pinning
+`previewPath = "/api/healthz"` was tried, but a later successful publish STILL
+routed prod `/api/*` to Express — the prod edge misroute persisted regardless.
+Durable fix: the Express fallthrough proxy now FORWARDS to Laravel in
+production when running on Replit (all monorepo artifact processes share one
+container, so 127.0.0.1:5000 is reachable); it only fail-fasts 404 on
+non-Replit prod (EC2). Gates: REPLIT_DEPLOYMENT/REPLIT_DOMAINS env, or
+ALLOW_PROD_LARAVEL_PROXY=1 / LARAVEL_BACKEND_URL.
+The guard script still checks previewPath/paths stay narrow.
 The Express fallthrough proxy also retries localhost/[::1] variants and
 surfaces the fetch error code in the 502 `details.cause` for prod diagnosis.
 

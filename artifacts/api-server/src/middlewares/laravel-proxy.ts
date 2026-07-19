@@ -54,22 +54,47 @@ export const laravelProxy: RequestHandler = async (req, res) => {
   // is immediately visible in logs and to the caller, rather than a confusing
   // "couldn't reach backend" 502 from a failed localhost:5000 connection.
   if (process.env["NODE_ENV"] === "production") {
-    req.log.error(
+    // On Replit monorepo deployments all artifact processes run in the SAME
+    // container, so Laravel IS reachable at 127.0.0.1:5000 and we can
+    // transparently forward. Verified July 2026: the production edge kept
+    // sending /api/v1/* to this Express service even after previewPath/paths
+    // were narrowed, so failing fast here broke mobile login with 502/404s.
+    // On EC2 (no Laravel on localhost) keep the explicit fail-fast so routing
+    // drift stays visible. Replit deployments are detected via their standard
+    // env vars; ALLOW_PROD_LARAVEL_PROXY=1 or LARAVEL_BACKEND_URL force-enables
+    // forwarding elsewhere.
+    const onReplit =
+      Boolean(process.env["REPLIT_DEPLOYMENT"]) ||
+      Boolean(process.env["REPLIT_DOMAINS"]);
+    const forwardingAllowed =
+      onReplit ||
+      process.env["ALLOW_PROD_LARAVEL_PROXY"] === "1" ||
+      Boolean(process.env["LARAVEL_BACKEND_URL"]?.trim());
+    if (!forwardingAllowed) {
+      req.log.error(
+        {
+          method: req.method,
+          path: req.originalUrl,
+          hint: "Check that the EC2 Nginx config (deploy/ec2/nginx/sayzio.conf) lists only the Express-native paths (/api/healthz, /api/contact). All /api/v1/* traffic must go directly to Laravel/PHP-FPM.",
+        },
+        "laravel-proxy: unhandled request reached the fallthrough proxy in production — routing misconfiguration",
+      );
+      res.status(404).json({
+        error: {
+          message:
+            "This route is not handled by the API server. Routing misconfiguration detected — see server logs.",
+          code: "routing_misconfiguration",
+        },
+      });
+      return;
+    }
+    req.log.warn(
       {
         method: req.method,
         path: req.originalUrl,
-        hint: "Check that the EC2 Nginx config (deploy/ec2/nginx/sayzio.conf) and artifact.toml paths both list only the Express-native paths (/api/healthz, /api/contact). All /api/v1/* traffic must go directly to Laravel/PHP-FPM.",
       },
-      "laravel-proxy: unhandled request reached the fallthrough proxy in production — routing misconfiguration",
+      "laravel-proxy: /api fallthrough reached in production — forwarding to Laravel backend",
     );
-    res.status(404).json({
-      error: {
-        message:
-          "This route is not handled by the API server. Routing misconfiguration detected — see server logs.",
-        code: "routing_misconfiguration",
-      },
-    });
-    return;
   }
 
   // Preserve the full original path (including the `/api` prefix and query
