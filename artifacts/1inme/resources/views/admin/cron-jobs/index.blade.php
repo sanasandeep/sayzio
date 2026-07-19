@@ -420,7 +420,32 @@
                                                             <td class="px-4 py-2 whitespace-nowrap text-white/60" x-text="run.runtime !== null ? (Math.round(run.runtime * 100) / 100) + 's' : '—'"></td>
                                                             <td class="px-4 py-2 whitespace-nowrap text-white/60" x-text="run.exit_code !== null ? run.exit_code : '—'"></td>
                                                             <td class="px-4 py-2 whitespace-nowrap text-white/60" x-text="run.source"></td>
-                                                            <td class="px-4 py-2 text-rose-300/70 max-w-[18rem] truncate" :title="run.error || ''" x-text="run.error || '—'"></td>
+                                                            <td class="px-4 py-2 align-top max-w-[28rem]">
+                                                                <template x-if="! run.error">
+                                                                    <span class="text-white/30">&mdash;</span>
+                                                                </template>
+                                                                <template x-if="run.error">
+                                                                    <div>
+                                                                        <div class="flex items-center gap-2 mb-1">
+                                                                            <button type="button"
+                                                                                class="text-[10px] uppercase tracking-wider font-semibold px-1.5 py-0.5 rounded border border-white/15 text-white/50 hover:text-white/80 hover:border-white/30 transition"
+                                                                                @click="copy(run.error, 'run-err-' + run.id)">
+                                                                                <i class="fas text-[9px] mr-0.5" :class="copied === 'run-err-' + run.id ? 'fa-check text-emerald-300' : 'fa-copy'"></i>
+                                                                                <span x-text="copied === 'run-err-' + run.id ? 'Copied' : 'Copy error'"></span>
+                                                                            </button>
+                                                                            <template x-if="errorLineCount(run) > 5">
+                                                                                <button type="button"
+                                                                                    class="text-[10px] uppercase tracking-wider font-semibold px-1.5 py-0.5 rounded border border-white/15 text-white/50 hover:text-white/80 hover:border-white/30 transition"
+                                                                                    @click="toggleErrorExpand(run.id)">
+                                                                                    <i class="fas text-[9px] mr-0.5" :class="isErrorExpanded(run.id) ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
+                                                                                    <span x-text="isErrorExpanded(run.id) ? 'Show less' : ('Show all ' + errorLineCount(run) + ' lines')"></span>
+                                                                                </button>
+                                                                            </template>
+                                                                        </div>
+                                                                        <pre class="font-mono text-[11px] leading-4 text-rose-300/80 bg-black/30 border border-rose-400/15 rounded-lg px-2.5 py-2 whitespace-pre-wrap break-words max-h-72 overflow-y-auto" x-text="errorDisplay(run)"></pre>
+                                                                    </div>
+                                                                </template>
+                                                            </td>
                                                         </tr>
                                                     </template>
                                                 </tbody>
@@ -452,6 +477,8 @@
             historyKey: null,
             historyRuns: [],
             historyLoading: false,
+            // Run ids whose error output is expanded past the 5-line preview.
+            expandedErrors: [],
             // Per-job live status map, seeded server-side and refreshed by a
             // light polling loop while any run is in flight, so badges and
             // last-run details update in place without a manual page reload.
@@ -551,6 +578,7 @@
                 }
                 this.historyKey = key;
                 this.historyRuns = [];
+                this.expandedErrors = [];
                 await this.fetchRuns(key);
             },
             async fetchRuns(key, { quiet = false } = {}) {
@@ -567,6 +595,28 @@
                 } finally {
                     if (this.historyKey === key && ! quiet) this.historyLoading = false;
                 }
+            },
+            errorLineCount(run) {
+                if (! run.error) return 0;
+                return String(run.error).split('\n').length;
+            },
+            isErrorExpanded(id) {
+                return this.expandedErrors.includes(id);
+            },
+            toggleErrorExpand(id) {
+                if (this.isErrorExpanded(id)) {
+                    this.expandedErrors = this.expandedErrors.filter((x) => x !== id);
+                } else {
+                    this.expandedErrors = this.expandedErrors.concat([id]);
+                }
+            },
+            errorDisplay(run) {
+                const text = String(run.error || '');
+                const lines = text.split('\n');
+                if (lines.length <= 5 || this.isErrorExpanded(run.id)) {
+                    return text;
+                }
+                return lines.slice(0, 5).join('\n') + '\n…';
             },
             formatWhen(iso) {
                 if (! iso) return '-';
