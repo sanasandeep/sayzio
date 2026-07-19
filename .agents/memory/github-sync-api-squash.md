@@ -12,6 +12,8 @@ The sandbox blocks git fetch/merge/force-push/commit locally, and GitHub push pr
 
 **Why:** repo is PUBLIC — never use GitHub's "allow secret" bypass URL; it would publish live-looking tokens.
 
+**After any push to GitHub**, also run `pnpm --filter @workspace/scripts run sync:branch-protection` — it PATCHes main's required_status_checks from `.github/required-checks.json` (the two are separate copies; supports `--dry-run`, exits non-zero on token/permission failure).
+
 **How to apply:** after each publish, the standing GitHub push will be non-fast-forward again (remote head is an API-made squash commit not in local history). Repeat: diff `--no-renames --name-status` against the remote head sha, upload blobs, chained trees, commit with remote head as parent. Env is resource-starved; run everything in resumable ≤110s chunks.
 
 Remote branch `backup-remote-main-20260718` preserves three EC2 "Deploy:" commits whose content was verified present locally.
