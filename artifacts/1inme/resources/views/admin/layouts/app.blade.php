@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
+    <meta name="theme-color" content="#0a0a14">
     <title>@yield('title', 'Admin') - {{ config('app.name') }}</title>
     @include('common.partials.default-icons')
     @vite(['resources/css/app.css', 'resources/js/app.js'])
