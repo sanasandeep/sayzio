@@ -30,7 +30,62 @@ class ProfileController extends Controller
             'language'         => ['sometimes', 'nullable', 'string', 'max:10'],
             'discoverable'     => ['sometimes', 'boolean'],
             'allow_followers'  => ['sometimes', 'boolean'],
+            // Safety & moderation (mirrors web CreatorProfileController).
+            'mute_words_text'     => ['sometimes', 'nullable', 'string', 'max:4000'],
+            'watermark_enabled'   => ['sometimes', 'boolean'],
+            'country_block_text'  => ['sometimes', 'nullable', 'string', 'max:1000'],
+            'country_allow_text'  => ['sometimes', 'nullable', 'string', 'max:1000'],
+            'dmca_email'          => ['sometimes', 'nullable', 'email', 'max:255'],
         ]);
+
+        // `users.timezone` / `users.language` are NOT NULL columns — an empty
+        // field on the mobile edit screen must mean "leave unchanged", never
+        // "write NULL" (which 500s on the DB constraint).
+        foreach (['timezone', 'language'] as $key) {
+            if (array_key_exists($key, $data) && ($data[$key] === null || trim((string) $data[$key]) === '')) {
+                unset($data[$key]);
+            }
+        }
+
+        // ── Safety & moderation — same normalisation as the web save ──
+        if (array_key_exists('mute_words_text', $data)) {
+            $words = preg_split('/[\r\n,]+/', (string) $data['mute_words_text']) ?: [];
+            $user->mute_words = collect($words)
+                ->map(fn ($w) => mb_strtolower(trim((string) $w)))
+                ->filter(fn ($w) => $w !== '' && mb_strlen($w) <= 64)
+                ->unique()
+                ->take(\App\Modules\Common\Services\MuteWordsService::MAX_WORDS)
+                ->values()
+                ->all();
+            unset($data['mute_words_text']);
+        }
+        if (array_key_exists('watermark_enabled', $data)) {
+            $settings = is_array($user->watermark_settings) ? $user->watermark_settings : [];
+            $settings['enabled'] = (bool) $data['watermark_enabled'];
+            $settings += ['opacity' => 35, 'position' => 'br', 'text_template' => '@{handle} • {viewer}'];
+            $user->watermark_settings = $settings;
+            unset($data['watermark_enabled']);
+        }
+        $normalizeCountries = function ($raw) {
+            return collect(preg_split('/[\s,;]+/', (string) $raw) ?: [])
+                ->map(fn ($c) => strtoupper(trim((string) $c)))
+                ->filter(fn ($c) => preg_match('/^[A-Z]{2}$/', $c))
+                ->unique()->values()->all();
+        };
+        if (array_key_exists('country_block_text', $data)) {
+            $user->country_block_list = $normalizeCountries($data['country_block_text']);
+            unset($data['country_block_text']);
+        }
+        if (array_key_exists('country_allow_text', $data)) {
+            $user->country_allow_list = $normalizeCountries($data['country_allow_text']);
+            unset($data['country_allow_text']);
+        }
+        if (array_key_exists('dmca_email', $data)) {
+            $user->dmca_email = $data['dmca_email'] !== null && trim((string) $data['dmca_email']) !== ''
+                ? trim((string) $data['dmca_email'])
+                : null;
+            unset($data['dmca_email']);
+        }
 
         $user->fill($data)->save();
         return $this->ok(['user' => UserResource::toArray($user->fresh(), self: true)]);
