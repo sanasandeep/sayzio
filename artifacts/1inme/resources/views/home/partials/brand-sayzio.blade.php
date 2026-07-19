@@ -222,7 +222,7 @@
     }
 </style>
 
-<section class="bs-section relative py-20 lg:py-28 overflow-hidden" aria-labelledby="bs-h">
+<section class="bs-section relative py-16 lg:py-20 overflow-hidden" aria-labelledby="bs-h">
     <div class="bs-backing" aria-hidden="true">
         <span class="bs-backing-word bs-backing-word--id">1INME</span>
         <span class="bs-backing-word bs-backing-word--zio">SAYZIO</span>
@@ -230,7 +230,7 @@
 
     <div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-10 xl:px-12">
         {{-- Eyebrow + heading --}}
-        <div class="text-center max-w-3xl mx-auto mb-16 lg:mb-24">
+        <div class="text-center max-w-3xl mx-auto mb-10 lg:mb-14">
             <div data-anim="fade-up" class="inline-flex items-center gap-2 px-4 py-1.5 glass rounded-full text-xs font-semibold mb-7">
                 <span class="relative flex h-2 w-2">
                     <span class="absolute inline-flex h-full w-full rounded-full" style="background:var(--c2)"></span>
@@ -243,10 +243,6 @@
                 <span class="bs-is-word font-semibold italic px-1">is</span>
                 <span class="bs-word bs-word--zio">Sayzio</span>
             </h2>
-            <p data-anim="fade-up" class="bs-copy mt-6 text-lg leading-relaxed">
-                <strong class="bs-emph">1IN.ME</strong> is your digital identity, unified. It runs on
-                <strong class="bs-emph">Sayzio</strong>, the smart, scalable, seamless platform powering every link, page and QR.
-            </p>
         </div>
 
         {{-- Twin brand cards joined by an animated energy line + "is" pill.
@@ -331,16 +327,8 @@
             </div>
         </div>
 
-        {{-- "Powered by Sayzio" connector --}}
-        <div data-anim="fade-up" class="mt-12 lg:mt-14 flex items-center justify-center">
-            <div class="inline-flex items-center gap-3 px-5 py-2.5 glass rounded-full">
-                <span class="text-xs font-bold uppercase tracking-[.22em] text-gray-400">Powered by</span>
-                <span class="text-base font-extrabold"><span class="bs-word bs-word--zio">Sayzio</span></span>
-            </div>
-        </div>
-
         {{-- Four pillars --}}
-        <div data-anim="fade-up" data-stagger class="mt-14 lg:mt-20 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+        <div data-anim="fade-up" data-stagger class="mt-10 lg:mt-14 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
             @foreach([
                 ['fa-rocket',        '#3d6bff', 'Built for',      'Performance'],
                 ['fa-shield-halved', '#1bd4d9', 'Engineered for', 'Reliability'],
