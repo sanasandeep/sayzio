@@ -15,7 +15,7 @@
             class="flex items-center gap-2 text-xs font-semibold mb-2" style="color: var(--text-muted);">
         <i class="fas fa-chevron-right text-[10px] transition-transform" :class="{ 'rotate-90': show }"></i>
         Click milestone thresholds
-        <span style="color: var(--text-faint); font-weight:normal;">(optional — e.g. 100, 1000, 10000)</span>
+        <span style="color: var(--text-faint); font-weight:normal;">(optional, e.g. 100, 1000, 10000)</span>
     </button>
 
     <div x-show="show" x-transition>

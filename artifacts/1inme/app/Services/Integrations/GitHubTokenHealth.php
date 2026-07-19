@@ -13,7 +13,8 @@ use Illuminate\Support\Facades\Log;
  * Proactive admin alerting for the GitHub push credential going stale.
  *
  * Code is mirrored to GitHub (config('services.github.repo')) using a
- * fine-grained personal access token stored in the GITHUB_TOKEN secret.
+ * fine-grained personal access token managed at Admin > Integrations >
+ * GitHub Token (with the GITHUB_TOKEN env secret as fallback).
  * Fine-grained tokens expire (the current one around mid-October 2026);
  * when that happens every "push to GitHub after publishing" step fails
  * with an auth error and the repo silently drifts behind the workspace.
@@ -103,7 +104,7 @@ class GitHubTokenHealth
         if ($token === '') {
             return [
                 'status'     => 'missing',
-                'detail'     => 'The GITHUB_TOKEN secret is not set — pushes to ' . $repo . ' cannot authenticate.',
+                'detail'     => 'No GitHub token is configured — pushes to ' . $repo . ' cannot authenticate. Add one at Admin > Integrations > GitHub Token.',
                 'expires_at' => null,
             ];
         }
@@ -156,7 +157,7 @@ class GitHubTokenHealth
             return [
                 'status'     => 'expiring',
                 'detail'     => "The GitHub token for {$repo} expires on " . $expiresAt->toDateString()
-                    . " ({$days} day(s) from now). Generate a new fine-grained token and update the GITHUB_TOKEN secret before then.",
+                    . " ({$days} day(s) from now). Generate a new fine-grained token and save it at Admin > Integrations > GitHub Token before then.",
                 'expires_at' => $expiresAt->toIso8601String(),
             ];
         }
@@ -240,7 +241,9 @@ class GitHubTokenHealth
         $body = $probe['detail'] . ' Without a working token, code stops being mirrored to '
             . 'https://github.com/' . $repo . ' after each publish and the repo silently drifts behind the workspace. '
             . 'Fix: create a new fine-grained personal access token (with contents read/write on the repo) at '
-            . 'https://github.com/settings/personal-access-tokens and update the GITHUB_TOKEN secret in Replit.';
+            . 'https://github.com/settings/personal-access-tokens and save it in the admin panel at '
+            . route('admin.integrations.github.edit') . ' (Admin > Integrations > GitHub Token). '
+            . 'As a fallback, the GITHUB_TOKEN environment secret can be updated instead.';
 
         $inApp  = self::fanOutInApp($admins, 'github_token_unhealthy', $subject, $body, [
             'status'     => $probe['status'],
@@ -251,7 +254,7 @@ class GitHubTokenHealth
         try {
             InternalAlertDispatcher::send(
                 $subject,
-                $probe['detail'] . ' Renew the token and update the GITHUB_TOKEN secret.',
+                $probe['detail'] . ' Renew the token via Admin > Integrations > GitHub Token (or the GITHUB_TOKEN env secret as fallback).',
                 $probe['status'] === 'expiring' ? 'warning' : 'error',
                 ['Repo' => $repo, 'Status' => $probe['status']]
             );

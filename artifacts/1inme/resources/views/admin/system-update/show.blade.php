@@ -51,9 +51,14 @@
             <div>
                 <h2 class="text-base font-semibold text-white">GitHub credentials not configured</h2>
                 <p class="text-sm text-white/60 mt-1">
-                    The update check and one-click deploy require a <code class="px-1 py-0.5 rounded bg-black/30">GITHUB_TOKEN</code>
-                    and <code class="px-1 py-0.5 rounded bg-black/30">GITHUB_REPO</code> in your
-                    <span class="text-white/80">EC2 <code>.env</code></span> file. Set them to enable this feature.
+                    The update check and one-click deploy need a GitHub token. Add one on the
+                    <a href="{{ route('admin.integrations.github.edit') }}" class="text-blue-300 hover:text-blue-200 underline">GitHub Token</a>
+                    page (Admin &gt; Integrations &gt; GitHub Token); no server access needed.
+                </p>
+                <p class="text-xs text-white/40 mt-2">
+                    Fallback: set <code class="px-1 py-0.5 rounded bg-black/30">GITHUB_TOKEN</code> and
+                    <code class="px-1 py-0.5 rounded bg-black/30">GITHUB_REPO</code> as environment variables
+                    (e.g. in the <span class="text-white/60">EC2 <code>.env</code></span> file).
                 </p>
                 <div class="mt-3 space-y-1 text-xs font-mono text-white/50 bg-black/20 rounded-lg p-3">
                     <p>GITHUB_TOKEN=ghp_xxxxxxxxxxxxxxxxxxxx</p>
