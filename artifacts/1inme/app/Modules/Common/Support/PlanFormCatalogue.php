@@ -81,6 +81,9 @@ class PlanFormCatalogue
             ['key' => 'min_alias_length',     'label' => 'Min alias length',        'default' => 4,   'module' => 'module_short_links', 'hint' => 'Minimum length for the visitor-facing alias. Free/entry plans should keep the largest minimum; paid tiers can step down.', 'max' => 191],
             ['key' => 'max_alias_length',     'label' => 'Max alias length',        'default' => 50,  'module' => 'module_short_links', 'hint' => 'Hard cap is 191 characters.', 'max' => 191],
             ['key' => 'max_forms',            'label' => 'Max forms',               'default' => 1,   'module' => 'module_forms',       'hint' => 'Custom form definitions a user can publish.'],
+            ['key' => 'max_minds',            'label' => 'Max AI Knowledge Bases',  'default' => 1,   'module' => 'module_ai_suite',    'hint' => 'How many AI Knowledge Bases (Minds) a user can create. -1 = unlimited.'],
+            ['key' => 'max_personas',         'label' => 'Max AI Agents',           'default' => 1,   'module' => 'module_ai_suite',    'hint' => 'How many configurable AI Agent personas a user can create. -1 = unlimited.'],
+            ['key' => 'max_companions',       'label' => 'Max Chat Widgets',        'default' => 1,   'module' => 'module_ai_suite',    'hint' => 'How many AI Companion chat widgets (chatbot, website embed, or inbox bot) a user can deploy. -1 = unlimited.'],
             ['key' => 'max_brand_kits',       'label' => 'Max AI brand kits',       'default' => 0,   'module' => 'module_branding',    'hint' => 'AI-generated brand kits (palette, fonts, voice, taglines) a user can save. 0 = feature hidden / upgrade prompt; -1 = unlimited.'],
             ['key' => 'max_buzz_items',       'label' => 'Max buzz pop-ups',        'default' => 0,   'module' => null,                 'hint' => 'On-site notification pop-ups.'],
             ['key' => 'max_buzz_impressions', 'label' => 'Max buzz views / mo',     'default' => -1,  'module' => null,                 'hint' => 'Monthly Buzz notification views (impressions). Beyond this, widgets pause until next month. -1 = unlimited.'],
@@ -213,6 +216,8 @@ class PlanFormCatalogue
             ['key' => 'qr_art',               'module' => 'module_ai_suite'],
             ['key' => 'whatsapp_agent',       'module' => 'module_ai_suite'],
             ['key' => 'marketing_strategist', 'module' => 'module_ai_suite'],
+            ['key' => 'card_scan',            'module' => 'module_ai_suite'],
+            ['key' => 'ai_resume_tools',      'module' => 'module_ai_suite'],
         ];
     }
 
