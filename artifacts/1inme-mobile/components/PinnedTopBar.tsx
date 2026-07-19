@@ -5,7 +5,7 @@ import { useRouter } from "expo-router";
 import { Platform, Pressable, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { BrandWordmark } from "@/components/Brand";
+import { BrandIcon } from "@/components/Brand";
 import { useDrawer } from "@/contexts/DrawerContext";
 import { TOP_BAR_H } from "@/contexts/TabBarContext";
 import { useColors, useResolvedScheme } from "@/hooks/useColors";
@@ -86,7 +86,7 @@ export function PinnedTopBar() {
         </Pressable>
 
         <View style={styles.center} pointerEvents="none">
-          <BrandWordmark size={24} />
+          <BrandIcon size={40} />
         </View>
 
         <Pressable

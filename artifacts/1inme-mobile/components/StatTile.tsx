@@ -57,7 +57,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     padding: 14,
     gap: 4,
-    minWidth: 140,
+    minWidth: 0,
   },
   iconWrap: {
     width: 28,
