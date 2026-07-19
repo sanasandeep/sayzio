@@ -78,7 +78,7 @@
         <div class="text-center mb-10" data-anim="fade-up">
             <div class="text-xs font-bold uppercase tracking-[.2em] mb-3" style="color: {{ $accent }};">An honest take</div>
             <h2 class="text-3xl sm:text-4xl font-bold tracking-tight">Where each tool wins</h2>
-            <p class="mt-3 text-gray-400 max-w-2xl mx-auto">No tool is best at everything. Here's a straight read on when {{ $c['name'] }} is the right call — and where Sayzio pulls ahead.</p>
+            <p class="mt-3 text-gray-400 max-w-2xl mx-auto">No tool is best at everything. Here's a straight read on when {{ $c['name'] }} is the right call, and where Sayzio pulls ahead.</p>
         </div>
         <div class="grid md:grid-cols-2 gap-5">
             {{-- Where Sayzio wins --}}
@@ -135,9 +135,9 @@
                 <div class="grid sm:grid-cols-3 gap-5">
                     @php
                         $steps = [
-                            ['icon' => 'fa-user-plus', 'title' => 'Create your free Sayzio', 'body' => 'Sign up with an email or phone number — no credit card, no trial clock.'],
+                            ['icon' => 'fa-user-plus', 'title' => 'Create your free Sayzio', 'body' => 'Sign up with an email or phone number, no credit card, no trial clock.'],
                             ['icon' => 'fa-arrows-rotate', 'title' => 'Rebuild or import your links', 'body' => 'Recreate your page with drag-and-drop blocks, or bulk-import your existing links.'],
-                            ['icon' => 'fa-share-nodes', 'title' => 'Point your link & go live', 'body' => 'Aim your custom domain or Link in Bio at Sayzio — your audience never notices the move.'],
+                            ['icon' => 'fa-share-nodes', 'title' => 'Point your link & go live', 'body' => 'Aim your custom domain or Link in Bio at Sayzio and your audience never notices the move.'],
                         ];
                     @endphp
                     @foreach($steps as $i => $s)
@@ -167,7 +167,7 @@
     <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center mb-10" data-anim="fade-up">
             <div class="text-xs font-bold uppercase tracking-[.2em] mb-3" style="color: {{ $accent }};">FAQ</div>
-            <h2 class="text-2xl sm:text-3xl font-bold tracking-tight">Sayzio vs {{ $c['name'] }} — common questions</h2>
+            <h2 class="text-2xl sm:text-3xl font-bold tracking-tight">Sayzio vs {{ $c['name'] }}: common questions</h2>
         </div>
         <div class="space-y-3" data-anim="fade-up" data-stagger>
             @foreach($faqs as $faq)
@@ -224,7 +224,7 @@
 
 @include('public.partials.subscribe-block', [
     'heading' => 'Thinking of switching? Get the playbook.',
-    'subtext' => 'Pick how you want to hear from us — email, WhatsApp Channel, or DM. Occasional notes on getting more from your link, no fluff.',
+    'subtext' => 'Pick how you want to hear from us: email, WhatsApp Channel, or DM. Occasional notes on getting more from your link, no fluff.',
     'source'  => 'compare-' . $c['key'],
 ])
 @endsection

@@ -61,16 +61,16 @@
     ];
 
     $steps = [
-        ['n' => '1', 'icon' => 'fa-bullseye',          'title' => 'Set your goal',        'body' => 'Tell the strategist what you want — more subscribers, more bookings, a product launch — and tune a few parameters.'],
+        ['n' => '1', 'icon' => 'fa-bullseye',          'title' => 'Set your goal',        'body' => 'Tell the strategist what you want (more subscribers, more bookings, a product launch) and tune a few parameters.'],
         ['n' => '2', 'icon' => 'fa-database',          'title' => 'Pick your data',       'body' => 'Toggle which of your own account signals it reads. Everything is grounded in real data, never invented metrics or URLs.'],
         ['n' => '3', 'icon' => 'fa-wand-magic-sparkles','title' => 'Get a plan you can run','body' => 'It returns an organic + paid plan built around real Sayzio features, plus one-click actions you can apply on the spot.'],
     ];
 
     $benefits = [
-        ['icon' => 'fa-seedling',   'title' => 'Grounded in your data',  'body' => 'Every recommendation is built from your real links, analytics and audience — no generic fluff, no made-up numbers.'],
+        ['icon' => 'fa-seedling',   'title' => 'Grounded in your data',  'body' => 'Every recommendation is built from your real links, analytics and audience, no generic fluff, no made-up numbers.'],
         ['icon' => 'fa-scale-balanced','title' => 'Organic + paid, together','body' => 'You get both a free-to-run organic plan and a low-budget paid plan, each play naming the exact Sayzio feature it uses.'],
-        ['icon' => 'fa-bolt',       'title' => 'One-click to apply',     'body' => 'The plan ships with applyable suggestions — create a link, add a block, attach a pixel, draft a post — done inside Sayzio.'],
-        ['icon' => 'fa-comments',   'title' => 'Refine by chat',         'body' => 'Not quite right? Chat with the strategist to sharpen the plan, swap channels or tighten the budget — it stays grounded.'],
+        ['icon' => 'fa-bolt',       'title' => 'One-click to apply',     'body' => 'The plan ships with applyable suggestions: create a link, add a block, attach a pixel, draft a post, all inside Sayzio.'],
+        ['icon' => 'fa-comments',   'title' => 'Refine by chat',         'body' => 'Not quite right? Chat with the strategist to sharpen the plan, swap channels or tighten the budget, and it stays grounded.'],
         ['icon' => 'fa-file-arrow-down','title' => 'Export & keep',       'body' => 'Save every strategy, export it to Markdown, and revisit your past plans whenever you want to run them again.'],
         ['icon' => 'fa-shield-halved','title' => 'Private by design',     'body' => 'It only reads the sources you toggle on, and only ever sees a compact, PII-free snapshot of your own account.'],
     ];
@@ -83,9 +83,9 @@
     ];
 
     $faqs = [
-        ['q' => 'Does it use my real account data?', 'a' => 'Yes. You choose which sources to include — links, analytics, audience, pixels, AI Brand Kit and more — and the strategist builds the plan from a compact, PII-free snapshot of just those. It never invents metrics, follower counts or URLs.'],
+        ['q' => 'Does it use my real account data?', 'a' => 'Yes. You choose which sources to include (links, analytics, audience, pixels, AI Brand Kit and more), and the strategist builds the plan from a compact, PII-free snapshot of just those. It never invents metrics, follower counts or URLs.'],
         ['q' => 'What do I actually get back?', 'a' => 'A structured strategy: a short summary, an organic plan and a paid plan where every play names the Sayzio feature it uses, the KPIs to watch, and a short list of one-click actions you can apply right away.'],
-        ['q' => 'Can I change the plan after it is generated?', 'a' => 'Absolutely. You can chat with the strategist to refine it — swap channels, tighten the budget, go deeper on a play — and it stays grounded in your data and the original plan.'],
+        ['q' => 'Can I change the plan after it is generated?', 'a' => 'Absolutely. You can chat with the strategist to refine it: swap channels, tighten the budget, go deeper on a play, and it stays grounded in your data and the original plan.'],
         ['q' => 'Which plans include the AI Marketing Strategist?', 'a' => 'It is included on every paid Sayzio plan. Generation is metered against your plan allowance, and any overage is covered by your coin wallet so you are never cut off mid-plan.'],
         ['q' => 'Will it post or spend money on its own?', 'a' => 'No. It only proposes a plan and one-click actions. Nothing is created, posted or spent until you choose to apply it.'],
     ];
@@ -96,18 +96,18 @@
     $reportParts = [
         ['icon' => 'fa-flag-checkered', 'label' => 'Goal & summary',
          'what' => 'A short plan title and a 2–3 sentence overview that restates the goal you set and how the strategy gets you there.',
-         'use'  => 'Your north star — skim it to remember what this plan is for, and paste it to a teammate so everyone is aligned in one line.'],
+         'use'  => 'Your north star: skim it to remember what this plan is for, and paste it to a teammate so everyone is aligned in one line.'],
         ['icon' => 'fa-seedling', 'label' => 'Organic plan',
          'what' => 'A set of free-to-run plays. Each names a channel, why it works, concrete steps, and the exact Sayzio features it uses.',
-         'use'  => 'Work it top to bottom — every play tells you which feature to open and what to do, so you can grow without spending a cent.'],
+         'use'  => 'Work it top to bottom: every play tells you which feature to open and what to do, so you can grow without spending a cent.'],
         ['icon' => 'fa-rectangle-ad', 'label' => 'Paid plan',
          'what' => 'Low-budget ad plays, each with a suggested daily budget hint, the rationale, steps, and the Sayzio features (like pixels) they lean on.',
          'use'  => 'Start small at the suggested budget, point ads at the right link, and lean on the pixels you already have connected.'],
         ['icon' => 'fa-chart-line', 'label' => 'KPIs to watch',
          'what' => 'A short, focused list of the metrics that tell you whether the plan is actually working.',
-         'use'  => 'Check them weekly — they keep you honest about progress and tell you when to double down or change course.'],
+         'use'  => 'Check them weekly: they keep you honest about progress and tell you when to double down or change course.'],
         ['icon' => 'fa-bolt', 'label' => 'One-click suggestions',
-         'what' => 'Up to five applyable actions — create a link, add a biolink block, attach a pixel, or draft a scheduled post — built from your real account.',
+         'what' => 'Up to five applyable actions (create a link, add a biolink block, attach a pixel, or draft a scheduled post) built from your real account.',
          'use'  => 'Apply the ones you like right inside Sayzio; each builds the real object for you, so the plan starts running the moment you click.'],
     ];
 
@@ -117,11 +117,11 @@
         ['icon' => 'fa-clock-rotate-left', 'title' => 'Saved strategy history',
          'body' => 'Every strategy you generate is saved to your account. Reopen past plans, compare directions, and pick one back up whenever you are ready to run it.'],
         ['icon' => 'fa-file-arrow-down', 'title' => 'Export to Markdown or PDF',
-         'body' => 'Download any plan as a clean Markdown file or a formatted PDF — drop it into a doc, hand it to a teammate, or keep it on file.'],
+         'body' => 'Download any plan as a clean Markdown file or a formatted PDF: drop it into a doc, hand it to a teammate, or keep it on file.'],
         ['icon' => 'fa-comments', 'title' => 'Refine by chat',
-         'body' => 'Chat with the strategist about a saved plan to swap channels, tighten the budget or go deeper on a play — it stays grounded in the same data.'],
+         'body' => 'Chat with the strategist about a saved plan to swap channels, tighten the budget or go deeper on a play, it stays grounded in the same data.'],
         ['icon' => 'fa-rotate', 'title' => 'Re-run as you grow',
-         'body' => 'As your links, audience and pixels change, generate a fresh plan that reflects where your account is now — not where it was last month.'],
+         'body' => 'As your links, audience and pixels change, generate a fresh plan that reflects where your account is now, not where it was last month.'],
     ];
 
     // A complete worked example, shaped exactly like a real generated report
@@ -265,7 +265,7 @@
                     <span class="block grad-text">written from your own data.</span>
                 </h1>
                 <p class="mt-5 text-lg text-gray-400 max-w-xl leading-relaxed">
-                    Tell it your goal. The AI Marketing Strategist reads your real links, analytics and audience, then types out a practical organic + paid plan built around the Sayzio features you already have — with one-click actions you can apply instantly.
+                    Tell it your goal. The AI Marketing Strategist reads your real links, analytics and audience, then types out a practical organic + paid plan built around the Sayzio features you already have, with one-click actions you can apply instantly.
                 </p>
                 <div class="mt-7 flex flex-wrap items-center gap-3">
                     <a href="/register" class="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-full text-sm font-bold inline-flex items-center gap-2">
@@ -355,7 +355,7 @@
                 <div class="max-w-2xl">
                     <div class="text-xs font-bold uppercase tracking-[.2em] mb-3" style="color: {{ $accent }};">Grounded in your data</div>
                     <h2 class="text-2xl sm:text-3xl font-bold tracking-tight">It reads <span class="grad-text">your account</span>, not a generic template.</h2>
-                    <p class="mt-3 text-sm text-gray-300 leading-relaxed">Pick exactly which signals the strategist may use. It only ever sees a compact, PII-free snapshot of the sources you toggle on — and builds the whole plan from there.</p>
+                    <p class="mt-3 text-sm text-gray-300 leading-relaxed">Pick exactly which signals the strategist may use. It only ever sees a compact, PII-free snapshot of the sources you toggle on, and builds the whole plan from there.</p>
                 </div>
                 <div class="mt-8 grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
                     @foreach($sources as $src)
@@ -379,7 +379,7 @@
         <div class="text-center mb-12" data-anim="fade-up">
             <div class="text-xs font-bold uppercase tracking-[.2em] mb-3" style="color: {{ $accent }};">What's in your report</div>
             <h2 class="text-3xl sm:text-4xl font-bold tracking-tight">The anatomy of <span class="grad-text">your strategy</span>.</h2>
-            <p class="mt-4 text-sm text-gray-400 max-w-2xl mx-auto leading-relaxed">Every plan comes back in the same clear structure. Here's each part — and exactly what you do with it to grow.</p>
+            <p class="mt-4 text-sm text-gray-400 max-w-2xl mx-auto leading-relaxed">Every plan comes back in the same clear structure. Here's each part, and exactly what you do with it to grow.</p>
         </div>
         <div class="grid md:grid-cols-2 gap-5" data-anim="fade-up" data-stagger>
             @foreach($reportParts as $i => $part)
@@ -410,7 +410,7 @@
         <div class="text-center mb-12" data-anim="fade-up">
             <div class="text-xs font-bold uppercase tracking-[.2em] mb-3" style="color: {{ $accent }};">A full plan, end to end</div>
             <h2 class="text-3xl sm:text-4xl font-bold tracking-tight">See a <span class="grad-text">complete report</span>.</h2>
-            <p class="mt-4 text-sm text-gray-400 max-w-2xl mx-auto leading-relaxed">A real sample of what lands in your account — goal, summary, organic and paid plays, KPIs and one-click actions.</p>
+            <p class="mt-4 text-sm text-gray-400 max-w-2xl mx-auto leading-relaxed">A real sample of what lands in your account: goal, summary, organic and paid plays, KPIs and one-click actions.</p>
         </div>
 
         <article class="glass rounded-3xl overflow-hidden" data-anim="fade-up">
@@ -524,7 +524,7 @@
                         </div>
                     @endforeach
                 </div>
-                <p class="mt-4 text-xs text-gray-500"><i class="fas fa-circle-info text-[10px] mr-1" style="color: {{ $accent }};"></i> Example only — your real report is built from your own links, audience and pixels.</p>
+                <p class="mt-4 text-xs text-gray-500"><i class="fas fa-circle-info text-[10px] mr-1" style="color: {{ $accent }};"></i> Example only; your real report is built from your own links, audience and pixels.</p>
             </div>
         </article>
     </div>
@@ -535,7 +535,7 @@
     <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center mb-12" data-anim="fade-up">
             <div class="text-xs font-bold uppercase tracking-[.2em] mb-3" style="color: {{ $accent }};">Keeps paying off</div>
-            <h2 class="text-3xl sm:text-4xl font-bold tracking-tight">Not a one-off output — <span class="grad-text">an asset you reuse</span>.</h2>
+            <h2 class="text-3xl sm:text-4xl font-bold tracking-tight">Not a one-off output, <span class="grad-text">an asset you reuse</span>.</h2>
             <p class="mt-4 text-sm text-gray-400 max-w-2xl mx-auto leading-relaxed">Your strategy doesn't expire the moment you read it. Save it, export it, refine it, and re-run it as your account grows.</p>
         </div>
         <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4" data-anim="fade-up" data-stagger>
@@ -624,7 +624,7 @@
             <div class="mesh-bg opacity-50"></div>
             <div class="relative">
                 <h3 class="text-3xl sm:text-4xl font-bold tracking-tight">Stop guessing. <span class="grad-text">Get the plan.</span></h3>
-                <p class="mt-4 text-gray-300 max-w-2xl mx-auto">Create your free Sayzio, point the AI Marketing Strategist at your account, and watch it write a plan you can actually run — organic and paid, grounded in your data.</p>
+                <p class="mt-4 text-gray-300 max-w-2xl mx-auto">Create your free Sayzio, point the AI Marketing Strategist at your account, and watch it write a plan you can actually run, organic and paid, grounded in your data.</p>
                 <div class="mt-7 flex flex-wrap items-center justify-center gap-3">
                     <a href="/register" class="px-7 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-full text-sm font-bold">Build my strategy free</a>
                     <a href="{{ route('site.features') }}" class="px-6 py-3 rounded-full text-sm font-medium text-gray-200 border border-white/15 hover:bg-white/5">See all features</a>
@@ -637,7 +637,7 @@
 
 @include('public.partials.subscribe-block', [
     'heading' => 'New AI features, the moment they ship.',
-    'subtext' => 'Pick how you want to hear from us — email, WhatsApp Channel, or DM. Once-a-month notes on the AI suite, no fluff.',
+    'subtext' => 'Pick how you want to hear from us: email, WhatsApp Channel, or DM. Once-a-month notes on the AI suite, no fluff.',
     'source'  => 'ai-marketing-strategist',
 ])
 

@@ -11,7 +11,7 @@
         [
             'id'    => 'mac-arm64',
             'icon'  => 'fa-brands fa-apple',
-            'title' => 'Mac — Apple Silicon',
+            'title' => 'Mac: Apple Silicon',
             'desc'  => 'For M1, M2, M3 and newer Macs.',
             'file'  => 'Download .dmg',
             'url'   => $release['mac_arm64_dmg'] ?? null,
@@ -20,7 +20,7 @@
         [
             'id'    => 'mac-x64',
             'icon'  => 'fa-brands fa-apple',
-            'title' => 'Mac — Intel',
+            'title' => 'Mac: Intel',
             'desc'  => 'For Intel-based Macs.',
             'file'  => 'Download .dmg',
             'url'   => $release['mac_x64_dmg'] ?? null,
@@ -39,8 +39,8 @@
     $downloads = array_values(array_filter($downloads, fn ($d) => !empty($d['url'])));
 
     $features = [
-        ['icon' => 'fa-bolt',        'title' => 'Built for creators', 'desc' => 'Your Sayzio dashboard, links, analytics and inbox one click away — in a fast, distraction-free desktop browser.'],
-        ['icon' => 'fa-rotate',      'title' => 'Always up to date',  'desc' => 'On Windows, the app updates itself automatically. On Mac, grab new versions from this page for now — auto-updates arrive once builds are signed.'],
+        ['icon' => 'fa-bolt',        'title' => 'Built for creators', 'desc' => 'Your Sayzio dashboard, links, analytics and inbox one click away, in a fast, distraction-free desktop browser.'],
+        ['icon' => 'fa-rotate',      'title' => 'Always up to date',  'desc' => 'On Windows, the app updates itself automatically. On Mac, grab new versions from this page for now; auto-updates arrive once builds are signed.'],
         ['icon' => 'fa-shield-halved','title' => 'Private by design', 'desc' => 'No trackers, no bloat. Just a clean browsing experience with Sayzio built in.'],
     ];
 @endphp
@@ -59,7 +59,7 @@
             <span class="block grad-text">Download the browser.</span>
         </h1>
         <p class="mt-5 text-lg text-gray-400 max-w-2xl mx-auto leading-relaxed">
-            The SayZio Browser puts your links, Link in Bio pages and analytics front and centre — available for Mac and Windows.
+            The SayZio Browser puts your links, Link in Bio pages and analytics front and centre, available for Mac and Windows.
             @if($version)
                 <span class="block mt-2 text-sm text-gray-500">Latest version: v{{ $version }}</span>
             @endif
@@ -113,7 +113,7 @@
 
         @if(!count($downloads))
             <div class="rounded-2xl border border-white/10 bg-white/5 p-8 text-center text-gray-400">
-                Downloads are temporarily unavailable — please check back shortly or grab the installers from
+                Downloads are temporarily unavailable. Please check back shortly or grab the installers from
                 <a href="https://github.com/sanasandeep/sayzio/releases" class="underline hover:text-gray-200">our releases page</a>.
             </div>
         @endif
@@ -133,7 +133,7 @@
 
         <p class="mt-10 text-center text-xs text-gray-600">
             Windows keeps itself up to date automatically. macOS installers are unsigned for now, so Mac updates are manual
-            (re-download from this page) until signing lands — if macOS warns on first open, right-click the app and choose “Open”.
+            (re-download from this page) until signing lands; if macOS warns on first open, right-click the app and choose “Open”.
             Windows SmartScreen may ask you to confirm with “More info → Run anyway”.
         </p>
     </div>

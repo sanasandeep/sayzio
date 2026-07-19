@@ -28,28 +28,28 @@ class SitePagesSeeder extends Seeder
             [
                 'slug' => 'workspace-team',
                 'title' => 'Workspaces & Team',
-                'meta_description' => 'Run Sayzio with your whole team — multiple workspaces, members, roles, granular permissions and per-workspace billing.',
+                'meta_description' => 'Run Sayzio with your whole team: multiple workspaces, members, roles, granular permissions and per-workspace billing.',
                 'sections' => [
-                    ['heading' => 'A workspace for every brand or client', 'body' => "Spin up as many workspaces as you need — one per brand, client or side project. Switch between them in a click. Each workspace has its own biolinks, short links, analytics, contacts and settings, fully isolated from the rest."],
+                    ['heading' => 'A workspace for every brand or client', 'body' => "Spin up as many workspaces as you need, one per brand, client or side project. Switch between them in a click. Each workspace has its own biolinks, short links, analytics, contacts and settings, fully isolated from the rest."],
                     ['heading' => 'Invite the people who matter', 'body' => "Invite teammates, freelancers or clients by email. They join with their own account, see only the workspaces they belong to, and can be removed at any time. No more shared logins or password sharing."],
                     ['heading' => 'Roles that fit how you work', 'body' => "Owner, Admin, Editor and Viewer roles cover the common cases out of the box. Owners hold billing, admins manage the team, editors build pages, and viewers see analytics without changing anything."],
-                    ['heading' => 'Granular permissions', 'body' => "Lock down who can publish pages, change short link destinations, see contacts, export data, or touch billing. Permissions are checked on every action — both in the dashboard and the API."],
+                    ['heading' => 'Granular permissions', 'body' => "Lock down who can publish pages, change short link destinations, see contacts, export data, or touch billing. Permissions are checked on every action, both in the dashboard and the API."],
                     ['heading' => 'Billing per workspace', 'body' => "Each workspace has its own plan, invoices and payment method. Bill agency clients separately, keep personal and work usage apart, and upgrade only the workspaces that need more."],
-                    ['heading' => 'Audit & accountability', 'body' => "Every important change is attributed to the teammate who made it, so you always know who edited what — useful for agencies, larger teams and regulated workflows."],
+                    ['heading' => 'Audit & accountability', 'body' => "Every important change is attributed to the teammate who made it, so you always know who edited what, useful for agencies, larger teams and regulated workflows."],
                 ],
                 'cta_label' => 'Start your workspace free',
                 'cta_url' => '/register',
             ],
             [
                 'slug' => 'buzz',
-                'title' => 'Buzz — social proof for your biolink',
+                'title' => 'Buzz: social proof for your biolink',
                 'meta_description' => 'Buzz shows live signups, visits and purchases on your Sayzio biolink page so visitors see real momentum and are more likely to act.',
                 'sections' => [
-                    ['heading' => 'Real activity, in real time', 'body' => "Buzz pops up tasteful little notifications on your biolink page when something happens — a new follower, a recent visit, a purchase, a form submission. Visitors instantly see that other people are engaging, which builds trust and lifts conversion."],
-                    ['heading' => 'Already wired into your biolink', 'body' => "Buzz is built into every Sayzio biolink page. Turn it on from your dashboard, pick the events you want to surface, and it starts showing up on your page — no code, no embed, no extra setup."],
+                    ['heading' => 'Real activity, in real time', 'body' => "Buzz pops up tasteful little notifications on your biolink page when something happens: a new follower, a recent visit, a purchase, a form submission. Visitors instantly see that other people are engaging, which builds trust and lifts conversion."],
+                    ['heading' => 'Already wired into your biolink', 'body' => "Buzz is built into every Sayzio biolink page. Turn it on from your dashboard, pick the events you want to surface, and it starts showing up on your page, no code, no embed, no extra setup."],
                     ['heading' => 'You decide what gets shown', 'body' => "Choose which events count as social proof: signups, follows, page views, purchases, form submissions or custom events. Hide the ones you don't want and reorder priorities to highlight what matters most for your goal."],
                     ['heading' => 'Privacy-respecting by default', 'body' => "Names are masked or anonymised, locations are coarse, and visitors can dismiss popups. You stay compliant with privacy expectations while still getting the conversion lift."],
-                    ['heading' => 'Style it to match your page', 'body' => "Pick the position, animation, and accent colour so Buzz feels native to your biolink theme. Light, dark, glass — it adapts."],
+                    ['heading' => 'Style it to match your page', 'body' => "Pick the position, animation, and accent colour so Buzz feels native to your biolink theme. Light, dark, glass, it adapts."],
                     ['heading' => 'Works beyond biolinks too', 'body' => "Drop the same widget on any other page you own with a single embed snippet, and pipe in custom events from your own apps when you want full control."],
                 ],
                 'cta_label' => 'Turn on Buzz on your page',
@@ -98,7 +98,7 @@ class SitePagesSeeder extends Seeder
                 'title' => 'Something went wrong',
                 'meta_description' => 'An unexpected error occurred on our side. Please try again in a moment.',
                 'sections' => [
-                    ['heading' => 'We hit a snag', 'body' => "Sorry — something went wrong on our end. Our team has been notified and is looking into it. Please try again in a few minutes."],
+                    ['heading' => 'We hit a snag', 'body' => "Sorry, something went wrong on our end. Our team has been notified and is looking into it. Please try again in a few minutes."],
                 ],
                 'cta_label' => 'Back to home',
                 'cta_url' => '/',
@@ -108,7 +108,7 @@ class SitePagesSeeder extends Seeder
                 'title' => "We'll be right back",
                 'meta_description' => 'The site is temporarily down for maintenance.',
                 'sections' => [
-                    ['heading' => 'Down for maintenance', 'body' => "We're making some quick improvements and will be back online shortly. Thanks for your patience — please check back in a few minutes."],
+                    ['heading' => 'Down for maintenance', 'body' => "We're making some quick improvements and will be back online shortly. Thanks for your patience. Please check back in a few minutes."],
                 ],
                 'cta_label' => 'Check our status',
                 'cta_url' => '/',
@@ -319,7 +319,7 @@ class SitePagesSeeder extends Seeder
             [
                 'heading' => 'Personal portfolio',
                 'tagline' => 'A polished one-page intro that travels with you.',
-                'body' => 'Showcase work, link your socials and let people reach you — without paying for a custom site or worrying about hosting.',
+                'body' => 'Showcase work, link your socials and let people reach you, without paying for a custom site or worrying about hosting.',
                 'icon' => 'fa-id-badge',
                 'tint' => 'from-sky-500/30 to-violet-500/10',
                 'bullets' => [
@@ -349,7 +349,7 @@ class SitePagesSeeder extends Seeder
             [
                 'heading' => 'Creator / influencer',
                 'tagline' => 'Grow, post and monetize from one biolink.',
-                'body' => 'Replace half a dozen tools with a single creator hub — biolink, posts, follower digests and tip jars all under your handle.',
+                'body' => 'Replace half a dozen tools with a single creator hub: biolink, posts, follower digests and tip jars all under your handle.',
                 'icon' => 'fa-star',
                 'tint' => 'from-amber-500/30 to-violet-500/10',
                 'bullets' => [
@@ -364,7 +364,7 @@ class SitePagesSeeder extends Seeder
             [
                 'heading' => 'Small business',
                 'tagline' => 'A lightweight site for shops and services.',
-                'body' => 'Get a clean public page with your services, contact info and booking link — no developers, no monthly maintenance.',
+                'body' => 'Get a clean public page with your services, contact info and booking link, no developers, no monthly maintenance.',
                 'icon' => 'fa-store',
                 'tint' => 'from-emerald-500/30 to-sky-500/10',
                 'bullets' => [

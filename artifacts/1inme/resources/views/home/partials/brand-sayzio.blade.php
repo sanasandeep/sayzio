@@ -244,7 +244,7 @@
                 <span class="bs-word bs-word--zio">Sayzio</span>
             </h2>
             <p data-anim="fade-up" class="bs-copy mt-6 text-lg leading-relaxed">
-                <strong class="bs-emph">1IN.ME</strong> is your digital identity, unified — and it runs on
+                <strong class="bs-emph">1IN.ME</strong> is your digital identity, unified. It runs on
                 <strong class="bs-emph">Sayzio</strong>, the smart, scalable, seamless platform powering every link, page and QR.
             </p>
         </div>
@@ -276,7 +276,7 @@
                 </div>
                 <div class="relative mt-7 pt-7 border-t border-white/10">
                     <div class="text-xs font-bold uppercase tracking-[.18em] mb-1.5" style="color:var(--c2)">All-in-one platform</div>
-                    <p class="text-sm text-gray-400 leading-relaxed">One link for everything — bio pages, short links, QR codes, forms and more, all under your handle.</p>
+                    <p class="text-sm text-gray-400 leading-relaxed">One link for everything: bio pages, short links, QR codes, forms and more, all under your handle.</p>
                 </div>
             </div>
 
@@ -326,7 +326,7 @@
                 </div>
                 <div class="relative mt-7 pt-7 border-t border-white/10">
                     <div class="text-xs font-bold uppercase tracking-[.18em] mb-1.5" style="color:#6e61ff">The power behind every experience</div>
-                    <p class="text-sm text-gray-400 leading-relaxed">The engine doing the heavy lifting — analytics, AI, automation and rock-solid delivery at any scale.</p>
+                    <p class="text-sm text-gray-400 leading-relaxed">The engine doing the heavy lifting: analytics, AI, automation and rock-solid delivery at any scale.</p>
                 </div>
             </div>
         </div>

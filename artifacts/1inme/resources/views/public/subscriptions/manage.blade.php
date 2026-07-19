@@ -15,7 +15,7 @@
         </div>
         <h1 class="text-3xl sm:text-4xl font-bold text-white">Manage your Sayzio subscriptions</h1>
         <p class="mt-3 text-gray-400 text-sm sm:text-base leading-relaxed max-w-2xl mx-auto">
-            Each channel is opt-in and independent — unsubscribing from one won't touch the others. Pick the channel you'd like to stop and follow the steps below.
+            Each channel is opt-in and independent; unsubscribing from one won't touch the others. Pick the channel you'd like to stop and follow the steps below.
         </p>
     </div>
 </section>
@@ -76,7 +76,7 @@
                 </div>
             </div>
             <p class="text-xs text-gray-400 leading-relaxed mb-4">
-                Channel followers are managed by WhatsApp directly — open the channel and tap <strong class="text-white">Unfollow</strong>. We never see your number.
+                Channel followers are managed by WhatsApp directly; open the channel and tap <strong class="text-white">Unfollow</strong>. We never see your number.
             </p>
             @if($waChannel !== '')
                 <a href="{{ $waChannel }}"

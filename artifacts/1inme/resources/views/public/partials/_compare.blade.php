@@ -64,7 +64,7 @@
                 More features. <span class="grad-text">Better deal.</span>
             </h2>
             <p data-anim="fade-up" class="text-gray-400">
-                Pick any tool you already use — see exactly what Sayzio adds on top, including built-in AI, across
+                Pick any tool you already use: see exactly what Sayzio adds on top, including built-in AI, across
                 <span class="text-white font-semibold">{{ $__cmpTotal }} features</span> and
                 <span class="text-white font-semibold">{{ count($__cmpCompetitors) - 1 }} competitors</span>.
             </p>

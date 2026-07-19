@@ -70,7 +70,7 @@
                 Collect anything.<br><span class="grad-text">Right from your page.</span>
             </h2>
             <p class="reveal rd-2 text-lg text-gray-400">
-                A drag-and-drop form builder with 21 field types, full design control, and instant email, SMS and webhook alerts on every submission — embeddable in any biolink in seconds.
+                A drag-and-drop form builder with 21 field types, full design control, and instant email, SMS and webhook alerts on every submission, embeddable in any biolink in seconds.
             </p>
         </div>
 

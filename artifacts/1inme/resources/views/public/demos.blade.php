@@ -15,7 +15,7 @@
             See what you can <span class="grad-text">build</span>.
         </h1>
         <p class="mt-5 text-lg text-gray-400 max-w-2xl mx-auto leading-relaxed" data-anim="fade-up">
-            One dashboard, eighteen distinct kinds of link. Open any live example below to see exactly how it looks and works — then build your own in minutes.
+            One dashboard, eighteen distinct kinds of link. Open any live example below to see exactly how it looks and works, then build your own in minutes.
         </p>
         <div class="mt-7 flex flex-wrap items-center justify-center gap-3" data-anim="fade-up">
             @guest
@@ -86,7 +86,7 @@
                     <p class="mt-3 text-gray-400 leading-relaxed">
                         Every link comes with a copy-paste embed code in its Settings. Pages render as a responsive
                         iframe; short links, files, events and contacts render as a compact card with the right
-                        action button — and every view &amp; click still counts in your analytics.
+                        action button, and every view &amp; click still counts in your analytics.
                     </p>
                     @guest
                         <a href="{{ route('register.page') }}" class="mt-6 inline-flex items-center gap-2 px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-full text-sm font-bold">
@@ -112,7 +112,7 @@
     <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="rounded-3xl border border-blue-400/20 bg-gradient-to-br from-blue-600/15 to-fuchsia-600/10 p-10 text-center">
             <h2 class="text-2xl sm:text-3xl font-bold text-white">Ready to make your own?</h2>
-            <p class="mt-3 text-gray-300 max-w-xl mx-auto">Pick a link type, customise it, and share it from a single URL — every visit and click tracked.</p>
+            <p class="mt-3 text-gray-300 max-w-xl mx-auto">Pick a link type, customise it, and share it from a single URL, with every visit and click tracked.</p>
             <div class="mt-6 flex flex-wrap items-center justify-center gap-3">
                 @guest
                     <a href="{{ route('register.page') }}" class="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-full text-sm font-bold">Create your first link</a>

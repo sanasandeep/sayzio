@@ -336,6 +336,10 @@ args = "zio-browser-test"
 task = "workflow.run"
 args = "zio-freshness-test"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "check:em-dash"
+
 [[workflows.workflow]]
 name = "e2e"
 author = "agent"
@@ -1410,6 +1414,17 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "cd artifacts/1inme && TEST_LOCAL_MODE=artisan bash scripts/test-local.sh --filter=CheckZioBrowserReleaseFreshnessTest"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "check:em-dash"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/scripts run check:em-dash"
 
 [workflows.workflow.metadata]
 isValidation = true

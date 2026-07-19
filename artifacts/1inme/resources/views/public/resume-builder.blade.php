@@ -256,7 +256,7 @@
                                 <span class="rb-chip"><i class="fas fa-sparkles text-[8px]"></i> AI polished</span>
                             </div>
                             <div class="text-[12px] font-bold text-slate-900">Senior Engineer · Remote</div>
-                            <div class="text-[10px] text-slate-500">Acme Inc. &middot; 2022 — Now</div>
+                            <div class="text-[10px] text-slate-500">Acme Inc. &middot; 2022 to Now</div>
                             <div class="text-[10px] text-slate-600 mt-1 leading-snug"><span class="rb-type">Cut p95 latency by 38% by replacing N+1 queries with cursor pagination.</span><span class="rb-type-caret" aria-hidden="true">▍</span></div>
                         </div>
                         <div class="rb-build rb-b-skills" style="--tx:40px;--rot:2deg;">

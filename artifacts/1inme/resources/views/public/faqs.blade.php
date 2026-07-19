@@ -54,7 +54,7 @@
         </div>
         <h1 class="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight">{{ $page->title }}</h1>
         <p class="mt-4 text-lg text-gray-400">
-            {{ $page->meta_description ?: 'Quick answers to the most common Sayzio questions — search, filter or browse by topic.' }}
+            {{ $page->meta_description ?: 'Quick answers to the most common Sayzio questions; search, filter or browse by topic.' }}
         </p>
         <div class="mt-3 text-xs text-gray-500">{{ $__totalFaqs }} answers · last reviewed {{ now()->format('M Y') }}</div>
     </div>
@@ -122,7 +122,7 @@
         <div class="max-w-3xl mx-auto mb-10">
             <label class="relative block">
                 <span class="absolute inset-y-0 left-4 flex items-center text-gray-500"><i class="fas fa-search"></i></span>
-                <input type="search" x-model="q" placeholder="Search {{ $__totalFaqs }} answers — try ‘refund’, ‘custom domain’, ‘QR code’…"
+                <input type="search" x-model="q" placeholder="Search {{ $__totalFaqs }} answers, try ‘refund’, ‘custom domain’, ‘QR code’…"
                        class="w-full pl-11 pr-4 py-4 rounded-2xl bg-white/[.04] border border-white/10 focus:border-[#3d6bff] focus:ring-2 focus:ring-[#3d6bff]/30 outline-none text-sm text-white placeholder-gray-500"
                        aria-label="Search FAQs">
             </label>
@@ -189,7 +189,7 @@
                 <div data-faq-empty class="hidden glass rounded-2xl p-10 text-center">
                     <i class="fas fa-binoculars text-3xl mb-3" style="color:#90acff"></i>
                     <h3 class="text-xl font-bold text-white mb-1">No answers match that search.</h3>
-                    <p class="text-sm text-gray-400 mb-4">Try a different keyword, or get in touch — we are usually a few minutes away.</p>
+                    <p class="text-sm text-gray-400 mb-4">Try a different keyword, or get in touch; we are usually a few minutes away.</p>
                     <a href="{{ route('site.contact') }}" class="inline-flex items-center gap-2 px-6 py-3 rounded-full grad-bar text-white text-sm font-bold">
                         Contact support <i class="fas fa-arrow-right text-xs"></i>
                     </a>
@@ -215,7 +215,7 @@
 
 @include('public.partials.subscribe-block', [
     'heading' => 'More questions? Stay in the loop.',
-    'subtext' => 'Pick how you want to hear from us — email, WhatsApp Channel, or DM. We answer questions, ship features and share playbooks.',
+    'subtext' => 'Pick how you want to hear from us: email, WhatsApp Channel, or DM. We answer questions, ship features and share playbooks.',
     'source'  => 'faqs',
 ])
 @endsection

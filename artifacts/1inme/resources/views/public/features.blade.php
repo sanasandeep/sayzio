@@ -80,7 +80,7 @@
                     Your link, <span class="grad-text">supercharged</span>.
                 </h1>
                 <p class="mt-5 text-lg text-gray-400 max-w-xl leading-relaxed">
-                    {{ $page->meta_description ?? 'A complete tour of every capability inside Sayzio — from your Link in Bio and short links to inboxes, teams, billing, and beyond. No hidden lists, nothing collapsed.' }}
+                    {{ $page->meta_description ?? 'A complete tour of every capability inside Sayzio: from your Link in Bio and short links to inboxes, teams, billing, and beyond. No hidden lists, nothing collapsed.' }}
                 </p>
                 <div class="mt-7 flex flex-wrap items-center gap-3">
                     @guest
@@ -303,7 +303,7 @@
 
 @include('public.partials.subscribe-block', [
     'heading' => 'Want a heads-up when we ship new features?',
-    'subtext' => 'Pick the channel that fits — email, WhatsApp Channel, or DM. Product updates, playbooks, and the occasional template. No spam, opt out any time.',
+    'subtext' => 'Pick the channel that fits: email, WhatsApp Channel, or DM. Product updates, playbooks, and the occasional template. No spam, opt out any time.',
     'source'  => 'features',
 ])
 @endsection

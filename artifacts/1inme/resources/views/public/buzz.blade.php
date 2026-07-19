@@ -10,14 +10,14 @@
         ['outlet' => 'Forbes',     'date' => 'Dec 2025', 'headline' => 'The next-gen Link in Bio is built for serious creators.',  'href' => '#'],
     ];
     $awards = [
-        ['title' => 'Product Hunt — #1 of the day', 'date' => 'Sep 2025', 'icon' => 'fa-trophy'],
+        ['title' => 'Product Hunt: #1 of the day', 'date' => 'Sep 2025', 'icon' => 'fa-trophy'],
         ['title' => 'Best of 2025 · Creator Tools', 'date' => 'Dec 2025', 'icon' => 'fa-medal'],
         ['title' => 'Indie SaaS Award · Design',    'date' => 'Nov 2025', 'icon' => 'fa-star'],
     ];
     $testimonials = [
-        ['name' => 'Maya Daly',     'role' => 'Storyteller, 24K followers', 'quote' => 'I used to juggle four tools. Now everything runs from one tab — and I can actually see what is working.', 'tint' => 'from-blue-500 to-fuchsia-500'],
+        ['name' => 'Maya Daly',     'role' => 'Storyteller, 24K followers', 'quote' => 'I used to juggle four tools. Now everything runs from one tab, and I can actually see what is working.', 'tint' => 'from-blue-500 to-fuchsia-500'],
         ['name' => 'Rajiv Khanna',  'role' => 'Indie musician',             'quote' => 'My fans land on a single beautiful page that shows the new EP, my tour and my Patreon. Click-throughs doubled.', 'tint' => 'from-cyan-500 to-blue-500'],
-        ['name' => 'Sara Mendez',   'role' => 'Boutique owner',             'quote' => 'The QR code on every order box brings people back to a special drops page. It feels custom — but I built it in an afternoon.', 'tint' => 'from-pink-500 to-amber-500'],
+        ['name' => 'Sara Mendez',   'role' => 'Boutique owner',             'quote' => 'The QR code on every order box brings people back to a special drops page. It feels custom, but I built it in an afternoon.', 'tint' => 'from-pink-500 to-amber-500'],
         ['name' => 'Olu Adesina',   'role' => 'Career coach',               'quote' => 'Sayzio made my newsletter, course waitlist and bookings live in one place. Conversions are way up.', 'tint' => 'from-emerald-500 to-cyan-500'],
     ];
     $logos = ['TechCrunch', 'The Verge', 'YourStory', 'Forbes', 'Product Hunt', 'Indie Hackers', 'Wired', 'FastCompany'];
@@ -158,7 +158,7 @@
             <div class="mesh-bg opacity-50"></div>
             <div class="relative">
                 <h3 class="text-3xl sm:text-4xl font-bold tracking-tight">Want to write about us?</h3>
-                <p class="mt-4 text-gray-300 max-w-2xl mx-auto">Drop us a line — we love talking shop with journalists, bloggers and podcasters.</p>
+                <p class="mt-4 text-gray-300 max-w-2xl mx-auto">Drop us a line; we love talking shop with journalists, bloggers and podcasters.</p>
                 <div class="mt-7"><a href="{{ route('site.contact') }}" class="px-7 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-full text-sm font-bold">Get in touch</a></div>
             </div>
         </div>
@@ -167,7 +167,7 @@
 
 @include('public.partials.subscribe-block', [
     'heading' => 'Follow Sayzio news as it happens.',
-    'subtext' => 'Press, partnerships, and product launches — pick email, WhatsApp Channel, or DM.',
+    'subtext' => 'Press, partnerships, and product launches: pick email, WhatsApp Channel, or DM.',
     'source'  => 'buzz',
 ])
 @endsection

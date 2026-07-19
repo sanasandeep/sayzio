@@ -15,7 +15,7 @@
 @php
     $__sbSource   = $source ?? 'page';
     $__sbHeading  = $heading ?? 'Stay in the loop with Sayzio';
-    $__sbSubtext  = $subtext ?? 'Pick the channel that fits you. Product updates, growth playbooks, and the occasional template — no spam, opt out any time.';
+    $__sbSubtext  = $subtext ?? 'Pick the channel that fits you. Product updates, growth playbooks, and the occasional template. No spam, opt out any time.';
     $__sbSubmitSource = 'subscribe-block:' . $__sbSource;
     $__sbFlashKey = 'newsletter_success_' . $__sbSource;
     $__sbWaUrl    = trim((string) \App\Modules\Admin\Models\AppSetting::get('marketing_whatsapp_channel_url', ''));
@@ -120,7 +120,7 @@
                             <p class="text-[11px]" style="color: var(--text-muted);">1:1 · talk to a human</p>
                         </div>
                     </div>
-                    <p class="text-xs leading-relaxed mb-4" style="color: var(--text-muted);">Questions, demo requests, partnership ideas — DM us and we'll get back fast.</p>
+                    <p class="text-xs leading-relaxed mb-4" style="color: var(--text-muted);">Questions, demo requests, partnership ideas? DM us and we'll get back fast.</p>
                     <a href="{{ $__sbWaDmHref }}"
                        target="_blank"
                        rel="noopener noreferrer"

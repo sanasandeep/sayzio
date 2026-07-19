@@ -4,8 +4,8 @@
 @section('content')
 @php
     $features = [
-        ['icon' => 'fa-people-group', 'title' => 'Roles &amp; permissions', 'desc' => 'Owner, Admin, Editor, Analyst — granular controls on every link, biolink and analytics view. Invite a freelancer for one campaign and revoke access in a tap.', 'img' => asset('images/marketing/workspace-team/roles.png')],
-        ['icon' => 'fa-rectangle-list',   'title' => 'Activity &amp; audit log', 'desc' => 'See exactly who changed what and when. Searchable, filterable, exportable — perfect for compliance and post-mortems.', 'img' => asset('images/marketing/workspace-team/audit.png')],
+        ['icon' => 'fa-people-group', 'title' => 'Roles &amp; permissions', 'desc' => 'Owner, Admin, Editor, Analyst: granular controls on every link, biolink and analytics view. Invite a freelancer for one campaign and revoke access in a tap.', 'img' => asset('images/marketing/workspace-team/roles.png')],
+        ['icon' => 'fa-rectangle-list',   'title' => 'Activity &amp; audit log', 'desc' => 'See exactly who changed what and when. Searchable, filterable, exportable, perfect for compliance and post-mortems.', 'img' => asset('images/marketing/workspace-team/audit.png')],
     ];
     $highlights = [
         ['icon' => 'fa-shield-halved', 'title' => 'SSO ready',          'desc' => 'Enable Google or SAML SSO for any workspace on the Team plan.'],
@@ -115,7 +115,7 @@
             <div class="mesh-bg opacity-50"></div>
             <div class="relative">
                 <h3 class="text-3xl sm:text-4xl font-bold tracking-tight">Bring the whole team on board</h3>
-                <p class="mt-4 text-gray-300 max-w-2xl mx-auto">Free for two seats forever. Add more whenever you need them — no awkward sales call.</p>
+                <p class="mt-4 text-gray-300 max-w-2xl mx-auto">Free for two seats forever. Add more whenever you need them, no awkward sales call.</p>
                 <div class="mt-7 flex flex-wrap items-center justify-center gap-3">
                     @guest
                         <a href="{{ route('register.page') }}" class="px-7 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-full text-sm font-bold">Create your workspace</a>

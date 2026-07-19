@@ -26,7 +26,7 @@
         @else
             <button type="button"
                     onclick="window.dispatchEvent(new CustomEvent('open-store-coming-soon',{detail:{store:'{{ $__b['key'] }}'}}))"
-                    class="store-badge" aria-label="{{ $__b['label'] }} — coming soon"
+                    class="store-badge" aria-label="{{ $__b['label'] }} (coming soon)"
                     aria-haspopup="dialog">
                 <i class="{{ $__b['icon'] }} store-badge-icon" aria-hidden="true"></i>
                 <span class="store-badge-text">
@@ -190,10 +190,10 @@
                     this.nDone = true;
                     this.nMsg = data.message || 'You\'re on the list!';
                 } else {
-                    this.nErr = (data && data.message) ? data.message : 'Something went wrong — please try again.';
+                    this.nErr = (data && data.message) ? data.message : 'Something went wrong. Please try again.';
                 }
             } catch (e) {
-                this.nErr = 'Something went wrong — please try again.';
+                this.nErr = 'Something went wrong. Please try again.';
             } finally {
                 this.nBusy = false;
             }
@@ -204,7 +204,7 @@
      class="fixed inset-0 z-[120] overflow-y-auto overscroll-contain bg-black/70 backdrop-blur-sm"
      @click.self="open = false"
      @keydown.escape.window="open = false"
-     role="dialog" aria-modal="true" aria-label="Sayzio and Dialer apps — coming soon">
+     role="dialog" aria-modal="true" aria-label="Sayzio and Dialer apps (coming soon)">
     <div class="min-h-full flex items-center justify-center p-4" @click.self="open = false">
         <div class="store-cs-card relative w-full max-w-2xl my-8 rounded-2xl shadow-2xl overflow-hidden">
             <button type="button" @click="open = false"
@@ -246,7 +246,7 @@
                         Two powerful apps in one ecosystem. <strong>Sayzio</strong> lets you manage
                         links, biolinks and QR codes and watch your stats live from your pocket.
                         <strong>Dialer</strong> brings a smart T9 dialer and caller&nbsp;ID that
-                        resolves any number to a full Sayzio profile — so you always know who's calling.
+                        resolves any number to a full Sayzio profile, so you always know who's calling.
                     </p>
                     <div class="grid gap-2 mt-4">
                         <div class="store-cs-feat"><i class="fas fa-link"></i> Create &amp; manage links, biolinks &amp; QR codes</div>
@@ -278,7 +278,7 @@
                                aria-hidden="true" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0;">
                         <p class="text-xs mt-2" style="color:#f87171;" x-show="nErr" x-text="nErr"></p>
                         <p class="store-cs-muted text-[11px] mt-2">
-                            One email at launch — no spam, ever.
+                            One email at launch, no spam, ever.
                         </p>
                     </form>
                     <div class="store-cs-notify-done mt-4 px-3.5 py-3 rounded-xl text-sm flex items-start gap-2.5" x-show="nDone" x-cloak>

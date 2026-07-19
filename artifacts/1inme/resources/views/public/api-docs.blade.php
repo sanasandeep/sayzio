@@ -131,7 +131,7 @@
                     <p>Sign in or register to receive a personal access token, then send it on every protected request:</p>
                     <x-doc-code lang="http">Authorization: Bearer YOUR_TOKEN
 Accept: application/json</x-doc-code>
-                    <p>Tokens never expire on their own — log out (<code class="text-blue-300">POST /auth/logout</code>) to revoke the current one. Some public endpoints (biolinks, feed) accept an optional bearer token to reveal additional content based on follow/subscribe relationships.</p>
+                    <p>Tokens never expire on their own. Log out (<code class="text-blue-300">POST /auth/logout</code>) to revoke the current one. Some public endpoints (biolinks, feed) accept an optional bearer token to reveal additional content based on follow/subscribe relationships.</p>
                 </div>
             </section>
 
@@ -197,9 +197,9 @@ Accept: application/json</x-doc-code>
                 <div class="bg-white/[0.03] border border-white/10 rounded-2xl p-6 text-sm text-gray-300 space-y-2">
                     <p>The following endpoints are rate-limited per IP / token. Excess requests return <code class="text-amber-300">429 rate_limited</code>.</p>
                     <ul class="list-disc list-inside text-gray-400">
-                        <li><code class="text-blue-300">POST /auth/register</code> — 10 / minute</li>
-                        <li><code class="text-blue-300">POST /auth/login</code> — 10 / minute</li>
-                        <li><code class="text-blue-300">POST /biolinks/{alias}/subscribe</code> — 10 / minute</li>
+                        <li><code class="text-blue-300">POST /auth/register</code>: 10 / minute</li>
+                        <li><code class="text-blue-300">POST /auth/login</code>: 10 / minute</li>
+                        <li><code class="text-blue-300">POST /biolinks/{alias}/subscribe</code>: 10 / minute</li>
                     </ul>
                 </div>
             </section>
@@ -352,7 +352,7 @@ Accept: application/json</x-doc-code>
                 <h2 class="text-2xl font-bold mb-5"><i class="fas fa-square-share-nodes text-blue-400 text-base mr-2"></i>Biolinks <span class="text-xs text-gray-500 font-normal ml-1">(public, visibility-aware)</span></h2>
                 <div class="space-y-5">
                     <x-endpoint method="GET" path="/biolinks/{alias}" auth="optional" id="biolinks-show"
-                        summary="Public biolink. Visibility tiers are enforced — supply a token to view gated content as a follower/subscriber.">
+                        summary="Public biolink. Visibility tiers are enforced; supply a token to view gated content as a follower/subscriber.">
                         <x-slot:request>curl {{ $base }}/biolinks/jane \
   -H 'Authorization: Bearer YOUR_TOKEN' \
   -H 'Accept: application/json'</x-slot:request>

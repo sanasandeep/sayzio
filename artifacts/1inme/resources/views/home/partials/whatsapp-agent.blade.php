@@ -18,7 +18,7 @@
                 </h2>
                 <p class="reveal rd-2 text-lg text-gray-400 leading-relaxed mb-8 max-w-xl">
                     Message Ask Zio like a teammate. It creates and edits short links,
-                    QR codes, contact cards, calendar events and file links — right inside the chat.
+                    QR codes, contact cards, calendar events and file links, right inside the chat.
                     Send a voice note and it transcribes it; send a photo and it understands it.
                 </p>
                 <ul class="reveal rd-3 space-y-3 mb-9 max-w-xl">
@@ -26,7 +26,7 @@
                         'Create &amp; edit links, QR codes, vCards, events and file links',
                         'Voice notes transcribed automatically (Whisper)',
                         'Drop in a photo and the agent reads it',
-                        'No app to open — it all happens in WhatsApp',
+                        'No app to open; it all happens in WhatsApp',
                     ] as $__wf)
                         <li class="flex items-start gap-3">
                             <span class="wa-check shrink-0"><i class="fas fa-check text-[11px]"></i></span>
@@ -63,7 +63,7 @@
                     </div>
                     <div class="wa-thread">
                         <div class="wa-msg wa-msg-out">Make a short link for my new pricing page sayzio.com/pricing</div>
-                        <div class="wa-msg wa-msg-in">Done — your short link is <b>sayzio.app/pricing</b> 🎉 Want a QR code for it too?</div>
+                        <div class="wa-msg wa-msg-in">Done! Your short link is <b>sayzio.app/pricing</b> 🎉 Want a QR code for it too?</div>
                         <div class="wa-msg wa-msg-out wa-voice">
                             <i class="fas fa-microphone"></i>
                             <span class="wa-wave"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>

@@ -81,7 +81,7 @@
 
 @include('public.partials.subscribe-block', [
     'heading' => 'Never miss a Sayzio post.',
-    'subtext' => 'Get new articles your way — email, WhatsApp Channel, or DM. Once-a-month round-ups, no spam.',
+    'subtext' => 'Get new articles your way: email, WhatsApp Channel, or DM. Once-a-month round-ups, no spam.',
     'source'  => 'blogs-index',
 ])
 @endsection

@@ -15,7 +15,7 @@
         [
             'n' => '02',
             'title' => 'Build your one link',
-            'desc'  => 'Drag-and-drop blocks for socials, music, shop, video, calendar, newsletter, contact and more. Pick a theme or design every pixel — fonts, colours, layout.',
+            'desc'  => 'Drag-and-drop blocks for socials, music, shop, video, calendar, newsletter, contact and more. Pick a theme or design every pixel: fonts, colours, layout.',
             'img'   => asset('images/marketing/features/biolink.png'),
             'icon'  => 'fa-wand-magic-sparkles',
             'tags'  => ['40+ block types', 'Themes & custom CSS', 'Mobile preview'],
@@ -23,7 +23,7 @@
         [
             'n' => '03',
             'title' => 'Share it everywhere',
-            'desc'  => 'Drop it in every bio, attach a branded short link to a campaign, generate a dynamic QR code for offline — one link, every channel.',
+            'desc'  => 'Drop it in every bio, attach a branded short link to a campaign, generate a dynamic QR code for offline. One link, every channel.',
             'img'   => asset('images/marketing/features/qr-code.png'),
             'icon'  => 'fa-share-nodes',
             'tags'  => ['Branded short links', 'Dynamic QR codes', 'UTM autotagging'],
@@ -151,7 +151,7 @@
                 </div>
                 <h3 class="text-2xl sm:text-3xl font-bold tracking-tight">Skip the blank canvas.</h3>
                 <p class="mt-3 text-gray-300 leading-relaxed">
-                    Pick a professionally designed template, swap in your details, and you’re live in two minutes. Built for creators, brands, agencies, restaurants, coaches and more — and you can save your own as a reusable template for clients or your team.
+                    Pick a professionally designed template, swap in your details, and you’re live in two minutes. Built for creators, brands, agencies, restaurants, coaches and more, and you can save your own as a reusable template for clients or your team.
                 </p>
                 <div class="mt-5">
                     <a href="{{ route('site.features') }}#cat-templates" class="inline-flex items-center gap-1.5 text-sm font-semibold text-blue-300 hover:text-white">
@@ -166,7 +166,7 @@
             </div>
             <h3 class="text-2xl sm:text-3xl font-bold tracking-tight">Plain-English link types.</h3>
             <p class="mt-3 text-gray-300 leading-relaxed">
-                No jargon — just pick what the link should do. Every type is named for what it actually does for your visitor.
+                No jargon, just pick what the link should do. Every type is named for what it actually does for your visitor.
             </p>
             <ul class="mt-5 grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-sm text-gray-300">
                 @foreach([
@@ -216,7 +216,7 @@
 
 @include('public.partials.subscribe-block', [
     'heading' => 'Get tips and templates the way you like them.',
-    'subtext' => 'Once-a-month notes on what is working for creators on Sayzio — pick email, WhatsApp Channel, or 1:1 DM. Actionable, no fluff, opt out any time.',
+    'subtext' => 'Once-a-month notes on what is working for creators on Sayzio; pick email, WhatsApp Channel, or 1:1 DM. Actionable, no fluff, opt out any time.',
     'source'  => 'how-it-works',
 ])
 @endsection

@@ -71,8 +71,8 @@
     // the entire row; if the key is absent, fall back to the three defaults.
     $defaultFeatureCards = [
         ['icon' => 'fa-bolt',      'title' => 'Fast replies',  'desc' => 'Most messages get a real human reply within a few hours.'],
-        ['icon' => 'fa-handshake', 'title' => 'Partnerships',  'desc' => 'Press, integrations, agencies — pitch us, we read every one.'],
-        ['icon' => 'fa-lightbulb', 'title' => 'Feature ideas', 'desc' => 'Tell us what to build next — your name is on the changelog.'],
+        ['icon' => 'fa-handshake', 'title' => 'Partnerships',  'desc' => 'Press, integrations, agencies: pitch us, we read every one.'],
+        ['icon' => 'fa-lightbulb', 'title' => 'Feature ideas', 'desc' => 'Tell us what to build next; your name is on the changelog.'],
     ];
     if (array_key_exists('feature_cards', $extraArr) && is_array($extraArr['feature_cards'])) {
         $featureCards = array_values($extraArr['feature_cards']);
@@ -306,7 +306,7 @@
                     <option value="" class="bg-slate-900" {{ old('topic') === 'badge_request' ? '' : 'selected' }}>General enquiry</option>
                     <option value="badge_request" class="bg-slate-900" {{ old('topic') === 'badge_request' ? 'selected' : '' }}>Badge request</option>
                 </select>
-                <p class="text-[11px] mt-1 text-gray-500">Pick “Badge request” to ask our team for an account badge — it goes straight to the review queue.</p>
+                <p class="text-[11px] mt-1 text-gray-500">Pick “Badge request” to ask our team for an account badge; it goes straight to the review queue.</p>
             </div>
             @endauth
             <div>

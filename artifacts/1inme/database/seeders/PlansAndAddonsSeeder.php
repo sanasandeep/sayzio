@@ -521,7 +521,7 @@ class PlansAndAddonsSeeder extends Seeder
                 // stays `free` so the historical free-plan checks keep working.
                 'name' => 'Starter',
                 'slug' => 'free',
-                'description' => 'Everything you need to launch — free forever, re-confirmed once a year.',
+                'description' => 'Everything you need to launch: free forever, re-confirmed once a year.',
                 'monthly_price' => 0,
                 'annual_price' => 0,
                 'trial_days' => 0,
@@ -719,7 +719,7 @@ class PlansAndAddonsSeeder extends Seeder
             [
                 'name' => 'Professional',
                 'slug' => 'professional',
-                'description' => 'Everything you need to grow — custom domains, advanced analytics, AI.',
+                'description' => 'Everything you need to grow: custom domains, advanced analytics, AI.',
                 'monthly_price' => 19.00,
                 'annual_price' => 190.00,
                 'trial_days' => 14,
@@ -818,7 +818,7 @@ class PlansAndAddonsSeeder extends Seeder
             [
                 'name' => 'Business',
                 'slug' => 'business',
-                'description' => 'For teams scaling fast — unlimited links, team seats, and white-label.',
+                'description' => 'For teams scaling fast: unlimited links, team seats, and white-label.',
                 'monthly_price' => 49.00,
                 'annual_price' => 490.00,
                 'trial_days' => 14,
@@ -916,7 +916,7 @@ class PlansAndAddonsSeeder extends Seeder
             [
                 'name' => 'Agency',
                 'slug' => 'agency',
-                'description' => 'White-label everything for agencies — unlimited seats and workspaces.',
+                'description' => 'White-label everything for agencies: unlimited seats and workspaces.',
                 'monthly_price' => 99.00,
                 'annual_price' => 990.00,
                 'trial_days' => 14,
@@ -1014,7 +1014,7 @@ class PlansAndAddonsSeeder extends Seeder
             [
                 'name' => 'Developer',
                 'slug' => 'developer',
-                'description' => 'Built for builders — high API limits, webhooks, and custom code.',
+                'description' => 'Built for builders: high API limits, webhooks, and custom code.',
                 'monthly_price' => 29.00,
                 'annual_price' => 290.00,
                 'trial_days' => 14,
@@ -1112,7 +1112,7 @@ class PlansAndAddonsSeeder extends Seeder
             [
                 'name' => 'Enterprise API',
                 'slug' => 'enterprise-api',
-                'description' => 'White-glove plan for organizations — unlimited API, SSO, SLAs, dedicated support.',
+                'description' => 'White-glove plan for organizations: unlimited API, SSO, SLAs, dedicated support.',
                 'monthly_price' => 299.00,
                 'annual_price' => 2990.00,
                 'trial_days' => 0,
@@ -1217,7 +1217,7 @@ class PlansAndAddonsSeeder extends Seeder
                 // plan staff grant manually (see `is_internal` on Plan).
                 'name' => 'Unlimited',
                 'slug' => 'unlimited',
-                'description' => 'Internal comp plan — every cap and feature unlocked. Staff-assignable only, never shown on public pricing or upgrade surfaces.',
+                'description' => 'Internal comp plan: every cap and feature unlocked. Staff-assignable only, never shown on public pricing or upgrade surfaces.',
                 'monthly_price' => 0,
                 'annual_price' => 0,
                 'trial_days' => 0,

@@ -35,7 +35,7 @@
             'key'      => 'widget',
             'eyebrow'  => 'AI Widget',
             'title'    => 'Embed an AI assistant on any website.',
-            'short'    => 'One snippet on WordPress, Shopify, Webflow or your own site — answers questions and routes hot leads to you.',
+            'short'    => 'One snippet on WordPress, Shopify, Webflow or your own site. Answers questions and routes hot leads to you.',
             'image'    => 'img/ai/widget.svg',
             'color'    => '#e94e8c',
             'route'    => 'site.ai-widget',
@@ -361,7 +361,7 @@
             </h2>
             <p class="reveal rd-2 text-lg text-gray-400">
                 A chatbot for your Link in Bio, an agent that runs playbooks, an embeddable widget for any
-                site and a voice assistant that picks up your calls — four AI coworkers, one login. Tap any
+                site and a voice assistant that picks up your calls. Four AI coworkers, one login. Tap any
                 one to watch it work.
             </p>
         </div>

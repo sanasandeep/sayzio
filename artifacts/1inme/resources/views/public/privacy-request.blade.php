@@ -38,7 +38,7 @@
             <div class="mt-8 rounded-2xl px-5 py-5 bg-emerald-500/10 border border-emerald-400/30 text-emerald-200" data-anim="fade-up">
                 <div class="font-bold flex items-center gap-2"><i class="fas fa-circle-check"></i> Email confirmed</div>
                 <p class="text-sm mt-1.5 text-emerald-100/90">
-                    Thanks — your request is now verified and queued for review. We'll email you as soon as a
+                    Thanks. Your request is now verified and queued for review. We'll email you as soon as a
                     decision is made. You can close this page.
                 </p>
             </div>

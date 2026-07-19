@@ -22,7 +22,7 @@
         </h1>
         <p data-anim="fade-up" class="mt-5 text-lg text-gray-400 max-w-2xl mx-auto leading-relaxed">
             Already using another link-in-bio or short-link tool? Pick it below for a full,
-            side-by-side breakdown across <span class="text-white font-semibold">{{ $total }} features</span> —
+            side-by-side breakdown across <span class="text-white font-semibold">{{ $total }} features</span>
             and an honest take on where each tool wins.
         </p>
         <div data-anim="fade-up" class="mt-7 flex flex-wrap items-center justify-center gap-3">

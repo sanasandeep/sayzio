@@ -31,7 +31,7 @@
                 </h1>
 
                 <p class="reveal rd-2 text-lg sm:text-xl text-gray-400 max-w-xl mx-auto lg:mx-0 mb-9 leading-relaxed">
-                    Meet <strong class="text-white">Zio</strong> — the AI behind Sayzio. It builds your pages, answers your visitors and picks up your calls, <strong class="text-white">24/7, free forever</strong>, no card required.
+                    Meet <strong class="text-white">Zio</strong>, the AI behind Sayzio. It builds your pages, answers your visitors and picks up your calls, <strong class="text-white">24/7, free forever</strong>, no card required.
                 </p>
 
                 @guest
@@ -48,7 +48,7 @@
                          Signup-oriented, so guests only. --}}
                     <form class="zio-claim-form reveal rd-3" onsubmit="return window.zioClaimSubmit(event)" aria-label="Claim your link"
                           data-handle-check-url="{{ route('site.handle.available') }}">
-                        <label for="zio-claim-input" class="zio-claim-label">Claim your link — pick your handle</label>
+                        <label for="zio-claim-input" class="zio-claim-label">Claim your link and pick your handle</label>
                         <div class="zio-claim" id="zio-claim-box">
                             <span class="zio-claim-prefix" aria-hidden="true">{{ $claimHost }}/</span>
                             <input id="zio-claim-input" name="desired_handle" type="text"
@@ -138,9 +138,9 @@
                             ['cls' => 'r2', 'nodes' => [
                                 ['a' => 30,  'img' => 'link.png',      'c' => 'var(--c2)', 't' => 'Smart Links',      'd' => 'Turn long URLs into branded short links you can track, tag and retarget.', 'tag' => 'Branded'],
                                 ['a' => 90,  'img' => 'qr.png',        'c' => 'var(--c3)', 't' => 'QR Studio',        'd' => 'Design on-brand codes with custom eyes and frames that track every single scan.', 'tag' => '16 types'],
-                                ['a' => 150, 'img' => 'store.png',     'c' => '#10b981',   't' => 'Built-in Store',   'd' => 'Sell products and take payments straight from your link — and keep every cent.', 'tag' => '0% fees'],
+                                ['a' => 150, 'img' => 'store.png',     'c' => '#10b981',   't' => 'Built-in Store',   'd' => 'Sell products and take payments straight from your link. Keep every cent.', 'tag' => '0% fees'],
                                 ['a' => 210, 'img' => 'forms.png',     'c' => 'var(--c2)', 't' => 'Forms',           'd' => 'Collect leads, bookings and payments with 21 customizable field types.', 'tag' => '21 fields'],
-                                ['a' => 270, 'img' => 'audience.png',  'c' => 'var(--c1)', 't' => 'Subscribers',     'd' => 'Grow an email and WhatsApp audience you actually own — then message them anytime.', 'tag' => 'You own it'],
+                                ['a' => 270, 'img' => 'audience.png',  'c' => 'var(--c1)', 't' => 'Subscribers',     'd' => 'Grow an email and WhatsApp audience you actually own, then message them anytime.', 'tag' => 'You own it'],
                                 ['a' => 330, 'img' => 'social.png',    'c' => 'var(--c3)', 't' => 'Social Proof',     'd' => 'Live popups surface real activity that nudges new visitors to take action.', 'tag' => '7 widgets'],
                             ]],
                             // Outer ring (7) — the wider feature universe + a new add-on.

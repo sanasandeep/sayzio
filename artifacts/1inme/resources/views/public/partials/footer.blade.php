@@ -82,7 +82,7 @@
                     <span class="text-gray-600">{{ $__footerCur === 'INR' ? '₹ INR' : '$ USD' }}</span>
                     <span class="text-white/10">·</span>
                     <span class="text-gray-600">
-                        Set by your billing country —
+                        Set by your billing country:
                         <a href="{{ route('user.profile.edit') }}" class="text-gray-500 hover:text-white transition-colors">change</a>
                     </span>
                 @else
@@ -124,7 +124,7 @@
                                 aria-label="Show prices in Indian rupees">₹ INR</button>
                     </div>
                     @if($__footerAutodet)
-                        <span class="text-gray-700 hidden sm:inline" aria-live="polite">auto-detected — switch anytime</span>
+                        <span class="text-gray-700 hidden sm:inline" aria-live="polite">auto-detected; switch anytime</span>
                     @endif
                 @endif
             </div>

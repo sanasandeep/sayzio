@@ -296,7 +296,7 @@
                 </div>
             @endforeach
             @if(count($comments) === 0)
-                <p class="text-xs text-slate-400 italic">No comments yet — be the first.</p>
+                <p class="text-xs text-slate-400 italic">No comments yet. Be the first.</p>
             @endif
         </div>
 

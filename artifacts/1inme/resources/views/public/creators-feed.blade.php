@@ -85,7 +85,7 @@
 
 @include('public.partials.subscribe-block', [
     'heading' => 'Get the best of the feed in your inbox.',
-    'subtext' => 'Email, WhatsApp Channel, or DM — pick how you want to follow new posts and creators.',
+    'subtext' => 'Email, WhatsApp Channel, or DM: pick how you want to follow new posts and creators.',
     'source'  => 'creators-feed',
 ])
 @endsection

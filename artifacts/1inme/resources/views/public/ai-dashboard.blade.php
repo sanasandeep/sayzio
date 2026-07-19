@@ -8,9 +8,9 @@
     $sections = (array) ($page->sections ?? []);
     $faqs = [
         ['q' => 'Does turning on a preset delete any of my data?', 'a' => 'No. Presets only change which widgets are visible on your dashboard. Every metric keeps recording in the background, and you can switch presets or go back to the full Overview at any time.'],
-        ['q' => 'What does "Design with AI" actually build?', 'a' => 'You describe what you want to see in a sentence, and the AI designer picks and arranges widgets from your existing dashboard catalog — it never invents new data or charts, only chooses from what your account already has.'],
-        ['q' => 'Can I still customize a preset after choosing one?', 'a' => 'Yes. Presets are a fast starting point — you can add or remove individual widgets afterwards, or ask the AI designer to refine the layout further.'],
-        ['q' => 'Is this available on mobile?', 'a' => 'Yes — the same presets, AI designer and widget catalog are available from the dashboard on the Sayzio mobile app.'],
+        ['q' => 'What does "Design with AI" actually build?', 'a' => 'You describe what you want to see in a sentence, and the AI designer picks and arranges widgets from your existing dashboard catalog. It never invents new data or charts, only chooses from what your account already has.'],
+        ['q' => 'Can I still customize a preset after choosing one?', 'a' => 'Yes. Presets are a fast starting point; you can add or remove individual widgets afterwards, or ask the AI designer to refine the layout further.'],
+        ['q' => 'Is this available on mobile?', 'a' => 'Yes, the same presets, AI designer and widget catalog are available from the dashboard on the Sayzio mobile app.'],
     ];
 @endphp
 
@@ -61,7 +61,7 @@
             {{ $page->title ?? 'A dashboard that only shows what matters to' }} <span class="grad-text">you.</span>
         </h1>
         <p class="reveal rd-2 text-lg text-gray-400 max-w-2xl mx-auto">
-            {{ $page->meta_description ?? 'Pick a curated preset, or just describe what you want to see and let AI design your layout — built entirely from widgets you already have.' }}
+            {{ $page->meta_description ?? 'Pick a curated preset, or just describe what you want to see and let AI design your layout, built entirely from widgets you already have.' }}
         </p>
         <div class="reveal rd-3 mt-8 flex flex-wrap items-center justify-center gap-3">
             <a href="{{ $page->cta_url ?? route('register.page') }}" class="btn-bounce btn-glow inline-flex items-center justify-center gap-2 px-7 py-3.5 grad-bar text-white rounded-full text-sm font-bold">
@@ -83,7 +83,7 @@
                 Describe it once. <span class="grad-text">AI arranges it.</span>
             </h2>
             <p class="reveal rd-2 text-gray-400">
-                No drag-and-drop required — just tell the dashboard designer what you care about most.
+                No drag-and-drop required; just tell the dashboard designer what you care about most.
             </p>
         </div>
         <div class="reveal rd-3">
@@ -101,7 +101,7 @@
                 Start from a layout <span class="grad-text">built for your focus.</span>
             </h2>
             <p class="reveal rd-2 text-gray-400">
-                Every preset groups the widgets that matter most for that view — switch between them in one tap.
+                Every preset groups the widgets that matter most for that view; switch between them in one tap.
             </p>
         </div>
         <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -172,7 +172,7 @@
         <div class="reveal glass rounded-3xl p-10 sm:p-14 text-center relative overflow-hidden">
             <div class="absolute -top-20 -right-20 w-64 h-64 rounded-full opacity-25" style="background:{{ $accent }};"></div>
             <h2 class="text-3xl sm:text-4xl font-bold tracking-tight mb-4">Build a dashboard that fits <span class="grad-text">how you work.</span></h2>
-            <p class="text-gray-400 max-w-xl mx-auto mb-8">Pick a preset, or let AI design one for you — either way, you're two clicks away from a cleaner dashboard.</p>
+            <p class="text-gray-400 max-w-xl mx-auto mb-8">Pick a preset, or let AI design one for you: either way, you're two clicks away from a cleaner dashboard.</p>
             <a href="{{ $page->cta_url ?? route('register.page') }}" class="btn-bounce btn-glow inline-flex items-center justify-center gap-2 px-8 py-4 grad-bar text-white rounded-full text-sm font-bold">
                 {{ $page->cta_label ?? 'Customize my dashboard' }} <i class="fas fa-arrow-right text-xs"></i>
             </a>

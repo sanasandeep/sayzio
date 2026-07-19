@@ -12,17 +12,17 @@
         [
             'icon'  => 'fa-sliders',
             'title' => 'Per-event preferences',
-            'desc'  => 'A full preferences matrix across 20+ event types. Switch in-app, email and mobile push on or off independently for each one — you decide exactly what reaches you and how.',
+            'desc'  => 'A full preferences matrix across 20+ event types. Switch in-app, email and mobile push on or off independently for each one, so you decide exactly what reaches you and how.',
         ],
         [
             'icon'  => 'fa-tower-broadcast',
             'title' => 'In-app, email & mobile push',
-            'desc'  => 'Real-time in-app alerts, transactional emails, and mobile push that deep-links you straight to the action — a new order, a reply, or a security warning.',
+            'desc'  => 'Real-time in-app alerts, transactional emails, and mobile push that deep-links you straight to the action: a new order, a reply, or a security warning.',
         ],
         [
             'icon'  => 'fa-calendar-day',
             'title' => 'Digests on your schedule',
-            'desc'  => 'Get weekly activity and follower digests delivered on the exact day and hour you choose, in your own timezone — so the round-up lands when you actually read it.',
+            'desc'  => 'Get weekly activity and follower digests delivered on the exact day and hour you choose, in your own timezone, so the round-up lands when you actually read it.',
         ],
         [
             'icon'  => 'fa-shield-halved',
@@ -32,7 +32,7 @@
         [
             'icon'  => 'fa-arrow-pointer',
             'title' => 'Tap straight to the action',
-            'desc'  => 'Every notification carries context, so a tap takes you right to the message, order or link that needs you — no hunting through the app.',
+            'desc'  => 'Every notification carries context, so a tap takes you right to the message, order or link that needs you, no hunting through the app.',
         ],
     ];
     $faqAnchors = [
@@ -58,7 +58,7 @@
                     <span class="block grad-text">You choose how you hear it.</span>
                 </h1>
                 <p class="mt-5 text-lg text-gray-400 max-w-xl leading-relaxed">
-                    A unified notification feed plus in-app, email and mobile push alerts — with a per-event preferences matrix so every follower, order, mention or security alert reaches you exactly the way you want.
+                    A unified notification feed plus in-app, email and mobile push alerts, with a per-event preferences matrix so every follower, order, mention or security alert reaches you exactly the way you want.
                 </p>
                 <div class="mt-7 flex flex-wrap items-center gap-3">
                     @guest
@@ -179,7 +179,7 @@
 
 @include('public.partials.subscribe-block', [
     'heading' => 'Product updates, the moment they ship.',
-    'subtext' => 'Once-a-month notes on what is new on Sayzio — email, WhatsApp Channel, or DM, your call.',
+    'subtext' => 'Once-a-month notes on what is new on Sayzio: email, WhatsApp Channel, or DM, your call.',
     'source'  => 'notifications',
 ])
 @endsection

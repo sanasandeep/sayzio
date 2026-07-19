@@ -21,7 +21,7 @@
             <div>
                 <div class="text-[11px] font-bold uppercase tracking-[.2em] text-blue-300 mb-1">Subscribe</div>
                 <h3 class="text-lg sm:text-xl font-bold text-white">Stay in the loop with Sayzio.</h3>
-                <p class="mt-1 text-xs text-gray-400">Pick the channel that suits you — email, WhatsApp Channel, or DM.</p>
+                <p class="mt-1 text-xs text-gray-400">Pick the channel that suits you: email, WhatsApp Channel, or DM.</p>
             </div>
             <a href="{{ route('site.subscriptions.manage') }}"
                class="text-[11px] text-gray-500 hover:text-blue-300 underline-offset-2 hover:underline inline-flex items-center gap-1.5 self-start sm:self-auto">
