@@ -23,15 +23,15 @@
             <div class="zio-hero-copy text-center lg:text-left lg:max-w-[600px]">
                 <div class="reveal inline-flex items-center gap-2 px-4 py-1.5 glass rounded-full text-xs font-semibold mb-8">
                     <i class="fas fa-wand-magic-sparkles text-[11px]" style="color:var(--c2)"></i>
-                    <span class="grad-text">One Platform. Endless Conversations.</span>
+                    <span class="grad-text">Short links · Bio pages · QR codes</span>
                 </div>
 
                 <h1 id="hero-h" class="reveal rd-1 text-4xl sm:text-5xl lg:text-6xl font-bold leading-[1.08] tracking-tight mb-6">
-                    One AI runs your whole <span class="grad-text">universe</span>
+                    Every link, page and QR code you need — <span class="grad-text">one place</span>
                 </h1>
 
                 <p class="reveal rd-2 text-lg sm:text-xl text-gray-400 max-w-xl mx-auto lg:mx-0 mb-9 leading-relaxed">
-                    Meet <strong class="text-white">Zio</strong>, the AI behind Sayzio. It builds your pages, answers your visitors and picks up your calls, <strong class="text-white">24/7, free forever</strong>, no card required.
+                    Create short links, bio pages and QR codes in seconds — then let <strong class="text-white">Zio</strong>, your built-in AI, build, grow and run them <strong class="text-white">24/7. Free forever</strong>, no card required.
                 </p>
 
                 @guest
@@ -72,8 +72,8 @@
                     </form>
 
                     <div class="reveal rd-3 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 justify-center lg:justify-start">
-                        <a href="#ai-suite" class="zio-cta-ghost inline-flex items-center justify-center gap-2 px-7 py-4 rounded-full text-base font-bold whitespace-nowrap">
-                            Meet the AI suite
+                        <a href="#ai-zone" class="zio-cta-ghost inline-flex items-center justify-center gap-2 px-7 py-4 rounded-full text-base font-bold whitespace-nowrap">
+                            Meet Zio, your AI
                         </a>
                     </div>
                 @else
@@ -84,8 +84,8 @@
                         <a href="{{ route('user.dashboard') }}" class="btn-bounce btn-glow inline-flex items-center justify-center gap-2 px-8 py-4 grad-bar text-white rounded-full text-base font-bold whitespace-nowrap shrink-0">
                             Go to your dashboard <i class="fas fa-arrow-right text-sm"></i>
                         </a>
-                        <a href="#ai-suite" class="zio-cta-ghost inline-flex items-center justify-center gap-2 px-7 py-4 rounded-full text-base font-bold whitespace-nowrap">
-                            Meet the AI suite
+                        <a href="#ai-zone" class="zio-cta-ghost inline-flex items-center justify-center gap-2 px-7 py-4 rounded-full text-base font-bold whitespace-nowrap">
+                            Meet Zio, your AI
                         </a>
                     </div>
                 @endguest
@@ -97,7 +97,7 @@
                     </span>
                     <span class="flex items-center gap-2 text-gray-400">
                         <span class="w-1.5 h-1.5 rounded-full pulse-dot" style="background:var(--c2)"></span>
-                        <span class="font-bold text-white">16 AI tools,</span><span class="text-gray-500">one brain</span>
+                        <span class="font-bold text-white">Links, pages</span><span class="text-gray-500">&amp; QR codes</span>
                     </span>
                     <span class="flex items-center gap-2 text-gray-400">
                         <span class="w-1.5 h-1.5 rounded-full" style="background:var(--c1)"></span>
