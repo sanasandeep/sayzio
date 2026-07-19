@@ -169,19 +169,44 @@ sudo systemctl enable sayzio-api.service sayzio-queue.service sayzio-scheduler.t
 ```
 
 Give the deploy user passwordless rights for exactly the service commands
-`deploy.sh` uses (note the PHP-FPM unit name differs per distro):
+`deploy.sh` uses (note the PHP-FPM unit name differs per distro).
+The cp/mv grants are needed for the automatic Nginx config sync — `deploy.sh`
+backs up the installed config, installs the new one, validates it, and restores
+the backup on failure, all without manual intervention.
 
 ```bash
 # Ubuntu
 sudo tee /etc/sudoers.d/sayzio-deploy <<'EOF'
-sayzio ALL=(root) NOPASSWD: /usr/bin/systemctl reload php8.4-fpm, /usr/bin/systemctl restart sayzio-api.service, /usr/bin/systemctl restart sayzio-queue.service, /usr/bin/systemctl reload nginx, /usr/sbin/nginx -t
+sayzio ALL=(root) NOPASSWD: \
+  /usr/bin/systemctl reload php8.4-fpm, \
+  /usr/bin/systemctl restart sayzio-api.service, \
+  /usr/bin/systemctl restart sayzio-queue.service, \
+  /usr/bin/systemctl reload nginx, \
+  /usr/sbin/nginx -t, \
+  /usr/bin/cp /etc/nginx/sites-available/sayzio.conf /etc/nginx/sites-available/sayzio.conf.bak, \
+  /usr/bin/cp /var/www/sayzio/deploy/ec2/nginx/sayzio.conf /etc/nginx/sites-available/sayzio.conf, \
+  /usr/bin/mv /etc/nginx/sites-available/sayzio.conf.bak /etc/nginx/sites-available/sayzio.conf
 EOF
+sudo chmod 440 /etc/sudoers.d/sayzio-deploy
 
 # Amazon Linux 2023
 sudo tee /etc/sudoers.d/sayzio-deploy <<'EOF'
-sayzio ALL=(root) NOPASSWD: /usr/bin/systemctl reload php-fpm, /usr/bin/systemctl restart sayzio-api.service, /usr/bin/systemctl restart sayzio-queue.service, /usr/bin/systemctl reload nginx, /usr/sbin/nginx -t
+sayzio ALL=(root) NOPASSWD: \
+  /usr/bin/systemctl reload php-fpm, \
+  /usr/bin/systemctl restart sayzio-api.service, \
+  /usr/bin/systemctl restart sayzio-queue.service, \
+  /usr/bin/systemctl reload nginx, \
+  /usr/sbin/nginx -t, \
+  /usr/bin/cp /etc/nginx/conf.d/sayzio.conf /etc/nginx/conf.d/sayzio.conf.bak, \
+  /usr/bin/cp /var/www/sayzio/deploy/ec2/nginx/sayzio.conf /etc/nginx/conf.d/sayzio.conf, \
+  /usr/bin/mv /etc/nginx/conf.d/sayzio.conf.bak /etc/nginx/conf.d/sayzio.conf
 EOF
+sudo chmod 440 /etc/sudoers.d/sayzio-deploy
 ```
+
+> **First-time setup note**: `deploy.sh` skips the auto-sync if the Nginx config
+> has not been installed yet (i.e. `sayzio.conf` is absent at the expected path).
+> Complete Step 4 once manually; every deploy after that syncs the config automatically.
 
 ## Step 5 — First deploy
 
@@ -339,13 +364,25 @@ banner (should be absent).
 - **Env delivery**: Laravel reads `artifacts/1inme/.env`; the api-server reads
   `/etc/sayzio/api-server.env` via systemd. No Replit Secrets pane.
 
-## One-time rollout: fix Nginx `/api` routing (required on existing servers)
+## Nginx config drift: automatic on every deploy
 
-Servers provisioned before this fix have a broad `location /api` block that
-routes ALL `/api/*` traffic to Express — including `/api/v1/*` Laravel traffic.
-This causes the "couldn't reach backend" 502 that breaks mobile sign-in.
+`deploy.sh` now syncs `deploy/ec2/nginx/sayzio.conf` to the server's active
+Nginx location on every deploy. If the repo config has changed since the last
+deploy, the script:
 
-**Apply once per server (no redeploy needed — just copy + reload):**
+1. Backs up the installed config to `sayzio.conf.bak`
+2. Copies the new config in place
+3. Validates it with `nginx -t`
+4. Restores the backup and aborts the deploy if validation fails
+5. Proceeds to reload Nginx if validation passes
+
+The sync is a no-op when the config is unchanged.
+
+> **Servers that haven't deployed since the `/api` routing fix**: run `deploy.sh`
+> once and the corrected config will be applied automatically — no manual `cp`
+> needed. Make sure the sudoers grant from Step 4 above is in place first.
+
+**For servers that cannot run `deploy.sh` right now** (manual one-time rollout):
 
 ```bash
 cd /var/www/sayzio
@@ -366,10 +403,10 @@ curl -fsS https://yourdomain.com/api/v1/     # expect: {"error":{"code":"route_n
 curl -fsS https://yourdomain.com/api/healthz # expect: {"status":"ok"}
 ```
 
-**What changed**: the single `location /api` block was replaced with two specific
-blocks — `location = /api/healthz` and `location /api/contact` — so Express only
-receives the requests it actually handles. All `/api/v1/*` traffic now falls
-through to PHP-FPM/Laravel directly, as intended.
+**What the routing fix changed**: the single `location /api` block was replaced
+with two specific blocks — `location = /api/healthz` and `location /api/contact`
+— so Express only receives the requests it actually handles. All `/api/v1/*`
+traffic now falls through to PHP-FPM/Laravel directly, as intended.
 
 ---
 
