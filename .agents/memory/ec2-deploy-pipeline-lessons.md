@@ -21,3 +21,5 @@ Rules that keep it green:
 - **Recovery recipe:** sed real domains into `server_name`; on AL2023 sed `fastcgi_pass unix:/run/php/php8.4-fpm.sock` → `unix:/run/php-fpm/www.sock`; then ONE combined `certbot --nginx -d …` covering ALL domains that share the server block — per-domain certbot runs each rewrite the block's ssl_certificate, so the last domain's cert "wins" and breaks the others.
 - deploy.sh's own nginx sync step needs passwordless sudo for the exact cp commands or it aborts ("sudo: a password is required"); running the copy manually as ec2-user works.
 - Server: AL2023, ec2-user, app at /var/www/sayzio, FPM user apache. Domains on the box: sayzio.app, 1in.me (301→sayzio.app), getbio.one, bizs.club (+www). sayzio.link DNS points at the Replit deployment, not EC2.
+
+**SSH access (user machine):** the user connects from their laptop with the key file `~/Downloads/1INME.pem` — full command: `ssh -i ~/Downloads/1INME.pem ec2-user@16.113.25.149`. Remind them of this exact command when guiding EC2 deploys.
