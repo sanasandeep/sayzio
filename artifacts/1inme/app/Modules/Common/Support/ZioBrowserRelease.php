@@ -84,17 +84,42 @@ class ZioBrowserRelease
     }
 
     /**
+     * The specific reason the last call to refresh() failed, or null if it
+     * succeeded. Cleared on each call to refresh(). Use lastRefreshError()
+     * after a false return to get a diagnosable message for logging / recording.
+     */
+    private static ?string $lastRefreshError = null;
+
+    /**
+     * Return the failure reason from the most recent refresh() call, or null
+     * if the last refresh succeeded (or refresh() has not been called yet in
+     * this process).
+     */
+    public static function lastRefreshError(): ?string
+    {
+        return self::$lastRefreshError;
+    }
+
+    /**
      * Fetch the latest release and cache it forever (superseded by the next
      * successful refresh). On failure the previous cached value is kept.
+     *
+     * @return bool true on success; false on failure (call lastRefreshError() for details)
      */
     public static function refresh(): bool
     {
-        $fetched = self::fetchLatestRelease();
+        self::$lastRefreshError = null;
+
+        ['release' => $fetched, 'error' => $error] = self::fetchLatestRelease();
+
         if ($fetched === null) {
+            $reason = $error ?? 'GitHub release fetch failed';
             Log::warning('zio-browser release refresh failed; keeping last cached release', [
                 'has_cached' => Cache::has(self::CACHE_KEY),
+                'reason'     => $reason,
             ]);
-            self::recordRefreshFailure();
+            self::$lastRefreshError = $reason;
+            self::recordRefreshFailure($reason);
 
             return false;
         }
@@ -106,20 +131,42 @@ class ZioBrowserRelease
     }
 
     /**
-     * @return array<string,mixed>|null plain array (file-cache safe), null on failure
+     * Fetch the latest release from GitHub.
+     *
+     * Returns ['release' => array, 'error' => null] on success, or
+     * ['release' => null, 'error' => string] on failure with a specific reason.
+     *
+     * @return array{release: array<string,mixed>|null, error: string|null}
      */
-    private static function fetchLatestRelease(): ?array
+    private static function fetchLatestRelease(): array
     {
-        try {
-            $response = Http::timeout(8)
-                ->withHeaders(['Accept' => 'application/vnd.github+json'])
-                ->get('https://api.github.com/repos/' . self::REPO . '/releases', ['per_page' => 15]);
-        } catch (\Throwable $e) {
-            return null;
+        $headers = ['Accept' => 'application/vnd.github+json'];
+
+        // Authenticate when a GitHub token is available (raises rate limit from
+        // 60 to 5,000 req/hr — essential on shared-egress IPs).
+        $token = config('services.github.token');
+        if (is_string($token) && $token !== '') {
+            $headers['Authorization'] = 'Bearer ' . $token;
         }
 
-        if (!$response->ok() || !is_array($response->json())) {
-            return null;
+        try {
+            $response = Http::timeout(8)
+                ->withHeaders($headers)
+                ->get('https://api.github.com/repos/' . self::REPO . '/releases', ['per_page' => 15]);
+        } catch (\Throwable $e) {
+            return ['release' => null, 'error' => 'Connection error: ' . $e->getMessage()];
+        }
+
+        if (!$response->ok()) {
+            $status = $response->status();
+            $hint = $status === 429 || $status === 403
+                ? ' (rate limited — set GITHUB_TOKEN to raise the limit)'
+                : '';
+            return ['release' => null, 'error' => "GitHub API returned HTTP {$status}{$hint}"];
+        }
+
+        if (!is_array($response->json())) {
+            return ['release' => null, 'error' => 'GitHub API returned unexpected response shape'];
         }
 
         foreach ($response->json() as $rel) {
@@ -165,11 +212,27 @@ class ZioBrowserRelease
             if ($out['mac_arm64_dmg'] && $out['mac_x64_dmg'] && $out['windows_exe']) {
                 self::persistLastGoodRelease($out);
 
-                return $out;
+                return ['release' => $out, 'error' => null];
             }
+
+            // First matching zio-browser tag found but it's missing required
+            // installers. Record a specific error naming the release so ops
+            // know it's a missing-asset issue, not an API or tag problem.
+            $missing = array_keys(array_filter([
+                'mac_arm64_dmg' => !$out['mac_arm64_dmg'],
+                'mac_x64_dmg'   => !$out['mac_x64_dmg'],
+                'windows_exe'   => !$out['windows_exe'],
+            ]));
+
+            return [
+                'release' => null,
+                'error'   => "Release {$tag} skipped — missing headline installer(s): "
+                           . implode(', ', $missing)
+                           . '. Re-upload the missing assets to this GitHub release.',
+            ];
         }
 
-        return null;
+        return ['release' => null, 'error' => 'No zio-browser release found matching tag prefix "' . self::TAG_PREFIX . '"'];
     }
 
     /**
@@ -194,13 +257,13 @@ class ZioBrowserRelease
      * Stamp a failed refresh into the health state, opening a failure streak
      * (failing_since) if one is not already running. Best-effort.
      */
-    private static function recordRefreshFailure(): void
+    private static function recordRefreshFailure(string $reason = 'GitHub release fetch failed'): void
     {
         try {
             $state = AppSetting::get(self::HEALTH_KEY, []);
             $state = is_array($state) ? $state : [];
             $state['last_failure_at'] = now()->toIso8601String();
-            $state['last_error'] = 'GitHub release fetch failed or returned no usable zio-browser release';
+            $state['last_error'] = $reason;
             if (empty($state['failing_since'])) {
                 $state['failing_since'] = now()->toIso8601String();
             }

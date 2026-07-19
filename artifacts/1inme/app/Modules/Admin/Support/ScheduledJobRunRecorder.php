@@ -37,6 +37,58 @@ class ScheduledJobRunRecorder
      */
     protected array $closed = [];
 
+    /**
+     * Temp output files created in the ScheduledTaskStarting listener so the
+     * Finished/Failed listeners can read the actual command output and include
+     * it in the run-row error column (rather than just "Exited with code N").
+     *
+     * @var array<string, string> job key => file path
+     */
+    protected array $outputFiles = [];
+
+    /**
+     * Register a temp output file for the given job key. Called from the
+     * ScheduledTaskStarting listener after redirecting the event's output so
+     * the Finished/Failed listener can read it and surface real error text.
+     */
+    public function setOutputFile(string $key, string $path): void
+    {
+        $this->outputFiles[$key] = $path;
+    }
+
+    /**
+     * Read the tail of the output file captured for the given job key (if
+     * any), then clean up the temp file. Returns null when nothing was
+     * captured. The tail is stripped of shell color escape codes since the
+     * scheduler captures raw terminal output.
+     */
+    public function readOutputTail(string $key, int $maxBytes = 800): ?string
+    {
+        $path = $this->outputFiles[$key] ?? null;
+        unset($this->outputFiles[$key]);
+
+        if ($path === null || !is_readable($path)) {
+            return null;
+        }
+
+        try {
+            $content = file_get_contents($path);
+        } catch (\Throwable $e) {
+            return null;
+        } finally {
+            @unlink($path);
+        }
+
+        if ($content === false || trim($content) === '') {
+            return null;
+        }
+
+        // Strip ANSI escape codes that contaminate shell-captured output.
+        $clean = (string) preg_replace('/\x1b\[[0-9;]*m/', '', $content);
+
+        return trim(substr($clean, -$maxBytes)) ?: null;
+    }
+
     public function starting(Event $event): void
     {
         try {

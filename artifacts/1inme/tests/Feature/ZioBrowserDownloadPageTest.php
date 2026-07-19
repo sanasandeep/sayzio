@@ -284,4 +284,122 @@ class ZioBrowserDownloadPageTest extends TestCase
         $this->assertFalse(Cache::has(ZioBrowserRelease::CACHE_KEY));
         $this->assertSame('0.1.0', ZioBrowserRelease::current()['version']);
     }
+
+    public function test_missing_installer_failure_stores_specific_release_tag_in_health_state(): void
+    {
+        // When the newest matching release exists but is missing headline
+        // installers, the health state must name the specific release tag so
+        // ops know which release to re-upload assets for — not just a generic
+        // "fetch failed" message.
+        Http::fake([
+            self::RELEASES_URL => Http::response([
+                $this->githubRelease('zio-browser-v4.1.0', [
+                    $this->asset('SayZio.Browser-4.1.0-arm64.dmg'),
+                    // mac_x64_dmg and windows_exe intentionally absent
+                ]),
+            ]),
+        ]);
+
+        $this->assertFalse(ZioBrowserRelease::refresh());
+
+        $error = ZioBrowserRelease::lastRefreshError();
+        $this->assertNotNull($error);
+        $this->assertStringContainsString('zio-browser-v4.1.0', $error,
+            'Error must name the specific release tag so ops know which release is broken');
+        $this->assertStringContainsString('skipped', $error);
+
+        $state = \App\Modules\Admin\Models\AppSetting::get(ZioBrowserRelease::HEALTH_KEY, []);
+        $this->assertIsArray($state);
+        $this->assertStringContainsString('zio-browser-v4.1.0', $state['last_error'] ?? '',
+            'Health state last_error must also name the specific release tag');
+    }
+
+    public function test_http_error_failure_stores_status_code_in_health_state(): void
+    {
+        Http::fake([
+            self::RELEASES_URL => Http::response('rate limited', 429),
+        ]);
+
+        $this->assertFalse(ZioBrowserRelease::refresh());
+
+        $error = ZioBrowserRelease::lastRefreshError();
+        $this->assertNotNull($error);
+        $this->assertStringContainsString('429', $error,
+            'Error must include the HTTP status code for quick triage');
+        $this->assertStringContainsString('rate limit', strtolower($error),
+            'Rate-limit errors (429) must hint at setting GITHUB_TOKEN');
+    }
+
+    public function test_no_matching_release_tag_stores_diagnostic_error(): void
+    {
+        // All releases have non-zio-browser tags: refresh must fail with a
+        // specific message naming the expected tag prefix.
+        Http::fake([
+            self::RELEASES_URL => Http::response([
+                $this->githubRelease('mobile-v1.0.0', []),
+                $this->githubRelease('sayzio-v2.0.0', []),
+            ]),
+        ]);
+
+        $this->assertFalse(ZioBrowserRelease::refresh());
+
+        $error = ZioBrowserRelease::lastRefreshError();
+        $this->assertNotNull($error);
+        $this->assertStringContainsString(ZioBrowserRelease::TAG_PREFIX, $error,
+            'Error must name the expected tag prefix so ops know what the API found vs. expected');
+    }
+
+    public function test_github_token_is_sent_in_authorization_header_when_configured(): void
+    {
+        // When config('services.github.token') is set, the request must carry
+        // an Authorization header to benefit from the higher rate limit.
+        config(['services.github.token' => 'ghp_test_token_abc123']);
+
+        $captured = null;
+        Http::fake([
+            self::RELEASES_URL => function (\Illuminate\Http\Client\Request $request) use (&$captured) {
+                $captured = $request->header('Authorization');
+                return Http::response([]);
+            },
+        ]);
+
+        ZioBrowserRelease::refresh();
+
+        $this->assertNotEmpty($captured, 'Authorization header must be sent when a GitHub token is configured');
+        $this->assertStringContainsString('ghp_test_token_abc123', implode('', (array) $captured));
+
+        config(['services.github.token' => null]);
+    }
+
+    public function test_github_token_is_not_sent_when_unconfigured(): void
+    {
+        config(['services.github.token' => null]);
+
+        $hasAuth = false;
+        Http::fake([
+            self::RELEASES_URL => function (\Illuminate\Http\Client\Request $request) use (&$hasAuth) {
+                $hasAuth = $request->hasHeader('Authorization');
+                return Http::response([]);
+            },
+        ]);
+
+        ZioBrowserRelease::refresh();
+
+        $this->assertFalse($hasAuth, 'Authorization header must NOT be sent when no GitHub token is configured');
+    }
+
+    public function test_refresh_command_outputs_specific_error_on_failure(): void
+    {
+        // The command must output the specific failure reason (not just a
+        // generic "fetch failed") so the run-row captures diagnosable text.
+        Http::fake([
+            self::RELEASES_URL => Http::response('rate limited', 429),
+        ]);
+
+        Artisan::call('zio-browser:refresh-release');
+        $output = Artisan::output();
+
+        $this->assertStringContainsString('429', $output,
+            'Command output must include the HTTP status for rate-limit errors');
+    }
 }

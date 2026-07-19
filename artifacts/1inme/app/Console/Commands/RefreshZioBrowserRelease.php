@@ -26,7 +26,9 @@ class RefreshZioBrowserRelease extends Command
             return self::SUCCESS;
         }
 
-        $this->warn('Release fetch failed; previous cached release (if any) kept.');
+        $reason = ZioBrowserRelease::lastRefreshError() ?? 'Release fetch failed';
+        $this->error($reason);
+        $this->warn('Previous cached release (if any) kept.');
 
         return self::FAILURE;
     }

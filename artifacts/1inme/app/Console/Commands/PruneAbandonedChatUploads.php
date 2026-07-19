@@ -38,12 +38,24 @@ class PruneAbandonedChatUploads extends Command
             return self::SUCCESS;
         }
 
-        $referenced = $this->collectReferencedBasenames();
+        try {
+            $referenced = $this->collectReferencedBasenames();
+        } catch (\Throwable $e) {
+            $this->error('Failed to collect referenced basenames: ' . $e->getMessage());
+            return self::FAILURE;
+        }
+
+        try {
+            $files = $disk->allFiles('cv_uploads');
+        } catch (\Throwable $e) {
+            $this->error('Failed to list cv_uploads files: ' . $e->getMessage());
+            return self::FAILURE;
+        }
 
         $deleted = 0;
         $kept = 0;
         $skippedRecent = 0;
-        foreach ($disk->allFiles('cv_uploads') as $file) {
+        foreach ($files as $file) {
             try {
                 if ($disk->lastModified($file) >= $cutoff) {
                     $skippedRecent++;
