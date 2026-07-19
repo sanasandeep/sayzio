@@ -40,6 +40,14 @@ class UserResource
                 // that can never meaningfully verify their email.
                 'email_verification_meaningful' => \App\Modules\Common\Support\AuthMethods::emailVerificationMeaningful(),
                 'onboarded_at'      => optional($u->onboarded_at)->toIso8601String(),
+                // Safety & moderation (Task #1211) — text-form mirrors of the
+                // stored lists so the mobile edit screen can hydrate its
+                // plain-text inputs directly.
+                'mute_words_text'    => implode(', ', is_array($u->mute_words) ? $u->mute_words : []),
+                'watermark_enabled'  => (bool) (is_array($u->watermark_settings) ? ($u->watermark_settings['enabled'] ?? false) : false),
+                'country_block_text' => implode(', ', is_array($u->country_block_list) ? $u->country_block_list : []),
+                'country_allow_text' => implode(', ', is_array($u->country_allow_list) ? $u->country_allow_list : []),
+                'dmca_email'         => $u->dmca_email,
                 'created_at'        => optional($u->created_at)->toIso8601String(),
                 // Admin-assigned account badges (name + color). Mirrors the web
                 // dashboard/sidebar badge chips so the mobile profile screen can
