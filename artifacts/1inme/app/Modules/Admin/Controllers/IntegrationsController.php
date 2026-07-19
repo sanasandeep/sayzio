@@ -129,6 +129,37 @@ class IntegrationsController extends Controller
     }
 
     // ═════════════════════════════════════════════════════════════
+    // GitHub personal access token
+    // ═════════════════════════════════════════════════════════════
+
+    public function editGitHub()
+    {
+        return view('admin.integrations.github', [
+            'status'   => PlatformServiceSettings::githubStatus(),
+            'hasValue' => PlatformServiceSettings::githubToken() !== null,
+            'masked'   => PlatformServiceSettings::maskedGithubToken(),
+            'repo'     => (string) config('services.github.repo', ''),
+        ]);
+    }
+
+    public function updateGitHub(Request $request)
+    {
+        $data = $request->validate([
+            'token'       => 'nullable|string|max:255',
+            'clear_token' => 'nullable|boolean',
+        ]);
+
+        if ($request->boolean('clear_token')) {
+            PlatformServiceSettings::setGithubToken(null);
+        } elseif (!empty($data['token'])) {
+            PlatformServiceSettings::setGithubToken($data['token']);
+        }
+
+        return redirect()->route('admin.integrations.github.edit')
+            ->with('success', 'GitHub token settings saved.');
+    }
+
+    // ═════════════════════════════════════════════════════════════
     // Connected Apps: CRM OAuth clients (Salesforce / HubSpot / Zoho)
     // ═════════════════════════════════════════════════════════════
 

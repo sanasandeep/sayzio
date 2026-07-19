@@ -200,6 +200,15 @@ class IntegrationCatalog
                 'icon'  => 'fas fa-server',
                 'items' => [
                     [
+                        'key'      => 'github-token',
+                        'label'    => 'GitHub Token',
+                        'desc'     => 'Personal access token shared by the post-publish repo push sync and the Zio Browser release refresh (raises the GitHub API rate limit to 5,000 req/hr).',
+                        'icon'     => 'fab fa-github',
+                        'status'   => PlatformServiceSettings::githubStatus(),
+                        'route'    => route('admin.integrations.github.edit'),
+                        'external' => false,
+                    ],
+                    [
                         'key'      => 'system-update',
                         'label'    => 'System Update (GitHub → EC2)',
                         'desc'     => 'Check for new commits and trigger the GitHub Actions deploy to EC2 with one click. Not applicable on Replit (managed by the platform there).',

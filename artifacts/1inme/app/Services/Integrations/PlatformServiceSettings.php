@@ -50,6 +50,12 @@ class PlatformServiceSettings
 
     public const S3_DISK_NAMES = ['public', 'user_files', 'admin_assets', 's3'];
 
+    // ── GitHub personal access token ──────────────────────────────
+    // Shared by the GitHub push sync (SystemUpdateService / github:check-token)
+    // and the zio-browser:refresh-release GitHub API calls (raises the
+    // anonymous 60 req/hr rate limit to 5,000 req/hr).
+    public const KEY_GITHUB_TOKEN_ENC = 'github.token_enc';
+
     // ═════════════════════════════════════════════════════════════
     // Google Places
     // ═════════════════════════════════════════════════════════════
@@ -581,6 +587,45 @@ class PlatformServiceSettings
     }
 
     // ═════════════════════════════════════════════════════════════
+    // GitHub personal access token
+    // ═════════════════════════════════════════════════════════════
+
+    public static function githubToken(): ?string
+    {
+        $admin = self::decrypt(self::KEY_GITHUB_TOKEN_ENC);
+        if ($admin !== null && $admin !== '') return $admin;
+        $cfg = (string) (env('GITHUB_TOKEN', '') ?: '');
+        return $cfg !== '' ? $cfg : null;
+    }
+
+    public static function setGithubToken(?string $v): void
+    {
+        self::storeSecret(self::KEY_GITHUB_TOKEN_ENC, $v);
+    }
+
+    public static function githubHasAdminValue(): bool
+    {
+        $v = self::decrypt(self::KEY_GITHUB_TOKEN_ENC);
+        return $v !== null && $v !== '';
+    }
+
+    public static function maskedGithubToken(): ?string
+    {
+        return self::maskSecret(self::githubToken());
+    }
+
+    public static function githubStatus(): array
+    {
+        if (self::githubHasAdminValue()) {
+            return ['key' => 'configured', 'label' => 'Configured', 'tone' => 'green'];
+        }
+        if (self::githubToken() !== null) {
+            return ['key' => 'env', 'label' => 'Using env fallback', 'tone' => 'amber'];
+        }
+        return ['key' => 'preview', 'label' => 'Not configured (rate-limited)', 'tone' => 'slate'];
+    }
+
+    // ═════════════════════════════════════════════════════════════
     // Runtime override
     // ═════════════════════════════════════════════════════════════
 
@@ -605,6 +650,15 @@ class PlatformServiceSettings
                 'services.google_contacts.client_id'     => self::googleContactsClientId(),
                 'services.google_contacts.client_secret' => self::googleContactsClientSecret(),
             ]);
+        }
+
+        // ── GitHub personal access token ─────────────────────────
+        // Shared by the GitHub push sync and the zio-browser release
+        // refresh (raises the GitHub API rate limit). Only override when
+        // an admin has actually saved a token, so the GITHUB_TOKEN env
+        // secret keeps working untouched otherwise.
+        if (self::githubHasAdminValue()) {
+            config(['services.github.token' => self::githubToken()]);
         }
 
         // ── S3 user-content storage ──────────────────────────────
