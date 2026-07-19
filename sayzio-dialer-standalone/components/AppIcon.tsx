@@ -422,7 +422,7 @@ export function resolveIconName(input: string | null | undefined): FeatherName {
   if (!warned.has(raw)) {
     warned.add(raw);
     if (typeof console !== "undefined") {
-      console.warn(`[AppIcon] Unknown icon "${raw}" — falling back to "${FALLBACK}"`);
+      console.warn(`[AppIcon] Unknown icon "${raw}", falling back to "${FALLBACK}"`);
     }
   }
   return FALLBACK;

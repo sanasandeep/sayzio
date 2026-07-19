@@ -61,7 +61,7 @@ export function SocialMergePrompt({
       </View>
       <Text style={[styles.body, { color: colors.mutedForeground }]}>
         That {label} account already belongs to another Sayzio account. You can
-        merge them here — we&apos;ll send a code to the other account to confirm
+        merge them here; we&apos;ll send a code to the other account to confirm
         it&apos;s yours, then move everything across. This can&apos;t be undone.
       </Text>
       <View style={styles.actions}>

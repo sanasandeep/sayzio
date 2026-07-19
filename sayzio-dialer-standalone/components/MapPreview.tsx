@@ -112,7 +112,7 @@ function buildMultiHtml(markers: MapMarker[], dark: boolean): string {
     if (!isFinite(p.lat) || !isFinite(p.lng)) return;
     var icon = L.divIcon({ className: '', html: '<div class="pin">${PIN_SVG}<span class="badge">' + (p.n || '') + '</span></div>', iconSize: [30,40], iconAnchor: [15,40] });
     var title = p.label || '';
-    if (p.address) { title = title ? (title + ' — ' + p.address) : p.address; }
+    if (p.address) { title = title ? (title + ' · ' + p.address) : p.address; }
     var m = L.marker([p.lat, p.lng], { icon: icon, title: title }).addTo(map);
     m.on('click', function () {
       if (window.ReactNativeWebView && p.url) {
