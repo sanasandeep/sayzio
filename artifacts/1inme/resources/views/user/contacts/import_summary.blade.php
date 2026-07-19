@@ -12,7 +12,7 @@
             ['icon' => 'fa-times text-red-400',     'text' => $failedCount . ' failed'],
         ];
         $heroSubtitle = match ($import->status) {
-            'pending', 'processing' => 'Your import is running in the background — you can leave this page and come back any time.',
+            'pending', 'processing' => 'Your import is running in the background, you can leave this page and come back any time.',
             'failed'                => 'The import stopped before finishing. Already-added contacts are kept.',
             default                 => 'Here\'s what happened with the file you uploaded.',
         };
@@ -39,7 +39,7 @@
             </div>
             <div class="text-[11px] mt-2" style="color:var(--text-faint);">
                 <span id="importProgressText">{{ $import->processed_rows }} of {{ $import->total_rows }} rows processed</span>
-                — this page refreshes automatically.
+               , this page refreshes automatically.
             </div>
         </div>
     @elseif($import->status === 'failed')
@@ -64,7 +64,7 @@
             <span class="text-sm font-semibold" style="color:var(--text-primary);">
                 {{ $duplicateCount }} duplicate {{ \Illuminate\Support\Str::plural('group', $duplicateCount) }} detected
             </span>
-            <span class="text-xs" style="color:var(--text-muted);">— new contacts may match existing ones.</span>
+            <span class="text-xs" style="color:var(--text-muted);"> - new contacts may match existing ones.</span>
         </div>
         <a href="{{ route('user.contacts.duplicates') }}"
            class="px-3 py-1.5 rounded-lg text-xs font-semibold text-white"

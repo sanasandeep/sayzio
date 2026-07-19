@@ -43,7 +43,7 @@
 
                 <div class="hidden lg:block mb-7">
                     <h2 class="text-2xl font-bold" style="color: var(--text-primary);">Create your account</h2>
-                    <p class="text-sm mt-1" style="color: var(--text-dimmed);">{{ ($emailPasswordEnabled ?? false) ? 'Choose a password to sign in with your email.' : "No password needed — we'll email you a code each time." }}</p>
+                    <p class="text-sm mt-1" style="color: var(--text-dimmed);">{{ ($emailPasswordEnabled ?? false) ? 'Choose a password to sign in with your email.' : "No password needed, we'll email you a code each time." }}</p>
                 </div>
 
                 <div class="lg:hidden text-center mb-6">
@@ -107,7 +107,7 @@
                         <div>
                             <label class="block text-xs font-semibold uppercase tracking-wider mb-1.5" style="color: var(--text-dimmed);">Country</label>
                             <select name="country" class="theme-input w-full">
-                                <option value="">— Select your country —</option>
+                                <option value="">Select your country</option>
                                 <option value="IN" {{ old('country') === 'IN' ? 'selected' : '' }}>India (billed in ₹ INR)</option>
                                 <option value="US" {{ old('country') === 'US' ? 'selected' : '' }}>United States</option>
                                 <option value="GB" {{ old('country') === 'GB' ? 'selected' : '' }}>United Kingdom</option>
@@ -135,7 +135,7 @@
 
                         <div class="rounded-xl px-3 py-2.5 text-[11px] flex items-start gap-2" style="background: rgba(61,107,255,0.08); border: 1px solid rgba(61,107,255,0.18); color: var(--text-dimmed);">
                             <i class="fas fa-shield-alt text-blue-400 mt-0.5"></i>
-                            <span>{{ ($emailPasswordEnabled ?? false) ? "Use your email and password to sign in. Keep your password somewhere safe — it can't be reset yet." : "No password needed. We'll email you a 6-digit code to sign in every time." }}</span>
+                            <span>{{ ($emailPasswordEnabled ?? false) ? "Use your email and password to sign in. Keep your password somewhere safe, it can't be reset yet." : "No password needed. We'll email you a 6-digit code to sign in every time." }}</span>
                         </div>
 
                         <button type="submit" class="btn-primary w-full justify-center py-2.5 text-sm">
@@ -172,7 +172,7 @@
                         try {
                             const r = await fetch('{{ route('user.referrals.check') }}?code=' + encodeURIComponent(v));
                             const j = await r.json();
-                            fb.textContent = j.ok ? 'Looks good — your friend will get credit.' : j.message;
+                            fb.textContent = j.ok ? 'Looks good, your friend will get credit.' : j.message;
                             fb.style.color = j.ok ? '#34d399' : '#f87171';
                         } catch (_) {}
                     };

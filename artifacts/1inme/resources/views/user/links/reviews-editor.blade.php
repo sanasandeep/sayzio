@@ -1,5 +1,5 @@
 @extends('user.layouts.app')
-@section('title', 'Reviews — ' . ($link->title ?: $link->alias))
+@section('title', 'Reviews: ' . ($link->title ?: $link->alias))
 
 @push('styles')
     {{-- Reuse the exact bento command-center look from the Dashboard. --}}
@@ -146,7 +146,7 @@
                         <form method="POST" action="{{ route('user.links.reviews.destroy', $review) }}" onsubmit="return confirm('Delete this review permanently?')">@csrf @method('DELETE')<button class="text-xs px-3 py-1.5 rounded-lg bg-red-500/10 text-red-300 hover:bg-red-500/20"><i class="fas fa-trash mr-1"></i>Delete</button></form>
                         @php
                             $shareStars = $review->rating ? str_repeat('★', (int) $review->rating) . str_repeat('☆', 5 - (int) $review->rating) . ' ' : '';
-                            $shareText  = trim($shareStars . ($review->body ? '“' . \Illuminate\Support\Str::limit($review->body, 180) . '” — ' : '') . ($review->author_name ?: 'A happy customer'));
+                            $shareText  = trim($shareStars . ($review->body ? '“' . \Illuminate\Support\Str::limit($review->body, 180) . '”, ' : '') . ($review->author_name ?: 'A happy customer'));
                             $shareImg   = optional($review->media->firstWhere('type', 'image'))->url;
                         @endphp
                         <details class="relative">
@@ -253,7 +253,7 @@
         <div class="glass rounded-2xl p-5">
             <div class="flex items-center gap-3 mb-2">
                 <div class="w-10 h-10 rounded-xl flex items-center justify-center text-white" style="background: {{ $p['tint'] }}22; color: {{ $p['tint'] }}"><i class="{{ $p['icon'] }} text-lg"></i></div>
-                <div><div class="font-semibold text-white">{{ $p['name'] }}</div>@if($conn)<div class="text-[11px] {{ $conn->status === 'connected' ? 'text-emerald-300' : 'text-amber-300' }}">@if($conn->status === 'preview')<span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-300 font-semibold uppercase tracking-wide text-[10px]">Preview mode</span> <span class="text-amber-300/90">— sample reviews</span>@else<span class="capitalize">{{ $conn->status }}</span>@endif @if($conn->last_synced_at)· synced {{ $conn->last_synced_at->diffForHumans() }}@endif</div>@endif</div>
+                <div><div class="font-semibold text-white">{{ $p['name'] }}</div>@if($conn)<div class="text-[11px] {{ $conn->status === 'connected' ? 'text-emerald-300' : 'text-amber-300' }}">@if($conn->status === 'preview')<span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-300 font-semibold uppercase tracking-wide text-[10px]">Preview mode</span> <span class="text-amber-300/90"> - sample reviews</span>@else<span class="capitalize">{{ $conn->status }}</span>@endif @if($conn->last_synced_at)· synced {{ $conn->last_synced_at->diffForHumans() }}@endif</div>@endif</div>
             </div>
             <p class="text-sm text-white/50 mb-3">{{ $p['short'] }}</p>
             @if($conn && $conn->status_reason)<p class="text-[11px] text-amber-300/80 mb-3">{{ $conn->status_reason }}</p>

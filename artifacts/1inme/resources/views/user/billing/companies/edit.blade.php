@@ -127,7 +127,7 @@
                 {!! $field('invoice_prefix', 'Invoice number prefix') !!}
                 <label class="text-xs" style="color: var(--text-muted);">Default tax rule
                     <select name="default_tax_rule_id" class="block w-full mt-1 p-2 rounded-lg border" style="background: var(--bg-glass-input); border-color: var(--border-soft); color: var(--text-primary);">
-                        <option value="">— None —</option>
+                        <option value="">None</option>
                         @foreach($taxRules as $rule)
                             <option value="{{ $rule->id }}" @selected(old('default_tax_rule_id', $company->default_tax_rule_id) == $rule->id)>{{ $rule->name }} ({{ number_format($rule->rate_bps / 100, 2) }}%)</option>
                         @endforeach

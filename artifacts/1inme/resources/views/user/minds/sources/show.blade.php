@@ -161,7 +161,7 @@
                 <p class="text-sm text-white/60">
                     Live Sayzio feature snapshot
                     @if($source->feature_key)
-                        <span class="text-white/40">— <code>{{ $source->feature_key }}</code></span>
+                        <span class="text-white/40"> - <code>{{ $source->feature_key }}</code></span>
                     @endif
                 </p>
                 <p class="mt-2 text-xs text-white/40">

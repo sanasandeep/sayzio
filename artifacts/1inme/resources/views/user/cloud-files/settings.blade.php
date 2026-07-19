@@ -52,7 +52,7 @@
                     ])
                 </div>
                 <div class="md:col-span-2">
-                    <label class="block text-xs mb-1" style="color: var(--text-faint);">Custom redirect URI <span style="color: var(--text-muted);">(optional — leave blank to use the default above)</span></label>
+                    <label class="block text-xs mb-1" style="color: var(--text-faint);">Custom redirect URI <span style="color: var(--text-muted);">(optional, leave blank to use the default above)</span></label>
                     <input type="url" name="redirect_uri" value="{{ old('redirect_uri', $row?->redirect_uri) }}"
                            placeholder="{{ str_replace('__provider__', $provider, $callback) }}"
                            class="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm" autocomplete="off">

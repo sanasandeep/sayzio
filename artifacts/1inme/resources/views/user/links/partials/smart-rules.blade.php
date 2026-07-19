@@ -77,7 +77,7 @@ document.addEventListener('alpine:init', function () {
         </div>
         <div>
             <h2 class="text-base font-semibold text-white leading-tight">Smart Redirect Rules</h2>
-            <p class="text-xs text-white/50 mt-0.5">Send different visitors to a different URL based on their device, country, language, time of day, or A/B split. Rules check top-to-bottom — the first match wins. If nothing matches, the link works normally.</p>
+            <p class="text-xs text-white/50 mt-0.5">Send different visitors to a different URL based on their device, country, language, time of day, or A/B split. Rules check top-to-bottom, the first match wins. If nothing matches, the link works normally.</p>
         </div>
     </div>
 
@@ -115,7 +115,7 @@ document.addEventListener('alpine:init', function () {
             {{-- Country --}}
             <div x-show="rule.type === 'country'" class="space-y-3">
                 <div>
-                    <label class="block text-xs text-white/50 mb-1">When visitor is in country (2-letter codes, comma-separated — e.g. <span class="text-white/70">IN, US, GB</span>)</label>
+                    <label class="block text-xs text-white/50 mb-1">When visitor is in country (2-letter codes, comma-separated, e.g. <span class="text-white/70">IN, US, GB</span>)</label>
                     <input type="text" :value="rule.match.join(', ')" @input="rule.match = $event.target.value.split(',').map(s => s.trim().toUpperCase()).filter(s => /^[A-Z]{2}$/.test(s))" placeholder="IN, US" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:ring-2 focus:ring-blue-500/40">
                 </div>
             </div>
@@ -123,7 +123,7 @@ document.addEventListener('alpine:init', function () {
             {{-- Language --}}
             <div x-show="rule.type === 'language'" class="space-y-3">
                 <div>
-                    <label class="block text-xs text-white/50 mb-1">When browser language is (codes, comma-separated — e.g. <span class="text-white/70">hi, en, es</span>)</label>
+                    <label class="block text-xs text-white/50 mb-1">When browser language is (codes, comma-separated, e.g. <span class="text-white/70">hi, en, es</span>)</label>
                     <input type="text" :value="rule.match.join(', ')" @input="rule.match = $event.target.value.split(',').map(s => s.trim().toLowerCase()).filter(s => /^[a-z]{2,3}$/.test(s))" placeholder="hi, en" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:ring-2 focus:ring-blue-500/40">
                 </div>
             </div>
@@ -176,7 +176,7 @@ document.addEventListener('alpine:init', function () {
 
     <div x-show="smartRules.length === 0" class="text-center py-6 text-sm text-white/40 border border-dashed border-white/10 rounded-xl mb-3">
         <i class="fas fa-route text-2xl text-white/20 block mb-2"></i>
-        No smart rules yet — every visitor sees this link normally.
+        No smart rules yet, every visitor sees this link normally.
     </div>
 
     <div class="flex flex-wrap gap-2 pt-2 border-t border-white/5">

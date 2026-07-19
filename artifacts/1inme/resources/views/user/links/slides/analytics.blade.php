@@ -92,7 +92,7 @@
             @else
             <a href="{{ route('user.upgrade') }}"
                class="pill ml-auto"
-               title="CSV export is a paid feature — upgrade your plan to download stats.">
+               title="CSV export is a paid feature, upgrade your plan to download stats.">
                 <i class="fas fa-lock text-[9px]"></i> Upgrade to export
             </a>
             @endif
@@ -107,7 +107,7 @@
                     <p class="text-[10px] uppercase tracking-wider font-bold mb-1.5" style="color: var(--text-faint);">
                         Impressions <span id="m-range-label" style="color: var(--text-faint);"></span>
                     </p>
-                    <p class="text-xl font-bold" id="m-impressions" style="color: var(--text-primary);">—</p>
+                    <p class="text-xl font-bold" id="m-impressions" style="color: var(--text-primary);">-</p>
                 </div>
                 <div class="w-10 h-10 rounded-xl flex items-center justify-center group-hover:scale-110 transition-all duration-500" style="background: rgba(61,107,255,0.1); border: 1px solid rgba(61,107,255,0.15);">
                     <i class="fas fa-eye text-blue-400 text-sm"></i>
@@ -119,7 +119,7 @@
             <div class="flex items-center justify-between relative z-10">
                 <div>
                     <p class="text-[10px] uppercase tracking-wider font-bold mb-1.5" style="color: var(--text-faint);">Unique sessions</p>
-                    <p class="text-xl font-bold" id="m-sessions" style="color: var(--text-primary);">—</p>
+                    <p class="text-xl font-bold" id="m-sessions" style="color: var(--text-primary);">-</p>
                 </div>
                 <div class="w-10 h-10 rounded-xl flex items-center justify-center group-hover:scale-110 transition-all duration-500" style="background: rgba(59,130,246,0.1); border: 1px solid rgba(59,130,246,0.15);">
                     <i class="fas fa-users text-blue-400 text-sm"></i>
@@ -131,7 +131,7 @@
             <div class="flex items-center justify-between relative z-10">
                 <div>
                     <p class="text-[10px] uppercase tracking-wider font-bold mb-1.5" style="color: var(--text-faint);">Completed decks</p>
-                    <p class="text-xl font-bold" id="m-completed" style="color: var(--text-primary);">—</p>
+                    <p class="text-xl font-bold" id="m-completed" style="color: var(--text-primary);">-</p>
                 </div>
                 <div class="w-10 h-10 rounded-xl flex items-center justify-center group-hover:scale-110 transition-all duration-500" style="background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.15);">
                     <i class="fas fa-flag-checkered text-emerald-400 text-sm"></i>
@@ -143,7 +143,7 @@
             <div class="flex items-center justify-between relative z-10">
                 <div>
                     <p class="text-[10px] uppercase tracking-wider font-bold mb-1.5" style="color: var(--text-faint);">Completion rate</p>
-                    <p class="text-xl font-bold" id="m-rate" style="color: var(--text-primary);">—</p>
+                    <p class="text-xl font-bold" id="m-rate" style="color: var(--text-primary);">-</p>
                 </div>
                 <div class="w-10 h-10 rounded-xl flex items-center justify-center group-hover:scale-110 transition-all duration-500" style="background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.15);">
                     <i class="fas fa-percent text-amber-400 text-sm"></i>
@@ -171,7 +171,7 @@
 
 <script>
 function formatDwell(ms) {
-    if (ms == null || !isFinite(ms)) return '—';
+    if (ms == null || !isFinite(ms)) return '-';
     if (ms < 1000) return ms + 'ms';
     const s = ms / 1000;
     if (s < 60) return (s < 10 ? s.toFixed(1) : Math.round(s)) + 's';
@@ -206,7 +206,7 @@ function formatDwell(ms) {
             const rangeLbl = document.getElementById('m-range-label');
             if (rangeLbl) rangeLbl.textContent = '· ' + label;
             const trendTitle = document.getElementById('sl-trend-title');
-            if (trendTitle) trendTitle.textContent = 'Views — ' + label;
+            if (trendTitle) trendTitle.textContent = 'Views, ' + label;
 
             document.getElementById('m-impressions').textContent = data.total_impressions;
             document.getElementById('m-sessions').textContent    = data.unique_sessions;

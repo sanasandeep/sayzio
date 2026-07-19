@@ -70,7 +70,7 @@
                     <div class="table-label">Table {{ $t['label'] }}</div>
                     <div class="scan">Scan to view the menu &amp; order</div>
                     <div class="qr" data-url="{{ $t['url'] }}">{!! $svg !!}</div>
-                    <div class="foot">Pay your server directly — no app needed.</div>
+                    <div class="foot">Pay your server directly, no app needed.</div>
                 </div>
             @endforeach
         </div>

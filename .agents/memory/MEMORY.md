@@ -152,3 +152,4 @@
 - [storage-url-resolve guard](storage-url-resolve-guard.md) — payload emissions of storage-backed image columns must go through PublicStorageUrl::resolve() (CDN vs slow /storage 302); exceptions go in the guard's ALLOWLIST.
 - [better-sqlite3 needs source build on Node 24](better-sqlite3-node24-source-build.md) — no prebuilt binary; background node-gyp rebuild in node_modules, ignore the bogus node_gyp_bins ENOENT.
 - [Electron desktop CI packaging](electron-desktop-ci-packaging.md) — workspace blocks non-Linux native binaries (strip ': -' overrides in CI); electron-builder needs explicit .cjs --config; empty WIN_CSC_LINK breaks signing.
+- [Bulk copy sweeps via guard file:line output](text-sweep-guard-line-numbers.md) — span-blanking scanners must preserve newlines or line numbers drift and bulk fixers edit the wrong lines.

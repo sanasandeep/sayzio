@@ -100,7 +100,7 @@
                 <i class="fas fa-shapes text-[12px] mt-0.5" style="color: #90acff;"></i>
                 <div class="flex-1">
                     <div class="text-[11px] font-bold leading-tight" style="color: var(--text-primary);">One-click skins for this block</div>
-                    <div class="text-[10px] mt-0.5" style="color: var(--text-dimmed);">Pick a shape and theme — your text, link and image stay the same. Use <b>Reset</b> to undo or <b>Surprise me</b> to spin a random look.</div>
+                    <div class="text-[10px] mt-0.5" style="color: var(--text-dimmed);">Pick a shape and theme, your text, link and image stay the same. Use <b>Reset</b> to undo or <b>Surprise me</b> to spin a random look.</div>
                 </div>
             </div>
 
@@ -233,7 +233,7 @@
                     </div>
                     <div class="flex-1">
                         <div class="text-[11px] font-bold" style="color: var(--text-primary);">Custom</div>
-                        <div class="text-[9px]" style="color: var(--text-dimmed);">Your tweaked styling — pick a design below to swap.</div>
+                        <div class="text-[9px]" style="color: var(--text-dimmed);">Your tweaked styling, pick a design below to swap.</div>
                     </div>
                 </div>
             </template>
@@ -637,11 +637,11 @@
                 <div x-show="showPadding" x-cloak x-transition class="mt-1">
                     <div class="p-2 rounded-xl" style="background: var(--bg-glass-input); border: 1px dashed var(--border-glass);">
                         <div class="grid grid-cols-5 gap-1">
-                            <div><label class="text-[8px] font-bold" style="color: var(--text-dimmed);">All</label><input type="number" name="style[padding]" value="{{ $st['padding'] ?? '' }}" placeholder="—" min="0" max="60" class="{{ $inputClass }} text-[11px]"></div>
-                            <div><label class="text-[8px] font-bold" style="color: var(--text-dimmed);">Top</label><input type="number" name="style[padding_top]" value="{{ $st['padding_top'] ?? '' }}" placeholder="—" min="0" max="200" class="{{ $inputClass }} text-[11px]"></div>
-                            <div><label class="text-[8px] font-bold" style="color: var(--text-dimmed);">Bot</label><input type="number" name="style[padding_bottom]" value="{{ $st['padding_bottom'] ?? '' }}" placeholder="—" min="0" max="200" class="{{ $inputClass }} text-[11px]"></div>
-                            <div><label class="text-[8px] font-bold" style="color: var(--text-dimmed);">Left</label><input type="number" name="style[padding_left]" value="{{ $st['padding_left'] ?? '' }}" placeholder="—" min="0" max="200" class="{{ $inputClass }} text-[11px]"></div>
-                            <div><label class="text-[8px] font-bold" style="color: var(--text-dimmed);">Right</label><input type="number" name="style[padding_right]" value="{{ $st['padding_right'] ?? '' }}" placeholder="—" min="0" max="200" class="{{ $inputClass }} text-[11px]"></div>
+                            <div><label class="text-[8px] font-bold" style="color: var(--text-dimmed);">All</label><input type="number" name="style[padding]" value="{{ $st['padding'] ?? '' }}" placeholder="-" min="0" max="60" class="{{ $inputClass }} text-[11px]"></div>
+                            <div><label class="text-[8px] font-bold" style="color: var(--text-dimmed);">Top</label><input type="number" name="style[padding_top]" value="{{ $st['padding_top'] ?? '' }}" placeholder="-" min="0" max="200" class="{{ $inputClass }} text-[11px]"></div>
+                            <div><label class="text-[8px] font-bold" style="color: var(--text-dimmed);">Bot</label><input type="number" name="style[padding_bottom]" value="{{ $st['padding_bottom'] ?? '' }}" placeholder="-" min="0" max="200" class="{{ $inputClass }} text-[11px]"></div>
+                            <div><label class="text-[8px] font-bold" style="color: var(--text-dimmed);">Left</label><input type="number" name="style[padding_left]" value="{{ $st['padding_left'] ?? '' }}" placeholder="-" min="0" max="200" class="{{ $inputClass }} text-[11px]"></div>
+                            <div><label class="text-[8px] font-bold" style="color: var(--text-dimmed);">Right</label><input type="number" name="style[padding_right]" value="{{ $st['padding_right'] ?? '' }}" placeholder="-" min="0" max="200" class="{{ $inputClass }} text-[11px]"></div>
                         </div>
                     </div>
                 </div>
@@ -656,10 +656,10 @@
                 <div x-show="showMargin" x-cloak x-transition class="mt-1">
                     <div class="p-2 rounded-xl" style="background: var(--bg-glass-input); border: 1px dashed var(--border-glass);">
                         <div class="grid grid-cols-4 gap-1">
-                            <div><label class="text-[8px] font-bold" style="color: var(--text-dimmed);">Top</label><input type="number" name="style[margin_top]" value="{{ $st['margin_top'] ?? '' }}" placeholder="—" min="-100" max="200" class="{{ $inputClass }} text-[11px]"></div>
-                            <div><label class="text-[8px] font-bold" style="color: var(--text-dimmed);">Bot</label><input type="number" name="style[margin_bottom]" value="{{ $st['margin_bottom'] ?? '' }}" placeholder="—" min="-100" max="200" class="{{ $inputClass }} text-[11px]"></div>
-                            <div><label class="text-[8px] font-bold" style="color: var(--text-dimmed);">Left</label><input type="number" name="style[margin_left]" value="{{ $st['margin_left'] ?? '' }}" placeholder="—" min="-100" max="200" class="{{ $inputClass }} text-[11px]"></div>
-                            <div><label class="text-[8px] font-bold" style="color: var(--text-dimmed);">Right</label><input type="number" name="style[margin_right]" value="{{ $st['margin_right'] ?? '' }}" placeholder="—" min="-100" max="200" class="{{ $inputClass }} text-[11px]"></div>
+                            <div><label class="text-[8px] font-bold" style="color: var(--text-dimmed);">Top</label><input type="number" name="style[margin_top]" value="{{ $st['margin_top'] ?? '' }}" placeholder="-" min="-100" max="200" class="{{ $inputClass }} text-[11px]"></div>
+                            <div><label class="text-[8px] font-bold" style="color: var(--text-dimmed);">Bot</label><input type="number" name="style[margin_bottom]" value="{{ $st['margin_bottom'] ?? '' }}" placeholder="-" min="-100" max="200" class="{{ $inputClass }} text-[11px]"></div>
+                            <div><label class="text-[8px] font-bold" style="color: var(--text-dimmed);">Left</label><input type="number" name="style[margin_left]" value="{{ $st['margin_left'] ?? '' }}" placeholder="-" min="-100" max="200" class="{{ $inputClass }} text-[11px]"></div>
+                            <div><label class="text-[8px] font-bold" style="color: var(--text-dimmed);">Right</label><input type="number" name="style[margin_right]" value="{{ $st['margin_right'] ?? '' }}" placeholder="-" min="-100" max="200" class="{{ $inputClass }} text-[11px]"></div>
                         </div>
                     </div>
                 </div>
@@ -763,7 +763,7 @@ window.blockDesignsGallery = function(opts) {
         // failure replaces the chip cleanly instead of stacking.
         showError(msg, retryFn) {
             var self = this;
-            this._error = msg || "Couldn't save — try again";
+            this._error = msg || "Couldn't save, try again";
             this._retry = retryFn || null;
             if (this._errorTimer) clearTimeout(this._errorTimer);
             this._errorTimer = setTimeout(function() { self.clearError(); }, 6000);
@@ -952,12 +952,12 @@ window.blockDesignsGallery = function(opts) {
                         }
                     } else {
                         rollback();
-                        self.showError("Couldn't save — try again", retry);
+                        self.showError("Couldn't save, try again", retry);
                     }
                 })
                 .catch(function() {
                     rollback();
-                    self.showError("Couldn't save — try again", retry);
+                    self.showError("Couldn't save, try again", retry);
                 })
                 .finally(function() { self._busy = false; self._busyKey = ''; });
         },
@@ -998,12 +998,12 @@ window.blockDesignsGallery = function(opts) {
                         if (typeof refreshPreview === 'function') refreshPreview();
                     } else {
                         rollback();
-                        self.showError("Couldn't save — try again", retry);
+                        self.showError("Couldn't save, try again", retry);
                     }
                 })
                 .catch(function() {
                     rollback();
-                    self.showError("Couldn't save — try again", retry);
+                    self.showError("Couldn't save, try again", retry);
                 })
                 .finally(function() { self._busy = false; self._busyKey = ''; });
         },
@@ -1049,11 +1049,11 @@ window.blockDesignsGallery = function(opts) {
                         if (typeof refreshBlockEditor === 'function') refreshBlockEditor();
                         if (typeof refreshPreview === 'function') refreshPreview();
                     } else {
-                        self.showError("Couldn't save — try again", retry);
+                        self.showError("Couldn't save, try again", retry);
                     }
                 });
             };
-            var fail = function() { self.showError("Couldn't save — try again", retry); };
+            var fail = function() { self.showError("Couldn't save, try again", retry); };
             fetch(url, { method: 'POST', headers: { 'Accept': 'application/json' }, body: fd })
                 .then(handle).catch(fail)
                 .finally(function() { self._busy = false; self._busyKey = ''; });
@@ -1089,11 +1089,11 @@ window.blockDesignsGallery = function(opts) {
                         if (typeof showToast === 'function') showToast('Applied to ' + data.updated + ' block(s)', 'success');
                         if (typeof refreshPreview === 'function') refreshPreview();
                     } else {
-                        self.showError("Couldn't save — try again", retry);
+                        self.showError("Couldn't save, try again", retry);
                     }
                 });
             };
-            var fail = function() { self.showError("Couldn't save — try again", retry); };
+            var fail = function() { self.showError("Couldn't save, try again", retry); };
             fetch(url, { method: 'POST', headers: { 'Accept': 'application/json' }, body: fd })
                 .then(handle).catch(fail)
                 .finally(function() { self._busy = false; self._busyKey = ''; });

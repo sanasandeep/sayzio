@@ -16,7 +16,7 @@
         <h1 class="text-lg font-semibold text-white">Perfect Pairings</h1>
         <p class="text-xs text-white/50 mt-1">
             Control the "Perfect pairings" cross-promo cards shown on public link-type pages.
-            Uncheck a card to hide it on that page type — everywhere: web public pages and the
+            Uncheck a card to hide it on that page type, everywhere: web public pages and the
             mobile app. Unchecking every card for a page type hides the whole section there.
             You can also edit each card's name and benefit text; leave a field blank (or use
             the per-card reset) to fall back to the shipped default wording.

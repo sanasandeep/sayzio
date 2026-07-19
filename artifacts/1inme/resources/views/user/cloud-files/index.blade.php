@@ -67,7 +67,7 @@
                 <div class="ml-auto flex items-center gap-2">
                     <select x-model="connectionId" class="px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm">
                         @foreach($usableConnections as $c)
-                            <option value="{{ $c->id }}">{{ $c->providerLabel() }} — {{ $c->account_label ?: $c->account_email }}</option>
+                            <option value="{{ $c->id }}">{{ $c->providerLabel() }}, {{ $c->account_label ?: $c->account_email }}</option>
                         @endforeach
                     </select>
                     <button type="button" @click="open()" class="px-4 py-2 rounded-lg bg-cyan-500 hover:bg-cyan-600 text-white text-sm font-semibold">
@@ -83,7 +83,7 @@
         <div class="rounded-xl border border-dashed border-white/15 p-10 text-center" style="background: var(--bg-card);">
             <i class="fas fa-cloud-arrow-up text-4xl text-cyan-400/50 mb-3"></i>
             <h3 class="text-lg font-semibold mb-1">No files in the workspace library yet</h3>
-            <p class="text-sm mb-4" style="color: var(--text-faint);">Connect your Google Drive, Dropbox, or OneDrive and pick files to share with your team. Bytes stay in the cloud — only the link is shared.</p>
+            <p class="text-sm mb-4" style="color: var(--text-faint);">Connect your Google Drive, Dropbox, or OneDrive and pick files to share with your team. Bytes stay in the cloud, only the link is shared.</p>
             <a href="{{ route('user.cloud-files.connections') }}" class="inline-block px-5 py-2 rounded-lg bg-cyan-500 hover:bg-cyan-600 text-white text-sm font-semibold">
                 <i class="fas fa-plug mr-1"></i> Connect a cloud account
             </a>

@@ -54,7 +54,7 @@
         'Mind'       => 'AI Note Summarizer turns raw notes into a tight summary with clear next steps.',
         'Minds'      => 'AI Knowledge Bases let you build and manage several AI knowledge bases, each trained on its own set of sources.',
         'Persona'    => 'AI Persona Generator creates a brand persona that shapes the tone and personality your AI uses when it writes or replies on your behalf.',
-        'Personas'   => 'AI Agents let you create and switch between configurable agents — each with its own prompt, tone, and knowledge — for different audiences.',
+        'Personas'   => 'AI Agents let you create and switch between configurable agents (each with its own prompt, tone, and knowledge) for different audiences.',
         'Companion'  => 'AI Chat is a chat assistant that helps you draft content and answer questions about your account.',
         'Companions' => 'Chat Widgets are embeddable AI chatbots you can drop into your pages, widgets and inbox.',
         'Coach'      => 'AI Growth Coach gives you AI-powered suggestions to grow and fine-tune your links and pages.',
@@ -199,12 +199,12 @@
             <div class="mx-auto mt-5 max-w-md rounded-xl border border-white/10 bg-white/[0.02] p-4 text-left text-sm text-white/60">
                 <p class="font-medium text-white/80">What you’re missing</p>
                 <p class="mt-1">
-                    AI features on {{ $__appName }} — like AI Knowledge Bases, AI Agents, AI Chat and AI Growth Coach — help you
+                    AI features on {{ $__appName }} (like AI Knowledge Bases, AI Agents, AI Chat and AI Growth Coach) help you
                     draft content, answer questions about your account and build pages faster. They run on
                     your coin balance once an administrator enables the engine.
                 </p>
                 <p class="mt-2 text-white/50">
-                    You can’t switch this on yourself — it’s controlled by an administrator. Use the button
+                    You can’t switch this on yourself, it’s controlled by an administrator. Use the button
                     below to ask them to turn AI on for your account.
                 </p>
             </div>
@@ -239,7 +239,7 @@
             <div class="mx-auto mt-5 max-w-md rounded-xl border border-white/10 bg-white/[0.02] p-4 text-left text-sm text-white/60">
                 <p class="font-medium text-white/80">How AI is billed</p>
                 <p class="mt-1">
-                    Once your plan includes it, AI runs straight from your coin wallet — you’re only charged
+                    Once your plan includes it, AI runs straight from your coin wallet, you’re only charged
                     coins for what you actually use, with no separate AI subscription. You currently have
                     <span class="font-semibold text-white/80">{{ number_format($__coinBalance) }}</span>
                     {{ \Illuminate\Support\Str::plural('coin', $__coinBalance) }} to spend, and you can top up any time.

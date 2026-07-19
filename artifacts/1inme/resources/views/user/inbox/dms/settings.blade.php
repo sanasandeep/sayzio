@@ -34,7 +34,7 @@
                        name="dm_pay_price_cents"
                        value="{{ (int)($user->dm_pay_price_cents ?? 0) }}"
                        class="mt-1 w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm">
-                <span class="text-[11px]" style="color: var(--text-muted);">In cents — e.g. 500 = $5.00.</span>
+                <span class="text-[11px]" style="color: var(--text-muted);">In cents, e.g. 500 = $5.00.</span>
             </label>
             <label class="block text-sm">
                 <span style="color: var(--text-muted);">Currency</span>
@@ -45,7 +45,7 @@
             <label class="block text-sm">
                 <span style="color: var(--text-muted);">Min subscription tier (subs-only)</span>
                 <select name="dm_min_tier_id" class="mt-1 w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm">
-                    <option value="">— Any tier —</option>
+                    <option value="">Any tier</option>
                     @foreach($tiers as $t)
                         <option value="{{ $t->id }}" @selected((int)($user->dm_min_tier_id ?? 0) === (int)$t->id)>{{ $t->name }}</option>
                     @endforeach

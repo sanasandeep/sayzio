@@ -208,7 +208,7 @@
             <div class="grid grid-cols-2 gap-2">
                 <input type="number" step="0.01" x-model.number="payload.amount" placeholder="Amount" class="qr-input">
                 <select x-model="payload.currency" class="qr-select">
-                    <option value="">— Currency —</option>
+                    <option value="">Currency</option>
                     <option value="USD">USD</option><option value="EUR">EUR</option><option value="GBP">GBP</option><option value="INR">INR</option><option value="CAD">CAD</option><option value="AUD">AUD</option>
                 </select>
             </div>

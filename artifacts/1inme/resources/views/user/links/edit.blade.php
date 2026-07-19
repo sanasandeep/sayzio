@@ -157,7 +157,7 @@
                 <option value="" {{ (string) $selectedResumeId === '' ? 'selected' : '' }}>Default version (follows your default)</option>
                 @foreach($resumeVersions as $version)
                     <option value="{{ $version->id }}" {{ (string) $selectedResumeId === (string) $version->id ? 'selected' : '' }}>
-                        {{ $version->displayName() }}{{ $version->is_default ? ' — current default' : '' }}
+                        {{ $version->displayName() }}{{ $version->is_default ? ', current default' : '' }}
                     </option>
                 @endforeach
             </select>
@@ -273,7 +273,7 @@
                     {{-- Country --}}
                     <div x-show="rule.type === 'country'" class="space-y-3">
                         <div>
-                            <label class="block text-xs text-white/50 mb-1">When visitor is in country (ISO codes, comma-separated — e.g. <span class="text-white/70">IN, US, GB</span>)</label>
+                            <label class="block text-xs text-white/50 mb-1">When visitor is in country (ISO codes, comma-separated, e.g. <span class="text-white/70">IN, US, GB</span>)</label>
                             <input type="text" :value="rule.match.join(', ')" @input="rule.match = $event.target.value.split(',').map(s => s.trim().toUpperCase()).filter(s => /^[A-Z]{2}$/.test(s))" placeholder="IN, US" class="w-full border border-white/10 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500/40">
                         </div>
                     </div>
@@ -281,7 +281,7 @@
                     {{-- Language --}}
                     <div x-show="rule.type === 'language'" class="space-y-3">
                         <div>
-                            <label class="block text-xs text-white/50 mb-1">When browser language is (ISO codes, comma-separated — e.g. <span class="text-white/70">hi, en, es</span>)</label>
+                            <label class="block text-xs text-white/50 mb-1">When browser language is (ISO codes, comma-separated, e.g. <span class="text-white/70">hi, en, es</span>)</label>
                             <input type="text" :value="rule.match.join(', ')" @input="rule.match = $event.target.value.split(',').map(s => s.trim().toLowerCase()).filter(s => /^[a-z]{2,3}$/.test(s))" placeholder="hi, en" class="w-full border border-white/10 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500/40">
                         </div>
                     </div>
@@ -333,7 +333,7 @@
             </template>
 
             <div x-show="smartRules.length === 0" class="text-center py-6 text-sm text-white/40 border border-dashed border-white/10 rounded-xl mb-3">
-                No smart rules yet — every visitor goes to your default destination.
+                No smart rules yet, every visitor goes to your default destination.
             </div>
 
             <div class="flex flex-wrap gap-2 pt-2 border-t border-white/5">

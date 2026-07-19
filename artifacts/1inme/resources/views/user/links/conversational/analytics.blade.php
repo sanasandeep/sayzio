@@ -113,7 +113,7 @@
             <div class="flex items-center justify-between relative z-10">
                 <div>
                     <p class="text-[10px] uppercase tracking-wider font-bold mb-1.5" style="color: var(--text-faint);">Sessions started</p>
-                    <p class="text-xl font-bold" id="m-sessions" style="color: var(--text-primary);">—</p>
+                    <p class="text-xl font-bold" id="m-sessions" style="color: var(--text-primary);">-</p>
                 </div>
                 <div class="w-10 h-10 rounded-xl flex items-center justify-center group-hover:scale-110 transition-all duration-500" style="background: rgba(61,107,255,0.1); border: 1px solid rgba(61,107,255,0.15);">
                     <i class="fas fa-play text-blue-400 text-sm"></i>
@@ -125,7 +125,7 @@
             <div class="flex items-center justify-between relative z-10">
                 <div>
                     <p class="text-[10px] uppercase tracking-wider font-bold mb-1.5" style="color: var(--text-faint);">Completed</p>
-                    <p class="text-xl font-bold" id="m-completed" style="color: var(--text-primary);">—</p>
+                    <p class="text-xl font-bold" id="m-completed" style="color: var(--text-primary);">-</p>
                 </div>
                 <div class="w-10 h-10 rounded-xl flex items-center justify-center group-hover:scale-110 transition-all duration-500" style="background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.15);">
                     <i class="fas fa-flag-checkered text-emerald-400 text-sm"></i>
@@ -137,7 +137,7 @@
             <div class="flex items-center justify-between relative z-10">
                 <div>
                     <p class="text-[10px] uppercase tracking-wider font-bold mb-1.5" style="color: var(--text-faint);">Completion rate</p>
-                    <p class="text-xl font-bold" id="m-rate" style="color: var(--text-primary);">—</p>
+                    <p class="text-xl font-bold" id="m-rate" style="color: var(--text-primary);">-</p>
                 </div>
                 <div class="w-10 h-10 rounded-xl flex items-center justify-center group-hover:scale-110 transition-all duration-500" style="background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.15);">
                     <i class="fas fa-percent text-amber-400 text-sm"></i>

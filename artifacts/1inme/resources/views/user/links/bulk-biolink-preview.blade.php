@@ -1,5 +1,5 @@
 @extends('user.layouts.app')
-@section('title', 'Bulk Link in Bio — Preview')
+@section('title', 'Bulk Link in Bio: Preview')
 
 @section('content')
 @php
@@ -12,7 +12,7 @@
         <div>
             <h1 class="text-2xl font-bold text-white">Preview your batch</h1>
             <p class="text-xs text-white/40 mt-0.5">
-                {{ $totalRows }} row{{ $totalRows === 1 ? '' : 's' }} parsed —
+                {{ $totalRows }} row{{ $totalRows === 1 ? '' : 's' }} parsed -
                 <span class="text-emerald-400">{{ $validCount }} valid</span>,
                 <span class="text-red-400">{{ $invalidCount }} with issues</span>.
                 Fix or skip flagged rows before creating.
@@ -80,7 +80,7 @@
                         </td>
                         <td class="px-3 py-2 align-top">
                             <input type="text" name="rows[{{ $i }}][title]" value="{{ $row['title'] }}"
-                                   placeholder="—"
+                                   placeholder="-"
                                    class="w-full bg-white/5 border border-white/10 rounded-lg px-2 py-1.5 text-xs text-white placeholder-white/20 focus:ring-2 focus:ring-blue-500/40 outline-none">
                         </td>
                         @foreach($dataTokens as $t)

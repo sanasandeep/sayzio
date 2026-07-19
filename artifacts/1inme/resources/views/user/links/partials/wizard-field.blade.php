@@ -46,7 +46,7 @@
     @elseif($type === 'select')
         <select id="{{ $id }}" name="{{ $name }}"
             class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/40 outline-none transition-all">
-            <option value="" class="bg-[#0d0818]">— pick one —</option>
+            <option value="" class="bg-[#0d0818]">pick one</option>
             @foreach(($q['options'] ?? []) as $opt)
                 <option value="{{ $opt['v'] }}" class="bg-[#0d0818]" @selected($val === $opt['v'])>{{ $opt['l'] }}</option>
             @endforeach

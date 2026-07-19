@@ -7,7 +7,7 @@
         @include('user.partials._feature-locked', [
             'title'       => 'Wallet & Coins',
             'icon'        => 'fa-solid fa-coins',
-            'description' => 'Your coin wallet powers the pay-as-you-go side of the platform — top up a balance once and spend it across the features that bill in coins.',
+            'description' => 'Your coin wallet powers the pay-as-you-go side of the platform, top up a balance once and spend it across the features that bill in coins.',
             'offers'      => [
                 'Keep a coin balance you can see and top up at any time',
                 'Buy coins in packages priced in your local currency',

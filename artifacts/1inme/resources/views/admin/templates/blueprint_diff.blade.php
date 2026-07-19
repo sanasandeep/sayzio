@@ -1,6 +1,6 @@
 @extends('admin.layouts.app')
 @section('title', 'Blueprint diff')
-@section('page-title', 'Blueprint diff — ' . $tpl->name)
+@section('page-title', 'Blueprint diff, ' . $tpl->name)
 
 @php
     $currentJson = json_encode($current['snapshot'], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);

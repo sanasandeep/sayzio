@@ -28,7 +28,7 @@
         <button type="button" x-on:click="done({{ $contact->id }}, @js($contact->follow_up_at->toISOString()), @js($contact->follow_up_note), @js($contact->follow_up_tz))"
                 class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold transition hover:brightness-110"
                 style="background:rgba(34,197,94,.12);color:#4ade80;border:1px solid rgba(34,197,94,.22);"
-                title="Mark done — clears this reminder">
+                title="Mark done, clears this reminder">
             <i class="fas fa-check text-[10px]"></i> Done
         </button>
         <div class="relative">

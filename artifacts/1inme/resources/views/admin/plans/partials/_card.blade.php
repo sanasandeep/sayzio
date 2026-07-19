@@ -17,14 +17,14 @@
                     </span>
                 @endif
                 @if($plan->is_internal)
-                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-amber-500/15 text-amber-300" title="Admin/staff-only — hidden from public pricing, upgrade and the recommender">
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-amber-500/15 text-amber-300" title="Admin/staff-only, hidden from public pricing, upgrade and the recommender">
                         <i class="fas fa-user-shield mr-1"></i>Internal
                     </span>
                 @endif
                 @php $introBadge = $plan->introDiscount(); @endphp
                 @if($introBadge)
                     <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-500/15 text-emerald-300"
-                          title="First-term intro discount active{{ !empty($introBadge['cycles']) ? ' — ' . implode(', ', $introBadge['cycles']) : '' }}">
+                          title="First-term intro discount active{{ !empty($introBadge['cycles']) ? ', ' . implode(', ', $introBadge['cycles']) : '' }}">
                         <i class="fas fa-bolt mr-1"></i>{{ $introBadge['type'] === 'percent' ? $introBadge['percent'] . '% intro' : 'Intro offer' }}
                     </span>
                 @endif
@@ -48,7 +48,7 @@
                     @if($__mon['inr'] !== null)
                         <span class="text-white/50 font-normal"> / {{ $__mon['inr'] }}</span>
                     @else
-                        <span class="text-white/30 font-normal"> / —</span>
+                        <span class="text-white/30 font-normal"> / - </span>
                     @endif
                 </span>
             </div>
@@ -59,7 +59,7 @@
                     @if($__ann['inr'] !== null)
                         <span class="text-white/50 font-normal"> / {{ $__ann['inr'] }}</span>
                     @else
-                        <span class="text-white/30 font-normal"> / —</span>
+                        <span class="text-white/30 font-normal"> / - </span>
                     @endif
                 </span>
             </div>

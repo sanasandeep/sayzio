@@ -60,7 +60,7 @@
                         @if(!empty($isProtected))
                         {{-- A disabled select isn't submitted; keep the current status in the payload. --}}
                         <input type="hidden" name="status" value="{{ $staff->status }}">
-                        <p class="mt-1 text-xs text-emerald-400/80"><i class="fas fa-shield-alt mr-1"></i> Protected account — cannot be deactivated.</p>
+                        <p class="mt-1 text-xs text-emerald-400/80"><i class="fas fa-shield-alt mr-1"></i> Protected account, cannot be deactivated.</p>
                         @endif
                     </div>
                 </div>

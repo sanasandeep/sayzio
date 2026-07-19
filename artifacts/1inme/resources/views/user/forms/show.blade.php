@@ -96,7 +96,7 @@
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
             {{-- 30-day trend --}}
             <div class="card-premium p-6 lg:col-span-2">
-                <h3 class="text-sm font-bold mb-1" style="color: var(--text-primary);">Submissions — last 30 days</h3>
+                <h3 class="text-sm font-bold mb-1" style="color: var(--text-primary);">Submissions, last 30 days</h3>
                 <p class="text-[11px] mb-4" style="color: var(--text-faint);">{{ number_format($a['total']) }} completed submissions · {{ number_format($a['views'] ?? 0) }} views · {{ $a['conversion'] ?? 0 }}% conversion</p>
                 @php($max = max(1, collect($a['trend'])->max('count')))
                 <div class="flex items-end gap-1 h-32">
@@ -140,7 +140,7 @@
             {{-- Field completion --}}
             <div class="card-premium p-6 lg:col-span-2">
                 <h3 class="text-sm font-bold mb-1" style="color: var(--text-primary);">Field completion</h3>
-                <p class="text-[11px] mb-4" style="color: var(--text-faint);">How often each field is filled in — low rates hint at drop-off.</p>
+                <p class="text-[11px] mb-4" style="color: var(--text-faint);">How often each field is filled in; low rates hint at drop-off.</p>
                 @if(empty($a['fields']))
                     <p class="text-xs" style="color: var(--text-faint);">No fields to report on yet.</p>
                 @else
@@ -191,7 +191,7 @@
                 </div>
                 <div>
                     <h3 class="text-sm font-bold" style="color: var(--text-primary);">Unlock advanced form analytics</h3>
-                    <p class="text-[12px] mt-0.5" style="color: var(--text-muted);">Submission trends, field drop-off, device &amp; geo breakdowns and paid-form revenue — on Pro and above.</p>
+                    <p class="text-[12px] mt-0.5" style="color: var(--text-muted);">Submission trends, field drop-off, device &amp; geo breakdowns and paid-form revenue, on Pro and above.</p>
                 </div>
             </div>
             <a href="{{ route('user.upgrade') }}" class="btn-primary inline-flex items-center gap-2 text-xs flex-shrink-0">
@@ -263,7 +263,7 @@
                         </button>
                     </form>
                     @else
-                    <button type="button" disabled class="w-full text-left flex items-center gap-2.5 p-2.5 rounded-lg text-sm cursor-not-allowed opacity-60" style="background: var(--bg-glass-input); color: var(--text-faint);" title="Your role doesn't allow editing forms — ask a workspace admin">
+                    <button type="button" disabled class="w-full text-left flex items-center gap-2.5 p-2.5 rounded-lg text-sm cursor-not-allowed opacity-60" style="background: var(--bg-glass-input); color: var(--text-faint);" title="Your role doesn't allow editing forms; ask a workspace admin">
                         <i class="fas fa-lock text-xs"></i> {{ $form->is_active ? 'Disable form' : 'Enable form' }}
                     </button>
                     @endif
@@ -275,7 +275,7 @@
                         </button>
                     </form>
                     @else
-                    <button type="button" disabled class="w-full text-left flex items-center gap-2.5 p-2.5 rounded-lg text-sm cursor-not-allowed opacity-60" style="background: var(--bg-glass-input); color: var(--text-faint);" title="Your role doesn't allow deleting forms — ask a workspace admin">
+                    <button type="button" disabled class="w-full text-left flex items-center gap-2.5 p-2.5 rounded-lg text-sm cursor-not-allowed opacity-60" style="background: var(--bg-glass-input); color: var(--text-faint);" title="Your role doesn't allow deleting forms; ask a workspace admin">
                         <i class="fas fa-lock text-xs"></i> Delete form
                     </button>
                     @endif

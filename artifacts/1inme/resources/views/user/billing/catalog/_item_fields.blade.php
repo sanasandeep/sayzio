@@ -12,13 +12,13 @@
     <div class="grid grid-cols-2 gap-3">
         <label class="text-xs" style="color: var(--text-muted);">Category
             <select name="category_id" class="block w-full mt-1 p-2 rounded-lg border" style="background: var(--bg-glass-input); border-color: var(--border-soft); color: var(--text-primary);">
-                <option value="">— None —</option>
+                <option value="">None</option>
                 @foreach($categories as $cat)<option value="{{ $cat->id }}" @selected(($item->category_id ?? null) == $cat->id)>{{ $cat->name }}</option>@endforeach
             </select>
         </label>
         <label class="text-xs" style="color: var(--text-muted);">Tax rule
             <select name="tax_rule_id" class="block w-full mt-1 p-2 rounded-lg border" style="background: var(--bg-glass-input); border-color: var(--border-soft); color: var(--text-primary);">
-                <option value="">— None —</option>
+                <option value="">None</option>
                 @foreach($taxRules as $rule)<option value="{{ $rule->id }}" @selected(($item->tax_rule_id ?? null) == $rule->id)>{{ $rule->name }} ({{ number_format($rule->rate_bps / 100, 2) }}%)</option>@endforeach
             </select>
         </label>

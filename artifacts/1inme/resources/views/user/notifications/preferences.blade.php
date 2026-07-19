@@ -87,7 +87,7 @@
                                             <span style="color: var(--text-faint);">({{ $lastSent->diffForHumans() }})</span>
                                         </span>
                                     @else
-                                        <span style="color: var(--text-faint);">never — you'll get one as soon as the radar finds new mentions.</span>
+                                        <span style="color: var(--text-faint);">never, you'll get one as soon as the radar finds new mentions.</span>
                                     @endif
                                 </div>
                             </div>
@@ -238,7 +238,7 @@
             <div class="text-sm font-semibold mb-1" style="color: var(--text-primary);">
                 <i class="fab fa-whatsapp mr-1" style="color: #25d366;"></i> WhatsApp payment alerts
             </div>
-            <p class="text-xs mb-3" style="color: var(--text-muted);">Get a WhatsApp message on your verified number whenever you earn — a new subscriber, a tip, an unlocked paid post, or a paid form submission.</p>
+            <p class="text-xs mb-3" style="color: var(--text-muted);">Get a WhatsApp message on your verified number whenever you earn, a new subscriber, a tip, an unlocked paid post, or a paid form submission.</p>
             @if($user->hasWhatsappNumber())
                 <label class="flex items-center gap-2 cursor-pointer">
                     <input type="hidden" name="whatsapp_payment_alerts" value="0"/>

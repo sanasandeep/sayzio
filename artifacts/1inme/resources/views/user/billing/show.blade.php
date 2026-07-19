@@ -15,7 +15,7 @@
           <div class="text-muted small text-uppercase">Coin wallet</div>
           <div class="h4 mb-0">{{ number_format($__wallet->balance) }} 🪙</div>
           @if($__low > 0 && $__wallet->balance < $__low)
-            <div class="small text-warning mt-1"><i class="fas fa-exclamation-triangle"></i> Balance below {{ number_format($__low) }} coins — top up to keep using coin add-ons.</div>
+            <div class="small text-warning mt-1"><i class="fas fa-exclamation-triangle"></i> Balance below {{ number_format($__low) }} coins, top up to keep using coin add-ons.</div>
           @endif
         </div>
         <div class="d-flex gap-2">
@@ -36,7 +36,7 @@
          The button is a manual fallback for browsers that block auto-firing a
          custom scheme without a user gesture. --}}
     <div class="alert alert-success d-flex flex-wrap align-items-center justify-content-between gap-2" role="alert">
-      <span><i class="fas fa-check-circle me-1"></i> Payment complete — returning you to the Sayzio app…</span>
+      <span><i class="fas fa-check-circle me-1"></i> Payment complete, returning you to the Sayzio app…</span>
       <a href="sayzio://billing/refresh" class="btn btn-primary btn-sm" id="billing-return-to-app">
         <i class="fas fa-mobile-screen-button me-1"></i> Return to app
       </a>
@@ -94,7 +94,7 @@
                 <i class="fa-solid fa-coins me-1"></i>
                 Included coins: <strong>{{ number_format($coinGrant) }}</strong>
                 per {{ $subscription->billing_cycle === 'yearly' ? 'year' : 'month' }}
-                — you'll receive {{ number_format($coinGrant) }} coins on your next renewal.
+               , you'll receive {{ number_format($coinGrant) }} coins on your next renewal.
               </div>
             @endif
             @if ($subscription->cancel_at_period_end)

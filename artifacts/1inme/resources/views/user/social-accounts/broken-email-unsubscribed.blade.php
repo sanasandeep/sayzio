@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Unsubscribed — Sayzio</title>
+    <title>Unsubscribed: Sayzio</title>
     <style>
         body { margin:0; padding:0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif; background:#f8fafc; color:#0f172a; }
         .wrap { max-width: 520px; margin: 64px auto; padding: 0 16px; }

@@ -43,7 +43,7 @@
                         <span x-show="kind === 'role'">Role</span>
                         <span x-show="kind === 'country'">Country code (ISO-2)</span>
                         <span x-show="kind === 'user'">Emails or IDs (comma- or newline-separated)</span>
-                        <span x-show="kind === 'all'" style="color: var(--text-faint);">— No target needed —</span>
+                        <span x-show="kind === 'all'" style="color: var(--text-faint);">No target needed</span>
                     </label>
 
                     <template x-if="kind === 'plan'">

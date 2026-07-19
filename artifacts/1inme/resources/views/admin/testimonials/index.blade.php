@@ -136,7 +136,7 @@
                         </td>
                     </tr>
                 @empty
-                    <tr><td colspan="8" class="px-4 py-10 text-center text-white/50">No testimonials yet — add your first one.</td></tr>
+                    <tr><td colspan="8" class="px-4 py-10 text-center text-white/50">No testimonials yet, add your first one.</td></tr>
                 @endforelse
             </tbody>
         </table>

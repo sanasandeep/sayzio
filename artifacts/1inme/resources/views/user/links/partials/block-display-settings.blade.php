@@ -57,7 +57,7 @@
                 <i class="fas fa-folder-open text-blue-400 text-[11px]"></i> Show on Page Tab
             </label>
             <select name="settings[_tab_id]" class="{{ $inputClass }}">
-                <option value="">Main Page (default — visible when no tab is active)</option>
+                <option value="">Main Page (default, visible when no tab is active)</option>
                 @foreach($tabItems as $ti)
                 <option value="{{ $ti['id'] }}" {{ $currentTabId === $ti['id'] ? 'selected' : '' }}>{{ $ti['label'] }}</option>
                 @endforeach
@@ -111,7 +111,7 @@
 
                     <template x-if="slots.length === 0">
                         <p class="text-[10px] text-center py-2" style="color: var(--text-dimmed);">
-                            No time slots — block is visible at all hours within the schedule window above.
+                            No time slots, block is visible at all hours within the schedule window above.
                         </p>
                     </template>
 
@@ -287,7 +287,7 @@
                                 ? ((expiredEmoji ? expiredEmoji + ' ' : '') + (expiredLabel || 'Sold out'))
                                 : (previewState === 'near' ? '🔥 Only 3 left' : '⏳ Ends in 02:14:33')"></span>
                         </span>
-                        <span class="text-[10px]" style="color: var(--text-dimmed);">Live preview only — does not change the saved state.</span>
+                        <span class="text-[10px]" style="color: var(--text-dimmed);">Live preview only, does not change the saved state.</span>
                     </div>
                 </div>
             </div>

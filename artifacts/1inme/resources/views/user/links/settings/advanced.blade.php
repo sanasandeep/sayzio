@@ -53,10 +53,10 @@
                 <p class="text-[11px] mb-4 ml-11" style="color: var(--text-dimmed);">Choose who can view this page. Restricted tiers show a gated screen to everyone else.</p>
                 @php $__vis = old('visibility', $link->visibility ?? 'public'); @endphp
                 <select name="visibility" class="theme-input w-full">
-                    <option value="public" {{ $__vis === 'public' ? 'selected' : '' }}>Public — anyone with the link</option>
-                    <option value="registered" {{ $__vis === 'registered' ? 'selected' : '' }}>Registered — signed-in users only</option>
-                    <option value="followers" {{ $__vis === 'followers' ? 'selected' : '' }}>Followers — people who follow you</option>
-                    <option value="subscribers" {{ $__vis === 'subscribers' ? 'selected' : '' }}>Subscribers — active subscribers only</option>
+                    <option value="public" {{ $__vis === 'public' ? 'selected' : '' }}>Public, anyone with the link</option>
+                    <option value="registered" {{ $__vis === 'registered' ? 'selected' : '' }}>Registered, signed-in users only</option>
+                    <option value="followers" {{ $__vis === 'followers' ? 'selected' : '' }}>Followers, people who follow you</option>
+                    <option value="subscribers" {{ $__vis === 'subscribers' ? 'selected' : '' }}>Subscribers, active subscribers only</option>
                 </select>
             </div>
 

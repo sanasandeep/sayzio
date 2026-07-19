@@ -57,7 +57,7 @@
 
             <label class="flex items-center gap-3 mt-5 cursor-pointer">
                 <input type="checkbox" name="is_public" value="1" @checked($isPublic) class="rounded border-white/20 bg-white/5 text-blue-500 focus:ring-blue-500/40">
-                <span class="text-sm text-white/70">Public — anyone with the link can view. <span class="text-white/40">Uncheck to require visitors to be signed in.</span></span>
+                <span class="text-sm text-white/70">Public, anyone with the link can view. <span class="text-white/40">Uncheck to require visitors to be signed in.</span></span>
             </label>
         </div>
 
@@ -79,7 +79,7 @@
                 <textarea name="about" rows="3" class="w-full border border-white/10 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500/40">{{ $config['about'] ?? '' }}</textarea>
             </div>
             <div>
-                <label class="block text-sm font-medium text-white/60 mb-1">Press boilerplate <span class="text-white/35">— the short paragraph press can copy verbatim</span></label>
+                <label class="block text-sm font-medium text-white/60 mb-1">Press boilerplate <span class="text-white/35"> - the short paragraph press can copy verbatim</span></label>
                 <textarea name="boilerplate" rows="4" class="w-full border border-white/10 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500/40">{{ $config['boilerplate'] ?? '' }}</textarea>
             </div>
         </div>
@@ -166,7 +166,7 @@
         {{-- Logos --}}
         <div class="glass rounded-2xl p-6 space-y-3">
             <div class="flex items-center justify-between">
-                <h2 class="text-sm font-semibold text-white/80">Logo downloads <span class="text-white/35 font-normal">— link each to a downloadable asset</span></h2>
+                <h2 class="text-sm font-semibold text-white/80">Logo downloads <span class="text-white/35 font-normal"> - link each to a downloadable asset</span></h2>
                 <button type="button" @click="logos.push({label:'',url:''})" class="text-xs text-blue-400 hover:underline"><i class="fas fa-plus"></i> Add</button>
             </div>
             <template x-for="(l, i) in logos" :key="'l'+i">
@@ -176,7 +176,7 @@
                     <button type="button" @click="logos.splice(i,1)" class="col-span-1 text-white/30 hover:text-red-400"><i class="fas fa-trash"></i></button>
                 </div>
             </template>
-            <p class="text-[11px] text-white/35" x-show="logos.length === 0">No logos yet — add a hosted file URL for each download.</p>
+            <p class="text-[11px] text-white/35" x-show="logos.length === 0">No logos yet, add a hosted file URL for each download.</p>
         </div>
 
         {{-- Socials + contact --}}

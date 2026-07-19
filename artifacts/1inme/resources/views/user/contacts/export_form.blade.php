@@ -43,7 +43,7 @@
                             <span class="font-semibold text-sm" style="color:var(--text-primary);">CSV</span>
                         </div>
                         <p class="text-[11px] pl-6" style="color:var(--text-muted);">
-                            Opens in Excel, Google Sheets. Re-importable — all fields preserved.
+                            Opens in Excel, Google Sheets. Re-importable, all fields preserved.
                         </p>
                     </label>
                     <label class="flex flex-col items-start gap-2 cursor-pointer p-4 rounded-xl border transition"

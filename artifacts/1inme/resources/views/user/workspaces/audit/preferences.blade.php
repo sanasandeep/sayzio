@@ -67,7 +67,7 @@
 
     <p class="text-xs mt-4" style="color: var(--text-muted);">
         Audit rows are always written, even when alerts are off.
-        Turning a toggle off only stops the email — the action still
+        Turning a toggle off only stops the email, the action still
         appears in the log.
     </p>
 </div>

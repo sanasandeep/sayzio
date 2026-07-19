@@ -67,7 +67,7 @@
                     <p class="text-sm font-semibold text-white">Subscribe to your calendar</p>
                     <p class="text-xs text-white/50 mt-1 leading-relaxed">
                         Paste this link into Google Calendar, Apple Calendar, or Outlook to keep it in
-                        sync automatically — new events appear without downloading a new file.
+                        sync automatically, new events appear without downloading a new file.
                     </p>
                     <div class="mt-3 flex items-stretch gap-1.5">
                         <input type="text" readonly :value="url" x-ref="feedInput"

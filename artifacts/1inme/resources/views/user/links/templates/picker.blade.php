@@ -84,7 +84,7 @@
             @endif
         </div>
         <a href="{{ route('user.links.blocks.editor', $link) }}" class="px-4 py-2 text-sm text-white/60 hover:text-white border border-white/10 rounded-xl hover:bg-white/5 transition">
-            Skip — start from scratch
+            Skip, start from scratch
         </a>
     </div>
 
@@ -143,7 +143,7 @@
             </div>
             <h3 class="text-lg font-semibold text-white mb-2">No templates yet</h3>
             <p class="text-sm text-white/55 mb-6 leading-relaxed">
-                Page templates are ready-made layouts — like a "Creator profile" or "Product launch" — that drop a complete set of blocks onto your Link in Bio so you don't have to start from a blank page.
+                Page templates are ready-made layouts (like a "Creator profile" or "Product launch") that drop a complete set of blocks onto your Link in Bio so you don't have to start from a blank page.
                 <br class="hidden sm:block">
                 Once some are added you'll see them here. For now, jump into the editor and design yours from scratch.
             </p>
@@ -285,7 +285,7 @@
                                                 <span class="flex-1 min-w-0">
                                                     <span class="font-semibold">{{ $entry['label'] }}</span>
                                                     @if(!empty($entry['preview']))
-                                                        <span class="text-white/50"> — {{ $entry['preview'] }}</span>
+                                                        <span class="text-white/50">, {{ $entry['preview'] }}</span>
                                                     @endif
                                                 </span>
                                             </div>
@@ -297,7 +297,7 @@
                                                             <span class="flex-1 min-w-0">
                                                                 <span class="font-medium">{{ $child['label'] }}</span>
                                                                 @if(!empty($child['preview']))
-                                                                    <span class="text-white/45"> — {{ $child['preview'] }}</span>
+                                                                    <span class="text-white/45">, {{ $child['preview'] }}</span>
                                                                 @endif
                                                             </span>
                                                         </li>

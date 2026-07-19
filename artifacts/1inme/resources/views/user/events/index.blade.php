@@ -67,7 +67,7 @@ html.light-mode #bz-cal .fc-list-empty{ color:#64748b }
 <div class="max-w-7xl mx-auto">
     @include('user.partials.page-hero', [
         'title' => 'Events',
-        'subtitle' => 'Every event you\'ve created — switch between Month, Week, Day and List views.',
+        'subtitle' => 'Every event you\'ve created, switch between Month, Week, Day and List views.',
         'icon' => 'fa-calendar-day',
         'chips' => [
             ['icon' => 'fa-calendar text-blue-400', 'text' => $totalEvents . ' total event' . ($totalEvents === 1 ? '' : 's')],

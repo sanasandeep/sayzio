@@ -5,7 +5,7 @@
 <div class="max-w-5xl mx-auto" x-data="{ tab: 'iframe', copied: '' }">
     @include('user.partials.page-hero', [
         'title' => 'Share &amp; Embed',
-        'subtitle' => 'Use anywhere — share the public link, embed an iframe, drop a script tag, or add to a Link in Bio page.',
+        'subtitle' => 'Use anywhere, share the public link, embed an iframe, drop a script tag, or add to a Link in Bio page.',
         'icon' => 'fa-code',
         'back' => route('user.forms.show', $form),
         'url' => $form->getPublicUrl(),
@@ -82,7 +82,7 @@
 
     <div x-show="tab === 'link'" class="card-premium p-6">
         <h3 class="text-sm font-bold mb-1" style="color: var(--text-primary);">Direct shareable link</h3>
-        <p class="text-[11px] mb-4" style="color: var(--text-faint);">Send this link in an email, message, or social post — anywhere clickable.</p>
+        <p class="text-[11px] mb-4" style="color: var(--text-faint);">Send this link in an email, message, or social post, anywhere clickable.</p>
         <div class="flex items-center gap-2">
             <input type="text" readonly value="{{ $link }}" class="theme-input flex-1 text-sm font-mono" onclick="this.select()">
             <button type="button" @click="navigator.clipboard.writeText('{{ $link }}'); copied='link'; setTimeout(()=>copied='',1800)" class="btn-primary text-xs px-4 py-2.5">

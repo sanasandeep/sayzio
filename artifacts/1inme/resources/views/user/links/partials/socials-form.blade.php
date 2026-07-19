@@ -123,7 +123,7 @@
                                     :name="'settings[groups]['+gi+'][platforms]['+i+'][connection_id]'"
                                     @change="if (groups[gi].platforms[i].connection_id) { let opt = $event.target.selectedOptions[0]; if (opt && opt.dataset.platform && opt.dataset.platform !== groups[gi].platforms[i].name) groups[gi].platforms[i].connection_id = ''; }"
                                     class="{{ $inputClass }}">
-                                <option value="" class="bg-[#0d0818]">— Manual URL only —</option>
+                                <option value="" class="bg-[#0d0818]">Manual URL only</option>
                                 @foreach($myConnections as $conn)
                                     <option value="{{ $conn->id }}" data-platform="{{ $conn->platform }}"
                                             x-show="!groups[gi].platforms[i].name || groups[gi].platforms[i].name === '{{ $conn->platform }}'"
@@ -148,7 +148,7 @@
                         <i class="fas fa-circle-check mr-1"></i>
                         One-click connect available for <span x-text="platformLabels[groups[gi].platforms[i].name] || groups[gi].platforms[i].name"></span>.
                         <a href="{{ $connectedRoute }}" target="_blank" class="underline hover:text-emerald-200">Connect now</a>
-                        — no token to copy or paste.
+                       , no token to copy or paste.
                     </p>
                     <p x-show="groups[gi].platforms[i].name && oauthHints[groups[gi].platforms[i].name] === 'unavailable'"
                        class="text-[11px] text-amber-300/80 bg-amber-500/10 border border-amber-500/20 rounded px-2 py-1.5"
@@ -236,7 +236,7 @@
                     <select x-model="platforms[i].connection_id" :name="'settings[platforms]['+i+'][connection_id]'"
                             @change="if (platforms[i].connection_id) { let opt = $event.target.selectedOptions[0]; if (opt && opt.dataset.platform && opt.dataset.platform !== platforms[i].name) platforms[i].connection_id = ''; }"
                             class="{{ $inputClass }}">
-                        <option value=""  class="bg-[#0d0818]">— Manual URL only —</option>
+                        <option value=""  class="bg-[#0d0818]">Manual URL only</option>
                         @foreach($myConnections as $conn)
                             <option value="{{ $conn->id }}" data-platform="{{ $conn->platform }}"
                                     x-show="!platforms[i].name || platforms[i].name === '{{ $conn->platform }}'"
@@ -261,7 +261,7 @@
                 <i class="fas fa-circle-check mr-1"></i>
                 One-click connect available for <span x-text="platformLabels[platforms[i].name] || platforms[i].name"></span>.
                 <a href="{{ $connectedRoute }}" target="_blank" class="underline hover:text-emerald-200">Connect now</a>
-                — no token to copy or paste.
+               , no token to copy or paste.
             </p>
             <p x-show="platforms[i].name && oauthHints[platforms[i].name] === 'unavailable'"
                class="text-[11px] text-amber-300/80 bg-amber-500/10 border border-amber-500/20 rounded px-2 py-1.5"

@@ -1,5 +1,5 @@
 @extends('admin.layouts.app')
-@section('title', 'Edit page — ' . $page->title)
+@section('title', 'Edit page: ' . $page->title)
 
 @push('styles')
 <style>
@@ -268,7 +268,7 @@
                         </div>
                     </div>
                 </template>
-                <div x-show="sections.length===0" class="text-xs text-white/40 text-center py-4">No use cases yet — click "Add use case".</div>
+                <div x-show="sections.length===0" class="text-xs text-white/40 text-center py-4">No use cases yet, click "Add use case".</div>
             </div>
         @else
             <div>
@@ -333,10 +333,10 @@
                                 </div>
                                 <input type="hidden" :name="'sections['+i+'][body]'" :value="s.body">
                                 <p class="text-[11px] text-white/40 leading-relaxed">
-                                    Use the toolbar to format text. Allowed tags: <code class="text-white/60">a, strong, em, u, ul, ol, li, p, br, h3, h4, blockquote, code</code>. Output is sanitized on save — anything else (scripts, inline handlers, unsafe link protocols) is stripped.
+                                    Use the toolbar to format text. Allowed tags: <code class="text-white/60">a, strong, em, u, ul, ol, li, p, br, h3, h4, blockquote, code</code>. Output is sanitized on save, anything else (scripts, inline handlers, unsafe link protocols) is stripped.
                                 </p>
                             @else
-                                <textarea :name="'sections['+i+'][body]'" x-model="s.body" rows="6" placeholder="Body — line breaks are preserved."
+                                <textarea :name="'sections['+i+'][body]'" x-model="s.body" rows="6" placeholder="Body, line breaks are preserved."
                                           class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white font-mono"></textarea>
                                 <p class="text-[11px] text-white/40 leading-relaxed">
                                     Formatting: <code class="text-white/60">**bold**</code>,
@@ -358,7 +358,7 @@
                         </div>
                     </div>
                 </template>
-                <div x-show="sections.length===0" class="text-xs text-white/40 text-center py-4">No sections yet — click "Add section".</div>
+                <div x-show="sections.length===0" class="text-xs text-white/40 text-center py-4">No sections yet, click "Add section".</div>
                 <div class="pt-1">
                     <button type="button" @click="sections.push(newBlank())" class="w-full text-xs px-3 py-2 border border-dashed border-white/20 hover:border-blue-500/50 hover:text-blue-400 rounded-xl text-white/40 transition-colors">
                         <i class="fas fa-plus mr-1"></i> Add section
@@ -442,7 +442,7 @@
                     <div>
                         <label class="block text-xs uppercase tracking-wider text-white/60 mb-1.5">From category (optional)</label>
                         <select name="extra[blog_block][category_id]" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm">
-                            <option value="">— Any —</option>
+                            <option value="">Any</option>
                             @foreach($blogCategories ?? [] as $c)
                                 <option value="{{ $c->id }}" @selected((int) old('extra.blog_block.category_id', $bbCatId) === (int) $c->id)>{{ $c->name }}</option>
                             @endforeach

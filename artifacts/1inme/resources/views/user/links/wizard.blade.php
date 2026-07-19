@@ -46,7 +46,7 @@
         <div class="flex-1">
             <h1 class="text-2xl font-bold text-white">Build your Link in Bio</h1>
             <p class="text-xs text-white/40 mt-0.5">
-                Answer a few questions and we'll generate a ready-to-use page —
+                Answer a few questions and we'll generate a ready-to-use page,
                 tweak any block afterwards.
                 <a href="{{ route('user.links.biolink.create') }}" class="text-blue-400 hover:underline ml-1">Skip wizard, start blank</a>
             </p>
@@ -104,7 +104,7 @@
             <input type="hidden" name="_action" value="pick_group">
 
             <h2 class="text-xl font-semibold text-white mb-1">What kind of page is this?</h2>
-            <p class="text-sm text-white/50 mb-6">Pick the closest match — you can change anything later.</p>
+            <p class="text-sm text-white/50 mb-6">Pick the closest match, you can change anything later.</p>
 
             @php $catIndex = 0; @endphp
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -187,7 +187,7 @@
                         <h3 class="text-sm font-semibold text-white">Refine your niche</h3>
                         <span class="text-[10px] uppercase tracking-wider text-white/30">optional</span>
                     </div>
-                    <p class="text-xs text-white/40 mb-3">Just for picking the right placeholder image and accent — skip if none fit.</p>
+                    <p class="text-xs text-white/40 mb-3">Just for picking the right placeholder image and accent, skip if none fit.</p>
                     <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
                         @foreach($inds as $ind)
                             <button type="button" @click="ind = (ind === @js($ind['slug']) ? '' : @js($ind['slug']))"
@@ -237,7 +237,7 @@
 
             <h2 class="text-xl font-semibold text-white mb-1">Pick a starting design</h2>
             <p class="text-sm text-white/50 mb-6">
-                Start from a ready-made layout for {{ $currentPersona ?? 'your page' }} — we'll fill it with your details — or start from a blank page.
+                Start from a ready-made layout for {{ $currentPersona ?? 'your page' }} (we'll fill it with your details) or start from a blank page.
             </p>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -254,7 +254,7 @@
                         <div class="text-sm font-semibold text-white">Start from scratch</div>
                         <i class="fas fa-check text-blue-400 flex-shrink-0" x-show="tpl === ''" x-cloak></i>
                     </div>
-                    <div class="text-xs text-white/50 leading-relaxed">Build a fresh page from your answers — no template.</div>
+                    <div class="text-xs text-white/50 leading-relaxed">Build a fresh page from your answers, no template.</div>
                 </button>
 
                 @php $tdIndex = 1; @endphp
@@ -332,7 +332,7 @@
 
             <h2 class="text-xl font-semibold text-white mb-1">Set up your profile &amp; branding</h2>
             <p class="text-sm text-white/50 mb-6">
-                The essentials visitors see first — your name, a line about you, a photo and your accent colour.
+                The essentials visitors see first, your name, a line about you, a photo and your accent colour.
             </p>
 
             <div class="space-y-5">
@@ -350,7 +350,7 @@
                         @forelse($basics as $q)
                             @include('user.links.partials.wizard-field', ['q' => $q, 'answers' => $answers, 'draft' => $draft])
                         @empty
-                            <p class="text-sm text-white/40 sm:col-span-2">Nothing to set up here — continue to add your content.</p>
+                            <p class="text-sm text-white/40 sm:col-span-2">Nothing to set up here, continue to add your content.</p>
                         @endforelse
                     </div>
                 </section>
@@ -392,7 +392,7 @@
 
             <h2 class="text-xl font-semibold text-white mb-1">Add your content</h2>
             <p class="text-sm text-white/50 mb-6">
-                Skip what doesn't apply — we'll only add the blocks for what you fill in.
+                Skip what doesn't apply, we'll only add the blocks for what you fill in.
                 You can polish anything in the editor afterwards.
             </p>
 
@@ -412,7 +412,7 @@
                 }
                 $groups = [];
                 if (!empty($basics))  { $groups[] = ['title' => 'The basics',      'icon' => 'fa-id-card-clip', 'desc' => 'Who the page is for.',          'items' => $basics]; }
-                if (!empty($details)) { $groups[] = ['title' => 'Links & details',  'icon' => 'fa-sliders',      'desc' => 'Add what applies — skip the rest.', 'items' => $details]; }
+                if (!empty($details)) { $groups[] = ['title' => 'Links & details',  'icon' => 'fa-sliders',      'desc' => 'Add what applies, skip the rest.', 'items' => $details]; }
 
                 // Leading icon per field — by input type, with a couple of
                 // key-aware overrides for nicer affordances.
@@ -479,7 +479,7 @@
                                     @elseif($type === 'select')
                                         <select id="{{ $id }}" name="{{ $name }}"
                                             class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/40 outline-none transition-all">
-                                            <option value="" class="bg-[#0d0818]">— pick one —</option>
+                                            <option value="" class="bg-[#0d0818]">pick one</option>
                                             @foreach(($q['options'] ?? []) as $opt)
                                                 <option value="{{ $opt['v'] }}" class="bg-[#0d0818]" @selected($val === $opt['v'])>{{ $opt['l'] }}</option>
                                             @endforeach

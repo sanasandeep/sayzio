@@ -11,7 +11,7 @@
                 <h2 class="text-lg font-semibold text-white/90">Pending public submissions</h2>
                 <p class="text-xs text-white/50 mt-1 max-w-2xl">
                     These testimonials were submitted via the public form and are awaiting your review.
-                    Approve to set the marquee row, accent colour, and sort order then publish — or reject to dismiss.
+                    Approve to set the marquee row, accent colour, and sort order then publish, or reject to dismiss.
                 </p>
             </div>
             <div class="flex items-center gap-2 flex-wrap">

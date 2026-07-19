@@ -27,7 +27,7 @@
   <div class="s" aria-hidden="true"></div>
   <div>Loading…</div>
   <div class="m">
-    Tracking by {{ $workspaceName ?: 'this creator' }} —
+    Tracking by {{ $workspaceName ?: 'this creator' }} -
     <noscript>continue: <a href="{{ $destination }}">go to destination</a></noscript>
   </div>
 </div>

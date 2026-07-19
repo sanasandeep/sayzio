@@ -9,7 +9,7 @@
             <h1 class="text-2xl font-bold text-white flex items-center gap-2">
                 <i class="fas fa-magnifying-glass-chart text-blue-400"></i> Competitor Biolink Teardown
             </h1>
-            <p class="text-xs text-white/40 mt-0.5">Paste a competitor's link-in-bio (or any page) URL. AI scores it — strengths, weaknesses, missing elements, CTA quality — then you can build a better version in one click.</p>
+            <p class="text-xs text-white/40 mt-0.5">Paste a competitor's link-in-bio (or any page) URL. AI scores it (strengths, weaknesses, missing elements, CTA quality) then you can build a better version in one click.</p>
         </div>
     </div>
 
@@ -30,7 +30,7 @@
                 <label class="block text-sm font-medium text-white/70 mb-1.5">Competitor URL <span class="text-red-400">*</span></label>
                 <input type="text" name="url" x-model="url" required maxlength="2048" placeholder="https://competitor.com/@handle"
                        class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-white/20 focus:ring-2 focus:ring-blue-500/40 outline-none transition-all">
-                <p class="text-xs text-white/30 mt-1.5">We fetch the public page and analyze layout, copy, CTAs and structure — no login required, and we never charge you for a page we couldn't reach.</p>
+                <p class="text-xs text-white/30 mt-1.5">We fetch the public page and analyze layout, copy, CTAs and structure, no login required, and we never charge you for a page we couldn't reach.</p>
             </div>
         </div>
 

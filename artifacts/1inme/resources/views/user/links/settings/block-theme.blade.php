@@ -129,10 +129,10 @@
                             <p class="text-xs font-semibold mb-3" style="color: var(--text-muted);">Padding</p>
                             <div class="grid grid-cols-5 gap-2">
                                 <div><label class="block text-[10px] mb-1" style="color: var(--text-faint);">All</label><input type="number" name="block_theme[padding]" value="{{ $bt['padding'] ?? 16 }}" min="0" max="60" class="theme-input w-full"></div>
-                                <div><label class="block text-[10px] mb-1" style="color: var(--text-faint);">Top</label><input type="number" name="block_theme[padding_top]" value="{{ $bt['padding_top'] ?? '' }}" placeholder="—" min="0" max="200" class="theme-input w-full"></div>
-                                <div><label class="block text-[10px] mb-1" style="color: var(--text-faint);">Bottom</label><input type="number" name="block_theme[padding_bottom]" value="{{ $bt['padding_bottom'] ?? '' }}" placeholder="—" min="0" max="200" class="theme-input w-full"></div>
-                                <div><label class="block text-[10px] mb-1" style="color: var(--text-faint);">Left</label><input type="number" name="block_theme[padding_left]" value="{{ $bt['padding_left'] ?? '' }}" placeholder="—" min="0" max="200" class="theme-input w-full"></div>
-                                <div><label class="block text-[10px] mb-1" style="color: var(--text-faint);">Right</label><input type="number" name="block_theme[padding_right]" value="{{ $bt['padding_right'] ?? '' }}" placeholder="—" min="0" max="200" class="theme-input w-full"></div>
+                                <div><label class="block text-[10px] mb-1" style="color: var(--text-faint);">Top</label><input type="number" name="block_theme[padding_top]" value="{{ $bt['padding_top'] ?? '' }}" placeholder="-" min="0" max="200" class="theme-input w-full"></div>
+                                <div><label class="block text-[10px] mb-1" style="color: var(--text-faint);">Bottom</label><input type="number" name="block_theme[padding_bottom]" value="{{ $bt['padding_bottom'] ?? '' }}" placeholder="-" min="0" max="200" class="theme-input w-full"></div>
+                                <div><label class="block text-[10px] mb-1" style="color: var(--text-faint);">Left</label><input type="number" name="block_theme[padding_left]" value="{{ $bt['padding_left'] ?? '' }}" placeholder="-" min="0" max="200" class="theme-input w-full"></div>
+                                <div><label class="block text-[10px] mb-1" style="color: var(--text-faint);">Right</label><input type="number" name="block_theme[padding_right]" value="{{ $bt['padding_right'] ?? '' }}" placeholder="-" min="0" max="200" class="theme-input w-full"></div>
                             </div>
                             <p class="text-[10px] mt-2" style="color: var(--text-dimmed);">Set "All" for uniform padding, or override individual sides.</p>
                         </div>

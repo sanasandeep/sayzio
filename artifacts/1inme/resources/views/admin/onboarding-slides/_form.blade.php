@@ -32,7 +32,7 @@ html.light-mode .ons-preview-border { border-color: rgba(0,0,0,.10); }
             <label class="block text-sm font-medium text-white/70 mb-1 ons-form-label">Headline</label>
             <input type="text" name="title" required maxlength="255"
                    value="{{ old('title', $slide->title ?? '') }}"
-                   placeholder="e.g. Every link, every channel — one tap away"
+                   placeholder="e.g. Every link, every channel, one tap away"
                    class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/30 focus:outline-none focus:border-blue-500 ons-form-input">
             @error('title')<p class="text-xs text-red-400 mt-1">{{ $message }}</p>@enderror
         </div>
@@ -89,7 +89,7 @@ html.light-mode .ons-preview-border { border-color: rgba(0,0,0,.10); }
             @error('gallery_images.*')<p class="text-xs text-red-400 mt-1">{{ $message }}</p>@enderror
 
             @if(!empty($slide) && !empty($slide->gallery_images))
-                <p class="text-[11px] text-white/40 mt-3 mb-2 ons-gallery-note">Current gallery — tick to remove on save.</p>
+                <p class="text-[11px] text-white/40 mt-3 mb-2 ons-gallery-note">Current gallery, tick to remove on save.</p>
                 <div class="grid grid-cols-3 gap-2">
                     @foreach($slide->gallery_images as $p)
                         <label class="relative block aspect-[3/4] rounded-lg overflow-hidden border border-white/10 cursor-pointer group ons-gallery-thumb-border">

@@ -49,7 +49,7 @@
                 <div>
                     <label class="block text-xs font-semibold uppercase tracking-wider text-white/60 mb-1.5">Message</label>
                     <textarea name="announcements[{{ $audienceKey }}][message]" rows="2" maxlength="280"
-                              placeholder="e.g. We just shipped scheduled posts — try it now!"
+                              placeholder="e.g. We just shipped scheduled posts, try it now!"
                               class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">{{ old("announcements.$audienceKey.message", $row['message']) }}</textarea>
                     @error("announcements.$audienceKey.message")<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
                 </div>

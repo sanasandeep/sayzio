@@ -16,12 +16,12 @@
         <input type="hidden" name="type" value="resume">
         <div class="glass rounded-2xl p-6 space-y-4">
             <p class="text-sm text-white/50">
-                A short link to your public resume / portfolio page. Build it in the dedicated resume editor — sections, work history, projects and more — then share it anywhere. Visitors can download it as a PDF, and you control visibility, password and expiry.
+                A short link to your public resume / portfolio page. Build it in the dedicated resume editor (sections, work history, projects and more) then share it anywhere. Visitors can download it as a PDF, and you control visibility, password and expiry.
             </p>
 
             <div>
                 <label class="block text-sm font-medium text-white/60 mb-1">Page Title</label>
-                <input type="text" name="title" value="{{ old('title') }}" placeholder="e.g. Jane Doe — Resume" class="w-full border border-white/10 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500/40">
+                <input type="text" name="title" value="{{ old('title') }}" placeholder="e.g. Jane Doe, Resume" class="w-full border border-white/10 rounded-xl px-3 py-2.5 text-sm focus:ring-2 focus:ring-blue-500/40">
                 @error('title') <p class="text-red-500 text-sm mt-1">{{ $message }}</p> @enderror
             </div>
 

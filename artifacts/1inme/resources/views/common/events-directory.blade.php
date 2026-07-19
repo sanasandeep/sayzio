@@ -3,7 +3,7 @@
 
 @php
     $shareTitle = 'Discover Events';
-    $shareDescription = 'Find and RSVP to events near you — powered by ' . config('app.name') . '.';
+    $shareDescription = 'Find and RSVP to events near you, powered by ' . config('app.name') . '.';
     $hasCustomRange = $dateFrom !== '' || $dateTo !== '';
 @endphp
 
@@ -237,7 +237,7 @@
 <div class="events-hero text-white px-4 py-12 sm:py-16">
     <div class="max-w-5xl mx-auto text-center">
         <h1 class="text-3xl sm:text-4xl font-extrabold tracking-tight">Discover Events</h1>
-        <p class="mt-2 text-white/60 text-sm sm:text-base max-w-xl mx-auto">Find happenings near you, from meetups to festivals — powered by {{ config('app.name') }}.</p>
+        <p class="mt-2 text-white/60 text-sm sm:text-base max-w-xl mx-auto">Find happenings near you, from meetups to festivals, powered by {{ config('app.name') }}.</p>
 
         <form method="GET" class="mt-7 max-w-3xl mx-auto" x-data="eventSearchMap({{ $lat ? "'".$lat."'" : 'null' }}, {{ $lng ? "'".$lng."'" : 'null' }})">
             <div class="ev-hero-shell flex flex-col sm:flex-row gap-2 rounded-2xl p-2" style="background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12);">

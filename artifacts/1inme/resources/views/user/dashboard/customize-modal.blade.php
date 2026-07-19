@@ -85,7 +85,7 @@
                             </div>
                             <div class="text-left">
                                 <p class="text-xs font-bold" style="color: var(--text-primary);">Design with AI</p>
-                                <p class="text-[11px]" style="color: var(--text-faint);">Describe your goal, AI picks the widgets that matter — charged from your coin wallet.</p>
+                                <p class="text-[11px]" style="color: var(--text-faint);">Describe your goal, AI picks the widgets that matter, charged from your coin wallet.</p>
                             </div>
                             <i class="fas fa-chevron-right text-[10px] ml-auto" style="color: var(--text-faint);"></i>
                         </button>
@@ -140,7 +140,7 @@
                         <label class="block text-[11px] font-semibold" style="color: var(--text-muted);">Must-have widgets (optional)</label>
                         <span class="text-[10px]" style="color: var(--text-faint);" x-show="answers.selected_widgets.length" x-text="answers.selected_widgets.length + ' selected'"></span>
                     </div>
-                    <p class="text-[10px] mb-2" style="color: var(--text-faint);">Pick specific widgets to guarantee they're included — the AI still designs the rest of the layout around your goal.</p>
+                    <p class="text-[10px] mb-2" style="color: var(--text-faint);">Pick specific widgets to guarantee they're included, the AI still designs the rest of the layout around your goal.</p>
                     <div class="rounded-xl mb-4 overflow-hidden" style="border: 1px solid var(--border-subtle);">
                         <template x-for="group in groupedCatalog" :key="group.tab">
                             <div style="border-top: 1px solid var(--border-subtle);" class="first:border-t-0">

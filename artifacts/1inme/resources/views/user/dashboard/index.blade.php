@@ -120,7 +120,7 @@
                     @endif
                 </div>
                 <h1 class="hero-title gradient-text" style="font-size: clamp(1.5rem, 3.2vw, 2.1rem);">{{ $greeting }}, {{ $user->name }}</h1>
-                <p class="hero-subtitle">Here's your command center — a live look at how your links are performing.</p>
+                <p class="hero-subtitle">Here's your command center, a live look at how your links are performing.</p>
                 <div class="flex items-center gap-2 flex-wrap mt-4">
                     <a href="{{ route('user.links.wizard') }}" class="btn-primary text-xs py-2">
                         <i class="fas fa-magic text-[10px]"></i> Create Link in Bio
@@ -363,7 +363,7 @@
                             </div>
                             <div class="flex-1 min-w-0">
                                 <p class="text-sm font-semibold" style="color: var(--text-primary);">Add your WhatsApp number</p>
-                                <p class="text-xs mt-0.5" style="color: var(--text-muted);">Verify a WhatsApp number to sign in faster with a one-time code — no password needed — and follow our channel for updates.</p>
+                                <p class="text-xs mt-0.5" style="color: var(--text-muted);">Verify a WhatsApp number to sign in faster with a one-time code (no password needed) and follow our channel for updates.</p>
                             </div>
                             <button type="button" @click="open = !open"
                                     class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white transition flex-shrink-0">

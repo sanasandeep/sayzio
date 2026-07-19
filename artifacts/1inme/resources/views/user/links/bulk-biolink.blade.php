@@ -7,7 +7,7 @@
         <a href="{{ route('user.links.create') }}" class="text-white/30 hover:text-white transition-colors" title="Back"><i class="fas fa-arrow-left"></i></a>
         <div>
             <h1 class="text-2xl font-bold text-white">Bulk Create Link in Bio Pages</h1>
-            <p class="text-xs text-white/40 mt-0.5">Mail-merge a master page with a sheet of data — one personalized biolink per row.</p>
+            <p class="text-xs text-white/40 mt-0.5">Mail-merge a master page with a sheet of data, one personalized biolink per row.</p>
         </div>
     </div>
 
@@ -23,7 +23,7 @@
 
         {{-- Step 1 — pick a blueprint --}}
         <div class="glass rounded-2xl p-6 mb-6">
-            <h2 class="text-base font-semibold text-white mb-1">Step 1 — Pick a blueprint</h2>
+            <h2 class="text-base font-semibold text-white mb-1">Step 1, Pick a blueprint</h2>
             <p class="text-xs text-white/40 mb-4">This master page is copied for every row. Put <code class="text-blue-300">@{{token}}</code> placeholders in its text, links or images and we'll fill them in from your sheet.</p>
 
             <div class="flex gap-1 mb-4 bg-white/5 p-1 rounded-xl w-fit">
@@ -47,7 +47,7 @@
                     <select name="template_id" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:ring-2 focus:ring-blue-500/40 outline-none">
                         @foreach($templates as $t)
                             <option value="{{ $t['id'] }}" {{ old('template_id') == $t['id'] ? 'selected' : '' }} {{ $t['locked'] ? 'disabled' : '' }} class="bg-[#0d0818]">
-                                {{ $t['name'] }}{{ $t['category'] ? ' · ' . $t['category'] : '' }}{{ $t['locked'] ? '  (locked — upgrade)' : '' }}
+                                {{ $t['name'] }}{{ $t['category'] ? ' · ' . $t['category'] : '' }}{{ $t['locked'] ? '  (locked, upgrade)' : '' }}
                             </option>
                         @endforeach
                     </select>
@@ -73,14 +73,14 @@
         {{-- Step 2 — the data sheet --}}
         <div class="glass rounded-2xl p-6 mb-6">
             <div class="flex items-start justify-between gap-3 mb-1">
-                <h2 class="text-base font-semibold text-white">Step 2 — Add your data</h2>
+                <h2 class="text-base font-semibold text-white">Step 2, Add your data</h2>
                 <button type="submit" formaction="{{ route('user.links.biolink.bulk.sample') }}" formtarget="_blank"
                         class="text-[11px] text-blue-300 hover:text-blue-200 whitespace-nowrap">
                     <i class="fas fa-download mr-1"></i> Sample CSV for this blueprint
                 </button>
             </div>
             <p class="text-xs text-white/40 mb-4">
-                First row = column headers. Reserved columns: <code class="text-blue-300">handle</code> (the page URL — blank to auto-generate) and <code class="text-blue-300">title</code>. Every other column is matched to a <code class="text-blue-300">@{{token}}</code>. Up to {{ $maxRows }} rows.
+                First row = column headers. Reserved columns: <code class="text-blue-300">handle</code> (the page URL, blank to auto-generate) and <code class="text-blue-300">title</code>. Every other column is matched to a <code class="text-blue-300">@{{token}}</code>. Up to {{ $maxRows }} rows.
             </p>
 
             <div class="flex gap-1 mb-4 bg-white/5 p-1 rounded-xl w-fit">
@@ -113,7 +113,7 @@
 
         {{-- Step 3 — shared settings --}}
         <div class="glass rounded-2xl p-6 mb-6">
-            <h2 class="text-base font-semibold text-white mb-1">Step 3 — Shared settings</h2>
+            <h2 class="text-base font-semibold text-white mb-1">Step 3, Shared settings</h2>
             <p class="text-xs text-white/40 mb-4">Applied to every page in the batch.</p>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">

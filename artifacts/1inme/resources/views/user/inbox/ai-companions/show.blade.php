@@ -21,7 +21,7 @@
                 </div>
             </div>
         @empty
-            <p class="text-center text-sm text-white/40 py-12">Say hello — your AI Companion will reply using its persona.</p>
+            <p class="text-center text-sm text-white/40 py-12">Say hello, your AI Companion will reply using its persona.</p>
         @endforelse
     </div>
 

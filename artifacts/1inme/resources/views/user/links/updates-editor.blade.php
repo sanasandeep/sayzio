@@ -1,6 +1,6 @@
 @extends('user.layout.app')
 
-@section('title', ($link->title ?: 'Updates Page') . ' — Editor')
+@section('title', ($link->title ?: 'Updates Page') . ': Editor')
 
 @section('content')
 <div class="max-w-5xl mx-auto py-6 px-4"
@@ -192,7 +192,7 @@
                     <div>
                         <label class="block text-xs font-medium text-white/70 mb-1">Tag</label>
                         <select name="tag" x-model="form.tag" class="glass-input w-full text-sm">
-                            <option value="">— None —</option>
+                            <option value="">None</option>
                             @foreach($allowedTags as $tag)
                             <option value="{{ $tag }}">{{ $tag }}</option>
                             @endforeach

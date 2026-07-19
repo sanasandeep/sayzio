@@ -52,7 +52,7 @@
                         <tr>
                             <td class="py-2 text-white">#{{ $row->user_id }}</td>
                             <td class="text-white/80">{{ $row->personas_count }}</td>
-                            <td class="text-white/60">{{ $row->last_used ? \Carbon\Carbon::parse($row->last_used)->diffForHumans() : '—' }}</td>
+                            <td class="text-white/60">{{ $row->last_used ? \Carbon\Carbon::parse($row->last_used)->diffForHumans() : '-' }}</td>
                         </tr>
                     @endforeach
                 </tbody>

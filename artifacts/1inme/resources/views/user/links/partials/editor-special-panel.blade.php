@@ -388,7 +388,7 @@
                                         <span class="flex-1 min-w-0">
                                             <span class="font-semibold" x-text="c.label"></span>
                                             <template x-if="c.preview">
-                                                <span style="color: var(--text-muted);" x-text="' — ' + c.preview"></span>
+                                                <span style="color: var(--text-muted);" x-text="', ' + c.preview"></span>
                                             </template>
                                         </span>
                                     </li>

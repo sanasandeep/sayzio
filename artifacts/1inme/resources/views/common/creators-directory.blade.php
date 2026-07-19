@@ -10,7 +10,7 @@
 @php
     $__seo = \App\Modules\Common\Support\MarketingSeo::resolveForView(['seoKey' => 'creators']);
 @endphp
-<title>{{ $__seo['title'] }} — {{ config('app.name') }}</title>
+<title>{{ $__seo['title'] }}: {{ config('app.name') }}</title>
 <meta name="description" content="{{ $__seo['description'] }}">
 @if(($__seo['keywords'] ?? '') !== '')
 <meta name="keywords" content="{{ $__seo['keywords'] }}">

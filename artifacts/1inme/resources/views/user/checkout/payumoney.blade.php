@@ -33,7 +33,7 @@
 
     <noscript>
         <p class="text-xs text-amber-300 text-center">
-            JavaScript is disabled — tap “Pay with PayU” above to continue.
+            JavaScript is disabled, tap “Pay with PayU” above to continue.
         </p>
     </noscript>
 </div>

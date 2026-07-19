@@ -6,7 +6,7 @@
 <div class="max-w-4xl mx-auto" x-data="followUpsList()" data-reload-url="{{ route('user.contacts.follow-ups') }}">
     @include('user.partials.page-hero', [
         'title' => 'Follow-ups',
-        'subtitle' => 'Everything you need to follow up on, soonest first — clear or snooze right from here.',
+        'subtitle' => 'Everything you need to follow up on, soonest first, clear or snooze right from here.',
         'icon' => 'fa-bell',
         'chips' => [
             ['icon' => 'fa-exclamation-circle text-red-400', 'text' => $overdue->count() . ' overdue',  'textId' => 'foChipOverdue'],

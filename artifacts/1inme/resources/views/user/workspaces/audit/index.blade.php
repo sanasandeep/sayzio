@@ -7,7 +7,7 @@
     <div class="flex flex-wrap items-center justify-between gap-3 mb-6">
         <div>
             <h1 class="text-2xl font-bold" style="color: var(--text-primary);">
-                {{ $workspace->name }} — Sensitive action log
+                {{ $workspace->name }}, Sensitive action log
             </h1>
             <p class="text-sm opacity-70 mt-1">
                 Append-only record of high-risk actions on this workspace.
@@ -33,7 +33,7 @@
                 {{ $chain['ok'] ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300' : 'bg-red-500/10 border-red-500/30 text-red-300' }}">
         @if($chain['ok'])
             <i class="fas fa-link"></i>
-            <span>Hash chain intact — {{ $chain['count'] }} {{ $chain['count'] === 1 ? 'event' : 'events' }} verified.</span>
+            <span>Hash chain intact, {{ $chain['count'] }} {{ $chain['count'] === 1 ? 'event' : 'events' }} verified.</span>
         @else
             <i class="fas fa-triangle-exclamation"></i>
             <span>Hash chain mismatch detected at event #{{ $chain['broken_at'] }}. Contact support immediately.</span>

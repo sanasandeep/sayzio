@@ -102,7 +102,7 @@
                             </button>
                         </form>
                         @else
-                        <span class="text-base cursor-not-allowed opacity-50" style="color: var(--text-faint);" title="Your role doesn't allow starring submissions — ask a workspace admin">
+                        <span class="text-base cursor-not-allowed opacity-50" style="color: var(--text-faint);" title="Your role doesn't allow starring submissions, ask a workspace admin">
                             <i class="fa{{ $s->is_starred ? 's' : 'r' }} fa-star"></i>
                         </span>
                         @endif
@@ -157,7 +157,7 @@
                             <button class="w-7 h-7 rounded-lg flex items-center justify-center text-[10px]" style="background: rgba(239,68,68,0.1); color: #f87171;"><i class="fas fa-trash"></i></button>
                         </form>
                         @else
-                        <span class="w-7 h-7 rounded-lg flex items-center justify-center text-[10px] cursor-not-allowed opacity-60" style="background: var(--bg-glass-input); color: var(--text-faint);" title="Your role doesn't allow deleting submissions — ask a workspace admin"><i class="fas fa-lock"></i></span>
+                        <span class="w-7 h-7 rounded-lg flex items-center justify-center text-[10px] cursor-not-allowed opacity-60" style="background: var(--bg-glass-input); color: var(--text-faint);" title="Your role doesn't allow deleting submissions, ask a workspace admin"><i class="fas fa-lock"></i></span>
                         @endif
                     </div>
                     @if($hasRepGroups)

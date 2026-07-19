@@ -110,7 +110,7 @@
                 </div>
                 <div class="flex-1">
                     <h3 class="text-sm font-semibold text-white">Build with AI <span class="ml-1.5 text-[10px] uppercase tracking-wide text-blue-300 bg-blue-500/20 px-1.5 py-0.5 rounded">New</span></h3>
-                    <p class="text-xs text-white/50 mt-1">Skip the blank page — describe your page, paste your links, and add photos. AI assembles a complete Link in Bio for you to refine in the editor. Uses AI credits.</p>
+                    <p class="text-xs text-white/50 mt-1">Skip the blank page, describe your page, paste your links, and add photos. AI assembles a complete Link in Bio for you to refine in the editor. Uses AI credits.</p>
                 </div>
             </div>
         </div>

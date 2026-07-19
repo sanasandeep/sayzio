@@ -101,7 +101,7 @@
                                 @elseif($s->store === 'app')
                                     <span class="inline-flex items-center gap-1"><i class="fab fa-apple text-[11px]"></i> App Store</span>
                                 @else
-                                    —
+ -
                                 @endif
                             </td>
                             <td class="py-2 pr-3 text-xs text-white/60">{{ optional($s->created_at)->format('Y-m-d H:i') }}</td>
@@ -121,7 +121,7 @@
                             </td>
                         </tr>
                     @empty
-                        <tr><td colspan="5" class="py-6 text-center text-white/40 text-sm">No signups yet — the form lives in the mobile-app coming-soon modal.</td></tr>
+                        <tr><td colspan="5" class="py-6 text-center text-white/40 text-sm">No signups yet, the form lives in the mobile-app coming-soon modal.</td></tr>
                     @endforelse
                 </tbody>
             </table>

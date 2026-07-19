@@ -23,7 +23,7 @@
     @if($teardown->status === 'processing')
         <div class="glass rounded-2xl p-8 text-center">
             <i class="fas fa-spinner fa-spin text-2xl text-blue-300 mb-3"></i>
-            <p class="text-white/60 text-sm">Still analyzing this page — refresh in a moment.</p>
+            <p class="text-white/60 text-sm">Still analyzing this page, refresh in a moment.</p>
         </div>
     @elseif($teardown->status === 'failed')
         <div class="glass rounded-2xl p-8 text-center">

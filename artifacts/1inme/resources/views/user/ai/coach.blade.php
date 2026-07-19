@@ -6,7 +6,7 @@
     @include('user.ai._partials.header', [
         'kicker'   => 'AI',
         'title'    => 'AI Growth Coach',
-        'subtitle' => 'Pick a link — AI Growth Coach reviews recent stats and proposes experiments.',
+        'subtitle' => 'Pick a link, AI Growth Coach reviews recent stats and proposes experiments.',
         'balance'  => $balance,
     ])
 

@@ -9,7 +9,7 @@
             <h2 class="text-lg font-semibold text-white">Role audit downloads</h2>
             <p class="text-sm text-white/50 max-w-3xl">
                 Every CSV download of the role-change audit is recorded
-                here so you can spot unusual activity — very large
+                here so you can spot unusual activity, very large
                 pulls, repeated downloads from a single account, or
                 exports of users that nobody on staff should be
                 looking at. The CSVs themselves are produced from the
@@ -67,7 +67,7 @@
                             </td>
                             <td class="px-4 py-2">
                                 @if($e->scope === 'full_pool')
-                                    <span class="text-white/40 text-xs">— (entire pool)</span>
+                                    <span class="text-white/40 text-xs"> - (entire pool)</span>
                                 @elseif($e->targetUser)
                                     <a href="{{ route('admin.users.show', $e->targetUser) }}"
                                        class="text-blue-300 hover:text-blue-200">
@@ -79,7 +79,7 @@
                                 @elseif($e->target_user_id)
                                     <span class="text-white/60">User #{{ $e->target_user_id }}</span>
                                 @else
-                                    <span class="text-white/40">—</span>
+                                    <span class="text-white/40">-</span>
                                 @endif
                             </td>
                             <td class="px-4 py-2 text-right text-white font-mono text-xs">

@@ -55,8 +55,8 @@
                 'body' => '<strong>How to get WhatsApp Cloud API credentials</strong>
                     <ol class="list-decimal pl-4 mt-1 space-y-0.5">
                         <li>Create or open an app at <a class="underline" href="https://developers.facebook.com/apps/" target="_blank" rel="noopener">Meta for Developers → My Apps</a>. Choose <em>Business</em> as the app type and add the <strong>WhatsApp</strong> product.</li>
-                        <li><strong>Phone Number ID</strong> — shown on the <em>WhatsApp → API Setup</em> page of your Meta app, next to the test or registered business number.</li>
-                        <li><strong>Access token</strong> — for testing, use the temporary token on the API Setup page. For production, generate a <em>System User</em> token in <a class="underline" href="https://business.facebook.com/settings/system-users" target="_blank" rel="noopener">Meta Business Suite → Settings → System Users</a> with the <code>whatsapp_business_messaging</code> permission.</li>
+                        <li><strong>Phone Number ID</strong>, shown on the <em>WhatsApp → API Setup</em> page of your Meta app, next to the test or registered business number.</li>
+                        <li><strong>Access token</strong>, for testing, use the temporary token on the API Setup page. For production, generate a <em>System User</em> token in <a class="underline" href="https://business.facebook.com/settings/system-users" target="_blank" rel="noopener">Meta Business Suite → Settings → System Users</a> with the <code>whatsapp_business_messaging</code> permission.</li>
                         <li>The <strong>Graph API version</strong> field should match the API version shown in the Meta documentation; default is <code>v19.0</code>.</li>
                     </ol>',
             ])
@@ -148,7 +148,7 @@
             </label>
 
             @include('admin.partials.copy-uri', [
-                'label' => 'Callback URL — set this as the webhook in Meta → WhatsApp → Configuration (subscribe to the messages field)',
+                'label' => 'Callback URL, set this as the webhook in Meta → WhatsApp → Configuration (subscribe to the messages field)',
                 'value' => $waCallbackUrl,
             ])
 

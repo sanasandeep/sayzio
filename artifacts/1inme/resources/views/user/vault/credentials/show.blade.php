@@ -63,7 +63,7 @@
         <div class="rounded-lg p-3 bg-white/5 mb-6">
             <h3 class="text-xs uppercase mb-2 flex items-center justify-between" style="color: var(--text-faint);">
                 <span>Notes</span>
-                <span x-show="!shown" class="text-[11px] normal-case" style="color: var(--text-muted);">(hidden — reveal to view)</span>
+                <span x-show="!shown" class="text-[11px] normal-case" style="color: var(--text-muted);">(hidden, reveal to view)</span>
             </h3>
             <pre x-show="shown" class="whitespace-pre-wrap text-sm" x-text="revealedNotes"></pre>
             <p x-show="!shown" class="text-xs" style="color: var(--text-muted);">Click <em>Reveal</em> above to display notes.</p>
@@ -74,7 +74,7 @@
         <div class="rounded-lg p-3 bg-white/5 mb-6">
             <h3 class="text-xs uppercase mb-2 flex items-center justify-between" style="color: var(--text-faint);">
                 <span>Custom fields</span>
-                <span x-show="!shown" class="text-[11px] normal-case" style="color: var(--text-muted);">(hidden — reveal to view)</span>
+                <span x-show="!shown" class="text-[11px] normal-case" style="color: var(--text-muted);">(hidden, reveal to view)</span>
             </h3>
             <dl x-show="shown" class="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 <template x-for="row in revealedFields" :key="row.key">

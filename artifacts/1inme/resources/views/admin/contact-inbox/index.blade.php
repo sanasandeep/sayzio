@@ -103,7 +103,7 @@
                                     </div>
                                 @else
                                     <div x-show="replying" x-cloak class="mt-3 text-xs text-white/40 italic">
-                                        No email address — reply via {{ $m->contact_phone ? 'phone: ' . $m->contact_phone : ($m->contact_channel ?? 'the sender\'s channel') }}.
+                                        No email address, reply via {{ $m->contact_phone ? 'phone: ' . $m->contact_phone : ($m->contact_channel ?? 'the sender\'s channel') }}.
                                     </div>
                                 @endif
                             </div>

@@ -11,7 +11,7 @@
 @endphp
 <details class="glass rounded-2xl p-5" open>
     <summary class="cursor-pointer text-sm font-semibold text-white">Use-case hero, featured features &amp; FAQ</summary>
-    <p class="text-xs text-white/50 mt-1 mb-4">Edit the hero badge, tagline, accent colour, the featured-feature cards that deep-link into the Features page, and the persona FAQ — changes go live with no redeploy. The benefit paragraphs are edited in the Content sections above.</p>
+    <p class="text-xs text-white/50 mt-1 mb-4">Edit the hero badge, tagline, accent colour, the featured-feature cards that deep-link into the Features page, and the persona FAQ, changes go live with no redeploy. The benefit paragraphs are edited in the Content sections above.</p>
     <div class="space-y-6">
 
         {{-- Hero chrome --}}
@@ -73,7 +73,7 @@
                     </div>
                 </div>
             </template>
-            <div x-show="items.length===0" class="text-xs text-white/40 text-center py-3">No featured features — click "Add feature".</div>
+            <div x-show="items.length===0" class="text-xs text-white/40 text-center py-3">No featured features, click "Add feature".</div>
         </div>
 
         {{-- Persona FAQ repeater --}}
@@ -95,7 +95,7 @@
                     <textarea :name="'extra[use_case][faqs]['+i+'][a]'" x-model="f.a" rows="3" placeholder="Answer shown to visitors." class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm"></textarea>
                 </div>
             </template>
-            <div x-show="faqs.length===0" class="text-xs text-white/40 text-center py-3">No FAQ entries — click "Add question".</div>
+            <div x-show="faqs.length===0" class="text-xs text-white/40 text-center py-3">No FAQ entries, click "Add question".</div>
         </div>
 
     </div>

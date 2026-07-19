@@ -114,7 +114,7 @@
                 @foreach($occurrences as $occ)
                     <label class="d-flex align-items-center gap-2 small py-1">
                         <input type="checkbox" name="occurrences[]" value="{{ $occ['key'] }}">
-                        <span>{{ $occ['start']->format('D, M j · g:i A') }}@if($occ['label']) — {{ $occ['label'] }}@endif</span>
+                        <span>{{ $occ['start']->format('D, M j · g:i A') }}@if($occ['label']), {{ $occ['label'] }}@endif</span>
                     </label>
                 @endforeach
             </div>
@@ -133,7 +133,7 @@
             <label class="form-label small fw-semibold">{{ $label }}@if($req) *@endif</label>
             @if($type === 'select')
                 <select name="answers[{{ $label }}]" class="form-select" @if($req) required @endif>
-                    <option value="">— pick one —</option>
+                    <option value="">pick one</option>
                     @foreach($opts as $o)<option value="{{ $o }}">{{ $o }}</option>@endforeach
                 </select>
             @elseif($type === 'checkbox')

@@ -121,7 +121,7 @@
                     </button>
                 </form>
                 @else
-                <div class="flex-1 text-center text-xs py-2 rounded-lg opacity-40 cursor-not-allowed" style="color: var(--text-faint);" title="Cannot delete — plan has users">
+                <div class="flex-1 text-center text-xs py-2 rounded-lg opacity-40 cursor-not-allowed" style="color: var(--text-faint);" title="Cannot delete, plan has users">
                     <i class="fas fa-lock mr-1"></i>In Use
                 </div>
                 @endif

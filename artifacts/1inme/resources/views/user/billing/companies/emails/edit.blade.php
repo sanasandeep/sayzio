@@ -50,7 +50,7 @@
             @if(!empty($entry['view']))
                 <p class="text-[11px] text-amber-600">
                     This email's default body is a rich branded layout. Saving here replaces it entirely
-                    with the content above for this company — leave it on the pre-filled content unless you
+                    with the content above for this company, leave it on the pre-filled content unless you
                     intend to fully replace the design.
                 </p>
             @endif

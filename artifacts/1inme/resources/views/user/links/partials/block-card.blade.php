@@ -33,7 +33,7 @@
                 </div>
                 <div class="block-preview-content mt-0.5">
                     @if($block->isContainer())
-                        <i class="fas {{ $typeInfo['icon'] }} text-[9px] mr-1" style="color: var(--text-faint);"></i>{{ $block->children->count() }} block(s) inside{{ !empty($s['title']) ? ' — ' . $s['title'] : '' }}
+                        <i class="fas {{ $typeInfo['icon'] }} text-[9px] mr-1" style="color: var(--text-faint);"></i>{{ $block->children->count() }} block(s) inside{{ !empty($s['title']) ? ', ' . $s['title'] : '' }}
                     @elseif(in_array($block->type, ['link', 'link_big']))
                         <i class="fas fa-globe text-[9px] mr-1" style="color: var(--text-faint);"></i>{{ $s['text'] ?? $s['url'] ?? 'No URL set' }}
                     @elseif(in_array($block->type, ['heading', 'heading_logo']))

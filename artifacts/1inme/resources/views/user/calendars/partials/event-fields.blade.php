@@ -64,7 +64,7 @@
             </button>
         </div>
         <div x-ref="map" class="mpp-map" style="height:240px;border-radius:12px;overflow:hidden;border:1px solid var(--border-glass);background:#1e2330;"></div>
-        <p class="text-[11px] mt-1.5 text-white/40"><i class="fas fa-circle-info mr-1"></i> Tap the map or drag the pin — we'll fill in the address and coordinates.</p>
+        <p class="text-[11px] mt-1.5 text-white/40"><i class="fas fa-circle-info mr-1"></i> Tap the map or drag the pin, we'll fill in the address and coordinates.</p>
     </div>
 </div>
 <div class="grid grid-cols-2 gap-2">

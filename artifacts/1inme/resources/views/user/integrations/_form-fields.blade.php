@@ -45,7 +45,7 @@
 
             @if($type === 'select')
                 <select name="fields[{{ $key }}]" class="theme-input w-full" @if($required && ! $editing) required @endif>
-                    <option value="">— select —</option>
+                    <option value="">select</option>
                     @foreach(($f['options'] ?? []) as $optVal => $optLabel)
                         <option value="{{ $optVal }}" @selected((string) $val === (string) $optVal)>{{ $optLabel }}</option>
                     @endforeach

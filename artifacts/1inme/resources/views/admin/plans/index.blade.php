@@ -147,7 +147,7 @@
     <button type="button" @click="open = !open" class="flex items-center gap-2 text-sm text-white/50 hover:text-white/80 transition">
         <i class="fas" :class="open ? 'fa-chevron-down' : 'fa-chevron-right'"></i>
         Import history ({{ $imports->count() }})
-        <span class="text-white/30">— undo a recent CSV import if the numbers came out wrong</span>
+        <span class="text-white/30"> - undo a recent CSV import if the numbers came out wrong</span>
     </button>
     <div x-show="open" x-cloak class="mt-4 glass rounded-2xl border border-white/10 overflow-hidden">
         <table class="w-full text-sm">
@@ -213,7 +213,7 @@
     <button type="button" @click="open = !open" class="flex items-center gap-2 text-sm text-white/50 hover:text-white/80 transition">
         <i class="fas" :class="open ? 'fa-chevron-down' : 'fa-chevron-right'"></i>
         Archived plans ({{ $archivedPlans->count() }})
-        <span class="text-white/30">— legacy plans kept for existing subscribers</span>
+        <span class="text-white/30"> - legacy plans kept for existing subscribers</span>
     </button>
     <div x-show="open" x-cloak class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
         @foreach($archivedPlans as $plan)

@@ -7,7 +7,7 @@
     <div class="mb-6">
         <h1 class="text-2xl font-bold mb-1" style="color: var(--text-primary);">Protected accounts</h1>
         <p class="text-sm" style="color: var(--text-dimmed);">
-            Accounts on this list can never be deleted or suspended — from user management,
+            Accounts on this list can never be deleted or suspended, from user management,
             staff management, or any other path. The superadmin and demo accounts are
             permanently protected and cannot be removed.
         </p>
@@ -109,7 +109,7 @@
                         @elseif($account->isLocked())
                         <span class="text-white/20" title="Cannot be removed"><i class="fas fa-lock"></i></span>
                         @else
-                        <span class="text-white/20">—</span>
+                        <span class="text-white/20">-</span>
                         @endif
                     </td>
                 </tr>

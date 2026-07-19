@@ -270,7 +270,7 @@
                     <template x-if="atsReport && atsReport.has_unresolved">
                         <span class="ats-badge ats-badge-corner"
                               :class="atsReport.fail_count > 0 ? 'fail' : 'warn'"
-                              :title="(atsReport.fail_count + atsReport.warn_count) + ' unresolved ATS warning(s) — open Check ATS readiness for details.'"
+                              :title="(atsReport.fail_count + atsReport.warn_count) + ' unresolved ATS warning(s), open Check ATS readiness for details.'"
                               x-text="atsReport.fail_count + atsReport.warn_count"></span>
                     </template>
                 </button>
@@ -551,7 +551,7 @@
                                    @change="savePublishing()">
                             <p class="text-[11px] mt-1" style="color: var(--text-muted,#9ca3af);">
                                 <span x-show="publishing.is_share_expired" style="color:#f87171;">
-                                    <i class="fas fa-clock"></i> This share has expired — visitors see an expiry message.
+                                    <i class="fas fa-clock"></i> This share has expired, visitors see an expiry message.
                                 </span>
                                 <span x-show="!publishing.is_share_expired && publishing.expires_at_local">
                                     Visitors will be blocked after this date and time.
@@ -1357,7 +1357,7 @@ function resumeEditor() {
                 if (!res.ok) {
                     let msg = 'Could not generate PDF.';
                     try { const j = await res.json(); if (j && j.message) msg = j.message; } catch (e) {}
-                    if (res.status === 429) msg = 'Too many downloads — please wait a moment and try again.';
+                    if (res.status === 429) msg = 'Too many downloads, please wait a moment and try again.';
                     throw new Error(msg);
                 }
                 const blob = await res.blob();
@@ -1509,7 +1509,7 @@ function resumeEditor() {
             }
         },
         formatViewedAt(iso) {
-            if (!iso) return '—';
+            if (!iso) return '-';
             try {
                 const d = new Date(iso);
                 return d.toLocaleString();
@@ -1521,7 +1521,7 @@ function resumeEditor() {
                 this.copied = true;
                 setTimeout(() => { this.copied = false; }, 1500);
             } catch (_) {
-                this.showToast('Could not copy — select and copy manually.', 'error');
+                this.showToast('Could not copy, select and copy manually.', 'error');
             }
         },
 
@@ -2611,7 +2611,7 @@ function resumeEditor() {
             const d = cand.data || {};
             switch (cand.section_type) {
                 case 'experience':     return [d.role, d.company].filter(Boolean).join(' @ ') || '(unnamed role)';
-                case 'education':      return [d.school, d.degree].filter(Boolean).join(' — ') || '(unnamed school)';
+                case 'education':      return [d.school, d.degree].filter(Boolean).join(', ') || '(unnamed school)';
                 case 'skills':         return d.name || '(skill)';
                 case 'projects':       return d.name || '(project)';
                 case 'certifications': return d.name || '(certification)';

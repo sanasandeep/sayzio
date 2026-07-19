@@ -23,13 +23,13 @@
                 <label class="text-xs" style="color: var(--text-muted);">Title<input name="title" value="{{ old('title', $template->title) }}" class="block w-full mt-1 p-2 rounded-lg border" style="background: var(--bg-glass-input); border-color: var(--border-soft); color: var(--text-primary);"></label>
                 <label class="text-xs" style="color: var(--text-muted);">Billing company
                     <select name="billing_company_id" class="block w-full mt-1 p-2 rounded-lg border" style="background: var(--bg-glass-input); border-color: var(--border-soft); color: var(--text-primary);">
-                        <option value="">— None —</option>
+                        <option value="">None</option>
                         @foreach($companies as $co)<option value="{{ $co->id }}" @selected(old('billing_company_id', $template->billing_company_id) == $co->id)>{{ $co->name }}</option>@endforeach
                     </select>
                 </label>
                 <label class="text-xs" style="color: var(--text-muted);">Vault client
                     <select name="vault_client_id" class="block w-full mt-1 p-2 rounded-lg border" style="background: var(--bg-glass-input); border-color: var(--border-soft); color: var(--text-primary);">
-                        <option value="">— None —</option>
+                        <option value="">None</option>
                         @foreach($clients as $c)<option value="{{ $c->id }}" @selected(old('vault_client_id', $template->vault_client_id) == $c->id)>{{ $c->name }}</option>@endforeach
                     </select>
                 </label>

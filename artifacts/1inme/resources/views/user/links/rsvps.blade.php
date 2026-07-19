@@ -1,6 +1,6 @@
 @extends('user.layouts.app')
 
-@section('title', 'RSVPs — ' . $link->title)
+@section('title', 'RSVPs: ' . $link->title)
 
 @section('content')
 <div class="max-w-7xl mx-auto">

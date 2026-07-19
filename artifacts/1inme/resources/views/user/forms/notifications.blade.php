@@ -12,7 +12,7 @@
      }">
     @include('user.partials.page-hero', [
         'title' => 'Notifications',
-        'subtitle' => 'Be alerted when someone submits — by email, SMS, auto-reply, or send to any other system via webhooks.',
+        'subtitle' => 'Be alerted when someone submits, by email, SMS, auto-reply, or send to any other system via webhooks.',
         'icon' => 'fa-bell',
         'back' => route('user.forms.show', $form),
     ])
@@ -50,7 +50,7 @@
             <div x-show="emailEnabled" x-transition class="grid grid-cols-1 sm:grid-cols-2 gap-3 ml-13" style="margin-left: 3.25rem;">
                 <div class="sm:col-span-2">
                     <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">
-                        Email mailer <span class="text-[10px]" style="color: var(--text-faint);">— which saved configuration to send through</span>
+                        Email mailer <span class="text-[10px]" style="color: var(--text-faint);"> - which saved configuration to send through</span>
                     </label>
                     @include('common.partials.integration-picker', [
                         'name' => 'email_config_id',
@@ -59,7 +59,7 @@
                     ])
                 </div>
                 <div class="sm:col-span-2">
-                    <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Recipients <span class="text-[10px]" style="color: var(--text-faint);">— comma-separated for multiple</span></label>
+                    <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Recipients <span class="text-[10px]" style="color: var(--text-faint);"> - comma-separated for multiple</span></label>
                     <input type="text" name="email_to" value="{{ $notifications['email']['to'] ?? '' }}" placeholder="you@example.com, sales@example.com" class="theme-input w-full">
                 </div>
                 <div>
@@ -67,7 +67,7 @@
                     <input type="text" name="email_subject" value="{{ $notifications['email']['subject'] ?? '' }}" placeholder="New submission on {form_title}" class="theme-input w-full">
                 </div>
                 <div>
-                    <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Reply-to field <span class="text-[10px]" style="color: var(--text-faint);">— so you can reply directly</span></label>
+                    <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Reply-to field <span class="text-[10px]" style="color: var(--text-faint);"> - so you can reply directly</span></label>
                     <input type="text" name="email_reply_to_field" value="{{ $notifications['email']['reply_to_field'] ?? 'email' }}" placeholder="email" class="theme-input w-full">
                 </div>
             </div>
@@ -95,7 +95,7 @@
             <div x-show="autoEnabled" x-transition class="space-y-3" style="margin-left: 3.25rem;">
                 <div>
                     <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">
-                        Email mailer <span class="text-[10px]" style="color: var(--text-faint);">— pick a different mailer than notifications, e.g. transactional vs marketing</span>
+                        Email mailer <span class="text-[10px]" style="color: var(--text-faint);"> - pick a different mailer than notifications, e.g. transactional vs marketing</span>
                     </label>
                     @include('common.partials.integration-picker', [
                         'name' => 'auto_config_id',
@@ -129,7 +129,7 @@
                     </div>
                     <div>
                         <h3 class="text-sm font-bold" style="color: var(--text-primary);">SMS alert</h3>
-                        <p class="text-[11px] mt-0.5" style="color: var(--text-faint);">Get a text message — pick from the SMS configurations you've saved under Integrations.</p>
+                        <p class="text-[11px] mt-0.5" style="color: var(--text-faint);">Get a text message, pick from the SMS configurations you've saved under Integrations.</p>
                     </div>
                 </div>
                 <label class="relative inline-flex items-center cursor-pointer">
@@ -142,19 +142,19 @@
             <div x-show="smsEnabled" x-transition class="space-y-3" style="margin-left: 3.25rem;">
                 <div>
                     <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">
-                        SMS sender <span class="text-[10px]" style="color: var(--text-faint);">— which saved configuration to send through</span>
+                        SMS sender <span class="text-[10px]" style="color: var(--text-faint);"> - which saved configuration to send through</span>
                     </label>
                     @include('common.partials.integration-picker', [
                         'name' => 'sms_config_id',
                         'kind' => 'sms',
                         'value' => $notifications['sms']['config_id'] ?? null,
                         'allowEmpty' => false,
-                        'emptyLabel' => '— Select an SMS configuration —',
+                        'emptyLabel' => 'Select an SMS configuration',
                     ])
                 </div>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
-                        <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Phone number <span class="text-[10px]" style="color: var(--text-faint);">— with country code</span></label>
+                        <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Phone number <span class="text-[10px]" style="color: var(--text-faint);"> - with country code</span></label>
                         <input type="text" name="sms_to" value="{{ $notifications['sms']['to'] ?? '' }}" placeholder="+15551234567" class="theme-input w-full">
                     </div>
                     <div>
@@ -204,7 +204,7 @@
                     </div>
                     <div>
                         <h3 class="text-sm font-bold" style="color: var(--text-primary);">Webhooks</h3>
-                        <p class="text-[11px] mt-0.5" style="color: var(--text-faint);">Send each submission to any URL — connect a CRM, Zapier, Make.com, or your own backend.</p>
+                        <p class="text-[11px] mt-0.5" style="color: var(--text-faint);">Send each submission to any URL, connect a CRM, Zapier, Make.com, or your own backend.</p>
                     </div>
                 </div>
                 <button type="button" @click="addHook" class="text-xs px-3 py-1.5 rounded-lg font-semibold" style="background: rgba(99,102,241,0.15); color: #818cf8;"><i class="fas fa-plus text-[10px] mr-1"></i> Add</button>
@@ -246,10 +246,10 @@
                 <i class="fas fa-save text-xs"></i> Save Notifications
             </button>
             @else
-            <button type="button" disabled class="btn-primary px-8 py-3 text-sm font-semibold inline-flex items-center gap-2 shadow-lg opacity-60 cursor-not-allowed" title="Your role doesn't allow editing forms — ask a workspace admin">
+            <button type="button" disabled class="btn-primary px-8 py-3 text-sm font-semibold inline-flex items-center gap-2 shadow-lg opacity-60 cursor-not-allowed" title="Your role doesn't allow editing forms, ask a workspace admin">
                 <i class="fas fa-lock text-xs"></i> Save Notifications
             </button>
-            <span class="text-xs" style="color:#b45309;"><i class="fas fa-lock"></i> View-only — saving is reserved for admins.</span>
+            <span class="text-xs" style="color:#b45309;"><i class="fas fa-lock"></i> View-only, saving is reserved for admins.</span>
             @endcanInWorkspace
         </div>
     </form>

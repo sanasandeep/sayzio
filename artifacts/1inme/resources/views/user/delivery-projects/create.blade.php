@@ -19,7 +19,7 @@
             <input type="hidden" name="source_type" value="{{ $prefill['source_type'] }}">
             <input type="hidden" name="source_id" value="{{ $prefill['source_id'] }}">
             <div class="px-3 py-2 rounded-lg text-xs" style="background: var(--surface-2); color: var(--text-secondary);">
-                <i class="fas fa-link mr-1"></i> Linked to your sale — the buyer's details are prefilled below.
+                <i class="fas fa-link mr-1"></i> Linked to your sale, the buyer's details are prefilled below.
             </div>
         @endif
 

@@ -30,7 +30,7 @@
             <div class="flex items-start gap-3">
                 <i class="fas fa-triangle-exclamation mt-0.5" style="color:#e11d48;"></i>
                 <div class="flex-1">
-                    <p class="text-sm font-semibold" style="color:#e11d48;">Last send failed — this invoice was not delivered.</p>
+                    <p class="text-sm font-semibold" style="color:#e11d48;">Last send failed, this invoice was not delivered.</p>
                     @if(!empty($lastSendReason))
                         <p class="text-xs mt-1 font-medium" style="color:#e11d48;">
                             <i class="fas fa-circle-info mr-1"></i>{{ $lastSendReason }}
@@ -82,7 +82,7 @@
                     <select name="vault_client_id" x-model.number="vaultId"
                             @change="if (clientEmails.length === 1) email = clientEmails[0].email"
                             class="block w-full mt-1 p-2 rounded-lg border" style="background: var(--bg-glass-input);">
-                        <option value="0">— None —</option>
+                        <option value="0">None</option>
                         @foreach($clients as $c)
                             <option value="{{ $c->id }}">{{ $c->name }}</option>
                         @endforeach
@@ -90,7 +90,7 @@
                 </label>
                 <label class="text-xs" style="color: var(--text-muted);">Contact / lead
                     <select name="contact_id" class="block w-full mt-1 p-2 rounded-lg border" style="background: var(--bg-glass-input);">
-                        <option value="">— None —</option>
+                        <option value="">None</option>
                         @foreach($contacts as $ct)
                             <option value="{{ $ct->id }}" @selected((int) old('contact_id', $invoice->contact_id) === $ct->id)>{{ $ct->nameForDisplay() }}</option>
                         @endforeach
@@ -100,7 +100,7 @@
                     Contact email on file
                     <select @change="if ($event.target.value) email = $event.target.value"
                             class="block w-full mt-1 p-2 rounded-lg border" style="background: var(--bg-glass-input);">
-                        <option value="">— Choose contact —</option>
+                        <option value="">Choose contact</option>
                         <template x-for="ce in clientEmails" :key="ce.id">
                             <option :value="ce.email" :selected="ce.email === email"
                                     x-text="(ce.label ? ce.label + ' · ' : '') + ce.email"></option>

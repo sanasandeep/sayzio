@@ -6,7 +6,7 @@
     @include('user.ai._partials.header', [
         'kicker'   => 'AI',
         'title'    => 'AI Marketing Strategist',
-        'subtitle' => 'Your AI digital performer — feed in your own Sayzio data and get an organic + paid plan built around real features.',
+        'subtitle' => 'Your AI digital performer, feed in your own Sayzio data and get an organic + paid plan built around real features.',
         'balance'  => $balance,
     ])
 
@@ -25,7 +25,7 @@
         </a>
     </div>
 
-    <p class="text-[11px] text-white/35 -mt-3 mb-5 text-right">Sample is an approximate, illustrative report — your real reports use your own data.</p>
+    <p class="text-[11px] text-white/35 -mt-3 mb-5 text-right">Sample is an approximate, illustrative report, your real reports use your own data.</p>
 
     @if($strategies->isEmpty())
         <div class="rounded-2xl border border-white/10 bg-white/[0.03] p-10 text-center">

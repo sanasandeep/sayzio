@@ -24,16 +24,16 @@
         'hubspot' => [
             'console_url'  => 'https://developers.hubspot.com/docs/api/creating-an-app',
             'console_label'=> 'HubSpot Developer Account → Apps → Create App',
-            'app_type'     => 'Public App (not Private App — Private Apps cannot do OAuth)',
+            'app_type'     => 'Public App (not Private App, Private Apps cannot do OAuth)',
             'scopes_note'  => 'Required scopes: <code>crm.objects.contacts.read</code>, <code>crm.objects.contacts.write</code>, <code>oauth</code>. Add these under the Auth tab of your app.',
-            'gotcha'       => 'Use a <strong>Public App</strong> — HubSpot Private Apps use a different bearer-token flow and do not support OAuth redirects.',
+            'gotcha'       => 'Use a <strong>Public App</strong>, HubSpot Private Apps use a different bearer-token flow and do not support OAuth redirects.',
         ],
         'zoho' => [
             'console_url'  => 'https://api-console.zoho.com/',
             'console_label'=> 'Zoho API Console → Add Client → Server-based Applications',
             'app_type'     => 'Server-based Applications (Web Client)',
             'scopes_note'  => 'Required scopes: <code>ZohoCRM.modules.ALL</code>, <code>ZohoCRM.users.READ</code>, <code>AaaServer.profile.READ</code>. Enter these in the "Scope" field when creating the client.',
-            'gotcha'       => 'Choose <strong>Server-based Applications</strong>, not Self Client — Self Client tokens expire in 10 minutes. Zoho data centres differ; if your users are on .eu or .in, make sure your API calls target the matching region.',
+            'gotcha'       => 'Choose <strong>Server-based Applications</strong>, not Self Client, Self Client tokens expire in 10 minutes. Zoho data centres differ; if your users are on .eu or .in, make sure your API calls target the matching region.',
         ],
     ];
     $pm = $providerMeta[$provider] ?? null;
@@ -80,7 +80,7 @@
     {{-- Scopes the OAuth app must grant --}}
     @if(count($oauthScopes))
         <div class="rounded-xl border border-white/10 bg-white/[0.03] p-3 text-xs space-y-1.5">
-            <div class="text-[10px] uppercase tracking-wider text-white/40">Required OAuth scopes — add these to your app</div>
+            <div class="text-[10px] uppercase tracking-wider text-white/40">Required OAuth scopes, add these to your app</div>
             <div class="flex flex-wrap gap-1.5">
                 @foreach($oauthScopes as $scope)
                     <code class="px-2 py-0.5 rounded-md bg-white/5 border border-white/10 text-white/80 text-[11px] font-mono">{{ $scope }}</code>
@@ -91,7 +91,7 @@
 
     {{-- Redirect URI with copy affordance --}}
     @include('admin.partials.copy-uri', [
-        'label' => 'Redirect / callback URL — register this exact value in the ' . $meta['label'] . ' developer console',
+        'label' => 'Redirect / callback URL, register this exact value in the ' . $meta['label'] . ' developer console',
         'value' => route('connected-apps.callback'),
     ])
 
@@ -124,7 +124,7 @@
                 <input type="text" name="client_id" value="{{ old('client_id', $clientId) }}" autocomplete="off"
                        placeholder="Client / consumer key"
                        class="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-sm text-white">
-                <p class="text-[11px] text-white/30 mt-1">Plain configuration (not a secret) — safe to store unencrypted.</p>
+                <p class="text-[11px] text-white/30 mt-1">Plain configuration (not a secret), safe to store unencrypted.</p>
             </div>
 
             <div>

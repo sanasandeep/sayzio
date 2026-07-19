@@ -45,7 +45,7 @@
                                     {{ number_format($u->uptime_ratio * 100, 2) }}%
                                     <span class="text-xs" style="color: var(--text-muted);">({{ $u->sample_count }})</span>
                                 @else
-                                    <span style="color: var(--text-faint);">—</span>
+                                    <span style="color: var(--text-faint);">-</span>
                                 @endif
                             </td>
                             <td class="px-4 py-3" style="color: var(--text-muted);">

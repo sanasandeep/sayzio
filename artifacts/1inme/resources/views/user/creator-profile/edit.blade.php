@@ -170,7 +170,7 @@
              account. --}}
         <fieldset class="rounded-2xl p-5" style="background: var(--bg-card); border: 1px solid var(--border-soft);">
             <legend class="text-sm font-bold px-2" style="color: var(--text-primary);">Organizer profile</legend>
-            <p class="text-[11px] mb-3" style="color: var(--text-dimmed);">Shown on all of your events — the public event page and your events listing. Everything here is optional; blank fields simply don't render.</p>
+            <p class="text-[11px] mb-3" style="color: var(--text-dimmed);">Shown on all of your events, the public event page and your events listing. Everything here is optional; blank fields simply don't render.</p>
 
             <div class="space-y-4">
                 <div>
@@ -271,7 +271,7 @@
                     <label class="text-xs font-semibold" style="color: var(--text-primary);">Mute words on your comments</label>
                     <textarea name="mute_words_text" rows="2" placeholder="slur1, slur2, scammer"
                               class="mt-1 w-full px-3 py-2 rounded-lg border text-sm" style="background: var(--bg-glass-input); border-color: var(--border-glass); color: var(--text-primary);">{{ old('mute_words_text', $muteWords) }}</textarea>
-                    <p class="text-[11px] mt-1" style="color: var(--text-dimmed);">Comma- or newline-separated. Matched comments are silently hidden — admins still see them.</p>
+                    <p class="text-[11px] mt-1" style="color: var(--text-dimmed);">Comma- or newline-separated. Matched comments are silently hidden, admins still see them.</p>
                 </div>
 
                 {{-- Watermarking --}}

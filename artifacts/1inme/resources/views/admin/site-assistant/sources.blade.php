@@ -1,6 +1,6 @@
 @extends('admin.layouts.app')
-@section('title', 'Site Assistant — Knowledge Sources')
-@section('page-title', 'Site Assistant — Knowledge Sources')
+@section('title', 'Site Assistant: Knowledge Sources')
+@section('page-title', 'Site Assistant, Knowledge Sources')
 
 @section('content')
 <div class="max-w-6xl space-y-6">
@@ -20,7 +20,7 @@
             marketing page so the assistant prefers it when a visitor is on that page.
         </p>
         <p class="text-xs text-white/40">
-            Page pattern uses fnmatch — match a route name (e.g. <code class="text-white/70">marketing.pricing</code>) or
+            Page pattern uses fnmatch, match a route name (e.g. <code class="text-white/70">marketing.pricing</code>) or
             a URL path (e.g. <code class="text-white/70">/pricing*</code>). Leave blank to apply everywhere.
         </p>
     </div>
@@ -126,7 +126,7 @@
                             @if($usedN > 0)
                                 <span class="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] bg-indigo-500/15 text-indigo-200" title="Used {{ $usedN }} time{{ $usedN === 1 ? '' : 's' }} this month">{{ $usedN }}</span>
                             @else
-                                <span class="text-white/30 text-xs" title="Not cited yet this month">—</span>
+                                <span class="text-white/30 text-xs" title="Not cited yet this month">-</span>
                             @endif
                         </td>
                         <td class="p-3 text-right whitespace-nowrap">

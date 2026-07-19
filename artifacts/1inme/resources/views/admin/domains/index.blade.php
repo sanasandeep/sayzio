@@ -42,7 +42,7 @@
                            class="mt-1.5 w-full px-3 py-2.5 rounded-xl text-sm" style="background: var(--bg-input); border:1px solid var(--border-subtle); color: var(--text-primary);">
                 </label>
                 <label class="block">
-                    <span class="text-[11px] font-medium uppercase tracking-wide" style="color: var(--text-muted);">CNAME target <span class="normal-case font-normal">(optional — defaults to your app host)</span></span>
+                    <span class="text-[11px] font-medium uppercase tracking-wide" style="color: var(--text-muted);">CNAME target <span class="normal-case font-normal">(optional, defaults to your app host)</span></span>
                     <input type="text" name="cname_target" value="{{ old('cname_target') }}" placeholder="{{ parse_url(config('app.url'), PHP_URL_HOST) ?: 'your-app-host' }}"
                            class="mt-1.5 w-full px-3 py-2.5 rounded-xl text-sm" style="background: var(--bg-input); border:1px solid var(--border-subtle); color: var(--text-primary);">
                 </label>
@@ -77,7 +77,7 @@
             <p class="text-[11px] -mt-2" style="color: var(--text-faint);">Leave every tag unticked to open the domain to <strong>everyone</strong>; otherwise it's offered to accounts matching any ticked plan <strong>or</strong> badge.</p>
 
             <div class="rounded-xl p-4 space-y-3" style="background: var(--bg-input); border:1px solid var(--border-subtle);">
-                <span class="text-[11px] font-medium uppercase tracking-wide" style="color: var(--text-muted);">Branding (optional — non-primary domains only)</span>
+                <span class="text-[11px] font-medium uppercase tracking-wide" style="color: var(--text-muted);">Branding (optional, non-primary domains only)</span>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
                     @foreach([['logo_light','Light logo','image/*'],['logo_dark','Dark logo','image/*'],['icon','Icon','image/*,.ico']] as [$f,$l,$a])
                         <label class="admin-file-slot" x-data="{ name: '' }">
@@ -155,7 +155,7 @@
                         </label>
                         <div class="flex items-end pb-1">
                             <label class="flex items-center gap-2 text-xs cursor-pointer" style="color: var(--text-muted);">
-                                <input type="checkbox" name="is_active" value="1" @checked($d->is_active) class="rounded"> Active — offered in the create-link domain picker
+                                <input type="checkbox" name="is_active" value="1" @checked($d->is_active) class="rounded"> Active, offered in the create-link domain picker
                             </label>
                         </div>
                     </div>
@@ -188,7 +188,7 @@
                     </div>
 
                     @if($d->is_primary)
-                        <p class="text-[11px] rounded-xl px-3 py-2" style="color: var(--text-faint); background: var(--bg-input); border:1px solid var(--border-subtle);"><i class="fas fa-info-circle mr-1"></i>This is the primary domain — it always uses the platform logo and shows no relationship section.</p>
+                        <p class="text-[11px] rounded-xl px-3 py-2" style="color: var(--text-faint); background: var(--bg-input); border:1px solid var(--border-subtle);"><i class="fas fa-info-circle mr-1"></i>This is the primary domain, it always uses the platform logo and shows no relationship section.</p>
                     @else
                         <div class="rounded-xl p-4 space-y-3" style="background: var(--bg-input); border:1px solid var(--border-subtle);">
                             <span class="text-[11px] font-medium uppercase tracking-wide" style="color: var(--text-muted);">Branding</span>

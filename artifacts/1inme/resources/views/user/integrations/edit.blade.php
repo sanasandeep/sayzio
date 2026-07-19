@@ -21,7 +21,7 @@
                 </div>
                 <div>
                     <h3 class="text-base font-bold" style="color: var(--text-primary);">{{ $providerSchema['label'] }}</h3>
-                    <p class="text-[11px]" style="color: var(--text-muted);">Provider cannot be changed once saved — delete and re-create to switch.</p>
+                    <p class="text-[11px]" style="color: var(--text-muted);">Provider cannot be changed once saved, delete and re-create to switch.</p>
                 </div>
             </div>
 

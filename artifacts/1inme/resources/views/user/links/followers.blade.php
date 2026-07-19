@@ -106,7 +106,7 @@
     if (workspace_owner()?->getPlanFeature('analytics_export', true)) {
         $heroActions[] = ['label' => 'Export CSV', 'url' => route('user.links.followers.export', $link) . (empty($qs) ? '?' . http_build_query(['period' => $period ?? '30d']) : '?' . http_build_query($qs)), 'icon' => 'fa-file-csv', 'class' => 'btn-primary'];
     } else {
-        $heroActions[] = ['label' => 'Upgrade to export', 'url' => route('user.upgrade'), 'icon' => 'fa-lock', 'class' => 'btn-ghost', 'title' => 'CSV export is a paid feature — upgrade your plan to download follower stats.'];
+        $heroActions[] = ['label' => 'Upgrade to export', 'url' => route('user.upgrade'), 'icon' => 'fa-lock', 'class' => 'btn-ghost', 'title' => 'CSV export is a paid feature, upgrade your plan to download follower stats.'];
     }
 @endphp
 @include('user.partials.page-hero', [

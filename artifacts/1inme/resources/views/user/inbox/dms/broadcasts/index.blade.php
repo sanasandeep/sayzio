@@ -30,7 +30,7 @@
             <label class="text-sm sm:col-span-2">
                 <span style="color: var(--text-muted);">Tier (only when audience = "Tier")</span>
                 <select name="audience_value" class="mt-1 w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm">
-                    <option value="">—</option>
+                    <option value="">-</option>
                     @foreach($tiers as $t)
                         <option value="{{ $t->id }}">{{ $t->name }}</option>
                     @endforeach
@@ -41,7 +41,7 @@
             <span style="color: var(--text-muted);">Message</span>
             <textarea name="body" rows="4" required maxlength="5000"
                       class="mt-1 w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm"
-                      placeholder="Hey friends — just dropped a new behind-the-scenes set 🔥"></textarea>
+                      placeholder="Hey friends, just dropped a new behind-the-scenes set 🔥"></textarea>
         </label>
 
         <details class="text-sm">
@@ -50,7 +50,7 @@
                 <input type="url" name="attachment_url" placeholder="https://… (file URL)" class="px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm">
                 <input type="url" name="attachment_thumb_url" placeholder="https://… (thumb / blur preview)" class="px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm">
                 <select name="attachment_kind" class="px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm">
-                    <option value="">— Type —</option>
+                    <option value="">Type</option>
                     <option value="image">Image</option>
                     <option value="gallery">Gallery</option>
                     <option value="video">Video</option>
@@ -58,7 +58,7 @@
                     <option value="voice">Voice note</option>
                     <option value="file">File</option>
                 </select>
-                <input type="number" name="attachment_lock_price_cents" min="0" max="100000" placeholder="Unlock price (cents) — 0 = free" class="px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm">
+                <input type="number" name="attachment_lock_price_cents" min="0" max="100000" placeholder="Unlock price (cents), 0 = free" class="px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm">
             </div>
         </details>
 

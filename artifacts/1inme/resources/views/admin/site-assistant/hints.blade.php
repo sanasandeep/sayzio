@@ -1,6 +1,6 @@
 @extends('admin.layouts.app')
-@section('title', 'Site Assistant — Page Hints')
-@section('page-title', 'Site Assistant — Page Hints')
+@section('title', 'Site Assistant: Page Hints')
+@section('page-title', 'Site Assistant, Page Hints')
 
 @section('content')
 <div class="max-w-6xl space-y-6">
@@ -11,7 +11,7 @@
 
     <div class="glass rounded-2xl border border-white/10 p-6 space-y-3">
         <h3 class="font-semibold text-white">New page hint</h3>
-        <p class="text-xs text-white/40">Match a route name pattern (e.g. <code>billing.*</code>) or path glob (e.g. <code>/pricing*</code>) — these get injected as additional context when a visitor chats from a matching page.</p>
+        <p class="text-xs text-white/40">Match a route name pattern (e.g. <code>billing.*</code>) or path glob (e.g. <code>/pricing*</code>), these get injected as additional context when a visitor chats from a matching page.</p>
         <form method="POST" action="{{ route('admin.site-assistant.hints.store') }}" class="grid md:grid-cols-2 gap-3">
             @csrf
             <input name="label" required maxlength="120" placeholder="Label (e.g. Pricing page)" class="bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white">

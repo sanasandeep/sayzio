@@ -76,7 +76,7 @@
                 </span>
                 <div class="min-w-0 flex-1">
                     <h2 class="text-white font-semibold text-base leading-tight">Project <span class="text-xs font-normal text-white/40">(optional)</span></h2>
-                    <p class="text-xs text-white/50 mt-1 leading-relaxed">Pick a saved project to pre-fill the goal, audience, budget and offer — or start a new one you can reuse next time.</p>
+                    <p class="text-xs text-white/50 mt-1 leading-relaxed">Pick a saved project to pre-fill the goal, audience, budget and offer, or start a new one you can reuse next time.</p>
                 </div>
                 <a href="{{ route('user.ai.marketing-strategist.projects.index') }}"
                    class="text-[11px] text-white/60 hover:text-white px-2.5 py-1 rounded-lg bg-white/5 border border-white/10 shrink-0">
@@ -111,7 +111,7 @@
                 <span class="{{ $stepBadgeCls }}">1</span>
                 <div class="min-w-0">
                     <h2 class="text-white font-semibold text-base leading-tight">Your data</h2>
-                    <p class="text-xs text-white/50 mt-1 leading-relaxed">Choose the data the strategist grounds its plan in. Only names and aggregate stats are shared — never private contact details. For a source with individual items you can narrow to a few; leaving them unselected means <span class="text-white/70">“use everything”</span>.</p>
+                    <p class="text-xs text-white/50 mt-1 leading-relaxed">Choose the data the strategist grounds its plan in. Only names and aggregate stats are shared, never private contact details. For a source with individual items you can narrow to a few; leaving them unselected means <span class="text-white/70">“use everything”</span>.</p>
                 </div>
             </div>
 
@@ -190,7 +190,7 @@
                 </div>
             </div>
             @if(!empty($pd['has_profile']))
-                <p class="text-[11px] text-blue-200/80 mt-3 flex items-center gap-1.5"><i class="fas fa-user-check text-[10px]"></i> Pre-filled from your <a href="{{ route('user.ai.marketing-strategist.projects.index') }}" class="underline hover:text-blue-100">default project</a> — edit anything below.</p>
+                <p class="text-[11px] text-blue-200/80 mt-3 flex items-center gap-1.5"><i class="fas fa-user-check text-[10px]"></i> Pre-filled from your <a href="{{ route('user.ai.marketing-strategist.projects.index') }}" class="underline hover:text-blue-100">default project</a>, edit anything below.</p>
             @endif
             <textarea name="goal" id="ms-goal" rows="3" maxlength="4000" required
                       placeholder="e.g. Grow my newsletter subscribers and drive more clicks to my link-in-bio over the next month."
@@ -201,7 +201,7 @@
                 <div>
                     <label class="block text-xs text-white/50 mb-1.5">Primary metric to track <span class="text-white/30">(for scoring &amp; forecast)</span></label>
                     <select name="parameters[goal_metric]" class="{{ $inputCls }}">
-                        <option value="" class="bg-slate-800">Auto — let the strategist choose</option>
+                        <option value="" class="bg-slate-800">Auto, let the strategist choose</option>
                         @foreach(['clicks' => 'Link clicks', 'views' => 'Page views', 'subscribers' => 'Subscribers', 'followers' => 'Followers', 'orders' => 'Orders', 'revenue' => 'Revenue'] as $val => $label)
                             <option value="{{ $val }}" @selected($goalMetric === $val) class="bg-slate-800">{{ $label }}</option>
                         @endforeach

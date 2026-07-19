@@ -69,7 +69,7 @@
                     <label class="flex items-center gap-1.5 cursor-pointer"><input type="radio" name="__src" value="new" x-model="src"> New badge</label>
                 </div>
                 <select name="assign_badge_id" x-show="src === 'existing'" :disabled="src !== 'existing'" class="w-full mb-3 px-3 py-2 rounded-lg text-sm" style="background: var(--bg-subtle); border:1px solid var(--border-glass); color: var(--text-primary);">
-                    <option value="">— Choose a badge —</option>
+                    <option value="">Choose a badge</option>
                     @foreach($badges as $b)<option value="{{ $b->id }}">{{ $b->name }}</option>@endforeach
                 </select>
                 <div x-show="src === 'new'" x-cloak class="mb-3 flex items-center gap-2">

@@ -83,7 +83,7 @@
                 {{ count($pendingMigrations) }} {{ \Illuminate\Support\Str::plural('migration', count($pendingMigrations)) }}
                 {{ count($pendingMigrations) === 1 ? 'has' : 'have' }} not been applied. This usually means the deploy's
                 <code class="px-1 py-0.5 rounded bg-black/30 text-red-200">php artisan migrate --force</code> step failed,
-                leaving tables/columns missing — some pages may return errors until it's fixed.
+                leaving tables/columns missing, some pages may return errors until it's fixed.
                 Run <code class="px-1 py-0.5 rounded bg-black/30 text-red-200">php artisan migrate --force</code> against production.
             </p>
             <details class="mt-3">
@@ -118,7 +118,7 @@
                 {{ count($missingColumns) === 1 ? 'is' : 'are' }} missing a
                 <code class="px-1 py-0.5 rounded bg-black/30 text-red-200">workspace_id</code> /
                 <code class="px-1 py-0.5 rounded bg-black/30 text-red-200">created_by_user_id</code> column even though
-                their migration is recorded as applied — a half-applied migration. Workspace-scoped pages for these
+                their migration is recorded as applied, a half-applied migration. Workspace-scoped pages for these
                 tables will return errors until it's fixed. Run
                 <code class="px-1 py-0.5 rounded bg-black/30 text-red-200">php artisan db:check-workspace-columns --repair</code>
                 against production.
@@ -153,7 +153,7 @@
             <p class="text-sm text-white/70 mt-1">
                 {{ count($missingExpected) }} {{ \Illuminate\Support\Str::plural('table', count($missingExpected)) }}
                 {{ count($missingExpected) === 1 ? 'is' : 'are' }} missing a column the app depends on even though
-                their migration is recorded as applied — an <span class="text-red-200">edited-after-applied</span>
+                their migration is recorded as applied, an <span class="text-red-200">edited-after-applied</span>
                 migration (a recorded migration was later changed to add columns, so Laravel never re-ran it and
                 <code class="px-1 py-0.5 rounded bg-black/30 text-red-200">migrate:status</code> still shows 0 pending).
                 Pages that read these columns will return errors until it's fixed.
@@ -166,7 +166,7 @@
                     <code class="px-1 py-0.5 rounded bg-black/30 text-red-200">php artisan migrate --force</code>
                     against production.
                 @else
-                    Some entries are whole missing tables that need a full migration — run
+                    Some entries are whole missing tables that need a full migration, run
                     <code class="px-1 py-0.5 rounded bg-black/30 text-red-200">php artisan migrate --force</code>
                     against production. Fix now will repair any missing columns it can.
                 @endif
@@ -256,13 +256,13 @@
                     <span class="text-amber-200 font-semibold">no active recommended page templates</span>:
                     <span class="text-amber-200 font-semibold">{{ $tghNames->join(', ', ' and ') }}</span>.
                     New users who pick {{ $tghNames->count() === 1 ? 'that persona' : 'those personas' }} in
-                    onboarding get no tailored "Recommended for you" row — only the generic browse-all list. Add a
+                    onboarding get no tailored "Recommended for you" row, only the generic browse-all list. Add a
                     template (or tag an existing one) for each so onboarding can recommend a starting point.
                 </p>
             @endif
             @if($tghGatedNames->isNotEmpty())
                 <p class="text-xs text-white/50 mt-2">
-                    Also worth noting — every recommended template is locked behind a paid tier for:
+                    Also worth noting, every recommended template is locked behind a paid tier for:
                     <span class="text-white/70">{{ $tghGatedNames->join(', ', ' and ') }}</span>, so entry-level
                     users see an all-locked recommended row.
                 </p>

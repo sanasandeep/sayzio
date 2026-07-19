@@ -18,7 +18,7 @@
         <i class="fas fa-plus"></i> Add Tracker
     </a>
     @else
-    <span class="px-4 py-2 rounded-xl text-sm font-medium flex items-center gap-2 cursor-not-allowed opacity-60 bg-blue-600/40 text-white" title="Your role doesn't allow adding trackers — ask a workspace admin">
+    <span class="px-4 py-2 rounded-xl text-sm font-medium flex items-center gap-2 cursor-not-allowed opacity-60 bg-blue-600/40 text-white" title="Your role doesn't allow adding trackers, ask a workspace admin">
         <i class="fas fa-lock"></i> Add Tracker
     </span>
     @endif
@@ -72,8 +72,8 @@
                                 <button class="text-white/30 hover:text-red-400" title="Delete"><i class="fas fa-trash"></i></button>
                             </form>
                         @else
-                            <span class="text-white/20 cursor-not-allowed" title="Your role doesn't allow editing trackers — ask a workspace admin"><i class="fas fa-lock"></i></span>
-                            <span class="text-white/20 cursor-not-allowed" title="Your role doesn't allow deleting trackers — ask a workspace admin"><i class="fas fa-lock"></i></span>
+                            <span class="text-white/20 cursor-not-allowed" title="Your role doesn't allow editing trackers, ask a workspace admin"><i class="fas fa-lock"></i></span>
+                            <span class="text-white/20 cursor-not-allowed" title="Your role doesn't allow deleting trackers, ask a workspace admin"><i class="fas fa-lock"></i></span>
                         @endif
                     </div>
                 </td>

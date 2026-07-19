@@ -8,7 +8,7 @@
         <textarea name="quote" rows="3" required maxlength="600"
                   class="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white/90 focus:border-blue-400 focus:outline-none"
                   placeholder="The line you want shown in quotes on the homepage…">{{ old('quote', $t->quote ?? '') }}</textarea>
-        <p class="text-[11px] text-white/40 mt-1">Up to 600 characters. Don't add quote marks — they're added automatically.</p>
+        <p class="text-[11px] text-white/40 mt-1">Up to 600 characters. Don't add quote marks, they're added automatically.</p>
     </div>
 
     <div>

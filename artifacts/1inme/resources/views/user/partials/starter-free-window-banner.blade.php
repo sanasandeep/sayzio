@@ -26,12 +26,12 @@
                     Your free <strong>Starter</strong> year
                     @if($__starterEndsAt)
                         @if($__starterEndsAt->isPast())
-                            has lapsed — renew free to keep checking in. Nothing is locked; your account and links are untouched.
+                            has lapsed, renew free to keep checking in. Nothing is locked; your account and links are untouched.
                         @else
-                            ends {{ $__starterEndsAt->diffForHumans() }}. Renew free for another year — your account and links stay exactly as they are.
+                            ends {{ $__starterEndsAt->diffForHumans() }}. Renew free for another year, your account and links stay exactly as they are.
                         @endif
                     @else
-                        is up for renewal. Renew free for another year — nothing changes.
+                        is up for renewal. Renew free for another year, nothing changes.
                     @endif
                 </span>
 

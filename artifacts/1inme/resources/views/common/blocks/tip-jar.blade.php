@@ -110,7 +110,7 @@
                         <template x-if="!loading">
                             <span>
                                 <i class="fas fa-jar mr-1.5"></i>
-                                <span x-text="amount ? '{{ $tjBtnText }} — {{ $tjCurrencySymbol }}' + amount : '{{ $tjBtnText }}'"></span>
+                                <span x-text="amount ? '{{ $tjBtnText }}, {{ $tjCurrencySymbol }}' + amount : '{{ $tjBtnText }}'"></span>
                             </span>
                         </template>
                     </button>

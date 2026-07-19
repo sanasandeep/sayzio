@@ -18,7 +18,7 @@
 
         <div class="glass rounded-2xl p-6 space-y-4">
             <p class="text-sm text-white/50">
-                A bold, shareable home for your paid content. Your posts, subscription tiers, pay-per-view unlocks and tips appear here <strong class="text-white/70">automatically</strong> — there's no linking step. Just pick a vibrant template below; anything you publish later shows up on its own.
+                A bold, shareable home for your paid content. Your posts, subscription tiers, pay-per-view unlocks and tips appear here <strong class="text-white/70">automatically</strong>, there's no linking step. Just pick a vibrant template below; anything you publish later shows up on its own.
             </p>
 
             <div>

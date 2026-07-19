@@ -12,7 +12,7 @@
 <div class="max-w-5xl mx-auto">
     @include('user.partials.page-hero', [
         'title' => 'Preview before importing',
-        'subtitle' => 'Review the rows we parsed from ' . $originalName . '. Nothing has been saved yet — confirm to create the contacts, or cancel to discard the upload.',
+        'subtitle' => 'Review the rows we parsed from ' . $originalName . '. Nothing has been saved yet, confirm to create the contacts, or cancel to discard the upload.',
         'icon' => 'fa-table',
         'chips' => [
             ['icon' => 'fa-list text-cyan-400',           'text' => $stats['total'] . ' rows parsed'],
@@ -35,7 +35,7 @@
     @if($stats['overCap'] > 0)
     <div class="mb-6 px-4 py-3 rounded-xl text-sm" style="background: rgba(245,158,11,0.10); border: 1px solid rgba(245,158,11,0.25); color: #f59e0b;">
         <i class="fas fa-exclamation-triangle mr-1.5"></i>
-        Only {{ $stats['remaining'] }} slot(s) left — {{ $stats['overCap'] }} row(s) at the bottom of the file will be skipped if you confirm.
+        Only {{ $stats['remaining'] }} slot(s) left, {{ $stats['overCap'] }} row(s) at the bottom of the file will be skipped if you confirm.
     </div>
     @endif
 
@@ -79,14 +79,14 @@
                                 @forelse($phones as $p)
                                     <div>{{ $p }}</div>
                                 @empty
-                                    <span style="color:var(--text-faint);">—</span>
+                                    <span style="color:var(--text-faint);">-</span>
                                 @endforelse
                             </td>
                             <td class="py-2 pr-3 align-top text-xs" style="color:var(--text-muted);">
                                 @forelse($emails as $e)
                                     <div>{{ $e }}</div>
                                 @empty
-                                    <span style="color:var(--text-faint);">—</span>
+                                    <span style="color:var(--text-faint);">-</span>
                                 @endforelse
                             </td>
                             <td class="py-2 pr-3 align-top text-xs" style="color:var(--text-muted);">

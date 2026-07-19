@@ -406,7 +406,7 @@
                                     iconSize: [30, 40], iconAnchor: [15, 40]
                                 });
                                 var title = p.label || '';
-                                if (p.address) { title = title ? (title + ' — ' + p.address) : p.address; }
+                                if (p.address) { title = title ? (title + ', ' + p.address) : p.address; }
                                 var m = L.marker([p.lat, p.lng], { icon: icon, title: title, keyboard: false }).addTo(map);
                                 if (p.url) {
                                     m.on('click', function () { window.open(p.url, '_blank', 'noopener'); });
@@ -506,7 +506,7 @@
                         </div>
                         <div x-ref="map" class="dialer-loc-map" style="height:260px;border-radius:12px;overflow:hidden;border:1px solid rgba(255,255,255,.10);background:#1e2330;"></div>
                         <p class="text-[11px] mt-1.5" style="color:var(--text-faint);">
-                            <i class="fas fa-circle-info mr-1"></i> Tap the map or drag the pin — we'll fill in the address and coordinates for you.
+                            <i class="fas fa-circle-info mr-1"></i> Tap the map or drag the pin, we'll fill in the address and coordinates for you.
                         </p>
                     </div>
 
@@ -521,7 +521,7 @@
                     <div x-show="hasPreviewPoint()" x-cloak class="mt-3">
                         <div x-ref="preview" class="dialer-loc-thumb" style="height:150px;border-radius:12px;overflow:hidden;border:1px solid rgba(255,255,255,.10);background:#1e2330;"></div>
                         <p class="text-[11px] mt-1.5" style="color:var(--text-faint);">
-                            <i class="fas fa-eye mr-1"></i> Preview of the point you'll save — updates as you adjust the coordinates.
+                            <i class="fas fa-eye mr-1"></i> Preview of the point you'll save, updates as you adjust the coordinates.
                         </p>
                     </div>
                 </div>

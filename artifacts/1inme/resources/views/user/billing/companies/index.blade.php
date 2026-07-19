@@ -24,7 +24,7 @@
                         <div class="text-[11px] uppercase tracking-wide font-semibold" style="color: var(--text-muted);">Coin wallet</div>
                         <div class="text-2xl font-bold mt-1" style="color: var(--text-primary);">{{ number_format($wallet->balance) }} <span class="text-lg">🪙</span></div>
                         @if($__low > 0 && $wallet->balance < $__low)
-                            <div class="text-xs mt-1 text-amber-600"><i class="fas fa-triangle-exclamation mr-1"></i>Balance below {{ number_format($__low) }} coins — top up to keep using coin add-ons.</div>
+                            <div class="text-xs mt-1 text-amber-600"><i class="fas fa-triangle-exclamation mr-1"></i>Balance below {{ number_format($__low) }} coins, top up to keep using coin add-ons.</div>
                         @endif
                     </div>
                     <div class="flex flex-col gap-2 shrink-0">

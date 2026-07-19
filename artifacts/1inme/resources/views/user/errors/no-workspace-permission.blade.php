@@ -57,7 +57,7 @@
                         <p class="text-xs mt-2" style="color: var(--text-muted);">
                             This page needs at least the
                             <span class="font-semibold" style="color: var(--text-primary);">{{ implode(' / ', $grantorRoles) }}</span>
-                            role — only the workspace owner can change your role.
+                            role, only the workspace owner can change your role.
                         </p>
                     @endif
                 @endif

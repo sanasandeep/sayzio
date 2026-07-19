@@ -47,7 +47,7 @@
     <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="bg-gradient-to-br from-blue-500/[0.10] to-blue-500/[0.06] border border-blue-400/20 rounded-2xl p-6 sm:p-10 text-center">
             <h2 class="text-2xl sm:text-3xl font-bold text-white">
-                Want a short link like this — but for you?
+                Want a short link like this, but for you?
             </h2>
             <p class="mt-3 text-gray-300 max-w-xl mx-auto">
                 Build your own 1IN.ME link in under a minute. Share one tidy URL for

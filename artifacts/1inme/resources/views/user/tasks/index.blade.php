@@ -73,7 +73,7 @@
         <h2 class="text-sm font-bold uppercase tracking-widest mb-3" style="color: var(--text-faint);">
             <i class="fas fa-users mr-1"></i> Team Boards
         </h2>
-        @include('user.tasks.partials.board-grid', ['boards' => $team, 'emptyMsg' => 'No team boards yet — create one to share work with your workspace.'])
+        @include('user.tasks.partials.board-grid', ['boards' => $team, 'emptyMsg' => 'No team boards yet, create one to share work with your workspace.'])
     </section>
 
     @if(($archived ?? collect())->isNotEmpty())

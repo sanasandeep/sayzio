@@ -67,7 +67,7 @@
                         <div class="flex items-center gap-3 text-xs text-white/40">
                             <span><i class="fas fa-layer-group mr-1"></i>{{ $m->sources_count }} sources</span>
                             <span><i class="fas fa-database mr-1"></i>{{ $m->chunks_count }} chunks</span>
-                            @if($m->is_disabled)<span class="text-red-300">Disabled — {{ $m->disabled_reason }}</span>@endif
+                            @if($m->is_disabled)<span class="text-red-300">Disabled, {{ $m->disabled_reason }}</span>@endif
                         </div>
                         <div class="flex items-center gap-2 mt-1">
                             <a href="{{ route('user.minds.edit', $m) }}" class="px-3 py-1.5 text-xs rounded-lg bg-white/10 hover:bg-white/15 text-white">Open</a>

@@ -1,6 +1,6 @@
 @extends('user.layouts.app')
 
-@section('title', 'Ticketing — ' . $link->title)
+@section('title', 'Ticketing: ' . $link->title)
 
 @section('content')
 <div class="max-w-7xl mx-auto">
@@ -158,7 +158,7 @@
                                 </button>
                             </form>
                             @else
-                            <span class="text-xs" style="color: var(--text-muted);">—</span>
+                            <span class="text-xs" style="color: var(--text-muted);">-</span>
                             @endif
                         </td>
                     </tr>

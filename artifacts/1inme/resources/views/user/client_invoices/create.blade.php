@@ -31,27 +31,27 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <label class="text-xs" style="color: var(--text-muted);">Billing company
                     <select name="billing_company_id" class="block w-full mt-1 p-2 rounded-lg border" style="background: var(--bg-glass-input); border-color: var(--border-soft); color: var(--text-primary);">
-                        <option value="">— Default —</option>
+                        <option value="">Default</option>
                         @foreach($companies as $co)<option value="{{ $co->id }}" @selected($co->is_default)>{{ $co->name }}</option>@endforeach
                     </select>
                 </label>
                 <label class="text-xs" style="color: var(--text-muted);">Currency<input name="currency" maxlength="3" value="USD" class="block w-full mt-1 p-2 rounded-lg border uppercase" style="background: var(--bg-glass-input); border-color: var(--border-soft); color: var(--text-primary);"></label>
                 <label class="text-xs" style="color: var(--text-muted);">Vault client
                     <select name="vault_client_id" x-model.number="vaultId" @change="if (clientEmails.length === 1) email = clientEmails[0].email" class="block w-full mt-1 p-2 rounded-lg border" style="background: var(--bg-glass-input); border-color: var(--border-soft); color: var(--text-primary);">
-                        <option value="0">— None —</option>
+                        <option value="0">None</option>
                         @foreach($clients as $c)<option value="{{ $c->id }}">{{ $c->name }}</option>@endforeach
                     </select>
                 </label>
                 <label class="text-xs" style="color: var(--text-muted);">Contact / lead
                     <select name="contact_id" class="block w-full mt-1 p-2 rounded-lg border" style="background: var(--bg-glass-input); border-color: var(--border-soft); color: var(--text-primary);">
-                        <option value="">— None —</option>
+                        <option value="">None</option>
                         @foreach($contacts as $ct)<option value="{{ $ct->id }}" @selected((int) old('contact_id', $prefill['contact_id'] ?? 0) === $ct->id)>{{ $ct->nameForDisplay() }}</option>@endforeach
                     </select>
                 </label>
                 <label class="text-xs" style="color: var(--text-muted);">Recipient email<input type="email" name="recipient_email" x-model="email" class="block w-full mt-1 p-2 rounded-lg border" style="background: var(--bg-glass-input); border-color: var(--border-soft); color: var(--text-primary);"></label>
                 <label class="text-xs" style="color: var(--text-muted);" x-show="clientEmails.length > 0" x-cloak>Contact on file
                     <select @change="if ($event.target.value) email = $event.target.value" class="block w-full mt-1 p-2 rounded-lg border" style="background: var(--bg-glass-input); border-color: var(--border-soft); color: var(--text-primary);">
-                        <option value="">— Choose —</option>
+                        <option value="">Choose</option>
                         <template x-for="ce in clientEmails" :key="ce.id"><option :value="ce.email" x-text="(ce.label ? ce.label + ' · ' : '') + ce.email"></option></template>
                     </select>
                 </label>

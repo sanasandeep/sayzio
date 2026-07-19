@@ -42,7 +42,7 @@
     {{-- Trigger: shows current selection, opens picker on click. --}}
     <button type="button" @click="open = !open" class="theme-input w-full flex items-center justify-between text-left" style="min-height: 38px;">
         <span class="truncate" :style="selected ? ('font-family: ' + previewFamilyCss(selected) + ', sans-serif;') : ''">
-            <span x-show="!selected" class="opacity-60">{{ $allowInherit ? 'Inherit from page' : '— Pick a font —' }}</span>
+            <span x-show="!selected" class="opacity-60">{{ $allowInherit ? 'Inherit from page' : 'Pick a font' }}</span>
             <span x-show="selected" x-text="selectedLabel()"></span>
         </span>
         <i class="fas fa-chevron-down text-[10px] opacity-60 ml-2"></i>

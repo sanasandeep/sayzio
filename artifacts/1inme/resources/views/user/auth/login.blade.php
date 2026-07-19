@@ -58,7 +58,7 @@
                 @endphp
                 <div class="hidden lg:block mb-7">
                     <h2 class="text-2xl font-bold" style="color: var(--text-primary);">Welcome back</h2>
-                    <p class="text-sm mt-1" style="color: var(--text-dimmed);">{{ $passwordOn ? 'Sign in to your account.' : "We'll send you a 6-digit code — no password needed." }}</p>
+                    <p class="text-sm mt-1" style="color: var(--text-dimmed);">{{ $passwordOn ? 'Sign in to your account.' : "We'll send you a 6-digit code, no password needed." }}</p>
                 </div>
 
                 <div class="lg:hidden text-center mb-6">

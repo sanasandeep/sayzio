@@ -8,16 +8,16 @@
         @csrf
         <div>
             <label class="block text-sm font-semibold mb-1">Portal name</label>
-            <input name="name" required maxlength="160" placeholder="Acme Co. — Spring Campaign"
+            <input name="name" required maxlength="160" placeholder="Acme Co., Spring Campaign"
                    class="w-full px-3 py-2 rounded border" style="border-color: var(--border-strong); background: var(--bg-input);">
         </div>
 
         <div>
             <label class="block text-sm font-semibold mb-1">Linked vault client (optional)</label>
             <select name="vault_client_id" class="w-full px-3 py-2 rounded border" style="border-color: var(--border-strong); background: var(--bg-input);">
-                <option value="">— No client linked —</option>
+                <option value="">No client linked</option>
                 @foreach($clients as $c)
-                    <option value="{{ $c->id }}">{{ $c->name }}@if($c->company) — {{ $c->company }}@endif</option>
+                    <option value="{{ $c->id }}">{{ $c->name }}@if($c->company), {{ $c->company }}@endif</option>
                 @endforeach
             </select>
         </div>

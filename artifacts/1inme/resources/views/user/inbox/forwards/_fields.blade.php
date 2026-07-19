@@ -41,7 +41,7 @@
 <div>
     <label class="text-[10px] font-bold uppercase tracking-wider mb-1.5 block" style="color: var(--text-faint);">HMAC secret (webhook only)</label>
     <input type="text" name="secret" maxlength="120" value="{{ old('secret', $d?->secret) }}"
-           placeholder="Optional — sent as X-1INME-Signature: sha256=…"
+           placeholder="Optional, sent as X-1INME-Signature: sha256=…"
            class="w-full px-3 py-2 rounded-lg text-sm outline-none"
            style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-primary);">
 </div>

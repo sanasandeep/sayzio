@@ -32,8 +32,8 @@
             <ol class="list-decimal pl-4 mt-1 space-y-0.5">
                 <li>You need a <strong>Trustpilot Business</strong> account. Register or log in at <a class="underline" href="https://businessapp.b2b.trustpilot.com/" target="_blank" rel="noopener">business.trustpilot.com</a>.</li>
                 <li>Go to <a class="underline" href="https://businessapp.b2b.trustpilot.com/developer/" target="_blank" rel="noopener">Business App → Integrations → Developer</a> and create an API application.</li>
-                <li>The generated API key (sometimes called the <em>public key</em> or <em>apikey</em>) authenticates read requests to the Trustpilot public API — it is <strong>not</strong> a secret but is still stored encrypted here for safety.</li>
-                <li>Paste the key in the field below. No redirect URI or OAuth flow is required — this is a simple API-key integration.</li>
+                <li>The generated API key (sometimes called the <em>public key</em> or <em>apikey</em>) authenticates read requests to the Trustpilot public API, it is <strong>not</strong> a secret but is still stored encrypted here for safety.</li>
+                <li>Paste the key in the field below. No redirect URI or OAuth flow is required, this is a simple API-key integration.</li>
             </ol>',
     ])
 

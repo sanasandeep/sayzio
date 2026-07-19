@@ -15,7 +15,7 @@
         <div class="flex items-center gap-2 min-w-0">
             <div class="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-semibold flex-shrink-0"
                  style="background:{{ $currentWs->iconColor() }}; color:#fff;"
-                 title="{{ $currentWs->is_personal ? 'Personal workspace' : 'Team workspace' }} — {{ $currentWs->name }}">
+                 title="{{ $currentWs->is_personal ? 'Personal workspace' : 'Team workspace' }}, {{ $currentWs->name }}">
                 <i class="fas {{ $currentWs->iconSymbol() }} text-[11px]"></i>
             </div>
             <div class="user-info min-w-0 text-left" x-show="sidebarMode !== 'icons'" x-cloak>

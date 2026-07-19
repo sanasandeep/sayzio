@@ -1,6 +1,6 @@
 @extends('admin.layouts.app')
-@section('title', 'Site Assistant — Response Templates')
-@section('page-title', 'Site Assistant — Response Templates')
+@section('title', 'Site Assistant: Response Templates')
+@section('page-title', 'Site Assistant, Response Templates')
 
 @section('content')
 <div class="max-w-6xl space-y-6">

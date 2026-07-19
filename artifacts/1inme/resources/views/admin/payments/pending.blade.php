@@ -37,7 +37,7 @@
                         <td class="px-4 py-3">
                             @php($buyerRef = $buyerRefs[$inv->id] ?? null)
                             @if($buyerRef)
-                                <div class="mb-1 text-xs text-emerald-200/90" title="Buyer-submitted reference — verify against your bank/UPI statement">
+                                <div class="mb-1 text-xs text-emerald-200/90" title="Buyer-submitted reference, verify against your bank/UPI statement">
                                     <i class="fa-solid fa-user-check"></i> Buyer ref: <span class="font-mono">{{ $buyerRef }}</span>
                                 </div>
                             @endif
@@ -49,7 +49,7 @@
                         </td>
                     </tr>
                 @empty
-                    <tr><td colspan="5" class="px-4 py-8 text-center text-white/40">Nothing to review — all caught up.</td></tr>
+                    <tr><td colspan="5" class="px-4 py-8 text-center text-white/40">Nothing to review, all caught up.</td></tr>
                 @endforelse
             </tbody>
         </table>

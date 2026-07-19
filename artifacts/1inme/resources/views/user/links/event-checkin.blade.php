@@ -1,6 +1,6 @@
 @extends('user.layouts.app')
 
-@section('title', 'Check-in — ' . $link->title)
+@section('title', 'Check-in: ' . $link->title)
 
 @section('content')
 <div class="max-w-3xl mx-auto">
@@ -100,7 +100,7 @@
             renderResult(data);
             loadProgress();
         }).catch(() => {
-            resultEl.innerHTML = '<div style="color:#ef4444;">Network error — try again.</div>';
+            resultEl.innerHTML = '<div style="color:#ef4444;">Network error, try again.</div>';
         });
     }
 
@@ -127,7 +127,7 @@
                 setTimeout(() => { busy = false; }, 2000);
             }, () => {});
         }).catch(() => {
-            resultEl.innerHTML = '<div style="color:#f59e0b;">Camera unavailable — use manual entry below.</div>';
+            resultEl.innerHTML = '<div style="color:#f59e0b;">Camera unavailable, use manual entry below.</div>';
         });
     }
 })();

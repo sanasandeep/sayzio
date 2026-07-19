@@ -31,14 +31,14 @@
                 <label class="text-xs" style="color: var(--text-muted);">Currency<input name="currency" maxlength="3" value="USD" class="block w-full mt-1 p-2 rounded-lg border uppercase" style="background: var(--bg-glass-input); border-color: var(--border-soft); color: var(--text-primary);"></label>
                 <label class="text-xs" style="color: var(--text-muted);">Category
                     <select name="category_id" class="block w-full mt-1 p-2 rounded-lg border" style="background: var(--bg-glass-input); border-color: var(--border-soft); color: var(--text-primary);">
-                        <option value="">— None —</option>
+                        <option value="">None</option>
                         @foreach($categories as $cat)<option value="{{ $cat->id }}">{{ $cat->name }}</option>@endforeach
                     </select>
                 </label>
             </div>
             <label class="text-xs block mt-3" style="color: var(--text-muted);">Billing company
                 <select name="billing_company_id" class="block w-full mt-1 p-2 rounded-lg border" style="background: var(--bg-glass-input); border-color: var(--border-soft); color: var(--text-primary);">
-                    <option value="">— None —</option>
+                    <option value="">None</option>
                     @foreach($companies as $co)<option value="{{ $co->id }}">{{ $co->name }}</option>@endforeach
                 </select>
             </label>

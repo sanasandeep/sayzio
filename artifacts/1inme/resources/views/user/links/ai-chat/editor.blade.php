@@ -110,7 +110,7 @@
 
                     <div class="aic-banner info" x-show="switched" x-cloak style="margin-bottom:16px">
                         <i class="fas fa-circle-info"></i>
-                        You picked a different persona. Save to bind it first — then its personality &amp; knowledge will load here for editing.
+                        You picked a different persona. Save to bind it first, then its personality &amp; knowledge will load here for editing.
                     </div>
 
                     <div x-show="!switched">
@@ -334,7 +334,7 @@
                                 <div class="aicp-msg" x-text="greeting"></div>
                             </template>
                             <template x-if="!greeting || !greeting.trim()">
-                                <div class="aicp-empty">No opening message — the chat starts empty.</div>
+                                <div class="aicp-empty">No opening message, the chat starts empty.</div>
                             </template>
                         </div>
                         <template x-if="starterList.length">

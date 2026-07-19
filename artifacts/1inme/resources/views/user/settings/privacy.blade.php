@@ -6,8 +6,8 @@
         <h1 class="text-2xl font-bold" style="color: var(--text-primary);">Contact privacy</h1>
         <p class="text-sm mt-1" style="color: var(--text-muted);">
             Control what strangers can see about you when they look you up in the dialer's caller-ID
-            or find you through search. People who've already saved you as a contact — and you
-            yourself — always see everything, no matter what you choose here.
+            or find you through search. People who've already saved you as a contact, and you
+            yourself, always see everything, no matter what you choose here.
         </p>
     </div>
 

@@ -5,7 +5,7 @@
 <div class="max-w-4xl mx-auto">
     @include('user.partials.page-hero', [
         'title'    => 'Add ' . $kindMeta['label'] . ' configuration',
-        'subtitle' => 'Save credentials once — pick this configuration anywhere it is needed.',
+        'subtitle' => 'Save credentials once, pick this configuration anywhere it is needed.',
         'icon'     => $kindMeta['icon'],
         'back'     => route('user.integrations.index', ['tab' => $kind]),
     ])
@@ -14,7 +14,7 @@
         {{-- Step 1: pick a provider --}}
         <div class="card-premium p-6 mb-4">
             <h3 class="text-base font-bold mb-1" style="color: var(--text-primary);">Choose a provider</h3>
-            <p class="text-xs mb-4" style="color: var(--text-muted);">You can add as many configurations as you want — different accounts, modes, or environments.</p>
+            <p class="text-xs mb-4" style="color: var(--text-muted);">You can add as many configurations as you want, different accounts, modes, or environments.</p>
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 @foreach($providers as $pKey => $pSchema)
                     <a href="{{ route('user.integrations.create', ['kind' => $kind, 'provider' => $pKey]) }}"

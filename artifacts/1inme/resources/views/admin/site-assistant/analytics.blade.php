@@ -1,6 +1,6 @@
 @extends('admin.layouts.app')
-@section('title', 'Site Assistant — Analytics')
-@section('page-title', 'Site Assistant — Analytics')
+@section('title', 'Site Assistant: Analytics')
+@section('page-title', 'Site Assistant, Analytics')
 
 @section('content')
 @php
@@ -32,7 +32,7 @@
         </div>
         <div class="glass rounded-2xl border border-white/10 p-5 text-center">
             <div class="text-2xl font-semibold text-white">
-                {{ $deflectionRate === null ? '—' : $deflectionRate.'%' }}
+                {{ $deflectionRate === null ? '-' : $deflectionRate.'%' }}
             </div>
             <div class="text-xs text-white/50 mt-1">Deflection rate</div>
             <div class="text-[10px] text-white/30 mt-0.5">resolved without handoff</div>
@@ -47,7 +47,7 @@
         <div class="glass rounded-2xl border border-white/10 p-5 text-center"
              title="Of all partial/failed assistant streams in this window, the share that visitors clicked Retry on. A low retry rate (high abandon rate) usually means a flaky upstream call worth investigating.">
             <div class="text-2xl font-semibold text-white">
-                {{ $cutoffRetryRate === null ? '—' : $cutoffRetryRate.'%' }}
+                {{ $cutoffRetryRate === null ? '-' : $cutoffRetryRate.'%' }}
             </div>
             <div class="text-xs text-white/50 mt-1">Cut-off retry rate</div>
             <div class="text-[10px] text-white/30 mt-0.5">
@@ -92,7 +92,7 @@
         @if($recentAlerts->isEmpty())
             <p class="text-sm text-white/40">
                 @if($acknowledgedCount > 0 && !$showAcknowledged)
-                    No unacknowledged cut-off alerts. Nice work — toggle "Show acknowledged" to review past incidents.
+                    No unacknowledged cut-off alerts. Nice work, toggle "Show acknowledged" to review past incidents.
                 @else
                     No cut-off alerts have been dispatched yet.
                 @endif
@@ -161,7 +161,7 @@
             <div class="flex items-end gap-1 h-40">
                 @foreach($messagesPerDay as $d)
                     @php $h = max(2, (int) round(($d['count'] / $maxDay) * 100)); @endphp
-                    <div class="flex-1 flex flex-col items-center justify-end" title="{{ $d['day'] }} — {{ $d['count'] }} msgs">
+                    <div class="flex-1 flex flex-col items-center justify-end" title="{{ $d['day'] }}, {{ $d['count'] }} msgs">
                         <div class="w-full rounded-t bg-indigo-500/70 hover:bg-indigo-400 transition-all" style="height: {{ $h }}%"></div>
                     </div>
                 @endforeach
@@ -217,7 +217,7 @@
                                     </td>
                                     <td class="py-2 text-right whitespace-nowrap">{{ number_format($row['cutoffs']) }}</td>
                                     <td class="py-2 text-right whitespace-nowrap text-white/50">{{ number_format($row['retried']) }}</td>
-                                    <td class="py-2 text-right whitespace-nowrap">{{ $row['rate'] === null ? '—' : $row['rate'].'%' }}</td>
+                                    <td class="py-2 text-right whitespace-nowrap">{{ $row['rate'] === null ? '-' : $row['rate'].'%' }}</td>
                                 </tr>
                             @endforeach
                         </tbody>
@@ -263,7 +263,7 @@
                                     </td>
                                     <td class="py-2 text-right whitespace-nowrap">{{ number_format($row['cutoffs']) }}</td>
                                     <td class="py-2 text-right whitespace-nowrap text-white/50">{{ number_format($row['retried']) }}</td>
-                                    <td class="py-2 text-right whitespace-nowrap">{{ $row['rate'] === null ? '—' : $row['rate'].'%' }}</td>
+                                    <td class="py-2 text-right whitespace-nowrap">{{ $row['rate'] === null ? '-' : $row['rate'].'%' }}</td>
                                 </tr>
                             @endforeach
                         </tbody>
@@ -315,7 +315,7 @@
                 <span class="text-xs text-white/40">questions that triggered handoff</span>
             </div>
             @if($suggestions->isEmpty())
-                <p class="text-sm text-white/40">No handoffs in this window — nothing to learn from yet.</p>
+                <p class="text-sm text-white/40">No handoffs in this window, nothing to learn from yet.</p>
             @else
                 <p class="text-xs text-white/40 mb-3">Add page hints or response templates for these to deflect them next time.</p>
                 <ol class="space-y-2">

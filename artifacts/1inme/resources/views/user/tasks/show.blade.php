@@ -610,7 +610,7 @@
                                             style="background: var(--bg-card); color: var(--text-muted);">
                                             <span>
                                                 <strong x-text="formatMinutes(t.minutes)"></strong>
-                                                <span class="opacity-60" x-show="t.note">— <span x-text="t.note"></span></span>
+                                                <span class="opacity-60" x-show="t.note"> - <span x-text="t.note"></span></span>
                                                 <span class="opacity-50 ml-1 text-[10px]" x-text="t.user?.name || ''"></span>
                                             </span>
                                             <span class="flex items-center gap-2">
@@ -661,7 +661,7 @@
                 </p>
                 <select name="column_id" class="w-full px-3 py-2 rounded-lg border"
                         style="background: var(--bg-glass-input); border-color: var(--border-strong); color: var(--text-primary);">
-                    <option value="">— None —</option>
+                    <option value="">None</option>
                     @foreach($board->columns as $col)
                         <option value="{{ $col->id }}" @selected($board->billed_column_id == $col->id)>{{ $col->name }}</option>
                     @endforeach

@@ -17,7 +17,7 @@
                     </div>
                     @if(!empty($handleSuggestions))
                         <div class="mt-3">
-                            <div class="text-xs uppercase tracking-wider text-amber-200/70 mb-1.5">Available suggestions — click to use</div>
+                            <div class="text-xs uppercase tracking-wider text-amber-200/70 mb-1.5">Available suggestions, click to use</div>
                             <div class="flex flex-wrap gap-2" data-handle-suggestions>
                                 @foreach($handleSuggestions as $suggestion)
                                     <button type="button"
@@ -132,7 +132,7 @@
                                 {{-- Dropdown for India / US; free-text for every other country --}}
                                 <template x-if="billingCountry === 'IN' || billingCountry === 'US'">
                                     <select name="billing_region" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white outline-none focus:ring-2 focus:ring-blue-500/40">
-                                        <option value="" class="bg-[#0d0818]">— None / N/A —</option>
+                                        <option value="" class="bg-[#0d0818]">None / N/A</option>
                                         <optgroup label="India" class="bg-[#0d0818]">
                                             @foreach($inStates as $code => $label)
                                                 <option value="{{ $code }}" {{ old('billing_region', $billing->region ?? '') === $code ? 'selected' : '' }} class="bg-[#0d0818]">IN-{{ $code }} · {{ $label }}</option>
@@ -207,15 +207,15 @@
                             <div class="space-y-2 pl-1">
                                 <label class="flex items-start gap-2 text-sm text-white/70">
                                     <input type="radio" name="follower_updates_mode" value="instant" {{ $mode === 'instant' ? 'checked' : '' }} class="w-4 h-4 mt-0.5">
-                                    <span><span class="text-white">Instant</span> — email me as soon as something happens</span>
+                                    <span><span class="text-white">Instant</span>, email me as soon as something happens</span>
                                 </label>
                                 <label class="flex items-start gap-2 text-sm text-white/70">
                                     <input type="radio" name="follower_updates_mode" value="digest" {{ $mode === 'digest' ? 'checked' : '' }} class="w-4 h-4 mt-0.5">
-                                    <span><span class="text-white">Daily digest</span> — one email per day with everything new (recommended)</span>
+                                    <span><span class="text-white">Daily digest</span>, one email per day with everything new (recommended)</span>
                                 </label>
                                 <label class="flex items-start gap-2 text-sm text-white/70">
                                     <input type="radio" name="follower_updates_mode" value="off" {{ $mode === 'off' ? 'checked' : '' }} class="w-4 h-4 mt-0.5">
-                                    <span><span class="text-white">Off</span> — don't email me about creator updates</span>
+                                    <span><span class="text-white">Off</span>, don't email me about creator updates</span>
                                 </label>
                             </div>
 
@@ -384,7 +384,7 @@
 
         <div class="glass rounded-2xl p-6">
             <h2 class="text-base font-semibold mb-1" style="color: var(--text-strong);">Sign-in security</h2>
-            <p class="text-sm text-white/50 mb-4">Your account is protected by one-time codes — there's no password to manage.</p>
+            <p class="text-sm text-white/50 mb-4">Your account is protected by one-time codes, there's no password to manage.</p>
             <div class="flex items-start gap-3 rounded-xl px-4 py-3" style="background: rgba(61,107,255,0.08); border: 1px solid rgba(61,107,255,0.20);">
                 <i class="fas fa-shield-alt text-blue-400 mt-0.5"></i>
                 <div class="text-sm text-white/70">

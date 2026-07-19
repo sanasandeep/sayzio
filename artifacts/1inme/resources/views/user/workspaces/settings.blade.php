@@ -1,6 +1,6 @@
 @extends('user.layouts.app')
 
-@section('title', $workspace->name . ' — Workspace settings')
+@section('title', $workspace->name . ': Workspace settings')
 
 @section('content')
 @php
@@ -21,7 +21,7 @@
     <div class="flex items-center justify-between mb-6">
         <div>
             <h1 class="text-2xl font-bold" style="color: var(--text-primary);">
-                {{ $workspace->name }} — Settings
+                {{ $workspace->name }}, Settings
             </h1>
             <p class="text-sm opacity-70 mt-1">Rename, change the icon or colour, or delete this workspace.</p>
         </div>
@@ -145,7 +145,7 @@
             @if($isPersonal)
                 <p class="text-sm opacity-70">Your <strong>personal workspace</strong> cannot be deleted.</p>
             @elseif(!$canDelete)
-                <p class="text-sm opacity-70">This is your only workspace — you cannot delete it. Create another workspace first if you want to remove this one.</p>
+                <p class="text-sm opacity-70">This is your only workspace, you cannot delete it. Create another workspace first if you want to remove this one.</p>
             @else
                 <div class="flex items-start justify-between gap-4 flex-wrap">
                     <div>

@@ -5,7 +5,7 @@
 <div x-data="{ tab: '{{ $activeTab }}' }">
     @include('user.partials.page-hero', [
         'title'    => 'Integrations',
-        'subtitle' => 'Reusable third-party configurations — payment gateways, SMS senders, and email mailers. Save once, attach anywhere.',
+        'subtitle' => 'Reusable third-party configurations, payment gateways, SMS senders, and email mailers. Save once, attach anywhere.',
         'icon'     => 'fa-plug',
         'chips'    => [
             ['icon' => 'fa-layer-group', 'text' => collect($configs)->flatten()->count() . ' total'],

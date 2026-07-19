@@ -1,6 +1,6 @@
 @extends('user.layouts.app')
 
-@section('title', 'Top Fans Leaderboard — ' . $link->title)
+@section('title', 'Top Fans Leaderboard: ' . $link->title)
 
 @section('content')
 <div class="max-w-5xl mx-auto">

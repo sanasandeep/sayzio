@@ -58,7 +58,7 @@
             </div>
 
             @if($policyCovers)
-                <p class="mt-4 text-xs text-amber-700"><i class="fas fa-info-circle mr-1"></i> One of your workspaces requires 2FA — disabling it may lock you out.</p>
+                <p class="mt-4 text-xs text-amber-700"><i class="fas fa-info-circle mr-1"></i> One of your workspaces requires 2FA, disabling it may lock you out.</p>
             @endif
         </div>
     @else
@@ -75,7 +75,7 @@
                 <div class="flex-1">
                     <label class="block text-xs uppercase tracking-wider opacity-70 mb-1">Manual secret key</label>
                     <code class="block px-3 py-2 rounded text-sm font-mono break-all" style="background: var(--bg-glass-light); color: var(--text-primary);">{{ $secret }}</code>
-                    <p class="text-xs opacity-60 mt-1">Keep this private — anyone with it can generate codes for your account.</p>
+                    <p class="text-xs opacity-60 mt-1">Keep this private, anyone with it can generate codes for your account.</p>
 
                     <form method="POST" action="{{ route('user.account.two-factor.confirm') }}" class="mt-5">
                         @csrf
@@ -100,7 +100,7 @@
             <ul class="text-xs space-y-3 opacity-80" style="color: var(--text-primary);">
                 <li class="flex items-start gap-2">
                     <i class="fas fa-mobile-screen-button mt-0.5 text-blue-400"></i>
-                    <span>Use any authenticator app — Google Authenticator, 1Password, Authy, or similar.</span>
+                    <span>Use any authenticator app, Google Authenticator, 1Password, Authy, or similar.</span>
                 </li>
                 <li class="flex items-start gap-2">
                     <i class="fas fa-key mt-0.5 text-blue-400"></i>
@@ -108,7 +108,7 @@
                 </li>
                 <li class="flex items-start gap-2">
                     <i class="fas fa-life-ring mt-0.5 text-blue-400"></i>
-                    <span>Recovery codes let you back in if you lose your device — keep them somewhere safe.</span>
+                    <span>Recovery codes let you back in if you lose your device, keep them somewhere safe.</span>
                 </li>
             </ul>
         </div>

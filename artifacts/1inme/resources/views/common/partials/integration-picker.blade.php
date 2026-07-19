@@ -16,7 +16,7 @@
     use App\Modules\User\Support\IntegrationConfigRegistry;
 
     $allowEmpty = $allowEmpty ?? true;
-    $emptyLabel = $emptyLabel ?? '— Use account default —';
+    $emptyLabel = $emptyLabel ?? 'Use account default';
     $providers  = $providers ?? null;
 
     $query = IntegrationConfig::where('user_id', auth()->id())->kind($kind)->active()

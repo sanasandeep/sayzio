@@ -192,12 +192,12 @@
                     </div>
                 </div>
                 <div class="mb-3">
-                    <label class="cv-field-label">Opening line — supports <code>@{{name}}</code> and <code>@{{answer:field}}</code></label>
+                    <label class="cv-field-label">Opening line, supports <code>@{{name}}</code> and <code>@{{answer:field}}</code></label>
                     <textarea id="cv-intro" class="cv-textarea" rows="2">{{ $flow->intro_message }}</textarea>
                 </div>
                 <label class="cv-checkbox-line">
                     <input id="cv-published" type="checkbox" {{ $flow->is_published ? 'checked' : '' }}>
-                    <span>Published — visitors will see this flow</span>
+                    <span>Published, visitors will see this flow</span>
                 </label>
             </div>
 
@@ -227,7 +227,7 @@
                 <button id="cv-save" class="cv-btn cv-btn-success" type="button"><i class="fas fa-rocket"></i> Publish flow</button>
                 <span id="cv-autosave" class="cv-autosave is-idle"><span class="dot"></span><span class="label">Saved</span></span>
                 <span id="cv-save-status" class="cv-save-status"></span>
-                <span style="font-size:11px; color: var(--text-faint);">Edits save automatically — click <strong>Publish</strong> to push them live.</span>
+                <span style="font-size:11px; color: var(--text-faint);">Edits save automatically, click <strong>Publish</strong> to push them live.</span>
             </div>
 
             {{-- Page background — same controls as Settings → Appearance,
@@ -253,7 +253,7 @@
                 </div>
 
                 <div data-cv-pane="preview">
-                    <div class="cv-card-subtitle mb-2">Save to refresh — draft flows are visible to you only.</div>
+                    <div class="cv-card-subtitle mb-2">Save to refresh, draft flows are visible to you only.</div>
                     @include('user.links.partials.device-preview', ['link' => $link])
                 </div>
 
@@ -358,7 +358,7 @@ function stepKeyOptions(currentKey) {
 function gotoSelect(value, currentKey, extraEmpty) {
     const opts = stepKeyOptions(currentKey).map(k =>
         `<option value="${k}" ${value===k?'selected':''}>→ ${k}</option>`).join('');
-    return `<select class="cv-select"><option value="">${extraEmpty || '— next step —'}</option>${opts}</select>`;
+    return `<select class="cv-select"><option value="">${extraEmpty || 'next step'}</option>${opts}</select>`;
 }
 
 /** Per-kind editor UI for the step's settings panel. */
@@ -451,8 +451,8 @@ function renderKindPanel(s, card) {
                 </div>
                 <p class="cv-help" style="margin-top:8px;font-size:12px;opacity:.75">
                     Heads up: visitor uploads are kept for 7 days. Files from
-                    abandoned chats — and previous uploads when a visitor
-                    re-uploads on this step — are deleted automatically.
+                    abandoned chats, and previous uploads when a visitor
+                    re-uploads on this step, are deleted automatically.
                 </p>
             </div>`;
     } else if (s.kind === 'rating') {
@@ -498,7 +498,7 @@ function renderKindPanel(s, card) {
                 <input class="cv-input" data-ibind="value" value="${escapeAttr(it.value||'')}" placeholder="value (e.g. pricing)">
                 <input class="cv-input" data-ibind="label" value="${escapeAttr(it.label||'')}" placeholder="Label">
                 <input class="cv-input" data-ibind="examples" value="${escapeAttr(it.examples||'')}" placeholder="Example utterances (comma list)">
-                ${gotoSelect(it.next_step_key, s.key, '— route to —').replace('class="cv-select"', 'class="cv-select" data-ibind="next_step_key"')}
+                ${gotoSelect(it.next_step_key, s.key, 'route to').replace('class="cv-select"', 'class="cv-select" data-ibind="next_step_key"')}
                 <button class="cv-btn cv-btn-danger" data-rm-i="${ii}" title="Remove intent">×</button>
             </div>`).join('');
         panel.innerHTML = `
@@ -509,7 +509,7 @@ function renderKindPanel(s, card) {
                 <button class="cv-btn cv-btn-outline mt-1" data-add-intent><i class="fas fa-plus"></i> Add intent</button>
                 <div class="cv-row mt-2">
                     <div><label class="cv-field-label">Fallback step</label>
-                        ${gotoSelect(a.fallback_step_key, s.key, '— pick a fallback step —').replace('class="cv-select"', 'class="cv-select" data-aibind="fallback_step_key"')}</div>
+                        ${gotoSelect(a.fallback_step_key, s.key, 'pick a fallback step').replace('class="cv-select"', 'class="cv-select" data-aibind="fallback_step_key"')}</div>
                     <div><label class="cv-field-label">Min confidence (0–1)</label>
                         <input class="cv-input" type="number" min="0" max="1" step="0.05" data-aibind="min_confidence" value="${a.min_confidence ?? 0.4}"></div>
                 </div>
@@ -595,7 +595,7 @@ function condRowHtml(c, ci, currentKey) {
         <input class="cv-input" placeholder="answer field" value="${escapeAttr(c.field||'')}">
         <select class="cv-select">${COND_OPS.map(o => `<option value="${o}" ${c.op===o?'selected':''}>${o}</option>`).join('')}</select>
         <input class="cv-input" placeholder="value" value="${escapeAttr(c.value ?? '')}">
-        ${gotoSelect(c.goto, currentKey, '— go to —')}
+        ${gotoSelect(c.goto, currentKey, 'go to')}
         <button class="cv-btn cv-btn-danger" data-rm-cond title="Remove">×</button>
     </div>`;
 }
@@ -624,15 +624,15 @@ function renderSteps() {
                 <div><label class="cv-field-label">Answer field</label>
                     <input class="cv-input cv-step-field" value="${escapeAttr(s.answer_field||'')}" placeholder="e.g. intent"></div>
             </div>
-            <label class="cv-field-label">Bot message — supports <code>@{{name}}</code>, <code>@{{answer:field}}</code></label>
+            <label class="cv-field-label">Bot message, supports <code>@{{name}}</code>, <code>@{{answer:field}}</code></label>
             <textarea class="cv-textarea cv-step-msg mb-2" rows="2">${escapeHtml(s.message_text||'')}</textarea>
             <div class="cv-row-3">
                 <div><label class="cv-field-label">Next step (default)</label>
-                    ${gotoSelect(s.next_step_key, s.key, '— ends here —').replace('class="cv-select"', 'class="cv-select cv-step-next"')}
+                    ${gotoSelect(s.next_step_key, s.key, 'ends here').replace('class="cv-select"', 'class="cv-select cv-step-next"')}
                 </div>
                 <div><label class="cv-field-label">Action on completion</label>
                     <select class="cv-select cv-step-action">
-                        <option value="">— No action —</option>
+                        <option value="">No action</option>
                         ${actions.map(a => `<option value="${a.client_id}" ${s.action_client_id===a.client_id?'selected':''}>⚡ ${escapeHtml(a.label||a.kind)}</option>`).join('')}
                     </select></div>
                 <div><label class="cv-field-label">Typing pause (ms)</label>
@@ -663,7 +663,7 @@ function renderSteps() {
                         <input class="cv-input" placeholder="value" value="${escapeAttr(c.value||'')}">
                         ${gotoSelect(c.next_step_key, s.key)}
                         <select class="cv-select">
-                            <option value="">— action —</option>
+                            <option value="">action</option>
                             ${actions.map(a => `<option value="${a.client_id}" ${c.action_client_id===a.client_id?'selected':''}>⚡ ${escapeHtml(a.label||a.kind)}</option>`).join('')}
                         </select>
                         <button class="cv-btn cv-btn-danger" title="Remove choice">×</button>
@@ -675,7 +675,7 @@ function renderSteps() {
                             ${COND_OPS.map(o => `<option value="${o}" ${cond?.op===o?'selected':''}>${o}</option>`).join('')}
                         </select>
                         <input class="cv-input" placeholder="value" value="${escapeAttr(cond?.value ?? '')}" data-cb="value">
-                        ${gotoSelect(cond?.goto, s.key, '— override goto —').replace('class="cv-select"', 'class="cv-select" data-cb="goto"')}
+                        ${gotoSelect(cond?.goto, s.key, 'override goto').replace('class="cv-select"', 'class="cv-select" data-cb="goto"')}
                         <span></span>
                     </div>
                 `;
@@ -1051,7 +1051,7 @@ function simRenderState() {
     const path = sim.history.join(' → ') || '—';
     const ans = Object.keys(sim.answers).length
         ? Object.entries(sim.answers).map(([k, v]) => `${k}=${Array.isArray(v) ? v.join('|') : v}`).join(', ')
-        : '—';
+        : '-';
     el.innerHTML = `<strong>Path:</strong> ${escapeHtml(path)}<br><strong>Answers:</strong> ${escapeHtml(ans)}`;
 }
 
@@ -1331,7 +1331,7 @@ function simRenderControls(step) {
     if (step.kind === 'file_upload') {
         const note = document.createElement('div');
         note.className = 'cv-help';
-        note.textContent = 'Simulator skips actual upload — pretend a file was attached.';
+        note.textContent = 'Simulator skips actual upload, pretend a file was attached.';
         const send = document.createElement('button');
         send.className = 'cv-btn cv-btn-primary';
         send.innerHTML = '<i class="fas fa-file-upload"></i> Pretend to upload';
@@ -1350,7 +1350,7 @@ function simRenderControls(step) {
         const intents = ai.intents || [];
         const note = document.createElement('div');
         note.className = 'cv-help';
-        note.innerHTML = 'AI classification is simulated — type a reply <em>and</em> pick the intent the model would resolve to.';
+        note.innerHTML = 'AI classification is simulated, type a reply <em>and</em> pick the intent the model would resolve to.';
         wrap.appendChild(note);
 
         const inp = document.createElement('textarea');
@@ -1450,7 +1450,7 @@ function simRestart() {
 
     const entry = simEntryStep();
     if (!entry) {
-        simBubble('system', 'No steps configured yet — add a step to start simulating.');
+        simBubble('system', 'No steps configured yet, add a step to start simulating.');
         simRenderTranscript();
         simRenderState();
         simRenderControls(null);

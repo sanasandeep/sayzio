@@ -1,6 +1,6 @@
 @extends('layouts.user')
 
-@section('title', 'Link Insurance — '.$link->title)
+@section('title', 'Link Insurance: '.$link->title)
 
 @section('content')
 <div class="max-w-3xl mx-auto p-6">
@@ -96,7 +96,7 @@
                 <label class="block text-sm font-medium mb-1">Fallback message (shown if everything is down)</label>
                 <input type="text" name="insurance_fallback_message" maxlength="500"
                        value="{{ old('insurance_fallback_message', $link->insurance_fallback_message) }}"
-                       placeholder="Optional — leave blank to keep redirecting"
+                       placeholder="Optional, leave blank to keep redirecting"
                        class="w-full border rounded px-3 py-2">
             </div>
         </div>
@@ -119,7 +119,7 @@
                         <div class="md:col-span-3 text-xs -mt-2" style="color: var(--text-muted);">
                             Last probe: {{ $b->last_status }}
                             @if ($b->last_http_code) (HTTP {{ $b->last_http_code }}) @endif
-                            @if ($b->last_checked_at) — {{ $b->last_checked_at->diffForHumans() }} @endif
+                            @if ($b->last_checked_at), {{ $b->last_checked_at->diffForHumans() }} @endif
                         </div>
                     @endif
                 </div>

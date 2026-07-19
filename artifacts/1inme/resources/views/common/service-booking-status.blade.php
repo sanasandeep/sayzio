@@ -57,7 +57,7 @@
         @endif
         <div class="total"><span>Estimated total</span><span>{{ $fmt($booking->total) }}</span></div>
 
-        <p class="note">This is an estimated price, not a final bill. No online payment is taken — you'll settle with the provider directly. This page updates automatically.</p>
+        <p class="note">This is an estimated price, not a final bill. No online payment is taken, you'll settle with the provider directly. This page updates automatically.</p>
 
         @if(!empty($whatsapp))
             <a class="wa-btn" href="{{ $whatsapp['url'] }}" target="_blank" rel="noopener">

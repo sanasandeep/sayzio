@@ -49,7 +49,7 @@
                     <div x-show="importTab === 'linkedin'" class="resume-import-pane">
                         <p class="resume-import-help">
                             Paste your LinkedIn profile URL. For best results also upload your "Save to PDF" export
-                            from LinkedIn — we can't read profiles directly.
+                            from LinkedIn, we can't read profiles directly.
                         </p>
                         <input type="url" class="resume-input mb-3" placeholder="https://www.linkedin.com/in/yourhandle"
                                x-model="importLinkedinUrl">

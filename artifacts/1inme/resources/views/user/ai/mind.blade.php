@@ -6,7 +6,7 @@
     @include('user.ai._partials.header', [
         'kicker'   => 'AI',
         'title'    => 'AI Note Summarizer',
-        'subtitle' => 'Paste raw notes — get a tight summary and clear next steps.',
+        'subtitle' => 'Paste raw notes, get a tight summary and clear next steps.',
         'balance'  => $balance,
     ])
 

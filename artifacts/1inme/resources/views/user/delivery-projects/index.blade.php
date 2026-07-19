@@ -23,7 +23,7 @@
         <div class="glass-card rounded-2xl p-12 text-center" style="border:1px dashed var(--border-strong);">
             <i class="fas fa-diagram-project text-4xl mb-3 opacity-50"></i>
             <p style="color: var(--text-secondary);">No delivery projects yet.</p>
-            <p class="text-sm mt-1" style="color: var(--text-tertiary);">Create one from a paid invoice, order, or form submission — or start a blank project.</p>
+            <p class="text-sm mt-1" style="color: var(--text-tertiary);">Create one from a paid invoice, order, or form submission, or start a blank project.</p>
         </div>
     @else
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

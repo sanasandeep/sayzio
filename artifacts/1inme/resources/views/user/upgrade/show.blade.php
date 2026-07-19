@@ -214,11 +214,11 @@
                     <template x-if="{{ $introCell }}">
                         @if($cycle === 'annual')
                             <div class="text-[11px] text-emerald-300/90">
-                                First year only — renews at <span x-text="fmtMoney(Math.round(({{ $introCell }}).normal_minor / 12), currency)"></span>/mo
+                                First year only, renews at <span x-text="fmtMoney(Math.round(({{ $introCell }}).normal_minor / 12), currency)"></span>/mo
                             </div>
                         @else
                             <div class="text-[11px] text-emerald-300/90">
-                                First month only — renews at <span x-text="({{ $introCell }}).normal_formatted"></span>/mo
+                                First month only, renews at <span x-text="({{ $introCell }}).normal_formatted"></span>/mo
                             </div>
                         @endif
                     </template>
@@ -228,7 +228,7 @@
                              x-show="prices[currency] && prices[currency].annual && prices[currency].annual.amount_minor > 0" x-cloak>
                             Billed annually at <span x-text="(prices[currency] && prices[currency].annual && prices[currency].annual.formatted) || '{{ $row['shown']['formatted'] }}'">{{ $row['shown']['formatted'] }}</span>/yr
                             <template x-if="prices[currency] && prices[currency].monthly && prices[currency].monthly.amount_minor > 0">
-                                <span> — or <span x-text="(prices[currency] && prices[currency].monthly && prices[currency].monthly.formatted) || '{{ $row['monthly']['formatted'] }}'">{{ $row['monthly']['formatted'] }}</span>/mo month-to-month</span>
+                                <span>, or <span x-text="(prices[currency] && prices[currency].monthly && prices[currency].monthly.formatted) || '{{ $row['monthly']['formatted'] }}'">{{ $row['monthly']['formatted'] }}</span>/mo month-to-month</span>
                             </template>
                         </div>
                     @endif
@@ -255,7 +255,7 @@
                                 @elseif($cTax)
                                     <div class="mt-2 text-[11px] text-emerald-300/80">No tax applies for {{ $cTax['place_of_supply'] ?? 'your region' }}.</div>
                                 @else
-                                    <div class="mt-2 text-[11px] text-white/40">+ taxes as applicable —
+                                    <div class="mt-2 text-[11px] text-white/40">+ taxes as applicable -
                                         <a href="{{ route('user.profile.edit') }}" class="text-blue-400 hover:underline">add billing address</a>
                                         to see exact tax.
                                     </div>

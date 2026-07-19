@@ -77,7 +77,7 @@ html.light-mode .ons-empty { color: #94a3b8; }
                 @if($state === 'customized')
                     <span title="Copy differs from the shipped default in: {{ implode(', ', $slide->driftedFields()) }}" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-amber-500/20 text-amber-200 border border-amber-400/30 ons-badge-customized"><i class="fas fa-pen-nib text-[10px]"></i>Customized</span>
                 @elseif($state === 'custom')
-                    <span title="Admin-created slide — no shipped default to compare against" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-white/10 text-white/60 border border-white/20 ons-badge-custom"><i class="fas fa-plus text-[10px]"></i>Custom</span>
+                    <span title="Admin-created slide, no shipped default to compare against" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-white/10 text-white/60 border border-white/20 ons-badge-custom"><i class="fas fa-plus text-[10px]"></i>Custom</span>
                 @else
                     <span title="Copy matches the shipped default wording exactly" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-emerald-500/20 text-emerald-200 border border-emerald-400/30 ons-badge-default"><i class="fas fa-check text-[10px]"></i>Default</span>
                 @endif

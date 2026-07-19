@@ -1,8 +1,8 @@
 @extends('public.layouts.site')
-@section('title', $creator->name . ' — Events')
+@section('title', $creator->name . ': Events')
 
 @php
-    $shareTitle = $creator->name . ' — Events';
+    $shareTitle = $creator->name . ', Events';
     $shareDescription = 'Upcoming events from ' . $creator->name . ' (@' . $creator->handle . ') on ' . config('app.name') . '.';
     $shareImage = $creator->avatar ?? null;
 @endphp

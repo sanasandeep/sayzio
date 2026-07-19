@@ -159,7 +159,7 @@
         <textarea class="field" id="fNote" rows="2" placeholder="Notes for the kitchen (optional)"></textarea>
         <button class="primary" id="placeBtn" type="button" onclick="RM.place()">Place order</button>
         <button class="ghost" type="button" onclick="RM.closeCart()">Keep browsing</button>
-        <p class="note">This is an estimated bill, not the actual bill. No online payment — you'll pay staff directly at your table.</p>
+        <p class="note">This is an estimated bill, not the actual bill. No online payment, you'll pay staff directly at your table.</p>
     </div>
 </div>
 
@@ -175,7 +175,7 @@
             <span>Send order via WhatsApp</span>
         </a>
 @if($isDemoRestaurant)
-        <p class="note" id="waDemoNote" style="display:none">Demo only — this is a sample WhatsApp number, so the chat won't open a real conversation. On a live menu this opens a chat with the restaurant.</p>
+        <p class="note" id="waDemoNote" style="display:none">Demo only, this is a sample WhatsApp number, so the chat won't open a real conversation. On a live menu this opens a chat with the restaurant.</p>
 @endif
         <button class="ghost" type="button" onclick="RM.reset()">Back to menu</button>
     </div>

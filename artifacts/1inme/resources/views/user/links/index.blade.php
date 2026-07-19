@@ -172,7 +172,7 @@
         <i class="fas fa-link text-blue-400 text-xl"></i>
     </div>
     <h3 class="text-base font-bold mb-1.5" style="color: var(--text-primary);">No links yet</h3>
-    <p class="text-xs mb-5" style="color: var(--text-dimmed);">Create your first link to start tracking clicks — or let our wizard build a Link in Bio for you in under a minute.</p>
+    <p class="text-xs mb-5" style="color: var(--text-dimmed);">Create your first link to start tracking clicks, or let our wizard build a Link in Bio for you in under a minute.</p>
     @canInWorkspace('links.create')
     <div class="flex items-center justify-center gap-2 flex-wrap">
         <a href="{{ route('user.links.wizard') }}" class="btn-primary text-xs py-2.5">

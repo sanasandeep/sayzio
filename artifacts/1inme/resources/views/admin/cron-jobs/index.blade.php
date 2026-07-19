@@ -200,13 +200,13 @@
                                             <span class="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-white/40">Closure</span>
                                         @endif
                                         @if($job['protected'])
-                                            <span class="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-blue-500/10 border border-blue-400/30 text-blue-300" title="Critical for billing, data integrity or platform health — cannot be paused."><i class="fas fa-shield-halved text-[9px] mr-0.5"></i>Protected</span>
+                                            <span class="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-blue-500/10 border border-blue-400/30 text-blue-300" title="Critical for billing, data integrity or platform health, cannot be paused."><i class="fas fa-shield-halved text-[9px] mr-0.5"></i>Protected</span>
                                         @endif
                                         @if($job['paused'])
                                             <span class="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-500/15 border border-amber-400/30 text-amber-300"><i class="fas fa-pause text-[9px] mr-0.5"></i>Paused</span>
                                         @endif
                                         @if($job['key'] && in_array($job['key'], $mutedAlertJobs, true))
-                                            <span class="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-white/40" title="Failure alerts for this job are muted — it still runs on schedule, but ops admins are not notified when it fails."><i class="fas fa-bell-slash text-[9px] mr-0.5"></i>Alerts muted</span>
+                                            <span class="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-white/40" title="Failure alerts for this job are muted, it still runs on schedule, but ops admins are not notified when it fails."><i class="fas fa-bell-slash text-[9px] mr-0.5"></i>Alerts muted</span>
                                         @endif
                                         @if($job['key'])
                                             {{-- Live badge: driven by the polling loop so it appears/disappears without a reload. --}}
@@ -219,7 +219,7 @@
                                             <span class="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-emerald-500/15 border border-emerald-400/30 text-emerald-300">Running now</span>
                                         @endif
                                         @if(!empty($job['failing_repeatedly']))
-                                            <span class="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-rose-500/15 border border-rose-400/30 text-rose-300 font-semibold" title="Every run since this job's last success has failed. Inspect the run history and error output, then fix the cause or use Run now to retry — the badge clears once the job succeeds again."><i class="fas fa-triangle-exclamation text-[9px] mr-0.5"></i>Failing repeatedly ({{ $job['failing_streak'] }} in a row)</span>
+                                            <span class="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-rose-500/15 border border-rose-400/30 text-rose-300 font-semibold" title="Every run since this job's last success has failed. Inspect the run history and error output, then fix the cause or use Run now to retry, the badge clears once the job succeeds again."><i class="fas fa-triangle-exclamation text-[9px] mr-0.5"></i>Failing repeatedly ({{ $job['failing_streak'] }} in a row)</span>
                                         @endif
                                     </div>
                                     <p class="text-xs text-white/50 mt-1 leading-relaxed">{{ $job['purpose'] }}</p>
@@ -345,7 +345,7 @@
                                                     </button>
                                                 </form>
                                             @else
-                                                <span class="w-8 h-8 rounded-lg bg-white/[0.02] border border-white/5 text-white/20 flex items-center justify-center" title="Protected — cannot be paused.">
+                                                <span class="w-8 h-8 rounded-lg bg-white/[0.02] border border-white/5 text-white/20 flex items-center justify-center" title="Protected, cannot be paused.">
                                                     <i class="fas fa-pause text-[11px]"></i>
                                                 </span>
                                             @endif
@@ -354,7 +354,7 @@
                                             @if(in_array($job['key'], $mutedAlertJobs, true))
                                                 <form method="POST" action="{{ route('admin.cron-jobs.unmute-alerts', ['key' => $job['key']]) }}">
                                                     @csrf
-                                                    <button type="submit" title="Alerts are muted for this job — click to re-enable failure alerts"
+                                                    <button type="submit" title="Alerts are muted for this job, click to re-enable failure alerts"
                                                             class="w-8 h-8 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 border border-amber-400/20 text-amber-300 transition flex items-center justify-center">
                                                         <i class="fas fa-bell-slash text-[11px]"></i>
                                                     </button>
@@ -569,7 +569,7 @@
                 }
             },
             formatWhen(iso) {
-                if (! iso) return '—';
+                if (! iso) return '-';
                 try {
                     return new Date(iso).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
                 } catch (e) {

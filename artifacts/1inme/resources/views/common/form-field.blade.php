@@ -41,7 +41,7 @@
 
         @case('select')
             <select id="f_{{ $id }}" name="{{ $id }}" class="form-select" @if($required) required @endif @if($showPrices) data-priced data-price-label="{{ $label }}" @endif>
-                <option value="">— Choose —</option>
+                <option value="">Choose</option>
                 @foreach(($field['options'] ?? []) as $opt)
                     @php $oc = (int) ($optPrices[$opt] ?? 0); @endphp
                     <option value="{{ $opt }}" @selected($oldVal === $opt) @if($showPrices && $oc > 0) data-price="{{ $oc }}" @endif>{{ $opt }}@if($showPrices && $oc > 0) ({{ $fmtPrice($oc) }})@endif</option>

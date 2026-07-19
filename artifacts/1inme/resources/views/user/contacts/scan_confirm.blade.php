@@ -40,7 +40,7 @@
             @foreach($duplicates as $d)
             <li>
                 Existing contact{{ count($d['contacts']) === 1 ? '' : 's' }} share this {{ $d['type'] }}:
-                <strong class="font-semibold" style="color:var(--text-primary);">{{ $d['value'] }}</strong> —
+                <strong class="font-semibold" style="color:var(--text-primary);">{{ $d['value'] }}</strong> -
                 @foreach($d['contacts'] as $c)
                     <a href="{{ route('user.contacts.show', $c['id']) }}" class="underline font-medium" style="color:#90acff;">{{ $c['name'] }}</a>{{ !$loop->last ? ', ' : '' }}
                 @endforeach

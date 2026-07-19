@@ -156,7 +156,7 @@
                             <select x-model.number="linkId" @change="resolveLinkPayload()"
                                     class="w-full px-3 py-2 text-sm rounded-lg outline-none"
                                     style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-primary);">
-                                <option value="">— Choose a link —</option>
+                                <option value="">Choose a link</option>
                                 @foreach($links as $link)
                                     <option value="{{ $link->id }}">{{ $link->title ?: $link->alias }} (/{{ $link->alias }})</option>
                                 @endforeach
@@ -902,7 +902,7 @@ function qrBuilder() {
                     try {
                         if (typeof window.QrStudio.analyzeScannability === 'function') {
                             const s = window.QrStudio.analyzeScannability(opts) || { score: 0, level: '', issues: [] };
-                            s.issues = [...(s.issues || []), { level: 'warn', text: 'Artistic blending can reduce scan reliability — test the final image before sharing.' }];
+                            s.issues = [...(s.issues || []), { level: 'warn', text: 'Artistic blending can reduce scan reliability, test the final image before sharing.' }];
                             this.scan = s;
                         }
                     } catch (e) {}
@@ -959,7 +959,7 @@ function qrBuilder() {
                 });
                 const j = await r.json().catch(() => ({}));
                 if (!r.ok) {
-                    this.qrArt.error = j.error || 'Generation failed — please try again.';
+                    this.qrArt.error = j.error || 'Generation failed, please try again.';
                     if (typeof j.balance === 'number') this.qrArt.balance = j.balance;
                     return;
                 }
@@ -980,7 +980,7 @@ function qrBuilder() {
                 // so it never costs the user a coin.
                 this.verifyAiArt();
             } catch (e) {
-                this.qrArt.error = 'Network error — please try again.';
+                this.qrArt.error = 'Network error, please try again.';
             } finally {
                 this.qrArt.busy = false;
             }
@@ -1201,7 +1201,7 @@ function qrBuilder() {
         async downloadSvg() {
             try {
                 if (this._aiArtActive()) {
-                    alert('AI Artistic QR is a raster image — please use the PNG export instead.');
+                    alert('AI Artistic QR is a raster image, please use the PNG export instead.');
                     return;
                 }
                 const { result, preload } = await this._renderForExport();

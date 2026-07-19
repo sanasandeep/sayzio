@@ -69,7 +69,7 @@
             </div>
             <div>
                 <h3 class="text-sm font-bold" style="color: var(--text-primary);">Short URL &amp; Aliases</h3>
-                <p class="text-[11px] mt-0.5" style="color: var(--text-faint);">All aliases serve the same page — no redirect. Bind each alias to a domain and edit its slug.</p>
+                <p class="text-[11px] mt-0.5" style="color: var(--text-faint);">All aliases serve the same page, no redirect. Bind each alias to a domain and edit its slug.</p>
             </div>
         </div>
         <span class="text-[10px] px-2 py-0.5 rounded-full" style="background: var(--bg-glass-input); color: var(--text-faint);">

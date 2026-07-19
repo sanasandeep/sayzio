@@ -552,7 +552,7 @@
         const logoHtml = (logoOn && logoUrl) ? `<img src="${escapeHtml(logoUrl)}" alt="" style="width:22px; height:22px; border-radius:6px; object-fit:cover; margin-right:8px; vertical-align:middle;">` : '';
         const policyHtml = showPolicy ? ` <a href="#" style="color:${accent}; text-decoration:underline;">${escapeHtml(linkLabel)}</a>.` : '';
         const bodyHtml = layout === 'inline'
-            ? `<span style="font-size:12px; color:${muted}; margin-right:10px;">${escapeHtml(title)} — ${escapeHtml(body).slice(0,80)}…${policyHtml}</span>`
+            ? `<span style="font-size:12px; color:${muted}; margin-right:10px;">${escapeHtml(title)}, ${escapeHtml(body).slice(0,80)}…${policyHtml}</span>`
             : (layout === 'pill'
                 ? `<span style="font-size:12.5px; color:${fg};">${escapeHtml(title)}</span>`
                 : `<div style="font-weight:600; font-size:15px; margin-bottom:6px;">${logoHtml}${escapeHtml(title)}</div>

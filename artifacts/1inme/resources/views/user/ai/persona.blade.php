@@ -6,7 +6,7 @@
     @include('user.ai._partials.header', [
         'kicker'   => 'AI',
         'title'    => 'AI Persona Generator',
-        'subtitle' => 'Describe your audience — get a profile to anchor your copy.',
+        'subtitle' => 'Describe your audience, get a profile to anchor your copy.',
         'balance'  => $balance,
     ])
 

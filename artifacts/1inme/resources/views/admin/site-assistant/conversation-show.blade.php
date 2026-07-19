@@ -48,19 +48,19 @@
                             @if($streamStatus === 'streamed')
                                 <span class="px-1.5 py-0.5 rounded bg-sky-500/20 text-sky-300 normal-case tracking-normal" title="Delivered to the visitor word-by-word over a streaming connection.">streamed</span>
                             @elseif($streamStatus === 'partial')
-                                <span class="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 normal-case tracking-normal" title="Stream broke mid-reply — the visitor only saw what is shown above.">partial stream</span>
+                                <span class="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 normal-case tracking-normal" title="Stream broke mid-reply, the visitor only saw what is shown above.">partial stream</span>
                             @elseif($streamStatus === 'failed')
                                 <span class="px-1.5 py-0.5 rounded bg-red-500/20 text-red-300 normal-case tracking-normal" title="Stream failed before any tokens reached the visitor.">stream failed</span>
                             @elseif($streamStatus === 'classic')
                                 <span class="px-1.5 py-0.5 rounded bg-white/10 text-white/60 normal-case tracking-normal" title="Returned in a single non-streaming response.">classic</span>
                             @else
-                                <span class="px-1.5 py-0.5 rounded bg-slate-500/20 text-slate-300 normal-case tracking-normal" title="This reply pre-dates delivery-mode tracking — we can't tell whether it was streamed or returned in one shot.">unknown</span>
+                                <span class="px-1.5 py-0.5 rounded bg-slate-500/20 text-slate-300 normal-case tracking-normal" title="This reply pre-dates delivery-mode tracking, we can't tell whether it was streamed or returned in one shot.">unknown</span>
                             @endif
                             @if($isCutOff)
                                 @if($wasRetried)
-                                    <span class="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 normal-case tracking-normal" title="The visitor clicked Retry on this cut-off reply — the next user message asks the same question again.">visitor retried</span>
+                                    <span class="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 normal-case tracking-normal" title="The visitor clicked Retry on this cut-off reply, the next user message asks the same question again.">visitor retried</span>
                                 @else
-                                    <span class="px-1.5 py-0.5 rounded bg-white/10 text-white/60 normal-case tracking-normal" title="The visitor did not click Retry — they either abandoned the chat or moved on to a different question. Frequent abandons usually mean a flaky upstream call worth fixing.">visitor did not retry</span>
+                                    <span class="px-1.5 py-0.5 rounded bg-white/10 text-white/60 normal-case tracking-normal" title="The visitor did not click Retry, they either abandoned the chat or moved on to a different question. Frequent abandons usually mean a flaky upstream call worth fixing.">visitor did not retry</span>
                                 @endif
                             @endif
                         @endif

@@ -40,7 +40,7 @@
                                             <span class="text-sm" style="color: var(--text-secondary);">{{ $e->fan->name }}</span>
                                         </div>
                                     @else
-                                        <span style="color: var(--text-faint);">—</span>
+                                        <span style="color: var(--text-faint);">-</span>
                                     @endif
                                 </td>
                                 <td class="px-4 py-3 text-xs" style="color: var(--text-secondary);">{{ $e->gateway ?: '—' }}</td>

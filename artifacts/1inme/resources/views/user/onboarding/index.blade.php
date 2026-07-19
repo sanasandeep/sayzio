@@ -43,7 +43,7 @@
             <h1 class="text-2xl sm:text-3xl font-bold text-white mb-1">
                 Let's set up your page{{ $firstName ? ', ' . $firstName : '' }} 👋
             </h1>
-            <p class="text-sm text-white/50">A few quick steps — nothing gets created until you preview and confirm.</p>
+            <p class="text-sm text-white/50">A few quick steps, nothing gets created until you preview and confirm.</p>
         </div>
         <form method="POST" action="{{ route('user.onboarding.go-to-dashboard') }}" class="shrink-0">
             @csrf
@@ -73,15 +73,15 @@
             <ol class="text-left max-w-sm mx-auto space-y-3 mb-8">
                 <li class="flex items-start gap-3">
                     <span class="shrink-0 w-6 h-6 rounded-full bg-white/10 text-white/70 text-xs font-bold flex items-center justify-center">1</span>
-                    <span class="text-sm text-white/70"><span class="text-white font-semibold">Pick your persona</span> — so we can suggest templates that fit you.</span>
+                    <span class="text-sm text-white/70"><span class="text-white font-semibold">Pick your persona</span>, so we can suggest templates that fit you.</span>
                 </li>
                 <li class="flex items-start gap-3">
                     <span class="shrink-0 w-6 h-6 rounded-full bg-white/10 text-white/70 text-xs font-bold flex items-center justify-center">2</span>
-                    <span class="text-sm text-white/70"><span class="text-white font-semibold">Choose a template</span> — preview it live, then make it yours.</span>
+                    <span class="text-sm text-white/70"><span class="text-white font-semibold">Choose a template</span>, preview it live, then make it yours.</span>
                 </li>
                 <li class="flex items-start gap-3">
                     <span class="shrink-0 w-6 h-6 rounded-full bg-white/10 text-white/70 text-xs font-bold flex items-center justify-center">3</span>
-                    <span class="text-sm text-white/70"><span class="text-white font-semibold">Connect WhatsApp</span> <span class="text-white/40">(optional)</span> — sign in faster and stay reachable.</span>
+                    <span class="text-sm text-white/70"><span class="text-white font-semibold">Connect WhatsApp</span> <span class="text-white/40">(optional)</span>, sign in faster and stay reachable.</span>
                 </li>
             </ol>
             <button type="button" @click="goStep('persona')"
@@ -97,7 +97,7 @@
             <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
                 <div>
                     <h2 class="text-lg font-bold text-white">Who are you?</h2>
-                    <p class="text-xs text-white/50">Pick the closest fit — we'll surface matching templates. You can change this later.</p>
+                    <p class="text-xs text-white/50">Pick the closest fit, we'll surface matching templates. You can change this later.</p>
                 </div>
                 <div class="relative sm:w-64 shrink-0">
                     <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-xs text-white/30"></i>
@@ -150,7 +150,7 @@
                 </button>
                 <button type="button" @click="goStep('template')"
                         class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold transition inline-flex items-center gap-2">
-                    <span x-text="picked ? 'Next: choose a template' : 'Skip — show all templates'"></span>
+                    <span x-text="picked ? 'Next: choose a template' : 'Skip, show all templates'"></span>
                     <i class="fas fa-arrow-right text-[10px]"></i>
                 </button>
             </div>
@@ -165,7 +165,7 @@
              class="mb-3 flex items-center gap-3 px-3 py-2.5 rounded-xl bg-blue-500/10 border border-blue-500/30">
             <i class="fas fa-clock-rotate-left text-blue-300 text-xs shrink-0"></i>
             <p class="flex-1 text-xs text-white/80 min-w-0 truncate">
-                Pick up where you left off — you were checking out
+                Pick up where you left off, you were checking out
                 <span class="font-semibold text-white" x-text="'&quot;' + (resume?.name || '') + '&quot;'"></span>
             </p>
             <button type="button" @click="resumePreview()"

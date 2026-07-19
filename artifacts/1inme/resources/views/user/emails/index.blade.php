@@ -46,7 +46,7 @@
                                     <button type="submit" class="text-blue-300 hover:text-blue-200 text-xs font-semibold">Resend</button>
                                 </form>
                             @else
-                                <span class="text-white/20 text-xs">—</span>
+                                <span class="text-white/20 text-xs">-</span>
                             @endif
                         </td>
                     </tr>

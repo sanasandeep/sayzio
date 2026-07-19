@@ -33,7 +33,7 @@
                         <div class="flex flex-col text-xs" style="color: var(--text-muted);">
                             @if($lead['email'])<span><i class="fas fa-envelope text-[10px] mr-1"></i>{{ $lead['email'] }}</span>@endif
                             @if($lead['phone'])<span><i class="fas fa-phone text-[10px] mr-1"></i>{{ $lead['phone'] }}</span>@endif
-                            @unless($lead['email'] || $lead['phone'])<span>—</span>@endunless
+                            @unless($lead['email'] || $lead['phone'])<span>-</span>@endunless
                         </div>
                     </td>
                     <td>

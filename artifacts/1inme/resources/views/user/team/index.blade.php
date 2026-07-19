@@ -15,7 +15,7 @@
 ]) }})">
     <div class="flex items-center justify-between mb-6">
         <div>
-            <h1 class="text-2xl font-bold" style="color: var(--text-primary);">{{ $workspace->name }} — Seats</h1>
+            <h1 class="text-2xl font-bold" style="color: var(--text-primary);">{{ $workspace->name }}, Seats</h1>
             <p class="text-sm opacity-70 mt-1">
                 Manage who can work in this workspace, what they can do, and how many seats you're using.
             </p>
@@ -160,7 +160,7 @@
                             @if($workspace->owner?->last_login_at)
                                 {{ $workspace->owner->last_login_at->diffForHumans() }}
                             @else
-                                —
+ -
                             @endif
                         </td>
                         <td class="px-4 py-3"></td>
@@ -209,7 +209,7 @@
                     </tr>
                     @if(empty($rows))
                         <tr class="border-t" style="border-color: var(--border-strong);">
-                            <td colspan="5" class="px-4 py-6 text-center opacity-60">No teammates yet — invite someone above.</td>
+                            <td colspan="5" class="px-4 py-6 text-center opacity-60">No teammates yet, invite someone above.</td>
                         </tr>
                     @endif
                 </tbody>
@@ -527,7 +527,7 @@
                     </select>
                     <p class="mt-2 text-xs opacity-70">
                         <i class="fas fa-info-circle mr-1"></i>
-                        Roles apply to <strong>everything in this workspace</strong> — links, Link in Bio pages, forms,
+                        Roles apply to <strong>everything in this workspace</strong>, links, Link in Bio pages, forms,
                         subscribers, posts, QR codes and more. Workspace-level destructive actions
                         (delete workspace, billing, transfer ownership) stay owner-only.
                     </p>
@@ -553,7 +553,7 @@
                                             @if($row[$a] ?? false)
                                                 <i class="fas fa-check text-green-500"></i>
                                             @else
-                                                <span class="opacity-30">—</span>
+                                                <span class="opacity-30">-</span>
                                             @endif
                                         </td>
                                     @endforeach
@@ -606,7 +606,7 @@
                         <select name="reassign_to" required
                                 class="w-full px-2 py-2 text-sm border rounded bg-white text-amber-900"
                                 style="border-color: rgb(252 211 77);">
-                            <option value="">— Choose someone —</option>
+                            <option value="">Choose someone</option>
                             <template x-for="opt in reassignOptionsFor(removeModal.member)" :key="opt.user_id">
                                 <option :value="opt.user_id" x-text="opt.label"></option>
                             </template>

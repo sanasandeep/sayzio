@@ -32,7 +32,7 @@
             <ul class="list-disc pl-4 mt-1 space-y-0.5">
                 <li>When enabled, creators see a <strong>Connect Google Analytics</strong> button in their Connected Apps area.</li>
                 <li>Each creator provides their own <strong>GA4 Measurement ID</strong> (<code>G-XXXXXXXXXX</code>) and a <strong>Measurement Protocol API secret</strong> generated in their GA4 property.</li>
-                <li>The platform forwards link-click and page-view events to the creator\'s property server-side — no JavaScript snippet or browser SDK is needed.</li>
+                <li>The platform forwards link-click and page-view events to the creator\'s property server-side, no JavaScript snippet or browser SDK is needed.</li>
                 <li>No platform-level Google credentials are required. You do <strong>not</strong> need to configure anything in Google Cloud Console for this feature.</li>
             </ul>',
     ])

@@ -139,7 +139,7 @@
         @endif
 
         @if ($state === 'gated')
-            <p class="footnote">Private link — open to view if you have access.</p>
+            <p class="footnote">Private link, open to view if you have access.</p>
         @elseif ($state === 'unavailable')
             <p class="footnote">This link is currently unavailable.</p>
         @endif

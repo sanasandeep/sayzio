@@ -114,7 +114,7 @@
         <div x-show="loading" class="text-center py-6 text-sm" style="color: var(--text-faint);">
             <i class="fas fa-spinner fa-spin mr-2"></i>Loading more...
         </div>
-        <div x-show="!nextUrl && !loading" class="text-center py-6 text-xs" style="color: var(--text-faint);">— End of feed —</div>
+        <div x-show="!nextUrl && !loading" class="text-center py-6 text-xs" style="color: var(--text-faint);">End of feed</div>
         <div id="feedSentinel" class="h-2"></div>
     @endif
 </div>

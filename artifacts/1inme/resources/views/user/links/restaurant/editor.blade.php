@@ -108,7 +108,7 @@
                         <label><input type="radio" value="display" x-model="menu.mode" @change="saveSettings()"><span>Display only</span></label>
                         <label><input type="radio" value="order" x-model="menu.mode" @change="saveSettings()"><span>Order at table</span></label>
                     </div>
-                    <p class="text-xs mt-2" style="color:var(--text-muted)">Order mode lets guests build a cart and send orders to you. No online payment — guests pay your staff.</p>
+                    <p class="text-xs mt-2" style="color:var(--text-muted)">Order mode lets guests build a cart and send orders to you. No online payment, guests pay your staff.</p>
                 </div>
                 <div class="rm-row">
                     <label class="rm-label">Currency</label>
@@ -129,7 +129,7 @@
             <!-- GST / tax estimate -->
             <div class="rm-card" x-show="menu.mode === 'order'">
                 <h5>Estimated tax (GST)</h5>
-                <p class="text-xs mb-3" style="color:var(--text-muted)">Show an estimated GST/tax line on the guest's bill. This is an estimate only — no money is collected here.</p>
+                <p class="text-xs mb-3" style="color:var(--text-muted)">Show an estimated GST/tax line on the guest's bill. This is an estimate only, no money is collected here.</p>
                 <div class="rm-row">
                     <label style="display:flex;gap:8px;align-items:center;color:var(--text-primary)">
                         <input type="checkbox" x-model="tax.enabled" @change="saveSettings()"> Add a tax line to the bill
@@ -279,7 +279,7 @@
                     </div>
                     <div style="max-height:160px;overflow-y:auto;padding:6px">
                         <template x-if="vaultLoading"><div style="padding:20px;text-align:center"><i class="fas fa-spinner fa-spin" style="color:#60a5fa"></i></div></template>
-                        <template x-if="!vaultLoading && vaultFiles.length===0"><div style="padding:20px;text-align:center;font-size:11px;color:var(--text-muted,#9ca3af)">No images yet — upload some to My Files first</div></template>
+                        <template x-if="!vaultLoading && vaultFiles.length===0"><div style="padding:20px;text-align:center;font-size:11px;color:var(--text-muted,#9ca3af)">No images yet, upload some to My Files first</div></template>
                         <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px">
                             <template x-for="f in filteredVault" :key="f.id">
                                 <button type="button" @click="itemModal.photo_url=f.url; photoMode='url'"

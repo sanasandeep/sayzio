@@ -50,7 +50,7 @@
                               class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white font-mono"
                               placeholder="<h1>Hello!</h1>&#10;<p>What's new this month…</p>">{{ old('body_html') }}</textarea>
                     <p class="mt-1 text-[11px] text-white/40">
-                        Plain text is fine too — basic HTML tags (h1, p, a, ul, strong, em, br) will render in most email clients.
+                        Plain text is fine too, basic HTML tags (h1, p, a, ul, strong, em, br) will render in most email clients.
                     </p>
                     @error('body_html')
                         <p class="mt-1 text-xs text-red-300">{{ $message }}</p>
@@ -67,7 +67,7 @@
                                 class="w-full h-full bg-white"></iframe>
                     </div>
                     <p class="mt-1 text-[11px] text-white/40">
-                        This is an approximation — final rendering varies between email clients.
+                        This is an approximation, final rendering varies between email clients.
                     </p>
                 </div>
             </div>
@@ -213,7 +213,7 @@
                                 {{ optional($issue->sent_at ?? $issue->created_at)->format('Y-m-d H:i') }}
                             </td>
                             <td class="py-2 pr-3 text-xs text-white/60">
-                                {{ $issue->finished_at ? $issue->finished_at->format('Y-m-d H:i') : '—' }}
+                                {{ $issue->finished_at ? $issue->finished_at->format('Y-m-d H:i') : '-' }}
                             </td>
                             <td class="py-2 pr-3 text-xs">
                                 @php
@@ -256,14 +256,14 @@
                                             <span class="ml-1 text-white/50">({{ number_format($rate, 2) }}%)</span>
                                         @endif
                                     @else
-                                        <span class="ml-1 text-white/40" title="No delivered recipients yet">(—)</span>
+                                        <span class="ml-1 text-white/40" title="No delivered recipients yet">( - )</span>
                                     @endif
                                 @else
                                     <span class="text-white/40">0</span>
                                     @if($rate !== null)
                                         <span class="ml-1 text-white/40">(0.00%)</span>
                                     @else
-                                        <span class="ml-1 text-white/40" title="No delivered recipients yet">(—)</span>
+                                        <span class="ml-1 text-white/40" title="No delivered recipients yet">( - )</span>
                                     @endif
                                 @endif
                             </td>

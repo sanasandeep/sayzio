@@ -1,6 +1,6 @@
 @extends('admin.layouts.app')
 
-@section('title', 'Custom Plan Request — ' . $customPlanRequest->name)
+@section('title', 'Custom Plan Request: ' . $customPlanRequest->name)
 
 @section('content')
 <div class="max-w-5xl mx-auto px-4 sm:px-6">
@@ -145,7 +145,7 @@
                         <div>
                             <label class="admin-label">Start from existing plan <span class="font-normal opacity-60">(optional)</span></label>
                             <select name="base_plan_id" x-model="basePlanId" class="admin-input w-full text-sm">
-                                <option value="">— Define from scratch —</option>
+                                <option value="">Define from scratch</option>
                                 @foreach($plans as $plan)
                                     <option value="{{ $plan->id }}">{{ $plan->name }}</option>
                                 @endforeach
@@ -155,7 +155,7 @@
                         <div>
                             <label class="admin-label">Custom Plan Name <span class="text-red-400">*</span></label>
                             <input type="text" name="plan_name" required
-                                   value="{{ old('plan_name', 'Custom — ' . $customPlanRequest->name) }}"
+                                   value="{{ old('plan_name', 'Custom, ' . $customPlanRequest->name) }}"
                                    class="admin-input w-full text-sm"
                                    placeholder="e.g. Enterprise Custom">
                         </div>

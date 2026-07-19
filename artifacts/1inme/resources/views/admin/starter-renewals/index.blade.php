@@ -25,7 +25,7 @@
         <h1 class="text-xl font-semibold text-white">Free plan renewal reminders</h1>
         <p class="text-sm text-white/60 mt-1">
             Once a year, free Starter users get an email and an in-app nudge to re-confirm their plan, with a one-click
-            <strong>“renew free for another year”</strong> action. It's a reminder only — lapsing never locks an account,
+            <strong>“renew free for another year”</strong> action. It's a reminder only, lapsing never locks an account,
             downgrades anything, or removes data. Preview exactly what users see and send yourself a test below before any
             copy or branding change goes out.
         </p>
@@ -56,7 +56,7 @@
             <div class="rounded-xl border border-white/10 bg-white/[0.03] p-4">
                 <div class="text-2xl font-bold text-white">{{ number_format($stats['lapsed']) }}</div>
                 <div class="text-xs text-white/60 mt-1">Windows already lapsed</div>
-                <div class="text-[11px] text-white/40 mt-0.5">Still active — just awaiting re-confirmation.</div>
+                <div class="text-[11px] text-white/40 mt-0.5">Still active, just awaiting re-confirmation.</div>
             </div>
 
             <div class="rounded-xl border border-white/10 bg-white/[0.03] p-4">
@@ -84,7 +84,7 @@
         <div>
             <h2 class="text-base font-semibold text-white">Users due for renewal</h2>
             <p class="text-xs text-white/50 mt-0.5">
-                Free-Starter users whose yearly window is lapsing within 30 days or has already lapsed — most urgent first.
+                Free-Starter users whose yearly window is lapsing within 30 days or has already lapsed, most urgent first.
                 Use <strong>Send reminder</strong> to nudge one now (email + in-app), the same message the daily job sends.
             </p>
         </div>
@@ -118,7 +118,7 @@
                                             {{ $isLapsed ? 'Lapsed ' : 'Due ' }}{{ $endsAt->diffForHumans() }}
                                         </div>
                                     @else
-                                        <span class="text-white/40">—</span>
+                                        <span class="text-white/40">-</span>
                                     @endif
                                 </td>
                                 <td class="px-4 py-3">
@@ -156,7 +156,7 @@
         <div>
             <h2 class="text-base font-semibold text-white">Preview a specific user</h2>
             <p class="text-xs text-white/50 mt-0.5">
-                Enter a user ID or email to preview the exact reminder that user is due to receive — their real
+                Enter a user ID or email to preview the exact reminder that user is due to receive, their real
                 free-window end date and a working signed renew link. Leave blank to preview the generic sample.
             </p>
         </div>
@@ -253,8 +253,8 @@
         <div>
             <h2 class="text-base font-semibold text-white">Send yourself a test</h2>
             <p class="text-xs text-white/50 mt-0.5">
-                Sends the real reminder email — and, if your admin login has a matching user account, an in-app
-                notification — to you{{ $adminEmail ? ' (' . $adminEmail . ')' : '' }} through the same mailer the live
+                Sends the real reminder email, and, if your admin login has a matching user account, an in-app
+                notification, to you{{ $adminEmail ? ' (' . $adminEmail . ')' : '' }} through the same mailer the live
                 job uses. Nothing is sent to real users.
             </p>
         </div>

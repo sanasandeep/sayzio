@@ -138,7 +138,7 @@
                         <label><input type="radio" value="display" x-model="config.mode" @change="saveSettings()"><span>Display only</span></label>
                         <label><input type="radio" value="booking" x-model="config.mode" @change="saveSettings()"><span>Accept bookings</span></label>
                     </div>
-                    <p class="text-xs mt-2" style="color:var(--text-muted)">Booking mode lets visitors pick a free slot and send a request. No online payment — you arrange payment directly.</p>
+                    <p class="text-xs mt-2" style="color:var(--text-muted)">Booking mode lets visitors pick a free slot and send a request. No online payment, you arrange payment directly.</p>
                 </div>
                 <div class="sb-row">
                     <label class="sb-label">Currency</label>
@@ -185,7 +185,7 @@
             <!-- GST / tax estimate -->
             <div class="sb-card" x-show="config.mode === 'booking'">
                 <h5>Estimated tax (GST)</h5>
-                <p class="text-xs mb-3" style="color:var(--text-muted)">Show an estimated GST/tax line on the visitor's estimate. This is an estimate only — no money is collected here.</p>
+                <p class="text-xs mb-3" style="color:var(--text-muted)">Show an estimated GST/tax line on the visitor's estimate. This is an estimate only, no money is collected here.</p>
                 <div class="sb-row">
                     <label style="display:flex;gap:8px;align-items:center;color:var(--text-primary)">
                         <input type="checkbox" x-model="tax.enabled" @change="saveSettings()"> Add a tax line to the estimate

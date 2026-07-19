@@ -6,7 +6,7 @@
     @method('PUT')
     <div>
         <h2 class="text-lg font-semibold text-white">{{ $page->title }} <span class="text-xs text-white/40 ml-2">/{{ $page->slug }}</span></h2>
-        <p class="text-xs text-white/50 mt-1">Edit every category and feature row shown on the public Features page. Categories stay in the order listed below — nothing is collapsed or merged automatically.</p>
+        <p class="text-xs text-white/50 mt-1">Edit every category and feature row shown on the public Features page. Categories stay in the order listed below, nothing is collapsed or merged automatically.</p>
     </div>
 
     <div>
@@ -138,7 +138,7 @@
             </div>
         </template>
 
-        <div x-show="categories.length===0" class="text-xs text-white/40 text-center py-4">No categories yet — click "Add category".</div>
+        <div x-show="categories.length===0" class="text-xs text-white/40 text-center py-4">No categories yet, click "Add category".</div>
     </div>
 
     <div class="pt-4 border-t border-white/10 flex items-center justify-between">

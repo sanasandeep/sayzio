@@ -175,7 +175,7 @@
 
         <button class="primary" id="bookBtn" type="button" onclick="SB.book()" disabled>Request booking</button>
         <button class="ghost" type="button" onclick="SB.closeCart()">Keep browsing</button>
-        <p class="note">This is an estimated price, not a final bill. No online payment is taken — you'll settle with the provider directly. Your slot is a request and isn't confirmed until the provider accepts it.</p>
+        <p class="note">This is an estimated price, not a final bill. No online payment is taken, you'll settle with the provider directly. Your slot is a request and isn't confirmed until the provider accepts it.</p>
     </div>
 </div>
 

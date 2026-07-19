@@ -58,7 +58,7 @@
         <div class="scan">Scan to view the menu &amp; order</div>
         <div class="qr" id="qr" data-url="{{ $url }}">{!! base64_decode($svg) !!}</div>
         <div class="url">{{ $url }}</div>
-        <div class="foot">Pay your server directly — no app needed.</div>
+        <div class="foot">Pay your server directly, no app needed.</div>
     </div>
 
     {{-- qrcode-generator from CDN; QrStudio engine reads window.qrcode --}}

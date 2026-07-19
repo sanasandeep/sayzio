@@ -32,7 +32,7 @@
                    class="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-white/20 focus:ring-2 focus:ring-blue-500/40 outline-none">
             <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-xl text-sm font-medium">Add</button>
         </form>
-        <p class="text-[11px] text-white/40 mt-2">After adding, you'll get the exact CNAME record (name + target + TTL) to paste into your DNS provider — then click Verify here.</p>
+        <p class="text-[11px] text-white/40 mt-2">After adding, you'll get the exact CNAME record (name + target + TTL) to paste into your DNS provider, then click Verify here.</p>
         <x-how-to-get-this guide-key="domain.cname" />
     </div>
     @else
@@ -92,9 +92,9 @@
                             @endif
                         @else
                             @if($__status === \App\Modules\User\Models\Domain::DNS_STATUS_UNVERIFIED)
-                                <div class="text-red-300">Auto-unverified after the grace window — fix DNS, then re-verify. The host is still locked to your account so no one else can claim it.</div>
+                                <div class="text-red-300">Auto-unverified after the grace window, fix DNS, then re-verify. The host is still locked to your account so no one else can claim it.</div>
                             @else
-                                <div><span class="text-amber-400">unverified</span> — add this DNS record at your registrar:</div>
+                                <div><span class="text-amber-400">unverified</span>, add this DNS record at your registrar:</div>
                             @endif
                             <div class="font-mono text-white/60">
                                 Type: <span class="text-blue-300">CNAME</span> ·
@@ -112,14 +112,14 @@
                             <button type="submit" class="px-3 py-1.5 rounded-lg text-xs bg-blue-600 hover:bg-blue-700 text-white">Verify now</button>
                         </form>
                     @elseif(!$d->is_verified)
-                        <span class="px-3 py-1.5 rounded-lg text-xs cursor-not-allowed opacity-60 bg-blue-600/40 text-white" title="Your role doesn't allow verifying domains — ask a workspace admin"><i class="fas fa-lock mr-1"></i>Verify</span>
+                        <span class="px-3 py-1.5 rounded-lg text-xs cursor-not-allowed opacity-60 bg-blue-600/40 text-white" title="Your role doesn't allow verifying domains, ask a workspace admin"><i class="fas fa-lock mr-1"></i>Verify</span>
                     @endif
                     @if($__canEdit)
                     <form method="POST" action="{{ route('user.domains.destroy', $d) }}" onsubmit="return window.themedConfirmSubmit(this, {title: 'Remove {{ $d->domain }}?', message: 'Existing links bound to it will lose their custom host.', confirmText: 'Remove', confirmIcon: 'fa-trash', iconClass: 'fa-trash'})">@csrf @method('DELETE')
                         <button type="submit" class="px-3 py-1.5 rounded-lg text-xs bg-red-600/20 text-red-400 hover:bg-red-600/30">Remove</button>
                     </form>
                     @else
-                    <span class="px-3 py-1.5 rounded-lg text-xs cursor-not-allowed opacity-60 bg-white/5 text-white/40" title="Your role doesn't allow removing domains — ask a workspace admin"><i class="fas fa-lock mr-1"></i>Remove</span>
+                    <span class="px-3 py-1.5 rounded-lg text-xs cursor-not-allowed opacity-60 bg-white/5 text-white/40" title="Your role doesn't allow removing domains, ask a workspace admin"><i class="fas fa-lock mr-1"></i>Remove</span>
                     @endif
                 </div>
             </div>
@@ -132,7 +132,7 @@
     @if($globalDomains->isNotEmpty())
     <div class="glass rounded-2xl p-6">
         <h2 class="text-base font-semibold text-white mb-1">Included with your plan</h2>
-        <p class="text-xs text-white/40 mb-4">These shared domains are managed by us and ready to use — pick one when creating or editing a link.</p>
+        <p class="text-xs text-white/40 mb-4">These shared domains are managed by us and ready to use, pick one when creating or editing a link.</p>
         <ul class="text-sm text-white/80 space-y-1.5">
             @foreach($globalDomains as $d)
                 <li class="font-mono">· {{ $d->domain }}</li>
