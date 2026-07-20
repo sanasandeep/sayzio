@@ -141,6 +141,12 @@ if [ -d artifacts/1inme ] && command -v php >/dev/null 2>&1; then
     php artisan db:seed --class=Database\\\\Seeders\\\\BgTemplateSeeder --force
     php artisan db:seed --class=Database\\\\Seeders\\\\BgPatternTemplatesSeeder --force
     php artisan db:seed --class=Database\\\\Seeders\\\\LightBgTemplatesSeeder --force
+    # Default profile-verification tick types (Official/Government/NGO/Company/
+    # Creator). The create-table migration only inserts these when IT creates
+    # the table, so a deploy where the table exists empty would leave the user
+    # request form and the admin tick-type page blank. Idempotent
+    # firstOrCreate-by-slug — never clobbers admin edits.
+    php artisan db:seed --class=Database\\\\Seeders\\\\VerificationTickTypeSeeder --force
     echo \"[\$(date)] card-template + plan/addon + onboarding page-template + link-type explainer + bg-template seed finished\"
   " >> storage/logs/post-merge-recover.log 2>&1 < /dev/null &
   disown $! 2>/dev/null || true
