@@ -15,7 +15,7 @@ $accept = $acceptMap[$acceptTypes] ?? $acceptMap['all'];
 $previewable = in_array($acceptTypes, ['image', 'video', 'audio']);
 @endphp
 
-<div x-data="fileUploadField_{{ $fieldId }}()" class="file-upload-field">
+<div x-data="fileUploadField_{{ $fieldId }}()" class="file-upload-field" data-fieldname="{{ $fieldName }}">
     <label class="{{ $labelClass ?? 'block text-xs mb-1' }}">{{ $labelText }}</label>
 
     <div class="flex items-center gap-1.5 mb-2">

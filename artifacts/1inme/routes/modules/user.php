@@ -944,6 +944,8 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::patch ('links/{link}/themes/schedules/{schedule}',     [\App\Modules\User\Controllers\BiolinkThemeController::class, 'updateSchedule'])->middleware('workspace.can:links.edit')->name('links.themes.schedules.update');
         Route::post  ('links/{link}/themes/schedules/{schedule}/cancel', [\App\Modules\User\Controllers\BiolinkThemeController::class, 'cancelSchedule'])->middleware('workspace.can:links.edit')->name('links.themes.schedules.cancel');
         Route::post('links/{link}/blocks', [BiolinkBlockController::class, 'store'])->middleware('workspace.can:links.edit')->name('links.blocks.store');
+        Route::get('links/{link}/blocks/og-meta', [BiolinkBlockController::class, 'ogMeta'])->middleware('workspace.can:links.view')->name('links.blocks.ogMeta');
+        Route::get('links/{link}/blocks/link-picker', [BiolinkBlockController::class, 'linkPicker'])->middleware('workspace.can:links.view')->name('links.blocks.linkPicker');
         Route::put('links/{link}/blocks/{block}', [BiolinkBlockController::class, 'update'])->middleware('workspace.can:links.edit')->name('links.blocks.update');
         Route::get('links/{link}/blocks/{block}/edit-form', [BiolinkBlockController::class, 'editForm'])->middleware('workspace.can:links.view')->name('links.blocks.editForm');
         Route::delete('links/{link}/blocks/{block}', [BiolinkBlockController::class, 'destroy'])->middleware('workspace.can:links.edit')->name('links.blocks.destroy');
