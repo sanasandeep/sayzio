@@ -69,7 +69,7 @@ class RecurringInvoiceService
         $ws = $template->workspace_id ? Workspace::find($template->workspace_id) : null;
         if (!$ws) {
             // Fall back to the owner's personal workspace if any.
-            $ws = Workspace::where('user_id', $template->user_id)->orderBy('id')->first();
+            $ws = Workspace::where('owner_user_id', $template->user_id)->orderBy('id')->first();
         }
         if (!$ws) return null;
 

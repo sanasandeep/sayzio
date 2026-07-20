@@ -376,6 +376,10 @@ args = "e2e-link-block-picker"
 task = "workflow.run"
 args = "e2e-mobile-og-preview"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "query-columns"
+
 [[workflows.workflow]]
 name = "e2e"
 author = "agent"
@@ -1560,6 +1564,17 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "pnpm --filter @workspace/1inme-mobile run test:og-preview-e2e"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "query-columns"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd artifacts/1inme && composer check:query-columns"
 
 [workflows.workflow.metadata]
 isValidation = true

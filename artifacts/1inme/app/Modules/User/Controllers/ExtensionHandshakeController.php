@@ -82,7 +82,7 @@ class ExtensionHandshakeController extends Controller
         try {
             if (class_exists(Workspace::class)) {
                 $workspaces = Workspace::query()
-                    ->where('owner_id', $user->id)
+                    ->where('owner_user_id', $user->id)
                     ->orWhereHas('members', fn ($q) => $q->where('user_id', $user->id))
                     ->get(['id', 'name'])
                     ->map(fn ($w) => ['id' => (int) $w->id, 'name' => (string) $w->name])
