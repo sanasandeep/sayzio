@@ -85,6 +85,9 @@ class User extends Authenticatable
         'comp_plan_expires_at', 'comp_plan_granted_by',
         // Reusable event organizer profile (Task #3699).
         'organizer_profile',
+        // Account-level creator profile verification (Task #5439).
+        'profile_verification_status', 'profile_verification_type_id',
+        'profile_verified_name', 'profile_verified_avatar', 'profile_verified_at',
     ];
 
     protected $hidden = ['password', 'remember_token', 'my_calendar_feed_token'];
@@ -191,6 +194,8 @@ class User extends Authenticatable
             'country_block_list'            => 'array',
             'country_allow_list'            => 'array',
             'creator_digest_last_sent_at'   => 'datetime',
+            // Account-level creator profile verification (Task #5439).
+            'profile_verified_at'            => 'datetime',
             // Admin/staff user-management suite (Task #2106).
             'suspended_at'                  => 'datetime',
             'reactivate_at'                 => 'datetime',
@@ -221,6 +226,67 @@ class User extends Authenticatable
      * simple "Hosted by" fallback, instead of re-deriving emptiness
      * themselves.
      */
+    // =========================================================================
+    // Account-level creator profile verification (Task #5439)
+    // =========================================================================
+
+    /**
+     * True when the user holds an active verified tick (not pending reverification
+     * from an admin's perspective — the tick is still displayed while pending
+     * reverification).
+     */
+    public function isVerified(): bool
+    {
+        return in_array($this->profile_verification_status, ['verified', 'pending_reverification'], true);
+    }
+
+    /** True when the user is fully verified without any pending change. */
+    public function isFullyVerified(): bool
+    {
+        return $this->profile_verification_status === 'verified';
+    }
+
+    /** True when a re-verification review is in flight. */
+    public function isPendingReverification(): bool
+    {
+        return $this->profile_verification_status === 'pending_reverification';
+    }
+
+    /** True when the user's profile name/avatar are locked (they are verified). */
+    public function isNameAvatarLocked(): bool
+    {
+        return $this->isVerified();
+    }
+
+    /** Relation to the current tick type. */
+    public function verificationTickType()
+    {
+        return $this->belongsTo(VerificationTickType::class, 'profile_verification_type_id');
+    }
+
+    /** All profile verification requests for this user. */
+    public function profileVerificationRequests()
+    {
+        return $this->hasMany(ProfileVerificationRequest::class);
+    }
+
+    /**
+     * Render the colored verification tick badge HTML.
+     * Returns empty string when the user is not verified.
+     */
+    public function verificationTickHtml(string $sizeClass = 'text-sm'): string
+    {
+        if (!$this->isVerified() || !$this->profile_verification_type_id) {
+            return '';
+        }
+        static $cache = [];
+        $id = (int) $this->profile_verification_type_id;
+        if (!isset($cache[$id])) {
+            $cache[$id] = VerificationTickType::find($id);
+        }
+        return $cache[$id] ? $cache[$id]->tickHtml($sizeClass) : '';
+    }
+
     public function organizerProfile(): array
     {
         $stored = is_array($this->organizer_profile) ? $this->organizer_profile : [];

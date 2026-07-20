@@ -27,6 +27,7 @@ use App\Modules\User\Controllers\LeadController;
 use App\Modules\User\Controllers\GoogleContactsAccountController;
 use App\Modules\User\Controllers\DialerController;
 use App\Modules\User\Controllers\VerificationController;
+use App\Modules\User\Controllers\ProfileVerificationController;
 use App\Modules\User\Middleware\CheckPlanLimit;
 use App\Modules\User\Controllers\RoleManagementController;
 use App\Modules\User\Controllers\UserAccessController;
@@ -1927,11 +1928,20 @@ Route::prefix('user')->name('user.')->group(function () {
         });
 
         // Account verification (blue-tick request) — workspace-account-level.
+        // Legacy per-link verification routes preserved for backward compat.
         Route::prefix('settings/verification')->name('verification.')->middleware('workspace.can:settings.view')->group(function () {
             Route::get('/', [VerificationController::class, 'index'])->name('index');
             Route::get('request', [VerificationController::class, 'create'])->middleware(['workspace.can:settings.edit', CheckPlanLimit::class . ':verification_eligible'])->name('request');
             Route::post('request', [VerificationController::class, 'store'])->middleware(['workspace.can:settings.edit', CheckPlanLimit::class . ':verification_eligible'])->name('store');
             Route::post('blocks/{block}/toggle', [VerificationController::class, 'toggleBlock'])->middleware('workspace.can:settings.edit')->name('block.toggle');
+        });
+
+        // Profile-level creator verification (Task #5439).
+        Route::prefix('settings/profile-verification')->name('profile-verification.')->middleware('workspace.can:settings.view')->group(function () {
+            Route::get('/',        [ProfileVerificationController::class, 'index'])->name('index');
+            Route::get('request',  [ProfileVerificationController::class, 'create'])->middleware('workspace.can:settings.edit')->name('request');
+            Route::post('request', [ProfileVerificationController::class, 'store'])->middleware('workspace.can:settings.edit')->name('store');
+            Route::post('re-verify', [ProfileVerificationController::class, 'reVerify'])->middleware('workspace.can:settings.edit')->name('re-verify');
         });
 
         // Self-serve account badge requests (Task #2910) — users ask for an
@@ -1953,10 +1963,21 @@ Route::prefix('user')->name('user.')->group(function () {
         });
 
         Route::middleware('user.can:user.verifications.review')->group(function () {
+            // Legacy per-link verification admin (kept for backward compat with existing data).
             Route::get('verification-admin', [VerificationController::class, 'adminIndex'])->name('verification.admin');
             Route::get('verification-admin/{verificationRequest}', [VerificationController::class, 'adminReview'])->name('verification.admin.review');
             Route::post('verification-admin/{verificationRequest}/approve', [VerificationController::class, 'adminApprove'])->name('verification.admin.approve');
             Route::post('verification-admin/{verificationRequest}/reject', [VerificationController::class, 'adminReject'])->name('verification.admin.reject');
+
+            // Profile-level verification admin (Task #5439).
+            Route::prefix('profile-verification-admin')->name('profile-verification.admin.')->group(function () {
+                Route::get('/',              [ProfileVerificationController::class, 'adminIndex'])->name('index');
+                Route::get('tick-types',     [ProfileVerificationController::class, 'adminTickTypes'])->name('tick-types');
+                Route::post('tick-types/{verificationTickType}', [ProfileVerificationController::class, 'adminUpdateTickType'])->name('tick-types.update');
+                Route::get('{profileVerificationRequest}',               [ProfileVerificationController::class, 'adminReview'])->name('review');
+                Route::post('{profileVerificationRequest}/approve',      [ProfileVerificationController::class, 'adminApprove'])->name('approve');
+                Route::post('{profileVerificationRequest}/reject',       [ProfileVerificationController::class, 'adminReject'])->name('reject');
+            });
         });
 
         // ===================================================================

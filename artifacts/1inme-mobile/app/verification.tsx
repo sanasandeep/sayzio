@@ -4,7 +4,6 @@ import { Stack } from "expo-router";
 import { useState } from "react";
 import {
   ActivityIndicator,
-  FlatList,
   Modal,
   Pressable,
   ScrollView,
@@ -17,73 +16,55 @@ import { Button } from "@/components/Button";
 import { EmptyState } from "@/components/EmptyState";
 import { TextField } from "@/components/TextField";
 import { useColors } from "@/hooks/useColors";
-import { listLinks, type Link } from "@/lib/api/links";
 import {
-  listVerifications,
-  submitVerification,
-  type VerificationCategory,
-  type VerificationRequest,
+  getProfileVerificationStatus,
+  submitProfileVerification,
+  type ProfileVerificationRequest,
+  type TickType,
 } from "@/lib/api/verification";
 import { showAlert } from "@/lib/webAlert";
 
-const statusColorMap = (
-  colors: ReturnType<typeof useColors>,
-): Record<string, string> => ({
-  pending: colors.warning,
-  approved: colors.success,
-  rejected: colors.destructive,
-});
-
-const CATEGORIES: { value: VerificationCategory; label: string }[] = [
-  { value: "individual", label: "Individual" },
-  { value: "creator", label: "Creator" },
-  { value: "business", label: "Business" },
-  { value: "org", label: "Organization" },
-];
+const STATUS_LABEL: Record<string, string> = {
+  unverified: "Not Verified",
+  pending: "Pending Review",
+  verified: "Verified",
+  pending_reverification: "Re-verification Pending",
+};
 
 export default function VerificationScreen() {
   const colors = useColors();
-  const STATUS_COLORS = statusColorMap(colors);
   const qc = useQueryClient();
   const [showNew, setShowNew] = useState(false);
-  const [linkId, setLinkId] = useState<number | null>(null);
-  const [category, setCategory] = useState<VerificationCategory>("individual");
-  const [businessName, setBusinessName] = useState("");
-  const [displayName, setDisplayName] = useState("");
+  const [selectedTickId, setSelectedTickId] = useState<number | null>(null);
+  const [officialName, setOfficialName] = useState("");
   const [purpose, setPurpose] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const q = useQuery({ queryKey: ["verifications"], queryFn: listVerifications });
-  const linksQ = useQuery({
-    queryKey: ["links", "for-verification"],
-    queryFn: () => listLinks({ per_page: 100 }),
-    enabled: showNew,
+  const q = useQuery({
+    queryKey: ["profile-verification"],
+    queryFn: getProfileVerificationStatus,
   });
 
   const resetForm = () => {
-    setLinkId(null);
-    setCategory("individual");
-    setBusinessName("");
-    setDisplayName("");
+    setSelectedTickId(null);
+    setOfficialName("");
     setPurpose("");
     setErrors({});
   };
 
   const submit = useMutation({
     mutationFn: () => {
-      if (!linkId) throw new Error("Pick a Link in Bio first");
-      return submitVerification({
-        link_id: linkId,
-        category,
-        business_name: businessName.trim() || null,
-        display_name: displayName.trim() || null,
-        purpose: purpose.trim() || null,
+      if (!selectedTickId) throw new Error("Choose a verification type first");
+      return submitProfileVerification({
+        tick_type_id: selectedTickId,
+        official_name: officialName.trim(),
+        purpose: purpose.trim(),
       });
     },
     onSuccess: () => {
       setShowNew(false);
       resetForm();
-      qc.invalidateQueries({ queryKey: ["verifications"] });
+      qc.invalidateQueries({ queryKey: ["profile-verification"] });
     },
     onError: (e: any) => {
       if (e?.errors) {
@@ -98,72 +79,135 @@ export default function VerificationScreen() {
     },
   });
 
-  const links = linksQ.data?.items ?? [];
+  const data = q.data;
+  const requests = data?.requests ?? [];
+  const tickTypes = data?.tick_types ?? [];
+  const status = data?.status ?? "unverified";
+  const canApply = status === "unverified";
+
+  const statusColor = {
+    unverified: colors.mutedForeground,
+    pending: colors.warning,
+    verified: colors.success,
+    pending_reverification: colors.warning,
+  }[status] ?? colors.mutedForeground;
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       <Stack.Screen options={{ title: "Verification" }} />
+
       {q.isLoading ? (
         <View style={styles.center}>
           <ActivityIndicator color={colors.primary} />
         </View>
       ) : (
-        <FlatList<VerificationRequest>
-          data={q.data ?? []}
-          keyExtractor={(r) => String(r.id)}
-          contentContainerStyle={{ padding: 20, gap: 10 }}
-          ListHeaderComponent={
-            <Text style={[styles.intro, { color: colors.mutedForeground }]}>
-              Apply for the verified badge on a specific Link in Bio. We review each request manually.
-            </Text>
-          }
-          renderItem={({ item }) => (
-            <View
-              style={[
-                styles.row,
-                { backgroundColor: colors.card, borderColor: colors.border, borderRadius: colors.radius },
-              ]}
-            >
-              <View style={[styles.iconWrap, { backgroundColor: colors.primary + "1c" }]}>
-                <Feather name="award" size={18} color={colors.primary} />
-              </View>
-              <View style={{ flex: 1, gap: 2 }}>
-                <Text style={[styles.name, { color: colors.foreground }]} numberOfLines={1}>
-                  {item.business_name || item.display_name || `Request #${item.id}`}
+        <ScrollView contentContainerStyle={{ padding: 20, gap: 16 }}>
+          {/* Status card */}
+          <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border, borderRadius: colors.radius }]}>
+            <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.name, { color: colors.foreground }]}>
+                  {data?.verified_name ?? "Your Account"}
                 </Text>
-                <Text style={[styles.sub, { color: colors.mutedForeground }]} numberOfLines={1}>
-                  {item.category}
-                  {item.created_at ? ` • ${new Date(item.created_at).toLocaleDateString()}` : ""}
+                <Text style={[styles.sub, { color: colors.mutedForeground }]}>
+                  {data?.tick_type?.name ? `${data.tick_type.name} · ` : ""}
+                  Profile Verification
                 </Text>
               </View>
-              <View
-                style={[
-                  styles.badge,
-                  { backgroundColor: (STATUS_COLORS[item.status] ?? colors.mutedForeground) + "33" },
-                ]}
-              >
-                <Text style={[styles.badgeText, { color: STATUS_COLORS[item.status] ?? colors.mutedForeground }]}>
-                  {item.status}
+              <View style={[styles.badge, { backgroundColor: statusColor + "33" }]}>
+                <Text style={[styles.badgeText, { color: statusColor }]}>
+                  {STATUS_LABEL[status] ?? status}
                 </Text>
               </View>
             </View>
-          )}
-          ListEmptyComponent={
+
+            {data?.verified_at ? (
+              <Text style={[styles.sub, { color: colors.mutedForeground, marginTop: 8 }]}>
+                Verified since {new Date(data.verified_at).toLocaleDateString()}
+              </Text>
+            ) : null}
+          </View>
+
+          {/* Tick type catalog (for unverified users) */}
+          {canApply && tickTypes.length > 0 ? (
+            <View>
+              <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>Tick Types</Text>
+              <View style={{ gap: 8, marginTop: 8 }}>
+                {tickTypes.map((t: TickType) => (
+                  <View key={t.id} style={[styles.row, { backgroundColor: colors.card, borderColor: colors.border, borderRadius: colors.radius }]}>
+                    <View style={[styles.iconWrap, { backgroundColor: t.color + "22" }]}>
+                      <Feather name="shield" size={18} color={t.color} />
+                    </View>
+                    <Text style={[styles.name, { color: colors.foreground }]}>{t.name}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+          ) : null}
+
+          {/* Apply CTA */}
+          {canApply ? (
+            <Button label="Apply for Verification" onPress={() => setShowNew(true)} />
+          ) : status === "pending" ? (
+            <View style={[styles.notice, { backgroundColor: colors.warning + "18", borderColor: colors.warning + "44" }]}>
+              <Text style={[styles.sub, { color: colors.warning }]}>
+                Your request is under review. We'll notify you when it's processed.
+              </Text>
+            </View>
+          ) : status === "pending_reverification" ? (
+            <View style={[styles.notice, { backgroundColor: colors.warning + "18", borderColor: colors.warning + "44" }]}>
+              <Text style={[styles.sub, { color: colors.warning }]}>
+                Your name change is under review. Your tick remains visible in the meantime.
+              </Text>
+            </View>
+          ) : null}
+
+          {/* Request history */}
+          {requests.length > 0 ? (
+            <View>
+              <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>Request History</Text>
+              <View style={{ gap: 8, marginTop: 8 }}>
+                {requests.map((r: ProfileVerificationRequest) => {
+                  const sc = r.status === "approved" ? colors.success : r.status === "rejected" ? colors.destructive : colors.warning;
+                  return (
+                    <View key={r.id} style={[styles.row, { backgroundColor: colors.card, borderColor: colors.border, borderRadius: colors.radius }]}>
+                      <View style={[styles.iconWrap, { backgroundColor: colors.primary + "1c" }]}>
+                        <Feather name="award" size={18} color={colors.primary} />
+                      </View>
+                      <View style={{ flex: 1, gap: 2 }}>
+                        <Text style={[styles.name, { color: colors.foreground }]} numberOfLines={1}>
+                          {r.official_name}
+                        </Text>
+                        <Text style={[styles.sub, { color: colors.mutedForeground }]} numberOfLines={1}>
+                          {r.kind === "reverification" ? "Re-verification" : "New request"}
+                          {r.created_at ? ` · ${new Date(r.created_at).toLocaleDateString()}` : ""}
+                        </Text>
+                        {r.admin_notes && r.status !== "pending" ? (
+                          <Text style={[styles.sub, { color: colors.mutedForeground, fontStyle: "italic" }]} numberOfLines={2}>
+                            {r.admin_notes}
+                          </Text>
+                        ) : null}
+                      </View>
+                      <View style={[styles.badge, { backgroundColor: sc + "33" }]}>
+                        <Text style={[styles.badgeText, { color: sc }]}>{r.status}</Text>
+                      </View>
+                    </View>
+                  );
+                })}
+              </View>
+            </View>
+          ) : canApply ? (
             <EmptyState
               icon="award"
-              title="No verification requests"
-              body="Submit a request to get the verified badge on one of your Link in Bio pages."
+              title="Not yet verified"
+              body="Apply for a colored verification tick on your creator profile."
               action={<Button label="Apply" onPress={() => setShowNew(true)} />}
             />
-          }
-          ListFooterComponent={
-            (q.data?.length ?? 0) > 0 ? (
-              <Button label="Submit another request" variant="outline" onPress={() => setShowNew(true)} />
-            ) : null
-          }
-        />
+          ) : null}
+        </ScrollView>
       )}
 
+      {/* Apply modal */}
       <Modal visible={showNew} animationType="slide" transparent onRequestClose={() => setShowNew(false)}>
         <View style={styles.modalBackdrop}>
           <ScrollView
@@ -173,103 +217,51 @@ export default function VerificationScreen() {
               { backgroundColor: colors.background, borderColor: colors.border, borderRadius: colors.radius },
             ]}
           >
-            <Text style={[styles.modalTitle, { color: colors.foreground }]}>Apply for verification</Text>
+            <Text style={[styles.modalTitle, { color: colors.foreground }]}>Apply for Verification</Text>
+            <Text style={[styles.sub, { color: colors.mutedForeground }]}>
+              Your profile name will be locked once approved.
+            </Text>
 
-            <Text style={[styles.fieldLabel, { color: colors.mutedForeground }]}>Link in Bio to verify</Text>
-            {linksQ.isLoading ? (
-              <ActivityIndicator color={colors.primary} />
-            ) : links.length === 0 ? (
-              <Text style={[styles.sub, { color: colors.mutedForeground }]}>
-                Create a link first to request verification.
-              </Text>
-            ) : (
-              <View style={{ gap: 6 }}>
-                {links.map((l: Link) => {
-                  const active = linkId === l.id;
-                  return (
-                    <Pressable
-                      key={l.id}
-                      onPress={() => setLinkId(l.id)}
-                      style={({ pressed }) => [
-                        styles.pickerRow,
-                        {
-                          borderColor: active ? colors.primary : colors.border,
-                          backgroundColor: active ? colors.primary + "1c" : colors.card,
-                          borderRadius: colors.radius,
-                          opacity: pressed ? 0.7 : 1,
-                        },
-                      ]}
-                    >
-                      <Feather
-                        name={active ? "check-circle" : "circle"}
-                        size={16}
-                        color={active ? colors.primary : colors.mutedForeground}
-                      />
-                      <View style={{ flex: 1 }}>
-                        <Text style={[styles.name, { color: colors.foreground }]} numberOfLines={1}>
-                          {l.title || l.alias}
-                        </Text>
-                        <Text style={[styles.sub, { color: colors.mutedForeground }]} numberOfLines={1}>
-                          /{l.alias}
-                        </Text>
-                      </View>
-                    </Pressable>
-                  );
-                })}
-              </View>
-            )}
-            {errors.link_id ? (
-              <Text style={[styles.sub, { color: colors.destructive }]}>{errors.link_id}</Text>
-            ) : null}
-
-            <Text style={[styles.fieldLabel, { color: colors.mutedForeground }]}>Category</Text>
-            <View style={styles.segmented}>
-              {CATEGORIES.map((c) => {
-                const active = category === c.value;
+            <Text style={[styles.fieldLabel, { color: colors.mutedForeground, marginTop: 8 }]}>Verification Type</Text>
+            <View style={{ gap: 6 }}>
+              {tickTypes.map((t: TickType) => {
+                const active = selectedTickId === t.id;
                 return (
                   <Pressable
-                    key={c.value}
-                    onPress={() => setCategory(c.value)}
+                    key={t.id}
+                    onPress={() => setSelectedTickId(t.id)}
                     style={({ pressed }) => [
-                      styles.segment,
+                      styles.pickerRow,
                       {
-                        borderColor: active ? colors.primary : colors.border,
-                        backgroundColor: active ? colors.primary + "1c" : "transparent",
+                        borderColor: active ? t.color : colors.border,
+                        backgroundColor: active ? t.color + "1c" : colors.card,
                         borderRadius: colors.radius,
                         opacity: pressed ? 0.7 : 1,
                       },
                     ]}
                   >
-                    <Text
-                      style={[
-                        styles.segmentLabel,
-                        { color: active ? colors.primary : colors.foreground },
-                      ]}
-                    >
-                      {c.label}
-                    </Text>
+                    <Feather
+                      name={active ? "check-circle" : "circle"}
+                      size={16}
+                      color={active ? t.color : colors.mutedForeground}
+                    />
+                    <Text style={[styles.name, { color: colors.foreground }]}>{t.name}</Text>
                   </Pressable>
                 );
               })}
             </View>
-            {errors.category ? (
-              <Text style={[styles.sub, { color: colors.destructive }]}>{errors.category}</Text>
+            {errors.tick_type_id ? (
+              <Text style={[styles.sub, { color: colors.destructive }]}>{errors.tick_type_id}</Text>
             ) : null}
 
             <TextField
-              label="Business / organization name"
-              value={businessName}
-              onChangeText={setBusinessName}
-              error={errors.business_name}
+              label="Official / legal name"
+              value={officialName}
+              onChangeText={setOfficialName}
+              error={errors.official_name}
             />
             <TextField
-              label="Display name"
-              value={displayName}
-              onChangeText={setDisplayName}
-              error={errors.display_name}
-            />
-            <TextField
-              label="Why do you need verification?"
+              label="Why should your account be verified?"
               value={purpose}
               onChangeText={setPurpose}
               multiline
@@ -277,21 +269,18 @@ export default function VerificationScreen() {
               error={errors.purpose}
             />
 
-            <View style={{ flexDirection: "row", gap: 8 }}>
+            <View style={{ flexDirection: "row", gap: 8, marginTop: 4 }}>
               <Button
                 label="Cancel"
                 variant="outline"
-                onPress={() => {
-                  setShowNew(false);
-                  resetForm();
-                }}
+                onPress={() => { setShowNew(false); resetForm(); }}
                 style={{ flex: 1 }}
               />
               <Button
                 label="Submit"
                 onPress={() => submit.mutate()}
                 loading={submit.isPending}
-                disabled={!linkId}
+                disabled={!selectedTickId || !officialName.trim()}
                 style={{ flex: 1 }}
               />
             </View>
@@ -304,12 +293,7 @@ export default function VerificationScreen() {
 
 const styles = StyleSheet.create({
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
-  intro: {
-    fontFamily: "SpaceGrotesk_400Regular",
-    fontSize: 13,
-    lineHeight: 18,
-    marginBottom: 4,
-  },
+  card: { padding: 16, borderWidth: 1 },
   row: { flexDirection: "row", alignItems: "center", gap: 12, padding: 14, borderWidth: 1 },
   iconWrap: {
     width: 40,
@@ -320,6 +304,12 @@ const styles = StyleSheet.create({
   },
   name: { fontFamily: "SpaceGrotesk_600SemiBold", fontSize: 15 },
   sub: { fontFamily: "SpaceGrotesk_400Regular", fontSize: 12 },
+  sectionLabel: {
+    fontFamily: "SpaceGrotesk_600SemiBold",
+    fontSize: 11,
+    letterSpacing: 0.4,
+    textTransform: "uppercase",
+  },
   badge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999 },
   badgeText: {
     fontFamily: "SpaceGrotesk_600SemiBold",
@@ -327,6 +317,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.4,
     textTransform: "uppercase",
   },
+  notice: { padding: 14, borderRadius: 12, borderWidth: 1 },
   modalBackdrop: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "flex-end" },
   modalCard: { padding: 20, gap: 14, borderTopWidth: 1, maxHeight: "92%" },
   modalTitle: { fontFamily: "SpaceGrotesk_700Bold", fontSize: 22 },
@@ -343,7 +334,4 @@ const styles = StyleSheet.create({
     padding: 12,
     borderWidth: 1,
   },
-  segmented: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
-  segment: { paddingHorizontal: 12, paddingVertical: 8, borderWidth: 1 },
-  segmentLabel: { fontFamily: "SpaceGrotesk_600SemiBold", fontSize: 13 },
 });

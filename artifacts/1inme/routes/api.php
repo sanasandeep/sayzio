@@ -1243,9 +1243,14 @@ Route::prefix('v1')->group(function () {
         Route::get   ('/vault/clients',     [VaultController::class, 'clients']);
         Route::get   ('/vault/credentials', [VaultController::class, 'credentials']);
 
-        // Verification (creator badge)
+        // Legacy per-link verification (kept for backward compat)
         Route::get   ('/verifications',     [VerificationController::class, 'index']);
         Route::post  ('/verifications',     [VerificationController::class, 'store']);
+
+        // Profile-level account verification (Task #5439)
+        Route::get   ('/profile-verification',          [\App\Modules\Api\Controllers\ProfileVerificationApiController::class, 'show']);
+        Route::post  ('/profile-verification',          [\App\Modules\Api\Controllers\ProfileVerificationApiController::class, 'store']);
+        Route::post  ('/profile-verification/reverify', [\App\Modules\Api\Controllers\ProfileVerificationApiController::class, 'reVerify']);
 
         // Billing
         Route::get   ('/billing/subscription',     [BillingController::class, 'subscription']);

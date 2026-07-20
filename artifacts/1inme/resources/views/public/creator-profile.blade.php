@@ -312,7 +312,11 @@
                 <h1 class="text-2xl sm:text-3xl font-extrabold flex items-center gap-2 flex-wrap">
                     {{ $creator->name }}
                     @if(method_exists($creator, 'isVerified') && $creator->isVerified())
-                        <span class="text-blue-600" title="Verified"><i class="fas fa-circle-check"></i></span>
+                        @if($creator->verificationTickType)
+                            {!! $creator->verificationTickType->tickHtml('text-xl') !!}
+                        @else
+                            <span class="text-blue-600" title="Verified"><i class="fas fa-circle-check"></i></span>
+                        @endif
                     @endif
                 </h1>
                 <p class="text-slate-500 text-sm mt-0.5">@<span class="font-medium">{{ $creator->handle }}</span>
@@ -365,8 +369,13 @@
             @endif
             @if(($__hl['show_verified'] ?? true) && method_exists($creator, 'isVerified') && $creator->isVerified())
                 <div class="cp-highlight-pill flex-1 min-w-[60px]">
-                    <div class="text-lg font-extrabold text-blue-600"><i class="fas fa-circle-check"></i></div>
-                    <div class="text-[10px] uppercase tracking-wider text-slate-500 mt-0.5">Verified</div>
+                    @if($creator->verificationTickType)
+                        <div class="text-lg font-extrabold">{!! $creator->verificationTickType->tickHtml('text-lg') !!}</div>
+                        <div class="text-[10px] uppercase tracking-wider text-slate-500 mt-0.5">{{ $creator->verificationTickType->name }}</div>
+                    @else
+                        <div class="text-lg font-extrabold text-blue-600"><i class="fas fa-circle-check"></i></div>
+                        <div class="text-[10px] uppercase tracking-wider text-slate-500 mt-0.5">Verified</div>
+                    @endif
                 </div>
             @endif
         </div>

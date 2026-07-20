@@ -49,8 +49,17 @@
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
                                 <label class="block text-sm font-medium mb-1.5" style="color: var(--text-muted);">Name</label>
-                                <input type="text" name="name" value="{{ old('name', $user->name) }}" required
-                                       class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/20 focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/40 outline-none transition-all">
+                                @if($user->isNameAvatarLocked())
+                                    <div class="flex items-center gap-2 w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl" title="Name is locked by profile verification. Submit a re-verification request to change it.">
+                                        <span class="flex-1 text-white">{{ $user->profile_verified_name ?: $user->name }}</span>
+                                        <span class="text-xs px-2 py-0.5 rounded-full font-medium" style="background: rgba(59,130,246,0.15); color: #60a5fa;">{!! $user->verificationTickHtml() !!} Locked</span>
+                                    </div>
+                                    <p class="mt-1 text-xs" style="color: var(--text-subtle);">Your verified name is locked. <a href="{{ route('user.profile-verification.index') }}" class="underline" style="color: var(--color-primary);">Request a name change</a> via re-verification.</p>
+                                    <input type="hidden" name="name" value="{{ $user->profile_verified_name ?: $user->name }}">
+                                @else
+                                    <input type="text" name="name" value="{{ old('name', $user->name) }}" required
+                                           class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/20 focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/40 outline-none transition-all">
+                                @endif
                                 @error('name')<p class="mt-1 text-sm text-red-400">{{ $message }}</p>@enderror
                             </div>
                             <div>

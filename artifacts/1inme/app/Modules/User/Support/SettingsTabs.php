@@ -160,12 +160,19 @@ class SettingsTabs
             'verification' => [
                 'label' => 'Verification & Badges',
                 'icon'  => 'fa-check-circle',
-                'route' => 'user.verification.index',
-                'match' => ['user.verification.*', 'user.badge-requests.*'],
-                'not'   => ['user.verification.admin*'],
+                'route' => 'user.profile-verification.index',
+                'match' => ['user.verification.*', 'user.badge-requests.*', 'user.profile-verification.*'],
+                'not'   => ['user.verification.admin*', 'user.profile-verification.admin.*'],
                 'subs' => [
+                    'profile_verification' => [
+                        'label' => 'Profile Verification',
+                        'icon'  => 'fa-shield-check',
+                        'route' => 'user.profile-verification.index',
+                        'match' => ['user.profile-verification.*'],
+                        'not'   => ['user.profile-verification.admin.*'],
+                    ],
                     'verification' => [
-                        'label' => 'Verification',
+                        'label' => 'Link Verification',
                         'icon'  => 'fa-check-circle',
                         'route' => 'user.verification.index',
                         'match' => ['user.verification.*'],
