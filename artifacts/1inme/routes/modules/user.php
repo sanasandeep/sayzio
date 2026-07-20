@@ -2011,24 +2011,24 @@ Route::prefix('user')->name('user.')->group(function () {
             ->name('billing.companies.index');
 
         // Hub root → default (Profile) tab.
-        Route::redirect('settings', 'user/settings/profile');
+        Route::redirect('settings', '/user/settings/profile');
 
         // Legacy landing-URL redirects into the corresponding hub tab.
-        Route::redirect('profile',                  'user/settings/profile');
-        Route::redirect('creator-profile',          'user/settings/creator');
-        Route::redirect('account/two-factor',       'user/settings/security');
-        Route::redirect('security/logins',          'user/settings/security/logins');
-        Route::redirect('settings/sessions',        'user/settings/security/devices');
-        Route::redirect('merge',                    'user/settings/security/merge');
-        Route::redirect('social-accounts',          'user/settings/connections');
-        Route::redirect('connected-apps',           'user/settings/connections/apps');
-        Route::redirect('integrations',             'user/settings/integrations');
-        Route::redirect('domains',                  'user/settings/domains');
-        Route::redirect('notifications/preferences', 'user/settings/notifications');
-        Route::redirect('billing/companies',        'user/settings/billing');
-        Route::redirect('api-keys',                 'user/settings/developer');
-        Route::redirect('verification',             'user/settings/verification');
-        Route::redirect('badge-requests',           'user/settings/verification/badges');
+        Route::redirect('profile', '/user/settings/profile');
+        Route::redirect('creator-profile', '/user/settings/creator');
+        Route::redirect('account/two-factor', '/user/settings/security');
+        Route::redirect('security/logins', '/user/settings/security/logins');
+        Route::redirect('settings/sessions', '/user/settings/security/devices');
+        Route::redirect('merge', '/user/settings/security/merge');
+        Route::redirect('social-accounts', '/user/settings/connections');
+        Route::redirect('connected-apps', '/user/settings/connections/apps');
+        Route::redirect('integrations', '/user/settings/integrations');
+        Route::redirect('domains', '/user/settings/domains');
+        Route::redirect('notifications/preferences', '/user/settings/notifications');
+        Route::redirect('billing/companies', '/user/settings/billing');
+        Route::redirect('api-keys', '/user/settings/developer');
+        Route::redirect('verification', '/user/settings/verification');
+        Route::redirect('badge-requests', '/user/settings/verification/badges');
 
         // Self-service "who has admin powers on the user side" page. Gated
         // by the `user.roles.manage` permission so only operators that

@@ -57,7 +57,7 @@
     @endif
 
     {{-- ── Main editor ──────────────────────────────────── --}}
-    <form action="{{ route('user.creator-profile.update') }}" method="POST" enctype="multipart/form-data" class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+    <form action="{{ route('user.creator-profile.update') }}" method="POST" enctype="multipart/form-data" class="grid grid-cols-1 lg:grid-cols-2 gap-x-6 gap-y-10 items-start">
         @csrf
 
         {{-- Hero --}}
@@ -398,7 +398,7 @@
                 'card_heading' => 'background:#fff;border-left:3px solid #3d6bff;border-radius:0 6px 6px 0;padding:4px 6px;color:#3d6bff;text-align:left;',
             ];
         @endphp
-        <fieldset class="rounded-2xl px-4 pt-2 pb-4 lg:col-span-2" style="background: var(--bg-card); border: 1px solid var(--border-soft);"
+        <fieldset class="rounded-2xl px-5 pt-3 pb-5 lg:col-span-2" style="background: var(--bg-card); border: 1px solid var(--border-soft);"
                   x-data="{
                       featured: {{ Js::from($showcaseFeaturedLinks) }},
                       style: {{ Js::from($featuredLinksStyle) }},
@@ -517,7 +517,7 @@
         </fieldset>
 
         {{-- ── Task #5431: Showcase ─────────────────────────────── --}}
-        <fieldset class="rounded-2xl px-4 pt-2 pb-4 lg:col-span-2" style="background: var(--bg-card); border: 1px solid var(--border-soft);"
+        <fieldset class="rounded-2xl px-5 pt-3 pb-5 lg:col-span-2" style="background: var(--bg-card); border: 1px solid var(--border-soft);"
                   x-data="{
                       items: {{ Js::from(array_values($showcase['showcase_items'] ?? [])) }},
                       showcaseTypes: {{ Js::from($showcaseItemTypes) }},
@@ -606,7 +606,7 @@
         </fieldset>
 
         {{-- ── Task #5431: Highlights strip ────────────────────── --}}
-        <fieldset class="rounded-2xl px-4 pt-2 pb-4" style="background: var(--bg-card); border: 1px solid var(--border-soft);">
+        <fieldset class="rounded-2xl px-5 pt-3 pb-5" style="background: var(--bg-card); border: 1px solid var(--border-soft);">
             <legend class="text-sm font-bold px-2" style="color: var(--text-primary);">
                 <i class="fas fa-chart-bar mr-1 text-sky-500"></i> Highlights strip
             </legend>
@@ -639,7 +639,7 @@
         </fieldset>
 
         {{-- ── Task #5431: CTA / Contact block ─────────────────── --}}
-        <fieldset class="rounded-2xl px-4 pt-2 pb-4" style="background: var(--bg-card); border: 1px solid var(--border-soft);"
+        <fieldset class="rounded-2xl px-5 pt-3 pb-5" style="background: var(--bg-card); border: 1px solid var(--border-soft);"
                   x-data="{
                       primary: {{ Js::from($showcase['cta']['primary'] ?? null) }},
                       secondary: {{ Js::from(array_values($showcase['cta']['secondary'] ?? [])) }},
@@ -744,7 +744,7 @@
         </fieldset>
 
         {{-- Publish --}}
-        <fieldset class="rounded-2xl px-4 pt-2 pb-4" style="background: var(--bg-card); border: 1px solid var(--border-soft);">
+        <fieldset class="rounded-2xl px-5 pt-3 pb-5" style="background: var(--bg-card); border: 1px solid var(--border-soft);">
             <legend class="text-sm font-bold px-2" style="color: var(--text-primary);">Publish</legend>
             <label class="flex items-start gap-3 p-2.5 rounded-lg cursor-pointer" style="background: var(--bg-input, #fff); border: 1px solid var(--border-soft);">
                 <input type="hidden" name="profile_published" value="0">
