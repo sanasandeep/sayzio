@@ -89,6 +89,7 @@
     "test:focus-ring-guard": "node scripts/check-focus-ring-shared.mjs",
     "test:workspace-switcher": "node scripts/test-workspace-switcher.mjs",
     "test:import-url-e2e": "node scripts/test-import-url-e2e.mjs",
+    "test:og-preview-e2e": "node scripts/test-og-preview-e2e.mjs",
     "android": "expo run:android",
     "ios": "expo run:ios"
   },
