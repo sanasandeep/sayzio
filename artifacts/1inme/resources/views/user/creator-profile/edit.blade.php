@@ -28,6 +28,18 @@
         </div>
     @endif
 
+    <div class="xl:flex xl:items-start xl:gap-6"
+         x-data="{
+             pvMode: ['mini','small','large','full'].includes(localStorage.getItem('cp_pv_mode')) ? localStorage.getItem('cp_pv_mode') : 'small',
+             pvSizes: { mini: 220, small: 320, large: 430 },
+             pvBase: 390,
+             pvBaseH: 760,
+             get pvPaneW() { return this.pvSizes[this.pvMode] || this.pvSizes.small; },
+             get pvScale() { return (this.pvPaneW - 26) / this.pvBase; },
+             setMode(m) { this.pvMode = m; localStorage.setItem('cp_pv_mode', m); },
+             pvReload() { const f = this.$refs.pvFrame; if (f) f.src = f.src; const g = this.$refs.pvFrameFull; if (g && this.pvMode === 'full') g.src = g.src; }
+         }">
+    <div class="flex-1 min-w-0">
     {{-- ── Completeness meter ───────────────────────────── --}}
     <div class="rounded-2xl p-5 mb-6" style="background: var(--bg-card); border: 1px solid var(--border-soft);">
         <div class="flex items-center justify-between mb-2">
@@ -767,5 +779,85 @@
             </button>
         </div>
     </form>
+    </div>{{-- /left column --}}
+
+    {{-- ── Live preview pane ────────────────────────────── --}}
+    <aside class="hidden xl:block shrink-0 sticky top-24 transition-all duration-300"
+           :style="'width:' + pvPaneW + 'px'">
+        <div class="rounded-2xl overflow-hidden" style="background: var(--bg-card); border: 1px solid var(--border-soft);">
+            <div class="flex items-center justify-between gap-2 px-3 py-2" style="border-bottom: 1px solid var(--border-glass);">
+                <p class="text-[11px] uppercase tracking-wider font-semibold truncate" style="color: var(--text-dimmed);">
+                    <i class="fas fa-eye mr-1"></i><span x-show="pvMode !== 'mini'">Live preview</span>
+                </p>
+                <div class="flex items-center gap-1">
+                    <template x-for="m in [['mini','Mini'],['small','Small'],['large','Large']]" :key="m[0]">
+                        <button type="button" @click="setMode(m[0])"
+                                class="text-[10px] font-semibold px-2 py-1 rounded-md"
+                                :style="pvMode === m[0]
+                                    ? 'background: rgba(61,107,255,0.15); color: var(--color-primary-500, #3d6bff);'
+                                    : 'color: var(--text-dimmed);'"
+                                x-text="m[1]"></button>
+                    </template>
+                    @if($profileUrl)
+                    <button type="button" @click="setMode('full')" title="Full preview"
+                            class="text-[10px] font-semibold px-2 py-1 rounded-md" style="color: var(--text-dimmed);">
+                        <i class="fas fa-expand"></i>
+                    </button>
+                        <button type="button" @click="pvReload()" title="Refresh preview"
+                                class="text-[10px] font-semibold px-2 py-1 rounded-md" style="color: var(--text-dimmed);">
+                            <i class="fas fa-rotate-right"></i>
+                        </button>
+                    @endif
+                </div>
+            </div>
+            @if($profileUrl)
+                <div class="p-3">
+                    <div class="rounded-xl overflow-hidden mx-auto" style="border: 1px solid var(--border-glass);"
+                         :style="'width:' + (pvBase * pvScale) + 'px; height:' + (pvBaseH * pvScale) + 'px;'">
+                        <iframe x-ref="pvFrame" src="{{ $profileUrl }}" title="Profile preview" loading="lazy"
+                                style="width: 390px; height: 760px; transform-origin: top left; border: 0; pointer-events: none;"
+                                :style="'transform: scale(' + pvScale + ');'"></iframe>
+                    </div>
+                    <p class="text-[10px] mt-2 text-center" style="color: var(--text-dimmed);" x-show="pvMode !== 'mini'">
+                        Save the form, then hit <i class="fas fa-rotate-right"></i> to refresh.
+                    </p>
+                </div>
+            @else
+                <div class="p-4 text-center">
+                    <i class="fas fa-id-badge text-2xl mb-2" style="color: var(--text-dimmed);"></i>
+                    <p class="text-xs" style="color: var(--text-dimmed);">Claim your handle above to see a live preview of your public profile here.</p>
+                </div>
+            @endif
+        </div>
+    </aside>
+
+    {{-- ── Full-screen preview overlay ──────────────────── --}}
+    @if($profileUrl)
+        <div x-show="pvMode === 'full'" x-cloak class="fixed inset-0 z-[90] flex flex-col"
+                 style="background: rgba(10,12,24,0.85); backdrop-filter: blur(6px);"
+                 @keydown.escape.window="if (pvMode === 'full') setMode('small')">
+                <div class="flex items-center justify-between px-4 py-3">
+                    <p class="text-sm font-bold text-white"><i class="fas fa-eye mr-2"></i>Profile preview — {{ '/@' . $user->handle }}</p>
+                    <div class="flex items-center gap-2">
+                        <button type="button" @click="pvReload()" class="text-xs font-semibold px-3 py-2 rounded-lg text-white" style="background: rgba(255,255,255,0.12);">
+                            <i class="fas fa-rotate-right mr-1"></i> Refresh
+                        </button>
+                        <a href="{{ $profileUrl }}" target="_blank" rel="noopener" class="text-xs font-semibold px-3 py-2 rounded-lg text-white" style="background: rgba(255,255,255,0.12);">
+                            <i class="fas fa-up-right-from-square mr-1"></i> Open
+                        </a>
+                        <button type="button" @click="setMode('small')" class="text-xs font-semibold px-3 py-2 rounded-lg text-white" style="background: rgba(255,255,255,0.12);">
+                            <i class="fas fa-xmark mr-1"></i> Close
+                        </button>
+                    </div>
+                </div>
+                <div class="flex-1 px-4 pb-4 min-h-0">
+                    <template x-if="pvMode === 'full'">
+                        <iframe x-ref="pvFrameFull" src="{{ $profileUrl }}" title="Profile preview (full)"
+                                class="w-full h-full rounded-xl bg-white" style="border: 0;"></iframe>
+                    </template>
+                </div>
+            </div>
+    @endif
+    </div>{{-- /xl:flex --}}
 </div>
 @endsection
