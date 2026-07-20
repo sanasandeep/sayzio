@@ -207,18 +207,20 @@ class ProfileController extends Controller
             unset($validated['name']);
         }
 
+        if ($request->hasFile('avatar') && !$user->isNameAvatarLocked()) {
+            $validated['avatar'] = '/storage/' . $request->file('avatar')->store('avatars', 'public');
+        } else {
+            // Verified users have their profile photo locked too — ignore
+            // any uploaded avatar so a direct POST cannot swap the photo.
+            unset($validated['avatar']);
+        }
+
         // Normalize ISO country code to uppercase for the
         // country_currency lookup. Empty string means "no country set".
         if (!empty($validated['country'])) {
             $validated['country'] = strtoupper($validated['country']);
         } else {
             $validated['country'] = null;
-        }
-
-        if ($request->hasFile('avatar')) {
-            $validated['avatar'] = '/storage/' . $request->file('avatar')->store('avatars', 'public');
-        } else {
-            unset($validated['avatar']);
         }
 
         // Plan gate: making a creator profile publicly discoverable is a
