@@ -362,8 +362,8 @@ export function BlockSettingsEditor({
 
   // Fetch stages the meta into `ogPreview` for the preview card; nothing
   // is written into the form until the creator taps Apply.
-  const runOgFetch = useCallback(async () => {
-    const url = linkUrl.trim();
+  const runOgFetch = useCallback(async (overrideUrl?: string) => {
+    const url = (overrideUrl ?? linkUrl).trim();
     if (!url) {
       setOgError("Please enter a URL first.");
       setOgSuccess(false);
@@ -2200,6 +2200,10 @@ export function BlockSettingsEditor({
                         onPress={() => {
                           setLinkUrl(l.short_url);
                           setPickerOpen(false);
+                          // Auto-fetch OG details for the picked link so the
+                          // preview card appears immediately — `linkUrl` state
+                          // hasn't committed yet, so pass the URL explicitly.
+                          void runOgFetch(l.short_url);
                         }}
                         style={{
                           flexDirection: "row",
