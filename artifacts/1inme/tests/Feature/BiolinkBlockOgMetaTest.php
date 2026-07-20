@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Modules\User\Models\BiolinkBlock;
 use App\Modules\User\Models\Link;
 use App\Modules\User\Models\User;
+use App\Modules\User\Services\WorkspaceContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\RateLimiter;
@@ -20,12 +21,32 @@ class BiolinkBlockOgMetaTest extends TestCase
 {
     use RefreshDatabase;
 
+    private function makeUser(): User
+    {
+        $user = User::factory()->create();
+        $ws   = app(WorkspaceContext::class)->resolve($user);
+        app()->instance('current_workspace', $ws);
+        app()->instance('workspace_owner', $user);
+        return $user;
+    }
+
+    private function makeLink(array $attrs = []): Link
+    {
+        if (!isset($attrs['user_id'])) {
+            $attrs['user_id'] = $this->makeUser()->id;
+        }
+        return Link::create(array_merge([
+            'type'      => 'short',
+            'alias'     => Link::generateAlias(),
+            'title'     => 'Test Link',
+            'is_active' => true,
+        ], $attrs));
+    }
+
+
     private function makeBiolink(User $user): Link
     {
-        $link = Link::factory()->create([
-            'user_id' => $user->id,
-            'type'    => 'biolink',
-        ]);
+        $link = $this->makeLink(['user_id' => $user->id, 'type' => 'biolink']);
         return $link;
     }
 
@@ -40,15 +61,15 @@ class BiolinkBlockOgMetaTest extends TestCase
 
     public function test_requires_authentication(): void
     {
-        $link = Link::factory()->create(['type' => 'biolink']);
+        $link = $this->makeLink(['type' => 'biolink']);
         $this->getJson(route('user.links.blocks.ogMeta', $link))
-            ->assertRedirect();
+            ->assertUnauthorized();
     }
 
     public function test_rejects_non_owner(): void
     {
-        $owner = User::factory()->create();
-        $other = User::factory()->create();
+        $owner = $this->makeUser();
+        $other = $this->makeUser();
         $link  = $this->makeBiolink($owner);
 
         $this->get_($other, $link, '?url=https://example.com')
@@ -57,8 +78,8 @@ class BiolinkBlockOgMetaTest extends TestCase
 
     public function test_rejects_non_biolink_link_type(): void
     {
-        $user = User::factory()->create();
-        $link = Link::factory()->create(['user_id' => $user->id, 'type' => 'short']);
+        $user = $this->makeUser();
+        $link = $this->makeLink(['user_id' => $user->id, 'type' => 'short']);
 
         $this->get_($user, $link, '?url=https://example.com')
             ->assertForbidden();
@@ -66,7 +87,7 @@ class BiolinkBlockOgMetaTest extends TestCase
 
     public function test_missing_url_returns_422(): void
     {
-        $user = User::factory()->create();
+        $user = $this->makeUser();
         $link = $this->makeBiolink($user);
 
         $this->get_($user, $link, '')
@@ -88,7 +109,7 @@ class BiolinkBlockOgMetaTest extends TestCase
             ),
         ]);
 
-        $user = User::factory()->create();
+        $user = $this->makeUser();
         $link = $this->makeBiolink($user);
 
         $this->get_($user, $link, '?url=https://example.com/page')
@@ -112,7 +133,7 @@ class BiolinkBlockOgMetaTest extends TestCase
             ),
         ]);
 
-        $user = User::factory()->create();
+        $user = $this->makeUser();
         $link = $this->makeBiolink($user);
 
         $response = $this->get_($user, $link, '?url=https://example.com/page')
@@ -127,7 +148,7 @@ class BiolinkBlockOgMetaTest extends TestCase
     public function test_favicon_fallback_when_no_og_image(): void
     {
         Http::fake([
-            'example.com/*' => Http::response(
+            '*' => Http::response(
                 '<html><head><title>T</title>' .
                 '<link rel="icon" href="/favicon.png">' .
                 '</head><body></body></html>',
@@ -136,7 +157,7 @@ class BiolinkBlockOgMetaTest extends TestCase
             ),
         ]);
 
-        $user = User::factory()->create();
+        $user = $this->makeUser();
         $link = $this->makeBiolink($user);
 
         $this->get_($user, $link, '?url=https://example.com/')
@@ -146,7 +167,7 @@ class BiolinkBlockOgMetaTest extends TestCase
 
     public function test_rejects_private_ip_ssrf(): void
     {
-        $user = User::factory()->create();
+        $user = $this->makeUser();
         $link = $this->makeBiolink($user);
 
         $this->get_($user, $link, '?url=http://192.168.1.1/secret')
@@ -156,7 +177,7 @@ class BiolinkBlockOgMetaTest extends TestCase
 
     public function test_rejects_localhost_ssrf(): void
     {
-        $user = User::factory()->create();
+        $user = $this->makeUser();
         $link = $this->makeBiolink($user);
 
         $this->get_($user, $link, '?url=http://localhost/admin')
@@ -168,7 +189,7 @@ class BiolinkBlockOgMetaTest extends TestCase
     {
         Http::fake(['*' => Http::response('<html><head><title>T</title></head></html>', 200, ['Content-Type' => 'text/html'])]);
 
-        $user = User::factory()->create();
+        $user = $this->makeUser();
         $link = $this->makeBiolink($user);
 
         RateLimiter::clear('og-meta:' . $user->id);
@@ -188,7 +209,7 @@ class BiolinkBlockOgMetaTest extends TestCase
     {
         Http::fake(['example.com/*' => Http::response('Server Error', 500)]);
 
-        $user = User::factory()->create();
+        $user = $this->makeUser();
         $link = $this->makeBiolink($user);
 
         $this->get_($user, $link, '?url=https://example.com/bad')

@@ -368,6 +368,10 @@ args = "eas-dialer-build"
 task = "workflow.run"
 args = "api-server-paths"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-link-block-picker"
+
 [[workflows.workflow]]
 name = "e2e"
 author = "agent"
@@ -1530,6 +1534,17 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "pnpm --filter @workspace/scripts run check:api-server-paths"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-link-block-picker"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "bash artifacts/1inme/tests/Browser/run-validation.sh biolink-editor-link-block-picker.spec.ts"
 
 [workflows.workflow.metadata]
 isValidation = true

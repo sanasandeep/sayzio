@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Modules\User\Models\Link;
 use App\Modules\User\Models\User;
+use App\Modules\User\Services\WorkspaceContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -18,12 +19,32 @@ class BiolinkLinkPickerTest extends TestCase
 {
     use RefreshDatabase;
 
+    private function makeUser(): User
+    {
+        $user = User::factory()->create();
+        $ws   = app(WorkspaceContext::class)->resolve($user);
+        app()->instance('current_workspace', $ws);
+        app()->instance('workspace_owner', $user);
+        return $user;
+    }
+
+    private function makeLink(array $attrs = []): Link
+    {
+        if (!isset($attrs['user_id'])) {
+            $attrs['user_id'] = $this->makeUser()->id;
+        }
+        return Link::create(array_merge([
+            'type'      => 'short',
+            'alias'     => Link::generateAlias(),
+            'title'     => 'Test Link',
+            'is_active' => true,
+        ], $attrs));
+    }
+
+
     private function makeBiolink(User $user): Link
     {
-        return Link::factory()->create([
-            'user_id' => $user->id,
-            'type'    => 'biolink',
-        ]);
+        return $this->makeLink(['user_id' => $user->id, 'type' => 'biolink']);
     }
 
     private function get_(User $user, Link $link, string $qs = ''): \Illuminate\Testing\TestResponse
@@ -37,15 +58,15 @@ class BiolinkLinkPickerTest extends TestCase
 
     public function test_requires_authentication(): void
     {
-        $link = Link::factory()->create(['type' => 'biolink']);
+        $link = $this->makeLink(['type' => 'biolink']);
         $this->getJson(route('user.links.blocks.linkPicker', $link))
-            ->assertRedirect();
+            ->assertUnauthorized();
     }
 
     public function test_rejects_non_owner(): void
     {
-        $owner = User::factory()->create();
-        $other = User::factory()->create();
+        $owner = $this->makeUser();
+        $other = $this->makeUser();
         $link  = $this->makeBiolink($owner);
 
         $this->get_($other, $link, '')
@@ -54,8 +75,8 @@ class BiolinkLinkPickerTest extends TestCase
 
     public function test_rejects_non_biolink_link_type(): void
     {
-        $user = User::factory()->create();
-        $link = Link::factory()->create(['user_id' => $user->id, 'type' => 'short']);
+        $user = $this->makeUser();
+        $link = $this->makeLink(['user_id' => $user->id, 'type' => 'short']);
 
         $this->get_($user, $link, '')
             ->assertForbidden();
@@ -63,9 +84,9 @@ class BiolinkLinkPickerTest extends TestCase
 
     public function test_returns_owners_links_excluding_self(): void
     {
-        $user   = User::factory()->create();
+        $user   = $this->makeUser();
         $biolink = $this->makeBiolink($user);
-        $short  = Link::factory()->create(['user_id' => $user->id, 'type' => 'short', 'alias' => 'mylink', 'title' => 'My Short Link']);
+        $short  = $this->makeLink(['user_id' => $user->id, 'type' => 'short', 'alias' => 'mylink', 'title' => 'My Short Link']);
 
         $response = $this->get_($user, $biolink, '')->assertOk();
         $links    = $response->json('links');
@@ -77,10 +98,10 @@ class BiolinkLinkPickerTest extends TestCase
 
     public function test_does_not_expose_other_users_links(): void
     {
-        $owner = User::factory()->create();
-        $other = User::factory()->create();
+        $owner = $this->makeUser();
+        $other = $this->makeUser();
         $biolink = $this->makeBiolink($owner);
-        Link::factory()->create(['user_id' => $other->id, 'type' => 'short', 'alias' => 'theirlink', 'title' => 'Their Link']);
+        $this->makeLink(['user_id' => $other->id, 'type' => 'short', 'alias' => 'theirlink', 'title' => 'Their Link']);
 
         $links = $this->get_($owner, $biolink, '')->assertOk()->json('links');
         $ids   = collect($links)->pluck('id')->toArray();
@@ -94,10 +115,10 @@ class BiolinkLinkPickerTest extends TestCase
 
     public function test_search_filters_by_title(): void
     {
-        $user    = User::factory()->create();
+        $user    = $this->makeUser();
         $biolink = $this->makeBiolink($user);
-        $match   = Link::factory()->create(['user_id' => $user->id, 'type' => 'short', 'alias' => 'match1', 'title' => 'GitHub Profile']);
-        Link::factory()->create(['user_id' => $user->id, 'type' => 'short', 'alias' => 'other1', 'title' => 'Twitter Page']);
+        $match   = $this->makeLink(['user_id' => $user->id, 'type' => 'short', 'alias' => 'match1', 'title' => 'GitHub Profile']);
+        $this->makeLink(['user_id' => $user->id, 'type' => 'short', 'alias' => 'other1', 'title' => 'Twitter Page']);
 
         $links = $this->get_($user, $biolink, '?q=github')->assertOk()->json('links');
         $ids   = collect($links)->pluck('id')->toArray();
@@ -108,10 +129,10 @@ class BiolinkLinkPickerTest extends TestCase
 
     public function test_search_filters_by_alias(): void
     {
-        $user    = User::factory()->create();
+        $user    = $this->makeUser();
         $biolink = $this->makeBiolink($user);
-        $match   = Link::factory()->create(['user_id' => $user->id, 'type' => 'short', 'alias' => 'special-alias', 'title' => 'Something']);
-        Link::factory()->create(['user_id' => $user->id, 'type' => 'short', 'alias' => 'other-alias', 'title' => 'Other']);
+        $match   = $this->makeLink(['user_id' => $user->id, 'type' => 'short', 'alias' => 'special-alias', 'title' => 'Something']);
+        $this->makeLink(['user_id' => $user->id, 'type' => 'short', 'alias' => 'other-alias', 'title' => 'Other']);
 
         $links = $this->get_($user, $biolink, '?q=special')->assertOk()->json('links');
         $ids   = collect($links)->pluck('id')->toArray();
@@ -122,9 +143,9 @@ class BiolinkLinkPickerTest extends TestCase
 
     public function test_response_shape_is_correct(): void
     {
-        $user    = User::factory()->create();
+        $user    = $this->makeUser();
         $biolink = $this->makeBiolink($user);
-        Link::factory()->create(['user_id' => $user->id, 'type' => 'short', 'alias' => 'shape-test', 'title' => 'Shape Test']);
+        $this->makeLink(['user_id' => $user->id, 'type' => 'short', 'alias' => 'shape-test', 'title' => 'Shape Test']);
 
         $links = $this->get_($user, $biolink, '')->assertOk()->json('links');
 
@@ -139,11 +160,11 @@ class BiolinkLinkPickerTest extends TestCase
 
     public function test_empty_query_returns_all_links(): void
     {
-        $user    = User::factory()->create();
+        $user    = $this->makeUser();
         $biolink = $this->makeBiolink($user);
 
         for ($i = 0; $i < 3; $i++) {
-            Link::factory()->create([
+            $this->makeLink([
                 'user_id' => $user->id,
                 'type'    => 'short',
                 'alias'   => "link-{$i}",

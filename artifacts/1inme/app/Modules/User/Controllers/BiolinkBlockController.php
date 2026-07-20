@@ -2105,20 +2105,20 @@ class BiolinkBlockController extends Controller
             ->where('id', '!=', $link->id)
             ->whereNotNull('alias')
             ->orderByDesc('id')
-            ->select(['id', 'type', 'title', 'alias', 'meta_title']);
+            ->select(['id', 'type', 'title', 'alias', 'seo_title']);
 
         if ($q !== '') {
             $query->where(function ($qb) use ($q) {
                 $qb->where('title', 'ilike', "%{$q}%")
                    ->orWhere('alias', 'ilike', "%{$q}%")
-                   ->orWhere('meta_title', 'ilike', "%{$q}%");
+                   ->orWhere('seo_title', 'ilike', "%{$q}%");
             });
         }
 
         $links = $query->limit(25)->get()->map(fn ($l) => [
             'id'    => $l->id,
             'type'  => $l->type,
-            'title' => $l->title ?: $l->meta_title ?: $l->alias,
+            'title' => $l->title ?: $l->seo_title ?: $l->alias,
             'alias' => $l->alias,
             'url'   => url('/' . $l->alias),
         ]);

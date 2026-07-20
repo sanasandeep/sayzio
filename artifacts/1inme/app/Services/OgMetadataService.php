@@ -134,6 +134,11 @@ class OgMetadataService
             $node = $xpath->query("//link[contains(@rel,\"{$rel}\")]")->item(0);
             if ($node instanceof \DOMElement) {
                 $href = trim($node->getAttribute('href'));
+                // Skip data:/javascript:/etc. — only http(s) or relative
+                // hrefs can be resolved into a usable favicon URL.
+                if (preg_match('/^[a-z][a-z0-9+.\-]*:/i', $href) && !preg_match('#^https?:#i', $href)) {
+                    continue;
+                }
                 if ($href !== '') {
                     return $this->resolveUrl($href, $pageUrl);
                 }
