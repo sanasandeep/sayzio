@@ -782,6 +782,11 @@ Route::prefix('v1')->group(function () {
         // Background preset catalog for the Appearance "Presets" picker
         // (mobile parity for the web preset gallery). Static, user-agnostic.
         Route::get   ('/bg-presets',                        [BiolinkBlockController::class, 'bgPresets']);
+        // "Fetch details" OG-metadata extractor for the mobile block editor
+        // (mirrors the web editor's links/{link}/blocks/og-meta endpoint).
+        // Per-user rate limiting lives in the controller (shared key with
+        // the web limiter); the throttle here is just a coarse backstop.
+        Route::get   ('/og-meta',                           [BiolinkBlockController::class, 'ogMeta'])->middleware('throttle:30,1');
         Route::get   ('/links/{id}/blocks',                 [BiolinkBlockController::class, 'index'])->whereNumber('id');
         Route::post  ('/links/{id}/blocks',                 [BiolinkBlockController::class, 'store'])->whereNumber('id');
         Route::patch ('/links/{id}/blocks/{blockId}',       [BiolinkBlockController::class, 'update'])->whereNumber('id')->whereNumber('blockId');

@@ -52,6 +52,33 @@ export const BLOCK_KINDS: BlockKind[] = [
     fields: [
       { key: "label", label: "Button label" },
       { key: "url", label: "URL", kind: "url" },
+      { key: "thumbnail", label: "Thumbnail URL", kind: "url" },
+    ],
+  },
+  // Featured-style link variants. Their canonical renderer is the same
+  // link button (see blockTypeRegistry), but the editor surfaces the
+  // extra text/description/thumbnail fields the web editor exposes.
+  // `url` is declared so the trackable-link + auto-UTM sections render;
+  // the generic field renderer hides it (the trackable section owns it).
+  {
+    type: "link_big",
+    label: "Big link",
+    blurb: "A large, prominent link card with a description.",
+    fields: [
+      { key: "text", label: "Link text" },
+      { key: "description", label: "Description" },
+      { key: "url", label: "URL", kind: "url" },
+      { key: "thumbnail", label: "Thumbnail URL", kind: "url" },
+    ],
+  },
+  {
+    type: "featured_pin",
+    label: "Featured pin",
+    blurb: "A pinned, accent-colored featured link.",
+    fields: [
+      { key: "text", label: "Link text" },
+      { key: "description", label: "Description" },
+      { key: "url", label: "URL", kind: "url" },
     ],
   },
   {
@@ -209,6 +236,23 @@ export async function deleteBlock(
   blockId: number,
 ): Promise<void> {
   await apiFetch(`/links/${linkId}/blocks/${blockId}`, { method: "DELETE" });
+}
+
+// "Fetch details" OG-metadata extractor (GET /og-meta — mobile parity for
+// the web block editor's fetch shortcut). Server-side SSRF-guarded fetch;
+// rate limited to 10/min per user (shared budget with the web editor).
+export type OgMeta = {
+  title: string | null;
+  description: string | null;
+  image_url: string | null;
+  favicon_url: string | null;
+};
+
+export async function fetchOgMeta(url: string): Promise<OgMeta> {
+  const res = await apiFetch<{ data: { meta: OgMeta } }>(
+    `/og-meta?url=${encodeURIComponent(url)}`,
+  );
+  return res.data.meta;
 }
 
 export async function reorderBlocks(

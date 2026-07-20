@@ -7,8 +7,10 @@ use App\Modules\User\Models\BiolinkBlock;
 use App\Modules\User\Models\Follow;
 use App\Modules\User\Models\Link;
 use App\Modules\User\Models\Subscriber;
+use App\Services\OgMetadataService;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
+use Illuminate\Support\Facades\RateLimiter;
 
 /**
  * CRUD for the blocks (sections) that make up an authenticated user's
@@ -206,6 +208,37 @@ class BiolinkBlockController extends Controller
             ->all();
 
         return $this->ok(['items' => $items, 'now' => $now->toIso8601String()]);
+    }
+
+    /**
+     * Fetch Open Graph metadata (title, description, og:image / favicon
+     * fallback) for a URL entered in the mobile block editor. Mirrors the
+     * web editor's "Fetch details" endpoint
+     * (User\BiolinkBlockController::ogMeta): same per-user rate limit (the
+     * key is shared with the web limiter so the combined budget stays
+     * 10/min) and the same SSRF-guarded OgMetadataService extractor.
+     */
+    public function ogMeta(Request $request)
+    {
+        $url = trim((string) $request->input('url', ''));
+        if ($url === '') {
+            return $this->fail('Please enter a URL first.', 422);
+        }
+
+        $rateKey = 'og-meta:' . $request->user()->id;
+        if (RateLimiter::tooManyAttempts($rateKey, 10)) {
+            $seconds = RateLimiter::availableIn($rateKey);
+            return $this->fail("Too many requests. Try again in {$seconds}s.", 429);
+        }
+        RateLimiter::hit($rateKey, 60);
+
+        try {
+            $meta = app(OgMetadataService::class)->extractFromUrl($url);
+        } catch (\RuntimeException $e) {
+            return $this->fail($e->getMessage(), 422);
+        }
+
+        return $this->ok(['meta' => $meta]);
     }
 
     public function destroy(Request $request, int $linkId, int $id)
