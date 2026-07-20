@@ -57,6 +57,7 @@ import {
   unassignSpeedDial,
 } from "@/lib/api/dialer";
 import { type Contact, listContacts } from "@/lib/api/contacts";
+import { placeRealCall } from "@/lib/placeCall";
 
 type Tab = "keypad" | "recent" | "contacts";
 
@@ -466,15 +467,11 @@ export default function DialerScreen() {
         lookupNumber(trimmed).catch(() => {});
       }
 
-      router.push({
-        pathname: "/call/active",
-        params: {
-          number: trimmed,
-          ...(cleanedLabel ? { name: cleanedLabel } : {}),
-        },
-      });
+      // Place a REAL call through the device (ACTION_CALL on Android with
+      // the CALL_PHONE permission, tel: fallback everywhere else).
+      void placeRealCall(trimmed);
     },
-    [localRecent, router],
+    [localRecent],
   );
 
   // Open the caller-ID / mini-CRM profile for a number.
@@ -557,27 +554,48 @@ export default function DialerScreen() {
       </View>
 
       {tab === "keypad" && (
+        <View style={{ flex: 1 }}>
+        {/* Scrollable zone: favorites, frequent, search results. The keypad
+            itself is pinned below so results never push it off-screen. */}
         <ScrollView
           style={{ flex: 1 }}
-          contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}
+          contentContainerStyle={{ paddingBottom: 12 }}
           keyboardShouldPersistTaps="handled"
         >
-          {/* Favorites / speed dial */}
-          {favorites.length > 0 && (
-            <View style={styles.section}>
+          {/* Favorites / speed dial — always visible, with an empty-state
+              CTA that teaches how to add favorites. */}
+          <View style={styles.section}>
               <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
                 <Text style={[styles.sectionLabel, { color: colors.mutedForeground, marginBottom: 0 }]}>
                   Speed dial
                 </Text>
-                <Pressable
-                  onPress={() => setSpeedDialModal({ favId: null, digit: null, currentDigit: null, forDigit: null })}
-                  style={{ padding: 4 }}
-                >
-                  <Text style={{ fontSize: 11, color: colors.primary, fontFamily: "SpaceGrotesk_600SemiBold" }}>
-                    # Manage digits
-                  </Text>
-                </Pressable>
+                {favorites.length > 0 && (
+                  <Pressable
+                    onPress={() => setSpeedDialModal({ favId: null, digit: null, currentDigit: null, forDigit: null })}
+                    style={{ padding: 4 }}
+                  >
+                    <Text style={{ fontSize: 11, color: colors.primary, fontFamily: "SpaceGrotesk_600SemiBold" }}>
+                      # Manage digits
+                    </Text>
+                  </Pressable>
+                )}
               </View>
+              {favorites.length === 0 ? (
+                <View style={[styles.favEmpty, { borderColor: colors.border, backgroundColor: colors.card }]}>
+                  <Feather name="star" size={20} color={colors.mutedForeground} />
+                  <Text style={[styles.favEmptyText, { color: colors.mutedForeground }]}>
+                    No favorites yet. Open a contact and tap "Speed dial" to pin the people you call most.
+                  </Text>
+                  <Pressable
+                    onPress={() => setTab("contacts")}
+                    style={[styles.favEmptyBtn, { backgroundColor: colors.primary }]}
+                  >
+                    <Text style={{ color: "#fff", fontSize: 12, fontFamily: "SpaceGrotesk_600SemiBold" }}>
+                      Browse contacts
+                    </Text>
+                  </Pressable>
+                </View>
+              ) : (
               <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                 {favorites.map((f) => (
                   <Pressable
@@ -628,8 +646,8 @@ export default function DialerScreen() {
                   </Pressable>
                 ))}
               </ScrollView>
+              )}
             </View>
-          )}
 
           {/* Frequently contacted */}
           {frequent.length > 0 && (
@@ -680,117 +698,6 @@ export default function DialerScreen() {
           )}
 
           <View style={styles.keypadWrap}>
-            {/* Keypad mode toggle: T9 digit grid ↔ alphanumeric keyboard.
-                Both write to the same query and feed the same universal search. */}
-            <View style={styles.modeToggle}>
-              {(["t9", "abc"] as const).map((m) => {
-                const active = keypadMode === m;
-                return (
-                  <Pressable
-                    key={m}
-                    onPress={() => setKeypadMode(m)}
-                    style={[
-                      styles.modeBtn,
-                      {
-                        backgroundColor: active ? colors.primary : colors.card,
-                        borderColor: active ? colors.primary : colors.border,
-                      },
-                    ]}
-                  >
-                    <Feather
-                      name={m === "t9" ? "grid" : "type"}
-                      size={13}
-                      color={active ? "#fff" : colors.mutedForeground}
-                    />
-                    <Text
-                      style={{
-                        color: active ? "#fff" : colors.mutedForeground,
-                        fontSize: 12,
-                        fontFamily: "SpaceGrotesk_600SemiBold",
-                        marginLeft: 6,
-                      }}
-                    >
-                      {m === "t9" ? "T9" : "Keyboard"}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </View>
-
-            {/* Advanced filter chips (verification badge / on Sayzio). */}
-            <View style={styles.filterRow}>
-              {(
-                [
-                  { key: "verified", label: "Verified", on: filterVerified, set: setFilterVerified, icon: "check-circle" },
-                  { key: "biolink", label: "On Sayzio", on: filterBiolink, set: setFilterBiolink, icon: "link" },
-                ] as const
-              ).map((f) => (
-                <Pressable
-                  key={f.key}
-                  onPress={() => f.set((v) => !v)}
-                  style={[
-                    styles.filterChip,
-                    {
-                      backgroundColor: f.on ? colors.primary : colors.card,
-                      borderColor: f.on ? colors.primary : colors.border,
-                    },
-                  ]}
-                >
-                  <Feather name={f.icon} size={12} color={f.on ? "#fff" : colors.mutedForeground} />
-                  <Text
-                    style={{
-                      color: f.on ? "#fff" : colors.mutedForeground,
-                      fontSize: 11,
-                      fontFamily: "SpaceGrotesk_500Medium",
-                      marginLeft: 5,
-                    }}
-                  >
-                    {f.label}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
-
-            <View style={styles.numberRow}>
-              <Text
-                numberOfLines={1}
-                adjustsFontSizeToFit
-                style={[styles.numberDisplay, { color: colors.foreground }]}
-              >
-                {number || " "}
-              </Text>
-              {number.length > 0 && (
-                <Pressable
-                  onPress={backspace}
-                  onLongPress={clearAll}
-                  hitSlop={12}
-                  style={({ pressed }) => [
-                    styles.backspace,
-                    { opacity: pressed ? 0.5 : 1 },
-                  ]}
-                >
-                  <Feather name="delete" size={26} color={colors.mutedForeground} />
-                </Pressable>
-              )}
-            </View>
-
-            {/* Keyboard mode: full alphanumeric input feeding the same search. */}
-            {keypadMode === "abc" && (
-              <TextInput
-                value={number}
-                onChangeText={setNumber}
-                autoFocus
-                autoCapitalize="none"
-                autoCorrect={false}
-                placeholder="Name, handle, alias, keyword…"
-                placeholderTextColor={colors.mutedForeground}
-                style={[
-                  styles.abcInput,
-                  { color: colors.foreground, borderColor: colors.border, backgroundColor: colors.card },
-                ]}
-              />
-            )}
-
             {/* Universal grouped results (Contacts / People / My links /
                 Followed / Workspaces) — same contract as web + REST. */}
             {uni && uni.groups.length > 0 && (
@@ -949,6 +856,122 @@ export default function DialerScreen() {
               </View>
             )}
 
+          </View>
+        </ScrollView>
+
+        {/* Pinned keypad dock — always fully visible above the tab bar. */}
+        <View style={[styles.keypadDock, { borderTopColor: colors.border, backgroundColor: colors.background }]}>
+            {/* Keypad mode toggle: T9 digit grid ↔ alphanumeric keyboard.
+                Both write to the same query and feed the same universal search. */}
+            <View style={styles.modeToggle}>
+              {(["t9", "abc"] as const).map((m) => {
+                const active = keypadMode === m;
+                return (
+                  <Pressable
+                    key={m}
+                    onPress={() => setKeypadMode(m)}
+                    style={[
+                      styles.modeBtn,
+                      {
+                        backgroundColor: active ? colors.primary : colors.card,
+                        borderColor: active ? colors.primary : colors.border,
+                      },
+                    ]}
+                  >
+                    <Feather
+                      name={m === "t9" ? "grid" : "type"}
+                      size={13}
+                      color={active ? "#fff" : colors.mutedForeground}
+                    />
+                    <Text
+                      style={{
+                        color: active ? "#fff" : colors.mutedForeground,
+                        fontSize: 12,
+                        fontFamily: "SpaceGrotesk_600SemiBold",
+                        marginLeft: 6,
+                      }}
+                    >
+                      {m === "t9" ? "T9" : "Keyboard"}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+
+            {/* Advanced filter chips (verification badge / on Sayzio). */}
+            <View style={styles.filterRow}>
+              {(
+                [
+                  { key: "verified", label: "Verified", on: filterVerified, set: setFilterVerified, icon: "check-circle" },
+                  { key: "biolink", label: "On Sayzio", on: filterBiolink, set: setFilterBiolink, icon: "link" },
+                ] as const
+              ).map((f) => (
+                <Pressable
+                  key={f.key}
+                  onPress={() => f.set((v) => !v)}
+                  style={[
+                    styles.filterChip,
+                    {
+                      backgroundColor: f.on ? colors.primary : colors.card,
+                      borderColor: f.on ? colors.primary : colors.border,
+                    },
+                  ]}
+                >
+                  <Feather name={f.icon} size={12} color={f.on ? "#fff" : colors.mutedForeground} />
+                  <Text
+                    style={{
+                      color: f.on ? "#fff" : colors.mutedForeground,
+                      fontSize: 11,
+                      fontFamily: "SpaceGrotesk_500Medium",
+                      marginLeft: 5,
+                    }}
+                  >
+                    {f.label}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+
+            <View style={styles.numberRow}>
+              <Text
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                style={[styles.numberDisplay, { color: colors.foreground }]}
+              >
+                {number || " "}
+              </Text>
+              {number.length > 0 && (
+                <Pressable
+                  onPress={backspace}
+                  onLongPress={clearAll}
+                  hitSlop={12}
+                  style={({ pressed }) => [
+                    styles.backspace,
+                    { opacity: pressed ? 0.5 : 1 },
+                  ]}
+                >
+                  <Feather name="delete" size={26} color={colors.mutedForeground} />
+                </Pressable>
+              )}
+            </View>
+
+            {/* Keyboard mode: full alphanumeric input feeding the same search. */}
+            {keypadMode === "abc" && (
+              <TextInput
+                value={number}
+                onChangeText={setNumber}
+                autoFocus
+                autoCapitalize="none"
+                autoCorrect={false}
+                placeholder="Name, handle, alias, keyword…"
+                placeholderTextColor={colors.mutedForeground}
+                style={[
+                  styles.abcInput,
+                  { color: colors.foreground, borderColor: colors.border, backgroundColor: colors.card },
+                ]}
+              />
+            )}
+
             {keypadMode === "t9" && (
               <View style={styles.keypad}>
                 {KEYS.map((k) => {
@@ -1060,8 +1083,8 @@ export default function DialerScreen() {
                 />
               </View>
             )}
-          </View>
-        </ScrollView>
+        </View>
+        </View>
       )}
 
       {tab === "recent" && (
@@ -1846,6 +1869,21 @@ const styles = StyleSheet.create({
   },
   bubbleSub: { fontFamily: "SpaceGrotesk_400Regular", fontSize: 10, marginTop: 1 },
   keypadWrap: { paddingHorizontal: 16, paddingTop: 8 },
+  keypadDock: { paddingHorizontal: 16, paddingTop: 8, borderTopWidth: 1 },
+  favEmpty: {
+    marginRight: 16,
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 12,
+    alignItems: "flex-start",
+    gap: 8,
+  },
+  favEmptyText: { fontSize: 12, lineHeight: 17 },
+  favEmptyBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 999,
+  },
   numberRow: {
     flexDirection: "row",
     alignItems: "center",

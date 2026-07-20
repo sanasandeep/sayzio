@@ -107,7 +107,6 @@ const REQUIRED_SURFACES = [
   "app/search.tsx",
   "app/contacts/_form.tsx",
   "app/dialer-profile.tsx",
-  "app/call/active.tsx",
   "app/call/incoming.tsx",
 ];
 

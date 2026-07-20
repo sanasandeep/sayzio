@@ -23,6 +23,7 @@ import { MapPickerModal, type PickedPoint } from "@/components/MapPickerModal";
 import { MapMarkersPreview, MapPreview } from "@/components/MapPreview";
 import { ChannelActions } from "@/components/ChannelActions";
 import { useColors } from "@/hooks/useColors";
+import { placeRealCall } from "@/lib/placeCall";
 import {
   type ManualChannel,
   type ManualLocation,
@@ -263,11 +264,8 @@ export default function DialerProfileScreen() {
     void logCall({ number, contact_id: contactId, outcome: "called" }).catch(
       () => {},
     );
-    router.push({
-      pathname: "/call/active",
-      params: { number, ...(displayName ? { name: displayName } : {}) },
-    });
-  }, [number, contactId, displayName, router]);
+    void placeRealCall(number);
+  }, [number, contactId]);
 
   const openSms = useCallback(() => {
     if (!number) return;

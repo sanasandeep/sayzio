@@ -63,3 +63,5 @@ pre-existing drift from earlier tasks (verify.tsx, about.tsx, InfoPage.tsx ~360
 diff lines, siteContent.ts) that predates your change and is out of scope to
 port. Resolve only the entry your commit touched; leave the rest and (if the
 gate stays red purely on pre-existing drift) skip that validation with a reason.
+
+- Deleting a standalone-only file: `:accept` does NOT heal a `MISSING standalone-only file` error — remove the entry from `sayzio-dialer-standalone/sync-manifest.json` `standaloneOnly` by hand. Also check `scripts/test-channel-actions.mjs` REQUIRED_SURFACES for the deleted screen.
