@@ -1,7 +1,7 @@
 import { Feather } from "@expo/vector-icons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Stack } from "expo-router";
-import { useState } from "react";
+import { Stack, useFocusEffect } from "expo-router";
+import { useCallback, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -24,6 +24,7 @@ import {
   listAvailableDomains,
   listDomains,
   makePrimaryDomain,
+  verifyDomain,
   type Domain,
 } from "@/lib/api/domains";
 import { showAlert } from "@/lib/webAlert";
@@ -36,6 +37,42 @@ export default function DomainsScreen() {
   const [error, setError] = useState<string | undefined>();
 
   const q = useQuery({ queryKey: ["domains"], queryFn: listDomains });
+
+  // Live DNS-propagation polling: while this screen is focused and any
+  // domain is still unverified, re-run the server-side verify probe every
+  // 30 s so the badge flips to "verified" without manual re-checking.
+  const unverifiedIds = (q.data ?? [])
+    .filter((d) => !d.is_verified)
+    .map((d) => d.id)
+    .join(",");
+  useFocusEffect(
+    useCallback(() => {
+      if (!unverifiedIds) return;
+      const ids = unverifiedIds.split(",").map(Number);
+      let cancelled = false;
+      const probe = async () => {
+        let anyVerified = false;
+        for (const id of ids) {
+          try {
+            const res = await verifyDomain(id);
+            if (res.verified) anyVerified = true;
+          } catch {
+            // Transient network/API errors: just try again next tick.
+          }
+          if (cancelled) return;
+        }
+        if (anyVerified && !cancelled) {
+          qc.invalidateQueries({ queryKey: ["domains"] });
+          qc.invalidateQueries({ queryKey: ["domains-available"] });
+        }
+      };
+      const timer = setInterval(probe, 30000);
+      return () => {
+        cancelled = true;
+        clearInterval(timer);
+      };
+    }, [unverifiedIds, qc]),
+  );
   const availQ = useQuery({
     queryKey: ["domains-available"],
     queryFn: listAvailableDomains,

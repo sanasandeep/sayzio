@@ -1095,6 +1095,7 @@ Route::prefix('v1')->group(function () {
         Route::get   ('/domains/available',   [DomainController::class, 'available']);
         Route::post  ('/domains',             [DomainController::class, 'store']);
         Route::post  ('/domains/{id}/primary',[DomainController::class, 'makePrimary'])->whereNumber('id');
+        Route::post  ('/domains/{id}/verify', [DomainController::class, 'verify'])->whereNumber('id');
         Route::delete('/domains/{id}',        [DomainController::class, 'destroy'])->whereNumber('id');
 
         // Splash pages

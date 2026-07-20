@@ -3,6 +3,7 @@
 namespace App\Modules\User\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Modules\Common\Services\DomainDnsVerifier;
 use App\Modules\User\Models\Domain;
 use App\Modules\User\Services\SensitiveActionLogger;
 use App\Modules\User\Services\WorkspaceActivityRecorder;
@@ -69,38 +70,30 @@ class DomainController extends Controller
     {
         abort_if($domain->user_id !== $request->user()->id, 403);
 
-        $expected = $domain->cname_target ?: parse_url(config('app.url'), PHP_URL_HOST);
-        $records  = @dns_get_record($domain->domain, DNS_CNAME);
-        $matched  = false;
-        if (is_array($records)) {
-            foreach ($records as $r) {
-                if (!empty($r['target']) && rtrim(strtolower($r['target']), '.') === strtolower($expected)) {
-                    $matched = true;
-                    break;
-                }
+        // Already verified (e.g. a stale polling probe raced a manual
+        // verify): report success without re-running the DNS lookup.
+        if ($domain->is_verified) {
+            if ($request->expectsJson()) {
+                return response()->json(['verified' => true]);
             }
+            return back()->with('success', "Domain {$domain->domain} is already verified.");
         }
 
-        if (!$matched) {
+        $expected = DomainDnsVerifier::expectedTarget($domain);
+        if (!DomainDnsVerifier::cnameMatches($domain, $expected)) {
+            // JSON probe (background propagation polling): a not-yet-propagated
+            // CNAME is an expected state, not an error — respond 200.
+            if ($request->expectsJson()) {
+                return response()->json(['verified' => false]);
+            }
             return back()->with('error', "CNAME for {$domain->domain} does not point at {$expected} yet. DNS changes can take up to 24 hours to propagate.");
         }
 
-        $domain->update([
-            'is_verified'                    => true,
-            'verified_at'                    => now(),
-            'dns_status'                     => Domain::DNS_STATUS_HEALTHY,
-            'dns_last_checked_at'            => now(),
-            'dns_last_target'                => strtolower($expected),
-            'dns_drift_started_at'           => null,
-            'dns_drift_notified_at'          => null,
-            'dns_unverified_warning_sent_at' => null,
-        ]);
-        // Queue automatic HTTPS issuance (EC2 deployments): reset the SSL
-        // state so the scheduled domains:issue-certificates run picks this
-        // domain up on its next tick. No-op cost when auto-issue is off.
-        \App\Modules\Common\Services\SslCertificateIssuer::markPending($domain->fresh());
-        WorkspaceActivityRecorder::record(null, 'domain.verify', 'domain', $domain->id, $domain->domain, route('user.domains.index'));
+        DomainDnsVerifier::markVerified($domain, $expected);
         $this->recordAudit(SensitiveActionLogger::ACTION_DOMAIN_VERIFIED, $domain);
+        if ($request->expectsJson()) {
+            return response()->json(['verified' => true]);
+        }
         return back()->with('success', "Domain {$domain->domain} verified — short links can now use it.");
     }
 
