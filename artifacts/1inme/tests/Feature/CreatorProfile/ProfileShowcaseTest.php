@@ -8,13 +8,16 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 /**
- * Feature tests for the Task #5431 profile showcase additions:
- *   - Featured links stored and enforced as owner-only, max 4
+ * Feature tests for the profile showcase additions:
+ *   - Featured links stored and enforced as owner-only, max 8 (rich {id,enabled} format)
+ *   - Featured links style stored and validated
+ *   - Per-link enabled toggle: disabled links excluded from public view
  *   - Showcase items stored with type/link_id validation
  *   - Highlights config saved and exposed in API payload
  *   - CTA config saved and exposed in API payload
  *   - Public controller passes new data to the view
  *   - API payload includes featured_links / showcase_cards / showcase / total_public_links
+ *   - Backward-compat: legacy featured_link_ids array auto-upgraded on read
  */
 class ProfileShowcaseTest extends TestCase
 {
@@ -48,7 +51,9 @@ class ProfileShowcaseTest extends TestCase
     {
         $defaults = User::defaultProfileShowcase();
         $this->assertIsArray($defaults);
-        $this->assertEmpty($defaults['featured_link_ids']);
+        $this->assertArrayHasKey('featured_links', $defaults);
+        $this->assertEmpty($defaults['featured_links']);
+        $this->assertSame('classic', $defaults['featured_links_style']);
         $this->assertFalse($defaults['show_link_stats']);
         $this->assertEmpty($defaults['showcase_items']);
         $this->assertTrue($defaults['highlights']['show_followers']);
@@ -70,14 +75,16 @@ class ProfileShowcaseTest extends TestCase
         $this->assertFalse($resolved['highlights']['show_followers']);
         // Other highlight keys remain default (true).
         $this->assertTrue($resolved['highlights']['show_links']);
-        $this->assertEmpty($resolved['featured_link_ids']);
+        $this->assertEmpty($resolved['featured_links']);
+        $this->assertSame('classic', $resolved['featured_links_style']);
     }
 
     public function test_resolved_profile_showcase_when_null_returns_defaults(): void
     {
         $user = $this->makeCreator();
         $resolved = $user->resolvedProfileShowcase();
-        $this->assertEmpty($resolved['featured_link_ids']);
+        $this->assertArrayHasKey('featured_links', $resolved);
+        $this->assertEmpty($resolved['featured_links']);
         $this->assertIsArray($resolved['highlights']);
     }
 
@@ -91,14 +98,18 @@ class ProfileShowcaseTest extends TestCase
 
         $this->actingAs($creator)
             ->post(route('user.creator-profile.update'), [
-                'showcase_featured_link_ids' => [$l1->id, $l2->id],
+                'featured_links' => [
+                    ['id' => $l1->id, 'enabled' => '1'],
+                    ['id' => $l2->id, 'enabled' => '1'],
+                ],
             ])
             ->assertRedirect(route('user.creator-profile.edit'));
 
         $creator->refresh();
         $showcase = $creator->resolvedProfileShowcase();
-        $this->assertContains($l1->id, $showcase['featured_link_ids']);
-        $this->assertContains($l2->id, $showcase['featured_link_ids']);
+        $savedIds = array_column($showcase['featured_links'], 'id');
+        $this->assertContains($l1->id, $savedIds);
+        $this->assertContains($l2->id, $savedIds);
     }
 
     public function test_save_featured_links_rejects_non_owner_ids(): void
@@ -109,32 +120,100 @@ class ProfileShowcaseTest extends TestCase
 
         $this->actingAs($creator)
             ->post(route('user.creator-profile.update'), [
-                'showcase_featured_link_ids' => [$foreignLink->id],
+                'featured_links' => [['id' => $foreignLink->id, 'enabled' => '1']],
             ])
             ->assertRedirect(route('user.creator-profile.edit'));
 
         $creator->refresh();
         $showcase = $creator->resolvedProfileShowcase();
-        $this->assertNotContains($foreignLink->id, $showcase['featured_link_ids']);
+        $savedIds = array_column($showcase['featured_links'], 'id');
+        $this->assertNotContains($foreignLink->id, $savedIds);
     }
 
-    public function test_featured_links_capped_at_four(): void
+    public function test_featured_links_per_link_enabled_toggle(): void
     {
         $creator = $this->makeCreator();
-        $ids = [];
-        for ($i = 0; $i < 6; $i++) {
-            $ids[] = $this->makeLink($creator->id)->id;
-        }
+        $l1 = $this->makeLink($creator->id);
+        $l2 = $this->makeLink($creator->id);
 
-        // The validation rule limits the array itself to max:4.
         $this->actingAs($creator)
             ->post(route('user.creator-profile.update'), [
-                'showcase_featured_link_ids' => array_slice($ids, 0, 4),
+                'featured_links' => [
+                    ['id' => $l1->id, 'enabled' => '1'],
+                    ['id' => $l2->id, 'enabled' => '0'],
+                ],
             ])
             ->assertRedirect();
 
         $creator->refresh();
-        $this->assertCount(4, $creator->resolvedProfileShowcase()['featured_link_ids']);
+        $fl = $creator->resolvedProfileShowcase()['featured_links'];
+        $this->assertCount(2, $fl);
+        $this->assertTrue($fl[0]['enabled']);
+        $this->assertFalse($fl[1]['enabled']);
+    }
+
+    public function test_featured_links_style_saved_and_validated(): void
+    {
+        $creator = $this->makeCreator();
+
+        $this->actingAs($creator)
+            ->post(route('user.creator-profile.update'), [
+                'featured_links_style' => 'solid',
+            ])
+            ->assertRedirect();
+
+        $creator->refresh();
+        $this->assertSame('solid', $creator->resolvedProfileShowcase()['featured_links_style']);
+    }
+
+    public function test_featured_links_invalid_style_rejected(): void
+    {
+        $creator = $this->makeCreator();
+
+        $this->actingAs($creator)
+            ->post(route('user.creator-profile.update'), [
+                'featured_links_style' => 'glitter',
+            ])
+            ->assertSessionHasErrors('featured_links_style');
+    }
+
+    public function test_featured_links_capped_at_eight(): void
+    {
+        $creator = $this->makeCreator();
+        $ids = [];
+        for ($i = 0; $i < 10; $i++) {
+            $ids[] = $this->makeLink($creator->id)->id;
+        }
+
+        // The validation rule limits the array itself to max:8; sending 8 is allowed.
+        $this->actingAs($creator)
+            ->post(route('user.creator-profile.update'), [
+                'featured_links' => array_map(
+                    fn ($id) => ['id' => $id, 'enabled' => '1'],
+                    array_slice($ids, 0, 8)
+                ),
+            ])
+            ->assertRedirect();
+
+        $creator->refresh();
+        $this->assertCount(8, $creator->resolvedProfileShowcase()['featured_links']);
+    }
+
+    public function test_legacy_featured_link_ids_upgraded_on_read(): void
+    {
+        $creator = $this->makeCreator();
+        $link    = $this->makeLink($creator->id);
+
+        // Simulate a legacy stored record that used the old featured_link_ids format.
+        $creator->profile_showcase = ['featured_link_ids' => [$link->id]];
+        $creator->save();
+
+        $resolved = $creator->resolvedProfileShowcase();
+        $this->assertArrayHasKey('featured_links', $resolved);
+        $savedIds = array_column($resolved['featured_links'], 'id');
+        $this->assertContains($link->id, $savedIds);
+        // All legacy entries default to enabled=true on upgrade.
+        $this->assertTrue($resolved['featured_links'][0]['enabled']);
     }
 
     // ── Editor save — showcase items ──────────────────────────────────────
@@ -262,10 +341,11 @@ class ProfileShowcaseTest extends TestCase
         $creator = $this->makeCreator();
         $link    = $this->makeLink($creator->id);
         $creator->profile_showcase = [
-            'featured_link_ids' => [$link->id],
-            'show_link_stats'   => false,
-            'showcase_items'    => [],
-            'highlights'        => [
+            'featured_links'       => [['id' => $link->id, 'enabled' => true]],
+            'featured_links_style' => 'classic',
+            'show_link_stats'      => false,
+            'showcase_items'       => [],
+            'highlights'           => [
                 'show_followers' => true,
                 'show_links'     => true,
                 'show_member_since' => true,
@@ -279,6 +359,7 @@ class ProfileShowcaseTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.profile.featured_links.0.id', $link->id)
             ->assertJsonPath('data.profile.showcase.show_link_stats', false)
+            ->assertJsonPath('data.profile.showcase.featured_links_style', 'classic')
             ->assertJsonPath('data.profile.total_public_links', 1);
     }
 
@@ -287,11 +368,11 @@ class ProfileShowcaseTest extends TestCase
         $creator     = $this->makeCreator();
         $privateLink = $this->makeLink($creator->id, ['visibility' => 'registered']);
         $creator->profile_showcase = [
-            'featured_link_ids' => [$privateLink->id],
-            'show_link_stats'   => false,
-            'showcase_items'    => [],
-            'highlights'        => User::defaultProfileShowcase()['highlights'],
-            'cta'               => ['primary' => null, 'secondary' => []],
+            'featured_links'  => [['id' => $privateLink->id, 'enabled' => true]],
+            'show_link_stats' => false,
+            'showcase_items'  => [],
+            'highlights'      => User::defaultProfileShowcase()['highlights'],
+            'cta'             => ['primary' => null, 'secondary' => []],
         ];
         $creator->save();
 

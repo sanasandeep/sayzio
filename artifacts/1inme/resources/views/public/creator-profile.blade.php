@@ -152,6 +152,26 @@
     .cp-feat-link-card{border-radius:.75rem;border:1px solid rgba(15,23,42,0.08);background:#fff;padding:.875rem;display:flex;flex-direction:column;gap:.375rem;transition:border-color .15s,box-shadow .15s;}
     .cp-feat-link-card:hover{border-color:#3d6bff;box-shadow:0 2px 12px rgba(61,107,255,.08);}
     html.light-mode .cp-feat-link-card{background:#fff;border-color:rgba(15,23,42,0.1);}
+    /* ── Featured link style variants (Task #5459) ─────────────── */
+    .cp-fl{display:block;text-decoration:none;transition:box-shadow .15s,background .15s,filter .15s;position:relative;}
+    .cp-fl--classic{border-radius:.75rem;border:1px solid rgba(15,23,42,0.08);background:#fff;padding:.875rem;display:flex;flex-direction:column;gap:.375rem;}
+    .cp-fl--classic:hover{border-color:var(--cp-accent,#3d6bff);box-shadow:0 2px 12px rgba(61,107,255,.08);}
+    html.light-mode .cp-fl--classic{background:#fff;border-color:rgba(15,23,42,0.1);}
+    .cp-fl--outline{border-radius:.75rem;border:2px solid var(--cp-accent,#3d6bff);background:transparent;padding:.7rem 1rem;display:flex;align-items:center;gap:.75rem;}
+    .cp-fl--outline:hover{background:var(--cp-accent-soft,rgba(61,107,255,.06));}
+    html.light-mode .cp-fl--outline{border-color:var(--cp-accent,#3d6bff);}
+    .cp-fl--solid{border-radius:.75rem;background:var(--cp-accent,#3d6bff);padding:.7rem 1rem;display:flex;align-items:center;gap:.75rem;color:#fff;}
+    .cp-fl--solid:hover{filter:brightness(1.1);}
+    html.light-mode .cp-fl--solid{color:#fff;}
+    .cp-fl--ghost{border-radius:.5rem;background:transparent;padding:.5rem .5rem;display:flex;align-items:center;gap:.75rem;color:var(--cp-accent,#3d6bff);}
+    .cp-fl--ghost:hover{background:rgba(61,107,255,.05);}
+    html.light-mode .cp-fl--ghost{color:var(--cp-accent,#3d6bff);}
+    .cp-fl--pill{border-radius:9999px;background:var(--cp-accent,#3d6bff);padding:.65rem 1.5rem;display:flex;align-items:center;justify-content:center;gap:.5rem;color:#fff;}
+    .cp-fl--pill:hover{filter:brightness(1.1);}
+    html.light-mode .cp-fl--pill{color:#fff;}
+    .cp-fl--card_heading{border-radius:1rem;border:1px solid rgba(15,23,42,0.08);background:#fff;padding:1rem;border-left:4px solid var(--cp-accent,#3d6bff);display:flex;flex-direction:column;gap:.25rem;}
+    .cp-fl--card_heading:hover{box-shadow:0 4px 16px rgba(0,0,0,.07);}
+    html.light-mode .cp-fl--card_heading{background:#fff;border-color:rgba(15,23,42,0.1);}
     .cp-highlight-pill{display:flex;flex-direction:column;align-items:center;padding:.5rem .25rem;}
     @if($ageGateRequired ?? false)
     body{overflow:hidden}
@@ -519,6 +539,10 @@
         @endif
 
         {{-- ── Featured links preview (on About tab when links tab exists) --}}
+        @php
+            $__flStyle   = $showcase['featured_links_style'] ?? 'classic';
+            $__flOneCol  = in_array($__flStyle, ['ghost', 'pill']);
+        @endphp
         @if(($sectionsVisible['featured_links'] ?? true) && count($featuredLinks) > 0 && $__hasLinks)
             <section class="cp-card mt-3 p-5">
                 <div class="flex items-center justify-between mb-3">
@@ -526,15 +550,23 @@
                     <button type="button" @click="activeTab='links'"
                             class="text-xs font-semibold text-blue-600 hover:underline">See all →</button>
                 </div>
-                <div class="grid grid-cols-2 gap-2">
+                <div class="{{ $__flOneCol ? 'flex flex-col' : 'grid grid-cols-2' }} gap-2">
                     @foreach(array_slice($featuredLinks, 0, 2) as $fl)
                         <a href="{{ url('/' . $fl->alias) }}" target="_blank" rel="noopener nofollow"
-                           class="cp-feat-link-card min-w-0">
-                            <div class="flex items-center gap-2">
-                                <span class="text-blue-600 text-sm"><i class="fas fa-link"></i></span>
-                                <span class="text-xs font-semibold text-slate-900 truncate">{{ $fl->title ?: $fl->alias }}</span>
-                            </div>
-                            <span class="text-[10px] text-slate-400 uppercase truncate">{{ $fl->type }}</span>
+                           class="cp-fl cp-fl--{{ $__flStyle }} min-w-0">
+                            @if(in_array($__flStyle, ['classic', 'card_heading']))
+                                <div class="flex items-center gap-2 min-w-0">
+                                    @if($__flStyle === 'classic')
+                                        <span class="shrink-0 text-sm" style="color:var(--cp-accent,#3d6bff)"><i class="fas fa-link"></i></span>
+                                    @endif
+                                    <span class="text-xs font-semibold truncate flex-1"
+                                          style="color:{{ $__flStyle === 'card_heading' ? 'var(--cp-accent,#3d6bff)' : '#0f172a' }}">{{ $fl->title ?: $fl->alias }}</span>
+                                </div>
+                                <span class="text-[10px] uppercase" style="color:#94a3b8">{{ $fl->type }}</span>
+                            @else
+                                <span class="shrink-0 text-xs"><i class="fas fa-link"></i></span>
+                                <span class="flex-1 text-xs font-semibold truncate">{{ $fl->title ?: $fl->alias }}</span>
+                            @endif
                         </a>
                     @endforeach
                 </div>
@@ -586,6 +618,10 @@
 
         {{-- ── Featured links ─────────────────────────────────── --}}
         @if(($sectionsVisible['featured_links'] ?? true) && count($featuredLinks) > 0)
+            @php
+                $__flStyleFull  = $showcase['featured_links_style'] ?? 'classic';
+                $__flOneColFull = in_array($__flStyleFull, ['ghost', 'pill']);
+            @endphp
             <section class="cp-card mt-3 p-5">
                 <div class="flex items-center justify-between mb-3">
                     <h2 class="text-xs uppercase tracking-wider text-slate-500 font-semibold">Featured links</h2>
@@ -593,28 +629,37 @@
                         <span class="text-[10px] text-slate-400">Click counts shown</span>
                     @endif
                 </div>
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                <div class="{{ $__flOneColFull ? 'flex flex-col' : 'grid grid-cols-1 sm:grid-cols-2' }} gap-2.5">
                     @foreach($featuredLinks as $__i => $fl)
                         @php
                             $__flStats = ($showcase['show_link_stats'] ?? false) ? ($fl->clicks_count ?? 0) : null;
                             $__isTop   = $__i === 0 && $__flStats !== null && $__flStats > 0;
                         @endphp
                         <a href="{{ url('/' . $fl->alias) }}" target="_blank" rel="noopener nofollow"
-                           class="cp-feat-link-card relative min-w-0">
+                           class="cp-fl cp-fl--{{ $__flStyleFull }} min-w-0">
                             @if($__isTop)
-                                <span class="absolute top-2 right-2 text-[9px] px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 font-bold uppercase tracking-wide">Popular</span>
+                                <span class="absolute top-2 right-2 text-[9px] px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 font-bold uppercase tracking-wide z-10">Popular</span>
                             @endif
-                            <div class="flex items-start gap-2 pr-2">
-                                <span class="text-blue-600 text-base mt-0.5 shrink-0"><i class="fas fa-link"></i></span>
-                                <div class="min-w-0 flex-1">
-                                    <p class="text-sm font-semibold text-slate-900 truncate">{{ $fl->title ?: $fl->alias }}</p>
-                                    <p class="text-[11px] text-slate-400 uppercase truncate">{{ $fl->type }}</p>
+                            @if($__flStyleFull === 'classic')
+                                <div class="flex items-start gap-2 pr-2">
+                                    <span class="text-base mt-0.5 shrink-0" style="color:var(--cp-accent,#3d6bff)"><i class="fas fa-link"></i></span>
+                                    <div class="min-w-0 flex-1">
+                                        <p class="text-sm font-semibold truncate" style="color:#0f172a">{{ $fl->title ?: $fl->alias }}</p>
+                                        <p class="text-[11px] uppercase truncate" style="color:#94a3b8">{{ $fl->type }}</p>
+                                    </div>
                                 </div>
-                            </div>
-                            @if($__flStats !== null)
-                                <p class="text-[11px] text-slate-500 mt-1">
-                                    <i class="fas fa-mouse-pointer mr-1"></i>{{ number_format($__flStats) }} click{{ $__flStats === 1 ? '' : 's' }}
-                                </p>
+                                @if($__flStats !== null)
+                                    <p class="text-[11px] mt-1" style="color:#64748b"><i class="fas fa-mouse-pointer mr-1"></i>{{ number_format($__flStats) }} click{{ $__flStats === 1 ? '' : 's' }}</p>
+                                @endif
+                            @elseif($__flStyleFull === 'card_heading')
+                                <p class="text-base font-bold truncate" style="color:var(--cp-accent,#3d6bff)">{{ $fl->title ?: $fl->alias }}</p>
+                                <p class="text-xs uppercase font-semibold" style="color:#94a3b8">{{ $fl->type }}</p>
+                                @if($__flStats !== null)
+                                    <p class="text-[11px] mt-0.5" style="color:#64748b"><i class="fas fa-mouse-pointer mr-1"></i>{{ number_format($__flStats) }} click{{ $__flStats === 1 ? '' : 's' }}</p>
+                                @endif
+                            @else
+                                <span class="shrink-0 text-sm"><i class="fas fa-link"></i></span>
+                                <span class="flex-1 text-sm font-semibold truncate">{{ $fl->title ?: $fl->alias }}</span>
                             @endif
                         </a>
                     @endforeach

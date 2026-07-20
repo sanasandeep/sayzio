@@ -466,23 +466,26 @@ class CreatorProfilePublicController extends Controller
     private function resolveFeaturedLinks(User $creator, array $showcase, array $sectionsVisible): array
     {
         if (empty($sectionsVisible['featured_links'])) return [];
-        $ids = array_values(array_filter(
-            array_map('intval', (array) ($showcase['featured_link_ids'] ?? []))
-        ));
-        if (empty($ids)) return [];
+        $rawItems = is_array($showcase['featured_links'] ?? null) ? $showcase['featured_links'] : [];
+        // Keep only enabled entries and extract their IDs in owner-defined order.
+        $enabledIds = array_values(array_filter(array_map(function ($item) {
+            if (!is_array($item)) return 0;
+            return ($item['enabled'] ?? true) ? (int) ($item['id'] ?? 0) : 0;
+        }, $rawItems)));
+        if (empty($enabledIds)) return [];
 
         $links = Link::query()
             ->withoutGlobalScope('workspace')
             ->where('user_id', $creator->id)
             ->where('is_active', true)
             ->where('visibility', 'public')
-            ->whereIn('id', $ids)
+            ->whereIn('id', $enabledIds)
             ->get()
             ->keyBy('id');
 
-        // Preserve owner-defined order.
+        // Preserve owner-defined order (enabled + public links only).
         $ordered = [];
-        foreach ($ids as $id) {
+        foreach ($enabledIds as $id) {
             if (isset($links[$id])) {
                 $ordered[] = $links[$id];
             }

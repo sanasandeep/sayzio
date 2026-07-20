@@ -222,9 +222,10 @@ class CreatorProfileApiController extends Controller
             'biolink_url'         => $primaryBiolink ? url('/' . $primaryBiolink->alias) : null,
             'theme_color'         => $creator->profile_theme_color ?: null,
             'showcase'            => [
-                'show_link_stats' => (bool) ($showcase['show_link_stats'] ?? false),
-                'highlights'      => $showcase['highlights'],
-                'cta'             => $showcase['cta'],
+                'show_link_stats'      => (bool) ($showcase['show_link_stats'] ?? false),
+                'featured_links_style' => $showcase['featured_links_style'] ?? 'classic',
+                'highlights'           => $showcase['highlights'],
+                'cta'                  => $showcase['cta'],
             ],
             'featured_links'      => $featuredLinks,
             'showcase_cards'      => $showcaseCards,
@@ -240,9 +241,12 @@ class CreatorProfileApiController extends Controller
     private function apiResolveFeaturedLinks(User $creator, array $showcase, array $sectionsVisible): array
     {
         if (empty($sectionsVisible['featured_links'])) return [];
-        $ids = array_values(array_filter(
-            array_map('intval', (array) ($showcase['featured_link_ids'] ?? []))
-        ));
+        $rawItems = is_array($showcase['featured_links'] ?? null) ? $showcase['featured_links'] : [];
+        // Keep only enabled entries and extract IDs in owner-defined order.
+        $ids = array_values(array_filter(array_map(function ($item) {
+            if (!is_array($item)) return 0;
+            return ($item['enabled'] ?? true) ? (int) ($item['id'] ?? 0) : 0;
+        }, $rawItems)));
         if (empty($ids)) return [];
 
         $links = Link::query()

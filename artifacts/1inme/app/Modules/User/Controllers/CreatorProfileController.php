@@ -52,6 +52,19 @@ class CreatorProfileController extends Controller
         'store_menu'      => ['label' => 'Store',          'icon' => 'fas fa-store'],
     ];
 
+    /**
+     * Allowed featured-link display styles.
+     * key => human label (used in the settings UI picker).
+     */
+    public const FEATURED_LINK_STYLES = [
+        'classic'      => 'Classic card',
+        'outline'      => 'Outline button',
+        'solid'        => 'Solid fill',
+        'ghost'        => 'Ghost text',
+        'pill'         => 'Pill',
+        'card_heading' => 'Heading card',
+    ];
+
     /** Primary CTA action types. */
     public const CTA_KINDS = [
         'email'     => ['label' => 'Email me',       'icon' => 'fas fa-envelope',    'hint' => 'email address'],
@@ -88,6 +101,12 @@ class CreatorProfileController extends Controller
             ->orderByDesc('id')
             ->get(['id', 'title', 'alias']);
 
+        $pickerLinkMap = $pickerLinks->keyBy('id')->map(fn ($l) => [
+            'title' => $l->title ?: $l->alias,
+            'type'  => $l->type,
+            'alias' => $l->alias,
+        ])->toArray();
+
         return view('user.creator-profile.edit', [
             'user'                  => $user,
             'completeness'          => $user->profileCompletenessPercent(),
@@ -101,6 +120,10 @@ class CreatorProfileController extends Controller
             // Showcase data.
             'showcase'              => $showcase,
             'pickerLinks'           => $pickerLinks,
+            'pickerLinkMap'         => $pickerLinkMap,
+            'showcaseFeaturedLinks' => $showcase['featured_links'],
+            'featuredLinksStyle'    => $showcase['featured_links_style'],
+            'featuredLinkStyles'    => self::FEATURED_LINK_STYLES,
             'showcaseEligibleLinks' => $showcaseEligibleLinks,
             'formsForCta'           => $formsForCta,
             'showcaseItemTypes'     => self::SHOWCASE_ITEM_TYPES,
@@ -195,9 +218,11 @@ class CreatorProfileController extends Controller
             'profile_published'   => 'nullable|in:0,1,true,false',
             'profile_theme_color' => ['nullable', 'string', 'max:7', 'regex:/^#[0-9a-fA-F]{6}$/'],
             // Showcase — Task #5431.
-            'showcase_featured_link_ids'   => 'nullable|array|max:4',
-            'showcase_featured_link_ids.*' => 'integer|min:1',
-            'showcase_show_link_stats'     => 'nullable|in:0,1,true,false',
+            'featured_links'            => 'nullable|array|max:8',
+            'featured_links.*.id'       => 'nullable|integer|min:1',
+            'featured_links.*.enabled'  => 'nullable|in:0,1,true,false',
+            'featured_links_style'      => 'nullable|string|in:classic,outline,solid,ghost,pill,card_heading',
+            'showcase_show_link_stats'  => 'nullable|in:0,1,true,false',
             'showcase_items'               => 'nullable|array|max:20',
             'showcase_items.*'             => 'array',
             'showcase_items.*.type'        => 'required_with:showcase_items.*|string',
@@ -326,12 +351,17 @@ class CreatorProfileController extends Controller
             ->pluck('id')
             ->all();
 
-        $rawFeatured = array_values(array_filter(
-            array_map('intval', (array) ($data['showcase_featured_link_ids'] ?? []))
-        ));
-        $featuredIds = array_values(
-            array_filter($rawFeatured, fn ($id) => in_array($id, $ownerLinkIds, true))
-        );
+        $rawFeaturedLinks = (array) ($data['featured_links'] ?? []);
+        $featuredLinks = [];
+        foreach ($rawFeaturedLinks as $item) {
+            if (!is_array($item)) continue;
+            $id = (int) ($item['id'] ?? 0);
+            if ($id <= 0 || !in_array($id, $ownerLinkIds, true)) continue;
+            $featuredLinks[] = [
+                'id'      => $id,
+                'enabled' => filter_var($item['enabled'] ?? true, FILTER_VALIDATE_BOOLEAN),
+            ];
+        }
 
         $rawShowcaseItems = (array) ($data['showcase_items'] ?? []);
         $allowedShowcaseTypes = array_keys(self::SHOWCASE_ITEM_TYPES);
@@ -377,9 +407,14 @@ class CreatorProfileController extends Controller
             $ctaSecondary[] = ['kind' => $kind, 'label' => $label, 'value' => $value];
         }
 
+        $validStyles = array_keys(self::FEATURED_LINK_STYLES);
+        $chosenStyle = (string) ($data['featured_links_style'] ?? 'classic');
+        if (!in_array($chosenStyle, $validStyles, true)) $chosenStyle = 'classic';
+
         $user->profile_showcase = [
-            'featured_link_ids' => $featuredIds,
-            'show_link_stats'   => filter_var($data['showcase_show_link_stats'] ?? false, FILTER_VALIDATE_BOOLEAN),
+            'featured_links'       => $featuredLinks,
+            'featured_links_style' => $chosenStyle,
+            'show_link_stats'      => filter_var($data['showcase_show_link_stats'] ?? false, FILTER_VALIDATE_BOOLEAN),
             'showcase_items'    => $showcaseItems,
             'highlights' => [
                 'show_followers'    => filter_var($data['highlights_show_followers']    ?? true, FILTER_VALIDATE_BOOLEAN),

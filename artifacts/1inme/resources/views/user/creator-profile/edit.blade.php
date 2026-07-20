@@ -5,7 +5,7 @@
     <div class="flex items-start justify-between gap-3 mb-6 flex-wrap">
         <div>
             <h1 class="text-2xl font-bold" style="color: var(--text-primary);">Creator Profile</h1>
-            <p class="text-sm mt-1" style="color: var(--text-dimmed);">Your public page at <code>/@{{ $user->handle ?? 'handle' }}</code></p>
+            <p class="text-sm mt-1" style="color: var(--text-dimmed);">Your public page at <code>{{ '/@' . ($user->handle ?? 'handle') }}</code></p>
         </div>
         @if($profileUrl)
             <a href="{{ $profileUrl }}" target="_blank" rel="noopener" class="text-xs font-semibold px-3 py-2 rounded-lg" style="background: var(--bg-card); border: 1px solid var(--border-soft); color: var(--text-primary);">
@@ -387,59 +387,101 @@
             </div>
         </fieldset>
 
-        {{-- ── Task #5431: Featured Links ──────────────────────── --}}
+        {{-- ── Task #5459: Featured Links ──────────────────────── --}}
+        @php
+            $__flPreviewStyle = [
+                'classic'      => 'background:#fff;border:1px solid rgba(61,107,255,.3);border-radius:6px;padding:4px 6px;color:#1e293b;text-align:left;',
+                'outline'      => 'border:2px solid #3d6bff;border-radius:6px;padding:3px 6px;color:#3d6bff;text-align:center;background:transparent;',
+                'solid'        => 'background:#3d6bff;border-radius:6px;padding:4px 6px;color:#fff;text-align:center;',
+                'ghost'        => 'color:#3d6bff;padding:4px 2px;text-align:left;text-decoration:underline;background:transparent;',
+                'pill'         => 'background:#3d6bff;border-radius:9999px;padding:4px 10px;color:#fff;text-align:center;',
+                'card_heading' => 'background:#fff;border-left:3px solid #3d6bff;border-radius:0 6px 6px 0;padding:4px 6px;color:#3d6bff;text-align:left;',
+            ];
+        @endphp
         <fieldset class="rounded-2xl px-4 pt-2 pb-4 lg:col-span-2" style="background: var(--bg-card); border: 1px solid var(--border-soft);"
                   x-data="{
-                      featuredIds: {{ Js::from($showcase['featured_link_ids']) }},
-                      maxFeatured: 4,
+                      featured: {{ Js::from($showcaseFeaturedLinks) }},
+                      style: {{ Js::from($featuredLinksStyle) }},
+                      maxFeatured: 8,
+                      linkMap: {{ Js::from($pickerLinkMap) }},
+                      dragIdx: -1,
+                      dragOverIdx: -1,
+                      dragStart(idx) { this.dragIdx = idx; },
+                      dragDrop(idx) {
+                          if (this.dragIdx < 0 || this.dragIdx === idx) { this.dragIdx = -1; this.dragOverIdx = -1; return; }
+                          const item = this.featured.splice(this.dragIdx, 1)[0];
+                          this.featured.splice(idx, 0, item);
+                          this.dragIdx = -1; this.dragOverIdx = -1;
+                      },
                       addFeatured(id) {
                           id = parseInt(id);
-                          if (!id || this.featuredIds.includes(id)) return;
-                          if (this.featuredIds.length >= this.maxFeatured) return;
-                          this.featuredIds.push(id);
-                      },
-                      removeFeatured(id) {
-                          this.featuredIds = this.featuredIds.filter(x => x !== id);
+                          if (!id || this.featured.some(x => x.id === id)) return;
+                          if (this.featured.length >= this.maxFeatured) return;
+                          this.featured.push({ id: id, enabled: true });
                       }
                   }">
             <legend class="text-sm font-bold px-2" style="color: var(--text-primary);">
                 <i class="fas fa-star mr-1 text-amber-500"></i> Featured links
             </legend>
-            <p class="text-xs mb-3" style="color: var(--text-dimmed);">Pin up to 4 links to the top of your public profile. Drag to reorder.</p>
+            <p class="text-xs mb-4" style="color: var(--text-dimmed);">Pin up to 8 links to your public profile. Choose a shared style, drag to reorder, and toggle each link on or off.</p>
 
-            {{-- Selected IDs as hidden inputs (reordered by the sortable list) --}}
-            <template x-for="id in featuredIds" :key="id">
-                <input type="hidden" name="showcase_featured_link_ids[]" :value="id">
-            </template>
+            {{-- ── Style picker ──────────────────────────────── --}}
+            <div class="mb-4">
+                <label class="text-xs font-semibold block mb-2" style="color: var(--text-primary);">Link display style</label>
+                <input type="hidden" name="featured_links_style" :value="style">
+                <div class="grid grid-cols-3 sm:grid-cols-6 gap-2">
+                    @foreach($featuredLinkStyles as $sKey => $sLabel)
+                        <button type="button" @click="style = '{{ $sKey }}'"
+                                :class="style === '{{ $sKey }}' ? 'ring-2 ring-blue-500' : ''"
+                                class="rounded-xl p-2 text-center cursor-pointer transition-opacity"
+                                style="background: var(--bg-glass-input); border: 1px solid var(--border-glass);">
+                            <div class="mb-1 pointer-events-none"
+                                 style="font-size:9px;font-weight:700;line-height:1.4;white-space:nowrap;overflow:hidden;{{ $__flPreviewStyle[$sKey] ?? '' }}">My&nbsp;link</div>
+                            <span class="text-[9px]" style="color: var(--text-dimmed);">{{ $sLabel }}</span>
+                        </button>
+                    @endforeach
+                </div>
+            </div>
 
-            {{-- Drag-to-reorder list --}}
-            <div class="space-y-1.5 mb-3" id="featured-sortable">
-                <template x-for="(id, idx) in featuredIds" :key="id">
-                    @php
-                        // We use Alpine template + PHP JSON for the picker label lookup.
-                        $pickerLinkMap = $pickerLinks->keyBy('id')->map(fn($l) => [
-                            'title' => $l->title ?: $l->alias,
-                            'type'  => $l->type,
-                            'alias' => $l->alias,
-                        ])->toArray();
-                    @endphp
-                    <div class="flex items-center gap-2 px-3 py-2 rounded-lg" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass);">
-                        <i class="fas fa-grip-lines cursor-grab text-xs" style="color: var(--text-dimmed);"></i>
-                        <span class="flex-1 text-sm truncate" style="color: var(--text-primary);"
-                              x-text="(@js($pickerLinkMap)[id] || {}).title || ('#' + id)"></span>
-                        <span class="text-[10px] uppercase font-semibold px-1.5 py-0.5 rounded-full"
+            {{-- ── Drag-to-reorder list with enable toggles ──── --}}
+            <div class="space-y-1.5 mb-3">
+                <template x-for="(item, idx) in featured" :key="item.id">
+                    <div draggable="true"
+                         @dragstart="dragStart(idx)"
+                         @dragover.prevent="dragOverIdx = idx"
+                         @dragleave="dragOverIdx = -1"
+                         @drop.prevent="dragDrop(idx)"
+                         :class="dragOverIdx === idx && dragIdx !== idx ? 'opacity-40' : ''"
+                         class="flex items-center gap-2 px-3 py-2 rounded-lg select-none"
+                         style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); cursor: grab; transition: opacity .1s;">
+                        <i class="fas fa-grip-lines text-xs shrink-0" style="color: var(--text-dimmed);"></i>
+                        {{-- Visibility toggle --}}
+                        <button type="button"
+                                @click="item.enabled = !item.enabled"
+                                :title="item.enabled ? 'Click to hide' : 'Click to show'"
+                                class="shrink-0 text-sm"
+                                :style="item.enabled ? 'color:var(--color-primary,#3d6bff)' : 'color:var(--text-dimmed)'">
+                            <i :class="item.enabled ? 'fas fa-eye' : 'fas fa-eye-slash'"></i>
+                        </button>
+                        <span class="flex-1 text-sm truncate"
+                              :style="item.enabled ? 'color:var(--text-primary)' : 'color:var(--text-dimmed);text-decoration:line-through;'"
+                              x-text="(linkMap[item.id] || {}).title || ('#' + item.id)"></span>
+                        <span class="text-[10px] uppercase font-semibold px-1.5 py-0.5 rounded-full shrink-0"
                               style="background: rgba(61,107,255,0.08); color: #3d6bff;"
-                              x-text="(@js($pickerLinkMap)[id] || {}).type || ''"></span>
-                        <button type="button" @click="removeFeatured(id)"
-                                class="text-xs hover:text-rose-500" style="color: var(--text-dimmed);">
+                              x-text="(linkMap[item.id] || {}).type || ''"></span>
+                        <button type="button" @click="featured.splice(idx, 1)"
+                                class="shrink-0 text-xs hover:text-rose-500" style="color: var(--text-dimmed);">
                             <i class="fas fa-times"></i>
                         </button>
+                        {{-- Serialise row to POST --}}
+                        <input type="hidden" :name="'featured_links['+idx+'][id]'" :value="item.id">
+                        <input type="hidden" :name="'featured_links['+idx+'][enabled]'" :value="item.enabled ? '1' : '0'">
                     </div>
                 </template>
             </div>
 
-            {{-- Picker --}}
-            <div class="flex items-center gap-2" x-show="featuredIds.length < maxFeatured">
+            {{-- ── Add link picker ───────────────────────────── --}}
+            <div class="flex items-center gap-2" x-show="featured.length < maxFeatured">
                 <select id="featured-add-picker"
                         class="flex-1 px-3 py-2 rounded-lg border text-sm" style="background: var(--bg-glass-input); border-color: var(--border-glass); color: var(--text-primary);">
                     <option value="">— Add a link —</option>

@@ -386,9 +386,10 @@ class User extends Authenticatable
     public static function defaultProfileShowcase(): array
     {
         return [
-            'featured_link_ids' => [],
-            'show_link_stats'   => false,
-            'showcase_items'    => [],
+            'featured_links'       => [],
+            'featured_links_style' => 'classic',
+            'show_link_stats'      => false,
+            'showcase_items'       => [],
             'highlights' => [
                 'show_followers'   => true,
                 'show_links'       => true,
@@ -406,22 +407,47 @@ class User extends Authenticatable
      * Return the resolved showcase config — stored value merged over the
      * defaults so callers never have to null-check every key.
      *
+     * Backward compat: older records store featured_link_ids (array of ints).
+     * We transparently upgrade those to the richer featured_links format
+     * (array of {id, enabled}) on read so all callers use the new shape.
+     *
      * @return array<string,mixed>
      */
     public function resolvedProfileShowcase(): array
     {
-        $stored = is_array($this->profile_showcase) ? $this->profile_showcase : [];
+        $stored   = is_array($this->profile_showcase) ? $this->profile_showcase : [];
         $defaults = self::defaultProfileShowcase();
 
+        // Resolve featured_links: prefer new format; fall back to legacy featured_link_ids.
+        if (isset($stored['featured_links']) && is_array($stored['featured_links'])) {
+            $featuredLinks = array_values(array_filter(
+                array_map(function ($item) {
+                    if (!is_array($item) || empty($item['id'])) return null;
+                    return ['id' => (int) $item['id'], 'enabled' => (bool) ($item['enabled'] ?? true)];
+                }, $stored['featured_links'])
+            ));
+        } elseif (isset($stored['featured_link_ids']) && is_array($stored['featured_link_ids'])) {
+            // Legacy upgrade: convert plain ID array to rich format (all enabled by default).
+            $featuredLinks = array_values(array_filter(array_map(function ($id) {
+                $id = (int) $id;
+                return $id > 0 ? ['id' => $id, 'enabled' => true] : null;
+            }, $stored['featured_link_ids'])));
+        } else {
+            $featuredLinks = [];
+        }
+
+        $validStyles = array_keys(\App\Modules\User\Controllers\CreatorProfileController::FEATURED_LINK_STYLES);
+        $storedStyle = (string) ($stored['featured_links_style'] ?? '');
+        $featuredLinksStyle = in_array($storedStyle, $validStyles, true) ? $storedStyle : 'classic';
+
         return [
-            'featured_link_ids' => array_values(array_filter(
-                array_map('intval', (array) ($stored['featured_link_ids'] ?? $defaults['featured_link_ids']))
-            )),
-            'show_link_stats'   => (bool) ($stored['show_link_stats'] ?? $defaults['show_link_stats']),
-            'showcase_items'    => is_array($stored['showcase_items'] ?? null)
+            'featured_links'       => $featuredLinks,
+            'featured_links_style' => $featuredLinksStyle,
+            'show_link_stats'      => (bool) ($stored['show_link_stats'] ?? $defaults['show_link_stats']),
+            'showcase_items'       => is_array($stored['showcase_items'] ?? null)
                 ? $stored['showcase_items']
                 : $defaults['showcase_items'],
-            'highlights'        => array_merge(
+            'highlights'           => array_merge(
                 $defaults['highlights'],
                 is_array($stored['highlights'] ?? null) ? $stored['highlights'] : []
             ),
