@@ -28,7 +28,7 @@
                 <div class="text-muted fw-semibold" style="font-size:10.5px;letter-spacing:.05em;text-transform:uppercase;">Hosted by</div>
                 @php $orgName = $organizer['name'] ?: $host->name; @endphp
                 @if($host->handle)
-                    <a href="{{ route('creator-profile.show', $host->handle) }}" class="fw-bold text-dark text-decoration-none d-block" style="font-size:15px;">{{ $orgName }}</a>
+                    <a href="{{ route('creator-profile.show', $host->handle) }}" data-mini-profile="{{ $host->handle }}" class="fw-bold text-dark text-decoration-none d-block" style="font-size:15px;">{{ $orgName }}</a>
                 @else
                     <div class="fw-bold text-dark" style="font-size:15px;">{{ $orgName }}</div>
                 @endif
@@ -90,7 +90,7 @@
         <div>
             <div class="text-muted fw-semibold" style="font-size:10.5px;letter-spacing:.05em;text-transform:uppercase;">Hosted by</div>
             @if($host->handle)
-                <a href="{{ route('creator-profile.show', $host->handle) }}" class="fw-bold text-dark text-decoration-none" style="font-size:14px;">{{ $host->name }}</a>
+                <a href="{{ route('creator-profile.show', $host->handle) }}" data-mini-profile="{{ $host->handle }}" class="fw-bold text-dark text-decoration-none" style="font-size:14px;">{{ $host->name }}</a>
             @else
                 <div class="fw-bold text-dark" style="font-size:14px;">{{ $host->name }}</div>
             @endif

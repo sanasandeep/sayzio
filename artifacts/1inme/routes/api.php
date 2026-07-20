@@ -134,6 +134,7 @@ Route::prefix('v1')->group(function () {
         // Creator Profile JSON API (Task #1207). Mirrors the /@handle web
         // surface so the Expo app can render the same page.
         Route::get('/creator-profile/{handle}',                          [\App\Modules\Api\Controllers\CreatorProfileApiController::class, 'show']);
+        Route::get('/creator-profile/{handle}/mini',                     [\App\Modules\Api\Controllers\CreatorProfileApiController::class, 'mini'])->middleware('throttle:180,1');
         Route::get('/creator-profile/{handle}/posts',                    [\App\Modules\Api\Controllers\CreatorProfileApiController::class, 'feed']);
         Route::get('/creator-profile/{handle}/posts/{post}/comments',    [\App\Modules\Api\Controllers\CreatorProfileApiController::class, 'comments'])->whereNumber('post');
         Route::post('/creator-profile/{handle}/posts/{post}/react',      [\App\Modules\Api\Controllers\CreatorProfileApiController::class, 'react'])->whereNumber('post')->middleware('throttle:120,1');
@@ -541,6 +542,7 @@ Route::prefix('v1')->group(function () {
         Route::post  ('/admin/users/{user}/admin-access',     [AdminAccessController::class, 'grantAdminAccess'])->whereNumber('user');
         Route::delete('/admin/users/{user}/admin-access',     [AdminAccessController::class, 'revokeAdminAccess'])->whereNumber('user');
         Route::post  ('/admin/users/{user}/impersonate',      [AdminAccessController::class, 'impersonate'])->whereNumber('user')->middleware('throttle:20,1');
+        Route::post  ('/admin/users/{user}/set-password',    [AdminAccessController::class, 'setUserPassword'])->whereNumber('user');
 
         // Protected accounts (mobile parity for the web back-office page).
         // The canonical never-delete/suspend list: staff with `users.view`
@@ -780,6 +782,11 @@ Route::prefix('v1')->group(function () {
         // Background preset catalog for the Appearance "Presets" picker
         // (mobile parity for the web preset gallery). Static, user-agnostic.
         Route::get   ('/bg-presets',                        [BiolinkBlockController::class, 'bgPresets']);
+        // "Fetch details" OG-metadata extractor for the mobile block editor
+        // (mirrors the web editor's links/{link}/blocks/og-meta endpoint).
+        // Per-user rate limiting lives in the controller (shared key with
+        // the web limiter); the throttle here is just a coarse backstop.
+        Route::get   ('/og-meta',                           [BiolinkBlockController::class, 'ogMeta'])->middleware('throttle:30,1');
         Route::get   ('/links/{id}/blocks',                 [BiolinkBlockController::class, 'index'])->whereNumber('id');
         Route::post  ('/links/{id}/blocks',                 [BiolinkBlockController::class, 'store'])->whereNumber('id');
         Route::patch ('/links/{id}/blocks/{blockId}',       [BiolinkBlockController::class, 'update'])->whereNumber('id')->whereNumber('blockId');
@@ -1094,6 +1101,7 @@ Route::prefix('v1')->group(function () {
         Route::get   ('/domains/available',   [DomainController::class, 'available']);
         Route::post  ('/domains',             [DomainController::class, 'store']);
         Route::post  ('/domains/{id}/primary',[DomainController::class, 'makePrimary'])->whereNumber('id');
+        Route::post  ('/domains/{id}/verify', [DomainController::class, 'verify'])->whereNumber('id');
         Route::delete('/domains/{id}',        [DomainController::class, 'destroy'])->whereNumber('id');
 
         // Splash pages
@@ -1240,9 +1248,14 @@ Route::prefix('v1')->group(function () {
         Route::get   ('/vault/clients',     [VaultController::class, 'clients']);
         Route::get   ('/vault/credentials', [VaultController::class, 'credentials']);
 
-        // Verification (creator badge)
+        // Legacy per-link verification (kept for backward compat)
         Route::get   ('/verifications',     [VerificationController::class, 'index']);
         Route::post  ('/verifications',     [VerificationController::class, 'store']);
+
+        // Profile-level account verification (Task #5439)
+        Route::get   ('/profile-verification',          [\App\Modules\Api\Controllers\ProfileVerificationApiController::class, 'show']);
+        Route::post  ('/profile-verification',          [\App\Modules\Api\Controllers\ProfileVerificationApiController::class, 'store']);
+        Route::post  ('/profile-verification/reverify', [\App\Modules\Api\Controllers\ProfileVerificationApiController::class, 'reVerify']);
 
         // Billing
         Route::get   ('/billing/subscription',     [BillingController::class, 'subscription']);

@@ -7,6 +7,22 @@ import { fetchBrandLogos } from "@/lib/api/branding";
 
 const wordmarkLight = require("../assets/images/wordmark-dark-text.png");
 const wordmarkDark = require("../assets/images/wordmark-white-text.png");
+const iconMark = require("../assets/images/icon-foreground.png");
+
+/**
+ * Square icon-only brand mark (no "SAYZIO" text). Used in compact spots like
+ * the pinned top bar where the drawer already shows the full wordmark.
+ */
+export function BrandIcon({ size = 32 }: { size?: number }) {
+  return (
+    <Image
+      source={iconMark}
+      style={{ width: size, height: size }}
+      resizeMode="contain"
+      accessibilityLabel="Sayzio"
+    />
+  );
+}
 
 export function BrandWordmark({
   size = 36,

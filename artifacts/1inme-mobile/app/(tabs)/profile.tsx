@@ -110,7 +110,9 @@ const TOOL_PAGES: {
     | "/links/conversational"
     | "/events"
     | "/events/my-tickets"
-    | "/card-scan";
+    | "/card-scan"
+    | "/dialer"
+    | "/dialer-history";
   label: string;
   icon: keyof typeof Feather.glyphMap;
 }[] = [
@@ -144,6 +146,8 @@ const TOOL_PAGES: {
   { href: "/vault-audit", label: "Vault audit", icon: "shield" },
   { href: "/links/conversational", label: "Conversational links", icon: "message-circle" },
   { href: "/card-scan", label: "Scan a business card", icon: "camera" },
+  { href: "/dialer", label: "Dialer", icon: "phone" },
+  { href: "/dialer-history", label: "Call history", icon: "clock" },
 ];
 
 // Ordered to mirror the consolidated web Settings hub tabs (Task #3220):
@@ -437,7 +441,7 @@ export default function Profile() {
             Signed in as
           </Text>
           <Text style={[styles.name, { color: colors.foreground }]}>
-            {user?.display_name || user?.email || user?.mobile || "Sayzio member"}
+            {user?.display_name || user?.name || user?.email || user?.mobile || "Sayzio member"}
           </Text>
           {user?.role ? (
             <View

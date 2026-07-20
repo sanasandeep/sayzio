@@ -213,6 +213,34 @@ html.light-mode .admin-ushow-comp-note      { color: #92400e; }
         </div>
         @endif
 
+        @if($canManageBadges)
+        {{-- Set / change user password. Gated behind users.edit. Protected
+             accounts are blocked at the controller layer so this form renders
+             but the submit bounces back with an error for those accounts. --}}
+        <div class="glass rounded-2xl border border-white/10 p-6">
+            <h3 class="text-lg font-semibold text-white mb-1"><i class="fas fa-key text-blue-400 mr-1"></i> Set password</h3>
+            <p class="text-xs text-white/40 mb-4">Replace this user's password so they (or a bridged admin) can sign in at /login with the new credential immediately. Does not affect OTP or social logins.</p>
+            <form method="POST" action="{{ route('admin.users.set-password', $user) }}" class="space-y-4">
+                @csrf
+                <div>
+                    <label class="block text-sm font-medium text-white/80 mb-1">New password <span class="text-white/40">(min 8 chars)</span></label>
+                    <input type="password" name="password" required minlength="8" maxlength="72"
+                           autocomplete="new-password"
+                           class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder:text-white/30 focus:ring-2 focus:ring-blue-500/40 outline-none">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-white/80 mb-1">Confirm password</label>
+                    <input type="password" name="password_confirmation" required minlength="8" maxlength="72"
+                           autocomplete="new-password"
+                           class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder:text-white/30 focus:ring-2 focus:ring-blue-500/40 outline-none">
+                </div>
+                <button type="submit" class="px-6 py-2.5 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition">
+                    <i class="fas fa-lock mr-1"></i> Set password
+                </button>
+            </form>
+        </div>
+        @endif
+
         @if($canSuspend)
         {{-- Suspend / reactivate. Suspension takes a required reason and an
              optional auto-reactivation date enforced at login + by a job. --}}

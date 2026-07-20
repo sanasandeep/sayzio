@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ChannelActions } from "@/components/ChannelActions";
 import { useColors } from "@/hooks/useColors";
+import { placeRealCall } from "@/lib/placeCall";
 
 export default function IncomingCallScreen() {
   const colors = useColors();
@@ -33,12 +34,12 @@ export default function IncomingCallScreen() {
 
   const accept = () => {
     void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    // Replace so back-press from the active call doesn't bounce back to
-    // the incoming screen — a finished call should land on the dialer.
-    router.replace({
-      pathname: "/call/active",
-      params: { number, ...(name ? { name } : {}) },
-    });
+    // Call the number back through the real device dialer, then land on
+    // the dialer tab (this screen is reached from push payloads — the OS
+    // owns the actual in-call UI).
+    void placeRealCall(number);
+    if (router.canGoBack()) router.back();
+    else router.replace("/dialer");
   };
 
   return (

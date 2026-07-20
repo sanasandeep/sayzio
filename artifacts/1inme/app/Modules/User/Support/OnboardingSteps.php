@@ -28,6 +28,10 @@ class OnboardingSteps
             ['key' => 'template', 'label' => 'Choose a template'],
         ];
 
+        if (self::creatorProfilePending($user)) {
+            $steps[] = ['key' => 'creator_profile', 'label' => 'Your profile', 'optional' => true];
+        }
+
         if (self::whatsappPending($user)) {
             $steps[] = ['key' => 'whatsapp', 'label' => 'Connect WhatsApp', 'optional' => true];
         }
@@ -50,6 +54,17 @@ class OnboardingSteps
             }
         }
         return 0;
+    }
+
+    /**
+     * Whether the one-time creator-profile step is still pending for this
+     * user — they have never completed or skipped it during onboarding.
+     * Mirrors the gate in RedirectToOnboarding so the stepper and the
+     * redirect agree.
+     */
+    public static function creatorProfilePending(User $user): bool
+    {
+        return empty($user->settings['creator_profile_step_shown_at'] ?? null);
     }
 
     /**

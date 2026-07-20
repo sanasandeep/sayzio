@@ -189,25 +189,157 @@ class CreatorProfileApiController extends Controller
             ->whereIn('type', \App\Modules\User\Models\Link::BIOLINK_FAMILY)->where('is_active', true)
             ->orderBy('id')->first();
 
+        $sections        = $creator->profileSectionVisibility();
+        $showcase        = $creator->resolvedProfileShowcase();
+        $featuredLinks   = $this->apiResolveFeaturedLinks($creator, $showcase, $sections);
+        $showcaseCards   = $this->apiResolveShowcaseCards($creator, $showcase, $sections);
+        $totalPublicLinks = Link::query()
+            ->withoutGlobalScope('workspace')
+            ->where('user_id', $creator->id)
+            ->where('is_active', true)
+            ->where('visibility', 'public')
+            ->count();
+
         return [
-            'id'                => $creator->id,
-            'handle'            => $creator->handle,
-            'name'              => $creator->name,
-            'avatar'            => \App\Support\PublicStorageUrl::resolve($creator->avatar),
-            'cover_image'       => \App\Support\PublicStorageUrl::resolve($creator->cover_image),
-            'tagline'           => $creator->tagline,
-            'bio'               => $creator->bio,
-            'location'          => $creator->location,
-            'niche_tags'        => is_array($creator->niche_tags) ? $creator->niche_tags : [],
-            'socials'           => is_array($creator->socials) ? $creator->socials : [],
-            'sections'          => $creator->profileSectionVisibility(),
-            'profile_published' => (bool) $creator->profile_published,
-            'followers_count'   => (int) $creator->followers_count,
-            'posts_count'       => (int) $creator->posts_count,
-            'is_following'      => $isFollowing,
-            'is_owner'          => $isOwner,
-            'biolink_url'       => $primaryBiolink ? url('/' . $primaryBiolink->alias) : null,
+            'id'                  => $creator->id,
+            'handle'              => $creator->handle,
+            'name'                => $creator->name,
+            'avatar'              => \App\Support\PublicStorageUrl::resolve($creator->avatar),
+            'cover_image'         => \App\Support\PublicStorageUrl::resolve($creator->cover_image),
+            'tagline'             => $creator->tagline,
+            'bio'                 => $creator->bio,
+            'location'            => $creator->location,
+            'niche_tags'          => is_array($creator->niche_tags) ? $creator->niche_tags : [],
+            'socials'             => is_array($creator->socials) ? $creator->socials : [],
+            'sections'            => $sections,
+            'profile_published'   => (bool) $creator->profile_published,
+            'followers_count'     => (int) $creator->followers_count,
+            'posts_count'         => (int) $creator->posts_count,
+            'total_public_links'  => (int) $totalPublicLinks,
+            'is_following'        => $isFollowing,
+            'is_owner'            => $isOwner,
+            'created_at'          => $creator->created_at?->toIso8601String(),
+            'biolink_url'         => $primaryBiolink ? url('/' . $primaryBiolink->alias) : null,
+            'theme_color'         => $creator->profile_theme_color ?: null,
+            'showcase'            => [
+                'show_link_stats'      => (bool) ($showcase['show_link_stats'] ?? false),
+                'featured_links_style' => $showcase['featured_links_style'] ?? 'classic',
+                'highlights'           => $showcase['highlights'],
+                'cta'                  => $showcase['cta'],
+            ],
+            'featured_links'      => $featuredLinks,
+            'showcase_cards'      => $showcaseCards,
         ];
+    }
+
+    /**
+     * Resolve featured links for the API payload — public visibility only,
+     * preserving the owner-defined order.
+     *
+     * @return array<int, array<string,mixed>>
+     */
+    private function apiResolveFeaturedLinks(User $creator, array $showcase, array $sectionsVisible): array
+    {
+        if (empty($sectionsVisible['featured_links'])) return [];
+        $rawItems = is_array($showcase['featured_links'] ?? null) ? $showcase['featured_links'] : [];
+        // Keep only enabled entries and extract IDs in owner-defined order.
+        $ids = array_values(array_filter(array_map(function ($item) {
+            if (!is_array($item)) return 0;
+            return ($item['enabled'] ?? true) ? (int) ($item['id'] ?? 0) : 0;
+        }, $rawItems)));
+        if (empty($ids)) return [];
+
+        $links = Link::query()
+            ->withoutGlobalScope('workspace')
+            ->where('user_id', $creator->id)
+            ->where('is_active', true)
+            ->where('visibility', 'public')
+            ->whereIn('id', $ids)
+            ->get(['id', 'title', 'alias', 'type'])
+            ->keyBy('id');
+
+        $ordered = [];
+        foreach ($ids as $id) {
+            if (!isset($links[$id])) continue;
+            $l = $links[$id];
+            $ordered[] = [
+                'id'     => $l->id,
+                'title'  => $l->title,
+                'alias'  => $l->alias,
+                'type'   => $l->type,
+                'url'    => url('/' . $l->alias),
+                'clicks' => ($showcase['show_link_stats'] ?? false) ? ((int) $l->clicks_count) : null,
+            ];
+        }
+        return $ordered;
+    }
+
+    /**
+     * Resolve showcase cards for the API payload.
+     *
+     * @return array<int, array<string,mixed>>
+     */
+    private function apiResolveShowcaseCards(User $creator, array $showcase, array $sectionsVisible): array
+    {
+        if (empty($sectionsVisible['showcase'])) return [];
+        $items = is_array($showcase['showcase_items'] ?? null) ? $showcase['showcase_items'] : [];
+        if (empty($items)) return [];
+
+        $linkIds = array_values(array_unique(array_column($items, 'link_id')));
+        $links = Link::query()
+            ->withoutGlobalScope('workspace')
+            ->where('user_id', $creator->id)
+            ->where('is_active', true)
+            ->where('visibility', 'public')
+            ->whereIn('id', $linkIds)
+            ->get(['id', 'title', 'alias', 'type'])
+            ->keyBy('id');
+
+        $cards = [];
+        foreach ($items as $item) {
+            $linkId = (int) ($item['link_id'] ?? 0);
+            $type   = (string) ($item['type'] ?? '');
+            $l      = $links[$linkId] ?? null;
+            if (!$l) continue;
+            $cards[] = [
+                'type'  => $type,
+                'id'    => $l->id,
+                'title' => $l->title,
+                'alias' => $l->alias,
+                'url'   => url('/' . $l->alias),
+            ];
+        }
+        return $cards;
+    }
+
+    /**
+     * Lightweight mini-summary for the hover-card popover (mobile parity
+     * of GET /@{handle}/mini on the web).  Public; no auth required.
+     */
+    public function mini(Request $request, string $handle)
+    {
+        $handle  = ltrim($handle, '@');
+        $creator = User::query()
+            ->whereRaw('LOWER(handle) = ?', [strtolower($handle)])
+            ->first();
+
+        if (!$creator || !$creator->profile_published) {
+            return $this->notFound('Creator not found');
+        }
+
+        $isVerified = method_exists($creator, 'isVerified') ? $creator->isVerified() : !empty($creator->email_verified_at);
+
+        return $this->ok([
+            'handle'          => $creator->handle,
+            'name'            => $creator->name,
+            'avatar'          => \App\Support\PublicStorageUrl::resolve($creator->avatar),
+            'tagline'         => $creator->tagline,
+            'followers_count' => (int) $creator->followers_count,
+            'is_verified'     => $isVerified,
+            'theme_color'     => $creator->profile_theme_color ?: null,
+            'profile_url'     => route('creator-profile.show', $creator->handle),
+            'profile_published' => true,
+        ]);
     }
 
     /**

@@ -27,6 +27,7 @@ use App\Modules\User\Controllers\LeadController;
 use App\Modules\User\Controllers\GoogleContactsAccountController;
 use App\Modules\User\Controllers\DialerController;
 use App\Modules\User\Controllers\VerificationController;
+use App\Modules\User\Controllers\ProfileVerificationController;
 use App\Modules\User\Middleware\CheckPlanLimit;
 use App\Modules\User\Controllers\RoleManagementController;
 use App\Modules\User\Controllers\UserAccessController;
@@ -343,6 +344,13 @@ Route::prefix('user')->name('user.')->group(function () {
             Route::post('dismiss-banner', [\App\Modules\User\Controllers\OnboardingController::class, 'dismissBanner'])->name('dismiss-banner');
             Route::post('dismiss-whatsapp-prompt', [\App\Modules\User\Controllers\OnboardingController::class, 'dismissWhatsappPrompt'])->name('dismiss-whatsapp-prompt');
 
+            // Post-wizard creator-profile step — one-time nudge to fill in
+            // tagline, bio, location, and niche tags straight after onboarding.
+            // Saving goes through the shared CreatorProfileController logic.
+            Route::get ('creator-profile',      [\App\Modules\User\Controllers\OnboardingController::class, 'creatorProfileStep'])->name('creator-profile');
+            Route::post('creator-profile',      [\App\Modules\User\Controllers\OnboardingController::class, 'creatorProfileSave'])->name('creator-profile.save');
+            Route::post('creator-profile/skip', [\App\Modules\User\Controllers\OnboardingController::class, 'creatorProfileSkip'])->name('creator-profile.skip');
+
             // Post-registration WhatsApp connect step + the shared inline
             // add/verify endpoints (also used by the dashboard nudge card).
             Route::get ('whatsapp',        [\App\Modules\User\Controllers\OnboardingController::class, 'whatsappStep'])->name('whatsapp');
@@ -526,6 +534,7 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::prefix('settings/profile')->name('profile.')->middleware('workspace.can:settings.view')->group(function () {
             Route::get('/', [ProfileController::class, 'edit'])->name('edit');
             Route::put('/', [ProfileController::class, 'update'])->name('update');
+            Route::get('/postal-lookup', [ProfileController::class, 'postalLookup'])->name('postal.lookup');
             // Follower-digest preview & sample are gated under the dedicated
             // `digests` feature (Editor preset gets digests.view by design)
             // rather than the broader `settings` feature, so editors can
@@ -935,6 +944,8 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::patch ('links/{link}/themes/schedules/{schedule}',     [\App\Modules\User\Controllers\BiolinkThemeController::class, 'updateSchedule'])->middleware('workspace.can:links.edit')->name('links.themes.schedules.update');
         Route::post  ('links/{link}/themes/schedules/{schedule}/cancel', [\App\Modules\User\Controllers\BiolinkThemeController::class, 'cancelSchedule'])->middleware('workspace.can:links.edit')->name('links.themes.schedules.cancel');
         Route::post('links/{link}/blocks', [BiolinkBlockController::class, 'store'])->middleware('workspace.can:links.edit')->name('links.blocks.store');
+        Route::get('links/{link}/blocks/og-meta', [BiolinkBlockController::class, 'ogMeta'])->middleware('workspace.can:links.view')->name('links.blocks.ogMeta');
+        Route::get('links/{link}/blocks/link-picker', [BiolinkBlockController::class, 'linkPicker'])->middleware('workspace.can:links.view')->name('links.blocks.linkPicker');
         Route::put('links/{link}/blocks/{block}', [BiolinkBlockController::class, 'update'])->middleware('workspace.can:links.edit')->name('links.blocks.update');
         Route::get('links/{link}/blocks/{block}/edit-form', [BiolinkBlockController::class, 'editForm'])->middleware('workspace.can:links.view')->name('links.blocks.editForm');
         Route::delete('links/{link}/blocks/{block}', [BiolinkBlockController::class, 'destroy'])->middleware('workspace.can:links.edit')->name('links.blocks.destroy');
@@ -1926,11 +1937,20 @@ Route::prefix('user')->name('user.')->group(function () {
         });
 
         // Account verification (blue-tick request) — workspace-account-level.
+        // Legacy per-link verification routes preserved for backward compat.
         Route::prefix('settings/verification')->name('verification.')->middleware('workspace.can:settings.view')->group(function () {
             Route::get('/', [VerificationController::class, 'index'])->name('index');
             Route::get('request', [VerificationController::class, 'create'])->middleware(['workspace.can:settings.edit', CheckPlanLimit::class . ':verification_eligible'])->name('request');
             Route::post('request', [VerificationController::class, 'store'])->middleware(['workspace.can:settings.edit', CheckPlanLimit::class . ':verification_eligible'])->name('store');
             Route::post('blocks/{block}/toggle', [VerificationController::class, 'toggleBlock'])->middleware('workspace.can:settings.edit')->name('block.toggle');
+        });
+
+        // Profile-level creator verification (Task #5439).
+        Route::prefix('settings/profile-verification')->name('profile-verification.')->middleware('workspace.can:settings.view')->group(function () {
+            Route::get('/',        [ProfileVerificationController::class, 'index'])->name('index');
+            Route::get('request',  [ProfileVerificationController::class, 'create'])->middleware('workspace.can:settings.edit')->name('request');
+            Route::post('request', [ProfileVerificationController::class, 'store'])->middleware('workspace.can:settings.edit')->name('store');
+            Route::post('re-verify', [ProfileVerificationController::class, 'reVerify'])->middleware('workspace.can:settings.edit')->name('re-verify');
         });
 
         // Self-serve account badge requests (Task #2910) — users ask for an
@@ -1952,10 +1972,21 @@ Route::prefix('user')->name('user.')->group(function () {
         });
 
         Route::middleware('user.can:user.verifications.review')->group(function () {
+            // Legacy per-link verification admin (kept for backward compat with existing data).
             Route::get('verification-admin', [VerificationController::class, 'adminIndex'])->name('verification.admin');
             Route::get('verification-admin/{verificationRequest}', [VerificationController::class, 'adminReview'])->name('verification.admin.review');
             Route::post('verification-admin/{verificationRequest}/approve', [VerificationController::class, 'adminApprove'])->name('verification.admin.approve');
             Route::post('verification-admin/{verificationRequest}/reject', [VerificationController::class, 'adminReject'])->name('verification.admin.reject');
+
+            // Profile-level verification admin (Task #5439).
+            Route::prefix('profile-verification-admin')->name('profile-verification.admin.')->group(function () {
+                Route::get('/',              [ProfileVerificationController::class, 'adminIndex'])->name('index');
+                Route::get('tick-types',     [ProfileVerificationController::class, 'adminTickTypes'])->name('tick-types');
+                Route::post('tick-types/{verificationTickType}', [ProfileVerificationController::class, 'adminUpdateTickType'])->name('tick-types.update');
+                Route::get('{profileVerificationRequest}',               [ProfileVerificationController::class, 'adminReview'])->name('review');
+                Route::post('{profileVerificationRequest}/approve',      [ProfileVerificationController::class, 'adminApprove'])->name('approve');
+                Route::post('{profileVerificationRequest}/reject',       [ProfileVerificationController::class, 'adminReject'])->name('reject');
+            });
         });
 
         // ===================================================================

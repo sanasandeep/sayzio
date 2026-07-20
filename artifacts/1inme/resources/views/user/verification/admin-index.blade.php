@@ -1,27 +1,16 @@
 @extends('user.layouts.app')
-@section('title', 'Verification Requests')
+@section('title', 'Profile Verification Queue')
 
 @section('content')
 <div class="max-w-6xl mx-auto">
     <div class="flex items-center justify-between mb-6 flex-wrap gap-3">
         <div>
-            <h1 class="text-2xl font-bold" style="color: var(--text-primary);">Verification Requests</h1>
-            <p class="text-sm mt-1" style="color: var(--text-muted);">Review and manage verification requests</p>
+            <h1 class="text-2xl font-bold" style="color: var(--text-primary);">Profile Verification</h1>
+            <p class="text-sm mt-1" style="color: var(--text-muted);">Review and manage creator profile verification requests</p>
         </div>
-        <div class="flex items-center gap-2">
-            <a href="{{ route('user.verification.admin', ['status' => 'pending']) }}" class="px-3 py-1.5 rounded-lg text-xs font-medium transition-all {{ request('status') === 'pending' ? 'text-white' : '' }}" style="{{ request('status') === 'pending' ? 'background: #f59e0b;' : 'background: var(--bg-glass); color: var(--text-muted); border: 1px solid var(--border-glass);' }}">
-                Pending
-            </a>
-            <a href="{{ route('user.verification.admin', ['status' => 'approved']) }}" class="px-3 py-1.5 rounded-lg text-xs font-medium transition-all {{ request('status') === 'approved' ? 'text-white' : '' }}" style="{{ request('status') === 'approved' ? 'background: #10b981;' : 'background: var(--bg-glass); color: var(--text-muted); border: 1px solid var(--border-glass);' }}">
-                Approved
-            </a>
-            <a href="{{ route('user.verification.admin', ['status' => 'rejected']) }}" class="px-3 py-1.5 rounded-lg text-xs font-medium transition-all {{ request('status') === 'rejected' ? 'text-white' : '' }}" style="{{ request('status') === 'rejected' ? 'background: #ef4444;' : 'background: var(--bg-glass); color: var(--text-muted); border: 1px solid var(--border-glass);' }}">
-                Rejected
-            </a>
-            <a href="{{ route('user.verification.admin') }}" class="px-3 py-1.5 rounded-lg text-xs font-medium transition-all {{ !request('status') ? 'text-white' : '' }}" style="{{ !request('status') ? 'background: #3d6bff;' : 'background: var(--bg-glass); color: var(--text-muted); border: 1px solid var(--border-glass);' }}">
-                All
-            </a>
-        </div>
+        <a href="{{ route('user.profile-verification.admin.tick-types') }}" class="px-3 py-1.5 rounded-lg text-xs font-medium transition-all" style="background: var(--bg-glass); color: var(--text-muted); border: 1px solid var(--border-glass);">
+            <i class="fas fa-tags mr-1"></i>Manage Tick Types
+        </a>
     </div>
 
     @if(session('success'))
@@ -30,26 +19,67 @@
     </div>
     @endif
 
+    {{-- Queue tabs --}}
+    <div class="flex items-center gap-2 mb-5 flex-wrap">
+        <a href="{{ route('user.profile-verification.admin.index', ['queue' => 'new']) }}"
+           class="px-3 py-1.5 rounded-lg text-xs font-medium transition-all {{ $queue === 'new' ? 'text-white' : '' }}"
+           style="{{ $queue === 'new' ? 'background: #3d6bff;' : 'background: var(--bg-glass); color: var(--text-muted); border: 1px solid var(--border-glass);' }}">
+            New Requests
+            @if($pendingNewCount > 0)
+            <span class="ml-1.5 px-1.5 py-0.5 rounded-full text-[10px] font-bold" style="background: rgba(245,158,11,0.2); color: #f59e0b;">{{ $pendingNewCount }}</span>
+            @endif
+        </a>
+        <a href="{{ route('user.profile-verification.admin.index', ['queue' => 'reverification']) }}"
+           class="px-3 py-1.5 rounded-lg text-xs font-medium transition-all {{ $queue === 'reverification' ? 'text-white' : '' }}"
+           style="{{ $queue === 'reverification' ? 'background: #3d6bff;' : 'background: var(--bg-glass); color: var(--text-muted); border: 1px solid var(--border-glass);' }}">
+            Re-verifications
+            @if($pendingReVerCount > 0)
+            <span class="ml-1.5 px-1.5 py-0.5 rounded-full text-[10px] font-bold" style="background: rgba(245,158,11,0.2); color: #f59e0b;">{{ $pendingReVerCount }}</span>
+            @endif
+        </a>
+        <div class="ml-auto flex gap-2">
+            @foreach(['pending' => '#f59e0b', 'approved' => '#10b981', 'rejected' => '#ef4444'] as $st => $stColor)
+            <a href="{{ route('user.profile-verification.admin.index', ['queue' => $queue, 'status' => $st]) }}"
+               class="px-3 py-1.5 rounded-lg text-xs font-medium transition-all {{ request('status') === $st ? 'text-white' : '' }}"
+               style="{{ request('status') === $st ? 'background: '.$stColor.';' : 'background: var(--bg-glass); color: var(--text-muted); border: 1px solid var(--border-glass);' }}">
+                {{ ucfirst($st) }}
+            </a>
+            @endforeach
+            <a href="{{ route('user.profile-verification.admin.index', ['queue' => $queue]) }}"
+               class="px-3 py-1.5 rounded-lg text-xs font-medium transition-all {{ !request('status') ? 'text-white' : '' }}"
+               style="{{ !request('status') ? 'background: #64748b;' : 'background: var(--bg-glass); color: var(--text-muted); border: 1px solid var(--border-glass);' }}">
+                All
+            </a>
+        </div>
+    </div>
+
     @if($requests->count() > 0)
     <div class="space-y-3">
         @foreach($requests as $req)
-        <a href="{{ route('user.verification.admin.review', $req) }}" class="card-premium p-5 block transition-all hover:-translate-y-0.5 hover:shadow-lg">
+        <a href="{{ route('user.profile-verification.admin.review', $req) }}" class="card-premium p-5 block transition-all hover:-translate-y-0.5 hover:shadow-lg">
             <div class="flex items-center justify-between flex-wrap gap-3">
                 <div class="flex items-center gap-4">
                     @if($req->logo_path)
-                    <img src="{{ asset('storage/' . $req->logo_path) }}" alt="" class="w-12 h-12 rounded-xl object-cover" style="border: 1px solid var(--border-glass);">
+                    <img src="{{ \App\Support\PublicStorageUrl::resolve($req->logo_path) }}" alt="" class="w-12 h-12 rounded-xl object-cover" style="border: 1px solid var(--border-glass);">
+                    @elseif($req->user?->avatar)
+                    <img src="{{ \App\Support\PublicStorageUrl::resolve($req->user->avatar) }}" alt="" class="w-12 h-12 rounded-xl object-cover" style="border: 1px solid var(--border-glass);">
                     @else
-                    <div class="w-12 h-12 rounded-xl flex items-center justify-center" style="background: rgba(61,107,255,0.1);"><i class="fas fa-building text-blue-400"></i></div>
+                    <div class="w-12 h-12 rounded-xl flex items-center justify-center" style="background: rgba(61,107,255,0.1);"><i class="fas fa-user text-blue-400"></i></div>
                     @endif
                     <div>
-                        <div class="flex items-center gap-2 mb-0.5">
-                            <span class="text-sm font-bold" style="color: var(--text-primary);">{{ $req->display_name }}</span>
-                            <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold {{ $req->category === 'artist_creator' ? 'bg-blue-500/10 text-blue-400' : 'bg-blue-500/10 text-blue-400' }}">
-                                {{ $req->category === 'artist_creator' ? 'Artist / Creator' : 'Business / Product' }}
+                        <div class="flex items-center gap-2 mb-0.5 flex-wrap">
+                            <span class="text-sm font-bold" style="color: var(--text-primary);">{{ $req->official_name }}</span>
+                            @if($req->tickType)
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold" style="background: {{ $req->tickType->color }}20; color: {{ $req->tickType->color }};">
+                                <i class="fas {{ $req->tickType->icon }} mr-0.5 text-[9px]"></i>{{ $req->tickType->name }}
                             </span>
+                            @endif
+                            @if($req->kind === 'reverification')
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-blue-500/10 text-blue-400">Re-verify</span>
+                            @endif
                         </div>
                         <p class="text-[11px]" style="color: var(--text-dimmed);">
-                            by {{ $req->user->name ?? $req->user->email }} &middot; {{ $req->business_name }} &middot; /{{ $req->link->alias ?? '?' }}
+                            by {{ $req->user?->name ?? $req->user?->email ?? 'Unknown' }} · @{{ $req->user?->handle }}
                         </p>
                     </div>
                 </div>
@@ -75,7 +105,7 @@
             <i class="fas fa-inbox text-blue-400 text-2xl"></i>
         </div>
         <h3 class="text-sm font-bold mb-1" style="color: var(--text-primary);">No verification requests</h3>
-        <p class="text-xs" style="color: var(--text-dimmed);">{{ request('status') ? 'No ' . request('status') . ' requests found.' : 'No requests submitted yet.' }}</p>
+        <p class="text-xs" style="color: var(--text-dimmed);">{{ request('status') ? 'No ' . request('status') . ' requests in this queue.' : 'No requests submitted yet.' }}</p>
     </div>
     @endif
 </div>

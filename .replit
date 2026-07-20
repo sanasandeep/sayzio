@@ -368,6 +368,18 @@ args = "eas-dialer-build"
 task = "workflow.run"
 args = "api-server-paths"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-link-block-picker"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-mobile-og-preview"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "query-columns"
+
 [[workflows.workflow]]
 name = "e2e"
 author = "agent"
@@ -1534,6 +1546,39 @@ args = "pnpm --filter @workspace/scripts run check:api-server-paths"
 [workflows.workflow.metadata]
 isValidation = true
 
+[[workflows.workflow]]
+name = "e2e-link-block-picker"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "bash artifacts/1inme/tests/Browser/run-validation.sh biolink-editor-link-block-picker.spec.ts"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-mobile-og-preview"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/1inme-mobile run test:og-preview-e2e"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "query-columns"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd artifacts/1inme && composer check:query-columns"
+
+[workflows.workflow.metadata]
+isValidation = true
+
 
 [agent]
 stack = "PNPM_WORKSPACE"
@@ -1554,7 +1599,7 @@ AWS_DEFAULT_REGION = "ap-south-2"
 AWS_URL = "https://d3l7wvr1shk1cg.cloudfront.net"
 AWS_USE_PATH_STYLE_ENDPOINT = "true"
 USER_CONTENT_DISK = "s3"
-CONTACT_ADMIN_TOKEN = "qNApHcj3SDKCnQRrNcTyWOXdsxQMmeyhRy4Mf0"
+CONTACT_ADMIN_TOKEN = ""
 APP_NAME = "Sayzio"
 
 [[ports]]

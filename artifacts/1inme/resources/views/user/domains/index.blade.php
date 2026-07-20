@@ -49,7 +49,8 @@
     <div class="glass rounded-2xl p-6 mb-6">
         <h2 class="text-base font-semibold text-white mb-4">My Domains ({{ $myDomains->count() }})</h2>
         @forelse($myDomains as $d)
-            <div class="flex items-center justify-between gap-3 py-3 border-t border-white/5 first:border-t-0">
+            <div class="flex items-center justify-between gap-3 py-3 border-t border-white/5 first:border-t-0"
+                 @if(!$d->is_verified && $__canEdit) data-domain-poll data-verify-url="{{ route('user.domains.verify', $d) }}" @endif>
                 <div class="min-w-0 flex-1">
                     <div class="text-sm font-mono text-white flex items-center gap-2 flex-wrap">
                         <span>{{ $d->domain }}</span>
@@ -68,9 +69,12 @@
                                 $__badge = ['label' => 'healthy', 'cls' => 'bg-emerald-500/15 text-emerald-300 border-emerald-400/30'];
                             }
                         @endphp
-                        <span class="text-[10px] uppercase tracking-wide px-2 py-0.5 rounded-full border {{ $__badge['cls'] }}">{{ $__badge['label'] }}</span>
+                        <span data-domain-badge class="text-[10px] uppercase tracking-wide px-2 py-0.5 rounded-full border {{ $__badge['cls'] }}">{{ $__badge['label'] }}</span>
+                        @if(!$d->is_verified && $__canEdit)
+                            <span data-domain-checking class="text-[10px] text-white/30 inline-flex items-center gap-1"><i class="fas fa-circle-notch fa-spin"></i> checking DNS…</span>
+                        @endif
                     </div>
-                    <div class="text-[11px] text-white/40 mt-1 space-y-0.5">
+                    <div data-domain-details class="text-[11px] text-white/40 mt-1 space-y-0.5">
                         @if($d->is_verified && $__status !== \App\Modules\User\Models\Domain::DNS_STATUS_DRIFTING)
                             <div><span class="text-emerald-400">verified</span> · serving short links
                                 @if($d->dns_last_checked_at) · <span class="text-white/30">DNS checked {{ $d->dns_last_checked_at->diffForHumans() }}</span>@endif
@@ -108,7 +112,7 @@
                 </div>
                 <div class="flex items-center gap-2">
                     @if(!$d->is_verified && $__canEdit)
-                        <form method="POST" action="{{ route('user.domains.verify', $d) }}">@csrf
+                        <form data-domain-verify-form method="POST" action="{{ route('user.domains.verify', $d) }}">@csrf
                             <button type="submit" class="px-3 py-1.5 rounded-lg text-xs bg-blue-600 hover:bg-blue-700 text-white">Verify now</button>
                         </form>
                     @elseif(!$d->is_verified)
@@ -141,4 +145,55 @@
     </div>
     @endif
 </div>
+
+{{-- Live DNS-propagation polling: while any owned domain is unverified,
+     re-run the verify probe every 30 s in the background so the badge flips
+     to healthy without the user mashing "Verify now". Rows opt in via
+     data-domain-poll (only rendered for editors on unverified domains). --}}
+<script>
+(function () {
+    if (!document.querySelector('[data-domain-poll]')) return;
+    var csrf = document.querySelector('meta[name="csrf-token"]')?.content || '{{ csrf_token() }}';
+    var inFlight = false;
+
+    function markVerified(row) {
+        row.removeAttribute('data-domain-poll');
+        var badge = row.querySelector('[data-domain-badge]');
+        if (badge) {
+            badge.textContent = 'healthy';
+            badge.className = 'text-[10px] uppercase tracking-wide px-2 py-0.5 rounded-full border bg-emerald-500/15 text-emerald-300 border-emerald-400/30';
+        }
+        var checking = row.querySelector('[data-domain-checking]');
+        if (checking) checking.remove();
+        var details = row.querySelector('[data-domain-details]');
+        if (details) details.innerHTML = '<div><span class="text-emerald-400">verified</span> · serving short links</div>';
+        var form = row.querySelector('[data-domain-verify-form]');
+        if (form) form.remove();
+    }
+
+    function poll() {
+        var rows = document.querySelectorAll('[data-domain-poll]');
+        if (!rows.length) { clearInterval(timer); return; }
+        if (inFlight || document.hidden) return;
+        inFlight = true;
+        var pending = rows.length;
+        rows.forEach(function (row) {
+            fetch(row.getAttribute('data-verify-url'), {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': csrf,
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+            })
+            .then(function (r) { return r.ok ? r.json() : null; })
+            .then(function (data) { if (data && data.verified) markVerified(row); })
+            .catch(function () {})
+            .finally(function () { if (--pending <= 0) inFlight = false; });
+        });
+    }
+
+    var timer = setInterval(poll, 30000);
+})();
+</script>
 @endsection

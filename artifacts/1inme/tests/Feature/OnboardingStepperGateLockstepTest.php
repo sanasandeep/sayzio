@@ -47,6 +47,14 @@ class OnboardingStepperGateLockstepTest extends TestCase
         return User::factory()->create($attrs)->fresh();
     }
 
+    /** Stamp the creator-profile step as already shown, as the step handler does. */
+    private function markCreatorProfileStepShown(User $user): void
+    {
+        $settings = $user->settings ?? [];
+        $settings['creator_profile_step_shown_at'] = now()->toIso8601String();
+        $user->forceFill(['settings' => $settings])->save();
+    }
+
     /** Stamp the one-time WhatsApp step as already shown, as the step handlers do. */
     private function markWhatsappStepShown(User $user): void
     {
@@ -93,8 +101,31 @@ class OnboardingStepperGateLockstepTest extends TestCase
     }
 
     /**
+     * Assert the stepper's `creator_profile` stage and the gate's creator-profile
+     * redirect agree, and that both match the expected presence.
+     */
+    private function assertCreatorProfileLockstep(User $user, bool $expected): void
+    {
+        $stepperHas = $this->stepperHasStage($user, 'creator_profile');
+        $gateGoes   = $this->gateRedirectsTo($user, route('user.onboarding.creator-profile'));
+
+        $this->assertSame(
+            $expected,
+            $stepperHas,
+            'Stepper creator_profile stage presence did not match the expectation.'
+        );
+        $this->assertSame(
+            $stepperHas,
+            $gateGoes,
+            'Stepper and redirect gate disagree on the creator_profile stage.'
+        );
+    }
+
+    /**
      * Assert the stepper's `whatsapp` stage and the gate's WhatsApp redirect
      * agree, and that both match the expected presence.
+     * Caller must have already cleared the creator_profile step so the gate
+     * is not intercepted before it reaches the WhatsApp check.
      */
     private function assertWhatsappLockstep(User $user, bool $expected): void
     {
@@ -116,6 +147,7 @@ class OnboardingStepperGateLockstepTest extends TestCase
     /**
      * Assert the stepper's `privacy` stage and the gate's privacy redirect
      * agree, and that both match the expected presence.
+     * Caller must have already cleared both creator_profile and WhatsApp steps.
      */
     private function assertPrivacyLockstep(User $user, bool $expected): void
     {
@@ -134,13 +166,32 @@ class OnboardingStepperGateLockstepTest extends TestCase
         );
     }
 
+    public function test_stepper_creator_profile_stage_matches_gate_redirect(): void
+    {
+        // 1) Freshly onboarded, step never shown → the stepper carries the
+        //    creator_profile stage AND the gate routes there.
+        $user = $this->makeUser();
+        $this->assertCreatorProfileLockstep($user, true);
+
+        // 2) Once the step is stamped as shown, the stage drops and the gate
+        //    stops routing there — in lockstep.
+        $this->markCreatorProfileStepShown($user);
+        $this->assertCreatorProfileLockstep($user->fresh(), false);
+    }
+
     public function test_stepper_whatsapp_stage_matches_gate_redirect(): void
     {
-        // 1) Freshly onboarded, no verified number, step never shown → the
-        //    stepper carries the WhatsApp stage AND the gate routes there.
+        // Creator-profile step must be cleared first — the gate checks it
+        // before the WhatsApp check, so without this the redirect never
+        // reaches the WhatsApp route and the assertions would disagree.
         $user = $this->makeUser();
-        $this->assertFalse($user->hasWhatsappNumber());
-        $this->assertWhatsappLockstep($user, true);
+        $this->markCreatorProfileStepShown($user);
+
+        // 1) Freshly onboarded (creator_profile cleared), no verified number,
+        //    WhatsApp step never shown → stepper carries 'whatsapp' AND the
+        //    gate routes there.
+        $this->assertFalse($user->fresh()->hasWhatsappNumber());
+        $this->assertWhatsappLockstep($user->fresh(), true);
 
         // 2) Once the one-time step is stamped as shown, the stage drops and
         //    the gate stops routing there — in lockstep.
@@ -150,6 +201,7 @@ class OnboardingStepperGateLockstepTest extends TestCase
         // 3) A user who already has a verified number never sees the stage,
         //    and the gate never routes there either.
         $withNumber = $this->makeUser();
+        $this->markCreatorProfileStepShown($withNumber);
         $this->giveVerifiedWhatsappNumber($withNumber);
         $this->assertTrue($withNumber->fresh()->hasWhatsappNumber());
         $this->assertWhatsappLockstep($withNumber->fresh(), false);
@@ -157,9 +209,10 @@ class OnboardingStepperGateLockstepTest extends TestCase
 
     public function test_stepper_privacy_stage_matches_gate_redirect(): void
     {
-        // WhatsApp step already out of the way so the privacy redirect is the
-        // one in play — the gate checks WhatsApp first.
+        // Both creator_profile and WhatsApp steps must be cleared — the gate
+        // checks them in order before it reaches the privacy check.
         $user = $this->makeUser();
+        $this->markCreatorProfileStepShown($user);
         $this->markWhatsappStepShown($user);
 
         // 1) Privacy never configured → the stepper carries the privacy stage

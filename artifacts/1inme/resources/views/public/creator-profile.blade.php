@@ -48,6 +48,58 @@
         'dateModified' => $creator->updated_at?->toIso8601String(),
         'mainEntity'   => $__cpPerson,
     ];
+
+    // Tab visibility — a tab is only shown when it has content.
+    // Deep-linkable via ?tab=about|posts|links|events (or hash #tab-*).
+    $__tab = request()->input('tab', 'about');
+    $__hasAbout  = true; // always show: hero/bio/highlights/CTA
+    $__hasPosts  = ($sectionsVisible['posts'] ?? true);
+    $__hasLinks  = (!empty($featuredLinks) || !empty($showcaseCards));
+    $__hasEvents = ($sectionsVisible['events'] ?? true) && $upcomingEvents->isNotEmpty();
+    // Normalize tab to a valid visible tab.
+    $__validTabs = array_filter(['about' => $__hasAbout, 'posts' => $__hasPosts, 'links' => $__hasLinks, 'events' => $__hasEvents]);
+    if (!array_key_exists($__tab, $__validTabs)) {
+        $__tab = array_key_first($__validTabs) ?? 'about';
+    }
+
+    // Showcase icons for the showcase card section.
+    $__showcaseIcons = [
+        'qr'              => 'fas fa-qrcode',
+        'form'            => 'fas fa-wpforms',
+        'ics'             => 'fas fa-calendar-days',
+        'vcard'           => 'fas fa-id-card',
+        'resume'          => 'fas fa-file-user',
+        'restaurant_menu' => 'fas fa-utensils',
+        'store_menu'      => 'fas fa-store',
+    ];
+    $__showcaseLabels = [
+        'qr'              => 'QR Code',
+        'form'            => 'Form',
+        'ics'             => 'Event',
+        'vcard'           => 'Digital Card',
+        'resume'          => 'Resume',
+        'restaurant_menu' => 'Restaurant',
+        'store_menu'      => 'Store',
+    ];
+
+    // CTA href resolver for each kind.
+    $__ctaHref = function (array $btn): string {
+        $val = trim($btn['value'] ?? '');
+        return match ($btn['kind'] ?? '') {
+            'email'    => 'mailto:' . $val,
+            'whatsapp' => 'https://wa.me/' . preg_replace('/[^0-9+]/', '', $val),
+            'call'     => 'tel:' . $val,
+            'form'     => url('/' . $val),
+            default    => preg_match('#^https?://#i', $val) ? $val : 'https://' . $val,
+        };
+    };
+    $__ctaIcons = [
+        'email'    => 'fas fa-envelope',
+        'whatsapp' => 'fab fa-whatsapp',
+        'call'     => 'fas fa-phone',
+        'link'     => 'fas fa-arrow-up-right-from-square',
+        'form'     => 'fas fa-wpforms',
+    ];
 @endphp
 <!DOCTYPE html>
 <html lang="en">
@@ -90,8 +142,46 @@
 <style>
     [x-cloak]{display:none!important}
     .cp-card{background:#fff;border:1px solid rgba(15,23,42,0.06);border-radius:1rem;}
+    html.light-mode .cp-card{background:#fff;border-color:rgba(15,23,42,0.08);}
+    .cp-tab-bar{display:flex;gap:0;border-bottom:1px solid rgba(15,23,42,0.07);background:#fff;position:sticky;top:0;z-index:20;}
+    html.light-mode .cp-tab-bar{background:#fff;border-color:rgba(15,23,42,0.1);}
+    .cp-tab-btn{flex:1;padding:.65rem .5rem;font-size:.75rem;font-weight:700;text-align:center;color:#64748b;border-bottom:2px solid transparent;background:none;border-top:none;border-left:none;border-right:none;cursor:pointer;white-space:nowrap;transition:color .15s,border-color .15s;}
+    .cp-tab-btn.active{color:#3d6bff;border-bottom-color:#3d6bff;}
+    html.light-mode .cp-tab-btn{color:#475569;}
+    html.light-mode .cp-tab-btn.active{color:#3d6bff;}
+    .cp-feat-link-card{border-radius:.75rem;border:1px solid rgba(15,23,42,0.08);background:#fff;padding:.875rem;display:flex;flex-direction:column;gap:.375rem;transition:border-color .15s,box-shadow .15s;}
+    .cp-feat-link-card:hover{border-color:#3d6bff;box-shadow:0 2px 12px rgba(61,107,255,.08);}
+    html.light-mode .cp-feat-link-card{background:#fff;border-color:rgba(15,23,42,0.1);}
+    /* ── Featured link style variants (Task #5459) ─────────────── */
+    .cp-fl{display:block;text-decoration:none;transition:box-shadow .15s,background .15s,filter .15s;position:relative;}
+    .cp-fl--classic{border-radius:.75rem;border:1px solid rgba(15,23,42,0.08);background:#fff;padding:.875rem;display:flex;flex-direction:column;gap:.375rem;}
+    .cp-fl--classic:hover{border-color:var(--cp-accent,#3d6bff);box-shadow:0 2px 12px rgba(61,107,255,.08);}
+    html.light-mode .cp-fl--classic{background:#fff;border-color:rgba(15,23,42,0.1);}
+    .cp-fl--outline{border-radius:.75rem;border:2px solid var(--cp-accent,#3d6bff);background:transparent;padding:.7rem 1rem;display:flex;align-items:center;gap:.75rem;}
+    .cp-fl--outline:hover{background:var(--cp-accent-soft,rgba(61,107,255,.06));}
+    html.light-mode .cp-fl--outline{border-color:var(--cp-accent,#3d6bff);}
+    .cp-fl--solid{border-radius:.75rem;background:var(--cp-accent,#3d6bff);padding:.7rem 1rem;display:flex;align-items:center;gap:.75rem;color:#fff;}
+    .cp-fl--solid:hover{filter:brightness(1.1);}
+    html.light-mode .cp-fl--solid{color:#fff;}
+    .cp-fl--ghost{border-radius:.5rem;background:transparent;padding:.5rem .5rem;display:flex;align-items:center;gap:.75rem;color:var(--cp-accent,#3d6bff);}
+    .cp-fl--ghost:hover{background:rgba(61,107,255,.05);}
+    html.light-mode .cp-fl--ghost{color:var(--cp-accent,#3d6bff);}
+    .cp-fl--pill{border-radius:9999px;background:var(--cp-accent,#3d6bff);padding:.65rem 1.5rem;display:flex;align-items:center;justify-content:center;gap:.5rem;color:#fff;}
+    .cp-fl--pill:hover{filter:brightness(1.1);}
+    html.light-mode .cp-fl--pill{color:#fff;}
+    .cp-fl--card_heading{border-radius:1rem;border:1px solid rgba(15,23,42,0.08);background:#fff;padding:1rem;border-left:4px solid var(--cp-accent,#3d6bff);display:flex;flex-direction:column;gap:.25rem;}
+    .cp-fl--card_heading:hover{box-shadow:0 4px 16px rgba(0,0,0,.07);}
+    html.light-mode .cp-fl--card_heading{background:#fff;border-color:rgba(15,23,42,0.1);}
+    .cp-highlight-pill{display:flex;flex-direction:column;align-items:center;padding:.5rem .25rem;}
     @if($ageGateRequired ?? false)
     body{overflow:hidden}
+    @endif
+    @if($creator->profile_theme_color)
+    :root{
+        --cp-accent:{{ $creator->profile_theme_color }};
+        --cp-accent-soft:{{ $creator->profile_theme_color }}33;
+        --cp-accent-mid:{{ $creator->profile_theme_color }}88;
+    }
     @endif
 </style>
 </head>
@@ -100,12 +190,13 @@
     @include('public.partials.age-gate-overlay', ['creator' => $creator])
 @endif
 @include('common.partials.viewer-login-modal')
+@include('common.partials.mini-profile-popover')
 
-<div class="max-w-3xl mx-auto px-3 sm:px-4 pb-24">
+<div class="max-w-3xl mx-auto px-3 sm:px-4 pb-24" x-data="{ activeTab: @js($__tab) }">
 
     {{-- ── Hero ─────────────────────────────────────────────── --}}
     <header class="cp-card overflow-hidden mt-4">
-        <div class="h-40 sm:h-56 bg-gradient-to-br from-blue-500 via-fuchsia-500 to-indigo-500 relative">
+        <div class="h-40 sm:h-56 relative" style="background: linear-gradient(135deg, var(--cp-accent, #3b82f6), var(--cp-accent-mid, #a855f7));">
             @if($creator->cover_image)
                 <img src="{{ \App\Support\PublicStorageUrl::resolve($creator->cover_image) }}" alt="" class="absolute inset-0 w-full h-full object-cover">
             @endif
@@ -182,8 +273,7 @@
                                     </a>
                                 </div>
 
-                                {{-- Report modal — submits the enum reason + optional
-                                     free-text comment that UserReportController validates. --}}
+                                {{-- Report modal --}}
                                 <div x-show="reportOpen" x-transition x-cloak
                                      class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9999] flex items-center justify-center"
                                      style="display:none;">
@@ -242,7 +332,11 @@
                 <h1 class="text-2xl sm:text-3xl font-extrabold flex items-center gap-2 flex-wrap">
                     {{ $creator->name }}
                     @if(method_exists($creator, 'isVerified') && $creator->isVerified())
-                        <span class="text-blue-600" title="Verified"><i class="fas fa-circle-check"></i></span>
+                        @if($creator->verificationTickType)
+                            {!! $creator->verificationTickType->tickHtml('text-xl') !!}
+                        @else
+                            <span class="text-blue-600" title="Verified"><i class="fas fa-circle-check"></i></span>
+                        @endif
                     @endif
                 </h1>
                 <p class="text-slate-500 text-sm mt-0.5">@<span class="font-medium">{{ $creator->handle }}</span>
@@ -264,108 +358,228 @@
         </div>
     </header>
 
-    {{-- ── Stats strip ─────────────────────────────────────── --}}
-    @if(($sectionsVisible['stats'] ?? true))
-        <div class="cp-card mt-3 px-5 py-4 grid grid-cols-3 text-center divide-x divide-slate-100">
-            <div>
-                <div class="text-xl font-extrabold">{{ number_format($creator->posts_count ?? 0) }}</div>
-                <div class="text-[11px] uppercase tracking-wider text-slate-500 mt-0.5">Posts</div>
-            </div>
-            <div>
-                <div class="text-xl font-extrabold">{{ number_format($creator->followers_count ?? 0) }}</div>
-                <div class="text-[11px] uppercase tracking-wider text-slate-500 mt-0.5">Followers</div>
-            </div>
-            <div>
-                <div class="text-xl font-extrabold">{{ $creator->created_at?->format('M Y') ?: '—' }}</div>
-                <div class="text-[11px] uppercase tracking-wider text-slate-500 mt-0.5">Joined</div>
-            </div>
+    {{-- ── Highlights strip (Task #5431) ──────────────────── --}}
+    @php
+        $__hl = $showcase['highlights'] ?? [];
+        $__showHl = ($sectionsVisible['highlights'] ?? true)
+            && (($__hl['show_followers'] ?? true)
+                || ($__hl['show_links'] ?? true)
+                || ($__hl['show_member_since'] ?? true)
+                || ($__hl['show_verified'] ?? true));
+    @endphp
+    @if($__showHl)
+        <div class="cp-card mt-3 px-4 py-3 flex items-center justify-around gap-2 flex-wrap">
+            @if($__hl['show_followers'] ?? true)
+                <div class="cp-highlight-pill flex-1 min-w-[60px]">
+                    <div class="text-lg font-extrabold text-slate-900">{{ number_format($creator->followers_count ?? 0) }}</div>
+                    <div class="text-[10px] uppercase tracking-wider text-slate-500 mt-0.5">Followers</div>
+                </div>
+            @endif
+            @if(($__hl['show_links'] ?? true) && $totalPublicLinks > 0)
+                <div class="cp-highlight-pill flex-1 min-w-[60px]">
+                    <div class="text-lg font-extrabold text-slate-900">{{ number_format($totalPublicLinks) }}</div>
+                    <div class="text-[10px] uppercase tracking-wider text-slate-500 mt-0.5">Links</div>
+                </div>
+            @endif
+            @if($__hl['show_member_since'] ?? true)
+                <div class="cp-highlight-pill flex-1 min-w-[60px]">
+                    <div class="text-lg font-extrabold text-slate-900">{{ $creator->created_at?->format('Y') ?: '—' }}</div>
+                    <div class="text-[10px] uppercase tracking-wider text-slate-500 mt-0.5">Since</div>
+                </div>
+            @endif
+            @if(($__hl['show_verified'] ?? true) && method_exists($creator, 'isVerified') && $creator->isVerified())
+                <div class="cp-highlight-pill flex-1 min-w-[60px]">
+                    @if($creator->verificationTickType)
+                        <div class="text-lg font-extrabold">{!! $creator->verificationTickType->tickHtml('text-lg') !!}</div>
+                        <div class="text-[10px] uppercase tracking-wider text-slate-500 mt-0.5">{{ $creator->verificationTickType->name }}</div>
+                    @else
+                        <div class="text-lg font-extrabold text-blue-600"><i class="fas fa-circle-check"></i></div>
+                        <div class="text-[10px] uppercase tracking-wider text-slate-500 mt-0.5">Verified</div>
+                    @endif
+                </div>
+            @endif
         </div>
     @endif
 
-    {{-- ── About ───────────────────────────────────────────── --}}
-    @if(($sectionsVisible['about'] ?? true) && !empty($creator->bio))
+    {{-- ── CTA block (Task #5431) ──────────────────────────── --}}
+    @php
+        $__cta = $showcase['cta'] ?? [];
+        $__ctaPrimary = is_array($__cta['primary'] ?? null) ? $__cta['primary'] : null;
+        $__ctaSecondary = is_array($__cta['secondary'] ?? null) ? $__cta['secondary'] : [];
+        $__showCta = ($sectionsVisible['cta'] ?? true)
+            && ($__ctaPrimary !== null || count($__ctaSecondary) > 0);
+    @endphp
+    @if($__showCta)
         <section class="cp-card mt-3 p-5">
-            <h2 class="text-xs uppercase tracking-wider text-slate-500 font-semibold mb-2">About</h2>
-            <p class="text-sm text-slate-700 whitespace-pre-line leading-relaxed">{{ $creator->bio }}</p>
-        </section>
-    @endif
-
-    {{-- ── Socials ─────────────────────────────────────────── --}}
-    @if(($sectionsVisible['socials'] ?? true) && is_array($creator->socials) && count($creator->socials))
-        <section class="cp-card mt-3 p-5">
-            <h2 class="text-xs uppercase tracking-wider text-slate-500 font-semibold mb-3">Find me on</h2>
-            <div class="flex flex-wrap gap-2">
-                @php
-                    $platforms = \App\Modules\User\Controllers\CreatorProfileController::SOCIAL_PLATFORMS;
-                @endphp
-                @foreach($creator->socials as $key => $value)
+            <div class="flex flex-wrap gap-2 justify-center">
+                @if($__ctaPrimary)
                     @php
-                        $p = $platforms[$key] ?? null;
-                        if (!$p) continue;
-                        $href = $value;
-                        if ($key === 'twitter')   $href = preg_match('#^https?://#', $value) ? $value : 'https://twitter.com/'   . ltrim($value, '@');
-                        if ($key === 'instagram') $href = preg_match('#^https?://#', $value) ? $value : 'https://instagram.com/' . ltrim($value, '@');
-                        if ($key === 'tiktok')    $href = preg_match('#^https?://#', $value) ? $value : 'https://tiktok.com/@'   . ltrim($value, '@');
-                        if ($key === 'youtube')   $href = preg_match('#^https?://#', $value) ? $value : 'https://youtube.com/@'  . ltrim($value, '@');
-                        if ($key === 'github')    $href = preg_match('#^https?://#', $value) ? $value : 'https://github.com/'    . ltrim($value, '@');
-                        if ($key === 'twitch')    $href = preg_match('#^https?://#', $value) ? $value : 'https://twitch.tv/'     . ltrim($value, '@');
-                        if ($key === 'email')     $href = preg_match('#^mailto:#', $value)   ? $value : 'mailto:' . $value;
+                        $__primLabel = $__ctaPrimary['label'] ?: ($__ctaIcons[$__ctaPrimary['kind'] ?? ''] ? '' : 'Contact');
+                        $__primIcon  = $__ctaIcons[$__ctaPrimary['kind'] ?? ''] ?? 'fas fa-arrow-right';
+                        $__primHref  = $__ctaHref($__ctaPrimary);
+                        $__primIsExt = in_array($__ctaPrimary['kind'] ?? '', ['link', 'form']);
                     @endphp
-                    <a href="{{ $href }}" target="_blank" rel="noopener nofollow"
-                       class="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-50 hover:bg-blue-50 hover:text-blue-700 text-slate-700 text-xs font-semibold border border-slate-200">
-                        <i class="{{ $p['icon'] }}"></i> {{ $p['label'] }}
+                    <a href="{{ $__primHref }}"
+                       @if($__primIsExt) target="_blank" rel="noopener nofollow" @endif
+                       class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white shadow-sm bg-gradient-to-r from-blue-600 to-fuchsia-600 hover:from-blue-700 hover:to-fuchsia-700">
+                        <i class="{{ $__primIcon }}"></i>
+                        {{ $__ctaPrimary['label'] ?: 'Get in touch' }}
+                    </a>
+                @endif
+                @foreach($__ctaSecondary as $__secBtn)
+                    @php
+                        $__secIcon  = $__ctaIcons[$__secBtn['kind'] ?? ''] ?? 'fas fa-arrow-right';
+                        $__secHref  = $__ctaHref($__secBtn);
+                        $__secIsExt = in_array($__secBtn['kind'] ?? '', ['link', 'form']);
+                    @endphp
+                    <a href="{{ $__secHref }}"
+                       @if($__secIsExt) target="_blank" rel="noopener nofollow" @endif
+                       class="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-slate-700 bg-white border border-slate-200 hover:border-blue-400 hover:text-blue-700">
+                        <i class="{{ $__secIcon }}"></i>
+                        {{ $__secBtn['label'] }}
                     </a>
                 @endforeach
             </div>
         </section>
     @endif
 
-    {{-- ── Biolink callout ────────────────────────────────── --}}
-    @if(($sectionsVisible['biolink'] ?? true) && $primaryBiolink)
-        <section class="cp-card mt-3 p-5 flex items-center justify-between gap-4">
-            <div class="min-w-0">
-                <p class="text-xs uppercase tracking-wider text-slate-500 font-semibold">My links</p>
-                <p class="text-sm text-slate-700 mt-1 truncate">All my projects, services, and current focus.</p>
-            </div>
-            <a href="{{ url('/' . $primaryBiolink->alias) }}" class="shrink-0 px-4 py-2 rounded-lg bg-blue-600 text-white text-xs font-semibold hover:bg-blue-700">
-                Open biolink <i class="fas fa-arrow-right ml-1"></i>
-            </a>
-        </section>
+    {{-- ── Tab bar (Task #5431) ───────────────────────────── --}}
+    @php
+        $__tabDefs = [];
+        if ($__hasAbout)  $__tabDefs['about']  = 'About';
+        if ($__hasPosts)  $__tabDefs['posts']  = 'Posts';
+        if ($__hasLinks)  $__tabDefs['links']  = 'Links';
+        if ($__hasEvents) $__tabDefs['events'] = 'Events';
+    @endphp
+    @if(count($__tabDefs) > 1)
+        <nav class="cp-tab-bar mt-3 rounded-t-xl overflow-hidden">
+            @foreach($__tabDefs as $__tabKey => $__tabLabel)
+                <button type="button"
+                        class="cp-tab-btn"
+                        :class="{ active: activeTab === @js($__tabKey) }"
+                        @click="activeTab = @js($__tabKey); history.replaceState(null,'',location.pathname+'?tab='+@js($__tabKey))">
+                    {{ $__tabLabel }}
+                </button>
+            @endforeach
+        </nav>
     @endif
 
-    {{-- ── Events (Task #3666) — a few upcoming public events, gated by
-         the same $sectionsVisible pattern and only shown when the
-         creator actually has upcoming events. ── --}}
-    @if(($sectionsVisible['events'] ?? true) && $upcomingEvents->isNotEmpty())
-        <section class="cp-card mt-3 p-5">
-            <div class="flex items-center justify-between mb-3">
-                <h2 class="text-xs uppercase tracking-wider text-slate-500 font-semibold">Upcoming events</h2>
-                <a href="{{ route('creator-profile.events', $creator->handle) }}" class="text-xs font-semibold text-blue-600 hover:underline">See all events →</a>
+    {{-- ═══════════════════════════════════════════════════════
+         Tab: About
+         ═══════════════════════════════════════════════════════ --}}
+    <div x-show="activeTab === 'about'" x-cloak>
+
+        {{-- ── Stats strip ─────────────────────────────────────── --}}
+        @if(($sectionsVisible['stats'] ?? true))
+            <div class="cp-card mt-3 px-5 py-4 grid grid-cols-3 text-center divide-x divide-slate-100">
+                <div>
+                    <div class="text-xl font-extrabold">{{ number_format($creator->posts_count ?? 0) }}</div>
+                    <div class="text-[11px] uppercase tracking-wider text-slate-500 mt-0.5">Posts</div>
+                </div>
+                <div>
+                    <div class="text-xl font-extrabold">{{ number_format($creator->followers_count ?? 0) }}</div>
+                    <div class="text-[11px] uppercase tracking-wider text-slate-500 mt-0.5">Followers</div>
+                </div>
+                <div>
+                    <div class="text-xl font-extrabold">{{ $creator->created_at?->format('M Y') ?: '—' }}</div>
+                    <div class="text-[11px] uppercase tracking-wider text-slate-500 mt-0.5">Joined</div>
+                </div>
             </div>
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                @foreach($upcomingEvents as $event)
-                    @php $eventIcs = $event->icsData; @endphp
-                    <a href="{{ url('/' . $event->alias) }}" class="flex items-center gap-3 p-2.5 rounded-lg border border-slate-200 hover:border-blue-400 hover:bg-blue-50 transition">
-                        @if($eventIcs && $eventIcs->start_date)
-                            <div class="shrink-0 w-11 h-11 rounded-lg bg-slate-50 border border-slate-200 text-center leading-none flex flex-col items-center justify-center">
-                                <div class="text-[9px] font-bold uppercase text-blue-600">{{ $eventIcs->start_date->format('M') }}</div>
-                                <div class="text-sm font-extrabold text-slate-900">{{ $eventIcs->start_date->format('j') }}</div>
-                            </div>
-                        @endif
-                        <div class="min-w-0">
-                            <div class="text-xs font-semibold text-slate-900 truncate">{{ $event->title }}</div>
-                            @if($eventIcs && $eventIcs->start_date)
-                                <div class="text-[11px] text-slate-500 truncate">{{ $eventIcs->start_date->format('D, M j · g:i A') }}</div>
+        @endif
+
+        {{-- ── About ───────────────────────────────────────────── --}}
+        @if(($sectionsVisible['about'] ?? true) && !empty($creator->bio))
+            <section class="cp-card mt-3 p-5">
+                <h2 class="text-xs uppercase tracking-wider text-slate-500 font-semibold mb-2">About</h2>
+                <p class="text-sm text-slate-700 whitespace-pre-line leading-relaxed">{{ $creator->bio }}</p>
+            </section>
+        @endif
+
+        {{-- ── Socials ─────────────────────────────────────────── --}}
+        @if(($sectionsVisible['socials'] ?? true) && is_array($creator->socials) && count($creator->socials))
+            <section class="cp-card mt-3 p-5">
+                <h2 class="text-xs uppercase tracking-wider text-slate-500 font-semibold mb-3">Find me on</h2>
+                <div class="flex flex-wrap gap-2">
+                    @php
+                        $platforms = \App\Modules\User\Controllers\CreatorProfileController::SOCIAL_PLATFORMS;
+                    @endphp
+                    @foreach($creator->socials as $key => $value)
+                        @php
+                            $p = $platforms[$key] ?? null;
+                            if (!$p) continue;
+                            $href = $value;
+                            if ($key === 'twitter')   $href = preg_match('#^https?://#', $value) ? $value : 'https://twitter.com/'   . ltrim($value, '@');
+                            if ($key === 'instagram') $href = preg_match('#^https?://#', $value) ? $value : 'https://instagram.com/' . ltrim($value, '@');
+                            if ($key === 'tiktok')    $href = preg_match('#^https?://#', $value) ? $value : 'https://tiktok.com/@'   . ltrim($value, '@');
+                            if ($key === 'youtube')   $href = preg_match('#^https?://#', $value) ? $value : 'https://youtube.com/@'  . ltrim($value, '@');
+                            if ($key === 'github')    $href = preg_match('#^https?://#', $value) ? $value : 'https://github.com/'    . ltrim($value, '@');
+                            if ($key === 'twitch')    $href = preg_match('#^https?://#', $value) ? $value : 'https://twitch.tv/'     . ltrim($value, '@');
+                            if ($key === 'email')     $href = preg_match('#^mailto:#', $value)   ? $value : 'mailto:' . $value;
+                        @endphp
+                        <a href="{{ $href }}" target="_blank" rel="noopener nofollow"
+                           class="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-50 hover:bg-blue-50 hover:text-blue-700 text-slate-700 text-xs font-semibold border border-slate-200">
+                            <i class="{{ $p['icon'] }}"></i> {{ $p['label'] }}
+                        </a>
+                    @endforeach
+                </div>
+            </section>
+        @endif
+
+        {{-- ── Biolink callout ────────────────────────────────── --}}
+        @if(($sectionsVisible['biolink'] ?? true) && $primaryBiolink)
+            <section class="cp-card mt-3 p-5 flex items-center justify-between gap-4">
+                <div class="min-w-0">
+                    <p class="text-xs uppercase tracking-wider text-slate-500 font-semibold">My links</p>
+                    <p class="text-sm text-slate-700 mt-1 truncate">All my projects, services, and current focus.</p>
+                </div>
+                <a href="{{ url('/' . $primaryBiolink->alias) }}" class="shrink-0 px-4 py-2 rounded-lg bg-blue-600 text-white text-xs font-semibold hover:bg-blue-700">
+                    Open biolink <i class="fas fa-arrow-right ml-1"></i>
+                </a>
+            </section>
+        @endif
+
+        {{-- ── Featured links preview (on About tab when links tab exists) --}}
+        @php
+            $__flStyle   = $showcase['featured_links_style'] ?? 'classic';
+            $__flOneCol  = in_array($__flStyle, ['ghost', 'pill']);
+        @endphp
+        @if(($sectionsVisible['featured_links'] ?? true) && count($featuredLinks) > 0 && $__hasLinks)
+            <section class="cp-card mt-3 p-5">
+                <div class="flex items-center justify-between mb-3">
+                    <h2 class="text-xs uppercase tracking-wider text-slate-500 font-semibold">Featured</h2>
+                    <button type="button" @click="activeTab='links'"
+                            class="text-xs font-semibold text-blue-600 hover:underline">See all →</button>
+                </div>
+                <div class="{{ $__flOneCol ? 'flex flex-col' : 'grid grid-cols-2' }} gap-2">
+                    @foreach(array_slice($featuredLinks, 0, 2) as $fl)
+                        <a href="{{ url('/' . $fl->alias) }}" target="_blank" rel="noopener nofollow"
+                           class="cp-fl cp-fl--{{ $__flStyle }} min-w-0">
+                            @if(in_array($__flStyle, ['classic', 'card_heading']))
+                                <div class="flex items-center gap-2 min-w-0">
+                                    @if($__flStyle === 'classic')
+                                        <span class="shrink-0 text-sm" style="color:var(--cp-accent,#3d6bff)"><i class="fas fa-link"></i></span>
+                                    @endif
+                                    <span class="text-xs font-semibold truncate flex-1"
+                                          style="color:{{ $__flStyle === 'card_heading' ? 'var(--cp-accent,#3d6bff)' : '#0f172a' }}">{{ $fl->title ?: $fl->alias }}</span>
+                                </div>
+                                <span class="text-[10px] uppercase" style="color:#94a3b8">{{ $fl->type }}</span>
+                            @else
+                                <span class="shrink-0 text-xs"><i class="fas fa-link"></i></span>
+                                <span class="flex-1 text-xs font-semibold truncate">{{ $fl->title ?: $fl->alias }}</span>
                             @endif
-                        </div>
-                    </a>
-                @endforeach
-            </div>
-        </section>
-    @endif
+                        </a>
+                    @endforeach
+                </div>
+            </section>
+        @endif
 
-    {{-- ── Posts feed ─────────────────────────────────────── --}}
-    @if(($sectionsVisible['posts'] ?? true))
+    </div>{{-- /about --}}
+
+    {{-- ═══════════════════════════════════════════════════════
+         Tab: Posts
+         ═══════════════════════════════════════════════════════ --}}
+    @if($__hasPosts)
+    <div x-show="activeTab === 'posts'" x-cloak>
         <section class="mt-4">
             <h2 class="text-xs uppercase tracking-wider text-slate-500 font-semibold px-1 mb-2">
                 Latest posts
@@ -393,11 +607,142 @@
                 <div class="mt-4">{{ $posts->links() }}</div>
             @endif
         </section>
+    </div>
     @endif
 
-    {{-- Task #1211 — "More creators like {{ $creator->name }}". Surfaces only
-         when there are matches; uses the cached helper on CreatorsController
-         so we don't run discovery queries on every profile view. --}}
+    {{-- ═══════════════════════════════════════════════════════
+         Tab: Links & Showcase (Task #5431)
+         ═══════════════════════════════════════════════════════ --}}
+    @if($__hasLinks)
+    <div x-show="activeTab === 'links'" x-cloak>
+
+        {{-- ── Featured links ─────────────────────────────────── --}}
+        @if(($sectionsVisible['featured_links'] ?? true) && count($featuredLinks) > 0)
+            @php
+                $__flStyleFull  = $showcase['featured_links_style'] ?? 'classic';
+                $__flOneColFull = in_array($__flStyleFull, ['ghost', 'pill']);
+            @endphp
+            <section class="cp-card mt-3 p-5">
+                <div class="flex items-center justify-between mb-3">
+                    <h2 class="text-xs uppercase tracking-wider text-slate-500 font-semibold">Featured links</h2>
+                    @if($showcase['show_link_stats'] ?? false)
+                        <span class="text-[10px] text-slate-400">Click counts shown</span>
+                    @endif
+                </div>
+                <div class="{{ $__flOneColFull ? 'flex flex-col' : 'grid grid-cols-1 sm:grid-cols-2' }} gap-2.5">
+                    @foreach($featuredLinks as $__i => $fl)
+                        @php
+                            $__flStats = ($showcase['show_link_stats'] ?? false) ? ($fl->clicks_count ?? 0) : null;
+                            $__isTop   = $__i === 0 && $__flStats !== null && $__flStats > 0;
+                        @endphp
+                        <a href="{{ url('/' . $fl->alias) }}" target="_blank" rel="noopener nofollow"
+                           class="cp-fl cp-fl--{{ $__flStyleFull }} min-w-0">
+                            @if($__isTop)
+                                <span class="absolute top-2 right-2 text-[9px] px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 font-bold uppercase tracking-wide z-10">Popular</span>
+                            @endif
+                            @if($__flStyleFull === 'classic')
+                                <div class="flex items-start gap-2 pr-2">
+                                    <span class="text-base mt-0.5 shrink-0" style="color:var(--cp-accent,#3d6bff)"><i class="fas fa-link"></i></span>
+                                    <div class="min-w-0 flex-1">
+                                        <p class="text-sm font-semibold truncate" style="color:#0f172a">{{ $fl->title ?: $fl->alias }}</p>
+                                        <p class="text-[11px] uppercase truncate" style="color:#94a3b8">{{ $fl->type }}</p>
+                                    </div>
+                                </div>
+                                @if($__flStats !== null)
+                                    <p class="text-[11px] mt-1" style="color:#64748b"><i class="fas fa-mouse-pointer mr-1"></i>{{ number_format($__flStats) }} click{{ $__flStats === 1 ? '' : 's' }}</p>
+                                @endif
+                            @elseif($__flStyleFull === 'card_heading')
+                                <p class="text-base font-bold truncate" style="color:var(--cp-accent,#3d6bff)">{{ $fl->title ?: $fl->alias }}</p>
+                                <p class="text-xs uppercase font-semibold" style="color:#94a3b8">{{ $fl->type }}</p>
+                                @if($__flStats !== null)
+                                    <p class="text-[11px] mt-0.5" style="color:#64748b"><i class="fas fa-mouse-pointer mr-1"></i>{{ number_format($__flStats) }} click{{ $__flStats === 1 ? '' : 's' }}</p>
+                                @endif
+                            @else
+                                <span class="shrink-0 text-sm"><i class="fas fa-link"></i></span>
+                                <span class="flex-1 text-sm font-semibold truncate">{{ $fl->title ?: $fl->alias }}</span>
+                            @endif
+                        </a>
+                    @endforeach
+                </div>
+            </section>
+        @endif
+
+        {{-- ── Showcase items ──────────────────────────────────── --}}
+        @if(($sectionsVisible['showcase'] ?? true) && count($showcaseCards) > 0)
+            <section class="cp-card mt-3 p-5">
+                <h2 class="text-xs uppercase tracking-wider text-slate-500 font-semibold mb-3">Showcase</h2>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    @foreach($showcaseCards as $__card)
+                        @php
+                            $__cardLink = $__card['link'];
+                            $__cardType = $__card['type'];
+                            $__cardIcs  = $__card['ics_data'];
+                            $__cardIcon = $__showcaseIcons[$__cardType] ?? 'fas fa-link';
+                            $__cardTypeLabel = $__showcaseLabels[$__cardType] ?? $__cardType;
+                        @endphp
+                        <a href="{{ url('/' . $__cardLink->alias) }}" target="_blank" rel="noopener nofollow"
+                           class="flex items-start gap-3 p-3.5 rounded-xl border border-slate-200 hover:border-blue-400 hover:bg-blue-50 transition">
+                            <div class="w-10 h-10 rounded-lg bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600 shrink-0 text-base">
+                                <i class="{{ $__cardIcon }}"></i>
+                            </div>
+                            <div class="min-w-0 flex-1">
+                                <p class="text-sm font-semibold text-slate-900 truncate">{{ $__cardLink->title ?: $__cardLink->alias }}</p>
+                                @if($__cardType === 'ics' && $__cardIcs && $__cardIcs->start_date)
+                                    <p class="text-[11px] text-slate-500 mt-0.5 truncate">
+                                        <i class="fas fa-calendar-days mr-1"></i>{{ $__cardIcs->start_date->format('M j, Y') }}
+                                    </p>
+                                    <p class="text-[10px] text-slate-400 uppercase font-semibold mt-0.5">Event</p>
+                                @elseif($__cardType === 'form')
+                                    <p class="text-[11px] text-slate-500 mt-0.5">Fill out this form</p>
+                                    <p class="text-[10px] text-slate-400 uppercase font-semibold mt-0.5">Form</p>
+                                @else
+                                    <p class="text-[11px] text-slate-400 mt-0.5 uppercase font-semibold">{{ $__cardTypeLabel }}</p>
+                                @endif
+                            </div>
+                            <i class="fas fa-arrow-right text-slate-300 text-xs shrink-0 mt-1"></i>
+                        </a>
+                    @endforeach
+                </div>
+            </section>
+        @endif
+
+    </div>
+    @endif
+
+    {{-- ═══════════════════════════════════════════════════════
+         Tab: Events (Task #3666)
+         ═══════════════════════════════════════════════════════ --}}
+    @if($__hasEvents)
+    <div x-show="activeTab === 'events'" x-cloak>
+        <section class="cp-card mt-3 p-5">
+            <div class="flex items-center justify-between mb-3">
+                <h2 class="text-xs uppercase tracking-wider text-slate-500 font-semibold">Upcoming events</h2>
+                <a href="{{ route('creator-profile.events', $creator->handle) }}" class="text-xs font-semibold text-blue-600 hover:underline">See all events →</a>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                @foreach($upcomingEvents as $event)
+                    @php $eventIcs = $event->icsData; @endphp
+                    <a href="{{ url('/' . $event->alias) }}" class="flex items-center gap-3 p-2.5 rounded-lg border border-slate-200 hover:border-blue-400 hover:bg-blue-50 transition">
+                        @if($eventIcs && $eventIcs->start_date)
+                            <div class="shrink-0 w-11 h-11 rounded-lg bg-slate-50 border border-slate-200 text-center leading-none flex flex-col items-center justify-center">
+                                <div class="text-[9px] font-bold uppercase text-blue-600">{{ $eventIcs->start_date->format('M') }}</div>
+                                <div class="text-sm font-extrabold text-slate-900">{{ $eventIcs->start_date->format('j') }}</div>
+                            </div>
+                        @endif
+                        <div class="min-w-0">
+                            <div class="text-xs font-semibold text-slate-900 truncate">{{ $event->title }}</div>
+                            @if($eventIcs && $eventIcs->start_date)
+                                <div class="text-[11px] text-slate-500 truncate">{{ $eventIcs->start_date->format('D, M j · g:i A') }}</div>
+                            @endif
+                        </div>
+                    </a>
+                @endforeach
+            </div>
+        </section>
+    </div>
+    @endif
+
+    {{-- ── Related creators (always shown below tabs) ──────── --}}
     @if(!empty($relatedCreators) && count($relatedCreators) > 0)
         <section class="cp-card mt-4 px-5 py-4">
             <div class="flex items-center justify-between mb-3">

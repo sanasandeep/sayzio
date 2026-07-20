@@ -288,6 +288,72 @@
       "relation": "adapted",
       "note": "same import flow; main app adds ContactImportPayload typing, a stricter FNV hash (json.length-based fingerprint, unsigned mixing per step) and non-any filtering. Fingerprint formats differ but each app only compares its own persisted values, so this is benign; behavior changes to the import/skip logic must be mirrored.",
       "sourceSha256": "b12f5395e9b271bc26fc818ffcceb08bc805e5064f3f616f773e1761af33ecb1"
+    },
+    {
+      "standalone": "app/(tabs)/dialer.tsx",
+      "source": "app/dialer.tsx",
+      "relation": "adapted",
+      "note": "standalone hosts the dialer as a tab; main app hosts it as a stack screen. Main copy adapts listContacts() to its opts-object signature; otherwise identical (Task #5399 port).",
+      "sourceSha256": "32e4ff09f15d17461b46f31b54479b7d5a53777d382ec178269145769219f58d"
+    },
+    {
+      "standalone": "app/dialer-profile.tsx",
+      "source": "app/dialer-profile.tsx",
+      "relation": "adapted",
+      "note": "main app has no /contacts/new form, so its saveOrEdit falls back to the /contacts list; otherwise identical (Task #5399 port).",
+      "sourceSha256": "7307646845f29539d979ee5426548b5aa7c1e84e91309dd4e5a963aa0d09bdd8"
+    },
+    {
+      "standalone": "lib/api/dialer.ts",
+      "source": "lib/api/dialer.ts",
+      "relation": "identical"
+    },
+    {
+      "standalone": "lib/api/contacts.ts",
+      "source": "lib/api/contacts.ts",
+      "relation": "adapted",
+      "note": "diverged API surfaces: main copy grew its own helpers (getContact/updateContactNotes/updateContactTags/duplicate + google-sync helpers, opts-object listContacts) while the standalone keeps the original CRUD/import surface. Manual-profile types + updateContactManualProfile now exist in both.",
+      "sourceSha256": "f1f8a6ddb185d5516fd4aa653500c38b91576c01232f4eb8fdf12f1ac304557c"
+    },
+    {
+      "standalone": "components/ChannelActions.tsx",
+      "source": "components/ChannelActions.tsx",
+      "relation": "identical"
+    },
+    {
+      "standalone": "lib/placeCall.ts",
+      "source": "lib/placeCall.ts",
+      "relation": "identical"
+    },
+    {
+      "standalone": "modules/zio-telephony/index.ts",
+      "source": "modules/zio-telephony/index.ts",
+      "relation": "identical"
+    },
+    {
+      "standalone": "modules/zio-telephony/expo-module.config.json",
+      "source": "modules/zio-telephony/expo-module.config.json",
+      "relation": "identical"
+    },
+    {
+      "standalone": "modules/zio-telephony/android/build.gradle",
+      "source": "modules/zio-telephony/android/build.gradle",
+      "relation": "identical"
+    },
+    {
+      "standalone": "modules/zio-telephony/android/src/main/AndroidManifest.xml",
+      "source": "modules/zio-telephony/android/src/main/AndroidManifest.xml",
+      "relation": "identical"
+    },
+    {
+      "standalone": "modules/zio-telephony/android/src/main/java/expo/modules/ziotelephony/ZioTelephonyModule.kt",
+      "source": "modules/zio-telephony/android/src/main/java/expo/modules/ziotelephony/ZioTelephonyModule.kt",
+      "relation": "identical"
+    },
+    {
+      "standalone": "plugins/withAndroidQueries.js",
+      "source": "plugins/withAndroidQueries.js",
+      "relation": "identical"
     }
   ],
   "standaloneOnly": [
@@ -304,20 +370,8 @@
       "note": "source-driven unit test: every screen with per-number channel actions uses the shared ChannelActions component (no bespoke wa.me/t.me deep links) and resolveChannels honors dialer_channels prefs; run via npm run test:channel-actions"
     },
     {
-      "path": "app/(tabs)/dialer.tsx",
-      "note": "dialer keypad screen (with suggestions empty-state); the main app removed its app/dialer.tsx — this standalone is now the sole home of the mobile dialer surface"
-    },
-    {
       "path": "app/(tabs)/contacts.tsx",
       "note": "contacts list screen; the main app removed its app/contacts/ screens — device import goes through lib/deviceContacts.ts"
-    },
-    {
-      "path": "app/dialer-profile.tsx",
-      "note": "caller/contact profile screen; removed from the main app along with the dialer surfaces"
-    },
-    {
-      "path": "app/call/active.tsx",
-      "note": "active-call screen; removed from the main app along with the dialer surfaces"
     },
     {
       "path": "app/call/incoming.tsx",
@@ -342,14 +396,6 @@
     {
       "path": "app/contacts/google-sync.tsx",
       "note": "Google Contacts sync screen; removed from the main app along with the contacts surfaces"
-    },
-    {
-      "path": "lib/api/dialer.ts",
-      "note": "dialer API client incl. DialerSuggestionsResult + getDialerSuggestions(); removed from the main app along with the dialer surfaces (backend /api/v1/dialer endpoints remain)"
-    },
-    {
-      "path": "lib/api/contacts.ts",
-      "note": "contacts API client; removed from the main app along with the contacts surfaces (backend /api/v1/contacts endpoints remain)"
     },
     {
       "path": "app/search.tsx",

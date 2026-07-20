@@ -183,7 +183,7 @@ class InsiderBlockController extends Controller
                 $followerCheckId = $member->viewer_user_id;
                 if (!$followerCheckId) return;
                 $isFollower = Follow::where('follower_id', $followerCheckId)
-                    ->where('user_id', $link->user_id)
+                    ->where('creator_id', $link->user_id)
                     ->exists();
                 if (!$isFollower) return;
             }

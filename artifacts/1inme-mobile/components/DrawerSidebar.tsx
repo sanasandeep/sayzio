@@ -397,6 +397,49 @@ function WorkspaceSwitcherBlock({
               </Pressable>
             );
           })}
+          <Pressable
+            onPress={() => {
+              setOpen(false);
+              closeDrawer();
+              setTimeout(() => router.push("/workspaces" as never), 50);
+            }}
+            style={({ pressed }) => [
+              styles.wsRow,
+              {
+                backgroundColor: pressed ? colors.muted : "transparent",
+                borderRadius: 10,
+              },
+            ]}
+            accessibilityRole="button"
+            accessibilityLabel="New workspace"
+            {...WEB_FOCUS_RING_PROPS}
+          >
+            <View
+              style={[
+                styles.wsIconSm,
+                {
+                  backgroundColor: colors.primary + "22",
+                  borderRadius: 7,
+                },
+              ]}
+            >
+              <Feather name="plus" size={11} color={colors.primary} />
+            </View>
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <Text
+                style={[
+                  styles.wsRowName,
+                  {
+                    color: colors.primary,
+                    fontFamily: "SpaceGrotesk_600SemiBold",
+                  },
+                ]}
+                numberOfLines={1}
+              >
+                New workspace
+              </Text>
+            </View>
+          </Pressable>
         </View>
       )}
     </View>
@@ -626,7 +669,16 @@ export function DrawerSidebar() {
           <BlurView
             intensity={85}
             tint={isDark ? "dark" : "light"}
-            style={StyleSheet.absoluteFill}
+            style={[
+              StyleSheet.absoluteFill,
+              {
+                // Solid-ish underlay: Android's BlurView often renders as a
+                // barely-tinted sheet, leaving the drawer see-through.
+                backgroundColor: isDark
+                  ? "rgba(10,10,18,0.92)"
+                  : "rgba(246,247,252,0.94)",
+              },
+            ]}
           />
         ) : (
           <View
@@ -737,7 +789,7 @@ export function DrawerSidebar() {
                 style={[styles.identityName, { color: colors.foreground }]}
                 numberOfLines={1}
               >
-                {user?.display_name || "Member"}
+                {user?.display_name || user?.name || "Member"}
               </Text>
               <Text
                 style={[styles.identityEmail, { color: colors.mutedForeground }]}

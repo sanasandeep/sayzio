@@ -87,11 +87,13 @@ for (const file of allFiles) {
   }
 }
 
-// The shared component itself must build all six handoffs.
-for (const pat of [/tel:\$\{/, /sms:\$\{/, /wa\.me/, /t\.me/, /signal\.me/, /viber:\/\//]) {
+// The shared component itself must handle all six handoffs.
+// The "tel" (call) channel routes through placeRealCall so the user's
+// calling preference (Direct call vs Open phone app) is respected everywhere.
+for (const pat of [/placeRealCall\(/, /sms:\$\{/, /wa\.me/, /t\.me/, /signal\.me/, /viber:\/\//]) {
   assert.ok(
     pat.test(componentSrc),
-    `ChannelActions.tsx lost its ${pat} deep-link builder`,
+    `ChannelActions.tsx lost its ${pat} channel handler`,
   );
 }
 
@@ -107,7 +109,6 @@ const REQUIRED_SURFACES = [
   "app/search.tsx",
   "app/contacts/_form.tsx",
   "app/dialer-profile.tsx",
-  "app/call/active.tsx",
   "app/call/incoming.tsx",
 ];
 

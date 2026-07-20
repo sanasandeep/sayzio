@@ -146,17 +146,6 @@ class IntegrationsController extends Controller
         ]);
     }
 
-    public function testGitHub()
-    {
-        $probe = \App\Services\Integrations\GitHubTokenHealth::verify();
-
-        // The admin layout renders session('success') / session('error') only.
-        $flashKey = $probe['status'] === 'ok' ? 'success' : 'error';
-
-        return redirect()->route('admin.integrations.github.edit')
-            ->with($flashKey, ($probe['status'] === 'inconclusive' ? 'Inconclusive — ' : '') . $probe['detail']);
-    }
-
     public function updateGitHub(Request $request)
     {
         $data = $request->validate([
@@ -193,17 +182,21 @@ class IntegrationsController extends Controller
 
         if (RateLimiter::tooManyAttempts($key, 6)) {
             $seconds = RateLimiter::availableIn($key);
-            return back()->with('error', 'Please wait ' . max(1, $seconds) . ' seconds before checking the GitHub token again.');
+            return redirect()->route('admin.integrations.github.edit')
+                ->with('error', 'Please wait ' . max(1, $seconds) . ' seconds before checking the GitHub token again.');
         }
         RateLimiter::hit($key, 60);
 
-        $probe = GitHubTokenHealth::probe();
+        // verify() runs the probe and persists it as the last-known health,
+        // which feeds the "last checked" panel on the editor page.
+        $probe = GitHubTokenHealth::verify();
 
         if ($probe['status'] === 'ok') {
-            return back()->with('success', $probe['detail']);
+            return redirect()->route('admin.integrations.github.edit')->with('success', $probe['detail']);
         }
 
-        return back()->with('error', 'GitHub token check: ' . $probe['detail']);
+        return redirect()->route('admin.integrations.github.edit')
+            ->with('error', 'GitHub token check: ' . $probe['detail']);
     }
 
     // ═════════════════════════════════════════════════════════════

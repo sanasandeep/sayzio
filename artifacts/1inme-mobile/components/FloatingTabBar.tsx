@@ -141,7 +141,16 @@ export function FloatingTabBar() {
           <BlurView
             intensity={72}
             tint={isDark ? "dark" : "light"}
-            style={StyleSheet.absoluteFill}
+            style={[
+              StyleSheet.absoluteFill,
+              {
+                // Solid-ish underlay: Android's BlurView often renders as a
+                // barely-tinted sheet, leaving the bar see-through.
+                backgroundColor: isDark
+                  ? "rgba(19,19,28,0.9)"
+                  : "rgba(247,248,252,0.92)",
+              },
+            ]}
           />
         ) : (
           <View

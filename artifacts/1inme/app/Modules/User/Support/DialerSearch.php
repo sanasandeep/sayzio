@@ -295,30 +295,20 @@ class DialerSearch
         $fetchLimit = min(($page + 1) * $perGroup * 2 + 2, 200);
         $candidates = $query->orderBy('name')->limit($fetchLimit)->get();
 
-        // Which of these accounts carry a verification badge (a verified link)?
-        // A person's verified link may live in ANY of their workspaces. On the
-        // web surface the `workspace.scope` middleware binds the searcher's
-        // active workspace and the BelongsToWorkspace global scope would narrow
-        // this to the active workspace only — so a person whose only verified
-        // link is in a non-active workspace would wrongly show as UNverified
-        // (and be excluded by the `verified` filter chip), while the
-        // API/Sanctum surface (no workspace binding) shows the badge correctly.
-        // Opt out of the workspace filter so web matches API/mobile; the
-        // user_id predicate still scopes this to the candidate accounts.
-        $verifiedIds = $candidates->isEmpty() ? collect() : Link::withoutGlobalScope('workspace')
-            ->whereIn('user_id', $candidates->pluck('id'))
-            ->where('is_verified', true)
-            ->pluck('user_id')->unique();
-
+        // Which of these accounts carry a profile-level verification tick?
+        // Account-level verification (Task #5439) is stored directly on the
+        // users row — no cross-workspace link query needed, no false negatives.
         if ($onlyVerified) {
-            $candidates = $candidates->filter(fn ($u) => $verifiedIds->contains($u->id))->values();
+            $candidates = $candidates->filter(
+                fn ($u) => in_array($u->profile_verification_status, ['verified', 'pending_reverification'], true)
+            )->values();
         }
 
         $slice = $candidates->skip($page * $perGroup)->take($perGroup + 1);
         $has_more = $slice->count() > $perGroup;
-        $items = $slice->take($perGroup)->map(function (User $u) use ($user, $verifiedIds) {
+        $items = $slice->take($perGroup)->map(function (User $u) use ($user) {
             $bio = $u->primaryBiolink();
-            $isVerified = $verifiedIds->contains($u->id);
+            $isVerified = in_array($u->profile_verification_status, ['verified', 'pending_reverification'], true);
             $isSelf = $u->id === $user->id;
 
             return [
@@ -381,11 +371,11 @@ class DialerSearch
             ->get();
 
         if ($onlyVerified) {
-            $verifiedIds = Link::withoutGlobalScope('workspace')
-                ->whereIn('user_id', $rows->pluck('user_id')->unique())
-                ->where('is_verified', true)
-                ->pluck('user_id')->unique();
-            $rows = $rows->filter(fn ($c) => $verifiedIds->contains($c->user_id));
+            // Account-level verification (Task #5439): check profile_verification_status
+            // on the eager-loaded User, avoiding a secondary Link query.
+            $rows = $rows->filter(fn ($c) => $c->user &&
+                in_array($c->user->profile_verification_status, ['verified', 'pending_reverification'], true)
+            );
         }
 
         $slice = $rows->skip($page * $perGroup)->take($perGroup + 1);

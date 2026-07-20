@@ -38,6 +38,13 @@ class ProfileController extends Controller
             'dmca_email'          => ['sometimes', 'nullable', 'email', 'max:255'],
         ]);
 
+        // Verified users have their display name AND profile photo locked
+        // server-side (same rule as the web ProfileController) — silently
+        // ignore both so an API call cannot bypass the identity lock.
+        if ($user->isNameAvatarLocked()) {
+            unset($data['name'], $data['avatar']);
+        }
+
         // `users.timezone` / `users.language` are NOT NULL columns — an empty
         // field on the mobile edit screen must mean "leave unchanged", never
         // "write NULL" (which 500s on the DB constraint).

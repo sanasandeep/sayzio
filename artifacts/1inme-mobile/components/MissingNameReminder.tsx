@@ -22,7 +22,7 @@ export function MissingNameReminder() {
   // Only show on native; the web dashboard has its own patterns.
   if (Platform.OS === "web") return null;
 
-  const shouldShow = !!user && !user.display_name;
+  const shouldShow = !!user && !user.display_name && !user.name;
 
   if (!shouldShow || dismissed) return null;
 

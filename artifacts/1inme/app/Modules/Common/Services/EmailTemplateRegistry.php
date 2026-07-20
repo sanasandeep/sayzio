@@ -803,6 +803,32 @@ class EmailTemplateRegistry
                     'login_url' => ['label' => 'Sign-in URL', 'sample' => 'https://sayzio.app/user/login'],
                 ],
             ],
+            'verification.approved' => [
+                'category' => 'account',
+                'label' => 'Profile verification approved',
+                'description' => 'Notifies a user their profile verification (or re-verification) request was approved.',
+                'format' => 'text',
+                'body_type' => 'inline',
+                'subject' => 'Your verification was approved',
+                'body' => "{{message}}\n\nView your verification status: {{url}}",
+                'variables' => [
+                    'message' => ['label' => 'Message', 'sample' => 'Congratulations! Your profile is now verified with the Blue tick as "Alex Rivera".'],
+                    'url' => ['label' => 'Verification page URL', 'sample' => 'https://sayzio.app/user/settings/profile-verification'],
+                ],
+            ],
+            'verification.rejected' => [
+                'category' => 'account',
+                'label' => 'Profile verification rejected',
+                'description' => 'Notifies a user their profile verification (or re-verification) request was not approved, including the reviewer\'s note.',
+                'format' => 'text',
+                'body_type' => 'inline',
+                'subject' => 'Update on your verification request',
+                'body' => "{{message}}\n\nView your verification status: {{url}}",
+                'variables' => [
+                    'message' => ['label' => 'Message', 'sample' => 'Your verification request was not approved. Reviewer note: The proof documents were unreadable.'],
+                    'url' => ['label' => 'Verification page URL', 'sample' => 'https://sayzio.app/user/settings/profile-verification'],
+                ],
+            ],
             'starter.free_window_reminder' => [
                 'category' => 'account',
                 'label' => 'Starter free window reminder',

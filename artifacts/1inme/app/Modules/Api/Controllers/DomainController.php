@@ -112,6 +112,34 @@ class DomainController extends Controller
         return $this->created(['domain' => $this->transform($d)]);
     }
 
+    /**
+     * DNS-propagation probe + verify. Mirrors the web verify action via the
+     * shared DomainDnsVerifier: an unpropagated CNAME is an expected state
+     * (200 with verified=false), so mobile can poll this while the user's
+     * DNS change propagates and flip the badge live on success.
+     */
+    public function verify(Request $request, int $id)
+    {
+        $d = Domain::where('user_id', $request->user()->id)->find($id);
+        if (!$d) return $this->notFound('Domain not found');
+
+        if ($d->is_verified) {
+            return $this->ok(['verified' => true, 'domain' => $this->transform($d)]);
+        }
+
+        $expected = \App\Modules\Common\Services\DomainDnsVerifier::expectedTarget($d);
+        if (!\App\Modules\Common\Services\DomainDnsVerifier::cnameMatches($d, $expected)) {
+            return $this->ok([
+                'verified'       => false,
+                'expected_cname' => $expected,
+                'domain'         => $this->transform($d),
+            ]);
+        }
+
+        \App\Modules\Common\Services\DomainDnsVerifier::markVerified($d, $expected);
+        return $this->ok(['verified' => true, 'domain' => $this->transform($d->fresh())]);
+    }
+
     public function destroy(Request $request, int $id)
     {
         $d = Domain::where('user_id', $request->user()->id)->find($id);

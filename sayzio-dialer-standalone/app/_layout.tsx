@@ -50,7 +50,6 @@ function RootLayoutNav() {
         options={{ title: "Search", presentation: "modal" }}
       />
       <Stack.Screen name="dialer-profile" options={{ title: "Profile" }} />
-      <Stack.Screen name="call/active" options={{ headerShown: false }} />
       <Stack.Screen name="call/incoming" options={{ headerShown: false }} />
       <Stack.Screen name="contacts/[id]" options={{ title: "Contact" }} />
       <Stack.Screen name="contacts/new" options={{ title: "New contact" }} />

@@ -40,6 +40,14 @@ class RedirectToOnboarding
             $recentlyOnboarded = $user->onboarded_at
                 && $user->onboarded_at->gt(now()->subDays(self::WHATSAPP_STEP_RECENCY_DAYS));
 
+            // One-time creator-profile step — shown first (before WhatsApp /
+            // privacy) so a newly onboarded user fills in their profile while
+            // the account is still fresh. Stamps `creator_profile_step_shown_at`
+            // so it fires exactly once.
+            if ($recentlyOnboarded && OnboardingSteps::creatorProfilePending($user)) {
+                return redirect()->route('user.onboarding.creator-profile');
+            }
+
             if (!$stepShown && $recentlyOnboarded && !$user->hasWhatsappNumber()) {
                 return redirect()->route('user.onboarding.whatsapp');
             }

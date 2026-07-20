@@ -19,6 +19,8 @@ import {
   FlatList,
   Linking,
   Modal,
+  PermissionsAndroid,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -32,10 +34,13 @@ import {
   ChannelActions,
   type ChannelPrefs,
   chanOpen,
+  chanOpenUsername,
   featherName,
   publishChannelPrefs,
   resolveChannels,
   useChannelPrefs,
+  USERNAME_CHANNELS,
+  usernameOf,
 } from "@/components/ChannelActions";
 import { useColors } from "@/hooks/useColors";
 import {
@@ -57,6 +62,21 @@ import {
   unassignSpeedDial,
 } from "@/lib/api/dialer";
 import { type Contact, listContacts } from "@/lib/api/contacts";
+import {
+  getCallAccounts,
+  getCallMode,
+  getSimPref,
+  placeRealCall,
+  setCallMode,
+  setSimPref,
+  type CallMode,
+  type SimPref,
+} from "@/lib/placeCall";
+import {
+  type CallAccount,
+  type CallLogEntry,
+  ZioTelephony,
+} from "@/modules/zio-telephony";
 
 type Tab = "keypad" | "recent" | "contacts";
 
@@ -187,6 +207,89 @@ export default function DialerScreen() {
   const [deviceAccess, setDeviceAccess] = useState<
     "unknown" | "granted" | "denied"
   >("unknown");
+
+  // Device call log (Recent tab) — native module, Android-only.
+  const [deviceCallLog, setDeviceCallLog] = useState<CallLogEntry[]>([]);
+  const [callLogAccess, setCallLogAccess] = useState<
+    "unavailable" | "unknown" | "granted" | "denied"
+  >(Platform.OS === "android" && ZioTelephony ? "unknown" : "unavailable");
+
+  // Dual-SIM: call-capable accounts + the remembered SIM preference.
+  const [simAccounts, setSimAccounts] = useState<CallAccount[]>([]);
+  const [simPref, setSimPrefState] = useState<SimPref>("ask");
+
+  // Calling preference: "direct" (Android default) or "system" (hand off to
+  // the OS phone app). iOS is always "system" — the platform forbids silent
+  // dialing. Initialized from the platform default; loaded from storage on mount.
+  const [callMode, setCallModeState] = useState<CallMode>(
+    Platform.OS === "android" ? "direct" : "system",
+  );
+
+  // While a search is active (typed query or a filter chip), hide the
+  // favorites/frequent shelves so results are visible above the dock.
+  const searchActive =
+    number.trim().length >= 2 || filterVerified || filterBiolink;
+
+  // Load the persisted call mode once on mount.
+  useEffect(() => {
+    getCallMode().then(setCallModeState).catch(() => {});
+  }, []);
+
+  // Dual-SIM detection: needs READ_PHONE_STATE, so only probe once the
+  // permission is already granted (placeRealCall requests it on first call).
+  // Cheap + re-run on tab focus via the keypad tab switch.
+  useEffect(() => {
+    let cancelled = false;
+    const probe = async () => {
+      if (Platform.OS !== "android" || !ZioTelephony) return;
+      try {
+        const has = await PermissionsAndroid.check(
+          PermissionsAndroid.PERMISSIONS.READ_PHONE_STATE,
+        );
+        if (!has || cancelled) return;
+        const accounts = getCallAccounts();
+        if (cancelled) return;
+        setSimAccounts(accounts);
+        setSimPrefState(await getSimPref());
+      } catch {
+        /* leave single-SIM defaults */
+      }
+    };
+    void probe();
+    return () => {
+      cancelled = true;
+    };
+  }, [tab]);
+
+  // Device call log — fetched once permission is granted; refreshed each time
+  // the Recent tab is opened so just-placed calls appear.
+  const loadDeviceCallLog = useCallback(async (request: boolean) => {
+    if (Platform.OS !== "android" || !ZioTelephony) return;
+    try {
+      let has = await PermissionsAndroid.check(
+        PermissionsAndroid.PERMISSIONS.READ_CALL_LOG,
+      );
+      if (!has && request) {
+        const res = await PermissionsAndroid.request(
+          PermissionsAndroid.PERMISSIONS.READ_CALL_LOG,
+        );
+        has = res === PermissionsAndroid.RESULTS.GRANTED;
+        if (!has) {
+          setCallLogAccess("denied");
+          return;
+        }
+      }
+      if (!has) return;
+      setCallLogAccess("granted");
+      setDeviceCallLog(ZioTelephony.getCallLog(100));
+    } catch {
+      /* keep whatever we had */
+    }
+  }, []);
+
+  useEffect(() => {
+    if (tab === "recent") void loadDeviceCallLog(false);
+  }, [tab, loadDeviceCallLog]);
 
   // Initial load.
   useEffect(() => {
@@ -371,12 +474,36 @@ export default function DialerScreen() {
       isBlocked: boolean;
       biolink: boolean;
       sub: string;
+      direction: "in" | "out" | "missed" | null;
     };
     const localByNumber = new Map<string, LocalRecent>();
     for (const r of localRecent) localByNumber.set(r.number, r);
 
     const rows: Row[] = [];
     const seen = new Set<string>();
+
+    // Device call log first (when granted) — the truest "recent calls" list,
+    // with per-call direction. Server/local rows below cover numbers the
+    // device log doesn't have (calls placed on other devices, non-call dials).
+    for (const c of deviceCallLog) {
+      const num = (c.number || "").trim();
+      if (!num) continue;
+      seen.add(num);
+      const secs = c.duration > 0 ? ` · ${formatCallDuration(c.duration)}` : "";
+      rows.push({
+        key: `d${num}-${c.date}`,
+        number: num,
+        label: c.name?.trim() || localByNumber.get(num)?.label || null,
+        contactId: null,
+        calls: 1,
+        isSpam: false,
+        isBlocked: false,
+        biolink: false,
+        sub: `${relativeMs(c.date)}${secs}`,
+        direction: c.type === 2 ? "out" : c.type === 1 ? "in" : "missed",
+      });
+    }
+
     for (const r of recents) {
       const num = r.number || "";
       if (!num) continue;
@@ -391,6 +518,7 @@ export default function DialerScreen() {
         isBlocked: r.is_blocked,
         biolink: r.biolink,
         sub: r.last_human ?? "",
+        direction: null,
       });
     }
     for (const r of localRecent) {
@@ -405,10 +533,11 @@ export default function DialerScreen() {
         isBlocked: false,
         biolink: false,
         sub: relativeMs(r.at),
+        direction: null,
       });
     }
     return rows.slice(0, RECENT_MAX);
-  }, [recents, localRecent]);
+  }, [recents, localRecent, deviceCallLog]);
 
   // React Native's Pressable fires onPress AFTER onLongPress on release,
   // which would otherwise turn long-press-0 into "+0" instead of "+".
@@ -466,15 +595,11 @@ export default function DialerScreen() {
         lookupNumber(trimmed).catch(() => {});
       }
 
-      router.push({
-        pathname: "/call/active",
-        params: {
-          number: trimmed,
-          ...(cleanedLabel ? { name: cleanedLabel } : {}),
-        },
-      });
+      // Place a REAL call through the device (ACTION_CALL on Android with
+      // the CALL_PHONE permission, tel: fallback everywhere else).
+      void placeRealCall(trimmed);
     },
-    [localRecent, router],
+    [localRecent],
   );
 
   // Open the caller-ID / mini-CRM profile for a number.
@@ -557,27 +682,49 @@ export default function DialerScreen() {
       </View>
 
       {tab === "keypad" && (
+        <View style={{ flex: 1 }}>
+        {/* Scrollable zone: favorites, frequent, search results. The keypad
+            itself is pinned below so results never push it off-screen. */}
         <ScrollView
           style={{ flex: 1 }}
-          contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}
+          contentContainerStyle={{ paddingBottom: 12 }}
           keyboardShouldPersistTaps="handled"
         >
-          {/* Favorites / speed dial */}
-          {favorites.length > 0 && (
-            <View style={styles.section}>
+          {/* Favorites / speed dial — hidden while searching so results are
+              visible above the dock; empty-state CTA teaches how to add. */}
+          {!searchActive && (
+          <View style={styles.section}>
               <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
                 <Text style={[styles.sectionLabel, { color: colors.mutedForeground, marginBottom: 0 }]}>
                   Speed dial
                 </Text>
-                <Pressable
-                  onPress={() => setSpeedDialModal({ favId: null, digit: null, currentDigit: null, forDigit: null })}
-                  style={{ padding: 4 }}
-                >
-                  <Text style={{ fontSize: 11, color: colors.primary, fontFamily: "SpaceGrotesk_600SemiBold" }}>
-                    # Manage digits
-                  </Text>
-                </Pressable>
+                {favorites.length > 0 && (
+                  <Pressable
+                    onPress={() => setSpeedDialModal({ favId: null, digit: null, currentDigit: null, forDigit: null })}
+                    style={{ padding: 4 }}
+                  >
+                    <Text style={{ fontSize: 11, color: colors.primary, fontFamily: "SpaceGrotesk_600SemiBold" }}>
+                      # Manage digits
+                    </Text>
+                  </Pressable>
+                )}
               </View>
+              {favorites.length === 0 ? (
+                <View style={[styles.favEmpty, { borderColor: colors.border, backgroundColor: colors.card }]}>
+                  <Feather name="star" size={20} color={colors.mutedForeground} />
+                  <Text style={[styles.favEmptyText, { color: colors.mutedForeground }]}>
+                    No favorites yet. Open a contact and tap "Speed dial" to pin the people you call most.
+                  </Text>
+                  <Pressable
+                    onPress={() => setTab("contacts")}
+                    style={[styles.favEmptyBtn, { backgroundColor: colors.primary }]}
+                  >
+                    <Text style={{ color: "#fff", fontSize: 12, fontFamily: "SpaceGrotesk_600SemiBold" }}>
+                      Browse contacts
+                    </Text>
+                  </Pressable>
+                </View>
+              ) : (
               <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                 {favorites.map((f) => (
                   <Pressable
@@ -628,11 +775,12 @@ export default function DialerScreen() {
                   </Pressable>
                 ))}
               </ScrollView>
+              )}
             </View>
           )}
 
-          {/* Frequently contacted */}
-          {frequent.length > 0 && (
+          {/* Frequently contacted — also hidden while searching. */}
+          {!searchActive && frequent.length > 0 && (
             <View style={styles.section}>
               <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>
                 Frequently contacted
@@ -680,115 +828,41 @@ export default function DialerScreen() {
           )}
 
           <View style={styles.keypadWrap}>
-            {/* Keypad mode toggle: T9 digit grid ↔ alphanumeric keyboard.
-                Both write to the same query and feed the same universal search. */}
-            <View style={styles.modeToggle}>
-              {(["t9", "abc"] as const).map((m) => {
-                const active = keypadMode === m;
-                return (
-                  <Pressable
-                    key={m}
-                    onPress={() => setKeypadMode(m)}
-                    style={[
-                      styles.modeBtn,
-                      {
-                        backgroundColor: active ? colors.primary : colors.card,
-                        borderColor: active ? colors.primary : colors.border,
-                      },
-                    ]}
-                  >
-                    <Feather
-                      name={m === "t9" ? "grid" : "type"}
-                      size={13}
-                      color={active ? "#fff" : colors.mutedForeground}
-                    />
-                    <Text
-                      style={{
-                        color: active ? "#fff" : colors.mutedForeground,
-                        fontSize: 12,
-                        fontFamily: "SpaceGrotesk_600SemiBold",
-                        marginLeft: 6,
-                      }}
+            {/* Username quick actions (abc mode): open a typed handle
+                directly on Telegram / Instagram. */}
+            {keypadMode === "abc" && usernameOf(number) != null && (
+              <View style={{ marginBottom: 10 }}>
+                <Text style={[styles.uniGroupLabel, { color: colors.mutedForeground }]}>
+                  Open @{usernameOf(number)}
+                </Text>
+                <View style={{ flexDirection: "row", gap: 8 }}>
+                  {USERNAME_CHANNELS.map((c) => (
+                    <Pressable
+                      key={c.key}
+                      onPress={() => chanOpenUsername(c.key, number)}
+                      style={({ pressed }) => [
+                        styles.usernameBtn,
+                        {
+                          borderColor: colors.border,
+                          backgroundColor: pressed ? colors.muted : colors.card,
+                        },
+                      ]}
                     >
-                      {m === "t9" ? "T9" : "Keyboard"}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </View>
-
-            {/* Advanced filter chips (verification badge / on Sayzio). */}
-            <View style={styles.filterRow}>
-              {(
-                [
-                  { key: "verified", label: "Verified", on: filterVerified, set: setFilterVerified, icon: "check-circle" },
-                  { key: "biolink", label: "On Sayzio", on: filterBiolink, set: setFilterBiolink, icon: "link" },
-                ] as const
-              ).map((f) => (
-                <Pressable
-                  key={f.key}
-                  onPress={() => f.set((v) => !v)}
-                  style={[
-                    styles.filterChip,
-                    {
-                      backgroundColor: f.on ? colors.primary : colors.card,
-                      borderColor: f.on ? colors.primary : colors.border,
-                    },
-                  ]}
-                >
-                  <Feather name={f.icon} size={12} color={f.on ? "#fff" : colors.mutedForeground} />
-                  <Text
-                    style={{
-                      color: f.on ? "#fff" : colors.mutedForeground,
-                      fontSize: 11,
-                      fontFamily: "SpaceGrotesk_500Medium",
-                      marginLeft: 5,
-                    }}
-                  >
-                    {f.label}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
-
-            <View style={styles.numberRow}>
-              <Text
-                numberOfLines={1}
-                adjustsFontSizeToFit
-                style={[styles.numberDisplay, { color: colors.foreground }]}
-              >
-                {number || " "}
-              </Text>
-              {number.length > 0 && (
-                <Pressable
-                  onPress={backspace}
-                  onLongPress={clearAll}
-                  hitSlop={12}
-                  style={({ pressed }) => [
-                    styles.backspace,
-                    { opacity: pressed ? 0.5 : 1 },
-                  ]}
-                >
-                  <Feather name="delete" size={26} color={colors.mutedForeground} />
-                </Pressable>
-              )}
-            </View>
-
-            {/* Keyboard mode: full alphanumeric input feeding the same search. */}
-            {keypadMode === "abc" && (
-              <TextInput
-                value={number}
-                onChangeText={setNumber}
-                autoFocus
-                autoCapitalize="none"
-                autoCorrect={false}
-                placeholder="Name, handle, alias, keyword…"
-                placeholderTextColor={colors.mutedForeground}
-                style={[
-                  styles.abcInput,
-                  { color: colors.foreground, borderColor: colors.border, backgroundColor: colors.card },
-                ]}
-              />
+                      <Feather name={c.feather} size={14} color={c.color} />
+                      <Text
+                        style={{
+                          color: colors.foreground,
+                          fontSize: 12,
+                          fontFamily: "SpaceGrotesk_600SemiBold",
+                          marginLeft: 6,
+                        }}
+                      >
+                        {c.label}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
+              </View>
             )}
 
             {/* Universal grouped results (Contacts / People / My links /
@@ -949,6 +1023,236 @@ export default function DialerScreen() {
               </View>
             )}
 
+          </View>
+        </ScrollView>
+
+        {/* Pinned keypad dock — always fully visible above the tab bar. */}
+        <View style={[styles.keypadDock, { borderTopColor: colors.border, backgroundColor: colors.background }]}>
+            {/* Keypad mode toggle: T9 digit grid ↔ alphanumeric keyboard.
+                Both write to the same query and feed the same universal search. */}
+            <View style={styles.modeToggle}>
+              {(["t9", "abc"] as const).map((m) => {
+                const active = keypadMode === m;
+                return (
+                  <Pressable
+                    key={m}
+                    onPress={() => setKeypadMode(m)}
+                    style={[
+                      styles.modeBtn,
+                      {
+                        backgroundColor: active ? colors.primary : colors.card,
+                        borderColor: active ? colors.primary : colors.border,
+                      },
+                    ]}
+                  >
+                    <Feather
+                      name={m === "t9" ? "grid" : "type"}
+                      size={13}
+                      color={active ? "#fff" : colors.mutedForeground}
+                    />
+                    <Text
+                      style={{
+                        color: active ? "#fff" : colors.mutedForeground,
+                        fontSize: 12,
+                        fontFamily: "SpaceGrotesk_600SemiBold",
+                        marginLeft: 6,
+                      }}
+                    >
+                      {m === "t9" ? "T9" : "Keyboard"}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+              {/* Dual-SIM chip: shows the remembered SIM, taps open the
+                  chooser (SIM 1 / SIM 2 / Always ask). Only on 2+ SIMs. */}
+              {simAccounts.length >= 2 && (
+                <Pressable
+                  onPress={() => {
+                    Alert.alert(
+                      "Default SIM for calls",
+                      "Pick a SIM to always call with, or ask every time.",
+                      [
+                        ...simAccounts.slice(0, 2).map((a) => ({
+                          text: a.label,
+                          onPress: () => {
+                            setSimPrefState(a.index);
+                            void setSimPref(a.index);
+                          },
+                        })),
+                        {
+                          text: "Always ask",
+                          onPress: () => {
+                            setSimPrefState("ask");
+                            void setSimPref("ask");
+                          },
+                        },
+                      ],
+                      { cancelable: true },
+                    );
+                  }}
+                  style={[
+                    styles.modeBtn,
+                    { flex: 0, paddingHorizontal: 10, backgroundColor: colors.card, borderColor: colors.border },
+                  ]}
+                >
+                  <Feather name="cpu" size={13} color={colors.mutedForeground} />
+                  <Text
+                    style={{
+                      color: colors.mutedForeground,
+                      fontSize: 12,
+                      fontFamily: "SpaceGrotesk_600SemiBold",
+                      marginLeft: 6,
+                    }}
+                  >
+                    {simPref === "ask"
+                      ? "SIM: Ask"
+                      : simAccounts.find((a) => a.index === simPref)?.label ?? "SIM"}
+                  </Text>
+                </Pressable>
+              )}
+
+              {/* Calling mode chip — Android: toggle Direct call / Phone app.
+                  iOS: shown grayed-out (platform forbids silent dialing). */}
+              <Pressable
+                onPress={() => {
+                  if (Platform.OS !== "android") {
+                    Alert.alert(
+                      "Calling on iOS",
+                      "iOS does not allow apps to place calls directly. Tapping Call always opens the Phone app with the number pre-filled.",
+                      [{ text: "OK" }],
+                    );
+                    return;
+                  }
+                  Alert.alert(
+                    "Calling",
+                    "How should calls be placed?",
+                    [
+                      {
+                        text: "Direct call (place immediately)",
+                        onPress: () => {
+                          setCallModeState("direct");
+                          void setCallMode("direct");
+                        },
+                      },
+                      {
+                        text: "Open phone app",
+                        onPress: () => {
+                          setCallModeState("system");
+                          void setCallMode("system");
+                        },
+                      },
+                      { text: "Cancel", style: "cancel" },
+                    ],
+                    { cancelable: true },
+                  );
+                }}
+                style={[
+                  styles.modeBtn,
+                  {
+                    flex: 0,
+                    paddingHorizontal: 10,
+                    backgroundColor: colors.card,
+                    borderColor: colors.border,
+                    opacity: Platform.OS !== "android" ? 0.5 : 1,
+                  },
+                ]}
+              >
+                <Feather
+                  name={callMode === "direct" ? "phone-call" : "phone-forwarded"}
+                  size={13}
+                  color={colors.mutedForeground}
+                />
+                <Text
+                  style={{
+                    color: colors.mutedForeground,
+                    fontSize: 12,
+                    fontFamily: "SpaceGrotesk_600SemiBold",
+                    marginLeft: 6,
+                  }}
+                >
+                  {Platform.OS !== "android"
+                    ? "Phone app"
+                    : callMode === "direct"
+                      ? "Direct call"
+                      : "Phone app"}
+                </Text>
+              </Pressable>
+            </View>
+
+            {/* Advanced filter chips (verification badge / on Sayzio). */}
+            <View style={styles.filterRow}>
+              {(
+                [
+                  { key: "verified", label: "Verified", on: filterVerified, set: setFilterVerified, icon: "check-circle" },
+                  { key: "biolink", label: "On Sayzio", on: filterBiolink, set: setFilterBiolink, icon: "link" },
+                ] as const
+              ).map((f) => (
+                <Pressable
+                  key={f.key}
+                  onPress={() => f.set((v) => !v)}
+                  style={[
+                    styles.filterChip,
+                    {
+                      backgroundColor: f.on ? colors.primary : colors.card,
+                      borderColor: f.on ? colors.primary : colors.border,
+                    },
+                  ]}
+                >
+                  <Feather name={f.icon} size={12} color={f.on ? "#fff" : colors.mutedForeground} />
+                  <Text
+                    style={{
+                      color: f.on ? "#fff" : colors.mutedForeground,
+                      fontSize: 11,
+                      fontFamily: "SpaceGrotesk_500Medium",
+                      marginLeft: 5,
+                    }}
+                  >
+                    {f.label}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+
+            <View style={styles.numberRow}>
+              <Text
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                style={[styles.numberDisplay, { color: colors.foreground }]}
+              >
+                {number || " "}
+              </Text>
+              {number.length > 0 && (
+                <Pressable
+                  onPress={backspace}
+                  onLongPress={clearAll}
+                  hitSlop={12}
+                  style={({ pressed }) => [
+                    styles.backspace,
+                    { opacity: pressed ? 0.5 : 1 },
+                  ]}
+                >
+                  <Feather name="delete" size={26} color={colors.mutedForeground} />
+                </Pressable>
+              )}
+            </View>
+
+            {/* Keyboard mode: full alphanumeric input feeding the same search. */}
+            {keypadMode === "abc" && (
+              <TextInput
+                value={number}
+                onChangeText={setNumber}
+                autoFocus
+                autoCapitalize="none"
+                autoCorrect={false}
+                placeholder="Name, handle, alias, keyword…"
+                placeholderTextColor={colors.mutedForeground}
+                style={[
+                  styles.abcInput,
+                  { color: colors.foreground, borderColor: colors.border, backgroundColor: colors.card },
+                ]}
+              />
+            )}
+
             {keypadMode === "t9" && (
               <View style={styles.keypad}>
                 {KEYS.map((k) => {
@@ -1060,8 +1364,8 @@ export default function DialerScreen() {
                 />
               </View>
             )}
-          </View>
-        </ScrollView>
+        </View>
+        </View>
       )}
 
       {tab === "recent" && (
@@ -1069,6 +1373,65 @@ export default function DialerScreen() {
           data={recentRows}
           keyExtractor={(r) => r.key}
           contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}
+          ListHeaderComponent={
+            callLogAccess === "unknown" ? (
+              <Pressable
+                onPress={() => void loadDeviceCallLog(true)}
+                style={({ pressed }) => [
+                  styles.deviceCta,
+                  {
+                    marginHorizontal: 16,
+                    borderColor: colors.border,
+                    backgroundColor: pressed ? colors.muted : colors.card,
+                  },
+                ]}
+              >
+                <Feather name="phone-incoming" size={16} color={colors.primary} />
+                <Text
+                  style={{
+                    color: colors.foreground,
+                    fontFamily: "SpaceGrotesk_500Medium",
+                    fontSize: 13,
+                    marginLeft: 10,
+                    flex: 1,
+                  }}
+                >
+                  Show your phone's call history here
+                </Text>
+              </Pressable>
+            ) : callLogAccess === "denied" ? (
+              <Pressable
+                onPress={() => void Linking.openSettings()}
+                style={({ pressed }) => [
+                  styles.deviceCta,
+                  {
+                    marginHorizontal: 16,
+                    borderColor: colors.border,
+                    backgroundColor: pressed ? colors.muted : colors.card,
+                    opacity: pressed ? 0.85 : 1,
+                  },
+                ]}
+              >
+                <Feather name="phone-off" size={16} color={colors.mutedForeground} />
+                <Text
+                  style={{
+                    color: colors.mutedForeground,
+                    fontFamily: "SpaceGrotesk_500Medium",
+                    fontSize: 13,
+                    marginLeft: 10,
+                    flex: 1,
+                  }}
+                >
+                  Call history is off — enable it in Settings
+                </Text>
+                <Feather
+                  name="external-link"
+                  size={14}
+                  color={colors.mutedForeground}
+                />
+              </Pressable>
+            ) : null
+          }
           ListEmptyComponent={
             recentLoading ? (
               <View style={styles.loading}>
@@ -1125,6 +1488,23 @@ export default function DialerScreen() {
             >
               <View style={{ flex: 1 }}>
                 <View style={styles.rowTitleLine}>
+                  {item.direction != null && (
+                    <Feather
+                      name={
+                        item.direction === "out"
+                          ? "arrow-up-right"
+                          : item.direction === "in"
+                            ? "arrow-down-left"
+                            : "phone-missed"
+                      }
+                      size={13}
+                      color={
+                        item.direction === "missed"
+                          ? colors.destructive
+                          : colors.mutedForeground
+                      }
+                    />
+                  )}
                   <Text
                     style={{
                       color: colors.foreground,
@@ -1808,6 +2188,13 @@ function relativeMs(at: number): string {
   return new Date(at).toLocaleDateString();
 }
 
+function formatCallDuration(secs: number): string {
+  if (secs < 60) return `${secs}s`;
+  const m = Math.floor(secs / 60);
+  const s = secs % 60;
+  return s > 0 ? `${m}m ${s}s` : `${m}m`;
+}
+
 const styles = StyleSheet.create({
   root: { flex: 1 },
   tabs: {
@@ -1846,17 +2233,40 @@ const styles = StyleSheet.create({
   },
   bubbleSub: { fontFamily: "SpaceGrotesk_400Regular", fontSize: 10, marginTop: 1 },
   keypadWrap: { paddingHorizontal: 16, paddingTop: 8 },
+  keypadDock: { paddingHorizontal: 16, paddingTop: 6, borderTopWidth: 1 },
+  usernameBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 999,
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  favEmpty: {
+    marginRight: 16,
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 12,
+    alignItems: "flex-start",
+    gap: 8,
+  },
+  favEmptyText: { fontSize: 12, lineHeight: 17 },
+  favEmptyBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 999,
+  },
   numberRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    minHeight: 72,
+    minHeight: 48,
     paddingHorizontal: 8,
   },
   numberDisplay: {
     flex: 1,
     fontFamily: "SpaceGrotesk_500Medium",
-    fontSize: 38,
+    fontSize: 28,
     textAlign: "center",
     letterSpacing: 1,
   },
@@ -1872,7 +2282,7 @@ const styles = StyleSheet.create({
   },
   t9Avatar: { width: 36, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center" },
   t9Initials: { color: "#fff", fontFamily: "SpaceGrotesk_700Bold", fontSize: 13 },
-  modeToggle: { flexDirection: "row", gap: 8, marginBottom: 10 },
+  modeToggle: { flexDirection: "row", gap: 8, marginBottom: 6 },
   modeBtn: {
     flex: 1,
     flexDirection: "row",
@@ -1882,7 +2292,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     borderWidth: StyleSheet.hairlineWidth,
   },
-  filterRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 10 },
+  filterRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 6 },
   filterChip: {
     flexDirection: "row",
     alignItems: "center",
@@ -1941,15 +2351,15 @@ const styles = StyleSheet.create({
   },
   key: {
     width: "31%",
-    aspectRatio: 1.5,
-    marginBottom: 10,
-    borderRadius: 14,
+    aspectRatio: 2.2,
+    marginBottom: 6,
+    borderRadius: 12,
     borderWidth: StyleSheet.hairlineWidth,
     alignItems: "center",
     justifyContent: "center",
   },
-  keyV: { fontFamily: "SpaceGrotesk_600SemiBold", fontSize: 28 },
-  keySub: { fontSize: 10, letterSpacing: 1, marginTop: 2 },
+  keyV: { fontFamily: "SpaceGrotesk_600SemiBold", fontSize: 22 },
+  keySub: { fontSize: 9, letterSpacing: 1, marginTop: 1 },
   actionRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -1957,18 +2367,18 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   secondaryBtn: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: "transparent",
     alignItems: "center",
     justifyContent: "center",
   },
   callBtn: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -1995,16 +2405,16 @@ const styles = StyleSheet.create({
   channelRow: {
     flexDirection: "row",
     justifyContent: "space-around",
-    marginTop: 12,
+    marginTop: 8,
   },
   channelBtn: { alignItems: "center", flex: 1 },
   channelIcon: {
-    width: 46,
-    height: 46,
-    borderRadius: 23,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 4,
+    marginBottom: 3,
   },
   channelLabel: { fontFamily: "SpaceGrotesk_500Medium", fontSize: 11 },
   rowActions: { flexDirection: "row", alignItems: "center", flexShrink: 0, maxWidth: 118 },

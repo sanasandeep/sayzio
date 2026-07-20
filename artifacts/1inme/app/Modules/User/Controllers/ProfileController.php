@@ -113,6 +113,52 @@ class ProfileController extends Controller
     }
 
     /**
+     * Postal-code lookup used by the billing-address form to auto-fill
+     * city and state/region. Proxies Zippopotam.us server-side so the
+     * page never exposes a third-party API call directly.
+     *
+     * Returns { city, region, region_code } — all nullable. On any error
+     * or unknown code all three are null and the form stays editable.
+     * Results are cached for 1 hour to avoid hammering the upstream API.
+     */
+    public function postalLookup(\Illuminate\Http\Request $request)
+    {
+        $country = strtoupper(trim((string) $request->input('country', '')));
+        $postal  = trim((string) $request->input('postal_code', ''));
+
+        $empty = ['city' => null, 'region' => null, 'region_code' => null];
+
+        if (strlen($country) !== 2 || $postal === '') {
+            return response()->json($empty);
+        }
+
+        $cacheKey = 'postal_lookup:' . $country . ':' . strtolower($postal);
+        $result = \Cache::remember($cacheKey, 3600, function () use ($country, $postal, $empty) {
+            try {
+                $resp = \Illuminate\Support\Facades\Http::timeout(4)
+                    ->get("https://api.zippopotam.us/{$country}/{$postal}");
+                if (!$resp->successful()) {
+                    return $empty;
+                }
+                $data  = $resp->json();
+                $place = $data['places'][0] ?? null;
+                if (!$place) {
+                    return $empty;
+                }
+                return [
+                    'city'        => $place['place name']         ?? null,
+                    'region'      => $place['state']              ?? null,
+                    'region_code' => $place['state abbreviation'] ?? null,
+                ];
+            } catch (\Throwable $e) {
+                return $empty;
+            }
+        });
+
+        return response()->json($result);
+    }
+
+    /**
      * JSON endpoint used by the profile edit page to refresh the live
      * digest preview (badge count + iframe HTML) without a full reload.
      */
@@ -154,18 +200,27 @@ class ProfileController extends Controller
             'country' => ['nullable', 'string', 'size:2', 'regex:/^[A-Za-z]{2}$/'],
         ]);
 
+        // Verified users have their display name locked server-side. The
+        // edit view hides the input, but ignore any submitted name here too
+        // so a direct POST/API call cannot bypass the lock.
+        if ($user->isNameAvatarLocked()) {
+            unset($validated['name']);
+        }
+
+        if ($request->hasFile('avatar') && !$user->isNameAvatarLocked()) {
+            $validated['avatar'] = '/storage/' . $request->file('avatar')->store('avatars', 'public');
+        } else {
+            // Verified users have their profile photo locked too — ignore
+            // any uploaded avatar so a direct POST cannot swap the photo.
+            unset($validated['avatar']);
+        }
+
         // Normalize ISO country code to uppercase for the
         // country_currency lookup. Empty string means "no country set".
         if (!empty($validated['country'])) {
             $validated['country'] = strtoupper($validated['country']);
         } else {
             $validated['country'] = null;
-        }
-
-        if ($request->hasFile('avatar')) {
-            $validated['avatar'] = '/storage/' . $request->file('avatar')->store('avatars', 'public');
-        } else {
-            unset($validated['avatar']);
         }
 
         // Plan gate: making a creator profile publicly discoverable is a

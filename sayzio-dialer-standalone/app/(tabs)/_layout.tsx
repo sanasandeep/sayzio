@@ -3,6 +3,7 @@ import { Redirect, Tabs, useRouter } from "expo-router";
 import { Image, Pressable, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { DialerTabBar, TAB_BAR_CLEARANCE } from "@/components/DialerTabBar";
 import { NameRequiredGate } from "@/components/NameRequiredGate";
 import { useAuth } from "@/contexts/AuthContext";
 import { useColors } from "@/hooks/useColors";
@@ -42,6 +43,9 @@ export default function TabsLayout() {
     <>
     <NameRequiredGate />
     <Tabs
+      tabBar={(props) => (
+        <DialerTabBar {...props} eventBadgeCount={newEventCount} />
+      )}
       screenOptions={{
         headerStyle: { backgroundColor: colors.background },
         headerTitleStyle: {
@@ -50,13 +54,12 @@ export default function TabsLayout() {
         },
         headerShadowVisible: false,
         headerRight: () => <SearchButton />,
-        tabBarActiveTintColor: colors.primary,
-        tabBarInactiveTintColor: colors.mutedForeground,
-        tabBarStyle: {
-          backgroundColor: colors.card,
-          borderTopColor: colors.border,
+        // The floating bar hovers over content, so every scene reserves
+        // clearance at the bottom instead of a solid tab strip.
+        sceneStyle: {
+          backgroundColor: colors.background,
+          paddingBottom: TAB_BAR_CLEARANCE,
         },
-        tabBarLabelStyle: { fontFamily: "SpaceGrotesk_500Medium" },
       }}
     >
       <Tabs.Screen

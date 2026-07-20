@@ -11,6 +11,7 @@ import {
 } from "react-native";
 
 import { Button } from "@/components/Button";
+import { useAuth } from "@/contexts/AuthContext";
 import { PhoneField } from "@/components/PhoneField";
 import { TextField } from "@/components/TextField";
 import { useColors } from "@/hooks/useColors";
@@ -21,6 +22,7 @@ export default function ProfileEdit() {
   const colors = useColors();
   const router = useRouter();
   const qc = useQueryClient();
+  const { refresh } = useAuth();
 
   const q = useQuery({ queryKey: ["profile"], queryFn: getProfile });
 
@@ -52,6 +54,10 @@ export default function ProfileEdit() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["profile"] });
       qc.invalidateQueries({ queryKey: ["auth-me"] });
+      // Re-pull the signed-in user so the drawer sidebar / dashboard
+      // greeting pick up the new name immediately (they read the cached
+      // AuthContext user, not the react-query profile cache).
+      void refresh();
       if (Platform.OS === "web") {
         router.back();
       } else {

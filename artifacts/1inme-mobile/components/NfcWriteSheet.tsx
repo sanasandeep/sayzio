@@ -210,6 +210,8 @@ export function NfcWriteSheet({
       visible={visible}
       transparent
       animationType="slide"
+      statusBarTranslucent
+      navigationBarTranslucent
       onRequestClose={close}
     >
       <View style={styles.backdrop}>

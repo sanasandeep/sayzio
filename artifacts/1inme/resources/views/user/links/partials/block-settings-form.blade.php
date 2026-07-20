@@ -60,9 +60,130 @@ $labelClass = 'block text-xs mb-1';
 @endif
 
 @if($block->type === 'link')
-<div class="space-y-3" x-data="{ featured: {{ !empty($s['is_featured']) ? 'true' : 'false' }} }">
-    <div><label class="{{ $labelClass }}">Link Text</label><input type="text" name="settings[text]" value="{{ $s['text'] ?? '' }}" class="{{ $inputClass }}"></div>
-    <div><label class="{{ $labelClass }}">URL</label><input type="url" name="settings[url]" value="{{ $s['url'] ?? '' }}" placeholder="https://" class="{{ $inputClass }}"></div>
+<script>
+function linkBlockEditor(cfg) {
+    return {
+        featured: cfg.featured || false,
+        pickerOpen: false,
+        pickerQ: '',
+        pickerLinks: [],
+        pickerLoading: false,
+        fetching: false,
+        fetchError: '',
+        fetchSuccess: false,
+        ogPreview: null,
+        linkUrl: cfg.url || '',
+        pickerEndpoint: cfg.pickerEndpoint,
+        ogMetaEndpoint: cfg.ogMetaEndpoint,
+        init() {
+            this.$watch('pickerOpen', function(val) {
+                if (val && this.pickerLinks.length === 0) { this.loadPicker(); }
+            }.bind(this));
+        },
+        async loadPicker() {
+            this.pickerLoading = true;
+            try {
+                var r = await fetch(this.pickerEndpoint + '?q=' + encodeURIComponent(this.pickerQ), { headers: { Accept: 'application/json' } });
+                var d = await r.json();
+                this.pickerLinks = d.links || [];
+            } catch(e) { this.pickerLinks = []; }
+            this.pickerLoading = false;
+        },
+        applyPickedLink(l) {
+            this.linkUrl = l.url;
+            if (this.$refs.titleInput && !this.$refs.titleInput.value.trim()) { this.$refs.titleInput.value = l.title || ''; }
+            this.pickerOpen = false;
+            // Auto-run the OG fetch for the picked link, staging the result
+            // into a confirm-before-apply preview card (mobile parity).
+            this.fetchOgMeta(true);
+        },
+        applyOgMeta(m) {
+            if (m.title && this.$refs.titleInput && !this.$refs.titleInput.value.trim()) { this.$refs.titleInput.value = m.title; }
+            if (m.description && this.$refs.descInput && !this.$refs.descInput.value.trim()) { this.$refs.descInput.value = m.description; }
+            var imgUrl = m.image_url || m.favicon_url || null;
+            if (imgUrl) {
+                // $el is the element the calling directive sits on (e.g. the
+                // Apply button); $root is the component's root element.
+                var rootEl = this.$root || this.$el;
+                var thumbEl = rootEl.querySelector('[data-fieldname="settings[thumbnail]"]');
+                if (thumbEl) { var fd = Alpine.$data(thumbEl); if (fd && !fd.value) { fd.value = imgUrl; fd.mode = 'url'; } }
+            }
+        },
+        applyOgPreview() {
+            if (!this.ogPreview) { return; }
+            this.applyOgMeta(this.ogPreview);
+            this.ogPreview = null;
+            this.fetchSuccess = true;
+        },
+        async fetchOgMeta(stage) {
+            var url = this.linkUrl.trim();
+            if (!url) { this.fetchError = 'Enter a URL first.'; return; }
+            this.fetching = true;
+            this.fetchError = '';
+            this.fetchSuccess = false;
+            this.ogPreview = null;
+            try {
+                var r = await fetch(this.ogMetaEndpoint + '?url=' + encodeURIComponent(url), { headers: { Accept: 'application/json' } });
+                var d = await r.json();
+                if (!r.ok) { this.fetchError = d.error || 'Could not fetch page details.'; return; }
+                var m = d.meta || {};
+                if (stage === true) {
+                    // Picker-triggered fetch: stage into the preview card and
+                    // let the creator confirm before anything is written.
+                    if (!m.title && !m.description && !m.image_url && !m.favicon_url) { return; }
+                    this.ogPreview = m;
+                    return;
+                }
+                this.applyOgMeta(m);
+                this.fetchSuccess = true;
+            } catch(e) { this.fetchError = 'Could not fetch page details.'; }
+            finally { this.fetching = false; }
+        },
+    };
+}
+</script>
+<div class="space-y-3" x-data="linkBlockEditor({
+    featured: {{ !empty($s['is_featured']) ? 'true' : 'false' }},
+    url: @js($s['url'] ?? ''),
+    pickerEndpoint: @js(route('user.links.blocks.linkPicker', $link)),
+    ogMetaEndpoint: @js(route('user.links.blocks.ogMeta', $link)),
+})">
+    <div><label class="{{ $labelClass }}">Link Text</label><input type="text" name="settings[text]" x-ref="titleInput" value="{{ $s['text'] ?? '' }}" class="{{ $inputClass }}"></div>
+    <div class="rounded-xl overflow-hidden" style="background:var(--bg-glass);border:1px solid var(--border-glass);">
+        <button type="button" @click="pickerOpen=!pickerOpen" class="w-full flex items-center justify-between px-3 py-2 text-xs hover:bg-white/5 transition-colors" style="color:var(--text-secondary);">
+            <span><i class="fas fa-layer-group mr-1.5" style="color:rgba(144,172,255,.7);"></i>Pick from my links</span>
+            <i class="fas text-[10px]" :class="pickerOpen ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
+        </button>
+        <div x-show="pickerOpen" x-cloak style="border-top:1px solid var(--border-subtle);">
+            <div class="p-2"><input type="text" x-model="pickerQ" @input.debounce.300ms="loadPicker()" placeholder="Search by title or alias…" class="{{ $inputClass }}"></div>
+            <div class="max-h-44 overflow-y-auto pb-1">
+                <template x-if="pickerLoading"><div class="py-4 text-center text-xs" style="color:var(--text-faint);"><i class="fas fa-spinner fa-spin"></i></div></template>
+                <template x-if="!pickerLoading && pickerLinks.length === 0"><div class="py-4 text-center text-xs" style="color:var(--text-faint);">No links found</div></template>
+                <template x-for="l in pickerLinks" :key="l.id">
+                    <button type="button" @click="applyPickedLink(l)" class="w-full flex items-center gap-2.5 px-3 py-2 text-left hover:bg-white/5 transition-colors">
+                        <div class="w-6 h-6 rounded flex items-center justify-center shrink-0" style="background:rgba(61,107,255,.12);"><i class="fas fa-link text-[10px]" style="color:#90acff;"></i></div>
+                        <div class="min-w-0 flex-1">
+                            <div class="text-xs font-medium truncate" style="color:var(--text-primary);" x-text="l.title || l.alias"></div>
+                            <div class="text-[10px] truncate" style="color:var(--text-faint);" x-text="'/' + l.alias + ' · ' + l.type"></div>
+                        </div>
+                    </button>
+                </template>
+            </div>
+        </div>
+    </div>
+    <div>
+        <label class="{{ $labelClass }}">URL</label>
+        <div class="flex gap-2">
+            <input type="url" name="settings[url]" x-model="linkUrl" placeholder="https://" class="flex-1 {{ $inputClass }}">
+            <button type="button" @click="fetchOgMeta()" :disabled="fetching" class="shrink-0 flex items-center gap-1.5 px-3 text-xs font-medium rounded-xl transition-all" style="background:rgba(61,107,255,.12);color:#90acff;border:1px solid rgba(61,107,255,.20);" :style="fetching ? 'opacity:.55' : ''">
+                <template x-if="!fetching"><span><i class="fas fa-wand-magic-sparkles mr-1"></i>Fetch</span></template>
+                <template x-if="fetching"><span><i class="fas fa-spinner fa-spin"></i></span></template>
+            </button>
+        </div>
+        <p x-show="fetchError" x-text="fetchError" x-cloak class="mt-1 text-[11px]" style="color:#f87171;"></p>
+        <p x-show="fetchSuccess && !fetchError" x-cloak class="mt-1 text-[11px]" style="color:#4ade80;"><i class="fas fa-check-circle mr-1"></i>Details pre-filled below.</p>
+    </div>
+    @include('user.links.partials.og-preview-card')
     @include('user.links.partials.icon-picker', ['fieldName' => 'settings[icon]', 'currentValue' => $s['icon'] ?? '', 'labelText' => 'Icon', 'inputClass' => $inputClass, 'labelClass' => $labelClass])
     @include('user.links.partials.file-upload-field', ['fieldName' => 'settings[thumbnail]', 'currentValue' => $s['thumbnail'] ?? '', 'acceptTypes' => 'image', 'labelText' => 'Thumbnail', 'inputClass' => $inputClass, 'labelClass' => $labelClass])
     <label class="flex items-center gap-2 text-xs text-white/60">
@@ -71,16 +192,54 @@ $labelClass = 'block text-xs mb-1';
         <i class="fas fa-thumbtack text-amber-400"></i> Mark as featured (pinned style)
     </label>
     <div x-show="featured" x-cloak class="space-y-2 pl-2 border-l-2 border-amber-400/30">
-        <div><label class="{{ $labelClass }}">Featured Description (optional)</label><input type="text" name="settings[description]" value="{{ $s['description'] ?? '' }}" class="{{ $inputClass }}"></div>
+        <div><label class="{{ $labelClass }}">Featured Description (optional)</label><input type="text" x-ref="descInput" name="settings[description]" value="{{ $s['description'] ?? '' }}" class="{{ $inputClass }}"></div>
         <div><label class="{{ $labelClass }}">Accent Color</label><input type="color" name="settings[accent_color]" value="{{ $s['accent_color'] ?? '#f59e0b' }}" class="w-full h-10 rounded-xl" style="border: 1px solid var(--border-glass); background: var(--bg-glass-input);"></div>
     </div>
 </div>
 
 @elseif($block->type === 'link_big')
-<div class="space-y-3">
-    <div><label class="{{ $labelClass }}">Link Text</label><input type="text" name="settings[text]" value="{{ $s['text'] ?? '' }}" class="{{ $inputClass }}"></div>
-    <div><label class="{{ $labelClass }}">Description</label><input type="text" name="settings[description]" value="{{ $s['description'] ?? '' }}" class="{{ $inputClass }}"></div>
-    <div><label class="{{ $labelClass }}">URL</label><input type="url" name="settings[url]" value="{{ $s['url'] ?? '' }}" placeholder="https://" class="{{ $inputClass }}"></div>
+<div class="space-y-3" x-data="linkBlockEditor({
+    url: @js($s['url'] ?? ''),
+    pickerEndpoint: @js(route('user.links.blocks.linkPicker', $link)),
+    ogMetaEndpoint: @js(route('user.links.blocks.ogMeta', $link)),
+})">
+    <div><label class="{{ $labelClass }}">Link Text</label><input type="text" name="settings[text]" x-ref="titleInput" value="{{ $s['text'] ?? '' }}" class="{{ $inputClass }}"></div>
+    <div><label class="{{ $labelClass }}">Description</label><input type="text" x-ref="descInput" name="settings[description]" value="{{ $s['description'] ?? '' }}" class="{{ $inputClass }}"></div>
+    <div class="rounded-xl overflow-hidden" style="background:var(--bg-glass);border:1px solid var(--border-glass);">
+        <button type="button" @click="pickerOpen=!pickerOpen" class="w-full flex items-center justify-between px-3 py-2 text-xs hover:bg-white/5 transition-colors" style="color:var(--text-secondary);">
+            <span><i class="fas fa-layer-group mr-1.5" style="color:rgba(144,172,255,.7);"></i>Pick from my links</span>
+            <i class="fas text-[10px]" :class="pickerOpen ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
+        </button>
+        <div x-show="pickerOpen" x-cloak style="border-top:1px solid var(--border-subtle);">
+            <div class="p-2"><input type="text" x-model="pickerQ" @input.debounce.300ms="loadPicker()" placeholder="Search by title or alias…" class="{{ $inputClass }}"></div>
+            <div class="max-h-44 overflow-y-auto pb-1">
+                <template x-if="pickerLoading"><div class="py-4 text-center text-xs" style="color:var(--text-faint);"><i class="fas fa-spinner fa-spin"></i></div></template>
+                <template x-if="!pickerLoading && pickerLinks.length === 0"><div class="py-4 text-center text-xs" style="color:var(--text-faint);">No links found</div></template>
+                <template x-for="l in pickerLinks" :key="l.id">
+                    <button type="button" @click="applyPickedLink(l)" class="w-full flex items-center gap-2.5 px-3 py-2 text-left hover:bg-white/5 transition-colors">
+                        <div class="w-6 h-6 rounded flex items-center justify-center shrink-0" style="background:rgba(61,107,255,.12);"><i class="fas fa-link text-[10px]" style="color:#90acff;"></i></div>
+                        <div class="min-w-0 flex-1">
+                            <div class="text-xs font-medium truncate" style="color:var(--text-primary);" x-text="l.title || l.alias"></div>
+                            <div class="text-[10px] truncate" style="color:var(--text-faint);" x-text="'/' + l.alias + ' · ' + l.type"></div>
+                        </div>
+                    </button>
+                </template>
+            </div>
+        </div>
+    </div>
+    <div>
+        <label class="{{ $labelClass }}">URL</label>
+        <div class="flex gap-2">
+            <input type="url" name="settings[url]" x-model="linkUrl" placeholder="https://" class="flex-1 {{ $inputClass }}">
+            <button type="button" @click="fetchOgMeta()" :disabled="fetching" class="shrink-0 flex items-center gap-1.5 px-3 text-xs font-medium rounded-xl transition-all" style="background:rgba(61,107,255,.12);color:#90acff;border:1px solid rgba(61,107,255,.20);" :style="fetching ? 'opacity:.55' : ''">
+                <template x-if="!fetching"><span><i class="fas fa-wand-magic-sparkles mr-1"></i>Fetch</span></template>
+                <template x-if="fetching"><span><i class="fas fa-spinner fa-spin"></i></span></template>
+            </button>
+        </div>
+        <p x-show="fetchError" x-text="fetchError" x-cloak class="mt-1 text-[11px]" style="color:#f87171;"></p>
+        <p x-show="fetchSuccess && !fetchError" x-cloak class="mt-1 text-[11px]" style="color:#4ade80;"><i class="fas fa-check-circle mr-1"></i>Details pre-filled below.</p>
+    </div>
+    @include('user.links.partials.og-preview-card')
     @include('user.links.partials.icon-picker', ['fieldName' => 'settings[icon]', 'currentValue' => $s['icon'] ?? '', 'labelText' => 'Icon', 'inputClass' => $inputClass, 'labelClass' => $labelClass])
     @include('user.links.partials.file-upload-field', ['fieldName' => 'settings[thumbnail]', 'currentValue' => $s['thumbnail'] ?? '', 'acceptTypes' => 'image', 'labelText' => 'Thumbnail', 'inputClass' => $inputClass, 'labelClass' => $labelClass])
     <div><label class="{{ $labelClass }}">Background Color</label><input type="color" name="settings[bg_color]" value="{{ $s['bg_color'] ?? '#3d6bff' }}" class="w-full h-10 rounded-xl cursor-pointer" style="border: 1px solid var(--border-glass); background: var(--bg-glass-input);"></div>
@@ -1419,10 +1578,48 @@ if (typeof window.resetPollVotes !== 'function') {
 </div>
 
 @elseif($block->type === 'featured_pin')
-<div class="space-y-3">
-    <div><label class="{{ $labelClass }}">Title</label><input type="text" name="settings[text]" value="{{ $s['text'] ?? 'Featured' }}" class="{{ $inputClass }}"></div>
-    <div><label class="{{ $labelClass }}">Description</label><input type="text" name="settings[description]" value="{{ $s['description'] ?? '' }}" class="{{ $inputClass }}"></div>
-    <div><label class="{{ $labelClass }}">URL</label><input type="url" name="settings[url]" value="{{ $s['url'] ?? '' }}" class="{{ $inputClass }}"></div>
+<div class="space-y-3" x-data="linkBlockEditor({
+    url: @js($s['url'] ?? ''),
+    pickerEndpoint: @js(route('user.links.blocks.linkPicker', $link)),
+    ogMetaEndpoint: @js(route('user.links.blocks.ogMeta', $link)),
+})">
+    <div><label class="{{ $labelClass }}">Title</label><input type="text" name="settings[text]" x-ref="titleInput" value="{{ $s['text'] ?? 'Featured' }}" class="{{ $inputClass }}"></div>
+    <div><label class="{{ $labelClass }}">Description</label><input type="text" x-ref="descInput" name="settings[description]" value="{{ $s['description'] ?? '' }}" class="{{ $inputClass }}"></div>
+    <div class="rounded-xl overflow-hidden" style="background:var(--bg-glass);border:1px solid var(--border-glass);">
+        <button type="button" @click="pickerOpen=!pickerOpen" class="w-full flex items-center justify-between px-3 py-2 text-xs hover:bg-white/5 transition-colors" style="color:var(--text-secondary);">
+            <span><i class="fas fa-layer-group mr-1.5" style="color:rgba(144,172,255,.7);"></i>Pick from my links</span>
+            <i class="fas text-[10px]" :class="pickerOpen ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
+        </button>
+        <div x-show="pickerOpen" x-cloak style="border-top:1px solid var(--border-subtle);">
+            <div class="p-2"><input type="text" x-model="pickerQ" @input.debounce.300ms="loadPicker()" placeholder="Search by title or alias…" class="{{ $inputClass }}"></div>
+            <div class="max-h-44 overflow-y-auto pb-1">
+                <template x-if="pickerLoading"><div class="py-4 text-center text-xs" style="color:var(--text-faint);"><i class="fas fa-spinner fa-spin"></i></div></template>
+                <template x-if="!pickerLoading && pickerLinks.length === 0"><div class="py-4 text-center text-xs" style="color:var(--text-faint);">No links found</div></template>
+                <template x-for="l in pickerLinks" :key="l.id">
+                    <button type="button" @click="applyPickedLink(l)" class="w-full flex items-center gap-2.5 px-3 py-2 text-left hover:bg-white/5 transition-colors">
+                        <div class="w-6 h-6 rounded flex items-center justify-center shrink-0" style="background:rgba(61,107,255,.12);"><i class="fas fa-link text-[10px]" style="color:#90acff;"></i></div>
+                        <div class="min-w-0 flex-1">
+                            <div class="text-xs font-medium truncate" style="color:var(--text-primary);" x-text="l.title || l.alias"></div>
+                            <div class="text-[10px] truncate" style="color:var(--text-faint);" x-text="'/' + l.alias + ' · ' + l.type"></div>
+                        </div>
+                    </button>
+                </template>
+            </div>
+        </div>
+    </div>
+    <div>
+        <label class="{{ $labelClass }}">URL</label>
+        <div class="flex gap-2">
+            <input type="url" name="settings[url]" x-model="linkUrl" placeholder="https://" class="flex-1 {{ $inputClass }}">
+            <button type="button" @click="fetchOgMeta()" :disabled="fetching" class="shrink-0 flex items-center gap-1.5 px-3 text-xs font-medium rounded-xl transition-all" style="background:rgba(61,107,255,.12);color:#90acff;border:1px solid rgba(61,107,255,.20);" :style="fetching ? 'opacity:.55' : ''">
+                <template x-if="!fetching"><span><i class="fas fa-wand-magic-sparkles mr-1"></i>Fetch</span></template>
+                <template x-if="fetching"><span><i class="fas fa-spinner fa-spin"></i></span></template>
+            </button>
+        </div>
+        <p x-show="fetchError" x-text="fetchError" x-cloak class="mt-1 text-[11px]" style="color:#f87171;"></p>
+        <p x-show="fetchSuccess && !fetchError" x-cloak class="mt-1 text-[11px]" style="color:#4ade80;"><i class="fas fa-check-circle mr-1"></i>Details pre-filled below.</p>
+    </div>
+    @include('user.links.partials.og-preview-card')
     @include('user.links.partials.file-upload-field', ['fieldName' => 'settings[thumbnail]', 'currentValue' => $s['thumbnail'] ?? '', 'acceptTypes' => 'image', 'labelText' => 'Thumbnail (optional)', 'inputClass' => $inputClass, 'labelClass' => $labelClass])
     <div class="grid grid-cols-2 gap-3">
         @include('user.links.partials.icon-picker', ['fieldName' => 'settings[icon]', 'currentValue' => $s['icon'] ?? 'fa-thumbtack', 'labelText' => 'Icon', 'inputClass' => $inputClass, 'labelClass' => $labelClass])

@@ -49,8 +49,17 @@
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
                                 <label class="block text-sm font-medium mb-1.5" style="color: var(--text-muted);">Name</label>
-                                <input type="text" name="name" value="{{ old('name', $user->name) }}" required
-                                       class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/20 focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/40 outline-none transition-all">
+                                @if($user->isNameAvatarLocked())
+                                    <div class="flex items-center gap-2 w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl" title="Name is locked by profile verification. Submit a re-verification request to change it.">
+                                        <span class="flex-1 text-white">{{ $user->profile_verified_name ?: $user->name }}</span>
+                                        <span class="text-xs px-2 py-0.5 rounded-full font-medium" style="background: rgba(59,130,246,0.15); color: #60a5fa;">{!! $user->verificationTickHtml() !!} Locked</span>
+                                    </div>
+                                    <p class="mt-1 text-xs" style="color: var(--text-subtle);">Your verified name is locked. <a href="{{ route('user.profile-verification.index') }}" class="underline" style="color: var(--color-primary);">Request a name change</a> via re-verification.</p>
+                                    <input type="hidden" name="name" value="{{ $user->profile_verified_name ?: $user->name }}">
+                                @else
+                                    <input type="text" name="name" value="{{ old('name', $user->name) }}" required
+                                           class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/20 focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/40 outline-none transition-all">
+                                @endif
                                 @error('name')<p class="mt-1 text-sm text-red-400">{{ $message }}</p>@enderror
                             </div>
                             <div>
@@ -113,56 +122,111 @@
                 @php
                     $billingCountryInit = old('billing_country', $billing->country ?? $user->country) ?? '';
                     $taxKindInit = old('tax_id_kind', $billing->tax_id_kind ?: 'NONE');
+                    $billingCityInit   = old('billing_city',        $billing->city        ?? '') ?? '';
+                    $billingRegionInit = old('billing_region',      $billing->region      ?? '') ?? '';
+                    $billingPostalInit = old('billing_postal_code', $billing->postal_code ?? '') ?? '';
                 @endphp
                 <div class="glass rounded-2xl p-6">
                     <h2 class="text-base font-semibold mb-1" style="color: var(--text-strong);">Billing Address &amp; Tax ID</h2>
                     <p class="text-xs mb-4" style="color: var(--text-muted);">Used to calculate tax on your invoices and to print on your tax invoice PDF. GSTIN is for Indian businesses; VATIN is for EU/UK businesses claiming reverse-charge.</p>
                     <div class="space-y-3" data-billing-address
-                         x-data="{ billingCountry: @js($billingCountryInit), taxKind: @js($taxKindInit) }">
-                        <div class="grid grid-cols-2 gap-3">
-                            <div>
-                                <label class="block text-xs mb-1" style="color: var(--text-muted);">Country (ISO-2)</label>
-                                <input type="text" name="billing_country" maxlength="2"
-                                       value="{{ $billingCountryInit }}"
-                                       @input="billingCountry = $event.target.value.toUpperCase()"
-                                       class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white uppercase outline-none focus:ring-2 focus:ring-blue-500/40">
-                            </div>
-                            <div>
-                                <label class="block text-xs mb-1" style="color: var(--text-muted);">State / region</label>
-                                {{-- Dropdown for India / US; free-text for every other country --}}
-                                <template x-if="billingCountry === 'IN' || billingCountry === 'US'">
-                                    <select name="billing_region" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white outline-none focus:ring-2 focus:ring-blue-500/40">
-                                        <option value="" class="bg-[#0d0818]">None / N/A</option>
-                                        <optgroup label="India" class="bg-[#0d0818]">
-                                            @foreach($inStates as $code => $label)
-                                                <option value="{{ $code }}" {{ old('billing_region', $billing->region ?? '') === $code ? 'selected' : '' }} class="bg-[#0d0818]">IN-{{ $code }} · {{ $label }}</option>
-                                            @endforeach
-                                        </optgroup>
-                                        <optgroup label="United States" class="bg-[#0d0818]">
-                                            @foreach($usStates as $code => $label)
-                                                <option value="{{ $code }}" {{ old('billing_region', $billing->region ?? '') === $code ? 'selected' : '' }} class="bg-[#0d0818]">US-{{ $code }} · {{ $label }}</option>
-                                            @endforeach
-                                        </optgroup>
-                                    </select>
-                                </template>
-                                <template x-if="billingCountry !== 'IN' && billingCountry !== 'US'">
-                                    <input type="text" name="billing_region" maxlength="100"
-                                           placeholder="State / region (optional)"
-                                           value="{{ old('billing_region', $billing->region ?? '') }}"
-                                           class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white outline-none focus:ring-2 focus:ring-blue-500/40">
-                                </template>
-                            </div>
+                         x-data="{
+                             billingCountry: @js($billingCountryInit),
+                             taxKind: @js($taxKindInit),
+                             cityVal: @js($billingCityInit),
+                             regionVal: @js($billingRegionInit),
+                             cityEdited: false,
+                             regionEdited: false,
+                             lookupTimer: null,
+                             lookupUrl: @js(route('profile.postal.lookup')),
+                             onCountryInput(val) {
+                                 this.billingCountry = val;
+                                 this.scheduleLookup();
+                             },
+                             scheduleLookup() {
+                                 clearTimeout(this.lookupTimer);
+                                 this.lookupTimer = setTimeout(() => this.doLookup(), 600);
+                             },
+                             async doLookup() {
+                                 const country = this.billingCountry.trim();
+                                 const postalEl = this.$el.querySelector('[name=billing_postal_code]');
+                                 const postal = postalEl ? postalEl.value.trim() : '';
+                                 if (country.length !== 2 || !postal) return;
+                                 try {
+                                     const r = await fetch(this.lookupUrl + '?country=' + encodeURIComponent(country) + '&postal_code=' + encodeURIComponent(postal), { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+                                     if (!r.ok) return;
+                                     const d = await r.json();
+                                     if (d.city && !this.cityEdited) this.cityVal = d.city;
+                                     if (!this.regionEdited) {
+                                         if ((country === 'IN' || country === 'US') && d.region_code) {
+                                             this.regionVal = d.region_code;
+                                         } else if (d.region && country !== 'IN' && country !== 'US') {
+                                             this.regionVal = d.region;
+                                         }
+                                     }
+                                 } catch (e) {}
+                             }
+                         }">
+
+                        {{-- 1. Country --}}
+                        <div>
+                            <label class="block text-xs mb-1" style="color: var(--text-muted);">Country (ISO-2)</label>
+                            <input type="text" name="billing_country" maxlength="2"
+                                   value="{{ $billingCountryInit }}"
+                                   @input="onCountryInput($event.target.value.toUpperCase()); $event.target.value = $event.target.value.toUpperCase()"
+                                   class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white uppercase outline-none focus:ring-2 focus:ring-blue-500/40">
                         </div>
-                        <div class="grid grid-cols-2 gap-3">
-                            <input type="text" name="billing_postal_code" placeholder="Postal code" value="{{ old('billing_postal_code', $billing->postal_code) }}" maxlength="16"
-                                   class="px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white outline-none focus:ring-2 focus:ring-blue-500/40">
-                            <input type="text" name="billing_city" placeholder="City" value="{{ old('billing_city', $billing->city) }}" maxlength="100"
-                                   class="px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white outline-none focus:ring-2 focus:ring-blue-500/40">
+
+                        {{-- 2. Postal / ZIP code — triggers the city/state auto-fill --}}
+                        <input type="text" name="billing_postal_code" placeholder="Postal / ZIP code"
+                               value="{{ $billingPostalInit }}" maxlength="16"
+                               @input="scheduleLookup()"
+                               @blur="doLookup()"
+                               class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white outline-none focus:ring-2 focus:ring-blue-500/40">
+
+                        {{-- 3. State / region (auto-filled; user may override) --}}
+                        <div>
+                            <label class="block text-xs mb-1" style="color: var(--text-muted);">State / region</label>
+                            {{-- Dropdown for India / US; free-text for every other country --}}
+                            <template x-if="billingCountry === 'IN' || billingCountry === 'US'">
+                                <select name="billing_region" x-model="regionVal" @change="regionEdited = true"
+                                        class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white outline-none focus:ring-2 focus:ring-blue-500/40">
+                                    <option value="" class="bg-[#0d0818]">None / N/A</option>
+                                    <optgroup label="India" class="bg-[#0d0818]">
+                                        @foreach($inStates as $code => $label)
+                                            <option value="{{ $code }}" class="bg-[#0d0818]">IN-{{ $code }} · {{ $label }}</option>
+                                        @endforeach
+                                    </optgroup>
+                                    <optgroup label="United States" class="bg-[#0d0818]">
+                                        @foreach($usStates as $code => $label)
+                                            <option value="{{ $code }}" class="bg-[#0d0818]">US-{{ $code }} · {{ $label }}</option>
+                                        @endforeach
+                                    </optgroup>
+                                </select>
+                            </template>
+                            <template x-if="billingCountry !== 'IN' && billingCountry !== 'US'">
+                                <input type="text" name="billing_region" maxlength="100"
+                                       placeholder="State / region (optional)"
+                                       x-model="regionVal"
+                                       @input="regionEdited = true"
+                                       class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white outline-none focus:ring-2 focus:ring-blue-500/40">
+                            </template>
                         </div>
+
+                        {{-- 4. City (auto-filled; user may override) --}}
+                        <input type="text" name="billing_city" placeholder="City"
+                               x-model="cityVal"
+                               @input="cityEdited = true"
+                               maxlength="100"
+                               class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white outline-none focus:ring-2 focus:ring-blue-500/40">
+
+                        {{-- 5 & 6. Address lines --}}
                         <input type="text" name="billing_line1" placeholder="Address line 1" value="{{ old('billing_line1', $billing->line1) }}" maxlength="255"
                                class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white outline-none focus:ring-2 focus:ring-blue-500/40">
                         <input type="text" name="billing_line2" placeholder="Address line 2 (optional)" value="{{ old('billing_line2', $billing->line2) }}" maxlength="255"
                                class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white outline-none focus:ring-2 focus:ring-blue-500/40">
+
+                        {{-- 7. Business name --}}
                         <input type="text" name="business_name" placeholder="Registered business name (optional)" value="{{ old('business_name', $billing->business_name) }}" maxlength="255"
                                class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white outline-none focus:ring-2 focus:ring-blue-500/40">
                         <div class="grid grid-cols-3 gap-3">

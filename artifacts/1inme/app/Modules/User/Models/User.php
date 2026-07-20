@@ -61,7 +61,8 @@ class User extends Authenticatable
         'image_reoptimize_notice_dismissed_at',
         // Creator Profile (separate /@handle surface — see Task #1207).
         'cover_image', 'tagline', 'location', 'niche_tags', 'socials',
-        'profile_published', 'profile_section_visibility', 'posts_count',
+        'profile_published', 'profile_section_visibility', 'profile_showcase', 'posts_count',
+        'profile_theme_color',
         // Creator payouts + NSFW consent (Task #1208).
         'adult_content_enabled', 'adult_content_enabled_at',
         'age_verified_at',
@@ -84,6 +85,9 @@ class User extends Authenticatable
         'comp_plan_expires_at', 'comp_plan_granted_by',
         // Reusable event organizer profile (Task #3699).
         'organizer_profile',
+        // Account-level creator profile verification (Task #5439).
+        'profile_verification_status', 'profile_verification_type_id',
+        'profile_verified_name', 'profile_verified_avatar', 'profile_verified_at',
     ];
 
     protected $hidden = ['password', 'remember_token', 'my_calendar_feed_token'];
@@ -166,8 +170,10 @@ class User extends Authenticatable
             'niche_tags' => 'array',
             'socials' => 'array',
             'profile_section_visibility' => 'array',
+            'profile_showcase' => 'array',
             'profile_published' => 'boolean',
             'posts_count' => 'integer',
+            'profile_theme_color' => 'string',
             // Creator payouts + NSFW consent (Task #1208).
             'adult_content_enabled'        => 'boolean',
             'adult_content_enabled_at'     => 'datetime',
@@ -188,6 +194,8 @@ class User extends Authenticatable
             'country_block_list'            => 'array',
             'country_allow_list'            => 'array',
             'creator_digest_last_sent_at'   => 'datetime',
+            // Account-level creator profile verification (Task #5439).
+            'profile_verified_at'            => 'datetime',
             // Admin/staff user-management suite (Task #2106).
             'suspended_at'                  => 'datetime',
             'reactivate_at'                 => 'datetime',
@@ -218,6 +226,67 @@ class User extends Authenticatable
      * simple "Hosted by" fallback, instead of re-deriving emptiness
      * themselves.
      */
+    // =========================================================================
+    // Account-level creator profile verification (Task #5439)
+    // =========================================================================
+
+    /**
+     * True when the user holds an active verified tick (not pending reverification
+     * from an admin's perspective — the tick is still displayed while pending
+     * reverification).
+     */
+    public function isVerified(): bool
+    {
+        return in_array($this->profile_verification_status, ['verified', 'pending_reverification'], true);
+    }
+
+    /** True when the user is fully verified without any pending change. */
+    public function isFullyVerified(): bool
+    {
+        return $this->profile_verification_status === 'verified';
+    }
+
+    /** True when a re-verification review is in flight. */
+    public function isPendingReverification(): bool
+    {
+        return $this->profile_verification_status === 'pending_reverification';
+    }
+
+    /** True when the user's profile name/avatar are locked (they are verified). */
+    public function isNameAvatarLocked(): bool
+    {
+        return $this->isVerified();
+    }
+
+    /** Relation to the current tick type. */
+    public function verificationTickType()
+    {
+        return $this->belongsTo(VerificationTickType::class, 'profile_verification_type_id');
+    }
+
+    /** All profile verification requests for this user. */
+    public function profileVerificationRequests()
+    {
+        return $this->hasMany(ProfileVerificationRequest::class);
+    }
+
+    /**
+     * Render the colored verification tick badge HTML.
+     * Returns empty string when the user is not verified.
+     */
+    public function verificationTickHtml(string $sizeClass = 'text-sm'): string
+    {
+        if (!$this->isVerified() || !$this->profile_verification_type_id) {
+            return '';
+        }
+        static $cache = [];
+        $id = (int) $this->profile_verification_type_id;
+        if (!isset($cache[$id])) {
+            $cache[$id] = VerificationTickType::find($id);
+        }
+        return $cache[$id] ? $cache[$id]->tickHtml($sizeClass) : '';
+    }
+
     public function organizerProfile(): array
     {
         $stored = is_array($this->organizer_profile) ? $this->organizer_profile : [];
@@ -293,14 +362,101 @@ class User extends Authenticatable
      * is intentionally absent from the editor.
      */
     public const PROFILE_DEFAULT_VISIBILITY = [
-        'stats'   => true,
-        'about'   => true,
-        'posts'   => true,
-        'socials' => true,
-        'biolink' => true,
-        'contact' => true,
-        'events'  => true,
+        'stats'          => true,
+        'about'          => true,
+        'posts'          => true,
+        'socials'        => true,
+        'biolink'        => true,
+        'contact'        => true,
+        'events'         => true,
+        // Showcase additions (Task #5431).
+        'featured_links' => true,
+        'showcase'       => true,
+        'highlights'     => true,
+        'cta'            => true,
     ];
+
+    /**
+     * Default structure for profile_showcase when no value is stored yet.
+     * All showcased items and CTA buttons are opt-in so the array is empty
+     * by default; only booleans need a default value.
+     *
+     * @return array<string,mixed>
+     */
+    public static function defaultProfileShowcase(): array
+    {
+        return [
+            'featured_links'       => [],
+            'featured_links_style' => 'classic',
+            'show_link_stats'      => false,
+            'showcase_items'       => [],
+            'highlights' => [
+                'show_followers'   => true,
+                'show_links'       => true,
+                'show_member_since'=> true,
+                'show_verified'    => true,
+            ],
+            'cta' => [
+                'primary'   => null,
+                'secondary' => [],
+            ],
+        ];
+    }
+
+    /**
+     * Return the resolved showcase config — stored value merged over the
+     * defaults so callers never have to null-check every key.
+     *
+     * Backward compat: older records store featured_link_ids (array of ints).
+     * We transparently upgrade those to the richer featured_links format
+     * (array of {id, enabled}) on read so all callers use the new shape.
+     *
+     * @return array<string,mixed>
+     */
+    public function resolvedProfileShowcase(): array
+    {
+        $stored   = is_array($this->profile_showcase) ? $this->profile_showcase : [];
+        $defaults = self::defaultProfileShowcase();
+
+        // Resolve featured_links: prefer new format; fall back to legacy featured_link_ids.
+        if (isset($stored['featured_links']) && is_array($stored['featured_links'])) {
+            $featuredLinks = array_values(array_filter(
+                array_map(function ($item) {
+                    if (!is_array($item) || empty($item['id'])) return null;
+                    return ['id' => (int) $item['id'], 'enabled' => (bool) ($item['enabled'] ?? true)];
+                }, $stored['featured_links'])
+            ));
+        } elseif (isset($stored['featured_link_ids']) && is_array($stored['featured_link_ids'])) {
+            // Legacy upgrade: convert plain ID array to rich format (all enabled by default).
+            $featuredLinks = array_values(array_filter(array_map(function ($id) {
+                $id = (int) $id;
+                return $id > 0 ? ['id' => $id, 'enabled' => true] : null;
+            }, $stored['featured_link_ids'])));
+        } else {
+            $featuredLinks = [];
+        }
+
+        $validStyles = array_keys(\App\Modules\User\Controllers\CreatorProfileController::FEATURED_LINK_STYLES);
+        $storedStyle = (string) ($stored['featured_links_style'] ?? '');
+        $featuredLinksStyle = in_array($storedStyle, $validStyles, true) ? $storedStyle : 'classic';
+
+        return [
+            'featured_links'       => $featuredLinks,
+            'featured_links_style' => $featuredLinksStyle,
+            'show_link_stats'      => (bool) ($stored['show_link_stats'] ?? $defaults['show_link_stats']),
+            'showcase_items'       => is_array($stored['showcase_items'] ?? null)
+                ? $stored['showcase_items']
+                : $defaults['showcase_items'],
+            'highlights'           => array_merge(
+                $defaults['highlights'],
+                is_array($stored['highlights'] ?? null) ? $stored['highlights'] : []
+            ),
+            'cta' => [
+                'primary'   => $stored['cta']['primary'] ?? null,
+                'secondary' => is_array($stored['cta']['secondary'] ?? null) ? $stored['cta']['secondary'] : [],
+            ],
+        ];
+    }
 
     public function profileSectionVisibility(): array
     {

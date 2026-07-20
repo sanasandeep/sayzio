@@ -1858,6 +1858,7 @@
          companion composer. --}}
     @include('partials.voice-assistant', ['voiceFloating' => false])
     @include('user.links.partials.themed-confirm')
+    @include('common.partials.mini-profile-popover')
     @stack('scripts')
 </body>
 </html>

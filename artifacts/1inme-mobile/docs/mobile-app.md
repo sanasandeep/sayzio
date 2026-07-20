@@ -264,7 +264,7 @@ Or just open the EAS download URL on the phone's browser and tap **Install**.
 
 | Feature | Status | Notes |
 | ------- | ------ | ----- |
-| **Contacts & Dialer** | Removed | Lives in the standalone dialer app; `tel:` links hand off to the OS. |
+| **Contacts & Dialer** | Full | `app/dialer.tsx` + `app/dialer-profile.tsx` (ported from the standalone dialer app): compact keypad, T9/keyboard toggle, search-first layout, device call-log Recent tab, dual-SIM chooser, WhatsApp/WA Business chooser, username quick actions. Native call/SIM features via `modules/zio-telephony` (degrades gracefully in Expo Go). |
 | **Creator Payouts** | Full | `app/payouts.tsx`; hosted onboarding (Stripe/PayPal/Razorpay/CCBill/Segpay) opened via `expo-web-browser`. |
 | **18+ Adult Content** | Full | Inline three-checkbox consent in `app/payouts.tsx`; `/api/v1/adult-content`. |
 | **Forms** | Full | List, view, and submissions (`app/forms/`). |

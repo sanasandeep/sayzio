@@ -11,8 +11,10 @@ use App\Modules\User\Support\BlockDefaults;
 use App\Modules\User\Support\BlockRenderCoverage;
 use App\Modules\User\Support\BlockVariantCatalog;
 use App\Modules\User\Support\FontCatalog;
+use App\Services\OgMetadataService;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 
@@ -2052,5 +2054,75 @@ class BiolinkBlockController extends Controller
         }
 
         return $result;
+    }
+
+    /**
+     * Fetch Open Graph metadata (title, description, og:image / favicon
+     * fallback) for a URL submitted from the biolink block editor.
+     *
+     * Rate-limited to 10 fetches per user per minute so the SSRF-guarded
+     * HTTP client can't be turned into a user-controlled DoS probe.
+     */
+    public function ogMeta(Request $request, Link $link): \Illuminate\Http\JsonResponse
+    {
+        abort_if($link->user_id !== workspace_owner_id() || !$link->isBiolinkFamily(), 403);
+
+        $url = trim((string) $request->input('url', ''));
+        if ($url === '') {
+            return response()->json(['error' => 'Please enter a URL first.'], 422);
+        }
+
+        $rateKey = 'og-meta:' . auth()->id();
+        if (RateLimiter::tooManyAttempts($rateKey, 10)) {
+            $seconds = RateLimiter::availableIn($rateKey);
+            return response()->json(['error' => "Too many requests. Try again in {$seconds}s."], 429);
+        }
+        RateLimiter::hit($rateKey, 60);
+
+        try {
+            $meta = app(OgMetadataService::class)->extractFromUrl($url);
+        } catch (\RuntimeException $e) {
+            return response()->json(['error' => $e->getMessage()], 422);
+        }
+
+        return response()->json(['success' => true, 'meta' => $meta]);
+    }
+
+    /**
+     * Return the owner's links as a searchable list for the block-editor
+     * link picker. Results are workspace-owner-scoped (the same principal
+     * that owns the biolink being edited) and exclude the biolink itself.
+     *
+     * Query param: `q` — optional title/alias search string.
+     */
+    public function linkPicker(Request $request, Link $link): \Illuminate\Http\JsonResponse
+    {
+        abort_if($link->user_id !== workspace_owner_id() || !$link->isBiolinkFamily(), 403);
+
+        $q = trim((string) $request->input('q', ''));
+
+        $query = Link::where('user_id', workspace_owner_id())
+            ->where('id', '!=', $link->id)
+            ->whereNotNull('alias')
+            ->orderByDesc('id')
+            ->select(['id', 'type', 'title', 'alias', 'seo_title']);
+
+        if ($q !== '') {
+            $query->where(function ($qb) use ($q) {
+                $qb->where('title', 'ilike', "%{$q}%")
+                   ->orWhere('alias', 'ilike', "%{$q}%")
+                   ->orWhere('seo_title', 'ilike', "%{$q}%");
+            });
+        }
+
+        $links = $query->limit(25)->get()->map(fn ($l) => [
+            'id'    => $l->id,
+            'type'  => $l->type,
+            'title' => $l->title ?: $l->seo_title ?: $l->alias,
+            'alias' => $l->alias,
+            'url'   => url('/' . $l->alias),
+        ]);
+
+        return response()->json(['links' => $links]);
     }
 }

@@ -36,7 +36,9 @@
         "android.permission.CALL_PHONE",
         "android.permission.USE_BIOMETRIC",
         "android.permission.USE_FINGERPRINT",
-        "android.permission.ACCESS_FINE_LOCATION"
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.READ_CALL_LOG",
+        "android.permission.READ_PHONE_STATE"
       ]
     },
     "web": {
@@ -44,6 +46,7 @@
       "favicon": "./assets/images/icon.png"
     },
     "plugins": [
+      "./plugins/withAndroidQueries.js",
       "expo-router",
       "expo-font",
       [
@@ -86,9 +89,9 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "dac41f13-73e0-4fae-ad1b-0c686e37cc6b"
+        "projectId": "a627905a-3c5a-446d-bf06-064eca8e404e"
       }
     },
-    "owner": "eefind"
+    "owner": "sanasandeep-personals-team"
   }
 }

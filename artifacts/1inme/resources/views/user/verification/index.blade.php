@@ -1,22 +1,33 @@
 @extends('user.layouts.settings')
-@section('title', 'Verification')
+@section('title', 'Verification & Badges')
 
 @section('settings-content')
-@include('user.partials._plan_lock', ['feature' => 'verification_eligible', 'kind' => 'flag', 'label' => 'Verified-creator badge'])
-<div>
-    <div class="flex items-center justify-between mb-6 flex-wrap gap-3">
-        <div>
-            <h1 class="text-2xl font-bold" style="color: var(--text-primary);">Verification</h1>
-            <p class="text-sm mt-1" style="color: var(--text-muted);">Get a verified badge on your Link in Bio pages</p>
-        </div>
-        <a href="{{ route('user.verification.request') }}" class="px-4 py-2 rounded-xl text-sm font-medium text-white transition-all hover:-translate-y-0.5" style="background: linear-gradient(135deg, #3d6bff, #5c83ff);">
-            <i class="fas fa-plus mr-1.5"></i>Request Verification
-        </a>
+@php
+    $statusMeta = [
+        'unverified'             => ['bg' => 'rgba(100,116,139,0.1)', 'text' => '#94a3b8', 'label' => 'Not verified',                'icon' => 'fa-circle'],
+        'pending'                => ['bg' => 'rgba(245,158,11,0.1)',  'text' => '#f59e0b', 'label' => 'Pending review',              'icon' => 'fa-clock'],
+        'verified'               => ['bg' => 'rgba(16,185,129,0.1)',  'text' => '#10b981', 'label' => 'Verified',                    'icon' => 'fa-check-circle'],
+        'pending_reverification' => ['bg' => 'rgba(245,158,11,0.1)',  'text' => '#f59e0b', 'label' => 'Pending re-verification',     'icon' => 'fa-sync'],
+    ];
+    $sm = $statusMeta[$user->profile_verification_status] ?? $statusMeta['unverified'];
+@endphp
+
+<div class="max-w-3xl">
+    <div class="mb-6">
+        <h2 class="text-lg font-bold" style="color: var(--text-primary);">Creator Profile Verification</h2>
+        <p class="text-sm mt-1" style="color: var(--text-muted);">
+            Get a colored verification tick on your creator profile, dialer, and all public pages.
+        </p>
     </div>
 
     @if(session('success'))
     <div class="mb-4 p-4 rounded-xl text-sm font-medium" style="background: rgba(16,185,129,0.1); color: #34d399; border: 1px solid rgba(16,185,129,0.2);">
         <i class="fas fa-check-circle mr-2"></i>{{ session('success') }}
+    </div>
+    @endif
+    @if(session('info'))
+    <div class="mb-4 p-4 rounded-xl text-sm font-medium" style="background: rgba(61,107,255,0.1); color: #93c5fd; border: 1px solid rgba(61,107,255,0.2);">
+        <i class="fas fa-info-circle mr-2"></i>{{ session('info') }}
     </div>
     @endif
     @if(session('error'))
@@ -25,93 +36,139 @@
     </div>
     @endif
 
-    <div class="card-premium p-6 mb-6">
-        <div class="flex items-start gap-4 mb-4">
-            <div class="w-12 h-12 rounded-xl flex items-center justify-center shrink-0" style="background: rgba(59,130,246,0.1);">
-                <i class="fas fa-shield-alt text-blue-400 text-lg"></i>
+    {{-- Current verification status card --}}
+    <div class="card-premium p-6 mb-5">
+        <div class="flex items-center justify-between flex-wrap gap-4">
+            <div class="flex items-center gap-4">
+                @if($user->profile_verified_avatar)
+                <img src="{{ \App\Support\PublicStorageUrl::resolve($user->profile_verified_avatar) }}" alt="" class="w-14 h-14 rounded-2xl object-cover" style="border: 1px solid var(--border-glass);">
+                @elseif($user->avatar)
+                <img src="{{ \App\Support\PublicStorageUrl::resolve($user->avatar) }}" alt="" class="w-14 h-14 rounded-2xl object-cover" style="border: 1px solid var(--border-glass);">
+                @else
+                <div class="w-14 h-14 rounded-2xl flex items-center justify-center" style="background: rgba(61,107,255,0.1);"><i class="fas fa-user text-blue-400 text-xl"></i></div>
+                @endif
+                <div>
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <span class="font-bold text-base" style="color: var(--text-primary);">{{ $user->profile_verified_name ?: $user->name }}</span>
+                        @if($user->isVerified() && $user->verificationTickType)
+                        {!! $user->verificationTickType->tickHtml('text-base') !!}
+                        @if($user->isPendingReverification())
+                        <span class="text-[10px] px-2 py-0.5 rounded-full font-semibold" style="background: rgba(245,158,11,0.1); color: #f59e0b;">re-verification pending</span>
+                        @endif
+                        @endif
+                    </div>
+                    <p class="text-xs mt-0.5" style="color: var(--text-muted);">@{{ $user->handle }}</p>
+                </div>
+            </div>
+            <span class="px-3 py-1.5 rounded-full text-xs font-semibold" style="background: {{ $sm['bg'] }}; color: {{ $sm['text'] }};">
+                <i class="fas {{ $sm['icon'] }} mr-1 text-[10px]"></i>{{ $sm['label'] }}
+            </span>
+        </div>
+
+        @if($user->isVerified() && $user->verificationTickType)
+        <div class="mt-4 pt-4 grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs" style="border-top: 1px solid var(--border-glass);">
+            <div>
+                <span style="color: var(--text-dimmed);">Tick type</span>
+                <p class="font-semibold mt-0.5" style="color: var(--text-primary);">
+                    {!! $user->verificationTickType->tickHtml('text-xs') !!}
+                    <span class="ml-1">{{ $user->verificationTickType->name }}</span>
+                </p>
             </div>
             <div>
-                <h3 class="font-bold text-sm mb-1" style="color: var(--text-primary);">Why get verified?</h3>
-                <p class="text-xs leading-relaxed" style="color: var(--text-muted);">A verified badge confirms your identity and adds a blue checkmark to your Link in Bio page. Verified pages get special blocks (heading & avatar with blue tick) and the page name becomes locked to prevent impersonation.</p>
+                <span style="color: var(--text-dimmed);">Verified name</span>
+                <p class="font-semibold mt-0.5 flex items-center gap-1" style="color: var(--text-primary);">
+                    {{ $user->profile_verified_name }}
+                    <i class="fas fa-lock text-[9px]" style="color: var(--text-dimmed);" title="Locked — name and avatar are frozen. Request a change via re-verification."></i>
+                </p>
             </div>
-        </div>
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-            <div class="p-3 rounded-xl" style="background: rgba(59,130,246,0.05); border: 1px solid rgba(59,130,246,0.1);">
-                <div class="flex items-center gap-2 mb-1">
-                    <i class="fas fa-check-circle text-blue-400 text-xs"></i>
-                    <span class="text-xs font-semibold" style="color: var(--text-primary);">Build Trust</span>
-                </div>
-                <p class="text-[10px]" style="color: var(--text-dimmed);">Show visitors your page is authentic</p>
-            </div>
-            <div class="p-3 rounded-xl" style="background: rgba(61,107,255,0.05); border: 1px solid rgba(61,107,255,0.1);">
-                <div class="flex items-center gap-2 mb-1">
-                    <i class="fas fa-lock text-blue-400 text-xs"></i>
-                    <span class="text-xs font-semibold" style="color: var(--text-primary);">Protected Identity</span>
-                </div>
-                <p class="text-[10px]" style="color: var(--text-dimmed);">Page name locked to prevent impersonation</p>
-            </div>
-            <div class="p-3 rounded-xl" style="background: rgba(16,185,129,0.05); border: 1px solid rgba(16,185,129,0.1);">
-                <div class="flex items-center gap-2 mb-1">
-                    <i class="fas fa-star text-emerald-400 text-xs"></i>
-                    <span class="text-xs font-semibold" style="color: var(--text-primary);">Premium Blocks</span>
-                </div>
-                <p class="text-[10px]" style="color: var(--text-dimmed);">Get verified heading & avatar blocks</p>
-            </div>
-        </div>
-    </div>
-
-    @if($requests->count() > 0)
-    <div class="space-y-3">
-        @foreach($requests as $req)
-        <div class="card-premium p-5">
-            <div class="flex items-center justify-between flex-wrap gap-3">
-                <div class="flex items-center gap-4">
-                    @if($req->logo_path)
-                    <img src="{{ asset('storage/' . $req->logo_path) }}" alt="" class="w-12 h-12 rounded-xl object-cover" style="border: 1px solid var(--border-glass);">
-                    @else
-                    <div class="w-12 h-12 rounded-xl flex items-center justify-center" style="background: rgba(61,107,255,0.1);"><i class="fas fa-building text-blue-400"></i></div>
-                    @endif
-                    <div>
-                        <div class="flex items-center gap-2 mb-0.5">
-                            <span class="text-sm font-bold" style="color: var(--text-primary);">{{ $req->display_name }}</span>
-                            <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold {{ $req->category === 'artist_creator' ? 'bg-blue-500/10 text-blue-400' : 'bg-blue-500/10 text-blue-400' }}">
-                                {{ $req->category === 'artist_creator' ? 'Artist / Creator' : 'Business / Product' }}
-                            </span>
-                        </div>
-                        <p class="text-[11px]" style="color: var(--text-dimmed);">
-                            {{ $req->business_name }} &middot; Link in Bio: {{ $req->link->title ?? $req->link->alias }}
-                        </p>
-                    </div>
-                </div>
-                <div class="flex items-center gap-2">
-                    @if($req->status === 'pending')
-                    <span class="px-3 py-1 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-400"><i class="fas fa-clock mr-1"></i>Pending Review</span>
-                    @elseif($req->status === 'approved')
-                    <span class="px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400"><i class="fas fa-check-circle mr-1"></i>Approved</span>
-                    @else
-                    <span class="px-3 py-1 rounded-full text-xs font-semibold bg-red-500/10 text-red-400"><i class="fas fa-times-circle mr-1"></i>Rejected</span>
-                    @endif
-                    <span class="text-[10px]" style="color: var(--text-dimmed);">{{ $req->created_at->diffForHumans() }}</span>
-                </div>
-            </div>
-            @if($req->admin_notes)
-            <div class="mt-3 p-3 rounded-lg text-xs" style="background: rgba(0,0,0,0.15); color: var(--text-muted);">
-                <span class="font-semibold">Admin notes:</span> {{ $req->admin_notes }}
+            @if($user->profile_verified_at)
+            <div>
+                <span style="color: var(--text-dimmed);">Verified since</span>
+                <p class="font-semibold mt-0.5" style="color: var(--text-primary);">{{ $user->profile_verified_at->format('M d, Y') }}</p>
             </div>
             @endif
         </div>
-        @endforeach
+        @endif
     </div>
-    @else
-    <div class="card-premium p-10 text-center">
-        <div class="w-16 h-16 rounded-2xl mx-auto mb-4 flex items-center justify-center" style="background: rgba(61,107,255,0.1);">
-            <i class="fas fa-check-circle text-blue-400 text-2xl"></i>
+
+    {{-- Tick type catalog (only for non-verified users) --}}
+    @if(!$user->isVerified())
+    <div class="card-premium p-6 mb-5">
+        <h3 class="text-sm font-bold mb-1" style="color: var(--text-primary);">Verification Tick Types</h3>
+        <p class="text-xs mb-4" style="color: var(--text-muted);">Choose the tick type that best describes you when you apply.</p>
+        <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            @foreach($tickTypes as $type)
+            <div class="p-3 rounded-xl text-center" style="background: var(--bg-glass); border: 1px solid var(--border-glass);">
+                <i class="fas {{ $type->icon }} text-xl" style="color: {{ $type->color }};"></i>
+                <p class="text-xs font-semibold mt-1.5" style="color: var(--text-primary);">{{ $type->name }}</p>
+            </div>
+            @endforeach
+            <div class="p-3 rounded-xl text-center opacity-50" style="background: var(--bg-glass); border: 1px solid var(--border-glass);" title="Assigned by admins only">
+                <i class="fas fa-check-circle text-xl" style="color: #1d9bf0;"></i>
+                <p class="text-xs font-semibold mt-1.5" style="color: var(--text-primary);">Official</p>
+                <p class="text-[10px]" style="color: var(--text-dimmed);">Admin-assigned</p>
+            </div>
         </div>
-        <h3 class="text-sm font-bold mb-1" style="color: var(--text-primary);">No verification requests yet</h3>
-        <p class="text-xs mb-4" style="color: var(--text-dimmed);">Submit a verification request to get the blue badge on your Link in Bio page.</p>
-        <a href="{{ route('user.verification.request') }}" class="inline-flex items-center px-4 py-2 rounded-xl text-sm font-medium text-white transition-all hover:-translate-y-0.5" style="background: linear-gradient(135deg, #3d6bff, #5c83ff);">
-            <i class="fas fa-plus mr-1.5"></i>Request Verification
+    </div>
+    @endif
+
+    {{-- CTA --}}
+    @if($user->profile_verification_status === 'unverified')
+    <div class="mb-5">
+        <a href="{{ route('user.profile-verification.request') }}" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white transition-all hover:-translate-y-0.5" style="background: linear-gradient(135deg, var(--color-primary-500, #3d6bff), var(--color-primary-400, #5c83ff));">
+            <i class="fas fa-shield-alt"></i>Apply for Verification
         </a>
+    </div>
+    @elseif($user->profile_verification_status === 'pending')
+    <div class="p-4 rounded-xl mb-5 text-sm" style="background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.2); color: #f59e0b;">
+        <i class="fas fa-clock mr-2"></i>Your verification request is under review. We'll notify you when it's processed.
+    </div>
+    @elseif($user->profile_verification_status === 'pending_reverification')
+    <div class="p-4 rounded-xl mb-5 text-sm" style="background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.2); color: #f59e0b;">
+        <i class="fas fa-sync mr-2"></i>Your name/avatar change is under review. Your tick remains visible in the meantime.
+    </div>
+    @endif
+
+    {{-- Request history --}}
+    @if($requests->count() > 0)
+    <div class="card-premium p-6">
+        <h3 class="text-sm font-bold mb-4" style="color: var(--text-primary);">Request History</h3>
+        <div class="space-y-3">
+            @foreach($requests as $req)
+            <div class="p-4 rounded-xl" style="background: var(--bg-glass); border: 1px solid var(--border-glass);">
+                <div class="flex items-center justify-between flex-wrap gap-3">
+                    <div class="flex items-center gap-3">
+                        @if($req->tickType)
+                        <i class="fas {{ $req->tickType->icon }} text-lg" style="color: {{ $req->tickType->color }};"></i>
+                        @else
+                        <i class="fas fa-shield-alt text-lg" style="color: var(--text-dimmed);"></i>
+                        @endif
+                        <div>
+                            <p class="text-sm font-semibold" style="color: var(--text-primary);">{{ $req->official_name }}</p>
+                            <p class="text-[11px]" style="color: var(--text-dimmed);">
+                                {{ $req->kind === 'reverification' ? 'Re-verification request' : 'New verification request' }}
+                                &middot; {{ $req->created_at->diffForHumans() }}
+                            </p>
+                        </div>
+                    </div>
+                    <div>
+                        @if($req->status === 'pending')
+                        <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-400"><i class="fas fa-clock mr-1 text-[10px]"></i>Pending</span>
+                        @elseif($req->status === 'approved')
+                        <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400"><i class="fas fa-check mr-1 text-[10px]"></i>Approved</span>
+                        @else
+                        <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-red-500/10 text-red-400"><i class="fas fa-times mr-1 text-[10px]"></i>Rejected</span>
+                        @endif
+                    </div>
+                </div>
+                @if($req->admin_notes && in_array($req->status, ['rejected', 'approved'], true))
+                <p class="text-xs mt-2 pt-2" style="color: var(--text-muted); border-top: 1px solid var(--border-glass);">
+                    <i class="fas fa-comment-alt mr-1" style="color: var(--text-dimmed);"></i>{{ $req->admin_notes }}
+                </p>
+                @endif
+            </div>
+            @endforeach
+        </div>
     </div>
     @endif
 </div>

@@ -63,3 +63,14 @@ pre-existing drift from earlier tasks (verify.tsx, about.tsx, InfoPage.tsx ~360
 diff lines, siteContent.ts) that predates your change and is out of scope to
 port. Resolve only the entry your commit touched; leave the rest and (if the
 gate stays red purely on pre-existing drift) skip that validation with a reason.
+
+**Status (July 2026 dialer re-port):** the main app got the dialer surface back
+(app/dialer.tsx as a stack screen, dialer-profile.tsx, lib/api/dialer.ts,
+ChannelActions, placeCall, modules/zio-telephony, withAndroidQueries plugin) so
+those manifest entries moved from `standaloneOnly` to `files` (identical or
+adapted). `lib/api/contacts.ts` is now an `adapted` mapping — the two API
+surfaces deliberately diverge. Adapted deltas: main dialer.tsx uses the
+opts-object `listContacts` signature; dialer-profile falls back to `/contacts`
+(no /contacts/new form in main).
+
+- Deleting a standalone-only file: `:accept` does NOT heal a `MISSING standalone-only file` error — remove the entry from `sayzio-dialer-standalone/sync-manifest.json` `standaloneOnly` by hand. Also check `scripts/test-channel-actions.mjs` REQUIRED_SURFACES for the deleted screen.

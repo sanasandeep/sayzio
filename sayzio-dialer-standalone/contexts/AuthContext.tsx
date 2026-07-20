@@ -38,6 +38,9 @@ import {
 export type AuthUser = {
   id: number | string;
   display_name?: string | null;
+  // Canonical stored name (`users.name`). Older server builds only return
+  // this, so name-display call sites fall back display_name → name.
+  name?: string | null;
   email?: string | null;
   mobile?: string | null;
   role?: string | null;

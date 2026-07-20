@@ -83,6 +83,9 @@
         "check:factory-columns": [
             "@php scripts/check-factory-columns.php"
         ],
+        "check:query-columns": [
+            "@php scripts/check-query-columns.php"
+        ],
         "check:migration-ordering": [
             "@php artisan db:check-migration-ordering"
         ],

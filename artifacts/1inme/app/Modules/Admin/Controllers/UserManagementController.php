@@ -691,6 +691,30 @@ class UserManagementController extends Controller
     }
 
     /**
+     * Set or replace the password for a specific user account so the
+     * user (or a bridged admin) can sign in at /login with the new
+     * credential immediately. Gated behind `users.edit` and respects
+     * the ProtectedAccount constraint so protected accounts cannot
+     * have their passwords changed via this surface.
+     */
+    public function setPassword(Request $request, User $user, AdminActionLogger $audit)
+    {
+        $data = $request->validate([
+            'password' => ['required', 'string', 'min:8', 'max:72', 'confirmed'],
+        ]);
+
+        if (ProtectedAccount::isProtected($user)) {
+            return back()->with('error', 'This account is protected and its password cannot be changed.');
+        }
+
+        $user->forceFill(['password' => Hash::make($data['password'])])->save();
+
+        $audit->log(AdminActionLogger::USER_PASSWORD_SET, $user, []);
+
+        return back()->with('success', 'Password updated. The user can now sign in with the new password.');
+    }
+
+    /**
      * Dedicated, paginated role-change audit page for the back-office.
      * Mirrors `UserAccessController::audit` but lives behind the admin
      * guard so reviewers without a web session can still pull the

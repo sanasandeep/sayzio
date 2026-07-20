@@ -10,19 +10,23 @@
     </div>
 
     @if(session('success'))
-        <div class="mb-4 p-3 rounded bg-green-100 text-green-800 text-sm">{{ session('success') }}</div>
+        <div class="mb-4 p-3 rounded-xl text-sm font-medium" style="background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.2); color: #10b981;">
+            <i class="fas fa-check-circle mr-1.5"></i> {{ session('success') }}
+        </div>
     @endif
     @if(session('error'))
-        <div class="mb-4 p-3 rounded bg-red-100 text-red-800 text-sm">{{ session('error') }}</div>
+        <div class="mb-4 p-3 rounded-xl text-sm font-medium" style="background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.2); color: #ef4444;">
+            <i class="fas fa-exclamation-circle mr-1.5"></i> {{ session('error') }}
+        </div>
     @endif
 
     @if(!empty($recoveryCodes))
-        <div class="mb-6 rounded-lg border border-amber-300 bg-amber-50 p-4">
-            <h3 class="font-semibold text-amber-900 mb-2">Save these recovery codes</h3>
-            <p class="text-xs text-amber-800 mb-3">Store these somewhere safe. Each code can be used once if you lose access to your authenticator app. They won't be shown again.</p>
+        <div class="mb-6 rounded-lg p-4" style="background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.3);">
+            <h3 class="font-semibold mb-2" style="color: var(--text-primary);">Save these recovery codes</h3>
+            <p class="text-xs mb-3 opacity-70" style="color: var(--text-primary);">Store these somewhere safe. Each code can be used once if you lose access to your authenticator app. They won't be shown again.</p>
             <div class="grid grid-cols-2 gap-2 font-mono text-sm">
                 @foreach($recoveryCodes as $code)
-                    <div class="border border-amber-200 rounded px-3 py-2" style="background: var(--bg-glass-light); color: var(--text-primary);">{{ $code }}</div>
+                    <div class="rounded px-3 py-2" style="background: var(--bg-glass-light); color: var(--text-primary); border: 1px solid rgba(245,158,11,0.25);">{{ $code }}</div>
                 @endforeach
             </div>
         </div>
@@ -32,8 +36,8 @@
     @if($enrolled)
         <div class="rounded-lg border p-6 lg:col-span-2" style="border-color: var(--border-strong); background: var(--bg-card);">
             <div class="flex items-center gap-3 mb-4">
-                <div class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
-                    <i class="fas fa-shield-check text-green-600"></i>
+                <div class="w-10 h-10 rounded-full flex items-center justify-center" style="background: rgba(16,185,129,0.15);">
+                    <i class="fas fa-shield-check" style="color: #10b981;"></i>
                 </div>
                 <div>
                     <h2 class="font-bold" style="color: var(--text-primary);">2FA is enabled</h2>
@@ -51,14 +55,14 @@
                 <form method="POST" action="{{ route('user.account.two-factor.disable') }}"
                       onsubmit="return confirm('Disable 2FA? You will lose this layer of protection.');">
                     @csrf @method('DELETE')
-                    <button class="px-3 py-2 rounded border border-red-300 bg-red-50 text-red-700 text-sm font-semibold">
+                    <button class="px-3 py-2 rounded text-sm font-semibold" style="border: 1px solid rgba(239,68,68,0.35); background: rgba(239,68,68,0.08); color: #ef4444;">
                         <i class="fas fa-shield-xmark mr-1"></i> Disable 2FA
                     </button>
                 </form>
             </div>
 
             @if($policyCovers)
-                <p class="mt-4 text-xs text-amber-700"><i class="fas fa-info-circle mr-1"></i> One of your workspaces requires 2FA, disabling it may lock you out.</p>
+                <p class="mt-4 text-xs" style="color: #d97706;"><i class="fas fa-info-circle mr-1"></i> One of your workspaces requires 2FA, disabling it may lock you out.</p>
             @endif
         </div>
     @else

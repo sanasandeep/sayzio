@@ -154,7 +154,7 @@ class CheckPlanLimit
                     return back()->with('error', $this->withTarget('The credential vault is not available on your current plan.', $user, 'vaults'));
                 }
                 $maxVault = (int) ($features['max_vault_items'] ?? 0);
-                $cur = VaultCredential::where('user_id', $user->id)->count();
+                $cur = VaultCredential::where('created_by_user_id', $user->id)->count();
                 if ($maxVault !== -1 && $cur >= $maxVault) {
                     return back()->with('error', $this->withTarget("You've reached your plan's vault item limit ({$maxVault}).", $user, 'max_vault_items', $cur));
                 }

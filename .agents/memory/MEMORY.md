@@ -153,3 +153,5 @@
 - [better-sqlite3 needs source build on Node 24](better-sqlite3-node24-source-build.md) — no prebuilt binary; background node-gyp rebuild in node_modules, ignore the bogus node_gyp_bins ENOENT.
 - [Electron desktop CI packaging](electron-desktop-ci-packaging.md) — workspace blocks non-Linux native binaries (strip ': -' overrides in CI); electron-builder needs explicit .cjs --config; empty WIN_CSC_LINK breaks signing.
 - [Bulk copy sweeps via guard file:line output](text-sweep-guard-line-numbers.md) — span-blanking scanners must preserve newlines or line numbers drift and bulk fixers edit the wrong lines.
+- [Link model has no factory](link-model-no-factory.md) — Link::factory() tests fail at boot (coverage illusory); links SEO column is seo_title not meta_title; create links via Link::create + workspace binding.
+- [Query-columns static guard](query-columns-guard.md) — 3-tier literal-column validation w/ per-file SQL-alias learning; workspaces/follows/vault use owner_user_id/creator_id/created_by_user_id, never user_id.
