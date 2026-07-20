@@ -380,6 +380,10 @@ args = "e2e-mobile-og-preview"
 task = "workflow.run"
 args = "query-columns"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-cp-gaps-sticky"
+
 [[workflows.workflow]]
 name = "e2e"
 author = "agent"
@@ -1579,6 +1583,17 @@ args = "cd artifacts/1inme && composer check:query-columns"
 [workflows.workflow.metadata]
 isValidation = true
 
+[[workflows.workflow]]
+name = "e2e-cp-gaps-sticky"
+author = "agent"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "bash artifacts/1inme/tests/Browser/run-validation.sh creator-profile-gaps-sticky.spec.ts"
+
 
 [agent]
 stack = "PNPM_WORKSPACE"
@@ -1599,7 +1614,7 @@ AWS_DEFAULT_REGION = "ap-south-2"
 AWS_URL = "https://d3l7wvr1shk1cg.cloudfront.net"
 AWS_USE_PATH_STYLE_ENDPOINT = "true"
 USER_CONTENT_DISK = "s3"
-CONTACT_ADMIN_TOKEN = ""
+CONTACT_ADMIN_TOKEN = "secret stripped"
 APP_NAME = "Sayzio"
 
 [[ports]]

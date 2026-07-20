@@ -75,7 +75,7 @@
     @endif
 
     {{-- ── Main editor ──────────────────────────────────── --}}
-    <form action="{{ route('user.creator-profile.update') }}" method="POST" enctype="multipart/form-data" class="grid grid-cols-1 lg:grid-cols-2 items-start" style="column-gap: 1.75rem; row-gap: 2.75rem;">
+    <form action="{{ route('user.creator-profile.update') }}" method="POST" enctype="multipart/form-data" class="grid grid-cols-1 lg:grid-cols-2 items-start" style="display: grid; column-gap: 2rem; row-gap: 3.5rem;">
         @csrf
 
         {{-- Hero --}}
@@ -395,12 +395,15 @@
                 </div>
 
                 <div class="flex justify-end">
-                    <form method="POST" action="{{ route('user.creator-digest.sample') }}" onclick="event.stopPropagation()">
-                        @csrf
-                        <button class="text-xs font-semibold px-3 py-1.5 rounded-lg" style="background: var(--bg-input, #fff); border: 1px solid var(--border-soft); color: var(--text-primary);">
-                            <i class="fas fa-paper-plane mr-1"></i> Send me a sample weekly digest
-                        </button>
-                    </form>
+                    {{-- Submits the standalone #cp-digest-sample-form declared after the
+                         main form. A nested <form> here is invalid HTML: the browser
+                         closes the OUTER form at the inner </form>, dumping every later
+                         fieldset + the save bar out of the form grid (broke the row
+                         gaps and the sticky save row). --}}
+                    <button type="submit" form="cp-digest-sample-form" onclick="event.stopPropagation()"
+                            class="text-xs font-semibold px-3 py-1.5 rounded-lg" style="background: var(--bg-input, #fff); border: 1px solid var(--border-soft); color: var(--text-primary);">
+                        <i class="fas fa-paper-plane mr-1"></i> Send me a sample weekly digest
+                    </button>
                 </div>
             </div>
         </fieldset>
@@ -776,7 +779,8 @@
             </label>
         </fieldset>
 
-        <div class="flex justify-end gap-2 lg:col-span-2">
+        <div class="flex justify-end items-center gap-2 lg:col-span-2 sticky bottom-0 z-40 rounded-xl px-4 py-3 -mx-1"
+             style="background: color-mix(in srgb, var(--bg-card) 82%, transparent); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border: 1px solid var(--border-soft); box-shadow: 0 -6px 24px rgba(0,0,0,0.18); margin-top: -1.5rem;">
             <a href="{{ route('user.posts.index') }}" class="text-xs font-semibold px-4 py-2 rounded-lg" style="background: var(--bg-card); border: 1px solid var(--border-soft); color: var(--text-primary);">
                 Manage posts
             </a>
@@ -784,6 +788,14 @@
                 <i class="fas fa-save mr-1"></i> Save profile
             </button>
         </div>
+    </form>
+
+    {{-- Standalone target for the "Send me a sample weekly digest" button
+         (linked via the button's form="cp-digest-sample-form" attribute).
+         Must live OUTSIDE the main profile form — see the nested-form note
+         at the button. --}}
+    <form id="cp-digest-sample-form" method="POST" action="{{ route('user.creator-digest.sample') }}">
+        @csrf
     </form>
     </div>{{-- /left column --}}
 
