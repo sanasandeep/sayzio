@@ -65,7 +65,7 @@ export default function Home() {
             Welcome back
           </Text>
           <Text style={[styles.h1, { color: colors.foreground }]}>
-            {user?.display_name || user?.email || user?.mobile || "Member"}
+            {user?.display_name || user?.name || user?.email || user?.mobile || "Member"}
           </Text>
         </View>
 

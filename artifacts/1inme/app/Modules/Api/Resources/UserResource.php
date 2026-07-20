@@ -11,6 +11,9 @@ class UserResource
         $base = [
             'id'              => $u->id,
             'name'            => $u->name,
+            // Mobile clients read `display_name` for greetings/sidebar; the
+            // canonical stored field is `users.name`, so mirror it here.
+            'display_name'    => $u->name,
             'handle'          => $u->handle,
             'avatar'          => \App\Support\PublicStorageUrl::resolve($u->avatar),
             // Resolved avatar: Google photo → Gravatar → placeholder. Kept

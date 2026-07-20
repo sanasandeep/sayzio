@@ -437,7 +437,7 @@ export default function Profile() {
             Signed in as
           </Text>
           <Text style={[styles.name, { color: colors.foreground }]}>
-            {user?.display_name || user?.email || user?.mobile || "Sayzio member"}
+            {user?.display_name || user?.name || user?.email || user?.mobile || "Sayzio member"}
           </Text>
           {user?.role ? (
             <View

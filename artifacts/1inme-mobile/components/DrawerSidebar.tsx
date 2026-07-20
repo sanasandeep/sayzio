@@ -789,7 +789,7 @@ export function DrawerSidebar() {
                 style={[styles.identityName, { color: colors.foreground }]}
                 numberOfLines={1}
               >
-                {user?.display_name || "Member"}
+                {user?.display_name || user?.name || "Member"}
               </Text>
               <Text
                 style={[styles.identityEmail, { color: colors.mutedForeground }]}

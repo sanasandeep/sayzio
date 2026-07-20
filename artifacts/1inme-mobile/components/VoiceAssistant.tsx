@@ -32,6 +32,7 @@ import {
   Text,
   TextInput,
   View,
+  useWindowDimensions,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -164,6 +165,7 @@ function emitVoiceAction(action: VoiceClientAction): void {
 export function VoiceAssistant() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
+  const { height: windowHeight } = useWindowDimensions();
   const router = useRouter();
   const pathname = usePathname() ?? "";
   const { user } = useAuth();
@@ -879,6 +881,11 @@ export function VoiceAssistant() {
                 backgroundColor: colors.card,
                 borderColor: colors.border,
                 paddingBottom: insets.bottom + 16,
+                // Open as a tall panel (like the desktop widget) with an
+                // explicit pixel height. Percentage heights can resolve
+                // against a frame taller than the visible window on Android
+                // edge-to-edge, which clipped the composer off-screen.
+                height: Math.round(windowHeight * 0.86),
               },
             ]}
           >
