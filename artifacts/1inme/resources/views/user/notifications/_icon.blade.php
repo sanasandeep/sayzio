@@ -53,6 +53,16 @@
          style="background: rgba(92,131,255,0.12); color:#3d6bff;">
         <i class="fas fa-comment-dots"></i>
     </div>
+@elseif($n->type === 'account.verification_approved')
+    <div class="{{ $__iconSize }} rounded-full flex items-center justify-center flex-shrink-0"
+         style="background: rgba(34,197,94,0.12); color:#16a34a;">
+        <i class="fas fa-circle-check"></i>
+    </div>
+@elseif($n->type === 'account.verification_rejected')
+    <div class="{{ $__iconSize }} rounded-full flex items-center justify-center flex-shrink-0"
+         style="background: rgba(239,68,68,0.12); color:#dc2626;">
+        <i class="fas fa-circle-xmark"></i>
+    </div>
 @elseif(!empty($d['follower_avatar']) || !empty($d['creator_avatar']))
     <img src="{{ $d['follower_avatar'] ?? $d['creator_avatar'] }}" class="{{ $__iconSize }} rounded-full object-cover flex-shrink-0" alt=""/>
 @else

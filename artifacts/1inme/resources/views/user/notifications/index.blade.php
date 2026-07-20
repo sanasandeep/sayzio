@@ -174,6 +174,26 @@
                                     <i class="fas fa-arrow-right"></i> View contact
                                 </a>
                             @endif
+                        @elseif($n->type === 'account.verification_approved')
+                            <p class="text-sm" style="color: var(--text-primary);">
+                                <i class="fas fa-circle-check mr-1" style="color:#16a34a;"></i>
+                                {{ $d['message'] ?? 'Your verification request was approved.' }}
+                            </p>
+                            @if(!empty($d['url']))
+                                <a href="{{ $d['url'] }}" class="inline-flex items-center gap-1 mt-1 text-xs font-semibold text-blue-600 hover:underline">
+                                    <i class="fas fa-arrow-right"></i> View verification
+                                </a>
+                            @endif
+                        @elseif($n->type === 'account.verification_rejected')
+                            <p class="text-sm" style="color: var(--text-primary);">
+                                <i class="fas fa-circle-xmark mr-1" style="color:#dc2626;"></i>
+                                {{ $d['message'] ?? 'Your verification request was not approved.' }}
+                            </p>
+                            @if(!empty($d['url']))
+                                <a href="{{ $d['url'] }}" class="inline-flex items-center gap-1 mt-1 text-xs font-semibold text-blue-600 hover:underline">
+                                    <i class="fas fa-arrow-right"></i> View verification
+                                </a>
+                            @endif
                         @else
                             <p class="text-sm" style="color: var(--text-primary);">{{ $d['message'] ?? $n->type }}</p>
                         @endif

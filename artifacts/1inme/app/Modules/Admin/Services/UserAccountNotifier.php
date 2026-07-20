@@ -93,6 +93,77 @@ class UserAccountNotifier
             "Your request for the \"{$badgeName}\" badge was not approved. Reason: {$reason}");
     }
 
+    /**
+     * Profile verification (or re-verification) approved — tells the user the
+     * tick they now hold and the name it was verified under (Task: auto-notify
+     * on verification review). Email goes out under its own registry key so
+     * admins can customise the template independently of generic notices.
+     */
+    public function verificationApproved(User $user, string $tickName, string $verifiedName, bool $isReverification = false): void
+    {
+        $message = $isReverification
+            ? "Your re-verification was approved — your \"{$tickName}\" tick now shows as \"{$verifiedName}\"."
+            : "Congratulations! Your profile is now verified with the \"{$tickName}\" tick as \"{$verifiedName}\".";
+
+        $this->dispatchKeyed($user, 'account.verification_approved', 'verification.approved', [
+            'tick'            => $tickName,
+            'verified_name'   => $verifiedName,
+            'reverification'  => $isReverification,
+            'message'         => $message,
+            'url'             => route('user.profile-verification.index'),
+        ], $message);
+    }
+
+    /**
+     * Profile verification (or re-verification) rejected — always carries the
+     * admin's rejection note so the user knows what to fix.
+     */
+    public function verificationRejected(User $user, string $reason, bool $isReverification = false): void
+    {
+        $message = $isReverification
+            ? "Your re-verification request was not approved, so your previously verified details remain in place. Reviewer note: {$reason}"
+            : "Your verification request was not approved. Reviewer note: {$reason}";
+
+        $this->dispatchKeyed($user, 'account.verification_rejected', 'verification.rejected', [
+            'reason'          => $reason,
+            'reverification'  => $isReverification,
+            'message'         => $message,
+            'url'             => route('user.profile-verification.index'),
+        ], $message);
+    }
+
+    /**
+     * Like dispatch(), but sends the email under a dedicated Emailer registry
+     * key (with {{message}}/{{url}} tokens) instead of the generic
+     * account.notice template.
+     */
+    protected function dispatchKeyed(User $user, string $type, string $emailKey, array $data, string $message): void
+    {
+        try {
+            UserNotification::create([
+                'user_id'    => $user->id,
+                'type'       => $type,
+                'data'       => $data,
+                'created_at' => now(),
+            ]);
+        } catch (\Throwable $e) {
+            Log::warning('UserAccountNotifier in-app failed: ' . $e->getMessage(), ['user_id' => $user->id]);
+        }
+
+        if ($user->email) {
+            try {
+                \App\Modules\Common\Services\Emailer::send($emailKey, $user->email, [
+                    'message' => $message,
+                    'url'     => $data['url'] ?? route('user.profile-verification.index'),
+                ], [
+                    'user' => $user->id,
+                ]);
+            } catch (\Throwable $e) {
+                Log::info('UserAccountNotifier email skipped: ' . $e->getMessage());
+            }
+        }
+    }
+
     protected function dispatch(User $user, string $type, array $data, string $subject, string $body): void
     {
         try {

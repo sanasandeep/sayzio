@@ -108,6 +108,10 @@ class UserNotification extends Model
                 return ($data['requester_name'] ?? 'Someone') . ' wants to exchange contacts with you at ' . ($data['event_title'] ?? 'an event') . '.';
             case 'event_exchange_accepted':
                 return ($data['acceptor_name'] ?? 'Someone') . ' accepted your contact exchange at ' . ($data['event_title'] ?? 'an event') . '.';
+            case 'account.verification_approved':
+                return $data['message'] ?? 'Your verification request was approved.';
+            case 'account.verification_rejected':
+                return $data['message'] ?? 'Your verification request was not approved.';
             default:
                 return $data['message'] ?? ($type ?? 'Notification');
         }

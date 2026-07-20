@@ -183,7 +183,7 @@ class ProfileVerificationController extends Controller
     public function adminApprove(Request $request, ProfileVerificationRequest $profileVerificationRequest)
     {
         if ($profileVerificationRequest->status !== 'pending') {
-            return redirect()->route('user.profile-verification.admin')
+            return redirect()->route('user.profile-verification.admin.index')
                 ->with('error', 'This request has already been reviewed.');
         }
 
@@ -223,7 +223,12 @@ class ProfileVerificationController extends Controller
             $user->update($updates);
         });
 
-        return redirect()->route('user.profile-verification.admin')
+        $tickName     = optional(VerificationTickType::find($data['tick_type_id'] ?? $req->tick_type_id))->name ?? 'verified';
+        $verifiedName = (string) ($user->fresh()->profile_verified_name ?? $req->official_name);
+        app(\App\Modules\Admin\Services\UserAccountNotifier::class)
+            ->verificationApproved($user, $tickName, $verifiedName, $req->kind !== 'new');
+
+        return redirect()->route('user.profile-verification.admin.index')
             ->with('success', 'Verification approved — user now holds the ' . optional($req->tickType)->name . ' tick.');
     }
 
@@ -253,7 +258,10 @@ class ProfileVerificationController extends Controller
             }
         });
 
-        return redirect()->route('user.profile-verification.admin')
+        app(\App\Modules\Admin\Services\UserAccountNotifier::class)
+            ->verificationRejected($user, $data['admin_notes'], $req->kind !== 'new');
+
+        return redirect()->route('user.profile-verification.admin.index')
             ->with('success', 'Verification request rejected.');
     }
 
