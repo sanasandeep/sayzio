@@ -22,7 +22,11 @@ import {
 import { PostCard } from "@/components/CreatorFeed";
 import { Button } from "@/components/Button";
 import { useColors } from "@/hooks/useColors";
-import { creatorProfile } from "@/lib/api/creatorProfile";
+import {
+  creatorProfile,
+  type FeaturedLink,
+  type FeaturedLinksStyle,
+} from "@/lib/api/creatorProfile";
 import { follow, unfollow } from "@/lib/api/follows";
 import { showAlert } from "@/lib/webAlert";
 
@@ -429,27 +433,18 @@ export default function CreatorProfileScreen() {
               </SectionCard>
             ) : null}
 
-            {/* ── Featured links (Task #5431) ─────────────────────────── */}
+            {/* ── Featured links (Task #5431; styles Task #5464) ──────── */}
             {sections.featured_links && profile.featured_links.length > 0 ? (
               <SectionCard title="Featured" colors={colors}>
                 <View style={{ gap: 8 }}>
                   {profile.featured_links.map((fl) => (
-                    <Pressable
+                    <FeaturedLinkItem
                       key={fl.id}
-                      onPress={() => Linking.openURL(fl.url)}
-                      style={[styles.featLinkRow, { borderColor: colors.border }]}
-                    >
-                      <View style={{ flex: 1 }}>
-                        <Text style={{ color: colors.foreground, fontWeight: "600" }} numberOfLines={1}>
-                          {fl.title || fl.alias}
-                        </Text>
-                        <Text style={{ color: colors.mutedForeground, fontSize: 11, marginTop: 2 }}>
-                          {fl.type.toUpperCase()}
-                          {fl.clicks !== null ? `  ·  ${Intl.NumberFormat().format(fl.clicks)} clicks` : ""}
-                        </Text>
-                      </View>
-                      <Feather name="external-link" size={14} color={colors.mutedForeground} />
-                    </Pressable>
+                      link={fl}
+                      flStyle={profile.showcase.featured_links_style ?? "classic"}
+                      accent={profile.theme_color ?? colors.primary}
+                      colors={colors}
+                    />
                   ))}
                 </View>
               </SectionCard>
@@ -552,6 +547,97 @@ function ctaDefaultLabel(kind: string): string {
     case "form":     return "Fill out a form";
     default:         return "Visit";
   }
+}
+
+/**
+ * Task #5464 — render a featured link in the owner-picked style, mirroring
+ * the web `.cp-fl--*` variants (classic/outline/solid/ghost/pill/card_heading).
+ */
+function FeaturedLinkItem({
+  link,
+  flStyle,
+  accent,
+  colors,
+}: {
+  link: FeaturedLink;
+  flStyle: FeaturedLinksStyle;
+  accent: string;
+  colors: ReturnType<typeof useColors>;
+}) {
+  const title = link.title || link.alias;
+  const clicksLine =
+    link.clicks !== null
+      ? `${Intl.NumberFormat().format(link.clicks)} click${link.clicks === 1 ? "" : "s"}`
+      : null;
+  const open = () => Linking.openURL(link.url);
+
+  if (flStyle === "outline" || flStyle === "solid" || flStyle === "ghost" || flStyle === "pill") {
+    const solidLike = flStyle === "solid" || flStyle === "pill";
+    const fg = solidLike ? "#fff" : accent;
+    return (
+      <Pressable
+        onPress={open}
+        style={[
+          styles.flRow,
+          flStyle === "outline" && { borderWidth: 2, borderColor: accent, borderRadius: 12 },
+          flStyle === "solid" && { backgroundColor: accent, borderRadius: 12 },
+          flStyle === "ghost" && { paddingHorizontal: 6, paddingVertical: 8 },
+          flStyle === "pill" && {
+            backgroundColor: accent,
+            borderRadius: 999,
+            justifyContent: "center",
+            paddingHorizontal: 22,
+          },
+        ]}
+      >
+        <Feather name="link" size={14} color={fg} />
+        <Text
+          style={{ color: fg, fontWeight: "600", fontSize: 14, flexShrink: 1 }}
+          numberOfLines={1}
+        >
+          {title}
+        </Text>
+      </Pressable>
+    );
+  }
+
+  const isHeading = flStyle === "card_heading";
+  return (
+    <Pressable
+      onPress={open}
+      style={[
+        styles.flCard,
+        { backgroundColor: colors.card, borderColor: colors.border },
+        isHeading && { borderLeftWidth: 4, borderLeftColor: accent, borderRadius: 14 },
+      ]}
+    >
+      <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 8 }}>
+        {!isHeading ? (
+          <Feather name="link" size={15} color={accent} style={{ marginTop: 2 }} />
+        ) : null}
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <Text
+            style={{
+              color: isHeading ? accent : colors.foreground,
+              fontWeight: isHeading ? "800" : "600",
+              fontSize: isHeading ? 16 : 14,
+            }}
+            numberOfLines={1}
+          >
+            {title}
+          </Text>
+          <Text
+            style={{ color: colors.mutedForeground, fontSize: 11, marginTop: 2 }}
+            numberOfLines={1}
+          >
+            {link.type.toUpperCase()}
+            {clicksLine ? `  ·  ${clicksLine}` : ""}
+          </Text>
+        </View>
+        <Feather name="external-link" size={14} color={colors.mutedForeground} />
+      </View>
+    </Pressable>
+  );
 }
 
 function showcaseEmoji(type: string): string {
@@ -731,6 +817,19 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: 10,
     gap: 8,
+  },
+  // Task #5464 — featured-link style variants.
+  flRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingVertical: 11,
+    paddingHorizontal: 14,
+  },
+  flCard: {
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 12,
   },
   showcaseCard: {
     width: 120,

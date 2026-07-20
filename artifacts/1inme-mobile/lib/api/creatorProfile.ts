@@ -22,8 +22,18 @@ export type CtaButton = {
   value: string;
 };
 
+export type FeaturedLinksStyle =
+  | "classic"
+  | "outline"
+  | "solid"
+  | "ghost"
+  | "pill"
+  | "card_heading";
+
 export type ProfileShowcase = {
   show_link_stats: boolean;
+  /** Task #5459 — owner-picked featured-link visual style. */
+  featured_links_style: FeaturedLinksStyle;
   highlights: {
     show_followers: boolean;
     show_links: boolean;
