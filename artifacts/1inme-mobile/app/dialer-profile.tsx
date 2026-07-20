@@ -31,6 +31,10 @@ import {
   updateContactManualProfile,
 } from "@/lib/api/contacts";
 import {
+  type AdminCapabilities,
+  getAdminCapabilities,
+} from "@/lib/api/adminUsers";
+import {
   type DialerActivity,
   type DialerChannel,
   type DialerLookupResult,
@@ -149,6 +153,24 @@ export default function DialerProfileScreen() {
 
   const e164 = useMemo(() => (E164.test(number) ? number : null), [number]);
 
+  // Admin capabilities for the signed-in operator (all-false for regular
+  // users). Drives the admin-only "Set password" row on matched Sayzio users.
+  const [adminCan, setAdminCan] = useState<AdminCapabilities | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    getAdminCapabilities()
+      .then((can) => {
+        if (!cancelled) setAdminCan(can);
+      })
+      .catch(() => {
+        /* non-admin or offline — leave the admin row hidden */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const refresh = useCallback(async () => {
     setLoading(true);
     try {
@@ -224,6 +246,21 @@ export default function DialerProfileScreen() {
   const bioUrl = lookup?.biolink?.url ?? profile?.biolink?.url ?? null;
   const bioName = lookup?.biolink?.name ?? profile?.biolink?.name ?? "";
   const bioHandle = lookup?.biolink?.handle ?? profile?.biolink?.handle ?? null;
+  const matchedUserId =
+    lookup?.biolink?.user_id ?? profile?.biolink?.user_id ?? null;
+  const canSetPassword =
+    matchedUserId != null && adminCan?.set_user_password === true;
+
+  const openSetPassword = useCallback(() => {
+    if (matchedUserId == null) return;
+    router.push({
+      pathname: "/admin-user-password",
+      params: {
+        id: String(matchedUserId),
+        name: bioName || displayName,
+      },
+    });
+  }, [matchedUserId, bioName, displayName, router]);
 
   // ---- Reach-via channels (auto + manual), filtered to openable ones ----
   const allChannels = useMemo<DialerChannel[]>(() => {
@@ -651,6 +688,57 @@ export default function DialerProfileScreen() {
               style={[styles.bioBtn, { backgroundColor: colors.primary }]}
             >
               <Text style={styles.bioBtnText}>Open Link in Bio</Text>
+            </Pressable>
+          </View>
+        )}
+
+        {/* Admin-only: set this user's password (capability-gated). Shown
+            whenever the number resolved to a Sayzio user and the signed-in
+            operator's linked admin account holds `set_user_password`. */}
+        {canSetPassword && (
+          <View
+            style={[
+              styles.card,
+              { backgroundColor: colors.card, borderColor: colors.border },
+            ]}
+          >
+            <Text style={[styles.cardKicker, { color: colors.mutedForeground }]}>
+              ADMIN
+            </Text>
+            <Pressable
+              onPress={openSetPassword}
+              accessibilityRole="button"
+              style={({ pressed }) => [
+                styles.adminRow,
+                { opacity: pressed ? 0.7 : 1 },
+              ]}
+            >
+              <Feather name="key" size={16} color={colors.primary} />
+              <View style={{ flex: 1, marginLeft: 10 }}>
+                <Text
+                  style={{
+                    color: colors.foreground,
+                    fontFamily: "SpaceGrotesk_600SemiBold",
+                    fontSize: 14,
+                  }}
+                >
+                  Set password
+                </Text>
+                <Text
+                  style={{
+                    color: colors.mutedForeground,
+                    fontSize: 12,
+                    marginTop: 1,
+                  }}
+                >
+                  Set or replace this user's sign-in password
+                </Text>
+              </View>
+              <Feather
+                name="chevron-right"
+                size={18}
+                color={colors.mutedForeground}
+              />
             </Pressable>
           </View>
         )}
@@ -1643,6 +1731,10 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   cardTitle: { fontFamily: "SpaceGrotesk_700Bold", fontSize: 17 },
+  adminRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
   bioBtn: {
     marginTop: 12,
     paddingVertical: 10,

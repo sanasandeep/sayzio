@@ -4,7 +4,25 @@ import { apiFetch } from "@/lib/api";
 // App\Modules\Api\Controllers\AdminAccessController (all auth:sanctum).
 // Responses use the unified {data}/{error} envelope.
 //
+//   GET  /admin/context                     admin capabilities for this token
 //   POST /admin/users/{user}/set-password   set / replace a user's password
+
+export type AdminCapabilities = {
+  set_user_password?: boolean;
+  [key: string]: boolean | undefined;
+};
+
+/**
+ * Per-action capability map for the signed-in user's linked back-office
+ * admin account. Returns an all-false map (never throws a 403) when the
+ * caller has no active admin account, so UI gating can key off it directly.
+ */
+export async function getAdminCapabilities(): Promise<AdminCapabilities> {
+  const r = await apiFetch<{
+    data: { has_admin_access: boolean; can: AdminCapabilities };
+  }>("/admin/context");
+  return r.data.can ?? {};
+}
 
 /**
  * Set (or replace) the password for a user account.
