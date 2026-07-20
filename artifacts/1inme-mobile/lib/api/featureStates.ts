@@ -58,6 +58,7 @@ export const featureStates = {
 export const HREF_FEATURE_KEY: Record<string, string> = {
   "/connected-apps": "connected_apps",
   "/integrations": "integrations",
+  "/dialer": "dialer",
   "/domains": "domains",
   "/monetization": "monetization",
   "/payouts": "payouts",
@@ -70,6 +71,7 @@ export const HREF_FEATURE_KEY: Record<string, string> = {
  */
 const FEATURE_FEATHER_ICON: Record<string, keyof typeof Feather.glyphMap> = {
   connected_apps: "zap",
+  dialer: "phone",
   monetization: "dollar-sign",
   payouts: "credit-card",
   social_proofs: "bell",
