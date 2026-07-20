@@ -526,6 +526,7 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::prefix('settings/profile')->name('profile.')->middleware('workspace.can:settings.view')->group(function () {
             Route::get('/', [ProfileController::class, 'edit'])->name('edit');
             Route::put('/', [ProfileController::class, 'update'])->name('update');
+            Route::get('/postal-lookup', [ProfileController::class, 'postalLookup'])->name('postal.lookup');
             // Follower-digest preview & sample are gated under the dedicated
             // `digests` feature (Editor preset gets digests.view by design)
             // rather than the broader `settings` feature, so editors can
