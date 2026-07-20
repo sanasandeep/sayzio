@@ -1317,6 +1317,37 @@ export default function DialerScreen() {
                   Show your phone's call history here
                 </Text>
               </Pressable>
+            ) : callLogAccess === "denied" ? (
+              <Pressable
+                onPress={() => void Linking.openSettings()}
+                style={({ pressed }) => [
+                  styles.deviceCta,
+                  {
+                    marginHorizontal: 16,
+                    borderColor: colors.border,
+                    backgroundColor: pressed ? colors.muted : colors.card,
+                    opacity: pressed ? 0.85 : 1,
+                  },
+                ]}
+              >
+                <Feather name="phone-off" size={16} color={colors.mutedForeground} />
+                <Text
+                  style={{
+                    color: colors.mutedForeground,
+                    fontFamily: "SpaceGrotesk_500Medium",
+                    fontSize: 13,
+                    marginLeft: 10,
+                    flex: 1,
+                  }}
+                >
+                  Call history is off — enable it in Settings
+                </Text>
+                <Feather
+                  name="external-link"
+                  size={14}
+                  color={colors.mutedForeground}
+                />
+              </Pressable>
             ) : null
           }
           ListEmptyComponent={
