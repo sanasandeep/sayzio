@@ -7,6 +7,7 @@ use App\Modules\User\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 /**
@@ -83,9 +84,7 @@ class SettingsHubLegacyRedirectsTest extends TestCase
         ];
     }
 
-    /**
-     * @dataProvider legacyRedirects
-     */
+    #[DataProvider('legacyRedirects')]
     public function test_legacy_get_path_redirects_into_correct_hub_tab(string $from, string $to): void
     {
         $resp = $this->actingAs($this->owner())->get($from);
@@ -113,9 +112,7 @@ class SettingsHubLegacyRedirectsTest extends TestCase
         ];
     }
 
-    /**
-     * @dataProvider shadowableMutations
-     */
+    #[DataProvider('shadowableMutations')]
     public function test_real_mutation_is_not_shadowed_by_any_verb_redirect(string $method, string $path, string $hubTarget): void
     {
         // Empty body → the controller runs and (typically) fails validation

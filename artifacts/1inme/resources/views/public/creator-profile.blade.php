@@ -100,6 +100,7 @@
         'link'     => 'fas fa-arrow-up-right-from-square',
         'form'     => 'fas fa-wpforms',
     ];
+    $__cpLive = request()->boolean('cp_preview') && auth()->check() && auth()->id() === $creator->id;
 @endphp
 <!DOCTYPE html>
 <html lang="en">
@@ -340,12 +341,12 @@
                     @endif
                 </h1>
                 <p class="text-slate-500 text-sm mt-0.5">@<span class="font-medium">{{ $creator->handle }}</span>
-                    @if($creator->location)
-                        <span class="ml-2 text-slate-400"><i class="fas fa-location-dot mr-1"></i>{{ $creator->location }}</span>
+                    @if($creator->location || $__cpLive)
+                        <span class="ml-2 text-slate-400" data-cp="location-wrap" @if(!$creator->location) style="display:none" @endif><i class="fas fa-location-dot mr-1"></i><span data-cp="location">{{ $creator->location }}</span></span>
                     @endif
                 </p>
-                @if($creator->tagline)
-                    <p class="mt-2 text-slate-700 text-base">{{ $creator->tagline }}</p>
+                @if($creator->tagline || $__cpLive)
+                    <p class="mt-2 text-slate-700 text-base" data-cp="tagline" @if(!$creator->tagline) style="display:none" @endif>{{ $creator->tagline }}</p>
                 @endif
                 @if(is_array($creator->niche_tags) && count($creator->niche_tags))
                     <div class="mt-3 flex flex-wrap gap-1.5">
@@ -488,10 +489,10 @@
         @endif
 
         {{-- ── About ───────────────────────────────────────────── --}}
-        @if(($sectionsVisible['about'] ?? true) && !empty($creator->bio))
-            <section class="cp-card mt-3 p-5">
+        @if(($sectionsVisible['about'] ?? true) && (!empty($creator->bio) || $__cpLive))
+            <section class="cp-card mt-3 p-5" data-cp="bio-section" @if(empty($creator->bio)) style="display:none" @endif>
                 <h2 class="text-xs uppercase tracking-wider text-slate-500 font-semibold mb-2">About</h2>
-                <p class="text-sm text-slate-700 whitespace-pre-line leading-relaxed">{{ $creator->bio }}</p>
+                <p class="text-sm text-slate-700 whitespace-pre-line leading-relaxed" data-cp="bio">{{ $creator->bio }}</p>
             </section>
         @endif
 
@@ -776,5 +777,35 @@
 
 @include('public.partials.creator-tip-modal')
 
+@if($__cpLive)
+<script>
+(function () {
+    function txt(key, val) {
+        var el = document.querySelector('[data-cp="' + key + '"]');
+        if (el) el.textContent = val || '';
+        return el;
+    }
+    window.addEventListener('message', function (e) {
+        if (e.origin !== window.location.origin) return;
+        var d = e.data || {};
+        if (d.type !== 'cpLive') return;
+        var tagEl = txt('tagline', d.tagline);
+        if (tagEl) tagEl.style.display = d.tagline ? '' : 'none';
+        txt('location', d.location);
+        var locWrap = document.querySelector('[data-cp="location-wrap"]');
+        if (locWrap) locWrap.style.display = d.location ? '' : 'none';
+        txt('bio', d.bio);
+        var bioSec = document.querySelector('[data-cp="bio-section"]');
+        if (bioSec) bioSec.style.display = d.bio ? '' : 'none';
+        if (typeof d.color === 'string' && /^#[0-9a-fA-F]{6}$/.test(d.color)) {
+            var r = document.documentElement.style;
+            r.setProperty('--cp-accent', d.color);
+            r.setProperty('--cp-accent-soft', d.color + '33');
+            r.setProperty('--cp-accent-mid', d.color + '88');
+        }
+    });
+})();
+</script>
+@endif
 </body>
 </html>

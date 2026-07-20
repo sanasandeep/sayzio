@@ -28,6 +28,24 @@
         </div>
     @endif
 
+    <div class="xl:flex xl:items-start xl:gap-6"
+         @input.debounce.300ms="pvLive()" @change.debounce.150ms="pvLive()" @click.debounce.300ms="pvLive()"
+         x-data="{
+             pvMode: ['mini','small','large','full'].includes(localStorage.getItem('cp_pv_mode')) ? localStorage.getItem('cp_pv_mode') : 'small',
+             pvSizes: { mini: 220, small: 320, large: 430 },
+             pvBase: 390,
+             pvBaseH: 760,
+             get pvPaneW() { return this.pvSizes[this.pvMode] || this.pvSizes.small; },
+             get pvScale() { return (this.pvPaneW - 26) / this.pvBase; },
+             setMode(m) { this.pvMode = m; localStorage.setItem('cp_pv_mode', m); },
+             pvReload() { const f = this.$refs.pvFrame; if (f) f.src = f.src; const g = this.$refs.pvFrameFull; if (g && this.pvMode === 'full') g.src = g.src; },
+             pvField(n) { const el = document.querySelector('[name=' + n + ']'); return el ? el.value : null; },
+             pvLive() {
+                 const msg = { type: 'cpLive', tagline: this.pvField('tagline'), location: this.pvField('location'), bio: this.pvField('bio'), color: this.pvField('profile_theme_color') };
+                 [this.$refs.pvFrame, this.$refs.pvFrameFull].forEach(f => { try { if (f && f.contentWindow) f.contentWindow.postMessage(msg, window.location.origin); } catch (e) {} });
+             }
+         }">
+    <div class="flex-1 min-w-0">
     {{-- ── Completeness meter ───────────────────────────── --}}
     <div class="rounded-2xl p-5 mb-6" style="background: var(--bg-card); border: 1px solid var(--border-soft);">
         <div class="flex items-center justify-between mb-2">
@@ -57,7 +75,7 @@
     @endif
 
     {{-- ── Main editor ──────────────────────────────────── --}}
-    <form action="{{ route('user.creator-profile.update') }}" method="POST" enctype="multipart/form-data" class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+    <form action="{{ route('user.creator-profile.update') }}" method="POST" enctype="multipart/form-data" class="grid grid-cols-1 lg:grid-cols-2 items-start" style="column-gap: 1.75rem; row-gap: 2.75rem;">
         @csrf
 
         {{-- Hero --}}
@@ -398,7 +416,7 @@
                 'card_heading' => 'background:#fff;border-left:3px solid #3d6bff;border-radius:0 6px 6px 0;padding:4px 6px;color:#3d6bff;text-align:left;',
             ];
         @endphp
-        <fieldset class="rounded-2xl px-4 pt-2 pb-4 lg:col-span-2" style="background: var(--bg-card); border: 1px solid var(--border-soft);"
+        <fieldset class="rounded-2xl px-5 pt-3 pb-5 lg:col-span-2" style="background: var(--bg-card); border: 1px solid var(--border-soft);"
                   x-data="{
                       featured: {{ Js::from($showcaseFeaturedLinks) }},
                       style: {{ Js::from($featuredLinksStyle) }},
@@ -517,7 +535,7 @@
         </fieldset>
 
         {{-- ── Task #5431: Showcase ─────────────────────────────── --}}
-        <fieldset class="rounded-2xl px-4 pt-2 pb-4 lg:col-span-2" style="background: var(--bg-card); border: 1px solid var(--border-soft);"
+        <fieldset class="rounded-2xl px-5 pt-3 pb-5 lg:col-span-2" style="background: var(--bg-card); border: 1px solid var(--border-soft);"
                   x-data="{
                       items: {{ Js::from(array_values($showcase['showcase_items'] ?? [])) }},
                       showcaseTypes: {{ Js::from($showcaseItemTypes) }},
@@ -606,7 +624,7 @@
         </fieldset>
 
         {{-- ── Task #5431: Highlights strip ────────────────────── --}}
-        <fieldset class="rounded-2xl px-4 pt-2 pb-4" style="background: var(--bg-card); border: 1px solid var(--border-soft);">
+        <fieldset class="rounded-2xl px-5 pt-3 pb-5" style="background: var(--bg-card); border: 1px solid var(--border-soft);">
             <legend class="text-sm font-bold px-2" style="color: var(--text-primary);">
                 <i class="fas fa-chart-bar mr-1 text-sky-500"></i> Highlights strip
             </legend>
@@ -639,7 +657,7 @@
         </fieldset>
 
         {{-- ── Task #5431: CTA / Contact block ─────────────────── --}}
-        <fieldset class="rounded-2xl px-4 pt-2 pb-4" style="background: var(--bg-card); border: 1px solid var(--border-soft);"
+        <fieldset class="rounded-2xl px-5 pt-3 pb-5" style="background: var(--bg-card); border: 1px solid var(--border-soft);"
                   x-data="{
                       primary: {{ Js::from($showcase['cta']['primary'] ?? null) }},
                       secondary: {{ Js::from(array_values($showcase['cta']['secondary'] ?? [])) }},
@@ -744,7 +762,7 @@
         </fieldset>
 
         {{-- Publish --}}
-        <fieldset class="rounded-2xl px-4 pt-2 pb-4" style="background: var(--bg-card); border: 1px solid var(--border-soft);">
+        <fieldset class="rounded-2xl px-5 pt-3 pb-5" style="background: var(--bg-card); border: 1px solid var(--border-soft);">
             <legend class="text-sm font-bold px-2" style="color: var(--text-primary);">Publish</legend>
             <label class="flex items-start gap-3 p-2.5 rounded-lg cursor-pointer" style="background: var(--bg-input, #fff); border: 1px solid var(--border-soft);">
                 <input type="hidden" name="profile_published" value="0">
@@ -767,5 +785,85 @@
             </button>
         </div>
     </form>
+    </div>{{-- /left column --}}
+
+    {{-- ── Live preview pane ────────────────────────────── --}}
+    <aside class="hidden xl:block shrink-0 sticky top-24 transition-all duration-300"
+           :style="'width:' + pvPaneW + 'px'">
+        <div class="rounded-2xl overflow-hidden" style="background: var(--bg-card); border: 1px solid var(--border-soft);">
+            <div class="flex items-center justify-between gap-2 px-3 py-2" style="border-bottom: 1px solid var(--border-glass);">
+                <p class="text-[11px] uppercase tracking-wider font-semibold truncate" style="color: var(--text-dimmed);">
+                    <i class="fas fa-eye mr-1"></i><span x-show="pvMode !== 'mini'">Live preview</span>
+                </p>
+                <div class="flex items-center gap-1">
+                    <template x-for="m in [['mini','Mini'],['small','Small'],['large','Large']]" :key="m[0]">
+                        <button type="button" @click="setMode(m[0])"
+                                class="text-[10px] font-semibold px-2 py-1 rounded-md"
+                                :style="pvMode === m[0]
+                                    ? 'background: rgba(61,107,255,0.15); color: var(--color-primary-500, #3d6bff);'
+                                    : 'color: var(--text-dimmed);'"
+                                x-text="m[1]"></button>
+                    </template>
+                    @if($profileUrl)
+                    <button type="button" @click="setMode('full')" title="Full preview"
+                            class="text-[10px] font-semibold px-2 py-1 rounded-md" style="color: var(--text-dimmed);">
+                        <i class="fas fa-expand"></i>
+                    </button>
+                        <button type="button" @click="pvReload()" title="Refresh preview"
+                                class="text-[10px] font-semibold px-2 py-1 rounded-md" style="color: var(--text-dimmed);">
+                            <i class="fas fa-rotate-right"></i>
+                        </button>
+                    @endif
+                </div>
+            </div>
+            @if($profileUrl)
+                <div class="p-3">
+                    <div class="rounded-xl overflow-hidden mx-auto" style="border: 1px solid var(--border-glass);"
+                         :style="'width:' + (pvBase * pvScale) + 'px; height:' + (pvBaseH * pvScale) + 'px;'">
+                        <iframe x-ref="pvFrame" src="{{ $profileUrl }}?cp_preview=1" title="Profile preview" loading="lazy" @load="pvLive()"
+                                style="width: 390px; height: 760px; transform-origin: top left; border: 0; pointer-events: none;"
+                                :style="'transform: scale(' + pvScale + ');'"></iframe>
+                    </div>
+                    <p class="text-[10px] mt-2 text-center" style="color: var(--text-dimmed);" x-show="pvMode !== 'mini'">
+                        Save the form, then hit <i class="fas fa-rotate-right"></i> to refresh.
+                    </p>
+                </div>
+            @else
+                <div class="p-4 text-center">
+                    <i class="fas fa-id-badge text-2xl mb-2" style="color: var(--text-dimmed);"></i>
+                    <p class="text-xs" style="color: var(--text-dimmed);">Claim your handle above to see a live preview of your public profile here.</p>
+                </div>
+            @endif
+        </div>
+    </aside>
+
+    {{-- ── Full-screen preview overlay ──────────────────── --}}
+    @if($profileUrl)
+        <div x-show="pvMode === 'full'" x-cloak class="fixed inset-0 z-[90] flex flex-col"
+                 style="background: rgba(10,12,24,0.85); backdrop-filter: blur(6px);"
+                 @keydown.escape.window="if (pvMode === 'full') setMode('small')">
+                <div class="flex items-center justify-between px-4 py-3">
+                    <p class="text-sm font-bold text-white"><i class="fas fa-eye mr-2"></i>Profile preview — {{ '/@' . $user->handle }}</p>
+                    <div class="flex items-center gap-2">
+                        <button type="button" @click="pvReload()" class="text-xs font-semibold px-3 py-2 rounded-lg text-white" style="background: rgba(255,255,255,0.12);">
+                            <i class="fas fa-rotate-right mr-1"></i> Refresh
+                        </button>
+                        <a href="{{ $profileUrl }}" target="_blank" rel="noopener" class="text-xs font-semibold px-3 py-2 rounded-lg text-white" style="background: rgba(255,255,255,0.12);">
+                            <i class="fas fa-up-right-from-square mr-1"></i> Open
+                        </a>
+                        <button type="button" @click="setMode('small')" class="text-xs font-semibold px-3 py-2 rounded-lg text-white" style="background: rgba(255,255,255,0.12);">
+                            <i class="fas fa-xmark mr-1"></i> Close
+                        </button>
+                    </div>
+                </div>
+                <div class="flex-1 px-4 pb-4 min-h-0">
+                    <template x-if="pvMode === 'full'">
+                        <iframe x-ref="pvFrameFull" src="{{ $profileUrl }}?cp_preview=1" title="Profile preview (full)" @load="pvLive()"
+                                class="w-full h-full rounded-xl bg-white" style="border: 0;"></iframe>
+                    </template>
+                </div>
+            </div>
+    @endif
+    </div>{{-- /xl:flex --}}
 </div>
 @endsection

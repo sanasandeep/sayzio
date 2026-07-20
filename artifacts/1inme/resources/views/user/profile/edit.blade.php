@@ -138,7 +138,7 @@
                              cityEdited: false,
                              regionEdited: false,
                              lookupTimer: null,
-                             lookupUrl: @js(route('profile.postal.lookup')),
+                             lookupUrl: @js(route('user.profile.postal.lookup')),
                              onCountryInput(val) {
                                  this.billingCountry = val;
                                  this.scheduleLookup();

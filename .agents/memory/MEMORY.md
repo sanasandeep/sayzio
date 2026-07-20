@@ -155,3 +155,4 @@
 - [Bulk copy sweeps via guard file:line output](text-sweep-guard-line-numbers.md) — span-blanking scanners must preserve newlines or line numbers drift and bulk fixers edit the wrong lines.
 - [Link model has no factory](link-model-no-factory.md) — Link::factory() tests fail at boot (coverage illusory); links SEO column is seo_title not meta_title; create links via Link::create + workspace binding.
 - [Query-columns static guard](query-columns-guard.md) — 3-tier literal-column validation w/ per-file SQL-alias learning; workspaces/follows/vault use owner_user_id/creator_id/created_by_user_id, never user_id.
+- [Route::redirect in prefixed groups](route-redirect-prefixed-group.md) — relative destinations double the group prefix (/user/user/...→404); always lead with /; PHPUnit 12 needs #[DataProvider] attrs or tests silently never run.
