@@ -395,12 +395,15 @@
                 </div>
 
                 <div class="flex justify-end">
-                    <form method="POST" action="{{ route('user.creator-digest.sample') }}" onclick="event.stopPropagation()">
-                        @csrf
-                        <button class="text-xs font-semibold px-3 py-1.5 rounded-lg" style="background: var(--bg-input, #fff); border: 1px solid var(--border-soft); color: var(--text-primary);">
-                            <i class="fas fa-paper-plane mr-1"></i> Send me a sample weekly digest
-                        </button>
-                    </form>
+                    {{-- Submits the standalone #cp-digest-sample-form declared after the
+                         main form. A nested <form> here is invalid HTML: the browser
+                         closes the OUTER form at the inner </form>, dumping every later
+                         fieldset + the save bar out of the form grid (broke the row
+                         gaps and the sticky save row). --}}
+                    <button type="submit" form="cp-digest-sample-form" onclick="event.stopPropagation()"
+                            class="text-xs font-semibold px-3 py-1.5 rounded-lg" style="background: var(--bg-input, #fff); border: 1px solid var(--border-soft); color: var(--text-primary);">
+                        <i class="fas fa-paper-plane mr-1"></i> Send me a sample weekly digest
+                    </button>
                 </div>
             </div>
         </fieldset>
@@ -785,6 +788,14 @@
                 <i class="fas fa-save mr-1"></i> Save profile
             </button>
         </div>
+    </form>
+
+    {{-- Standalone target for the "Send me a sample weekly digest" button
+         (linked via the button's form="cp-digest-sample-form" attribute).
+         Must live OUTSIDE the main profile form — see the nested-form note
+         at the button. --}}
+    <form id="cp-digest-sample-form" method="POST" action="{{ route('user.creator-digest.sample') }}">
+        @csrf
     </form>
     </div>{{-- /left column --}}
 

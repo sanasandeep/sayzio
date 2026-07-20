@@ -380,6 +380,10 @@ args = "e2e-mobile-og-preview"
 task = "workflow.run"
 args = "query-columns"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-cp-gaps-sticky"
+
 [[workflows.workflow]]
 name = "e2e"
 author = "agent"
@@ -1578,6 +1582,17 @@ args = "cd artifacts/1inme && composer check:query-columns"
 
 [workflows.workflow.metadata]
 isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-cp-gaps-sticky"
+author = "agent"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "bash artifacts/1inme/tests/Browser/run-validation.sh creator-profile-gaps-sticky.spec.ts"
 
 
 [agent]
