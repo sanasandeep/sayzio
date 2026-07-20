@@ -75,7 +75,7 @@
     @endif
 
     {{-- ── Main editor ──────────────────────────────────── --}}
-    <form action="{{ route('user.creator-profile.update') }}" method="POST" enctype="multipart/form-data" class="grid grid-cols-1 lg:grid-cols-2 items-start" style="column-gap: 1.75rem; row-gap: 2.75rem;">
+    <form action="{{ route('user.creator-profile.update') }}" method="POST" enctype="multipart/form-data" class="grid grid-cols-1 lg:grid-cols-2 items-start" style="display: grid; column-gap: 2rem; row-gap: 3.5rem;">
         @csrf
 
         {{-- Hero --}}
@@ -776,7 +776,8 @@
             </label>
         </fieldset>
 
-        <div class="flex justify-end gap-2 lg:col-span-2">
+        <div class="flex justify-end items-center gap-2 lg:col-span-2 sticky bottom-0 z-40 rounded-xl px-4 py-3 -mx-1"
+             style="background: color-mix(in srgb, var(--bg-card) 82%, transparent); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border: 1px solid var(--border-soft); box-shadow: 0 -6px 24px rgba(0,0,0,0.18); margin-top: -1.5rem;">
             <a href="{{ route('user.posts.index') }}" class="text-xs font-semibold px-4 py-2 rounded-lg" style="background: var(--bg-card); border: 1px solid var(--border-soft); color: var(--text-primary);">
                 Manage posts
             </a>
