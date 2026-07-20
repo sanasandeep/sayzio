@@ -97,6 +97,17 @@ class CreatorProfilePublicController extends Controller
         // profile share one ranking definition.
         $relatedCreators = \App\Modules\Common\Controllers\CreatorsController::relatedCreators($creator, $viewer, 6);
 
+        // Task #5431 — profile showcase data.
+        $showcase          = $creator->resolvedProfileShowcase();
+        $featuredLinks     = $this->resolveFeaturedLinks($creator, $showcase, $sectionsVisible);
+        $showcaseCards     = $this->resolveShowcaseCards($creator, $showcase, $sectionsVisible);
+        $totalPublicLinks  = Link::query()
+            ->withoutGlobalScope('workspace')
+            ->where('user_id', $creator->id)
+            ->where('is_active', true)
+            ->where('visibility', 'public')
+            ->count();
+
         return view('public.creator-profile', array_merge($feed, [
             'creator'         => $creator,
             'primaryBiolink'  => $primaryBiolink,
@@ -106,6 +117,11 @@ class CreatorProfilePublicController extends Controller
             'relatedCreators' => $relatedCreators,
             'upcomingEvents'  => $upcomingEvents,
             'ageGateRequired' => $ageGateRequired,
+            // Showcase data (Task #5431).
+            'showcase'        => $showcase,
+            'featuredLinks'   => $featuredLinks,
+            'showcaseCards'   => $showcaseCards,
+            'totalPublicLinks'=> $totalPublicLinks,
         ]));
     }
 
@@ -409,6 +425,77 @@ class CreatorProfilePublicController extends Controller
         }
 
         return response()->json(['success' => true]);
+    }
+
+    /**
+     * Resolve featured links in the owner-defined order, respecting
+     * visibility (only public links appear to visitors; owner sees all active).
+     *
+     * @return array<int, array<string,mixed>>
+     */
+    private function resolveFeaturedLinks(User $creator, array $showcase, array $sectionsVisible): array
+    {
+        if (empty($sectionsVisible['featured_links'])) return [];
+        $ids = array_values(array_filter(
+            array_map('intval', (array) ($showcase['featured_link_ids'] ?? []))
+        ));
+        if (empty($ids)) return [];
+
+        $links = Link::query()
+            ->withoutGlobalScope('workspace')
+            ->where('user_id', $creator->id)
+            ->where('is_active', true)
+            ->where('visibility', 'public')
+            ->whereIn('id', $ids)
+            ->get()
+            ->keyBy('id');
+
+        // Preserve owner-defined order.
+        $ordered = [];
+        foreach ($ids as $id) {
+            if (isset($links[$id])) {
+                $ordered[] = $links[$id];
+            }
+        }
+        return $ordered;
+    }
+
+    /**
+     * Resolve showcase card data for each opt-in item, loading the
+     * minimum data each card type needs to render.
+     *
+     * @return array<int, array<string,mixed>>
+     */
+    private function resolveShowcaseCards(User $creator, array $showcase, array $sectionsVisible): array
+    {
+        if (empty($sectionsVisible['showcase'])) return [];
+        $items = is_array($showcase['showcase_items'] ?? null) ? $showcase['showcase_items'] : [];
+        if (empty($items)) return [];
+
+        $linkIds = array_values(array_unique(array_column($items, 'link_id')));
+        $links = Link::query()
+            ->withoutGlobalScope('workspace')
+            ->where('user_id', $creator->id)
+            ->where('is_active', true)
+            ->where('visibility', 'public')
+            ->whereIn('id', $linkIds)
+            ->with(['icsData'])
+            ->get()
+            ->keyBy('id');
+
+        $cards = [];
+        foreach ($items as $item) {
+            $linkId = (int) ($item['link_id'] ?? 0);
+            $type   = (string) ($item['type'] ?? '');
+            $link   = $links[$linkId] ?? null;
+            if (!$link) continue;
+            $cards[] = [
+                'type'     => $type,
+                'link'     => $link,
+                'ics_data' => $link->icsData ?? null,
+            ];
+        }
+        return $cards;
     }
 
     private function resolveCreator(string $handle): ?User

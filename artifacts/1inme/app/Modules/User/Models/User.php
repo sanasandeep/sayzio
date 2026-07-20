@@ -61,7 +61,7 @@ class User extends Authenticatable
         'image_reoptimize_notice_dismissed_at',
         // Creator Profile (separate /@handle surface — see Task #1207).
         'cover_image', 'tagline', 'location', 'niche_tags', 'socials',
-        'profile_published', 'profile_section_visibility', 'posts_count',
+        'profile_published', 'profile_section_visibility', 'profile_showcase', 'posts_count',
         // Creator payouts + NSFW consent (Task #1208).
         'adult_content_enabled', 'adult_content_enabled_at',
         'age_verified_at',
@@ -166,6 +166,7 @@ class User extends Authenticatable
             'niche_tags' => 'array',
             'socials' => 'array',
             'profile_section_visibility' => 'array',
+            'profile_showcase' => 'array',
             'profile_published' => 'boolean',
             'posts_count' => 'integer',
             // Creator payouts + NSFW consent (Task #1208).
@@ -293,14 +294,75 @@ class User extends Authenticatable
      * is intentionally absent from the editor.
      */
     public const PROFILE_DEFAULT_VISIBILITY = [
-        'stats'   => true,
-        'about'   => true,
-        'posts'   => true,
-        'socials' => true,
-        'biolink' => true,
-        'contact' => true,
-        'events'  => true,
+        'stats'          => true,
+        'about'          => true,
+        'posts'          => true,
+        'socials'        => true,
+        'biolink'        => true,
+        'contact'        => true,
+        'events'         => true,
+        // Showcase additions (Task #5431).
+        'featured_links' => true,
+        'showcase'       => true,
+        'highlights'     => true,
+        'cta'            => true,
     ];
+
+    /**
+     * Default structure for profile_showcase when no value is stored yet.
+     * All showcased items and CTA buttons are opt-in so the array is empty
+     * by default; only booleans need a default value.
+     *
+     * @return array<string,mixed>
+     */
+    public static function defaultProfileShowcase(): array
+    {
+        return [
+            'featured_link_ids' => [],
+            'show_link_stats'   => false,
+            'showcase_items'    => [],
+            'highlights' => [
+                'show_followers'   => true,
+                'show_links'       => true,
+                'show_member_since'=> true,
+                'show_verified'    => true,
+            ],
+            'cta' => [
+                'primary'   => null,
+                'secondary' => [],
+            ],
+        ];
+    }
+
+    /**
+     * Return the resolved showcase config — stored value merged over the
+     * defaults so callers never have to null-check every key.
+     *
+     * @return array<string,mixed>
+     */
+    public function resolvedProfileShowcase(): array
+    {
+        $stored = is_array($this->profile_showcase) ? $this->profile_showcase : [];
+        $defaults = self::defaultProfileShowcase();
+
+        return [
+            'featured_link_ids' => array_values(array_filter(
+                array_map('intval', (array) ($stored['featured_link_ids'] ?? $defaults['featured_link_ids']))
+            )),
+            'show_link_stats'   => (bool) ($stored['show_link_stats'] ?? $defaults['show_link_stats']),
+            'showcase_items'    => is_array($stored['showcase_items'] ?? null)
+                ? $stored['showcase_items']
+                : $defaults['showcase_items'],
+            'highlights'        => array_merge(
+                $defaults['highlights'],
+                is_array($stored['highlights'] ?? null) ? $stored['highlights'] : []
+            ),
+            'cta' => [
+                'primary'   => $stored['cta']['primary'] ?? null,
+                'secondary' => is_array($stored['cta']['secondary'] ?? null) ? $stored['cta']['secondary'] : [],
+            ],
+        ];
+    }
 
     public function profileSectionVisibility(): array
     {

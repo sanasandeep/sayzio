@@ -7,13 +7,13 @@ import {
 } from "@tanstack/react-query";
 import { Image } from "expo-image";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
-import { useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
   Linking,
   Pressable,
   RefreshControl,
+  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -379,6 +379,112 @@ export default function CreatorProfileScreen() {
               </SectionCard>
             ) : null}
 
+            {/* ── Highlights strip (Task #5431) ──────────────────────── */}
+            {sections.highlights ? (() => {
+              const hl = profile.showcase.highlights;
+              const items: { label: string; value: string }[] = [];
+              if (hl.show_followers)
+                items.push({ label: "Followers", value: Intl.NumberFormat().format(profile.followers_count) });
+              if (hl.show_links && profile.total_public_links > 0)
+                items.push({ label: "Links", value: Intl.NumberFormat().format(profile.total_public_links) });
+              if (hl.show_member_since)
+                items.push({ label: "Since", value: new Date(profile.created_at ?? Date.now()).getFullYear().toString() });
+              if (items.length === 0) return null;
+              return (
+                <View
+                  style={[
+                    styles.highlightStrip,
+                    { backgroundColor: colors.card, borderColor: colors.border, borderRadius: colors.radius },
+                  ]}
+                >
+                  {items.map((item, i) => (
+                    <View key={item.label} style={[styles.highlightPill, i > 0 && { borderLeftWidth: 1, borderLeftColor: colors.border }]}>
+                      <Text style={[styles.highlightValue, { color: colors.foreground }]}>{item.value}</Text>
+                      <Text style={[styles.highlightLabel, { color: colors.mutedForeground }]}>{item.label}</Text>
+                    </View>
+                  ))}
+                </View>
+              );
+            })() : null}
+
+            {/* ── CTA / Contact block (Task #5431) ───────────────────── */}
+            {sections.cta && profile.showcase.cta.primary ? (
+              <SectionCard title="Get in touch" colors={colors}>
+                <View style={{ gap: 8 }}>
+                  {[profile.showcase.cta.primary, ...profile.showcase.cta.secondary]
+                    .filter(Boolean)
+                    .map((btn, i) => {
+                      const href = ctaHref(btn!.kind, btn!.value);
+                      const label = btn!.label || ctaDefaultLabel(btn!.kind);
+                      return (
+                        <Button
+                          key={i}
+                          label={label}
+                          variant={i === 0 ? "primary" : "outline"}
+                          onPress={() => href && Linking.openURL(href)}
+                        />
+                      );
+                    })}
+                </View>
+              </SectionCard>
+            ) : null}
+
+            {/* ── Featured links (Task #5431) ─────────────────────────── */}
+            {sections.featured_links && profile.featured_links.length > 0 ? (
+              <SectionCard title="Featured" colors={colors}>
+                <View style={{ gap: 8 }}>
+                  {profile.featured_links.map((fl) => (
+                    <Pressable
+                      key={fl.id}
+                      onPress={() => Linking.openURL(fl.url)}
+                      style={[styles.featLinkRow, { borderColor: colors.border }]}
+                    >
+                      <View style={{ flex: 1 }}>
+                        <Text style={{ color: colors.foreground, fontWeight: "600" }} numberOfLines={1}>
+                          {fl.title || fl.alias}
+                        </Text>
+                        <Text style={{ color: colors.mutedForeground, fontSize: 11, marginTop: 2 }}>
+                          {fl.type.toUpperCase()}
+                          {fl.clicks !== null ? `  ·  ${Intl.NumberFormat().format(fl.clicks)} clicks` : ""}
+                        </Text>
+                      </View>
+                      <Feather name="external-link" size={14} color={colors.mutedForeground} />
+                    </Pressable>
+                  ))}
+                </View>
+              </SectionCard>
+            ) : null}
+
+            {/* ── Showcase cards (Task #5431) ─────────────────────────── */}
+            {sections.showcase && profile.showcase_cards.length > 0 ? (
+              <SectionCard title="Showcase" colors={colors}>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -4 }}>
+                  <View style={{ flexDirection: "row", gap: 10, paddingHorizontal: 4 }}>
+                    {profile.showcase_cards.map((card) => (
+                      <Pressable
+                        key={`${card.type}-${card.id}`}
+                        onPress={() => Linking.openURL(card.url)}
+                        style={[
+                          styles.showcaseCard,
+                          { backgroundColor: colors.background, borderColor: colors.border },
+                        ]}
+                      >
+                        <Text style={{ color: colors.primary, fontSize: 20, textAlign: "center" }}>
+                          {showcaseEmoji(card.type)}
+                        </Text>
+                        <Text style={{ color: colors.foreground, fontSize: 12, fontWeight: "600", marginTop: 6, textAlign: "center" }} numberOfLines={2}>
+                          {card.title || card.alias}
+                        </Text>
+                        <Text style={{ color: colors.mutedForeground, fontSize: 10, marginTop: 4, textAlign: "center" }}>
+                          {showcaseTypeLabel(card.type)}
+                        </Text>
+                      </Pressable>
+                    ))}
+                  </View>
+                </ScrollView>
+              </SectionCard>
+            ) : null}
+
             {/* Posts header */}
             <Text
               style={[
@@ -424,6 +530,54 @@ export default function CreatorProfileScreen() {
       />
     </View>
   );
+}
+
+function ctaHref(kind: string, value: string): string | null {
+  if (!value) return null;
+  switch (kind) {
+    case "email":    return `mailto:${value}`;
+    case "whatsapp": return `https://wa.me/${value.replace(/[^0-9+]/g, "")}`;
+    case "call":     return `tel:${value}`;
+    case "form":     return `/${value}`;
+    case "link":
+    default:         return value.startsWith("http") ? value : `https://${value}`;
+  }
+}
+
+function ctaDefaultLabel(kind: string): string {
+  switch (kind) {
+    case "email":    return "Email me";
+    case "whatsapp": return "WhatsApp me";
+    case "call":     return "Call me";
+    case "form":     return "Fill out a form";
+    default:         return "Visit";
+  }
+}
+
+function showcaseEmoji(type: string): string {
+  switch (type) {
+    case "qr":              return "⬛";
+    case "form":            return "📋";
+    case "ics":             return "📅";
+    case "vcard":           return "💳";
+    case "resume":          return "📄";
+    case "restaurant_menu": return "🍽️";
+    case "store_menu":      return "🛍️";
+    default:                return "🔗";
+  }
+}
+
+function showcaseTypeLabel(type: string): string {
+  switch (type) {
+    case "qr":              return "QR Code";
+    case "form":            return "Form";
+    case "ics":             return "Event";
+    case "vcard":           return "Digital Card";
+    case "resume":          return "Resume";
+    case "restaurant_menu": return "Restaurant";
+    case "store_menu":      return "Store";
+    default:                return type;
+  }
 }
 
 function Stat({
@@ -546,5 +700,44 @@ const styles = StyleSheet.create({
     marginBottom: 6,
     fontFamily: "SpaceGrotesk_700Bold",
     fontSize: 18,
+  },
+  highlightStrip: {
+    marginHorizontal: 16,
+    marginTop: 14,
+    flexDirection: "row",
+    borderWidth: 1,
+    overflow: "hidden",
+  },
+  highlightPill: {
+    flex: 1,
+    alignItems: "center",
+    paddingVertical: 10,
+    paddingHorizontal: 8,
+  },
+  highlightValue: {
+    fontSize: 17,
+    fontWeight: "800",
+  },
+  highlightLabel: {
+    fontSize: 10,
+    marginTop: 2,
+    textTransform: "uppercase",
+    letterSpacing: 0.6,
+  },
+  featLinkRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 12,
+    borderWidth: 1,
+    borderRadius: 10,
+    gap: 8,
+  },
+  showcaseCard: {
+    width: 120,
+    padding: 12,
+    borderWidth: 1,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "flex-start",
   },
 });

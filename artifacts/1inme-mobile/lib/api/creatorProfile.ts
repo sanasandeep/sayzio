@@ -16,6 +16,43 @@ export const BRANDED_REACTIONS = [
 
 export type ReactionKey = (typeof BRANDED_REACTIONS)[number]["key"];
 
+export type CtaButton = {
+  kind: "email" | "whatsapp" | "call" | "link" | "form";
+  label: string;
+  value: string;
+};
+
+export type ProfileShowcase = {
+  show_link_stats: boolean;
+  highlights: {
+    show_followers: boolean;
+    show_links: boolean;
+    show_member_since: boolean;
+    show_verified: boolean;
+  };
+  cta: {
+    primary: CtaButton | null;
+    secondary: CtaButton[];
+  };
+};
+
+export type FeaturedLink = {
+  id: number;
+  title: string | null;
+  alias: string;
+  type: string;
+  url: string;
+  clicks: number | null;
+};
+
+export type ShowcaseCard = {
+  type: string;
+  id: number;
+  title: string | null;
+  alias: string;
+  url: string;
+};
+
 export type CreatorProfile = {
   id: number;
   handle: string | null;
@@ -34,13 +71,23 @@ export type CreatorProfile = {
     biolink: boolean;
     contact: boolean;
     stats: boolean;
+    featured_links: boolean;
+    showcase: boolean;
+    highlights: boolean;
+    cta: boolean;
   };
   profile_published: boolean;
   followers_count: number;
   posts_count: number;
+  total_public_links: number;
   is_following: boolean;
   is_owner: boolean;
+  created_at: string | null;
   biolink_url: string | null;
+  // Task #5431 — showcase additions.
+  showcase: ProfileShowcase;
+  featured_links: FeaturedLink[];
+  showcase_cards: ShowcaseCard[];
 };
 
 export type CreatorPostType =

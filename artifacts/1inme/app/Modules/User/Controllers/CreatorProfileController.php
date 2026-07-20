@@ -41,19 +41,70 @@ class CreatorProfileController extends Controller
         'email'     => ['label' => 'Email',         'icon' => 'fas fa-envelope',    'placeholder' => 'you@example.com'],
     ];
 
+    /** Showcase item types the editor knows about (links.type → label + icon). */
+    public const SHOWCASE_ITEM_TYPES = [
+        'qr'              => ['label' => 'QR Code',        'icon' => 'fas fa-qrcode'],
+        'form'            => ['label' => 'Form',           'icon' => 'fas fa-wpforms'],
+        'ics'             => ['label' => 'Event',          'icon' => 'fas fa-calendar-days'],
+        'vcard'           => ['label' => 'Digital Card',   'icon' => 'fas fa-id-card'],
+        'resume'          => ['label' => 'Resume',         'icon' => 'fas fa-file-user'],
+        'restaurant_menu' => ['label' => 'Restaurant Menu','icon' => 'fas fa-utensils'],
+        'store_menu'      => ['label' => 'Store',          'icon' => 'fas fa-store'],
+    ];
+
+    /** Primary CTA action types. */
+    public const CTA_KINDS = [
+        'email'     => ['label' => 'Email me',       'icon' => 'fas fa-envelope',    'hint' => 'email address'],
+        'whatsapp'  => ['label' => 'WhatsApp me',    'icon' => 'fab fa-whatsapp',     'hint' => 'phone number with country code'],
+        'call'      => ['label' => 'Call me',        'icon' => 'fas fa-phone',        'hint' => 'phone number'],
+        'link'      => ['label' => 'Visit a link',   'icon' => 'fas fa-arrow-up-right-from-square', 'hint' => 'https://…'],
+        'form'      => ['label' => 'Fill out a form','icon' => 'fas fa-wpforms',      'hint' => 'select a form below'],
+    ];
+
     public function edit()
     {
         $user = Auth::user();
+        $showcase = $user->resolvedProfileShowcase();
+
+        // Load owner's links for the featured-link picker (all active links).
+        $pickerLinks = \App\Modules\User\Models\Link::query()
+            ->withoutGlobalScope('workspace')
+            ->where('user_id', $user->id)
+            ->where('is_active', true)
+            ->orderByDesc('id')
+            ->get(['id', 'title', 'alias', 'type']);
+
+        // Load owner's links filtered to showcase-eligible types.
+        $showcaseEligibleLinks = $pickerLinks->filter(
+            fn ($l) => array_key_exists($l->type, self::SHOWCASE_ITEM_TYPES)
+        )->values();
+
+        // Load owner's active forms for the CTA form-picker.
+        $formsForCta = \App\Modules\User\Models\Link::query()
+            ->withoutGlobalScope('workspace')
+            ->where('user_id', $user->id)
+            ->where('is_active', true)
+            ->where('type', 'form')
+            ->orderByDesc('id')
+            ->get(['id', 'title', 'alias']);
+
         return view('user.creator-profile.edit', [
-            'user'             => $user,
-            'completeness'     => $user->profileCompletenessPercent(),
-            'sections'         => $user->profileSectionVisibility(),
-            'socials'          => is_array($user->socials) ? $user->socials : [],
-            'nicheTags'        => is_array($user->niche_tags) ? $user->niche_tags : [],
-            'platforms'        => self::SOCIAL_PLATFORMS,
-            'profileUrl'       => $user->handle ? url('/@' . $user->handle) : null,
-            'sectionDefaults'  => User::PROFILE_DEFAULT_VISIBILITY,
-            'organizer'        => $user->organizerProfile(),
+            'user'                  => $user,
+            'completeness'          => $user->profileCompletenessPercent(),
+            'sections'              => $user->profileSectionVisibility(),
+            'socials'               => is_array($user->socials) ? $user->socials : [],
+            'nicheTags'             => is_array($user->niche_tags) ? $user->niche_tags : [],
+            'platforms'             => self::SOCIAL_PLATFORMS,
+            'profileUrl'            => $user->handle ? url('/@' . $user->handle) : null,
+            'sectionDefaults'       => User::PROFILE_DEFAULT_VISIBILITY,
+            'organizer'             => $user->organizerProfile(),
+            // Showcase data.
+            'showcase'              => $showcase,
+            'pickerLinks'           => $pickerLinks,
+            'showcaseEligibleLinks' => $showcaseEligibleLinks,
+            'formsForCta'           => $formsForCta,
+            'showcaseItemTypes'     => self::SHOWCASE_ITEM_TYPES,
+            'ctaKinds'              => self::CTA_KINDS,
         ]);
     }
 
@@ -74,6 +125,25 @@ class CreatorProfileController extends Controller
             'sections'         => 'nullable|array',
             'sections.*'       => 'nullable|in:0,1,true,false',
             'profile_published'=> 'nullable|in:0,1,true,false',
+            // Showcase — Task #5431.
+            'showcase_featured_link_ids'   => 'nullable|array|max:4',
+            'showcase_featured_link_ids.*' => 'integer|min:1',
+            'showcase_show_link_stats'     => 'nullable|in:0,1,true,false',
+            'showcase_items'               => 'nullable|array|max:20',
+            'showcase_items.*'             => 'array',
+            'showcase_items.*.type'        => 'required_with:showcase_items.*|string',
+            'showcase_items.*.link_id'     => 'required_with:showcase_items.*|integer|min:1',
+            'highlights_show_followers'    => 'nullable|in:0,1,true,false',
+            'highlights_show_links'        => 'nullable|in:0,1,true,false',
+            'highlights_show_member_since' => 'nullable|in:0,1,true,false',
+            'highlights_show_verified'     => 'nullable|in:0,1,true,false',
+            'cta_primary_kind'             => 'nullable|string|in:email,whatsapp,call,link,form',
+            'cta_primary_label'            => 'nullable|string|max:80',
+            'cta_primary_value'            => 'nullable|string|max:500',
+            'cta_secondary'                => 'nullable|array|max:3',
+            'cta_secondary.*.kind'         => 'required_with:cta_secondary.*|string|in:email,whatsapp,call,link,form',
+            'cta_secondary.*.label'        => 'required_with:cta_secondary.*|string|max:80',
+            'cta_secondary.*.value'        => 'required_with:cta_secondary.*|string|max:500',
             // Task #1211 — moderation / safety preferences.
             'mute_words_text'         => 'nullable|string|max:4000',
             'watermark_enabled'       => 'nullable|in:0,1,true,false',
@@ -213,6 +283,85 @@ class CreatorProfileController extends Controller
         $organizer['socials'] = $organizerSocials;
 
         $user->organizer_profile = $organizer;
+
+        // ── Task #5431: profile showcase ──────────────────────────────
+        // Validate ownership of every referenced link ID (featured + showcase).
+        // We silently drop IDs that don't belong to the owner rather than
+        // returning a validation error — the picker is pre-filtered to owned
+        // links, so any mismatch is a client-side glitch, not a user mistake.
+        $ownerLinkIds = \App\Modules\User\Models\Link::query()
+            ->withoutGlobalScope('workspace')
+            ->where('user_id', $user->id)
+            ->where('is_active', true)
+            ->pluck('id')
+            ->all();
+
+        $rawFeatured = array_values(array_filter(
+            array_map('intval', (array) ($data['showcase_featured_link_ids'] ?? []))
+        ));
+        $featuredIds = array_values(
+            array_filter($rawFeatured, fn ($id) => in_array($id, $ownerLinkIds, true))
+        );
+
+        $rawShowcaseItems = (array) ($data['showcase_items'] ?? []);
+        $allowedShowcaseTypes = array_keys(self::SHOWCASE_ITEM_TYPES);
+        $showcaseItems = [];
+        foreach ($rawShowcaseItems as $item) {
+            if (!is_array($item)) continue;
+            $type   = (string) ($item['type'] ?? '');
+            $linkId = (int) ($item['link_id'] ?? 0);
+            if (!in_array($type, $allowedShowcaseTypes, true)) continue;
+            if (!in_array($linkId, $ownerLinkIds, true)) continue;
+            $showcaseItems[] = ['type' => $type, 'link_id' => $linkId];
+        }
+
+        // Build primary CTA. Contact details are stored only if the owner
+        // explicitly entered them in this block — never auto-pulled from
+        // account phone/email (spec requirement).
+        $ctaPrimary = null;
+        if (!empty($data['cta_primary_kind'])) {
+            $ctaPrimary = [
+                'kind'  => $data['cta_primary_kind'],
+                'label' => trim((string) ($data['cta_primary_label'] ?? '')),
+                'value' => trim((string) ($data['cta_primary_value'] ?? '')),
+            ];
+            // For kind=form validate the value is an owned form alias.
+            if ($ctaPrimary['kind'] === 'form') {
+                $formExists = \App\Modules\User\Models\Link::query()
+                    ->withoutGlobalScope('workspace')
+                    ->where('user_id', $user->id)
+                    ->where('type', 'form')
+                    ->where('alias', $ctaPrimary['value'])
+                    ->exists();
+                if (!$formExists) $ctaPrimary = null;
+            }
+        }
+
+        $ctaSecondary = [];
+        foreach ((array) ($data['cta_secondary'] ?? []) as $sec) {
+            if (!is_array($sec)) continue;
+            $kind  = (string) ($sec['kind'] ?? '');
+            $label = trim((string) ($sec['label'] ?? ''));
+            $value = trim((string) ($sec['value'] ?? ''));
+            if (!array_key_exists($kind, self::CTA_KINDS) || $label === '' || $value === '') continue;
+            $ctaSecondary[] = ['kind' => $kind, 'label' => $label, 'value' => $value];
+        }
+
+        $user->profile_showcase = [
+            'featured_link_ids' => $featuredIds,
+            'show_link_stats'   => filter_var($data['showcase_show_link_stats'] ?? false, FILTER_VALIDATE_BOOLEAN),
+            'showcase_items'    => $showcaseItems,
+            'highlights' => [
+                'show_followers'    => filter_var($data['highlights_show_followers']    ?? true, FILTER_VALIDATE_BOOLEAN),
+                'show_links'        => filter_var($data['highlights_show_links']        ?? true, FILTER_VALIDATE_BOOLEAN),
+                'show_member_since' => filter_var($data['highlights_show_member_since'] ?? true, FILTER_VALIDATE_BOOLEAN),
+                'show_verified'     => filter_var($data['highlights_show_verified']     ?? true, FILTER_VALIDATE_BOOLEAN),
+            ],
+            'cta' => [
+                'primary'   => $ctaPrimary,
+                'secondary' => array_values($ctaSecondary),
+            ],
+        ];
 
         $user->save();
 
