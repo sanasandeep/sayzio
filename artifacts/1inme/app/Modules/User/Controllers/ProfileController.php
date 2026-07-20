@@ -200,6 +200,13 @@ class ProfileController extends Controller
             'country' => ['nullable', 'string', 'size:2', 'regex:/^[A-Za-z]{2}$/'],
         ]);
 
+        // Verified users have their display name locked server-side. The
+        // edit view hides the input, but ignore any submitted name here too
+        // so a direct POST/API call cannot bypass the lock.
+        if ($user->isNameAvatarLocked()) {
+            unset($validated['name']);
+        }
+
         // Normalize ISO country code to uppercase for the
         // country_currency lookup. Empty string means "no country set".
         if (!empty($validated['country'])) {
