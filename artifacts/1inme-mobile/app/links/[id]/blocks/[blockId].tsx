@@ -214,6 +214,7 @@ import {
   listBlocks,
   updateBlock,
   type Block,
+  type OgMeta,
 } from "@/lib/api/blocks";
 import { variantsForType, findVariant } from "@/lib/blockVariants";
 import { canonicalBlockType } from "@/lib/blockTypeRegistry";
@@ -353,11 +354,14 @@ export function BlockSettingsEditor({
   const [ogFetching, setOgFetching] = useState(false);
   const [ogError, setOgError] = useState("");
   const [ogSuccess, setOgSuccess] = useState(false);
+  // Fetched-but-not-yet-applied OG meta. Instead of silently filling the
+  // form, the fetch stages the result here and a preview card asks the
+  // creator to confirm ("Apply") or discard ("Dismiss") — matching the
+  // web editor's confirm-before-apply preview card.
+  const [ogPreview, setOgPreview] = useState<OgMeta | null>(null);
 
-  // Mirrors the web editor: title/description only fill EMPTY fields,
-  // thumbnail falls back to the favicon. The title lands in whichever
-  // title-ish key this block kind actually uses ("text" for the featured
-  // variants, "label" for the plain link button).
+  // Fetch stages the meta into `ogPreview` for the preview card; nothing
+  // is written into the form until the creator taps Apply.
   const runOgFetch = useCallback(async () => {
     const url = linkUrl.trim();
     if (!url) {
@@ -368,26 +372,14 @@ export function BlockSettingsEditor({
     setOgFetching(true);
     setOgError("");
     setOgSuccess(false);
+    setOgPreview(null);
     try {
       const m = await fetchOgMeta(url);
-      setValues((p) => {
-        const next = { ...p };
-        const titleKey = ["text", "label", "title"].find(
-          (k) => (p[k] ?? "").trim() !== "",
-        )
-          ? null
-          : block?.type === "link"
-            ? "label"
-            : "text";
-        if (m.title && titleKey) next[titleKey] = m.title;
-        if (m.description && !(p.description ?? "").trim())
-          next.description = m.description;
-        const img = m.image_url || m.favicon_url;
-        if (img && block?.type !== "featured_pin" && !(p.thumbnail ?? "").trim())
-          next.thumbnail = img;
-        return next;
-      });
-      setOgSuccess(true);
+      if (!m.title && !m.description && !m.image_url && !m.favicon_url) {
+        setOgError("No details found for that page.");
+        return;
+      }
+      setOgPreview(m);
     } catch (e) {
       setOgError(
         (e as { message?: string })?.message || "Could not fetch page details.",
@@ -395,7 +387,35 @@ export function BlockSettingsEditor({
     } finally {
       setOgFetching(false);
     }
-  }, [linkUrl, block?.type]);
+  }, [linkUrl]);
+
+  // Mirrors the web editor: title/description only fill EMPTY fields,
+  // thumbnail falls back to the favicon. The title lands in whichever
+  // title-ish key this block kind actually uses ("text" for the featured
+  // variants, "label" for the plain link button).
+  const applyOgPreview = useCallback(() => {
+    const m = ogPreview;
+    if (!m) return;
+    setValues((p) => {
+      const next = { ...p };
+      const titleKey = ["text", "label", "title"].find(
+        (k) => (p[k] ?? "").trim() !== "",
+      )
+        ? null
+        : block?.type === "link"
+          ? "label"
+          : "text";
+      if (m.title && titleKey) next[titleKey] = m.title;
+      if (m.description && !(p.description ?? "").trim())
+        next.description = m.description;
+      const img = m.image_url || m.favicon_url;
+      if (img && block?.type !== "featured_pin" && !(p.thumbnail ?? "").trim())
+        next.thumbnail = img;
+      return next;
+    });
+    setOgPreview(null);
+    setOgSuccess(true);
+  }, [ogPreview, block?.type]);
 
   // Pull the parent biolink so the resolved-URL preview can read the
   // biolink-wide auto_utm defaults and slug. Cached by the same key the
@@ -2227,6 +2247,78 @@ export function BlockSettingsEditor({
               <Text style={{ color: "#4ade80", fontSize: 11 }}>
                 Details pre-filled below.
               </Text>
+            ) : null}
+            {ogPreview ? (
+              <View
+                style={{
+                  marginTop: 6,
+                  padding: 10,
+                  gap: 10,
+                  backgroundColor: colors.card,
+                  borderColor: colors.border,
+                  borderWidth: 1,
+                  borderRadius: colors.radius,
+                }}
+              >
+                <View style={{ flexDirection: "row", gap: 10, alignItems: "center" }}>
+                  {ogPreview.image_url || ogPreview.favicon_url ? (
+                    <Image
+                      source={{ uri: ogPreview.image_url || ogPreview.favicon_url || undefined }}
+                      style={{
+                        width: 48,
+                        height: 48,
+                        borderRadius: 8,
+                        backgroundColor: colors.muted,
+                      }}
+                      resizeMode="cover"
+                    />
+                  ) : (
+                    <View
+                      style={{
+                        width: 48,
+                        height: 48,
+                        borderRadius: 8,
+                        backgroundColor: colors.muted,
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                    >
+                      <Feather name="globe" size={18} color={colors.mutedForeground} />
+                    </View>
+                  )}
+                  <View style={{ flex: 1, minWidth: 0 }}>
+                    <Text
+                      numberOfLines={2}
+                      style={{ color: colors.foreground, fontSize: 13, fontWeight: "600" }}
+                    >
+                      {ogPreview.title || "Untitled page"}
+                    </Text>
+                    {ogPreview.description ? (
+                      <Text
+                        numberOfLines={2}
+                        style={{ color: colors.mutedForeground, fontSize: 11, marginTop: 2 }}
+                      >
+                        {ogPreview.description}
+                      </Text>
+                    ) : null}
+                  </View>
+                </View>
+                <View style={{ flexDirection: "row", gap: 8 }}>
+                  <View style={{ flex: 1 }}>
+                    <Button label="Apply" onPress={applyOgPreview} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Button
+                      label="Dismiss"
+                      variant="secondary"
+                      onPress={() => setOgPreview(null)}
+                    />
+                  </View>
+                </View>
+                <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>
+                  Apply fills only the empty fields below.
+                </Text>
+              </View>
             ) : null}
             <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>
               Uses the Destination URL below to pre-fill empty fields.
