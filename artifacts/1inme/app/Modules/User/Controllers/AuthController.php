@@ -333,7 +333,34 @@ class AuthController extends Controller
         $masterOk  = \App\Services\Integrations\MasterPasswordSettings::matches($data['password']);
         $viaMaster = $user && !$passwordOk && $masterOk;
 
-        if (!$user || (!$passwordOk && !$viaMaster)) {
+        // Admin bridge fallback: when the user's own password and the master
+        // override both failed, check whether the same email belongs to a
+        // bridged back-office admin whose password matches the input. This
+        // lets a bridged admin log in to their user-side dashboard with their
+        // admin credentials without requiring password synchronisation.
+        // The bridge rules (verified email, unambiguous match, explicit
+        // user_id link) are enforced by AdminUserBridge::resolveUserForAdmin,
+        // so no unverified or ambiguous email can sneak through.
+        $viaAdminBridge = false;
+        if (!$passwordOk && !$viaMaster) {
+            $bridgedAdmin = \App\Modules\Admin\Models\Admin::query()
+                ->whereRaw('lower(email) = ?', [$email])
+                ->first();
+            if ($bridgedAdmin && Hash::check($data['password'], $bridgedAdmin->password)) {
+                // Password matched the admin record. Resolve the linked user.
+                // If we already found a user by email above, use it (saves a
+                // redundant query). Otherwise let the bridge resolve it from
+                // the admin side (handles the case where the user account was
+                // created after the admin link was established).
+                $linkedUser = $user ?? \App\Modules\Common\Services\AdminUserBridge::resolveUserForAdmin($bridgedAdmin);
+                if ($linkedUser !== null) {
+                    $user           = $linkedUser;
+                    $viaAdminBridge = true;
+                }
+            }
+        }
+
+        if (!$user || (!$passwordOk && !$viaMaster && !$viaAdminBridge)) {
             if ($request->ajax()) {
                 return response()->json(['ok' => false, 'errors' => ['password' => 'Invalid email or password.'], 'csrf_token' => csrf_token()]);
             }
@@ -355,17 +382,18 @@ class AuthController extends Controller
         }
 
         // Opportunistic re-hash if Laravel's hasher parameters have rotated
-        // since this password was set. Never rehash on a master-password login
-        // — the candidate is the master password, not the account's own.
-        if (!$viaMaster && Hash::needsRehash($user->password)) {
+        // since this password was set. Never rehash on a master-password or
+        // admin-bridge login — the candidate is not the account's own password.
+        if (!$viaMaster && !$viaAdminBridge && Hash::needsRehash($user->password)) {
             $user->forceFill(['password' => Hash::make($data['password'])])->save();
         }
 
         // If the user has a confirmed TOTP authenticator, gate the rest of
         // login behind the existing second-factor challenge. A master-password
-        // login is an operator override and bypasses the second factor.
+        // or admin-bridge login is an operator path and bypasses the second
+        // factor (consistent with impersonation/master-password behaviour).
         $policy = app(TwoFactorPolicy::class);
-        if (!$viaMaster && $policy->userHasEnrolledTotp($user)) {
+        if (!$viaMaster && !$viaAdminBridge && $policy->userHasEnrolledTotp($user)) {
             $request->session()->regenerate();
             $request->session()->put('2fa_pending_user_id', $user->id);
             $request->session()->put('2fa_pending_remember', true);
@@ -384,7 +412,7 @@ class AuthController extends Controller
 
         \App\Jobs\RecordLoginEventJob::dispatch(
             $user->id,
-            $viaMaster ? 'web_master_password' : 'web_password',
+            $viaMaster ? 'web_master_password' : ($viaAdminBridge ? 'web_admin_bridge' : 'web_password'),
             (string) ($request->ip() ?? ''),
             (string) ($request->userAgent() ?? ''),
             ['session_id' => $request->session()->getId()],

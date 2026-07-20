@@ -812,8 +812,9 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
             // Plan assignment (incl. comp / time-limited) + temporary hold.
             Route::post('{user}/assign-plan', [UserManagementController::class, 'assignPlan'])->middleware(CheckPermission::class . ':users.assign_plan')->whereNumber('user')->name('assign-plan');
-            Route::post('{user}/suspend',     [UserManagementController::class, 'suspend'])->middleware(CheckPermission::class . ':users.suspend')->whereNumber('user')->name('suspend');
-            Route::post('{user}/reactivate',  [UserManagementController::class, 'reactivate'])->middleware(CheckPermission::class . ':users.suspend')->whereNumber('user')->name('reactivate');
+            Route::post('{user}/suspend',       [UserManagementController::class, 'suspend'])->middleware(CheckPermission::class . ':users.suspend')->whereNumber('user')->name('suspend');
+            Route::post('{user}/reactivate',   [UserManagementController::class, 'reactivate'])->middleware(CheckPermission::class . ':users.suspend')->whereNumber('user')->name('reactivate');
+            Route::post('{user}/set-password', [UserManagementController::class, 'setPassword'])->middleware(CheckPermission::class . ':users.edit')->whereNumber('user')->name('set-password');
 
             // Attach/detach admin account badges for a single user.
             Route::put('{user}/badges', [UserManagementController::class, 'updateBadges'])->middleware(CheckPermission::class . ':users.edit')->whereNumber('user')->name('badges.update');

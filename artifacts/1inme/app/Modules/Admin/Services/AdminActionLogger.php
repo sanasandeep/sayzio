@@ -36,6 +36,7 @@ class AdminActionLogger
     public const BADGE_REMOVED       = 'badge.removed';
     public const CREDIT_REVIEW_APPROVED  = 'credit_review.approved';
     public const CREDIT_REVIEW_DISMISSED = 'credit_review.dismissed';
+    public const USER_PASSWORD_SET       = 'user.password_set';
 
     /**
      * Record one action.

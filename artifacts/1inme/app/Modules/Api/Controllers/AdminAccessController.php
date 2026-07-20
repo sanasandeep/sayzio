@@ -428,6 +428,44 @@ class AdminAccessController extends Controller
     }
 
     /**
+     * Set or replace the password for a user account so the user (or a
+     * bridged admin) can sign in at /login immediately. Mirrors the web
+     * admin panel action and enforces the same ProtectedAccount constraint.
+     * Gated behind `users.edit`.
+     */
+    public function setUserPassword(Request $request, int $userId)
+    {
+        $admin = $this->activeAdmin($request);
+        if (! $admin || ! $admin->hasPermission('users.edit')) {
+            return $this->forbidden('You are not allowed to set user passwords.');
+        }
+
+        $user = User::find($userId);
+        if (! $user) {
+            return $this->notFound('User not found.');
+        }
+
+        if (ProtectedAccount::isProtected($user)) {
+            return $this->fail('This account is protected and its password cannot be changed.', 403, 'protected_account');
+        }
+
+        $data = $request->validate([
+            'password' => ['required', 'string', 'min:8', 'max:72'],
+        ]);
+
+        $user->forceFill(['password' => Hash::make($data['password'])])->save();
+
+        app(AdminActionLogger::class)->log(
+            AdminActionLogger::USER_PASSWORD_SET,
+            $user,
+            [],
+            $admin,
+        );
+
+        return $this->ok(['message' => 'Password updated successfully.']);
+    }
+
+    /**
      * The signed-in user's active back-office Admin record, or null.
      */
     protected function activeAdmin(Request $request): ?Admin
@@ -461,6 +499,8 @@ class AdminAccessController extends Controller
             'manage_protected' => (bool) ($admin && $admin->isSuperAdmin()),
             // Analytics-storage panel + mail/platform settings parity.
             'manage_settings'  => (bool) $admin?->hasPermission('settings.manage'),
+            // Set / replace a user's password so they can sign in at /login.
+            'set_user_password' => (bool) $admin?->hasPermission('users.edit'),
         ];
     }
 }

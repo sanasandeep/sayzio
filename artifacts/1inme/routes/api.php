@@ -541,6 +541,7 @@ Route::prefix('v1')->group(function () {
         Route::post  ('/admin/users/{user}/admin-access',     [AdminAccessController::class, 'grantAdminAccess'])->whereNumber('user');
         Route::delete('/admin/users/{user}/admin-access',     [AdminAccessController::class, 'revokeAdminAccess'])->whereNumber('user');
         Route::post  ('/admin/users/{user}/impersonate',      [AdminAccessController::class, 'impersonate'])->whereNumber('user')->middleware('throttle:20,1');
+        Route::post  ('/admin/users/{user}/set-password',    [AdminAccessController::class, 'setUserPassword'])->whereNumber('user');
 
         // Protected accounts (mobile parity for the web back-office page).
         // The canonical never-delete/suspend list: staff with `users.view`
