@@ -29,6 +29,7 @@
     @endif
 
     <div class="xl:flex xl:items-start xl:gap-6"
+         @input.debounce.300ms="pvLive()" @change.debounce.150ms="pvLive()" @click.debounce.300ms="pvLive()"
          x-data="{
              pvMode: ['mini','small','large','full'].includes(localStorage.getItem('cp_pv_mode')) ? localStorage.getItem('cp_pv_mode') : 'small',
              pvSizes: { mini: 220, small: 320, large: 430 },
@@ -37,7 +38,12 @@
              get pvPaneW() { return this.pvSizes[this.pvMode] || this.pvSizes.small; },
              get pvScale() { return (this.pvPaneW - 26) / this.pvBase; },
              setMode(m) { this.pvMode = m; localStorage.setItem('cp_pv_mode', m); },
-             pvReload() { const f = this.$refs.pvFrame; if (f) f.src = f.src; const g = this.$refs.pvFrameFull; if (g && this.pvMode === 'full') g.src = g.src; }
+             pvReload() { const f = this.$refs.pvFrame; if (f) f.src = f.src; const g = this.$refs.pvFrameFull; if (g && this.pvMode === 'full') g.src = g.src; },
+             pvField(n) { const el = document.querySelector('[name=' + n + ']'); return el ? el.value : null; },
+             pvLive() {
+                 const msg = { type: 'cpLive', tagline: this.pvField('tagline'), location: this.pvField('location'), bio: this.pvField('bio'), color: this.pvField('profile_theme_color') };
+                 [this.$refs.pvFrame, this.$refs.pvFrameFull].forEach(f => { try { if (f && f.contentWindow) f.contentWindow.postMessage(msg, window.location.origin); } catch (e) {} });
+             }
          }">
     <div class="flex-1 min-w-0">
     {{-- ── Completeness meter ───────────────────────────── --}}
@@ -69,7 +75,7 @@
     @endif
 
     {{-- ── Main editor ──────────────────────────────────── --}}
-    <form action="{{ route('user.creator-profile.update') }}" method="POST" enctype="multipart/form-data" class="grid grid-cols-1 lg:grid-cols-2 gap-x-6 gap-y-10 items-start">
+    <form action="{{ route('user.creator-profile.update') }}" method="POST" enctype="multipart/form-data" class="grid grid-cols-1 lg:grid-cols-2 items-start" style="column-gap: 1.75rem; row-gap: 2.75rem;">
         @csrf
 
         {{-- Hero --}}
@@ -814,7 +820,7 @@
                 <div class="p-3">
                     <div class="rounded-xl overflow-hidden mx-auto" style="border: 1px solid var(--border-glass);"
                          :style="'width:' + (pvBase * pvScale) + 'px; height:' + (pvBaseH * pvScale) + 'px;'">
-                        <iframe x-ref="pvFrame" src="{{ $profileUrl }}" title="Profile preview" loading="lazy"
+                        <iframe x-ref="pvFrame" src="{{ $profileUrl }}?cp_preview=1" title="Profile preview" loading="lazy" @load="pvLive()"
                                 style="width: 390px; height: 760px; transform-origin: top left; border: 0; pointer-events: none;"
                                 :style="'transform: scale(' + pvScale + ');'"></iframe>
                     </div>
@@ -852,7 +858,7 @@
                 </div>
                 <div class="flex-1 px-4 pb-4 min-h-0">
                     <template x-if="pvMode === 'full'">
-                        <iframe x-ref="pvFrameFull" src="{{ $profileUrl }}" title="Profile preview (full)"
+                        <iframe x-ref="pvFrameFull" src="{{ $profileUrl }}?cp_preview=1" title="Profile preview (full)" @load="pvLive()"
                                 class="w-full h-full rounded-xl bg-white" style="border: 0;"></iframe>
                     </template>
                 </div>
