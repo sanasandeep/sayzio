@@ -384,6 +384,10 @@ args = "query-columns"
 task = "workflow.run"
 args = "e2e-cp-gaps-sticky"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-cp-live-preview"
+
 [[workflows.workflow]]
 name = "e2e"
 author = "agent"
@@ -1593,6 +1597,17 @@ isValidation = true
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "bash artifacts/1inme/tests/Browser/run-validation.sh creator-profile-gaps-sticky.spec.ts"
+
+[[workflows.workflow]]
+name = "e2e-cp-live-preview"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "bash artifacts/1inme/tests/Browser/run-validation.sh creator-settings-live-preview.spec.ts"
+
+[workflows.workflow.metadata]
+isValidation = true
 
 
 [agent]
