@@ -344,6 +344,13 @@ Route::prefix('user')->name('user.')->group(function () {
             Route::post('dismiss-banner', [\App\Modules\User\Controllers\OnboardingController::class, 'dismissBanner'])->name('dismiss-banner');
             Route::post('dismiss-whatsapp-prompt', [\App\Modules\User\Controllers\OnboardingController::class, 'dismissWhatsappPrompt'])->name('dismiss-whatsapp-prompt');
 
+            // Post-wizard creator-profile step — one-time nudge to fill in
+            // tagline, bio, location, and niche tags straight after onboarding.
+            // Saving goes through the shared CreatorProfileController logic.
+            Route::get ('creator-profile',      [\App\Modules\User\Controllers\OnboardingController::class, 'creatorProfileStep'])->name('creator-profile');
+            Route::post('creator-profile',      [\App\Modules\User\Controllers\OnboardingController::class, 'creatorProfileSave'])->name('creator-profile.save');
+            Route::post('creator-profile/skip', [\App\Modules\User\Controllers\OnboardingController::class, 'creatorProfileSkip'])->name('creator-profile.skip');
+
             // Post-registration WhatsApp connect step + the shared inline
             // add/verify endpoints (also used by the dashboard nudge card).
             Route::get ('whatsapp',        [\App\Modules\User\Controllers\OnboardingController::class, 'whatsappStep'])->name('whatsapp');

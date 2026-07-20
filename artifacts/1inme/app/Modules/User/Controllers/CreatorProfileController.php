@@ -108,6 +108,74 @@ class CreatorProfileController extends Controller
         ]);
     }
 
+    /**
+     * Persist the primary creator-profile fields (cover, tagline, location,
+     * bio, niche_tags, socials, section visibility) for the given user.
+     * Called from both the full editor update() and the onboarding step so
+     * the save logic lives in one place.
+     *
+     * Only keys that are present in $data are applied — absent keys leave the
+     * corresponding model field untouched.
+     *
+     * @param array<string,mixed>        $data    Validated input.
+     * @param \Illuminate\Http\Request|null $request Pass the request to handle file uploads.
+     */
+    public static function saveCoreProfileFields(
+        User $user,
+        array $data,
+        ?\Illuminate\Http\Request $request = null
+    ): void {
+        if ($request && $request->hasFile('cover_image')) {
+            $user->cover_image = '/storage/' . $request->file('cover_image')->store('profile-covers', 'public');
+        } elseif (!empty($data['cover_image_url'])) {
+            $user->cover_image = $data['cover_image_url'];
+        } elseif ($request && $request->boolean('cover_image_remove')) {
+            $user->cover_image = null;
+        }
+
+        if (array_key_exists('tagline', $data))  $user->tagline  = $data['tagline'];
+        if (array_key_exists('location', $data)) $user->location = $data['location'];
+        if (array_key_exists('bio', $data))      $user->bio      = $data['bio'];
+
+        if (array_key_exists('profile_theme_color', $data)) {
+            $user->profile_theme_color = isset($data['profile_theme_color']) && $data['profile_theme_color'] !== ''
+                ? strtolower($data['profile_theme_color'])
+                : null;
+        }
+
+        if (array_key_exists('niche_tags', $data)) {
+            $tags = collect($data['niche_tags'] ?? [])
+                ->map(fn ($t) => trim((string) $t))
+                ->filter(fn ($t) => $t !== '')
+                ->map(fn ($t) => mb_strtolower($t))
+                ->unique()
+                ->take(8)
+                ->values()
+                ->all();
+            $user->niche_tags = $tags;
+        }
+
+        if (array_key_exists('socials', $data)) {
+            $allowed = array_keys(self::SOCIAL_PLATFORMS);
+            $socials = [];
+            foreach ((array) ($data['socials'] ?? []) as $key => $value) {
+                if (!in_array($key, $allowed, true)) continue;
+                $value = trim((string) $value);
+                if ($value !== '') $socials[$key] = $value;
+            }
+            $user->socials = $socials;
+        }
+
+        if (array_key_exists('sections', $data)) {
+            $sectionsIn = (array) ($data['sections'] ?? []);
+            $sections = [];
+            foreach (User::PROFILE_DEFAULT_VISIBILITY as $sectionKey => $default) {
+                $sections[$sectionKey] = filter_var($sectionsIn[$sectionKey] ?? $default, FILTER_VALIDATE_BOOLEAN);
+            }
+            $user->profile_section_visibility = $sections;
+        }
+    }
+
     public function update(Request $request)
     {
         $user = Auth::user();
@@ -169,53 +237,8 @@ class CreatorProfileController extends Controller
             'organizer_socials.*'     => 'nullable|string|max:200',
         ]);
 
-        if ($request->hasFile('cover_image')) {
-            $user->cover_image = '/storage/' . $request->file('cover_image')->store('profile-covers', 'public');
-        } elseif ($request->filled('cover_image_url')) {
-            $user->cover_image = $data['cover_image_url'];
-        } elseif ($request->boolean('cover_image_remove')) {
-            $user->cover_image = null;
-        }
-
-        $user->tagline  = $data['tagline']  ?? null;
-        $user->location = $data['location'] ?? null;
-        if (array_key_exists('bio', $data)) $user->bio = $data['bio'];
-
-        // Theme color: store as-is (validated hex #RRGGBB) or null to use the platform default.
-        $user->profile_theme_color = isset($data['profile_theme_color']) && $data['profile_theme_color'] !== ''
-            ? strtolower($data['profile_theme_color'])
-            : null;
-
-        // Niche tags: normalise to lowercase trimmed unique short strings.
-        $tags = collect($data['niche_tags'] ?? [])
-            ->map(fn ($t) => trim((string) $t))
-            ->filter(fn ($t) => $t !== '')
-            ->map(fn ($t) => mb_strtolower($t))
-            ->unique()
-            ->take(8)
-            ->values()
-            ->all();
-        $user->niche_tags = $tags;
-
-        // Socials: only persist known platform keys.
-        $allowed = array_keys(self::SOCIAL_PLATFORMS);
-        $socials = [];
-        foreach ((array) ($data['socials'] ?? []) as $key => $value) {
-            if (!in_array($key, $allowed, true)) continue;
-            $value = trim((string) $value);
-            if ($value !== '') $socials[$key] = $value;
-        }
-        $user->socials = $socials;
-
-        // Section visibility — merge with defaults and drop any key the
-        // editor doesn't recognise so we can't be tricked into hiding the
-        // hero.
-        $sectionsIn = (array) ($data['sections'] ?? []);
-        $sections = [];
-        foreach (User::PROFILE_DEFAULT_VISIBILITY as $key => $default) {
-            $sections[$key] = filter_var($sectionsIn[$key] ?? $default, FILTER_VALIDATE_BOOLEAN);
-        }
-        $user->profile_section_visibility = $sections;
+        // Core profile fields — shared with the onboarding creator-profile step.
+        self::saveCoreProfileFields($user, $data, $request);
 
         // Publish toggle. Block publishing without a handle — the URL
         // would 404 otherwise.
@@ -262,6 +285,7 @@ class CreatorProfileController extends Controller
         $user->dmca_email = $data['dmca_email'] ?? null;
 
         // ── Task #3699: reusable event organizer profile ─────────────
+        $allowed  = array_keys(self::SOCIAL_PLATFORMS);
         $organizer = is_array($user->organizer_profile) ? $user->organizer_profile : [];
 
         if ($request->hasFile('organizer_logo')) {

@@ -515,4 +515,81 @@ class OnboardingController extends Controller
         return redirect()->route('user.dashboard')
             ->with('success', 'No problem — everything stays visible to strangers until you change it from Settings.');
     }
+
+    /**
+     * One-time post-wizard step that collects the creator's primary profile
+     * content (tagline, bio, location, niche tags) up front, with a "More
+     * options" expander for socials, cover image and section visibility.
+     * Saving through the shared CreatorProfileController::saveCoreProfileFields()
+     * so no logic is duplicated between this step and the full settings editor.
+     */
+    public function creatorProfileStep()
+    {
+        $user  = Auth::user();
+        $steps = OnboardingSteps::forUser($user);
+
+        return view('user.onboarding.creator-profile', [
+            'user'             => $user,
+            'nicheTags'        => is_array($user->niche_tags) ? $user->niche_tags : [],
+            'socials'          => is_array($user->socials) ? $user->socials : [],
+            'platforms'        => \App\Modules\User\Controllers\CreatorProfileController::SOCIAL_PLATFORMS,
+            'sectionDefaults'  => \App\Modules\User\Models\User::PROFILE_DEFAULT_VISIBILITY,
+            'sections'         => $user->profileSectionVisibility(),
+            'steps'            => $steps,
+            'activeIndex'      => OnboardingSteps::indexOf($steps, 'creator_profile'),
+        ]);
+    }
+
+    /**
+     * Persist the creator-profile fields collected in the onboarding step,
+     * then mark the step as shown so the gate never redirects here again.
+     */
+    public function creatorProfileSave(\Illuminate\Http\Request $request)
+    {
+        $user = Auth::user();
+
+        $data = $request->validate([
+            'tagline'         => 'nullable|string|max:200',
+            'location'        => 'nullable|string|max:120',
+            'bio'             => 'nullable|string|max:2000',
+            'cover_image'     => 'nullable|image|max:5120',
+            'cover_image_url' => 'nullable|string|max:1024',
+            'niche_tags'      => 'nullable|array|max:8',
+            'niche_tags.*'    => 'string|max:32',
+            'socials'         => 'nullable|array',
+            'socials.*'       => 'nullable|string|max:200',
+            'sections'        => 'nullable|array',
+            'sections.*'      => 'nullable|in:0,1,true,false',
+        ]);
+
+        \App\Modules\User\Controllers\CreatorProfileController::saveCoreProfileFields($user, $data, $request);
+        $user->save();
+
+        $this->markCreatorProfileStepShown($user);
+
+        return redirect()->route('user.dashboard')
+            ->with('success', 'Your profile is looking great — you can fill in more details anytime from Creator Profile settings.');
+    }
+
+    /** Skip the creator-profile onboarding step. The step is not shown again. */
+    public function creatorProfileSkip()
+    {
+        $this->markCreatorProfileStepShown(Auth::user());
+
+        return redirect()->route('user.dashboard')
+            ->with('success', 'No problem — fill in your creator profile whenever you\'re ready from Settings.');
+    }
+
+    /**
+     * Record that the one-time creator-profile step has been shown so the
+     * onboarding gate never redirects this user to it again.
+     */
+    private function markCreatorProfileStepShown(User $user): void
+    {
+        $settings = $user->settings ?? [];
+        if (empty($settings['creator_profile_step_shown_at'] ?? null)) {
+            $settings['creator_profile_step_shown_at'] = now()->toIso8601String();
+            $user->forceFill(['settings' => $settings])->save();
+        }
+    }
 }
