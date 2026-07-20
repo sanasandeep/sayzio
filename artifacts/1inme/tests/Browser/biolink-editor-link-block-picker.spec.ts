@@ -18,7 +18,10 @@ import { loginAsDemo } from "./login-as-demo";
  *
  *  1. "Pick from my links" — opens the picker, loads the owner's links from
  *     `links.blocks.linkPicker`, and clicking an entry writes its URL into the
- *     x-model-bound URL field (and pre-fills the empty title field).
+ *     x-model-bound URL field (and pre-fills the empty title field). Picking
+ *     also auto-runs the OG fetch, staging the result into a
+ *     confirm-before-apply preview card (og-meta is mocked here because the
+ *     picked link's own URL is localhost, which the SSRF guard blocks).
  *  2. "Fetch" (OG metadata) — hits `links.blocks.ogMeta` for a public URL and
  *     pre-fills at least one of title / description / thumbnail (thumbnail is
  *     injected into the nested file-upload-field Alpine component).
@@ -166,10 +169,33 @@ async function openBlockForm(page: Page, blockId: number) {
 
 test.describe.configure({ mode: "serial" });
 
-test("picker lists the owner's links and selecting one fills the URL field", async ({
+test("picking a link fills the URL and auto-fetches a confirm-before-apply preview", async ({
   page,
 }) => {
   test.setTimeout(180_000);
+
+  // Mock the picker-triggered OG fetch: the picked link's URL is localhost,
+  // which the server-side SSRF guard rejects, so fulfill it locally to
+  // exercise the staged preview-card path deterministically.
+  const MOCK_TITLE = "Mocked OG Title";
+  const MOCK_DESC = "Mocked OG description";
+  const MOCK_IMAGE = "https://example.com/mock-og.png";
+  await page.route("**/blocks/og-meta*", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        success: true,
+        meta: {
+          title: MOCK_TITLE,
+          description: MOCK_DESC,
+          image_url: MOCK_IMAGE,
+          favicon_url: null,
+        },
+      }),
+    });
+  });
+
   await gotoEditor(page);
 
   const form = await openBlockForm(page, ids.pickerBlockId);
@@ -184,7 +210,12 @@ test("picker lists the owner's links and selecting one fills the URL field", asy
   await form.getByRole("button", { name: /Pick from my links/i }).click();
   await pickerResponse;
 
-  // The seeded short link appears; click it.
+  // The seeded short link appears; click it. This also auto-runs the
+  // (mocked) OG fetch.
+  const ogResponse = page.waitForResponse(
+    (r) => r.url().includes("/blocks/og-meta"),
+    { timeout: 30_000 },
+  );
   const entry = form
     .locator("button", { hasText: "Picker Target Link" })
     .first();
@@ -201,6 +232,32 @@ test("picker lists the owner's links and selecting one fills the URL field", asy
   await expect(
     form.locator('input[placeholder="Search by title or alias…"]'),
   ).toBeHidden();
+
+  // The staged preview card appears; nothing applied yet.
+  await ogResponse;
+  const card = form.locator("[data-og-preview-card]");
+  await expect(card).toBeVisible({ timeout: 15_000 });
+  await expect(card.getByText(MOCK_TITLE)).toBeVisible();
+  await expect(form.locator('input[name="settings[thumbnail]"]')).toHaveValue(
+    "",
+  );
+
+  // Apply: description + thumbnail fill (title already set by the picker,
+  // so the fill-only-empty guard leaves it untouched), card closes.
+  await card.getByRole("button", { name: /Apply/i }).click();
+  await expect(card).toBeHidden();
+  await expect(form.getByText("Details pre-filled below.")).toBeVisible();
+  await expect(form.locator('input[name="settings[text]"]')).toHaveValue(
+    "Picker Target Link",
+  );
+  await expect(
+    form.locator('input[name="settings[description]"]'),
+  ).toHaveValue(MOCK_DESC);
+  await expect(form.locator('input[name="settings[thumbnail]"]')).toHaveValue(
+    MOCK_IMAGE,
+  );
+
+  await page.unroute("**/blocks/og-meta*");
 });
 
 test("Fetch pre-fills page details from a public URL", async ({ page }) => {

@@ -71,6 +71,7 @@ function linkBlockEditor(cfg) {
         fetching: false,
         fetchError: '',
         fetchSuccess: false,
+        ogPreview: null,
         linkUrl: cfg.url || '',
         pickerEndpoint: cfg.pickerEndpoint,
         ogMetaEndpoint: cfg.ogMetaEndpoint,
@@ -92,25 +93,48 @@ function linkBlockEditor(cfg) {
             this.linkUrl = l.url;
             if (this.$refs.titleInput && !this.$refs.titleInput.value.trim()) { this.$refs.titleInput.value = l.title || ''; }
             this.pickerOpen = false;
+            // Auto-run the OG fetch for the picked link, staging the result
+            // into a confirm-before-apply preview card (mobile parity).
+            this.fetchOgMeta(true);
         },
-        async fetchOgMeta() {
+        applyOgMeta(m) {
+            if (m.title && this.$refs.titleInput && !this.$refs.titleInput.value.trim()) { this.$refs.titleInput.value = m.title; }
+            if (m.description && this.$refs.descInput && !this.$refs.descInput.value.trim()) { this.$refs.descInput.value = m.description; }
+            var imgUrl = m.image_url || m.favicon_url || null;
+            if (imgUrl) {
+                // $el is the element the calling directive sits on (e.g. the
+                // Apply button); $root is the component's root element.
+                var rootEl = this.$root || this.$el;
+                var thumbEl = rootEl.querySelector('[data-fieldname="settings[thumbnail]"]');
+                if (thumbEl) { var fd = Alpine.$data(thumbEl); if (fd && !fd.value) { fd.value = imgUrl; fd.mode = 'url'; } }
+            }
+        },
+        applyOgPreview() {
+            if (!this.ogPreview) { return; }
+            this.applyOgMeta(this.ogPreview);
+            this.ogPreview = null;
+            this.fetchSuccess = true;
+        },
+        async fetchOgMeta(stage) {
             var url = this.linkUrl.trim();
             if (!url) { this.fetchError = 'Enter a URL first.'; return; }
             this.fetching = true;
             this.fetchError = '';
             this.fetchSuccess = false;
+            this.ogPreview = null;
             try {
                 var r = await fetch(this.ogMetaEndpoint + '?url=' + encodeURIComponent(url), { headers: { Accept: 'application/json' } });
                 var d = await r.json();
                 if (!r.ok) { this.fetchError = d.error || 'Could not fetch page details.'; return; }
                 var m = d.meta || {};
-                if (m.title && this.$refs.titleInput && !this.$refs.titleInput.value.trim()) { this.$refs.titleInput.value = m.title; }
-                if (m.description && this.$refs.descInput && !this.$refs.descInput.value.trim()) { this.$refs.descInput.value = m.description; }
-                var imgUrl = m.image_url || m.favicon_url || null;
-                if (imgUrl) {
-                    var thumbEl = this.$el.querySelector('[data-fieldname="settings[thumbnail]"]');
-                    if (thumbEl) { var fd = Alpine.$data(thumbEl); if (fd && !fd.value) { fd.value = imgUrl; fd.mode = 'url'; } }
+                if (stage === true) {
+                    // Picker-triggered fetch: stage into the preview card and
+                    // let the creator confirm before anything is written.
+                    if (!m.title && !m.description && !m.image_url && !m.favicon_url) { return; }
+                    this.ogPreview = m;
+                    return;
                 }
+                this.applyOgMeta(m);
                 this.fetchSuccess = true;
             } catch(e) { this.fetchError = 'Could not fetch page details.'; }
             finally { this.fetching = false; }
@@ -159,6 +183,7 @@ function linkBlockEditor(cfg) {
         <p x-show="fetchError" x-text="fetchError" x-cloak class="mt-1 text-[11px]" style="color:#f87171;"></p>
         <p x-show="fetchSuccess && !fetchError" x-cloak class="mt-1 text-[11px]" style="color:#4ade80;"><i class="fas fa-check-circle mr-1"></i>Details pre-filled below.</p>
     </div>
+    @include('user.links.partials.og-preview-card')
     @include('user.links.partials.icon-picker', ['fieldName' => 'settings[icon]', 'currentValue' => $s['icon'] ?? '', 'labelText' => 'Icon', 'inputClass' => $inputClass, 'labelClass' => $labelClass])
     @include('user.links.partials.file-upload-field', ['fieldName' => 'settings[thumbnail]', 'currentValue' => $s['thumbnail'] ?? '', 'acceptTypes' => 'image', 'labelText' => 'Thumbnail', 'inputClass' => $inputClass, 'labelClass' => $labelClass])
     <label class="flex items-center gap-2 text-xs text-white/60">
@@ -214,6 +239,7 @@ function linkBlockEditor(cfg) {
         <p x-show="fetchError" x-text="fetchError" x-cloak class="mt-1 text-[11px]" style="color:#f87171;"></p>
         <p x-show="fetchSuccess && !fetchError" x-cloak class="mt-1 text-[11px]" style="color:#4ade80;"><i class="fas fa-check-circle mr-1"></i>Details pre-filled below.</p>
     </div>
+    @include('user.links.partials.og-preview-card')
     @include('user.links.partials.icon-picker', ['fieldName' => 'settings[icon]', 'currentValue' => $s['icon'] ?? '', 'labelText' => 'Icon', 'inputClass' => $inputClass, 'labelClass' => $labelClass])
     @include('user.links.partials.file-upload-field', ['fieldName' => 'settings[thumbnail]', 'currentValue' => $s['thumbnail'] ?? '', 'acceptTypes' => 'image', 'labelText' => 'Thumbnail', 'inputClass' => $inputClass, 'labelClass' => $labelClass])
     <div><label class="{{ $labelClass }}">Background Color</label><input type="color" name="settings[bg_color]" value="{{ $s['bg_color'] ?? '#3d6bff' }}" class="w-full h-10 rounded-xl cursor-pointer" style="border: 1px solid var(--border-glass); background: var(--bg-glass-input);"></div>
@@ -1593,6 +1619,7 @@ if (typeof window.resetPollVotes !== 'function') {
         <p x-show="fetchError" x-text="fetchError" x-cloak class="mt-1 text-[11px]" style="color:#f87171;"></p>
         <p x-show="fetchSuccess && !fetchError" x-cloak class="mt-1 text-[11px]" style="color:#4ade80;"><i class="fas fa-check-circle mr-1"></i>Details pre-filled below.</p>
     </div>
+    @include('user.links.partials.og-preview-card')
     @include('user.links.partials.file-upload-field', ['fieldName' => 'settings[thumbnail]', 'currentValue' => $s['thumbnail'] ?? '', 'acceptTypes' => 'image', 'labelText' => 'Thumbnail (optional)', 'inputClass' => $inputClass, 'labelClass' => $labelClass])
     <div class="grid grid-cols-2 gap-3">
         @include('user.links.partials.icon-picker', ['fieldName' => 'settings[icon]', 'currentValue' => $s['icon'] ?? 'fa-thumbtack', 'labelText' => 'Icon', 'inputClass' => $inputClass, 'labelClass' => $labelClass])
