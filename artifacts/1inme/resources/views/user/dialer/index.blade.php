@@ -350,13 +350,14 @@ function uniItemHtml(item) {
     const cls = 'flex items-center gap-2 px-2 py-1.5 rounded-lg';
     const style = 'background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06);';
     const a = item.action || {};
+    const miniAttr = item.handle ? ` data-mini-profile="${escapeHtml(item.handle)}"` : '';
     let row;
     if (a.kind === 'workspace' && a.switch_url) {
-        row = `<button type="button" onclick="switchWorkspace('${a.switch_url}')" class="${cls} w-full text-left" style="${style}">${inner}</button>`;
+        row = `<button type="button" onclick="switchWorkspace('${a.switch_url}')" class="${cls} w-full text-left" style="${style}"${miniAttr}>${inner}</button>`;
     } else if (a.url) {
-        row = `<a href="${a.url}" class="${cls}" style="${style}">${inner}</a>`;
+        row = `<a href="${a.url}" class="${cls}" style="${style}"${miniAttr}>${inner}</a>`;
     } else {
-        row = `<div class="${cls}" style="${style}">${inner}</div>`;
+        row = `<div class="${cls}" style="${style}"${miniAttr}>${inner}</div>`;
     }
     // Direct app-connection links (call / SMS / WhatsApp / Telegram / …) for
     // any result that carries a phone number — one tap to reach them without

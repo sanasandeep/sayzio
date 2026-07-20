@@ -126,6 +126,36 @@ class CreatorProfilePublicController extends Controller
     }
 
     /**
+     * Lightweight JSON summary used by the mini-profile popover widget.
+     * Public (no auth required); returns 404 when the profile is not
+     * published or the handle does not exist.  Intentionally smaller
+     * than the full show() payload to keep hover-card loads fast.
+     */
+    public function mini(string $handle, Request $request): \Illuminate\Http\JsonResponse
+    {
+        $creator = $this->resolveCreator($handle);
+        if (!$creator || !$creator->profile_published) {
+            return response()->json(['error' => 'Not found'], 404);
+        }
+
+        $isVerified = method_exists($creator, 'isVerified') ? $creator->isVerified() : !empty($creator->email_verified_at);
+
+        return response()->json([
+            'data' => [
+                'handle'          => $creator->handle,
+                'name'            => $creator->name,
+                'avatar'          => \App\Support\PublicStorageUrl::resolve($creator->avatar),
+                'tagline'         => $creator->tagline,
+                'followers_count' => (int) $creator->followers_count,
+                'is_verified'     => $isVerified,
+                'theme_color'     => $creator->profile_theme_color ?: null,
+                'profile_url'     => route('creator-profile.show', $creator->handle),
+                'profile_published' => true,
+            ],
+        ]);
+    }
+
+    /**
      * Public /@{handle}/events — a creator's public, active, upcoming
      * ics-type events, styled like the /events directory but scoped to
      * one host and without its search/filter controls (Task #3666).

@@ -20,12 +20,18 @@
                 @if($u)
                 <div class="flex items-center gap-3 p-4">
                     @if($u->avatar)
-                        <img src="{{ \App\Support\PublicStorageUrl::resolve($u->avatar) }}" class="w-10 h-10 rounded-full object-cover" alt=""/>
+                        <img src="{{ \App\Support\PublicStorageUrl::resolve($u->avatar) }}" class="w-10 h-10 rounded-full object-cover" alt=""
+                             @if($u->handle && $u->profile_published) data-mini-profile="{{ $u->handle }}" style="cursor:pointer;" @endif>
                     @else
-                        <div class="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-fuchsia-500 text-white flex items-center justify-center font-bold">{{ $u->getInitials() }}</div>
+                        <div class="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-fuchsia-500 text-white flex items-center justify-center font-bold"
+                             @if($u->handle && $u->profile_published) data-mini-profile="{{ $u->handle }}" style="cursor:pointer;" @endif>{{ $u->getInitials() }}</div>
                     @endif
                     <div class="flex-1 min-w-0">
-                        <p class="font-semibold truncate" style="color: var(--text-primary);">{{ $u->name }}</p>
+                        @if($u->handle && $u->profile_published)
+                            <a href="{{ route('creator-profile.show', $u->handle) }}" data-mini-profile="{{ $u->handle }}" class="font-semibold truncate block" style="color: var(--text-primary);">{{ $u->name }}</a>
+                        @else
+                            <p class="font-semibold truncate" style="color: var(--text-primary);">{{ $u->name }}</p>
+                        @endif
                         <p class="text-xs truncate" style="color: var(--text-faint);">{{ $u->email }} · followed {{ $f->created_at->diffForHumans() }}</p>
                     </div>
                 </div>

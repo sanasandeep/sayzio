@@ -134,6 +134,7 @@ Route::prefix('v1')->group(function () {
         // Creator Profile JSON API (Task #1207). Mirrors the /@handle web
         // surface so the Expo app can render the same page.
         Route::get('/creator-profile/{handle}',                          [\App\Modules\Api\Controllers\CreatorProfileApiController::class, 'show']);
+        Route::get('/creator-profile/{handle}/mini',                     [\App\Modules\Api\Controllers\CreatorProfileApiController::class, 'mini'])->middleware('throttle:180,1');
         Route::get('/creator-profile/{handle}/posts',                    [\App\Modules\Api\Controllers\CreatorProfileApiController::class, 'feed']);
         Route::get('/creator-profile/{handle}/posts/{post}/comments',    [\App\Modules\Api\Controllers\CreatorProfileApiController::class, 'comments'])->whereNumber('post');
         Route::post('/creator-profile/{handle}/posts/{post}/react',      [\App\Modules\Api\Controllers\CreatorProfileApiController::class, 'react'])->whereNumber('post')->middleware('throttle:120,1');

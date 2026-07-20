@@ -220,7 +220,7 @@ class CreatorProfileApiController extends Controller
             'is_owner'            => $isOwner,
             'created_at'          => $creator->created_at?->toIso8601String(),
             'biolink_url'         => $primaryBiolink ? url('/' . $primaryBiolink->alias) : null,
-            // Task #5431 — showcase additions.
+            'theme_color'         => $creator->profile_theme_color ?: null,
             'showcase'            => [
                 'show_link_stats' => (bool) ($showcase['show_link_stats'] ?? false),
                 'highlights'      => $showcase['highlights'],
@@ -306,6 +306,36 @@ class CreatorProfileApiController extends Controller
             ];
         }
         return $cards;
+    }
+
+    /**
+     * Lightweight mini-summary for the hover-card popover (mobile parity
+     * of GET /@{handle}/mini on the web).  Public; no auth required.
+     */
+    public function mini(Request $request, string $handle)
+    {
+        $handle  = ltrim($handle, '@');
+        $creator = User::query()
+            ->whereRaw('LOWER(handle) = ?', [strtolower($handle)])
+            ->first();
+
+        if (!$creator || !$creator->profile_published) {
+            return $this->notFound('Creator not found');
+        }
+
+        $isVerified = method_exists($creator, 'isVerified') ? $creator->isVerified() : !empty($creator->email_verified_at);
+
+        return $this->ok([
+            'handle'          => $creator->handle,
+            'name'            => $creator->name,
+            'avatar'          => \App\Support\PublicStorageUrl::resolve($creator->avatar),
+            'tagline'         => $creator->tagline,
+            'followers_count' => (int) $creator->followers_count,
+            'is_verified'     => $isVerified,
+            'theme_color'     => $creator->profile_theme_color ?: null,
+            'profile_url'     => route('creator-profile.show', $creator->handle),
+            'profile_published' => true,
+        ]);
     }
 
     /**

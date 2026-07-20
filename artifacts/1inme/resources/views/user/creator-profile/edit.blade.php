@@ -65,6 +65,48 @@
             <legend class="text-sm font-bold px-2" style="color: var(--text-primary);">Hero</legend>
             <div class="space-y-4">
                 <div>
+                    <label class="text-xs font-semibold mb-1 block" style="color: var(--text-dimmed);">Profile accent color</label>
+                    <p class="text-[11px] mb-2" style="color: var(--text-dimmed);">Used as the hero gradient and accent on your public profile page. Leave blank to use the platform default (blue → fuchsia).</p>
+                    @php $__themeColor = old('profile_theme_color', $user->profile_theme_color ?? ''); @endphp
+                    <div class="flex items-center gap-3 flex-wrap"
+                         x-data="{
+                             color: @js($__themeColor),
+                             presets: ['#3d6bff','#e11d48','#7c3aed','#0ea5e9','#10b981','#f59e0b','#ec4899','#64748b'],
+                             pick(c) { this.color = c; },
+                             clear() { this.color = ''; }
+                         }">
+                        <input type="hidden" name="profile_theme_color" :value="color">
+                        {{-- Swatches --}}
+                        <div class="flex items-center gap-1.5 flex-wrap">
+                            <template x-for="preset in presets" :key="preset">
+                                <button type="button"
+                                        @click="pick(preset)"
+                                        :title="preset"
+                                        class="w-7 h-7 rounded-full border-2 transition-all hover:scale-110"
+                                        :style="{ background: preset, borderColor: color === preset ? 'var(--text-primary)' : 'transparent' }">
+                                </button>
+                            </template>
+                        </div>
+                        {{-- Free-pick hex --}}
+                        <label class="flex items-center gap-2 cursor-pointer">
+                            <input type="color"
+                                   :value="color || '#3d6bff'"
+                                   @input="color = $event.target.value"
+                                   class="w-8 h-8 rounded-lg cursor-pointer border-0 p-0 bg-transparent"
+                                   title="Custom color">
+                            <span class="text-xs font-mono" style="color: var(--text-primary);" x-text="color || 'none'"></span>
+                        </label>
+                        {{-- Clear --}}
+                        <button type="button" @click="clear()" x-show="color" class="text-[11px] px-2 py-1 rounded" style="background: var(--bg-soft); color: var(--text-muted);">
+                            Reset to default
+                        </button>
+                        {{-- Live preview swatch --}}
+                        <div x-show="color"
+                             :style="{ background: 'linear-gradient(135deg, ' + color + ', ' + color + '99)', borderRadius: '8px', width: '64px', height: '28px', border: '1px solid rgba(255,255,255,0.1)' }">
+                        </div>
+                    </div>
+                </div>
+                <div>
                     <label class="text-xs font-semibold mb-1 block" style="color: var(--text-dimmed);">Cover image</label>
                     @if($user->cover_image)
                         <div class="mb-2 relative">

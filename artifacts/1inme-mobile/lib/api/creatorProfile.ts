@@ -88,6 +88,8 @@ export type CreatorProfile = {
   showcase: ProfileShowcase;
   featured_links: FeaturedLink[];
   showcase_cards: ShowcaseCard[];
+  /** Hex accent color chosen by the creator (#rrggbb). Null = use platform default. */
+  theme_color: string | null;
 };
 
 export type CreatorPostType =

@@ -113,18 +113,19 @@ class CreatorProfileController extends Controller
         $user = Auth::user();
 
         $data = $request->validate([
-            'tagline'          => 'nullable|string|max:200',
-            'location'         => 'nullable|string|max:120',
-            'bio'              => 'nullable|string|max:2000',
-            'cover_image'      => 'nullable|image|max:5120',
-            'cover_image_url'  => 'nullable|string|max:1024',
-            'niche_tags'       => 'nullable|array|max:8',
-            'niche_tags.*'     => 'string|max:32',
-            'socials'          => 'nullable|array',
-            'socials.*'        => 'nullable|string|max:200',
-            'sections'         => 'nullable|array',
-            'sections.*'       => 'nullable|in:0,1,true,false',
-            'profile_published'=> 'nullable|in:0,1,true,false',
+            'tagline'             => 'nullable|string|max:200',
+            'location'            => 'nullable|string|max:120',
+            'bio'                 => 'nullable|string|max:2000',
+            'cover_image'         => 'nullable|image|max:5120',
+            'cover_image_url'     => 'nullable|string|max:1024',
+            'niche_tags'          => 'nullable|array|max:8',
+            'niche_tags.*'        => 'string|max:32',
+            'socials'             => 'nullable|array',
+            'socials.*'           => 'nullable|string|max:200',
+            'sections'            => 'nullable|array',
+            'sections.*'          => 'nullable|in:0,1,true,false',
+            'profile_published'   => 'nullable|in:0,1,true,false',
+            'profile_theme_color' => ['nullable', 'string', 'max:7', 'regex:/^#[0-9a-fA-F]{6}$/'],
             // Showcase — Task #5431.
             'showcase_featured_link_ids'   => 'nullable|array|max:4',
             'showcase_featured_link_ids.*' => 'integer|min:1',
@@ -179,6 +180,11 @@ class CreatorProfileController extends Controller
         $user->tagline  = $data['tagline']  ?? null;
         $user->location = $data['location'] ?? null;
         if (array_key_exists('bio', $data)) $user->bio = $data['bio'];
+
+        // Theme color: store as-is (validated hex #RRGGBB) or null to use the platform default.
+        $user->profile_theme_color = isset($data['profile_theme_color']) && $data['profile_theme_color'] !== ''
+            ? strtolower($data['profile_theme_color'])
+            : null;
 
         // Niche tags: normalise to lowercase trimmed unique short strings.
         $tags = collect($data['niche_tags'] ?? [])

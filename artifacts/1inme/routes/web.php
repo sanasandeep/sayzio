@@ -544,6 +544,14 @@ Route::get('/@{handle}', [\App\Modules\Common\Controllers\CreatorProfilePublicCo
     ->where('handle', '[A-Za-z0-9_]+')
     ->name('creator-profile.show');
 
+// Lightweight JSON hover-card summary for the mini-profile popover.
+// Public, no auth, rate-limited per IP.  Returns 404 for unpublished
+// or unknown handles so the popover JS can silently no-op.
+Route::get('/@{handle}/mini', [\App\Modules\Common\Controllers\CreatorProfilePublicController::class, 'mini'])
+    ->where('handle', '[A-Za-z0-9_]+')
+    ->middleware('throttle:120,1')
+    ->name('creator-profile.mini');
+
 // Task #1211 — generated OG/share image for /@handle. Cached server-side
 // so crawler hits don't re-render every time.
 Route::get('/@{handle}/og.png', [\App\Modules\Common\Controllers\CreatorOgImageController::class, 'show'])

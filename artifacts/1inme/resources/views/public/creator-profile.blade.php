@@ -156,6 +156,13 @@
     @if($ageGateRequired ?? false)
     body{overflow:hidden}
     @endif
+    @if($creator->profile_theme_color)
+    :root{
+        --cp-accent:{{ $creator->profile_theme_color }};
+        --cp-accent-soft:{{ $creator->profile_theme_color }}33;
+        --cp-accent-mid:{{ $creator->profile_theme_color }}88;
+    }
+    @endif
 </style>
 </head>
 <body class="bg-slate-50 min-h-screen text-slate-900">
@@ -163,12 +170,13 @@
     @include('public.partials.age-gate-overlay', ['creator' => $creator])
 @endif
 @include('common.partials.viewer-login-modal')
+@include('common.partials.mini-profile-popover')
 
 <div class="max-w-3xl mx-auto px-3 sm:px-4 pb-24" x-data="{ activeTab: @js($__tab) }">
 
     {{-- ── Hero ─────────────────────────────────────────────── --}}
     <header class="cp-card overflow-hidden mt-4">
-        <div class="h-40 sm:h-56 bg-gradient-to-br from-blue-500 via-fuchsia-500 to-indigo-500 relative">
+        <div class="h-40 sm:h-56 relative" style="background: linear-gradient(135deg, var(--cp-accent, #3b82f6), var(--cp-accent-mid, #a855f7));">
             @if($creator->cover_image)
                 <img src="{{ \App\Support\PublicStorageUrl::resolve($creator->cover_image) }}" alt="" class="absolute inset-0 w-full h-full object-cover">
             @endif

@@ -149,7 +149,7 @@ export default function CreatorProfileScreen() {
                 <View
                   style={[
                     StyleSheet.absoluteFill,
-                    { backgroundColor: colors.primary },
+                    { backgroundColor: profile.theme_color ?? colors.primary },
                   ]}
                 />
               )}

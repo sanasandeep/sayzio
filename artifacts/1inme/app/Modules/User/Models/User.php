@@ -62,6 +62,7 @@ class User extends Authenticatable
         // Creator Profile (separate /@handle surface — see Task #1207).
         'cover_image', 'tagline', 'location', 'niche_tags', 'socials',
         'profile_published', 'profile_section_visibility', 'profile_showcase', 'posts_count',
+        'profile_theme_color',
         // Creator payouts + NSFW consent (Task #1208).
         'adult_content_enabled', 'adult_content_enabled_at',
         'age_verified_at',
@@ -169,6 +170,7 @@ class User extends Authenticatable
             'profile_showcase' => 'array',
             'profile_published' => 'boolean',
             'posts_count' => 'integer',
+            'profile_theme_color' => 'string',
             // Creator payouts + NSFW consent (Task #1208).
             'adult_content_enabled'        => 'boolean',
             'adult_content_enabled_at'     => 'datetime',
