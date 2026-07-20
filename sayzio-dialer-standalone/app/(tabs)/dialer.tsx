@@ -64,9 +64,12 @@ import {
 import { type Contact, listContacts } from "@/lib/api/contacts";
 import {
   getCallAccounts,
+  getCallMode,
   getSimPref,
   placeRealCall,
+  setCallMode,
   setSimPref,
+  type CallMode,
   type SimPref,
 } from "@/lib/placeCall";
 import {
@@ -215,10 +218,22 @@ export default function DialerScreen() {
   const [simAccounts, setSimAccounts] = useState<CallAccount[]>([]);
   const [simPref, setSimPrefState] = useState<SimPref>("ask");
 
+  // Calling preference: "direct" (Android default) or "system" (hand off to
+  // the OS phone app). iOS is always "system" — the platform forbids silent
+  // dialing. Initialized from the platform default; loaded from storage on mount.
+  const [callMode, setCallModeState] = useState<CallMode>(
+    Platform.OS === "android" ? "direct" : "system",
+  );
+
   // While a search is active (typed query or a filter chip), hide the
   // favorites/frequent shelves so results are visible above the dock.
   const searchActive =
     number.trim().length >= 2 || filterVerified || filterBiolink;
+
+  // Load the persisted call mode once on mount.
+  useEffect(() => {
+    getCallMode().then(setCallModeState).catch(() => {});
+  }, []);
 
   // Dual-SIM detection: needs READ_PHONE_STATE, so only probe once the
   // permission is already granted (placeRealCall requests it on first call).
@@ -1095,6 +1110,73 @@ export default function DialerScreen() {
                   </Text>
                 </Pressable>
               )}
+
+              {/* Calling mode chip — Android: toggle Direct call / Phone app.
+                  iOS: shown grayed-out (platform forbids silent dialing). */}
+              <Pressable
+                onPress={() => {
+                  if (Platform.OS !== "android") {
+                    Alert.alert(
+                      "Calling on iOS",
+                      "iOS does not allow apps to place calls directly. Tapping Call always opens the Phone app with the number pre-filled.",
+                      [{ text: "OK" }],
+                    );
+                    return;
+                  }
+                  Alert.alert(
+                    "Calling",
+                    "How should calls be placed?",
+                    [
+                      {
+                        text: "Direct call (place immediately)",
+                        onPress: () => {
+                          setCallModeState("direct");
+                          void setCallMode("direct");
+                        },
+                      },
+                      {
+                        text: "Open phone app",
+                        onPress: () => {
+                          setCallModeState("system");
+                          void setCallMode("system");
+                        },
+                      },
+                      { text: "Cancel", style: "cancel" },
+                    ],
+                    { cancelable: true },
+                  );
+                }}
+                style={[
+                  styles.modeBtn,
+                  {
+                    flex: 0,
+                    paddingHorizontal: 10,
+                    backgroundColor: colors.card,
+                    borderColor: colors.border,
+                    opacity: Platform.OS !== "android" ? 0.5 : 1,
+                  },
+                ]}
+              >
+                <Feather
+                  name={callMode === "direct" ? "phone-call" : "phone-forwarded"}
+                  size={13}
+                  color={colors.mutedForeground}
+                />
+                <Text
+                  style={{
+                    color: colors.mutedForeground,
+                    fontSize: 12,
+                    fontFamily: "SpaceGrotesk_600SemiBold",
+                    marginLeft: 6,
+                  }}
+                >
+                  {Platform.OS !== "android"
+                    ? "Phone app"
+                    : callMode === "direct"
+                      ? "Direct call"
+                      : "Phone app"}
+                </Text>
+              </Pressable>
             </View>
 
             {/* Advanced filter chips (verification badge / on Sayzio). */}

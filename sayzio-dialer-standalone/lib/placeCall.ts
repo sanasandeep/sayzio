@@ -12,12 +12,25 @@ import { type CallAccount, ZioTelephony } from "@/modules/zio-telephony";
  * user's SIM preference applies: a remembered SIM, or an in-app chooser
  * ("Always ask"). If native calling is unavailable (permission declined,
  * Expo Go, iOS, web) we fall back to ACTION_CALL / `tel:`.
+ *
+ * The "call mode" preference lets the user opt out of direct calling and
+ * always hand off to the system phone app instead. On iOS direct calling is
+ * never allowed by the platform, so the mode is always "system" there.
  */
 
 const SIM_PREF_KEY = "1inme.dialer.simPref.v1";
+const CALL_MODE_KEY = "1inme.dialer.callMode.v1";
 
 /** "ask" (default) or the index into getCallAccounts(). */
 export type SimPref = "ask" | number;
+
+/**
+ * "direct"  — place the call immediately via the native telephony API
+ *             (Android only; default on Android).
+ * "system"  — hand off to the OS phone app with the number pre-filled
+ *             (the only option on iOS; optional on Android).
+ */
+export type CallMode = "direct" | "system";
 
 export async function getSimPref(): Promise<SimPref> {
   try {
@@ -33,6 +46,29 @@ export async function getSimPref(): Promise<SimPref> {
 export async function setSimPref(pref: SimPref): Promise<void> {
   try {
     await AsyncStorage.setItem(SIM_PREF_KEY, String(pref));
+  } catch {
+    /* non-fatal */
+  }
+}
+
+/**
+ * Retrieve the persisted call mode.
+ * - iOS always returns "system" (platform does not allow silent dialing).
+ * - Android defaults to "direct" when no preference has been saved yet.
+ */
+export async function getCallMode(): Promise<CallMode> {
+  if (Platform.OS !== "android") return "system";
+  try {
+    const raw = await AsyncStorage.getItem(CALL_MODE_KEY);
+    return raw === "system" ? "system" : "direct";
+  } catch {
+    return "direct";
+  }
+}
+
+export async function setCallMode(mode: CallMode): Promise<void> {
+  try {
+    await AsyncStorage.setItem(CALL_MODE_KEY, mode);
   } catch {
     /* non-fatal */
   }
@@ -81,7 +117,11 @@ export async function placeRealCall(number: string): Promise<void> {
   if (!trimmed) return;
   const telUrl = `tel:${encodeURIComponent(trimmed)}`;
 
-  if (Platform.OS === "android") {
+  // "system" mode: skip the direct-call path and hand off to the OS dialer.
+  // iOS always behaves as "system" — the platform does not allow silent dialing.
+  const mode = await getCallMode();
+
+  if (Platform.OS === "android" && mode === "direct") {
     const granted = await ensureCallPermissions();
     if (granted && ZioTelephony) {
       try {
