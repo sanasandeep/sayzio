@@ -3,7 +3,11 @@ import { useEffect, useRef } from "react";
 import { AppState } from "react-native";
 
 import { googleContacts } from "@/lib/api/contacts";
-import { drainIdentifiedCalls, syncCallerDirectory } from "@/lib/callerId";
+import {
+  drainIdentifiedCalls,
+  flushPendingSpamReports,
+  syncCallerDirectory,
+} from "@/lib/callerId";
 import {
   getStoredContactSyncFingerprint,
   importDeviceContacts,
@@ -89,19 +93,14 @@ export function useContactAutoSync(
       if (mounted && changed) {
         qc.invalidateQueries({ queryKey: ["contacts"] });
       }
-      // Keep the native caller-ID directory fresh so the incoming-call
-      // overlay resolves Sayzio contacts even while the app is dead.
-      // Android-only no-op elsewhere; throttled internally.
+      // Push any "Report spam" taps made on the incoming-call overlay while
+      // the app was dead (POST /dialer/flag + directory re-sync), then keep
+      // the native caller-ID directory fresh so the overlay resolves Sayzio
+      // contacts even while the app is dead. Android-only no-ops elsewhere;
+      // throttled internally.
+      void flushPendingSpamReports();
+      void drainIdentifiedCalls();
       void syncCallerDirectory({ force: changed });
-      // Sync calls the screening service identified while the app was dead
-      // into the matched contacts' Sayzio history (their notes timeline),
-      // then refresh any open contact views. Best-effort, Android-only.
-      void drainIdentifiedCalls().then((logged) => {
-        if (mounted && logged > 0) {
-          qc.invalidateQueries({ queryKey: ["contacts"] });
-          qc.invalidateQueries({ queryKey: ["contact"] });
-        }
-      });
     };
 
     const start = async () => {

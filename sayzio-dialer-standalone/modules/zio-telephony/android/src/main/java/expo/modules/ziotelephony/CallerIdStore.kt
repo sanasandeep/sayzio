@@ -26,6 +26,15 @@ object CallerIdStore {
   /** Oldest events are dropped once the queue grows past this. */
   private const val MAX_QUEUED_CALLS = 50
 
+  // Numbers the user reported as spam from the overlay card while the JS
+  // runtime was dead. JS drains this queue to POST /dialer/flag on app
+  // open/foreground, then force-refreshes the directory.
+  private const val KEY_PENDING_REPORTS = "pending_spam_reports"
+  // Local display-only spam overrides so the NEXT call from a just-reported
+  // number warns immediately, before the server round-trip. Keyed by
+  // normalizeKey; superseded once the synced directory carries the flag.
+  private const val KEY_LOCAL_SPAM = "local_spam_keys"
+
   private fun prefs(context: Context): SharedPreferences =
     context.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
 
@@ -38,6 +47,70 @@ object CallerIdStore {
   fun setDirectoryJson(context: Context, json: String) {
     prefs(context).edit().putString(KEY_DIRECTORY, json).apply()
   }
+
+  // ── "Report spam" from the overlay (offline queue + local override) ────
+
+  private fun readStringArray(context: Context, key: String): MutableList<String> {
+    val out = mutableListOf<String>()
+    val raw = prefs(context).getString(key, null) ?: return out
+    try {
+      val arr = JSONArray(raw)
+      for (i in 0 until arr.length()) {
+        val v = arr.optString(i, "")
+        if (v.isNotBlank()) out.add(v)
+      }
+    } catch (_: Exception) {
+      // Corrupt payload — start fresh.
+    }
+    return out
+  }
+
+  private fun writeStringArray(context: Context, key: String, values: List<String>) {
+    val arr = JSONArray()
+    for (v in values) arr.put(v)
+    prefs(context).edit().putString(key, arr.toString()).apply()
+  }
+
+  /**
+   * Queue a number the user reported as spam from the overlay and remember
+   * a local display-only override so the next call warns immediately.
+   * Display-only — never blocks or silences anything.
+   */
+  fun addSpamReport(context: Context, number: String) {
+    val trimmed = number.trim()
+    if (trimmed.isEmpty()) return
+    val key = normalizeKey(trimmed)
+    if (key.isEmpty()) return
+    val pending = readStringArray(context, KEY_PENDING_REPORTS)
+    if (pending.none { normalizeKey(it) == key }) {
+      pending.add(trimmed)
+      // Bound the queue defensively; oldest reports drop first.
+      while (pending.size > 100) pending.removeAt(0)
+      writeStringArray(context, KEY_PENDING_REPORTS, pending)
+    }
+    val local = readStringArray(context, KEY_LOCAL_SPAM)
+    if (!local.contains(key)) {
+      local.add(key)
+      while (local.size > 200) local.removeAt(0)
+      writeStringArray(context, KEY_LOCAL_SPAM, local)
+    }
+  }
+
+  /** Numbers awaiting a POST /dialer/flag from the JS layer. */
+  fun getPendingSpamReports(context: Context): List<String> =
+    readStringArray(context, KEY_PENDING_REPORTS)
+
+  /** Remove one number from the pending queue after a successful server POST. */
+  fun removePendingSpamReport(context: Context, number: String) {
+    val key = normalizeKey(number)
+    if (key.isEmpty()) return
+    val pending = readStringArray(context, KEY_PENDING_REPORTS)
+    val next = pending.filter { normalizeKey(it) != key }
+    if (next.size != pending.size) writeStringArray(context, KEY_PENDING_REPORTS, next)
+  }
+
+  private fun isLocallyFlaggedSpam(context: Context, key: String): Boolean =
+    key.isNotEmpty() && readStringArray(context, KEY_LOCAL_SPAM).contains(key)
 
   data class DirectoryEntry(
     val name: String?,
@@ -55,30 +128,46 @@ object CallerIdStore {
     return if (digits.length > 9) digits.takeLast(9) else digits
   }
 
-  /** Look an incoming number up in the synced Sayzio directory. */
+  /**
+   * Look an incoming number up in the synced Sayzio directory, merged with
+   * any local "reported spam from the overlay" override so a just-reported
+   * number warns on its very next call, before the server sync lands.
+   */
   fun lookup(context: Context, number: String): DirectoryEntry? {
     val key = normalizeKey(number)
     if (key.isEmpty()) return null
-    val raw = prefs(context).getString(KEY_DIRECTORY, null) ?: return null
-    return try {
-      val arr = JSONArray(raw)
-      for (i in 0 until arr.length()) {
-        val o = arr.optJSONObject(i) ?: continue
-        val n = o.optString("n", "")
-        if (n.isNotEmpty() && normalizeKey(n) == key) {
-          return DirectoryEntry(
-            name = o.optString("name").takeIf { it.isNotBlank() },
-            photoUrl = o.optString("photo").takeIf { it.isNotBlank() },
-            organization = o.optString("org").takeIf { it.isNotBlank() },
-            isSpam = o.optBoolean("spam", false),
-            isBlocked = o.optBoolean("blocked", false),
-          )
+    val localSpam = isLocallyFlaggedSpam(context, key)
+    val raw = prefs(context).getString(KEY_DIRECTORY, null)
+    if (raw != null) {
+      try {
+        val arr = JSONArray(raw)
+        for (i in 0 until arr.length()) {
+          val o = arr.optJSONObject(i) ?: continue
+          val n = o.optString("n", "")
+          if (n.isNotEmpty() && normalizeKey(n) == key) {
+            return DirectoryEntry(
+              name = o.optString("name").takeIf { it.isNotBlank() },
+              photoUrl = o.optString("photo").takeIf { it.isNotBlank() },
+              organization = o.optString("org").takeIf { it.isNotBlank() },
+              isSpam = o.optBoolean("spam", false) || localSpam,
+              isBlocked = o.optBoolean("blocked", false),
+            )
+          }
         }
+      } catch (_: Exception) {
+        // Fall through to the local-override-only entry below.
       }
-      null
-    } catch (_: Exception) {
-      null
     }
+    if (localSpam) {
+      return DirectoryEntry(
+        name = null,
+        photoUrl = null,
+        organization = null,
+        isSpam = true,
+        isBlocked = false,
+      )
+    }
+    return null
   }
 
   // ── Identified-call queue (CRM history sync) ──────────────────────────

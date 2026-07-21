@@ -51,6 +51,11 @@ export type ZioTelephonyModule = {
   getIdentifiedCallQueue(): string;
   /** Drop the first `count` queued identified-call events after a successful sync. */
   clearIdentifiedCallQueue(count: number): boolean;
+
+  /** Numbers reported as spam from the overlay, awaiting a POST /dialer/flag. */
+  getPendingSpamReports(): string[];
+  /** Remove one number from the pending queue after a successful server POST. */
+  removePendingSpamReport(number: string): boolean;
   /** Preview the floating card with a given number. */
   showTestCallerIdAlert(number: string): boolean;
   dismissCallerIdAlert(): void;

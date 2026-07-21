@@ -191,6 +191,9 @@ function mount({ enabled = true, userId = 1, stored = {}, refs = null } = {}) {
     },
     // Android-only fire-and-forget helpers — noop here; the caller-ID sync
     // and identified-call drain have their own dedicated test harnesses.
+    flushPendingSpamReports: async () => {
+      state.flushCalls = (state.flushCalls ?? 0) + 1;
+    },
     syncCallerDirectory: async () => {},
     drainIdentifiedCalls: async () => 0,
     getStoredContactSyncFingerprint: async (uid) => state.stored[uid] ?? null,

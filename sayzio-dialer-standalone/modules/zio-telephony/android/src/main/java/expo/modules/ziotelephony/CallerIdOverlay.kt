@@ -298,6 +298,48 @@ object CallerIdOverlay {
     }
     col.addView(brand)
 
+    // "Report spam" action for not-yet-flagged numbers. Display-only: it
+    // queues the report for the app to sync (POST /dialer/flag) and marks
+    // the number locally so the NEXT call shows the red warning — the
+    // ringing call itself is never blocked or silenced.
+    if (!flagged && info.number.isNotBlank()) {
+      val report = TextView(app).apply {
+        text = "⚠ Report spam"
+        setTextColor(WARN)
+        textSize = 12f
+        typeface = Typeface.DEFAULT_BOLD
+        setPadding(dp(app, 10), dp(app, 5), dp(app, 10), dp(app, 5))
+        background = GradientDrawable().apply {
+          setColor(0x1AE5484D)
+          cornerRadius = dp(app, 12).toFloat()
+          setStroke(dp(app, 1), WARN_STROKE)
+        }
+      }
+      report.setOnClickListener {
+        try {
+          CallerIdStore.addSpamReport(app, info.number)
+        } catch (_: Exception) {
+          // Best-effort — never crash the overlay.
+        }
+        report.text = "✓ Reported — future calls will warn"
+        report.setOnClickListener(null)
+        report.isClickable = false
+        report.alpha = 0.85f
+      }
+      val reportWrap = LinearLayout(app).apply {
+        orientation = LinearLayout.HORIZONTAL
+        setPadding(0, dp(app, 8), 0, 0)
+        addView(
+          report,
+          LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.WRAP_CONTENT,
+            LinearLayout.LayoutParams.WRAP_CONTENT,
+          ),
+        )
+      }
+      col.addView(reportWrap)
+    }
+
     // Close button.
     val close = TextView(app).apply {
       text = "✕"

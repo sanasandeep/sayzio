@@ -280,6 +280,27 @@ class ZioTelephonyModule : Module() {
       }
     }
 
+    // Numbers the user reported as spam from the overlay card while the JS
+    // runtime was dead. The JS layer drains this queue to POST /dialer/flag
+    // on app open/foreground, then force-refreshes the caller directory.
+    Function("getPendingSpamReports") {
+      try {
+        CallerIdStore.getPendingSpamReports(context)
+      } catch (_: Exception) {
+        emptyList<String>()
+      }
+    }
+
+    // Remove one number from the pending queue once the server accepted it.
+    Function("removePendingSpamReport") { number: String ->
+      try {
+        CallerIdStore.removePendingSpamReport(context, number)
+        true
+      } catch (_: Exception) {
+        false
+      }
+    }
+
     // Preview the floating card with a fake ringing number — used by the
     // settings screen so users can see what the alert looks like.
     Function("showTestCallerIdAlert") { number: String ->

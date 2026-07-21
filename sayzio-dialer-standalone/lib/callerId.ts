@@ -1,7 +1,7 @@
 import { Platform } from "react-native";
 
 import { listContacts, updateContact, type Contact } from "@/lib/api/contacts";
-import { listFlaggedNumbers } from "@/lib/api/dialer";
+import { flagNumber, listFlaggedNumbers } from "@/lib/api/dialer";
 import { ZioTelephony } from "@/modules/zio-telephony";
 
 /**
@@ -97,6 +97,44 @@ export function showTestAlert(number: string): boolean {
     return ZioTelephony.showTestCallerIdAlert(number);
   } catch {
     return false;
+  }
+}
+
+// Guard against overlapping flushes when open + foreground fire together.
+let flushingReports = false;
+
+/**
+ * Push "Report spam" taps made on the incoming-call overlay (queued natively
+ * while the JS runtime was dead) to POST /dialer/flag, then force-refresh the
+ * caller directory so the server-backed red warning replaces the local
+ * override. Best-effort and silent: failed posts stay queued for next time.
+ * Display-only — flagging never blocks or silences any call.
+ */
+export async function flushPendingSpamReports(): Promise<void> {
+  if (Platform.OS !== "android" || !ZioTelephony) return;
+  if (flushingReports) return;
+  flushingReports = true;
+  try {
+    let pending: string[] = [];
+    try {
+      pending = ZioTelephony.getPendingSpamReports();
+    } catch {
+      return;
+    }
+    if (!pending.length) return;
+    let anySynced = false;
+    for (const number of pending) {
+      try {
+        await flagNumber({ number, is_spam: true });
+        ZioTelephony.removePendingSpamReport(number);
+        anySynced = true;
+      } catch {
+        // Offline or server error — keep it queued and retry next time.
+      }
+    }
+    if (anySynced) await syncCallerDirectory({ force: true });
+  } finally {
+    flushingReports = false;
   }
 }
 

@@ -19,6 +19,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { TextField } from "@/components/TextField";
 import { useColors } from "@/hooks/useColors";
 import {
+  flushPendingSpamReports,
   getCallerIdStatus,
   openOverlaySettings,
   requestCallScreeningRole,
@@ -62,9 +63,13 @@ function LiveCallerIdCard() {
     return () => sub.remove();
   }, [refresh]);
 
-  // Keep the native lookup directory warm while the user is here.
+  // Keep the native lookup directory warm while the user is here, and push
+  // any overlay "Report spam" taps queued while the app was dead.
   useEffect(() => {
-    if (status.enabled) void syncCallerDirectory();
+    if (status.enabled) {
+      void flushPendingSpamReports();
+      void syncCallerDirectory();
+    }
   }, [status.enabled]);
 
   if (!status.supported) return null;
