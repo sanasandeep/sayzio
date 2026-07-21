@@ -484,14 +484,14 @@
                                 @click="item.enabled = !item.enabled"
                                 :title="item.enabled ? 'Click to hide' : 'Click to show'"
                                 class="shrink-0 text-sm"
-                                :style="item.enabled ? 'color:var(--color-primary-500,#3d6bff)' : 'color:var(--text-dimmed)'">
+                                :style="item.enabled ? 'color:var(--accent)' : 'color:var(--text-dimmed)'">
                             <i :class="item.enabled ? 'fas fa-eye' : 'fas fa-eye-slash'"></i>
                         </button>
                         <span class="flex-1 text-sm truncate"
                               :style="item.enabled ? 'color:var(--text-primary)' : 'color:var(--text-dimmed);text-decoration:line-through;'"
                               x-text="(linkMap[item.id] || {}).title || ('#' + item.id)"></span>
                         <span class="text-[10px] uppercase font-semibold px-1.5 py-0.5 rounded-full shrink-0"
-                              style="background: rgba(61,107,255,0.08); color: #3d6bff;"
+                              style="background: color-mix(in srgb, var(--accent) 12%, transparent); color: var(--accent);"
                               x-text="(linkMap[item.id] || {}).type || ''"></span>
                         <button type="button" @click="featured.splice(idx, 1)"
                                 class="shrink-0 text-xs hover:text-rose-500" style="color: var(--text-dimmed);">
@@ -815,7 +815,7 @@
                         <button type="button" @click="setMode(m[0])"
                                 class="text-[10px] font-semibold px-2 py-1 rounded-md"
                                 :style="pvMode === m[0]
-                                    ? 'background: rgba(61,107,255,0.15); color: var(--color-primary-500, #3d6bff);'
+                                    ? 'background: color-mix(in srgb, var(--accent) 15%, transparent); color: var(--accent);'
                                     : 'color: var(--text-dimmed);'"
                                 x-text="m[1]"></button>
                     </template>
