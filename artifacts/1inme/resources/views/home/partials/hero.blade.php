@@ -800,14 +800,12 @@
         // The clip is same-origin, so the canvas is not tainted. If the corner
         // is opaque, the browser is not honoring alpha — hide the video and
         // show the transparent still PNG instead (mascot still visible, no box).
-        // Covers both home mascot clips: the hero (.zio-mascot-video) and the
-        // "1IN.ME is Sayzio" section (.bs-mascot-video), each paired with its
-        // own transparent still (*-fallback) sibling. Runs after DOMContentLoaded
-        // because brand-sayzio is included further down the page than this hero,
-        // so its <video> doesn't exist yet at parse time.
+        // Covers the hero mascot clip (.zio-mascot-video), paired with its
+        // transparent still (*-fallback) sibling. (The "1IN.ME is Sayzio"
+        // section now uses a static icon, so only the hero clip is guarded.)
         (function () {
             function initMascotAlphaGuard() {
-            var videos = document.querySelectorAll('.zio-mascot-video, .bs-mascot-video');
+            var videos = document.querySelectorAll('.zio-mascot-video');
             if (!videos.length) { return; }
             var reduceMotion = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
             Array.prototype.forEach.call(videos, function (video) {
