@@ -81,6 +81,76 @@ class CreatorProfileApiController extends Controller
     }
 
     /**
+     * Owner read of the editable creator-profile state (Task #5600).
+     * Unlike the public show() payload this returns the RAW resolved
+     * showcase config — including disabled featured links and items in
+     * hidden sections — so the mobile settings form can seed losslessly.
+     */
+    public function settings(Request $request)
+    {
+        $user = $request->user();
+        if (!$user) {
+            return $this->fail('Unauthenticated.', 401, 'unauthenticated');
+        }
+
+        return $this->ok(['profile' => $this->ownerProfilePayload($user)]);
+    }
+
+    /**
+     * Shared owner-editor payload used by settings() and update().
+     *
+     * @return array<string,mixed>
+     */
+    private function ownerProfilePayload(User $user): array
+    {
+        $showcase = $user->resolvedProfileShowcase();
+
+        // Titles for every referenced link so the app can label rows
+        // without a second request. Includes inactive/non-public links —
+        // this is the OWNER's editor, mirroring the web picker.
+        $refIds = array_values(array_unique(array_merge(
+            array_column($showcase['featured_links'], 'id'),
+            array_column($showcase['showcase_items'], 'link_id'),
+        )));
+        $refLinks = empty($refIds) ? collect() : Link::query()
+            ->withoutGlobalScope('workspace')
+            ->where('user_id', $user->id)
+            ->whereIn('id', $refIds)
+            ->get(['id', 'title', 'alias', 'type'])
+            ->keyBy('id');
+
+        $labelled = fn (int $id) => ($l = $refLinks[$id] ?? null)
+            ? ['title' => $l->title, 'alias' => $l->alias, 'type' => $l->type]
+            : ['title' => null, 'alias' => null, 'type' => null];
+
+        return [
+            'handle'              => $user->handle,
+            'tagline'             => $user->tagline,
+            'location'            => $user->location,
+            'bio'                 => $user->bio,
+            'niche_tags'          => is_array($user->niche_tags) ? $user->niche_tags : [],
+            'socials'             => is_array($user->socials) ? $user->socials : [],
+            'sections'            => $user->profileSectionVisibility(),
+            'profile_published'   => (bool) $user->profile_published,
+            'profile_theme_color' => $user->profile_theme_color ?: null,
+            'showcase'            => [
+                'featured_links' => array_map(
+                    fn ($fl) => $fl + $labelled((int) $fl['id']),
+                    $showcase['featured_links'],
+                ),
+                'featured_links_style' => $showcase['featured_links_style'],
+                'show_link_stats'      => (bool) $showcase['show_link_stats'],
+                'showcase_items'       => array_map(
+                    fn ($it) => $it + $labelled((int) ($it['link_id'] ?? 0)),
+                    $showcase['showcase_items'],
+                ),
+                'highlights' => $showcase['highlights'],
+                'cta'        => $showcase['cta'],
+            ],
+        ];
+    }
+
+    /**
      * Owner update of the creator profile (mobile parity for the web
      * "Edit creator profile" page). Delegates to the web controller's
      * shared helpers so validation semantics, ownership checks and the

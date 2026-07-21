@@ -180,6 +180,11 @@ Route::prefix('v1')->group(function () {
         // a whole, core fields are present-keys-only.
         Route::patch('/me/creator-profile', [\App\Modules\Api\Controllers\CreatorProfileApiController::class, 'update']);
 
+        // Owner read of the editable creator-profile state (Task #5600) —
+        // raw resolved showcase (incl. disabled featured links) so the
+        // mobile settings screen can seed losslessly before PATCHing.
+        Route::get('/me/creator-profile', [\App\Modules\Api\Controllers\CreatorProfileApiController::class, 'settings']);
+
         // Unified creator Stats home (mobile parity for web /user/stats).
         Route::get('/stats', [\App\Modules\Api\Controllers\CreatorStatsApiController::class, 'index']);
 
