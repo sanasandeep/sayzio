@@ -604,6 +604,11 @@ Sayzio includes several AI helpers, all metered with **AI credits**:
   fonts, voice, taglines, bio) and apply it to your biolinks and QR codes. A
   **Brand Consistency Score** audits how on-brand your pages are, and On-Brand AI
   keeps AI-written content in your brand voice.
+- **AI Brand Studio** — describe what you need in plain language and get a whole
+  on-brand asset kit — bio page, short links, QR codes, a form and a digital
+  card — planned by AI and reviewed by you before anything is created. Bulk mode
+  can create many variations of one asset type at once (limit depends on your
+  plan). A failed run is automatically refunded.
 - **AI QR Art** — turn a plain QR code into on-brand artwork that still scans (a
   built-in check verifies scannability before you use it).
 - **Inbox Agent** — categorizes and prioritizes incoming messages, drafts replies,

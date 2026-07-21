@@ -1158,6 +1158,15 @@ Route::prefix('v1')->group(function () {
         Route::post  ('/brand-kits/{brandKit}/apply/biolink/{link}', [\App\Modules\Api\Controllers\BrandKitController::class, 'applyToBiolink'])->whereNumber('brandKit')->whereNumber('link');
         Route::post  ('/brand-kits/{brandKit}/apply/qr/{qrCode}',    [\App\Modules\Api\Controllers\BrandKitController::class, 'applyToQr'])->whereNumber('brandKit')->whereNumber('qrCode');
 
+        // AI Brand Studio (Task #5551): one brief → reviewed multi-asset plan
+        // → assets created as a named kit. Mirrors /user/brand-studio.
+        Route::get   ('/brand-studio',               [\App\Modules\Api\Controllers\BrandStudioController::class, 'index']);
+        Route::post  ('/brand-studio/estimate',      [\App\Modules\Api\Controllers\BrandStudioController::class, 'estimate'])->middleware('throttle:30,1');
+        Route::post  ('/brand-studio/plan',          [\App\Modules\Api\Controllers\BrandStudioController::class, 'plan'])->middleware('throttle:10,1');
+        Route::get   ('/brand-studio/{kit}',         [\App\Modules\Api\Controllers\BrandStudioController::class, 'show'])->whereNumber('kit');
+        Route::post  ('/brand-studio/{kit}/confirm', [\App\Modules\Api\Controllers\BrandStudioController::class, 'confirm'])->whereNumber('kit')->middleware('throttle:20,1');
+        Route::delete('/brand-studio/{kit}',         [\App\Modules\Api\Controllers\BrandStudioController::class, 'destroy'])->whereNumber('kit');
+
         // Restaurant menu (Task #1536) — owner orders dashboard parity.
         Route::get ('/restaurant/links/{link}/orders',                [RestaurantController::class, 'ownerOrders'])->whereNumber('link');
         Route::get ('/restaurant/links/{link}/orders/poll',           [RestaurantController::class, 'ownerPoll'])->whereNumber('link');

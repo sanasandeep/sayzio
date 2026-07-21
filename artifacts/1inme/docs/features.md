@@ -931,7 +931,7 @@ show "AI scanning/feature is currently disabled by your administrator."
 **AI-credit feature catalog** (`AiFeatureCatalog` FEATURES) — `mind`, `persona`,
 `companion`, `coach` / `ask_coach`, `voice_stt`, `voice_llm`, `voice_tts`,
 `card_scan`, `resume_import`, `resume_tailor`, `inbox_agent`, `brand_kit`,
-`qr_art`, `marketing_strategist` (+ `marketing_strategist.chat`), and
+`qr_art`, `marketing_strategist` (+ `marketing_strategist.chat`), `brand_studio`, and
 `audience_type_estimation` (Visitor Type Audience Insights — see
 [§5.17](#517-visitor-type-audience-insights)). Additional AI surfaces gated
 through the engine settings include the `biolink_builder`,
@@ -1003,6 +1003,17 @@ through the engine settings include the `biolink_builder`,
   `brand_kit`; the number of saved AI kits is capped by `max_brand_kits`. (The
   separate `brand_kit` **link type** publishes a shareable press-kit page — see
   [§2.3](#23-business--monetization).)
+- **AI Brand Studio** (`AiBrandStudioService`) — a bulk on-brand asset creator at
+  `/user/brand-studio`: one plain-language brief (grounded in a saved Brand Kit or
+  inline brand details) becomes a structured multi-asset plan — a Link in Bio page,
+  short links, QR codes, a form and a digital card — reviewed asset-by-asset
+  before anything is created; confirmed assets are materialized as a named kit
+  (`BrandStudioKit`) with a results page. Two modes: **full kit** and **bulk
+  variations** (N variants of one asset kind, capped per plan by
+  `max_brand_studio_bulk`). Planning is charged to the `brand_studio` AI-credit
+  feature with auto-refund on parse failure; confirming is deterministic and free,
+  with per-type plan caps enforced at creation (capped assets are skipped and
+  reported). Full mobile parity via `/api/v1/brand-studio`. *Web + mobile.*
 - **QR AI Art** — generates eye-catching, on-brand artistic QR codes that still
   scan reliably; gated/charged as `qr_art` and integrated with QR Studio (see
   [§5.6](#56-qr-studio-pro)).

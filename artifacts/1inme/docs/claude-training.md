@@ -384,6 +384,7 @@ Feature key goes in `FEATURES`; call `OpenAiService::chat` (auto-charges).
 | Resume AI (tailor, cover letter, ATS) | `ai_resume_tools` | Resume-specific AI tools |
 | AI Marketing Strategist | `marketing_strategist` | Organic+paid marketing plan; refinement chat |
 | AI Brand Kits & On-Brand AI | `brand_kit` | Palette/font/voice/taglines; BrandConsistencyScore |
+| AI Brand Studio | `brand_studio` | One brief → reviewed multi-asset kit; bulk variations capped by `max_brand_studio_bulk` |
 | AI QR Art | `qr_art` | Artistic QR with scannability verify (jsQR, client-side) |
 | WhatsApp AI Agent | `whatsapp_agent` | Inbound WhatsApp responder |
 | Inbox Agent | `inbox_agent` | Triage + reply draft + autopilot |

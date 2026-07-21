@@ -416,6 +416,14 @@ args = "dialer-note-alarms"
 task = "workflow.run"
 args = "asset-transfer-tests"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "brand-studio-test"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "bs-verify"
+
 [[workflows.workflow]]
 name = "e2e"
 author = "agent"
@@ -1716,6 +1724,17 @@ args = "cd sayzio-dialer-standalone && npm run test:note-alarms"
 isValidation = true
 
 [[workflows.workflow]]
+name = "brand-studio-test"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd artifacts/1inme && TEST_LOCAL_MODE=artisan TEST_LOCAL_PORT=55471 bash scripts/test-local.sh --filter=AiBrandStudioTest"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
 name = "asset-transfer-tests"
 author = "agent"
 
@@ -1725,6 +1744,17 @@ isValidation = true
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "cd artifacts/1inme && TEST_LOCAL_MODE=artisan composer test:local -- --filter AssetTransferTest"
+
+[[workflows.workflow]]
+name = "bs-verify"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd artifacts/1inme && composer lint:deprecations && php artisan route:list | grep -c brand-studio"
+
+[workflows.workflow.metadata]
+isValidation = true
 
   [agent]
 stack = "PNPM_WORKSPACE"

@@ -117,6 +117,7 @@ const NAV_GROUPS: NavGroup[] = [
       { label: "AI Chat", icon: "message-square", href: "/ai-coach" },
       { label: "Chat Widgets", icon: "message-circle", href: "/ai-companions", soon: true },
       { label: "AI Brand Kit", icon: "feather", href: "/brand-kits" },
+      { label: "AI Brand Studio", icon: "layers", href: "/brand-studio" },
       { label: "AI Growth Coach", icon: "trending-up", href: "/ai-growth-coach", soon: true },
       { label: "AI Coach", icon: "compass", href: "/ask-coach" },
       { label: "AI Marketing Strategist", icon: "bar-chart", href: "/marketing-strategist" },

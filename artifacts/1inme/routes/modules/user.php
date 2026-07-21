@@ -929,6 +929,16 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::post  ('brand-kits/defaults',                     [\App\Modules\User\Controllers\BrandKitController::class, 'saveDefaults'])->middleware('workspace.can:links.view')->name('brand-kits.defaults.save');
         Route::delete('brand-kits/defaults',                     [\App\Modules\User\Controllers\BrandKitController::class, 'clearDefaults'])->middleware('workspace.can:links.view')->name('brand-kits.defaults.clear');
         Route::delete('brand-kits/{brandKit}',                   [\App\Modules\User\Controllers\BrandKitController::class, 'destroy'])->middleware('workspace.can:links.create')->name('brand-kits.destroy');
+
+        // AI Brand Studio (Task #5551): one plain-language brief → a reviewed,
+        // structured multi-asset plan → assets created together as a named
+        // kit. Charged against the `brand_studio` AI feature; plan-gated.
+        Route::get   ('brand-studio',               [\App\Modules\User\Controllers\BrandStudioController::class, 'index'])->middleware('workspace.can:links.view')->name('brand-studio.index');
+        Route::post  ('brand-studio/estimate',      [\App\Modules\User\Controllers\BrandStudioController::class, 'estimate'])->middleware(['workspace.can:links.create', 'throttle:30,1'])->name('brand-studio.estimate');
+        Route::post  ('brand-studio/plan',          [\App\Modules\User\Controllers\BrandStudioController::class, 'plan'])->middleware(['workspace.can:links.create', 'throttle:10,1'])->name('brand-studio.plan');
+        Route::get   ('brand-studio/{kit}',         [\App\Modules\User\Controllers\BrandStudioController::class, 'show'])->whereNumber('kit')->middleware('workspace.can:links.view')->name('brand-studio.show');
+        Route::post  ('brand-studio/{kit}/confirm', [\App\Modules\User\Controllers\BrandStudioController::class, 'confirm'])->whereNumber('kit')->middleware(['workspace.can:links.create', 'throttle:20,1'])->name('brand-studio.confirm');
+        Route::delete('brand-studio/{kit}',         [\App\Modules\User\Controllers\BrandStudioController::class, 'destroy'])->whereNumber('kit')->middleware('workspace.can:links.create')->name('brand-studio.destroy');
         Route::post  ('brand-kits/{brandKit}/apply/biolink/{link}', [\App\Modules\User\Controllers\BrandKitController::class, 'applyToBiolink'])->middleware('workspace.can:links.edit')->name('brand-kits.apply.biolink');
         Route::post  ('brand-kits/{brandKit}/apply/qr/{qrCode}',    [\App\Modules\User\Controllers\BrandKitController::class, 'applyToQr'])->middleware('workspace.can:links.edit')->name('brand-kits.apply.qr');
 

@@ -782,6 +782,19 @@ Mobile parity for the web `/user/brand-kits` flow. AI crafts a cohesive brand id
 
 Plan-gated rejections use the standard `{error:{code:"plan_limit", details:{recommended_plan, recommended_plan_name, feature}}}` envelope; `503 ai_unavailable` when the AI engine is disabled.
 
+## AI Brand Studio
+
+Mobile parity for the web `/user/brand-studio` flow (bulk on-brand asset creator). One plain-language brief — grounded in a saved AI Brand Kit or inline brand details — becomes a structured multi-asset plan (Link in Bio page, short links, QR codes, a form, a digital card) that the user reviews asset-by-asset before anything is created. Two modes: `kit` (full mixed kit) and `bulk` (N variations of one asset kind, capped per plan by `max_brand_studio_bulk`). Planning is charged in AI credits against the `brand_studio` feature with an automatic refund if the AI response can't be parsed (handled in `AiBrandStudioService`); confirming is deterministic and free, and per-type plan caps (`max_links`, `max_biolinks`, `max_qr_codes`, `max_forms`) are enforced at creation time — capped assets are skipped and reported, never silently created. Availability is plan-gated by the `brand_studio` feature.
+
+| Method | Path                          | Auth | Description                                                                 |
+| ------ | ----------------------------- | ---- | --------------------------------------------------------------------------- |
+| GET    | `/brand-studio`               | yes  | Gating + AI-engine status, credit balance, per-plan bulk cap, saved brand kits and past runs. |
+| POST   | `/brand-studio/estimate`      | yes  | Upfront, worst-case credit cost. Body: `request`, `mode?` (`kit`\|`bulk`), `bulk_kind?`, `bulk_count?`, `brand_kit_id?` or inline `brand_name?`/`brand_colors?`/`brand_voice?`/`brand_description?`. Throttle 30/min. |
+| POST   | `/brand-studio/plan`          | yes  | Run the AI planning step and save a proposal. Same body as estimate. Throttle 10/min. `402 insufficient_credits` when the wallet can't cover the charge. |
+| GET    | `/brand-studio/{kit}`         | yes  | Proposal / results detail (proposed assets, created asset ids, skipped-cap messages). |
+| POST   | `/brand-studio/{kit}/confirm` | yes  | Materialize the kept assets. Body: `keep?` (array of proposal indexes; omit to keep all). Throttle 20/min. |
+| DELETE | `/brand-studio/{kit}`         | yes  | Delete a kit record (created assets are kept).                              |
+
 ## Projects
 
 | Method | Path               | Auth | Description           |

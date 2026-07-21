@@ -1,0 +1,214 @@
+<?php
+
+namespace App\Modules\Api\Controllers;
+
+use App\Modules\Api\Controllers\Concerns\ApiResponses;
+use App\Modules\User\Models\BrandKit;
+use App\Modules\User\Models\BrandStudioKit;
+use App\Services\AI\AiEngineSettings;
+use App\Services\AI\AiPlanAccess;
+use App\Services\AI\AiUsageCharger;
+use App\Services\AI\InsufficientCoinsForAiException;
+use App\Services\Brand\AiBrandStudioService;
+use Illuminate\Http\Request;
+use Illuminate\Routing\Controller;
+
+/**
+ * Mobile (Sanctum) parity for the web "AI Brand Studio" feature (Task #5551,
+ * see App\Modules\User\Controllers\BrandStudioController for the web flow).
+ *
+ * Routes (all under /api/v1, auth:sanctum):
+ *   GET    /brand-studio                gating + saved brand kits + past runs
+ *   POST   /brand-studio/estimate       upfront credit cost
+ *   POST   /brand-studio/plan           run the AI planning step
+ *   GET    /brand-studio/{kit}          proposal / results detail
+ *   POST   /brand-studio/{kit}/confirm  materialize the kept assets
+ *   DELETE /brand-studio/{kit}          delete a kit record
+ *
+ * All heavy lifting (AI call, credit charge + auto-refund, proposal
+ * sanitization, per-type plan caps at materialize time) is delegated to the
+ * shared {@see AiBrandStudioService} exactly like the web controller, so the
+ * two surfaces never drift. Kits are owned by `user_id`; the Sanctum path
+ * never binds `current_workspace`, matching BrandKitController.
+ */
+class BrandStudioController extends Controller
+{
+    use ApiResponses;
+
+    public function __construct(
+        protected AiBrandStudioService $studio,
+        protected AiUsageCharger $credits,
+    ) {}
+
+    public function index(Request $request)
+    {
+        $user      = $request->user();
+        $aiEnabled = AiEngineSettings::isEnabled();
+        $allowed   = AiPlanAccess::featureAllowed($user, AiBrandStudioService::FEATURE);
+
+        return $this->ok([
+            'available'   => $allowed,
+            'ai_enabled'  => $aiEnabled,
+            'balance'     => $aiEnabled ? $this->credits->getBalance($user) : 0,
+            'bulk_cap'    => AiBrandStudioService::bulkCap($user),
+            'asset_kinds' => AiBrandStudioService::ASSET_KINDS,
+            'brand_kits'  => BrandKit::where('user_id', $user->id)->latest()->get(['id', 'name'])
+                ->map(fn ($k) => ['id' => $k->id, 'name' => $k->name])->all(),
+            'kits'        => BrandStudioKit::where('user_id', $user->id)->latest()->limit(50)->get()
+                ->map(fn (BrandStudioKit $k) => $this->presentKit($k, false))->all(),
+        ]);
+    }
+
+    public function estimate(Request $request)
+    {
+        $user = $request->user();
+        if (!AiEngineSettings::isEnabled()) {
+            return $this->fail('AI Engine is disabled.', 404, 'ai_disabled');
+        }
+        if (!AiPlanAccess::featureAllowed($user, AiBrandStudioService::FEATURE)) {
+            return $this->planGate('AI Brand Studio is not available on your plan.', AiBrandStudioService::FEATURE, $user);
+        }
+
+        $data = $this->validatePayload($request);
+
+        try {
+            $brand = $this->studio->resolveBrand($user, $data['brand_kit_id'], $data['inline']);
+            $cost  = $this->studio->estimateCredits($user, $data['request'], $brand['directives'], $data['mode'], $data['bulk_kind'], $data['bulk_count']);
+        } catch (\RuntimeException $e) {
+            return $this->fail($e->getMessage(), 422, 'invalid_request');
+        }
+
+        return $this->ok([
+            'estimated_credits' => $cost,
+            'balance'           => $this->credits->getBalance($user),
+        ]);
+    }
+
+    public function plan(Request $request)
+    {
+        $user = $request->user();
+        if (!AiEngineSettings::isEnabled()) {
+            return $this->fail('AI Engine is disabled.', 404, 'ai_disabled');
+        }
+        if (!AiPlanAccess::featureAllowed($user, AiBrandStudioService::FEATURE)) {
+            return $this->planGate('AI Brand Studio is not available on your plan.', AiBrandStudioService::FEATURE, $user);
+        }
+
+        $data = $this->validatePayload($request);
+
+        try {
+            $brand  = $this->studio->resolveBrand($user, $data['brand_kit_id'], $data['inline']);
+            $result = $this->studio->plan($user, $data['request'], $brand['directives'], $brand['brand'], $data['mode'], $data['bulk_kind'], $data['bulk_count']);
+        } catch (InsufficientCoinsForAiException $e) {
+            return $this->fail('Not enough AI credits for this Brand Studio run.', 402, 'insufficient_credits', [
+                'required' => $e->required ?? null,
+                'balance'  => $e->balance ?? null,
+            ]);
+        } catch (\RuntimeException $e) {
+            return $this->fail($e->getMessage(), 422, 'plan_failed');
+        }
+
+        return $this->ok([
+            'credits_spent' => $result['credits_spent'],
+            'balance'       => $this->credits->getBalance($user),
+            'kit'           => $this->presentKit($result['kit'], true),
+        ]);
+    }
+
+    public function show(Request $request, BrandStudioKit $kit)
+    {
+        $this->authorizeKit($request, $kit);
+        return $this->ok(['kit' => $this->presentKit($kit, true)]);
+    }
+
+    public function confirm(Request $request, BrandStudioKit $kit)
+    {
+        $this->authorizeKit($request, $kit);
+
+        $data = $request->validate([
+            'keep'   => ['nullable', 'array'],
+            'keep.*' => ['integer', 'min:0'],
+        ]);
+
+        try {
+            $result = $this->studio->materialize($request->user(), $kit, $data['keep'] ?? null);
+        } catch (\RuntimeException $e) {
+            return $this->fail($e->getMessage(), 422, 'confirm_failed');
+        }
+
+        return $this->ok([
+            'created' => $result['created'],
+            'skipped' => $result['skipped'],
+            'kit'     => $this->presentKit($result['kit'], true),
+        ]);
+    }
+
+    public function destroy(Request $request, BrandStudioKit $kit)
+    {
+        $this->authorizeKit($request, $kit);
+        $kit->delete();
+        return $this->ok(['deleted' => true]);
+    }
+
+    /** @return array<string,mixed> */
+    private function presentKit(BrandStudioKit $kit, bool $detail): array
+    {
+        $base = [
+            'id'            => $kit->id,
+            'name'          => $kit->name,
+            'mode'          => $kit->mode,
+            'status'        => $kit->status,
+            'asset_count'   => count($kit->isCreated() ? $kit->createdAssets() : $kit->proposedAssets()),
+            'credits_spent' => (int) $kit->credits_spent,
+            'created_at'    => $kit->created_at?->toIso8601String(),
+        ];
+
+        if ($detail) {
+            $base['request']  = $kit->request;
+            $base['proposal'] = ['assets' => $kit->proposedAssets()];
+            $base['results']  = [
+                'assets'  => $kit->createdAssets(),
+                'skipped' => array_values((array) ($kit->results['skipped'] ?? [])),
+            ];
+        }
+
+        return $base;
+    }
+
+    /**
+     * @return array{request:string,mode:string,bulk_kind:?string,bulk_count:int,brand_kit_id:?int,inline:array<string,string>}
+     */
+    private function validatePayload(Request $request): array
+    {
+        $data = $request->validate([
+            'request'           => ['required', 'string', 'max:4000'],
+            'mode'              => ['nullable', 'in:kit,bulk'],
+            'bulk_kind'         => ['nullable', 'in:' . implode(',', AiBrandStudioService::ASSET_KINDS)],
+            'bulk_count'        => ['nullable', 'integer', 'min:1', 'max:' . AiBrandStudioService::HARD_BULK_CAP],
+            'brand_kit_id'      => ['nullable', 'integer'],
+            'brand_name'        => ['nullable', 'string', 'max:160'],
+            'brand_colors'      => ['nullable', 'string', 'max:300'],
+            'brand_voice'       => ['nullable', 'string', 'max:500'],
+            'brand_description' => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        return [
+            'request'      => (string) $data['request'],
+            'mode'         => (string) ($data['mode'] ?? 'kit'),
+            'bulk_kind'    => $data['bulk_kind'] ?? null,
+            'bulk_count'   => (int) ($data['bulk_count'] ?? 5),
+            'brand_kit_id' => isset($data['brand_kit_id']) ? (int) $data['brand_kit_id'] : null,
+            'inline'       => [
+                'name'        => (string) ($data['brand_name'] ?? ''),
+                'colors'      => (string) ($data['brand_colors'] ?? ''),
+                'voice'       => (string) ($data['brand_voice'] ?? ''),
+                'description' => (string) ($data['brand_description'] ?? ''),
+            ],
+        ];
+    }
+
+    private function authorizeKit(Request $request, BrandStudioKit $kit): void
+    {
+        abort_if($kit->user_id !== $request->user()->id, 404);
+    }
+}

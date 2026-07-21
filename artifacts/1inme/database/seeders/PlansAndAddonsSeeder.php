@@ -190,6 +190,8 @@ class PlansAndAddonsSeeder extends Seeder
     {
         return [
             'free' => [
+                'brand_studio'          => false,
+                'max_brand_studio_bulk' => 0,
                 'max_minds'       => 1,
                 'max_personas'    => 1,
                 'max_companions'  => 1,
@@ -204,6 +206,8 @@ class PlansAndAddonsSeeder extends Seeder
                 'marketing_strategist' => false,
             ],
             'creator' => [
+                'brand_studio'          => true,
+                'max_brand_studio_bulk' => 5,
                 'max_minds'       => 3,
                 'max_personas'    => 3,
                 'max_companions'  => 2,
@@ -218,6 +222,8 @@ class PlansAndAddonsSeeder extends Seeder
                 'marketing_strategist' => false,
             ],
             'professional' => [
+                'brand_studio'          => true,
+                'max_brand_studio_bulk' => 20,
                 'max_minds'       => 10,
                 'max_personas'    => 10,
                 'max_companions'  => 5,
@@ -232,6 +238,8 @@ class PlansAndAddonsSeeder extends Seeder
                 'marketing_strategist' => true,
             ],
             'business' => [
+                'brand_studio'          => true,
+                'max_brand_studio_bulk' => -1,
                 'max_minds'       => -1,
                 'max_personas'    => -1,
                 'max_companions'  => -1,
@@ -246,6 +254,8 @@ class PlansAndAddonsSeeder extends Seeder
                 'marketing_strategist' => true,
             ],
             'agency' => [
+                'brand_studio'          => true,
+                'max_brand_studio_bulk' => -1,
                 'max_minds'       => -1,
                 'max_personas'    => -1,
                 'max_companions'  => -1,
@@ -260,6 +270,8 @@ class PlansAndAddonsSeeder extends Seeder
                 'marketing_strategist' => true,
             ],
             'developer' => [
+                'brand_studio'          => true,
+                'max_brand_studio_bulk' => 20,
                 'max_minds'       => 10,
                 'max_personas'    => 10,
                 'max_companions'  => 5,
@@ -274,6 +286,8 @@ class PlansAndAddonsSeeder extends Seeder
                 'marketing_strategist' => true,
             ],
             'enterprise-api' => [
+                'brand_studio'          => true,
+                'max_brand_studio_bulk' => -1,
                 'max_minds'       => -1,
                 'max_personas'    => -1,
                 'max_companions'  => -1,
@@ -288,6 +302,8 @@ class PlansAndAddonsSeeder extends Seeder
                 'marketing_strategist' => true,
             ],
             'unlimited' => [
+                'brand_studio'          => true,
+                'max_brand_studio_bulk' => -1,
                 'max_minds'       => -1,
                 'max_personas'    => -1,
                 'max_companions'  => -1,
