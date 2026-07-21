@@ -26,41 +26,66 @@ const HANDLE =
   HANDLE_PREFIX +
   Date.now().toString(36) +
   Math.random().toString(36).slice(2, 6);
+// Separate fixture for the subscribe-enabled sibling test so the two tests
+// never share state (and prune independently).
+const SUB_HANDLE_PREFIX = "e2eavsb";
+const SUB_HANDLE =
+  SUB_HANDLE_PREFIX +
+  Date.now().toString(36) +
+  Math.random().toString(36).slice(2, 6);
 
 const ARTIFACT_ROOT = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
   "../..",
 );
 
-function seedCreatorWithCover(): void {
+function seedCreatorWithCover(
+  prefix: string,
+  handle: string,
+  withTier = false,
+): void {
   // NOTE: passed straight to `tinker --execute=`; `$var` stays literal in a
   // JS template literal, `\\` becomes the single backslash PHP needs.
+  const tierPhp = withTier
+    ? `
+\\App\\Modules\\User\\Models\\SubscriptionTier::create([
+  'user_id' => $u->id,
+  'name' => 'Supporter',
+  'slug' => \\App\\Modules\\User\\Models\\SubscriptionTier::makeSlug($u->id, 'Supporter'),
+  'is_free' => false,
+  'is_active' => true,
+  'sort_order' => 0,
+  'price_monthly_cents' => 500,
+  'currency' => 'USD',
+]);`
+    : "";
   const php = `
 use App\\Modules\\User\\Models\\User;
 use App\\Modules\\Admin\\Models\\Plan;
 use Illuminate\\Support\\Facades\\Hash;
 
 // Prune stale fixtures from prior runs (handles are per-run unique).
-User::where('handle', 'like', '${HANDLE_PREFIX}%')
+User::where('handle', 'like', '${prefix}%')
   ->where('created_at', '<', now()->subDay())
   ->get()->each->delete();
 
 $free = Plan::where('slug', 'free')->first();
 $u = User::create([
   'name' => 'Avatar Stacking Fixture',
-  'email' => '${HANDLE}@example.test',
+  'email' => '${handle}@example.test',
   'password' => Hash::make('password'),
   'plan_id' => $free?->id,
   'status' => 'active',
   'email_verified_at' => now(),
 ]);
 $u->forceFill([
-  'handle' => '${HANDLE}',
+  'handle' => '${handle}',
   'profile_published' => true,
   // Any storage-ish path works: the <img> element renders (and hit-tests)
   // even if the file 404s, which is exactly the overlap we guard against.
   'cover_image' => 'creator-covers/e2e-avatar-stacking.png',
 ])->save();
+${tierPhp}
 echo 'SEEDED=' . $u->id;
 `.trim();
 
@@ -78,7 +103,7 @@ test("creator profile hero: avatar stays above the cover banner", async ({
 }) => {
   // Cold first render over the distant RDS can be slow; give it room.
   test.setTimeout(240_000);
-  seedCreatorWithCover();
+  seedCreatorWithCover(HANDLE_PREFIX, HANDLE);
 
   await page.goto(`/@${HANDLE}`, {
     waitUntil: "domcontentloaded",
@@ -172,4 +197,59 @@ test("creator profile hero: avatar stays above the cover banner", async ({
   expect(btnResult.topHitIsCover).toBe(false);
   expect(btnResult.midHitInsideButton).toBe(true);
   expect(btnResult.topHitInsideButton).toBe(true);
+});
+
+test("creator profile hero: Subscribe CTA stays above the cover banner", async ({
+  page,
+}) => {
+  // Subscribe only renders for creators with an active paid tier — the plain
+  // free-plan fixture above never exercises it. Seed a subscribe-enabled
+  // creator so the highest-value button on the page is actually on the page,
+  // then prove via elementFromPoint that its taps land on it, not the cover.
+  test.setTimeout(240_000);
+  seedCreatorWithCover(SUB_HANDLE_PREFIX, SUB_HANDLE, true);
+
+  await page.goto(`/@${SUB_HANDLE}`, {
+    waitUntil: "domcontentloaded",
+    timeout: 180_000,
+  });
+
+  const cover = page.locator("header .absolute.inset-0").first();
+  await expect(cover).toBeAttached();
+
+  const container = page.locator('header div[class*="-mt-12"]').first();
+  await expect(container).toBeVisible();
+
+  // Guest viewer + active paid tier + no subscription ⇒ the Subscribe <a>
+  // (not the "Subscribed" manage link) renders in the hero action row.
+  const subscribeCta = container
+    .locator("a", { hasText: /Subscribe/i })
+    .first();
+  await expect(subscribeCta).toBeVisible();
+
+  const ctaResult = await subscribeCta.evaluate((el) => {
+    el.scrollIntoView({ block: "center" });
+    const r = el.getBoundingClientRect();
+    const cx = r.left + r.width / 2;
+    const cy = r.top + r.height / 2;
+    // Also probe the top edge — the part most likely to overlap the banner
+    // band on narrow layouts.
+    const cyTop = r.top + Math.min(2, r.height / 4);
+    const hitMid = document.elementFromPoint(cx, cy);
+    const hitTop = document.elementFromPoint(cx, cyTop);
+    const coverImg = document.querySelector("header .absolute.inset-0");
+    const inside = (hit: Element | null) =>
+      !!hit && (el === hit || el.contains(hit) || hit.contains(el));
+    return {
+      midHitIsCover: hitMid === coverImg,
+      topHitIsCover: hitTop === coverImg,
+      midHitInsideCta: inside(hitMid),
+      topHitInsideCta: inside(hitTop),
+    };
+  });
+
+  expect(ctaResult.midHitIsCover).toBe(false);
+  expect(ctaResult.topHitIsCover).toBe(false);
+  expect(ctaResult.midHitInsideCta).toBe(true);
+  expect(ctaResult.topHitInsideCta).toBe(true);
 });
