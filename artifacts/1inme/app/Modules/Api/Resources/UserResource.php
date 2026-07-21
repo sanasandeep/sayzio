@@ -19,6 +19,11 @@ class UserResource
             // Resolved avatar: Google photo → Gravatar → placeholder. Kept
             // alongside the raw `avatar` field for backward compatibility.
             'avatar_url'      => $u->resolveAvatarUrl(),
+            // Creator-profile avatar override (Task #5494): the raw custom
+            // value (null = inherits the account photo) plus the effective
+            // URL shown on public creator surfaces.
+            'creator_avatar'     => \App\Support\PublicStorageUrl::resolve($u->creator_avatar),
+            'creator_avatar_url' => $u->resolveCreatorAvatarUrl(),
             'bio'             => $u->bio,
             'discoverable'    => (bool) $u->discoverable,
             'allow_followers' => (bool) $u->allow_followers,

@@ -357,7 +357,7 @@ class ProfileController extends Controller
             \App\Modules\User\Models\FeedEvent::create([
                 'user_id'      => $user->id,
                 'type'         => 'profile_update',
-                'data'         => ['creator_name' => $user->name, 'creator_avatar' => \App\Support\PublicStorageUrl::resolve($user->avatar)],
+                'data'         => ['creator_name' => $user->name, 'creator_avatar' => \App\Support\PublicStorageUrl::resolve($user->creatorAvatarRaw())],
                 'occurred_at'  => now(),
             ]);
             \App\Modules\User\Controllers\CreatorPostController::notifyFollowersDebounced($user, 'updated their profile');

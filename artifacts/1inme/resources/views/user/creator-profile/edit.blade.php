@@ -128,6 +128,31 @@
                     </div>
                 </div>
                 <div>
+                    <label class="text-xs font-semibold mb-1 block" style="color: var(--text-dimmed);">Profile avatar</label>
+                    <div class="flex items-center gap-3 mb-2">
+                        <img src="{{ $user->resolveCreatorAvatarUrl() }}" alt="" class="w-16 h-16 rounded-xl object-cover" style="border: 1px solid var(--border-soft); background: var(--bg-soft);">
+                        <div class="min-w-0">
+                            @if(!empty($user->creator_avatar))
+                                <p class="text-[11px]" style="color: var(--text-dimmed);">Custom avatar for your creator profile. Remove it to fall back to your account profile photo.</p>
+                            @else
+                                <p class="text-[11px]" style="color: var(--text-dimmed);">Inherited from your account profile photo (Settings → Profile). Upload one here to use a different avatar on your public creator profile only.</p>
+                            @endif
+                        </div>
+                    </div>
+                    @if($user->isNameAvatarLocked())
+                        <p class="text-[11px] px-3 py-2 rounded-lg" style="background: var(--bg-soft); color: var(--text-muted);">
+                            <i class="fas fa-lock mr-1"></i> Your profile is verified, so avatar changes are locked. Contact support to update your photo.
+                        </p>
+                    @else
+                        <input type="file" name="creator_avatar" accept="image/*" class="text-xs">
+                        @if(!empty($user->creator_avatar))
+                            <label class="flex items-center gap-1.5 mt-1 text-[11px] cursor-pointer" style="color: var(--text-muted);">
+                                <input type="checkbox" name="creator_avatar_remove" value="1"> Remove custom avatar (use account profile photo)
+                            </label>
+                        @endif
+                    @endif
+                </div>
+                <div>
                     <label class="text-xs font-semibold mb-1 block" style="color: var(--text-dimmed);">Cover image</label>
                     @if($user->cover_image)
                         <div class="mb-2 relative">

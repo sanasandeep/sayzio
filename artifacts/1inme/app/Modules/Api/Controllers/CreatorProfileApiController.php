@@ -232,7 +232,7 @@ class CreatorProfileApiController extends Controller
             'id'                  => $creator->id,
             'handle'              => $creator->handle,
             'name'                => $creator->name,
-            'avatar'              => \App\Support\PublicStorageUrl::resolve($creator->avatar),
+            'avatar'              => \App\Support\PublicStorageUrl::resolve($creator->creatorAvatarRaw()),
             'cover_image'         => \App\Support\PublicStorageUrl::resolve($creator->cover_image),
             'tagline'             => $creator->tagline,
             'bio'                 => $creator->bio,
@@ -360,7 +360,7 @@ class CreatorProfileApiController extends Controller
         return $this->ok([
             'handle'          => $creator->handle,
             'name'            => $creator->name,
-            'avatar'          => \App\Support\PublicStorageUrl::resolve($creator->avatar),
+            'avatar'          => \App\Support\PublicStorageUrl::resolve($creator->creatorAvatarRaw()),
             'tagline'         => $creator->tagline,
             'followers_count' => (int) $creator->followers_count,
             'is_verified'     => $isVerified,

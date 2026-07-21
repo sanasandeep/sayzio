@@ -2,7 +2,7 @@
     $__cpProfileUrl = route('creator-profile.show', $creator->handle);
     $__cpTitle = $creator->name . ' (@' . $creator->handle . ') - ' . config('app.name');
     $__cpDescription = Str::limit($creator->tagline ?: $creator->bio ?: ($creator->name . ' on Sayzio'), 180);
-    $__cpImage = $creator->cover_image ?: $creator->avatar ?: null;
+    $__cpImage = $creator->cover_image ?: $creator->creatorAvatarRaw() ?: null;
 
     // JSON-LD: identify the page as a ProfilePage whose mainEntity is the
     // creator, so search engines get a structured understanding of who the
@@ -131,8 +131,8 @@
 @if($creator->cover_image)
     <meta property="og:image" content="{{ \App\Support\PublicStorageUrl::resolve($creator->cover_image) }}">
     <meta property="og:image:alt" content="{{ $creator->name }}">
-@elseif($creator->avatar)
-    <meta property="og:image" content="{{ \App\Support\PublicStorageUrl::resolve($creator->avatar) }}">
+@elseif($creator->creatorAvatarRaw())
+    <meta property="og:image" content="{{ \App\Support\PublicStorageUrl::resolve($creator->creatorAvatarRaw()) }}">
     <meta property="og:image:alt" content="{{ $creator->name }}">
 @endif
 <meta name="twitter:card" content="{{ $__cpImage ? 'summary_large_image' : 'summary' }}">
@@ -245,8 +245,8 @@
         <div class="px-5 sm:px-7 pb-6 -mt-12 relative z-10">
             <div class="flex items-end justify-between gap-3 flex-wrap">
                 <div class="flex items-end gap-4">
-                    @if($creator->avatar)
-                        <img src="{{ \App\Support\PublicStorageUrl::resolve($creator->avatar) }}" alt="{{ $creator->name }}" class="w-24 h-24 rounded-2xl object-cover border-4 border-white shadow-md bg-white">
+                    @if($creator->creatorAvatarRaw())
+                        <img src="{{ \App\Support\PublicStorageUrl::resolve($creator->creatorAvatarRaw()) }}" alt="{{ $creator->name }}" class="w-24 h-24 rounded-2xl object-cover border-4 border-white shadow-md bg-white">
                     @else
                         <div class="w-24 h-24 rounded-2xl border-4 border-white shadow-md bg-gradient-to-br from-blue-500 to-fuchsia-500 text-white flex items-center justify-center font-extrabold text-2xl">
                             {{ $creator->getInitials() }}

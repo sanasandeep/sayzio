@@ -190,7 +190,7 @@ class CreatorPostController extends Controller
                 'type'         => 'post',
                 'subject_id'   => $post->id,
                 'subject_type' => CreatorPost::class,
-                'data'         => ['title' => $post->title, 'body_excerpt' => mb_substr($post->body, 0, 160), 'creator_name' => $me->name, 'creator_avatar' => \App\Support\PublicStorageUrl::resolve($me->avatar)],
+                'data'         => ['title' => $post->title, 'body_excerpt' => mb_substr($post->body, 0, 160), 'creator_name' => $me->name, 'creator_avatar' => \App\Support\PublicStorageUrl::resolve($me->creatorAvatarRaw())],
                 'occurred_at'  => now(),
             ]);
 
@@ -290,7 +290,7 @@ class CreatorPostController extends Controller
                         'title'          => $post->title,
                         'body_excerpt'   => mb_substr($post->body, 0, 160),
                         'creator_name'   => $owner->name,
-                        'creator_avatar' => \App\Support\PublicStorageUrl::resolve($owner->avatar),
+                        'creator_avatar' => \App\Support\PublicStorageUrl::resolve($owner->creatorAvatarRaw()),
                     ],
                     'occurred_at'  => now(),
                 ]);
@@ -641,7 +641,7 @@ class CreatorPostController extends Controller
             $data = [
                 'creator_id'     => (int) $creator->id,
                 'creator_name'   => $creator->name,
-                'creator_avatar' => \App\Support\PublicStorageUrl::resolve($creator->avatar),
+                'creator_avatar' => \App\Support\PublicStorageUrl::resolve($creator->creatorAvatarRaw()),
                 'message'        => $message,
             ];
             if ($post) {

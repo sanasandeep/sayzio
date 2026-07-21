@@ -33,7 +33,7 @@ class User extends Authenticatable
     protected ?array $effectivePlanFeaturesCache = null;
 
     protected $fillable = [
-        'name', 'email', 'mobile', 'password', 'phone', 'avatar', 'status',
+        'name', 'email', 'mobile', 'password', 'phone', 'avatar', 'creator_avatar', 'status',
         'plan_id', 'billing_cycle', 'plan_expires_at', 'trial_ends_at',
         'timezone', 'language', 'persona', 'onboarded_at', 'settings', 'email_verified_at', 'last_login_at',
         'bio', 'handle', 'discoverable', 'notify_new_follower', 'notify_follower_updates',
@@ -770,6 +770,31 @@ class User extends Authenticatable
         $placeholder = url('images/avatar-placeholder.svg');
         return 'https://www.gravatar.com/avatar/' . $hash
             . '?d=' . urlencode($placeholder) . '&s=160&r=g';
+    }
+
+    /**
+     * Raw stored avatar value for creator-facing public surfaces: the
+     * creator-profile-specific override when set, else the account avatar.
+     * Callers emit it through PublicStorageUrl::resolve() like `avatar`.
+     */
+    public function creatorAvatarRaw(): ?string
+    {
+        $override = trim((string) ($this->creator_avatar ?? ''));
+        return $override !== '' ? $override : $this->avatar;
+    }
+
+    /**
+     * Effective creator-profile avatar URL: the creator-specific override
+     * (resolved via PublicStorageUrl) when set, else the account avatar
+     * resolution chain (upload → Google photo → Gravatar → placeholder).
+     */
+    public function resolveCreatorAvatarUrl(): string
+    {
+        $override = trim((string) ($this->creator_avatar ?? ''));
+        if ($override !== '') {
+            return (string) \App\Support\PublicStorageUrl::resolve($override);
+        }
+        return $this->resolveAvatarUrl();
     }
 
     public function publicHandle(): string

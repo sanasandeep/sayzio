@@ -786,7 +786,7 @@ class LinkController extends Controller
                         'title'           => $link->title,
                         'alias'           => $link->alias,
                         'creator_name'    => $u?->name,
-                        'creator_avatar'  => \App\Support\PublicStorageUrl::resolve($u?->avatar),
+                        'creator_avatar'  => \App\Support\PublicStorageUrl::resolve($u?->creatorAvatarRaw()),
                     ],
                     'occurred_at'  => now(),
                 ]);
@@ -3678,7 +3678,7 @@ class LinkController extends Controller
                             'title'          => $link->title,
                             'alias'          => $link->alias,
                             'creator_name'   => $u?->name,
-                            'creator_avatar' => \App\Support\PublicStorageUrl::resolve($u?->avatar),
+                            'creator_avatar' => \App\Support\PublicStorageUrl::resolve($u?->creatorAvatarRaw()),
                         ],
                         'occurred_at'  => now(),
                     ]);

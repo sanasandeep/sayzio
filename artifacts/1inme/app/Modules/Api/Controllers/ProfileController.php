@@ -25,6 +25,10 @@ class ProfileController extends Controller
             'bio'              => ['sometimes', 'nullable', 'string', 'max:500'],
             'handle'           => ['sometimes', 'nullable', 'string', 'max:60', 'regex:/^[a-z0-9_]+$/i', Rule::unique('users', 'handle')->ignore($user->id), new \App\Modules\Admin\Rules\NotBannedName()],
             'avatar'           => ['sometimes', 'nullable', 'string', 'max:500'],
+            // Creator-profile avatar override (Task #5494). Null clears the
+            // override so public creator surfaces fall back to the account
+            // profile photo again.
+            'creator_avatar'   => ['sometimes', 'nullable', 'string', 'max:500'],
             'phone'            => ['sometimes', 'nullable', 'string', 'max:40'],
             'timezone'         => ['sometimes', 'nullable', 'string', 'max:60'],
             'language'         => ['sometimes', 'nullable', 'string', 'max:10'],
@@ -42,7 +46,7 @@ class ProfileController extends Controller
         // server-side (same rule as the web ProfileController) — silently
         // ignore both so an API call cannot bypass the identity lock.
         if ($user->isNameAvatarLocked()) {
-            unset($data['name'], $data['avatar']);
+            unset($data['name'], $data['avatar'], $data['creator_avatar']);
         }
 
         // `users.timezone` / `users.language` are NOT NULL columns — an empty
