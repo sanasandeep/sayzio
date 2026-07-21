@@ -157,6 +157,27 @@ async function cpSnapshot(page: Page, frameUrlPart: string) {
   });
 }
 
+/**
+ * Snapshot of a SPECIFIC preview frame (by iframe title attribute) rather
+ * than the first cp_preview frame on the page — the full-screen overlay adds
+ * a second iframe with the same URL, so URL matching alone is ambiguous.
+ */
+async function cpSnapshotByTitle(page: Page, title: string) {
+  const handle = await page.$(`iframe[title="${title}"]`);
+  if (!handle) return null;
+  const frame = await handle.contentFrame();
+  if (!frame) return null;
+  return frame.evaluate(() => {
+    const cls = document.documentElement.classList;
+    return {
+      small: cls.contains("cp-d-small"),
+      medium: cls.contains("cp-d-medium"),
+      dark: cls.contains("cp-pv-dark"),
+      light: cls.contains("light-mode"),
+    };
+  });
+}
+
 test("density buttons and theme toggle drive the preview iframe; plain visits stay untouched", async ({
   page,
 }) => {
@@ -294,4 +315,116 @@ test("density buttons and theme toggle drive the preview iframe; plain visits st
   });
   expect(after.small).toBe(false);
   expect(after.dark).toBe(false);
+});
+
+// ── Full-screen preview overlay ─────────────────────────────────────────
+//
+// The expand button switches pvMode to 'full', which mounts a SECOND iframe
+// (x-ref="pvFrameFull") via a template x-if. It receives the same cpLive
+// postMessage as the sidebar pane — density forced to 'large', theme from
+// the toggle — but had no coverage: a regression (e.g. the x-if remount
+// dropping @load="pvLive()") would leave the overlay stuck on defaults.
+
+test("full-screen preview honors the theme toggle and closes back to the small pane", async ({
+  page,
+}) => {
+  test.setTimeout(240_000);
+
+  // Ensure the demo user has a handle (same idempotent seed as above);
+  // without one there is no preview machinery at all.
+  const out = runTinkerSeed(
+    `$u = \\App\\Modules\\User\\Models\\User::where('email', '${DEMO_LOGIN_EMAIL}')->first();` +
+      `if (!$u) { echo 'HANDLE:NONE'; } else {` +
+      `if (empty($u->handle)) { $u->handle = 'demo_cp_' . $u->id; $u->save(); }` +
+      `echo 'HANDLE:' . $u->handle; }`,
+  );
+  expect(/HANDLE:([A-Za-z0-9_]+)/.test(out), `tinker said: ${out}`).toBe(true);
+
+  await loginAsDemo(page);
+  await page.goto("/user/settings/creator", {
+    waitUntil: "domcontentloaded",
+    timeout: 180_000,
+  });
+
+  const aside = page.locator('aside:has-text("Live preview")').first();
+  await expect(aside).toBeVisible({ timeout: 30_000 });
+  await expect(aside.locator("iframe")).toHaveCount(1, { timeout: 30_000 });
+
+  const SMALL_TITLE = "Profile preview";
+  const FULL_TITLE = "Profile preview (full)";
+
+  // Wait for the sidebar preview document to be live before expanding.
+  await expect
+    .poll(async () => cpSnapshotByTitle(page, SMALL_TITLE), {
+      timeout: 120_000,
+    })
+    .not.toBeNull();
+
+  // ── Expand to full screen ──────────────────────────────────────────
+  await aside.locator('button[title="Full preview"]').click();
+  const overlay = page.locator("div.fixed.inset-0", {
+    hasText: "Profile preview —",
+  });
+  await expect(overlay).toBeVisible({ timeout: 15_000 });
+
+  const fullSnap = async () => {
+    const s = await cpSnapshotByTitle(page, FULL_TITLE);
+    if (!s) throw new Error("full preview frame not ready");
+    return s;
+  };
+
+  // The full frame must have received cpLive: density is forced to 'large'
+  // (neither cp-d-small nor cp-d-medium), and one of the theme classes is
+  // applied. Cold second public-profile render over the distant RDS can be
+  // slow, so poll generously.
+  await expect.poll(fullSnap, { timeout: 120_000 }).toEqual(
+    expect.objectContaining({ small: false, medium: false }),
+  );
+  // Note: before any toggle the frame may carry NEITHER theme class (the
+  // listener only applies cp-pv-dark / light-mode once a theme value is
+  // acted on), so only assert the flips below, mirroring the sibling test.
+  const before = await fullSnap();
+
+  // ── Theme toggle flips cp-pv-dark <-> light-mode inside pvFrameFull ─
+  const themeBtn = overlay.locator("button", {
+    has: page.locator("i.fa-moon, i.fa-sun"),
+  });
+  await themeBtn.click();
+  await expect.poll(fullSnap, { timeout: 30_000 }).toEqual(
+    expect.objectContaining(
+      before.dark
+        ? { dark: false, light: true }
+        : { dark: true, light: false },
+    ),
+  );
+  await themeBtn.click();
+  await expect.poll(fullSnap, { timeout: 30_000 }).toEqual(
+    expect.objectContaining(
+      before.dark
+        ? { dark: true, light: false }
+        : { dark: false, light: true },
+    ),
+  );
+
+  // ── Escape returns to the small pane ────────────────────────────────
+  await page.keyboard.press("Escape");
+  await expect(overlay).toBeHidden({ timeout: 15_000 });
+  // The template x-if unmounts the full iframe entirely.
+  await expect(page.locator(`iframe[title="${FULL_TITLE}"]`)).toHaveCount(0, {
+    timeout: 15_000,
+  });
+  // Small pane still present and its frame still answers with cp-d-small
+  // (Escape sets mode 'small').
+  await expect(aside.locator("iframe")).toHaveCount(1);
+  await expect
+    .poll(async () => cpSnapshotByTitle(page, SMALL_TITLE), {
+      timeout: 30_000,
+    })
+    .toEqual(expect.objectContaining({ small: true }));
+
+  // ── Close button path: expand again and close via the button ────────
+  await aside.locator('button[title="Full preview"]').click();
+  await expect(overlay).toBeVisible({ timeout: 15_000 });
+  await overlay.locator("button", { hasText: "Close" }).click();
+  await expect(overlay).toBeHidden({ timeout: 15_000 });
 });
