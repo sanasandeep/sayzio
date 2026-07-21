@@ -200,6 +200,17 @@ export async function saveBrandStudioPreset(
   return res.data.preset;
 }
 
+export async function renameBrandStudioPreset(
+  id: number,
+  name: string,
+): Promise<BrandStudioSavedPreset> {
+  const res = await apiFetch<{ data: { preset: BrandStudioSavedPreset } }>(
+    `/brand-studio/presets/${id}`,
+    { method: "PATCH", body: JSON.stringify({ name }) },
+  );
+  return res.data.preset;
+}
+
 export async function deleteBrandStudioPreset(id: number): Promise<void> {
   await apiFetch(`/brand-studio/presets/${id}`, { method: "DELETE" });
 }

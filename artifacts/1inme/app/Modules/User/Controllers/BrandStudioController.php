@@ -24,6 +24,7 @@ use Illuminate\Http\Request;
  *   POST   brand-studio/{kit}/confirm  → materialize the kept assets
  *   DELETE brand-studio/{kit}          → delete a kit record
  *   POST   brand-studio/presets        → save the current composition as a reusable combo (JSON)
+ *   PATCH  brand-studio/presets/{preset} → rename a saved combo (JSON)
  *   DELETE brand-studio/presets/{preset} → delete a saved combo (JSON)
  *
  * The AI charge happens inside plan() via OpenAiService against the
@@ -94,6 +95,36 @@ class BrandStudioController extends Controller
 
         return response()->json([
             'preset' => ['id' => $preset->id, 'label' => $preset->name, 'rows' => $composition],
+        ]);
+    }
+
+    public function renamePreset(Request $request, BrandStudioPreset $preset): JsonResponse
+    {
+        abort_if($preset->user_id !== workspace_owner_id(), 403);
+
+        $data = $request->validate([
+            'name' => ['required', 'string', 'max:60'],
+        ]);
+
+        $name = trim($data['name']);
+        if ($name === '') {
+            return response()->json(['message' => 'Please enter a combo name.'], 422);
+        }
+
+        // Names stay unique per user: block renaming onto another saved combo
+        // instead of silently overwriting it.
+        $taken = BrandStudioPreset::where('user_id', $preset->user_id)
+            ->where('id', '!=', $preset->id)
+            ->where('name', $name)
+            ->exists();
+        if ($taken) {
+            return response()->json(['message' => 'You already have a saved combo with that name.'], 422);
+        }
+
+        $preset->update(['name' => $name]);
+
+        return response()->json([
+            'preset' => ['id' => $preset->id, 'label' => $preset->name, 'rows' => array_values((array) $preset->composition)],
         ]);
     }
 

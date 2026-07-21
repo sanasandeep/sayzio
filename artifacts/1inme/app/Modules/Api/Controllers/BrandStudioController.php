@@ -26,6 +26,7 @@ use Illuminate\Routing\Controller;
  *   POST   /brand-studio/{kit}/confirm  materialize the kept assets
  *   DELETE /brand-studio/{kit}          delete a kit record
  *   POST   /brand-studio/presets        save the current composition as a reusable combo
+ *   PATCH  /brand-studio/presets/{preset} rename a saved combo
  *   DELETE /brand-studio/presets/{preset} delete a saved combo
  *
  * All heavy lifting (AI call, credit charge + auto-refund, proposal
@@ -91,6 +92,34 @@ class BrandStudioController extends Controller
             ['user_id' => $user->id, 'name' => trim($data['name'])],
             ['composition' => $composition],
         );
+
+        return $this->ok(['preset' => $this->presentPreset($preset->refresh())]);
+    }
+
+    public function renamePreset(Request $request, BrandStudioPreset $preset)
+    {
+        abort_if($preset->user_id !== $request->user()->id, 404);
+
+        $data = $request->validate([
+            'name' => ['required', 'string', 'max:60'],
+        ]);
+
+        $name = trim($data['name']);
+        if ($name === '') {
+            return $this->fail('Please enter a combo name.', 422, 'invalid_name');
+        }
+
+        // Names stay unique per user: block renaming onto another saved combo
+        // instead of silently overwriting it.
+        $taken = BrandStudioPreset::where('user_id', $preset->user_id)
+            ->where('id', '!=', $preset->id)
+            ->where('name', $name)
+            ->exists();
+        if ($taken) {
+            return $this->fail('You already have a saved combo with that name.', 422, 'name_taken');
+        }
+
+        $preset->update(['name' => $name]);
 
         return $this->ok(['preset' => $this->presentPreset($preset->refresh())]);
     }

@@ -440,6 +440,10 @@ args = "e2e-brand-studio-bulk"
 task = "workflow.run"
 args = "bs-discard-e2e"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "bs-preset-rename-test"
+
 [[workflows.workflow]]
 name = "e2e"
 author = "agent"
@@ -1812,6 +1816,17 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "bash artifacts/1inme/tests/Browser/run-validation.sh brand-studio-flow.spec.ts"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "bs-preset-rename-test"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd artifacts/1inme && TEST_LOCAL_MODE=artisan TEST_LOCAL_PORT=55491 bash scripts/test-local.sh --filter=BrandStudioPresetTest"
 
 [workflows.workflow.metadata]
 isValidation = true

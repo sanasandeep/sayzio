@@ -88,15 +88,35 @@
                         </template>
                         <template x-for="p in savedPresets" :key="p.id">
                             <span class="inline-flex items-center rounded-full border border-primary-500/30 bg-primary-500/[0.08] overflow-hidden">
-                                <button type="button" @click="applyPreset(p)"
-                                        class="pl-3 pr-1.5 py-1.5 text-[12px] text-white/70 hover:text-white">
-                                    <i class="fas fa-bookmark mr-1 text-primary-300/70"></i><span x-text="p.label"></span>
-                                </button>
-                                <button type="button" @click="deletePreset(p)" :title="`Delete “${p.label}”`"
-                                        class="pr-2.5 pl-1 py-1.5 text-white/35 hover:text-red-300 text-[11px]"><i class="fas fa-times"></i></button>
+                                <template x-if="renamingId !== p.id">
+                                    <span class="inline-flex items-center">
+                                        <button type="button" @click="applyPreset(p)"
+                                                class="pl-3 pr-1.5 py-1.5 text-[12px] text-white/70 hover:text-white">
+                                            <i class="fas fa-bookmark mr-1 text-primary-300/70"></i><span x-text="p.label"></span>
+                                        </button>
+                                        <button type="button" @click="startRename(p)" :title="`Rename “${p.label}”`"
+                                                class="px-1 py-1.5 text-white/35 hover:text-white text-[11px]"><i class="fas fa-pen"></i></button>
+                                        <button type="button" @click="deletePreset(p)" :title="`Delete “${p.label}”`"
+                                                class="pr-2.5 pl-1 py-1.5 text-white/35 hover:text-red-300 text-[11px]"><i class="fas fa-times"></i></button>
+                                    </span>
+                                </template>
+                                <template x-if="renamingId === p.id">
+                                    <span class="inline-flex items-center gap-1 pl-2 pr-1.5 py-1">
+                                        <input type="text" x-model="renameName" maxlength="60" x-init="$el.focus(); $el.select()"
+                                               @keydown.enter.prevent="renamePreset(p)" @keydown.escape.prevent="cancelRename()"
+                                               class="w-40 rounded-lg bg-white/[0.08] border border-white/15 text-white text-[12px] px-2 py-1 placeholder-white/30"
+                                               placeholder="Combo name">
+                                        <button type="button" @click="renamePreset(p)" :disabled="renameBusy || !renameName.trim()"
+                                                class="px-1.5 py-1 text-primary-300 hover:text-primary-200 disabled:opacity-50 text-[11px]" title="Save name">
+                                            <i class="fas" :class="renameBusy ? 'fa-circle-notch fa-spin' : 'fa-check'"></i>
+                                        </button>
+                                        <button type="button" @click="cancelRename()" class="px-1 py-1 text-white/35 hover:text-white text-[11px]" title="Cancel"><i class="fas fa-times"></i></button>
+                                    </span>
+                                </template>
                             </span>
                         </template>
                     </div>
+                    <p class="text-sm text-red-300" x-show="renameError" x-cloak x-text="renameError"></p>
 
                     <template x-for="(row, i) in composition" :key="i">
                         <div class="flex items-center gap-2 flex-wrap">
@@ -206,6 +226,7 @@ function brandStudio() {
         composition: [],
         savedPresets: @js($savedPresets),
         savingPreset: false, presetName: '', presetBusy: false, presetError: '',
+        renamingId: null, renameName: '', renameBusy: false, renameError: '',
         kitCaps: @js($kitCaps),
         kindLabels: { biolink: 'Link in Bio page', short_link: 'Short link', qr_code: 'QR code', form: 'Form', vcard: 'Digital card' },
         presets: [
@@ -262,6 +283,42 @@ function brandStudio() {
                 this.presetError = e.message;
             } finally {
                 this.presetBusy = false;
+            }
+        },
+        startRename(p) {
+            this.renamingId = p.id;
+            this.renameName = p.label;
+            this.renameError = '';
+        },
+        cancelRename() {
+            this.renamingId = null;
+            this.renameName = '';
+            this.renameError = '';
+        },
+        async renamePreset(p) {
+            const name = this.renameName.trim();
+            if (!name || this.renameBusy) return;
+            if (name === p.label) { this.cancelRename(); return; }
+            this.renameBusy = true; this.renameError = '';
+            try {
+                const res = await fetch(@js(route('user.brand-studio.presets.rename', ':id')).replace(':id', p.id), {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content,
+                    },
+                    body: JSON.stringify({ name }),
+                });
+                const json = await res.json().catch(() => ({}));
+                if (!res.ok) throw new Error(json.message || 'Could not rename this combo. Please try again.');
+                this.savedPresets = this.savedPresets.map((x) => x.id === json.preset.id ? json.preset : x);
+                this.cancelRename();
+            } catch (e) {
+                this.renameError = e.message;
+            } finally {
+                this.renameBusy = false;
             }
         },
         async deletePreset(p) {

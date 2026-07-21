@@ -23,6 +23,7 @@ import {
   getBrandStudio,
   getBrandStudioKit,
   planBrandStudio,
+  renameBrandStudioPreset,
   saveBrandStudioPreset,
   type BrandStudioAssetKind,
   type BrandStudioCompositionRow,
@@ -124,6 +125,11 @@ export default function BrandStudioScreen() {
   const [dropped, setDropped] = useState<number[]>([]);
   const [savingPreset, setSavingPreset] = useState(false);
   const [presetName, setPresetName] = useState("");
+  const [renamingPreset, setRenamingPreset] = useState<{
+    id: number;
+    label: string;
+  } | null>(null);
+  const [renameName, setRenameName] = useState("");
 
   const query = useQuery<BrandStudioIndex>({
     queryKey: ["brand-studio"],
@@ -286,6 +292,25 @@ export default function BrandStudioScreen() {
       showAlert("Couldn't delete combo", e?.message ?? "Please try again."),
   });
 
+  // Rename a saved combo in place (Task #5580) — long-press a saved chip to
+  // pick Rename or Delete; rename edits the name inline via a small form.
+  const renamePresetMut = useMutation({
+    mutationFn: (vars: { id: number; name: string }) =>
+      renameBrandStudioPreset(vars.id, vars.name),
+    onSuccess: () => {
+      setRenamingPreset(null);
+      setRenameName("");
+      qc.invalidateQueries({ queryKey: ["brand-studio"] });
+    },
+    onError: (e: any) =>
+      showAlert("Couldn't rename combo", e?.message ?? "Please try again."),
+  });
+
+  const startRenamePreset = (p: { id: number; label: string }) => {
+    setRenamingPreset(p);
+    setRenameName(p.label);
+  };
+
   const confirmDeletePreset = (p: { id: number; label: string }) => {
     showAlert(`Delete “${p.label}”?`, "This saved combo will be removed.", [
       { text: "Cancel", style: "cancel" },
@@ -293,6 +318,18 @@ export default function BrandStudioScreen() {
         text: "Delete",
         style: "destructive",
         onPress: () => deletePresetMut.mutate(p.id),
+      },
+    ]);
+  };
+
+  const presetActionsSheet = (p: { id: number; label: string }) => {
+    showAlert(`“${p.label}”`, "What would you like to do with this saved combo?", [
+      { text: "Cancel", style: "cancel" },
+      { text: "Rename", onPress: () => startRenamePreset(p) },
+      {
+        text: "Delete",
+        style: "destructive",
+        onPress: () => confirmDeletePreset(p),
       },
     ]);
   };
@@ -779,7 +816,7 @@ export default function BrandStudioScreen() {
                           onPress={() =>
                             setComposition(p.rows.map((r) => ({ ...r })))
                           }
-                          onLongPress={() => confirmDeletePreset(p)}
+                          onLongPress={() => presetActionsSheet(p)}
                           style={[styles.chip, styles.savedChip, { borderColor: colors.primary }]}
                         >
                           <Feather
@@ -803,6 +840,44 @@ export default function BrandStudioScreen() {
                         </Pressable>
                       ))}
                     </View>
+                    {renamingPreset ? (
+                      <>
+                        <TextField
+                          label={`Rename “${renamingPreset.label}”`}
+                          value={renameName}
+                          onChangeText={(t) => setRenameName(t.slice(0, 60))}
+                          placeholder="Combo name"
+                        />
+                        <View style={styles.row}>
+                          <Button
+                            label={
+                              renamePresetMut.isPending ? "Renaming…" : "Rename"
+                            }
+                            disabled={
+                              renamePresetMut.isPending || !renameName.trim()
+                            }
+                            onPress={() =>
+                              renamePresetMut.mutate({
+                                id: renamingPreset.id,
+                                name: renameName.trim(),
+                              })
+                            }
+                          />
+                          <Pressable
+                            onPress={() => {
+                              setRenamingPreset(null);
+                              setRenameName("");
+                            }}
+                          >
+                            <Text
+                              style={[styles.link, { color: colors.mutedForeground }]}
+                            >
+                              Cancel
+                            </Text>
+                          </Pressable>
+                        </View>
+                      </>
+                    ) : null}
                     {composition.map((row, i) => (
                       <View key={i} style={styles.compRow}>
                         <View style={styles.chips}>
