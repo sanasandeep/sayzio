@@ -168,10 +168,10 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
 
-      - name: Set up PHP 8.3
+      - name: Set up PHP 8.4
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.3'
+          php-version: '8.4'
           extensions: mbstring, intl, pdo, ${{ matrix.php_db_extensions }}, bcmath, gd, zip
           coverage: none
           tools: composer:v2
@@ -180,9 +180,9 @@ jobs:
         uses: actions/cache@v4
         with:
           path: artifacts/1inme/vendor
-          key: composer-${{ runner.os }}-php8.3-${{ hashFiles('artifacts/1inme/composer.lock') }}
+          key: composer-${{ runner.os }}-php8.4-${{ hashFiles('artifacts/1inme/composer.lock') }}
           restore-keys: |
-            composer-${{ runner.os }}-php8.3-
+            composer-${{ runner.os }}-php8.4-
 
       - name: Install Composer dependencies
         run: composer install --no-interaction --prefer-dist --no-progress
