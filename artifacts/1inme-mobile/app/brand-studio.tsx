@@ -18,10 +18,12 @@ import { useColors } from "@/hooks/useColors";
 import {
   confirmBrandStudioKit,
   deleteBrandStudioKit,
+  deleteBrandStudioPreset,
   estimateBrandStudio,
   getBrandStudio,
   getBrandStudioKit,
   planBrandStudio,
+  saveBrandStudioPreset,
   type BrandStudioAssetKind,
   type BrandStudioCompositionRow,
   type BrandStudioIndex,
@@ -120,6 +122,8 @@ export default function BrandStudioScreen() {
   const [estBalance, setEstBalance] = useState<number | null>(null);
   const [openKitId, setOpenKitId] = useState<number | null>(null);
   const [dropped, setDropped] = useState<number[]>([]);
+  const [savingPreset, setSavingPreset] = useState(false);
+  const [presetName, setPresetName] = useState("");
 
   const query = useQuery<BrandStudioIndex>({
     queryKey: ["brand-studio"],
@@ -260,6 +264,38 @@ export default function BrandStudioScreen() {
       showAlert("Couldn't create", e?.message ?? "Please try again.");
     },
   });
+
+  // Saved kit combos (Task #5577): persist the current composition as a
+  // reusable preset shown alongside the built-in ones.
+  const savePresetMut = useMutation({
+    mutationFn: (vars: { name: string; rows: BrandStudioCompositionRow[] }) =>
+      saveBrandStudioPreset(vars.name, vars.rows),
+    onSuccess: () => {
+      setSavingPreset(false);
+      setPresetName("");
+      qc.invalidateQueries({ queryKey: ["brand-studio"] });
+    },
+    onError: (e: any) =>
+      showAlert("Couldn't save combo", e?.message ?? "Please try again."),
+  });
+
+  const deletePresetMut = useMutation({
+    mutationFn: (id: number) => deleteBrandStudioPreset(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["brand-studio"] }),
+    onError: (e: any) =>
+      showAlert("Couldn't delete combo", e?.message ?? "Please try again."),
+  });
+
+  const confirmDeletePreset = (p: { id: number; label: string }) => {
+    showAlert(`Delete “${p.label}”?`, "This saved combo will be removed.", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Delete",
+        style: "destructive",
+        onPress: () => deletePresetMut.mutate(p.id),
+      },
+    ]);
+  };
 
   const deleteMut = useMutation({
     mutationFn: (id: number) => deleteBrandStudioKit(id),
@@ -737,6 +773,35 @@ export default function BrandStudioScreen() {
                           </Text>
                         </Pressable>
                       ))}
+                      {(data.saved_presets ?? []).map((p) => (
+                        <Pressable
+                          key={`saved-${p.id}`}
+                          onPress={() =>
+                            setComposition(p.rows.map((r) => ({ ...r })))
+                          }
+                          onLongPress={() => confirmDeletePreset(p)}
+                          style={[styles.chip, styles.savedChip, { borderColor: colors.primary }]}
+                        >
+                          <Feather
+                            name="bookmark"
+                            size={12}
+                            color={colors.primary}
+                          />
+                          <Text style={[styles.small, { color: colors.primary }]}>
+                            {p.label}
+                          </Text>
+                          <Pressable
+                            onPress={() => confirmDeletePreset(p)}
+                            hitSlop={8}
+                          >
+                            <Feather
+                              name="x"
+                              size={12}
+                              color={colors.mutedForeground}
+                            />
+                          </Pressable>
+                        </Pressable>
+                      ))}
                     </View>
                     {composition.map((row, i) => (
                       <View key={i} style={styles.compRow}>
@@ -834,6 +899,15 @@ export default function BrandStudioScreen() {
                           + Add asset
                         </Text>
                       </Pressable>
+                      {composition.length && !compositionError ? (
+                        <Pressable onPress={() => setSavingPreset((v) => !v)}>
+                          <Text
+                            style={[styles.link, { color: colors.mutedForeground }]}
+                          >
+                            Save this combo
+                          </Text>
+                        </Pressable>
+                      ) : null}
                       {composition.length ? (
                         <Pressable onPress={() => setComposition([])}>
                           <Text
@@ -844,6 +918,42 @@ export default function BrandStudioScreen() {
                         </Pressable>
                       ) : null}
                     </View>
+                    {savingPreset && composition.length ? (
+                      <>
+                        <TextField
+                          label="Combo name"
+                          value={presetName}
+                          onChangeText={(t) => setPresetName(t.slice(0, 60))}
+                          placeholder="e.g. Event kit"
+                        />
+                        <View style={styles.row}>
+                          <Button
+                            label={
+                              savePresetMut.isPending ? "Saving…" : "Save combo"
+                            }
+                            disabled={
+                              savePresetMut.isPending || !presetName.trim()
+                            }
+                            onPress={() =>
+                              savePresetMut.mutate({
+                                name: presetName.trim(),
+                                rows: composition.map((r) => ({
+                                  ...r,
+                                  purpose: (r.purpose || "").trim(),
+                                })),
+                              })
+                            }
+                          />
+                          <Pressable onPress={() => setSavingPreset(false)}>
+                            <Text
+                              style={[styles.link, { color: colors.mutedForeground }]}
+                            >
+                              Cancel
+                            </Text>
+                          </Pressable>
+                        </View>
+                      </>
+                    ) : null}
                     {compositionError ? (
                       <Text style={[styles.small, { color: colors.warning }]}>
                         {compositionError}
@@ -982,5 +1092,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
   },
+  savedChip: { flexDirection: "row", alignItems: "center", gap: 6 },
   backRow: { flexDirection: "row", alignItems: "center", gap: 6 },
 });

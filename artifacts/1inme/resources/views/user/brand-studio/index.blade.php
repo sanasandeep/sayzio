@@ -86,6 +86,16 @@
                                 <i class="fas fa-layer-group mr-1 text-white/30"></i><span x-text="p.label"></span>
                             </button>
                         </template>
+                        <template x-for="p in savedPresets" :key="p.id">
+                            <span class="inline-flex items-center rounded-full border border-primary-500/30 bg-primary-500/[0.08] overflow-hidden">
+                                <button type="button" @click="applyPreset(p)"
+                                        class="pl-3 pr-1.5 py-1.5 text-[12px] text-white/70 hover:text-white">
+                                    <i class="fas fa-bookmark mr-1 text-primary-300/70"></i><span x-text="p.label"></span>
+                                </button>
+                                <button type="button" @click="deletePreset(p)" :title="`Delete “${p.label}”`"
+                                        class="pr-2.5 pl-1 py-1.5 text-white/35 hover:text-red-300 text-[11px]"><i class="fas fa-times"></i></button>
+                            </span>
+                        </template>
                     </div>
 
                     <template x-for="(row, i) in composition" :key="i">
@@ -108,7 +118,21 @@
 
                     <div class="flex items-center gap-3 flex-wrap">
                         <button type="button" @click="addRow()" class="text-[12px] text-primary-300 hover:text-primary-200"><i class="fas fa-plus mr-1"></i>Add asset</button>
+                        <button type="button" x-show="composition.length && !compositionError()" @click="savingPreset = !savingPreset; presetError = ''"
+                                class="text-[12px] text-white/50 hover:text-white"><i class="fas fa-bookmark mr-1"></i>Save this combo</button>
                         <span class="text-sm text-amber-300" x-show="compositionError()" x-text="compositionError()"></span>
+                    </div>
+
+                    <div x-show="savingPreset" x-cloak class="flex items-center gap-2 flex-wrap">
+                        <input type="text" x-model="presetName" maxlength="60" placeholder="Combo name (e.g. Event kit)"
+                               @keydown.enter.prevent="savePreset()"
+                               class="rounded-xl bg-white/[0.05] border border-white/10 text-white text-sm px-3 py-2 placeholder-white/30 min-w-[220px]">
+                        <button type="button" @click="savePreset()" :disabled="presetBusy || !presetName.trim()"
+                                class="px-3 py-2 rounded-xl bg-primary-500 hover:bg-primary-400 disabled:opacity-50 text-white text-[12px] font-medium">
+                            <span x-text="presetBusy ? 'Saving…' : 'Save combo'"></span>
+                        </button>
+                        <button type="button" @click="savingPreset = false; presetError = ''" class="text-[12px] text-white/40 hover:text-white/70">Cancel</button>
+                        <span class="text-sm text-red-300" x-show="presetError" x-text="presetError"></span>
                     </div>
                 </div>
             </template>
@@ -180,6 +204,8 @@ function brandStudio() {
         estCredits: null, estBalance: {{ (int) $balance }}, estBusy: false,
         _estTimer: null, _estSeq: 0,
         composition: [],
+        savedPresets: @js($savedPresets),
+        savingPreset: false, presetName: '', presetBusy: false, presetError: '',
         kitCaps: @js($kitCaps),
         kindLabels: { biolink: 'Link in Bio page', short_link: 'Short link', qr_code: 'QR code', form: 'Form', vcard: 'Digital card' },
         presets: [
@@ -209,6 +235,52 @@ function brandStudio() {
         },
         applyPreset(p) {
             this.composition = p.rows.map((r) => ({ ...r }));
+        },
+        async savePreset() {
+            const name = this.presetName.trim();
+            if (!name || this.presetBusy || !this.composition.length) return;
+            this.presetBusy = true; this.presetError = '';
+            try {
+                const res = await fetch(@js(route('user.brand-studio.presets.store')), {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content,
+                    },
+                    body: JSON.stringify({
+                        name,
+                        composition: this.composition.map((r) => ({ kind: r.kind, count: Math.max(1, parseInt(r.count, 10) || 1), purpose: (r.purpose || '').trim() })),
+                    }),
+                });
+                const json = await res.json().catch(() => ({}));
+                if (!res.ok) throw new Error(json.message || 'Could not save this combo. Please try again.');
+                this.savedPresets = [json.preset, ...this.savedPresets.filter((p) => p.id !== json.preset.id)];
+                this.savingPreset = false; this.presetName = '';
+            } catch (e) {
+                this.presetError = e.message;
+            } finally {
+                this.presetBusy = false;
+            }
+        },
+        async deletePreset(p) {
+            if (!confirm(`Delete the saved combo “${p.label}”?`)) return;
+            try {
+                const res = await fetch(@js(route('user.brand-studio.presets.destroy', ':id')).replace(':id', p.id), {
+                    method: 'DELETE',
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content,
+                    },
+                });
+                if (!res.ok) throw new Error('Could not delete this combo. Please try again.');
+                this.savedPresets = this.savedPresets.filter((x) => x.id !== p.id);
+            } catch (e) {
+                this.presetError = e.message;
+                this.savingPreset = true;
+            }
         },
         addRow() {
             this.composition.push({ kind: 'biolink', count: 1, purpose: '' });

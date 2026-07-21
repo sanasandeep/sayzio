@@ -69,6 +69,12 @@ export type BrandStudioKitDetail = BrandStudioKitSummary & {
   results: { assets: BrandStudioCreatedAsset[]; skipped: string[] };
 };
 
+export type BrandStudioSavedPreset = {
+  id: number;
+  label: string;
+  rows: BrandStudioCompositionRow[];
+};
+
 export type BrandStudioIndex = {
   available: boolean;
   ai_enabled: boolean;
@@ -78,6 +84,7 @@ export type BrandStudioIndex = {
   kit_caps: Record<BrandStudioAssetKind, number>;
   brand_kits: { id: number; name: string }[];
   kits: BrandStudioKitSummary[];
+  saved_presets: BrandStudioSavedPreset[];
 };
 
 export type BrandStudioPlanInput = {
@@ -180,4 +187,19 @@ export async function confirmBrandStudioKit(
 
 export async function deleteBrandStudioKit(id: number): Promise<void> {
   await apiFetch(`/brand-studio/${id}`, { method: "DELETE" });
+}
+
+export async function saveBrandStudioPreset(
+  name: string,
+  composition: BrandStudioCompositionRow[],
+): Promise<BrandStudioSavedPreset> {
+  const res = await apiFetch<{ data: { preset: BrandStudioSavedPreset } }>(
+    "/brand-studio/presets",
+    { method: "POST", body: JSON.stringify({ name, composition }) },
+  );
+  return res.data.preset;
+}
+
+export async function deleteBrandStudioPreset(id: number): Promise<void> {
+  await apiFetch(`/brand-studio/presets/${id}`, { method: "DELETE" });
 }

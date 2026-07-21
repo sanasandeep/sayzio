@@ -1163,6 +1163,8 @@ Route::prefix('v1')->group(function () {
         Route::get   ('/brand-studio',               [\App\Modules\Api\Controllers\BrandStudioController::class, 'index']);
         Route::post  ('/brand-studio/estimate',      [\App\Modules\Api\Controllers\BrandStudioController::class, 'estimate'])->middleware('throttle:30,1');
         Route::post  ('/brand-studio/plan',          [\App\Modules\Api\Controllers\BrandStudioController::class, 'plan'])->middleware('throttle:10,1');
+        Route::post  ('/brand-studio/presets',          [\App\Modules\Api\Controllers\BrandStudioController::class, 'storePreset'])->middleware('throttle:30,1');
+        Route::delete('/brand-studio/presets/{preset}', [\App\Modules\Api\Controllers\BrandStudioController::class, 'destroyPreset'])->whereNumber('preset');
         Route::get   ('/brand-studio/{kit}',         [\App\Modules\Api\Controllers\BrandStudioController::class, 'show'])->whereNumber('kit');
         Route::post  ('/brand-studio/{kit}/confirm', [\App\Modules\Api\Controllers\BrandStudioController::class, 'confirm'])->whereNumber('kit')->middleware('throttle:20,1');
         Route::delete('/brand-studio/{kit}',         [\App\Modules\Api\Controllers\BrandStudioController::class, 'destroy'])->whereNumber('kit');

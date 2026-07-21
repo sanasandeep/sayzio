@@ -5,6 +5,7 @@ namespace App\Modules\User\Controllers;
 use App\Http\Controllers\Controller;
 use App\Modules\User\Models\BrandKit;
 use App\Modules\User\Models\BrandStudioKit;
+use App\Modules\User\Models\BrandStudioPreset;
 use App\Services\AI\AiEngineSettings;
 use App\Services\AI\AiPlanAccess;
 use App\Services\AI\AiUsageCharger;
@@ -22,6 +23,8 @@ use Illuminate\Http\Request;
  *   GET    brand-studio/{kit}          → review a proposal / view results
  *   POST   brand-studio/{kit}/confirm  → materialize the kept assets
  *   DELETE brand-studio/{kit}          → delete a kit record
+ *   POST   brand-studio/presets        → save the current composition as a reusable combo (JSON)
+ *   DELETE brand-studio/presets/{preset} → delete a saved combo (JSON)
  *
  * The AI charge happens inside plan() via OpenAiService against the
  * `brand_studio` feature with auto-refund on parse failure. Confirming a
@@ -52,7 +55,53 @@ class BrandStudioController extends Controller
             'bulkCap'    => AiBrandStudioService::bulkCap($owner),
             'assetKinds' => AiBrandStudioService::ASSET_KINDS,
             'kitCaps'    => AiBrandStudioService::KIT_CAPS,
+            'savedPresets' => BrandStudioPreset::where('user_id', $owner->id)->latest()->get()
+                ->map(fn (BrandStudioPreset $p) => [
+                    'id'    => $p->id,
+                    'label' => $p->name,
+                    'rows'  => array_values((array) $p->composition),
+                ])->all(),
         ]);
+    }
+
+    public function storePreset(Request $request): JsonResponse
+    {
+        $owner = workspace_owner();
+
+        $data = $request->validate([
+            'name'                  => ['required', 'string', 'max:60'],
+            'composition'           => ['required', 'array', 'min:1', 'max:20'],
+            'composition.*.kind'    => ['required', 'string', 'in:' . implode(',', AiBrandStudioService::ASSET_KINDS)],
+            'composition.*.count'   => ['nullable', 'integer', 'min:1', 'max:10'],
+            'composition.*.purpose' => ['nullable', 'string', 'max:' . AiBrandStudioService::MAX_PURPOSE_LEN],
+        ]);
+
+        try {
+            $composition = AiBrandStudioService::sanitizeComposition($data['composition']);
+        } catch (\RuntimeException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+
+        if (BrandStudioPreset::where('user_id', $owner->id)->count() >= BrandStudioPreset::MAX_PER_USER) {
+            return response()->json(['message' => 'You can save up to ' . BrandStudioPreset::MAX_PER_USER . ' combos. Delete one to save a new one.'], 422);
+        }
+
+        $name = trim($data['name']);
+        $preset = BrandStudioPreset::updateOrCreate(
+            ['user_id' => $owner->id, 'name' => $name],
+            ['composition' => $composition],
+        );
+
+        return response()->json([
+            'preset' => ['id' => $preset->id, 'label' => $preset->name, 'rows' => $composition],
+        ]);
+    }
+
+    public function destroyPreset(Request $request, BrandStudioPreset $preset): JsonResponse
+    {
+        abort_if($preset->user_id !== workspace_owner_id(), 403);
+        $preset->delete();
+        return response()->json(['ok' => true]);
     }
 
     public function estimate(Request $request): JsonResponse
