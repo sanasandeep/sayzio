@@ -34,6 +34,13 @@ export type WhatsappStatus = {
   can_remove: boolean;
   // Human-readable reason the number can't be removed, or null when it can.
   remove_blocked_reason: string | null;
+  // Whether the connected number is the account's primary sign-in identifier.
+  is_primary: boolean;
+  // When removal would auto-promote another verified contact to primary, the
+  // masked value of that contact (e.g. "j•••@example.com"); null otherwise.
+  promotes_to: string | null;
+  // "email" | "phone" for the contact above; null when promotes_to is null.
+  promotes_to_kind: "email" | "phone" | null;
 };
 
 export type WhatsappDisconnectResult = {

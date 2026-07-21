@@ -131,11 +131,31 @@ class WhatsappController extends Controller
 
         $reason = $identifier ? $this->removeBlockedReason($user, $identifier) : null;
 
+        // When the number is the primary sign-in identifier and removal would
+        // auto-promote another verified contact, tell the client which contact
+        // (masked) becomes primary so the remove confirmation can explain the
+        // switch instead of surprising the user post-removal.
+        $promotesTo     = null;
+        $promotesToKind = null;
+        if ($identifier && $identifier->is_primary && $reason === null) {
+            $fallback = $user->verifiedIdentifiers()
+                ->where('id', '!=', $identifier->id)
+                ->whereIn('kind', ['email', 'phone'])
+                ->first();
+            if ($fallback) {
+                $promotesTo     = $this->maskedIdentifierValue($fallback);
+                $promotesToKind = $fallback->kind;
+            }
+        }
+
         return $this->ok([
             'has_whatsapp_number'   => (bool) $identifier,
             'mobile_masked'         => $user->maskedWhatsappNumber(),
             'can_remove'            => $identifier ? $reason === null : false,
             'remove_blocked_reason' => $reason,
+            'is_primary'            => (bool) ($identifier?->is_primary),
+            'promotes_to'           => $promotesTo,
+            'promotes_to_kind'      => $promotesToKind,
         ]);
     }
 
@@ -210,5 +230,29 @@ class WhatsappController extends Controller
         }
 
         return null;
+    }
+
+    /**
+     * Mask an identifier value for display in the remove-confirmation copy:
+     * emails keep the first character and the domain ("j•••@example.com"),
+     * phones keep only the last four digits ("+••••••4567").
+     */
+    private function maskedIdentifierValue(LinkedIdentifier $identifier): string
+    {
+        $value = (string) $identifier->value;
+
+        if ($identifier->kind === 'email' && str_contains($value, '@')) {
+            [$local, $domain] = explode('@', $value, 2);
+            $first = mb_substr($local, 0, 1);
+            $hidden = max(1, mb_strlen($local) - 1);
+            return $first . str_repeat('•', $hidden) . '@' . $domain;
+        }
+
+        $digits = preg_replace('/\D+/', '', $value) ?? '';
+        $last   = substr($digits, -4);
+        $hidden = max(0, strlen($digits) - strlen($last));
+        $prefix = str_starts_with(trim($value), '+') ? '+' : '';
+
+        return $prefix . str_repeat('•', $hidden) . $last;
     }
 }

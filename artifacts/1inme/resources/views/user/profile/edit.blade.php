@@ -448,6 +448,25 @@
         @php
             $waCurrent = $user->whatsappNumber();
             $waPending = session('whatsapp_connect_pending');
+            // When the connected number is the primary sign-in identifier and
+            // another verified contact exists, removal auto-promotes that
+            // contact — surface it in the remove confirmation so the sign-in
+            // switch is never a surprise (mirrors the mobile remove dialog).
+            $waIdentifier = $waCurrent
+                ? $user->linkedIdentifiers()->where('kind', 'phone')->whereNotNull('verified_at')->first()
+                : null;
+            $waPromotesTo = null;
+            $waPromotesToKind = null;
+            if ($waIdentifier && $waIdentifier->is_primary) {
+                $waFallback = $user->verifiedIdentifiers()
+                    ->where('id', '!=', $waIdentifier->id)
+                    ->whereIn('kind', ['email', 'phone'])
+                    ->first();
+                if ($waFallback) {
+                    $waPromotesTo = $waFallback->value;
+                    $waPromotesToKind = $waFallback->kind;
+                }
+            }
         @endphp
         <div class="glass rounded-2xl p-6 lg:col-span-2"
              x-data="{ phase: '{{ $waPending ? 'code' : 'number' }}' }">
@@ -521,7 +540,7 @@
                     <div class="pt-3 mt-1 border-t border-white/10 flex items-center justify-between gap-3">
                         <p class="text-[11px] text-white/40">No longer want WhatsApp sign-in codes or alerts? You can remove this number entirely.</p>
                         <form method="POST" action="{{ route('user.onboarding.whatsapp.remove') }}"
-                              onsubmit="return confirm('Remove your WhatsApp number {{ $waCurrent }}? You will no longer receive sign-in codes or alerts on WhatsApp.');">
+                              onsubmit="return confirm('Remove your WhatsApp number {{ $waCurrent }}? You will no longer receive sign-in codes or alerts on WhatsApp.{{ $waPromotesTo ? ' This number is your primary sign-in contact — after removal, your ' . ($waPromotesToKind === 'phone' ? 'phone number' : 'email') . ' ' . $waPromotesTo . ' will become your primary sign-in contact.' : '' }}');">
                             @csrf
                             <button type="submit" class="px-3 py-2 rounded-lg bg-red-500/10 hover:bg-red-500/20 border border-red-400/30 text-red-300 text-xs font-semibold transition whitespace-nowrap">
                                 <i class="fas fa-unlink text-[10px] mr-1"></i> Remove number

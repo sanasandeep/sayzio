@@ -110,7 +110,39 @@ class WhatsAppDisconnectApiTest extends TestCase
             ->assertJsonPath('data.has_whatsapp_number', true)
             ->assertJsonPath('data.mobile_masked', '+•••••••4567')
             ->assertJsonPath('data.can_remove', true)
-            ->assertJsonPath('data.remove_blocked_reason', null);
+            ->assertJsonPath('data.remove_blocked_reason', null)
+            ->assertJsonPath('data.is_primary', false)
+            ->assertJsonPath('data.promotes_to', null)
+            ->assertJsonPath('data.promotes_to_kind', null);
+    }
+
+    public function test_status_exposes_promotion_target_when_number_is_primary(): void
+    {
+        // Phone is the primary sign-in identifier and a verified email exists:
+        // status must tell the client which (masked) contact becomes primary
+        // so the remove confirmation can warn about the sign-in switch.
+        $user = $this->user();
+        LinkedIdentifier::create([
+            'user_id'     => $user->id,
+            'kind'        => 'email',
+            'value'       => $user->email,
+            'verified_at' => now(),
+            'is_primary'  => false,
+        ]);
+        $this->verifyPhone($user, '+15551234567', primary: true);
+
+        $res = $this->withToken($this->token($user))
+            ->getJson('/api/v1/me/whatsapp')
+            ->assertOk()
+            ->assertJsonPath('data.is_primary', true)
+            ->assertJsonPath('data.promotes_to_kind', 'email');
+
+        $masked = $res->json('data.promotes_to');
+        $this->assertIsString($masked);
+        // Masked, not the raw address: first char + bullets + @domain.
+        $this->assertStringContainsString('•', $masked);
+        $this->assertStringNotContainsString(substr($user->email, 1, 4), explode('@', $masked)[0]);
+        $this->assertStringEndsWith('@' . explode('@', $user->email, 2)[1], $masked);
     }
 
     public function test_disconnect_removes_the_number(): void

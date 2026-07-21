@@ -404,6 +404,10 @@ args = "e2e-sidebar-collapsed"
 task = "workflow.run"
 args = "e2e-profile-settings"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "whatsapp-disconnect-test"
+
 [[workflows.workflow]]
 name = "e2e"
 author = "agent"
@@ -1669,6 +1673,17 @@ isValidation = true
 
   [workflows.workflow.metadata]
   isValidation = true
+
+[[workflows.workflow]]
+name = "whatsapp-disconnect-test"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd artifacts/1inme && TEST_LOCAL_MODE=artisan bash scripts/test-local.sh --filter=WhatsAppDisconnectApiTest"
+
+[workflows.workflow.metadata]
+isValidation = true
 
   [agent]
 stack = "PNPM_WORKSPACE"
