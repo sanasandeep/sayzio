@@ -137,13 +137,19 @@ export async function planBrandStudio(
   return res.data;
 }
 
+export type BrandStudioKitShow = {
+  kit: BrandStudioKitDetail;
+  balance: number;
+  low_balance_threshold: number;
+};
+
 export async function getBrandStudioKit(
   id: number,
-): Promise<BrandStudioKitDetail> {
-  const res = await apiFetch<{ data: { kit: BrandStudioKitDetail } }>(
+): Promise<BrandStudioKitShow> {
+  const res = await apiFetch<{ data: BrandStudioKitShow }>(
     `/brand-studio/${id}`,
   );
-  return res.data.kit;
+  return res.data;
 }
 
 export async function confirmBrandStudioKit(

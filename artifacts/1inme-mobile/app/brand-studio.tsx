@@ -1,6 +1,6 @@
 import { Feather } from "@expo/vector-icons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Stack } from "expo-router";
+import { router, Stack } from "expo-router";
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -25,6 +25,7 @@ import {
   type BrandStudioAssetKind,
   type BrandStudioIndex,
   type BrandStudioKitDetail,
+  type BrandStudioKitShow,
   type BrandStudioKitSummary,
   type BrandStudioPlanInput,
 } from "@/lib/api/brandStudio";
@@ -80,12 +81,16 @@ export default function BrandStudioScreen() {
   });
   const data = query.data;
 
-  const detailQuery = useQuery<BrandStudioKitDetail>({
+  const detailQuery = useQuery<BrandStudioKitShow>({
     queryKey: ["brand-studio-kit", openKitId],
     queryFn: () => getBrandStudioKit(openKitId!),
     enabled: openKitId != null,
   });
-  const detail = detailQuery.data;
+  const detail = detailQuery.data?.kit;
+  const detailBalance = detailQuery.data?.balance ?? null;
+  const detailLowThreshold = detailQuery.data?.low_balance_threshold ?? 0;
+  const detailLowBalance =
+    detailBalance != null && detailBalance <= detailLowThreshold;
 
   const invalidate = () => {
     qc.invalidateQueries({ queryKey: ["brand-studio"] });
@@ -307,6 +312,62 @@ export default function BrandStudioScreen() {
                   </>
                 ) : (
                   <>
+                    {detailBalance != null ? (
+                      <Card style={styles.card}>
+                        <View style={styles.row}>
+                          <View style={styles.flex}>
+                            <Text style={[styles.small, { color: colors.mutedForeground }]}>
+                              Credits spent on this plan
+                            </Text>
+                            <Text style={[styles.body, { color: colors.foreground }]}>
+                              {detail.credits_spent}
+                            </Text>
+                          </View>
+                          <View style={styles.flex}>
+                            <Text style={[styles.small, { color: colors.mutedForeground }]}>
+                              Your AI credit balance
+                            </Text>
+                            <Text
+                              style={[
+                                styles.body,
+                                {
+                                  color: detailLowBalance
+                                    ? colors.warning
+                                    : colors.foreground,
+                                },
+                              ]}
+                            >
+                              {detailBalance}
+                            </Text>
+                          </View>
+                        </View>
+                        <Text style={[styles.small, { color: colors.mutedForeground }]}>
+                          Creating the selected assets is free; the plan is
+                          already paid for.
+                        </Text>
+                        {detailLowBalance ? (
+                          <View style={styles.notice}>
+                            <Feather
+                              name="alert-triangle"
+                              size={16}
+                              color={colors.warning}
+                            />
+                            <View style={styles.flex}>
+                              <Text style={[styles.small, { color: colors.mutedForeground }]}>
+                                {detailBalance <= 0
+                                  ? "You're out of AI credits, so future AI runs (like re-planning after edits) will fail until you top up."
+                                  : "Your AI credit balance is running low, so future AI runs (like re-planning after edits) may not go through."}
+                              </Text>
+                              <Pressable onPress={() => router.push("/coin-packages")}>
+                                <Text style={[styles.link, { color: colors.primary }]}>
+                                  Top up credits
+                                </Text>
+                              </Pressable>
+                            </View>
+                          </View>
+                        ) : null}
+                      </Card>
+                    ) : null}
                     {detail.proposal.assets.map((a, i) => {
                       const meta = KIND_META[a.kind] ?? {
                         icon: "box",

@@ -71,6 +71,41 @@
             @endforeach
         </div>
     @else
+        {{-- Credit context at the second decision point: what this plan cost
+             and what's left in the wallet, so confirming (and any follow-on
+             AI work) isn't a surprise. Confirming itself is free. --}}
+        @if($aiEnabled ?? false)
+            @php
+                $__lowThreshold = \App\Services\AI\AiUsageCharger::lowBalanceThreshold();
+                $__lowBalance   = (int) $balance <= $__lowThreshold;
+            @endphp
+            <div class="rounded-2xl border border-white/10 bg-white/[0.03] p-4 flex items-center justify-between gap-3 flex-wrap">
+                <div class="flex items-center gap-6">
+                    <div>
+                        <p class="text-[11px] uppercase tracking-wide text-white/40">Credits spent on this plan</p>
+                        <p class="text-white font-semibold mt-0.5">{{ number_format((int) $kit->credits_spent) }}</p>
+                    </div>
+                    <div>
+                        <p class="text-[11px] uppercase tracking-wide text-white/40">Your AI credit balance</p>
+                        <p class="font-semibold mt-0.5 {{ $__lowBalance ? 'text-amber-300' : 'text-white' }}">{{ number_format((int) $balance) }}</p>
+                    </div>
+                </div>
+                <p class="text-[11px] text-white/35">Creating the selected assets is free; the plan is already paid for.</p>
+            </div>
+            @if($__lowBalance)
+                <div class="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-200 text-sm flex items-start gap-2">
+                    <i class="fas fa-triangle-exclamation mt-0.5 text-amber-300"></i>
+                    <span>
+                        @if((int) $balance <= 0)
+                            You're out of AI credits, so future AI runs (like re-planning after edits) will fail until you top up.
+                        @else
+                            Your AI credit balance is running low, so future AI runs (like re-planning after edits) may not go through.
+                        @endif
+                        <a href="{{ route('user.wallet.buy') }}" class="font-semibold text-amber-100 underline hover:no-underline">Top up credits</a>.
+                    </span>
+                </div>
+            @endif
+        @endif
         {{-- Proposal review --}}
         <form method="POST" action="{{ route('user.brand-studio.confirm', $kit) }}" class="space-y-3">
             @csrf

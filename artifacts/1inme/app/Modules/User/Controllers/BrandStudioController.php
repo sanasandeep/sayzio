@@ -116,8 +116,12 @@ class BrandStudioController extends Controller
     {
         $this->authorizeKit($kit);
 
+        $aiEnabled = AiEngineSettings::isEnabled();
+
         return view('user.brand-studio.show', [
-            'kit' => $kit,
+            'kit'       => $kit,
+            'aiEnabled' => $aiEnabled,
+            'balance'   => $aiEnabled ? $this->credits->getBalance(workspace_owner()) : 0,
         ]);
     }
 

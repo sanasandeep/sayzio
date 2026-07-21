@@ -118,7 +118,14 @@ class BrandStudioController extends Controller
     public function show(Request $request, BrandStudioKit $kit)
     {
         $this->authorizeKit($request, $kit);
-        return $this->ok(['kit' => $this->presentKit($kit, true)]);
+
+        $aiEnabled = AiEngineSettings::isEnabled();
+
+        return $this->ok([
+            'kit'                   => $this->presentKit($kit, true),
+            'balance'               => $aiEnabled ? $this->credits->getBalance($request->user()) : 0,
+            'low_balance_threshold' => AiUsageCharger::lowBalanceThreshold(),
+        ]);
     }
 
     public function confirm(Request $request, BrandStudioKit $kit)
