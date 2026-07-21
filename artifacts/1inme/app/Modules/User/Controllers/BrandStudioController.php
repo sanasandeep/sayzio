@@ -208,12 +208,15 @@ class BrandStudioController extends Controller
     public function destroy(Request $request, BrandStudioKit $kit)
     {
         $this->authorizeKit($kit);
-        $kit->delete();
+        $refunded = $this->studio->discard($kit);
 
         if ($request->ajax()) {
-            return response()->json(['ok' => true]);
+            return response()->json(['ok' => true, 'refunded' => $refunded]);
         }
-        return redirect()->route('user.brand-studio.index')->with('status', 'Kit deleted.');
+        return redirect()->route('user.brand-studio.index')->with(
+            'status',
+            $refunded > 0 ? "Plan discarded — {$refunded} credits refunded." : 'Kit deleted.'
+        );
     }
 
     /**

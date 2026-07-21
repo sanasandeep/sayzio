@@ -206,8 +206,8 @@ class BrandStudioController extends Controller
     public function destroy(Request $request, BrandStudioKit $kit)
     {
         $this->authorizeKit($request, $kit);
-        $kit->delete();
-        return $this->ok(['deleted' => true]);
+        $refunded = $this->studio->discard($kit);
+        return $this->ok(['deleted' => true, 'refunded_credits' => $refunded]);
     }
 
     /** @return array<string,mixed> */

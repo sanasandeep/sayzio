@@ -328,6 +328,42 @@ class AiBrandStudioService
     }
 
     /**
+     * Discard a kit: delete the record and, when it is still an unconfirmed
+     * proposal, refund the credits charged for the planning run — the user
+     * got nothing out of the charge. Created kits are deleted without a
+     * refund (the assets were materialized). The refund carries an
+     * idempotency key so a double-submitted discard can never credit twice.
+     *
+     * @return int credits refunded (0 when nothing was refundable)
+     */
+    public function discard(BrandStudioKit $kit): int
+    {
+        $refunded = 0;
+
+        DB::transaction(function () use ($kit, &$refunded) {
+            $locked = BrandStudioKit::whereKey($kit->id)->lockForUpdate()->first();
+            if (!$locked) {
+                return; // already deleted by a concurrent request
+            }
+
+            $credits = (int) $locked->credits_spent;
+            if (!$locked->isCreated() && $credits > 0) {
+                $this->credits->refund($locked->user, $credits, [
+                    'feature'         => self::FEATURE,
+                    'reason'          => 'AI Brand Studio plan discarded — refund',
+                    'related_id'      => $locked->id,
+                    'idempotency_key' => 'brand_studio_discard_' . $locked->id,
+                ]);
+                $refunded = $credits;
+            }
+
+            $locked->delete();
+        });
+
+        return $refunded;
+    }
+
+    /**
      * Materialize a reviewed proposal: create every kept asset through the
      * existing creation paths, enforcing per-type plan caps, and store the
      * results on the kit. $keep is a list of proposal indexes to create

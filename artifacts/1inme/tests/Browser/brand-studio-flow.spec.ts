@@ -263,4 +263,93 @@ test.describe("AI Brand Studio — brief → review → confirm → results", ()
       row.getByRole("link", { name: "View results" }),
     ).toBeVisible();
   });
+
+  // ── Discard flow (Task #5576): the review page's "Discard plan" action
+  // asks for confirmation, refunds the planning charge, and lands the user
+  // back on the studio home with the kit gone.
+  test("discard: confirm dialog, refund banner, kit removed from home", async ({
+    page,
+  }) => {
+    test.setTimeout(180_000);
+
+    // Seed a dedicated proposal kit so this test is independent of the
+    // full-flow test's kit (which gets confirmed/created).
+    const discardKitName = `${KIT_NAME} Discard`;
+    const php = `
+use App\\Modules\\User\\Models\\User;
+use App\\Modules\\User\\Models\\BrandStudioKit;
+$u = User::where('email', '${DEMO_LOGIN_EMAIL}')->firstOrFail();
+$kit = BrandStudioKit::create([
+  'user_id'  => $u->id,
+  'name'     => '${discardKitName}',
+  'mode'     => BrandStudioKit::MODE_KIT,
+  'status'   => BrandStudioKit::STATUS_PROPOSAL,
+  'request'  => 'Discard-path e2e brief.',
+  'brand'    => [],
+  'proposal' => ['assets' => [
+    ['kind' => 'short_link', 'title' => 'E2E BS Discard Link ${RUN}', 'url' => 'https://example.com/e2e-discard'],
+  ]],
+  'credits_spent' => 7,
+]);
+echo 'KITID=' . $kit->id;
+`.trim();
+    const out = runTinker(php);
+    const m = out.match(/KITID=(\d+)/);
+    if (!m) throw new Error("Discard seed failed, output:\n" + out);
+    const discardKitId = Number(m[1]);
+
+    await loginAsDemo(page);
+
+    // Review page renders the proposal with the discard form.
+    await page.goto(`/user/brand-studio/${discardKitId}`, {
+      waitUntil: "domcontentloaded",
+      timeout: 120_000,
+    });
+    await expect(page.getByText("Review the plan")).toBeVisible();
+    const discard = page.getByRole("button", { name: "Discard plan" });
+    await expect(discard).toBeVisible();
+
+    // First click: DISMISS the JS confirm — nothing must happen.
+    let dialogMessage = "";
+    page.once("dialog", async (dialog) => {
+      dialogMessage = dialog.message();
+      await dialog.dismiss();
+    });
+    await discard.click();
+    expect(dialogMessage).toContain("Discard this plan?");
+    await expect(page.getByText("Review the plan")).toBeVisible();
+
+    // Second click: ACCEPT the confirm — the DELETE POST refunds + deletes.
+    // Cold first-write over the distant RDS can be slow; wait on the POST
+    // response, not just navigation (repo memory e2e-editor-create-cold-rds-latency).
+    page.once("dialog", (dialog) => dialog.accept());
+    const destroyResponse = page.waitForResponse(
+      (r) =>
+        r.url().includes(`/user/brand-studio/${discardKitId}`) &&
+        r.request().method() === "POST",
+      { timeout: 120_000 },
+    );
+    await discard.click({ noWaitAfter: true });
+    expect((await destroyResponse).status()).toBe(302);
+
+    // Lands on the studio home with the refund banner; kit is gone.
+    await expect(
+      page.getByText("Plan discarded — 7 credits refunded."),
+    ).toBeVisible({ timeout: 90_000 });
+    await expect(page).toHaveURL(/\/user\/brand-studio$/);
+    await expect(page.getByText(discardKitName)).toHaveCount(0);
+
+    // Server-side truth: the kit row is really deleted and the refund is a
+    // ledger row keyed to this kit.
+    const verify = runTinker(
+      `
+use App\\Modules\\User\\Models\\BrandStudioKit;
+use App\\Modules\\User\\Models\\WalletTransaction;
+echo 'KIT=' . BrandStudioKit::whereKey(${discardKitId})->count();
+echo ' REFUND=' . WalletTransaction::where('idempotency_key', 'brand_studio_discard_${discardKitId}')->where('type', 'refund')->where('delta_coins', 7)->count();
+`.trim(),
+    );
+    expect(verify).toContain("KIT=0");
+    expect(verify).toContain("REFUND=1");
+  });
 });

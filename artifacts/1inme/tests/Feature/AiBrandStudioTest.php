@@ -468,4 +468,96 @@ class AiBrandStudioTest extends TestCase
         $this->assertSame('plan_upgrade_required', $gated->json('error.code'));
         $this->flushHeaders();
     }
+
+    // ── 7. discarding a proposal refunds + cleans up (Task #5576) ──────
+    //
+    // Discarding an unconfirmed proposal must delete the kit AND refund
+    // the exact planning charge (through the real wallet ledger, with an
+    // idempotency key so a double discard can never credit twice). A kit
+    // that was already materialized deletes WITHOUT a refund.
+
+    private function seedProposalKit(User $user, int $credits = 7): BrandStudioKit
+    {
+        return BrandStudioKit::create([
+            'user_id'       => $user->id,
+            'name'          => 'Discard Test Kit',
+            'mode'          => BrandStudioKit::MODE_KIT,
+            'status'        => BrandStudioKit::STATUS_PROPOSAL,
+            'request'       => 'Launch our summer sale.',
+            'brand'         => [],
+            'proposal'      => ['assets' => [['kind' => 'short_link', 'title' => 'Shop', 'url' => 'https://example.test/shop']]],
+            'credits_spent' => $credits,
+        ]);
+    }
+
+    public function test_web_discard_of_proposal_refunds_credits_and_deletes_kit(): void
+    {
+        $user = $this->makeUser($this->plan());
+        $kit  = $this->seedProposalKit($user, 7);
+
+        $charger = app(AiUsageCharger::class);
+        $before  = $charger->getBalance($user);
+
+        $resp = $this->actingAs($user)->delete('/user/brand-studio/' . $kit->id);
+
+        $resp->assertRedirect(route('user.brand-studio.index'));
+        $resp->assertSessionHas('status', 'Plan discarded — 7 credits refunded.');
+        $this->assertDatabaseMissing('brand_studio_kits', ['id' => $kit->id]);
+        $this->assertSame($before + 7, $charger->getBalance($user->fresh()));
+
+        // The refund is a real ledger row with the discard idempotency key.
+        $this->assertDatabaseHas('wallet_transactions', [
+            'user_id'         => $user->id,
+            'type'            => 'refund',
+            'delta_coins'     => 7,
+            'idempotency_key' => 'brand_studio_discard_' . $kit->id,
+        ]);
+    }
+
+    public function test_discard_is_idempotent_and_created_kits_do_not_refund(): void
+    {
+        $user = $this->makeUser($this->plan());
+
+        // Double discard of the same proposal: only one refund lands.
+        $kit = $this->seedProposalKit($user, 5);
+        $svc = $this->service();
+        $this->assertSame(5, $svc->discard($kit));
+        $this->assertSame(0, $svc->discard($kit), 'second discard must be a no-op');
+        $charger = app(AiUsageCharger::class);
+        $this->assertSame(5, $charger->getBalance($user->fresh()));
+
+        // A materialized (created) kit deletes without any refund.
+        $created = $this->seedProposalKit($user, 9);
+        $created->update(['status' => BrandStudioKit::STATUS_CREATED]);
+        $this->assertSame(0, $svc->discard($created->fresh()));
+        $this->assertSame(5, $charger->getBalance($user->fresh()));
+        $this->assertDatabaseMissing('brand_studio_kits', ['id' => $created->id]);
+    }
+
+    public function test_api_discard_refunds_and_reports_refunded_credits(): void
+    {
+        $user = $this->makeUser($this->plan());
+        $kit  = $this->seedProposalKit($user, 4);
+        $this->withToken($user->createToken('test')->plainTextToken);
+
+        $resp = $this->deleteJson('/api/v1/brand-studio/' . $kit->id);
+
+        $resp->assertOk();
+        $this->assertTrue($resp->json('data.deleted'));
+        $this->assertSame(4, $resp->json('data.refunded_credits'));
+        $this->assertDatabaseMissing('brand_studio_kits', ['id' => $kit->id]);
+        $this->assertSame(4, app(AiUsageCharger::class)->getBalance($user->fresh()));
+        $this->flushHeaders();
+    }
+
+    public function test_discard_is_forbidden_for_other_users(): void
+    {
+        $owner    = $this->makeUser($this->plan());
+        $stranger = $this->makeUser($this->plan());
+        $kit      = $this->seedProposalKit($owner, 6);
+
+        $this->actingAs($stranger)->delete('/user/brand-studio/' . $kit->id)->assertStatus(403);
+        $this->assertDatabaseHas('brand_studio_kits', ['id' => $kit->id]);
+        $this->assertSame(0, app(AiUsageCharger::class)->getBalance($owner->fresh()));
+    }
 }
