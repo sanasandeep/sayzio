@@ -1,5 +1,5 @@
 import { Feather } from "@expo/vector-icons";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { useMemo, useState } from "react";
 import {
@@ -26,6 +26,10 @@ import {
   WORKSPACE_COLOR_CHOICES,
   WORKSPACE_ICON_CHOICES,
 } from "@/lib/api/workspaces";
+import {
+  getTransferCapability,
+  transferWorkspace,
+} from "@/lib/api/transfers";
 
 function openWebSettings(id: number) {
   const webBase = getBaseUrl().replace(/\/api\/?$/, "");
@@ -55,6 +59,18 @@ export default function WorkspaceEditScreen() {
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Admin-granted asset transfer: the capability probe drives visibility,
+  // the server re-checks the grant + ownership on submit.
+  const transferCap = useQuery({
+    queryKey: ["transfer-capability"],
+    queryFn: getTransferCapability,
+    staleTime: 5 * 60 * 1000,
+  });
+  const [transferOpen, setTransferOpen] = useState(false);
+  const [transferEmail, setTransferEmail] = useState("");
+  const [transferring, setTransferring] = useState(false);
+  const [transferError, setTransferError] = useState<string | null>(null);
 
   // The owner's personal workspace can never be deleted, and neither can their
   // last remaining workspace — both mirror the web guard. Hiding the button
@@ -136,6 +152,50 @@ export default function WorkspaceEditScreen() {
     } finally {
       setDeleting(false);
     }
+  };
+
+  const performTransfer = async () => {
+    const email = transferEmail.trim();
+    setTransferring(true);
+    setTransferError(null);
+    try {
+      const t = await transferWorkspace(workspace.id, email);
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["workspaces"] }),
+        queryClient.invalidateQueries({ queryKey: ["workspaces-list"] }),
+      ]);
+      refresh();
+      showAlert(
+        "Workspace transferred",
+        `Ownership moved to ${t.to_email ?? email}.`,
+        [{ text: "OK", onPress: () => router.back() }],
+      );
+    } catch (e) {
+      const msg =
+        e && typeof e === "object" && typeof (e as { message?: unknown }).message === "string"
+          ? (e as { message: string }).message
+          : "Transfer failed. Please try again.";
+      setTransferError(msg);
+    } finally {
+      setTransferring(false);
+    }
+  };
+
+  const onTransfer = () => {
+    if (transferring) return;
+    const email = transferEmail.trim();
+    if (!email) {
+      setTransferError("Enter the recipient's email.");
+      return;
+    }
+    showAlert(
+      `Transfer "${workspace.name}"?`,
+      `Move this workspace, its links and data to ${email}. This is instant and cannot be undone.`,
+      [
+        { text: "Cancel", style: "cancel" },
+        { text: "Transfer", onPress: () => void performTransfer() },
+      ],
+    );
   };
 
   const onDelete = () => {
@@ -330,6 +390,91 @@ export default function WorkspaceEditScreen() {
             More settings on the web
           </Text>
         </Pressable>
+
+        {/* Admin-granted asset transfer: visible only when the capability
+            probe says the user may transfer; the server re-checks the grant
+            + ownership on submit. */}
+        {transferCap.data?.can_transfer && !workspace.is_personal ? (
+          <View
+            style={[
+              styles.dangerZone,
+              { borderColor: colors.primary, borderRadius: colors.radius },
+            ]}
+          >
+            <Text style={[styles.dangerTitle, { color: colors.primary }]}>
+              Transfer workspace
+            </Text>
+            <Text style={[styles.dangerBody, { color: colors.mutedForeground }]}>
+              Move this workspace, its links and data to another user's account. Instant and cannot be undone.
+            </Text>
+            {transferOpen ? (
+              <View style={{ gap: 10 }}>
+                <TextInput
+                  value={transferEmail}
+                  onChangeText={(t) => {
+                    setTransferEmail(t);
+                    setTransferError(null);
+                  }}
+                  placeholder="recipient@example.com"
+                  placeholderTextColor={colors.mutedForeground}
+                  autoCapitalize="none"
+                  keyboardType="email-address"
+                  style={{
+                    borderWidth: 1,
+                    borderColor: colors.border,
+                    borderRadius: colors.radius,
+                    paddingHorizontal: 12,
+                    paddingVertical: 10,
+                    color: colors.foreground,
+                    fontSize: 14,
+                  }}
+                  accessibilityLabel="Recipient email"
+                />
+                {transferError ? (
+                  <Text style={{ color: colors.destructive, fontSize: 13 }}>
+                    {transferError}
+                  </Text>
+                ) : null}
+                <Pressable
+                  onPress={onTransfer}
+                  disabled={transferring}
+                  style={[
+                    styles.deleteBtn,
+                    {
+                      backgroundColor: colors.primary,
+                      borderRadius: colors.radius,
+                      opacity: transferring ? 0.7 : 1,
+                    },
+                  ]}
+                  accessibilityRole="button"
+                  accessibilityLabel="Transfer ownership"
+                >
+                  {transferring ? (
+                    <ActivityIndicator color="#fff" />
+                  ) : (
+                    <>
+                      <Feather name="send" size={15} color="#fff" />
+                      <Text style={styles.deleteText}>Transfer ownership</Text>
+                    </>
+                  )}
+                </Pressable>
+              </View>
+            ) : (
+              <Pressable
+                onPress={() => setTransferOpen(true)}
+                style={[
+                  styles.deleteBtn,
+                  { backgroundColor: colors.primary, borderRadius: colors.radius },
+                ]}
+                accessibilityRole="button"
+                accessibilityLabel="Transfer workspace"
+              >
+                <Feather name="send" size={15} color="#fff" />
+                <Text style={styles.deleteText}>Transfer workspace</Text>
+              </Pressable>
+            )}
+          </View>
+        ) : null}
 
         {/* Danger zone: delete a team workspace you own. Hidden for the
             personal workspace and when this is the owner's only workspace,

@@ -147,6 +147,56 @@
             @elseif(!$canDelete)
                 <p class="text-sm opacity-70">This is your only workspace, you cannot delete it. Create another workspace first if you want to remove this one.</p>
             @else
+                @if(auth()->user()->canTransferAssets())
+                {{-- Admin-granted cross-account transfer. Capability +
+                     ownership are re-checked server-side. --}}
+                <div class="flex items-start justify-between gap-4 flex-wrap mb-6 pb-6 border-b" style="border-color: var(--border-strong);"
+                     x-data="{ showTransfer: false }">
+                    <div>
+                        <p class="text-sm font-semibold" style="color: var(--text-primary);">Transfer this workspace</p>
+                        <p class="text-sm opacity-70 mt-0.5">
+                            Move this workspace, its links and data to another user's account. Instant and cannot be undone.
+                        </p>
+                    </div>
+                    <button type="button" @click="showTransfer = true"
+                            class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 transition-colors flex-shrink-0">
+                        Transfer workspace
+                    </button>
+
+                    <div x-show="showTransfer" x-cloak
+                         class="fixed inset-0 z-50 flex items-center justify-center p-4"
+                         style="background: rgba(0,0,0,.6);"
+                         @keydown.escape.window="showTransfer = false">
+                        <div class="w-full max-w-md rounded-2xl border p-6 shadow-2xl"
+                             style="background: var(--bg-card); border-color: var(--border-strong);"
+                             @click.stop>
+                            <h3 class="text-lg font-bold mb-2" style="color: var(--text-primary);">Transfer workspace</h3>
+                            <p class="text-sm opacity-70 mb-4">
+                                Enter the email of the account that should become the new owner of <strong>{{ $workspace->name }}</strong>. All links and workspace data move with it. This is instant and cannot be undone.
+                            </p>
+                            <form method="POST" action="{{ route('user.workspaces.transfer', $workspace) }}">
+                                @csrf
+                                <input type="email" name="recipient_email" required
+                                       placeholder="recipient@example.com"
+                                       class="w-full px-3 py-2 text-sm border rounded-lg mb-4"
+                                       style="background: var(--bg-card); border-color: var(--border-strong); color: var(--text-primary);">
+                                <div class="flex items-center gap-3">
+                                    <button type="submit"
+                                            class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 transition-colors">
+                                        Transfer ownership
+                                    </button>
+                                    <button type="button" @click="showTransfer = false"
+                                            class="px-4 py-2 rounded-lg text-sm border"
+                                            style="border-color: var(--border-strong); color: var(--text-primary);">
+                                        Cancel
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                @endif
+
                 <div class="flex items-start justify-between gap-4 flex-wrap">
                     <div>
                         <p class="text-sm font-semibold" style="color: var(--text-primary);">Delete this workspace</p>

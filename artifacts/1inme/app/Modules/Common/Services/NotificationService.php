@@ -70,6 +70,13 @@ class NotificationService
                 'default_email'  => true,
                 'default_push'   => true,
             ],
+            'asset_transfer' => [
+                'label'          => 'Asset transfers',
+                'description'    => 'When a link or workspace is transferred to or from your account.',
+                'default_in_app' => true,
+                'default_email'  => true,
+                'default_push'   => true,
+            ],
             'post_review_request' => [
                 'label'          => 'Posts waiting for your review',
                 'description'    => 'When an editor sends a post to the review queue in a workspace where you can approve.',

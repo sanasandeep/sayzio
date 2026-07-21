@@ -158,6 +158,7 @@
                     <a href="{{ route('admin.badge-requests.index') }}" class="sidebar-link {{ request()->routeIs('admin.badge-requests.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-award"></i></div><span>Badge requests</span></a>
                     @endif
                     <a href="{{ route('admin.users.activity-log.index') }}" class="sidebar-link {{ request()->routeIs('admin.users.activity-log.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-clipboard-list"></i></div><span>Activity log</span></a>
+                    <a href="{{ route('admin.users.asset-transfers.index') }}" class="sidebar-link {{ request()->routeIs('admin.users.asset-transfers.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-right-left"></i></div><span>Asset transfers</span></a>
                     <a href="{{ route('admin.privacy-requests.index') }}" class="sidebar-link {{ request()->routeIs('admin.privacy-requests.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-user-shield"></i></div><span>Privacy Requests</span></a>
                     @if(auth('admin')->user()?->isSuperAdmin())
                         <a href="{{ route('admin.users.role-audit-exports.index') }}" class="sidebar-link {{ request()->routeIs('admin.users.role-audit-exports.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-file-csv"></i></div><span>Audit downloads</span></a>

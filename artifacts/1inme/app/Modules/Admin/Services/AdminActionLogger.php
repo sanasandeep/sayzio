@@ -37,6 +37,8 @@ class AdminActionLogger
     public const CREDIT_REVIEW_APPROVED  = 'credit_review.approved';
     public const CREDIT_REVIEW_DISMISSED = 'credit_review.dismissed';
     public const USER_PASSWORD_SET       = 'user.password_set';
+    public const TRANSFER_GRANTED        = 'transfer.granted';
+    public const TRANSFER_REVOKED        = 'transfer.revoked';
 
     /**
      * Record one action.

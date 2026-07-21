@@ -715,6 +715,36 @@ class UserManagementController extends Controller
     }
 
     /**
+     * Grant or revoke the asset-transfer capability for a user account.
+     * Grants stamp who/when (operator snapshot); users whose email matches
+     * an Admin record are implicitly granted regardless of this flag
+     * (User::canTransferAssets).
+     */
+    public function toggleTransferCapability(Request $request, User $user, AdminActionLogger $audit)
+    {
+        $grant = $request->boolean('grant');
+        $operator = $request->user('admin');
+
+        if ($grant) {
+            $user->forceFill([
+                'transfer_capability_granted_at' => now(),
+                'transfer_capability_granted_by' => trim(($operator?->name ?? 'Admin') . ' <' . ($operator?->email ?? '') . '>'),
+            ])->save();
+            $audit->log(AdminActionLogger::TRANSFER_GRANTED, $user, []);
+
+            return back()->with('success', 'Transfer capability granted. This user can now transfer their links and workspaces to other accounts.');
+        }
+
+        $user->forceFill([
+            'transfer_capability_granted_at' => null,
+            'transfer_capability_granted_by' => null,
+        ])->save();
+        $audit->log(AdminActionLogger::TRANSFER_REVOKED, $user, []);
+
+        return back()->with('success', 'Transfer capability revoked.');
+    }
+
+    /**
      * Dedicated, paginated role-change audit page for the back-office.
      * Mirrors `UserAccessController::audit` but lives behind the admin
      * guard so reviewers without a web session can still pull the

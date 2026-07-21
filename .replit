@@ -412,6 +412,10 @@ args = "dialer-contact-auto-sync"
 task = "workflow.run"
 args = "dialer-note-alarms"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "asset-transfer-tests"
+
 [[workflows.workflow]]
 name = "e2e"
 author = "agent"
@@ -1710,6 +1714,17 @@ args = "cd sayzio-dialer-standalone && npm run test:note-alarms"
 
 [workflows.workflow.metadata]
 isValidation = true
+
+[[workflows.workflow]]
+name = "asset-transfer-tests"
+author = "agent"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd artifacts/1inme && TEST_LOCAL_MODE=artisan composer test:local -- --filter AssetTransferTest"
 
   [agent]
 stack = "PNPM_WORKSPACE"

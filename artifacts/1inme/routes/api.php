@@ -1077,6 +1077,14 @@ Route::prefix('v1')->group(function () {
         Route::delete('/workspaces/{id}',         [WorkspaceController::class, 'destroy'])->whereNumber('id');
         Route::get('/workspaces/{id}/members',    [WorkspaceController::class, 'members'])->whereNumber('id');
 
+        // ── Admin-granted asset transfers ────────────────────────────
+        // Capability probe + instant link/workspace transfer to another
+        // account by email. All authorization (grant, ownership,
+        // self-transfer) is enforced in AssetTransferService.
+        Route::get ('/me/transfer-capability',      [\App\Modules\Api\Controllers\AssetTransferController::class, 'capability']);
+        Route::post('/links/{id}/transfer',         [\App\Modules\Api\Controllers\AssetTransferController::class, 'transferLink'])->whereNumber('id');
+        Route::post('/workspaces/{id}/transfer',    [\App\Modules\Api\Controllers\AssetTransferController::class, 'transferWorkspace'])->whereNumber('id');
+
         // Workspace tracking pixels (Meta / TikTok / Google Ads). Used by
         // the browser extension Settings → Tracking pixels panel so the
         // IDs follow the user across devices instead of living only in

@@ -289,6 +289,8 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::put ('workspaces/{workspace}',                  [\App\Modules\User\Controllers\WorkspaceController::class, 'update']) ->name('workspaces.update');
         Route::put ('workspaces/{workspace}/post-approval',    [\App\Modules\User\Controllers\WorkspaceController::class, 'updatePostApproval'])->name('workspaces.post-approval.update');
         Route::delete('workspaces/{workspace}',                [\App\Modules\User\Controllers\WorkspaceController::class, 'destroy'])->name('workspaces.destroy');
+        // Admin-granted cross-account workspace transfer.
+        Route::post('workspaces/{workspace}/transfer',         [\App\Modules\User\Controllers\AssetTransferController::class, 'transferWorkspace'])->name('workspaces.transfer');
 
         // ---- Sensitive-action audit log (owner / admin only). Append-only
         // ledger of high-risk actions on this workspace plus the per-action
@@ -772,6 +774,9 @@ Route::prefix('user')->name('user.')->group(function () {
         // Cross-workspace move (owner-only — see LinkController::move).
         Route::post('links/{link}/move',  [LinkController::class, 'move'])->middleware('workspace.can:links.edit')->name('links.move');
         Route::post('links/move-bulk',    [LinkController::class, 'moveBulk'])->middleware('workspace.can:links.edit')->name('links.move-bulk');
+        // Admin-granted cross-account transfer (capability + ownership are
+        // enforced in AssetTransferService, not middleware).
+        Route::post('links/{link}/transfer', [\App\Modules\User\Controllers\AssetTransferController::class, 'transferLink'])->name('links.transfer');
         Route::post('links/{link}/coach-action', [LinkController::class, 'coachAction'])->middleware('workspace.can:links.edit')->name('links.coach-action');
 
         // Public-roadmap triage dashboard for a biolink
