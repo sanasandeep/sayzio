@@ -100,7 +100,14 @@
         'link'     => 'fas fa-arrow-up-right-from-square',
         'form'     => 'fas fa-wpforms',
     ];
-    $__cpLive = request()->boolean('cp_preview') && auth()->check() && auth()->id() === $creator->id;
+    // Owner live preview. Two ways in: the web editor iframe (session-
+    // authenticated owner) or the mobile app's WebView, which carries a
+    // short-lived RELATIVE signed URL minted by the owner-only API
+    // endpoint /me/creator-profile/preview-url (Task #5480).
+    $__cpLive = request()->boolean('cp_preview') && (
+        (auth()->check() && auth()->id() === $creator->id)
+        || request()->hasValidSignature(false)
+    );
 @endphp
 <!DOCTYPE html>
 <html lang="en">

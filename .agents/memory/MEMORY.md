@@ -155,4 +155,5 @@
 - [Query-columns static guard](query-columns-guard.md) — 3-tier literal-column validation w/ per-file SQL-alias learning; workspaces/follows/vault use owner_user_id/creator_id/created_by_user_id, never user_id.
 - [Nested <form> closes the outer form](nested-form-breaks-outer-layout.md) — inner </form> ejects later fieldsets/sticky bars from the outer form's grid; served HTML looks right, browser breaks; verify layout in a real browser.
 - [Route::redirect in prefixed groups](route-redirect-prefixed-group.md) — relative destinations double the group prefix (/user/user/...→404); always lead with /; PHPUnit 12 needs #[DataProvider] attrs or tests silently never run.
+- [Creator Profile cpLive preview contract](cp-live-preview-contract.md) — density/theme postMessage gated by cp_preview + (owner session OR relative signed URL); post from inside the page (origin check).
 - [GitHub CI workflows](github-ci-workflows.md) — PHP 8.4 pin, MySQL leg removed (PG-only migrations), Vite build required before PHPUnit; remaining test failures are pre-existing.

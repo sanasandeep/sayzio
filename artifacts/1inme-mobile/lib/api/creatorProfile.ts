@@ -232,6 +232,21 @@ export type ProfileResponse = {
 
 const stripHandle = (h: string) => h.replace(/^@/, "");
 
+/**
+ * Task #5480 — owner-only signed live-preview URL for /@handle. The
+ * server returns a RELATIVE path (`/@handle?cp_preview=1&expires=…&signature=…`)
+ * so callers prepend `getBaseUrl()` themselves. Valid for ~30 minutes.
+ */
+export async function getCreatorPreviewUrl(): Promise<{
+  url: string;
+  expires_in: number;
+}> {
+  const res = await apiFetch<{ data: { url: string; expires_in: number } }>(
+    "/me/creator-profile/preview-url",
+  );
+  return res.data;
+}
+
 export const creatorProfile = {
   show: async (handle: string) => {
     const res = await apiFetch<{ data: ProfileResponse }>(

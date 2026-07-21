@@ -53,6 +53,34 @@ class CreatorProfileApiController extends Controller
     }
 
     /**
+     * Task #5480 — mint a short-lived signed URL for the owner's live
+     * profile preview (/@handle?cp_preview=1). The mobile app has no web
+     * session, so the public page accepts a valid (relative) signature as
+     * proof of ownership instead — only the authenticated owner can mint
+     * one here. Returned as a RELATIVE path so the app prepends its own
+     * base URL (hosts differ between dev proxy / production domains).
+     */
+    public function previewUrl(Request $request)
+    {
+        $user = $request->user();
+        if (!$user || empty($user->handle)) {
+            return $this->error('Claim a handle first to preview your profile.', 'no_handle', 422);
+        }
+
+        $url = \Illuminate\Support\Facades\URL::temporarySignedRoute(
+            'creator-profile.show',
+            now()->addMinutes(30),
+            ['handle' => $user->handle, 'cp_preview' => 1],
+            absolute: false,
+        );
+
+        return $this->ok([
+            'url'        => $url,
+            'expires_in' => 30 * 60,
+        ]);
+    }
+
+    /**
      * Public Paid Page (Task #1208 / #1649). Resolves a `paid_page` link by
      * its alias and returns the same creator/profile/tier payload as the
      * /@handle surface PLUS the chosen design template (decomposed into
