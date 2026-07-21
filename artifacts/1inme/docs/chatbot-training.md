@@ -124,6 +124,21 @@ scheduling and daily digests arrive at the right time. Toggle "Show me in the
 public Creators directory" if you want to be discoverable (this may require a
 specific plan).
 
+**Showcase, theme & preview.** The Creator settings tab lets you dress up your
+public `/@handle` page with **featured links** (shared display style, drag to
+reorder, per-link hide toggle), **tabs**, **highlights**, and a **call-to-action
+button**, plus a **profile theme color**. Your avatar defaults to your account
+profile photo unless you set a profile-specific one, and hovering a creator's
+name elsewhere shows a **mini profile card**. While editing you get a **live
+preview** with Small / Medium / Large density and a dark/light toggle.
+
+**Verified badges.** Under **Settings → Verification & Badges** you can apply
+for an account-level verified badge (different badge "tick" types exist):
+submit your official name, a purpose message, and proof attachments; a reviewer
+approves or rejects and you're notified either way. After approval your
+**verified name and photo are locked** — changing them requires
+re-verification.
+
 ---
 
 ## 4. Plans, coins & add-ons (concepts)
@@ -254,8 +269,10 @@ These tools apply to short links and, where relevant, the broader link set.
   reachable, visitors see a clear reason (inactive, expired, limit reached,
   scheduled, or outside open hours).
 - **Custom domains.** Add and verify your own domain (e.g.
-  `links.yourbrand.com`) by setting the DNS records shown, then choose it when
-  creating links. Some plans also offer shared **global domains**.
+  `links.yourbrand.com`) with a **step-by-step setup** showing the exact DNS
+  records to copy; Sayzio **checks propagation automatically** and flips the
+  domain to verified on its own — no manual re-verify needed. Then choose it
+  when creating links. Some plans also offer shared **global domains**.
 - **Splash pages ("Intros").** Optional interstitial pages shown briefly before a
   visitor reaches the final destination — great for announcements or branding.
 - **Link insurance.** Monitors a link's destination and automatically fails over
@@ -285,6 +302,10 @@ of **blocks**. It's split into two pages: **Blocks** and **Settings**.
 5. Newly added blocks arrive pre-filled with friendly placeholder text/media and a
    starter style, and show a "we dropped in placeholder content" banner — just
    edit and save, and the banner clears automatically.
+6. Link-style blocks let you **pick one of your existing links** as the
+   destination, or paste any URL and hit **Fetch details** to auto-fill the
+   title, description and image from the page, shown as a preview card you can
+   **Apply** or **Dismiss** (web and mobile).
 
 **Block catalog (highlights).**
 - **Essentials** — Link Button, Featured Link, Heading / Logo Heading, Rich Text,
@@ -715,6 +736,12 @@ resolution. Found under **Contacts** and **Dialer**.
    attached automatically.
 4. Calls and emails open your device's native dialer/mail (`tel:` / `mailto:`) —
    there's no in-app calling.
+5. **On the mobile app** the dialer can place real device calls with
+   **dual-SIM support** (per-call SIM picker or a default SIM) and an optional
+   **direct call** setting; incoming calls show a **caller-ID alert** with a
+   spam warning for numbers you've flagged. Calls are logged into the contact's
+   history/timeline, and you can attach **notes and tasks with reminder alarms**
+   and review them in **agenda views**.
 
 ---
 
@@ -972,7 +999,9 @@ For teams and agencies, Sayzio scales beyond a single user:
 - **Sayzio mobile app** — most creator features have native parity in the mobile
   app, including links, biolink editing, QR Studio, restaurant menus, reviews
   moderation, payouts, the 18+ toggle, AI Coach, AI Agent chat, and a
-  floating-mic voice assistant. Sign in with email/OTP or social.
+  floating-mic voice assistant. Sign in with email/OTP or social. On Android
+  you can **download the APK directly** from the platform's own domain at
+  **/android** — no app store needed.
 - **Browser extension** — helps with things like saving and shortening links
   (including "Shorten as A/B test") and powering the Backlinks radar from your
   browser.

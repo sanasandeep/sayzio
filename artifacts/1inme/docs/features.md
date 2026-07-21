@@ -274,7 +274,11 @@ All applicable to short links and (where relevant) the broader link set.
   surfaces a typed `unavailabilityReason` (inactive / expired / limit_reached /
   scheduled / closed_hours).
 - **Custom domains** — add & verify your own domain (DNS records) or use shared
-  **global domains** tagged per plan (`Domain::availableTo`).
+  **global domains** tagged per plan (`Domain::availableTo`). The setup screen
+  walks you through **step-by-step exact DNS values** (copyable host/value
+  pairs) and shows **automatic propagation status** — verification re-checks in
+  the background so the domain flips to verified without a manual re-verify
+  click (`POST /domains/{id}/verify` re-runs the check on demand).
 - **Splash pages ("Intros")** — reusable interstitial pages shown before the
   destination; reconciled with per-type preview pages via `interstitialMode()`.
 - **Link insurance** — monitors a destination on a cadence and auto-fails-over to
@@ -316,7 +320,11 @@ The editor is split into **Blocks** and **Settings** pages.
 
 **Blocks page** — block picker organized by category; drag-and-drop reorder;
 drop blocks inside **Card** / **Grid** containers with per-child **grid span**;
-device preview (mobile/tablet/desktop). New blocks arrive with **first-paint
+device preview (mobile/tablet/desktop). Link-type blocks get a **link picker +
+OG fetch** helper: pick a destination from your existing links, or paste any
+URL and "Fetch details" auto-fills the block's title, description and image
+from the page's OG metadata, shown as a preview card with **Apply / Dismiss**
+(web + mobile; `GET /og-meta` on the API). New blocks arrive with **first-paint
 defaults** (`BlockDefaults`): placeholder text/media + a seeded `_style` and a
 `_placeholder` flag that drives a banner and clears on first real edit
 (defaults applied only at creation by `BiolinkBlockController::store()`).
@@ -548,6 +556,14 @@ A personal CRM plus an in-app dialer with identity resolution.
 - **Dialer** — number pad with **T9 smart-search** (keypad-spelled names), speed
   dial, recents/frequent; call logging with outcomes/notes. `DialerData` is the
   single read/transform source for web + API.
+- **Native calling (round 2)** — on the mobile apps the dialer places real
+  device calls with **dual-SIM support** (per-call SIM picker + default-SIM
+  setting), an optional **direct-call** setting (dial immediately instead of
+  opening the system dialer), and a **Truecaller-style caller-ID alert** on
+  incoming calls with spam warnings from your per-user flags. Every placed or
+  received call is **logged into the contact's history/timeline**, and the
+  dialer carries **notes & tasks with reminder alarms** plus agenda views
+  (`/dialer/notes`, call-back reminders).
 - **Identity resolution & biolink auto-attach** — resolve a phone number to a
   Sayzio biolink profile (`/dialer/lookup`); contacts whose verified phone matches
   a registered user get that user's biolink **auto-attached** to the contact via
@@ -731,6 +747,22 @@ owner: `GET|POST /me/updates/{link}/entries`, `PUT|DELETE /me/updates/{link}/ent
   link updates).
 - **Discover creators** — public directory; 18+ profiles hidden unless
   `?show_adult=1`.
+- **Creator profile showcase** — the `/@handle` page carries a **showcase**
+  block: featured links (shared display style, drag-reorder, per-link hide
+  toggle), tabs, highlights, and a CTA button, edited from the Creator settings
+  tab (API parity via `PATCH /me/creator-profile`).
+- **Profile theme & mini profile** — a per-profile **theme color**, a hoverable
+  **mini profile popover** (`GET /creator-profile/{handle}/mini`), and an avatar
+  that **defaults to the account profile photo** with a per-profile override.
+- **Creator profile verification** — account-level verified badges with
+  **typed ticks** (admin-managed tick catalog with color/name). Apply with an
+  official name, purpose message and proof attachments; reviewers approve or
+  reject with notifications both ways. Approval **locks the verified name and
+  photo** — changing either requires re-verification. Surfaced in onboarding as
+  a "Creator profile" step and in the settings **Verification & Badges** tab.
+- **Creator settings live preview** — the Creator settings tab previews the
+  public page live while you type, with **Small / Medium / Large density** and
+  a dark/light toggle (signed preview URL; `GET /me/creator-profile/preview-url`).
 - **My Posts (creator feed)** — publish posts that appear in followers' feeds and
   on your paid/creator page; scheduling, editing, and team approval routing.
 - **Engagement primitives** — RSVPs, poll/quiz votes, reactions/comments, block
@@ -1102,6 +1134,9 @@ Teardown).*
   add-ons as `addons[ID]=QTY` (per-unit amount in minor units, quantity carried in
   metadata); eligibility is constrained by the `addon_plan` pivot.
 - **Plan changes** apply immediately on successful payment.
+- **Billing address form** — checkout/billing details ask for **country first,
+  then postal code**; entering a postal code **auto-fills city and state** via a
+  server-side postal lookup (web billing form).
 - **Invoices & credit notes** — every paid platform charge produces an invoice with
   a strictly serial, per-financial-year number; a refund (self-serve within the
   policy window via `BillingController`, or admin / gateway-initiated) mints an
@@ -1216,6 +1251,16 @@ screen).*
   never triggering a rehash or 2FA on the master path.
 - **Protected accounts** — an email-keyed never-delete/suspend list enforced
   server-side (`ProtectedAccount::isProtected()`) on every destructive path.
+- **Admin password control** — an admin can **set a user's password** from the
+  user editor, and admin-set credentials work on the normal user login across
+  web, API and mobile. Protected accounts block the password change on every
+  surface.
+- **GitHub Token settings page** — self-service admin page to store the
+  platform's GitHub token, with a throttled **Verify** button and a
+  last-verified timestamp display.
+- **Scheduled Jobs run history** — the admin Scheduled Jobs screen keeps a
+  per-run history and now surfaces each failed run's **failure output** for
+  diagnosis.
 - **Users, roles & moderation** — manage users and roles; link/abuse moderation;
   adult-content moderation. A Sanctum token's web user is bridged to a back-office
   Admin by email (`User::adminAccount`), authorizing `/api/v1/admin/*` from mobile
@@ -1272,7 +1317,8 @@ plan allowance with coin-wallet overage (see [§8](#8-ai-engine--ai-features)).
 ### 14.1 Mobile app (`artifacts/1inme-mobile`)
 
 A native Expo / React Native app with broad parity to the web creator features
-over `/api/v1`.
+over `/api/v1`. The **Android APK** is downloadable directly from the
+platform's own domain at `/android` (no store required).
 
 - **Auth** — email/OTP (single flow for login + signup) and native social
   exchange.

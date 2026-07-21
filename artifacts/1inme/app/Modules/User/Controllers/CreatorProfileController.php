@@ -354,10 +354,29 @@ class CreatorProfileController extends Controller
         $user->organizer_profile = $organizer;
 
         // ── Task #5431: profile showcase ──────────────────────────────
-        // Validate ownership of every referenced link ID (featured + showcase).
-        // We silently drop IDs that don't belong to the owner rather than
-        // returning a validation error — the picker is pre-filtered to owned
-        // links, so any mismatch is a client-side glitch, not a user mistake.
+        self::saveShowcaseFields($user, $data);
+
+        $user->save();
+
+        return redirect()->route('user.creator-profile.edit')
+            ->with('success', 'Creator profile saved.');
+    }
+
+    /**
+     * Assemble and assign the `profile_showcase` JSON from validated input.
+     * Shared by the web editor update() and the REST API
+     * (`PATCH /api/v1/me/creator-profile`) so the assembly, ownership checks
+     * and defaults live in one place. Does NOT save the model.
+     *
+     * Validates ownership of every referenced link ID (featured + showcase).
+     * We silently drop IDs that don't belong to the owner rather than
+     * returning a validation error — the picker is pre-filtered to owned
+     * links, so any mismatch is a client-side glitch, not a user mistake.
+     *
+     * @param array<string,mixed> $data Validated input.
+     */
+    public static function saveShowcaseFields(User $user, array $data): void
+    {
         $ownerLinkIds = \App\Modules\User\Models\Link::query()
             ->withoutGlobalScope('workspace')
             ->where('user_id', $user->id)
@@ -441,11 +460,6 @@ class CreatorProfileController extends Controller
                 'secondary' => array_values($ctaSecondary),
             ],
         ];
-
-        $user->save();
-
-        return redirect()->route('user.creator-profile.edit')
-            ->with('success', 'Creator profile saved.');
     }
 
     /**

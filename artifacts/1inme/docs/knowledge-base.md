@@ -148,6 +148,26 @@ and it powers the public **Creators** directory.
 4. Toggle **"Show me in the public Creators directory"** if you want to be
    discoverable (this may require a specific plan).
 
+**Showcase your best content.** The Creator settings tab lets you dress up your
+public `/@handle` page: pick **featured links** (with a shared display style,
+drag to reorder, and a per-link hide toggle), add **tabs**, **highlights**, and
+a **call-to-action button**. You can also choose a **profile theme color**, and
+your avatar automatically uses your account profile photo unless you set a
+profile-specific one. Hovering your name elsewhere in the app shows a **mini
+profile card**.
+
+**Live preview while you edit.** The Creator settings tab shows your public
+page **live as you type**, with a **Small / Medium / Large** density switch and
+a dark/light toggle so you can check both themes before saving.
+
+**Get verified.** Under **Settings → Verification & Badges** you can apply for
+an account-level **verified badge** (different badge "tick" types exist). Submit
+your official name, a short purpose message, and proof attachments; a reviewer
+approves or rejects your request and you're notified either way. Once approved,
+your **verified name and photo are locked** — changing either asks you to
+re-verify. New accounts are also offered a "Creator profile" step during
+onboarding.
+
 ---
 
 ## 4. Plans, upgrades & billing
@@ -168,7 +188,9 @@ pro features.
 3. Compare plans in the **feature comparison matrix**, switch currency (e.g.
    USD/INR) if offered, then choose a plan and check out.
 4. Payment is handled by the configured payment gateway; once paid, your new
-   limits and features apply immediately.
+   limits and features apply immediately. On the billing-details form you pick
+   your **country first, then postal code** — entering the postal code
+   **auto-fills your city and state** for you.
 
 **Good to know.** The pricing page also shows **coin packages** and a
 side-by-side competitor comparison so you can see where Sayzio stands.
@@ -305,8 +327,12 @@ best-performing variant.
 **What it is.** Use your own domain (e.g. `links.yourbrand.com`) instead of the
 default Sayzio domain.
 
-**How to use it.** Open **Custom Domains**, add and verify your domain by setting
-the DNS records shown, then choose it when creating links. When you create a link,
+**How to use it.** Open **Custom Domains**, add your domain, and follow the
+**step-by-step setup**: Sayzio shows the **exact DNS records** to copy into your
+DNS provider (host and value, with copy buttons) and then **checks propagation
+automatically** — the status flips to verified on its own once your DNS updates,
+no manual "re-verify" needed (though a **Verify now** button is there if you're
+impatient). Then choose the domain when creating links. When you create a link,
 the domain picker lists both your **own verified domains** and any shared **global
 domains** the administrator has made available to everyone — so even without your
 own domain you may have branded options to choose from.
@@ -347,6 +373,10 @@ Private links instead show a "view on site" prompt.
 5. Newly added blocks arrive pre-filled with friendly placeholder text/media and
    a starter style, and show a "we dropped in placeholder content" banner — just
    edit and save, and the banner clears automatically.
+6. For link-style blocks you can **pick one of your existing links** as the
+   destination, or paste any URL and hit **Fetch details** — Sayzio grabs the
+   page's title, description and image and shows a **preview card** you can
+   **Apply** or **Dismiss**. Works on web and mobile.
 
 **The Settings page.** See [section 11](#11-biolink-settings).
 
@@ -879,6 +909,15 @@ compliant `.vcf`.
 4. Calls and emails open your device's native dialer/mail (`tel:` / `mailto:`) —
    there's no in-app VOIP.
 
+**On the mobile app, the dialer goes further.** It can place real device calls
+with **dual-SIM support** (pick a SIM per call or set a default), and an optional
+**direct call** setting dials immediately instead of opening the system dialer.
+Incoming calls show a **caller-ID alert** (like Truecaller) with a **spam
+warning** if you've flagged the number. Every call is **logged into the
+contact's history and timeline**, and you can attach **notes and tasks with
+reminder alarms** to people, then review them in **agenda views** so follow-ups
+never slip.
+
 **Connected apps (CRM sync).** On paid plans you can connect **Salesforce,
 HubSpot or Zoho** so new leads, subscribers and form submissions flow straight
 into your CRM — and their contacts flow back into Sayzio. You can also forward
@@ -1249,7 +1288,8 @@ page. It gives you:
 Most creator features have native parity, including links, biolink editing, QR
 Studio, restaurant menus, reviews moderation, payouts, the 18+ toggle,
 **Competitor Biolink Teardown**, and **credit notes** (alongside invoices). Sign
-in with email/OTP or social.
+in with email/OTP or social. On Android you can **download the APK directly**
+from the platform's own domain at **/android** — no app store required.
 
 #### Share-sheet / URL import
 

@@ -174,6 +174,12 @@ Route::prefix('v1')->group(function () {
         // (density + theme preview in the mobile creator settings screen).
         Route::get('/me/creator-profile/preview-url', [\App\Modules\Api\Controllers\CreatorProfileApiController::class, 'previewUrl']);
 
+        // Owner creator-profile editor (mobile parity for the web
+        // "Edit creator profile" page). Delegates to the web controller's
+        // shared save helpers; showcase keys replace the showcase block as
+        // a whole, core fields are present-keys-only.
+        Route::patch('/me/creator-profile', [\App\Modules\Api\Controllers\CreatorProfileApiController::class, 'update']);
+
         // Unified creator Stats home (mobile parity for web /user/stats).
         Route::get('/stats', [\App\Modules\Api\Controllers\CreatorStatsApiController::class, 'index']);
 
@@ -549,6 +555,19 @@ Route::prefix('v1')->group(function () {
         Route::delete('/admin/users/{user}/admin-access',     [AdminAccessController::class, 'revokeAdminAccess'])->whereNumber('user');
         Route::post  ('/admin/users/{user}/impersonate',      [AdminAccessController::class, 'impersonate'])->whereNumber('user')->middleware('throttle:20,1');
         Route::post  ('/admin/users/{user}/set-password',    [AdminAccessController::class, 'setUserPassword'])->whereNumber('user');
+
+        // Profile-verification moderation (mobile parity for the web
+        // /user/profile-verification-admin screens). Gated by the SAME
+        // web-pool permission the web routes use (user.can works on the
+        // Sanctum path because $request->user() is the token's web User).
+        Route::middleware('user.can:user.verifications.review')->group(function () {
+            Route::get ('/admin/profile-verification',                 [\App\Modules\Api\Controllers\ProfileVerificationAdminApiController::class, 'index']);
+            Route::get ('/admin/profile-verification/tick-types',      [\App\Modules\Api\Controllers\ProfileVerificationAdminApiController::class, 'tickTypes']);
+            Route::post('/admin/profile-verification/tick-types/{verificationTickType}', [\App\Modules\Api\Controllers\ProfileVerificationAdminApiController::class, 'updateTickType'])->whereNumber('verificationTickType');
+            Route::get ('/admin/profile-verification/{profileVerificationRequest}',         [\App\Modules\Api\Controllers\ProfileVerificationAdminApiController::class, 'show'])->whereNumber('profileVerificationRequest');
+            Route::post('/admin/profile-verification/{profileVerificationRequest}/approve', [\App\Modules\Api\Controllers\ProfileVerificationAdminApiController::class, 'approve'])->whereNumber('profileVerificationRequest');
+            Route::post('/admin/profile-verification/{profileVerificationRequest}/reject',  [\App\Modules\Api\Controllers\ProfileVerificationAdminApiController::class, 'reject'])->whereNumber('profileVerificationRequest');
+        });
 
         // Protected accounts (mobile parity for the web back-office page).
         // The canonical never-delete/suspend list: staff with `users.view`

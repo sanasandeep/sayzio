@@ -541,7 +541,8 @@ coin wallet; 80%/100%/overage warnings.
 |---|---|
 | Auth & identity | login, register, OTP, social exchange, sessions, profile, merge |
 | Link engine | link CRUD, analytics, routing rules, A/B tests, NFC writes, public biolink resolution |
-| Creator stack | creator profile, posts, feed, paid DMs, tiers |
+| Creator stack | creator profile (public + owner editor: [api.md#creator-profile-owner](./api.md#creator-profile-owner)), posts, feed, paid DMs, tiers |
+| Verification | legacy per-link verification, account-level profile verification ([api.md#profile-verification-account-level](./api.md#profile-verification-account-level)) + reviewer moderation ([api.md#profile-verification-moderation-reviewers](./api.md#profile-verification-moderation-reviewers)) |
 | Business tools | store/products, restaurant menu & orders, service booking, reviews, contacts/dialer |
 | Platform & AI | wallet/coins, AI (AI Minds, voice, coaching), onboarding slides |
 | Admin | users, roles, protected accounts, mail settings, schema health |
@@ -592,7 +593,31 @@ users can still sign in.
 
 **Users, roles & moderation.** Link/abuse moderation; adult-content moderation;
 mobile admin ↔ user switch is navigation (no re-login); Sanctum token's web User
-bridged to back-office Admin by email (`User::adminAccount`).
+bridged to back-office Admin by email (`User::adminAccount`). An admin can
+**set a user's password** from the user editor; admin-set credentials work on
+the normal user login across web/API/mobile, and protected accounts block the
+change on every surface.
+
+**Profile verification moderation.** Account-level verified badges with typed
+ticks: users apply with official name, purpose message and proof attachments;
+reviewers (web-pool `user.verifications.review` permission) approve/reject with
+notifications; approval locks the verified name/photo (changes trigger
+re-verification). REST parity: user endpoints at `/api/v1/profile-verification*`,
+reviewer endpoints at `/api/v1/admin/profile-verification*` (approve/reject
+return `409 already_reviewed` when not pending).
+
+**GitHub Token settings.** Self-service admin page storing the platform GitHub
+token in `app_settings` (encrypted), with a throttled **Verify** button that
+checks the token against the GitHub API and a last-verified timestamp display.
+
+**Scheduled Jobs run history.** The admin Scheduled Jobs screen keeps per-run
+history and surfaces each failed run's **failure output** (captured
+stderr/exception text) for diagnosis.
+
+**Webhook delivery failure monitoring.** Link-event webhook destinations keep a
+per-destination delivery log; a scheduled health check detects **silent
+failures** (destinations that keep failing) and emails the owner. Individual
+failed deliveries can be retried and destinations test-fired.
 
 **Banned names.** See §11.
 

@@ -258,41 +258,10 @@ class ProfileVerificationController extends Controller
             'tick_type_id' => 'nullable|integer|exists:verification_tick_types,id',
         ]);
 
-        $req  = $profileVerificationRequest;
-        $user = $req->user;
+        $req = $profileVerificationRequest;
 
-        DB::transaction(function () use ($req, $user, $data) {
-            $req->update([
-                'status'       => 'approved',
-                'admin_notes'  => $data['admin_notes'] ?? null,
-                'reviewed_at'  => now(),
-                'reviewed_by'  => Auth::id(),
-            ]);
-
-            $tickId = $data['tick_type_id'] ?? $req->tick_type_id;
-
-            $updates = [
-                'profile_verification_status'   => 'verified',
-                'profile_verification_type_id'  => $tickId,
-                'profile_verified_at'           => now(),
-            ];
-
-            if ($req->kind === 'new') {
-                $updates['profile_verified_name']   = $req->official_name;
-                $updates['profile_verified_avatar'] = $req->logo_path;
-            } else {
-                // Re-verification: apply the approved name/avatar change
-                if ($req->new_name)   $updates['profile_verified_name']   = $req->new_name;
-                if ($req->new_avatar) $updates['profile_verified_avatar'] = $req->new_avatar;
-            }
-
-            $user->update($updates);
-        });
-
-        $tickName     = optional(VerificationTickType::find($data['tick_type_id'] ?? $req->tick_type_id))->name ?? 'verified';
-        $verifiedName = (string) ($user->fresh()->profile_verified_name ?? $req->official_name);
-        app(\App\Modules\Admin\Services\UserAccountNotifier::class)
-            ->verificationApproved($user, $tickName, $verifiedName, $req->kind !== 'new');
+        // Shared with the REST API (/api/v1/admin/profile-verification).
+        \App\Modules\User\Support\ProfileVerificationModeration::approve($req, $data, (int) Auth::id());
 
         return redirect()->route('user.profile-verification.admin.index')
             ->with('success', 'Verification approved — user now holds the ' . optional($req->tickType)->name . ' tick.');
@@ -304,28 +273,8 @@ class ProfileVerificationController extends Controller
             'admin_notes' => 'required|string|max:2000',
         ]);
 
-        $req  = $profileVerificationRequest;
-        $user = $req->user;
-
-        DB::transaction(function () use ($req, $user, $data) {
-            $req->update([
-                'status'      => 'rejected',
-                'admin_notes' => $data['admin_notes'],
-                'reviewed_at' => now(),
-                'reviewed_by' => Auth::id(),
-            ]);
-
-            // On rejection, revert the user's status
-            if ($req->kind === 'new') {
-                $user->update(['profile_verification_status' => 'unverified']);
-            } else {
-                // Re-verification rejected → revert to fully verified
-                $user->update(['profile_verification_status' => 'verified']);
-            }
-        });
-
-        app(\App\Modules\Admin\Services\UserAccountNotifier::class)
-            ->verificationRejected($user, $data['admin_notes'], $req->kind !== 'new');
+        // Shared with the REST API (/api/v1/admin/profile-verification).
+        \App\Modules\User\Support\ProfileVerificationModeration::reject($profileVerificationRequest, $data, (int) Auth::id());
 
         return redirect()->route('user.profile-verification.admin.index')
             ->with('success', 'Verification request rejected.');

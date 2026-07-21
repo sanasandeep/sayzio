@@ -452,6 +452,10 @@ args = "e2e-bs-bulk"
 task = "workflow.run"
 args = "e2e-bs-presets"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "api-parity-tests"
+
 [[workflows.workflow]]
 name = "e2e"
 author = "agent"
@@ -1860,6 +1864,17 @@ args = "bash artifacts/1inme/tests/Browser/run-validation.sh brand-studio-preset
 
 [workflows.workflow.metadata]
 outputType = "console"
+
+[[workflows.workflow]]
+name = "api-parity-tests"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd artifacts/1inme && TEST_LOCAL_MODE=artisan TEST_LOCAL_PORT=55444 scripts/test-local.sh --filter='CreatorProfileApiUpdateTest|ProfileVerificationAdminApiTest'"
+
+[workflows.workflow.metadata]
+isValidation = true
 
   [agent]
 stack = "PNPM_WORKSPACE"

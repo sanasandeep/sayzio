@@ -269,6 +269,7 @@ A passed bearer token is honored for the visibility checks on the `show` route.
 | ------ | ------------------------------------- | ---- | ----------------------------------------------------------- |
 | GET    | `/block-catalog`                      | yes  | Block-type palette (categories + picker types, per-user `locked` flag). |
 | GET    | `/bg-presets`                         | yes  | Background preset catalog for the Appearance "Presets" picker (groups + presets with `key`, `label`, `css`, parsed `colors`). |
+| GET    | `/og-meta`                            | yes  | "Fetch details" OG-metadata extractor for the block editor: pass `?url=` and get back the page's title, description and image for prefilling a link block. Per-user rate limit shared with the web editor. Throttle: 30/min. |
 | GET    | `/links/{id}/blocks`                  | yes  | List blocks on a biolink.                                   |
 | POST   | `/links/{id}/blocks`                  | yes  | Create a block (seeds first-paint defaults).               |
 | PATCH  | `/links/{id}/blocks/{blockId}`        | yes  | Update a block (clears the placeholder flag on first save). |
@@ -444,10 +445,20 @@ JSON mirror of the `/@handle` web surface so the app can render the same page.
 | Method | Path                                                  | Auth | Description                                       |
 | ------ | ---------------------------------------------------- | ---- | ------------------------------------------------ |
 | GET    | `/creator-profile/{handle}`                          | opt  | Profile header + tabs.                           |
+| GET    | `/creator-profile/{handle}/mini`                     | opt  | Lightweight mini-profile card (avatar, name, tagline, verification badge) for pickers and previews. Throttle: 180/min. |
 | GET    | `/creator-profile/{handle}/posts`                    | opt  | Paginated post feed.                             |
 | GET    | `/creator-profile/{handle}/posts/{post}/comments`    | opt  | Comments on a post.                              |
 | POST   | `/creator-profile/{handle}/posts/{post}/react`       | opt  | React to a post. Throttle: 120/min.             |
 | POST   | `/creator-profile/{handle}/posts/{post}/comment`     | opt  | Comment on a post. Throttle: 60/min.            |
+
+### Creator profile (owner)
+
+Owner-side editor endpoints (bearer token of the profile owner).
+
+| Method | Path                               | Auth | Description                                        |
+| ------ | ---------------------------------- | ---- | -------------------------------------------------- |
+| GET    | `/me/creator-profile/preview-url`  | yes  | Signed, short-lived live-preview URL for the owner's `/@handle` page (density + theme preview). `422 no_handle` when no handle is claimed. |
+| PATCH  | `/me/creator-profile`              | yes  | Update the creator profile. Core fields (`tagline`, `location`, `bio`, `cover_image_url`, `niche_tags`, `socials`, `profile_theme_color`, `profile_density`, `profile_published`, …) are present-keys-only; sending **any** showcase key (`featured_links`, `featured_links_style`, `intro_video_url`, …) replaces the showcase block as a whole, like the web form. Foreign link IDs in `featured_links` are silently dropped. Publishing without a handle → `422 no_handle`. |
 
 ## Paid pages (public)
 
@@ -704,13 +715,24 @@ API surface of their own. All responses use the unified `{data}` / `{error}` env
 
 | Method | Path                       | Auth | Description                                                                    |
 | ------ | -------------------------- | ---- | ----------------------------------------------------------------------------- |
+| GET    | `/dialer/suggestions`      | yes  | Zero-query home strip — grouped suggestions (`{ total, groups }`) shown before the user types. |
+| GET    | `/dialer/search`           | yes  | Universal finder: grouped search (`?q=`) across Contacts, People, My links, Followed and Workspaces, plus filter chips (`filter`, `tag`, `has_biolink`, …). Mirrors the web dialer via the shared search contract. |
 | POST   | `/dialer/lookup`           | yes  | Resolve an E.164 number → caller-ID. Returns `is_spam`/`is_blocked`/`is_favorite`, matched `contact`, `biolink`, and recent `activity`. Throttle: 60/min. |
+| GET    | `/dialer/profile`          | yes  | Full identity profile for a `number` or `contact` id (resolved person, channels, activity) — backs the dialer's person detail screen. |
 | GET    | `/dialer/history`          | yes  | `{ recents, frequent }` — grouped recents (by number, with call counts, last-call time, outcome/note/tag, spam/block) plus the frequently-contacted strip. |
+| PATCH  | `/dialer/history/{id}`     | yes  | Edit a call-log entry's `outcome` / `note` / `tag`.                            |
+| DELETE | `/dialer/history/{id}`     | yes  | Delete one call-log entry.                                                     |
+| DELETE | `/dialer/history`          | yes  | Clear call history (optionally filtered by `?outcome=` / `?tag=`).             |
+| GET    | `/dialer/channels`         | yes  | The caller's enabled direct-channel actions (call, SMS, WhatsApp, Telegram, email). |
+| PUT    | `/dialer/channels`         | yes  | Replace the enabled channel set (`channels` array; unknown keys dropped).      |
 | GET    | `/dialer/live`             | yes  | Near-real-time cross-device sync (poll, no sockets). Returns `{ cursor, changed }`, plus fresh `favorites`, `frequent` and `recents` **only when** the caller's `?since=<cursor>` differs from the current cursor. Poll every ~12s, passing the last `cursor` back as `since`. |
 | GET    | `/dialer/favorites`        | yes  | Ordered speed-dial favorites (`{ items }`).                                    |
 | POST   | `/dialer/favorites`        | yes  | Add a favorite by `contact_id` or `number` (+ optional `label`). Returns `{ favorite, already? }`. |
 | POST   | `/dialer/favorites/reorder`| yes  | Persist favorite order from an `order` array of favorite ids.                  |
 | DELETE | `/dialer/favorites/{id}`   | yes  | Remove a favorite.                                                             |
+| POST   | `/dialer/speed-dial/assign`| yes  | Bind a favorite (`favorite_id`) to a keypad `digit` 1–9 (steals the digit from any other favorite). |
+| POST   | `/dialer/speed-dial/unassign` | yes | Release a favorite's speed-dial digit.                                       |
+| GET    | `/dialer/flags`            | yes  | List every number the caller has flagged (`{ items: [{ number_e164, is_spam, is_blocked }] }`). |
 | POST   | `/dialer/flag`             | yes  | Set per-user `is_spam` / `is_blocked` for an E.164 `number`. Returns the merged flag state. |
 | POST   | `/dialer/log`              | yes  | Log a call against a `number` (+ optional `contact_id`, `outcome`, `note`, `tag`). Returns `{ log }`. |
 | POST   | `/dialer/callback`         | yes  | Set a call-back reminder (`number`, future `callback_at`, optional `note`). Delivered in-app + scheduled. Returns `{ callback }`. |
@@ -1005,6 +1027,7 @@ client-facing email templates. The SMTP password is never returned (masked only)
 | GET    | `/domains/available`          | yes  | Domains the user can attach a link to: their own verified domains **plus** any admin-provisioned global domains. Returns `{ items:[{ id, domain, is_verified, is_global, … }], primary_domain_id, default_host, can_manage }`. |
 | POST   | `/domains`                    | yes  | Add a domain.               |
 | POST   | `/domains/{id}/primary`       | yes  | Make a domain primary.      |
+| POST   | `/domains/{id}/verify`        | yes  | Re-run DNS verification for a pending domain; returns the fresh verification state + the expected DNS records. |
 | DELETE | `/domains/{id}`               | yes  | Remove a domain.            |
 
 ## Splash pages
@@ -1289,8 +1312,38 @@ links and visitor RSVP work without it.
 
 | Method | Path                | Auth | Description                       |
 | ------ | ------------------- | ---- | -------------------------------- |
-| GET    | `/verifications`    | yes  | Creator-badge verification status. |
-| POST   | `/verifications`    | yes  | Submit a verification request.    |
+| GET    | `/verifications`    | yes  | Creator-badge verification status (legacy per-link verification). |
+| POST   | `/verifications`    | yes  | Submit a verification request (legacy per-link verification). |
+
+### Profile verification (account-level)
+
+Account-level verified-badge flow — the mobile mirror of the web
+"Verification & Badges" settings tab. Approval stamps the user's verified
+name/badge; changing the verified name or avatar later requires
+re-verification.
+
+| Method | Path                              | Auth | Description                       |
+| ------ | --------------------------------- | ---- | -------------------------------- |
+| GET    | `/profile-verification`           | yes  | Current status, active request, tick type and verified identity snapshot. |
+| POST   | `/profile-verification`           | yes  | Submit a new verification request (official name, purpose, tick type, proof files). |
+| POST   | `/profile-verification/reverify`  | yes  | Start re-verification after changing the verified name/avatar. |
+| POST   | `/profile-verification/updates`   | yes  | Attach an update/extra proof to the pending request. Throttle: 10/hour. |
+
+### Profile verification moderation (reviewers)
+
+Reviewer-side moderation, gated by the same web-pool
+`user.verifications.review` permission the web review screens use (a
+`403` without it). Approve/reject run the exact same cores as the web
+moderation UI.
+
+| Method | Path                                                  | Auth | Description                       |
+| ------ | ----------------------------------------------------- | ---- | -------------------------------- |
+| GET    | `/admin/profile-verification`                         | yes  | Review queue. `?queue=new\|reverification`, optional `?status=`; includes pending counts for both queues. |
+| GET    | `/admin/profile-verification/{id}`                    | yes  | Full request detail (proof files, requested updates, reviewer). |
+| POST   | `/admin/profile-verification/{id}/approve`            | yes  | Approve (optional `admin_notes`, `tick_type_id` override). `409 already_reviewed` if not pending. |
+| POST   | `/admin/profile-verification/{id}/reject`             | yes  | Reject with required `admin_notes`. `409 already_reviewed` if not pending. |
+| GET    | `/admin/profile-verification/tick-types`              | yes  | Full tick-type catalog (incl. inactive/admin-only). |
+| POST   | `/admin/profile-verification/tick-types/{id}`         | yes  | Update a tick type (name, color, active, sort order). |
 
 ---
 
