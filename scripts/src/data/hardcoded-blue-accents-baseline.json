@@ -88,7 +88,6 @@
   "user/inbox/forwards/index.blade.php": 2,
   "user/inbox/spam-settings.blade.php": 4,
   "user/layouts/app.blade.php": 33,
-  "user/layouts/settings.blade.php": 1,
   "user/leads/index.blade.php": 3,
   "user/links/ai-chat/editor.blade.php": 4,
   "user/links/biolink-editor.blade.php": 41,

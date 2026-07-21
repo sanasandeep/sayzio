@@ -47,6 +47,10 @@ export type ZioTelephonyModule = {
   setCallerIdAlertEnabled(enabled: boolean): void;
   /** Push the synced Sayzio contacts (JSON array of {n,name,photo?,org?}) for offline lookup. */
   setCallerDirectory(json: string): boolean;
+  /** Queued identified incoming calls: JSON array of {n,name,org?,ts} appended by the screening service. */
+  getIdentifiedCallQueue(): string;
+  /** Drop the first `count` queued identified-call events after a successful sync. */
+  clearIdentifiedCallQueue(count: number): boolean;
   /** Preview the floating card with a given number. */
   showTestCallerIdAlert(number: string): boolean;
   dismissCallerIdAlert(): void;

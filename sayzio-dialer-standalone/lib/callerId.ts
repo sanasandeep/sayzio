@@ -1,6 +1,6 @@
 import { Platform } from "react-native";
 
-import { listContacts } from "@/lib/api/contacts";
+import { listContacts, updateContact, type Contact } from "@/lib/api/contacts";
 import { listFlaggedNumbers } from "@/lib/api/dialer";
 import { ZioTelephony } from "@/modules/zio-telephony";
 
@@ -194,5 +194,115 @@ export async function syncCallerDirectory(opts?: {
     ZioTelephony.setCallerDirectory(JSON.stringify(dir));
   } catch {
     // Directory refresh is best-effort; the old snapshot keeps working.
+  }
+}
+
+// ── Identified-call queue drain (CRM history) ──────────────────────────
+
+/** One queued event from the native call-screening service. */
+type IdentifiedCallEvent = {
+  /** Raw caller number as the screening service saw it. */
+  n: string;
+  /** Directory name the caller resolved to at ring time. */
+  name?: string;
+  org?: string;
+  /** Epoch millis of the ring. */
+  ts: number;
+};
+
+/** Last-9-digits key mirroring the native CallerIdStore.normalizeKey. */
+function phoneKey(number: string): string {
+  const digits = number.replace(/\D/g, "");
+  return digits.length > 9 ? digits.slice(-9) : digits;
+}
+
+function formatCallMoment(ts: number): string {
+  const d = new Date(ts);
+  if (Number.isNaN(d.getTime())) return "";
+  return d.toLocaleString(undefined, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
+let drainInFlight = false;
+
+/**
+ * Drain the native identified-incoming-call queue (rings the screening
+ * service saw while the JS runtime was dead) into the Sayzio contact
+ * history: each event is appended as a dated "call received" line on the
+ * matched contact's notes, visible on the contact's profile timeline.
+ *
+ * Idempotent: lines carry the ring timestamp and are skipped when already
+ * present, and the native queue is only cleared after every matched event
+ * was persisted (unmatched events are dropped — they can never sync).
+ * Android-only no-op elsewhere. Returns the number of events logged.
+ */
+export async function drainIdentifiedCalls(): Promise<number> {
+  if (Platform.OS !== "android" || !ZioTelephony) return 0;
+  if (drainInFlight) return 0;
+  drainInFlight = true;
+  try {
+    let events: IdentifiedCallEvent[] = [];
+    try {
+      const raw = ZioTelephony.getIdentifiedCallQueue();
+      const parsed = JSON.parse(raw || "[]");
+      if (Array.isArray(parsed)) {
+        events = parsed.filter(
+          (e): e is IdentifiedCallEvent =>
+            !!e && typeof e.n === "string" && typeof e.ts === "number",
+        );
+      }
+    } catch {
+      return 0;
+    }
+    if (events.length === 0) return 0;
+    const drained = events.length;
+
+    const { items } = await listContacts();
+    const byKey = new Map<string, Contact>();
+    for (const c of items) {
+      for (const p of c.phones ?? []) {
+        const key = phoneKey(p.value_e164 ?? p.value ?? "");
+        if (key && !byKey.has(key)) byKey.set(key, c);
+      }
+    }
+
+    // Group new note lines per matched contact so each contact gets one
+    // PATCH regardless of how many calls queued up.
+    const pending = new Map<number, { contact: Contact; lines: string[] }>();
+    for (const e of events) {
+      const contact = byKey.get(phoneKey(e.n));
+      if (!contact) continue; // Contact deleted since the ring — drop.
+      const line = `\u{1F4DE} Call received (${e.n}) — ${formatCallMoment(e.ts)}`;
+      const existing = contact.notes ?? "";
+      const bucket = pending.get(contact.id) ?? { contact, lines: [] };
+      if (!existing.includes(line) && !bucket.lines.includes(line)) {
+        bucket.lines.push(line);
+      }
+      pending.set(contact.id, bucket);
+    }
+
+    let logged = 0;
+    for (const { contact, lines } of pending.values()) {
+      if (lines.length === 0) continue; // Already recorded on a prior drain.
+      const base = (contact.notes ?? "").trimEnd();
+      const notes = base ? `${base}\n${lines.join("\n")}` : lines.join("\n");
+      // Any failure aborts the drain WITHOUT clearing the queue so the
+      // events retry on the next foreground (dedup via the notes check).
+      await updateContact(contact.id, { notes });
+      logged += lines.length;
+    }
+
+    ZioTelephony.clearIdentifiedCallQueue(drained);
+    return logged;
+  } catch {
+    // Best-effort: leave the queue intact and retry on the next foreground.
+    return 0;
+  } finally {
+    drainInFlight = false;
   }
 }

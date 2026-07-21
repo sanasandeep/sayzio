@@ -23,8 +23,29 @@ class ZioCallScreeningService : CallScreeningService() {
       val number = callDetails.handle?.schemeSpecificPart?.trim().orEmpty()
       // Unknown/private numbers still show a card with the "unknown" state.
       Thread {
+        val info = try {
+          CallerLookup.lookup(this, number)
+        } catch (_: Exception) {
+          null
+        }
+        // Identified callers become CRM history: queue the event natively so
+        // the app can sync it into the contact's Sayzio timeline when it next
+        // opens (the JS runtime is dead while a call rings).
         try {
-          val info = CallerLookup.lookup(this, number)
+          val name = info?.name
+          if (number.isNotEmpty() && !name.isNullOrBlank()) {
+            CallerIdStore.appendIdentifiedCall(
+              this,
+              number,
+              name,
+              info.organization,
+              System.currentTimeMillis(),
+            )
+          }
+        } catch (_: Exception) {
+          // Queueing is best-effort.
+        }
+        try {
           CallerIdOverlay.show(this, info)
         } catch (_: Exception) {
           // Alert is best-effort; the call itself is already allowed.

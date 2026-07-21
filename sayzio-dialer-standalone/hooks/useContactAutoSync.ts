@@ -3,7 +3,7 @@ import { useEffect, useRef } from "react";
 import { AppState } from "react-native";
 
 import { googleContacts } from "@/lib/api/contacts";
-import { syncCallerDirectory } from "@/lib/callerId";
+import { drainIdentifiedCalls, syncCallerDirectory } from "@/lib/callerId";
 import {
   getStoredContactSyncFingerprint,
   importDeviceContacts,
@@ -93,6 +93,15 @@ export function useContactAutoSync(
       // overlay resolves Sayzio contacts even while the app is dead.
       // Android-only no-op elsewhere; throttled internally.
       void syncCallerDirectory({ force: changed });
+      // Sync calls the screening service identified while the app was dead
+      // into the matched contacts' Sayzio history (their notes timeline),
+      // then refresh any open contact views. Best-effort, Android-only.
+      void drainIdentifiedCalls().then((logged) => {
+        if (mounted && logged > 0) {
+          qc.invalidateQueries({ queryKey: ["contacts"] });
+          qc.invalidateQueries({ queryKey: ["contact"] });
+        }
+      });
     };
 
     const start = async () => {

@@ -260,6 +260,26 @@ class ZioTelephonyModule : Module() {
       }
     }
 
+    // Queued identified incoming calls (appended by the screening service
+    // while the JS runtime was dead) as a raw JSON array of
+    // {n, name, org?, ts} objects. JS drains this into the Sayzio contact
+    // history on foreground, then clears what it read via
+    // clearIdentifiedCallQueue(count).
+    Function("getIdentifiedCallQueue") {
+      CallerIdStore.getIdentifiedCallQueueJson(context)
+    }
+
+    // Remove the first `count` queued events (count-based so calls that
+    // ring mid-drain are never lost).
+    Function("clearIdentifiedCallQueue") { count: Int ->
+      try {
+        CallerIdStore.removeIdentifiedCallQueueHead(context, count)
+        true
+      } catch (_: Exception) {
+        false
+      }
+    }
+
     // Preview the floating card with a fake ringing number — used by the
     // settings screen so users can see what the alert looks like.
     Function("showTestCallerIdAlert") { number: String ->

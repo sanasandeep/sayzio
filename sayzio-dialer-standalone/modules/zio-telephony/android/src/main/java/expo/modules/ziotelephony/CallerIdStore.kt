@@ -3,6 +3,7 @@ package expo.modules.ziotelephony
 import android.content.Context
 import android.content.SharedPreferences
 import org.json.JSONArray
+import org.json.JSONObject
 
 /**
  * SharedPreferences-backed state for the incoming-call caller-ID alert.
@@ -20,6 +21,10 @@ object CallerIdStore {
   private const val PREFS = "zio_caller_id"
   private const val KEY_ENABLED = "enabled"
   private const val KEY_DIRECTORY = "directory_json"
+  private const val KEY_CALL_QUEUE = "identified_call_queue_json"
+
+  /** Oldest events are dropped once the queue grows past this. */
+  private const val MAX_QUEUED_CALLS = 50
 
   private fun prefs(context: Context): SharedPreferences =
     context.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
@@ -73,6 +78,85 @@ object CallerIdStore {
       null
     } catch (_: Exception) {
       null
+    }
+  }
+
+  // ── Identified-call queue (CRM history sync) ──────────────────────────
+  //
+  // The screening service appends every incoming call it could identify
+  // (matched against the synced Sayzio directory) here, while the JS
+  // runtime is dead. When the app next foregrounds, the JS side drains
+  // the queue into the Sayzio contact history and clears what it read.
+
+  /**
+   * Append one identified incoming call `{n, name, org?, ts}` to the
+   * native queue. Oldest entries drop first past [MAX_QUEUED_CALLS].
+   */
+  @Synchronized
+  fun appendIdentifiedCall(
+    context: Context,
+    number: String,
+    name: String,
+    organization: String?,
+    timestampMs: Long,
+  ) {
+    try {
+      val raw = prefs(context).getString(KEY_CALL_QUEUE, null)
+      val arr = try {
+        if (raw.isNullOrBlank()) JSONArray() else JSONArray(raw)
+      } catch (_: Exception) {
+        JSONArray()
+      }
+      arr.put(
+        JSONObject().apply {
+          put("n", number)
+          put("name", name)
+          if (!organization.isNullOrBlank()) put("org", organization)
+          put("ts", timestampMs)
+        },
+      )
+      // Keep only the newest MAX_QUEUED_CALLS entries.
+      val trimmed = if (arr.length() > MAX_QUEUED_CALLS) {
+        JSONArray().also { out ->
+          for (i in arr.length() - MAX_QUEUED_CALLS until arr.length()) {
+            out.put(arr.get(i))
+          }
+        }
+      } else {
+        arr
+      }
+      prefs(context).edit().putString(KEY_CALL_QUEUE, trimmed.toString()).apply()
+    } catch (_: Exception) {
+      // Queueing is best-effort; never interfere with call handling.
+    }
+  }
+
+  /** Raw JSON array of queued identified calls (always valid JSON). */
+  @Synchronized
+  fun getIdentifiedCallQueueJson(context: Context): String {
+    val raw = prefs(context).getString(KEY_CALL_QUEUE, null) ?: return "[]"
+    return try {
+      JSONArray(raw).toString()
+    } catch (_: Exception) {
+      "[]"
+    }
+  }
+
+  /**
+   * Remove the first [count] queued events (the ones the JS side just
+   * drained). Count-based so calls that ring during a drain survive.
+   */
+  @Synchronized
+  fun removeIdentifiedCallQueueHead(context: Context, count: Int) {
+    if (count <= 0) return
+    try {
+      val raw = prefs(context).getString(KEY_CALL_QUEUE, null) ?: return
+      val arr = JSONArray(raw)
+      val out = JSONArray()
+      for (i in count until arr.length()) out.put(arr.get(i))
+      prefs(context).edit().putString(KEY_CALL_QUEUE, out.toString()).apply()
+    } catch (_: Exception) {
+      // Leave the queue untouched on parse failure.
     }
   }
 }
