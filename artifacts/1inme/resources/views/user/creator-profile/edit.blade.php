@@ -484,7 +484,7 @@
                                 @click="item.enabled = !item.enabled"
                                 :title="item.enabled ? 'Click to hide' : 'Click to show'"
                                 class="shrink-0 text-sm"
-                                :style="item.enabled ? 'color:var(--color-primary,#3d6bff)' : 'color:var(--text-dimmed)'">
+                                :style="item.enabled ? 'color:var(--color-primary-500,#3d6bff)' : 'color:var(--text-dimmed)'">
                             <i :class="item.enabled ? 'fas fa-eye' : 'fas fa-eye-slash'"></i>
                         </button>
                         <span class="flex-1 text-sm truncate"
