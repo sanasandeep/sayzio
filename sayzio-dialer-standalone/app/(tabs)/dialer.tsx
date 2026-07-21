@@ -531,8 +531,10 @@ export default function DialerScreen() {
         isSpam: r.is_spam,
         isBlocked: r.is_blocked,
         biolink: r.biolink,
-        sub: r.last_human ?? "",
-        direction: null,
+        // Server history rows are calls placed from this account (logged at
+        // dial time), so they are always outgoing.
+        sub: `Outgoing${r.last_human ? ` · ${r.last_human}` : ""}`,
+        direction: "out",
       });
     }
     for (const r of localRecent) {
@@ -546,8 +548,9 @@ export default function DialerScreen() {
         isSpam: false,
         isBlocked: false,
         biolink: false,
-        sub: relativeMs(r.at),
-        direction: null,
+        // Local rows are dials placed from this app — outgoing by definition.
+        sub: `Outgoing · ${relativeMs(r.at)}`,
+        direction: "out",
       });
     }
     return rows.slice(0, RECENT_MAX);
@@ -1275,23 +1278,37 @@ export default function DialerScreen() {
                   styles.deviceCta,
                   {
                     marginHorizontal: 16,
-                    borderColor: colors.border,
-                    backgroundColor: pressed ? colors.muted : colors.card,
+                    borderColor: colors.primary,
+                    backgroundColor: colors.primary,
+                    opacity: pressed ? 0.85 : 1,
+                    paddingVertical: 14,
                   },
                 ]}
               >
-                <Feather name="phone-incoming" size={16} color={colors.primary} />
-                <Text
-                  style={{
-                    color: colors.foreground,
-                    fontFamily: "SpaceGrotesk_500Medium",
-                    fontSize: 13,
-                    marginLeft: 10,
-                    flex: 1,
-                  }}
-                >
-                  Show your phone's call history here
-                </Text>
+                <Feather name="phone-incoming" size={18} color={colors.primaryForeground} />
+                <View style={{ flex: 1, marginLeft: 10 }}>
+                  <Text
+                    style={{
+                      color: colors.primaryForeground,
+                      fontFamily: "SpaceGrotesk_600SemiBold",
+                      fontSize: 14,
+                    }}
+                  >
+                    See your real call history
+                  </Text>
+                  <Text
+                    style={{
+                      color: colors.primaryForeground,
+                      opacity: 0.85,
+                      fontSize: 12,
+                      marginTop: 2,
+                    }}
+                  >
+                    Tap to allow call-log access — incoming, outgoing and missed
+                    calls will show here.
+                  </Text>
+                </View>
+                <Feather name="chevron-right" size={18} color={colors.primaryForeground} />
               </Pressable>
             ) : callLogAccess === "denied" ? (
               <Pressable
@@ -1379,7 +1396,12 @@ export default function DialerScreen() {
               }}
               style={({ pressed }) => [
                 styles.row,
+                // styles.row is a flex-row (shared with other lists); this row
+                // stacks header + expanded panel vertically, so force column
+                // or the accordion renders BESIDE the header, clipped.
                 {
+                  flexDirection: "column",
+                  alignItems: "stretch",
                   borderBottomColor: colors.border,
                   backgroundColor: pressed ? colors.muted : "transparent",
                 },
@@ -1462,84 +1484,83 @@ export default function DialerScreen() {
                 <View
                   style={{
                     marginTop: 10,
-                    paddingTop: 10,
+                    paddingTop: 4,
                     borderTopWidth: StyleSheet.hairlineWidth,
                     borderTopColor: colors.border,
-                    gap: 10,
                   }}
                 >
-                  <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 14 }}>
-                    <View>
-                      <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>Number</Text>
-                      <Text style={{ color: colors.foreground, fontSize: 14, fontFamily: "SpaceGrotesk_500Medium" }}>
-                        {item.number}
-                      </Text>
-                    </View>
-                    <View>
-                      <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>Last call</Text>
-                      <Text style={{ color: colors.foreground, fontSize: 14, fontFamily: "SpaceGrotesk_500Medium" }}>
-                        {item.sub}
-                      </Text>
-                    </View>
-                    {item.direction != null && (
-                      <View>
-                        <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>Type</Text>
-                        <Text style={{ color: dirColor, fontSize: 14, fontFamily: "SpaceGrotesk_600SemiBold" }}>
-                          {item.direction === "missed"
-                            ? "Missed"
-                            : item.direction === "in"
-                              ? "Incoming"
-                              : "Outgoing"}
-                        </Text>
-                      </View>
-                    )}
-                  </View>
-                  <ChannelActions number={item.number} size="md" />
-                  <View style={{ flexDirection: "row", gap: 10 }}>
-                    <Pressable
-                      onPress={() => dial(item.number, item.label)}
-                      style={({ pressed }) => ({
-                        flex: 1,
-                        flexDirection: "row",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        gap: 6,
-                        paddingVertical: 10,
-                        borderRadius: 10,
-                        backgroundColor: pressed ? "#15803d" : "#16a34a",
-                      })}
-                    >
-                      <Feather name="phone" size={15} color="#fff" />
-                      <Text style={{ color: "#fff", fontSize: 13, fontFamily: "SpaceGrotesk_600SemiBold" }}>
-                        Call
-                      </Text>
-                    </Pressable>
-                    <Pressable
-                      onPress={() =>
+                  {/* Simple stock-phone style action list. */}
+                  {[
+                    item.contactId == null
+                      ? {
+                          key: "add",
+                          icon: "user-plus" as const,
+                          label: "Add to contacts",
+                          onPress: () =>
+                            router.push({
+                              pathname: "/contacts/new",
+                              params: {
+                                phone: item.number,
+                                ...(item.label ? { name: item.label } : {}),
+                              },
+                            }),
+                        }
+                      : {
+                          key: "view",
+                          icon: "user" as const,
+                          label: "View contact",
+                          onPress: () =>
+                            openProfile(item.number, {
+                              contactId: item.contactId,
+                              name: item.label,
+                            }),
+                        },
+                    {
+                      key: "sms",
+                      icon: "message-circle" as const,
+                      label: "Send message",
+                      onPress: () =>
+                        void Linking.openURL(`sms:${item.number}`).catch(() => {}),
+                    },
+                    {
+                      key: "history",
+                      icon: "clock" as const,
+                      label: "Call history & details",
+                      onPress: () =>
                         openProfile(item.number, {
                           contactId: item.contactId,
                           name: item.label,
-                        })
-                      }
+                        }),
+                    },
+                  ].map((a) => (
+                    <Pressable
+                      key={a.key}
+                      onPress={(e) => {
+                        e.stopPropagation();
+                        a.onPress();
+                      }}
                       style={({ pressed }) => ({
-                        flex: 1,
                         flexDirection: "row",
                         alignItems: "center",
-                        justifyContent: "center",
-                        gap: 6,
-                        paddingVertical: 10,
-                        borderRadius: 10,
-                        borderWidth: 1,
-                        borderColor: colors.border,
-                        backgroundColor: pressed ? colors.muted : colors.card,
+                        gap: 14,
+                        paddingVertical: 12,
+                        paddingHorizontal: 4,
+                        borderRadius: 8,
+                        backgroundColor: pressed ? colors.muted : "transparent",
                       })}
                     >
-                      <Feather name="user" size={15} color={colors.foreground} />
-                      <Text style={{ color: colors.foreground, fontSize: 13, fontFamily: "SpaceGrotesk_600SemiBold" }}>
-                        Profile
+                      <Feather name={a.icon} size={18} color={colors.primary} />
+                      <Text
+                        style={{
+                          color: colors.foreground,
+                          fontSize: 14,
+                          fontFamily: "SpaceGrotesk_500Medium",
+                        }}
+                      >
+                        {a.label}
                       </Text>
                     </Pressable>
-                  </View>
+                  ))}
                 </View>
               )}
             </Pressable>

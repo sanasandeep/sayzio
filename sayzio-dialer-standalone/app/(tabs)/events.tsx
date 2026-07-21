@@ -19,7 +19,9 @@ import { useColors } from "@/hooks/useColors";
 import {
   type EventInterestStatus,
   type EventItem,
+  getMyEvents,
   listEvents,
+  type MyEventsItem,
   setEventInterest,
 } from "@/lib/api/events";
 import {
@@ -63,6 +65,7 @@ function matchesDateFilter(event: EventItem, filter: DateFilter): boolean {
  */
 export default function EventsDirectoryScreen() {
   const colors = useColors();
+  const [segment, setSegment] = useState<"discover" | "mine">("discover");
   const [q, setQ] = useState("");
   const [tag, setTag] = useState<string | null>(null);
   const [nearMe, setNearMe] = useState(true);
@@ -73,6 +76,43 @@ export default function EventsDirectoryScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [myItems, setMyItems] = useState<MyEventsItem[] | null>(null);
+  const [myLoading, setMyLoading] = useState(false);
+  const [myRefreshing, setMyRefreshing] = useState(false);
+
+  const loadMine = useCallback(async () => {
+    try {
+      const items = await getMyEvents();
+      setMyItems(items);
+    } catch {
+      setMyItems((prev) => prev ?? []);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (segment === "mine" && myItems === null) {
+      setMyLoading(true);
+      loadMine().finally(() => setMyLoading(false));
+    }
+  }, [segment, myItems, loadMine]);
+
+  const { upcomingMine, pastMine } = useMemo(() => {
+    const items = myItems ?? [];
+    const now = Date.now();
+    const isPast = (i: MyEventsItem) => {
+      const raw = i.event.end_date || i.event.start_date;
+      if (!raw) return false;
+      const t = new Date(raw).getTime();
+      return !Number.isNaN(t) && t < now;
+    };
+    const upcoming = items.filter((i) => !isPast(i));
+    const past = items.filter(isPast);
+    // Upcoming soonest-first; past most-recent-first (server sends desc).
+    upcoming.sort((a, b) =>
+      (a.event.start_date ?? "9999").localeCompare(b.event.start_date ?? "9999"),
+    );
+    return { upcomingMine: upcoming, pastMine: past };
+  }, [myItems]);
 
   const visibleEvents = useMemo(
     () => events.filter((e) => matchesDateFilter(e, dateFilter)),
@@ -193,8 +233,149 @@ export default function EventsDirectoryScreen() {
     [load],
   );
 
+  const renderMyEvents = () => {
+    if (myLoading) {
+      return <ActivityIndicator style={{ marginTop: 40 }} color={colors.primary} />;
+    }
+    const sections: { header: string; data: MyEventsItem[] }[] = [];
+    if (upcomingMine.length > 0) sections.push({ header: "Upcoming", data: upcomingMine });
+    if (pastMine.length > 0) sections.push({ header: "Past", data: pastMine });
+    if (sections.length === 0) {
+      return (
+        <EmptyState
+          icon="calendar"
+          title="No events yet"
+          body="Events you get tickets for or mark as Interested will show up here — upcoming and past."
+        />
+      );
+    }
+    const flat: ({ type: "header"; key: string; label: string } | { type: "item"; key: string; item: MyEventsItem })[] = [];
+    for (const s of sections) {
+      flat.push({ type: "header", key: `h:${s.header}`, label: s.header });
+      for (const it of s.data) {
+        flat.push({ type: "item", key: `${it.kind}:${it.event.id}:${it.ticket_code ?? ""}`, item: it });
+      }
+    }
+    return (
+      <FlatList
+        data={flat}
+        keyExtractor={(r) => r.key}
+        contentContainerStyle={{ padding: 16, gap: 10 }}
+        refreshControl={
+          <RefreshControl
+            refreshing={myRefreshing}
+            onRefresh={async () => {
+              setMyRefreshing(true);
+              try {
+                await loadMine();
+              } finally {
+                setMyRefreshing(false);
+              }
+            }}
+          />
+        }
+        renderItem={({ item: row }) => {
+          if (row.type === "header") {
+            return (
+              <Text
+                style={{
+                  color: colors.mutedForeground,
+                  fontSize: 12,
+                  fontWeight: "700",
+                  textTransform: "uppercase",
+                  letterSpacing: 0.6,
+                  marginTop: 6,
+                }}
+              >
+                {row.label}
+              </Text>
+            );
+          }
+          const it = row.item;
+          const past =
+            !!(it.event.end_date || it.event.start_date) &&
+            new Date(it.event.end_date || it.event.start_date || "").getTime() < Date.now();
+          return (
+            <Pressable
+              onPress={() => router.push(`/events/${it.event.alias}`)}
+              style={[
+                styles.card,
+                {
+                  backgroundColor: colors.card,
+                  borderColor: colors.border,
+                  opacity: past ? 0.65 : 1,
+                },
+              ]}
+            >
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                <Feather
+                  name={it.kind === "ticket" ? "check-circle" : "star"}
+                  size={14}
+                  color={it.kind === "ticket" ? colors.primary : colors.mutedForeground}
+                />
+                <Text style={{ color: colors.mutedForeground, fontSize: 12, fontWeight: "600" }}>
+                  {it.kind === "ticket"
+                    ? `Attending${(it.quantity ?? 1) > 1 ? ` · ${it.quantity} tickets` : ""}`
+                    : "Interested"}
+                </Text>
+              </View>
+              <Text style={[styles.cardTitle, { color: colors.foreground }]}>
+                {it.event.title ?? "Event"}
+              </Text>
+              {it.event.start_date ? (
+                <Text style={{ color: colors.mutedForeground, fontSize: 13 }}>
+                  {new Date(it.event.start_date).toLocaleString()}
+                </Text>
+              ) : null}
+              {it.event.location ? (
+                <Text style={{ color: colors.mutedForeground, fontSize: 13 }}>
+                  📍 {it.event.location}
+                </Text>
+              ) : null}
+            </Pressable>
+          );
+        }}
+      />
+    );
+  };
+
   return (
     <View style={[styles.wrap, { backgroundColor: colors.background }]}>
+      <View style={[styles.filterRow, { paddingTop: 12 }]}>
+        {(
+          [
+            { key: "discover", label: "Discover" },
+            { key: "mine", label: "My events" },
+          ] as const
+        ).map((s) => (
+          <Pressable
+            key={s.key}
+            onPress={() => setSegment(s.key)}
+            style={[
+              styles.chip,
+              {
+                borderColor: segment === s.key ? colors.primary : colors.border,
+                backgroundColor: segment === s.key ? colors.primary : "transparent",
+              },
+            ]}
+          >
+            <Text
+              style={{
+                color: segment === s.key ? colors.primaryForeground : colors.mutedForeground,
+                fontSize: 13,
+                fontWeight: "600",
+              }}
+            >
+              {s.label}
+            </Text>
+          </Pressable>
+        ))}
+      </View>
+
+      {segment === "mine" ? (
+        renderMyEvents()
+      ) : (
+        <>
       <View style={styles.searchRow}>
         <View
           style={[
@@ -398,6 +579,8 @@ export default function EventsDirectoryScreen() {
             </Pressable>
           )}
         />
+      )}
+        </>
       )}
     </View>
   );

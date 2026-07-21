@@ -154,6 +154,15 @@ export default function TabsLayout() {
           ),
         }}
       />
+      <Tabs.Screen
+        name="notes"
+        options={{
+          title: "Notes",
+          tabBarIcon: ({ color, size }) => (
+            <Feather name="edit-3" size={size} color={color} />
+          ),
+        }}
+      />
     </Tabs>
       {newEvent ? (
         <Pressable

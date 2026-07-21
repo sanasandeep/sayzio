@@ -198,6 +198,8 @@ Route::prefix('v1')->group(function () {
         Route::post('/events/{alias}/buy',                 [\App\Modules\Api\Controllers\EventTicketApiController::class, 'buy'])->middleware('throttle:30,1');
         Route::post('/events/{alias}/interest',            [\App\Modules\Api\Controllers\EventTicketApiController::class, 'interest'])->middleware('throttle:30,1');
         Route::get ('/me/event-tickets',                   [\App\Modules\Api\Controllers\EventTicketApiController::class, 'myTickets']);
+        // My events calendar (dialer app): ticketed + interested, past & future.
+        Route::get ('/me/events',                          [\App\Modules\Api\Controllers\EventTicketApiController::class, 'myEvents']);
 
         // Task #5008 — Event contact exchange: "My card" QR + opt-in people list.
         Route::get ('/me/event-card',                      [\App\Modules\Api\Controllers\EventContactExchangeController::class, 'myCard']);
@@ -1381,6 +1383,11 @@ Route::prefix('v1')->group(function () {
         // Call log (outcome/note/tag) + call-back reminders.
         Route::post  ('/dialer/log',                [DialerController::class, 'logCall']);
         Route::post  ('/dialer/callback',           [DialerController::class, 'setCallback']);
+        // Notes & reminders with server sync + phone-based sharing.
+        Route::get   ('/dialer/notes',              [\App\Modules\Api\Controllers\DialerNoteController::class, 'index']);
+        Route::post  ('/dialer/notes',              [\App\Modules\Api\Controllers\DialerNoteController::class, 'store']);
+        Route::patch ('/dialer/notes/{id}',         [\App\Modules\Api\Controllers\DialerNoteController::class, 'update'])->whereNumber('id');
+        Route::delete('/dialer/notes/{id}',         [\App\Modules\Api\Controllers\DialerNoteController::class, 'destroy'])->whereNumber('id');
         Route::delete('/dialer/callback/{id}',      [DialerController::class, 'clearCallback'])->whereNumber('id');
 
         // ── Zio Browser cloud sync ──────────────────────────────────────────

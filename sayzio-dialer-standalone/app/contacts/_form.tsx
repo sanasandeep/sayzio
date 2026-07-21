@@ -55,16 +55,23 @@ export default function ContactForm({
   mode,
   contact,
   onSuccess,
+  initialName,
+  initialPhone,
 }: {
   mode: "create" | "edit";
   contact?: Contact;
   onSuccess: () => void;
+  /** Prefill (create mode only) — e.g. "Add to contacts" from a recents row. */
+  initialName?: string | null;
+  initialPhone?: string | null;
 }) {
   const colors = useColors();
   const router = useRouter();
   const qc = useQueryClient();
 
-  const [given, setGiven] = useState(contact?.given_name ?? "");
+  const [given, setGiven] = useState(
+    contact?.given_name ?? (mode === "create" ? initialName?.trim() || "" : ""),
+  );
   const [family, setFamily] = useState(contact?.family_name ?? "");
   const [org, setOrg] = useState(contact?.organization ?? "");
   const [job, setJob] = useState(contact?.job_title ?? "");
@@ -73,7 +80,10 @@ export default function ContactForm({
     contact?.emails.map((e) => ({ value: e.value, label: e.label })) ?? [],
   );
   const [phones, setPhones] = useState<{ value: string; label: string | null }[]>(
-    contact?.phones.map((p) => ({ value: p.value, label: p.label })) ?? [],
+    contact?.phones.map((p) => ({ value: p.value, label: p.label })) ??
+      (mode === "create" && initialPhone?.trim()
+        ? [{ value: initialPhone.trim(), label: null }]
+        : []),
   );
 
   const buildPayload = (): ContactPayload => ({

@@ -1,7 +1,9 @@
 import Feather from "@expo/vector-icons/Feather";
 import { useRouter } from "expo-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
+  Animated,
+  Easing,
   Linking,
   Modal,
   Platform,
@@ -68,6 +70,51 @@ export function DialerDrawer({
 
   const baseUrl = getBaseUrl();
 
+  // ── 3D push-in animation (mirrors the main Sayzio app's drawer) ─────────
+  // The Modal itself never animates (animationType="none"); we drive a single
+  // progress value: panel slides in from the left while un-rotating from a
+  // slight Y-axis tilt behind a fading backdrop. `rendered` keeps the Modal
+  // mounted until the close animation finishes.
+  const PANEL_W = 300;
+  const [rendered, setRendered] = useState(open);
+  const progress = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    if (open) {
+      setRendered(true);
+      Animated.timing(progress, {
+        toValue: 1,
+        duration: 320,
+        easing: Easing.bezier(0.22, 1, 0.36, 1),
+        useNativeDriver: true,
+      }).start();
+    } else {
+      Animated.timing(progress, {
+        toValue: 0,
+        duration: 220,
+        easing: Easing.in(Easing.cubic),
+        useNativeDriver: true,
+      }).start(({ finished }) => {
+        if (finished) setRendered(false);
+      });
+    }
+  }, [open, progress]);
+
+  const panelTransform = [
+    { perspective: 1400 },
+    {
+      translateX: progress.interpolate({
+        inputRange: [0, 1],
+        outputRange: [-PANEL_W, 0],
+      }),
+    },
+    {
+      rotateY: progress.interpolate({
+        inputRange: [0, 1],
+        outputRange: ["-8deg", "0deg"],
+      }),
+    },
+  ];
+
   // ── Dialer settings (keypad mode / default SIM / calling mode) ──────────
   // Loaded fresh each time the drawer opens; saves notify the keypad screen
   // via the dialer-prefs listener bus so it live-reloads.
@@ -127,6 +174,7 @@ export function DialerDrawer({
       routeName: "events",
       badge: eventBadgeCount,
     },
+    { key: "notes", label: "Notes & reminders", icon: "edit-3", routeName: "notes" },
   ];
 
   const linkItems: {
@@ -174,18 +222,26 @@ export function DialerDrawer({
   ];
 
   return (
-    <Modal visible={open} transparent animationType="fade" onRequestClose={onClose}>
+    <Modal
+      visible={rendered}
+      transparent
+      animationType="none"
+      onRequestClose={onClose}
+    >
       <View style={styles.backdropWrap}>
         {/* Tap outside the panel to dismiss. */}
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Close menu"
-          onPress={onClose}
-          style={styles.backdrop}
-        />
-        <View
+        <Animated.View style={[styles.backdrop, { opacity: progress }]}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Close menu"
+            onPress={onClose}
+            style={StyleSheet.absoluteFill}
+          />
+        </Animated.View>
+        <Animated.View
           style={[
             styles.panel,
+            { transform: panelTransform },
             {
               backgroundColor: colors.background,
               borderColor: colors.border,
@@ -435,7 +491,7 @@ export function DialerDrawer({
               </Pressable>
             ))}
           </ScrollView>
-        </View>
+        </Animated.View>
       </View>
     </Modal>
   );
