@@ -1951,6 +1951,12 @@ Route::prefix('user')->name('user.')->group(function () {
             Route::get('request',  [ProfileVerificationController::class, 'create'])->middleware('workspace.can:settings.edit')->name('request');
             Route::post('request', [ProfileVerificationController::class, 'store'])->middleware('workspace.can:settings.edit')->name('store');
             Route::post('re-verify', [ProfileVerificationController::class, 'reVerify'])->middleware('workspace.can:settings.edit')->name('re-verify');
+            // Follow-up message/attachments to the reviewing admin while a
+            // request is pending. Rate-limited: it appends to stored JSON and
+            // accepts file uploads.
+            Route::post('updates', [ProfileVerificationController::class, 'addUpdate'])
+                ->middleware(['workspace.can:settings.edit', 'throttle:10,60'])
+                ->name('updates.store');
         });
 
         // Self-serve account badge requests (Task #2910) — users ask for an

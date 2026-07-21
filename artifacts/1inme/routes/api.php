@@ -1256,6 +1256,7 @@ Route::prefix('v1')->group(function () {
         Route::get   ('/profile-verification',          [\App\Modules\Api\Controllers\ProfileVerificationApiController::class, 'show']);
         Route::post  ('/profile-verification',          [\App\Modules\Api\Controllers\ProfileVerificationApiController::class, 'store']);
         Route::post  ('/profile-verification/reverify', [\App\Modules\Api\Controllers\ProfileVerificationApiController::class, 'reVerify']);
+        Route::post  ('/profile-verification/updates',  [\App\Modules\Api\Controllers\ProfileVerificationApiController::class, 'addUpdate'])->middleware('throttle:10,60');
 
         // Billing
         Route::get   ('/billing/subscription',     [BillingController::class, 'subscription']);

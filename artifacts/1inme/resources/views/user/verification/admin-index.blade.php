@@ -77,9 +77,12 @@
                             @if($req->kind === 'reverification')
                             <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-blue-500/10 text-blue-400">Re-verify</span>
                             @endif
+                            @if(count($req->updates ?? []) > 0)
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-cyan-500/10 text-cyan-400" title="The user sent follow-up messages or attachments"><i class="fas fa-comment-dots mr-1"></i>{{ count($req->updates) }} update{{ count($req->updates) === 1 ? '' : 's' }}</span>
+                            @endif
                         </div>
                         <p class="text-[11px]" style="color: var(--text-dimmed);">
-                            by {{ $req->user?->name ?? $req->user?->email ?? 'Unknown' }} · @{{ $req->user?->handle }}
+                            by {{ $req->user?->name ?? $req->user?->email ?? 'Unknown' }} · {{ '@' . $req->user?->handle }}
                         </p>
                     </div>
                 </div>
