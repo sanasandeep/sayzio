@@ -264,10 +264,11 @@ test.describe("AI Brand Studio — brief → review → confirm → results", ()
     ).toBeVisible();
   });
 
-  // ── Discard flow (Task #5576): the review page's "Discard plan" action
-  // asks for confirmation, refunds the planning charge, and lands the user
-  // back on the studio home with the kit gone.
-  test("discard: confirm dialog, refund banner, kit removed from home", async ({
+  // ── Discard flow: the review page's "Discard plan" action opens an
+  // in-app confirmation modal that states the credit refund, refunds the
+  // planning charge, and lands the user back on the studio home with the
+  // kit gone.
+  test("discard: confirm modal with refund note, refund banner, kit removed from home", async ({
     page,
   }) => {
     test.setTimeout(180_000);
@@ -309,27 +310,36 @@ echo 'KITID=' . $kit->id;
     const discard = page.getByRole("button", { name: "Discard plan" });
     await expect(discard).toBeVisible();
 
-    // First click: DISMISS the JS confirm — nothing must happen.
-    let dialogMessage = "";
-    page.once("dialog", async (dialog) => {
-      dialogMessage = dialog.message();
-      await dialog.dismiss();
-    });
+    // First click: opens the in-app confirmation modal (no JS confirm).
+    // The modal must state the credit refund; "Keep plan" closes it.
+    const modal = page.getByRole("dialog");
     await discard.click();
-    expect(dialogMessage).toContain("Discard this plan?");
+    await expect(modal).toBeVisible();
+    await expect(
+      modal.getByRole("heading", { name: "Discard this plan?" }),
+    ).toBeVisible();
+    await expect(
+      modal.getByText("7 credits will be refunded"),
+    ).toBeVisible();
+    await modal.getByRole("button", { name: "Keep plan" }).click();
+    await expect(modal).toBeHidden();
     await expect(page.getByText("Review the plan")).toBeVisible();
 
-    // Second click: ACCEPT the confirm — the DELETE POST refunds + deletes.
-    // Cold first-write over the distant RDS can be slow; wait on the POST
-    // response, not just navigation (repo memory e2e-editor-create-cold-rds-latency).
-    page.once("dialog", (dialog) => dialog.accept());
+    // Second pass: reopen the modal and confirm — the DELETE POST refunds
+    // + deletes. Cold first-write over the distant RDS can be slow; wait on
+    // the POST response, not just navigation (repo memory
+    // e2e-editor-create-cold-rds-latency).
+    await discard.click();
+    await expect(modal).toBeVisible();
     const destroyResponse = page.waitForResponse(
       (r) =>
         r.url().includes(`/user/brand-studio/${discardKitId}`) &&
         r.request().method() === "POST",
       { timeout: 120_000 },
     );
-    await discard.click({ noWaitAfter: true });
+    await modal
+      .getByRole("button", { name: "Discard plan" })
+      .click({ noWaitAfter: true });
     expect((await destroyResponse).status()).toBe(302);
 
     // Lands on the studio home with the refund banner; kit is gone.

@@ -143,10 +143,46 @@
                 <button class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary-500 hover:bg-primary-400 text-white text-sm font-medium"><i class="fas fa-check"></i> Create selected assets</button>
             </div>
         </form>
-        <form method="POST" action="{{ route('user.brand-studio.destroy', $kit) }}" onsubmit="return confirm('Discard this plan?');">
-            @csrf @method('DELETE')
-            <button class="text-sm text-red-300/80 hover:text-red-300">Discard plan</button>
-        </form>
+        @php $discardCredits = (int) $kit->credits_spent; @endphp
+        <div x-data="{ discardOpen: false }">
+            <button type="button" @click="discardOpen = true" class="text-sm text-red-300/80 hover:text-red-300">Discard plan</button>
+            <template x-teleport="body">
+                <div x-data x-show="discardOpen" x-cloak @keydown.escape.window="discardOpen = false" class="fixed inset-0 z-[90] flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="bs-discard-title" style="display: none;">
+                    <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" @click="discardOpen = false"></div>
+                    <div class="relative w-full max-w-md rounded-2xl border border-white/10 bg-slate-900/90 backdrop-blur-xl shadow-2xl p-6 space-y-4"
+                         x-show="discardOpen"
+                         x-transition:enter="transition ease-out duration-150"
+                         x-transition:enter-start="opacity-0 scale-95"
+                         x-transition:enter-end="opacity-100 scale-100">
+                        <div class="flex items-start gap-3">
+                            <span class="shrink-0 w-10 h-10 rounded-xl bg-red-500/10 border border-red-500/20 text-red-300 flex items-center justify-center"><i class="fas fa-trash-can"></i></span>
+                            <div class="min-w-0">
+                                <h3 id="bs-discard-title" class="text-white font-semibold">Discard this plan?</h3>
+                                <p class="text-sm text-white/60 mt-1">
+                                    This removes the proposed plan. Nothing has been created yet.
+                                    @if($discardCredits > 0)
+                                        The {{ number_format($discardCredits) }} {{ Str::plural('credit', $discardCredits) }} spent on planning will be refunded to your wallet.
+                                    @endif
+                                </p>
+                            </div>
+                        </div>
+                        @if($discardCredits > 0)
+                            <div class="rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-300 flex items-center gap-2">
+                                <i class="fas fa-coins"></i>
+                                <span>{{ number_format($discardCredits) }} {{ Str::plural('credit', $discardCredits) }} will be refunded</span>
+                            </div>
+                        @endif
+                        <div class="flex items-center justify-end gap-3 pt-1">
+                            <button type="button" @click="discardOpen = false" class="px-4 py-2.5 rounded-xl text-sm text-white/70 hover:text-white border border-white/10 hover:border-white/20 bg-white/[0.03]">Keep plan</button>
+                            <form method="POST" action="{{ route('user.brand-studio.destroy', $kit) }}">
+                                @csrf @method('DELETE')
+                                <button class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-red-500/90 hover:bg-red-500 text-white text-sm font-medium"><i class="fas fa-trash-can"></i> Discard plan</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </template>
+        </div>
     @endif
 </div>
 @endsection
