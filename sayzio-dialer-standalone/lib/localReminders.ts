@@ -2,6 +2,8 @@ import * as Device from "expo-device";
 import * as Notifications from "expo-notifications";
 import { Platform } from "react-native";
 
+import { listNotes } from "@/lib/api/notes";
+
 /**
  * Local scheduled alarms for note/to-do reminders (Task #5508).
  *
@@ -57,6 +59,32 @@ export async function syncNoteAlarm(
     });
   } catch {
     /* best-effort: the server-side push still covers this reminder */
+  }
+}
+
+/**
+ * Re-arm all note alarms on app launch.
+ *
+ * expo-notifications restores scheduled alarms after reboot on most Androids,
+ * but some OEM battery managers (Xiaomi/Oppo) silently drop them. Re-syncing
+ * every open note with a future remind_at on launch is idempotent (identifiers
+ * are keyed dialer-note-{id}, so re-scheduling replaces rather than
+ * duplicates) and guarantees reminders survive reboots. Past-due reminders
+ * are never re-scheduled — syncNoteAlarm cancels and skips past times.
+ * Best-effort: never throws, no-op on web/simulators.
+ */
+export async function rearmNoteAlarms(): Promise<void> {
+  if (Platform.OS === "web" || !Device.isDevice) return;
+  try {
+    const { notes } = await listNotes();
+    for (const n of notes) {
+      if (n.done || !n.remind_at) continue;
+      const title =
+        n.title || (n.kind === "checklist" ? "To-do reminder" : "Note reminder");
+      await syncNoteAlarm(n.id, n.remind_at, title, n.body);
+    }
+  } catch {
+    /* offline or signed-out launch — the server push still covers reminders */
   }
 }
 

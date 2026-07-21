@@ -1,6 +1,6 @@
 import Feather from "@expo/vector-icons/Feather";
 import { Redirect, Tabs, usePathname, useRouter } from "expo-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Image, Pressable, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -10,6 +10,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useColors } from "@/hooks/useColors";
 import { useContactAutoSync } from "@/hooks/useContactAutoSync";
 import { useNearbyEventAlerts } from "@/hooks/useNearbyEventAlerts";
+import { rearmNoteAlarms } from "@/lib/localReminders";
 
 export default function TabsLayout() {
   const colors = useColors();
@@ -27,6 +28,15 @@ export default function TabsLayout() {
   // `count` drives the tab badge.
   const { latest: newEvent, count: newEventCount, dismiss: dismissNewEvent } =
     useNearbyEventAlerts(ready && !!user);
+
+  // Re-arm local note alarms once per app launch. Some OEM battery managers
+  // (Xiaomi/Oppo) drop scheduled notifications after a reboot; this restores
+  // every open note with a future remind_at (idempotent — identifiers are
+  // keyed per note). Best-effort and fully async, never blocks the UI.
+  const signedIn = ready && !!user;
+  useEffect(() => {
+    if (signedIn) void rearmNoteAlarms();
+  }, [signedIn]);
 
   const [drawerOpen, setDrawerOpen] = useState(false);
   const pathname = usePathname();
