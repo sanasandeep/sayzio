@@ -61,7 +61,7 @@
         <p class="text-[11px] mt-2" style="color: var(--text-dimmed);">Add a cover, tagline, niche tags, socials, and your first post to reach 100%.</p>
     </div>
 
-    {{-- ── Handle claim ─────────────────────────────────── --}}
+    {{-- ── Handle claim / change ────────────────────────── --}}
     @if(empty($user->handle))
         <div class="rounded-2xl p-5 mb-6 border-l-4 border-blue-500" style="background: rgba(61,107,255,0.04);">
             <p class="text-sm font-bold mb-2" style="color: var(--text-primary);">Claim your handle</p>
@@ -74,6 +74,32 @@
                        class="flex-1 px-3 py-2 rounded-lg text-sm" style="background: var(--bg-input, #fff); border: 1px solid var(--border-soft); color: var(--text-primary);">
                 <button class="px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700">Claim</button>
             </form>
+            @error('handle')<p class="mt-2 text-sm text-red-400">{{ $message }}</p>@enderror
+        </div>
+    @else
+        <div class="rounded-2xl p-5 mb-6" style="background: var(--bg-card); border: 1px solid var(--border-soft);"
+             x-data="{ editing: {{ $errors->has('handle') ? 'true' : 'false' }} }">
+            <div class="flex items-center gap-3 flex-wrap">
+                <div class="flex-1 min-w-0">
+                    <p class="text-sm font-bold" style="color: var(--text-primary);">Handle</p>
+                    <p class="text-xs mt-0.5" style="color: var(--text-dimmed);">Your profile lives at <code>/@{{ $user->handle }}</code>. Changing it changes your public URL — old links to the previous handle stop working.</p>
+                </div>
+                <button type="button" @click="editing = !editing"
+                        class="px-3 py-1.5 rounded-lg text-xs font-semibold transition"
+                        style="background: rgba(61,107,255,0.10); border: 1px solid rgba(61,107,255,0.25); color: var(--text-primary);">
+                    <span x-show="!editing">Change handle</span>
+                    <span x-show="editing" x-cloak>Cancel</span>
+                </button>
+            </div>
+            <form x-show="editing" x-cloak action="{{ route('user.creator-profile.handle.claim') }}" method="POST" class="flex gap-2 items-center mt-3">
+                @csrf
+                <span class="text-sm font-bold" style="color: var(--text-primary);">@</span>
+                <input type="text" name="handle" required minlength="3" maxlength="30" pattern="[A-Za-z0-9_]+"
+                       value="{{ old('handle', $user->handle) }}"
+                       class="flex-1 px-3 py-2 rounded-lg text-sm" style="background: var(--bg-input, #fff); border: 1px solid var(--border-soft); color: var(--text-primary);">
+                <button class="px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700">Save</button>
+            </form>
+            @error('handle')<p class="mt-2 text-sm text-red-400">{{ $message }}</p>@enderror
         </div>
     @endif
 

@@ -13,8 +13,16 @@
                     <div class="font-semibold">Pick a new handle to continue</div>
                     <div class="mt-1 text-amber-100/80">
                         An admin has reserved <span class="font-mono">{{ session('force_handle_rename') }}</span>,
-                        which matches your current handle. Please choose a different one below before continuing.
+                        which matches your current handle. Please choose a different one before continuing.
                     </div>
+                    <form method="POST" action="{{ route('user.creator-profile.handle.claim') }}" class="mt-3 flex flex-col sm:flex-row gap-2">
+                        @csrf
+                        <input type="text" name="handle" required minlength="3" maxlength="30" pattern="[A-Za-z0-9_]+"
+                               value="{{ old('handle') }}" placeholder="new_handle"
+                               class="flex-1 px-3 py-2 rounded-lg bg-white/10 border border-amber-400/40 text-amber-50 placeholder-amber-100/40 text-sm font-mono outline-none focus:border-amber-300/70">
+                        <button type="submit" class="px-4 py-2 rounded-lg bg-amber-500 hover:bg-amber-400 text-amber-950 text-sm font-semibold transition whitespace-nowrap">Save new handle</button>
+                    </form>
+                    @error('handle')<p class="mt-1 text-sm text-red-300">{{ $message }}</p>@enderror
                     @if(!empty($handleSuggestions))
                         <div class="mt-3">
                             <div class="text-xs uppercase tracking-wider text-amber-200/70 mb-1.5">Available suggestions, click to use</div>
@@ -373,32 +381,25 @@
                     ])
                 </div>
 
-                {{-- Public Profile --}}
+                {{-- Public Profile — the actual editor (handle, bio, tagline,
+                     socials…) lives on the Creator Profile tab; this card just
+                     points there and keeps the two account-level visibility
+                     toggles that save through this form. --}}
                 <div class="glass rounded-2xl p-6">
                     <h2 class="text-base font-semibold mb-4" style="color: var(--text-strong);">Public Profile</h2>
                     <div class="space-y-4">
-                        <div>
-                            <label class="block text-sm font-medium mb-1.5" style="color: var(--text-muted);">Handle</label>
-                            <input type="text" name="handle" value="{{ old('handle', $user->handle) }}" placeholder="your_handle"
-                                   class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/20 focus:ring-2 focus:ring-blue-500/40 outline-none">
-                            <p class="text-[11px] mt-1" style="color: var(--text-subtle, rgba(255,255,255,0.30));">Used in the Creators directory.</p>
-                            @error('handle')<p class="mt-1 text-sm text-red-400">{{ $message }}</p>@enderror
+                        <div class="rounded-xl px-4 py-3 flex items-start gap-3" style="background: rgba(61,107,255,0.08); border: 1px solid rgba(61,107,255,0.20);">
+                            <i class="fas fa-id-badge text-blue-400 mt-0.5"></i>
+                            <div class="text-sm text-white/70">
+                                Your handle, bio, avatar, cover and everything else people see at
+                                <span class="font-mono">/@{{ $user->handle ?: 'handle' }}</span> is edited on the
+                                <a href="{{ route('user.creator-profile.edit') }}" class="font-semibold underline" style="color: var(--color-primary, #60a5fa);">Creator Profile</a> tab.
+                            </div>
                         </div>
-                        <div>
-                            <label class="block text-sm font-medium mb-1.5" style="color: var(--text-muted);">Bio</label>
-                            <textarea name="bio" rows="3" maxlength="500" class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/20 focus:ring-2 focus:ring-blue-500/40 outline-none resize-none">{{ old('bio', $user->bio) }}</textarea>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium mb-1.5" style="color: var(--text-muted);">What best describes you?</label>
-                            <select name="persona" class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white focus:ring-2 focus:ring-blue-500/40 outline-none">
-                                <option value="" class="bg-[#0d0818]">Prefer not to say</option>
-                                @foreach(\App\Modules\User\Services\PersonaCatalog::all() as $p)
-                                    <option value="{{ $p['slug'] }}" {{ old('persona', $user->persona) === $p['slug'] ? 'selected' : '' }} class="bg-[#0d0818]">{{ $p['label'] }}</option>
-                                @endforeach
-                            </select>
-                            <p class="text-[11px] mt-1" style="color: var(--text-subtle, rgba(255,255,255,0.30));">Helps us recommend the right templates.</p>
-                            @error('persona')<p class="mt-1 text-sm text-red-400">{{ $message }}</p>@enderror
-                        </div>
+                        <a href="{{ route('user.creator-profile.edit') }}"
+                           class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 border border-white/15 text-white text-sm font-medium hover:bg-white/10 transition-all">
+                            Edit Creator Profile <i class="fas fa-arrow-right text-xs"></i>
+                        </a>
 
                         <div class="border-t border-white/10 pt-4 space-y-3">
                             @php $canPublicProfile = $user->planFeatureEnabled('creator_profile_public'); @endphp
@@ -435,8 +436,84 @@
 
     </form>
 
-    {{-- Secondary cards: sample digest + sign-in security --}}
+    {{-- Secondary cards: WhatsApp number + sample digest + sign-in security --}}
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+
+        {{-- WhatsApp number — add or change the verified number used for
+             OTP sign-in and WhatsApp alerts. Reuses the shared onboarding
+             send/verify endpoints (same throttles); a hidden from=settings
+             flag brings the flow back to this page, and replace=1 swaps
+             out the old verified number once the new one is confirmed.
+             Kept OUTSIDE the main profile <form> — nested forms break. --}}
+        @php
+            $waCurrent = $user->whatsappNumber();
+            $waPending = session('whatsapp_connect_pending');
+        @endphp
+        <div class="glass rounded-2xl p-6 lg:col-span-2"
+             x-data="{ phase: '{{ $waPending ? 'code' : 'number' }}' }">
+            <div class="flex items-start gap-3 mb-1">
+                <div class="w-10 h-10 rounded-xl bg-emerald-500/15 flex items-center justify-center flex-shrink-0">
+                    <i class="fab fa-whatsapp text-emerald-300 text-lg"></i>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <h2 class="text-base font-semibold" style="color: var(--text-strong);">WhatsApp number</h2>
+                    @if($waCurrent)
+                        <p class="text-sm text-white/50 mt-0.5">
+                            Connected:
+                            <span class="font-mono" style="color: var(--text-primary);">{{ $waCurrent }}</span>
+                            <span class="ml-1.5 text-[10px] uppercase tracking-wider text-emerald-300 px-2 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30">Verified</span>
+                        </p>
+                        <p class="text-xs text-white/40 mt-1">Verify a different number below to replace it. Your current number stays active until the new one is confirmed.</p>
+                    @else
+                        <p class="text-sm text-white/50 mt-0.5">Verify a WhatsApp number to sign in faster with a one-time code and receive WhatsApp alerts.</p>
+                    @endif
+                </div>
+            </div>
+
+            <div class="mt-4 space-y-3">
+                @if(session('status'))
+                    <div class="px-3 py-2 rounded-lg bg-emerald-500/10 border border-emerald-400/30 text-emerald-200 text-xs">{{ session('status') }}</div>
+                @endif
+                @if(session('otp_demo_reveal'))
+                    <div class="px-3 py-2 rounded-lg bg-amber-500/10 border border-amber-400/30 text-amber-200 text-xs"><i class="fas fa-flask text-[10px] mr-1"></i> {{ session('otp_demo_reveal') }}</div>
+                @endif
+                @if(session('error'))
+                    <div class="px-3 py-2 rounded-lg bg-red-500/10 border border-red-400/30 text-red-200 text-xs">{{ session('error') }}</div>
+                @endif
+
+                {{-- Phase 1: number --}}
+                <form method="POST" action="{{ route('user.onboarding.whatsapp.send') }}" x-show="phase === 'number'" class="flex flex-col sm:flex-row sm:items-stretch gap-2">
+                    @csrf
+                    <input type="hidden" name="from" value="settings">
+                    @if($waCurrent)
+                        <input type="hidden" name="replace" value="1">
+                    @endif
+                    <div class="flex-1 min-w-0">
+                        @include('common.partials.phone-input', [
+                            'phoneInputName'  => 'mobile',
+                            'phoneInputValue' => old('mobile', $waPending ?? ''),
+                            'phoneInputId'    => 'wa-settings',
+                            'phoneInputSize'  => 'sm',
+                        ])
+                    </div>
+                    <button type="submit" class="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold transition whitespace-nowrap">
+                        {{ $waCurrent ? 'Send code to new number' : 'Send code' }}
+                    </button>
+                </form>
+
+                {{-- Phase 2: code --}}
+                <form method="POST" action="{{ route('user.onboarding.whatsapp.verify') }}" x-show="phase === 'code'" x-cloak class="flex flex-col sm:flex-row gap-2">
+                    @csrf
+                    <input type="text" name="code" inputmode="numeric" pattern="[0-9]*" maxlength="6" required placeholder="123456" autocomplete="one-time-code"
+                           class="flex-1 px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm tracking-[0.3em] text-center font-mono focus:border-emerald-400/50 focus:outline-none" style="color: var(--text-primary);">
+                    <button type="submit" class="px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold transition whitespace-nowrap">Verify &amp; connect</button>
+                    <button type="button" @click="phase = 'number'" class="px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-semibold transition whitespace-nowrap" style="color: var(--text-muted);">Use a different number</button>
+                </form>
+                @if($waPending)
+                    <p class="text-[11px] text-white/40">We sent a code to <span class="font-mono">{{ $waPending }}</span> on WhatsApp.</p>
+                @endif
+            </div>
+        </div>
 
         <div class="glass rounded-2xl p-6">
             <h2 class="text-base font-semibold mb-1" style="color: var(--text-strong);">Preview your daily digest</h2>

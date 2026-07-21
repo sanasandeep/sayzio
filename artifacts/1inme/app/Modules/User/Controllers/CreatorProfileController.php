@@ -464,8 +464,16 @@ class CreatorProfileController extends Controller
                 new NotBannedName(),
             ],
         ]);
+        $previousHandle = $user->handle;
         $user->handle = strtolower($data['handle']);
         $user->save();
+
+        // Clear the admin-forced rename flag once the user has successfully
+        // picked a different handle (banner lives on Profile Settings).
+        if (session()->has('force_handle_rename') && $user->handle !== $previousHandle) {
+            session()->forget('force_handle_rename');
+        }
+
         return redirect()->route('user.creator-profile.edit')
             ->with('success', "Your profile is now at /@{$user->handle}");
     }

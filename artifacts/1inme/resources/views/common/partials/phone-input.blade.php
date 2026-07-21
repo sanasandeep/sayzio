@@ -65,13 +65,13 @@
 <div id="{{ $_piUniqId }}-wrap"
      x-data="window['_piField_{{ $_piUniqId }}']()"
      x-on:click.outside="onClickOutside()"
-     class="relative flex {{ $isSm ? 'rounded-lg overflow-hidden' : 'rounded-xl overflow-hidden' }} {{ $phoneInputClass }}"
+     class="relative flex {{ $isSm ? 'rounded-lg' : 'rounded-xl' }} {{ $phoneInputClass }}"
      style="background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.10);">
 
     {{-- Country trigger button --}}
     <button type="button"
             @click="open = !open"
-            class="flex items-center gap-1.5 shrink-0 {{ $isSm ? 'px-2 py-2 text-xs' : 'px-3 py-2.5 text-sm' }} border-r border-white/10 hover:bg-white/5 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+            class="flex items-center gap-1.5 shrink-0 rounded-l-[inherit] {{ $isSm ? 'px-2 py-2 text-xs' : 'px-3 py-2.5 text-sm' }} border-r border-white/10 hover:bg-white/5 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500/40"
             style="color: var(--text-primary);"
             aria-label="Select country code"
             :aria-expanded="open">
@@ -88,7 +88,7 @@
            x-model="number"
            autocomplete="tel-national"
            placeholder="{{ $isSm ? '555 0100' : 'e.g. 98765 43210' }}"
-           class="flex-1 bg-transparent {{ $isSm ? 'px-2 py-2 text-sm' : 'px-3 py-2.5' }} outline-none placeholder-white/20 focus:ring-2 focus:ring-inset focus:ring-blue-500/40"
+           class="flex-1 min-w-0 bg-transparent rounded-r-[inherit] {{ $isSm ? 'px-2 py-2 text-sm' : 'px-3 py-2.5' }} outline-none placeholder-white/20 focus:ring-2 focus:ring-inset focus:ring-blue-500/40"
            style="color: var(--text-primary);">
 
     {{-- Hidden combined value submitted with the form --}}

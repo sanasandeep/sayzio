@@ -193,6 +193,9 @@ class ProfileController extends Controller
             'phone' => 'nullable|string|max:30',
             'timezone' => 'required|string',
             'language' => 'required|string|in:en',
+            // Handle / bio / persona are edited on the Creator Profile tab —
+            // the settings form no longer submits them, but direct POSTs are
+            // still validated (nullable = absent keys are simply not updated).
             'handle' => ['nullable', 'string', 'max:60', 'regex:/^[a-z0-9_-]+$/i', Rule::unique('users')->ignore($user->id), new \App\Modules\Admin\Rules\NotBannedName()],
             'bio' => 'nullable|string|max:500',
             'avatar' => 'nullable|image|max:2048',

@@ -400,6 +400,10 @@ args = "hardcoded-blue"
 task = "workflow.run"
 args = "e2e-sidebar-collapsed"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-profile-settings"
+
 [[workflows.workflow]]
 name = "e2e"
 author = "agent"
@@ -1655,7 +1659,18 @@ args = "bash artifacts/1inme/tests/Browser/run-validation.sh user-sidebar-collap
 isValidation = true
 
 
-[agent]
+[[workflows.workflow]]
+  name = "e2e-profile-settings"
+  author = "agent"
+
+  [[workflows.workflow.tasks]]
+  task = "shell.exec"
+  args = "bash artifacts/1inme/tests/Browser/run-validation.sh profile-settings-updates.spec.ts"
+
+  [workflows.workflow.metadata]
+  isValidation = true
+
+  [agent]
 stack = "PNPM_WORKSPACE"
 expertMode = true
 

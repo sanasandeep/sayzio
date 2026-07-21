@@ -389,6 +389,11 @@ class OnboardingController extends Controller
         }
 
         session(['whatsapp_connect_pending' => $value]);
+        // Remember where the flow started (dashboard nudge / onboarding step
+        // vs the Profile Settings card) and whether the freshly verified
+        // number should REPLACE the user's existing verified number.
+        session(['whatsapp_connect_return'  => $request->input('from') === 'settings' ? 'settings' : null]);
+        session(['whatsapp_connect_replace' => $request->boolean('replace')]);
         return back()
             ->with('status', 'We sent a 6-digit code to ' . $value . ' on WhatsApp.')
             ->with('otp_demo_reveal', AuthMethods::demoRevealMessage($code));
@@ -428,8 +433,45 @@ class OnboardingController extends Controller
             $existing->forceFill(['verified_at' => now()])->save();
         }
 
-        session()->forget('whatsapp_connect_pending');
+        // "Change number" from Profile Settings: the new number is verified,
+        // so retire the previously verified phone(s). If an old phone was the
+        // primary identifier, promote the new one first (unlink refuses to
+        // remove a primary). Failures are logged, never fatal — worst case
+        // the user ends up with two verified numbers.
+        if (session('whatsapp_connect_replace')) {
+            $new = LinkedIdentifier::where('kind', 'phone')
+                ->where('value', $value)
+                ->where('user_id', $user->id)
+                ->first();
+            if ($new) {
+                $merge = app(\App\Modules\User\Services\AccountMergeService::class);
+                $old = $user->linkedIdentifiers()
+                    ->where('kind', 'phone')
+                    ->where('id', '!=', $new->id)
+                    ->whereNotNull('verified_at')
+                    ->get();
+                foreach ($old as $identifier) {
+                    try {
+                        if ($identifier->is_primary) {
+                            $merge->promoteToPrimary($user->fresh(), $new->fresh());
+                            $identifier->refresh();
+                        }
+                        $merge->unlink($user->fresh(), $identifier);
+                    } catch (\Throwable $e) {
+                        \Log::warning('WhatsApp change: could not remove old number: ' . $e->getMessage());
+                    }
+                }
+            }
+        }
+
+        $return = session('whatsapp_connect_return');
+        session()->forget(['whatsapp_connect_pending', 'whatsapp_connect_replace', 'whatsapp_connect_return']);
         $this->markWhatsappStepShown($user);
+
+        if ($return === 'settings') {
+            return redirect()->route('user.profile.edit')
+                ->with('success', 'Your WhatsApp number is connected.');
+        }
 
         return redirect()->route('user.dashboard')
             ->with('success', 'Your WhatsApp number is connected.');
