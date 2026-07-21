@@ -218,6 +218,51 @@ export function diffAgainstBaseline(counts: Map<string, Occurrence[]>, baseline:
   return problems.sort((a, b) => a.file.localeCompare(b.file));
 }
 
+/** The exact self-service command that rewrites the baseline. */
+export const UPDATE_BASELINE_COMMAND =
+  "pnpm --filter @workspace/scripts run check:hardcoded-blue -- --update-baseline";
+
+/**
+ * One-paragraph, copy-paste-ready explanation of a baseline mismatch. Used as
+ * the vitest live-repo assertion message so a task blocked by SOMEONE ELSE'S
+ * stale baseline (or its own forgotten update) sees the fix immediately
+ * instead of a bare array diff.
+ */
+export function formatProblemsSummary(problems: Problem[]): string {
+  const lines: string[] = [];
+  const added = problems.filter((p) => p.kind === "increase" || p.kind === "new-file");
+  const stale = problems.filter((p) => p.kind === "decrease" || p.kind === "stale-entry");
+  lines.push(
+    `hardcoded-blue-accents baseline is out of sync with the tree (${problems.length} file(s)).`,
+  );
+  for (const p of problems) {
+    lines.push(`  - ${p.file}: baseline ${p.baseline}, found ${p.found} (${p.kind})`);
+  }
+  if (stale.length > 0 && added.length === 0) {
+    lines.push(
+      "STALE BASELINE: fixed-blue occurrences were REMOVED without ratcheting the baseline down.",
+      "This is safe to self-heal — no new hardcoded blues were added. Run:",
+      `  ${UPDATE_BASELINE_COMMAND}`,
+      `and commit the updated ${BASELINE_REL}.`,
+      "If this decrease came from a DIFFERENT task's cleanup, re-baselining here unblocks you;",
+      "the removed usages stay ratcheted out either way.",
+    );
+  } else {
+    if (added.length > 0) {
+      lines.push(
+        "NEW fixed-blue accents in themed views are potential light-mode legibility bugs.",
+        "Prefer theme-flipping tokens (var(--accent), var(--accent-light), var(--text-*), ...)",
+        "or pair the rule with an html.light-mode override. If genuinely brand-fixed, re-baseline:",
+      );
+    }
+    if (stale.length > 0) {
+      lines.push("Removed occurrences must also ratchet the baseline DOWN:");
+    }
+    lines.push(`  ${UPDATE_BASELINE_COMMAND}`);
+  }
+  return lines.join("\n");
+}
+
 function printProblem(p: Problem): void {
   const label =
     p.kind === "increase" || p.kind === "new-file"
@@ -308,7 +353,7 @@ export function main(argv: string[]): number {
   if (stale.length > 0) {
     console.error("Occurrences were removed — ratchet the baseline DOWN so they cannot return:");
   }
-  console.error("  pnpm --filter @workspace/scripts run check:hardcoded-blue -- --update-baseline");
+  console.error(`  ${UPDATE_BASELINE_COMMAND}`);
   return 1;
 }
 

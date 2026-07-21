@@ -329,8 +329,19 @@ describe("the live configured TARGETS", () => {
       const result = checkTarget(target, readViewsFileMap());
       expect(result.error).toBeUndefined();
       expect(result.scopeError).toBeUndefined();
-      expect(result.missing).toEqual([]);
-      expect(result.partialMismatches).toEqual([]);
+      // Actionable failure text: this fires when a cleanup on the page (or a
+      // partial) lands without the matching allowlist update in
+      // scripts/src/check-light-mode-pairing.ts — including cleanups from a
+      // DIFFERENT task. Fix by pairing the rule with an html.light-mode
+      // override, or by updating this target's `allowlist` entry in TARGETS.
+      const hint =
+        `\n${target.page} is out of sync with the light-mode-pairing guard.\n` +
+        `Either add the missing html.light-mode override(s), or update this target's\n` +
+        `allowlist in scripts/src/check-light-mode-pairing.ts (TARGETS entry "${target.label}")\n` +
+        `to match the page's current state. Run locally:\n` +
+        `  pnpm --filter @workspace/scripts run check:light-mode-pairing\n`;
+      expect(result.missing, hint).toEqual([]);
+      expect(result.partialMismatches, hint).toEqual([]);
     },
     // Whole-tree disk scan (memoized in blade-theme-scope, walks once per run);
     // generous timeout so parallel contention with the undefined-css-var guard's

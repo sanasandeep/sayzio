@@ -5,8 +5,10 @@ import {
   INTENTIONAL_SURFACES,
   baselinePath,
   blankCommentsPreserveLines,
+  UPDATE_BASELINE_COMMAND,
   diffAgainstBaseline,
   findOccurrences,
+  formatProblemsSummary,
   isThemedUserAdminView,
   readBaseline,
   scanCounts,
@@ -137,6 +139,34 @@ describe("diffAgainstBaseline", () => {
   });
 });
 
+describe("formatProblemsSummary", () => {
+  const occ = (n: number) => Array.from({ length: n }, (_, i) => ({ line: i + 1, text: "x" }));
+
+  it("always includes the exact re-baseline command", () => {
+    const problems = diffAgainstBaseline(new Map(), { "user/gone.blade.php": 1 });
+    expect(formatProblemsSummary(problems)).toContain(UPDATE_BASELINE_COMMAND);
+  });
+
+  it("calls out a stale baseline as safe to self-heal when only decreases exist", () => {
+    const problems = diffAgainstBaseline(new Map([["user/a.blade.php", occ(1)]]), {
+      "user/a.blade.php": 2,
+    });
+    const msg = formatProblemsSummary(problems);
+    expect(msg).toContain("STALE BASELINE");
+    expect(msg).toContain("safe to self-heal");
+    expect(msg).toContain(UPDATE_BASELINE_COMMAND);
+  });
+
+  it("warns about new fixed blues (not self-heal) when increases are present", () => {
+    const problems = diffAgainstBaseline(new Map([["user/a.blade.php", occ(3)]]), {
+      "user/a.blade.php": 2,
+    });
+    const msg = formatProblemsSummary(problems);
+    expect(msg).toContain("NEW fixed-blue");
+    expect(msg).not.toContain("safe to self-heal");
+  });
+});
+
 describe("live repo", () => {
   it("has a checked-in baseline", () => {
     expect(fs.existsSync(baselinePath())).toBe(true);
@@ -146,7 +176,10 @@ describe("live repo", () => {
     const baseline = readBaseline();
     expect(baseline).not.toBeNull();
     const problems = diffAgainstBaseline(scanCounts(readViewsFileMap()), baseline as Record<string, number>);
-    expect(problems).toEqual([]);
+    // On mismatch, fail with the full self-service explanation (including the
+    // exact re-baseline command) instead of a bare array diff, so a task
+    // blocked by a stale baseline can unblock itself in one step.
+    expect(problems, `\n${formatProblemsSummary(problems)}\n`).toEqual([]);
   });
 
   it("every documented intentional surface actually appears in the baseline", () => {
