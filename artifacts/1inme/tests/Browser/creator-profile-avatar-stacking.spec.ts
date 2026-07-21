@@ -197,6 +197,41 @@ test("creator profile hero: avatar stays above the cover banner", async ({
   expect(btnResult.topHitIsCover).toBe(false);
   expect(btnResult.midHitInsideButton).toBe(true);
   expect(btnResult.topHitInsideButton).toBe(true);
+
+  // ── Tip button guard ─────────────────────────────────────────────
+  // The Tip button ([data-cp-open-tip]) renders in the same action row for
+  // any creator who can accept tips (the blade's `canAcceptTips ?? true`
+  // default makes it present for this fixture). If its markup ever gains a
+  // wrapper without a stacking context, the cover <img> would swallow its
+  // taps. Same elementFromPoint proof as Follow/Subscribe.
+  const tipBtn = container.locator("[data-cp-open-tip]").first();
+  await expect(tipBtn).toBeVisible();
+
+  const tipResult = await tipBtn.evaluate((el) => {
+    el.scrollIntoView({ block: "center" });
+    const r = el.getBoundingClientRect();
+    const cx = r.left + r.width / 2;
+    const cy = r.top + r.height / 2;
+    // Also probe the top edge — the part most likely to overlap the banner
+    // band on narrow layouts.
+    const cyTop = r.top + Math.min(2, r.height / 4);
+    const hitMid = document.elementFromPoint(cx, cy);
+    const hitTop = document.elementFromPoint(cx, cyTop);
+    const coverImg = document.querySelector("header .absolute.inset-0");
+    const inside = (hit: Element | null) =>
+      !!hit && (el === hit || el.contains(hit) || hit.contains(el));
+    return {
+      midHitIsCover: hitMid === coverImg,
+      topHitIsCover: hitTop === coverImg,
+      midHitInsideButton: inside(hitMid),
+      topHitInsideButton: inside(hitTop),
+    };
+  });
+
+  expect(tipResult.midHitIsCover).toBe(false);
+  expect(tipResult.topHitIsCover).toBe(false);
+  expect(tipResult.midHitInsideButton).toBe(true);
+  expect(tipResult.topHitInsideButton).toBe(true);
 });
 
 test("creator profile hero: Subscribe CTA stays above the cover banner", async ({
