@@ -1,5 +1,6 @@
 import Feather from "@expo/vector-icons/Feather";
 import { useRouter } from "expo-router";
+import { useEffect, useState } from "react";
 import {
   Linking,
   Modal,
@@ -16,6 +17,22 @@ import { BrandWordmark } from "@/components/Brand";
 import { useColors } from "@/hooks/useColors";
 import { WEB_FOCUS_RING_PROPS } from "@/hooks/useWebFocusRing";
 import { getBaseUrl } from "@/lib/api";
+import {
+  getKeypadMode,
+  notifyDialerPrefsChanged,
+  setKeypadMode,
+  type KeypadMode,
+} from "@/lib/dialerPrefs";
+import {
+  getCallAccounts,
+  getCallMode,
+  getSimPref,
+  setCallMode,
+  setSimPref,
+  type CallMode,
+  type SimPref,
+} from "@/lib/placeCall";
+import { type CallAccount } from "@/modules/zio-telephony";
 
 type NavItem = {
   key: string;
@@ -50,6 +67,53 @@ export function DialerDrawer({
   const router = useRouter();
 
   const baseUrl = getBaseUrl();
+
+  // ── Dialer settings (keypad mode / default SIM / calling mode) ──────────
+  // Loaded fresh each time the drawer opens; saves notify the keypad screen
+  // via the dialer-prefs listener bus so it live-reloads.
+  const [keypadMode, setKeypadModeState] = useState<KeypadMode>("t9");
+  const [simAccounts, setSimAccounts] = useState<CallAccount[]>([]);
+  const [simPref, setSimPrefState] = useState<SimPref>("ask");
+  const [callMode, setCallModeState] = useState<CallMode>(
+    Platform.OS === "android" ? "direct" : "system",
+  );
+
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    void (async () => {
+      try {
+        const [km, sp, cm] = await Promise.all([
+          getKeypadMode(),
+          getSimPref(),
+          getCallMode(),
+        ]);
+        if (cancelled) return;
+        setKeypadModeState(km);
+        setSimPrefState(sp);
+        setCallModeState(cm);
+        setSimAccounts(getCallAccounts());
+      } catch {
+        /* keep defaults */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [open]);
+
+  const chooseKeypadMode = (m: KeypadMode) => {
+    setKeypadModeState(m);
+    void setKeypadMode(m).then(() => notifyDialerPrefsChanged());
+  };
+  const chooseSimPref = (p: SimPref) => {
+    setSimPrefState(p);
+    void setSimPref(p).then(() => notifyDialerPrefsChanged());
+  };
+  const chooseCallMode = (m: CallMode) => {
+    setCallModeState(m);
+    void setCallMode(m).then(() => notifyDialerPrefsChanged());
+  };
 
   const navItems: NavItem[] = [
     { key: "dialer", label: "Keypad", icon: "grid", routeName: "dialer" },
@@ -196,6 +260,151 @@ export function DialerDrawer({
 
             <View style={[styles.divider, { backgroundColor: colors.border }]} />
             <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>
+              DIALER SETTINGS
+            </Text>
+
+            {/* Keypad input mode */}
+            <Text style={[styles.settingLabel, { color: colors.mutedForeground }]}>
+              Keypad input
+            </Text>
+            <View style={styles.segmentRow}>
+              {(
+                [
+                  { v: "t9", label: "T9", icon: "grid" },
+                  { v: "abc", label: "Keyboard", icon: "type" },
+                ] as const
+              ).map((o) => {
+                const active = keypadMode === o.v;
+                return (
+                  <Pressable
+                    key={o.v}
+                    onPress={() => chooseKeypadMode(o.v)}
+                    style={[
+                      styles.segmentBtn,
+                      {
+                        backgroundColor: active ? colors.primary : colors.card,
+                        borderColor: active ? colors.primary : colors.border,
+                      },
+                    ]}
+                    {...WEB_FOCUS_RING_PROPS}
+                  >
+                    <Feather name={o.icon} size={13} color={active ? "#fff" : colors.mutedForeground} />
+                    <Text
+                      style={{
+                        color: active ? "#fff" : colors.mutedForeground,
+                        fontSize: 12,
+                        fontFamily: "SpaceGrotesk_600SemiBold",
+                        marginLeft: 6,
+                      }}
+                    >
+                      {o.label}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+
+            {/* Default SIM — only when two call-capable SIMs exist. */}
+            {simAccounts.length >= 2 && (
+              <>
+                <Text style={[styles.settingLabel, { color: colors.mutedForeground }]}>
+                  Default SIM (recents, contacts, search)
+                </Text>
+                <View style={styles.segmentRow}>
+                  {[
+                    ...simAccounts.slice(0, 2).map((a, i) => ({
+                      v: a.index as SimPref,
+                      label: a.label?.trim() || `SIM ${i + 1}`,
+                    })),
+                    { v: "ask" as SimPref, label: "Auto" },
+                  ].map((o) => {
+                    const active = simPref === o.v;
+                    return (
+                      <Pressable
+                        key={String(o.v)}
+                        onPress={() => chooseSimPref(o.v)}
+                        style={[
+                          styles.segmentBtn,
+                          {
+                            backgroundColor: active ? colors.primary : colors.card,
+                            borderColor: active ? colors.primary : colors.border,
+                          },
+                        ]}
+                        {...WEB_FOCUS_RING_PROPS}
+                      >
+                        <Text
+                          numberOfLines={1}
+                          style={{
+                            color: active ? "#fff" : colors.mutedForeground,
+                            fontSize: 12,
+                            fontFamily: "SpaceGrotesk_600SemiBold",
+                          }}
+                        >
+                          {o.label}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              </>
+            )}
+
+            {/* Calling mode — Android only; iOS always opens the Phone app. */}
+            <Text style={[styles.settingLabel, { color: colors.mutedForeground }]}>
+              Calling
+            </Text>
+            {Platform.OS === "android" ? (
+              <View style={styles.segmentRow}>
+                {(
+                  [
+                    { v: "direct", label: "Direct call", icon: "phone-call" },
+                    { v: "system", label: "Phone app", icon: "phone-forwarded" },
+                  ] as const
+                ).map((o) => {
+                  const active = callMode === o.v;
+                  return (
+                    <Pressable
+                      key={o.v}
+                      onPress={() => chooseCallMode(o.v)}
+                      style={[
+                        styles.segmentBtn,
+                        {
+                          backgroundColor: active ? colors.primary : colors.card,
+                          borderColor: active ? colors.primary : colors.border,
+                        },
+                      ]}
+                      {...WEB_FOCUS_RING_PROPS}
+                    >
+                      <Feather name={o.icon} size={13} color={active ? "#fff" : colors.mutedForeground} />
+                      <Text
+                        style={{
+                          color: active ? "#fff" : colors.mutedForeground,
+                          fontSize: 12,
+                          fontFamily: "SpaceGrotesk_600SemiBold",
+                          marginLeft: 6,
+                        }}
+                      >
+                        {o.label}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            ) : (
+              <Text
+                style={{
+                  color: colors.mutedForeground,
+                  fontSize: 12,
+                  paddingHorizontal: 12,
+                  marginBottom: 4,
+                }}
+              >
+                iOS always opens the Phone app with the number pre-filled.
+              </Text>
+            )}
+
+            <View style={[styles.divider, { backgroundColor: colors.border }]} />
+            <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>
               LINKS
             </Text>
 
@@ -275,6 +484,28 @@ const styles = StyleSheet.create({
     borderRadius: 5,
   },
   divider: { height: 1, marginVertical: 14 },
+  settingLabel: {
+    fontSize: 11,
+    fontFamily: "SpaceGrotesk_500Medium",
+    paddingHorizontal: 12,
+    marginTop: 8,
+    marginBottom: 6,
+  },
+  segmentRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    paddingHorizontal: 12,
+    marginBottom: 4,
+  },
+  segmentBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+  },
   sectionLabel: {
     fontSize: 11,
     letterSpacing: 1.2,
