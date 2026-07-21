@@ -396,6 +396,10 @@ args = "e2e-cp-avatar-stacking"
 task = "workflow.run"
 args = "hardcoded-blue"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-sidebar-collapsed"
+
 [[workflows.workflow]]
 name = "e2e"
 author = "agent"
@@ -1635,6 +1639,17 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "pnpm --filter @workspace/scripts run check:hardcoded-blue"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-sidebar-collapsed"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "bash artifacts/1inme/tests/Browser/run-validation.sh user-sidebar-collapsed-icons.spec.ts"
 
 [workflows.workflow.metadata]
 isValidation = true

@@ -68,7 +68,19 @@
         }
         /* When collapsed, center every nav item on the sidebar's vertical axis */
         .sidebar-v2.collapsed nav { display: flex; flex-direction: column; align-items: center; padding-left: 0 !important; padding-right: 0 !important; }
-        .sidebar-v2.collapsed nav > * { width: 100%; display: flex; justify-content: center; }
+        /* Stack children VERTICALLY (flex-direction: column) — a plain
+           `display:flex` row here previously laid each collapsible group's
+           links out side-by-side inside the 72px sidebar, clipping them out
+           of view (Task #5536). align-items centers each 44px icon link. */
+        .sidebar-v2.collapsed nav > * { width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; }
+        /* Group wrappers (<div x-data>) and their x-show link containers must
+           also stack vertically and span the rail so every grouped link shows
+           as a centered icon in collapsed mode. */
+        .sidebar-v2.collapsed .sidebar-nav-scroll > div,
+        .sidebar-v2.collapsed .sidebar-nav-scroll > div > div {
+            display: block;
+            width: 100%;
+        }
         .sidebar-v2.collapsed .sidebar-link .nav-icon-wrap {
             margin: 0 auto;
         }
