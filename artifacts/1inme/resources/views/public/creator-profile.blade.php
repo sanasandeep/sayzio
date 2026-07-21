@@ -202,7 +202,7 @@
                 <img src="{{ \App\Support\PublicStorageUrl::resolve($creator->cover_image) }}" alt="" class="absolute inset-0 w-full h-full object-cover">
             @endif
         </div>
-        <div class="px-5 sm:px-7 pb-6 -mt-12">
+        <div class="px-5 sm:px-7 pb-6 -mt-12 relative z-10">
             <div class="flex items-end justify-between gap-3 flex-wrap">
                 <div class="flex items-end gap-4">
                     @if($creator->avatar)
