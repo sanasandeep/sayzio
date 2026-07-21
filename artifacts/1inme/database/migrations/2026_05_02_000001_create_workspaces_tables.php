@@ -101,9 +101,23 @@ return new class extends Migration
         ];
         foreach ($tables as $tableName) {
             if (!Schema::hasTable($tableName)) continue;
+            if (Schema::hasColumn($tableName, 'workspace_id')) {
+                // Blueprint::dropIndex inside a try/catch is ineffective (the
+                // SQL runs after the closure), and the array form doubles the
+                // "_index" suffix. Use a raw, driver-aware IF EXISTS drop.
+                $indexName = $tableName . '_workspace_id_index';
+                if (Schema::getConnection()->getDriverName() === 'mysql') {
+                    try {
+                        \Illuminate\Support\Facades\DB::statement("alter table `{$tableName}` drop index `{$indexName}`");
+                    } catch (\Throwable $e) {
+                        // index absent — nothing to drop
+                    }
+                } else {
+                    \Illuminate\Support\Facades\DB::statement("drop index if exists \"{$indexName}\"");
+                }
+            }
             Schema::table($tableName, function (Blueprint $table) use ($tableName) {
                 if (Schema::hasColumn($tableName, 'workspace_id')) {
-                    try { $table->dropIndex([$tableName . '_workspace_id_index']); } catch (\Throwable $e) {}
                     $table->dropColumn('workspace_id');
                 }
                 if (Schema::hasColumn($tableName, 'created_by_user_id')) {

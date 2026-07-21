@@ -45,3 +45,12 @@ only standard column types, override to in-memory sqlite:
 sqlite to sanity-check Postgres-agnostic code. Pre-existing suite-wide PHPUnit
 deprecations (e.g. `PlanGateTest::plan()` implicit-nullable) show as
 "N deprecated" — not failures from your test.
+
+## Suite is NOT fully green (July 2026)
+
+The "green suite" claim is stale. A full run (local sharded OR GitHub CI
+paratest) has ~200 failures + ~217 errors that reproduce locally
+(Link::factory() undefined, plans_slug_unique seeder collisions, missing
+category_id, etc.). These are pre-existing broken tests, not CI environment
+issues. Reproduced via
+`TEST_LOCAL_MODE=artisan bash scripts/test-local.sh --filter=GlobalSearchOverlayTest`.

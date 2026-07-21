@@ -38,14 +38,18 @@ return new class extends Migration {
 
     public function down(): void
     {
-        if (Schema::hasTable('restaurant_orders')) {
+        if (Schema::hasTable('restaurant_orders')
+            && $this->indexExists('restaurant_orders', 'restaurant_orders_menu_id_updated_at_index')
+        ) {
             Schema::table('restaurant_orders', function (Blueprint $table) {
-                $table->dropIndexIfExists('restaurant_orders_menu_id_updated_at_index');
+                $table->dropIndex('restaurant_orders_menu_id_updated_at_index');
             });
         }
-        if (Schema::hasTable('store_orders')) {
+        if (Schema::hasTable('store_orders')
+            && $this->indexExists('store_orders', 'store_orders_menu_id_updated_at_index')
+        ) {
             Schema::table('store_orders', function (Blueprint $table) {
-                $table->dropIndexIfExists('store_orders_menu_id_updated_at_index');
+                $table->dropIndex('store_orders_menu_id_updated_at_index');
             });
         }
     }
@@ -53,11 +57,19 @@ return new class extends Migration {
     private function indexExists(string $table, string $indexName): bool
     {
         try {
-            $indexes = \Illuminate\Support\Facades\DB::select(
-                "SELECT indexname FROM pg_indexes WHERE tablename = ? AND indexname = ?",
-                [$table, $indexName]
-            );
-            return !empty($indexes);
+            $db = \Illuminate\Support\Facades\DB::connection();
+            if ($db->getDriverName() === 'mysql') {
+                $rows = $db->select(
+                    'SELECT index_name FROM information_schema.statistics WHERE table_schema = DATABASE() AND table_name = ? AND index_name = ?',
+                    [$table, $indexName]
+                );
+            } else {
+                $rows = $db->select(
+                    'SELECT indexname FROM pg_indexes WHERE tablename = ? AND indexname = ?',
+                    [$table, $indexName]
+                );
+            }
+            return !empty($rows);
         } catch (\Throwable) {
             return false;
         }

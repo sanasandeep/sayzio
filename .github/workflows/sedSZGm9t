@@ -124,10 +124,17 @@ jobs:
             db_username: postgres
             db_password: password
             health_cmd: pg_isready -U postgres
-          # The MySQL leg was removed: production runs PostgreSQL only, and
-          # many migrations intentionally use Postgres-specific features
-          # (trigram/GIN indexes, jsonb, pg_indexes lookups), so a MySQL
-          # matrix entry can never go green without contorting real code.
+          - driver: mysql
+            display_name: MySQL
+            image: mysql:8.0
+            port: 3306
+            php_db_extensions: pdo_mysql, mysqli
+            db_username: root
+            db_password: password
+            # `mysqladmin ping` succeeds as soon as the server is accepting
+            # connections, which is what we actually care about (vs. just the
+            # port being bound).
+            health_cmd: mysqladmin ping -h 127.0.0.1 -uroot -ppassword --silent
 
     services:
       # Single logical "db" service whose image and health probe come from
@@ -230,7 +237,7 @@ jobs:
         run: php artisan migrate --force
 
   # Passthrough companion: reports the SAME check names as the real `migrate`
-  # job ("migrate cycle (PostgreSQL)") as green when
+  # job ("migrate cycle (PostgreSQL)" / "migrate cycle (MySQL)") as green when
   # the PR touches nothing under artifacts/1inme/**. This is what makes the
   # checks safe to mark as *required* — every PR always gets a status for each
   # required name, so unrelated PRs never deadlock. When the real guard runs
@@ -244,9 +251,8 @@ jobs:
     strategy:
       matrix:
         # Must mirror the display names produced by the real `migrate` matrix
-        # above so the reported check names match exactly. (MySQL leg removed
-        # alongside the real job — production is PostgreSQL-only.)
-        display_name: [PostgreSQL]
+        # above so the reported check names match exactly.
+        display_name: [PostgreSQL, MySQL]
     steps:
       - name: No 1inme changes — migration cycle not required for this PR
         run: |

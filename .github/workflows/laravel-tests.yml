@@ -96,10 +96,10 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
 
-      - name: Set up PHP 8.3
+      - name: Set up PHP 8.4
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.3'
+          php-version: '8.4'
           extensions: mbstring, intl, pdo, pdo_pgsql, pgsql, bcmath, gd, zip
           coverage: none
           tools: composer:v2
@@ -108,12 +108,30 @@ jobs:
         uses: actions/cache@v4
         with:
           path: artifacts/1inme/vendor
-          key: composer-${{ runner.os }}-php8.3-${{ hashFiles('artifacts/1inme/composer.lock') }}
+          key: composer-${{ runner.os }}-php8.4-${{ hashFiles('artifacts/1inme/composer.lock') }}
           restore-keys: |
-            composer-${{ runner.os }}-php8.3-
+            composer-${{ runner.os }}-php8.4-
 
       - name: Install Composer dependencies
         run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Build frontend assets (Vite manifest for @vite in tests)
+        # public/build is gitignored, so a bare checkout has no Vite manifest
+        # and every page-rendering test would fail with
+        # ViteManifestNotFoundException.
+        working-directory: ${{ github.workspace }}
+        run: |
+          pnpm install --frozen-lockfile --filter ./artifacts/1inme
+          pnpm --dir artifacts/1inme run build
 
       - name: Prepare .env for CI
         run: |
@@ -178,10 +196,10 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
 
-      - name: Set up PHP 8.3
+      - name: Set up PHP 8.4
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.3'
+          php-version: '8.4'
           extensions: mbstring, intl, pdo, pdo_pgsql, pgsql, bcmath, gd, zip
           coverage: none
           tools: composer:v2
@@ -190,9 +208,9 @@ jobs:
         uses: actions/cache@v4
         with:
           path: artifacts/1inme/vendor
-          key: composer-${{ runner.os }}-php8.3-${{ hashFiles('artifacts/1inme/composer.lock') }}
+          key: composer-${{ runner.os }}-php8.4-${{ hashFiles('artifacts/1inme/composer.lock') }}
           restore-keys: |
-            composer-${{ runner.os }}-php8.3-
+            composer-${{ runner.os }}-php8.4-
 
       - name: Install Composer dependencies
         run: composer install --no-interaction --prefer-dist --no-progress
@@ -269,10 +287,10 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
 
-      - name: Set up PHP 8.3
+      - name: Set up PHP 8.4
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.3'
+          php-version: '8.4'
           extensions: mbstring, intl, pdo, pdo_pgsql, pgsql, bcmath, gd, zip
           coverage: none
           tools: composer:v2
@@ -281,9 +299,9 @@ jobs:
         uses: actions/cache@v4
         with:
           path: artifacts/1inme/vendor
-          key: composer-${{ runner.os }}-php8.3-${{ hashFiles('artifacts/1inme/composer.lock') }}
+          key: composer-${{ runner.os }}-php8.4-${{ hashFiles('artifacts/1inme/composer.lock') }}
           restore-keys: |
-            composer-${{ runner.os }}-php8.3-
+            composer-${{ runner.os }}-php8.4-
 
       - name: Install Composer dependencies
         run: composer install --no-interaction --prefer-dist --no-progress
@@ -317,10 +335,10 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
 
-      - name: Set up PHP 8.3
+      - name: Set up PHP 8.4
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.3'
+          php-version: '8.4'
           extensions: mbstring, intl, pdo, pdo_pgsql, pgsql, bcmath, gd, zip
           coverage: none
           tools: composer:v2
@@ -329,9 +347,9 @@ jobs:
         uses: actions/cache@v4
         with:
           path: artifacts/1inme/vendor
-          key: composer-${{ runner.os }}-php8.3-${{ hashFiles('artifacts/1inme/composer.lock') }}
+          key: composer-${{ runner.os }}-php8.4-${{ hashFiles('artifacts/1inme/composer.lock') }}
           restore-keys: |
-            composer-${{ runner.os }}-php8.3-
+            composer-${{ runner.os }}-php8.4-
 
       - name: Install Composer dependencies
         run: composer install --no-interaction --prefer-dist --no-progress
