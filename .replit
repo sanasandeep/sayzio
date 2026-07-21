@@ -432,6 +432,10 @@ args = "e2e-brand-studio"
 task = "workflow.run"
 args = "e2e-bs-composer"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-brand-studio-bulk"
+
 [[workflows.workflow]]
 name = "e2e"
 author = "agent"
@@ -1785,6 +1789,17 @@ args = "bash artifacts/1inme/tests/Browser/run-validation.sh brand-studio-compos
 
 [workflows.workflow.metadata]
 isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-brand-studio-bulk"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "bash artifacts/1inme/tests/Browser/run-validation.sh brand-studio-bulk.spec.ts"
+
+[workflows.workflow.metadata]
+outputType = "console"
 
   [agent]
 stack = "PNPM_WORKSPACE"
