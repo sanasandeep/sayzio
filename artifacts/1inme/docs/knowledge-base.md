@@ -803,7 +803,12 @@ Sayzio includes several AI helpers (all metered with **coins**):
   on-brand asset kit planned for you — a Link in Bio page, short links, QR codes,
   a form and a digital card. You review every proposed asset (keep or drop each
   one) before anything is created, and a bulk mode can generate many variations
-  of one asset type at once (limit depends on your plan).
+  of one asset type at once (limit depends on your plan). You can **save your
+  favorite asset combinations as reusable combos** (up to 20) — save one from the
+  composer, reuse it with one tap next time, and rename or delete it whenever you
+  like. And if you plan a kit but change your mind before confirming it, just
+  **discard the plan — the coins you spent on planning are returned to your
+  wallet automatically**.
 - **AI QR Art** — turn a plain QR code into on-brand artwork that still scans (a
   built-in check verifies scannability before you use it).
 - **Competitor Biolink Teardown** — paste a competitor's public page URL and get

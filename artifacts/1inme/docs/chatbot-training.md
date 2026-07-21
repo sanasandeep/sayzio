@@ -629,7 +629,10 @@ Sayzio includes several AI helpers, all metered with **coins**:
   on-brand asset kit — bio page, short links, QR codes, a form and a digital
   card — planned by AI and reviewed by you before anything is created. Bulk mode
   can create many variations of one asset type at once (limit depends on your
-  plan). A failed run is automatically refunded.
+  plan). You can save asset combinations as reusable combos (up to 20; rename or
+  delete them anytime) to reuse with one tap. A failed run is automatically
+  refunded, and if you discard a planned kit before confirming it, the coins
+  spent on planning are returned to your wallet automatically.
 - **AI QR Art** — turn a plain QR code into on-brand artwork that still scans (a
   built-in check verifies scannability before you use it).
 - **Inbox Agent** — categorizes and prioritizes incoming messages, drafts replies,

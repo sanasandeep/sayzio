@@ -1056,7 +1056,12 @@ through the engine settings include the `biolink_builder`,
   `max_brand_studio_bulk`). Planning is charged to the `brand_studio` coin-priced AI
   feature with auto-refund on parse failure; confirming is deterministic and free,
   with per-type plan caps enforced at creation (capped assets are skipped and
-  reported). Full mobile parity via `/api/v1/brand-studio`. *Web + mobile.*
+  reported). A kit composition can be saved as a reusable named **preset/combo**
+  (`BrandStudioPreset`, up to 20 per user; save/reuse/rename/delete — same-name
+  save updates in place, renaming onto an existing name is rejected), and
+  **discarding** a planned-but-unconfirmed kit automatically refunds the coins
+  spent on planning (the API reports the amount as `refunded_credits`). Full
+  mobile parity via `/api/v1/brand-studio`. *Web + mobile.*
 - **QR AI Art** — generates eye-catching, on-brand artistic QR codes that still
   scan reliably; gated/charged as `qr_art` and integrated with QR Studio (see
   [§5.6](#56-qr-studio-pro)).

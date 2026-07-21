@@ -819,14 +819,21 @@ Plan-gated rejections use the standard `{error:{code:"plan_limit", details:{reco
 
 Mobile parity for the web `/user/brand-studio` flow (bulk on-brand asset creator). One plain-language brief — grounded in a saved AI Brand Kit or inline brand details — becomes a structured multi-asset plan (Link in Bio page, short links, QR codes, a form, a digital card) that the user reviews asset-by-asset before anything is created. Two modes: `kit` (full mixed kit) and `bulk` (N variations of one asset kind, capped per plan by `max_brand_studio_bulk`). Planning is charged in coins against the `brand_studio` feature with an automatic refund if the AI response can't be parsed (handled in `AiBrandStudioService`); confirming is deterministic and free, and per-type plan caps (`max_links`, `max_biolinks`, `max_qr_codes`, `max_forms`) are enforced at creation time — capped assets are skipped and reported, never silently created. Availability is plan-gated by the `brand_studio` feature.
 
+**Saved presets (combos).** A kit composition (the list of asset rows in the composer) can be saved as a reusable named preset. `GET /brand-studio` returns them in `saved_presets` — each preset is `{id, label, rows}` where `rows` is the composition (`{kind, count?, purpose?}` entries). Presets are owned per user (max **20** saved combos, `BrandStudioPreset::MAX_PER_USER`); saving with an existing name updates that preset in place, while renaming onto another preset's name is rejected.
+
+**Discard refund.** `DELETE /brand-studio/{kit}` discards a kit. If the kit was planned but never confirmed (materialized), the coins spent on planning are automatically refunded to the wallet; the response reports the amount in `refunded_credits` (an integer coin amount, `0` when nothing was refundable). Kits that were already confirmed keep their created assets and refund nothing.
+
 | Method | Path                          | Auth | Description                                                                 |
 | ------ | ----------------------------- | ---- | --------------------------------------------------------------------------- |
-| GET    | `/brand-studio`               | yes  | Gating + AI-engine status, coin balance, per-plan bulk cap, saved brand kits and past runs. |
+| GET    | `/brand-studio`               | yes  | Gating + AI-engine status, coin balance, per-plan bulk cap, saved brand kits, past runs, and `saved_presets` (saved combos). |
 | POST   | `/brand-studio/estimate`      | yes  | Upfront, worst-case coin cost. Body: `request`, `mode?` (`kit`\|`bulk`), `bulk_kind?`, `bulk_count?`, `brand_kit_id?` or inline `brand_name?`/`brand_colors?`/`brand_voice?`/`brand_description?`. Throttle 30/min. |
 | POST   | `/brand-studio/plan`          | yes  | Run the AI planning step and save a proposal. Same body as estimate. Throttle 10/min. `402 insufficient_credits` when the wallet can't cover the charge. |
 | GET    | `/brand-studio/{kit}`         | yes  | Proposal / results detail (proposed assets, created asset ids, skipped-cap messages). |
 | POST   | `/brand-studio/{kit}/confirm` | yes  | Materialize the kept assets. Body: `keep?` (array of proposal indexes; omit to keep all). Throttle 20/min. |
-| DELETE | `/brand-studio/{kit}`         | yes  | Delete a kit record (created assets are kept).                              |
+| DELETE | `/brand-studio/{kit}`         | yes  | Discard a kit record (created assets are kept). Unconfirmed plans refund their planning coins; response is `{deleted: true, refunded_credits}`. |
+| POST   | `/brand-studio/presets`       | yes  | Save the current composition as a reusable combo. Body: `name` (≤60 chars), `composition` (1–20 rows of `{kind, count?, purpose?}`). Same-name save updates in place. Errors: `422 invalid_composition`, `422 preset_limit_reached` (max 20 combos). Returns `{preset}`. |
+| PATCH  | `/brand-studio/presets/{preset}` | yes | Rename a saved combo. Body: `name` (≤60 chars). Errors: `422 invalid_name` (empty), `422 name_taken` (another combo already uses the name). Returns `{preset}`. |
+| DELETE | `/brand-studio/presets/{preset}` | yes | Delete a saved combo. Returns `{deleted: true}`. |
 
 ## Projects
 
