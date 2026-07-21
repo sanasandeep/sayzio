@@ -2,6 +2,7 @@ import Feather from "@expo/vector-icons/Feather";
 import { useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import {
+  Alert,
   Animated,
   Easing,
   Linking,
@@ -16,6 +17,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { BrandWordmark } from "@/components/Brand";
+import { useAuth } from "@/contexts/AuthContext";
 import { useColors } from "@/hooks/useColors";
 import { WEB_FOCUS_RING_PROPS } from "@/hooks/useWebFocusRing";
 import { getBaseUrl } from "@/lib/api";
@@ -67,6 +69,32 @@ export function DialerDrawer({
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { signOut } = useAuth();
+
+  // RN-web Alert.alert is a no-op, so web needs a window.confirm branch.
+  const confirmSignOut = () => {
+    if (Platform.OS === "web") {
+      if (
+        typeof window !== "undefined" &&
+        window.confirm("Sign out of your Sayzio account on this device?")
+      ) {
+        onClose();
+        void signOut();
+      }
+      return;
+    }
+    Alert.alert("Sign out?", "Sign out of your Sayzio account on this device?", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Sign out",
+        style: "destructive",
+        onPress: () => {
+          onClose();
+          void signOut();
+        },
+      },
+    ]);
+  };
 
   const baseUrl = getBaseUrl();
 
@@ -490,6 +518,29 @@ export function DialerDrawer({
                 </Text>
               </Pressable>
             ))}
+
+            <View style={[styles.divider, { backgroundColor: colors.border }]} />
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Sign out"
+              onPress={confirmSignOut}
+              style={({ pressed }) => [
+                styles.navRow,
+                { backgroundColor: pressed ? colors.muted : "transparent" },
+              ]}
+              {...WEB_FOCUS_RING_PROPS}
+            >
+              <Feather name="log-out" size={18} color={colors.destructive} />
+              <Text
+                style={{
+                  color: colors.destructive,
+                  fontSize: 15,
+                  fontFamily: "SpaceGrotesk_500Medium",
+                }}
+              >
+                Sign out
+              </Text>
+            </Pressable>
           </ScrollView>
         </Animated.View>
       </View>

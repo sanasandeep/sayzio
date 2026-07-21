@@ -24,9 +24,11 @@ import {
   deleteNote,
   listNotes,
   updateNote,
+  type ChecklistItem,
   type DialerNote,
   type NoteInput,
 } from "@/lib/api/notes";
+import { cancelNoteAlarm, syncNoteAlarm } from "@/lib/localReminders";
 
 // RN-web Alert.alert is a no-op; confirmations need a window.confirm branch.
 function confirmAsync(title: string, message: string): Promise<boolean> {
@@ -45,8 +47,10 @@ function confirmAsync(title: string, message: string): Promise<boolean> {
 
 type EditorState = {
   id: number | null;
+  kind: "note" | "checklist";
   title: string;
   body: string;
+  checklist: ChecklistItem[];
   number: string;
   remindAt: string;
   done: boolean;
@@ -55,8 +59,10 @@ type EditorState = {
 
 const EMPTY_EDITOR: EditorState = {
   id: null,
+  kind: "note",
   title: "",
   body: "",
+  checklist: [],
   number: "",
   remindAt: "",
   done: false,
@@ -68,6 +74,16 @@ function formatWhen(iso: string | null): string | null {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return null;
   return d.toLocaleString();
+}
+
+function noteAlarmTitle(n: DialerNote): string {
+  return n.title || (n.kind === "checklist" ? "To-do reminder" : "Note reminder");
+}
+
+function sourceLabel(sourceType: string | null): string | null {
+  if (sourceType === "event") return "Auto · Event";
+  if (sourceType === "callback") return "Auto · Call-back";
+  return sourceType ? "Auto" : null;
 }
 
 export default function NotesScreen() {
@@ -89,6 +105,15 @@ export default function NotesScreen() {
       setNotes(res.notes);
       setShared(res.shared);
       setError(null);
+      // Keep local alarms mirrored to the server state (own, not-done,
+      // future reminders). Best-effort — never blocks the UI.
+      for (const n of res.notes) {
+        if (n.remind_at && !n.done) {
+          void syncNoteAlarm(n.id, n.remind_at, noteAlarmTitle(n), n.body);
+        } else {
+          void cancelNoteAlarm(n.id);
+        }
+      }
     } catch {
       setError("Couldn't load your notes. Pull down to retry.");
     }
@@ -116,8 +141,13 @@ export default function NotesScreen() {
   const openEdit = (n: DialerNote) => {
     setEditor({
       id: n.id,
+      kind: n.kind === "checklist" ? "checklist" : "note",
       title: n.title ?? "",
       body: n.body ?? "",
+      checklist: (n.checklist ?? []).map((i) => ({
+        text: i.text ?? "",
+        done: !!i.done,
+      })),
       number: n.number ?? "",
       remindAt: n.remind_at ?? "",
       done: n.done,
@@ -127,11 +157,32 @@ export default function NotesScreen() {
     setEditorOpen(true);
   };
 
+  const setEditorKind = (kind: "note" | "checklist") => {
+    setEditor((e) => ({
+      ...e,
+      kind,
+      checklist:
+        kind === "checklist" && e.checklist.length === 0
+          ? [{ text: "", done: false }]
+          : e.checklist,
+    }));
+  };
+
+  const addChecklistItem = () => {
+    setEditor((e) => ({
+      ...e,
+      checklist: [...e.checklist, { text: "", done: false }],
+    }));
+  };
+
   const save = async () => {
     if (saving) return;
+    const checklist = editor.checklist.filter((i) => i.text.trim() !== "");
     const input: NoteInput = {
+      kind: editor.kind,
       title: editor.title.trim() || null,
-      body: editor.body.trim() || null,
+      body: editor.kind === "note" ? editor.body.trim() || null : null,
+      checklist: editor.kind === "checklist" ? checklist : null,
       number: editor.number.trim() || null,
       remind_at: editor.remindAt.trim() || null,
       done: editor.done,
@@ -140,19 +191,35 @@ export default function NotesScreen() {
         .map((p) => p.trim())
         .filter(Boolean),
     };
-    if (!input.title && !input.body) {
-      setSaveError("Add a title or some text first.");
+    if (
+      !input.title &&
+      !input.body &&
+      (editor.kind !== "checklist" || checklist.length === 0)
+    ) {
+      setSaveError(
+        editor.kind === "checklist"
+          ? "Add a title or at least one to-do item first."
+          : "Add a title or some text first.",
+      );
       return;
     }
     setSaving(true);
     setSaveError(null);
     try {
+      let saved: DialerNote;
       if (editor.id === null) {
-        const created = await createNote(input);
-        setNotes((prev) => [created, ...prev]);
+        saved = await createNote(input);
+        setNotes((prev) => [saved, ...prev]);
       } else {
-        const updated = await updateNote(editor.id, input);
-        setNotes((prev) => prev.map((n) => (n.id === updated.id ? updated : n)));
+        saved = await updateNote(editor.id, input);
+        setNotes((prev) => prev.map((n) => (n.id === saved.id ? saved : n)));
+      }
+      // Mirror the reminder to a local scheduled alarm so it fires even
+      // offline. Done / cleared reminders drop the alarm.
+      if (saved.remind_at && !saved.done) {
+        void syncNoteAlarm(saved.id, saved.remind_at, noteAlarmTitle(saved), saved.body);
+      } else {
+        void cancelNoteAlarm(saved.id);
       }
       setEditorOpen(false);
     } catch (e) {
@@ -173,9 +240,29 @@ export default function NotesScreen() {
     );
     try {
       await updateNote(n.id, { done: !n.done });
+      if (!n.done) void cancelNoteAlarm(n.id);
+      else if (n.remind_at)
+        void syncNoteAlarm(n.id, n.remind_at, noteAlarmTitle(n), n.body);
     } catch {
       setNotes((prev) =>
         prev.map((x) => (x.id === n.id ? { ...x, done: n.done } : x)),
+      );
+    }
+  };
+
+  const toggleChecklistItem = async (n: DialerNote, idx: number) => {
+    const next = (n.checklist ?? []).map((i, j) =>
+      j === idx ? { ...i, done: !i.done } : i,
+    );
+    // Optimistic; revert on failure.
+    setNotes((prev) =>
+      prev.map((x) => (x.id === n.id ? { ...x, checklist: next } : x)),
+    );
+    try {
+      await updateNote(n.id, { checklist: next });
+    } catch {
+      setNotes((prev) =>
+        prev.map((x) => (x.id === n.id ? { ...x, checklist: n.checklist } : x)),
       );
     }
   };
@@ -187,6 +274,7 @@ export default function NotesScreen() {
     );
     if (!ok) return;
     setNotes((prev) => prev.filter((x) => x.id !== n.id));
+    void cancelNoteAlarm(n.id);
     try {
       await deleteNote(n.id);
     } catch {
@@ -200,20 +288,45 @@ export default function NotesScreen() {
 
   const rows = useMemo<Row[]>(() => {
     const out: Row[] = [];
-    const reminders = notes.filter((n) => n.remind_at && !n.done);
-    const rest = notes.filter((n) => !(n.remind_at && !n.done));
+    const autoTasks = notes.filter((n) => n.source_type && !n.done);
+    const reminders = notes.filter(
+      (n) => !n.source_type && n.remind_at && !n.done,
+    );
+    const todos = notes.filter(
+      (n) => !n.source_type && n.kind === "checklist" && !(n.remind_at && !n.done),
+    );
+    const rest = notes.filter(
+      (n) =>
+        !n.source_type &&
+        n.kind !== "checklist" &&
+        !(n.remind_at && !n.done),
+    );
+    const byRemind = (a: DialerNote, b: DialerNote) =>
+      new Date(a.remind_at ?? 0).getTime() - new Date(b.remind_at ?? 0).getTime();
+
+    if (autoTasks.length > 0) {
+      out.push({ type: "header", key: "h:auto", label: "Up next" });
+      for (const n of [...autoTasks].sort(byRemind))
+        out.push({ type: "note", key: `n:${n.id}`, note: n });
+    }
     if (reminders.length > 0) {
       out.push({ type: "header", key: "h:rem", label: "Reminders" });
-      const sorted = [...reminders].sort(
-        (a, b) =>
-          new Date(a.remind_at ?? 0).getTime() -
-          new Date(b.remind_at ?? 0).getTime(),
-      );
-      for (const n of sorted) out.push({ type: "note", key: `n:${n.id}`, note: n });
+      for (const n of [...reminders].sort(byRemind))
+        out.push({ type: "note", key: `n:${n.id}`, note: n });
+    }
+    if (todos.length > 0) {
+      out.push({ type: "header", key: "h:todo", label: "To-do lists" });
+      for (const n of todos) out.push({ type: "note", key: `n:${n.id}`, note: n });
     }
     if (rest.length > 0) {
       out.push({ type: "header", key: "h:notes", label: "Notes" });
       for (const n of rest) out.push({ type: "note", key: `n:${n.id}`, note: n });
+    }
+    const doneAuto = notes.filter((n) => n.source_type && n.done);
+    if (doneAuto.length > 0) {
+      out.push({ type: "header", key: "h:auto-done", label: "Done tasks" });
+      for (const n of doneAuto)
+        out.push({ type: "note", key: `n:${n.id}`, note: n });
     }
     if (shared.length > 0) {
       out.push({ type: "header", key: "h:shared", label: "Shared with me" });
@@ -227,6 +340,9 @@ export default function NotesScreen() {
     const when = formatWhen(n.remind_at);
     const overdue =
       !!n.remind_at && !n.done && new Date(n.remind_at).getTime() < Date.now();
+    const badge = sourceLabel(n.source_type);
+    const items = n.kind === "checklist" ? (n.checklist ?? []) : [];
+    const doneCount = items.filter((i) => i.done).length;
     return (
       <Pressable
         onPress={() => (n.own ? openEdit(n) : undefined)}
@@ -235,6 +351,8 @@ export default function NotesScreen() {
           {
             backgroundColor: colors.card,
             borderColor: colors.border,
+            borderLeftColor: n.color ?? colors.border,
+            borderLeftWidth: n.color ? 3 : 1,
             opacity: n.done ? 0.6 : 1,
           },
         ]}
@@ -252,25 +370,77 @@ export default function NotesScreen() {
             <Feather name="users" size={18} color={colors.mutedForeground} />
           )}
           <View style={{ flex: 1 }}>
-            {n.title ? (
-              <Text
-                style={{
-                  color: colors.foreground,
-                  fontSize: 15,
-                  fontWeight: "700",
-                  textDecorationLine: n.done ? "line-through" : "none",
-                }}
-              >
-                {n.title}
-              </Text>
-            ) : null}
-            {n.body ? (
+            <View style={styles.titleRow}>
+              {n.title ? (
+                <Text
+                  style={{
+                    color: colors.foreground,
+                    fontSize: 15,
+                    fontWeight: "700",
+                    textDecorationLine: n.done ? "line-through" : "none",
+                    flexShrink: 1,
+                  }}
+                >
+                  {n.title}
+                </Text>
+              ) : n.kind === "checklist" ? (
+                <Text
+                  style={{ color: colors.foreground, fontSize: 15, fontWeight: "700" }}
+                >
+                  To-do list
+                </Text>
+              ) : null}
+              {badge ? (
+                <View
+                  style={[styles.badge, { backgroundColor: `${colors.primary}22` }]}
+                >
+                  <Text
+                    style={{ color: colors.primary, fontSize: 10, fontWeight: "700" }}
+                  >
+                    {badge}
+                  </Text>
+                </View>
+              ) : null}
+            </View>
+            {n.kind === "note" && n.body ? (
               <Text
                 numberOfLines={3}
                 style={{ color: colors.mutedForeground, fontSize: 13, marginTop: 2 }}
               >
                 {n.body}
               </Text>
+            ) : null}
+            {n.kind === "checklist" && items.length > 0 ? (
+              <View style={{ marginTop: 6, gap: 4 }}>
+                {items.map((item, idx) => (
+                  <Pressable
+                    key={idx}
+                    hitSlop={4}
+                    disabled={!n.own}
+                    onPress={() => void toggleChecklistItem(n, idx)}
+                    style={styles.checkItemRow}
+                  >
+                    <Feather
+                      name={item.done ? "check-square" : "square"}
+                      size={15}
+                      color={item.done ? colors.primary : colors.mutedForeground}
+                    />
+                    <Text
+                      style={{
+                        color: item.done ? colors.mutedForeground : colors.foreground,
+                        fontSize: 13,
+                        textDecorationLine: item.done ? "line-through" : "none",
+                        flexShrink: 1,
+                      }}
+                    >
+                      {item.text}
+                    </Text>
+                  </Pressable>
+                ))}
+                <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>
+                  {doneCount}/{items.length} done
+                </Text>
+              </View>
             ) : null}
           </View>
           {n.own ? (
@@ -340,7 +510,7 @@ export default function NotesScreen() {
             title={error ? "Something went wrong" : "No notes yet"}
             body={
               error ??
-              "Jot down notes and reminders — they sync to your Sayzio account, and you can share them with other numbers."
+              "Jot down notes, to-do lists and reminders — they sync to your Sayzio account, and events you RSVP to show up as tasks automatically."
             }
           />
         </ScrollView>
@@ -400,9 +570,36 @@ export default function NotesScreen() {
             ]}
           >
             <ScrollView keyboardShouldPersistTaps="handled">
-              <Text style={[styles.sheetTitle, { color: colors.foreground }]}>
-                {editor.id === null ? "New note" : "Edit note"}
-              </Text>
+              <View style={styles.sheetHeader}>
+                <Text style={[styles.sheetTitle, { color: colors.foreground }]}>
+                  {editor.id === null ? "New" : "Edit"}
+                </Text>
+                <View style={[styles.kindToggle, { borderColor: colors.border }]}>
+                  {(["note", "checklist"] as const).map((k) => (
+                    <Pressable
+                      key={k}
+                      onPress={() => setEditorKind(k)}
+                      style={[
+                        styles.kindBtn,
+                        editor.kind === k && { backgroundColor: colors.primary },
+                      ]}
+                    >
+                      <Text
+                        style={{
+                          color:
+                            editor.kind === k
+                              ? colors.primaryForeground
+                              : colors.mutedForeground,
+                          fontSize: 12,
+                          fontWeight: "700",
+                        }}
+                      >
+                        {k === "note" ? "Note" : "To-do list"}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
+              </View>
 
               <TextInput
                 value={editor.title}
@@ -414,18 +611,90 @@ export default function NotesScreen() {
                   { color: colors.foreground, borderColor: colors.border, backgroundColor: colors.card },
                 ]}
               />
-              <TextInput
-                value={editor.body}
-                onChangeText={(t) => setEditor((e) => ({ ...e, body: t }))}
-                placeholder="Write your note…"
-                placeholderTextColor={colors.mutedForeground}
-                multiline
-                style={[
-                  styles.input,
-                  styles.inputMultiline,
-                  { color: colors.foreground, borderColor: colors.border, backgroundColor: colors.card },
-                ]}
-              />
+              {editor.kind === "note" ? (
+                <TextInput
+                  value={editor.body}
+                  onChangeText={(t) => setEditor((e) => ({ ...e, body: t }))}
+                  placeholder="Write your note…"
+                  placeholderTextColor={colors.mutedForeground}
+                  multiline
+                  style={[
+                    styles.input,
+                    styles.inputMultiline,
+                    { color: colors.foreground, borderColor: colors.border, backgroundColor: colors.card },
+                  ]}
+                />
+              ) : (
+                <View style={{ marginTop: 10, gap: 8 }}>
+                  {editor.checklist.map((item, idx) => (
+                    <View key={idx} style={styles.checkEditRow}>
+                      <Pressable
+                        hitSlop={8}
+                        onPress={() =>
+                          setEditor((e) => ({
+                            ...e,
+                            checklist: e.checklist.map((i, j) =>
+                              j === idx ? { ...i, done: !i.done } : i,
+                            ),
+                          }))
+                        }
+                      >
+                        <Feather
+                          name={item.done ? "check-square" : "square"}
+                          size={18}
+                          color={item.done ? colors.primary : colors.mutedForeground}
+                        />
+                      </Pressable>
+                      <TextInput
+                        value={item.text}
+                        onChangeText={(t) =>
+                          setEditor((e) => ({
+                            ...e,
+                            checklist: e.checklist.map((i, j) =>
+                              j === idx ? { ...i, text: t } : i,
+                            ),
+                          }))
+                        }
+                        placeholder="To-do item…"
+                        placeholderTextColor={colors.mutedForeground}
+                        onSubmitEditing={addChecklistItem}
+                        style={[
+                          styles.input,
+                          {
+                            flex: 1,
+                            marginTop: 0,
+                            color: colors.foreground,
+                            borderColor: colors.border,
+                            backgroundColor: colors.card,
+                          },
+                        ]}
+                      />
+                      <Pressable
+                        hitSlop={8}
+                        onPress={() =>
+                          setEditor((e) => ({
+                            ...e,
+                            checklist: e.checklist.filter((_, j) => j !== idx),
+                          }))
+                        }
+                      >
+                        <Feather name="x" size={16} color={colors.mutedForeground} />
+                      </Pressable>
+                    </View>
+                  ))}
+                  <Pressable
+                    onPress={addChecklistItem}
+                    style={styles.addItemBtn}
+                    accessibilityRole="button"
+                    accessibilityLabel="Add to-do item"
+                  >
+                    <Feather name="plus" size={14} color={colors.primary} />
+                    <Text style={{ color: colors.primary, fontSize: 13, fontWeight: "600" }}>
+                      Add item
+                    </Text>
+                  </Pressable>
+                </View>
+              )}
               <TextInput
                 value={editor.number}
                 onChangeText={(t) => setEditor((e) => ({ ...e, number: t }))}
@@ -448,6 +717,9 @@ export default function NotesScreen() {
                   { color: colors.foreground, borderColor: colors.border, backgroundColor: colors.card },
                 ]}
               />
+              <Text style={{ color: colors.mutedForeground, fontSize: 12, marginTop: 4 }}>
+                Reminders alert you here (even offline) and on the web.
+              </Text>
               <TextInput
                 value={editor.sharePhones}
                 onChangeText={(t) => setEditor((e) => ({ ...e, sharePhones: t }))}
@@ -461,7 +733,7 @@ export default function NotesScreen() {
                 ]}
               />
               <Text style={{ color: colors.mutedForeground, fontSize: 12, marginTop: 4 }}>
-                Numbers on Sayzio see shared notes in their own Notes tab.
+                Numbers on Sayzio see shared notes and get the reminder too.
               </Text>
 
               {editor.id !== null ? (
@@ -528,6 +800,25 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   cardTopRow: { flexDirection: "row", alignItems: "flex-start", gap: 10 },
+  titleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    flexWrap: "wrap",
+  },
+  badge: {
+    borderRadius: 999,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+  },
+  checkItemRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+  checkEditRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+  addItemBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingVertical: 4,
+  },
   metaRow: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -562,7 +853,20 @@ const styles = StyleSheet.create({
     padding: 20,
     maxHeight: "88%",
   },
-  sheetTitle: { fontSize: 18, fontWeight: "700", marginBottom: 12 },
+  sheetHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 12,
+  },
+  sheetTitle: { fontSize: 18, fontWeight: "700" },
+  kindToggle: {
+    flexDirection: "row",
+    borderWidth: 1,
+    borderRadius: 10,
+    overflow: "hidden",
+  },
+  kindBtn: { paddingHorizontal: 12, paddingVertical: 6 },
   input: {
     borderWidth: 1,
     borderRadius: 12,

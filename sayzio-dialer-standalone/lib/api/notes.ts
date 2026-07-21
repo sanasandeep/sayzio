@@ -6,6 +6,8 @@ import { apiFetch } from "@/lib/api";
  * A note belongs to you; adding phone numbers under `share_phones` shares it
  * read-only with the Sayzio accounts behind those numbers.
  */
+export type ChecklistItem = { text: string; done: boolean };
+
 export type DialerNote = {
   id: number;
   title: string | null;
@@ -14,6 +16,11 @@ export type DialerNote = {
   remind_at: string | null;
   done: boolean;
   color: string | null;
+  kind: "note" | "checklist";
+  checklist: ChecklistItem[];
+  /** Auto-task provenance — 'event' | 'callback' | null for manual notes. */
+  source_type: string | null;
+  source_id: number | null;
   own: boolean;
   owner_name: string | null;
   share_phones: string[];
@@ -28,6 +35,8 @@ export type NoteInput = {
   remind_at?: string | null;
   done?: boolean;
   color?: string | null;
+  kind?: "note" | "checklist";
+  checklist?: ChecklistItem[] | null;
   share_phones?: string[];
 };
 

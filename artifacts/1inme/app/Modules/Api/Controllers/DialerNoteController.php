@@ -61,6 +61,10 @@ class DialerNoteController extends Controller
             'remind_at' => $data['remind_at'] ?? null,
             'done' => (bool) ($data['done'] ?? false),
             'color' => $data['color'] ?? null,
+            'kind' => $data['kind'] ?? 'note',
+            'checklist' => array_key_exists('checklist', $data)
+                ? DialerNote::normalizeChecklist($data['checklist'])
+                : null,
         ]);
 
         if (array_key_exists('share_phones', $data)) {
@@ -81,10 +85,20 @@ class DialerNoteController extends Controller
         $data = $this->validated($request);
 
         $updates = [];
-        foreach (['title', 'body', 'remind_at', 'color'] as $k) {
+        foreach (['title', 'body', 'remind_at', 'color', 'kind'] as $k) {
             if (array_key_exists($k, $data)) $updates[$k] = $data[$k];
         }
         if (array_key_exists('done', $data)) $updates['done'] = (bool) $data['done'];
+        if (array_key_exists('checklist', $data)) {
+            $updates['checklist'] = $data['checklist'] === null
+                ? null
+                : DialerNote::normalizeChecklist($data['checklist']);
+        }
+        // A changed reminder time re-arms the due alert.
+        if (array_key_exists('remind_at', $data)
+            && (string) $data['remind_at'] !== (string) $note->remind_at?->toIso8601String()) {
+            $updates['reminder_sent_at'] = null;
+        }
         if (array_key_exists('number', $data)) {
             $updates['number_e164'] = $data['number'] !== null && $data['number'] !== ''
                 ? ContactPhone::normalize($data['number'])
@@ -119,6 +133,11 @@ class DialerNoteController extends Controller
             'remind_at' => ['nullable', 'date'],
             'done' => ['nullable', 'boolean'],
             'color' => ['nullable', 'string', 'max:16'],
+            'kind' => ['nullable', 'string', 'in:note,checklist'],
+            'checklist' => ['nullable', 'array', 'max:100'],
+            'checklist.*' => ['array'],
+            'checklist.*.text' => ['nullable', 'string', 'max:500'],
+            'checklist.*.done' => ['nullable', 'boolean'],
             'share_phones' => ['nullable', 'array', 'max:20'],
             'share_phones.*' => ['string', 'max:32'],
         ]);
@@ -155,6 +174,10 @@ class DialerNoteController extends Controller
             'remind_at' => $note->remind_at?->toIso8601String(),
             'done' => (bool) $note->done,
             'color' => $note->color,
+            'kind' => $note->kind ?: 'note',
+            'checklist' => is_array($note->checklist) ? array_values($note->checklist) : [],
+            'source_type' => $note->source_type,
+            'source_id' => $note->source_id !== null ? (int) $note->source_id : null,
             'own' => $own,
             'owner_name' => $own ? null : ($note->user?->name),
             'share_phones' => $own

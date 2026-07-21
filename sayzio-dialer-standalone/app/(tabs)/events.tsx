@@ -7,6 +7,7 @@ import {
   Image,
   Pressable,
   RefreshControl,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -32,6 +33,46 @@ import {
 } from "@/lib/eventsLocation";
 
 type DateFilter = "any" | "today" | "week" | "month";
+
+// "My events" agenda views (Task #5508): list stays the default; day /
+// week / month are pure client-side projections of the same personal
+// events payload — no extra API calls.
+type MyView = "list" | "day" | "week" | "month";
+
+const MY_VIEWS: { key: MyView; label: string }[] = [
+  { key: "list", label: "List" },
+  { key: "day", label: "Day" },
+  { key: "week", label: "Week" },
+  { key: "month", label: "Month" },
+];
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+function startOfDay(d: Date): Date {
+  const x = new Date(d);
+  x.setHours(0, 0, 0, 0);
+  return x;
+}
+
+/** Monday-anchored start of week. */
+function startOfWeek(d: Date): Date {
+  const x = startOfDay(d);
+  const dow = (x.getDay() + 6) % 7;
+  x.setDate(x.getDate() - dow);
+  return x;
+}
+
+function sameDay(a: Date, b: Date): boolean {
+  return (
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate()
+  );
+}
+
+function dayKey(d: Date): string {
+  return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+}
 
 const DATE_FILTERS: { key: DateFilter; label: string }[] = [
   { key: "any", label: "Any time" },
@@ -79,6 +120,8 @@ export default function EventsDirectoryScreen() {
   const [myItems, setMyItems] = useState<MyEventsItem[] | null>(null);
   const [myLoading, setMyLoading] = useState(false);
   const [myRefreshing, setMyRefreshing] = useState(false);
+  const [myView, setMyView] = useState<MyView>("list");
+  const [agendaDate, setAgendaDate] = useState<Date>(() => startOfDay(new Date()));
 
   const loadMine = useCallback(async () => {
     try {
@@ -233,10 +276,322 @@ export default function EventsDirectoryScreen() {
     [load],
   );
 
+  // Map of dayKey → items whose event starts that day, for agenda views.
+  const itemsByDay = useMemo(() => {
+    const map = new Map<string, MyEventsItem[]>();
+    for (const it of myItems ?? []) {
+      if (!it.event.start_date) continue;
+      const d = new Date(it.event.start_date);
+      if (Number.isNaN(d.getTime())) continue;
+      const key = dayKey(d);
+      const arr = map.get(key);
+      if (arr) arr.push(it);
+      else map.set(key, [it]);
+    }
+    for (const arr of map.values()) {
+      arr.sort((a, b) =>
+        (a.event.start_date ?? "").localeCompare(b.event.start_date ?? ""),
+      );
+    }
+    return map;
+  }, [myItems]);
+
+  const renderMyEventCard = (it: MyEventsItem, opts?: { timeOnly?: boolean }) => {
+    const past =
+      !!(it.event.end_date || it.event.start_date) &&
+      new Date(it.event.end_date || it.event.start_date || "").getTime() < Date.now();
+    return (
+      <Pressable
+        key={`${it.kind}:${it.event.id}:${it.ticket_code ?? ""}`}
+        onPress={() => router.push(`/events/${it.event.alias}`)}
+        style={[
+          styles.card,
+          {
+            backgroundColor: colors.card,
+            borderColor: colors.border,
+            opacity: past ? 0.65 : 1,
+          },
+        ]}
+      >
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+          <Feather
+            name={it.kind === "ticket" ? "check-circle" : "star"}
+            size={14}
+            color={it.kind === "ticket" ? colors.primary : colors.mutedForeground}
+          />
+          <Text style={{ color: colors.mutedForeground, fontSize: 12, fontWeight: "600" }}>
+            {it.kind === "ticket"
+              ? `Attending${(it.quantity ?? 1) > 1 ? ` · ${it.quantity} tickets` : ""}`
+              : "Interested"}
+          </Text>
+        </View>
+        <Text style={[styles.cardTitle, { color: colors.foreground }]}>
+          {it.event.title ?? "Event"}
+        </Text>
+        {it.event.start_date ? (
+          <Text style={{ color: colors.mutedForeground, fontSize: 13 }}>
+            {opts?.timeOnly
+              ? new Date(it.event.start_date).toLocaleTimeString([], {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })
+              : new Date(it.event.start_date).toLocaleString()}
+          </Text>
+        ) : null}
+        {it.event.location ? (
+          <Text style={{ color: colors.mutedForeground, fontSize: 13 }}>
+            📍 {it.event.location}
+          </Text>
+        ) : null}
+      </Pressable>
+    );
+  };
+
+  const renderDayList = (day: Date) => {
+    const items = itemsByDay.get(dayKey(day)) ?? [];
+    if (items.length === 0) {
+      return (
+        <Text
+          style={{
+            color: colors.mutedForeground,
+            fontSize: 13,
+            textAlign: "center",
+            paddingVertical: 24,
+          }}
+        >
+          Nothing scheduled this day.
+        </Text>
+      );
+    }
+    return <View style={{ gap: 10 }}>{items.map((it) => renderMyEventCard(it, { timeOnly: true }))}</View>;
+  };
+
+  const renderAgendaNav = (label: string, onPrev: () => void, onNext: () => void) => (
+    <View style={styles.agendaNav}>
+      <Pressable hitSlop={8} onPress={onPrev} style={[styles.agendaNavBtn, { borderColor: colors.border }]}>
+        <Feather name="chevron-left" size={18} color={colors.foreground} />
+      </Pressable>
+      <Pressable onPress={() => setAgendaDate(startOfDay(new Date()))}>
+        <Text style={{ color: colors.foreground, fontSize: 15, fontWeight: "700" }}>{label}</Text>
+      </Pressable>
+      <Pressable hitSlop={8} onPress={onNext} style={[styles.agendaNavBtn, { borderColor: colors.border }]}>
+        <Feather name="chevron-right" size={18} color={colors.foreground} />
+      </Pressable>
+    </View>
+  );
+
+  const renderDayView = () => (
+    <View style={{ padding: 16, gap: 12 }}>
+      {renderAgendaNav(
+        agendaDate.toLocaleDateString(undefined, {
+          weekday: "long",
+          month: "long",
+          day: "numeric",
+        }),
+        () => setAgendaDate(new Date(agendaDate.getTime() - DAY_MS)),
+        () => setAgendaDate(new Date(agendaDate.getTime() + DAY_MS)),
+      )}
+      {renderDayList(agendaDate)}
+    </View>
+  );
+
+  const renderWeekView = () => {
+    const weekStart = startOfWeek(agendaDate);
+    const days = Array.from({ length: 7 }, (_, i) => new Date(weekStart.getTime() + i * DAY_MS));
+    const weekEnd = new Date(weekStart.getTime() + 6 * DAY_MS);
+    const label = `${weekStart.toLocaleDateString(undefined, { month: "short", day: "numeric" })} – ${weekEnd.toLocaleDateString(undefined, { month: "short", day: "numeric" })}`;
+    return (
+      <View style={{ padding: 16, gap: 12 }}>
+        {renderAgendaNav(
+          label,
+          () => setAgendaDate(new Date(agendaDate.getTime() - 7 * DAY_MS)),
+          () => setAgendaDate(new Date(agendaDate.getTime() + 7 * DAY_MS)),
+        )}
+        <View style={styles.weekStrip}>
+          {days.map((d) => {
+            const selected = sameDay(d, agendaDate);
+            const hasEvents = (itemsByDay.get(dayKey(d)) ?? []).length > 0;
+            const today = sameDay(d, new Date());
+            return (
+              <Pressable
+                key={dayKey(d)}
+                onPress={() => setAgendaDate(d)}
+                style={[
+                  styles.weekDay,
+                  {
+                    backgroundColor: selected ? colors.primary : "transparent",
+                    borderColor: today && !selected ? colors.primary : colors.border,
+                  },
+                ]}
+              >
+                <Text
+                  style={{
+                    color: selected ? colors.primaryForeground : colors.mutedForeground,
+                    fontSize: 11,
+                    fontWeight: "600",
+                  }}
+                >
+                  {d.toLocaleDateString(undefined, { weekday: "narrow" })}
+                </Text>
+                <Text
+                  style={{
+                    color: selected ? colors.primaryForeground : colors.foreground,
+                    fontSize: 15,
+                    fontWeight: "700",
+                  }}
+                >
+                  {d.getDate()}
+                </Text>
+                <View
+                  style={[
+                    styles.dot,
+                    {
+                      backgroundColor: hasEvents
+                        ? selected
+                          ? colors.primaryForeground
+                          : colors.primary
+                        : "transparent",
+                    },
+                  ]}
+                />
+              </Pressable>
+            );
+          })}
+        </View>
+        {renderDayList(agendaDate)}
+      </View>
+    );
+  };
+
+  const renderMonthView = () => {
+    const monthStart = new Date(agendaDate.getFullYear(), agendaDate.getMonth(), 1);
+    const gridStart = startOfWeek(monthStart);
+    const cells = Array.from({ length: 42 }, (_, i) => new Date(gridStart.getTime() + i * DAY_MS));
+    return (
+      <View style={{ padding: 16, gap: 12 }}>
+        {renderAgendaNav(
+          monthStart.toLocaleDateString(undefined, { month: "long", year: "numeric" }),
+          () => setAgendaDate(new Date(agendaDate.getFullYear(), agendaDate.getMonth() - 1, 1)),
+          () => setAgendaDate(new Date(agendaDate.getFullYear(), agendaDate.getMonth() + 1, 1)),
+        )}
+        <View style={styles.monthGrid}>
+          {["M", "T", "W", "T", "F", "S", "S"].map((w, i) => (
+            <View key={`w${i}`} style={styles.monthCell}>
+              <Text style={{ color: colors.mutedForeground, fontSize: 11, fontWeight: "700" }}>{w}</Text>
+            </View>
+          ))}
+          {cells.map((d) => {
+            const inMonth = d.getMonth() === monthStart.getMonth();
+            const selected = sameDay(d, agendaDate);
+            const today = sameDay(d, new Date());
+            const hasEvents = (itemsByDay.get(dayKey(d)) ?? []).length > 0;
+            return (
+              <Pressable
+                key={dayKey(d)}
+                onPress={() => setAgendaDate(startOfDay(d))}
+                style={[
+                  styles.monthCell,
+                  selected && { backgroundColor: colors.primary, borderRadius: 10 },
+                ]}
+              >
+                <Text
+                  style={{
+                    color: selected
+                      ? colors.primaryForeground
+                      : today
+                        ? colors.primary
+                        : inMonth
+                          ? colors.foreground
+                          : colors.mutedForeground,
+                    fontSize: 13,
+                    fontWeight: today || selected ? "700" : "400",
+                    opacity: inMonth ? 1 : 0.45,
+                  }}
+                >
+                  {d.getDate()}
+                </Text>
+                <View
+                  style={[
+                    styles.dot,
+                    {
+                      backgroundColor: hasEvents
+                        ? selected
+                          ? colors.primaryForeground
+                          : colors.primary
+                        : "transparent",
+                    },
+                  ]}
+                />
+              </Pressable>
+            );
+          })}
+        </View>
+        {renderDayList(agendaDate)}
+      </View>
+    );
+  };
+
   const renderMyEvents = () => {
     if (myLoading) {
       return <ActivityIndicator style={{ marginTop: 40 }} color={colors.primary} />;
     }
+
+    const viewChips = (
+      <View style={styles.filterRow}>
+        {MY_VIEWS.map((v) => (
+          <Pressable
+            key={v.key}
+            onPress={() => setMyView(v.key)}
+            style={[
+              styles.chip,
+              {
+                borderColor: myView === v.key ? colors.primary : colors.border,
+                backgroundColor: myView === v.key ? colors.primary : "transparent",
+              },
+            ]}
+          >
+            <Text
+              style={{
+                color: myView === v.key ? colors.primaryForeground : colors.mutedForeground,
+                fontSize: 13,
+                fontWeight: "600",
+              }}
+            >
+              {v.label}
+            </Text>
+          </Pressable>
+        ))}
+      </View>
+    );
+
+    if (myView !== "list") {
+      return (
+        <ScrollView
+          refreshControl={
+            <RefreshControl
+              refreshing={myRefreshing}
+              onRefresh={async () => {
+                setMyRefreshing(true);
+                try {
+                  await loadMine();
+                } finally {
+                  setMyRefreshing(false);
+                }
+              }}
+            />
+          }
+          contentContainerStyle={{ paddingBottom: 32 }}
+        >
+          {viewChips}
+          {myView === "day"
+            ? renderDayView()
+            : myView === "week"
+              ? renderWeekView()
+              : renderMonthView()}
+        </ScrollView>
+      );
+    }
+
     const sections: { header: string; data: MyEventsItem[] }[] = [];
     if (upcomingMine.length > 0) sections.push({ header: "Upcoming", data: upcomingMine });
     if (pastMine.length > 0) sections.push({ header: "Past", data: pastMine });
@@ -659,6 +1014,35 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     paddingHorizontal: 8,
     paddingVertical: 2,
+  },
+  agendaNav: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  agendaNavBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  weekStrip: { flexDirection: "row", gap: 6 },
+  weekDay: {
+    flex: 1,
+    alignItems: "center",
+    gap: 2,
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingVertical: 8,
+  },
+  dot: { width: 5, height: 5, borderRadius: 3, marginTop: 2 },
+  monthGrid: { flexDirection: "row", flexWrap: "wrap" },
+  monthCell: {
+    width: `${100 / 7}%`,
+    alignItems: "center",
+    paddingVertical: 6,
   },
   cardFooterRow: {
     flexDirection: "row",

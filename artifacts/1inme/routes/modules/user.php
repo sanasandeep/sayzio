@@ -1480,6 +1480,17 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::patch ('dialer/history/{log}',               [DialerController::class, 'historyUpdate'])->whereNumber('log')->middleware('workspace.can:settings.edit')->name('dialer.history.update');
         Route::delete('dialer/history/{log}',               [DialerController::class, 'historyDestroy'])->whereNumber('log')->middleware('workspace.can:settings.edit')->name('dialer.history.destroy');
 
+        // ===== Notes & reminders (Task #5508) =====
+        // Account-scoped (not workspace data): deliberately NO workspace.can
+        // gate so the page stays reachable no matter which workspace is
+        // active. JSON CRUD reuses the API controller (same envelope) so the
+        // web page and the dialer app can never drift.
+        Route::get   ('dialer/notes',           [DialerController::class, 'notesPage'])->name('dialer.notes');
+        Route::get   ('dialer/notes/data',      [\App\Modules\Api\Controllers\DialerNoteController::class, 'index'])->name('dialer.notes.data');
+        Route::post  ('dialer/notes/data',      [\App\Modules\Api\Controllers\DialerNoteController::class, 'store'])->name('dialer.notes.store');
+        Route::patch ('dialer/notes/data/{id}', [\App\Modules\Api\Controllers\DialerNoteController::class, 'update'])->whereNumber('id')->name('dialer.notes.update');
+        Route::delete('dialer/notes/data/{id}', [\App\Modules\Api\Controllers\DialerNoteController::class, 'destroy'])->whereNumber('id')->name('dialer.notes.destroy');
+
         // ===== Events calendar (month / week / day / list views) =====
         Route::get('events',                                [CalendarAccountController::class, 'events'])->middleware('workspace.can:settings.view')->name('events.index');
         Route::get('events/feed',                           [CalendarAccountController::class, 'eventsFeed'])->middleware('workspace.can:settings.view')->name('events.feed');

@@ -288,6 +288,14 @@ class NotificationService
                 'default_email'  => false,
                 'default_push'   => true,
             ],
+            // Dialer note / to-do reminders (Task #5508).
+            'dialer.note_due' => [
+                'label'          => 'Note & to-do reminders',
+                'description'    => 'When a note or to-do reminder you set (or one shared with you) is due.',
+                'default_in_app' => true,
+                'default_email'  => true,
+                'default_push'   => true,
+            ],
             // Contact / lead follow-up reminders (Task #3524).
             'contact.follow_up_reminder' => [
                 'label'          => 'Contact follow-up reminders',

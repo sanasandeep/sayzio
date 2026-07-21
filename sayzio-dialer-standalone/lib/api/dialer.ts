@@ -428,6 +428,13 @@ export type DialerProfileBiolink = {
   url: string | null;
   link_id: number | null;
   avatar_url: string | null;
+  bio?: string | null;
+  verified?: boolean;
+  link_preview?: {
+    title: string | null;
+    description: string | null;
+    alias: string | null;
+  } | null;
 };
 
 export type DialerManualProfile = {

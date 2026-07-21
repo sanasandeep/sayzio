@@ -135,6 +135,15 @@ class DialerIdentity
                 'url'        => $bio ? url('/' . $bio->alias) : null,
                 'link_id'    => $bio?->id,
                 'avatar_url' => self::avatarUrl($matchedUser),
+                // Task #5508: richer creator details for the dialer profile
+                // screen — bio, verification badge, and a link-in-bio preview.
+                'bio'        => $matchedUser->bio ?: null,
+                'verified'   => $matchedUser->isVerified(),
+                'link_preview' => $bio ? [
+                    'title'       => $bio->seo_title ?: ($bio->settings['title'] ?? null),
+                    'description' => $bio->seo_description ?: null,
+                    'alias'       => $bio->alias,
+                ] : null,
             ] : null,
             // Auto-pulled (read-only) from the matched user's biolink.
             'socials'   => $extracted['socials'],
