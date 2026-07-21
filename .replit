@@ -314,10 +314,6 @@ args = "storage-url-resolve"
 
 [[workflows.workflow.tasks]]
 task = "workflow.run"
-args = "dialer-contact-auto-sync"
-
-[[workflows.workflow.tasks]]
-task = "workflow.run"
 args = "mobile-prod-build"
 
 [[workflows.workflow.tasks]]
@@ -407,6 +403,10 @@ args = "e2e-profile-settings"
 [[workflows.workflow.tasks]]
 task = "workflow.run"
 args = "whatsapp-disconnect-test"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "dialer-contact-auto-sync"
 
 [[workflows.workflow]]
 name = "e2e"
@@ -1421,17 +1421,6 @@ args = "pnpm --filter @workspace/scripts run check:storage-url-resolve"
 isValidation = true
 
 [[workflows.workflow]]
-name = "dialer-contact-auto-sync"
-author = "agent"
-
-[workflows.workflow.metadata]
-isValidation = true
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "cd sayzio-dialer-standalone && npm run test:contact-auto-sync && npm run test:device-contacts-fingerprint && npm run test:identified-call-drain"
-
-[[workflows.workflow]]
 name = "mobile-prod-build"
 author = "agent"
 
@@ -1684,6 +1673,17 @@ args = "cd artifacts/1inme && TEST_LOCAL_MODE=artisan bash scripts/test-local.sh
 
 [workflows.workflow.metadata]
 isValidation = true
+
+[[workflows.workflow]]
+name = "dialer-contact-auto-sync"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd sayzio-dialer-standalone && npm run test:contact-auto-sync && npm run test:device-contacts-fingerprint && npm run test:identified-call-drain && npm run test:push-action"
+
+[workflows.workflow.metadata]
+outputType = "console"
 
   [agent]
 stack = "PNPM_WORKSPACE"

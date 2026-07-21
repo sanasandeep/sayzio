@@ -170,11 +170,33 @@ export function decidePushAction(data: Record<string, unknown> | undefined): {
     return { markReadId, navigation: { kind: "open", target } };
   }
 
+  const type = typeof data?.type === "string" ? data.type : null;
+
+  // Local note reminders (scheduled in lib/localReminders.ts) carry
+  // `type: "dialer.note_due"` + `note_id`; route straight to the Notes tab,
+  // deep-linking to the specific note when the id is usable.
+  if (type === "dialer.note_due") {
+    const rawNoteId = data?.note_id;
+    const noteId =
+      typeof rawNoteId === "number"
+        ? rawNoteId
+        : typeof rawNoteId === "string" && rawNoteId.trim() !== ""
+          ? Number(rawNoteId)
+          : NaN;
+    return {
+      markReadId,
+      navigation: {
+        kind: "route",
+        path: Number.isFinite(noteId)
+          ? `/(tabs)/notes?noteId=${noteId}`
+          : "/(tabs)/notes",
+      },
+    };
+  }
+
   // The standalone dialer has no notifications / API-usage / admin screens
-  // (those live in the main Sayzio app), so every fallback routes to the
-  // dialer home. The `type` field is still read so a future screen can
-  // branch on it without changing callers.
-  void (typeof data?.type === "string" ? data.type : null);
+  // (those live in the main Sayzio app), so every other fallback routes to
+  // the dialer home.
   return { markReadId, navigation: { kind: "route", path: "/(tabs)/dialer" } };
 }
 
@@ -203,6 +225,6 @@ export function addPushResponseListener(): Notifications.EventSubscription {
       openPushTarget(navigation.target);
       return;
     }
-    router.push("/(tabs)/dialer");
+    router.push(navigation.path as "/(tabs)/dialer" | "/(tabs)/notes");
   });
 }

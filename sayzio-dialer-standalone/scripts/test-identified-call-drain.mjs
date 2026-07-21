@@ -1,13 +1,14 @@
 // Source-driven test for the identified-call drain (lib/callerId.ts →
 // drainIdentifiedCalls), the path that turns rings the native call-screening
-// service saw while the JS runtime was dead into dated "call received" note
-// lines on the matched Sayzio contacts.
+// service saw while the JS runtime was dead into structured call-history
+// entries on the matched Sayzio contacts (POST /contacts/{id}/calls) and
+// local "unknown caller" entries for numbers not in contacts.
 //
 // The drain runs silently on every foreground (via useContactAutoSync), so a
 // regression here is invisible in manual testing: it could clear the native
 // queue without persisting anything (calls silently lost after a phone
-// restart or app update), double-log the same ring, stop matching numbers
-// whose formatting differs from the stored contact, or wedge behind the
+// restart or app update), stop matching numbers whose formatting differs
+// from the stored contact, drop unknown callers, or wedge behind the
 // in-flight guard forever.
 //
 // Coverage:
@@ -15,19 +16,16 @@
 //     (missing n / non-numeric ts) are dropped without touching the API,
 //   - last-9-digit contact matching (formatting/country-prefix agnostic,
 //     mirroring the native CallerIdStore.normalizeKey),
-//   - note dedupe: a line already present in the contact's notes (or queued
-//     twice in one drain) is never appended twice, but the queue still
-//     clears (the events HAVE been persisted),
-//   - one PATCH per contact regardless of how many calls queued up,
+//   - one POST per contact regardless of how many calls queued up,
+//   - unmatched events land in the local unknown-callers list (deduped by
+//     number+ts) instead of being dropped,
 //   - count-based queue clearing: clearIdentifiedCallQueue(drained) is called
-//     with the number of events read, and ONLY after every PATCH succeeded,
-//   - partial failure: a failed PATCH aborts the drain WITHOUT clearing the
-//     queue so the events retry on the next foreground,
-//   - unmatched events (contact deleted since the ring) are dropped but
-//     still counted into the clear,
+//     with the number of valid events read, and ONLY after every event was
+//     persisted somewhere,
+//   - partial failure: a failed POST aborts the drain WITHOUT clearing the
+//     queue so the events retry on the next foreground (server dedupes),
 //   - in-flight guard: a second call while a drain is running returns 0
-//     without touching the queue, and the guard releases afterwards (even
-//     after a failure),
+//     without touching the queue, and the guard releases afterwards,
 //   - non-Android / missing native module → inert no-op.
 //
 // Run via `node scripts/test-identified-call-drain.mjs` (package script
@@ -104,9 +102,31 @@ function loadDrainSource() {
   // Every strip asserts it applied — fail loudly if the source changes shape.
   const strips = [
     [/function phoneKey\(number: string\): string/, "function phoneKey(number)"],
+    [/export type UnknownCall = \{[\s\S]*?\};\n/, ""],
     [
-      /function formatCallMoment\(ts: number\): string/,
-      "function formatCallMoment(ts)",
+      /async function readUnknownCalls\(\): Promise<UnknownCall\[\]>/,
+      "async function readUnknownCalls()",
+    ],
+    [/\(e\): e is UnknownCall =>/, "(e) =>"],
+    [
+      /async function writeUnknownCalls\(calls: UnknownCall\[\]\): Promise<void>/,
+      "async function writeUnknownCalls(calls)",
+    ],
+    [
+      /export async function getUnknownCalls\(\): Promise<UnknownCall\[\]>/,
+      "async function getUnknownCalls()",
+    ],
+    [
+      /export async function dismissUnknownCall\(call: UnknownCall\): Promise<void>/,
+      "async function dismissUnknownCall(call)",
+    ],
+    [
+      /export async function dismissUnknownCallsForNumber\(\s*number: string,\s*\): Promise<void>/,
+      "async function dismissUnknownCallsForNumber(number)",
+    ],
+    [
+      /async function appendUnknownCalls\(\s*events: IdentifiedCallEvent\[\],\s*\): Promise<number>/,
+      "async function appendUnknownCalls(events)",
     ],
     [
       /export async function drainIdentifiedCalls\(\): Promise<number>/,
@@ -116,9 +136,10 @@ function loadDrainSource() {
     [/\(e\): e is IdentifiedCallEvent =>/, "(e) =>"],
     [/new Map<string, Contact>\(\)/, "new Map()"],
     [
-      /new Map<number, \{ contact: Contact; lines: string\[\] \}>\(\)/,
-      "new Map()",
+      /const pending = new Map<\s*number,\s*\{ calls: \{ number: string; occurred_at: string \}\[\] \}\s*>\(\);/,
+      "const pending = new Map();",
     ],
+    [/const unknown: IdentifiedCallEvent\[\] = \[\];/, "const unknown = [];"],
   ];
   for (const [pattern, replacement] of strips) {
     assert.ok(
@@ -128,16 +149,18 @@ function loadDrainSource() {
     body = body.replace(pattern, replacement);
   }
   assert.ok(
-    !/: (string|number|boolean|Promise|IdentifiedCallEvent|Contact)\b/.test(body),
+    !/: (string|number|boolean|Promise|IdentifiedCallEvent|Contact|UnknownCall)\b/.test(
+      body,
+    ),
     "unexpected extra type annotations in the drain source — update the strip step",
   );
   return body;
 }
 const drainSrc = loadDrainSource();
 
-// Harness: evaluate the lifted drain with a controllable native module and
-// contacts API. `scope` stays live (the extract proxy reads it per access),
-// so tests can swap the queue / API behaviour between calls.
+// Harness: evaluate the lifted drain with a controllable native module,
+// contacts API and AsyncStorage. `scope` stays live (the extract proxy reads
+// it per access), so tests can swap the queue / API behaviour between calls.
 function mount({ platform = "android", native = true } = {}) {
   const state = {
     queueRaw: "[]",
@@ -146,8 +169,9 @@ function mount({ platform = "android", native = true } = {}) {
     contacts: [],
     listCalls: 0,
     listGate: null, // set to a promise to hold listContacts open (in-flight test)
-    patches: [], // { id, body }
-    failPatchFor: new Set(), // contact ids whose PATCH rejects
+    posts: [], // { id, calls }
+    failPostFor: new Set(), // contact ids whose POST rejects
+    storage: new Map(), // in-memory AsyncStorage (unknown-callers list)
   };
   const scope = {
     Platform: { OS: platform },
@@ -162,18 +186,20 @@ function mount({ platform = "android", native = true } = {}) {
           },
         }
       : null,
+    AsyncStorage: {
+      getItem: async (key) => state.storage.get(key) ?? null,
+      setItem: async (key, value) => {
+        state.storage.set(key, value);
+      },
+    },
     listContacts: async () => {
       state.listCalls += 1;
       if (state.listGate) await state.listGate;
       return { items: state.contacts };
     },
-    updateContact: async (id, body) => {
-      if (state.failPatchFor.has(id)) throw new Error("PATCH 500");
-      state.patches.push({ id, body });
-      // Mirror the server: persist the new notes onto the contact so a
-      // follow-up drain sees them (drives the dedupe path).
-      const c = state.contacts.find((x) => x.id === id);
-      if (c) c.notes = body.notes;
+    logContactCalls: async (id, calls) => {
+      if (state.failPostFor.has(id)) throw new Error("POST 500");
+      state.posts.push({ id, calls });
     },
   };
   state.drain = runExtractedStatements(
@@ -183,20 +209,10 @@ function mount({ platform = "android", native = true } = {}) {
     "drainIdentifiedCalls",
     { test: "test-identified-call-drain" },
   );
+  state.unknownCalls = () =>
+    JSON.parse(state.storage.get("zio_unknown_calls_v1") ?? "[]");
   return state;
 }
-
-const line = (n, ts) => {
-  const d = new Date(ts);
-  const moment = d.toLocaleString(undefined, {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  });
-  return `\u{1F4DE} Call received (${n}) — ${moment}`;
-};
 
 // --- unsupported platforms are inert ----------------------------------------
 {
@@ -232,16 +248,12 @@ const line = (n, ts) => {
   ok("garbage JSON / non-arrays / malformed entries: dropped, no API, no clear");
 }
 
-// --- happy path: match, one PATCH per contact, count-based clear -------------
+// --- happy path: match, one POST per contact, unknowns kept, count clear -----
 {
   const h = mount();
   h.contacts = [
-    {
-      id: 7,
-      notes: "VIP client",
-      phones: [{ value_e164: "+15550001111", value: null }],
-    },
-    { id: 9, notes: null, phones: [{ value_e164: null, value: "0987 654 3210" }] },
+    { id: 7, phones: [{ value_e164: "+15550001111", value: null }] },
+    { id: 9, phones: [{ value_e164: null, value: "0987 654 3210" }] },
   ];
   const t1 = Date.UTC(2026, 6, 20, 10, 30);
   const t2 = Date.UTC(2026, 6, 20, 11, 0);
@@ -252,84 +264,100 @@ const line = (n, ts) => {
     { n: "+1 555 000 1111", ts: t2 },
     // Country-prefixed vs local-0 form of the second contact's number.
     { n: "+91 98765 43210", ts: t3 },
-    { n: "+15559999999", ts: t3 }, // no matching contact — dropped
+    { n: "+15559999999", ts: t3 }, // no matching contact — kept as unknown
     { bad: true }, // malformed — filtered before counting
   ]);
   const logged = await h.drain();
-  assert.equal(logged, 3, "three matched events must be logged");
-  assert.equal(h.patches.length, 2, "one PATCH per contact, however many calls");
-  const p7 = h.patches.find((p) => p.id === 7);
-  assert.equal(
-    p7.body.notes,
-    `VIP client\n${line("(555) 000-1111", t1)}\n${line("+1 555 000 1111", t2)}`,
-    "matched lines must append below the existing notes, one per ring",
+  assert.equal(logged, 4, "3 matched + 1 unknown events must be persisted");
+  assert.equal(h.posts.length, 2, "one POST per contact, however many calls");
+  const p7 = h.posts.find((p) => p.id === 7);
+  assert.deepEqual(
+    p7.calls,
+    [
+      { number: "(555) 000-1111", occurred_at: new Date(t1).toISOString() },
+      { number: "+1 555 000 1111", occurred_at: new Date(t2).toISOString() },
+    ],
+    "matched rings must batch into one structured POST per contact",
   );
-  const p9 = h.patches.find((p) => p.id === 9);
-  assert.equal(
-    p9.body.notes,
-    line("+91 98765 43210", t3),
-    "a contact without notes gets just the call line (last-9-digit match)",
+  const p9 = h.posts.find((p) => p.id === 9);
+  assert.deepEqual(
+    p9.calls,
+    [{ number: "+91 98765 43210", occurred_at: new Date(t3).toISOString() }],
+    "last-9-digit match works across country-prefix formatting",
+  );
+  assert.deepEqual(
+    h.unknownCalls(),
+    [{ number: "+15559999999", ts: t3 }],
+    "the unmatched event must land in the local unknown-callers list",
   );
   assert.deepEqual(
     h.cleared,
     [4],
-    "clear must be count-based on the 4 VALID events read (unmatched included, malformed excluded)",
+    "clear must be count-based on the 4 VALID events read (malformed excluded)",
   );
-  ok("last-9-digit matching, per-contact batched PATCH, count-based clear");
+  ok("last-9-digit matching, per-contact batched POST, unknowns kept, count clear");
 
-  // --- dedupe: a second drain of the same events is a no-op -------------------
+  // --- replay: matched events re-POST (server dedupes), unknowns dedupe -----
   h.queueRaw = JSON.stringify([
     { n: "(555) 000-1111", ts: t1 },
-    { n: "(555) 000-1111", ts: t1 }, // queued twice in one batch too
+    { n: "+15559999999", ts: t3 }, // same unknown ring again
   ]);
-  h.patches.length = 0;
-  assert.equal(await h.drain(), 0, "already-recorded rings must log nothing");
-  assert.equal(h.patches.length, 0, "no PATCH when every line already exists");
+  h.posts.length = 0;
+  assert.equal(
+    await h.drain(),
+    1,
+    "a replay logs only the re-POSTed matched event (unknown dedupes locally)",
+  );
+  assert.equal(
+    h.posts.length,
+    1,
+    "matched replays still POST — the server dedupes on (contact, number, occurred_at)",
+  );
+  assert.deepEqual(
+    h.unknownCalls(),
+    [{ number: "+15559999999", ts: t3 }],
+    "unknown callers dedupe on (number, ts) — no duplicate entry",
+  );
   assert.deepEqual(
     h.cleared,
     [4, 2],
-    "the queue still clears — the events ARE persisted (from the prior drain)",
+    "the queue still clears — every event IS persisted somewhere",
   );
-  ok("note dedupe: duplicate rings never re-PATCH, queue still clears");
+  ok("replay: matched events re-POST for server dedupe, unknowns dedupe locally");
 }
 
-// --- partial failure: queue must NOT clear when a PATCH fails ----------------
+// --- partial failure: queue must NOT clear when a POST fails ------------------
 {
   const h = mount();
   h.contacts = [
-    { id: 1, notes: "", phones: [{ value_e164: "+15550000001", value: null }] },
-    { id: 2, notes: "", phones: [{ value_e164: "+15550000002", value: null }] },
+    { id: 1, phones: [{ value_e164: "+15550000001", value: null }] },
+    { id: 2, phones: [{ value_e164: "+15550000002", value: null }] },
   ];
-  h.failPatchFor.add(2);
+  h.failPostFor.add(2);
   const ts = Date.UTC(2026, 6, 21, 9, 0);
   h.queueRaw = JSON.stringify([
     { n: "+15550000001", ts },
     { n: "+15550000002", ts },
   ]);
-  assert.equal(await h.drain(), 0, "a failed PATCH must abort with 0");
+  assert.equal(await h.drain(), 0, "a failed POST must abort with 0");
   assert.deepEqual(
     h.cleared,
     [],
-    "the queue must NOT clear when any PATCH fails — events retry next foreground",
+    "the queue must NOT clear when any POST fails — events retry next foreground",
   );
-  // Retry after the API recovers: the already-persisted contact dedupes, the
-  // failed one finally lands, and only then does the queue clear.
-  h.failPatchFor.clear();
-  assert.equal(await h.drain(), 1, "the retry must log only the missing event");
+  // Retry after the API recovers: everything lands (the server dedupes the
+  // replayed contact-1 call) and only then does the queue clear.
+  h.failPostFor.clear();
+  assert.equal(await h.drain(), 2, "the retry must persist both events");
   assert.deepEqual(h.cleared, [2], "the retry clears the full drained count");
-  assert.equal(
-    h.patches.filter((p) => p.id === 1).length,
-    1,
-    "the contact persisted before the failure must not be PATCHed again",
-  );
-  ok("partial failure keeps the queue; retry dedupes and then clears");
+  ok("partial failure keeps the queue; retry lands everything and then clears");
 }
 
 // --- in-flight guard ----------------------------------------------------------
 {
   const h = mount();
   h.contacts = [
-    { id: 3, notes: "", phones: [{ value_e164: "+15550000003", value: null }] },
+    { id: 3, phones: [{ value_e164: "+15550000003", value: null }] },
   ];
   h.queueRaw = JSON.stringify([{ n: "+15550000003", ts: 1_000 }]);
   let release;
@@ -346,7 +374,7 @@ const line = (n, ts) => {
   assert.equal(h.queueReads, 1, "the concurrent call must not re-read the queue");
   release();
   assert.equal(await first, 1, "the original drain still completes");
-  // Guard released: a later drain runs again (and dedupes to 0).
+  // Guard released: a later drain runs again.
   h.listGate = null;
   await h.drain();
   assert.equal(h.queueReads, 2, "the guard must release after the drain settles");

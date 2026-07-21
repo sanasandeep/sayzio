@@ -99,7 +99,12 @@ export function useContactAutoSync(
       // contacts even while the app is dead. Android-only no-ops elsewhere;
       // throttled internally.
       void flushPendingSpamReports();
-      void drainIdentifiedCalls();
+      void drainIdentifiedCalls().then((logged) => {
+        if (mounted && logged > 0) {
+          qc.invalidateQueries({ queryKey: ["contacts"] });
+          qc.invalidateQueries({ queryKey: ["contact"] });
+        }
+      });
       void syncCallerDirectory({ force: changed });
     };
 
