@@ -16,6 +16,7 @@ use App\Services\AI\AiUsageCharger;
 use App\Services\AI\InsufficientCoinsForAiException;
 use App\Services\Brand\AiBrandKitService;
 use App\Services\Brand\BrandConsistencyService;
+use App\Services\Brand\BrandKitAssetService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -41,6 +42,7 @@ class BrandKitController extends Controller
         protected AiBrandKitService $kits,
         protected AiUsageCharger $credits,
         protected AiMindQueryService $minds,
+        protected BrandKitAssetService $assets,
     ) {}
 
     public function index(Request $request)
@@ -104,6 +106,7 @@ class BrandKitController extends Controller
             'platformMind' => $this->platformMind(),
             'hasDefault'   => (bool) $default,
             'defaultFeature' => AiBrandKitService::FEATURE,
+            'assetTypes'    => $this->assetTypeOptions($user),
         ]);
     }
 
@@ -173,8 +176,14 @@ class BrandKitController extends Controller
             return response()->json(['message' => $e->getMessage()], 422);
         }
 
+        // Each requested image asset is a separate flat per-generation charge.
+        $assetCost = 0;
+        foreach ($data['asset_types'] as $type) {
+            $assetCost += $this->assets->coinCost($user, $type);
+        }
+
         return response()->json([
-            'estimated_credits' => $cost,
+            'estimated_credits' => $cost + $assetCost,
             'balance'           => $this->credits->getBalance($user),
         ]);
     }
@@ -235,8 +244,32 @@ class BrandKitController extends Controller
             return response()->json(['message' => $e->getMessage()], 422);
         }
 
+        // Generate any requested image assets right after the kit. Each is a
+        // separate charge with its own refund-on-failure inside the service;
+        // one failed image never rolls back the kit or the other images.
+        $assetsSpent  = 0;
+        $assetsDone   = [];
+        $assetErrors  = [];
+        foreach ($data['asset_types'] as $type) {
+            try {
+                $asset = $this->assets->generate($user, $result['kit'], $type);
+                $assetsSpent += (int) $asset->credits_spent;
+                $assetsDone[] = $type;
+            } catch (\Throwable $e) {
+                $label = BrandKitAssetService::TYPES[$type]['label'] ?? $type;
+                $assetErrors[] = $label . ': ' . $e->getMessage();
+                Log::warning('Brand kit inline asset generation failed', ['type' => $type, 'error' => $e->getMessage()]);
+            }
+        }
+        if ($assetsDone) {
+            session()->flash('status', count($assetsDone) . ' brand image' . (count($assetsDone) === 1 ? '' : 's') . ' generated: open the kit\'s Visual assets panel to view them.');
+        }
+        if ($assetErrors) {
+            session()->flash('error', 'Some images could not be generated: ' . implode(' · ', $assetErrors));
+        }
+
         return response()->json([
-            'credits_spent' => (int) $result['credits_spent'] + $kbCreditsSpent,
+            'credits_spent' => (int) $result['credits_spent'] + $kbCreditsSpent + $assetsSpent,
             'balance'       => $this->credits->getBalance($user),
             'kit'           => [
                 'id'     => $result['kit']->id,
@@ -319,6 +352,8 @@ class BrandKitController extends Controller
             'include_platform' => ['nullable', 'boolean'],
             'components'       => ['nullable', 'array'],
             'components.*'     => ['string', 'in:' . implode(',', AiBrandKitService::COMPONENTS)],
+            'asset_types'      => ['nullable', 'array'],
+            'asset_types.*'    => ['string', 'in:' . implode(',', array_keys(BrandKitAssetService::TYPES))],
         ]);
 
         return [
@@ -330,7 +365,33 @@ class BrandKitController extends Controller
             // Empty selection = generate everything (back-compat for callers
             // that never send the field, e.g. the mobile API path).
             'components'       => array_values(array_map('strval', $data['components'] ?? [])),
+            // Optional image assets to generate right after the kit itself
+            // (each is a separate flat coin charge; empty = none).
+            'asset_types'      => array_values(array_unique(array_map('strval', $data['asset_types'] ?? []))),
         ];
+    }
+
+    /**
+     * Image-asset choices for the generate form's "What to include" section.
+     * Empty when image generation is unavailable (engine off / no key) or the
+     * user's plan doesn't include brand asset generation.
+     *
+     * @return list<array{type:string,label:string,cost:int}>
+     */
+    private function assetTypeOptions($user): array
+    {
+        if (!$this->assets->enabled() || !AiPlanAccess::featureAllowed($user, 'brand_kit_assets')) {
+            return [];
+        }
+        $out = [];
+        foreach (BrandKitAssetService::TYPES as $type => $meta) {
+            $out[] = [
+                'type'  => $type,
+                'label' => $meta['label'],
+                'cost'  => $this->assets->coinCost($user, $type),
+            ];
+        }
+        return $out;
     }
 
     /** @return \Illuminate\Support\Collection<int,AiMind> */

@@ -165,6 +165,24 @@
                     @endforeach
                 </div>
                 <p class="text-[11px] text-white/35 mt-1">Untick anything you don't need: the kit will only generate what's selected.</p>
+
+                @if (!empty($assetTypes))
+                    {{-- AI-generated brand images (Task #5612 asset engine surfaced
+                         at generate time). Each is a separate flat coin charge, so
+                         they default to off; the estimate includes ticked ones. --}}
+                    <label class="block text-xs text-white/50 mt-3 mb-1.5">Brand images <span class="text-white/30">(optional, extra coins each)</span></label>
+                    <div class="flex flex-wrap gap-2">
+                        @foreach ($assetTypes as $at)
+                            <label class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs cursor-pointer select-none transition-colors"
+                                   :class="assetTypes.{{ $at['type'] }} ? 'border-primary-400/40 bg-primary-500/10 text-white/90' : 'border-white/10 bg-black/20 text-white/50 hover:text-white/70'">
+                                <input type="checkbox" x-model="assetTypes.{{ $at['type'] }}"
+                                       class="rounded border-white/20 bg-black/30 text-primary-500 focus:ring-primary-400">
+                                {{ $at['label'] }} <span class="text-white/35">· {{ $at['cost'] }}c</span>
+                            </label>
+                        @endforeach
+                    </div>
+                    <p class="text-[11px] text-white/35 mt-1">Ticked images are generated with the kit and appear in its Visual assets panel. You can also generate or redo any of them later from the kit.</p>
+                @endif
             </div>
 
             {{-- Knowledge base picker. Its own <form> so the save/clear
@@ -374,6 +392,8 @@ function brandKits() {
         // Output selection. Palette is always generated server-side; the
         // rest map to the "What to include" checkboxes above.
         components: { fonts: true, voice: true, taglines: true, bio: true, block_theme: true },
+        // Optional AI brand images (all off by default — each costs coins).
+        assetTypes: { @foreach ($assetTypes as $at){{ $at['type'] }}: false, @endforeach },
         busy: false,
         error: '',
         estimateText: '',
@@ -390,7 +410,8 @@ function brandKits() {
             const components = ['palette'].concat(
                 Object.keys(this.components).filter(k => this.components[k])
             );
-            return { ...this.form, mind_ids, include_platform, components };
+            const asset_types = Object.keys(this.assetTypes).filter(k => this.assetTypes[k]);
+            return { ...this.form, mind_ids, include_platform, components, asset_types };
         },
         async estimate() {
             this.error = '';
