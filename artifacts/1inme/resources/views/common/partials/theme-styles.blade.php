@@ -950,10 +950,10 @@
 <script>
 (function(){
     var css = `
-        html.light-mode [class*="text-white"]:not([class*="bg-indigo-"]):not([class*="bg-blue-"]):not([class*="bg-fuchsia-"]):not([class*="bg-emerald-"]):not([class*="bg-red-"]):not([class*="bg-rose-"]):not([class*="bg-gradient"]):not(.toggle-knob):not([class*="bg-amber-"]):not([class*="bg-orange-"]):not([class*="bg-blue-"]):not([class*="bg-sky-"]):not([class*="bg-green-"]):not([class*="bg-teal-"]):not([class*="bg-lime-"]):not([class*="bg-pink-"]):not([class*="bg-yellow-"]):not([class*="bg-cyan-"]):not([class*="bg-indigo-"]):not(.btn-primary) {
+        html.light-mode [class*="text-white"]:not([class*="bg-indigo-"]):not([class*="bg-blue-"]):not([class*="bg-fuchsia-"]):not([class*="bg-emerald-"]):not([class*="bg-red-"]):not([class*="bg-rose-"]):not([class*="bg-gradient"]):not(.toggle-knob):not([class*="bg-amber-"]):not([class*="bg-orange-"]):not([class*="bg-blue-"]):not([class*="bg-sky-"]):not([class*="bg-green-"]):not([class*="bg-teal-"]):not([class*="bg-lime-"]):not([class*="bg-pink-"]):not([class*="bg-yellow-"]):not([class*="bg-cyan-"]):not([class*="bg-indigo-"]):not([class*="bg-primary-"]):not(.btn-primary) {
             color: var(--text-primary) !important;
         }
-        html.light-mode [class*="text-white/"]:not([class*="bg-indigo-"]):not([class*="bg-blue-"]):not([class*="bg-fuchsia-"]):not([class*="bg-emerald-"]):not([class*="bg-red-"]):not([class*="bg-rose-"]):not([class*="bg-gradient"]):not(.toggle-knob):not([class*="bg-amber-"]):not([class*="bg-orange-"]):not([class*="bg-blue-"]):not([class*="bg-sky-"]):not([class*="bg-green-"]):not([class*="bg-teal-"]):not([class*="bg-lime-"]):not([class*="bg-pink-"]):not([class*="bg-yellow-"]):not([class*="bg-cyan-"]):not([class*="bg-indigo-"]):not(.btn-primary) {
+        html.light-mode [class*="text-white/"]:not([class*="bg-indigo-"]):not([class*="bg-blue-"]):not([class*="bg-fuchsia-"]):not([class*="bg-emerald-"]):not([class*="bg-red-"]):not([class*="bg-rose-"]):not([class*="bg-gradient"]):not(.toggle-knob):not([class*="bg-amber-"]):not([class*="bg-orange-"]):not([class*="bg-blue-"]):not([class*="bg-sky-"]):not([class*="bg-green-"]):not([class*="bg-teal-"]):not([class*="bg-lime-"]):not([class*="bg-pink-"]):not([class*="bg-yellow-"]):not([class*="bg-cyan-"]):not([class*="bg-indigo-"]):not([class*="bg-primary-"]):not(.btn-primary) {
             color: var(--text-muted) !important;
         }
         html.light-mode [class*="text-white/8"],
