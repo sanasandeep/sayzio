@@ -2,7 +2,6 @@
   "description": "Single source of truth for the status-check names that branch protection marks as *required*. The scripts/src/check-ci-passthrough-names.ts guard asserts every name below is (a) produced by some real guard job AND (b) covered by a passthrough companion, across ALL workflows in .github/workflows/. If a whole safety workflow is deleted or renamed so that a required name no longer has a producer, the guard fails loudly instead of letting the required-check deadlock silently return. When you add or remove a required check in branch protection, update this list in the same PR. After editing this list, run `pnpm --filter @workspace/scripts run sync:branch-protection` (scripts/src/sync-branch-protection.ts) to push the contexts to GitHub's live branch-protection settings — the JSON and GitHub are two separate copies and drift silently otherwise.",
   "requiredChecks": [
     "migrate cycle (PostgreSQL)",
-    "migrate cycle (MySQL)",
     "php artisan test against PostgreSQL",
     "Dev-database safety net guard",
     "PHP 8.4 deprecation guard",

@@ -230,7 +230,7 @@ jobs:
         run: php artisan migrate --force
 
   # Passthrough companion: reports the SAME check names as the real `migrate`
-  # job ("migrate cycle (PostgreSQL)" / "migrate cycle (MySQL)") as green when
+  # job ("migrate cycle (PostgreSQL)") as green when
   # the PR touches nothing under artifacts/1inme/**. This is what makes the
   # checks safe to mark as *required* — every PR always gets a status for each
   # required name, so unrelated PRs never deadlock. When the real guard runs
@@ -244,8 +244,9 @@ jobs:
     strategy:
       matrix:
         # Must mirror the display names produced by the real `migrate` matrix
-        # above so the reported check names match exactly.
-        display_name: [PostgreSQL, MySQL]
+        # above so the reported check names match exactly. (MySQL leg removed
+        # alongside the real job — production is PostgreSQL-only.)
+        display_name: [PostgreSQL]
     steps:
       - name: No 1inme changes — migration cycle not required for this PR
         run: |
