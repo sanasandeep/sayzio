@@ -13,7 +13,7 @@
             <p class="text-[11px] text-white/40 mt-1">{{ $used }} of {{ $caps['max_personas_per_user'] == -1 ? '∞' : $caps['max_personas_per_user'] }} used &middot; up to {{ $caps['max_minds_per_persona'] }} AI Minds per AI agent</p>
         </div>
         @if($caps['max_personas_per_user'] == -1 || $used < $caps['max_personas_per_user'])
-            <a href="{{ route('user.ai-personas.create') }}" class="px-4 py-2 rounded-xl bg-pink-600 hover:bg-pink-500 text-white text-sm">
+            <a href="{{ route('user.ai-personas.create') }}" class="btn-primary text-sm">
                 <i class="fas fa-plus"></i> New AI Agent
             </a>
         @endif
@@ -21,10 +21,10 @@
 
     @if($personas->isEmpty())
         <div class="rounded-2xl border border-white/10 bg-white/[0.03] p-10 text-center">
-            <i class="fas fa-user-astronaut text-4xl text-pink-400/70"></i>
+            <i class="fas fa-user-astronaut text-4xl text-blue-400/70"></i>
             <p class="mt-3 text-white font-semibold">No AI agents yet.</p>
             <p class="text-sm text-white/50 mt-1">Create one from a starter template, then attach the AI Minds it should know.</p>
-            <a href="{{ route('user.ai-personas.create') }}" class="inline-block mt-4 px-4 py-2 rounded-xl bg-pink-600 hover:bg-pink-500 text-white text-sm">
+            <a href="{{ route('user.ai-personas.create') }}" class="btn-primary inline-flex mt-4 text-sm">
                 <i class="fas fa-plus"></i> Create your first AI Agent
             </a>
         </div>
@@ -36,13 +36,13 @@
                         @if($p->avatar_url)
                             <img src="{{ $p->avatar_url }}" alt="" class="w-12 h-12 rounded-xl object-cover border border-white/10">
                         @else
-                            <div class="w-12 h-12 rounded-xl bg-pink-500/10 border border-pink-500/20 flex items-center justify-center text-pink-300">
+                            <div class="w-12 h-12 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-300">
                                 <i class="fas fa-user-astronaut"></i>
                             </div>
                         @endif
                         <div class="flex-1 min-w-0">
                             <div class="flex items-center gap-2">
-                                <a href="{{ route('user.ai-personas.edit', $p) }}" class="text-white font-semibold truncate hover:text-pink-300">{{ $p->name }}</a>
+                                <a href="{{ route('user.ai-personas.edit', $p) }}" class="text-white font-semibold truncate hover:text-blue-300">{{ $p->name }}</a>
                                 @if($p->is_disabled)
                                     <span class="text-[10px] px-2 py-0.5 rounded-full bg-red-500/10 text-red-300 border border-red-500/20">Disabled</span>
                                 @endif
@@ -84,7 +84,7 @@
                     @if($p->avatar_url)
                         <img src="{{ $p->avatar_url }}" alt="" class="w-12 h-12 rounded-xl object-cover border border-white/10">
                     @else
-                        <div class="w-12 h-12 rounded-xl bg-pink-500/10 border border-pink-500/20 flex items-center justify-center text-pink-300">
+                        <div class="w-12 h-12 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-300">
                             <i class="fas fa-user-astronaut"></i>
                         </div>
                     @endif

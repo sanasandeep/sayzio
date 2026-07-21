@@ -201,7 +201,10 @@ class AiResourceShareService
     {
         $aud = $this->audiencesForUser($user);
         if (empty($aud['workspace']) && empty($aud['badge'])) {
-            return collect();
+            // Return an Eloquent collection (not a base Support collection) so
+            // callers can chain Eloquent-only methods like loadCount() without
+            // a BadMethodCallException when the user has no share audiences.
+            return new \Illuminate\Database\Eloquent\Collection();
         }
 
         $shares = AiResourceShare::query()
@@ -213,7 +216,8 @@ class AiResourceShareService
         $shares = $this->filterByOwnerAudience($shares);
 
         if ($shares->isEmpty()) {
-            return collect();
+            // Eloquent collection for the same reason as the guard above.
+            return new \Illuminate\Database\Eloquent\Collection();
         }
 
         // Highest access wins when a resource reaches the user via

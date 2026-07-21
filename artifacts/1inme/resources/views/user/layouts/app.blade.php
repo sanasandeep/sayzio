@@ -1370,7 +1370,7 @@
                         </div>
                     </div>
 
-                    <a href="{{ route('user.links.create') }}" class="btn-primary hidden sm:inline-flex items-center gap-1.5 text-xs px-3.5 py-2 whitespace-nowrap">
+                    <a href="{{ route('user.links.create') }}" class="btn-primary btn-primary-gradient hidden sm:inline-flex items-center gap-1.5 text-xs px-3.5 py-2 whitespace-nowrap">
                         <i class="fas fa-plus" style="font-size: 9px;"></i>
                         <span>New Link</span>
                     </a>
