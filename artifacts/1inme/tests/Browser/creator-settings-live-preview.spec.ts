@@ -428,3 +428,74 @@ test("full-screen preview honors the theme toggle and closes back to the small p
   await overlay.locator("button", { hasText: "Close" }).click();
   await expect(overlay).toBeHidden({ timeout: 15_000 });
 });
+
+// ── Accent color: pick then clear ───────────────────────────────────────
+//
+// The cpLive listener sets --cp-accent/--cp-accent-soft/--cp-accent-mid as
+// inline vars on <html> when a #RRGGBB color arrives. Clearing the field
+// ("Reset to default") sends color: '' — the listener must REMOVE those
+// inline vars so the preview falls back to the server-rendered state
+// (default gradient), matching what would actually be saved. Before the
+// fix, the empty string was silently ignored and the preview kept the last
+// picked color until reload.
+
+test("clearing the accent color resets the preview's inline accent vars", async ({
+  page,
+}) => {
+  test.setTimeout(240_000);
+
+  // Ensure the demo user has a handle (no handle → no preview iframe) and
+  // starts with NO saved accent color, so the server renders no inline
+  // --cp-accent and the cleared state is distinguishable.
+  runTinkerSeed(
+    `$u = \\App\\Modules\\User\\Models\\User::where('email', '${DEMO_LOGIN_EMAIL}')->first();` +
+      `if ($u) { if (empty($u->handle)) { $u->handle = 'demo_cp_' . $u->id; }` +
+      `$u->profile_theme_color = null; $u->save(); echo 'OK'; }`,
+  );
+
+  await loginAsDemo(page);
+  await page.goto("/user/settings/creator", {
+    waitUntil: "domcontentloaded",
+    timeout: 180_000,
+  });
+
+  const aside = page.locator('aside:has-text("Live preview")').first();
+  await expect(aside).toBeVisible({ timeout: 30_000 });
+  const iframe = aside.locator("iframe");
+  await expect(iframe).toHaveCount(1, { timeout: 30_000 });
+
+  const accentVars = async () => {
+    const frame = page.frames().find((f) => f.url().includes("cp_preview=1"));
+    if (!frame) return null;
+    return frame.evaluate(() => {
+      const s = document.documentElement.style;
+      return {
+        accent: s.getPropertyValue("--cp-accent").trim(),
+        soft: s.getPropertyValue("--cp-accent-soft").trim(),
+        mid: s.getPropertyValue("--cp-accent-mid").trim(),
+      };
+    });
+  };
+
+  // Wait for the preview frame to exist (cold render over distant RDS).
+  await expect
+    .poll(accentVars, { timeout: 120_000 })
+    .toEqual(expect.objectContaining({ accent: "" }));
+
+  // Pick a preset swatch (buttons are titled with their hex).
+  const swatchHex = "#e11d48";
+  await page.locator(`button[title="${swatchHex}"]`).click();
+  await expect.poll(accentVars, { timeout: 30_000 }).toEqual({
+    accent: swatchHex,
+    soft: swatchHex + "33",
+    mid: swatchHex + "88",
+  });
+
+  // Clear it — the inline vars must be removed, not left stale.
+  await page.getByRole("button", { name: "Reset to default" }).click();
+  await expect.poll(accentVars, { timeout: 30_000 }).toEqual({
+    accent: "",
+    soft: "",
+    mid: "",
+  });
+});

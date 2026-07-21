@@ -848,11 +848,20 @@
         txt('bio', d.bio);
         var bioSec = document.querySelector('[data-cp="bio-section"]');
         if (bioSec) bioSec.style.display = d.bio ? '' : 'none';
-        if (typeof d.color === 'string' && /^#[0-9a-fA-F]{6}$/.test(d.color)) {
+        if (typeof d.color === 'string') {
             var r = document.documentElement.style;
-            r.setProperty('--cp-accent', d.color);
-            r.setProperty('--cp-accent-soft', d.color + '33');
-            r.setProperty('--cp-accent-mid', d.color + '88');
+            if (/^#[0-9a-fA-F]{6}$/.test(d.color)) {
+                r.setProperty('--cp-accent', d.color);
+                r.setProperty('--cp-accent-soft', d.color + '33');
+                r.setProperty('--cp-accent-mid', d.color + '88');
+            } else if (d.color === '') {
+                // Cleared in the editor: drop the inline overrides so the
+                // preview falls back to the server-rendered value (or the
+                // default gradient), matching what would actually be saved.
+                r.removeProperty('--cp-accent');
+                r.removeProperty('--cp-accent-soft');
+                r.removeProperty('--cp-accent-mid');
+            }
         }
     });
 })();
