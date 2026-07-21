@@ -8,6 +8,7 @@ use App\Modules\User\Models\Form;
 use App\Modules\User\Models\Link;
 use App\Modules\User\Models\QrCode;
 use App\Modules\User\Models\User;
+use App\Services\AI\AiEngineSettings;
 use App\Services\AI\AiUsageCharger;
 use App\Services\AI\OpenAiService;
 use App\Services\Brand\AiBrandStudioService;
@@ -70,8 +71,9 @@ class AiBrandStudioTest extends TestCase
     private function makeUser(Plan $plan): User
     {
         return User::factory()->create([
-            'role'    => 'user',
-            'plan_id' => $plan->id,
+            'role'         => 'user',
+            'plan_id'      => $plan->id,
+            'onboarded_at' => now(),
         ])->fresh();
     }
 
@@ -236,5 +238,144 @@ class AiBrandStudioTest extends TestCase
 
         $none = $this->makeUser($this->plan(['max_brand_studio_bulk' => 0]));
         $this->assertSame(0, AiBrandStudioService::bulkCap($none));
+    }
+
+    // ── 6. estimate endpoints mirror the real charge (Task #5569) ──────
+    //
+    // The web + API estimate endpoints must return exactly what
+    // AiBrandStudioService::estimateCredits() computes for the same
+    // payload — that method routes through the same estimateChatCoins /
+    // per-plan multiplier path the real charge uses, so asserting
+    // endpoint === service pins the "displayed price never drifts from
+    // the charged price" contract.
+
+    private const ESTIMATE_INLINE = ['name' => '', 'colors' => '', 'voice' => '', 'description' => ''];
+
+    /** Service-computed estimate for the same args the controllers pass. */
+    private function expectedEstimate(User $user, string $request, string $mode = 'kit', ?string $bulkKind = null, int $bulkCount = 5): int
+    {
+        $svc   = $this->service();
+        $brand = $svc->resolveBrand($user, null, self::ESTIMATE_INLINE);
+        return $svc->estimateCredits($user, $request, $brand['directives'], $mode, $bulkKind, $bulkCount);
+    }
+
+    public function test_web_estimate_matches_service_and_returns_balance(): void
+    {
+        AiEngineSettings::setEnabled(true);
+        $user = $this->makeUser($this->plan());
+
+        $resp = $this->actingAs($user)->postJson('/user/brand-studio/estimate', [
+            'request' => 'Launch our summer sale.',
+        ]);
+
+        $resp->assertOk();
+        $expected = $this->expectedEstimate($user, 'Launch our summer sale.');
+        $this->assertGreaterThan(0, $expected, 'estimate should be non-zero with the engine on');
+        $this->assertSame($expected, $resp->json('estimated_credits'));
+        $this->assertIsInt($resp->json('balance'));
+    }
+
+    public function test_web_estimate_bulk_mode_reflects_bulk_prompt(): void
+    {
+        AiEngineSettings::setEnabled(true);
+        $user = $this->makeUser($this->plan());
+
+        // Sanity: the bulk prompt really is different from the kit prompt
+        // for the same brief, so a bulk estimate reflects bulk pricing.
+        $svc = $this->service();
+        $bulkMessages = $svc->buildMessages($user, 'Promo links for our summer sale.', '', 'bulk', 'short_link', 10);
+        $this->assertStringContainsString(
+            'exactly 10 DISTINCT',
+            implode("\n", array_column($bulkMessages, 'content')),
+        );
+
+        $resp = $this->actingAs($user)->postJson('/user/brand-studio/estimate', [
+            'request'    => 'Promo links for our summer sale.',
+            'mode'       => 'bulk',
+            'bulk_kind'  => 'short_link',
+            'bulk_count' => 10,
+        ]);
+
+        $resp->assertOk();
+        $expected = $this->expectedEstimate($user, 'Promo links for our summer sale.', 'bulk', 'short_link', 10);
+        $this->assertGreaterThan(0, $expected);
+        $this->assertSame($expected, $resp->json('estimated_credits'));
+        $this->assertIsInt($resp->json('balance'));
+    }
+
+    public function test_web_estimate_gated_by_engine_and_plan_flags(): void
+    {
+        // Engine off → 404 even for an allowed plan.
+        AiEngineSettings::setEnabled(false);
+        $allowed = $this->makeUser($this->plan());
+        $this->actingAs($allowed)
+            ->postJson('/user/brand-studio/estimate', ['request' => 'Launch our summer sale.'])
+            ->assertStatus(404);
+
+        // Engine on but the plan disables brand_studio → 403.
+        AiEngineSettings::setEnabled(true);
+        $blocked = $this->makeUser($this->plan(['brand_studio' => false]));
+        $this->actingAs($blocked)
+            ->postJson('/user/brand-studio/estimate', ['request' => 'Launch our summer sale.'])
+            ->assertStatus(403);
+    }
+
+    public function test_api_estimate_matches_service_and_returns_balance(): void
+    {
+        AiEngineSettings::setEnabled(true);
+        $user = $this->makeUser($this->plan());
+        $this->withToken($user->createToken('test')->plainTextToken);
+
+        $resp = $this->postJson('/api/v1/brand-studio/estimate', [
+            'request' => 'Launch our summer sale.',
+        ]);
+
+        $resp->assertOk();
+        $expected = $this->expectedEstimate($user, 'Launch our summer sale.');
+        $this->assertGreaterThan(0, $expected);
+        $this->assertSame($expected, $resp->json('data.estimated_credits'));
+        $this->assertIsInt($resp->json('data.balance'));
+        $this->flushHeaders();
+    }
+
+    public function test_api_estimate_bulk_mode_matches_service(): void
+    {
+        AiEngineSettings::setEnabled(true);
+        $user = $this->makeUser($this->plan());
+        $this->withToken($user->createToken('test')->plainTextToken);
+
+        $resp = $this->postJson('/api/v1/brand-studio/estimate', [
+            'request'    => 'Promo links for our summer sale.',
+            'mode'       => 'bulk',
+            'bulk_kind'  => 'short_link',
+            'bulk_count' => 10,
+        ]);
+
+        $resp->assertOk();
+        $expected = $this->expectedEstimate($user, 'Promo links for our summer sale.', 'bulk', 'short_link', 10);
+        $this->assertSame($expected, $resp->json('data.estimated_credits'));
+        $this->assertIsInt($resp->json('data.balance'));
+        $this->flushHeaders();
+    }
+
+    public function test_api_estimate_gated_by_engine_and_plan_flags(): void
+    {
+        // Engine off → 404 with the error envelope.
+        AiEngineSettings::setEnabled(false);
+        $allowed = $this->makeUser($this->plan());
+        $this->withToken($allowed->createToken('test')->plainTextToken);
+        $off = $this->postJson('/api/v1/brand-studio/estimate', ['request' => 'Launch our summer sale.']);
+        $off->assertStatus(404);
+        $this->assertSame('ai_disabled', $off->json('error.code'));
+        $this->flushHeaders();
+
+        // Engine on, plan disables brand_studio → plan-gate envelope.
+        AiEngineSettings::setEnabled(true);
+        $blocked = $this->makeUser($this->plan(['brand_studio' => false]));
+        $this->withToken($blocked->createToken('test')->plainTextToken);
+        $gated = $this->postJson('/api/v1/brand-studio/estimate', ['request' => 'Launch our summer sale.']);
+        $gated->assertStatus(402);
+        $this->assertSame('plan_upgrade_required', $gated->json('error.code'));
+        $this->flushHeaders();
     }
 }
