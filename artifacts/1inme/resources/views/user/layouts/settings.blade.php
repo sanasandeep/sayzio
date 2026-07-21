@@ -92,8 +92,8 @@
         .settings-tab:hover { color: var(--text-strong); border-color: var(--border-glass-light); }
         .settings-tab.active {
             color: #fff;
-            background: var(--color-primary-600, #2563eb);
-            border-color: var(--color-primary-600, #2563eb);
+            background: var(--accent, #2563eb);
+            border-color: var(--accent, #2563eb);
         }
         html.light-mode .settings-tab.active { color: #fff; }
         .settings-subtab {
