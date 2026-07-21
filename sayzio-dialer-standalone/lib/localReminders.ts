@@ -14,6 +14,15 @@ import { listNotes } from "@/lib/api/notes";
  * simulators are no-ops — this is a progressive enhancement, never required.
  */
 
+/**
+ * Notification category for note/to-do reminders: adds a "Mark done" quick
+ * action (registered in lib/push.ts) so the reminder can be completed
+ * straight from the notification shade. Lives here (not push.ts) because
+ * push.ts imports this module — keeping the constants here avoids a cycle.
+ */
+export const NOTE_REMINDER_CATEGORY = "note-reminder";
+export const NOTE_MARK_DONE_ACTION = "note-mark-done";
+
 const noteReminderId = (noteId: number) => `dialer-note-${noteId}`;
 
 async function canSchedule(): Promise<boolean> {
@@ -51,6 +60,7 @@ export async function syncNoteAlarm(
         title,
         body: body ?? undefined,
         data: { type: "dialer.note_due", note_id: noteId },
+        categoryIdentifier: NOTE_REMINDER_CATEGORY,
       },
       trigger: {
         type: Notifications.SchedulableTriggerInputTypes.DATE,

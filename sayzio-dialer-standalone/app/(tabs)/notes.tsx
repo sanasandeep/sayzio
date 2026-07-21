@@ -1,5 +1,6 @@
 import { Feather } from "@expo/vector-icons";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { router, useLocalSearchParams } from "expo-router";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -99,6 +100,14 @@ export default function NotesScreen() {
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
 
+  // Reminder deep-link (notification tap → this tab with ?noteId=…).
+  // `openedAt` changes per tap so re-tapping the same reminder re-fires
+  // the effect even when noteId is unchanged.
+  const params = useLocalSearchParams<{ noteId?: string; openedAt?: string }>();
+  const [highlightId, setHighlightId] = useState<number | null>(null);
+  const listRef = useRef<FlatList | null>(null);
+  const handledDeepLink = useRef<string | null>(null);
+
   const load = useCallback(async () => {
     try {
       const res = await listNotes();
@@ -138,7 +147,7 @@ export default function NotesScreen() {
     setEditorOpen(true);
   };
 
-  const openEdit = (n: DialerNote) => {
+  const openEdit = useCallback((n: DialerNote) => {
     setEditor({
       id: n.id,
       kind: n.kind === "checklist" ? "checklist" : "note",
@@ -155,7 +164,7 @@ export default function NotesScreen() {
     });
     setSaveError(null);
     setEditorOpen(true);
-  };
+  }, []);
 
   const setEditorKind = (kind: "note" | "checklist") => {
     setEditor((e) => ({
@@ -336,7 +345,44 @@ export default function NotesScreen() {
     return out;
   }, [notes, shared]);
 
+  // Reminder deep-link: a tapped notification lands here with ?noteId=….
+  // Own notes open the editor sheet directly (mark done / snooze / edit in
+  // one tap); shared/foreign notes just scroll into view + flash-highlight.
+  useEffect(() => {
+    const rawNoteId = typeof params.noteId === "string" ? params.noteId : null;
+    if (!rawNoteId || loading) return;
+    const tapKey = `${rawNoteId}:${typeof params.openedAt === "string" ? params.openedAt : ""}`;
+    if (handledDeepLink.current === tapKey) return;
+    const noteId = Number(rawNoteId);
+    if (!Number.isFinite(noteId)) return;
+
+    const own = notes.find((n) => n.id === noteId);
+    const foreign = shared.find((n) => n.id === noteId);
+    if (!own && !foreign) return; // list may still be refreshing — retry on next load
+    handledDeepLink.current = tapKey;
+
+    // Consume the param so backing out / re-rendering doesn't re-trigger.
+    router.setParams({ noteId: undefined, openedAt: undefined });
+
+    const idx = rows.findIndex(
+      (r) => r.type === "note" && r.note.id === noteId,
+    );
+    if (idx >= 0) {
+      listRef.current?.scrollToIndex({
+        index: idx,
+        viewPosition: 0.3,
+        animated: true,
+      });
+    }
+    setHighlightId(noteId);
+    const timer = setTimeout(() => setHighlightId(null), 2400);
+
+    if (own) openEdit(own);
+    return () => clearTimeout(timer);
+  }, [params.noteId, params.openedAt, loading, notes, shared, rows, openEdit]);
+
   const renderNote = (n: DialerNote) => {
+    const highlighted = highlightId === n.id;
     const when = formatWhen(n.remind_at);
     const overdue =
       !!n.remind_at && !n.done && new Date(n.remind_at).getTime() < Date.now();
@@ -349,10 +395,12 @@ export default function NotesScreen() {
         style={[
           styles.card,
           {
-            backgroundColor: colors.card,
-            borderColor: colors.border,
-            borderLeftColor: n.color ?? colors.border,
-            borderLeftWidth: n.color ? 3 : 1,
+            backgroundColor: highlighted ? `${colors.primary}18` : colors.card,
+            borderColor: highlighted ? colors.primary : colors.border,
+            borderLeftColor: highlighted
+              ? colors.primary
+              : (n.color ?? colors.border),
+            borderLeftWidth: n.color || highlighted ? 3 : 1,
             opacity: n.done ? 0.6 : 1,
           },
         ]}
@@ -516,8 +564,23 @@ export default function NotesScreen() {
         </ScrollView>
       ) : (
         <FlatList
+          ref={listRef}
           data={rows}
           keyExtractor={(r) => r.key}
+          onScrollToIndexFailed={({ index, averageItemLength }) => {
+            // Rows aren't measured yet — approximate, then retry once.
+            listRef.current?.scrollToOffset({
+              offset: index * (averageItemLength || 90),
+              animated: true,
+            });
+            setTimeout(() => {
+              listRef.current?.scrollToIndex({
+                index,
+                viewPosition: 0.3,
+                animated: true,
+              });
+            }, 250);
+          }}
           contentContainerStyle={{ padding: 16, paddingBottom: 96, gap: 10 }}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
