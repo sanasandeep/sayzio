@@ -124,17 +124,10 @@ jobs:
             db_username: postgres
             db_password: password
             health_cmd: pg_isready -U postgres
-          - driver: mysql
-            display_name: MySQL
-            image: mysql:8.0
-            port: 3306
-            php_db_extensions: pdo_mysql, mysqli
-            db_username: root
-            db_password: password
-            # `mysqladmin ping` succeeds as soon as the server is accepting
-            # connections, which is what we actually care about (vs. just the
-            # port being bound).
-            health_cmd: mysqladmin ping -h 127.0.0.1 -uroot -ppassword --silent
+          # The MySQL leg was removed: production runs PostgreSQL only, and
+          # many migrations intentionally use Postgres-specific features
+          # (trigram/GIN indexes, jsonb, pg_indexes lookups), so a MySQL
+          # matrix entry can never go green without contorting real code.
 
     services:
       # Single logical "db" service whose image and health probe come from
