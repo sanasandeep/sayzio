@@ -19,14 +19,18 @@ import { EmptyState } from "@/components/EmptyState";
 import { TextField } from "@/components/TextField";
 import { useColors } from "@/hooks/useColors";
 import {
+  dismissUnknownCall,
+  dismissUnknownCallsForNumber,
   flushPendingSpamReports,
   getCallerIdStatus,
+  getUnknownCalls,
   openOverlaySettings,
   requestCallScreeningRole,
   setCallerIdEnabled,
   showTestAlert,
   syncCallerDirectory,
   type CallerIdStatus,
+  type UnknownCall,
 } from "@/lib/callerId";
 
 const E164 = /^\+[1-9]\d{6,14}$/;
@@ -195,6 +199,103 @@ function LiveCallerIdCard() {
   );
 }
 
+function formatUnknownCallMoment(ts: number): string {
+  const d = new Date(ts);
+  if (Number.isNaN(d.getTime())) return "";
+  return d.toLocaleString(undefined, {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
+/**
+ * Calls from numbers not in contacts, queued natively by the call-screening
+ * service while the app was dead and drained on foreground. Each row offers
+ * "Save as contact" (prefilled new-contact form) or dismiss, so no missed
+ * call is ever lost. Android-only — hidden when empty.
+ */
+function RecentUnknownCallersCard() {
+  const colors = useColors();
+  const router = useRouter();
+  const [calls, setCalls] = useState<UnknownCall[]>([]);
+
+  const refresh = useCallback(() => {
+    void getUnknownCalls().then(setCalls);
+  }, []);
+
+  // The drain runs on foreground (useContactAutoSync) — re-read shortly
+  // after each foreground so freshly drained calls appear.
+  useEffect(() => {
+    refresh();
+    const sub = AppState.addEventListener("change", (s) => {
+      if (s === "active") setTimeout(refresh, 1500);
+    });
+    return () => sub.remove();
+  }, [refresh]);
+
+  if (calls.length === 0) return null;
+
+  const save = (call: UnknownCall) => {
+    // Clear every queued ring from this number — it's about to be saved.
+    void dismissUnknownCallsForNumber(call.number).then(refresh);
+    router.push({ pathname: "/contacts/new", params: { phone: call.number } });
+  };
+
+  const dismiss = (call: UnknownCall) => {
+    void dismissUnknownCall(call).then(refresh);
+  };
+
+  return (
+    <View
+      style={[
+        styles.card,
+        { backgroundColor: colors.card, borderColor: colors.border },
+      ]}
+    >
+      <Text style={[styles.cardTitle, { color: colors.foreground }]}>
+        Calls from unknown numbers
+      </Text>
+      <Text style={[styles.cardSub, { color: colors.mutedForeground }]}>
+        These callers aren't in your contacts yet. Save them so the next call
+        shows who it is.
+      </Text>
+      {calls.map((call) => (
+        <View key={`${call.number}-${call.ts}`} style={styles.unknownRow}>
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.unknownNumber, { color: colors.foreground }]}>
+              {call.number}
+            </Text>
+            <Text
+              style={[styles.unknownMoment, { color: colors.mutedForeground }]}
+            >
+              {formatUnknownCallMoment(call.ts)}
+            </Text>
+          </View>
+          <Pressable
+            onPress={() => save(call)}
+            style={styles.unknownAction}
+            accessibilityLabel={`Save ${call.number} as contact`}
+          >
+            <Text style={[styles.stepAction, { color: colors.primary }]}>
+              Save as contact
+            </Text>
+          </Pressable>
+          <Pressable
+            onPress={() => dismiss(call)}
+            style={styles.unknownDismiss}
+            accessibilityLabel={`Dismiss call from ${call.number}`}
+            hitSlop={8}
+          >
+            <Feather name="x" size={16} color={colors.mutedForeground} />
+          </Pressable>
+        </View>
+      ))}
+    </View>
+  );
+}
+
 export default function CallerIdScreen() {
   const colors = useColors();
   const router = useRouter();
@@ -227,6 +328,8 @@ export default function CallerIdScreen() {
         </Text>
 
         <LiveCallerIdCard />
+
+        <RecentUnknownCallersCard />
 
         <View style={styles.field}>
           <TextField
@@ -309,4 +412,17 @@ const styles = StyleSheet.create({
     lineHeight: 17,
     fontFamily: "SpaceGrotesk_400Regular",
   },
+  unknownRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  unknownNumber: { fontSize: 14.5, fontFamily: "SpaceGrotesk_500Medium" },
+  unknownMoment: {
+    fontSize: 12,
+    marginTop: 1,
+    fontFamily: "SpaceGrotesk_400Regular",
+  },
+  unknownAction: { paddingVertical: 4 },
+  unknownDismiss: { padding: 4 },
 });

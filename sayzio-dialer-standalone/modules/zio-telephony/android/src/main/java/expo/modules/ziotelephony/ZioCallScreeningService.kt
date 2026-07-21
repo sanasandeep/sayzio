@@ -28,17 +28,18 @@ class ZioCallScreeningService : CallScreeningService() {
         } catch (_: Exception) {
           null
         }
-        // Identified callers become CRM history: queue the event natively so
-        // the app can sync it into the contact's Sayzio timeline when it next
-        // opens (the JS runtime is dead while a call rings).
+        // Every incoming call with a number becomes CRM history: queue the
+        // event natively so the app can sync it when it next opens (the JS
+        // runtime is dead while a call rings). Identified callers carry the
+        // directory name; unknown numbers queue with no name so the app can
+        // show a recent-calls list and offer "save as contact".
         try {
-          val name = info?.name
-          if (number.isNotEmpty() && !name.isNullOrBlank()) {
+          if (number.isNotEmpty()) {
             CallerIdStore.appendIdentifiedCall(
               this,
               number,
-              name,
-              info.organization,
+              info?.name,
+              info?.organization,
               System.currentTimeMillis(),
             )
           }

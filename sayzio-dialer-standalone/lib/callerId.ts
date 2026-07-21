@@ -1,3 +1,4 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Platform } from "react-native";
 
 import { listContacts, logContactCalls, type Contact } from "@/lib/api/contacts";
@@ -235,13 +236,13 @@ export async function syncCallerDirectory(opts?: {
   }
 }
 
-// ── Identified-call queue drain (CRM history) ──────────────────────────
+// ── Incoming-call queue drain (CRM history + unknown callers) ──────────
 
 /** One queued event from the native call-screening service. */
 type IdentifiedCallEvent = {
   /** Raw caller number as the screening service saw it. */
   n: string;
-  /** Directory name the caller resolved to at ring time. */
+  /** Directory name the caller resolved to at ring time (absent for unknown numbers). */
   name?: string;
   org?: string;
   /** Epoch millis of the ring. */
@@ -254,19 +255,107 @@ function phoneKey(number: string): string {
   return digits.length > 9 ? digits.slice(-9) : digits;
 }
 
+// ── Recent unknown callers (numbers not in contacts) ───────────────────
+//
+// Unidentified incoming calls drained from the native queue are kept in a
+// local AsyncStorage list so the app can show a "recent calls from unknown
+// numbers" list with a "save as contact" action. Local-only, capped, and
+// prunable by the user.
+
+const UNKNOWN_CALLS_KEY = "zio_unknown_calls_v1";
+const MAX_UNKNOWN_CALLS = 50;
+
+/** One unidentified incoming call surfaced to the UI. */
+export type UnknownCall = {
+  /** Raw caller number as the screening service saw it. */
+  number: string;
+  /** Epoch millis of the ring. */
+  ts: number;
+};
+
+async function readUnknownCalls(): Promise<UnknownCall[]> {
+  try {
+    const raw = await AsyncStorage.getItem(UNKNOWN_CALLS_KEY);
+    const parsed = JSON.parse(raw || "[]");
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter(
+      (e): e is UnknownCall =>
+        !!e && typeof e.number === "string" && typeof e.ts === "number",
+    );
+  } catch {
+    return [];
+  }
+}
+
+async function writeUnknownCalls(calls: UnknownCall[]): Promise<void> {
+  try {
+    await AsyncStorage.setItem(
+      UNKNOWN_CALLS_KEY,
+      JSON.stringify(calls.slice(-MAX_UNKNOWN_CALLS)),
+    );
+  } catch {
+    // Best-effort persistence.
+  }
+}
+
+/** Newest-first list of unidentified incoming calls for the UI. */
+export async function getUnknownCalls(): Promise<UnknownCall[]> {
+  const calls = await readUnknownCalls();
+  return [...calls].sort((a, b) => b.ts - a.ts);
+}
+
+/** Remove one unknown-call entry (after dismissal or saving as a contact). */
+export async function dismissUnknownCall(call: UnknownCall): Promise<void> {
+  const calls = await readUnknownCalls();
+  await writeUnknownCalls(
+    calls.filter((c) => !(c.number === call.number && c.ts === call.ts)),
+  );
+}
+
+/** Remove every unknown-call entry whose number matches (post contact save). */
+export async function dismissUnknownCallsForNumber(
+  number: string,
+): Promise<void> {
+  const key = phoneKey(number);
+  if (!key) return;
+  const calls = await readUnknownCalls();
+  await writeUnknownCalls(calls.filter((c) => phoneKey(c.number) !== key));
+}
+
+/** Append drained unidentified events, deduped by (number, ts). */
+async function appendUnknownCalls(
+  events: IdentifiedCallEvent[],
+): Promise<number> {
+  if (events.length === 0) return 0;
+  const calls = await readUnknownCalls();
+  const seen = new Set(calls.map((c) => `${c.number}|${c.ts}`));
+  let added = 0;
+  for (const e of events) {
+    const key = `${e.n}|${e.ts}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    calls.push({ number: e.n, ts: e.ts });
+    added += 1;
+  }
+  if (added > 0) await writeUnknownCalls(calls);
+  return added;
+}
+
 let drainInFlight = false;
 
 /**
- * Drain the native identified-incoming-call queue (rings the screening
- * service saw while the JS runtime was dead) into the Sayzio contact
- * history: matched events are posted to the contact's structured
- * call-history endpoint (`POST /contacts/{id}/calls`), which the profile
- * renders as a "Call history" timeline. Older note-line entries from the
- * notes-append v1 are left untouched (still readable in Notes).
+ * Drain the native incoming-call queue (rings the screening service saw
+ * while the JS runtime was dead). Matched events are posted to the
+ * contact's structured call-history endpoint (`POST /contacts/{id}/calls`),
+ * which the profile renders as a "Call history" timeline. Older note-line
+ * entries from the notes-append v1 are left untouched (still readable in
+ * Notes). Events that don't match any contact are saved to the local
+ * unknown-callers list (see [getUnknownCalls]) so the app can offer
+ * "save as contact" — no missed call is ever lost.
  *
- * Idempotent: the server dedupes on (contact, number, occurred_at), and
- * the native queue is only cleared after every matched event was persisted
- * (unmatched events are dropped — they can never sync). Android-only no-op
+ * Idempotent: the server dedupes on (contact, number, occurred_at),
+ * unknown calls dedupe on (number, ts), and the native queue is only
+ * cleared after every event was persisted somewhere. Android-only no-op
  * elsewhere. Returns the number of events logged.
  */
 export async function drainIdentifiedCalls(): Promise<number> {
@@ -300,14 +389,19 @@ export async function drainIdentifiedCalls(): Promise<number> {
     }
 
     // Group events per matched contact so each contact gets one batched
-    // POST regardless of how many calls queued up.
+    // POST regardless of how many calls queued up. Events with no matching
+    // contact go to the local unknown-callers list instead.
     const pending = new Map<
       number,
       { calls: { number: string; occurred_at: string }[] }
     >();
+    const unknown: IdentifiedCallEvent[] = [];
     for (const e of events) {
       const contact = byKey.get(phoneKey(e.n));
-      if (!contact) continue; // Contact deleted since the ring — drop.
+      if (!contact) {
+        unknown.push(e); // Not in contacts — keep it, never drop.
+        continue;
+      }
       const occurredAt = new Date(e.ts);
       if (Number.isNaN(occurredAt.getTime())) continue;
       const bucket = pending.get(contact.id) ?? { calls: [] };
@@ -322,6 +416,10 @@ export async function drainIdentifiedCalls(): Promise<number> {
       await logContactCalls(contactId, calls);
       logged += calls.length;
     }
+
+    // Persist unknown callers locally BEFORE clearing the native queue so
+    // a write failure retries on the next foreground (dedup by number+ts).
+    logged += await appendUnknownCalls(unknown);
 
     ZioTelephony.clearIdentifiedCallQueue(drained);
     return logged;

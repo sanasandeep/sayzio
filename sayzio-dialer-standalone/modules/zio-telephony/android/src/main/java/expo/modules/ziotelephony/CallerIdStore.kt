@@ -170,22 +170,25 @@ object CallerIdStore {
     return null
   }
 
-  // ── Identified-call queue (CRM history sync) ──────────────────────────
+  // ── Incoming-call queue (CRM history + missed-call sync) ──────────────
   //
-  // The screening service appends every incoming call it could identify
-  // (matched against the synced Sayzio directory) here, while the JS
-  // runtime is dead. When the app next foregrounds, the JS side drains
-  // the queue into the Sayzio contact history and clears what it read.
+  // The screening service appends every incoming call here while the JS
+  // runtime is dead — identified callers (matched against the synced
+  // Sayzio directory) carry their name; unknown numbers queue with no
+  // name so no call is ever lost. When the app next foregrounds, the JS
+  // side drains the queue (contact history for matched callers, a
+  // recent-unknown-callers list otherwise) and clears what it read.
 
   /**
-   * Append one identified incoming call `{n, name, org?, ts}` to the
-   * native queue. Oldest entries drop first past [MAX_QUEUED_CALLS].
+   * Append one incoming call `{n, name?, org?, ts}` to the native queue
+   * ([name] is null for unidentified callers). Oldest entries drop first
+   * past [MAX_QUEUED_CALLS].
    */
   @Synchronized
   fun appendIdentifiedCall(
     context: Context,
     number: String,
-    name: String,
+    name: String?,
     organization: String?,
     timestampMs: Long,
   ) {
@@ -199,7 +202,7 @@ object CallerIdStore {
       arr.put(
         JSONObject().apply {
           put("n", number)
-          put("name", name)
+          if (!name.isNullOrBlank()) put("name", name)
           if (!organization.isNullOrBlank()) put("org", organization)
           put("ts", timestampMs)
         },

@@ -47,9 +47,9 @@ export type ZioTelephonyModule = {
   setCallerIdAlertEnabled(enabled: boolean): void;
   /** Push the synced Sayzio contacts (JSON array of {n,name,photo?,org?}) for offline lookup. */
   setCallerDirectory(json: string): boolean;
-  /** Queued identified incoming calls: JSON array of {n,name,org?,ts} appended by the screening service. */
+  /** Queued incoming calls: JSON array of {n,name?,org?,ts} appended by the screening service (name absent for unknown numbers). */
   getIdentifiedCallQueue(): string;
-  /** Drop the first `count` queued identified-call events after a successful sync. */
+  /** Drop the first `count` queued incoming-call events after a successful sync. */
   clearIdentifiedCallQueue(count: number): boolean;
 
   /** Numbers reported as spam from the overlay, awaiting a POST /dialer/flag. */
