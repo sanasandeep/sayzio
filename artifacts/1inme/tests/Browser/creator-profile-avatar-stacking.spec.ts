@@ -135,4 +135,41 @@ test("creator profile hero: avatar stays above the cover banner", async ({
   expect((result as any).midHitIsCover).toBe(false);
   expect((result as any).topHitInsideContainer).toBe(true);
   expect((result as any).midHitInsideContainer).toBe(true);
+
+  // ── Action buttons guard ──────────────────────────────────────────
+  // The Follow/Subscribe buttons sit on the RIGHT side of the same -mt-12
+  // row. If a refactor ever splits them into their own container without a
+  // stacking context, the cover <img> would silently swallow their taps —
+  // a direct conversion loss. Assert via elementFromPoint that the visitor
+  // Follow button is the top hit-target, not the cover image.
+  const followBtn = container
+    .locator("button", { hasText: /Follow/i })
+    .first();
+  await expect(followBtn).toBeVisible();
+
+  const btnResult = await followBtn.evaluate((el) => {
+    el.scrollIntoView({ block: "center" });
+    const r = el.getBoundingClientRect();
+    const cx = r.left + r.width / 2;
+    const cy = r.top + r.height / 2;
+    // Also probe the top edge of the button — the part most likely to
+    // overlap the banner band on narrow layouts.
+    const cyTop = r.top + Math.min(2, r.height / 4);
+    const hitMid = document.elementFromPoint(cx, cy);
+    const hitTop = document.elementFromPoint(cx, cyTop);
+    const coverImg = document.querySelector("header .absolute.inset-0");
+    const inside = (hit: Element | null) =>
+      !!hit && (el === hit || el.contains(hit) || hit.contains(el));
+    return {
+      midHitIsCover: hitMid === coverImg,
+      topHitIsCover: hitTop === coverImg,
+      midHitInsideButton: inside(hitMid),
+      topHitInsideButton: inside(hitTop),
+    };
+  });
+
+  expect(btnResult.midHitIsCover).toBe(false);
+  expect(btnResult.topHitIsCover).toBe(false);
+  expect(btnResult.midHitInsideButton).toBe(true);
+  expect(btnResult.topHitInsideButton).toBe(true);
 });
