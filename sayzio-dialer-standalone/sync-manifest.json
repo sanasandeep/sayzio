@@ -336,41 +336,6 @@
       "relation": "identical"
     },
     {
-      "standalone": "modules/zio-telephony/android/build.gradle",
-      "source": "modules/zio-telephony/android/build.gradle",
-      "relation": "identical"
-    },
-    {
-      "standalone": "modules/zio-telephony/android/src/main/AndroidManifest.xml",
-      "source": "modules/zio-telephony/android/src/main/AndroidManifest.xml",
-      "relation": "identical"
-    },
-    {
-      "standalone": "modules/zio-telephony/android/src/main/java/expo/modules/ziotelephony/ZioTelephonyModule.kt",
-      "source": "modules/zio-telephony/android/src/main/java/expo/modules/ziotelephony/ZioTelephonyModule.kt",
-      "relation": "identical"
-    },
-    {
-      "standalone": "modules/zio-telephony/android/src/main/java/expo/modules/ziotelephony/CallerIdStore.kt",
-      "source": "modules/zio-telephony/android/src/main/java/expo/modules/ziotelephony/CallerIdStore.kt",
-      "relation": "identical"
-    },
-    {
-      "standalone": "modules/zio-telephony/android/src/main/java/expo/modules/ziotelephony/CallerLookup.kt",
-      "source": "modules/zio-telephony/android/src/main/java/expo/modules/ziotelephony/CallerLookup.kt",
-      "relation": "identical"
-    },
-    {
-      "standalone": "modules/zio-telephony/android/src/main/java/expo/modules/ziotelephony/CallerIdOverlay.kt",
-      "source": "modules/zio-telephony/android/src/main/java/expo/modules/ziotelephony/CallerIdOverlay.kt",
-      "relation": "identical"
-    },
-    {
-      "standalone": "modules/zio-telephony/android/src/main/java/expo/modules/ziotelephony/ZioCallScreeningService.kt",
-      "source": "modules/zio-telephony/android/src/main/java/expo/modules/ziotelephony/ZioCallScreeningService.kt",
-      "relation": "identical"
-    },
-    {
       "standalone": "plugins/withAndroidQueries.js",
       "source": "plugins/withAndroidQueries.js",
       "relation": "identical"
@@ -448,6 +413,34 @@
     {
       "path": "app/contact-duplicates.tsx",
       "note": "duplicates review screen adapted from the main app's app/contact-duplicates.tsx (nullable display_name); reached from the device-import completion alert on the contacts tab"
+    },
+    {
+      "path": "modules/zio-telephony/android/build.gradle",
+      "note": "native Android call-screening/overlay implementation; the main app deleted its android/ module sources (JS stub only), so the standalone copy is the sole implementation"
+    },
+    {
+      "path": "modules/zio-telephony/android/src/main/AndroidManifest.xml",
+      "note": "native Android call-screening/overlay implementation; the main app deleted its android/ module sources (JS stub only), so the standalone copy is the sole implementation"
+    },
+    {
+      "path": "modules/zio-telephony/android/src/main/java/expo/modules/ziotelephony/ZioTelephonyModule.kt",
+      "note": "native Android call-screening/overlay implementation; the main app deleted its android/ module sources (JS stub only), so the standalone copy is the sole implementation"
+    },
+    {
+      "path": "modules/zio-telephony/android/src/main/java/expo/modules/ziotelephony/CallerIdStore.kt",
+      "note": "native Android call-screening/overlay implementation; the main app deleted its android/ module sources (JS stub only), so the standalone copy is the sole implementation"
+    },
+    {
+      "path": "modules/zio-telephony/android/src/main/java/expo/modules/ziotelephony/CallerLookup.kt",
+      "note": "native Android call-screening/overlay implementation; the main app deleted its android/ module sources (JS stub only), so the standalone copy is the sole implementation"
+    },
+    {
+      "path": "modules/zio-telephony/android/src/main/java/expo/modules/ziotelephony/CallerIdOverlay.kt",
+      "note": "native Android call-screening/overlay implementation; the main app deleted its android/ module sources (JS stub only), so the standalone copy is the sole implementation"
+    },
+    {
+      "path": "modules/zio-telephony/android/src/main/java/expo/modules/ziotelephony/ZioCallScreeningService.kt",
+      "note": "native Android call-screening/overlay implementation; the main app deleted its android/ module sources (JS stub only), so the standalone copy is the sole implementation"
     }
   ]
 }

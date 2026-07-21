@@ -1379,6 +1379,7 @@ Route::prefix('v1')->group(function () {
         Route::post  ('/dialer/speed-dial/assign',      [DialerController::class, 'assignSpeedDial']);
         Route::post  ('/dialer/speed-dial/unassign',    [DialerController::class, 'unassignSpeedDial']);
         // Per-user spam/block flags.
+        Route::get   ('/dialer/flags',              [DialerController::class, 'flags']);
         Route::post  ('/dialer/flag',               [DialerController::class, 'flag']);
         // Call log (outcome/note/tag) + call-back reminders.
         Route::post  ('/dialer/log',                [DialerController::class, 'logCall']);

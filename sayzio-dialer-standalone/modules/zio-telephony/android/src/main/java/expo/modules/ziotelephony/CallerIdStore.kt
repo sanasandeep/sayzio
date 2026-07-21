@@ -38,6 +38,10 @@ object CallerIdStore {
     val name: String?,
     val photoUrl: String?,
     val organization: String?,
+    /** User flagged this number as spam (display-only, never blocks). */
+    val isSpam: Boolean = false,
+    /** User flagged this number as blocked (display-only, never blocks). */
+    val isBlocked: Boolean = false,
   )
 
   /** Last-9-digits key so differing country-code formats still match. */
@@ -61,6 +65,8 @@ object CallerIdStore {
             name = o.optString("name").takeIf { it.isNotBlank() },
             photoUrl = o.optString("photo").takeIf { it.isNotBlank() },
             organization = o.optString("org").takeIf { it.isNotBlank() },
+            isSpam = o.optBoolean("spam", false),
+            isBlocked = o.optBoolean("blocked", false),
           )
         }
       }

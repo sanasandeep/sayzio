@@ -32,6 +32,10 @@ object CallerLookup {
     val source: String?,
     val locationHint: String?,
     val lastInteraction: String?,
+    /** User flagged this number as spam in Sayzio (display-only warning). */
+    val isSpam: Boolean = false,
+    /** User flagged this number as blocked in Sayzio (display-only warning). */
+    val isBlocked: Boolean = false,
   )
 
   private fun has(context: Context, perm: String) =
@@ -75,6 +79,8 @@ object CallerLookup {
     // 2) Synced Sayzio directory (works even with no device-contact match).
     var remotePhoto: String? = null
     var organization: String? = null
+    var isSpam = false
+    var isBlocked = false
     val dir = CallerIdStore.lookup(context, number)
     if (dir != null) {
       if (name == null && dir.name != null) {
@@ -83,6 +89,8 @@ object CallerLookup {
       }
       remotePhoto = dir.photoUrl
       organization = dir.organization
+      isSpam = dir.isSpam
+      isBlocked = dir.isBlocked
     }
 
     return Result(
@@ -94,6 +102,8 @@ object CallerLookup {
       source = source,
       locationHint = countryHint(number),
       lastInteraction = lastInteraction(context, number),
+      isSpam = isSpam,
+      isBlocked = isBlocked,
     )
   }
 

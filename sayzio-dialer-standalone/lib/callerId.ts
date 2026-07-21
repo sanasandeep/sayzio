@@ -1,6 +1,7 @@
 import { Platform } from "react-native";
 
 import { listContacts } from "@/lib/api/contacts";
+import { listFlaggedNumbers } from "@/lib/api/dialer";
 import { ZioTelephony } from "@/modules/zio-telephony";
 
 /**
@@ -121,9 +122,44 @@ export async function syncCallerDirectory(opts?: {
   }
   lastDirectorySync = Date.now();
   try {
-    const { items } = await listContacts();
-    const dir: { n: string; name: string; photo?: string; org?: string }[] =
-      [];
+    // Spam/blocked flags are best-effort — the directory still syncs if the
+    // flags request fails (warnings are display-only, never blocking).
+    const [{ items }, flags] = await Promise.all([
+      listContacts(),
+      listFlaggedNumbers().catch(
+        () => [] as { number_e164: string; is_spam: boolean; is_blocked: boolean }[],
+      ),
+    ]);
+
+    // Mirror the native last-9-digits key so flag/contact matching agrees
+    // with CallerIdStore.normalizeKey.
+    const normalizeKey = (num: string): string => {
+      const digits = num.replace(/\D/g, "");
+      return digits.length > 9 ? digits.slice(-9) : digits;
+    };
+    const flagByKey = new Map<
+      string,
+      { spam: boolean; blocked: boolean }
+    >();
+    for (const f of flags) {
+      const key = normalizeKey(f.number_e164);
+      if (!key) continue;
+      flagByKey.set(key, {
+        spam: !!f.is_spam,
+        blocked: !!f.is_blocked,
+      });
+    }
+
+    type DirEntry = {
+      n: string;
+      name?: string;
+      photo?: string;
+      org?: string;
+      spam?: boolean;
+      blocked?: boolean;
+    };
+    const dir: DirEntry[] = [];
+    const coveredKeys = new Set<string>();
     for (const c of items) {
       const name =
         c.display_name ??
@@ -132,12 +168,28 @@ export async function syncCallerDirectory(opts?: {
       for (const p of c.phones ?? []) {
         const num = (p.value_e164 ?? p.value ?? "").trim();
         if (!num) continue;
-        const entry: { n: string; name: string; photo?: string; org?: string } =
-          { n: num, name };
+        const entry: DirEntry = { n: num, name };
         if (c.photo_url) entry.photo = c.photo_url;
         if (c.organization) entry.org = c.organization;
+        const key = normalizeKey(num);
+        const flag = key ? flagByKey.get(key) : undefined;
+        if (flag) {
+          if (flag.spam) entry.spam = true;
+          if (flag.blocked) entry.blocked = true;
+        }
+        if (key) coveredKeys.add(key);
         dir.push(entry);
       }
+    }
+    // Flagged numbers that aren't saved contacts still get a directory
+    // entry so the overlay can warn about them at ring time.
+    for (const f of flags) {
+      const key = normalizeKey(f.number_e164);
+      if (!key || coveredKeys.has(key)) continue;
+      const entry: DirEntry = { n: f.number_e164 };
+      if (f.is_spam) entry.spam = true;
+      if (f.is_blocked) entry.blocked = true;
+      if (entry.spam || entry.blocked) dir.push(entry);
     }
     ZioTelephony.setCallerDirectory(JSON.stringify(dir));
   } catch {

@@ -50,6 +50,10 @@ object CallerIdOverlay {
   private const val ACCENT = 0xFF3D6BFF.toInt()
   private const val TEXT_PRIMARY = 0xFFF4F5FA.toInt()
   private const val TEXT_MUTED = 0xFF9AA0B5.toInt()
+  // Red warning palette for numbers the user flagged as spam/blocked.
+  private const val WARN = 0xFFE5484D.toInt()
+  private const val WARN_STROKE = 0x66E5484D
+  private const val WARN_AVATAR = 0xFF8A2A2E.toInt()
 
   fun show(context: Context, info: CallerLookup.Result) {
     val app = context.applicationContext
@@ -162,6 +166,8 @@ object CallerIdOverlay {
   @SuppressLint("ClickableViewAccessibility")
   private fun buildCard(app: Context, info: CallerLookup.Result): View {
     val pad = dp(app, 16)
+    // Display-only warning state — the call is always let through.
+    val flagged = info.isSpam || info.isBlocked
 
     val root = FrameLayout(app)
     root.setPadding(dp(app, 12), 0, dp(app, 12), 0)
@@ -173,7 +179,8 @@ object CallerIdOverlay {
       background = GradientDrawable().apply {
         setColor(CARD_BG)
         cornerRadius = dp(app, 20).toFloat()
-        setStroke(dp(app, 1), 0x333D6BFF)
+        if (flagged) setStroke(dp(app, 2), WARN_STROKE)
+        else setStroke(dp(app, 1), 0x333D6BFF)
       }
       elevation = dp(app, 12).toFloat()
     }
@@ -183,10 +190,17 @@ object CallerIdOverlay {
     val avatar = FrameLayout(app)
     val avatarBg = GradientDrawable().apply {
       shape = GradientDrawable.OVAL
-      setColor(if (info.name != null) ACCENT else 0xFF3A3D4D.toInt())
+      setColor(
+        when {
+          flagged -> WARN_AVATAR
+          info.name != null -> ACCENT
+          else -> 0xFF3A3D4D.toInt()
+        },
+      )
     }
     val initialView = TextView(app).apply {
-      text = (info.name?.trim()?.firstOrNull()?.uppercaseChar() ?: '?').toString()
+      text = if (flagged && info.name == null) "!"
+      else (info.name?.trim()?.firstOrNull()?.uppercaseChar() ?: '?').toString()
       setTextColor(Color.WHITE)
       textSize = 24f
       typeface = Typeface.DEFAULT_BOLD
@@ -220,13 +234,33 @@ object CallerIdOverlay {
       setPadding(dp(app, 14), 0, dp(app, 8), 0)
     }
     val title = TextView(app).apply {
-      text = info.name ?: "Unknown caller"
-      setTextColor(TEXT_PRIMARY)
+      text = info.name
+        ?: if (flagged) (if (info.isSpam) "Likely spam" else "Blocked number")
+        else "Unknown caller"
+      setTextColor(if (flagged) WARN else TEXT_PRIMARY)
       textSize = 18f
       typeface = Typeface.DEFAULT_BOLD
       maxLines = 1
     }
     col.addView(title)
+
+    // Red warning line for numbers the user flagged (display-only).
+    if (flagged) {
+      val warnLabel = when {
+        info.isSpam && info.isBlocked -> "⚠ Likely spam · You blocked this number"
+        info.isSpam -> "⚠ Likely spam — you flagged this number"
+        else -> "⚠ You blocked this number"
+      }
+      val warn = TextView(app).apply {
+        text = warnLabel
+        setTextColor(WARN)
+        textSize = 12f
+        typeface = Typeface.DEFAULT_BOLD
+        maxLines = 1
+        setPadding(0, dp(app, 2), 0, 0)
+      }
+      col.addView(warn)
+    }
 
     val subtitleBits = mutableListOf<String>()
     if (info.name != null) subtitleBits.add(info.number)

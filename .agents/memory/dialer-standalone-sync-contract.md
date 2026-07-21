@@ -73,4 +73,12 @@ surfaces deliberately diverge. Adapted deltas: main dialer.tsx uses the
 opts-object `listContacts` signature; dialer-profile falls back to `/contacts`
 (no /contacts/new form in main).
 
+**Status (July 2026):** the main app deleted `modules/zio-telephony/android/**`
+again (JS stub `index.ts` + `expo-module.config.json` remain `identical`), so
+the 7 android Kotlin/gradle entries moved back to `standaloneOnly` — the
+standalone is the sole native implementation; edit its Kotlin directly, no cp.
+A `MISSING main-app source` error means the manifest still maps a deleted
+source: fix by hand-moving the entry to `standaloneOnly` (`:accept` does NOT
+heal it).
+
 - Deleting a standalone-only file: `:accept` does NOT heal a `MISSING standalone-only file` error — remove the entry from `sayzio-dialer-standalone/sync-manifest.json` `standaloneOnly` by hand. Also check `scripts/test-channel-actions.mjs` REQUIRED_SURFACES for the deleted screen.
