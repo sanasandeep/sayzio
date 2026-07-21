@@ -16,6 +16,7 @@ import {
 import {
   ActivityIndicator,
   Alert,
+  AppState,
   FlatList,
   Linking,
   Modal,
@@ -372,6 +373,19 @@ export default function DialerScreen() {
     }
   }, []);
 
+  // Refresh the recent list whenever the app returns to the foreground —
+  // e.g. right after a call ends and the user comes back from the in-call
+  // screen, so the just-finished call shows up without a manual reload.
+  useEffect(() => {
+    const sub = AppState.addEventListener("change", (state) => {
+      if (state === "active") {
+        void loadDeviceCallLog(false);
+        void refreshRecent();
+      }
+    });
+    return () => sub.remove();
+  }, [loadDeviceCallLog, refreshRecent]);
+
   const refreshFavorites = useCallback(async () => {
     try {
       setFavorites(await listFavorites());
@@ -490,6 +504,10 @@ export default function DialerScreen() {
       if (!num) continue;
       seen.add(num);
       const secs = c.duration > 0 ? ` · ${formatCallDuration(c.duration)}` : "";
+      const direction: "in" | "out" | "missed" =
+        c.type === 2 ? "out" : c.type === 1 ? "in" : "missed";
+      const dirWord =
+        direction === "out" ? "Outgoing" : direction === "in" ? "Incoming" : "Missed";
       rows.push({
         key: `d${num}-${c.date}`,
         number: num,
@@ -499,8 +517,8 @@ export default function DialerScreen() {
         isSpam: false,
         isBlocked: false,
         biolink: false,
-        sub: `${relativeMs(c.date)}${secs}`,
-        direction: c.type === 2 ? "out" : c.type === 1 ? "in" : "missed",
+        sub: `${dirWord} · ${relativeMs(c.date)}${secs}`,
+        direction,
       });
     }
 
@@ -569,7 +587,7 @@ export default function DialerScreen() {
   }, []);
 
   const dial = useCallback(
-    async (raw: string, label?: string | null) => {
+    async (raw: string, label?: string | null, simIndex?: number) => {
       const trimmed = raw.trim();
       if (!trimmed) {
         Alert.alert("No number", "Enter a number to dial.");
@@ -597,9 +615,16 @@ export default function DialerScreen() {
 
       // Place a REAL call through the device (ACTION_CALL on Android with
       // the CALL_PHONE permission, tel: fallback everywhere else).
-      void placeRealCall(trimmed);
+      void placeRealCall(trimmed, simIndex != null ? { simIndex } : undefined);
+
+      // The device call log gets the new entry once the call ends; refresh
+      // shortly after so the Recent tab shows it without a manual reload.
+      setTimeout(() => {
+        void loadDeviceCallLog(false);
+        void refreshRecent();
+      }, 4000);
     },
-    [localRecent],
+    [localRecent, loadDeviceCallLog, refreshRecent],
   );
 
   // Open the caller-ID / mini-CRM profile for a number.
@@ -1063,14 +1088,15 @@ export default function DialerScreen() {
                   </Pressable>
                 );
               })}
-              {/* Dual-SIM chip: shows the remembered SIM, taps open the
-                  chooser (SIM 1 / SIM 2 / Always ask). Only on 2+ SIMs. */}
+              {/* Dual-SIM chip: sets the default SIM used when a call is
+                  started from anywhere other than the keypad's two SIM
+                  buttons (recents, contacts, search…). Only on 2+ SIMs. */}
               {simAccounts.length >= 2 && (
                 <Pressable
                   onPress={() => {
                     Alert.alert(
                       "Default SIM for calls",
-                      "Pick a SIM to always call with, or ask every time.",
+                      "Used when calling from recents, contacts or search. The keypad always shows a button per SIM.",
                       [
                         ...simAccounts.slice(0, 2).map((a) => ({
                           text: a.label,
@@ -1080,7 +1106,7 @@ export default function DialerScreen() {
                           },
                         })),
                         {
-                          text: "Always ask",
+                          text: "No default (use SIM 1)",
                           onPress: () => {
                             setSimPrefState("ask");
                             void setSimPref("ask");
@@ -1105,7 +1131,7 @@ export default function DialerScreen() {
                     }}
                   >
                     {simPref === "ask"
-                      ? "SIM: Ask"
+                      ? "SIM: Auto"
                       : simAccounts.find((a) => a.index === simPref)?.label ?? "SIM"}
                   </Text>
                 </Pressable>
@@ -1326,19 +1352,46 @@ export default function DialerScreen() {
               >
                 <Feather name="info" size={20} color={colors.foreground} />
               </Pressable>
-              <Pressable
-                onPress={() => dial(number)}
-                disabled={!number}
-                style={({ pressed }) => [
-                  styles.callBtn,
-                  {
-                    backgroundColor: number ? "#16a34a" : colors.muted,
-                    opacity: pressed ? 0.85 : 1,
-                  },
-                ]}
-              >
-                <Feather name="phone" size={26} color="#fff" />
-              </Pressable>
+              {simAccounts.length >= 2 ? (
+                // Dual SIM: one call button per SIM — no pop-up chooser.
+                <View style={{ flexDirection: "row", gap: 12 }}>
+                  {simAccounts.slice(0, 2).map((a, i) => (
+                    <Pressable
+                      key={a.index}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Call with ${a.label || `SIM ${i + 1}`}`}
+                      onPress={() => dial(number, null, a.index)}
+                      disabled={!number}
+                      style={({ pressed }) => [
+                        styles.simCallBtn,
+                        {
+                          backgroundColor: number ? "#16a34a" : colors.muted,
+                          opacity: pressed ? 0.85 : 1,
+                        },
+                      ]}
+                    >
+                      <Feather name="phone" size={22} color="#fff" />
+                      <Text style={styles.simCallLabel} numberOfLines={1}>
+                        {a.label?.trim() || `SIM ${i + 1}`}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
+              ) : (
+                <Pressable
+                  onPress={() => dial(number)}
+                  disabled={!number}
+                  style={({ pressed }) => [
+                    styles.callBtn,
+                    {
+                      backgroundColor: number ? "#16a34a" : colors.muted,
+                      opacity: pressed ? 0.85 : 1,
+                    },
+                  ]}
+                >
+                  <Feather name="phone" size={26} color="#fff" />
+                </Pressable>
+              )}
               <View style={styles.secondaryBtn} />
             </View>
 
@@ -1497,11 +1550,13 @@ export default function DialerScreen() {
                             ? "arrow-down-left"
                             : "phone-missed"
                       }
-                      size={13}
+                      size={14}
                       color={
                         item.direction === "missed"
                           ? colors.destructive
-                          : colors.mutedForeground
+                          : item.direction === "in"
+                            ? "#16a34a"
+                            : "#3b82f6"
                       }
                     />
                   )}
@@ -2381,6 +2436,22 @@ const styles = StyleSheet.create({
     borderRadius: 28,
     alignItems: "center",
     justifyContent: "center",
+  },
+  simCallBtn: {
+    minWidth: 84,
+    height: 56,
+    borderRadius: 28,
+    paddingHorizontal: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+  },
+  simCallLabel: {
+    color: "#fff",
+    fontSize: 13,
+    fontWeight: "700",
+    maxWidth: 80,
   },
   loading: { paddingVertical: 48, alignItems: "center", justifyContent: "center" },
   empty: { paddingVertical: 64, alignItems: "center", justifyContent: "center" },

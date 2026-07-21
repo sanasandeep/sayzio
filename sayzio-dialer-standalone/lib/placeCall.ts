@@ -95,24 +95,19 @@ async function ensureCallPermissions(): Promise<boolean> {
   }
 }
 
-function chooseSim(accounts: CallAccount[]): Promise<number | null> {
-  return new Promise((resolve) => {
-    Alert.alert(
-      "Call using",
-      "Pick the SIM for this call. Set a default from the SIM chip on the keypad.",
-      [
-        ...accounts.slice(0, 2).map((a) => ({
-          text: a.label,
-          onPress: () => resolve(a.index),
-        })),
-        { text: "Cancel", style: "cancel" as const, onPress: () => resolve(null) },
-      ],
-      { cancelable: true, onDismiss: () => resolve(null) },
-    );
-  });
-}
-
-export async function placeRealCall(number: string): Promise<void> {
+/**
+ * Place a call.
+ *
+ * Dual-SIM resolution order (no pop-up chooser — the keypad shows one call
+ * button per SIM instead):
+ *   1. an explicit `simIndex` passed by the caller (SIM 1 / SIM 2 buttons)
+ *   2. the remembered default SIM preference
+ *   3. the first SIM
+ */
+export async function placeRealCall(
+  number: string,
+  opts?: { simIndex?: number },
+): Promise<void> {
   const trimmed = number.trim();
   if (!trimmed) return;
   const telUrl = `tel:${encodeURIComponent(trimmed)}`;
@@ -128,13 +123,20 @@ export async function placeRealCall(number: string): Promise<void> {
         const accounts = getCallAccounts();
         let accountIndex = -1;
         if (accounts.length >= 2) {
-          const pref = await getSimPref();
-          if (pref !== "ask" && pref < accounts.length) {
-            accountIndex = pref;
+          const forced = opts?.simIndex;
+          if (
+            typeof forced === "number" &&
+            accounts.some((a) => a.index === forced)
+          ) {
+            accountIndex = forced;
           } else {
-            const picked = await chooseSim(accounts);
-            if (picked == null) return; // user cancelled the SIM chooser
-            accountIndex = picked;
+            const pref = await getSimPref();
+            if (pref !== "ask" && accounts.some((a) => a.index === pref)) {
+              accountIndex = pref;
+            } else {
+              // No chooser pop-up: default to the first SIM.
+              accountIndex = accounts[0].index;
+            }
           }
         }
         if (ZioTelephony.placeCall(trimmed, accountIndex)) return;
