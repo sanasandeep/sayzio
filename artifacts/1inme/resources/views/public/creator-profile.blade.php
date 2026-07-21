@@ -184,6 +184,39 @@
         --cp-accent-mid:{{ $creator->profile_theme_color }}88;
     }
     @endif
+    @if($__cpLive)
+    /* ── Owner live-preview only (cp_preview=1) ─────────────────
+       Density modes: the editor posts {density:'small'|'medium'|'large'}
+       and the script below sets cp-d-small / cp-d-medium on <html>.
+       Sections are tagged data-cpd="m" (medium+) or data-cpd="l" (large only).
+       Real visitors never get these classes, so the public page is unchanged. */
+    html.cp-d-small [data-cpd="m"],
+    html.cp-d-small [data-cpd="l"],
+    html.cp-d-medium [data-cpd="l"]{display:none!important}
+    html.cp-d-small [data-cp-cover]{height:4.5rem!important}
+    /* Dark preview theme: the editor posts {theme:'dark'|'light'} and the
+       script sets cp-pv-dark. Scoped overrides for the page's hardcoded
+       light utilities — preview-only, gated by $__cpLive. */
+    html.cp-pv-dark body{background:#0b0d15;color:#e2e8f0}
+    html.cp-pv-dark .cp-card,
+    html.cp-pv-dark .cp-tab-bar,
+    html.cp-pv-dark .cp-fl--classic,
+    html.cp-pv-dark .cp-fl--card_heading,
+    html.cp-pv-dark .cp-feat-link-card{background:#141826;border-color:rgba(255,255,255,0.09)}
+    html.cp-pv-dark .cp-tab-btn{color:#8b95ab}
+    html.cp-pv-dark .cp-tab-btn.active{color:#7d9bff;border-bottom-color:#7d9bff}
+    html.cp-pv-dark .bg-white{background-color:#141826!important}
+    html.cp-pv-dark .bg-slate-50{background-color:#0f1220!important}
+    html.cp-pv-dark .bg-blue-50{background-color:rgba(61,107,255,0.16)!important}
+    html.cp-pv-dark .text-slate-900,html.cp-pv-dark .text-slate-800{color:#f1f5f9!important}
+    html.cp-pv-dark .text-slate-700,html.cp-pv-dark .text-slate-600{color:#cbd5e1!important}
+    html.cp-pv-dark .text-slate-500,html.cp-pv-dark .text-slate-400{color:#94a3b8!important}
+    html.cp-pv-dark .border-slate-200,html.cp-pv-dark .border-slate-100,
+    html.cp-pv-dark .border-blue-100,html.cp-pv-dark .border-blue-200{border-color:rgba(255,255,255,0.10)!important}
+    html.cp-pv-dark .divide-slate-100>:not([hidden])~:not([hidden]){border-color:rgba(255,255,255,0.08)}
+    html.cp-pv-dark .cp-fl--classic span[style*="color:#0f172a"],
+    html.cp-pv-dark .cp-fl--classic p[style*="color:#0f172a"]{color:#f1f5f9!important}
+    @endif
 </style>
 </head>
 <body class="bg-slate-50 min-h-screen text-slate-900">
@@ -197,7 +230,7 @@
 
     {{-- ── Hero ─────────────────────────────────────────────── --}}
     <header class="cp-card overflow-hidden mt-4">
-        <div class="h-40 sm:h-56 relative" style="background: linear-gradient(135deg, var(--cp-accent, #3b82f6), var(--cp-accent-mid, #a855f7));">
+        <div class="h-40 sm:h-56 relative" data-cp-cover style="background: linear-gradient(135deg, var(--cp-accent, #3b82f6), var(--cp-accent-mid, #a855f7));">
             @if($creator->cover_image)
                 <img src="{{ \App\Support\PublicStorageUrl::resolve($creator->cover_image) }}" alt="" class="absolute inset-0 w-full h-full object-cover">
             @endif
@@ -333,23 +366,25 @@
                 <h1 class="text-2xl sm:text-3xl font-extrabold flex items-center gap-2 flex-wrap">
                     {{ $creator->name }}
                     @if(method_exists($creator, 'isVerified') && $creator->isVerified())
+                        <span data-cpd="m">
                         @if($creator->verificationTickType)
                             {!! $creator->verificationTickType->tickHtml('text-xl') !!}
                         @else
                             <span class="text-blue-600" title="Verified"><i class="fas fa-circle-check"></i></span>
                         @endif
+                        </span>
                     @endif
                 </h1>
                 <p class="text-slate-500 text-sm mt-0.5">@<span class="font-medium">{{ $creator->handle }}</span>
                     @if($creator->location || $__cpLive)
-                        <span class="ml-2 text-slate-400" data-cp="location-wrap" @if(!$creator->location) style="display:none" @endif><i class="fas fa-location-dot mr-1"></i><span data-cp="location">{{ $creator->location }}</span></span>
+                        <span class="ml-2 text-slate-400" data-cp="location-wrap" data-cpd="m" @if(!$creator->location) style="display:none" @endif><i class="fas fa-location-dot mr-1"></i><span data-cp="location">{{ $creator->location }}</span></span>
                     @endif
                 </p>
                 @if($creator->tagline || $__cpLive)
-                    <p class="mt-2 text-slate-700 text-base" data-cp="tagline" @if(!$creator->tagline) style="display:none" @endif>{{ $creator->tagline }}</p>
+                    <p class="mt-2 text-slate-700 text-base" data-cp="tagline" data-cpd="m" @if(!$creator->tagline) style="display:none" @endif>{{ $creator->tagline }}</p>
                 @endif
                 @if(is_array($creator->niche_tags) && count($creator->niche_tags))
-                    <div class="mt-3 flex flex-wrap gap-1.5">
+                    <div class="mt-3 flex flex-wrap gap-1.5" data-cpd="m">
                         @foreach($creator->niche_tags as $tag)
                             <span class="text-[11px] px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 font-medium">#{{ $tag }}</span>
                         @endforeach
@@ -411,7 +446,7 @@
             && ($__ctaPrimary !== null || count($__ctaSecondary) > 0);
     @endphp
     @if($__showCta)
-        <section class="cp-card mt-3 p-5">
+        <section class="cp-card mt-3 p-5" data-cpd="m">
             <div class="flex flex-wrap gap-2 justify-center">
                 @if($__ctaPrimary)
                     @php
@@ -453,7 +488,7 @@
         if ($__hasEvents) $__tabDefs['events'] = 'Events';
     @endphp
     @if(count($__tabDefs) > 1)
-        <nav class="cp-tab-bar mt-3 rounded-t-xl overflow-hidden">
+        <nav class="cp-tab-bar mt-3 rounded-t-xl overflow-hidden" data-cpd="l">
             @foreach($__tabDefs as $__tabKey => $__tabLabel)
                 <button type="button"
                         class="cp-tab-btn"
@@ -472,7 +507,7 @@
 
         {{-- ── Stats strip ─────────────────────────────────────── --}}
         @if(($sectionsVisible['stats'] ?? true))
-            <div class="cp-card mt-3 px-5 py-4 grid grid-cols-3 text-center divide-x divide-slate-100">
+            <div class="cp-card mt-3 px-5 py-4 grid grid-cols-3 text-center divide-x divide-slate-100" data-cpd="m">
                 <div>
                     <div class="text-xl font-extrabold">{{ number_format($creator->posts_count ?? 0) }}</div>
                     <div class="text-[11px] uppercase tracking-wider text-slate-500 mt-0.5">Posts</div>
@@ -490,7 +525,7 @@
 
         {{-- ── About ───────────────────────────────────────────── --}}
         @if(($sectionsVisible['about'] ?? true) && (!empty($creator->bio) || $__cpLive))
-            <section class="cp-card mt-3 p-5" data-cp="bio-section" @if(empty($creator->bio)) style="display:none" @endif>
+            <section class="cp-card mt-3 p-5" data-cp="bio-section" data-cpd="m" @if(empty($creator->bio)) style="display:none" @endif>
                 <h2 class="text-xs uppercase tracking-wider text-slate-500 font-semibold mb-2">About</h2>
                 <p class="text-sm text-slate-700 whitespace-pre-line leading-relaxed" data-cp="bio">{{ $creator->bio }}</p>
             </section>
@@ -498,7 +533,7 @@
 
         {{-- ── Socials ─────────────────────────────────────────── --}}
         @if(($sectionsVisible['socials'] ?? true) && is_array($creator->socials) && count($creator->socials))
-            <section class="cp-card mt-3 p-5">
+            <section class="cp-card mt-3 p-5" data-cpd="m">
                 <h2 class="text-xs uppercase tracking-wider text-slate-500 font-semibold mb-3">Find me on</h2>
                 <div class="flex flex-wrap gap-2">
                     @php
@@ -528,7 +563,7 @@
 
         {{-- ── Biolink callout ────────────────────────────────── --}}
         @if(($sectionsVisible['biolink'] ?? true) && $primaryBiolink)
-            <section class="cp-card mt-3 p-5 flex items-center justify-between gap-4">
+            <section class="cp-card mt-3 p-5 flex items-center justify-between gap-4" data-cpd="l">
                 <div class="min-w-0">
                     <p class="text-xs uppercase tracking-wider text-slate-500 font-semibold">My links</p>
                     <p class="text-sm text-slate-700 mt-1 truncate">All my projects, services, and current focus.</p>
@@ -545,7 +580,7 @@
             $__flOneCol  = in_array($__flStyle, ['ghost', 'pill']);
         @endphp
         @if(($sectionsVisible['featured_links'] ?? true) && count($featuredLinks) > 0 && $__hasLinks)
-            <section class="cp-card mt-3 p-5">
+            <section class="cp-card mt-3 p-5" data-cpd="l">
                 <div class="flex items-center justify-between mb-3">
                     <h2 class="text-xs uppercase tracking-wider text-slate-500 font-semibold">Featured</h2>
                     <button type="button" @click="activeTab='links'"
@@ -580,7 +615,7 @@
          Tab: Posts
          ═══════════════════════════════════════════════════════ --}}
     @if($__hasPosts)
-    <div x-show="activeTab === 'posts'" x-cloak>
+    <div x-show="activeTab === 'posts'" x-cloak data-cpd="l">
         <section class="mt-4">
             <h2 class="text-xs uppercase tracking-wider text-slate-500 font-semibold px-1 mb-2">
                 Latest posts
@@ -615,7 +650,7 @@
          Tab: Links & Showcase (Task #5431)
          ═══════════════════════════════════════════════════════ --}}
     @if($__hasLinks)
-    <div x-show="activeTab === 'links'" x-cloak>
+    <div x-show="activeTab === 'links'" x-cloak data-cpd="l">
 
         {{-- ── Featured links ─────────────────────────────────── --}}
         @if(($sectionsVisible['featured_links'] ?? true) && count($featuredLinks) > 0)
@@ -714,7 +749,7 @@
          Tab: Events (Task #3666)
          ═══════════════════════════════════════════════════════ --}}
     @if($__hasEvents)
-    <div x-show="activeTab === 'events'" x-cloak>
+    <div x-show="activeTab === 'events'" x-cloak data-cpd="l">
         <section class="cp-card mt-3 p-5">
             <div class="flex items-center justify-between mb-3">
                 <h2 class="text-xs uppercase tracking-wider text-slate-500 font-semibold">Upcoming events</h2>
@@ -745,7 +780,7 @@
 
     {{-- ── Related creators (always shown below tabs) ──────── --}}
     @if(!empty($relatedCreators) && count($relatedCreators) > 0)
-        <section class="cp-card mt-4 px-5 py-4">
+        <section class="cp-card mt-4 px-5 py-4" data-cpd="l">
             <div class="flex items-center justify-between mb-3">
                 <h3 class="text-sm font-bold text-slate-900">More creators like {{ $creator->name }}</h3>
                 <a href="{{ route('creators.index') }}" class="text-xs font-semibold text-blue-600 hover:underline">Browse all →</a>
@@ -789,6 +824,15 @@
         if (e.origin !== window.location.origin) return;
         var d = e.data || {};
         if (d.type !== 'cpLive') return;
+        var root = document.documentElement;
+        if (typeof d.density === 'string') {
+            root.classList.toggle('cp-d-small', d.density === 'small');
+            root.classList.toggle('cp-d-medium', d.density === 'medium');
+        }
+        if (d.theme === 'dark' || d.theme === 'light') {
+            root.classList.toggle('light-mode', d.theme === 'light');
+            root.classList.toggle('cp-pv-dark', d.theme === 'dark');
+        }
         var tagEl = txt('tagline', d.tagline);
         if (tagEl) tagEl.style.display = d.tagline ? '' : 'none';
         txt('location', d.location);
