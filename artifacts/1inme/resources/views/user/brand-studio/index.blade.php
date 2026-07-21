@@ -10,7 +10,7 @@
         <div>
             <h1 class="text-2xl font-bold text-white"><i class="fas fa-wand-magic-sparkles text-primary-300 mr-2"></i>AI Brand Studio</h1>
             <p class="text-sm text-white/50 mt-1">Describe what you need in plain language and get a whole on-brand asset kit - a Link in Bio page, short links, QR codes, a form and a digital card - planned by AI and reviewed by you before anything is created.</p>
-            @if($aiEnabled)<p class="text-[11px] text-white/40 mt-1">{{ number_format($balance) }} AI credits</p>@endif
+            @if($aiEnabled)<p class="text-[11px] text-white/40 mt-1">{{ number_format($balance) }} coins</p>@endif
         </div>
     </div>
 
@@ -172,15 +172,15 @@
             <template x-if="!estBusy && estCredits !== null && mode === 'bulk'">
                 <p class="text-[11px] text-white/40">
                     <i class="fas fa-layer-group mr-1 text-white/30"></i>
-                    <span x-text="`${bulkVariants()} variant${bulkVariants() === 1 ? '' : 's'} × ~${perVariantCredits()} credits each ≈ ${estCredits} credits total`"></span>
+                    <span x-text="`${bulkVariants()} variant${bulkVariants() === 1 ? '' : 's'} × ~${perVariantCredits()} coins each ≈ ${estCredits} coins total`"></span>
                 </p>
             </template>
             <div x-show="!estBusy && lowBalance()" x-cloak
                  class="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-300 text-sm flex items-start gap-2">
                 <i class="fas fa-triangle-exclamation mt-0.5"></i>
-                <span x-text="`This run needs about ${estCredits} AI credits but you only have ${estBalance}. Top up your credits before generating, or reduce the scope.`"></span>
+                <span x-text="`This run needs about ${estCredits} coins but you only have ${estBalance}. Top up your coins before generating, or reduce the scope.`"></span>
             </div>
-            <p class="text-[11px] text-white/35">You'll review the full plan before anything is created. Planning uses AI credits; a failed run is automatically refunded.</p>
+            <p class="text-[11px] text-white/35">You'll review the full plan before anything is created. Planning uses coins; a failed run is automatically refunded.</p>
         </div>
 
         <div class="space-y-3">
@@ -348,7 +348,7 @@ function brandStudio() {
                 sums[r.kind] = (sums[r.kind] || 0) + Math.max(1, parseInt(r.count, 10) || 1);
                 const cap = this.kitCaps[r.kind] || 0;
                 if (sums[r.kind] > cap) {
-                    return `Too many ${this.kindLabels[r.kind] || r.kind}s — max ${cap} per kit.`;
+                    return `Too many ${this.kindLabels[r.kind] || r.kind}s: max ${cap} per kit.`;
                 }
             }
             return '';
@@ -416,7 +416,7 @@ function brandStudio() {
                 if (seq !== this._estSeq) return;
                 this.estCredits = j.estimated_credits;
                 this.estBalance = j.balance;
-                this.estimateText = `≈ ${j.estimated_credits} credits (you have ${j.balance})`;
+                this.estimateText = `≈ ${j.estimated_credits} coins (you have ${j.balance})`;
             } catch (e) {
                 if (seq !== this._estSeq) return;
                 this.estCredits = null;

@@ -41,7 +41,7 @@ import { showAlert } from "@/lib/webAlert";
  * /user/brand-studio). One plain-language brief (plus a saved Brand Kit or
  * inline brand details) becomes a structured multi-asset plan - a Link in Bio
  * page, short links, QR codes, a form and a digital card - reviewed asset by
- * asset before anything is created. Planning is charged in AI credits with
+ * asset before anything is created. Planning is charged in coins with
  * auto-refund on failure; confirming is free and enforces per-type plan caps
  * server-side (handled in AiBrandStudioService).
  */
@@ -193,7 +193,7 @@ export default function BrandStudioScreen() {
       sums[r.kind] = (sums[r.kind] ?? 0) + Math.max(1, r.count);
       const cap = kitCaps[r.kind] ?? 0;
       if ((sums[r.kind] ?? 0) > cap) {
-        return `Too many ${KIND_META[r.kind]?.label ?? r.kind}s — max ${cap} per kit.`;
+        return `Too many ${KIND_META[r.kind]?.label ?? r.kind}s: max ${cap} per kit.`;
       }
     }
     return "";
@@ -462,7 +462,7 @@ export default function BrandStudioScreen() {
                         <View style={styles.row}>
                           <View style={styles.flex}>
                             <Text style={[styles.small, { color: colors.mutedForeground }]}>
-                              Credits spent on this plan
+                              Coins spent on this plan
                             </Text>
                             <Text style={[styles.body, { color: colors.foreground }]}>
                               {detail.credits_spent}
@@ -470,7 +470,7 @@ export default function BrandStudioScreen() {
                           </View>
                           <View style={styles.flex}>
                             <Text style={[styles.small, { color: colors.mutedForeground }]}>
-                              Your AI credit balance
+                              Your coin balance
                             </Text>
                             <Text
                               style={[
@@ -500,12 +500,12 @@ export default function BrandStudioScreen() {
                             <View style={styles.flex}>
                               <Text style={[styles.small, { color: colors.mutedForeground }]}>
                                 {detailBalance <= 0
-                                  ? "You're out of AI credits, so future AI runs (like re-planning after edits) will fail until you top up."
-                                  : "Your AI credit balance is running low, so future AI runs (like re-planning after edits) may not go through."}
+                                  ? "You're out of coins, so future AI runs (like re-planning after edits) will fail until you top up."
+                                  : "Your coin balance is running low, so future AI runs (like re-planning after edits) may not go through."}
                               </Text>
                               <Pressable onPress={() => router.push("/coin-packages")}>
                                 <Text style={[styles.link, { color: colors.primary }]}>
-                                  Top up credits
+                                  Top up coins
                                 </Text>
                               </Pressable>
                             </View>
@@ -1045,7 +1045,7 @@ export default function BrandStudioScreen() {
                 <Button
                   label={
                     estimate != null
-                      ? `≈ ${estimate} credits (you have ${availableCredits})`
+                      ? `≈ ${estimate} coins (you have ${availableCredits})`
                       : estimateMut.isPending
                         ? "Estimating…"
                         : "Estimate cost"
@@ -1057,7 +1057,7 @@ export default function BrandStudioScreen() {
                 {estimate != null && mode === "bulk" ? (
                   <Text style={[styles.small, { color: colors.mutedForeground }]}>
                     {bulkVariants} variant{bulkVariants === 1 ? "" : "s"} × ~
-                    {perVariantCredits} credits each ≈ {estimate} credits total
+                    {perVariantCredits} coins each ≈ {estimate} coins total
                   </Text>
                 ) : null}
                 {lowBalance ? (
@@ -1074,8 +1074,8 @@ export default function BrandStudioScreen() {
                     <Text
                       style={[styles.small, styles.flex, { color: colors.warning }]}
                     >
-                      This run needs about {estimate} AI credits but you only
-                      have {availableCredits}. Top up your credits before
+                      This run needs about {estimate} coins but you only
+                      have {availableCredits}. Top up your coins before
                       generating, or reduce the scope.
                     </Text>
                   </View>

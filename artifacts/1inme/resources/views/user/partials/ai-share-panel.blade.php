@@ -17,7 +17,7 @@
 <div class="rounded-2xl border border-white/10 bg-white/[0.03] p-5 space-y-4">
     <div>
         <h3 class="text-white font-semibold flex items-center gap-2"><i class="fas fa-user-group text-sky-300"></i> Share this {{ $resourceLabel }}</h3>
-        <p class="text-xs text-white/40 mt-1">Give a team or a badge group access. Anyone who can use it is charged AI credits from their own balance, never yours. You stay the owner and can revoke access any time.</p>
+        <p class="text-xs text-white/40 mt-1">Give a team or a badge group access. Anyone who can use it is charged coins from their own balance, never yours. You stay the owner and can revoke access any time.</p>
     </div>
 
     @if($hasTargets)

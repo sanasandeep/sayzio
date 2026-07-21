@@ -13,7 +13,7 @@
             <p class="text-sm text-white/50 mt-1">Generate a cohesive brand identity (palette, fonts, voice, taglines and a recommended theme) then apply it to your Link in Bio pages and QR codes.</p>
             <p class="text-[11px] text-white/40 mt-1">
                 {{ $count }} of {{ $cap == -1 ? '∞' : $cap }} brand kits used
-                @if($aiEnabled) &middot; {{ number_format($balance) }} AI credits @endif
+                @if($aiEnabled) &middot; {{ number_format($balance) }} coins @endif
             </p>
         </div>
     </div>
@@ -290,7 +290,7 @@ function brandKits() {
                 });
                 const data = await res.json();
                 if (!res.ok) { this.estimateText = ''; this.error = data.message || 'Could not estimate cost.'; return; }
-                this.estimateText = `≈ ${data.estimated_credits} credits · balance ${data.balance}`;
+                this.estimateText = `≈ ${data.estimated_credits} coins · balance ${data.balance}`;
             } catch (e) { this.estimateText = ''; this.error = 'Network error.'; }
         },
         async generate() {

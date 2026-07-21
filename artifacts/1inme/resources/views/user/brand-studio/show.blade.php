@@ -22,7 +22,7 @@
             <h1 class="text-2xl font-bold text-white mt-1">{{ $kit->name }}</h1>
             <p class="text-[11px] text-white/40 mt-1">
                 {{ $kit->mode === 'bulk' ? 'Bulk variations' : 'Full kit' }} · planned {{ $kit->created_at->diffForHumans() }}
-                @if($kit->credits_spent) · {{ $kit->credits_spent }} credits @endif
+                @if($kit->credits_spent) · {{ $kit->credits_spent }} coins @endif
             </p>
         </div>
         @if($kit->isCreated())
@@ -71,7 +71,7 @@
             @endforeach
         </div>
     @else
-        {{-- Credit context at the second decision point: what this plan cost
+        {{-- Coin context at the second decision point: what this plan cost
              and what's left in the wallet, so confirming (and any follow-on
              AI work) isn't a surprise. Confirming itself is free. --}}
         @if($aiEnabled ?? false)
@@ -82,11 +82,11 @@
             <div class="rounded-2xl border border-white/10 bg-white/[0.03] p-4 flex items-center justify-between gap-3 flex-wrap">
                 <div class="flex items-center gap-6">
                     <div>
-                        <p class="text-[11px] uppercase tracking-wide text-white/40">Credits spent on this plan</p>
+                        <p class="text-[11px] uppercase tracking-wide text-white/40">Coins spent on this plan</p>
                         <p class="text-white font-semibold mt-0.5">{{ number_format((int) $kit->credits_spent) }}</p>
                     </div>
                     <div>
-                        <p class="text-[11px] uppercase tracking-wide text-white/40">Your AI credit balance</p>
+                        <p class="text-[11px] uppercase tracking-wide text-white/40">Your coin balance</p>
                         <p class="font-semibold mt-0.5 {{ $__lowBalance ? 'text-amber-300' : 'text-white' }}">{{ number_format((int) $balance) }}</p>
                     </div>
                 </div>
@@ -97,11 +97,11 @@
                     <i class="fas fa-triangle-exclamation mt-0.5 text-amber-300"></i>
                     <span>
                         @if((int) $balance <= 0)
-                            You're out of AI credits, so future AI runs (like re-planning after edits) will fail until you top up.
+                            You're out of coins, so future AI runs (like re-planning after edits) will fail until you top up.
                         @else
-                            Your AI credit balance is running low, so future AI runs (like re-planning after edits) may not go through.
+                            Your coin balance is running low, so future AI runs (like re-planning after edits) may not go through.
                         @endif
-                        <a href="{{ route('user.wallet.buy') }}" class="font-semibold text-amber-100 underline hover:no-underline">Top up credits</a>.
+                        <a href="{{ route('user.wallet.buy') }}" class="font-semibold text-amber-100 underline hover:no-underline">Top up coins</a>.
                     </span>
                 </div>
             @endif

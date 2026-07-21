@@ -517,7 +517,7 @@ export default function DashboardCustomizeScreen() {
             >
               <Feather name="zap" size={16} color={colors.primary} />
               <Text style={{ color: colors.foreground, fontSize: 13 }}>
-                Estimated cost: ~{estimate ?? 0} credits
+                Estimated cost: ~{estimate ?? 0} coins
               </Text>
             </View>
             <View style={{ gap: 8, marginTop: 4 }}>
@@ -570,7 +570,7 @@ export default function DashboardCustomizeScreen() {
               >
                 {resultWidgets?.length ?? 0} widget
                 {resultWidgets?.length === 1 ? "" : "s"} selected.
-                {creditsSpent > 0 ? ` Used ${creditsSpent} credits.` : ""}
+                {creditsSpent > 0 ? ` Used ${creditsSpent} coins.` : ""}
               </Text>
             </View>
             <Button label="Done" onPress={resetAiFlow} />

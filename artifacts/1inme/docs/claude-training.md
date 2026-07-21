@@ -167,7 +167,7 @@ tests on routing). Declare a winner to promote one variant.
 
 **AI biolink builder.** `AiBiolinkBuilderService` turns a prompt (+images/links)
 into a full page via OpenAI, constrained to a safe block subset and the user's
-plan-allowed types. Charged against `biolink_builder` AI credit feature; auto-refund
+plan-allowed types. Charged against `biolink_builder` coin-priced AI feature; auto-refund
 on parse failure. The browser extension also offers a "page → bio-link" mode
 (Quick or AI-powered) that reuses this service.
 
@@ -315,7 +315,7 @@ personas: Student, Professional/Employee, Business Owner, Creator/Artist, Other.
 The model only sees aggregate counts (referrer domain, geographic region, device
 type, browser language, time-of-day distribution, block engagement). No individual
 is identified, no third-party data used. 10-minute result cache; Force Refresh
-bypasses it. Deducts AI credits (shown before confirm, auto-refunded on failure).
+bypasses it. Deducts coins (shown before confirm, auto-refunded on failure).
 Web: Link in Bio → Analytics → Audience Insights. Mobile: link → Analytics →
 Audience Insights tab.
 
@@ -355,7 +355,7 @@ admin moderation at `/admin/adult-moderation`. Mobile parity.
 (b) an OpenAI API key configured. Missing either → "AI is currently disabled by
 your administrator" on any AI surface.
 
-**AI credit pattern.** Every AI feature: pre-check affordability → charge credits
+**Coin charging pattern.** Every AI feature: pre-check affordability → charge coins
 → call OpenAI → auto-refund on parse/validation failure. Per-feature ledger.
 Feature key goes in `FEATURES`; call `OpenAiService::chat` (auto-charges).
 
@@ -371,7 +371,7 @@ Feature key goes in `FEATURES`; call `OpenAiService::chat` (auto-charges).
 
 **AI features list:**
 
-| Feature | Credit key | Notes |
+| Feature | Feature key | Notes |
 |---|---|---|
 | AI Biolink Builder | `biolink_builder` | Prompt + images/links → full page via OpenAI |
 | AI Coach | `ask_coach` | Reviews account, gives growth advice (formerly: Account Assistant / AI Growth Coach) |
@@ -410,7 +410,7 @@ behavior). Charged/gated as `competitor_teardown`. Web + mobile.
 brand voice, taglines, block theme) → brand identity. `BrandKit::promptDirectives()`
 injected into builder and persona prompts. `BrandConsistencyService` (0–100 score)
 audits button colour, font family, font colour, block theme against the kit — mismatch
-findings with one-click "apply fix" links. Kit generation → `brand_kit` credit.
+findings with one-click "apply fix" links. Kit generation → `brand_kit` coin charge.
 The `brand_kit` **link type** publishes a shareable press-kit page (separate from
 the AI Brand Kits feature).
 
@@ -420,8 +420,8 @@ users get the full chat surface. Capabilities: general help/navigation, in-chat 
 login/signup (OTP verify = account creation for new emails), Quick Contact (callback /
 WhatsApp / email channels to reach support), and a voice mic for eligible users.
 Session auth. Mobile panel pins height to `vv.height - 100` and translateY-lifts
-above keyboard using `vv.offsetTop`. Zio Bot charges AI credits from the user's
-wallet; a low-balance banner is shown when credits are insufficient.
+above keyboard using `vv.offsetTop`. Zio Bot charges coins from the user’s
+wallet; a low-balance banner is shown when coins are insufficient.
 
 ---
 
@@ -449,7 +449,7 @@ quantity. Checkout bills add-ons as `addons[ID]=QTY`; eligibility via
 **Coin wallet.** `Wallet` + `WalletTransaction` ledger; buy coin packages (some
 with bonus coins); coins pay add-ons and developer-API overage.
 
-**AI credits.** Metered balance drawn from wallet; per-feature ledger; pre-charge
+**Coins for AI.** Every AI feature is charged in coins from the wallet; per-feature ledger; pre-charge
 affordability check; auto-refund on failure. See
 [`billing-ai-credit-audit.md`](./billing-ai-credit-audit.md).
 

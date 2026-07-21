@@ -727,7 +727,7 @@ export default function Profile() {
                     ]}
                   >
                     {wakeWordEnabled
-                      ? "On: listens while the app is open. Wake checks don't use AI credits."
+                      ? "On: listens while the app is open. Wake checks don't use coins."
                       : "Off: tap the floating mic to start the AI Voice Assistant."}
                   </Text>
                 </View>

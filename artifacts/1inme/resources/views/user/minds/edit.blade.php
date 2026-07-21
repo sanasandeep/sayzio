@@ -33,11 +33,11 @@
         </div>
     </div>
 
-    {{-- Credit usage (last 30 days) --}}
+    {{-- Coin usage (last 30 days) --}}
     <div class="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
         <div class="flex items-center justify-between">
             <h3 class="text-white font-semibold flex items-center gap-2">
-                <i class="fas fa-coins text-amber-300"></i> AI credits used
+                <i class="fas fa-coins text-amber-300"></i> Coins used
             </h3>
             <span class="text-[11px] uppercase tracking-wider text-white/40">Last {{ $creditUsage['days'] }} days</span>
         </div>
@@ -60,7 +60,7 @@
         </div>
         <x-mind-daily-spend-chart :days="$dailyCreditSpend" />
         @if($creditUsage['total'] === 0)
-            <p class="text-[11px] text-white/40 mt-3">No credits spent on this knowledge base in the last {{ $creditUsage['days'] }} days.</p>
+            <p class="text-[11px] text-white/40 mt-3">No coins spent on this knowledge base in the last {{ $creditUsage['days'] }} days.</p>
         @endif
     </div>
 
@@ -244,7 +244,7 @@
                                 @if($s->type==='feature') · {{ \App\Services\AI\AiMindFeatureAdapter::label($s->feature_key) }} @endif
                                 · {{ number_format($s->chunks_count ?? $s->chunks()->count()) }} chunks
                                 @if(($sourceCreditSpend[$s->id] ?? 0) > 0)
-                                    · <span class="text-amber-300" title="Credits spent embedding this source in the last {{ $creditUsage['days'] }} days">{{ number_format($sourceCreditSpend[$s->id]) }} credits / 30d</span>
+                                    · <span class="text-amber-300" title="Coins spent embedding this source in the last {{ $creditUsage['days'] }} days">{{ number_format($sourceCreditSpend[$s->id]) }} coins / 30d</span>
                                 @endif
                                 @if($s->status_message) · <span class="{{ $s->status === AiMindSource::STATUS_READY ? 'text-emerald-300/80' : 'text-red-300' }}">{{ $s->status_message }}</span>@endif
                             </p>
@@ -303,7 +303,7 @@
     {{-- Test chat --}}
     <div class="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
         <h3 class="text-white font-semibold flex items-center gap-2"><i class="fas fa-comment-dots text-blue-300"></i> Test this knowledge base</h3>
-        <p class="text-xs text-white/40 mt-1">Ask a question to verify the knowledge base answers from your sources. Costs AI credits.</p>
+        <p class="text-xs text-white/40 mt-1">Ask a question to verify the knowledge base answers from your sources. Costs coins.</p>
         <form @submit.prevent="ask" class="mt-3 flex gap-2">
             <input x-model="question" required maxlength="1500" placeholder="What do you want to know?" class="flex-1 bg-white/[0.04] border border-white/10 rounded-xl px-3 py-2 text-white text-sm">
             <button :disabled="loading" class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-sm font-medium">
@@ -317,7 +317,7 @@
             <div class="mt-3 space-y-3">
                 <div class="rounded-xl bg-white/[0.04] border border-white/10 p-3 text-white text-sm whitespace-pre-wrap" x-text="answer"></div>
                 <div class="flex flex-wrap items-center gap-2 text-[11px] text-white/50">
-                    <span x-text="`${creditsSpent} credits`"></span>
+                    <span x-text="`${creditsSpent} coins`"></span>
                     <template x-for="c in citations" :key="c.id">
                         <span class="px-2 py-0.5 rounded bg-white/5" x-text="c.title"></span>
                     </template>

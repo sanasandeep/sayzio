@@ -17,7 +17,7 @@
         ['Disabled',      $totals['disabled'],      'Platform-wide companions currently disabled'],
         ['Conversations', $totals['conversations'], 'Platform-wide all-time conversation count'],
         ['Turns / month', $totals['turns_month'],   'Platform-wide messages sent this calendar month'],
-        ['Credits / mo',  $totals['credits_month'], 'AI credits consumed platform-wide this calendar month'],
+        ['Coins / mo',  $totals['credits_month'], 'Coins consumed platform-wide this calendar month'],
     ];
     @endphp
 
@@ -62,7 +62,7 @@
             'label' => 'Default Free Turns Per Month',
             'scope' => 'Per companion',
             'scopeColor' => 'emerald',
-            'help'  => 'Starting free-turn quota assigned to every newly created companion (credit-refunded turns each month).',
+            'help'  => 'Starting free-turn quota assigned to every newly created companion (coin-refunded turns each month).',
         ],
         'max_visitor_message_chars' => [
             'label' => 'Max Visitor Message Chars',

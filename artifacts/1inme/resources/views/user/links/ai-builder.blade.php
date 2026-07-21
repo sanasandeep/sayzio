@@ -136,11 +136,11 @@
             </div>
         </div>
 
-        {{-- Credits + actions --}}
+        {{-- Coins + actions --}}
         <div class="glass rounded-2xl p-4 mb-5 flex items-center justify-between text-sm">
             <div class="text-white/50">
                 <i class="fas fa-coins text-amber-400 mr-1.5"></i>
-                AI credit balance: <span class="text-white font-medium" x-text="balance"></span>
+                Coin balance: <span class="text-white font-medium" x-text="balance"></span>
                 <template x-if="estimate !== null">
                     <span class="text-white/40 ml-2">· est. cost ~<span x-text="estimate"></span></span>
                 </template>
@@ -309,7 +309,7 @@ function aiBiolinkBuilder() {
                     return;
                 }
                 if (data.status === 402) {
-                    this.error = data.body.message || 'Not enough AI credits. Top up and try again.';
+                    this.error = data.body.message || 'Not enough coins. Top up and try again.';
                 } else {
                     this.error = data.body.message || 'Something went wrong building your page. Please try again.';
                 }

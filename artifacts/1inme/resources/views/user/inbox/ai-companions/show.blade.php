@@ -9,7 +9,7 @@
         <div class="w-10 h-10 rounded-xl flex items-center justify-center text-blue-300 bg-blue-500/15"><i class="fas fa-robot"></i></div>
         <div>
             <h1 class="text-lg font-bold text-white">{{ $companion->name }}</h1>
-            <p class="text-[11px] text-white/40">Bot · responses billed to your AI credits after free quota</p>
+            <p class="text-[11px] text-white/40">Bot · responses billed to your coins after free quota</p>
         </div>
     </div>
 

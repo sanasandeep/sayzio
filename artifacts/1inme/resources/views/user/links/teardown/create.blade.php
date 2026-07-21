@@ -37,7 +37,7 @@
         <div class="glass rounded-2xl p-4 mb-5 flex items-center justify-between text-sm">
             <div class="text-white/50">
                 <i class="fas fa-coins text-amber-400 mr-1.5"></i>
-                AI credit balance: <span class="text-white font-medium">{{ $balance }}</span>
+                Coin balance: <span class="text-white font-medium">{{ $balance }}</span>
             </div>
         </div>
 

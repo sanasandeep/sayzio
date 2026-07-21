@@ -16,7 +16,7 @@
             <h1 class="text-2xl font-bold text-white mt-2">{{ $persona->name }}
                 @if(!$isOwner)<span class="ml-2 text-[10px] uppercase tracking-wider text-sky-300/80 align-middle">Shared · {{ $shareAccess === \App\Modules\User\Models\AiResourceShare::ACCESS_EDIT ? 'Can edit' : 'View only' }}</span>@endif
             </h1>
-            <p class="text-[11px] text-white/40">v{{ optional($persona->activeVersion)->revision ?? '—' }} &middot; AI credit balance: <span class="text-blue-300">{{ number_format($balance) }}</span></p>
+            <p class="text-[11px] text-white/40">v{{ optional($persona->activeVersion)->revision ?? '—' }} &middot; Coin balance: <span class="text-blue-300">{{ number_format($balance) }}</span></p>
             @if($persona->is_disabled)
                 <p class="mt-2 text-xs text-red-300">This AI agent is disabled by an administrator: {{ $persona->disabled_reason }}</p>
             @endif
@@ -245,7 +245,7 @@
                 <h3 class="text-white font-semibold flex items-center gap-2">
                     <i class="fas fa-flask text-pink-300"></i> Test panel
                 </h3>
-                <p class="text-[11px] text-white/50 mt-1">Hit a saved version of this AI agent with the runtime visitors will use. Each turn spends AI credits.</p>
+                <p class="text-[11px] text-white/50 mt-1">Hit a saved version of this AI agent with the runtime visitors will use. Each turn spends coins.</p>
 
                 <div class="mt-3 max-h-80 overflow-y-auto space-y-2 pr-1" x-ref="log">
                     <template x-if="!log.length">
@@ -258,7 +258,7 @@
                                  x-text="t.content"></div>
                             <template x-if="t.meta">
                                 <div class="text-[10px] text-white/40 mt-1">
-                                    <span x-text="t.meta.model"></span> · <span x-text="t.meta.credits_spent + ' credits'"></span>
+                                    <span x-text="t.meta.model"></span> · <span x-text="t.meta.credits_spent + ' coins'"></span>
                                     · <span x-text="t.meta.tokens_in + '↑/' + t.meta.tokens_out + '↓ tokens'"></span>
                                 </div>
                             </template>

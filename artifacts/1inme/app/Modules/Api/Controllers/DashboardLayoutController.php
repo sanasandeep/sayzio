@@ -108,7 +108,7 @@ class DashboardLayoutController extends Controller
         try {
             $result = $this->designer->generate($request->user(), $data);
         } catch (InsufficientCoinsForAiException $e) {
-            return $this->fail('Not enough AI credits to design a dashboard.', 402, 'insufficient_credits', [
+            return $this->fail('Not enough coins to design a dashboard.', 402, 'insufficient_credits', [
                 'required' => $e->required ?? null,
                 'balance'  => $e->balance ?? null,
             ]);

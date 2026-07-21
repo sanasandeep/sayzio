@@ -260,7 +260,7 @@
                 <div data-cv-pane="sim" style="display:none;">
                     <div class="cv-card-subtitle mb-2">
                         Dry-run the unsaved flow with mock answers. Conditions, choice overrides, AI intents, and merge tags resolve live.
-                        <span style="display:block; margin-top:4px; color: var(--text-faint);">Approximations: AI intent is picked manually (no model call), file uploads are mocked, and AI credits aren't charged.</span>
+                        <span style="display:block; margin-top:4px; color: var(--text-faint);">Approximations: AI intent is picked manually (no model call), file uploads are mocked, and coins aren't charged.</span>
                     </div>
                     <div class="cv-sim-shell">
                         <div class="cv-sim-transcript" id="cv-sim-transcript"></div>

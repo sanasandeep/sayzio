@@ -581,7 +581,7 @@ class BiolinkWizardController extends Controller
             );
         } catch (InsufficientCoinsForAiException $e) {
             return redirect()->route('user.upgrade')
-                ->with('error', 'You don\'t have enough credits for AI generation — top up or generate instantly instead.');
+                ->with('error', 'You don\'t have enough coins for AI generation — top up or generate instantly instead.');
         } catch (Throwable $e) {
             report($e);
             return back()->with('error', 'The AI couldn\'t draft your page this time. Your answers were saved — try again or generate instantly.');

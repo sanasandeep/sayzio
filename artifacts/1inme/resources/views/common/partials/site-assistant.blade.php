@@ -1082,7 +1082,7 @@ window.__SA_LOGIN_URL = @json(url('/login'));
   function updateCredits(credits, balance){
     if(!voiceCreditsEl) return;
     if(!credits){ voiceCreditsEl.classList.remove('sa-show'); voiceCreditsEl.textContent=''; return; }
-    var txt='Last turn: STT '+(credits.stt||0)+' · LLM '+(credits.llm||0)+' · TTS '+(credits.tts||0)+' (= '+(credits.total||0)+' credits)';
+    var txt='Last turn: STT '+(credits.stt||0)+' · LLM '+(credits.llm||0)+' · TTS '+(credits.tts||0)+' (= '+(credits.total||0)+' coins)';
     if(balance!=null){ txt+=' · Balance '+balance; }
     voiceCreditsEl.textContent=txt;
     voiceCreditsEl.classList.add('sa-show');

@@ -182,7 +182,7 @@ class BrandStudioController extends Controller
             $brand  = $this->studio->resolveBrand($user, $data['brand_kit_id'], $data['inline']);
             $result = $this->studio->plan($user, $data['request'], $brand['directives'], $brand['brand'], $data['mode'], $data['bulk_kind'], $data['bulk_count'], $data['composition']);
         } catch (InsufficientCoinsForAiException $e) {
-            return $this->fail('Not enough AI credits for this Brand Studio run.', 402, 'insufficient_credits', [
+            return $this->fail('Not enough coins for this Brand Studio run.', 402, 'insufficient_credits', [
                 'required' => $e->required ?? null,
                 'balance'  => $e->balance ?? null,
             ]);

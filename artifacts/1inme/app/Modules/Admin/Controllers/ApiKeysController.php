@@ -224,7 +224,7 @@ class ApiKeysController extends Controller
         $aiConfigured = AiEngineSettings::openAiKey() !== null;
         $ai = [
             'label'  => 'AI Engine',
-            'desc'   => 'OpenAI key, models, credit packs and voice keys.',
+            'desc'   => 'OpenAI key, models, coin-priced AI features and voice keys.',
             'route'  => route('admin.ai-engine.edit'),
             'status' => $aiConfigured
                 ? ['label' => 'Configured', 'tone' => 'green']

@@ -113,25 +113,25 @@
         <div class="flex justify-end"><button class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-sm">Save caps</button></div>
     </form>
 
-    {{-- Global daily AI credit spend trend --}}
+    {{-- Global daily coin spend trend --}}
     <div class="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
         <div class="flex items-center justify-between">
             <h3 class="text-white font-semibold flex items-center gap-2">
-                <i class="fas fa-coins text-amber-300"></i> Daily Mind credit spend
+                <i class="fas fa-coins text-amber-300"></i> Daily Mind coin spend
             </h3>
             <span class="text-[11px] uppercase tracking-wider text-white/40">Last 30 days · all minds</span>
         </div>
         <x-mind-daily-spend-chart :days="$dailySpend" height="h-32" />
     </div>
 
-    {{-- Top minds by AI credit spend --}}
+    {{-- Top minds by coin spend --}}
     <div class="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
         <div class="flex items-center justify-between mb-3">
-            <h3 class="text-white font-semibold">Top 10 Minds by credit spend</h3>
+            <h3 class="text-white font-semibold">Top 10 Minds by coin spend</h3>
             <span class="text-[11px] uppercase tracking-wider text-white/40">Last 30 days</span>
         </div>
         @if($topByCredits->isEmpty())
-            <p class="text-sm text-white/40">No Mind credit spend in the last 30 days.</p>
+            <p class="text-sm text-white/40">No Mind coin spend in the last 30 days.</p>
         @else
             <table class="w-full text-sm text-left">
                 <thead class="text-[11px] uppercase tracking-wider text-white/40">

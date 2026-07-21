@@ -55,9 +55,9 @@ class BrandStudioBalanceContextTest extends TestCase
         $res = $this->actingAs($user)->get(route('user.brand-studio.show', $kit));
 
         $res->assertOk();
-        $res->assertSee('Credits spent on this plan');
-        $res->assertSee('Your AI credit balance');
-        $res->assertSee('Top up credits');
+        $res->assertSee('Coins spent on this plan');
+        $res->assertSee('Your coin balance');
+        $res->assertSee('Top up coins');
     }
 
     public function test_web_review_page_hides_low_hint_with_comfortable_balance(): void
@@ -70,8 +70,8 @@ class BrandStudioBalanceContextTest extends TestCase
         $res = $this->actingAs($user)->get(route('user.brand-studio.show', $kit));
 
         $res->assertOk();
-        $res->assertSee('Your AI credit balance');
-        $res->assertDontSee('Top up credits');
+        $res->assertSee('Your coin balance');
+        $res->assertDontSee('Top up coins');
     }
 
     public function test_api_detail_returns_balance_and_threshold(): void

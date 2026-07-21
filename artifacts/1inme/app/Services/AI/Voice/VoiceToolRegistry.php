@@ -72,7 +72,7 @@ class VoiceToolRegistry
                 'category'    => 'read',
                 'role'        => 'user',
                 'destructive' => false,
-                'description' => 'Read the asking user\'s current AI credit and wallet coin balances.',
+                'description' => 'Read the asking user\'s current coin balance.',
                 'parameters'  => ['type' => 'object', 'properties' => (object) [], 'additionalProperties' => false],
                 'handler'     => fn(User $u) => $this->doGetBalance($u),
             ],
@@ -323,7 +323,7 @@ class VoiceToolRegistry
                 'category'    => 'admin',
                 'role'        => 'admin',
                 'destructive' => true,
-                'description' => 'Admin-only: grant AI credits to a user. Requires confirmation.',
+                'description' => 'Admin-only: grant coins to a user. Requires confirmation.',
                 'parameters'  => [
                     'type' => 'object',
                     'properties' => [
@@ -464,7 +464,7 @@ class VoiceToolRegistry
         $wallet = method_exists($this->wallets, 'getBalance')
             ? (int) $this->wallets->getBalance($user)
             : null;
-        $parts = ["{$ai} AI credits"];
+        $parts = ["{$ai} coins"];
         if ($wallet !== null) $parts[] = "{$wallet} wallet coins";
         return [
             'summary' => 'You have ' . implode(' and ', $parts) . '.',

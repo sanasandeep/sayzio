@@ -40,7 +40,7 @@ import { showAlert } from "@/lib/webAlert";
  * the AI crafts a cohesive identity — palette, font pairing, voice, taglines,
  * bio and a recommended Link-in-Bio block theme — and the resulting kit can be
  * applied to one of their biolinks or QR codes. Generation is plan-gated
- * (`max_brand_kits`) and charged in AI credits, with the same auto-refund on
+ * (`max_brand_kits`) and charged in coins, with the same auto-refund on
  * failure as the web (handled server-side in AiBrandKitService).
  */
 export default function BrandKitsScreen() {
@@ -110,7 +110,7 @@ export default function BrandKitsScreen() {
       showAlert(
         "Brand kit created",
         r.credits_spent > 0
-          ? `“${r.kit.name}” is ready. ${r.credits_spent} credit${r.credits_spent === 1 ? "" : "s"} used.`
+          ? `“${r.kit.name}” is ready. ${r.credits_spent} coin${r.credits_spent === 1 ? "" : "s"} used.`
           : `“${r.kit.name}” is ready.`,
       );
     },
@@ -303,11 +303,11 @@ export default function BrandKitsScreen() {
 
                   <View style={styles.balanceRow}>
                     <Text style={[styles.meta, { color: colors.mutedForeground }]}>
-                      Balance: {data?.balance ?? 0} credits
+                      Balance: {data?.balance ?? 0} coins
                     </Text>
                     {estimate !== null ? (
                       <Text style={[styles.meta, { color: colors.foreground }]}>
-                        Est. cost: ~{estimate} credit{estimate === 1 ? "" : "s"}
+                        Est. cost: ~{estimate} coin{estimate === 1 ? "" : "s"}
                       </Text>
                     ) : null}
                   </View>

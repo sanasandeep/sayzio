@@ -227,7 +227,7 @@ class BrandKitController extends Controller
             $result = $this->kits->generate($user, $data['prompt'], $data['website_url'], $data['logo_url'], $kbContext);
         } catch (InsufficientCoinsForAiException $e) {
             return response()->json([
-                'message'  => 'Not enough AI credits to generate this brand kit.',
+                'message'  => 'Not enough coins to generate this brand kit.',
                 'required' => $e->required ?? null,
                 'balance'  => $e->balance ?? null,
             ], 402);

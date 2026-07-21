@@ -59,7 +59,7 @@ It complements several sibling docs and intentionally does **not** duplicate the
 6. [Creator monetization & payouts](#6-creator-monetization--payouts)
 7. [18+ adult content](#7-18-adult-content)
 8. [AI engine & AI features](#8-ai-engine--ai-features)
-9. [Pricing, plans, coins & AI credits](#9-pricing-plans-coins--ai-credits)
+9. [Pricing, plans & coins](#9-pricing-plans--coins)
 10. [Teams, workspaces, projects & client portals](#10-teams-workspaces-projects--client-portals)
 11. [Security & sessions](#11-security--sessions)
 12. [Admin / back-office systems](#12-admin--back-office-systems)
@@ -228,7 +228,7 @@ Toggle `module_updates`, cap `max_updates`. *Web · REST · Mobile.*
 - **AI Chatbot (`ai_chat`)** — a full-page AI assistant surface. It reuses the
   AI Chat runtime (placement = page) rather than introducing a new runtime;
   bound to a Chat Widget via the `ai_companion_links` pivot. The **owner** pays for
-  visitor chats (AI credits), not the visitor. Toggle `module_ai_chat`, cap
+  visitor chats (coins), not the visitor. Toggle `module_ai_chat`, cap
   `max_ai_chat`. See [§8](#8-ai-engine--ai-features). *Web · REST · Mobile.*
 - **Conversational (`conversational`)** — a scripted, one-message-at-a-time
   walk-through of your links; part of the conversational family alongside
@@ -851,7 +851,7 @@ timestamp, so subsequent page loads show the cached estimate immediately.
   returned without re-charging (double-tapping costs nothing).
 - Pass `force: true` in the request body to bypass the cache and run a fresh
   estimation regardless.
-- Charged to the `audience_type_estimation` AI-credit feature via
+- Charged to the `audience_type_estimation` coin-charged AI feature via
   `AiUsageCharger`; the cost is shown alongside the result as
   `coins_per_estimate`. On a parse failure the charge is auto-refunded.
 - Plan gate: `AiPlanAccess::featureAllowed($user, 'audience_type_estimation')`.
@@ -923,12 +923,12 @@ Optional mode for creators publishing adult content (`/user/adult-content`).
 (prompt + `max_tokens`) against the user's balance and refuses before calling
 OpenAI; meters fractional coins per 1,000 tokens at admin-defined rates (rounded
 up to whole coins); supports multiple models with retries and key rotation;
-`chatStream` monitors running balance live and cuts the stream if credits run
+`chatStream` monitors running balance live and cuts the stream if coins run
 out. Failed runs are auto-refunded. The AI engine is **off by default in dev**;
 when an admin disables the engine or no provider key is configured, AI surfaces
 show "AI scanning/feature is currently disabled by your administrator."
 
-**AI-credit feature catalog** (`AiFeatureCatalog` FEATURES) — `mind`, `persona`,
+**Coin-charged AI feature catalog** (`AiFeatureCatalog` FEATURES) — `mind`, `persona`,
 `companion`, `coach` / `ask_coach`, `voice_stt`, `voice_llm`, `voice_tts`,
 `card_scan`, `resume_import`, `resume_tailor`, `inbox_agent`, `brand_kit`,
 `qr_art`, `marketing_strategist` (+ `marketing_strategist.chat`), `brand_studio`, and
@@ -1010,7 +1010,7 @@ through the engine settings include the `biolink_builder`,
   before anything is created; confirmed assets are materialized as a named kit
   (`BrandStudioKit`) with a results page. Two modes: **full kit** and **bulk
   variations** (N variants of one asset kind, capped per plan by
-  `max_brand_studio_bulk`). Planning is charged to the `brand_studio` AI-credit
+  `max_brand_studio_bulk`). Planning is charged to the `brand_studio` coin-priced AI
   feature with auto-refund on parse failure; confirming is deterministic and free,
   with per-type plan caps enforced at creation (capped assets are skipped and
   reported). Full mobile parity via `/api/v1/brand-studio`. *Web + mobile.*
@@ -1058,7 +1058,7 @@ Teardown).*
 
 ---
 
-## 9. Pricing, plans, coins & AI credits
+## 9. Pricing, plans & coins
 
 - **Plans** (`Plan` model) — name, monthly/annual price (prices live in the
   `prices` table), and a JSON `features` blob holding feature toggles + numeric
@@ -1091,7 +1091,7 @@ Teardown).*
 - **Coin wallet** — prepaid balance (`Wallet` + `WalletTransaction` ledger);
   buy **coin packages** (some with bonus coins); coins pay add-ons and developer-
   API overage.
-- **AI credits** — metered AI balance drawn from the wallet; per-feature ledger;
+- **Coins for AI** — every AI feature is charged in coins from the wallet; per-feature ledger;
   pre-charge affordability check; auto-refund on failure (see
   [§8](#8-ai-engine--ai-features) and
   [`billing-ai-credit-audit.md`](./billing-ai-credit-audit.md)).

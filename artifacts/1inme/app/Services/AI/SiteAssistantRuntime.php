@@ -694,7 +694,7 @@ class SiteAssistantRuntime
             // (charged inside chatStream, capped to balance) and emit
             // an explicit notice so the widget can show *why* the
             // reply ended early instead of going silent.
-            $notice = 'Your reply was cut short — you have run out of credits.';
+            $notice = 'Your reply was cut short — you have run out of coins.';
             $this->persistFailedStreamMessage($conv, $e->partialContent, $notice, [
                 'reason'        => 'out_of_credits',
                 'credits_spent' => $e->creditsSpent,

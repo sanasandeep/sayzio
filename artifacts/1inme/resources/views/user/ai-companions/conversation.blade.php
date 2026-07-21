@@ -10,7 +10,7 @@
             @if($conversation->visitor_email)<span class="text-white/40 text-sm">· {{ $conversation->visitor_email }}</span>@endif
         </h1>
         <p class="text-[11px] text-white/40">
-            {{ $conversation->turns_count }} turns · {{ $conversation->credits_spent }} credits ·
+            {{ $conversation->turns_count }} turns · {{ $conversation->credits_spent }} coins ·
             opened {{ $conversation->created_at?->diffForHumans() }}
             @if($conversation->source_origin) from {{ $conversation->source_origin }}@endif
         </p>
@@ -26,7 +26,7 @@
                         <div class="text-[10px] opacity-60 mt-2">Sources: {{ collect($m->citations)->pluck('title')->filter()->join(', ') }}</div>
                     @endif
                     @if($m->credits_spent > 0)
-                        <div class="text-[10px] opacity-50 mt-1">{{ $m->credits_spent }} credits</div>
+                        <div class="text-[10px] opacity-50 mt-1">{{ $m->credits_spent }} coins</div>
                     @endif
                 </div>
             </div>
