@@ -3,6 +3,7 @@ import { useEffect, useRef } from "react";
 import { AppState } from "react-native";
 
 import { googleContacts } from "@/lib/api/contacts";
+import { syncCallerDirectory } from "@/lib/callerId";
 import {
   getStoredContactSyncFingerprint,
   importDeviceContacts,
@@ -88,6 +89,10 @@ export function useContactAutoSync(
       if (mounted && changed) {
         qc.invalidateQueries({ queryKey: ["contacts"] });
       }
+      // Keep the native caller-ID directory fresh so the incoming-call
+      // overlay resolves Sayzio contacts even while the app is dead.
+      // Android-only no-op elsewhere; throttled internally.
+      void syncCallerDirectory({ force: changed });
     };
 
     const start = async () => {

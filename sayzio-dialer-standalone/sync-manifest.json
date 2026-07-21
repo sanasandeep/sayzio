@@ -301,7 +301,7 @@
       "source": "app/dialer-profile.tsx",
       "relation": "adapted",
       "note": "main app has no /contacts/new form, so its saveOrEdit falls back to the /contacts list; otherwise identical (Task #5399 port).",
-      "sourceSha256": "7307646845f29539d979ee5426548b5aa7c1e84e91309dd4e5a963aa0d09bdd8"
+      "sourceSha256": "702d93a4d25c861652cf2c613bea91b401345fe2f9cf0ebef24aa7a85d3aa095"
     },
     {
       "standalone": "lib/api/dialer.ts",
@@ -348,6 +348,26 @@
     {
       "standalone": "modules/zio-telephony/android/src/main/java/expo/modules/ziotelephony/ZioTelephonyModule.kt",
       "source": "modules/zio-telephony/android/src/main/java/expo/modules/ziotelephony/ZioTelephonyModule.kt",
+      "relation": "identical"
+    },
+    {
+      "standalone": "modules/zio-telephony/android/src/main/java/expo/modules/ziotelephony/CallerIdStore.kt",
+      "source": "modules/zio-telephony/android/src/main/java/expo/modules/ziotelephony/CallerIdStore.kt",
+      "relation": "identical"
+    },
+    {
+      "standalone": "modules/zio-telephony/android/src/main/java/expo/modules/ziotelephony/CallerLookup.kt",
+      "source": "modules/zio-telephony/android/src/main/java/expo/modules/ziotelephony/CallerLookup.kt",
+      "relation": "identical"
+    },
+    {
+      "standalone": "modules/zio-telephony/android/src/main/java/expo/modules/ziotelephony/CallerIdOverlay.kt",
+      "source": "modules/zio-telephony/android/src/main/java/expo/modules/ziotelephony/CallerIdOverlay.kt",
+      "relation": "identical"
+    },
+    {
+      "standalone": "modules/zio-telephony/android/src/main/java/expo/modules/ziotelephony/ZioCallScreeningService.kt",
+      "source": "modules/zio-telephony/android/src/main/java/expo/modules/ziotelephony/ZioCallScreeningService.kt",
       "relation": "identical"
     },
     {

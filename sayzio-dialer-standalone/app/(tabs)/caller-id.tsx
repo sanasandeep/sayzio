@@ -1,10 +1,14 @@
+import Feather from "@expo/vector-icons/Feather";
 import { useRouter } from "expo-router";
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
+  AppState,
   KeyboardAvoidingView,
   Platform,
+  Pressable,
   ScrollView,
   StyleSheet,
+  Switch,
   Text,
   View,
 } from "react-native";
@@ -14,6 +18,15 @@ import { ChannelActions } from "@/components/ChannelActions";
 import { EmptyState } from "@/components/EmptyState";
 import { TextField } from "@/components/TextField";
 import { useColors } from "@/hooks/useColors";
+import {
+  getCallerIdStatus,
+  openOverlaySettings,
+  requestCallScreeningRole,
+  setCallerIdEnabled,
+  showTestAlert,
+  syncCallerDirectory,
+  type CallerIdStatus,
+} from "@/lib/callerId";
 
 const E164 = /^\+[1-9]\d{6,14}$/;
 
@@ -24,6 +37,157 @@ function normalize(raw: string): string {
   const digits = trimmed.replace(/[^\d]/g, "");
   if (!digits) return "";
   return hasPlus ? `+${digits}` : `+${digits}`;
+}
+
+/**
+ * Truecaller-style incoming-call alert setup (Android APK builds only).
+ * Walks the user through the two system grants the floating card needs:
+ * "Display over other apps" and the caller ID & spam app role. Degrades
+ * gracefully — the rest of the Caller ID tab keeps working if declined.
+ */
+function LiveCallerIdCard() {
+  const colors = useColors();
+  const [status, setStatus] = useState<CallerIdStatus>(() =>
+    getCallerIdStatus(),
+  );
+
+  const refresh = useCallback(() => setStatus(getCallerIdStatus()), []);
+
+  // Permission grants happen in system settings / system dialogs — re-check
+  // whenever the app comes back to the foreground.
+  useEffect(() => {
+    const sub = AppState.addEventListener("change", (s) => {
+      if (s === "active") refresh();
+    });
+    return () => sub.remove();
+  }, [refresh]);
+
+  // Keep the native lookup directory warm while the user is here.
+  useEffect(() => {
+    if (status.enabled) void syncCallerDirectory();
+  }, [status.enabled]);
+
+  if (!status.supported) return null;
+
+  const toggle = (next: boolean) => {
+    setCallerIdEnabled(next);
+    refresh();
+    if (next) void syncCallerDirectory({ force: true });
+  };
+
+  const grantOverlay = () => {
+    openOverlaySettings();
+  };
+
+  const grantRole = async () => {
+    await requestCallScreeningRole();
+    refresh();
+  };
+
+  const steps: {
+    key: string;
+    done: boolean;
+    title: string;
+    body: string;
+    action?: () => void;
+    actionLabel?: string;
+  }[] = [
+    {
+      key: "overlay",
+      done: status.overlayGranted,
+      title: "Display over other apps",
+      body: "Lets the caller card float over whatever you're doing — even the lock screen.",
+      action: grantOverlay,
+      actionLabel: "Open settings",
+    },
+    {
+      key: "role",
+      done: status.roleHeld,
+      title: "Caller ID & spam app",
+      body: "Android only tells caller-ID apps about ringing calls. Zio Dialer never blocks or silences anything.",
+      action: () => void grantRole(),
+      actionLabel: "Set Zio Dialer",
+    },
+  ];
+
+  return (
+    <View
+      style={[
+        styles.card,
+        { backgroundColor: colors.card, borderColor: colors.border },
+      ]}
+    >
+      <View style={styles.cardHeader}>
+        <View style={{ flex: 1, paddingRight: 12 }}>
+          <Text style={[styles.cardTitle, { color: colors.foreground }]}>
+            Live caller ID alerts
+          </Text>
+          <Text style={[styles.cardSub, { color: colors.mutedForeground }]}>
+            When your phone rings, a floating card shows who's calling —
+            matched from your contacts and Sayzio data, with your last call
+            context.
+          </Text>
+        </View>
+        <Switch
+          value={status.enabled}
+          onValueChange={toggle}
+          trackColor={{ true: colors.primary }}
+        />
+      </View>
+
+      {status.enabled ? (
+        <>
+          {steps.map((step) => (
+            <View key={step.key} style={styles.stepRow}>
+              <Feather
+                name={step.done ? "check-circle" : "circle"}
+                size={18}
+                color={step.done ? "#16a34a" : colors.mutedForeground}
+                style={{ marginTop: 2 }}
+              />
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.stepTitle, { color: colors.foreground }]}>
+                  {step.title}
+                </Text>
+                <Text
+                  style={[styles.stepBody, { color: colors.mutedForeground }]}
+                >
+                  {step.body}
+                </Text>
+                {!step.done && step.action ? (
+                  <Pressable onPress={step.action} style={{ marginTop: 6 }}>
+                    <Text style={[styles.stepAction, { color: colors.primary }]}>
+                      {step.actionLabel}
+                    </Text>
+                  </Pressable>
+                ) : null}
+              </View>
+            </View>
+          ))}
+
+          {status.active ? (
+            <View style={styles.readyRow}>
+              <Text style={[styles.readyText, { color: "#16a34a" }]}>
+                You're all set — alerts will appear when calls ring.
+              </Text>
+              <Pressable onPress={() => showTestAlert("+15551234567")}>
+                <Text style={[styles.stepAction, { color: colors.primary }]}>
+                  See a preview
+                </Text>
+              </Pressable>
+            </View>
+          ) : (
+            <Text
+              style={[styles.declinedNote, { color: colors.mutedForeground }]}
+            >
+              Alerts stay off until both permissions are granted. You can
+              still look up any number manually below.
+            </Text>
+          )}
+        </>
+      ) : null}
+    </View>
+  );
 }
 
 export default function CallerIdScreen() {
@@ -56,6 +220,8 @@ export default function CallerIdScreen() {
           to, whether it's saved, spam or a Sayzio member — then log the call,
           add notes and set a follow-up.
         </Text>
+
+        <LiveCallerIdCard />
 
         <View style={styles.field}>
           <TextField
@@ -108,4 +274,34 @@ const styles = StyleSheet.create({
   field: { gap: 6 },
   hint: { fontSize: 13, fontFamily: "SpaceGrotesk_400Regular" },
   spacer: { height: 12 },
+  card: {
+    borderWidth: 1,
+    borderRadius: 16,
+    padding: 16,
+    gap: 12,
+  },
+  cardHeader: { flexDirection: "row", alignItems: "flex-start" },
+  cardTitle: { fontSize: 17, fontFamily: "SpaceGrotesk_700Bold" },
+  cardSub: {
+    fontSize: 13,
+    lineHeight: 18,
+    marginTop: 4,
+    fontFamily: "SpaceGrotesk_400Regular",
+  },
+  stepRow: { flexDirection: "row", gap: 10 },
+  stepTitle: { fontSize: 14, fontFamily: "SpaceGrotesk_500Medium" },
+  stepBody: {
+    fontSize: 12.5,
+    lineHeight: 17,
+    marginTop: 2,
+    fontFamily: "SpaceGrotesk_400Regular",
+  },
+  stepAction: { fontSize: 13.5, fontFamily: "SpaceGrotesk_500Medium" },
+  readyRow: { gap: 6 },
+  readyText: { fontSize: 13, fontFamily: "SpaceGrotesk_500Medium" },
+  declinedNote: {
+    fontSize: 12.5,
+    lineHeight: 17,
+    fontFamily: "SpaceGrotesk_400Regular",
+  },
 });

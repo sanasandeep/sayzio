@@ -1,1 +1,19 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android" />
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+  <!-- Floating caller-ID card drawn over other apps / the lock screen. -->
+  <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+
+  <application>
+    <!-- Bound by the system while the app holds ROLE_CALL_SCREENING
+         (the "caller ID & spam app" role). Lets us know a call is ringing
+         so the floating caller-ID alert can be shown; calls are always
+         allowed through untouched. -->
+    <service
+      android:name="expo.modules.ziotelephony.ZioCallScreeningService"
+      android:exported="true"
+      android:permission="android.permission.BIND_SCREENING_SERVICE">
+      <intent-filter>
+        <action android:name="android.telecom.CallScreeningService" />
+      </intent-filter>
+    </service>
+  </application>
+</manifest>

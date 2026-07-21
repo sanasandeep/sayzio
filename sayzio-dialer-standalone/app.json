@@ -38,7 +38,8 @@
         "android.permission.USE_FINGERPRINT",
         "android.permission.ACCESS_FINE_LOCATION",
         "android.permission.READ_CALL_LOG",
-        "android.permission.READ_PHONE_STATE"
+        "android.permission.READ_PHONE_STATE",
+        "android.permission.SYSTEM_ALERT_WINDOW"
       ]
     },
     "web": {
