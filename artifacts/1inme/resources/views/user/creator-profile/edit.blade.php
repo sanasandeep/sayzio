@@ -830,11 +830,15 @@
             </div>
             @if($profileUrl)
                 <div class="p-3">
+                    {{-- NOTE: Alpine string-syntax :style REPLACES the static style
+                         attribute; the object syntax below MERGES with it. The iframe
+                         once lost its 390x760 sizing this way and collapsed to the
+                         300x150 default (preview showed only a corner of the page). --}}
                     <div class="rounded-xl overflow-hidden mx-auto" style="border: 1px solid var(--border-glass);"
-                         :style="'width:' + (pvBase * pvScale) + 'px; height:' + (pvBaseH * pvScale) + 'px;'">
+                         :style="{ width: (pvBase * pvScale) + 'px', height: (pvBaseH * pvScale) + 'px' }">
                         <iframe x-ref="pvFrame" src="{{ $profileUrl }}?cp_preview=1" title="Profile preview" loading="lazy" @load="pvLive()"
                                 style="width: 390px; height: 760px; transform-origin: top left; border: 0; pointer-events: none;"
-                                :style="'transform: scale(' + pvScale + ');'"></iframe>
+                                :style="{ transform: 'scale(' + pvScale + ')' }"></iframe>
                     </div>
                     <p class="text-[10px] mt-2 text-center" style="color: var(--text-dimmed);" x-show="pvMode !== 'mini'">
                         Save the form, then hit <i class="fas fa-rotate-right"></i> to refresh.
