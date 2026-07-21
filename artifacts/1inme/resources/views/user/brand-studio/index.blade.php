@@ -77,8 +77,20 @@
                 </button>
                 <button type="button" @click="estimate()" :disabled="busy || !brief.trim()"
                         class="text-sm text-white/60 hover:text-white underline decoration-white/20">Estimate cost</button>
-                <span class="text-[11px] text-white/40" x-show="estimateText" x-text="estimateText"></span>
+                <span class="text-[11px] text-white/40" x-show="estBusy">Estimating cost…</span>
+                <span class="text-[11px] text-white/40" x-show="!estBusy && estimateText" x-text="estimateText"></span>
                 <span class="text-sm text-red-300" x-show="error" x-text="error"></span>
+            </div>
+            <template x-if="!estBusy && estCredits !== null && mode === 'bulk'">
+                <p class="text-[11px] text-white/40">
+                    <i class="fas fa-layer-group mr-1 text-white/30"></i>
+                    <span x-text="`${bulkVariants()} variant${bulkVariants() === 1 ? '' : 's'} × ~${perVariantCredits()} credits each ≈ ${estCredits} credits total`"></span>
+                </p>
+            </template>
+            <div x-show="!estBusy && lowBalance()" x-cloak
+                 class="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-300 text-sm flex items-start gap-2">
+                <i class="fas fa-triangle-exclamation mt-0.5"></i>
+                <span x-text="`This run needs about ${estCredits} AI credits but you only have ${estBalance}. Top up your credits before generating, or reduce the scope.`"></span>
             </div>
             <p class="text-[11px] text-white/35">You'll review the full plan before anything is created. Planning uses AI credits; a failed run is automatically refunded.</p>
         </div>
@@ -121,6 +133,32 @@ function brandStudio() {
         brandKitId: '', brandName: '', brandColors: '', brandVoice: '', brandDescription: '',
         brief: '', mode: 'kit', bulkKind: 'short_link', bulkCount: 5,
         busy: false, error: '', estimateText: '',
+        estCredits: null, estBalance: {{ (int) $balance }}, estBusy: false,
+        _estTimer: null, _estSeq: 0,
+        init() {
+            ['brief', 'mode', 'bulkKind', 'bulkCount', 'brandKitId', 'brandName', 'brandColors', 'brandVoice', 'brandDescription']
+                .forEach((k) => this.$watch(k, () => this.scheduleEstimate()));
+        },
+        bulkVariants() {
+            const cap = {{ (int) $bulkCap }};
+            let n = Math.max(1, parseInt(this.bulkCount, 10) || 1);
+            if (cap > 0) n = Math.min(n, cap);
+            return n;
+        },
+        perVariantCredits() {
+            if (this.estCredits === null) return 0;
+            return Math.max(1, Math.round(this.estCredits / this.bulkVariants()));
+        },
+        lowBalance() {
+            return this.estCredits !== null && this.estCredits > this.estBalance;
+        },
+        scheduleEstimate() {
+            clearTimeout(this._estTimer);
+            this.estCredits = null; this.estimateText = '';
+            if (!this.brief.trim()) { this.estBusy = false; return; }
+            this.estBusy = true;
+            this._estTimer = setTimeout(() => this.estimate(true), 600);
+        },
         payload() {
             return {
                 request: this.brief,
@@ -147,12 +185,24 @@ function brandStudio() {
             if (!res.ok) throw new Error(json.message || 'Something went wrong. Please try again.');
             return json;
         },
-        async estimate() {
-            this.error = ''; this.estimateText = '';
+        async estimate(auto = false) {
+            if (!auto) { this.error = ''; }
+            this.estimateText = '';
+            const seq = ++this._estSeq;
+            this.estBusy = true;
             try {
                 const j = await this.post(@js(route('user.brand-studio.estimate')));
+                if (seq !== this._estSeq) return;
+                this.estCredits = j.estimated_credits;
+                this.estBalance = j.balance;
                 this.estimateText = `≈ ${j.estimated_credits} credits (you have ${j.balance})`;
-            } catch (e) { this.error = e.message; }
+            } catch (e) {
+                if (seq !== this._estSeq) return;
+                this.estCredits = null;
+                if (!auto) this.error = e.message;
+            } finally {
+                if (seq === this._estSeq) this.estBusy = false;
+            }
         },
         async plan() {
             this.error = ''; this.busy = true;

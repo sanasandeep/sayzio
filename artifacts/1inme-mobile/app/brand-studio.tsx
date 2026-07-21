@@ -1,7 +1,7 @@
 import { Feather } from "@expo/vector-icons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Stack } from "expo-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Pressable,
@@ -70,6 +70,7 @@ export default function BrandStudioScreen() {
   const [brandColors, setBrandColors] = useState("");
   const [brandVoice, setBrandVoice] = useState("");
   const [estimate, setEstimate] = useState<number | null>(null);
+  const [estBalance, setEstBalance] = useState<number | null>(null);
   const [openKitId, setOpenKitId] = useState<number | null>(null);
   const [dropped, setDropped] = useState<number[]>([]);
 
@@ -105,13 +106,51 @@ export default function BrandStudioScreen() {
   });
 
   const estimateMut = useMutation({
-    mutationFn: () => estimateBrandStudio(planInput()),
-    onSuccess: (r) => setEstimate(r.estimated_credits),
-    onError: (e: any) => {
+    mutationFn: (_vars?: { silent?: boolean }) =>
+      estimateBrandStudio(planInput()),
+    onSuccess: (r) => {
+      setEstimate(r.estimated_credits);
+      setEstBalance(r.balance);
+    },
+    onError: (e: any, vars) => {
+      if (vars?.silent) return;
       if (handlePlanLockedError(e)) return;
       showAlert("Couldn't estimate", e?.message ?? "Please try again.");
     },
   });
+
+  // Live cost preview: re-estimate (debounced) whenever the brief, mode,
+  // bulk settings or brand context change, so the credit cost and the
+  // low-balance warning stay accurate before the user commits credits.
+  const canEstimate = !!data?.available && !!data?.ai_enabled;
+  useEffect(() => {
+    setEstimate(null);
+    if (!canEstimate || !brief.trim()) return;
+    const t = setTimeout(() => estimateMut.mutate({ silent: true }), 700);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    canEstimate,
+    brief,
+    mode,
+    bulkKind,
+    bulkCount,
+    brandKitId,
+    brandName,
+    brandColors,
+    brandVoice,
+  ]);
+
+  const bulkCap = data?.bulk_cap ?? -1;
+  const bulkVariants = (() => {
+    let n = Math.max(1, parseInt(bulkCount, 10) || 1);
+    if (bulkCap > 0) n = Math.min(n, bulkCap);
+    return n;
+  })();
+  const perVariantCredits =
+    estimate != null ? Math.max(1, Math.round(estimate / bulkVariants)) : null;
+  const availableCredits = estBalance ?? data?.balance ?? 0;
+  const lowBalance = estimate != null && estimate > availableCredits;
 
   const planMut = useMutation({
     mutationFn: () => planBrandStudio(planInput()),
@@ -547,15 +586,41 @@ export default function BrandStudioScreen() {
                 <Button
                   label={
                     estimate != null
-                      ? `≈ ${estimate} credits (you have ${data.balance})`
+                      ? `≈ ${estimate} credits (you have ${availableCredits})`
                       : estimateMut.isPending
                         ? "Estimating…"
                         : "Estimate cost"
                   }
                   variant="outline"
                   disabled={estimateMut.isPending || !brief.trim()}
-                  onPress={() => estimateMut.mutate()}
+                  onPress={() => estimateMut.mutate(undefined)}
                 />
+                {estimate != null && mode === "bulk" ? (
+                  <Text style={[styles.small, { color: colors.mutedForeground }]}>
+                    {bulkVariants} variant{bulkVariants === 1 ? "" : "s"} × ~
+                    {perVariantCredits} credits each ≈ {estimate} credits total
+                  </Text>
+                ) : null}
+                {lowBalance ? (
+                  <View
+                    style={[
+                      styles.warnBox,
+                      {
+                        borderColor: colors.warning,
+                        backgroundColor: `${colors.warning}1A`,
+                      },
+                    ]}
+                  >
+                    <Feather name="alert-triangle" size={14} color={colors.warning} />
+                    <Text
+                      style={[styles.small, styles.flex, { color: colors.warning }]}
+                    >
+                      This run needs about {estimate} AI credits but you only
+                      have {availableCredits}. Top up your credits before
+                      generating, or reduce the scope.
+                    </Text>
+                  </View>
+                ) : null}
                 <Text style={[styles.small, { color: colors.mutedForeground }]}>
                   You'll review the full plan before anything is created. A
                   failed run is automatically refunded.
@@ -628,6 +693,14 @@ const styles = StyleSheet.create({
   label: { fontSize: 13, fontWeight: "600" },
   link: { fontSize: 13, fontWeight: "600" },
   chips: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+  warnBox: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 8,
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 10,
+  },
   chip: {
     borderWidth: 1,
     borderRadius: 999,
