@@ -18,8 +18,15 @@ export type BrandStudioAssetKind =
   | "form"
   | "vcard";
 
+export type BrandStudioCompositionRow = {
+  kind: BrandStudioAssetKind;
+  count: number;
+  purpose: string;
+};
+
 export type BrandStudioProposedAsset = {
   kind: BrandStudioAssetKind;
+  purpose?: string;
   title?: string;
   name?: string;
   url?: string;
@@ -36,6 +43,7 @@ export type BrandStudioProposedAsset = {
 export type BrandStudioCreatedAsset = {
   kind: BrandStudioAssetKind;
   id: number;
+  purpose?: string;
   title?: string;
   name?: string;
   alias?: string;
@@ -54,7 +62,10 @@ export type BrandStudioKitSummary = {
 
 export type BrandStudioKitDetail = BrandStudioKitSummary & {
   request: string | null;
-  proposal: { assets: BrandStudioProposedAsset[] };
+  proposal: {
+    assets: BrandStudioProposedAsset[];
+    composition?: BrandStudioCompositionRow[];
+  };
   results: { assets: BrandStudioCreatedAsset[]; skipped: string[] };
 };
 
@@ -64,6 +75,7 @@ export type BrandStudioIndex = {
   balance: number;
   bulk_cap: number;
   asset_kinds: BrandStudioAssetKind[];
+  kit_caps: Record<BrandStudioAssetKind, number>;
   brand_kits: { id: number; name: string }[];
   kits: BrandStudioKitSummary[];
 };
@@ -73,6 +85,7 @@ export type BrandStudioPlanInput = {
   mode?: "kit" | "bulk";
   bulk_kind?: BrandStudioAssetKind | null;
   bulk_count?: number | null;
+  composition?: BrandStudioCompositionRow[] | null;
   brand_kit_id?: number | null;
   brand_name?: string;
   brand_colors?: string;
@@ -103,6 +116,8 @@ function planPayload(input: BrandStudioPlanInput): Record<string, unknown> {
   if (input.mode === "bulk") {
     if (input.bulk_kind) body.bulk_kind = input.bulk_kind;
     if (input.bulk_count) body.bulk_count = input.bulk_count;
+  } else if (input.composition && input.composition.length) {
+    body.composition = input.composition;
   }
   if (input.brand_kit_id) body.brand_kit_id = input.brand_kit_id;
   if (input.brand_name) body.brand_name = input.brand_name;

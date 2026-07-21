@@ -60,6 +60,18 @@ class AiBrandStudioService
     /** Absolute bulk-variations ceiling regardless of plan. */
     public const HARD_BULK_CAP = 50;
 
+    /** Human labels for composition validation messages. */
+    public const KIND_LABELS = [
+        'biolink'    => 'Link in Bio pages',
+        'short_link' => 'short links',
+        'qr_code'    => 'QR codes',
+        'form'       => 'forms',
+        'vcard'      => 'digital cards',
+    ];
+
+    /** Max length of a per-asset purpose label. */
+    public const MAX_PURPOSE_LEN = 120;
+
     private const MAX_REQUEST_LEN   = 4000;
     private const MAX_OUTPUT_TOKENS = 4000;
 
@@ -119,15 +131,51 @@ class AiBrandStudioService
     }
 
     /**
+     * Validate + normalize a structured kit composition: a list of
+     * {kind, count, purpose} rows the user explicitly requested. Enforces
+     * per-kind KIT_CAPS with a clear message; returns [] when nothing given.
+     *
+     * @return list<array{kind:string,count:int,purpose:string}>
+     */
+    public static function sanitizeComposition($raw): array
+    {
+        $out = [];
+        $perKind = [];
+        foreach ((array) $raw as $row) {
+            if (!is_array($row)) continue;
+            $kind = (string) ($row['kind'] ?? '');
+            if (!in_array($kind, self::ASSET_KINDS, true)) {
+                throw new RuntimeException('Unknown asset type in the composition.');
+            }
+            $count = (int) ($row['count'] ?? 1);
+            if ($count < 1) $count = 1;
+            $perKind[$kind] = ($perKind[$kind] ?? 0) + $count;
+            if ($perKind[$kind] > self::KIT_CAPS[$kind]) {
+                throw new RuntimeException(sprintf(
+                    'Too many %s in the composition — the maximum per kit is %d.',
+                    self::KIND_LABELS[$kind], self::KIT_CAPS[$kind]
+                ));
+            }
+            $out[] = [
+                'kind'    => $kind,
+                'count'   => $count,
+                'purpose' => mb_substr(trim((string) ($row['purpose'] ?? '')), 0, self::MAX_PURPOSE_LEN),
+            ];
+        }
+        return $out;
+    }
+
+    /**
      * Build the chat messages. Shared by estimate + plan so the quoted price
      * matches what the user is charged.
      *
+     * @param list<array{kind:string,count:int,purpose:string}> $composition
      * @return list<array{role:string,content:string}>
      */
-    public function buildMessages(User $user, string $request, string $brandDirectives, string $mode, ?string $bulkKind, int $bulkCount): array
+    public function buildMessages(User $user, string $request, string $brandDirectives, string $mode, ?string $bulkKind, int $bulkCount, array $composition = []): array
     {
         $request = trim($request);
-        if ($request === '') {
+        if ($request === '' && !$composition) {
             throw new RuntimeException('Describe what you want to create first.');
         }
         if (mb_strlen($request) > self::MAX_REQUEST_LEN) {
@@ -144,6 +192,18 @@ class AiBrandStudioService
 
         if ($mode === BrandStudioKit::MODE_BULK) {
             $modeHint = "MODE: BULK VARIATIONS. Produce exactly {$bulkCount} DISTINCT on-brand variants of asset kind `{$bulkKind}` — vary the copy, names and (for biolinks/QR) styling per variant so no two are identical. Every asset in `assets` must have kind `{$bulkKind}`.";
+        } elseif ($composition) {
+            $lines = [];
+            $n = 0;
+            foreach ($composition as $row) {
+                for ($i = 0; $i < $row['count']; $i++) {
+                    $n++;
+                    $lines[] = "{$n}. {$row['kind']}" . ($row['purpose'] !== '' ? " — purpose: {$row['purpose']}" : '');
+                }
+            }
+            $modeHint = "MODE: FULL KIT with an EXACT REQUESTED COMPOSITION. Produce EXACTLY these {$n} assets, in this order — no more, no fewer, no other kinds:\n"
+                . implode("\n", $lines) . "\n"
+                . "Shape each asset's title, name and copy around its stated purpose so the purpose is obvious from the content.";
         } else {
             $caps = implode(', ', array_map(fn ($k, $c) => "{$k} ≤ {$c}", array_keys(self::KIT_CAPS), self::KIT_CAPS));
             $modeHint = "MODE: FULL KIT. Produce the mixed set of assets the user asked for (only what they need — don't pad). Per-kind ceilings: {$caps}.";
@@ -162,7 +222,7 @@ class AiBrandStudioService
             . "You turn a creator's brief into a structured plan of on-brand link assets using ONLY the supported asset kinds below. Be tasteful and concrete.\n\n"
             . "ASSET KINDS:\n" . implode("\n", $kindLines) . "\n\n" . $schema;
 
-        $userParts = ["WHAT THE USER WANTS:\n" . $request];
+        $userParts = ["WHAT THE USER WANTS:\n" . ($request !== '' ? $request : 'Exactly the requested composition described in the system instructions.')];
         $brandDirectives = trim($brandDirectives);
         if ($brandDirectives !== '') {
             $userParts[] = mb_substr($brandDirectives, 0, self::MAX_REQUEST_LEN);
@@ -175,10 +235,10 @@ class AiBrandStudioService
     }
 
     /** Worst-case credit cost shown before the user clicks Generate. */
-    public function estimateCredits(User $user, string $request, string $brandDirectives, string $mode, ?string $bulkKind, int $bulkCount): int
+    public function estimateCredits(User $user, string $request, string $brandDirectives, string $mode, ?string $bulkKind, int $bulkCount, array $composition = []): int
     {
         $model    = AiEngineSettings::featureModel(self::FEATURE);
-        $messages = $this->buildMessages($user, $request, $brandDirectives, $mode, $bulkKind, $bulkCount);
+        $messages = $this->buildMessages($user, $request, $brandDirectives, $mode, $bulkKind, $bulkCount, $composition);
         return $this->openai->estimateChatCoins($model, $messages, self::MAX_OUTPUT_TOKENS, $user);
     }
 
@@ -188,12 +248,14 @@ class AiBrandStudioService
      * Auto-refunds the charge if the response can't be parsed.
      *
      * @param array<string,mixed> $brand snapshot from resolveBrand()
+     * @param list<array{kind:string,count:int,purpose:string}> $composition
      * @return array{kit:BrandStudioKit,credits_spent:int}
      */
-    public function plan(User $owner, string $request, string $brandDirectives, array $brand, string $mode, ?string $bulkKind, int $bulkCount): array
+    public function plan(User $owner, string $request, string $brandDirectives, array $brand, string $mode, ?string $bulkKind, int $bulkCount, array $composition = []): array
     {
         $mode = $mode === BrandStudioKit::MODE_BULK ? BrandStudioKit::MODE_BULK : BrandStudioKit::MODE_KIT;
         if ($mode === BrandStudioKit::MODE_BULK) {
+            $composition = [];
             if (!in_array($bulkKind, self::ASSET_KINDS, true)) {
                 throw new RuntimeException('Pick which asset type to bulk-generate.');
             }
@@ -204,7 +266,7 @@ class AiBrandStudioService
             $bulkCount = max(1, min($bulkCount, $cap));
         }
 
-        $messages = $this->buildMessages($owner, $request, $brandDirectives, $mode, $bulkKind, $bulkCount);
+        $messages = $this->buildMessages($owner, $request, $brandDirectives, $mode, $bulkKind, $bulkCount, $composition);
         $model    = AiEngineSettings::featureModel(self::FEATURE);
 
         $result = $this->openai->chat($owner, $model, $messages, [
@@ -229,7 +291,7 @@ class AiBrandStudioService
                 throw new RuntimeException('The assistant returned an unexpected response. Please try again.');
             }
 
-            $assets = $this->sanitizeAssets($parsed['assets'] ?? [], $mode, $bulkKind, $bulkCount);
+            $assets = $this->sanitizeAssets($parsed['assets'] ?? [], $mode, $bulkKind, $bulkCount, $composition);
             if (!$assets) {
                 throw new RuntimeException('The assistant could not plan any assets from that brief. Add more detail and try again.');
             }
@@ -246,7 +308,10 @@ class AiBrandStudioService
                 'status'        => BrandStudioKit::STATUS_PROPOSAL,
                 'request'       => mb_substr($request, 0, self::MAX_REQUEST_LEN),
                 'brand'         => $brand,
-                'proposal'      => ['assets' => $assets],
+                'proposal'      => array_filter([
+                    'assets'      => $assets,
+                    'composition' => $composition ?: null,
+                ]),
                 'credits_spent' => $creditsSpent,
             ]);
         } catch (\Throwable $e) {
@@ -301,7 +366,7 @@ class AiBrandStudioService
             foreach ($assets as $asset) {
                 $kind = (string) ($asset['kind'] ?? '');
                 try {
-                    $created[] = match ($kind) {
+                    $row = match ($kind) {
                         'biolink'    => $this->createBiolink($owner, $kit, $asset, $counts),
                         'short_link' => $this->createShortLink($owner, $kit, $asset, $counts),
                         'qr_code'    => $this->createQrCode($owner, $kit, $asset, $counts),
@@ -309,6 +374,10 @@ class AiBrandStudioService
                         'vcard'      => $this->createVcard($owner, $kit, $asset, $counts),
                         default      => throw new RuntimeException("Unknown asset kind {$kind}."),
                     };
+                    if (!empty($asset['purpose'])) {
+                        $row['purpose'] = (string) $asset['purpose'];
+                    }
+                    $created[] = $row;
                 } catch (PlanCapReachedException $e) {
                     $skipped[] = $e->getMessage();
                 }
@@ -332,12 +401,27 @@ class AiBrandStudioService
 
     /**
      * Validate + clamp the model's proposed assets to known kinds, per-kind
-     * field shapes and per-run ceilings.
+     * field shapes and per-run ceilings. When a requested $composition is
+     * present (kit mode), the plan is post-validated/repaired against it:
+     * kinds outside the composition are dropped, per-kind counts are clamped
+     * to the requested amounts, and each kept asset is labeled with its
+     * requested purpose (assigned per kind, in order).
      *
+     * @param list<array{kind:string,count:int,purpose:string}> $composition
      * @return list<array<string,mixed>>
      */
-    public function sanitizeAssets($raw, string $mode, ?string $bulkKind, int $bulkCount): array
+    public function sanitizeAssets($raw, string $mode, ?string $bulkKind, int $bulkCount, array $composition = []): array
     {
+        // Per-kind requested count + FIFO purpose queues from the composition.
+        $wanted   = [];
+        $purposes = [];
+        foreach ($composition as $row) {
+            $wanted[$row['kind']] = ($wanted[$row['kind']] ?? 0) + $row['count'];
+            for ($i = 0; $i < $row['count']; $i++) {
+                $purposes[$row['kind']][] = $row['purpose'];
+            }
+        }
+
         $out = [];
         $perKind = [];
         foreach ((array) $raw as $asset) {
@@ -347,6 +431,10 @@ class AiBrandStudioService
             if ($mode === BrandStudioKit::MODE_BULK) {
                 if ($kind !== $bulkKind) continue;
                 if (count($out) >= $bulkCount) break;
+            } elseif ($wanted) {
+                if (!isset($wanted[$kind])) continue; // kind not requested
+                $perKind[$kind] = ($perKind[$kind] ?? 0) + 1;
+                if ($perKind[$kind] > $wanted[$kind]) continue; // over the requested count
             } else {
                 $perKind[$kind] = ($perKind[$kind] ?? 0) + 1;
                 if ($perKind[$kind] > (self::KIT_CAPS[$kind] ?? 0)) continue;
@@ -354,6 +442,12 @@ class AiBrandStudioService
 
             $clean = $this->sanitizeAsset($kind, $asset);
             if ($clean !== null) {
+                if ($wanted && $mode !== BrandStudioKit::MODE_BULK) {
+                    $purpose = array_shift($purposes[$kind]);
+                    if ($purpose !== null && $purpose !== '') {
+                        $clean['purpose'] = $purpose;
+                    }
+                }
                 $out[] = $clean;
             }
         }

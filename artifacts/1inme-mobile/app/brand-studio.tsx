@@ -23,6 +23,7 @@ import {
   getBrandStudioKit,
   planBrandStudio,
   type BrandStudioAssetKind,
+  type BrandStudioCompositionRow,
   type BrandStudioIndex,
   type BrandStudioKitDetail,
   type BrandStudioKitShow,
@@ -50,6 +51,50 @@ const KIND_META: Record<BrandStudioAssetKind, { icon: any; label: string }> = {
   vcard: { icon: "credit-card", label: "Digital card" },
 };
 
+// One-click combo presets for the kit composer (Task #5570). Mirrors the web
+// presets in resources/views/user/brand-studio/index.blade.php.
+const COMPOSITION_PRESETS: { label: string; rows: BrandStudioCompositionRow[] }[] = [
+  {
+    label: "Product + sales + card",
+    rows: [
+      { kind: "biolink", count: 1, purpose: "Product page" },
+      { kind: "biolink", count: 1, purpose: "Sales offer page" },
+      { kind: "vcard", count: 1, purpose: "Digital business card" },
+    ],
+  },
+  {
+    label: "Launch pack",
+    rows: [
+      { kind: "biolink", count: 1, purpose: "Launch landing page" },
+      { kind: "short_link", count: 3, purpose: "Campaign links" },
+      { kind: "qr_code", count: 2, purpose: "Poster QR codes" },
+    ],
+  },
+  {
+    label: "Lead-gen pack",
+    rows: [
+      { kind: "biolink", count: 1, purpose: "Lead capture page" },
+      { kind: "form", count: 1, purpose: "Lead form" },
+    ],
+  },
+  {
+    label: "Personal brand",
+    rows: [
+      { kind: "biolink", count: 1, purpose: "Personal bio page" },
+      { kind: "vcard", count: 1, purpose: "Digital card" },
+      { kind: "qr_code", count: 1, purpose: "Share-me QR code" },
+    ],
+  },
+];
+
+const DEFAULT_KIT_CAPS: Record<BrandStudioAssetKind, number> = {
+  biolink: 3,
+  short_link: 10,
+  qr_code: 10,
+  form: 3,
+  vcard: 2,
+};
+
 const BULK_KINDS: { kind: BrandStudioAssetKind; label: string }[] = [
   { kind: "short_link", label: "Short links" },
   { kind: "qr_code", label: "QR codes" },
@@ -66,6 +111,7 @@ export default function BrandStudioScreen() {
   const [mode, setMode] = useState<"kit" | "bulk">("kit");
   const [bulkKind, setBulkKind] = useState<BrandStudioAssetKind>("short_link");
   const [bulkCount, setBulkCount] = useState("5");
+  const [composition, setComposition] = useState<BrandStudioCompositionRow[]>([]);
   const [brandKitId, setBrandKitId] = useState<number | null>(null);
   const [brandName, setBrandName] = useState("");
   const [brandColors, setBrandColors] = useState("");
@@ -104,6 +150,7 @@ export default function BrandStudioScreen() {
     mode,
     bulk_kind: mode === "bulk" ? bulkKind : null,
     bulk_count: mode === "bulk" ? Math.max(1, parseInt(bulkCount, 10) || 1) : null,
+    composition: mode === "kit" && composition.length ? composition : null,
     brand_kit_id: brandKitId,
     brand_name: brandName.trim(),
     brand_colors: brandColors.trim(),
@@ -128,23 +175,47 @@ export default function BrandStudioScreen() {
   // bulk settings or brand context change, so the credit cost and the
   // low-balance warning stay accurate before the user commits credits.
   const canEstimate = !!data?.available && !!data?.ai_enabled;
+  const kitCaps = data?.kit_caps ?? DEFAULT_KIT_CAPS;
+  const compositionError = (() => {
+    if (mode !== "kit") return "";
+    const sums: Partial<Record<BrandStudioAssetKind, number>> = {};
+    for (const r of composition) {
+      sums[r.kind] = (sums[r.kind] ?? 0) + Math.max(1, r.count);
+      const cap = kitCaps[r.kind] ?? 0;
+      if ((sums[r.kind] ?? 0) > cap) {
+        return `Too many ${KIND_META[r.kind]?.label ?? r.kind}s — max ${cap} per kit.`;
+      }
+    }
+    return "";
+  })();
+  const canGenerate =
+    mode === "kit" && composition.length
+      ? !compositionError
+      : !!brief.trim();
   useEffect(() => {
     setEstimate(null);
-    if (!canEstimate || !brief.trim()) return;
+    if (!canEstimate || !canGenerate) return;
     const t = setTimeout(() => estimateMut.mutate({ silent: true }), 700);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     canEstimate,
+    canGenerate,
     brief,
     mode,
     bulkKind,
     bulkCount,
+    composition,
     brandKitId,
     brandName,
     brandColors,
     brandVoice,
   ]);
+
+  const updateRow = (i: number, patch: Partial<BrandStudioCompositionRow>) =>
+    setComposition((rows) =>
+      rows.map((r, idx) => (idx === i ? { ...r, ...patch } : r)),
+    );
 
   const bulkCap = data?.bulk_cap ?? -1;
   const bulkVariants = (() => {
@@ -292,6 +363,7 @@ export default function BrandStudioScreen() {
                               <Text style={[styles.small, { color: colors.mutedForeground }]}>
                                 {meta.label}
                                 {a.alias ? ` · /${a.alias}` : ""}
+                                {a.purpose ? ` · ${a.purpose}` : ""}
                               </Text>
                             </View>
                             <Feather name="check-circle" size={18} color={colors.success} />
@@ -389,6 +461,7 @@ export default function BrandStudioScreen() {
                                 </Text>
                                 <Text style={[styles.small, { color: colors.mutedForeground }]}>
                                   {meta.label}
+                                  {a.purpose ? ` · ${a.purpose}` : ""}
                                   {a.url ? ` · ${a.url}` : ""}
                                   {a.kind === "biolink" && a.blocks
                                     ? ` · ${a.blocks.length} blocks`
@@ -639,9 +712,149 @@ export default function BrandStudioScreen() {
                   </>
                 ) : null}
 
+                {mode === "kit" ? (
+                  <>
+                    <Text style={[styles.label, { color: colors.foreground }]}>
+                      Pick exactly what to create (optional)
+                    </Text>
+                    <Text style={[styles.small, { color: colors.mutedForeground }]}>
+                      Leave empty to let the AI decide from your brief, or lock
+                      in an exact composition below.
+                    </Text>
+                    <View style={styles.chips}>
+                      {COMPOSITION_PRESETS.map((p) => (
+                        <Pressable
+                          key={p.label}
+                          onPress={() =>
+                            setComposition(p.rows.map((r) => ({ ...r })))
+                          }
+                          style={[styles.chip, { borderColor: colors.border }]}
+                        >
+                          <Text
+                            style={[styles.small, { color: colors.mutedForeground }]}
+                          >
+                            {p.label}
+                          </Text>
+                        </Pressable>
+                      ))}
+                    </View>
+                    {composition.map((row, i) => (
+                      <View key={i} style={styles.compRow}>
+                        <View style={styles.chips}>
+                          {BULK_KINDS.map((b) => (
+                            <Pressable
+                              key={b.kind}
+                              onPress={() => updateRow(i, { kind: b.kind })}
+                              style={[
+                                styles.chip,
+                                {
+                                  borderColor:
+                                    row.kind === b.kind
+                                      ? colors.primary
+                                      : colors.border,
+                                },
+                              ]}
+                            >
+                              <Text
+                                style={[
+                                  styles.small,
+                                  {
+                                    color:
+                                      row.kind === b.kind
+                                        ? colors.primary
+                                        : colors.mutedForeground,
+                                  },
+                                ]}
+                              >
+                                {b.label}
+                              </Text>
+                            </Pressable>
+                          ))}
+                        </View>
+                        <View style={styles.row}>
+                          <Pressable
+                            onPress={() =>
+                              updateRow(i, { count: Math.max(1, row.count - 1) })
+                            }
+                            style={[styles.chip, { borderColor: colors.border }]}
+                          >
+                            <Text style={[styles.body, { color: colors.foreground }]}>
+                              −
+                            </Text>
+                          </Pressable>
+                          <Text style={[styles.body, { color: colors.foreground }]}>
+                            {row.count}
+                          </Text>
+                          <Pressable
+                            onPress={() =>
+                              updateRow(i, {
+                                count: Math.min(
+                                  kitCaps[row.kind] ?? 1,
+                                  row.count + 1,
+                                ),
+                              })
+                            }
+                            style={[styles.chip, { borderColor: colors.border }]}
+                          >
+                            <Text style={[styles.body, { color: colors.foreground }]}>
+                              +
+                            </Text>
+                          </Pressable>
+                          <Pressable
+                            onPress={() =>
+                              setComposition((rows) =>
+                                rows.filter((_, idx) => idx !== i),
+                              )
+                            }
+                            style={[styles.chip, { borderColor: colors.border }]}
+                          >
+                            <Feather name="x" size={14} color={colors.mutedForeground} />
+                          </Pressable>
+                        </View>
+                        <TextField
+                          label="Purpose"
+                          value={row.purpose}
+                          onChangeText={(t) =>
+                            updateRow(i, { purpose: t.slice(0, 120) })
+                          }
+                          placeholder="e.g. for the product page"
+                        />
+                      </View>
+                    ))}
+                    <View style={styles.row}>
+                      <Pressable
+                        onPress={() =>
+                          setComposition((rows) => [
+                            ...rows,
+                            { kind: "biolink", count: 1, purpose: "" },
+                          ])
+                        }
+                      >
+                        <Text style={[styles.link, { color: colors.primary }]}>
+                          + Add asset
+                        </Text>
+                      </Pressable>
+                      {composition.length ? (
+                        <Pressable onPress={() => setComposition([])}>
+                          <Text
+                            style={[styles.link, { color: colors.mutedForeground }]}
+                          >
+                            Clear
+                          </Text>
+                        </Pressable>
+                      ) : null}
+                    </View>
+                    {compositionError ? (
+                      <Text style={[styles.small, { color: colors.warning }]}>
+                        {compositionError}
+                      </Text>
+                    ) : null}
+                  </>
+                ) : null}
+
                 <Button
                   label={planMut.isPending ? "Planning your kit…" : "Generate plan"}
-                  disabled={planMut.isPending || !brief.trim()}
+                  disabled={planMut.isPending || !canGenerate}
                   onPress={() => planMut.mutate()}
                 />
                 <Button
@@ -653,7 +866,7 @@ export default function BrandStudioScreen() {
                         : "Estimate cost"
                   }
                   variant="outline"
-                  disabled={estimateMut.isPending || !brief.trim()}
+                  disabled={estimateMut.isPending || !canGenerate}
                   onPress={() => estimateMut.mutate(undefined)}
                 />
                 {estimate != null && mode === "bulk" ? (
@@ -754,6 +967,7 @@ const styles = StyleSheet.create({
   label: { fontSize: 13, fontWeight: "600" },
   link: { fontSize: 13, fontWeight: "600" },
   chips: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+  compRow: { gap: 8, paddingVertical: 6 },
   warnBox: {
     flexDirection: "row",
     alignItems: "flex-start",

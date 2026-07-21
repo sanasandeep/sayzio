@@ -50,7 +50,7 @@
                         <div class="w-9 h-9 rounded-xl bg-primary-500/15 text-primary-300 flex items-center justify-center"><i class="fas {{ $meta['icon'] }}"></i></div>
                         <div>
                             <p class="text-white text-sm font-medium">{{ $a['title'] ?? $a['name'] ?? $meta['label'] }}</p>
-                            <p class="text-[11px] text-white/40">{{ $meta['label'] }}@if(!empty($a['alias'])) · /{{ $a['alias'] }}@endif</p>
+                            <p class="text-[11px] text-white/40">{{ $meta['label'] }}@if(!empty($a['alias'])) · /{{ $a['alias'] }}@endif @if(!empty($a['purpose']))· {{ $a['purpose'] }}@endif</p>
                         </div>
                     </div>
                     <div class="flex items-center gap-2">
@@ -119,6 +119,9 @@
                         <div class="flex items-center gap-2 flex-wrap">
                             <span class="text-white text-sm font-medium">{{ $a['title'] ?? $a['name'] ?? $meta['label'] }}</span>
                             <span class="px-2 py-0.5 rounded-full text-[10px] bg-white/[0.06] text-white/50">{{ $meta['label'] }}</span>
+                            @if(!empty($a['purpose']))
+                                <span class="px-2 py-0.5 rounded-full text-[10px] bg-primary-500/10 border border-primary-500/20 text-primary-300"><i class="fas fa-bullseye mr-1"></i>{{ $a['purpose'] }}</span>
+                            @endif
                         </div>
                         @if($a['kind'] === 'short_link' || $a['kind'] === 'qr_code')
                             <p class="text-[12px] text-white/40 truncate mt-0.5">{{ $a['url'] }}</p>

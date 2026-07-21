@@ -69,13 +69,57 @@
                 </div>
             </div>
 
+            <template x-if="mode==='kit'">
+                <div class="space-y-3 border-t border-white/10 pt-4">
+                    <div class="flex items-center justify-between gap-3 flex-wrap">
+                        <div>
+                            <label class="block text-sm text-white/70 font-medium">Pick exactly what to create <span class="text-white/35 font-normal">(optional)</span></label>
+                            <p class="text-[11px] text-white/40 mt-0.5">Leave empty to let the AI decide from your brief, or lock in an exact composition below.</p>
+                        </div>
+                        <button type="button" x-show="composition.length" @click="composition = []" class="text-[11px] text-white/40 hover:text-white/70 underline decoration-white/20">Clear composition</button>
+                    </div>
+
+                    <div class="flex flex-wrap gap-2">
+                        <template x-for="p in presets" :key="p.label">
+                            <button type="button" @click="applyPreset(p)"
+                                    class="px-3 py-1.5 rounded-full text-[12px] border border-white/10 bg-white/[0.04] text-white/60 hover:border-primary-500/50 hover:text-white">
+                                <i class="fas fa-layer-group mr-1 text-white/30"></i><span x-text="p.label"></span>
+                            </button>
+                        </template>
+                    </div>
+
+                    <template x-for="(row, i) in composition" :key="i">
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <select x-model="row.kind" class="rounded-xl bg-white/[0.05] border border-white/10 text-white text-sm px-3 py-2">
+                                <template x-for="(label, kind) in kindLabels" :key="kind">
+                                    <option :value="kind" x-text="label" :selected="row.kind === kind"></option>
+                                </template>
+                            </select>
+                            <div class="inline-flex items-center rounded-xl border border-white/10 overflow-hidden">
+                                <button type="button" @click="row.count = Math.max(1, row.count - 1)" class="px-2.5 py-2 bg-white/[0.04] text-white/60 hover:text-white text-sm">−</button>
+                                <span class="px-3 py-2 text-white text-sm tabular-nums" x-text="row.count"></span>
+                                <button type="button" @click="row.count = Math.min(kitCaps[row.kind] || 1, row.count + 1)" class="px-2.5 py-2 bg-white/[0.04] text-white/60 hover:text-white text-sm">+</button>
+                            </div>
+                            <input type="text" x-model="row.purpose" maxlength="120" placeholder="Purpose (e.g. for the product page)"
+                                   class="flex-1 min-w-[180px] rounded-xl bg-white/[0.05] border border-white/10 text-white text-sm px-3 py-2 placeholder-white/30">
+                            <button type="button" @click="composition.splice(i, 1)" class="px-2.5 py-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-300 text-sm"><i class="fas fa-times"></i></button>
+                        </div>
+                    </template>
+
+                    <div class="flex items-center gap-3 flex-wrap">
+                        <button type="button" @click="addRow()" class="text-[12px] text-primary-300 hover:text-primary-200"><i class="fas fa-plus mr-1"></i>Add asset</button>
+                        <span class="text-sm text-amber-300" x-show="compositionError()" x-text="compositionError()"></span>
+                    </div>
+                </div>
+            </template>
+
             <div class="flex items-center gap-3 flex-wrap">
-                <button type="button" @click="plan()" :disabled="busy || !brief.trim()"
+                <button type="button" @click="plan()" :disabled="busy || !canGenerate()"
                         class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary-500 hover:bg-primary-400 disabled:opacity-50 text-white text-sm font-medium">
                     <i class="fas" :class="busy ? 'fa-circle-notch fa-spin' : 'fa-wand-magic-sparkles'"></i>
                     <span x-text="busy ? 'Planning your kit…' : 'Generate plan'"></span>
                 </button>
-                <button type="button" @click="estimate()" :disabled="busy || !brief.trim()"
+                <button type="button" @click="estimate()" :disabled="busy || !canGenerate()"
                         class="text-sm text-white/60 hover:text-white underline decoration-white/20">Estimate cost</button>
                 <span class="text-[11px] text-white/40" x-show="estBusy">Estimating cost…</span>
                 <span class="text-[11px] text-white/40" x-show="!estBusy && estimateText" x-text="estimateText"></span>
@@ -135,9 +179,54 @@ function brandStudio() {
         busy: false, error: '', estimateText: '',
         estCredits: null, estBalance: {{ (int) $balance }}, estBusy: false,
         _estTimer: null, _estSeq: 0,
+        composition: [],
+        kitCaps: @js($kitCaps),
+        kindLabels: { biolink: 'Link in Bio page', short_link: 'Short link', qr_code: 'QR code', form: 'Form', vcard: 'Digital card' },
+        presets: [
+            { label: 'Product + sales + card', rows: [
+                { kind: 'biolink', count: 1, purpose: 'Product page' },
+                { kind: 'biolink', count: 1, purpose: 'Sales offer page' },
+                { kind: 'vcard', count: 1, purpose: 'Digital business card' },
+            ] },
+            { label: 'Launch pack', rows: [
+                { kind: 'biolink', count: 1, purpose: 'Launch landing page' },
+                { kind: 'short_link', count: 3, purpose: 'Campaign links' },
+                { kind: 'qr_code', count: 2, purpose: 'Poster QR codes' },
+            ] },
+            { label: 'Lead-gen pack', rows: [
+                { kind: 'biolink', count: 1, purpose: 'Lead capture page' },
+                { kind: 'form', count: 1, purpose: 'Lead form' },
+            ] },
+            { label: 'Personal brand', rows: [
+                { kind: 'biolink', count: 1, purpose: 'Personal bio page' },
+                { kind: 'vcard', count: 1, purpose: 'Digital card' },
+                { kind: 'qr_code', count: 1, purpose: 'Share-me QR code' },
+            ] },
+        ],
         init() {
-            ['brief', 'mode', 'bulkKind', 'bulkCount', 'brandKitId', 'brandName', 'brandColors', 'brandVoice', 'brandDescription']
+            ['brief', 'mode', 'bulkKind', 'bulkCount', 'brandKitId', 'brandName', 'brandColors', 'brandVoice', 'brandDescription', 'composition']
                 .forEach((k) => this.$watch(k, () => this.scheduleEstimate()));
+        },
+        applyPreset(p) {
+            this.composition = p.rows.map((r) => ({ ...r }));
+        },
+        addRow() {
+            this.composition.push({ kind: 'biolink', count: 1, purpose: '' });
+        },
+        compositionError() {
+            const sums = {};
+            for (const r of this.composition) {
+                sums[r.kind] = (sums[r.kind] || 0) + Math.max(1, parseInt(r.count, 10) || 1);
+                const cap = this.kitCaps[r.kind] || 0;
+                if (sums[r.kind] > cap) {
+                    return `Too many ${this.kindLabels[r.kind] || r.kind}s — max ${cap} per kit.`;
+                }
+            }
+            return '';
+        },
+        canGenerate() {
+            if (this.mode === 'kit' && this.composition.length) return !this.compositionError();
+            return !!this.brief.trim();
         },
         bulkVariants() {
             const cap = {{ (int) $bulkCap }};
@@ -155,7 +244,7 @@ function brandStudio() {
         scheduleEstimate() {
             clearTimeout(this._estTimer);
             this.estCredits = null; this.estimateText = '';
-            if (!this.brief.trim()) { this.estBusy = false; return; }
+            if (!this.canGenerate()) { this.estBusy = false; return; }
             this.estBusy = true;
             this._estTimer = setTimeout(() => this.estimate(true), 600);
         },
@@ -163,6 +252,9 @@ function brandStudio() {
             return {
                 request: this.brief,
                 mode: this.mode,
+                composition: this.mode === 'kit' && this.composition.length
+                    ? this.composition.map((r) => ({ kind: r.kind, count: Math.max(1, parseInt(r.count, 10) || 1), purpose: (r.purpose || '').trim() }))
+                    : null,
                 bulk_kind: this.mode === 'bulk' ? this.bulkKind : null,
                 bulk_count: this.mode === 'bulk' ? this.bulkCount : null,
                 brand_kit_id: this.brandKitId || null,

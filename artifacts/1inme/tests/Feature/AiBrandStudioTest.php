@@ -226,6 +226,96 @@ class AiBrandStudioTest extends TestCase
         $this->assertSame(BrandStudioKit::STATUS_CREATED, $result['kit']->status);
     }
 
+    // ── 6. composition: prompt injection is a hard requirement ─────────
+
+    public function test_plan_prompt_contains_exact_composition_lines(): void
+    {
+        $user = $this->makeUser($this->plan());
+        $this->bindChat($this->validPlanJson(), 8);
+        $this->spyCharger();
+
+        $composition = [
+            ['kind' => 'biolink', 'count' => 2, 'purpose' => 'Product page'],
+            ['kind' => 'vcard', 'count' => 1, 'purpose' => ''],
+        ];
+        $this->service()->plan($user, '', '', [], 'kit', null, 1, $composition);
+
+        $this->assertCount(1, $this->chatCalls);
+        $system = $this->chatCalls[0]['messages'][0]['content'];
+        $this->assertStringContainsString('EXACT REQUESTED COMPOSITION', $system);
+        $this->assertStringContainsString('Produce EXACTLY these 3 assets', $system);
+        $this->assertStringContainsString("1. biolink — purpose: Product page", $system);
+        $this->assertStringContainsString("2. biolink — purpose: Product page", $system);
+        $this->assertStringContainsString("3. vcard", $system);
+    }
+
+    // ── 7. composition: post-validation repairs the returned plan ──────
+
+    public function test_composition_repair_drops_unrequested_kinds_clamps_counts_and_attaches_purposes(): void
+    {
+        $user = $this->makeUser($this->plan());
+        // AI ignores the composition: returns 2 biolinks, a QR (unrequested)
+        // and a form (unrequested), while we asked for 1 biolink + 1 vcard.
+        $this->bindChat(json_encode([
+            'name'   => 'Stubborn Kit',
+            'assets' => [
+                ['kind' => 'biolink', 'title' => 'Page A', 'blocks' => [['type' => 'heading', 'settings' => ['text' => 'A']]]],
+                ['kind' => 'biolink', 'title' => 'Page B', 'blocks' => [['type' => 'heading', 'settings' => ['text' => 'B']]]],
+                ['kind' => 'qr_code', 'name' => 'Rogue QR', 'url' => 'https://example.test'],
+                ['kind' => 'form', 'title' => 'Rogue Form', 'template' => 'contact'],
+                ['kind' => 'vcard', 'first_name' => 'Ava', 'last_name' => 'Nguyen'],
+            ],
+        ]), 8);
+        $this->spyCharger();
+
+        $composition = [
+            ['kind' => 'biolink', 'count' => 1, 'purpose' => 'Main page'],
+            ['kind' => 'vcard', 'count' => 1, 'purpose' => 'Business card'],
+        ];
+        $result = $this->service()->plan($user, '', '', [], 'kit', null, 1, $composition);
+
+        $assets = $result['kit']->proposedAssets();
+        $kinds  = array_column($assets, 'kind');
+        sort($kinds);
+        $this->assertSame(['biolink', 'vcard'], $kinds);
+
+        foreach ($assets as $a) {
+            if ($a['kind'] === 'biolink') {
+                $this->assertSame('Main page', $a['purpose'] ?? null);
+            }
+            if ($a['kind'] === 'vcard') {
+                $this->assertSame('Business card', $a['purpose'] ?? null);
+            }
+        }
+
+        $this->assertSame($composition[0] + [], $result['kit']->proposal['composition'][0] ?? null);
+    }
+
+    // ── 8. composition validation enforces per-kind kit caps ───────────
+
+    public function test_sanitize_composition_rejects_over_cap_and_unknown_kinds(): void
+    {
+        $rows = AiBrandStudioService::sanitizeComposition([
+            ['kind' => 'biolink', 'count' => 2, 'purpose' => str_repeat('x', 500)],
+        ]);
+        $this->assertSame('biolink', $rows[0]['kind']);
+        $this->assertSame(2, $rows[0]['count']);
+        $this->assertSame(AiBrandStudioService::MAX_PURPOSE_LEN, mb_strlen($rows[0]['purpose']));
+
+        try {
+            AiBrandStudioService::sanitizeComposition([
+                ['kind' => 'biolink', 'count' => 2],
+                ['kind' => 'biolink', 'count' => 2],
+            ]);
+            $this->fail('Expected over-cap composition to throw.');
+        } catch (\RuntimeException $e) {
+            $this->assertStringContainsString('maximum per kit', $e->getMessage());
+        }
+
+        $this->expectException(\RuntimeException::class);
+        AiBrandStudioService::sanitizeComposition([['kind' => 'unicorn', 'count' => 1]]);
+    }
+
     // ── 5. bulk cap derives from the plan and clamps to the ceiling ────
 
     public function test_bulk_cap_from_plan_and_hard_ceiling(): void

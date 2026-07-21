@@ -51,6 +51,7 @@ class BrandStudioController extends Controller
             'brandKits'  => BrandKit::where('user_id', $owner->id)->latest()->get(['id', 'name']),
             'bulkCap'    => AiBrandStudioService::bulkCap($owner),
             'assetKinds' => AiBrandStudioService::ASSET_KINDS,
+            'kitCaps'    => AiBrandStudioService::KIT_CAPS,
         ]);
     }
 
@@ -68,7 +69,7 @@ class BrandStudioController extends Controller
 
         try {
             $brand = $this->studio->resolveBrand($owner, $data['brand_kit_id'], $data['inline']);
-            $cost  = $this->studio->estimateCredits($owner, $data['request'], $brand['directives'], $data['mode'], $data['bulk_kind'], $data['bulk_count']);
+            $cost  = $this->studio->estimateCredits($owner, $data['request'], $brand['directives'], $data['mode'], $data['bulk_kind'], $data['bulk_count'], $data['composition']);
         } catch (\RuntimeException $e) {
             return response()->json(['message' => $e->getMessage()], 422);
         }
@@ -93,7 +94,7 @@ class BrandStudioController extends Controller
 
         try {
             $brand  = $this->studio->resolveBrand($owner, $data['brand_kit_id'], $data['inline']);
-            $result = $this->studio->plan($owner, $data['request'], $brand['directives'], $brand['brand'], $data['mode'], $data['bulk_kind'], $data['bulk_count']);
+            $result = $this->studio->plan($owner, $data['request'], $brand['directives'], $brand['brand'], $data['mode'], $data['bulk_kind'], $data['bulk_count'], $data['composition']);
         } catch (InsufficientCoinsForAiException $e) {
             return response()->json([
                 'message'  => 'Not enough AI credits for this Brand Studio run.',
@@ -172,20 +173,33 @@ class BrandStudioController extends Controller
     private function validatePayload(Request $request): array
     {
         $data = $request->validate([
-            'request'           => ['required', 'string', 'max:4000'],
-            'mode'              => ['nullable', 'in:kit,bulk'],
-            'bulk_kind'         => ['nullable', 'in:' . implode(',', AiBrandStudioService::ASSET_KINDS)],
-            'bulk_count'        => ['nullable', 'integer', 'min:1', 'max:' . AiBrandStudioService::HARD_BULK_CAP],
-            'brand_kit_id'      => ['nullable', 'integer'],
-            'brand_name'        => ['nullable', 'string', 'max:160'],
-            'brand_colors'      => ['nullable', 'string', 'max:300'],
-            'brand_voice'       => ['nullable', 'string', 'max:500'],
-            'brand_description' => ['nullable', 'string', 'max:1000'],
+            'request'               => ['nullable', 'required_without:composition', 'string', 'max:4000'],
+            'mode'                  => ['nullable', 'in:kit,bulk'],
+            'bulk_kind'             => ['nullable', 'in:' . implode(',', AiBrandStudioService::ASSET_KINDS)],
+            'bulk_count'            => ['nullable', 'integer', 'min:1', 'max:' . AiBrandStudioService::HARD_BULK_CAP],
+            'composition'           => ['nullable', 'array', 'max:20'],
+            'composition.*.kind'    => ['required_with:composition', 'string', 'in:' . implode(',', AiBrandStudioService::ASSET_KINDS)],
+            'composition.*.count'   => ['nullable', 'integer', 'min:1', 'max:10'],
+            'composition.*.purpose' => ['nullable', 'string', 'max:' . AiBrandStudioService::MAX_PURPOSE_LEN],
+            'brand_kit_id'          => ['nullable', 'integer'],
+            'brand_name'            => ['nullable', 'string', 'max:160'],
+            'brand_colors'          => ['nullable', 'string', 'max:300'],
+            'brand_voice'           => ['nullable', 'string', 'max:500'],
+            'brand_description'     => ['nullable', 'string', 'max:1000'],
         ]);
 
+        $mode = (string) ($data['mode'] ?? 'kit');
+        try {
+            $composition = $mode === 'kit'
+                ? AiBrandStudioService::sanitizeComposition($data['composition'] ?? [])
+                : [];
+        } catch (\RuntimeException $e) {
+            throw \Illuminate\Validation\ValidationException::withMessages(['composition' => $e->getMessage()]);
+        }
         return [
-            'request'      => (string) $data['request'],
-            'mode'         => (string) ($data['mode'] ?? 'kit'),
+            'request'      => (string) ($data['request'] ?? ''),
+            'mode'         => $mode,
+            'composition'  => $composition,
             'bulk_kind'    => $data['bulk_kind'] ?? null,
             'bulk_count'   => (int) ($data['bulk_count'] ?? 5),
             'brand_kit_id' => isset($data['brand_kit_id']) ? (int) $data['brand_kit_id'] : null,
