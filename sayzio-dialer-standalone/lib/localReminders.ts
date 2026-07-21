@@ -88,6 +88,32 @@ export async function rearmNoteAlarms(): Promise<void> {
   }
 }
 
+/**
+ * Foreground re-arm throttle (Task: re-arm on AppState active, not just
+ * launch). Aggressive OEM battery managers can drop alarms while the app sits
+ * backgrounded for days, so we also re-run the idempotent re-arm pass when the
+ * app returns to the foreground — but at most once per hour so rapid
+ * background/foreground flips never hammer the notes API. Module-level state
+ * is fine: it resets on a cold launch, where the launch-time re-arm runs
+ * anyway (and stamps the throttle so the first foreground flip is skipped).
+ */
+const REARM_THROTTLE_MS = 60 * 60 * 1000;
+let lastRearmAt = 0;
+
+/** Launch-time entry point: re-arms unconditionally and stamps the throttle. */
+export async function rearmNoteAlarmsOnLaunch(): Promise<void> {
+  lastRearmAt = Date.now();
+  await rearmNoteAlarms();
+}
+
+/** Foreground entry point: no-op unless the last re-arm was over an hour ago. */
+export async function rearmNoteAlarmsOnForeground(): Promise<void> {
+  const now = Date.now();
+  if (now - lastRearmAt < REARM_THROTTLE_MS) return;
+  lastRearmAt = now;
+  await rearmNoteAlarms();
+}
+
 /** Drop the local alarm for a deleted / completed note. */
 export async function cancelNoteAlarm(noteId: number): Promise<void> {
   try {

@@ -1,7 +1,7 @@
 import Feather from "@expo/vector-icons/Feather";
 import { Redirect, Tabs, usePathname, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
-import { Image, Pressable, Text, View } from "react-native";
+import { AppState, Image, Pressable, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { DialerDrawer } from "@/components/DialerDrawer";
@@ -10,7 +10,10 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useColors } from "@/hooks/useColors";
 import { useContactAutoSync } from "@/hooks/useContactAutoSync";
 import { useNearbyEventAlerts } from "@/hooks/useNearbyEventAlerts";
-import { rearmNoteAlarms } from "@/lib/localReminders";
+import {
+  rearmNoteAlarmsOnForeground,
+  rearmNoteAlarmsOnLaunch,
+} from "@/lib/localReminders";
 
 export default function TabsLayout() {
   const colors = useColors();
@@ -29,13 +32,21 @@ export default function TabsLayout() {
   const { latest: newEvent, count: newEventCount, dismiss: dismissNewEvent } =
     useNearbyEventAlerts(ready && !!user);
 
-  // Re-arm local note alarms once per app launch. Some OEM battery managers
-  // (Xiaomi/Oppo) drop scheduled notifications after a reboot; this restores
-  // every open note with a future remind_at (idempotent — identifiers are
-  // keyed per note). Best-effort and fully async, never blocks the UI.
+  // Re-arm local note alarms on app launch AND on foreground transitions.
+  // Some OEM battery managers (Xiaomi/Oppo) drop scheduled notifications
+  // after a reboot or while the app sits backgrounded for days; re-syncing
+  // every open note with a future remind_at is idempotent (identifiers are
+  // keyed dialer-note-{id}, so re-scheduling replaces rather than
+  // duplicates). The foreground pass is throttled inside localReminders to
+  // at most once per hour. Best-effort and fully async, never blocks the UI.
   const signedIn = ready && !!user;
   useEffect(() => {
-    if (signedIn) void rearmNoteAlarms();
+    if (!signedIn) return;
+    void rearmNoteAlarmsOnLaunch();
+    const sub = AppState.addEventListener("change", (state) => {
+      if (state === "active") void rearmNoteAlarmsOnForeground();
+    });
+    return () => sub.remove();
   }, [signedIn]);
 
   const [drawerOpen, setDrawerOpen] = useState(false);
