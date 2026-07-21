@@ -1,6 +1,6 @@
 import { Platform } from "react-native";
 
-import { listContacts, updateContact, type Contact } from "@/lib/api/contacts";
+import { listContacts, logContactCalls, type Contact } from "@/lib/api/contacts";
 import { flagNumber, listFlaggedNumbers } from "@/lib/api/dialer";
 import { ZioTelephony } from "@/modules/zio-telephony";
 
@@ -254,30 +254,20 @@ function phoneKey(number: string): string {
   return digits.length > 9 ? digits.slice(-9) : digits;
 }
 
-function formatCallMoment(ts: number): string {
-  const d = new Date(ts);
-  if (Number.isNaN(d.getTime())) return "";
-  return d.toLocaleString(undefined, {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  });
-}
-
 let drainInFlight = false;
 
 /**
  * Drain the native identified-incoming-call queue (rings the screening
  * service saw while the JS runtime was dead) into the Sayzio contact
- * history: each event is appended as a dated "call received" line on the
- * matched contact's notes, visible on the contact's profile timeline.
+ * history: matched events are posted to the contact's structured
+ * call-history endpoint (`POST /contacts/{id}/calls`), which the profile
+ * renders as a "Call history" timeline. Older note-line entries from the
+ * notes-append v1 are left untouched (still readable in Notes).
  *
- * Idempotent: lines carry the ring timestamp and are skipped when already
- * present, and the native queue is only cleared after every matched event
- * was persisted (unmatched events are dropped — they can never sync).
- * Android-only no-op elsewhere. Returns the number of events logged.
+ * Idempotent: the server dedupes on (contact, number, occurred_at), and
+ * the native queue is only cleared after every matched event was persisted
+ * (unmatched events are dropped — they can never sync). Android-only no-op
+ * elsewhere. Returns the number of events logged.
  */
 export async function drainIdentifiedCalls(): Promise<number> {
   if (Platform.OS !== "android" || !ZioTelephony) return 0;
@@ -309,30 +299,28 @@ export async function drainIdentifiedCalls(): Promise<number> {
       }
     }
 
-    // Group new note lines per matched contact so each contact gets one
-    // PATCH regardless of how many calls queued up.
-    const pending = new Map<number, { contact: Contact; lines: string[] }>();
+    // Group events per matched contact so each contact gets one batched
+    // POST regardless of how many calls queued up.
+    const pending = new Map<
+      number,
+      { calls: { number: string; occurred_at: string }[] }
+    >();
     for (const e of events) {
       const contact = byKey.get(phoneKey(e.n));
       if (!contact) continue; // Contact deleted since the ring — drop.
-      const line = `\u{1F4DE} Call received (${e.n}) — ${formatCallMoment(e.ts)}`;
-      const existing = contact.notes ?? "";
-      const bucket = pending.get(contact.id) ?? { contact, lines: [] };
-      if (!existing.includes(line) && !bucket.lines.includes(line)) {
-        bucket.lines.push(line);
-      }
+      const occurredAt = new Date(e.ts);
+      if (Number.isNaN(occurredAt.getTime())) continue;
+      const bucket = pending.get(contact.id) ?? { calls: [] };
+      bucket.calls.push({ number: e.n, occurred_at: occurredAt.toISOString() });
       pending.set(contact.id, bucket);
     }
 
     let logged = 0;
-    for (const { contact, lines } of pending.values()) {
-      if (lines.length === 0) continue; // Already recorded on a prior drain.
-      const base = (contact.notes ?? "").trimEnd();
-      const notes = base ? `${base}\n${lines.join("\n")}` : lines.join("\n");
+    for (const [contactId, { calls }] of pending) {
       // Any failure aborts the drain WITHOUT clearing the queue so the
-      // events retry on the next foreground (dedup via the notes check).
-      await updateContact(contact.id, { notes });
-      logged += lines.length;
+      // events retry on the next foreground (server dedupes replays).
+      await logContactCalls(contactId, calls);
+      logged += calls.length;
     }
 
     ZioTelephony.clearIdentifiedCallQueue(drained);

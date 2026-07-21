@@ -965,6 +965,8 @@ Route::prefix('v1')->group(function () {
         Route::post  ('/contacts/{id}/manual-profile', [ContactController::class, 'updateManualProfile'])->whereNumber('id');
         Route::post  ('/contacts/{id}/merge',       [ContactController::class, 'merge'])->whereNumber('id')->middleware('throttle:60,1');
         Route::post  ('/contacts/{id}/sms-biolink', [ContactController::class, 'smsBiolink'])->whereNumber('id')->middleware('throttle:30,1');
+        Route::get   ('/contacts/{id}/calls',       [ContactController::class, 'callLogs'])->whereNumber('id');
+        Route::post  ('/contacts/{id}/calls',       [ContactController::class, 'logCalls'])->whereNumber('id')->middleware('throttle:60,1');
         Route::post  ('/contacts/{id}/follow-up',   [ContactController::class, 'setFollowUp'])->whereNumber('id');
         Route::delete('/contacts/{id}/follow-up',   [ContactController::class, 'clearFollowUp'])->whereNumber('id');
         Route::post  ('/contacts/{id}/share',       [ContactController::class, 'share'])->whereNumber('id');

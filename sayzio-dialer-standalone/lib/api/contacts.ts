@@ -178,6 +178,38 @@ export async function clearContactFollowUp(id: number): Promise<Contact> {
   return res.data.contact;
 }
 
+// ── Structured call history ───────────────────────────────────────
+export type ContactCall = {
+  id: number;
+  number: string;
+  direction: "incoming" | "outgoing" | "missed";
+  occurred_at: string | null;
+};
+
+/** Structured call history for a contact, newest first (max 200). */
+export async function listContactCalls(id: number): Promise<ContactCall[]> {
+  const res = await apiFetch<{ data: { calls: ContactCall[] } }>(
+    `/contacts/${id}/calls`,
+  );
+  return res.data.calls;
+}
+
+/**
+ * Batch-log identified incoming calls against a contact. Idempotent
+ * server-side (unique on contact+number+occurred_at), so re-posting the
+ * same native queue events after a partial drain is safe.
+ */
+export async function logContactCalls(
+  id: number,
+  calls: { number: string; occurred_at: string; direction?: string }[],
+): Promise<number> {
+  const res = await apiFetch<{ data: { logged: number } }>(
+    `/contacts/${id}/calls`,
+    { method: "POST", body: JSON.stringify({ calls }) },
+  );
+  return res.data.logged;
+}
+
 export type ManualProfilePayload = {
   channels?: ManualChannel[];
   socials?: ManualSocial[];
