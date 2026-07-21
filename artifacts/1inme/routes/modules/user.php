@@ -357,6 +357,7 @@ Route::prefix('user')->name('user.')->group(function () {
             Route::post('whatsapp/send',   [\App\Modules\User\Controllers\OnboardingController::class, 'whatsappSend'])->middleware('throttle:5,1')->name('whatsapp.send');
             Route::post('whatsapp/verify', [\App\Modules\User\Controllers\OnboardingController::class, 'whatsappVerify'])->middleware('throttle:10,1')->name('whatsapp.verify');
             Route::post('whatsapp/skip',   [\App\Modules\User\Controllers\OnboardingController::class, 'whatsappSkip'])->name('whatsapp.skip');
+            Route::post('whatsapp/remove', [\App\Modules\User\Controllers\OnboardingController::class, 'whatsappRemove'])->middleware('throttle:10,1')->name('whatsapp.remove');
 
             // Post-registration contact-privacy step (Task #3497) — no
             // forced default, one-time nudge, editable later from Settings.

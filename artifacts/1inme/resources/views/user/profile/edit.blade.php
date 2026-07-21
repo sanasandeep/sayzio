@@ -512,6 +512,23 @@
                 @if($waPending)
                     <p class="text-[11px] text-white/40">We sent a code to <span class="font-mono">{{ $waPending }}</span> on WhatsApp.</p>
                 @endif
+
+                {{-- Remove (disconnect) the connected number entirely. The
+                     server promotes another verified email/phone to primary
+                     first when needed, and refuses to leave the account with
+                     no verified email or phone. --}}
+                @if($waCurrent)
+                    <div class="pt-3 mt-1 border-t border-white/10 flex items-center justify-between gap-3">
+                        <p class="text-[11px] text-white/40">No longer want WhatsApp sign-in codes or alerts? You can remove this number entirely.</p>
+                        <form method="POST" action="{{ route('user.onboarding.whatsapp.remove') }}"
+                              onsubmit="return confirm('Remove your WhatsApp number {{ $waCurrent }}? You will no longer receive sign-in codes or alerts on WhatsApp.');">
+                            @csrf
+                            <button type="submit" class="px-3 py-2 rounded-lg bg-red-500/10 hover:bg-red-500/20 border border-red-400/30 text-red-300 text-xs font-semibold transition whitespace-nowrap">
+                                <i class="fas fa-unlink text-[10px] mr-1"></i> Remove number
+                            </button>
+                        </form>
+                    </div>
+                @endif
             </div>
         </div>
 

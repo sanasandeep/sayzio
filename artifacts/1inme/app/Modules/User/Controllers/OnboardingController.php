@@ -477,6 +477,53 @@ class OnboardingController extends Controller
             ->with('success', 'Your WhatsApp number is connected.');
     }
 
+    /**
+     * Remove (disconnect) the verified WhatsApp number from Profile Settings.
+     * Mirrors the API disconnect path: if the phone is the primary identifier,
+     * promote another verified email/phone first (unlink refuses to remove a
+     * primary), then unlink via AccountMergeService so its remaining guards
+     * (must keep at least one verified email or phone) still apply.
+     */
+    public function whatsappRemove(Request $request)
+    {
+        $user = Auth::user();
+
+        $identifier = $user->linkedIdentifiers()
+            ->where('kind', 'phone')
+            ->whereNotNull('verified_at')
+            ->first();
+
+        if (!$identifier) {
+            return redirect()->route('user.profile.edit')
+                ->with('error', 'No WhatsApp number is connected.');
+        }
+
+        $merge = app(\App\Modules\User\Services\AccountMergeService::class);
+
+        try {
+            if ($identifier->is_primary) {
+                $fallback = $user->verifiedIdentifiers()
+                    ->where('id', '!=', $identifier->id)
+                    ->whereIn('kind', ['email', 'phone'])
+                    ->first();
+                if (!$fallback) {
+                    return redirect()->route('user.profile.edit')
+                        ->with('error', 'You must keep at least one verified email or phone on your account.');
+                }
+                $merge->promoteToPrimary($user->fresh(), $fallback);
+                $identifier->refresh();
+            }
+            $merge->unlink($user->fresh(), $identifier);
+        } catch (\Throwable $e) {
+            \Log::warning('WhatsApp remove failed for user ' . $user->id . ': ' . $e->getMessage());
+            return redirect()->route('user.profile.edit')
+                ->with('error', $e->getMessage());
+        }
+
+        return redirect()->route('user.profile.edit')
+            ->with('success', 'Your WhatsApp number has been removed.');
+    }
+
     /** Skip the post-registration WhatsApp step and continue to the dashboard. */
     public function whatsappSkip()
     {
