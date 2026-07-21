@@ -1417,7 +1417,7 @@ isValidation = true
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "cd sayzio-dialer-standalone && npm run test:contact-auto-sync && npm run test:device-contacts-fingerprint"
+args = "cd sayzio-dialer-standalone && npm run test:contact-auto-sync && npm run test:device-contacts-fingerprint && npm run test:identified-call-drain"
 
 [[workflows.workflow]]
 name = "mobile-prod-build"
