@@ -82,7 +82,7 @@
             <div class="flex items-center gap-3 flex-wrap">
                 <div class="flex-1 min-w-0">
                     <p class="text-sm font-bold" style="color: var(--text-primary);">Handle</p>
-                    <p class="text-xs mt-0.5" style="color: var(--text-dimmed);">Your profile lives at <code>/@{{ $user->handle }}</code>. Changing it changes your public URL — old links to the previous handle stop working.</p>
+                    <p class="text-xs mt-0.5" style="color: var(--text-dimmed);">Your profile lives at <code>/@{{ $user->handle }}</code>. Changing it changes your public URL; old links to the previous handle stop working.</p>
                 </div>
                 <button type="button" @click="editing = !editing"
                         class="px-3 py-1.5 rounded-lg text-xs font-semibold transition"
@@ -559,7 +559,7 @@
             <div class="flex items-center gap-2" x-show="featured.length < maxFeatured">
                 <select id="featured-add-picker"
                         class="flex-1 px-3 py-2 rounded-lg border text-sm" style="background: var(--bg-glass-input); border-color: var(--border-glass); color: var(--text-primary);">
-                    <option value="">— Add a link —</option>
+                    <option value="">Add a link…</option>
                     @foreach($pickerLinks as $pl)
                         <option value="{{ $pl->id }}">{{ $pl->title ?: $pl->alias }} ({{ $pl->type }})</option>
                     @endforeach
@@ -612,7 +612,7 @@
             <legend class="text-sm font-bold px-2" style="color: var(--text-primary);">
                 <i class="fas fa-grid-2 mr-1 text-fuchsia-500"></i> Showcase
             </legend>
-            <p class="text-xs mb-3" style="color: var(--text-dimmed);">Spotlight your best creations — QR codes, forms, events, digital cards, menus, and more.</p>
+            <p class="text-xs mb-3" style="color: var(--text-dimmed);">Spotlight your best creations: QR codes, forms, events, digital cards, menus, and more.</p>
 
             {{-- Hidden inputs for saved items --}}
             <template x-for="(item, idx) in items" :key="idx">
@@ -651,14 +651,14 @@
             <div class="flex items-center gap-2 flex-wrap" x-show="items.length < 20">
                 <select x-model="pickType"
                         class="px-3 py-2 rounded-lg border text-sm" style="background: var(--bg-glass-input); border-color: var(--border-glass); color: var(--text-primary);">
-                    <option value="">— Type —</option>
+                    <option value="">Type…</option>
                     @foreach($showcaseItemTypes as $typeKey => $typeMeta)
                         <option value="{{ $typeKey }}">{{ $typeMeta['label'] }}</option>
                     @endforeach
                 </select>
                 <select x-model="pickLink"
                         class="flex-1 min-w-[140px] px-3 py-2 rounded-lg border text-sm" style="background: var(--bg-glass-input); border-color: var(--border-glass); color: var(--text-primary);">
-                    <option value="">— Link —</option>
+                    <option value="">Link…</option>
                     @foreach($showcaseEligibleLinks as $sel)
                         <option value="{{ $sel->id }}">{{ $sel->title ?: $sel->alias }} ({{ $sel->type }})</option>
                     @endforeach
@@ -742,7 +742,7 @@
                             x-model="primary && primary.kind"
                             @change="setPrimary($event.target.value)"
                             class="w-40 px-3 py-2 rounded-lg border text-sm" style="background: var(--bg-glass-input); border-color: var(--border-glass); color: var(--text-primary);">
-                        <option value="">— None —</option>
+                        <option value="">None</option>
                         @foreach($ctaKinds as $ck => $cv)
                             <option value="{{ $ck }}" {{ ($showcase['cta']['primary']['kind'] ?? '') === $ck ? 'selected' : '' }}>{{ $cv['label'] }}</option>
                         @endforeach
@@ -764,7 +764,7 @@
                     <select name="cta_primary_value"
                             x-model="primary.value"
                             class="mt-1.5 w-full px-3 py-2 rounded-lg border text-sm" style="background: var(--bg-glass-input); border-color: var(--border-glass); color: var(--text-primary);">
-                        <option value="">— Choose a form —</option>
+                        <option value="">Choose a form…</option>
                         @foreach($formsForCta as $cf)
                             <option value="{{ $cf->alias }}" {{ ($showcase['cta']['primary']['value'] ?? '') === $cf->alias ? 'selected' : '' }}>{{ $cf->title ?: $cf->alias }}</option>
                         @endforeach
@@ -917,7 +917,7 @@
                  style="background: rgba(10,12,24,0.85); backdrop-filter: blur(6px);"
                  @keydown.escape.window="if (pvMode === 'full') setMode('small')">
                 <div class="flex items-center justify-between px-4 py-3">
-                    <p class="text-sm font-bold text-white"><i class="fas fa-eye mr-2"></i>Profile preview — {{ '/@' . $user->handle }}</p>
+                    <p class="text-sm font-bold text-white"><i class="fas fa-eye mr-2"></i>Profile preview: {{ '/@' . $user->handle }}</p>
                     <div class="flex items-center gap-2">
                         <button type="button" @click="pvToggleTheme()" class="text-xs font-semibold px-3 py-2 rounded-lg text-white" style="background: rgba(255,255,255,0.12);">
                             <i :class="pvTheme === 'light' ? 'fas fa-moon' : 'fas fa-sun'"></i>

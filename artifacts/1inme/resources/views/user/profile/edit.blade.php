@@ -393,7 +393,7 @@
                             <div class="text-sm text-white/70">
                                 Your handle, bio, avatar, cover and everything else people see at
                                 <span class="font-mono">/@{{ $user->handle ?: 'handle' }}</span> is edited on the
-                                <a href="{{ route('user.creator-profile.edit') }}" class="font-semibold underline" style="color: var(--color-primary, #60a5fa);">Creator Profile</a> tab.
+                                <a href="{{ route('user.creator-profile.edit') }}" class="font-semibold underline" style="color: var(--color-primary-400, #60a5fa);">Creator Profile</a> tab.
                             </div>
                         </div>
                         <a href="{{ route('user.creator-profile.edit') }}"
@@ -540,7 +540,7 @@
                     <div class="pt-3 mt-1 border-t border-white/10 flex items-center justify-between gap-3">
                         <p class="text-[11px] text-white/40">No longer want WhatsApp sign-in codes or alerts? You can remove this number entirely.</p>
                         <form method="POST" action="{{ route('user.onboarding.whatsapp.remove') }}"
-                              onsubmit="return confirm('Remove your WhatsApp number {{ $waCurrent }}? You will no longer receive sign-in codes or alerts on WhatsApp.{{ $waPromotesTo ? ' This number is your primary sign-in contact — after removal, your ' . ($waPromotesToKind === 'phone' ? 'phone number' : 'email') . ' ' . $waPromotesTo . ' will become your primary sign-in contact.' : '' }}');">
+                              onsubmit="return confirm('Remove your WhatsApp number {{ $waCurrent }}? You will no longer receive sign-in codes or alerts on WhatsApp.{{ $waPromotesTo ? ' This number is your primary sign-in contact; after removal, your ' . ($waPromotesToKind === 'phone' ? 'phone number' : 'email') . ' ' . $waPromotesTo . ' will become your primary sign-in contact.' : '' }}');">
                             @csrf
                             <button type="submit" class="px-3 py-2 rounded-lg bg-red-500/10 hover:bg-red-500/20 border border-red-400/30 text-red-300 text-xs font-semibold transition whitespace-nowrap">
                                 <i class="fas fa-unlink text-[10px] mr-1"></i> Remove number

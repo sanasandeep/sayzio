@@ -142,7 +142,7 @@ export default function WhatsappVerify() {
     const promotesTo = status.data?.promotes_to;
     const promoteNote =
       status.data?.is_primary && promotesTo
-        ? ` This number is your primary sign-in contact — after removal, your ${
+        ? ` This number is your primary sign-in contact; after removal, your ${
             status.data.promotes_to_kind === "phone" ? "phone number" : "email"
           } ${promotesTo} will become your primary sign-in contact.`
         : "";

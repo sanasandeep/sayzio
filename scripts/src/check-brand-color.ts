@@ -228,6 +228,12 @@ type AllowEntry = { path: string; kind: "file" | "dir"; reason: string };
  */
 const ALLOWLIST: AllowEntry[] = [
   {
+    path: "artifacts/1inme/resources/views/user/creator-profile/edit.blade.php",
+    kind: "file",
+    reason:
+      "Profile accent-color PICKER — the presets array is a multi-color categorical user-choice palette (blue/red/purple/sky/green/amber/pink/slate), not the brand accent; the default stays brand blue #3d6bff.",
+  },
+  {
     path: "artifacts/1inme/resources/views/welcome.blade.php",
     kind: "file",
     reason:

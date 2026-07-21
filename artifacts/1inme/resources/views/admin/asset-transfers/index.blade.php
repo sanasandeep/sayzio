@@ -52,7 +52,7 @@
                     <tr class="border-b border-white/5 text-white/80">
                         <td class="py-2 pr-3 whitespace-nowrap text-white/50">{{ $t->created_at?->format('M j, Y H:i') }}</td>
                         <td class="py-2 pr-3">
-                            <span class="px-2 py-0.5 rounded-full text-[10px] uppercase tracking-wide {{ $t->kind === 'workspace' ? 'bg-purple-500/0 bg-blue-500/15 text-blue-200' : 'bg-emerald-500/15 text-emerald-200' }}">{{ $t->kind }}</span>
+                            <span class="px-2 py-0.5 rounded-full text-[10px] uppercase tracking-wide {{ $t->kind === 'workspace' ? 'bg-blue-500/15 text-blue-200' : 'bg-emerald-500/15 text-emerald-200' }}">{{ $t->kind }}</span>
                         </td>
                         <td class="py-2 pr-3">{{ $t->asset_label ?: ('#' . $t->asset_id) }} <span class="text-white/30">(#{{ $t->asset_id }})</span></td>
                         <td class="py-2 pr-3">

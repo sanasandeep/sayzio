@@ -256,7 +256,7 @@ html.light-mode .admin-ushow-comp-note      { color: #92400e; }
                     </button>
                 </form>
             @elseif($user->canTransferAssets())
-                <p class="text-sm text-blue-300"><i class="fas fa-shield-alt mr-1"></i> Implicitly granted — this user's email matches an admin account.</p>
+                <p class="text-sm text-blue-300"><i class="fas fa-shield-alt mr-1"></i> Implicitly granted: this user's email matches an admin account.</p>
             @else
                 <form method="POST" action="{{ route('admin.users.transfer-capability', $user) }}">
                     @csrf

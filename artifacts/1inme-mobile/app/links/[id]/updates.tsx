@@ -43,7 +43,7 @@ function tagColor(tag: string | null, colors: Colors): string {
     case "breaking":
       return "#f59e0b";
     case "announcement":
-      return "#8b5cf6";
+      return "#0ea5e9";
     default:
       return colors.mutedForeground;
   }

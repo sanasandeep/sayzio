@@ -33,3 +33,6 @@ drift on ANY column.
   raw column drops would be a false positive, but none exist in this codebase.
 - `IGNORED_TABLES` (cache/jobs/sessions/migrations/etc.) suppress framework-table
   false positives; `IGNORED_COLUMNS` is the per-table escape hatch.
+
+## Recorder must answer getConnection()
+Migrations that branch on driver via `Schema::getConnection()->getDriverName()` hit the recorder's magic `__call` (returns null) → null-deref throws INSIDE the migration's up(), and the replay's per-file try/catch silently drops every schema op after that point in the same file (users.mobile from the create_otps migration was lost this way, making the query-columns guard flag 6 perfectly valid `where('mobile')` calls). The recorder now implements `getConnection()` returning the real connection. **How to apply:** if the query-columns/manifest guard reports a column missing that clearly exists in a migration, suspect a replay abort in that migration file — reproduce by checking `SchemaManifest::build()` output, and prefer teaching the recorder the missing method over allowlisting call sites.

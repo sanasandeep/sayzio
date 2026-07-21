@@ -310,6 +310,18 @@ class SchemaManifestRecorder
     }
 
     /**
+     * Migrations sometimes branch on the driver via
+     * `Schema::getConnection()->getDriverName()`. Without this method the
+     * magic __call returned null and the null-deref aborted the whole
+     * migration's replay, silently dropping any columns recorded later in
+     * the same up() (e.g. users.mobile in the create_otps migration).
+     */
+    public function getConnection()
+    {
+        return $this->connection;
+    }
+
+    /**
      * Everything else a migration might call on the Schema facade (index helpers,
      * foreign-key toggles, introspection) is irrelevant to the column manifest,
      * so swallow it. Returning null keeps boolean probes falsy and never throws.

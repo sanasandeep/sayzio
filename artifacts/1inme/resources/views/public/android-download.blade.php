@@ -43,7 +43,7 @@
 
                 <a href="{{ route('android.download') }}"
                    class="inline-flex items-center gap-3 px-7 py-4 rounded-2xl text-white font-semibold text-base shadow-lg shadow-indigo-500/20 transition-all hover:scale-[1.02] hover:shadow-indigo-500/30"
-                   style="background:linear-gradient(135deg,#6366f1,#8b5cf6);">
+                   style="background:linear-gradient(135deg,#2563eb,#3d6bff);">
                     <i class="fa-brands fa-android text-xl"></i>
                     <span>Download APK&nbsp;<span class="opacity-60 font-normal text-sm">({{ $release->size_human }})</span></span>
                 </a>
@@ -58,7 +58,7 @@
                     <i class="fa-brands fa-android text-5xl text-white/15"></i>
                     <div>
                         <p class="text-white/60 font-medium">The Android app isn't available for download yet.</p>
-                        <p class="text-sm text-white/35 mt-1">Check back soon — we're working on it.</p>
+                        <p class="text-sm text-white/35 mt-1">Check back soon; we're working on it.</p>
                     </div>
                 </div>
             @endif
@@ -68,7 +68,7 @@
         <div class="mt-16 grid grid-cols-1 sm:grid-cols-3 gap-5 text-left">
             @php
             $features = [
-                ['icon' => 'fa-link',         'title' => 'Create & manage links',   'desc' => 'Short links, biolinks, QR codes and more — all from your phone.'],
+                ['icon' => 'fa-link',         'title' => 'Create & manage links',   'desc' => 'Short links, biolinks, QR codes and more, all from your phone.'],
                 ['icon' => 'fa-chart-bar',    'title' => 'Live analytics',           'desc' => 'See who clicked, from where, and on what device, in real time.'],
                 ['icon' => 'fa-bell',         'title' => 'Instant notifications',    'desc' => 'Get notified the moment someone subscribes or follows your page.'],
             ];

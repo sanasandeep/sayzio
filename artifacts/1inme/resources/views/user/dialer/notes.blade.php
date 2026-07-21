@@ -10,7 +10,7 @@
 
     @include('user.partials.page-hero', [
         'title'    => 'Notes & reminders',
-        'subtitle' => 'Quick notes, to-do lists and reminders — synced with your dialer app, shareable by phone number.',
+        'subtitle' => 'Quick notes, to-do lists and reminders, synced with your dialer app, shareable by phone number.',
         'icon'     => 'fa-clipboard-list',
         'chips'    => [],
     ])
@@ -158,7 +158,7 @@
 
         <div x-show="visible().length === 0" class="card-premium p-8 text-center">
             <i class="fas fa-clipboard-list text-2xl mb-3" style="color:var(--text-faint);"></i>
-            <p class="text-sm" style="color:var(--text-muted);">Nothing here yet. Create a note or to-do — reminders you set (and events you RSVP to) show up automatically.</p>
+            <p class="text-sm" style="color:var(--text-muted);">Nothing here yet. Create a note or to-do; reminders you set (and events you RSVP to) show up automatically.</p>
         </div>
     </div>
 

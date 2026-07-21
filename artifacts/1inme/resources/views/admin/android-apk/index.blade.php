@@ -7,7 +7,7 @@
 
     <p class="text-sm text-white/50">
         Manage the Android APK hosted on the Sayzio domain. Upload a local file or pull from an EAS artifact URL.
-        Only one release can be <strong class="text-white/70">live</strong> at a time — that is the file served to the public from <code class="text-xs bg-white/5 px-1.5 py-0.5 rounded">/android/download</code>.
+        Only one release can be <strong class="text-white/70">live</strong> at a time; that is the file served to the public from <code class="text-xs bg-white/5 px-1.5 py-0.5 rounded">/android/download</code>.
     </p>
 
     @if(session('success'))
@@ -41,7 +41,7 @@
             </a>
         @else
             <span class="ml-auto text-amber-300/70 flex items-center gap-1.5">
-                <i class="fas fa-triangle-exclamation"></i> No live release set — public page shows "not available".
+                <i class="fas fa-triangle-exclamation"></i> No live release set; public page shows "not available".
             </span>
         @endif
     </div>
@@ -111,7 +111,7 @@
         {{-- Fetch from URL form --}}
         <div x-show="tab === 'fetch'" class="p-6">
             <p class="text-xs text-white/40 mb-4">
-                Paste an EAS artifact URL or any direct APK download link. The server fetches and stores the file — no temp file left on disk.
+                Paste an EAS artifact URL or any direct APK download link. The server fetches and stores the file; no temp file left on disk.
                 <strong class="text-white/50">Max 300 MB.</strong>
             </p>
             <form method="POST" action="{{ route('admin.android-apk.fetch') }}" class="space-y-4">
