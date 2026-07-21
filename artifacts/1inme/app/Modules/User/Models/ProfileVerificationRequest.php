@@ -12,13 +12,33 @@ class ProfileVerificationRequest extends Model
         'user_id', 'tick_type_id', 'official_name', 'purpose',
         'logo_path', 'proof_files', 'status', 'kind',
         'admin_notes', 'prev_verified_name', 'new_name', 'new_avatar',
-        'reviewed_at', 'reviewed_by',
+        'reviewed_at', 'reviewed_by', 'updates',
     ];
 
     protected $casts = [
         'proof_files' => 'array',
+        'updates'     => 'array',
         'reviewed_at' => 'datetime',
     ];
+
+    /** Maximum number of user-submitted follow-up updates per request. */
+    public const MAX_UPDATES = 10;
+
+    /**
+     * Append a user-submitted follow-up update (message and/or attachments).
+     */
+    public function appendUpdate(?string $message, array $files = []): array
+    {
+        $entry = [
+            'message'    => $message !== null && $message !== '' ? $message : null,
+            'files'      => array_values($files),
+            'created_at' => now()->toIso8601String(),
+        ];
+        $updates   = $this->updates ?? [];
+        $updates[] = $entry;
+        $this->update(['updates' => $updates]);
+        return $entry;
+    }
 
     public function user()
     {

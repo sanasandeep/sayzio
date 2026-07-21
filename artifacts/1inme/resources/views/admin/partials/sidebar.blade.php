@@ -16,7 +16,7 @@
         <a href="{{ route('admin.dashboard') }}" class="flex items-center gap-2.5 group" :class="sidebarMode === 'icons' ? 'hidden' : ''">
             @include('common.partials.brand-logo', ['height' => 'h-8'])
             <span class="ml-1 text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded logo-text"
-                  style="background: rgba(61,107,255,0.12); color: var(--accent-light); border: 1px solid rgba(61,107,255,0.2);">Admin</span>
+                  style="background: var(--c-primary-soft); color: var(--accent); border: 1px solid var(--c-primary-soft);">Admin</span>
         </a>
         <template x-if="sidebarMode === 'icons'">
             <a href="{{ route('admin.dashboard') }}" class="group" title="Sayzio Admin">
@@ -614,7 +614,7 @@
             @csrf
             <button type="submit"
                     class="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold transition-all"
-                    style="background: rgba(61,107,255,0.12); border: 1px solid rgba(61,107,255,0.25); color: var(--accent-light);"
+                    style="background: var(--c-primary-soft); border: 1px solid var(--c-primary-soft); color: var(--accent);"
                     title="Switch back to your user dashboard">
                 <i class="fas fa-arrow-right-arrow-left" style="font-size: 11px;"></i>
                 <span>Switch back to user</span>

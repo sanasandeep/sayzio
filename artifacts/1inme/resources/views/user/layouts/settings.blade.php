@@ -92,8 +92,8 @@
         .settings-tab:hover { color: var(--text-strong); border-color: var(--border-glass-light); }
         .settings-tab.active {
             color: #fff;
-            background: var(--color-primary-600, #2563eb);
-            border-color: var(--color-primary-600, #2563eb);
+            background: var(--accent, #2563eb);
+            border-color: var(--accent, #2563eb);
         }
         html.light-mode .settings-tab.active { color: #fff; }
         .settings-subtab {
@@ -106,9 +106,9 @@
         }
         .settings-subtab:hover { color: var(--text-strong); }
         .settings-subtab.active {
-            color: var(--color-primary-500, #3b82f6);
-            background: var(--color-primary-soft, rgba(37,99,235,0.10));
-            border-color: var(--color-primary-soft, rgba(37,99,235,0.20));
+            color: var(--accent, #3b82f6);
+            background: color-mix(in srgb, var(--accent, #3b82f6) 12%, transparent);
+            border-color: color-mix(in srgb, var(--accent, #3b82f6) 25%, transparent);
         }
     </style>
     @endpush

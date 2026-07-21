@@ -31,17 +31,20 @@
     <div class="xl:flex xl:items-start xl:gap-6"
          @input.debounce.300ms="pvLive()" @change.debounce.150ms="pvLive()" @click.debounce.300ms="pvLive()"
          x-data="{
-             pvMode: ['mini','small','large','full'].includes(localStorage.getItem('cp_pv_mode')) ? localStorage.getItem('cp_pv_mode') : 'small',
-             pvSizes: { mini: 220, small: 320, large: 430 },
+             pvMode: (function (m) { if (m === 'mini') return 'small'; return ['small','medium','large','full'].includes(m) ? m : 'medium'; })(localStorage.getItem('cp_pv_mode')),
+             pvTheme: ['light','dark'].includes(localStorage.getItem('cp_pv_theme')) ? localStorage.getItem('cp_pv_theme') : (document.documentElement.classList.contains('light-mode') ? 'light' : 'dark'),
+             pvSizes: { small: 300, medium: 350, large: 430 },
+             pvHeights: { small: 440, medium: 620, large: 760 },
              pvBase: 390,
-             pvBaseH: 760,
-             get pvPaneW() { return this.pvSizes[this.pvMode] || this.pvSizes.small; },
+             get pvPaneW() { return this.pvSizes[this.pvMode] || this.pvSizes.medium; },
+             get pvBaseH() { return this.pvHeights[this.pvMode] || 760; },
              get pvScale() { return (this.pvPaneW - 26) / this.pvBase; },
-             setMode(m) { this.pvMode = m; localStorage.setItem('cp_pv_mode', m); },
+             setMode(m) { this.pvMode = m; localStorage.setItem('cp_pv_mode', m); this.$nextTick(() => this.pvLive()); },
+             pvToggleTheme() { this.pvTheme = this.pvTheme === 'light' ? 'dark' : 'light'; localStorage.setItem('cp_pv_theme', this.pvTheme); this.pvLive(); },
              pvReload() { const f = this.$refs.pvFrame; if (f) f.src = f.src; const g = this.$refs.pvFrameFull; if (g && this.pvMode === 'full') g.src = g.src; },
              pvField(n) { const el = document.querySelector('[name=' + n + ']'); return el ? el.value : null; },
              pvLive() {
-                 const msg = { type: 'cpLive', tagline: this.pvField('tagline'), location: this.pvField('location'), bio: this.pvField('bio'), color: this.pvField('profile_theme_color') };
+                 const msg = { type: 'cpLive', tagline: this.pvField('tagline'), location: this.pvField('location'), bio: this.pvField('bio'), color: this.pvField('profile_theme_color'), density: this.pvMode === 'full' ? 'large' : this.pvMode, theme: this.pvTheme };
                  [this.$refs.pvFrame, this.$refs.pvFrameFull].forEach(f => { try { if (f && f.contentWindow) f.contentWindow.postMessage(msg, window.location.origin); } catch (e) {} });
              }
          }">
@@ -123,6 +126,31 @@
                              :style="{ background: 'linear-gradient(135deg, ' + color + ', ' + color + '99)', borderRadius: '8px', width: '64px', height: '28px', border: '1px solid rgba(255,255,255,0.1)' }">
                         </div>
                     </div>
+                </div>
+                <div>
+                    <label class="text-xs font-semibold mb-1 block" style="color: var(--text-dimmed);">Profile avatar</label>
+                    <div class="flex items-center gap-3 mb-2">
+                        <img src="{{ $user->resolveCreatorAvatarUrl() }}" alt="" class="w-16 h-16 rounded-xl object-cover" style="border: 1px solid var(--border-soft); background: var(--bg-soft);">
+                        <div class="min-w-0">
+                            @if(!empty($user->creator_avatar))
+                                <p class="text-[11px]" style="color: var(--text-dimmed);">Custom avatar for your creator profile. Remove it to fall back to your account profile photo.</p>
+                            @else
+                                <p class="text-[11px]" style="color: var(--text-dimmed);">Inherited from your account profile photo (Settings → Profile). Upload one here to use a different avatar on your public creator profile only.</p>
+                            @endif
+                        </div>
+                    </div>
+                    @if($user->isNameAvatarLocked())
+                        <p class="text-[11px] px-3 py-2 rounded-lg" style="background: var(--bg-soft); color: var(--text-muted);">
+                            <i class="fas fa-lock mr-1"></i> Your profile is verified, so avatar changes are locked. Contact support to update your photo.
+                        </p>
+                    @else
+                        <input type="file" name="creator_avatar" accept="image/*" class="text-xs">
+                        @if(!empty($user->creator_avatar))
+                            <label class="flex items-center gap-1.5 mt-1 text-[11px] cursor-pointer" style="color: var(--text-muted);">
+                                <input type="checkbox" name="creator_avatar_remove" value="1"> Remove custom avatar (use account profile photo)
+                            </label>
+                        @endif
+                    @endif
                 </div>
                 <div>
                     <label class="text-xs font-semibold mb-1 block" style="color: var(--text-dimmed);">Cover image</label>
@@ -481,14 +509,14 @@
                                 @click="item.enabled = !item.enabled"
                                 :title="item.enabled ? 'Click to hide' : 'Click to show'"
                                 class="shrink-0 text-sm"
-                                :style="item.enabled ? 'color:var(--color-primary,#3d6bff)' : 'color:var(--text-dimmed)'">
+                                :style="item.enabled ? 'color:var(--accent)' : 'color:var(--text-dimmed)'">
                             <i :class="item.enabled ? 'fas fa-eye' : 'fas fa-eye-slash'"></i>
                         </button>
                         <span class="flex-1 text-sm truncate"
                               :style="item.enabled ? 'color:var(--text-primary)' : 'color:var(--text-dimmed);text-decoration:line-through;'"
                               x-text="(linkMap[item.id] || {}).title || ('#' + item.id)"></span>
                         <span class="text-[10px] uppercase font-semibold px-1.5 py-0.5 rounded-full shrink-0"
-                              style="background: rgba(61,107,255,0.08); color: #3d6bff;"
+                              style="background: color-mix(in srgb, var(--accent) 12%, transparent); color: var(--accent);"
                               x-text="(linkMap[item.id] || {}).type || ''"></span>
                         <button type="button" @click="featured.splice(idx, 1)"
                                 class="shrink-0 text-xs hover:text-rose-500" style="color: var(--text-dimmed);">
@@ -805,18 +833,22 @@
         <div class="rounded-2xl overflow-hidden" style="background: var(--bg-card); border: 1px solid var(--border-soft);">
             <div class="flex items-center justify-between gap-2 px-3 py-2" style="border-bottom: 1px solid var(--border-glass);">
                 <p class="text-[11px] uppercase tracking-wider font-semibold truncate" style="color: var(--text-dimmed);">
-                    <i class="fas fa-eye mr-1"></i><span x-show="pvMode !== 'mini'">Live preview</span>
+                    <i class="fas fa-eye mr-1"></i><span x-show="pvMode === 'large'">Live preview</span>
                 </p>
                 <div class="flex items-center gap-1">
-                    <template x-for="m in [['mini','Mini'],['small','Small'],['large','Large']]" :key="m[0]">
+                    <template x-for="m in [['small','Small'],['medium','Medium'],['large','Large']]" :key="m[0]">
                         <button type="button" @click="setMode(m[0])"
                                 class="text-[10px] font-semibold px-2 py-1 rounded-md"
                                 :style="pvMode === m[0]
-                                    ? 'background: rgba(61,107,255,0.15); color: var(--color-primary-500, #3d6bff);'
+                                    ? 'background: color-mix(in srgb, var(--accent) 15%, transparent); color: var(--accent);'
                                     : 'color: var(--text-dimmed);'"
                                 x-text="m[1]"></button>
                     </template>
                     @if($profileUrl)
+                    <button type="button" @click="pvToggleTheme()" title="Toggle preview dark/light"
+                            class="text-[10px] font-semibold px-2 py-1 rounded-md" style="color: var(--text-dimmed);">
+                        <i :class="pvTheme === 'light' ? 'fas fa-moon' : 'fas fa-sun'"></i>
+                    </button>
                     <button type="button" @click="setMode('full')" title="Full preview"
                             class="text-[10px] font-semibold px-2 py-1 rounded-md" style="color: var(--text-dimmed);">
                         <i class="fas fa-expand"></i>
@@ -861,6 +893,10 @@
                 <div class="flex items-center justify-between px-4 py-3">
                     <p class="text-sm font-bold text-white"><i class="fas fa-eye mr-2"></i>Profile preview — {{ '/@' . $user->handle }}</p>
                     <div class="flex items-center gap-2">
+                        <button type="button" @click="pvToggleTheme()" class="text-xs font-semibold px-3 py-2 rounded-lg text-white" style="background: rgba(255,255,255,0.12);">
+                            <i :class="pvTheme === 'light' ? 'fas fa-moon' : 'fas fa-sun'"></i>
+                            <span class="ml-1" x-text="pvTheme === 'light' ? 'Dark' : 'Light'"></span>
+                        </button>
                         <button type="button" @click="pvReload()" class="text-xs font-semibold px-3 py-2 rounded-lg text-white" style="background: rgba(255,255,255,0.12);">
                             <i class="fas fa-rotate-right mr-1"></i> Refresh
                         </button>

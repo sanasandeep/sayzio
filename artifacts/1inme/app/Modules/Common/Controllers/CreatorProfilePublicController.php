@@ -144,7 +144,7 @@ class CreatorProfilePublicController extends Controller
             'data' => [
                 'handle'          => $creator->handle,
                 'name'            => $creator->name,
-                'avatar'          => \App\Support\PublicStorageUrl::resolve($creator->avatar),
+                'avatar'          => \App\Support\PublicStorageUrl::resolve($creator->creatorAvatarRaw()),
                 'tagline'         => $creator->tagline,
                 'followers_count' => (int) $creator->followers_count,
                 'is_verified'     => $isVerified,

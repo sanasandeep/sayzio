@@ -103,8 +103,8 @@
             <div class="flex gap-3 overflow-x-auto pb-2 -mx-2 px-2 snap-x">
                 @foreach($trendingCarousel as $tc)
                     <a href="{{ url('/@' . $tc->handle) }}" class="snap-start flex-shrink-0 w-44 bg-white rounded-2xl border border-slate-200 hover:shadow-md transition-shadow p-3 text-center">
-                        @if($tc->avatar)
-                            <img src="{{ \App\Support\PublicStorageUrl::resolve($tc->avatar) }}" class="w-14 h-14 rounded-full mx-auto object-cover" alt=""/>
+                        @if($tc->creatorAvatarRaw())
+                            <img src="{{ \App\Support\PublicStorageUrl::resolve($tc->creatorAvatarRaw()) }}" class="w-14 h-14 rounded-full mx-auto object-cover" alt=""/>
                         @else
                             <div class="w-14 h-14 rounded-full mx-auto bg-gradient-to-br from-blue-500 to-fuchsia-500 text-white flex items-center justify-center font-bold">{{ $tc->getInitials() }}</div>
                         @endif
@@ -149,8 +149,8 @@
                     @endif
                     <div class="p-5">
                     <div class="flex items-center gap-3 -mt-9">
-                        @if($creator->avatar)
-                            <img src="{{ \App\Support\PublicStorageUrl::resolve($creator->avatar) }}" class="w-14 h-14 rounded-full object-cover border-4 border-white bg-white" alt=""/>
+                        @if($creator->creatorAvatarRaw())
+                            <img src="{{ \App\Support\PublicStorageUrl::resolve($creator->creatorAvatarRaw()) }}" class="w-14 h-14 rounded-full object-cover border-4 border-white bg-white" alt=""/>
                         @else
                             <div class="w-14 h-14 rounded-full bg-gradient-to-br from-blue-500 to-fuchsia-500 text-white flex items-center justify-center font-bold text-lg border-4 border-white">
                                 {{ $creator->getInitials() }}
@@ -262,7 +262,7 @@
                                 'biolinkId'       => (int) $messageableLinkId,
                                 'creatorId'       => (int) $creator->id,
                                 'creatorName'     => (string) $creator->name,
-                                'creatorAvatar'   => (string) ($creator->avatar ?? ''),
+                                'creatorAvatar'   => (string) (\App\Support\PublicStorageUrl::resolve($creator->creatorAvatarRaw()) ?? ''),
                                 'creatorInitials' => (string) $creator->getInitials(),
                             ], JSON_UNESCAPED_UNICODE)
                             : '{}';

@@ -148,6 +148,18 @@ class CreatorProfileController extends Controller
         array $data,
         ?\Illuminate\Http\Request $request = null
     ): void {
+        // Creator-profile-specific avatar override (Task #5494). Defaults to
+        // the account profile photo when null. Verified users have their
+        // avatar identity locked — ignore upload/remove server-side so a
+        // direct POST cannot bypass the lock (same rule as ProfileController).
+        if (!$user->isNameAvatarLocked()) {
+            if ($request && $request->hasFile('creator_avatar')) {
+                $user->creator_avatar = '/storage/' . $request->file('creator_avatar')->store('avatars', 'public');
+            } elseif ($request && $request->boolean('creator_avatar_remove')) {
+                $user->creator_avatar = null;
+            }
+        }
+
         if ($request && $request->hasFile('cover_image')) {
             $user->cover_image = '/storage/' . $request->file('cover_image')->store('profile-covers', 'public');
         } elseif (!empty($data['cover_image_url'])) {
@@ -207,6 +219,8 @@ class CreatorProfileController extends Controller
             'tagline'             => 'nullable|string|max:200',
             'location'            => 'nullable|string|max:120',
             'bio'                 => 'nullable|string|max:2000',
+            'creator_avatar'      => 'nullable|image|max:2048',
+            'creator_avatar_remove' => 'nullable|in:0,1',
             'cover_image'         => 'nullable|image|max:5120',
             'cover_image_url'     => 'nullable|string|max:1024',
             'niche_tags'          => 'nullable|array|max:8',

@@ -2,7 +2,7 @@
 @section('title', 'Apply for Verification')
 
 @section('settings-content')
-<div class="max-w-3xl" x-data="{ tickTypeId: '{{ old('tick_type_id', $tickTypes->where('slug','creator')->first()?->id) }}' }">
+<div class="max-w-5xl" x-data="{ tickTypeId: '{{ old('tick_type_id', $tickTypes->where('slug','creator')->first()?->id) }}', officialName: @js(old('official_name', $user->name)), tickMap: @js($tickMap) }">
     <div class="mb-6">
         <a href="{{ route('user.profile-verification.index') }}" class="text-xs font-medium transition-colors hover:text-blue-400" style="color: var(--text-muted);">
             <i class="fas fa-arrow-left mr-1"></i>Back to Verification
@@ -21,12 +21,14 @@
     </div>
     @endif
 
-    <form action="{{ route('user.profile-verification.store') }}" method="POST" enctype="multipart/form-data" class="space-y-5">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+    {{-- Left: application form --}}
+    <form action="{{ route('user.profile-verification.store') }}" method="POST" enctype="multipart/form-data" class="space-y-5 lg:col-span-2 order-1">
         @csrf
 
         {{-- Tick type selector --}}
         <div class="card-premium p-6">
-            <h3 class="text-sm font-bold mb-4" style="color: var(--text-primary);"><i class="fas fa-tag mr-2" style="color: var(--color-primary-400, #5c83ff);"></i>Verification Type</h3>
+            <h3 class="text-sm font-bold mb-4" style="color: var(--text-primary);"><i class="fas fa-tag mr-2" style="color: var(--accent);"></i>Verification Type</h3>
             <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 @foreach($tickTypes as $type)
                 <label class="cursor-pointer p-4 rounded-xl transition-all" :class="tickTypeId === '{{ $type->id }}' ? 'ring-2' : ''" :style="tickTypeId === '{{ $type->id }}' ? 'ring-color: {{ $type->color }}' : ''" style="background: var(--bg-glass); border: 1px solid var(--border-glass);" @click="tickTypeId = '{{ $type->id }}'">
@@ -47,7 +49,7 @@
             <div class="space-y-4">
                 <div>
                     <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Official / legal name <span class="text-red-400">*</span></label>
-                    <input type="text" name="official_name" value="{{ old('official_name', $user->name) }}" required maxlength="200" class="theme-input w-full text-sm" placeholder="Enter your official name">
+                    <input type="text" name="official_name" x-model="officialName" value="{{ old('official_name', $user->name) }}" required maxlength="200" class="theme-input w-full text-sm" placeholder="Enter your official name">
                     <p class="text-[10px] mt-1" style="color: var(--text-dimmed);">This name will be locked on your profile once verified and must match your proof documents.</p>
                     @error('official_name')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
                 </div>
@@ -55,6 +57,11 @@
                     <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Why should your account be verified? <span class="text-red-400">*</span></label>
                     <textarea name="purpose" required maxlength="3000" rows="4" class="theme-input w-full text-sm" placeholder="Explain your identity, your work, and why verification matters to you or your audience...">{{ old('purpose') }}</textarea>
                     @error('purpose')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
+                </div>
+                <div>
+                    <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Message to reviewer (optional)</label>
+                    <textarea name="message" maxlength="2000" rows="3" class="theme-input w-full text-sm" placeholder="Anything else the review team should know — context, links to press, etc.">{{ old('message') }}</textarea>
+                    @error('message')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
                 </div>
             </div>
         </div>
@@ -96,5 +103,43 @@
             </button>
         </div>
     </form>
+
+    {{-- Right: live tick preview + advantages (sticky on desktop, below form on mobile) --}}
+    <div class="space-y-5 order-2 lg:sticky lg:top-6">
+        <div class="card-premium p-6" data-testid="tick-preview">
+            <h3 class="text-sm font-bold mb-4" style="color: var(--text-primary);"><i class="fas fa-eye mr-2" style="color: var(--accent);"></i>Live Preview</h3>
+            <div class="p-5 rounded-2xl text-center" style="background: var(--bg-glass); border: 1px solid var(--border-glass);">
+                @if($user->avatar)
+                <img src="{{ \App\Support\PublicStorageUrl::resolve($user->avatar) }}" alt="" class="w-16 h-16 rounded-2xl object-cover mx-auto" style="border: 1px solid var(--border-glass);">
+                @else
+                <div class="w-16 h-16 rounded-2xl mx-auto flex items-center justify-center" style="background: var(--c-primary-soft);"><i class="fas fa-user text-xl" style="color: var(--c-primary);"></i></div>
+                @endif
+                <div class="mt-3 flex items-center justify-center gap-1.5 flex-wrap">
+                    <span class="font-bold text-base" style="color: var(--text-primary);" x-text="officialName || '{{ $user->name }}'">{{ old('official_name', $user->name) }}</span>
+                    <template x-if="tickMap[tickTypeId]">
+                        <i class="fas text-base" :class="tickMap[tickTypeId].icon" :style="'color: ' + tickMap[tickTypeId].color" :title="tickMap[tickTypeId].name + ' tick'"></i>
+                    </template>
+                </div>
+                @if($user->handle)
+                <p class="text-xs mt-1" style="color: var(--text-muted);">{{ '@' . $user->handle }}</p>
+                @endif
+                <template x-if="tickMap[tickTypeId]">
+                    <span class="inline-block mt-3 px-2.5 py-1 rounded-full text-[10px] font-semibold" :style="'background: ' + tickMap[tickTypeId].color + '20; color: ' + tickMap[tickTypeId].color" x-text="tickMap[tickTypeId].name + ' — verified'"></span>
+                </template>
+            </div>
+            <p class="text-[10px] mt-3" style="color: var(--text-dimmed);">This is how your name and tick will appear on your creator profile, dialer, and public pages.</p>
+        </div>
+
+        <div class="card-premium p-6">
+            <h3 class="text-sm font-bold mb-3" style="color: var(--text-primary);"><i class="fas fa-star mr-2 text-amber-400"></i>Advantages of Verification</h3>
+            <ul class="space-y-2.5 text-xs" style="color: var(--text-secondary);">
+                <li class="flex gap-2.5"><i class="fas fa-check-circle mt-0.5 text-emerald-400"></i><span><strong>Trust badge everywhere</strong> — your colored tick shows on your profile, dialer, and all public pages.</span></li>
+                <li class="flex gap-2.5"><i class="fas fa-user-shield mt-0.5 text-blue-400"></i><span><strong>Impersonation protection</strong> — your verified name and avatar are locked so nobody can pose as you.</span></li>
+                <li class="flex gap-2.5"><i class="fas fa-compass mt-0.5 text-cyan-400"></i><span><strong>Higher discovery credibility</strong> — verified creators stand out in search and discovery surfaces.</span></li>
+                <li class="flex gap-2.5"><i class="fas fa-handshake mt-0.5 text-amber-400"></i><span><strong>Audience confidence</strong> — followers and subscribers know they're connecting with the real you.</span></li>
+            </ul>
+        </div>
+    </div>
+    </div>
 </div>
 @endsection

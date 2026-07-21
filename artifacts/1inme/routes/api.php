@@ -170,6 +170,10 @@ Route::prefix('v1')->group(function () {
         Route::get('/me/creator/payments',     [\App\Modules\Api\Controllers\CreatorMonetizationApiController::class, 'ownerPayments']);
         Route::get('/me/creator/tiers',        [\App\Modules\Api\Controllers\CreatorMonetizationApiController::class, 'ownerTiers']);
 
+        // Task #5480 — signed live-preview URL for the owner's /@handle page
+        // (density + theme preview in the mobile creator settings screen).
+        Route::get('/me/creator-profile/preview-url', [\App\Modules\Api\Controllers\CreatorProfileApiController::class, 'previewUrl']);
+
         // Unified creator Stats home (mobile parity for web /user/stats).
         Route::get('/stats', [\App\Modules\Api\Controllers\CreatorStatsApiController::class, 'index']);
 
@@ -1256,6 +1260,7 @@ Route::prefix('v1')->group(function () {
         Route::get   ('/profile-verification',          [\App\Modules\Api\Controllers\ProfileVerificationApiController::class, 'show']);
         Route::post  ('/profile-verification',          [\App\Modules\Api\Controllers\ProfileVerificationApiController::class, 'store']);
         Route::post  ('/profile-verification/reverify', [\App\Modules\Api\Controllers\ProfileVerificationApiController::class, 'reVerify']);
+        Route::post  ('/profile-verification/updates',  [\App\Modules\Api\Controllers\ProfileVerificationApiController::class, 'addUpdate'])->middleware('throttle:10,60');
 
         // Billing
         Route::get   ('/billing/subscription',     [BillingController::class, 'subscription']);

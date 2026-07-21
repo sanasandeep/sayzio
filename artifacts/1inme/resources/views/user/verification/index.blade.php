@@ -26,7 +26,7 @@
     </div>
     @endif
     @if(session('info'))
-    <div class="mb-4 p-4 rounded-xl text-sm font-medium" style="background: rgba(61,107,255,0.1); color: #93c5fd; border: 1px solid rgba(61,107,255,0.2);">
+    <div class="mb-4 p-4 rounded-xl text-sm font-medium" style="background: var(--c-primary-soft); color: var(--c-primary); border: 1px solid var(--c-primary-soft);">
         <i class="fas fa-info-circle mr-2"></i>{{ session('info') }}
     </div>
     @endif
@@ -45,7 +45,7 @@
                 @elseif($user->avatar)
                 <img src="{{ \App\Support\PublicStorageUrl::resolve($user->avatar) }}" alt="" class="w-14 h-14 rounded-2xl object-cover" style="border: 1px solid var(--border-glass);">
                 @else
-                <div class="w-14 h-14 rounded-2xl flex items-center justify-center" style="background: rgba(61,107,255,0.1);"><i class="fas fa-user text-blue-400 text-xl"></i></div>
+                <div class="w-14 h-14 rounded-2xl flex items-center justify-center" style="background: var(--c-primary-soft);"><i class="fas fa-user text-xl" style="color: var(--c-primary);"></i></div>
                 @endif
                 <div>
                     <div class="flex items-center gap-2 flex-wrap">
@@ -57,7 +57,7 @@
                         @endif
                         @endif
                     </div>
-                    <p class="text-xs mt-0.5" style="color: var(--text-muted);">@{{ $user->handle }}</p>
+                    <p class="text-xs mt-0.5" style="color: var(--text-muted);">{{ '@' . $user->handle }}</p>
                 </div>
             </div>
             <span class="px-3 py-1.5 rounded-full text-xs font-semibold" style="background: {{ $sm['bg'] }}; color: {{ $sm['text'] }};">
@@ -126,6 +126,68 @@
     @elseif($user->profile_verification_status === 'pending_reverification')
     <div class="p-4 rounded-xl mb-5 text-sm" style="background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.2); color: #f59e0b;">
         <i class="fas fa-sync mr-2"></i>Your name/avatar change is under review. Your tick remains visible in the meantime.
+    </div>
+    @endif
+
+    {{-- Follow-up message / attachments to the review team (pending only) --}}
+    @php $pendingReq = $requests->firstWhere('status', 'pending'); @endphp
+    @if($pendingReq)
+    <div class="card-premium p-6 mb-5" x-data="{ openUpdate: false }">
+        <div class="flex items-center justify-between flex-wrap gap-3">
+            <div>
+                <h3 class="text-sm font-bold" style="color: var(--text-primary);"><i class="fas fa-comment-dots mr-2" style="color: var(--accent);"></i>Send more info to the review team</h3>
+                <p class="text-xs mt-1" style="color: var(--text-muted);">Add a message or extra documents to your pending request — the reviewer sees them alongside your original application.</p>
+            </div>
+            <button type="button" @click="openUpdate = !openUpdate" class="px-4 py-2 rounded-xl text-xs font-semibold transition-all" style="background: var(--bg-glass); border: 1px solid var(--border-glass); color: var(--text-secondary);">
+                <i class="fas mr-1" :class="openUpdate ? 'fa-chevron-up' : 'fa-plus'"></i><span x-text="openUpdate ? 'Close' : 'Add a message / attachment'">Add a message / attachment</span>
+            </button>
+        </div>
+        <form x-show="openUpdate" x-cloak action="{{ route('user.profile-verification.updates.store') }}" method="POST" enctype="multipart/form-data" class="mt-4 space-y-4">
+            @csrf
+            <div>
+                <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Message to reviewer</label>
+                <textarea name="message" maxlength="2000" rows="3" class="theme-input w-full text-sm" placeholder="Anything else the reviewer should know...">{{ old('message') }}</textarea>
+                @error('message')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
+            </div>
+            <div>
+                <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Attachments (optional)</label>
+                @include('user.partials.dropzone-input', [
+                    'name'        => 'attachments',
+                    'policy'      => \App\Services\UploadPolicy::for('verification.proof', auth()->user()),
+                    'hint'        => 'Extra proof documents — ID, articles, screenshots...',
+                    'previewKind' => 'file',
+                ])
+                @error('attachments.*')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
+            </div>
+            <div class="flex justify-end">
+                <button type="submit" class="px-5 py-2.5 rounded-xl text-sm font-semibold text-white transition-all hover:-translate-y-0.5" style="background: linear-gradient(135deg, var(--color-primary-500, #3d6bff), var(--color-primary-400, #5c83ff));">
+                    <i class="fas fa-paper-plane mr-1.5"></i>Send Update
+                </button>
+            </div>
+        </form>
+
+        @if(count($pendingReq->updates ?? []) > 0)
+        <div class="mt-4 pt-4 space-y-3" style="border-top: 1px solid var(--border-glass);">
+            <p class="text-[10px] font-semibold uppercase tracking-wider" style="color: var(--text-dimmed);">Updates you've sent</p>
+            @foreach($pendingReq->updates as $upd)
+            <div class="p-3 rounded-xl text-xs" style="background: var(--bg-glass); border: 1px solid var(--border-glass);">
+                @if(!empty($upd['message']))
+                <p style="color: var(--text-secondary);">{{ $upd['message'] }}</p>
+                @endif
+                @if(!empty($upd['files']))
+                <div class="flex flex-wrap gap-2 {{ !empty($upd['message']) ? 'mt-2' : '' }}">
+                    @foreach($upd['files'] as $f)
+                    <span class="px-2 py-1 rounded-lg text-[10px]" style="background: var(--c-primary-soft); color: var(--text-muted);"><i class="fas fa-paperclip mr-1"></i>{{ basename($f) }}</span>
+                    @endforeach
+                </div>
+                @endif
+                @if(!empty($upd['created_at']))
+                <p class="text-[10px] mt-1.5" style="color: var(--text-dimmed);">{{ \Illuminate\Support\Carbon::parse($upd['created_at'])->diffForHumans() }}</p>
+                @endif
+            </div>
+            @endforeach
+        </div>
+        @endif
     </div>
     @endif
 

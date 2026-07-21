@@ -37,7 +37,7 @@
                         </div>
                     </td>
                     <td>
-                        <span class="px-2 py-1 rounded-lg text-[11px] font-medium" style="background: var(--color-primary-soft, rgba(37,99,235,0.10)); color: var(--color-primary-500, #3b82f6); border: 1px solid var(--color-primary-soft, rgba(37,99,235,0.20));">
+                        <span class="px-2 py-1 rounded-lg text-[11px] font-medium" style="background: var(--c-primary-soft); color: var(--c-primary); border: 1px solid var(--c-primary-soft);">
                             {{ $lead['source_label'] }}
                         </span>
                     </td>

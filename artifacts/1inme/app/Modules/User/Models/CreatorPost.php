@@ -267,7 +267,7 @@ protected $fillable = [
                     'title'          => $post->title,
                     'body_excerpt'   => mb_substr($post->body, 0, 160),
                     'creator_name'   => $creator->name,
-                    'creator_avatar' => \App\Support\PublicStorageUrl::resolve($creator->avatar),
+                    'creator_avatar' => \App\Support\PublicStorageUrl::resolve($creator->creatorAvatarRaw()),
                 ],
                 'occurred_at'  => $post->published_at,
             ]);

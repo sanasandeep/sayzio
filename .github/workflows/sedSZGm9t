@@ -1,0 +1,260 @@
+name: Laravel migrations
+
+# Catch broken database migrations before they ship.
+#
+# Runs `php artisan migrate:fresh --force` against a real database service
+# whenever anything under artifacts/1inme/database/migrations/ changes (or
+# when the workflow / Composer manifest itself is touched, since both can
+# break the migration pipeline).
+#
+# After the fresh run, the job *also* exercises every `down()` by issuing
+# `php artisan migrate:reset --force` and then re-applying everything with
+# `php artisan migrate --force`. A broken `down()` (wrong column name in
+# `dropColumn`, missing driver guard symmetric to `up()`, dependent FK left
+# in place, …) only surfaces when someone tries to roll back in production —
+# at the worst possible moment. Catching it here means rollbacks stay safe.
+#
+# We run the same up()/down()/up() cycle against multiple database engines
+# via a matrix. Self-hosters and some staging environments still run on
+# MySQL/MariaDB, where Laravel's grammars differ in non-trivial ways from
+# Postgres (JSON column handling, generated columns, FULLTEXT indexes, FK
+# drop syntax, jsonb `?` operator vs. PDO `?` placeholder, …). A migration
+# could pass on Postgres and still crash on a MySQL install. Running the
+# whole cycle against both engines surfaces that entire class of regression
+# automatically. The matrix is structured so adding a third driver later
+# (sqlite, mariadb, …) is a one-entry change — see `matrix.include` below.
+#
+# Backfill / seed migrations whose down() intentionally does nothing (because
+# reverting would discard admin-edited or recovered data) live as documented
+# no-ops in their own files; they trivially succeed under `migrate:reset` and
+# require no special skipping here. See, for example:
+#   - 2026_04_17_120100_backfill_disabled_splash_pages.php
+#   - 2026_04_28_010100_backfill_user_country_from_phone_hint.php
+#   - 2026_05_02_000002_backfill_default_workspaces.php
+#   - 2026_11_20_000001_backfill_contact_extra_with_hardcoded_copy.php
+#
+# The original regression that motivated this check was a PDO `?` placeholder
+# colliding with the Postgres jsonb `?` operator in
+# 2026_11_12_000001_backfill_site_assistant_message_stream_status — it crashed
+# `php artisan migrate` on every fresh install but went unnoticed because no
+# automated job ran migrations from scratch on Postgres.
+#
+# IMPORTANT — why the trigger paths are the whole app, not just
+# database/migrations/**:
+#   A `migrate:fresh` does NOT only execute the SQL inside migration files. Data
+#   migrations invoke seeders and arbitrary application code — e.g.
+#   2027_06_29_000002_migrate_to_seven_plan_lineup calls
+#   PlansAndAddonsSeeder::seedPlans(), and several other backfill migrations
+#   `->run()` seeders or hydrate Eloquent models. That means a regression that
+#   breaks a from-empty rebuild can be introduced WITHOUT touching any file
+#   under database/migrations/ — it can live in database/seeders/**, app/**
+#   (a model global scope, a service, an accessor), config/**, or bootstrap/**.
+#   This is exactly how the "column is_internal does not exist" regression
+#   (Task #3501) shipped: the breaking change was a new internal plan added to
+#   PlansAndAddonsSeeder, a file the old narrow `database/migrations/**` path
+#   filter did not watch. If we only fire this job when a migration file
+#   changes, the gold-standard real-DB rebuild silently skips the very PRs most
+#   likely to break it. So we trigger on any change under artifacts/1inme/**,
+#   matching the sibling laravel-tests.yml. Extra CI minutes on frontend-only
+#   PRs are a cheap price for never letting a broken rebuild slip past merge.
+
+# IMPORTANT — why there is no `paths:` filter on the triggers below, and a
+# `changes` detection job instead:
+#   A workflow-level `paths:` filter means the WHOLE workflow never triggers for
+#   a PR that doesn't touch those paths — so GitHub never receives a status for
+#   the jobs. The moment an admin marks "migrate cycle (PostgreSQL)" /
+#   "migrate cycle (MySQL)" as *required* status checks in branch protection,
+#   any PR that changes only marketing-site (artifacts/1inme-com/**), mobile,
+#   or lib/** files hangs forever waiting for a check that will never run — the
+#   classic path-filter + required-check deadlock.
+#   The fix: trigger on every PR (no `paths:`), detect in a cheap `changes` job
+#   whether the paths we care about actually changed, then either run the real
+#   guard (relevant change) or a passthrough companion job with the SAME check
+#   name that short-circuits to green (no relevant change). Either way a status
+#   with the required name is ALWAYS reported, so the checks can be safely
+#   required without deadlocking unrelated PRs, while a broken migrate:fresh
+#   still turns the real job red and blocks the merge.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  changes:
+    name: Detect 1inme changes
+    runs-on: ubuntu-latest
+    outputs:
+      onein: ${{ steps.filter.outputs.onein }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Filter changed paths
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            onein:
+              - 'artifacts/1inme/**'
+              - '.github/workflows/laravel-migrations.yml'
+
+  migrate:
+    name: migrate cycle (${{ matrix.display_name }})
+    needs: changes
+    # Run the real guard only when the 1inme app (or this workflow) changed, or
+    # on a manual dispatch. Otherwise the passthrough companion below reports
+    # the same-named check as green.
+    if: needs.changes.outputs.onein == 'true' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+
+    # `fail-fast: false` so a regression on one engine never masks a
+    # regression on another — we want to see *every* failing driver in the
+    # same run, not just the first one to die.
+    strategy:
+      fail-fast: false
+      matrix:
+        # To add a third driver later (sqlite, mariadb, mssql, …), append one
+        # `include:` entry below — no other workflow changes required.
+        include:
+          - driver: pgsql
+            display_name: PostgreSQL
+            image: postgres:16
+            port: 5432
+            php_db_extensions: pdo_pgsql, pgsql
+            db_username: postgres
+            db_password: password
+            health_cmd: pg_isready -U postgres
+          - driver: mysql
+            display_name: MySQL
+            image: mysql:8.0
+            port: 3306
+            php_db_extensions: pdo_mysql, mysqli
+            db_username: root
+            db_password: password
+            # `mysqladmin ping` succeeds as soon as the server is accepting
+            # connections, which is what we actually care about (vs. just the
+            # port being bound).
+            health_cmd: mysqladmin ping -h 127.0.0.1 -uroot -ppassword --silent
+
+    services:
+      # Single logical "db" service whose image and health probe come from
+      # the matrix entry. We deliberately set the bootstrap env vars for
+      # *both* Postgres and MySQL here — each image only honors its own
+      # variables and silently ignores the rest, which keeps the YAML free
+      # of per-driver service blocks.
+      db:
+        image: ${{ matrix.image }}
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: onein_me_ci
+          MYSQL_ROOT_PASSWORD: password
+          MYSQL_DATABASE: onein_me_ci
+          MARIADB_ROOT_PASSWORD: password
+          MARIADB_DATABASE: onein_me_ci
+        ports:
+          - ${{ matrix.port }}:${{ matrix.port }}
+        options: >-
+          --health-cmd "${{ matrix.health_cmd }}"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+
+    defaults:
+      run:
+        working-directory: artifacts/1inme
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up PHP 8.4
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: mbstring, intl, pdo, ${{ matrix.php_db_extensions }}, bcmath, gd, zip
+          coverage: none
+          tools: composer:v2
+
+      - name: Cache Composer dependencies
+        uses: actions/cache@v4
+        with:
+          path: artifacts/1inme/vendor
+          key: composer-${{ runner.os }}-php8.4-${{ hashFiles('artifacts/1inme/composer.lock') }}
+          restore-keys: |
+            composer-${{ runner.os }}-php8.4-
+
+      - name: Install Composer dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Prepare .env for CI
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+          # Point the app at the database service spun up above.
+          sed -i 's|^DB_CONNECTION=.*|DB_CONNECTION=${{ matrix.driver }}|' .env
+          sed -i 's|^DB_HOST=.*|DB_HOST=127.0.0.1|' .env
+          sed -i 's|^DB_PORT=.*|DB_PORT=${{ matrix.port }}|' .env
+          sed -i 's|^DB_DATABASE=.*|DB_DATABASE=onein_me_ci|' .env
+          sed -i 's|^DB_USERNAME=.*|DB_USERNAME=${{ matrix.db_username }}|' .env
+          sed -i 's|^DB_PASSWORD=.*|DB_PASSWORD=${{ matrix.db_password }}|' .env
+
+      - name: Wait for ${{ matrix.display_name }} to accept connections
+        # GitHub Actions already gates the job on the service container's
+        # health-cmd passing, but we keep an explicit, driver-agnostic TCP
+        # check as a belt-and-braces guard. Bash's built-in /dev/tcp avoids
+        # depending on a client binary (psql, mysqladmin, …) being on the
+        # runner image.
+        run: |
+          for i in {1..60}; do
+            if (echo > /dev/tcp/127.0.0.1/${{ matrix.port }}) 2>/dev/null; then
+              echo "${{ matrix.display_name }} is accepting connections on port ${{ matrix.port }}."
+              exit 0
+            fi
+            echo "Waiting for ${{ matrix.display_name }}... ($i)"
+            sleep 1
+          done
+          echo "${{ matrix.display_name }} never became ready" >&2
+          exit 1
+
+      - name: Run migrations from scratch (the actual guard)
+        run: php artisan migrate:fresh --force
+
+      - name: Roll every migration back (exercise down())
+        # `migrate:fresh` ran everything as a single batch, so `migrate:reset`
+        # walks the full chain in reverse and fails the build the moment any
+        # `down()` raises — dropping a column that doesn't exist, hitting a
+        # driver-specific construct without a guard, leaving an FK behind,
+        # etc. This is the symmetric counterpart to the migrate:fresh guard
+        # above.
+        run: php artisan migrate:reset --force
+
+      - name: Re-apply every migration on the now-empty schema
+        # Belt-and-braces: confirm the rolled-back database is genuinely a
+        # clean slate that `migrate` can rebuild. Catches down() methods that
+        # "succeed" but leave behind tables, types, sequences or indexes that
+        # then collide on the next up().
+        run: php artisan migrate --force
+
+  # Passthrough companion: reports the SAME check names as the real `migrate`
+  # job ("migrate cycle (PostgreSQL)" / "migrate cycle (MySQL)") as green when
+  # the PR touches nothing under artifacts/1inme/**. This is what makes the
+  # checks safe to mark as *required* — every PR always gets a status for each
+  # required name, so unrelated PRs never deadlock. When the real guard runs
+  # instead, this job is skipped (which branch protection treats as passing),
+  # so a genuine failure in the real `migrate` job still blocks the merge.
+  migrate-passthrough:
+    name: migrate cycle (${{ matrix.display_name }})
+    needs: changes
+    if: needs.changes.outputs.onein != 'true' && github.event_name != 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        # Must mirror the display names produced by the real `migrate` matrix
+        # above so the reported check names match exactly.
+        display_name: [PostgreSQL, MySQL]
+    steps:
+      - name: No 1inme changes — migration cycle not required for this PR
+        run: |
+          echo "No changes under artifacts/1inme/** for this PR."
+          echo "The '${{ matrix.display_name }}' migrate cycle is not required; reporting success."

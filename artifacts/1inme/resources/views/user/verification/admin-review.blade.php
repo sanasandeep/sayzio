@@ -65,7 +65,7 @@
                     <div>
                         <label class="text-[10px] font-semibold uppercase tracking-wider" style="color: var(--text-dimmed);">Requested By</label>
                         <p class="font-medium mt-0.5" style="color: var(--text-primary);">{{ $req->user?->name ?? 'N/A' }}</p>
-                        <p class="text-[11px]" style="color: var(--text-muted);">{{ $req->user?->email }} · @{{ $req->user?->handle }}</p>
+                        <p class="text-[11px]" style="color: var(--text-muted);">{{ $req->user?->email }} · {{ '@' . $req->user?->handle }}</p>
                     </div>
                     <div>
                         <label class="text-[10px] font-semibold uppercase tracking-wider" style="color: var(--text-dimmed);">Current Account Status</label>
@@ -124,6 +124,40 @@
                         <span class="text-xs font-medium truncate" style="color: var(--text-primary);">{{ basename($file) }}</span>
                         <i class="fas fa-external-link-alt text-[9px] ml-auto" style="color: var(--text-dimmed);"></i>
                     </a>
+                    @endforeach
+                </div>
+            </div>
+            @endif
+
+            {{-- User follow-up updates --}}
+            @if(count($req->updates ?? []) > 0)
+            <div class="card-premium p-6">
+                <h3 class="text-sm font-bold mb-3" style="color: var(--text-primary);"><i class="fas fa-comment-dots text-cyan-400 mr-2"></i>Updates from the User ({{ count($req->updates) }})</h3>
+                <div class="space-y-3">
+                    @foreach($req->updates as $upd)
+                    <div class="p-3 rounded-xl" style="background: var(--bg-glass); border: 1px solid var(--border-glass);">
+                        @if(!empty($upd['message']))
+                        <p class="text-sm leading-relaxed" style="color: var(--text-secondary);">{{ $upd['message'] }}</p>
+                        @endif
+                        @if(!empty($upd['files']))
+                        <div class="flex flex-wrap gap-2 {{ !empty($upd['message']) ? 'mt-2' : '' }}">
+                            @foreach($upd['files'] as $file)
+                            <a href="{{ $resolveFile($file) }}" target="_blank" class="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs transition-all hover:bg-white/[0.03]" style="background: rgba(61,107,255,0.08); border: 1px solid var(--border-glass); color: var(--text-primary);">
+                                @if(str_ends_with(strtolower($file), '.pdf'))
+                                <i class="fas fa-file-pdf text-red-400"></i>
+                                @else
+                                <i class="fas fa-file-image text-blue-400"></i>
+                                @endif
+                                <span class="truncate max-w-[180px]">{{ basename($file) }}</span>
+                                <i class="fas fa-external-link-alt text-[9px]" style="color: var(--text-dimmed);"></i>
+                            </a>
+                            @endforeach
+                        </div>
+                        @endif
+                        @if(!empty($upd['created_at']))
+                        <p class="text-[10px] mt-1.5" style="color: var(--text-dimmed);">{{ \Illuminate\Support\Carbon::parse($upd['created_at'])->format('M d, Y H:i') }}</p>
+                        @endif
+                    </div>
                     @endforeach
                 </div>
             </div>
@@ -197,7 +231,7 @@
                     @if($req->user?->handle)
                     <div class="flex justify-between">
                         <span style="color: var(--text-dimmed);">Profile</span>
-                        <a href="/@{{ $req->user->handle }}" target="_blank" class="text-blue-400 hover:underline">/@{{ $req->user->handle }}</a>
+                        <a href="{{ '/@' . $req->user->handle }}" target="_blank" class="text-blue-400 hover:underline">{{ '/@' . $req->user->handle }}</a>
                     </div>
                     @endif
                 </div>

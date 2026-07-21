@@ -53,7 +53,14 @@ class ProfileVerificationController extends Controller
                 ->with('info', 'You already have a verification request or are already verified.');
         }
         $tickTypes = VerificationTickType::publicRequestable()->get();
-        return view('user.verification.request', compact('user', 'tickTypes'));
+        // Plain map keyed by id for the Alpine live tick preview on the
+        // apply page (single controller-built var — see blade @js gotchas).
+        $tickMap = $tickTypes->mapWithKeys(fn ($t) => [(string) $t->id => [
+            'name'  => $t->name,
+            'icon'  => $t->icon,
+            'color' => $t->color,
+        ]])->all();
+        return view('user.verification.request', compact('user', 'tickTypes', 'tickMap'));
     }
 
     public function store(Request $request)
@@ -71,6 +78,7 @@ class ProfileVerificationController extends Controller
             'tick_type_id'  => 'required|integer|in:' . implode(',', $tickTypes),
             'official_name' => 'required|string|max:200',
             'purpose'       => 'required|string|max:3000',
+            'message'       => 'nullable|string|max:2000',
             'logo'          => \App\Services\UploadPolicy::rule('verification.logo', $user),
             'proof_files.*' => \App\Services\UploadPolicy::rule('verification.proof', $user),
         ]);
@@ -82,7 +90,7 @@ class ProfileVerificationController extends Controller
             return back()->withInput()->with('error', 'File upload failed. Please try again.');
         }
 
-        ProfileVerificationRequest::create([
+        $req = ProfileVerificationRequest::create([
             'user_id'       => $user->id,
             'tick_type_id'  => $data['tick_type_id'],
             'official_name' => $data['official_name'],
@@ -93,10 +101,68 @@ class ProfileVerificationController extends Controller
             'kind'          => 'new',
         ]);
 
+        if (trim((string) ($data['message'] ?? '')) !== '') {
+            $req->appendUpdate(trim($data['message']));
+        }
+
         $user->update(['profile_verification_status' => 'pending']);
 
         return redirect()->route('user.profile-verification.index')
             ->with('success', 'Verification request submitted! We will review it and get back to you.');
+    }
+
+    /**
+     * Append a follow-up message and/or attachments to the user's own
+     * pending verification request so the reviewing admin has more context.
+     */
+    public function addUpdate(Request $request)
+    {
+        $user = Auth::user();
+
+        $req = ProfileVerificationRequest::where('user_id', $user->id)
+            ->where('status', 'pending')
+            ->orderByDesc('created_at')
+            ->first();
+
+        if (!$req) {
+            return redirect()->route('user.profile-verification.index')
+                ->with('error', 'You have no pending verification request to update.');
+        }
+
+        if (count($req->updates ?? []) >= ProfileVerificationRequest::MAX_UPDATES) {
+            return redirect()->route('user.profile-verification.index')
+                ->with('error', 'You have reached the maximum number of updates for this request.');
+        }
+
+        $data = $request->validate([
+            'message'       => 'nullable|string|max:2000',
+            'attachments.*' => \App\Services\UploadPolicy::rule('verification.proof', $user),
+        ]);
+
+        $message = trim((string) ($data['message'] ?? ''));
+        if ($message === '' && !$request->hasFile('attachments')) {
+            return back()->withInput()->with('error', 'Please write a message or attach at least one file.');
+        }
+
+        $paths = [];
+        if ($request->hasFile('attachments')) {
+            foreach ($request->file('attachments') as $file) {
+                try {
+                    $pf = UserFile::createFromUpload($file, $user, [
+                        'enforce_allowlist' => false,
+                        'upload_key'        => 'verification.proof',
+                    ]);
+                    $paths[] = $pf->url_path;
+                } catch (\RuntimeException) {
+                    return back()->withInput()->with('error', 'File upload failed. Please try again.');
+                }
+            }
+        }
+
+        $req->appendUpdate($message !== '' ? $message : null, $paths);
+
+        return redirect()->route('user.profile-verification.index')
+            ->with('success', 'Your update was sent to the review team.');
     }
 
     /**
