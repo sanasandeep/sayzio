@@ -1606,12 +1606,12 @@ args = "bash artifacts/1inme/tests/Browser/run-validation.sh creator-profile-gap
 name = "e2e-cp-live-preview"
 author = "agent"
 
+[workflows.workflow.metadata]
+isValidation = true
+
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "bash artifacts/1inme/tests/Browser/run-validation.sh creator-settings-live-preview.spec.ts"
-
-[workflows.workflow.metadata]
-isValidation = true
 
 [[workflows.workflow]]
 name = "e2e-cp-avatar-stacking"
