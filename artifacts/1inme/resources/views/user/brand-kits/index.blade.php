@@ -140,6 +140,33 @@
                 </div>
             </div>
 
+            {{-- What to include in the generated kit (Palette is always on). --}}
+            <div>
+                <label class="block text-xs text-white/50 mb-1.5">What to include</label>
+                <div class="flex flex-wrap gap-2">
+                    <label class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-primary-400/40 bg-primary-500/10 text-xs text-white/80 cursor-not-allowed select-none"
+                           title="Every brand kit needs a color palette">
+                        <input type="checkbox" checked disabled class="rounded border-white/20 bg-black/30 text-primary-500">
+                        Color palette
+                    </label>
+                    @foreach([
+                        'fonts'       => 'Font pairing',
+                        'voice'       => 'Voice & tone',
+                        'taglines'    => 'Taglines',
+                        'bio'         => 'About / bio',
+                        'block_theme' => 'Link in Bio block theme',
+                    ] as $ckey => $clabel)
+                        <label class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs cursor-pointer select-none transition-colors"
+                               :class="components.{{ $ckey }} ? 'border-primary-400/40 bg-primary-500/10 text-white/90' : 'border-white/10 bg-black/20 text-white/50 hover:text-white/70'">
+                            <input type="checkbox" x-model="components.{{ $ckey }}"
+                                   class="rounded border-white/20 bg-black/30 text-primary-500 focus:ring-primary-400">
+                            {{ $clabel }}
+                        </label>
+                    @endforeach
+                </div>
+                <p class="text-[11px] text-white/35 mt-1">Untick anything you don't need: the kit will only generate what's selected.</p>
+            </div>
+
             {{-- Knowledge base picker. Its own <form> so the save/clear
                  default buttons round-trip server-side; the generate /
                  estimate AJAX calls read the checked inputs straight
@@ -344,6 +371,9 @@
 function brandKits() {
     return {
         form: { prompt: '', website_url: '', logo_url: '' },
+        // Output selection. Palette is always generated server-side; the
+        // rest map to the "What to include" checkboxes above.
+        components: { fonts: true, voice: true, taglines: true, bio: true, block_theme: true },
         busy: false,
         error: '',
         estimateText: '',
@@ -357,7 +387,10 @@ function brandKits() {
                 : [];
             const cb = root ? root.querySelector('input[type="checkbox"][name="include_platform"]') : null;
             const include_platform = cb ? cb.checked : false;
-            return { ...this.form, mind_ids, include_platform };
+            const components = ['palette'].concat(
+                Object.keys(this.components).filter(k => this.components[k])
+            );
+            return { ...this.form, mind_ids, include_platform, components };
         },
         async estimate() {
             this.error = '';

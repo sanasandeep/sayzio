@@ -168,7 +168,7 @@ class BrandKitController extends Controller
         $data = $this->validatePayload($request);
 
         try {
-            $cost = $this->kits->estimateCredits($user, $data['prompt'], $data['website_url'], $data['logo_url']);
+            $cost = $this->kits->estimateCredits($user, $data['prompt'], $data['website_url'], $data['logo_url'], '', $data['components']);
         } catch (\RuntimeException $e) {
             return response()->json(['message' => $e->getMessage()], 422);
         }
@@ -224,7 +224,7 @@ class BrandKitController extends Controller
         }
 
         try {
-            $result = $this->kits->generate($user, $data['prompt'], $data['website_url'], $data['logo_url'], $kbContext);
+            $result = $this->kits->generate($user, $data['prompt'], $data['website_url'], $data['logo_url'], $kbContext, $data['components']);
         } catch (InsufficientCoinsForAiException $e) {
             return response()->json([
                 'message'  => 'Not enough coins to generate this brand kit.',
@@ -306,7 +306,7 @@ class BrandKitController extends Controller
     }
 
     /**
-     * @return array{prompt:string,website_url:?string,logo_url:?string,mind_ids:int[],include_platform:bool}
+     * @return array{prompt:string,website_url:?string,logo_url:?string,mind_ids:int[],include_platform:bool,components:string[]}
      */
     private function validatePayload(Request $request): array
     {
@@ -317,6 +317,8 @@ class BrandKitController extends Controller
             'mind_ids'         => ['nullable', 'array'],
             'mind_ids.*'       => ['integer'],
             'include_platform' => ['nullable', 'boolean'],
+            'components'       => ['nullable', 'array'],
+            'components.*'     => ['string', 'in:' . implode(',', AiBrandKitService::COMPONENTS)],
         ]);
 
         return [
@@ -325,6 +327,9 @@ class BrandKitController extends Controller
             'logo_url'         => $data['logo_url'] ?? null,
             'mind_ids'         => array_map('intval', $data['mind_ids'] ?? []),
             'include_platform' => (bool) ($data['include_platform'] ?? false),
+            // Empty selection = generate everything (back-compat for callers
+            // that never send the field, e.g. the mobile API path).
+            'components'       => array_values(array_map('strval', $data['components'] ?? [])),
         ];
     }
 
