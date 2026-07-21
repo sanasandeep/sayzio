@@ -177,7 +177,7 @@
                                    :class="assetTypes.{{ $at['type'] }} ? 'border-primary-400/40 bg-primary-500/10 text-white/90' : 'border-white/10 bg-black/20 text-white/50 hover:text-white/70'">
                                 <input type="checkbox" x-model="assetTypes.{{ $at['type'] }}"
                                        class="rounded border-white/20 bg-black/30 text-primary-500 focus:ring-primary-400">
-                                {{ $at['label'] }} <span class="text-white/35">· {{ $at['cost'] }}c</span>
+                                {{ $at['label'] }} <span class="text-white/35">· {{ number_format($at['cost']) }} {{ $at['cost'] === 1 ? 'coin' : 'coins' }}</span>
                             </label>
                         @endforeach
                     </div>
