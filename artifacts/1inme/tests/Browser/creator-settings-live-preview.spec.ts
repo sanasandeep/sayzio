@@ -499,3 +499,139 @@ test("clearing the accent color resets the preview's inline accent vars", async 
     mid: "",
   });
 });
+
+// ── Text fields: clear then save + reload ───────────────────────────────
+//
+// The cpLive listener hides the tagline / location / bio sections live when
+// their editor inputs are emptied (display:none via [data-cp=...] hooks).
+// What was NOT covered: that the live-cleared state matches what a visitor
+// would actually see after saving — i.e. that a preview iframe reload with
+// the SAVED (emptied) values renders the same hidden sections, rather than
+// the live preview promising something the server render doesn't honor.
+
+/** Visibility + text snapshot of the preview frame's cp text sections. */
+async function cpTextState(page: Page) {
+  const frame = page.frames().find((f) => f.url().includes("cp_preview=1"));
+  if (!frame) return null;
+  // The frame can detach mid-evaluate while the parent page navigates
+  // (e.g. right after the save redirect); return null so the caller's
+  // expect.poll simply retries against the fresh frame.
+  return frame
+    .evaluate(() => {
+      const vis = (sel: string) => {
+        const el = document.querySelector<HTMLElement>(sel);
+        if (!el) return null;
+        return getComputedStyle(el).display !== "none";
+      };
+      const text = (sel: string) =>
+        document.querySelector(sel)?.textContent?.trim() ?? null;
+      return {
+        taglineVisible: vis('[data-cp="tagline"]'),
+        taglineText: text('[data-cp="tagline"]'),
+        locationVisible: vis('[data-cp="location-wrap"]'),
+        locationText: text('[data-cp="location"]'),
+        bioVisible: vis('[data-cp="bio-section"]'),
+        bioText: text('[data-cp="bio"]'),
+      };
+    })
+    .catch(() => null);
+}
+
+test("emptied tagline/location/bio hide in the live preview and stay hidden after save + iframe reload", async ({
+  page,
+}) => {
+  test.setTimeout(300_000);
+
+  // Seed: handle claimed + all three text fields set to known values, so
+  // the initial preview shows every section and the cleared state is a
+  // real transition (not vacuously hidden from the start).
+  const TAG = "E2E cp tagline";
+  const LOC = "E2E City";
+  const BIO = "E2E cp bio body";
+  const out = runTinkerSeed(
+    `$u = \\App\\Modules\\User\\Models\\User::where('email', '${DEMO_LOGIN_EMAIL}')->first();` +
+      `if (!$u) { echo 'SEED:NONE'; } else {` +
+      `if (empty($u->handle)) { $u->handle = 'demo_cp_' . $u->id; }` +
+      `$u->tagline = '${TAG}'; $u->location = '${LOC}'; $u->bio = '${BIO}';` +
+      `$u->save(); echo 'SEED:OK'; }`,
+  );
+  expect(out, `tinker said: ${out}`).toContain("SEED:OK");
+
+  await loginAsDemo(page);
+  await page.goto("/user/settings/creator", {
+    waitUntil: "domcontentloaded",
+    timeout: 180_000,
+  });
+
+  const aside = page.locator('aside:has-text("Live preview")').first();
+  await expect(aside).toBeVisible({ timeout: 30_000 });
+  await expect(aside.locator("iframe")).toHaveCount(1, { timeout: 30_000 });
+
+  // Initial server render: every section visible with the seeded text.
+  await expect.poll(() => cpTextState(page), { timeout: 120_000 }).toEqual({
+    taglineVisible: true,
+    taglineText: TAG,
+    locationVisible: true,
+    locationText: LOC,
+    bioVisible: true,
+    bioText: BIO,
+  });
+
+  // ── Empty all three fields in the editor ───────────────────────────
+  // fill('') fires input events; the container's @input.debounce.300ms
+  // pvLive() then posts the cpLive message with empty strings.
+  await page.locator('input[name="tagline"]').fill("");
+  await page.locator('input[name="location"]').fill("");
+  await page.locator('textarea[name="bio"]').fill("");
+
+  // Live preview must hide the sections (display:none, cleared text).
+  const CLEARED = {
+    taglineVisible: false,
+    taglineText: "",
+    locationVisible: false,
+    locationText: "",
+    bioVisible: false,
+    bioText: "",
+  };
+  await expect
+    .poll(() => cpTextState(page), { timeout: 30_000 })
+    .toEqual(CLEARED);
+
+  // ── Save, then confirm the reloaded preview matches ─────────────────
+  // The first cold write POST over the distant RDS can exceed 10s; wait
+  // for the update response explicitly before asserting anything.
+  const [resp] = await Promise.all([
+    page.waitForResponse(
+      (r) =>
+        r.url().includes("/user/settings/creator") &&
+        r.request().method() === "POST",
+      { timeout: 120_000 },
+    ),
+    // noWaitAfter: a plain click blocks 30s on "waiting for scheduled
+    // navigations" against the slow authenticated re-render; the sibling
+    // waitForResponse + waitForURL below own the navigation instead.
+    page
+      .getByRole("button", { name: /Save profile/i })
+      .click({ noWaitAfter: true }),
+  ]);
+  expect(resp.status()).toBeLessThan(400);
+
+  // The redirect back to the settings page mounts a FRESH preview iframe
+  // rendering the SAVED values — it must match the live-cleared state:
+  // sections still hidden (server-rendered style="display:none" under
+  // cp_preview, empty text), proving the live preview told the truth.
+  await page.waitForURL(/\/user\/settings\/creator/, { timeout: 120_000 });
+  await expect
+    .poll(() => cpTextState(page), { timeout: 120_000 })
+    .toEqual(CLEARED);
+
+  // And the actually-saved rows agree (belt & braces against a form
+  // regression silently not persisting the cleared values).
+  const saved = runTinkerSeed(
+    `$u = \\App\\Modules\\User\\Models\\User::where('email', '${DEMO_LOGIN_EMAIL}')->first();` +
+      `echo 'SAVED:' . json_encode([$u->tagline, $u->location, $u->bio]);`,
+  );
+  const m = /SAVED:(\[.*\])/.exec(saved);
+  expect(m, `tinker said: ${saved}`).toBeTruthy();
+  expect(JSON.parse(m![1])).toEqual([null, null, null]);
+});
