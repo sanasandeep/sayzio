@@ -115,9 +115,10 @@ class WhatsappController extends Controller
     /**
      * Report the currently connected WhatsApp number (masked) so the mobile
      * settings surface can show what is on file and whether it can be removed.
-     * `can_remove` mirrors the web linked-identifier guards (you can't remove a
-     * primary identifier or the last verified email/phone), surfacing the same
-     * reason up-front instead of only failing on the disconnect call.
+     * `can_remove` mirrors the web remove flow (a primary number is removable —
+     * another verified contact gets promoted; only the last verified
+     * email/phone is blocked), surfacing the reason up-front instead of only
+     * failing on the disconnect call.
      */
     public function status(Request $request)
     {
@@ -140,10 +141,12 @@ class WhatsappController extends Controller
 
     /**
      * Disconnect the verified WhatsApp number from this account. Mirrors the web
-     * disconnect path (Account Settings → linked identifiers → remove), reusing
-     * AccountMergeService::unlink so the same guards apply (can't drop a primary
-     * identifier or the last verified email/phone). Once removed the dependent
-     * alert toggles can no longer deliver, so they read as disabled (gated on a
+     * remove path (OnboardingController::whatsappRemove): when the phone is the
+     * primary identifier, another verified email/phone is auto-promoted to
+     * primary first, then AccountMergeService::unlink drops the number. Removal
+     * is blocked only when no other verified contact exists (you must keep at
+     * least one verified email or phone). Once removed the dependent alert
+     * toggles can no longer deliver, so they read as disabled (gated on a
      * verified number) the moment the client refetches.
      */
     public function disconnect(Request $request, AccountMergeService $service)
@@ -160,6 +163,22 @@ class WhatsappController extends Controller
         }
 
         try {
+            if ($identifier->is_primary) {
+                $fallback = $user->verifiedIdentifiers()
+                    ->where('id', '!=', $identifier->id)
+                    ->whereIn('kind', ['email', 'phone'])
+                    ->first();
+                if (!$fallback) {
+                    return $this->fail(
+                        'You must keep at least one verified email or phone on your account.',
+                        422,
+                        'cannot_remove'
+                    );
+                }
+                $service->promoteToPrimary($user->fresh(), $fallback);
+                $identifier->refresh();
+                $user = $user->fresh();
+            }
             $service->unlink($user, $identifier);
         } catch (\Throwable $e) {
             return $this->fail($e->getMessage(), 422, 'cannot_remove');
@@ -173,16 +192,14 @@ class WhatsappController extends Controller
 
     /**
      * The reason a verified phone identifier cannot be removed, or null when it
-     * can. Pre-flights the AccountMergeService::unlink guards so the client can
-     * disable the Remove action with an explanation rather than discovering the
-     * block only on the DELETE call.
+     * can. Pre-flights the disconnect guards so the client can disable the
+     * Remove action with an explanation rather than discovering the block only
+     * on the DELETE call. A primary number is removable (another verified
+     * contact is auto-promoted); the only hard block is having no other
+     * verified email or phone.
      */
     private function removeBlockedReason($user, LinkedIdentifier $identifier): ?string
     {
-        if ($identifier->is_primary) {
-            return 'This is your primary number — make another verified email or phone primary first.';
-        }
-
         $hasOtherContact = $user->verifiedIdentifiers()
             ->where('id', '!=', $identifier->id)
             ->whereIn('kind', ['email', 'phone'])
