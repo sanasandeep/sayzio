@@ -448,6 +448,10 @@ args = "bs-preset-rename-test"
 task = "workflow.run"
 args = "e2e-bs-bulk"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-bs-presets"
+
 [[workflows.workflow]]
 name = "e2e"
 author = "agent"
@@ -1845,6 +1849,17 @@ args = "bash artifacts/1inme/tests/Browser/run-validation.sh brand-studio-bulk-c
 
 [workflows.workflow.metadata]
 isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-bs-presets"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "bash artifacts/1inme/tests/Browser/run-validation.sh brand-studio-presets.spec.ts"
+
+[workflows.workflow.metadata]
+outputType = "console"
 
   [agent]
 stack = "PNPM_WORKSPACE"
