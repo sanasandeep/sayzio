@@ -11,9 +11,9 @@ import { useColors } from "@/hooks/useColors";
  */
 const FEATURE_BLURBS: Record<string, string> = {
   "AI Note Summarizer":
-    "AI Note Summarizer is your personal AI knowledge base: it learns from your sources so the assistant can answer in your voice.",
-  "AI Knowledge Bases":
-    "AI Knowledge Bases let you build and manage several AI knowledge bases, each trained on its own set of sources.",
+    "AI Note Summarizer is your personal AI Mind: it learns from your sources so the assistant can answer in your voice.",
+  "AI Minds":
+    "AI Minds let you build and manage several AI Minds, each trained on its own set of sources.",
   "AI Persona Generator":
     "AI Persona Generator shapes the tone and personality your AI uses when it writes or replies on your behalf.",
   "AI Agents":
@@ -22,8 +22,8 @@ const FEATURE_BLURBS: Record<string, string> = {
     "AI Chat is a chat assistant that helps you draft content and answer questions about your account.",
   "Chat Widgets":
     "Chat Widgets are embeddable AI chatbots you can drop into your pages, widgets and inbox.",
-  "AI Growth Coach":
-    "AI Growth Coach gives you AI-powered suggestions to grow and fine-tune your links and pages.",
+  "AI Link Optimizer":
+    "AI Link Optimizer gives you AI-powered suggestions to grow and fine-tune your links and pages.",
   "AI Coach":
     "AI Coach lets you chat with an AI advisor for tips on improving your account.",
   "Marketing Strategist":
@@ -127,8 +127,8 @@ export function AiDisabledNotice({
               What you’re missing
             </Text>
             <Text style={[styles.infoBody, { color: colors.mutedForeground }]}>
-              AI features on Sayzio (like AI Knowledge Bases, AI Agents, AI Chat
-              and AI Growth Coach) help you draft content, answer questions about your account
+              AI features on Sayzio (like AI Minds, AI Agents, AI Chat
+              and AI Link Optimizer) help you draft content, answer questions about your account
               and build pages faster. They run on your coin balance once an
               administrator enables the engine.
             </Text>

@@ -1,6 +1,6 @@
 {{-- Mind picker — multi-select for the user's own Minds plus an
      opt-in checkbox for the platform default. Used by Persona and
-     Coach so generations can be grounded in selected knowledge bases.
+     Coach so generations can be grounded in selected AI Minds.
 
      Inputs:
        $mineMinds       Collection of AiMind (id, name)
@@ -20,17 +20,17 @@
 <div class="rounded-xl border border-white/10 bg-white/[0.02] p-4 space-y-3">
     <div class="flex items-center justify-between">
         <div>
-            <p class="text-xs uppercase tracking-wider text-white/40">Knowledge bases it can use</p>
+            <p class="text-xs uppercase tracking-wider text-white/40">AI Minds it can use</p>
             <p class="text-xs text-white/40 mt-0.5">
-                Pick which knowledge bases to ground the answer in.
-                <a href="{{ route('user.minds.index') }}" class="text-blue-300 hover:underline">Manage knowledge bases →</a>
+                Pick which AI Minds to ground the answer in.
+                <a href="{{ route('user.minds.index') }}" class="text-blue-300 hover:underline">Manage AI Minds →</a>
             </p>
         </div>
     </div>
 
     @if($mineMinds->isEmpty())
         <p class="text-xs text-white/40 italic">
-            You don't have any knowledge bases yet. Create one to ground answers in your own content.
+            You don't have any AI Minds yet. Create one to ground answers in your own content.
         </p>
     @else
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -52,7 +52,7 @@
                    {{ $platformOptIn ? 'checked' : '' }}
                    class="rounded border-white/20 bg-white/10 text-blue-500 focus:ring-blue-500">
             <span class="text-sm text-white/80">
-                Also use the platform default knowledge base
+                Also use the platform default AI Mind
                 <span class="text-xs text-white/40">({{ $platformMind->name }})</span>
             </span>
         </label>

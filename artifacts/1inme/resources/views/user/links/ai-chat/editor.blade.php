@@ -150,7 +150,7 @@
                                 <span>
                                     <strong style="color:var(--text-primary)">Use Sayzio's built-in knowledge</strong>
                                     @if($defaultMind)
-                                        <span class="aic-hint" style="display:block;margin-top:2px">The shared "{{ $defaultMind->name }}" knowledge base.</span>
+                                        <span class="aic-hint" style="display:block;margin-top:2px">The shared "{{ $defaultMind->name }}" AI Mind.</span>
                                     @endif
                                 </span>
                             </label>
@@ -163,7 +163,7 @@
                                 </label>
                             @empty
                                 <div class="aic-hint">
-                                    You don't have any custom knowledge bases yet.
+                                    You don't have any custom AI Minds yet.
                                     <a href="{{ route('user.minds.index') }}" class="text-blue-400 no-underline">Create one →</a>
                                 </div>
                             @endforelse

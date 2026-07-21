@@ -148,7 +148,7 @@ allowance. Your balance and a running transaction ledger are always visible in
 your **Wallet**.
 
 **Coins for AI.** Coins also power Sayzio's AI features (the
-AI biolink builder, AI Coach, AI Agents/Knowledge Bases, resume tailoring and cover
+AI biolink builder, AI Coach, AI Agents/AI Minds, resume tailoring and cover
 letters, the card/brochure scanner, the voice assistant, and visitor chats with
 your Chat Widget). Each AI action is billed automatically. Before an action
 runs, Sayzio checks you can afford it — if your balance is too low you're prompted
@@ -205,7 +205,7 @@ or as biolink blocks.
 | **PDF** | Share a PDF behind a viewer/download page. |
 | **Conversational** | A guided, chat-style page that walks visitors through your links one message at a time on a fixed script. |
 | **Slides** | A swipeable, story-style deck served from a single link — great for presentations or portfolios. |
-| **AI Chatbot** | A full-page AI assistant that answers visitors' questions about you, powered by your Chat Widget and Knowledge Bases. |
+| **AI Chatbot** | A full-page AI assistant that answers visitors' questions about you, powered by your Chat Widget and AI Minds. |
 | **Restaurant Menu** | A digital menu with categories, items, prices, photos, and optional table-side ordering. |
 | **Resume / Portfolio** | A shareable, professional resume page with PDF download and AI tooling. |
 | **Reviews Page** | A standalone wall for collecting and showcasing star reviews. |
@@ -592,7 +592,7 @@ Sayzio includes several AI helpers, all metered with **coins**:
   get dynamic answers. The **owner** pays for visitor chats, not the visitor.
 - **AI Chat** — a chat assistant that helps you draft content and answer questions
   about your account.
-- **Knowledge Bases / AI Note Summarizer** — build and manage private knowledge bases:
+- **AI Minds / AI Note Summarizer** (formerly **Knowledge Bases**) — build and manage private AI Minds:
   upload documents and links to "train" your AI so its answers reflect your real
   information, and summarize raw notes into clear next steps with **AI Note Summarizer**.
 - **Voice assistant** — a hands-free assistant that listens (speech-to-text), takes
@@ -620,21 +620,21 @@ Sayzio includes several AI helpers, all metered with **coins**:
   **"Build a better version"** hands those findings to the AI biolink builder to
   assemble an improved page for you. Available on web and mobile.
 
-**Knowledge Base sync sources.** Besides pasting text, uploading documents, and
-adding FAQs or links, a Knowledge Base can stay in sync with outside systems through
+**AI Mind sync sources.** Besides pasting text, uploading documents, and
+adding FAQs or links, an AI Mind can stay in sync with outside systems through
 two additional connection sources — both respect your plan limits, and any
 credentials you enter are encrypted at rest.
 
 - **Webhook (inbound)** — Sayzio generates a unique inbound URL and a secret token.
   Copy both into any external system. When that system POSTs content to the URL,
-  Sayzio verifies the token, stores the payload, and re-trains the Knowledge Base
+  Sayzio verifies the token, stores the payload, and re-trains the AI Mind
   automatically. The source shows its **Last received** timestamp so you can
   confirm the connection is live. For security, the token is shown only once (copy
   it immediately; use **Regenerate** to issue a new one if lost).
 - **API connector (outbound)** — enter an endpoint URL, choose an authentication
   method (none, header API key, or bearer token), and set a refresh interval.
   Sayzio fetches the endpoint on that schedule, turns the response into text, and
-  re-trains the Knowledge Base.
+  re-trains the AI Mind.
 
 Other AI helpers appear inside specific tools — **resume tailoring** and
 **cover-letter generation** in the Resume builder, the **AI biolink builder**, and
@@ -1016,7 +1016,7 @@ require a specific plan).
 **What do coins pay for?**
 **Coins** are a general prepaid balance (top up by buying coin packages) used for
 add-ons, developer-API overage and every AI feature — the AI builder, AI Coach,
-AI Agents/Knowledge Bases, the card scanner, and resume AI tools all spend coins.
+AI Agents/AI Minds, the card scanner, and resume AI tools all spend coins.
 
 **What are add-ons?**
 Optional extras you attach to your plan to expand specific limits or capabilities
@@ -1293,8 +1293,8 @@ To your **Inbox** — it gathers biolink DMs and form submissions in one place.
 
 ## AI features
 
-**What's a Chat Widget vs. a Knowledge Base?**
-A **Knowledge Base** is a private store you fill with your documents/links. A
+**What's a Chat Widget vs. an AI Mind?**
+An **AI Mind** is a private store you fill with your documents/links. A
 **Chat Widget** is the chatbot that answers visitors using that knowledge — you can
 embed it as a block or run it as a full-page **AI Chatbot** link.
 

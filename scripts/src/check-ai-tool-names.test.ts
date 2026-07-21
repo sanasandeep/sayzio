@@ -29,7 +29,7 @@ const labelCanonicals = (relFile: string, src: string) =>
 
 describe("scanSource — bare phrases are flagged", () => {
   it("flags a bare distinctive phrase", () => {
-    expect(canonicals("<h1>Knowledge Base</h1>")).toEqual(["AI Knowledge Base(s)"]);
+    expect(canonicals("<h1>Knowledge Base</h1>")).toEqual(["AI Mind(s)"]);
   });
 
   it("flags the retired 'Ask Coach' name", () => {
@@ -49,7 +49,7 @@ describe("scanSource — bare phrases are flagged", () => {
       "Growth Coach",
     ].join("\n");
     expect(canonicals(src)).toEqual([
-      "AI Knowledge Base(s)",
+      "AI Mind(s)",
       "AI Coach",
       "AI Voice Assistant",
       "AI Marketing Strategist",
@@ -57,7 +57,7 @@ describe("scanSource — bare phrases are flagged", () => {
       "AI Brand Kit",
       "AI Persona Generator",
       "AI Note Summarizer",
-      "AI Growth Coach",
+      "AI Link Optimizer",
     ]);
   });
 
@@ -66,21 +66,28 @@ describe("scanSource — bare phrases are flagged", () => {
   });
 
   it("flags a bare 'Growth Coach'", () => {
-    expect(canonicals("<span>Growth Coach</span>")).toEqual(["AI Growth Coach"]);
+    expect(canonicals("<span>Growth Coach</span>")).toEqual(["AI Link Optimizer"]);
+  });
+
+  it("flags the retired 'AI Knowledge Bases' label", () => {
+    expect(canonicals("<span>AI Knowledge Bases</span>")).toEqual(["AI Mind(s)"]);
+  });
+
+  it("flags the retired 'AI Growth Coach' name", () => {
+    expect(canonicals("<span>AI Growth Coach</span>")).toEqual(["AI Link Optimizer"]);
   });
 });
 
 describe("scanSource — 'AI '-prefixed spellings are not flagged", () => {
   it("ignores the correct 'AI '-prefixed forms", () => {
     const src = [
-      "AI Knowledge Bases",
       "AI Voice Assistant",
       "AI Marketing Strategist",
       "AI Inbox Agent",
       "AI Brand Kit",
       "AI Persona Generator",
       "AI Note Summarizer",
-      "AI Growth Coach",
+      "AI Link Optimizer",
     ].join("\n");
     expect(canonicals(src)).toEqual([]);
   });
@@ -150,7 +157,7 @@ describe("scanSource — count badges are ignored", () => {
   });
 
   it("still flags a bare 'Knowledge Base' with no count prefix", () => {
-    expect(canonicals("Manage your Knowledge Bases")).toEqual(["AI Knowledge Base(s)"]);
+    expect(canonicals("Manage your Knowledge Bases")).toEqual(["AI Mind(s)"]);
   });
 });
 

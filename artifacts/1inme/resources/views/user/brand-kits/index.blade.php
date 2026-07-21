@@ -268,7 +268,7 @@ function brandKits() {
         error: '',
         estimateText: '',
         _csrf() { return document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''; },
-        // Read the picked knowledge bases straight from the picker
+        // Read the picked AI Minds straight from the picker
         // <form> so the AJAX body mirrors what a normal POST would send.
         _payload() {
             const root = document.querySelector('[data-kb-picker]');

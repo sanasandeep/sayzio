@@ -21,7 +21,7 @@ class AiFeatureCatalog
         'mind'          => 'AI Note Summarizer',
         'persona'       => 'Persona Generator',
         'companion'     => 'AI Chat',
-        'coach'         => 'AI Growth Coach',
+        'coach'         => 'AI Link Optimizer',
         'ask_coach'     => 'Account Assistant',
         'voice_stt'     => 'Voice — Transcription',
         'voice_llm'     => 'Voice — Reasoning',

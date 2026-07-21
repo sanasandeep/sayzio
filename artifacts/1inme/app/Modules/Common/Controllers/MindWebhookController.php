@@ -34,7 +34,7 @@ class MindWebhookController extends Controller
         // Don't accept deliveries into a disabled Mind.
         $mind = $source->mind()->first();
         if (!$mind || $mind->is_disabled) {
-            return response()->json(['error' => ['message' => 'This Knowledge Base is unavailable.']], 404);
+            return response()->json(['error' => ['message' => 'This AI Mind is unavailable.']], 404);
         }
 
         // Authenticate: accept the token from a header, query string, or

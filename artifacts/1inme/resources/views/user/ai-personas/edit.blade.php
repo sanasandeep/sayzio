@@ -135,24 +135,24 @@
 
             {{-- Knowledge --}}
             <div class="rounded-2xl border border-white/10 bg-white/[0.03] p-5 space-y-4">
-                <h3 class="text-white font-semibold">Knowledge bases</h3>
+                <h3 class="text-white font-semibold">AI Minds</h3>
                 <label class="flex items-center gap-2 cursor-pointer">
                     <input type="hidden" name="use_default_mind" value="0">
                     <input type="checkbox" name="use_default_mind" value="1" @checked(old('use_default_mind', $persona->use_default_mind))
                         class="rounded border-white/20 bg-white/5 text-pink-500">
                     <span class="text-sm text-white">
-                        Use the platform default knowledge base
+                        Use the platform default AI Mind
                         @if($defaultMind)
                             <span class="text-[10px] text-white/40">({{ $defaultMind->name }})</span>
                         @else
-                            <span class="text-[10px] text-amber-300">(no default knowledge base configured yet)</span>
+                            <span class="text-[10px] text-amber-300">(no default AI Mind configured yet)</span>
                         @endif
                     </span>
                 </label>
                 <div>
-                    <label class="text-[11px] uppercase tracking-wider text-white/50">Your knowledge bases (max {{ $caps['max_minds_per_persona'] }})</label>
+                    <label class="text-[11px] uppercase tracking-wider text-white/50">Your AI Minds (max {{ $caps['max_minds_per_persona'] }})</label>
                     @if($myMinds->isEmpty())
-                        <p class="mt-2 text-xs text-white/40">You don't have any knowledge bases yet.
+                        <p class="mt-2 text-xs text-white/40">You don't have any AI Minds yet.
                             <a href="{{ route('user.minds.index') }}" class="text-pink-300 hover:underline">Create one →</a>
                         </p>
                     @else

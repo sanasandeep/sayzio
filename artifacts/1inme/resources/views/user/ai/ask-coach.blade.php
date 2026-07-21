@@ -274,7 +274,7 @@
                     const list   = document.querySelector('[data-coach-form]').parentElement.querySelector('.overflow-y-auto') || form.previousElementSibling;
                     const picker = document.querySelector('[data-kb-picker]');
 
-                    // Collect the picked knowledge bases from the picker
+                    // Collect the picked AI Minds from the picker
                     // form so the streamed body matches a normal POST.
                     function kbPayload() {
                         if (!picker) return { mind_ids: [], include_platform: false };

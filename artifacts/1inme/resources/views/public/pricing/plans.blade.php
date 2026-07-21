@@ -1242,7 +1242,7 @@
                     ['creator_profile_public',   'Public creator profile',  'bool'],
                 ],
                 'AI features' => [
-                    ['max_minds',                'AI Knowledge Bases',      'number'],
+                    ['max_minds',                'AI Minds',      'number'],
                     ['max_personas',             'AI Agents',               'number'],
                     ['max_companions',           'Chat Widgets',            'number'],
                     ['ai_widget',                'Site Assistant widget',   'bool'],

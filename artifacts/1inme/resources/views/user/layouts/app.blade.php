@@ -856,8 +856,8 @@
                            class="sidebar-link {{ request()->routeIs('user.minds.*') ? 'active' : '' }}"
                            style="--nav-tint:#22d3ee; --nav-tint-soft:rgba(34,211,238,0.12);">
                             <div class="nav-icon-wrap"><i class="fas fa-network-wired"></i></div>
-                            <span class="nav-label">AI Knowledge Bases</span>
-                            <span class="sidebar-tooltip">AI Knowledge Bases</span>
+                            <span class="nav-label">AI Minds</span>
+                            <span class="sidebar-tooltip">AI Minds</span>
                         </a>
                         @endif
                         <a href="{{ route('user.ai.persona.show') }}"
@@ -906,8 +906,8 @@
                            class="sidebar-link {{ request()->routeIs('user.ai.coach.*') ? 'active' : '' }}"
                            style="--nav-tint:#22d3ee; --nav-tint-soft:rgba(34,211,238,0.12);">
                             <div class="nav-icon-wrap"><i class="fas fa-bullhorn"></i></div>
-                            <span class="nav-label">AI Growth Coach</span>
-                            <span class="sidebar-tooltip">AI Growth Coach</span>
+                            <span class="nav-label">AI Link Optimizer</span>
+                            <span class="sidebar-tooltip">AI Link Optimizer</span>
                         </a>
                         @if(auth()->check() && \App\Services\AI\AiEngineSettings::askCoachAllowedFor(auth()->user()))
                         <a href="{{ route('user.ai.ask-coach.show') }}"
@@ -1576,7 +1576,7 @@
                             <div x-show="open" x-cloak class="space-y-0.5">
                                 <a href="{{ route('user.ai.mind.show') }}" class="sidebar-link {{ request()->routeIs('user.ai.mind.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-brain"></i></div> <span>AI Note Summarizer</span></a>
                                 @if($__can['settings_view'])
-                                <a href="{{ route('user.minds.index') }}" class="sidebar-link {{ request()->routeIs('user.minds.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-network-wired"></i></div> <span>AI Knowledge Bases</span></a>
+                                <a href="{{ route('user.minds.index') }}" class="sidebar-link {{ request()->routeIs('user.minds.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-network-wired"></i></div> <span>AI Minds</span></a>
                                 @endif
                                 <a href="{{ route('user.ai.persona.show') }}" class="sidebar-link {{ request()->routeIs('user.ai.persona.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-user-pen"></i></div> <span>AI Persona Generator</span></a>
                                 <a href="{{ route('user.ai-personas.index') }}" class="sidebar-link {{ request()->routeIs('user.ai-personas.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-user-astronaut"></i></div> <span>AI Agents</span></a>
@@ -1584,7 +1584,7 @@
                                 <a href="{{ route('user.ai-companions.index') }}" class="sidebar-link {{ request()->routeIs('user.ai-companions.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-robot"></i></div> <span>Chat Widgets</span></a>
                                 <a href="{{ route('user.brand-kits.index') }}" class="sidebar-link {{ request()->routeIs('user.brand-kits.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-palette"></i></div> <span>AI Brand Kit</span></a>
                                 <a href="{{ route('user.brand-studio.index') }}" class="sidebar-link {{ request()->routeIs('user.brand-studio.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-wand-magic-sparkles"></i></div> <span>AI Brand Studio</span></a>
-                                <a href="{{ route('user.ai.coach.show') }}" class="sidebar-link {{ request()->routeIs('user.ai.coach.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-bullhorn"></i></div> <span>AI Growth Coach</span></a>
+                                <a href="{{ route('user.ai.coach.show') }}" class="sidebar-link {{ request()->routeIs('user.ai.coach.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-bullhorn"></i></div> <span>AI Link Optimizer</span></a>
                                 @if(auth()->check() && \App\Services\AI\AiEngineSettings::askCoachAllowedFor(auth()->user()))
                                 <a href="{{ route('user.ai.ask-coach.show') }}" class="sidebar-link {{ request()->routeIs('user.ai.ask-coach.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-comment-dots"></i></div> <span>AI Coach</span></a>
                                 @endif

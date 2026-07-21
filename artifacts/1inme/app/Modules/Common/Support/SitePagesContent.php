@@ -2114,13 +2114,13 @@ class SitePagesContent
             [
                 'id' => 'knowledge-bases',
                 'icon' => 'fa-book',
-                'heading' => 'AI Knowledge Bases',
+                'heading' => 'AI Minds',
                 'intro' => 'Ground every AI feature in your own content: upload docs, links and FAQs so your chatbot, agent and inbox actually know your business.',
                 'features' => [
-                    ['name' => 'Custom knowledge bases', 'description' => 'Upload documents, paste text or point to URLs to build a knowledge base your AI tools can draw on.'],
-                    ['name' => 'Grounded AI Chatbot & Coach', 'description' => 'Connect a knowledge base so answers come from your real content instead of a generic script.'],
+                    ['name' => 'Custom AI Minds', 'description' => 'Upload documents, paste text or point to URLs to build an AI Mind your AI tools can draw on.'],
+                    ['name' => 'Grounded AI Chatbot & Coach', 'description' => 'Connect an AI Mind so answers come from your real content instead of a generic script.'],
                     ['name' => 'External sources', 'description' => 'Sync knowledge in from a webhook or push it out to a connector, keeping your AI tools current automatically.'],
-                    ['name' => 'Owner-controlled access', 'description' => 'You decide which knowledge bases power which AI features.'],
+                    ['name' => 'Owner-controlled access', 'description' => 'You decide which AI Minds power which AI features.'],
                 ],
             ],
             [

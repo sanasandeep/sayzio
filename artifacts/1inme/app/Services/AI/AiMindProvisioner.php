@@ -261,7 +261,7 @@ class AiMindProvisioner
             AiMind::create([
                 'user_id'     => $user->id,
                 'name'        => 'My Mind',
-                'description' => 'Your personal knowledge base. Add text, documents, FAQs, and links to teach your AI persona.',
+                'description' => 'Your personal AI Mind. Add text, documents, FAQs, and links to teach your AI persona.',
             ]);
         }
         // Ensure the platform default exists too so "All Minds" never

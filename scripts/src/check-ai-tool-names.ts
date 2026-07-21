@@ -4,7 +4,7 @@
  * The nine customer-facing AI tools now carry an "AI " prefix and are spelled
  * the SAME way everywhere they appear to a human:
  *
- *   AI Knowledge Bases · AI Coach · AI Voice Assistant · AI Personas ·
+ *   AI Minds · AI Coach · AI Voice Assistant · AI Personas ·
  *   AI Companions · AI Marketing Strategist · AI Inbox Agent · AI Brand Kit ·
  *   AI Resume
  *
@@ -25,7 +25,8 @@
  * A capitalized, multi-word tool-name phrase that is NOT immediately preceded
  * by "AI " (or the "AI · " kicker form):
  *
- *   Knowledge Base(s)    -> AI Knowledge Base(s)
+ *   Knowledge Base(s)    -> AI Mind(s)          (retired label — always wrong,
+ *                                                even as "AI Knowledge Base(s)")
  *   Ask Coach            -> AI Coach            (retired name — always wrong)
  *   Voice Assistant      -> AI Voice Assistant
  *   Marketing Strategist -> AI Marketing Strategist
@@ -33,7 +34,9 @@
  *   Brand Kit            -> AI Brand Kit
  *   Persona Generator    -> AI Personas / AI Persona Generator
  *   Note Summarizer      -> AI Note Summarizer
- *   Growth Coach         -> AI Growth Coach
+ *   Growth Coach         -> AI Link Optimizer   (retired name — always wrong,
+ *                                                even as "AI Growth Coach")
+ *   Link Optimizer       -> AI Link Optimizer
  *
  * Why only these multi-word phrases (and not bare "Personas" / "Companions" /
  * "Coach" / "Resume"): those single words are ordinary entity nouns that appear
@@ -124,7 +127,7 @@ type ToolName = {
  * requires the phrase NOT be immediately preceded by "AI " (see buildRegex).
  */
 const TOOL_NAMES: ToolName[] = [
-  { bare: "Knowledge Bases?", canonical: "AI Knowledge Base(s)", countBadge: true },
+  { bare: "(?:AI )?Knowledge Bases?", canonical: "AI Mind(s)", countBadge: true },
   { bare: "Ask Coach", canonical: "AI Coach" },
   { bare: "Voice Assistant", canonical: "AI Voice Assistant" },
   { bare: "Marketing Strategist", canonical: "AI Marketing Strategist" },
@@ -132,7 +135,8 @@ const TOOL_NAMES: ToolName[] = [
   { bare: "Brand Kit", canonical: "AI Brand Kit" },
   { bare: "Persona Generator", canonical: "AI Persona Generator" },
   { bare: "Note Summarizer", canonical: "AI Note Summarizer" },
-  { bare: "Growth Coach", canonical: "AI Growth Coach" },
+  { bare: "(?:AI )?Growth Coach", canonical: "AI Link Optimizer" },
+  { bare: "Link Optimizer", canonical: "AI Link Optimizer" },
 ];
 
 /**
@@ -183,7 +187,14 @@ type AllowEntry = { path: string; kind: "file" | "dir"; reason: string };
  * scanned surface is in sync); documented here so a future intentional
  * exception is recorded with a reason instead of weakening the regex.
  */
-const ALLOWLIST: AllowEntry[] = [];
+const ALLOWLIST: AllowEntry[] = [
+  {
+    path: "artifacts/1inme/resources/views/admin/site-assistant",
+    kind: "dir",
+    reason:
+      'Zio site-assistant admin pages label their own platform knowledge sources "AI Knowledge Bases" — a separate feature from the user-facing AI Minds (formerly Knowledge Bases).',
+  },
+];
 
 function isAllowed(file: string): boolean {
   const norm = file.split(path.sep).join("/");

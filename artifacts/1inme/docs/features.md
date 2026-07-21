@@ -941,7 +941,7 @@ through the engine settings include the `biolink_builder`,
   images/links) into a full page, constrained to a safe block subset and the
   user's plan-allowed types; charged to `biolink_builder` with auto-refund on
   parse failure.
-- **Knowledge Bases / AI Note Summarizer** — private RAG knowledge base: `AiMindSource`
+- **AI Minds / AI Note Summarizer** — private RAG knowledge store: `AiMindSource`
   chunked and embedded (`AiMindChunk`) to ground answers; the single-base view is
   surfaced to users as **AI Note Summarizer**. Sources can be **uploaded / crawled**
   (PDF, web link, plain text) or kept live from **external systems**: a **webhook**
@@ -952,7 +952,7 @@ through the engine settings include the `biolink_builder`,
   JSON / HTML / text endpoint with `none` / `bearer` / custom-header auth.
   Connector credentials and webhook tokens are encrypted at rest, revealed once and
   rotatable, and every outbound fetch is SSRF-guarded against private / loopback
-  hosts. (User-facing label: **Knowledge Bases**.)
+  hosts. (User-facing label: **AI Minds**; formerly **Knowledge Bases**.)
 - **AI Agents / Persona Generator / Chat Widgets** — customizable agents with system
   prompts and chat history (`CompanionThread`); a Chat Widget can be embedded as a
   biolink **block** or run as a full-page **AI Chatbot** (`ai_chat`) link, and the
@@ -985,7 +985,7 @@ through the engine settings include the `biolink_builder`,
   the **workspace owner**, with auto-refund on parse failure.
 - **AI Marketing Strategist** — generates a structured "organic + paid" marketing
   plan from the user's own account data. It grounds on selectable, PII-free
-  snapshots (links, analytics, audience, tracking pixels, Knowledge Bases, Brand
+  snapshots (links, analytics, audience, tracking pixels, AI Minds, Brand
   Kits) plus goal / parameter inputs (region, content types, budget, "avoid"
   constraints), proposes **one-click suggestions** that map to real Sayzio actions
   (e.g. create a link, add a block), and supports a **refinement chat**
@@ -1255,7 +1255,7 @@ High-level groups:
 - **Creator stack** — creator profile, posts, feed, paid DMs, tiers.
 - **Business tools** — store/products, restaurant menu & orders, reviews (public
   feed + moderation), contacts/dialer.
-- **Platform & AI** — wallet/coins, AI (Knowledge Bases, voice, AI Coach), onboarding slides.
+- **Platform & AI** — wallet/coins, AI (AI Minds, voice, AI Coach), onboarding slides.
 - **Back-office** — users, roles, protected accounts, mail settings, schema
   health.
 

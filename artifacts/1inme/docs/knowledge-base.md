@@ -33,7 +33,7 @@ of *what it is*, *why you'd use it*, and *how to use it* step by step. A large
 17. [Referrals](#17-referrals)
 18. [Creator monetization](#18-creator-monetization)
 19. [18+ adult content](#19-adult-content)
-20. [AI tools: AI Note Summarizer, Knowledge Bases, Persona Generator, AI Agents, AI Chat, Chat Widgets, AI Coach, Zio Bot](#20-ai-tools)
+20. [AI tools: AI Note Summarizer, AI Minds, Persona Generator, AI Agents, AI Chat, Chat Widgets, AI Coach, Zio Bot](#20-ai-tools)
 21. [Tools: Forms, Contact cards, Contacts & Dialer, Scan a card or brochure, Files, Resume, Calendar](#21-tools)
 22. [Restaurant menu, Store & Service Booking](#22-restaurant-menu-store--service-booking)
    - [22a. Restaurant menu](#22a-restaurant-menu)
@@ -203,7 +203,7 @@ add-ons, or covering developer-API usage beyond your plan's monthly allowance.
 
 **What it is.** Your coins also power all of Sayzio's AI features.
 
-**Why use it.** AI features (the AI biolink builder, AI Coach, AI Agents/Knowledge Bases,
+**Why use it.** AI features (the AI biolink builder, AI Coach, AI Agents/AI Minds,
 resume tailoring and cover letters, the [card/brochure scanner](#scan-a-card-or-brochure),
 voice assistant, etc.) consume **coins** as you use them.
 
@@ -252,7 +252,7 @@ what each one is for:
 | **PDF** | Share a PDF behind a viewer/download page. |
 | **Conversational** | A guided, chat-style page that walks visitors through your links one message at a time on a fixed script. |
 | **Slides** | A swipeable, story-style deck served from a single link — great for presentations or portfolios. |
-| **AI Chatbot (AI Chat)** | A full-page AI assistant that answers visitors' questions about you, powered by your Chat Widget and Knowledge Bases. |
+| **AI Chatbot (AI Chat)** | A full-page AI assistant that answers visitors' questions about you, powered by your Chat Widget and AI Minds. |
 | **Restaurant Menu** | A digital menu with categories, items, prices, photos, and optional table-side ordering. See [Restaurant menu](#22-restaurant-menu--orders). |
 | **Resume / Portfolio** | A shareable, professional resume page with PDF download and AI tooling. |
 | **Reviews Page** | A standalone wall for collecting and showcasing star reviews. |
@@ -756,12 +756,12 @@ Sayzio includes several AI helpers (all metered with **coins**):
   get dynamic answers. The **owner** pays for visitor chats, not the visitor.
 - **AI Chat** — a chat assistant that helps you draft content and answer questions
   about your account.
-- **Knowledge Bases / AI Note Summarizer** — build and manage private knowledge bases:
+- **AI Minds / AI Note Summarizer** (formerly **Knowledge Bases**) — build and manage private AI Minds:
   upload documents and links to "train" your AI so its answers reflect your real
   information, and summarize raw notes into clear next steps with **AI Note Summarizer**.
-  Knowledge Bases can also stay in sync with outside systems through two
+  AI Minds can also stay in sync with outside systems through two
   connection sources — an inbound **Webhook** and an outbound **API connector**
-  (see [Keeping a Knowledge Base in sync](#keeping-a-knowledge-base-in-sync)).
+  (see [Keeping an AI Mind in sync](#keeping-an-ai-mind-in-sync)).
 - **AI Marketing Strategist** — generates a full organic + paid marketing plan
   tailored to your account, with one-click actions you can apply and a chat to
   refine it.
@@ -792,18 +792,18 @@ Bases, AI Agents, and Chat Widgets you can create, depends on your plan — high
 tiers unlock more of these (and higher counts). If a tool is greyed out, your
 current plan doesn't include it yet.
 
-### Keeping a Knowledge Base in sync
+### Keeping an AI Mind in sync
 
 Besides pasting text, uploading documents, adding FAQs, and crawling links, a
-Knowledge Base can pull from external systems with two connection sources. Both
+AI Mind can pull from external systems with two connection sources. Both
 respect your plan's per–Knowledge-Base limits and ingestion caps, and any
 secrets you enter are **encrypted at rest**.
 
-**Webhook (inbound).** Open a Knowledge Base, choose **Add a source → Webhook**,
+**Webhook (inbound).** Open an AI Mind, choose **Add a source → Webhook**,
 and give it a title. Sayzio generates a unique **inbound URL** and a **secret
 token**. Copy both into the third-party system that should feed this Knowledge
 Base. Whenever that system **POSTs** content to the URL, Sayzio verifies the
-token, stores the payload, and re-trains the Knowledge Base automatically.
+token, stores the payload, and re-trains the AI Mind automatically.
 
 - Send the token in the `X-Mind-Webhook-Token` request header, as a `?token=…`
   query parameter, or as a `token` field in the body.
@@ -820,7 +820,7 @@ token, stores the payload, and re-trains the Knowledge Base automatically.
 **endpoint URL**, pick an **authentication method** (none, a header API key, or a
 bearer token), supply the credential if needed, and set a **refresh interval**.
 Sayzio fetches the endpoint on that schedule (clamped to the platform minimum),
-turns the response into text, and re-trains the Knowledge Base. Credentials are
+turns the response into text, and re-trains the AI Mind. Credentials are
 never shown again after you save them — re-enter a value only when you want to
 change it. For security, connectors and webhooks refuse private or local network
 addresses.
@@ -1407,7 +1407,7 @@ address (`@yourname`) and is used in the Creators directory.
 **What do coins pay for?**
 **Coins** are a general prepaid balance (top up by buying coin packages) used for
 add-ons, developer-API overage and every AI feature — the AI builder, AI Coach,
-AI Agents/Knowledge Bases, and resume AI tools all spend coins.
+AI Agents/AI Minds, and resume AI tools all spend coins.
 
 **What happens if I run out of coins?**
 Before an AI action runs, Sayzio checks you can afford it; if not, you'll be
@@ -1627,8 +1627,8 @@ To your **Inbox** — it gathers biolink DMs and form submissions in one place.
 
 ### AI features
 
-**What is a Chat Widget vs. a Knowledge Base?**
-A **Knowledge Base** is a private store you fill with your documents/links. A
+**What is a Chat Widget vs. an AI Mind?**
+An **AI Mind** is a private store you fill with your documents/links. A
 **Chat Widget** is the chatbot that answers visitors using that knowledge — you can
 embed it as a block or run it as a full-page **AI Chatbot** link.
 
@@ -1649,7 +1649,7 @@ your coins.
 
 **Which AI features come with my plan?**
 It varies by plan — your plan controls which AI tools are available and how many
-Knowledge Bases, AI Agents, and Chat Widgets you can create. If something is
+AI Minds, AI Agents, and Chat Widgets you can create. If something is
 greyed out, your current plan doesn't include it yet; upgrade to unlock more.
 
 **Why is "Scan a card or brochure" disabled?**

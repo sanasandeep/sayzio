@@ -360,7 +360,7 @@ your administrator" on any AI surface.
 Feature key goes in `FEATURES`; call `OpenAiService::chat` (auto-charges).
 
 **Per-plan AI gating.** `AiPlanAccess` is the single source of truth:
-- **Quantity caps:** `max_minds` (Knowledge Bases), `max_personas` (AI Agents),
+- **Quantity caps:** `max_minds` (AI Minds), `max_personas` (AI Agents),
   `max_companions` (Chat Widgets), `max_brand_kits` (saved AI Brand Kits); -1=unlimited.
 - **Availability booleans:** `ask_coach`, `ai_voice_assistant`, `ai_widget`,
   `card_scan`, `ai_resume_tools`, `inbox_agent`, `marketing_strategist`,
@@ -375,7 +375,7 @@ Feature key goes in `FEATURES`; call `OpenAiService::chat` (auto-charges).
 |---|---|---|
 | AI Biolink Builder | `biolink_builder` | Prompt + images/links → full page via OpenAI |
 | AI Coach | `ask_coach` | Reviews account, gives growth advice (formerly: Account Assistant / AI Growth Coach) |
-| AI Agents / Knowledge Bases | various | Configurable agents with KB grounding |
+| AI Agents / AI Minds (formerly Knowledge Bases) | various | Configurable agents with AI Mind grounding |
 | Chat Widgets | `ai_widget` | Embed chatbot; owner pays for visitor chats |
 | AI Note Summarizer | — | Summarizes raw notes into action steps |
 | Voice assistant | `ai_voice_assistant` | STT (Whisper) + AI turn + TTS (ElevenLabs) |
@@ -391,7 +391,7 @@ Feature key goes in `FEATURES`; call `OpenAiService::chat` (auto-charges).
 | Competitor Biolink Teardown | `competitor_teardown` | Score+score a competitor's page; "Build better version" |
 | Visitor Type Audience Insights | `audience_type_estimation` | Estimate visitor persona mix |
 
-**Knowledge Base sync sources (in addition to paste/upload/FAQ/crawl):**
+**AI Mind sync sources (in addition to paste/upload/FAQ/crawl):**
 - **Webhook (inbound):** Sayzio generates URL + secret token. Third-party POSTs
   content; Sayzio verifies token, stores payload, re-trains. Token shown once.
   Send token in `X-Mind-Webhook-Token` header, `?token=` param, or body field.
@@ -543,7 +543,7 @@ coin wallet; 80%/100%/overage warnings.
 | Link engine | link CRUD, analytics, routing rules, A/B tests, NFC writes, public biolink resolution |
 | Creator stack | creator profile, posts, feed, paid DMs, tiers |
 | Business tools | store/products, restaurant menu & orders, service booking, reviews, contacts/dialer |
-| Platform & AI | wallet/coins, AI (Knowledge Bases, voice, coaching), onboarding slides |
+| Platform & AI | wallet/coins, AI (AI Minds, voice, coaching), onboarding slides |
 | Admin | users, roles, protected accounts, mail settings, schema health |
 | Billing | invoices, credit notes, wallet, plans |
 | Payouts | payout connections, onboarding status, 18+ toggle |
@@ -693,7 +693,7 @@ using `created_at` on the clicks relation throw on fresh/CI schema.
 **Banned handles enforce 4 surfaces.** Profile handle, link alias, biolink alias,
 registration — all must use `NotBannedName`.
 
-**AI token not re-shown.** Knowledge Base webhook secret and API connector
+**AI token not re-shown.** AI Mind webhook secret and API connector
 credentials shown only once (or on regenerate). Old token becomes invalid immediately
 on regenerate.
 
@@ -727,7 +727,7 @@ management tools only. Diners and customers settle directly with the owner.
 the plan's features blob for the relevant key (e.g. `competitor_teardown`,
 `audience_type_estimation`). If greyed out, the plan doesn't include it.
 
-**"I lost my Knowledge Base webhook token."** Use **Regenerate** on the source.
+**"I lost my AI Mind webhook token."** Use **Regenerate** on the source.
 The old token stops working immediately. Update any system that was using it.
 
 **"Why do I get a 402 on API calls?"** Developer API key calls exceeded the plan's

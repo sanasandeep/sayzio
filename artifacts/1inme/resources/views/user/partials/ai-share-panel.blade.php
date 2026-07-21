@@ -8,7 +8,7 @@
       $currentShares   — Collection<AiResourceShare> (with audience_label)
       $destroyRoute    — route name for removing a share
       $destroyParams   — leading route params (e.g. [$mind]); share id appended
-      $resourceLabel   — e.g. "knowledge base" / "persona"
+      $resourceLabel   — e.g. "AI Mind" / "persona"
 --}}
 @php
     use App\Modules\User\Models\AiResourceShare;

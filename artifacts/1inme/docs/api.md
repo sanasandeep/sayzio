@@ -28,7 +28,7 @@ see [API usage metering](#api-usage-metering)).
 - [Reviews (public)](#reviews-public) · [Reviews moderation (owner)](#reviews-moderation-owner)
 - [Feed](#feed) · [Follows](#follows) · [Subscribers](#subscribers) · [Discovery](#discovery-public) · [Creator profile](#creator-profile-public) · [Paid pages](#paid-pages-public) · [Creator monetization](#creator-monetization) · [Product storefront](#product-storefront) · [Posts](#posts-creator-feed) · [Paid DMs](#paid-dms)
 - [QR Studio](#qr-studio) · [Forms](#forms) · [Contacts & dialer](#contacts) · [Google Contacts sync](#google-contacts-sync) · [Connected apps](#connected-apps-crm-sync) · [Bulk import](#bulk-import-preview-workflow) · [Resume](#resume--portfolio) · [Projects](#projects)
-- [Wallet & coins](#wallet--coins) · [AI](#ai-coins-knowledge-bases-voice-account-assistant-chat-widgets) · [Competitor Biolink Teardown](#competitor-biolink-teardown) · [Creator payouts](#creator-payouts) · [18+ adult content](#adult-content) · [Billing](#billing) · [Plans](#plans)
+- [Wallet & coins](#wallet--coins) · [AI](#ai-coins-ai-minds-voice-account-assistant-chat-widgets) · [Competitor Biolink Teardown](#competitor-biolink-teardown) · [Creator payouts](#creator-payouts) · [18+ adult content](#adult-content) · [Billing](#billing) · [Plans](#plans)
 - [Domains](#custom-domains) · [Splash pages](#splash-pages) · [Restaurant menu](#restaurant-menu) · [Store menu](#store-menu) · [Service booking](#service-booking) · [Workspaces](#workspaces) · [Team](#team--staff) · [Client portals](#client-portals) · [Vault](#vault) · [Inbox](#inbox-biolink-dms) · [Spam settings](#spam-settings) · [Forwarding](#forwarding)
 - [Social connections & proofs](#social-connections--proofs) · [Integrations](#integrations) · [Calendar](#calendar) · [Verification](#verification)
 - [Admin (mobile back-office)](#admin-mobile-back-office) · [Banned names / reserved handles](#banned-names--reserved-handles) · [Plan editor](#plan-editor) · [Scheduled jobs](#admin-scheduled-jobs) · [Admin mail / SMTP](#admin-mail--smtp-settings)
@@ -819,7 +819,7 @@ Mobile parity for the web `/user/brand-studio` flow (bulk on-brand asset creator
 curl $BASE/wallet -H "Authorization: Bearer $TOKEN" -H 'Accept: application/json'
 ```
 
-## AI (coins, Knowledge Bases, voice, Account Assistant, Chat Widgets)
+## AI (coins, AI Minds, voice, Account Assistant, Chat Widgets)
 
 See [Coin & AI-credit audit](./billing-ai-credit-audit.md) for who pays for each AI feature.
 
@@ -832,14 +832,14 @@ See [Coin & AI-credit audit](./billing-ai-credit-audit.md) for who pays for each
 | GET    | `/ai/credits/packs`           | yes  | Coin packs for purchase. |
 | POST   | `/ai/credits/purchase`        | yes  | Buy a coin pack. |
 
-### Knowledge Bases & feature defaults
+### AI Minds & feature defaults
 
 | Method | Path                          | Auth | Description                                         |
 | ------ | ----------------------------- | ---- | ------------------------------------------------- |
-| GET    | `/ai/minds`                   | yes  | Available Knowledge Bases for the picker.         |
-| GET    | `/ai/{feature}/defaults`      | yes  | Default Knowledge Base for `persona` or `coach`.  |
-| PUT    | `/ai/{feature}/defaults`      | yes  | Save default Knowledge Base for `persona` or `coach`. |
-| DELETE | `/ai/{feature}/defaults`      | yes  | Clear default Knowledge Base for `persona` or `coach`. |
+| GET    | `/ai/minds`                   | yes  | Available AI Minds for the picker.         |
+| GET    | `/ai/{feature}/defaults`      | yes  | Default AI Mind for `persona` or `coach`.  |
+| PUT    | `/ai/{feature}/defaults`      | yes  | Save default AI Mind for `persona` or `coach`. |
+| DELETE | `/ai/{feature}/defaults`      | yes  | Clear default AI Mind for `persona` or `coach`. |
 
 ### Voice assistant
 

@@ -92,7 +92,7 @@ class MarketingStrategistService
         'analytics'   => ['label' => 'Analytics',           'description' => 'Recent click trends and device split.',        'selectable' => false],
         'audience'    => ['label' => 'Followers & subscribers', 'description' => 'Audience size and growth.',                 'selectable' => false],
         'pixels'      => ['label' => 'Tracking pixels',      'description' => 'Ad pixels you already have connected.',        'selectable' => true],
-        'minds'       => ['label' => 'Knowledge Bases',      'description' => 'Your knowledge bases (names only).',           'selectable' => true],
+        'minds'       => ['label' => 'AI Minds',             'description' => 'Your AI Minds (names only).',           'selectable' => true],
         'brand_kits'  => ['label' => 'Brand Kits',           'description' => 'Your brand palette, voice and taglines.',      'selectable' => true],
         'personas'    => ['label' => 'AI Personas',          'description' => 'Your saved AI persona agents.',                'selectable' => true],
         'companions'  => ['label' => 'AI Companions',        'description' => 'Your published AI chat companions.',           'selectable' => true],
@@ -1083,9 +1083,9 @@ PROMPT;
             ->limit(25)
             ->get(['name']);
         if ($rows->isEmpty()) {
-            return 'No knowledge bases yet.';
+            return 'No AI Minds yet.';
         }
-        return 'Knowledge bases: ' . $rows->pluck('name')->implode(', ') . '.';
+        return 'AI Minds: ' . $rows->pluck('name')->implode(', ') . '.';
     }
 
     protected function snapshotBrandKits(User $user, ?array $ids = null): string
@@ -1184,7 +1184,7 @@ PROMPT;
             ->get(['id', 'name'])
             ->map(fn ($r) => [
                 'id'    => (int) $r->id,
-                'label' => trim((string) $r->name) ?: 'Knowledge base',
+                'label' => trim((string) $r->name) ?: 'AI Mind',
                 'sub'   => '',
             ])
             ->all();

@@ -21,8 +21,8 @@
             </form>
             <a href="{{ route('user.ai.companion.show', ['compose' => 1]) }}"
                class="block w-full text-center px-3 py-1.5 rounded-xl bg-white/5 border border-white/10 text-white/70 text-xs hover:bg-white/10"
-               title="Pick which knowledge bases to ground in for this new chat">
-                + New (with knowledge bases…)
+               title="Pick which AI Minds to ground in for this new chat">
+                + New (with AI Minds…)
             </a>
 
             <form method="GET" action="{{ route('user.ai.companion.show') }}" class="flex gap-1">
@@ -211,7 +211,7 @@
                     <div>
                         <p class="text-sm text-white/80">Start a new conversation</p>
                         <p class="text-xs text-white/40 mt-0.5">
-                            Pick the knowledge bases to ground replies in. They apply to every turn of the new chat.
+                            Pick the AI Minds to ground replies in. They apply to every turn of the new chat.
                         </p>
                     </div>
 
