@@ -130,6 +130,7 @@
                     <h2 class="text-base font-semibold mb-1" style="color: var(--text-strong);">Billing Address &amp; Tax ID</h2>
                     <p class="text-xs mb-4" style="color: var(--text-muted);">Used to calculate tax on your invoices and to print on your tax invoice PDF. GSTIN is for Indian businesses; VATIN is for EU/UK businesses claiming reverse-charge.</p>
                     <div class="space-y-3" data-billing-address
+                         @country-picked="onCountryInput($event.detail)"
                          x-data="{
                              billingCountry: @js($billingCountryInit),
                              taxKind: @js($taxKindInit),
@@ -170,11 +171,14 @@
 
                         {{-- 1. Country --}}
                         <div>
-                            <label class="block text-xs mb-1" style="color: var(--text-muted);">Country (ISO-2)</label>
-                            <input type="text" name="billing_country" maxlength="2"
-                                   value="{{ $billingCountryInit }}"
-                                   @input="onCountryInput($event.target.value.toUpperCase()); $event.target.value = $event.target.value.toUpperCase()"
-                                   class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white uppercase outline-none focus:ring-2 focus:ring-blue-500/40">
+                            <label class="block text-xs mb-1" style="color: var(--text-muted);">Country</label>
+                            @include('common.partials.country-select', [
+                                'csName'        => 'billing_country',
+                                'csValue'       => $billingCountryInit,
+                                'csId'          => 'billing-country',
+                                'csPlaceholder' => 'Select billing country',
+                            ])
+                            @error('billing_country')<p class="mt-1 text-sm text-red-400">{{ $message }}</p>@enderror
                         </div>
 
                         {{-- 2. Postal / ZIP code — triggers the city/state auto-fill --}}
