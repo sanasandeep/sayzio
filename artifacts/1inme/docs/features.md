@@ -1034,7 +1034,18 @@ through the engine settings include the `biolink_builder`,
   findings with one-click "apply fix" links. Kit generation is charged to
   `brand_kit`; the number of saved AI kits is capped by `max_brand_kits`. (The
   separate `brand_kit` **link type** publishes a shareable press-kit page — see
-  [§2.3](#23-business--monetization).)
+  [§2.3](#23-business--monetization).) **Brand Kit visual assets**
+  (`BrandKitAssetService`) extend a saved kit with AI-generated imagery: 17 asset
+  types (logo, avatar, favicon, watermark, OG image, social banner, letterhead,
+  business card, email header, QR frame, poster, tagline/mission/vision/stats
+  statement cards and a PPT cover/slide/closing set), each holding one current
+  image per kit with per-asset regenerate (fresh **variation** or instruction-led
+  **alteration**), download, one-click apply (kit logo, biolink favicon/OG image,
+  company letterhead) and delete. Generation is coin-charged with an automatic
+  refund on failure, plan-gated by the `brand_kit_assets` feature with a per-asset
+  regeneration cap (`brand_asset_versions`); generated files live in the file
+  vault tagged `brand_asset` — exempt from `max_files` but counted toward storage
+  bytes. Full REST + mobile parity at `/api/v1/brand-kits/{kit}/assets/*`.
 - **AI Brand Studio** (`AiBrandStudioService`) — a bulk on-brand asset creator at
   `/user/brand-studio`: one plain-language brief (grounded in a saved Brand Kit or
   inline brand details) becomes a structured multi-asset plan — a Link in Bio page,

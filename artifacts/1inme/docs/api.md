@@ -802,6 +802,17 @@ Mobile parity for the web `/user/brand-kits` flow. AI crafts a cohesive brand id
 | POST   | `/brand-kits/{brandKit}/apply/biolink/{link}` | yes  | Apply a kit (palette, fonts, block theme) to one of the user's biolinks.    |
 | POST   | `/brand-kits/{brandKit}/apply/qr/{qrCode}`    | yes  | Apply a kit's palette to one of the user's QR codes.                        |
 
+### Brand Kit visual assets
+
+Per-kit AI-generated visual assets (17 types: logo, avatar, favicon, watermark, OG image, social banner, letterhead, business card, email header, QR frame, poster, tagline/mission/vision/stats cards, and PPT cover/slide/closing). Each type keeps exactly one current image per kit; regeneration replaces it and bumps the version. Generation is plan-gated by the `brand_kit_assets` feature with a per-asset regeneration cap (`brand_asset_versions`), charged in coins with an automatic refund on render/storage failure (`BrandKitAssetService`). Generated files are stored in the user's file vault tagged `context=brand_asset` — exempt from the `max_files` count but counted toward the storage-byte quota.
+
+| Method | Path                                          | Auth | Description                                                                 |
+| ------ | --------------------------------------------- | ---- | --------------------------------------------------------------------------- |
+| GET    | `/brand-kits/{brandKit}/assets`               | yes  | Asset catalog for one kit: per-type label, hint, size, coin cost, `apply_targets` and the current asset (or `null`), plus gating flags and coin balance. |
+| POST   | `/brand-kits/{brandKit}/assets/{type}/generate` | yes | Generate or regenerate one asset. Body: `mode?` (`new` \| `variation` \| `alteration`, default `new`), `instructions?` (required intent for `alteration`). Throttle 10/min. `402 insufficient_credits` when the wallet can't cover the charge. |
+| POST   | `/brand-kits/{brandKit}/assets/{type}/apply`  | yes  | One-click apply. Body: `target` (`kit_logo` \| `biolink_favicon` \| `biolink_og` \| `company_letterhead`) plus `link_id` (biolink targets) or `company_id` (letterhead). |
+| DELETE | `/brand-kits/{brandKit}/assets/{type}`        | yes  | Delete the asset and its stored file.                                       |
+
 Plan-gated rejections use the standard `{error:{code:"plan_limit", details:{recommended_plan, recommended_plan_name, feature}}}` envelope; `503 ai_unavailable` when the AI engine is disabled.
 
 ## AI Brand Studio

@@ -86,6 +86,7 @@ class PlanFormCatalogue
             ['key' => 'max_companions',       'label' => 'Max Chat Widgets',        'default' => 1,   'module' => 'module_ai_suite',    'hint' => 'How many AI Companion chat widgets (chatbot, website embed, or inbox bot) a user can deploy. -1 = unlimited.'],
             ['key' => 'max_brand_studio_bulk', 'label' => 'Max AI Brand Studio bulk variations', 'default' => 0, 'module' => 'module_ai_suite', 'hint' => 'How many on-brand variants one AI Brand Studio bulk run can generate. -1 = unlimited (hard-capped per run).'],
             ['key' => 'max_brand_kits',       'label' => 'Max AI brand kits',       'default' => 0,   'module' => 'module_branding',    'hint' => 'AI-generated brand kits (palette, fonts, voice, taglines) a user can save. 0 = feature hidden / upgrade prompt; -1 = unlimited.'],
+            ['key' => 'max_brand_asset_versions', 'label' => 'Max brand asset generations', 'default' => 0, 'module' => 'module_branding', 'hint' => 'How many times each Brand Kit visual asset (logo, favicon, banner…) can be generated/regenerated. 0 = fallback default; -1 = unlimited.'],
             ['key' => 'max_buzz_items',       'label' => 'Max buzz pop-ups',        'default' => 0,   'module' => null,                 'hint' => 'On-site notification pop-ups.'],
             ['key' => 'max_buzz_impressions', 'label' => 'Max buzz views / mo',     'default' => -1,  'module' => null,                 'hint' => 'Monthly Buzz notification views (impressions). Beyond this, widgets pause until next month. -1 = unlimited.'],
             ['key' => 'max_splash_pages',     'label' => 'Max splash pages',        'default' => 0,   'module' => null,                 'hint' => 'Branded splash / coming-soon pages.'],
@@ -219,6 +220,7 @@ class PlanFormCatalogue
             ['key' => 'whatsapp_agent',       'module' => 'module_ai_suite'],
             ['key' => 'marketing_strategist', 'module' => 'module_ai_suite'],
             ['key' => 'brand_studio',         'module' => 'module_ai_suite'],
+            ['key' => 'brand_kit_assets',     'module' => 'module_branding'],
             ['key' => 'card_scan',            'module' => 'module_ai_suite'],
             ['key' => 'ai_resume_tools',      'module' => 'module_ai_suite'],
         ];
@@ -397,7 +399,8 @@ class PlanFormCatalogue
             'module_ai_suite'     => ['ai_chatbot', 'ai_agent', 'ai_widget', 'ai_voice_assistant',
                                       'inbox_agent', 'brand_consistency', 'qr_art', 'whatsapp_agent', 'marketing_strategist',
                                       'brand_studio', 'max_brand_studio_bulk'],
-            'module_branding'     => ['custom_branding', 'remove_branding', 'custom_favicon', 'custom_code'],
+            'module_branding'     => ['custom_branding', 'remove_branding', 'custom_favicon', 'custom_code',
+                                      'brand_kit_assets', 'max_brand_asset_versions'],
             'module_domains'      => ['custom_domains', 'max_custom_domains'],
             'module_integrations' => ['integration_accounts_max', 'integration_providers_allowed'],
         ];

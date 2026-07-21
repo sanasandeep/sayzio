@@ -349,4 +349,116 @@ class BrandKitController extends Controller
     {
         abort_if($brandKit->user_id !== $request->user()->id, 403);
     }
+
+    // ── AI-generated visual assets (Task #5612) ───────────────────────
+
+    /** Catalog + current assets for one kit (drives the Assets panel). */
+    public function assets(Request $request, BrandKit $brandKit, \App\Services\Brand\BrandKitAssetService $assets): JsonResponse
+    {
+        $this->authorizeKit($request, $brandKit);
+        $user = $request->user();
+
+        return response()->json([
+            'enabled'   => $assets->enabled(),
+            'allowed'   => AiPlanAccess::featureAllowed($user, 'brand_kit_assets'),
+            'balance'   => $this->credits->getBalance($user),
+            'types'     => $assets->catalogFor($user, $brandKit),
+        ]);
+    }
+
+    /** Generate or regenerate one asset (optional tweak instructions). */
+    public function generateAsset(Request $request, BrandKit $brandKit, string $type, \App\Services\Brand\BrandKitAssetService $assets): JsonResponse
+    {
+        $this->authorizeKit($request, $brandKit);
+        $user = $request->user();
+
+        $data = $request->validate([
+            'instructions' => 'nullable|string|max:1000',
+            'mode'         => 'nullable|string|in:new,variation,alteration',
+        ]);
+
+        try {
+            $asset = $assets->generate($user, $brandKit, $type, $data['instructions'] ?? null, $data['mode'] ?? 'new');
+        } catch (InsufficientCoinsForAiException $e) {
+            return response()->json([
+                'message'  => 'Not enough coins to generate this asset.',
+                'required' => $e->required ?? null,
+                'balance'  => $e->balance ?? null,
+            ], 402);
+        } catch (\RuntimeException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+
+        return response()->json([
+            'asset'   => $assets->present($asset),
+            'balance' => $this->credits->getBalance($user),
+        ]);
+    }
+
+    /** Delete one asset and its stored image. */
+    public function destroyAsset(Request $request, BrandKit $brandKit, string $type, \App\Services\Brand\BrandKitAssetService $assets): JsonResponse
+    {
+        $this->authorizeKit($request, $brandKit);
+
+        $asset = \App\Modules\User\Models\BrandKitAsset::where('brand_kit_id', $brandKit->id)
+            ->where('type', $type)->first();
+        abort_if(!$asset, 404);
+
+        $assets->delete($asset);
+
+        return response()->json(['ok' => true]);
+    }
+
+    /**
+     * One-click apply. Targets:
+     *   kit_logo            — set the kit's config logo_url (logo/avatar/watermark)
+     *   biolink_favicon     — set a biolink's favicon (requires link_id)
+     *   biolink_og          — set a biolink's SEO share image (requires link_id)
+     *   company_letterhead  — set a BillingCompany's letterhead (requires company_id)
+     */
+    public function applyAsset(Request $request, BrandKit $brandKit, string $type, \App\Services\Brand\BrandKitAssetService $assets): JsonResponse
+    {
+        $this->authorizeKit($request, $brandKit);
+        $user = $request->user();
+
+        $data = $request->validate([
+            'target'     => 'required|string|in:kit_logo,biolink_favicon,biolink_og,company_letterhead',
+            'link_id'    => 'nullable|integer',
+            'company_id' => 'nullable|integer',
+        ]);
+
+        $asset = \App\Modules\User\Models\BrandKitAsset::where('brand_kit_id', $brandKit->id)
+            ->where('type', $type)->first();
+        abort_if(!$asset || $asset->status !== \App\Modules\User\Models\BrandKitAsset::STATUS_READY, 404);
+
+        try {
+            switch ($data['target']) {
+                case 'kit_logo':
+                    $assets->applyLogoToKit($asset, $brandKit);
+                    break;
+
+                case 'biolink_favicon':
+                case 'biolink_og':
+                    $link = Link::where('user_id', workspace_owner_id())
+                        ->where('type', 'biolink')
+                        ->find((int) ($data['link_id'] ?? 0));
+                    abort_if(!$link, 404, 'Link in Bio page not found.');
+                    $data['target'] === 'biolink_favicon'
+                        ? $assets->applyFaviconToLink($asset, $link)
+                        : $assets->applyOgToLink($asset, $link);
+                    break;
+
+                case 'company_letterhead':
+                    $company = \App\Modules\User\Models\BillingCompany::where('user_id', $user->id)
+                        ->find((int) ($data['company_id'] ?? 0));
+                    abort_if(!$company, 404, 'Billing company not found.');
+                    $assets->applyLetterheadToCompany($asset, $company);
+                    break;
+            }
+        } catch (\RuntimeException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+
+        return response()->json(['ok' => true]);
+    }
 }

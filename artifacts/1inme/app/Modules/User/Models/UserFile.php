@@ -47,7 +47,7 @@ class UserFile extends Model
 
     protected $fillable = [
         'user_id', 'original_name', 'filename', 'mime_type',
-        'size_bytes', 'type', 'disk', 'path',
+        'size_bytes', 'type', 'context', 'disk', 'path',
         'scan_status', 'scan_reason', 'scan_meta',
         'scanned_at', 'quarantined_at', 'scan_admin_reviewed',
     ];
@@ -521,6 +521,9 @@ class UserFile extends Model
             'mime_type'     => $mime,
             'size_bytes'    => $size,
             'type'          => $fileType,
+            // System-generated files (e.g. 'brand_asset') are excluded from
+            // the max_files count but still count toward storage bytes.
+            'context'       => $opts['context'] ?? null,
             'disk'          => $disk,
             'path'          => $path,
             'scan_status'   => 'pending',

@@ -930,6 +930,15 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::delete('brand-kits/defaults',                     [\App\Modules\User\Controllers\BrandKitController::class, 'clearDefaults'])->middleware('workspace.can:links.view')->name('brand-kits.defaults.clear');
         Route::delete('brand-kits/{brandKit}',                   [\App\Modules\User\Controllers\BrandKitController::class, 'destroy'])->middleware('workspace.can:links.create')->name('brand-kits.destroy');
 
+        // Brand Kit visual assets (Task #5612): AI-generated logo, favicon,
+        // letterhead, banners, avatar, OG image, business card, background and
+        // watermark per kit. Coin-charged with auto-refund; plan-gated via the
+        // brand_kit_assets availability flag + max_brand_asset_versions cap.
+        Route::get   ('brand-kits/{brandKit}/assets',                 [\App\Modules\User\Controllers\BrandKitController::class, 'assets'])->whereNumber('brandKit')->middleware('workspace.can:links.view')->name('brand-kits.assets.index');
+        Route::post  ('brand-kits/{brandKit}/assets/{type}/generate', [\App\Modules\User\Controllers\BrandKitController::class, 'generateAsset'])->whereNumber('brandKit')->middleware(['workspace.can:links.create', 'throttle:10,1'])->name('brand-kits.assets.generate');
+        Route::post  ('brand-kits/{brandKit}/assets/{type}/apply',    [\App\Modules\User\Controllers\BrandKitController::class, 'applyAsset'])->whereNumber('brandKit')->middleware('workspace.can:links.edit')->name('brand-kits.assets.apply');
+        Route::delete('brand-kits/{brandKit}/assets/{type}',          [\App\Modules\User\Controllers\BrandKitController::class, 'destroyAsset'])->whereNumber('brandKit')->middleware('workspace.can:links.create')->name('brand-kits.assets.destroy');
+
         // AI Brand Studio (Task #5551): one plain-language brief → a reviewed,
         // structured multi-asset plan → assets created together as a named
         // kit. Charged against the `brand_studio` AI feature; plan-gated.

@@ -145,6 +145,8 @@ class PremiumFeatures
             ['key' => 'custom_favicon', 'group' => 'Branding', 'name' => 'Custom favicon', 'description' => 'Use your own favicon (browser tab icon) on every public page served from your account or custom domain.'],
             ['key' => 'custom_code', 'group' => 'Branding', 'name' => 'Custom HTML / JS', 'description' => 'Drop in custom <head> snippets, scripts and CSS overrides for advanced theming and integrations.'],
             ['key' => 'max_brand_kits', 'group' => 'Branding', 'name' => 'AI brand kits', 'description' => 'How many AI-generated brand kits (palette, fonts, voice, taglines) you can save and reuse.', 'unit' => 'brand kits'],
+            ['key' => 'brand_kit_assets', 'group' => 'Branding', 'name' => 'AI brand visual assets', 'description' => 'Generate ready-to-use brand images from your Brand Kit — logo, favicon, letterhead, social banners, avatar, share image, business card, email banner, background and watermark.'],
+            ['key' => 'max_brand_asset_versions', 'group' => 'Branding', 'name' => 'Brand asset generations', 'description' => 'How many times each Brand Kit visual asset can be generated or regenerated.', 'unit' => 'generations / asset'],
 
             // ---- Selling ----
             ['key' => 'ecommerce', 'group' => 'Selling', 'name' => 'Sell from your bio', 'description' => 'Add product blocks with prices and checkout to your Link in Bio pages so you can sell directly from your link.'],

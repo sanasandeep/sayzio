@@ -1179,6 +1179,13 @@ Route::prefix('v1')->group(function () {
         Route::post  ('/brand-kits/estimate', [\App\Modules\Api\Controllers\BrandKitController::class, 'estimate'])->middleware('throttle:30,1');
         Route::post  ('/brand-kits/generate', [\App\Modules\Api\Controllers\BrandKitController::class, 'generate'])->middleware('throttle:10,1');
         Route::delete('/brand-kits/{brandKit}', [\App\Modules\Api\Controllers\BrandKitController::class, 'destroy'])->whereNumber('brandKit');
+        // Brand Kit visual assets (Task #5612) — mobile parity for the web
+        // per-kit assets panel: catalog, coin-charged generate/regenerate
+        // (auto-refund on failure), delete, and one-click apply.
+        Route::get   ('/brand-kits/{brandKit}/assets',                 [\App\Modules\Api\Controllers\BrandKitController::class, 'assets'])->whereNumber('brandKit');
+        Route::post  ('/brand-kits/{brandKit}/assets/{type}/generate', [\App\Modules\Api\Controllers\BrandKitController::class, 'generateAsset'])->whereNumber('brandKit')->middleware('throttle:10,1');
+        Route::post  ('/brand-kits/{brandKit}/assets/{type}/apply',    [\App\Modules\Api\Controllers\BrandKitController::class, 'applyAsset'])->whereNumber('brandKit');
+        Route::delete('/brand-kits/{brandKit}/assets/{type}',          [\App\Modules\Api\Controllers\BrandKitController::class, 'destroyAsset'])->whereNumber('brandKit');
         Route::post  ('/brand-kits/{brandKit}/apply/biolink/{link}', [\App\Modules\Api\Controllers\BrandKitController::class, 'applyToBiolink'])->whereNumber('brandKit')->whereNumber('link');
         Route::post  ('/brand-kits/{brandKit}/apply/qr/{qrCode}',    [\App\Modules\Api\Controllers\BrandKitController::class, 'applyToQr'])->whereNumber('brandKit')->whereNumber('qrCode');
 

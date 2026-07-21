@@ -18,16 +18,23 @@ import { TextField } from "@/components/TextField";
 import { useColors } from "@/hooks/useColors";
 import { handlePlanLockedError, showUpgradePrompt } from "@/lib/upgradePrompt";
 import {
+  applyBrandKitAsset,
   applyBrandKitToBiolink,
   applyBrandKitToQr,
   deleteBrandKit,
+  deleteBrandKitAsset,
   estimateBrandKit,
   generateBrandKit,
+  generateBrandKitAsset,
   getBrandConsistency,
+  getBrandKitAssets,
   getBrandKits,
+  type BrandAssetMode,
+  type BrandAssetTypeEntry,
   type BrandConsistencyFinding,
   type BrandConsistencyResponse,
   type BrandKit,
+  type BrandKitAssetsIndex,
   type BrandKitsIndex,
 } from "@/lib/api/brandKits";
 import { showAlert } from "@/lib/webAlert";
@@ -679,7 +686,238 @@ function BrandKitCard({
           Delete
         </Text>
       </Pressable>
+
+      <KitAssetsSection kitId={kit.id} colors={colors} />
     </Card>
+  );
+}
+
+/**
+ * Per-kit AI visual assets (Task #5612). Lazy-loads the asset catalog when
+ * the section is expanded; per-type Generate / Variation / Alter…
+ * (regeneration modes) / Apply / Delete, all coin-charged server-side with
+ * auto-refund on failure — mirroring the web /user/brand-kits assets panel.
+ */
+function KitAssetsSection({
+  kitId,
+  colors,
+}: {
+  kitId: number;
+  colors: ReturnType<typeof useColors>;
+}) {
+  const qc = useQueryClient();
+  const [open, setOpen] = useState(false);
+  // Which asset type has the "Alter…" instructions input open, and its text.
+  const [tweakType, setTweakType] = useState<string | null>(null);
+  const [tweakText, setTweakText] = useState("");
+
+  const query = useQuery<BrandKitAssetsIndex>({
+    queryKey: ["brand-kit-assets", kitId],
+    queryFn: () => getBrandKitAssets(kitId),
+    enabled: open,
+  });
+  const data = query.data;
+  const invalidate = () =>
+    qc.invalidateQueries({ queryKey: ["brand-kit-assets", kitId] });
+
+  const generateMut = useMutation({
+    mutationFn: (vars: {
+      type: string;
+      mode: BrandAssetMode;
+      instructions?: string;
+    }) =>
+      generateBrandKitAsset(kitId, vars.type, {
+        mode: vars.mode,
+        instructions: vars.instructions,
+      }),
+    onSuccess: () => {
+      setTweakType(null);
+      setTweakText("");
+      invalidate();
+    },
+    onError: (e: any) => {
+      if (handlePlanLockedError(e)) return;
+      showAlert("Couldn't generate", e?.message ?? "Please try again.");
+    },
+  });
+
+  const applyMut = useMutation({
+    mutationFn: (vars: { type: string; target: string }) =>
+      applyBrandKitAsset(kitId, vars.type, vars.target),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["brand-kits"] });
+      showAlert("Applied", "The asset has been applied.");
+    },
+    onError: (e: any) =>
+      showAlert("Couldn't apply", e?.message ?? "Please try again."),
+  });
+
+  const deleteMut = useMutation({
+    mutationFn: (type: string) => deleteBrandKitAsset(kitId, type),
+    onSuccess: invalidate,
+    onError: (e: any) =>
+      showAlert("Couldn't delete", e?.message ?? "Please try again."),
+  });
+
+  const busyType = generateMut.isPending
+    ? generateMut.variables?.type ?? null
+    : applyMut.isPending
+      ? applyMut.variables?.type ?? null
+      : deleteMut.isPending
+        ? deleteMut.variables ?? null
+        : null;
+
+  const confirmDeleteAsset = (entry: BrandAssetTypeEntry) => {
+    showAlert(
+      "Delete this asset?",
+      `The generated ${entry.label.toLowerCase()} and its stored image will be removed.`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: () => deleteMut.mutate(entry.type),
+        },
+      ],
+    );
+  };
+
+  return (
+    <View style={[styles.assetsSection, { borderColor: colors.border }]}>
+      <Pressable
+        onPress={() => setOpen((o) => !o)}
+        style={styles.assetsToggle}
+        hitSlop={8}
+      >
+        <Feather name="image" size={15} color={colors.primary} />
+        <Text style={[styles.assetsToggleText, { color: colors.foreground }]}>
+          AI visual assets
+        </Text>
+        <Feather
+          name={open ? "chevron-up" : "chevron-down"}
+          size={16}
+          color={colors.mutedForeground}
+        />
+      </Pressable>
+
+      {!open ? null : query.isLoading ? (
+        <ActivityIndicator size="small" color={colors.primary} />
+      ) : query.isError ? (
+        <Text style={[styles.meta, { color: colors.destructive }]}>
+          Couldn't load assets.
+        </Text>
+      ) : data && !data.allowed ? (
+        <Text style={[styles.meta, { color: colors.warning }]}>
+          Brand asset generation isn't included on your plan.
+        </Text>
+      ) : data && !data.enabled ? (
+        <Text style={[styles.meta, { color: colors.warning }]}>
+          AI image generation is currently unavailable.
+        </Text>
+      ) : (
+        data?.types.map((entry) => (
+          <View
+            key={entry.type}
+            style={[styles.assetRow, { borderColor: colors.border }]}
+          >
+            <View style={styles.assetHeader}>
+              <Text
+                style={[styles.assetLabel, { color: colors.foreground }]}
+                numberOfLines={1}
+              >
+                {entry.label}
+              </Text>
+              <Text style={[styles.assetCost, { color: colors.mutedForeground }]}>
+                {entry.cost} coins
+                {entry.asset ? ` · v${entry.asset.version}` : ""}
+              </Text>
+            </View>
+            {!entry.asset ? (
+              <Button
+                label={busyType === entry.type ? "Generating…" : "Generate"}
+                variant="outline"
+                loading={busyType === entry.type}
+                disabled={busyType !== null}
+                onPress={() =>
+                  generateMut.mutate({ type: entry.type, mode: "new" })
+                }
+              />
+            ) : (
+              <>
+                <View style={styles.assetActions}>
+                  <Button
+                    label="Variation"
+                    variant="outline"
+                    style={styles.flex}
+                    disabled={busyType !== null}
+                    onPress={() =>
+                      generateMut.mutate({
+                        type: entry.type,
+                        mode: "variation",
+                      })
+                    }
+                  />
+                  <Button
+                    label="Alter…"
+                    variant="outline"
+                    style={styles.flex}
+                    disabled={busyType !== null}
+                    onPress={() => {
+                      setTweakType(
+                        tweakType === entry.type ? null : entry.type,
+                      );
+                      setTweakText("");
+                    }}
+                  />
+                </View>
+                {tweakType === entry.type ? (
+                  <>
+                    <TextField
+                      label="What should change?"
+                      placeholder="e.g. darker background, larger logo"
+                      value={tweakText}
+                      onChangeText={setTweakText}
+                    />
+                    <Button
+                      label={busyType === entry.type ? "Working…" : "Regenerate"}
+                      loading={busyType === entry.type}
+                      disabled={busyType !== null}
+                      onPress={() =>
+                        generateMut.mutate({
+                          type: entry.type,
+                          mode: "alteration",
+                          instructions: tweakText.trim() || undefined,
+                        })
+                      }
+                    />
+                  </>
+                ) : null}
+                <View style={styles.assetActions}>
+                  {entry.apply_targets.includes("kit_logo") ? (
+                    <Button
+                      label="Set as kit logo"
+                      variant="outline"
+                      style={styles.flex}
+                      disabled={busyType !== null}
+                      onPress={() =>
+                        applyMut.mutate({ type: entry.type, target: "kit_logo" })
+                      }
+                    />
+                  ) : null}
+                  <Button
+                    label="Delete"
+                    variant="ghost"
+                    style={styles.flex}
+                    disabled={busyType !== null}
+                    onPress={() => confirmDeleteAsset(entry)}
+                  />
+                </View>
+              </>
+            )}
+          </View>
+        ))
+      )}
+    </View>
   );
 }
 
@@ -715,6 +953,27 @@ const styles = StyleSheet.create({
   notice: { flexDirection: "row", gap: 10, alignItems: "flex-start" },
   noticeText: { fontFamily: "SpaceGrotesk_500Medium", fontSize: 14, lineHeight: 20 },
   kitHeader: { flexDirection: "row", alignItems: "center", gap: 8 },
+  assetsSection: { borderTopWidth: 1, paddingTop: 10, gap: 10 },
+  assetsToggle: { flexDirection: "row", alignItems: "center", gap: 8 },
+  assetsToggleText: {
+    fontFamily: "SpaceGrotesk_600SemiBold",
+    fontSize: 14,
+    flex: 1,
+  },
+  assetRow: { borderWidth: 1, borderRadius: 12, padding: 10, gap: 8 },
+  assetHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 8,
+  },
+  assetLabel: {
+    fontFamily: "SpaceGrotesk_600SemiBold",
+    fontSize: 13,
+    flexShrink: 1,
+  },
+  assetCost: { fontFamily: "SpaceGrotesk_500Medium", fontSize: 11 },
+  assetActions: { flexDirection: "row", gap: 8 },
   kitName: { fontFamily: "SpaceGrotesk_600SemiBold", fontSize: 17, flex: 1 },
   badge: { borderRadius: 999, paddingHorizontal: 10, paddingVertical: 3 },
   badgeText: {

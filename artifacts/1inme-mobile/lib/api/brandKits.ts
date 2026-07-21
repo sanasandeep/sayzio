@@ -186,6 +186,89 @@ export async function applyBrandKitToBiolink(
   return res.data.link;
 }
 
+// ── AI visual assets (Task #5612) ────────────────────────────────────
+//   GET    /brand-kits/{id}/assets                    catalog + gating
+//   POST   /brand-kits/{id}/assets/{type}/generate    coin-charged generate
+//   POST   /brand-kits/{id}/assets/{type}/apply       one-click apply
+//   DELETE /brand-kits/{id}/assets/{type}             delete asset + file
+
+export type BrandAssetMode = "new" | "variation" | "alteration";
+
+export type BrandKitAsset = {
+  id: number;
+  type: string;
+  status: string;
+  version: number;
+  credits_spent: number;
+  prompt: string | null;
+  image_url: string | null;
+  download_url: string | null;
+  created_at: string | null;
+  updated_at: string | null;
+};
+
+export type BrandAssetTypeEntry = {
+  type: string;
+  label: string;
+  hint: string;
+  size: string;
+  cost: number;
+  apply_targets: string[];
+  asset: BrandKitAsset | null;
+};
+
+export type BrandKitAssetsIndex = {
+  enabled: boolean;
+  allowed: boolean;
+  balance: number;
+  types: BrandAssetTypeEntry[];
+};
+
+export async function getBrandKitAssets(
+  kitId: number,
+): Promise<BrandKitAssetsIndex> {
+  const res = await apiFetch<{ data: BrandKitAssetsIndex }>(
+    `/brand-kits/${kitId}/assets`,
+  );
+  return res.data;
+}
+
+export async function generateBrandKitAsset(
+  kitId: number,
+  type: string,
+  options: { mode?: BrandAssetMode; instructions?: string } = {},
+): Promise<{ asset: BrandKitAsset; balance: number }> {
+  const body: Record<string, unknown> = {};
+  if (options.mode) body.mode = options.mode;
+  if (options.instructions) body.instructions = options.instructions;
+  const res = await apiFetch<{
+    data: { asset: BrandKitAsset; balance: number };
+  }>(`/brand-kits/${kitId}/assets/${type}/generate`, {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+  return res.data;
+}
+
+export async function applyBrandKitAsset(
+  kitId: number,
+  type: string,
+  target: string,
+  extra: { link_id?: number; company_id?: number } = {},
+): Promise<void> {
+  await apiFetch(`/brand-kits/${kitId}/assets/${type}/apply`, {
+    method: "POST",
+    body: JSON.stringify({ target, ...extra }),
+  });
+}
+
+export async function deleteBrandKitAsset(
+  kitId: number,
+  type: string,
+): Promise<void> {
+  await apiFetch(`/brand-kits/${kitId}/assets/${type}`, { method: "DELETE" });
+}
+
 export async function applyBrandKitToQr(
   id: number,
   qrId: number,
