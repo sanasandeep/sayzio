@@ -115,6 +115,24 @@ jobs:
       - name: Install Composer dependencies
         run: composer install --no-interaction --prefer-dist --no-progress
 
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Build frontend assets (Vite manifest for @vite in tests)
+        # public/build is gitignored, so a bare checkout has no Vite manifest
+        # and every page-rendering test would fail with
+        # ViteManifestNotFoundException.
+        working-directory: ${{ github.workspace }}
+        run: |
+          pnpm install --frozen-lockfile --filter ./artifacts/1inme
+          pnpm --dir artifacts/1inme run build
+
       - name: Prepare .env for CI
         run: |
           cp .env.example .env
