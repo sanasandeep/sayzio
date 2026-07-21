@@ -28,7 +28,7 @@
 
         {{-- Tick type selector --}}
         <div class="card-premium p-6">
-            <h3 class="text-sm font-bold mb-4" style="color: var(--text-primary);"><i class="fas fa-tag mr-2" style="color: var(--color-primary-400, #5c83ff);"></i>Verification Type</h3>
+            <h3 class="text-sm font-bold mb-4" style="color: var(--text-primary);"><i class="fas fa-tag mr-2" style="color: var(--accent);"></i>Verification Type</h3>
             <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 @foreach($tickTypes as $type)
                 <label class="cursor-pointer p-4 rounded-xl transition-all" :class="tickTypeId === '{{ $type->id }}' ? 'ring-2' : ''" :style="tickTypeId === '{{ $type->id }}' ? 'ring-color: {{ $type->color }}' : ''" style="background: var(--bg-glass); border: 1px solid var(--border-glass);" @click="tickTypeId = '{{ $type->id }}'">
@@ -107,12 +107,12 @@
     {{-- Right: live tick preview + advantages (sticky on desktop, below form on mobile) --}}
     <div class="space-y-5 order-2 lg:sticky lg:top-6">
         <div class="card-premium p-6" data-testid="tick-preview">
-            <h3 class="text-sm font-bold mb-4" style="color: var(--text-primary);"><i class="fas fa-eye mr-2" style="color: var(--color-primary-400, #5c83ff);"></i>Live Preview</h3>
+            <h3 class="text-sm font-bold mb-4" style="color: var(--text-primary);"><i class="fas fa-eye mr-2" style="color: var(--accent);"></i>Live Preview</h3>
             <div class="p-5 rounded-2xl text-center" style="background: var(--bg-glass); border: 1px solid var(--border-glass);">
                 @if($user->avatar)
                 <img src="{{ \App\Support\PublicStorageUrl::resolve($user->avatar) }}" alt="" class="w-16 h-16 rounded-2xl object-cover mx-auto" style="border: 1px solid var(--border-glass);">
                 @else
-                <div class="w-16 h-16 rounded-2xl mx-auto flex items-center justify-center" style="background: rgba(61,107,255,0.1);"><i class="fas fa-user text-blue-400 text-xl"></i></div>
+                <div class="w-16 h-16 rounded-2xl mx-auto flex items-center justify-center" style="background: var(--c-primary-soft);"><i class="fas fa-user text-xl" style="color: var(--c-primary);"></i></div>
                 @endif
                 <div class="mt-3 flex items-center justify-center gap-1.5 flex-wrap">
                     <span class="font-bold text-base" style="color: var(--text-primary);" x-text="officialName || '{{ $user->name }}'">{{ old('official_name', $user->name) }}</span>

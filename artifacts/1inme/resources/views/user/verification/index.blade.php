@@ -26,7 +26,7 @@
     </div>
     @endif
     @if(session('info'))
-    <div class="mb-4 p-4 rounded-xl text-sm font-medium" style="background: rgba(61,107,255,0.1); color: #93c5fd; border: 1px solid rgba(61,107,255,0.2);">
+    <div class="mb-4 p-4 rounded-xl text-sm font-medium" style="background: var(--c-primary-soft); color: var(--c-primary); border: 1px solid var(--c-primary-soft);">
         <i class="fas fa-info-circle mr-2"></i>{{ session('info') }}
     </div>
     @endif
@@ -45,7 +45,7 @@
                 @elseif($user->avatar)
                 <img src="{{ \App\Support\PublicStorageUrl::resolve($user->avatar) }}" alt="" class="w-14 h-14 rounded-2xl object-cover" style="border: 1px solid var(--border-glass);">
                 @else
-                <div class="w-14 h-14 rounded-2xl flex items-center justify-center" style="background: rgba(61,107,255,0.1);"><i class="fas fa-user text-blue-400 text-xl"></i></div>
+                <div class="w-14 h-14 rounded-2xl flex items-center justify-center" style="background: var(--c-primary-soft);"><i class="fas fa-user text-xl" style="color: var(--c-primary);"></i></div>
                 @endif
                 <div>
                     <div class="flex items-center gap-2 flex-wrap">
@@ -135,7 +135,7 @@
     <div class="card-premium p-6 mb-5" x-data="{ openUpdate: false }">
         <div class="flex items-center justify-between flex-wrap gap-3">
             <div>
-                <h3 class="text-sm font-bold" style="color: var(--text-primary);"><i class="fas fa-comment-dots mr-2" style="color: var(--color-primary-400, #5c83ff);"></i>Send more info to the review team</h3>
+                <h3 class="text-sm font-bold" style="color: var(--text-primary);"><i class="fas fa-comment-dots mr-2" style="color: var(--accent);"></i>Send more info to the review team</h3>
                 <p class="text-xs mt-1" style="color: var(--text-muted);">Add a message or extra documents to your pending request — the reviewer sees them alongside your original application.</p>
             </div>
             <button type="button" @click="openUpdate = !openUpdate" class="px-4 py-2 rounded-xl text-xs font-semibold transition-all" style="background: var(--bg-glass); border: 1px solid var(--border-glass); color: var(--text-secondary);">
@@ -177,7 +177,7 @@
                 @if(!empty($upd['files']))
                 <div class="flex flex-wrap gap-2 {{ !empty($upd['message']) ? 'mt-2' : '' }}">
                     @foreach($upd['files'] as $f)
-                    <span class="px-2 py-1 rounded-lg text-[10px]" style="background: rgba(61,107,255,0.08); color: var(--text-muted);"><i class="fas fa-paperclip mr-1"></i>{{ basename($f) }}</span>
+                    <span class="px-2 py-1 rounded-lg text-[10px]" style="background: var(--c-primary-soft); color: var(--text-muted);"><i class="fas fa-paperclip mr-1"></i>{{ basename($f) }}</span>
                     @endforeach
                 </div>
                 @endif
