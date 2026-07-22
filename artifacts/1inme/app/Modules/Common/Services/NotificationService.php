@@ -311,6 +311,15 @@ class NotificationService
                 'default_email'  => true,
                 'default_push'   => true,
             ],
+            // One-time alert when a Google Contacts connection expires and
+            // syncing pauses until the user reconnects (Task #5650).
+            'contacts.google_reauth' => [
+                'label'          => 'Google Contacts reconnect alerts',
+                'description'    => 'When Google revokes or expires your Contacts connection and syncing pauses until you reconnect.',
+                'default_in_app' => true,
+                'default_email'  => true,
+                'default_push'   => true,
+            ],
             // Client/buyer comments on a delivery project (Task #3566).
             'delivery_project.comment' => [
                 'label'          => 'Delivery project comments',

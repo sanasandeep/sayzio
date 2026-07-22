@@ -1040,6 +1040,20 @@ class EmailTemplateRegistry
                     'contact_url' => ['label' => 'Contact URL', 'sample' => 'https://sayzio.app/user/contacts/1'],
                 ],
             ],
+            'contacts.google_reauth' => [
+                'category' => 'messaging',
+                'label' => 'Google Contacts reconnect needed',
+                'description' => 'One-time alert when a Google Contacts connection expires and syncing pauses until the user reconnects.',
+                'format' => 'text',
+                'body_type' => 'inline',
+                'subject' => 'Google Contacts sync is paused — please reconnect',
+                'body' => "Google has revoked or expired the connection to {{account_email}}, so contact syncing is paused.\n\nReconnect your Google account to resume syncing: {{reconnect_url}}",
+                'pref_type' => 'contacts.google_reauth',
+                'variables' => [
+                    'account_email' => ['label' => 'Connected Google account email', 'sample' => 'you@gmail.com'],
+                    'reconnect_url' => ['label' => 'Reconnect link', 'sample' => 'https://sayzio.app/user/contacts'],
+                ],
+            ],
             'store.new_order' => [
                 'category' => 'messaging',
                 'label' => 'New store order request',
