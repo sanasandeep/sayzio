@@ -19,10 +19,10 @@ import { useColors } from "@/hooks/useColors";
 import { useCooldown } from "@/hooks/useCooldown";
 import { redirectAfterAuth, touchPendingPostAuthNext } from "@/lib/authNext";
 import type { ApiError } from "@/lib/api";
-import { verifyBackupCode } from "@/lib/api/security";
+import { verifyBackupCode, verifyTotpChallenge } from "@/lib/api/security";
 import { maybeOfferBiometricEnrollment } from "@/lib/biometricsPrompt";
 
-type Mode = "otp" | "backup";
+type Mode = "otp" | "totp" | "backup";
 
 export default function Verify() {
   const colors = useColors();
@@ -42,11 +42,17 @@ export default function Verify() {
     | "mobile";
   const identifier = String(params.identifier ?? "");
   // When the prior auth step requires a 2FA challenge, it forwards a
-  // short-lived `challenge_token` here. If we have it, the user can opt
-  // into the "use a backup code" branch instead of waiting for the OTP.
-  const challengeToken = String(params.challenge_token ?? "");
+  // short-lived `challenge_token` here (password login does this). The OTP
+  // path can also learn about the challenge mid-flow: a correct email/
+  // WhatsApp code on a TOTP-enrolled account returns `totp_required` plus a
+  // fresh token, which we capture into state.
+  const [challengeToken, setChallengeToken] = useState<string>(
+    String(params.challenge_token ?? ""),
+  );
 
-  const [mode, setMode] = useState<Mode>("otp");
+  const [mode, setMode] = useState<Mode>(
+    params.challenge_token ? "totp" : "otp",
+  );
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState<null | "verify" | "resend">(null);
   const [error, setError] = useState<string | null>(null);
@@ -78,22 +84,28 @@ export default function Verify() {
       setError(
         mode === "backup"
           ? "Enter one of your backup codes"
-          : "Enter the code we sent you",
+          : mode === "totp"
+            ? "Enter the 6-digit code from your authenticator app"
+            : "Enter the code we sent you",
       );
       return;
     }
     setBusy("verify");
     setError(null);
     try {
-      if (mode === "backup") {
-        // Trade the prior step's challenge_token + a single backup code
-        // for a real session. If we don't have a challenge token, fall
-        // back to the identifier so a backend that keys the challenge
-        // by user can still resolve the account.
-        const session = await verifyBackupCode({
+      if (mode === "backup" || mode === "totp") {
+        // Trade the challenge_token + the second-factor code for a real
+        // session. If we don't have a challenge token, fall back to the
+        // identifier so a backend that keys the challenge by user can
+        // still resolve the account.
+        const input = {
           challenge_token: challengeToken || identifier,
           code: code.trim(),
-        });
+        };
+        const session =
+          mode === "totp"
+            ? await verifyTotpChallenge(input)
+            : await verifyBackupCode(input);
         await applySession(session.token, session.user as never);
       } else {
         const result = await verifyOtp({ channel, identifier, code: code.trim() });
@@ -112,11 +124,27 @@ export default function Verify() {
         setPausedMessage(err?.message ?? "");
         return;
       }
+      // The email/WhatsApp code was CORRECT, but the account has an
+      // authenticator enrolled — the backend returned a fresh challenge
+      // token instead of a session. Move to the authenticator step.
+      if (mode === "otp" && err?.code === "totp_required") {
+        const token = err?.details?.challenge_token;
+        if (typeof token === "string" && token) {
+          setChallengeToken(token);
+          setMode("totp");
+          setCode("");
+          setError(null);
+          return;
+        }
+      }
       let msg = err?.message ?? "Code did not match";
       if (mode === "backup" && err?.status === 400) {
         msg = "That backup code isn't valid (or has already been used).";
       }
-      if (mode === "backup" && err?.status === 410) {
+      if (mode === "totp" && err?.status === 400) {
+        msg = "That code didn't match. Check your authenticator app and try again.";
+      }
+      if ((mode === "backup" || mode === "totp") && err?.status === 410) {
         msg = "Sign-in expired. Start again from the login screen.";
       }
       setError(msg);
@@ -187,12 +215,16 @@ export default function Verify() {
         <Text style={[styles.h1, { color: colors.foreground }]}>
           {mode === "backup"
             ? "Use a backup code"
-            : `Check your ${channel === "email" ? "inbox" : "messages"}`}
+            : mode === "totp"
+              ? "Two-factor authentication"
+              : `Check your ${channel === "email" ? "inbox" : "messages"}`}
         </Text>
         <Text style={[styles.sub, { color: colors.mutedForeground }]}>
           {mode === "backup"
             ? "Type one of the single-use backup codes you saved when you turned on two-factor authentication."
-            : `We sent a code to ${identifier}. Enter it below to sign in.`}
+            : mode === "totp"
+              ? "Enter the 6-digit code from your authenticator app to finish signing in."
+              : `We sent a code to ${identifier}. Enter it below to sign in.`}
         </Text>
 
         <View style={{ height: 24 }} />
@@ -215,15 +247,23 @@ export default function Verify() {
         ) : null}
 
         <TextField
-          label={mode === "backup" ? "Backup code" : "Verification code"}
+          label={
+            mode === "backup"
+              ? "Backup code"
+              : mode === "totp"
+                ? "Authenticator code"
+                : "Verification code"
+          }
           placeholder={mode === "backup" ? "abcd-efgh-ijkl" : "123456"}
           keyboardType={mode === "backup" ? "default" : "number-pad"}
-          autoCapitalize={mode === "backup" ? "none" : "none"}
+          autoCapitalize="none"
           autoCorrect={false}
           autoComplete={
             mode === "backup"
               ? "off"
-              : Platform.select({ ios: "one-time-code", android: "sms-otp" })
+              : mode === "totp"
+                ? Platform.select({ ios: "one-time-code", android: "off" })
+                : Platform.select({ ios: "one-time-code", android: "sms-otp" })
           }
           textContentType={mode === "backup" ? "none" : "oneTimeCode"}
           maxLength={mode === "backup" ? 32 : 8}
@@ -264,12 +304,19 @@ export default function Verify() {
         <Button
           label={
             mode === "backup"
-              ? `Use the ${channel === "email" ? "email" : "WhatsApp"} code instead`
+              ? challengeToken
+                ? "Use your authenticator code instead"
+                : `Use the ${channel === "email" ? "email" : "WhatsApp"} code instead`
               : "Use a backup code instead"
           }
           variant="ghost"
           onPress={() => {
-            setMode((m) => (m === "backup" ? "otp" : "backup"));
+            // From "backup", return to the step the user came from: the
+            // authenticator prompt when a 2FA challenge is active,
+            // otherwise the plain email/WhatsApp code entry.
+            setMode((m) =>
+              m === "backup" ? (challengeToken ? "totp" : "otp") : "backup",
+            );
             setCode("");
             setError(null);
           }}

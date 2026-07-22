@@ -229,7 +229,7 @@
       "standalone": "app/(auth)/index.tsx",
       "source": "app/(auth)/index.tsx",
       "relation": "adapted",
-      "sourceSha256": "9dd31cc1090f641324a51b081e6c652e748185994fd7bdb6c600520a5be2a536",
+      "sourceSha256": "7675de53538613a31ef07aff2438a23042334d72a211ae931b857670b9ed93de",
       "note": "dev-only missing-env alert text reworded (no monorepo path); also omits the intro-style reanimated AnimatedBlob decorative background the main app adds, because the standalone deliberately does not depend on react-native-reanimated (same policy as the static InfoPage entry); everything else must match the main app"
     },
     {
@@ -250,7 +250,7 @@
       "standalone": "app/oauth-callback.tsx",
       "source": "app/oauth-callback.tsx",
       "relation": "adapted",
-      "sourceSha256": "4f838a43054fa6077c8bfb3b606fdc3fd74c04414f65b04fd25fd349da2e9dcb",
+      "sourceSha256": "d6b083a4bf309843fad1f446eeca21d5e97cc0bd53840f0122bd015e3c7beb2f",
       "note": "Connected-Apps OAuth completion branch removed (standalone has no connected-apps screen); session handling must match"
     },
     {

@@ -138,6 +138,19 @@ export default function AuthLanding() {
           setMergeProvider("google");
           return;
         }
+        // Google account verified, but the Sayzio account has an
+        // authenticator app enrolled — carry the short-lived challenge
+        // token to the verify screen's authenticator-code step.
+        if (e?.code === "totp_required") {
+          const token = e?.details?.challenge_token;
+          if (typeof token === "string" && token) {
+            router.push({
+              pathname: "/(auth)/verify",
+              params: { challenge_token: token },
+            });
+            return;
+          }
+        }
         const msg = e?.message ?? "Google sign-in failed";
         if (Platform.OS === "web") setError(msg);
         else showAlert("Sign in", msg);
@@ -272,6 +285,19 @@ export default function AuthLanding() {
       maybeOfferBiometricEnrollment(auth);
     } catch (e) {
       const err = e as ApiError;
+      // Password was correct, but the account has an authenticator app
+      // enrolled — carry the short-lived challenge token to the verify
+      // screen, which opens straight in its authenticator-code step.
+      if (err?.code === "totp_required") {
+        const token = err?.details?.challenge_token;
+        if (typeof token === "string" && token) {
+          router.push({
+            pathname: "/(auth)/verify",
+            params: { channel: "email", identifier: email, challenge_token: token },
+          });
+          return;
+        }
+      }
       let msg = err?.message ?? "Sign-in failed";
       if (err?.status === 401 || err?.status === 422) msg = "Incorrect email or password.";
       if (err?.status === 429) msg = "Too many attempts. Wait a minute and try again.";
