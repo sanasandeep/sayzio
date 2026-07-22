@@ -25,7 +25,7 @@
     <div class="flex flex-wrap gap-2 text-xs">
         @foreach(['all'=>'All','draft'=>'Drafts','scheduled'=>'Scheduled','published'=>'Published','archived'=>'Archived'] as $key=>$label)
             @php $active = ($key==='all' && !request('status')) || request('status')===$key; @endphp
-            <a href="{{ route('admin.blogs.posts.index', $key==='all' ? [] : ['status'=>$key]) }}" class="px-3 py-1.5 rounded-full {{ $active ? 'bg-blue-600 text-white' : 'bg-white/5 text-white/70 hover:bg-white/10' }}">{{ $label }} <span class="opacity-60">({{ $counts[$key] ?? 0 }})</span></a>
+            <a href="{{ route('admin.blogs.posts.index', $key==='all' ? [] : ['status'=>$key]) }}" class="px-3 py-1.5 rounded-full {{ $active ? 'bg-blue-600 text-white' : 'bg-white/5 text-white/70 hover:bg-white/10 ak-muted' }}">{{ $label }} <span class="opacity-60">({{ $counts[$key] ?? 0 }})</span></a>
         @endforeach
     </div>
 

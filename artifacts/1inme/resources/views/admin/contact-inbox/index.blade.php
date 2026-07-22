@@ -8,7 +8,7 @@
             <div class="flex items-center gap-2">
                 @foreach(['all'=>'All','new'=>'New','read'=>'Read','replied'=>'Replied','archived'=>'Archived','spam'=>'Spam'] as $key=>$label)
                     <a href="{{ route('admin.contact-inbox.index', ['status'=>$key]) }}"
-                       class="px-3 py-1.5 rounded-lg text-xs {{ $status===$key ? 'bg-blue-600 text-white' : 'bg-white/5 text-white/70 hover:bg-white/10' }}">
+                       class="px-3 py-1.5 rounded-lg text-xs {{ $status===$key ? 'bg-blue-600 text-white' : 'bg-white/5 text-white/70 hover:bg-white/10 ak-muted' }}">
                         {{ $label }}@if($key==='spam' && ($spamCount ?? 0) > 0) <span class="ml-1 px-1.5 py-0.5 rounded-full bg-red-500/20 text-red-300 text-[10px] ak-red">{{ $spamCount }}</span>@endif
                     </a>
                 @endforeach

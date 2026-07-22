@@ -48,7 +48,7 @@
             @endphp
             @foreach($statusFilters as $key=>$label)
                 <a href="{{ route('admin.privacy-requests.index', array_merge($filters, ['status'=>$key])) }}"
-                   class="px-3 py-1.5 rounded-lg text-xs {{ $filters['status']===$key ? 'bg-blue-600 text-white' : 'bg-white/5 text-white/70 hover:bg-white/10' }}">
+                   class="px-3 py-1.5 rounded-lg text-xs {{ $filters['status']===$key ? 'bg-blue-600 text-white' : 'bg-white/5 text-white/70 hover:bg-white/10 ak-muted' }}">
                     {{ $label }}@if($key!=='all' && isset($counts[$key])) <span class="opacity-60">({{ $counts[$key] }})</span>@endif
                 </a>
             @endforeach

@@ -11,7 +11,7 @@
             <div class="flex items-center gap-2 flex-wrap">
                 @foreach(['pending'=>'Pending','warned'=>'Warned','hidden'=>'Hidden','escalated'=>'Escalated','dismissed'=>'Dismissed'] as $key=>$label)
                     <a href="{{ route('admin.biolink-reports.index', ['status'=>$key, 'reason'=>$reason]) }}"
-                       class="px-3 py-1.5 rounded-lg text-xs {{ $status===$key ? 'bg-blue-600 text-white' : 'bg-white/5 text-white/70 hover:bg-white/10' }}">{{ $label }}</a>
+                       class="px-3 py-1.5 rounded-lg text-xs {{ $status===$key ? 'bg-blue-600 text-white' : 'bg-white/5 text-white/70 hover:bg-white/10 ak-muted' }}">{{ $label }}</a>
                 @endforeach
             </div>
         </div>

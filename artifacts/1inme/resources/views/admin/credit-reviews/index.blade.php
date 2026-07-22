@@ -24,7 +24,7 @@
     <div class="flex flex-wrap gap-2">
         @foreach(['pending' => 'Pending', 'approved' => 'Approved', 'dismissed' => 'Dismissed'] as $key => $label)
             <a href="{{ route('admin.credit-reviews.index', ['status' => $key]) }}"
-               class="px-4 py-2 rounded-xl text-sm font-medium border {{ $status === $key ? 'bg-amber-600 border-amber-500 text-white' : 'border-white/10 text-white/60 hover:text-white' }}">
+               class="px-4 py-2 rounded-xl text-sm font-medium border {{ $status === $key ? 'bg-amber-600 border-amber-500 text-white' : 'border-white/10 text-white/60 hover:text-white ak-muted' }}">
                 {{ $label }}
                 <span class="ml-1 text-xs opacity-70">{{ $counts[$key] ?? 0 }}</span>
             </a>

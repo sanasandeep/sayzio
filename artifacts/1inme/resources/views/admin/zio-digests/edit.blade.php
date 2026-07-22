@@ -182,7 +182,7 @@
             <div x-show="audienceMode === 'plans'" class="flex flex-wrap gap-2 text-xs">
                 @foreach($plans as $plan)
                     <label class="flex items-center gap-1.5 px-2.5 py-1.5 border border-white/10 rounded-lg text-white/70 cursor-pointer ak-strong"
-                           :class="planIds.includes({{ $plan->id }}) && 'bg-white/10 text-white'">
+                           :class="planIds.includes({{ $plan->id }}) && 'bg-white/10 text-white ak-strong'">
                         <input type="checkbox" name="audience_plan_ids[]" value="{{ $plan->id }}"
                                :checked="planIds.includes({{ $plan->id }})"
                                @change="togglePlan({{ $plan->id }})"> {{ $plan->name }}

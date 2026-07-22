@@ -17,7 +17,7 @@
         <form method="POST" action="{{ route('admin.referrals.toggle') }}">
             @csrf
             <input type="hidden" name="enabled" value="{{ $enabled ? 0 : 1 }}">
-            <button type="submit" class="px-4 py-2 rounded-xl text-sm font-medium {{ $enabled ? 'bg-rose-600 hover:bg-rose-700' : 'bg-emerald-600 hover:bg-emerald-700' }} text-white">
+            <button type="submit" class="px-4 py-2 rounded-xl text-sm font-medium {{ $enabled ? 'bg-rose-600 hover:bg-rose-700 text-white' : 'bg-emerald-600 hover:bg-emerald-700 text-white' }}">
                 {{ $enabled ? 'Disable' : 'Enable' }}
             </button>
         </form>

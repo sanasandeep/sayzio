@@ -469,7 +469,7 @@ html.light-mode .cmp-modal-footer { border-top-color: #e2e8f0; }
                 @if($row['type'] === 'bool')
                     <label class="flex items-center gap-2 cursor-pointer select-none">
                         <input type="checkbox" class="cmp-toggle" x-model="plans['{{ $pid }}']['{{ $rk }}']">
-                        <span class="text-xs" :class="plans['{{ $pid }}']['{{ $rk }}'] ? 'text-blue-300' : 'text-white/40'"
+                        <span class="text-xs" :class="plans['{{ $pid }}']['{{ $rk }}'] ? 'text-blue-300 ak-blue' : 'text-white/40 ak-note'"
                               x-text="plans['{{ $pid }}']['{{ $rk }}'] ? 'Yes' : 'No'"></span>
                     </label>
                 @elseif($row['type'] === 'select')
@@ -537,7 +537,7 @@ html.light-mode .cmp-modal-footer { border-top-color: #e2e8f0; }
                 @if($row['type'] === 'bool')
                     <label class="flex items-center gap-2 cursor-pointer select-none">
                         <input type="checkbox" class="cmp-toggle" x-model="plans['{{ $pid }}']['{{ $rk }}']">
-                        <span class="text-xs" :class="plans['{{ $pid }}']['{{ $rk }}'] ? 'text-blue-300' : 'text-white/40'"
+                        <span class="text-xs" :class="plans['{{ $pid }}']['{{ $rk }}'] ? 'text-blue-300 ak-blue' : 'text-white/40 ak-note'"
                               x-text="plans['{{ $pid }}']['{{ $rk }}'] ? 'Yes' : 'No'"></span>
                     </label>
                 @elseif($row['type'] === 'select')
@@ -643,7 +643,7 @@ html.light-mode .cmp-modal-footer { border-top-color: #e2e8f0; }
             <td class="px-3 py-2.5" :class="{ 'compare-cell-dirty': isFeatDirty('{{ $pid }}', '{{ $mk }}') }">
                 <label class="flex items-center gap-2 cursor-pointer select-none">
                     <input type="checkbox" class="cmp-toggle" x-model="plans['{{ $pid }}'].features['{{ $mk }}']">
-                    <span class="text-xs" :class="plans['{{ $pid }}'].features['{{ $mk }}'] ? 'text-blue-300' : 'text-white/40'"
+                    <span class="text-xs" :class="plans['{{ $pid }}'].features['{{ $mk }}'] ? 'text-blue-300 ak-blue' : 'text-white/40 ak-note'"
                           x-text="plans['{{ $pid }}'].features['{{ $mk }}'] ? 'On' : 'Off'"></span>
                 </label>
             </td>
@@ -683,7 +683,7 @@ html.light-mode .cmp-modal-footer { border-top-color: #e2e8f0; }
                 @else
                     <label class="flex items-center gap-2 cursor-pointer select-none">
                         <input type="checkbox" class="cmp-toggle" x-model="plans['{{ $pid }}'].features['{{ $fk }}']">
-                        <span class="text-xs" :class="plans['{{ $pid }}'].features['{{ $fk }}'] ? 'text-blue-300' : 'text-white/40'"
+                        <span class="text-xs" :class="plans['{{ $pid }}'].features['{{ $fk }}'] ? 'text-blue-300 ak-blue' : 'text-white/40 ak-note'"
                               x-text="plans['{{ $pid }}'].features['{{ $fk }}'] ? 'Yes' : 'No'"></span>
                     </label>
                 @endif
@@ -712,7 +712,7 @@ html.light-mode .cmp-modal-footer { border-top-color: #e2e8f0; }
             <td class="px-3 py-2.5" :class="{ 'compare-cell-dirty': isFeatDirty('{{ $pid }}', '{{ $ak }}') }">
                 <label class="flex items-center gap-2 cursor-pointer select-none">
                     <input type="checkbox" class="cmp-toggle" x-model="plans['{{ $pid }}'].features['{{ $ak }}']">
-                    <span class="text-xs" :class="plans['{{ $pid }}'].features['{{ $ak }}'] ? 'text-blue-300' : 'text-white/40'"
+                    <span class="text-xs" :class="plans['{{ $pid }}'].features['{{ $ak }}'] ? 'text-blue-300 ak-blue' : 'text-white/40 ak-note'"
                           x-text="plans['{{ $pid }}'].features['{{ $ak }}'] ? 'Yes' : 'No'"></span>
                 </label>
             </td>
@@ -905,7 +905,7 @@ html.light-mode .cmp-modal-footer { border-top-color: #e2e8f0; }
                     <input type="checkbox" class="cmp-toggle"
                            :checked="plans['{{ $pid }}'].addon_ids.includes({{ $addonId }})"
                            @change="toggleAddon('{{ $pid }}', {{ $addonId }}, $event.target.checked)">
-                    <span class="text-xs" :class="plans['{{ $pid }}'].addon_ids.includes({{ $addonId }}) ? 'text-blue-300' : 'text-white/40'"
+                    <span class="text-xs" :class="plans['{{ $pid }}'].addon_ids.includes({{ $addonId }}) ? 'text-blue-300 ak-blue' : 'text-white/40 ak-note'"
                           x-text="plans['{{ $pid }}'].addon_ids.includes({{ $addonId }}) ? 'Eligible' : 'Not eligible'"></span>
                 </label>
             </td>

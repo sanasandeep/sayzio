@@ -1,13 +1,1 @@
-{
-  "artifacts/1inme/resources/views/admin/api-keys/index.blade.php": 2,
-  "artifacts/1inme/resources/views/admin/biolink-reports/index.blade.php": 1,
-  "artifacts/1inme/resources/views/admin/blogs/comments/index.blade.php": 1,
-  "artifacts/1inme/resources/views/admin/blogs/posts/index.blade.php": 1,
-  "artifacts/1inme/resources/views/admin/contact-inbox/index.blade.php": 1,
-  "artifacts/1inme/resources/views/admin/credit-reviews/index.blade.php": 1,
-  "artifacts/1inme/resources/views/admin/plans/compare.blade.php": 12,
-  "artifacts/1inme/resources/views/admin/privacy-requests/index.blade.php": 1,
-  "artifacts/1inme/resources/views/admin/privacy-requests/show.blade.php": 1,
-  "artifacts/1inme/resources/views/admin/referrals/index.blade.php": 1,
-  "artifacts/1inme/resources/views/admin/site-assistant/analytics.blade.php": 1
-}
+{}

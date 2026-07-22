@@ -96,7 +96,7 @@
                 <form method="POST" action="{{ route('admin.privacy-requests.approve', $pr->id) }}"
                       onsubmit="return confirm('{{ $pr->isDeletion() ? 'Approve this request? The account will be permanently deleted after the grace window.' : 'Approve this request? A data archive will be generated and emailed.' }}');">
                     @csrf
-                    <button class="w-full py-2.5 rounded-lg text-sm font-bold text-white transition {{ $pr->isDeletion() ? 'bg-red-600 hover:bg-red-700' : 'bg-emerald-600 hover:bg-emerald-700' }}">
+                    <button class="w-full py-2.5 rounded-lg text-sm font-bold transition {{ $pr->isDeletion() ? 'bg-red-600 hover:bg-red-700 text-white' : 'bg-emerald-600 hover:bg-emerald-700 text-white' }}">
                         <i class="fas fa-check mr-1.5"></i>
                         @if($pr->isDeletion())
                             Approve deletion (after {{ \App\Modules\Common\Models\PrivacyRequest::DELETION_GRACE_DAYS }}-day grace)

@@ -373,7 +373,7 @@
                                             {{-- History --}}
                                             <button type="button" @click="toggleHistory('{{ $job['key'] }}')" title="Recent run history"
                                                     class="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-white/60 transition flex items-center justify-center ak-muted"
-                                                    :class="historyKey === '{{ $job['key'] }}' ? 'bg-white/10 text-white' : ''">
+                                                    :class="historyKey === '{{ $job['key'] }}' ? 'bg-white/10 text-white ak-strong' : ''">
                                                 <i class="fas fa-clock-rotate-left text-[11px]"></i>
                                             </button>
                                         </div>

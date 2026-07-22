@@ -15,7 +15,7 @@
 
     <div class="flex flex-wrap gap-2 text-xs">
         @foreach(['pending'=>'Pending','approved'=>'Approved','spam'=>'Spam','trash'=>'Trash'] as $k=>$label)
-            <a href="{{ route('admin.blogs.comments.index', ['status'=>$k]) }}" class="px-3 py-1.5 rounded-full {{ $status===$k ? 'bg-blue-600 text-white' : 'bg-white/5 text-white/70 hover:bg-white/10' }}">{{ $label }} <span class="opacity-60">({{ $counts[$k] ?? 0 }})</span></a>
+            <a href="{{ route('admin.blogs.comments.index', ['status'=>$k]) }}" class="px-3 py-1.5 rounded-full {{ $status===$k ? 'bg-blue-600 text-white' : 'bg-white/5 text-white/70 hover:bg-white/10 ak-muted' }}">{{ $label }} <span class="opacity-60">({{ $counts[$k] ?? 0 }})</span></a>
         @endforeach
     </div>
 

@@ -15,7 +15,7 @@
         <label class="text-xs text-white/50 ak-muted">Window:</label>
         @foreach([7, 14, 30, 60, 90] as $d)
             <a href="?days={{ $d }}"
-               class="px-3 py-1.5 rounded-lg text-xs border {{ $days === $d ? 'bg-indigo-500 text-white border-indigo-400' : 'bg-white/5 text-white/70 border-white/10 hover:bg-white/10' }}">
+               class="px-3 py-1.5 rounded-lg text-xs border {{ $days === $d ? 'bg-indigo-500 text-white border-indigo-400' : 'bg-white/5 text-white/70 border-white/10 hover:bg-white/10 ak-muted' }}">
                 {{ $d }}d
             </a>
         @endforeach

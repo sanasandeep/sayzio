@@ -58,7 +58,7 @@ export const DARK_TOKEN_RE =
  * black overlays) — the documented ak-* exemption categories.
  */
 export const SOLID_SURFACE_RE =
-  /bg-gradient-to-|(?<![\w-])bg-[a-z]+-(?:500|600|700|800|900|950)(?![\w-])|(?<![\w:-])bg-black(?![\w-])/;
+  /bg-gradient-to-|(?<![\w-])bg-[a-z]+-(?:500|600|700|800|900|950)(?![\w-])|(?<![\w:-])bg-black(?![\w-])|(?<![\w:-])bg-\[#[0-9a-fA-F]{3,8}\]/;
 
 /** An `ak-*` helper class anywhere in the string. */
 export const AK_RE = /(?<![\w-])ak-[\w-]+/;
