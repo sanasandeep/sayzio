@@ -177,6 +177,23 @@ function pickStr(s: Record<string, unknown> | null, ...keys: string[]): string |
   return null;
 }
 
+// Blank-aware variant for block CONTENT text (labels/titles/captions).
+// Admin block defaults can be explicitly blanked to "" — those must render
+// blank (web `??` parity), not fall back to sample text. Returns "" when a
+// key exists but is blank, null only when all keys are truly absent.
+function pickContentStr(s: Record<string, unknown> | null, ...keys: string[]): string | null {
+  if (!s) return null;
+  let sawBlank = false;
+  for (const k of keys) {
+    const v = s[k];
+    if (typeof v === "string") {
+      if (v.trim() !== "") return v.trim();
+      sawBlank = true;
+    }
+  }
+  return sawBlank ? "" : null;
+}
+
 // Block link URLs come from creator-defined block settings, which we treat as
 // untrusted: only allow http/https and tel/mailto/sms so a malicious entry
 // can't fire `javascript:` or `intent:` schemes from a tap.
@@ -220,7 +237,7 @@ function PollBlock({
   settings: Record<string, unknown>;
   colors: PaletteColors;
 }) {
-  const question = pickStr(settings, "question", "title", "text", "heading") ?? "Vote";
+  const question = pickContentStr(settings, "question", "title", "text", "heading") ?? "Vote";
   const rawOptions: unknown =
     Array.isArray(settings.options) ? settings.options :
     Array.isArray(settings.choices) ? settings.choices :
@@ -432,7 +449,7 @@ function RsvpBlock({
   settings: Record<string, unknown>;
   colors: PaletteColors;
 }) {
-  const title = pickStr(settings, "title", "heading", "event_title") ?? "RSVP";
+  const title = pickContentStr(settings, "title", "heading", "event_title") ?? "RSVP";
   const date = pickStr(settings, "date", "event_date", "starts_at");
   const allowPlusOnes = pickBool(settings, "rsvp_allow_plus_ones", false)
     || pickBool(settings, "allow_plus_ones", false);
@@ -808,7 +825,7 @@ function NativeProductBlock({
   const [busy, setBusy] = useState(false);
 
   const s = block.settings ?? {};
-  const name = (pickStr(s, "name", "title") ?? "Product").trim() || "Product";
+  const name = (pickContentStr(s, "name", "title") ?? "Product").trim();
   const desc = pickStr(s, "description", "subtitle");
   const priceCents = pickNum(s, "price_cents") ?? 0;
   const currency = (pickStr(s, "currency") ?? "USD").toUpperCase();
@@ -1130,7 +1147,7 @@ export function BlockView({ block, alias, allBlocks, openEmbed }: { block: Bioli
 
   if (t === "cta_button") {
     const url = pickStr(s, "url", "link");
-    const label = pickStr(s, "text", "label", "title") ?? "Get started";
+    const label = pickContentStr(s, "text", "label", "title") ?? "Get started";
     if (!url || !isSafeUrl(url)) return null;
     return (
       <Pressable onPress={() => handleTap(url)} style={[styles.btn, { backgroundColor: colors.primary, borderColor: colors.primary }]}>
@@ -1147,7 +1164,7 @@ export function BlockView({ block, alias, allBlocks, openEmbed }: { block: Bioli
         : [];
     const links = items
       .map((it) => ({
-        label: pickStr(it, "label", "name", "platform", "title") ?? "Open",
+        label: pickContentStr(it, "label", "name", "platform", "title") ?? "Open",
         url: pickStr(it, "url", "link", "href"),
       }))
       .filter((x): x is { label: string; url: string } => !!x.url && isSafeUrl(x.url));
@@ -1173,7 +1190,7 @@ export function BlockView({ block, alias, allBlocks, openEmbed }: { block: Bioli
       (pickStr(s, "video_id") ? `https://youtube.com/watch?v=${pickStr(s, "video_id")}` : null) ??
       (pickStr(s, "channel") ? `https://youtube.com/${pickStr(s, "channel")!.replace(/^@?\/?/, "@")}` : null);
     const thumb = pickStr(s, "thumbnail", "image");
-    const label = pickStr(s, "title", "text") ?? "Watch video";
+    const label = pickContentStr(s, "title", "text") ?? "Watch video";
     if (!url || !isSafeUrl(url)) return null;
     return (
       <Pressable onPress={() => handleTap(url)} style={[styles.mediaCard, blockCardStyle(block, colors)]}>
@@ -1188,7 +1205,7 @@ export function BlockView({ block, alias, allBlocks, openEmbed }: { block: Bioli
 
   if (t === "spotify" || t === "audio" || t === "soundcloud") {
     const url = pickStr(s, "url", "audio_url", "track_url");
-    const label = pickStr(s, "title", "text") ?? "Listen";
+    const label = pickContentStr(s, "title", "text") ?? "Listen";
     if (!url || !isSafeUrl(url)) return null;
     // Spotify / SoundCloud have first-party web players that work in an
     // in-app WebView, so keep the user inside the app rather than handing
@@ -1222,7 +1239,7 @@ export function BlockView({ block, alias, allBlocks, openEmbed }: { block: Bioli
         <View style={styles.mediaBody}>
           <Feather name="instagram" size={20} color={colors.primary} />
           <Text style={[styles.mediaLabel, { color: colors.foreground }]} numberOfLines={2}>
-            {pickStr(s, "caption") ?? "View on Instagram"}
+            {pickContentStr(s, "caption") ?? "View on Instagram"}
           </Text>
         </View>
       </Pressable>
@@ -1230,9 +1247,9 @@ export function BlockView({ block, alias, allBlocks, openEmbed }: { block: Bioli
   }
 
   if (t === "tip_jar") {
-    const title = pickStr(s, "title") ?? "Send me a tip";
+    const title = pickContentStr(s, "title") ?? "Send me a tip";
     const message = pickStr(s, "message");
-    const btnText = pickStr(s, "button_text") ?? "Send Tip";
+    const btnText = pickContentStr(s, "button_text") ?? "Send Tip";
     const rawAmounts = Array.isArray(s.amounts) ? (s.amounts as unknown[]) : [];
     const parsedAmounts = rawAmounts
       .map((n) => (typeof n === "number" ? n : typeof n === "string" ? parseInt(n, 10) : 0))
@@ -1298,7 +1315,7 @@ export function BlockView({ block, alias, allBlocks, openEmbed }: { block: Bioli
           ? "https://www.patreon.com/"
           : "https://ko-fi.com/";
     const url = username ? `${base}${username.replace(/^@?\/?/, "")}` : "";
-    const label = pickStr(s, "text") ?? "Support me";
+    const label = pickContentStr(s, "text") ?? "Support me";
     if (!url || !isSafeUrl(url)) return null;
     const bg =
       t === "buy_me_coffee" ? "#FFDD00" : t === "patreon" ? "#F96854" : "#FF5E5B";
@@ -1312,7 +1329,7 @@ export function BlockView({ block, alias, allBlocks, openEmbed }: { block: Bioli
 
   if (t === "featured_pin") {
     const url = pickStr(s, "url");
-    const text = pickStr(s, "text") ?? "Featured";
+    const text = pickContentStr(s, "text") ?? "Featured";
     const desc = pickStr(s, "description");
     const accent = pickStr(s, "accent_color") ?? "#f59e0b";
     if (!url || !isSafeUrl(url)) return null;
@@ -1343,7 +1360,7 @@ export function BlockView({ block, alias, allBlocks, openEmbed }: { block: Bioli
 
   if (t === "file") {
     const url = pickStr(s, "url");
-    const name = pickStr(s, "name", "title") ?? "Download file";
+    const name = pickContentStr(s, "name", "title") ?? "Download file";
     if (!url || !isSafeUrl(url)) return null;
     return (
       <Pressable onPress={() => handleTap(url)} style={[styles.btn, blockCardStyle(block, colors)]}>
@@ -1354,7 +1371,7 @@ export function BlockView({ block, alias, allBlocks, openEmbed }: { block: Bioli
 
   if (t === "donation" || t === "paypal" || t === "price" || t === "coupon" || t === "one_time_offer") {
     const url = pickStr(s, "url");
-    const label = pickStr(s, "title", "text", "code") ?? "View offer";
+    const label = pickContentStr(s, "title", "text", "code") ?? "View offer";
     if (!url || !isSafeUrl(url)) return null;
     return (
       <Pressable onPress={() => handleTap(url)} style={[styles.btn, { backgroundColor: colors.primary, borderColor: colors.primary }]}>
@@ -1442,7 +1459,7 @@ export function BlockView({ block, alias, allBlocks, openEmbed }: { block: Bioli
 
   if (t === "countdown") {
     const target = pickStr(s, "target_date", "date", "ends_at");
-    const title = pickStr(s, "title", "text") ?? "Coming soon";
+    const title = pickContentStr(s, "title", "text") ?? "Coming soon";
     const tsMs = target ? Date.parse(target) : NaN;
     const remaining = Number.isFinite(tsMs) ? Math.max(0, tsMs - Date.now()) : 0;
     const days = Math.floor(remaining / 86400000);
@@ -1505,7 +1522,7 @@ export function BlockView({ block, alias, allBlocks, openEmbed }: { block: Bioli
   // fill it out without leaving the app.
   if (t === "typeform") {
     const url = pickStr(s, "url", "form_url");
-    const label = pickStr(s, "title", "heading", "text") ?? "Open form";
+    const label = pickContentStr(s, "title", "heading", "text") ?? "Open form";
     if (!url || !isSafeUrl(url)) return null;
     return (
       <Pressable
@@ -1592,7 +1609,7 @@ export function BlockView({ block, alias, allBlocks, openEmbed }: { block: Bioli
       ? `https://wa.me/${phone.replace(/[^0-9]/g, "")}`
       : channel ?? null;
     if (!url || !isSafeUrl(url)) return null;
-    const label = pickStr(s, "button_text", "text", "title", "name") ?? "Chat on WhatsApp";
+    const label = pickContentStr(s, "button_text", "text", "title", "name") ?? "Chat on WhatsApp";
     return (
       <Pressable onPress={() => handleTap(url)} style={[styles.btn, { backgroundColor: "#25D366", borderColor: "#25D366" }]}>
         <Text style={[styles.btnLabel, { color: "#fff" }]}>💬 {label}</Text>
@@ -1602,7 +1619,7 @@ export function BlockView({ block, alias, allBlocks, openEmbed }: { block: Bioli
 
   if (t === "calendly" || t === "calendly_embed") {
     const url = pickStr(s, "url");
-    const label = pickStr(s, "text", "title") ?? "Book a time";
+    const label = pickContentStr(s, "text", "title") ?? "Book a time";
     if (!url || !isSafeUrl(url)) return null;
     // Calendly's standalone scheduling page works fine inside an in-app
     // WebView; keep the booking flow inside the app.
@@ -1639,7 +1656,7 @@ export function BlockView({ block, alias, allBlocks, openEmbed }: { block: Bioli
         const m = html.match(/src=["']([^"']+)["']/i);
         return m ? m[1] : null;
       })();
-    const label = pickStr(s, "title", "text", "label") ?? "Open embed";
+    const label = pickContentStr(s, "title", "text", "label") ?? "Open embed";
     if (!url || !isSafeUrl(url)) {
       // Without a safe URL we can't render anything trustworthy — show a
       // disabled-style notice instead of a tappable button.
@@ -1719,7 +1736,7 @@ export function BlockView({ block, alias, allBlocks, openEmbed }: { block: Bioli
       style={[styles.btn, blockCardStyle(block, colors)]}
     >
       <Text style={[styles.btnLabel, { color: colors.foreground }]}>
-        {pickStr(s, "title", "text", "label") ?? "Open on web"}
+        {pickContentStr(s, "title", "text", "label") ?? "Open on web"}
       </Text>
       <Text style={[styles.body, { color: colors.mutedForeground, fontSize: 11, marginTop: 2 }]}>
         Tap to view this block in your browser

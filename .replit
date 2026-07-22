@@ -480,6 +480,10 @@ args = "nested-interactive"
 task = "workflow.run"
 args = "block-defaults-blank-test"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "blank-content-fallbacks"
+
 [[workflows.workflow]]
 name = "e2e"
 author = "agent"
@@ -1965,6 +1969,17 @@ isValidation = true
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "cd artifacts/1inme && TEST_LOCAL_MODE=artisan bash scripts/test-local.sh --filter='AdminBlockDefaultsCopyToTest|BlockDefaultsPreviewTest'"
+
+[[workflows.workflow]]
+name = "blank-content-fallbacks"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/scripts run check:blank-content-fallbacks"
+
+[workflows.workflow.metadata]
+isValidation = true
 
 
   [agent]

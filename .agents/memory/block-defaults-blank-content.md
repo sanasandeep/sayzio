@@ -14,6 +14,6 @@ description: How admin block-defaults handle explicit blanks, the start_blank fl
 
 **Why:** admins need to ship blank-by-default block types; the earlier merge treated empties like missing and always re-flagged `_placeholder`.
 
-**Renderer caveat:** public renderers use `?? 'Sample'` fallbacks which correctly skip on explicit `''`; but `?: 'Sample'` fallbacks would re-inject sample text on blanks — sweep for `?:` when adding blankable fields (block-picker preview was the one offender).
+**Renderer caveat:** public renderers use `?? 'Sample'` fallbacks which correctly skip on explicit `''`; but `?: 'Sample'` fallbacks would re-inject sample text on blanks. Guarded by the `blank-content-fallbacks` validation (`scripts/src/check-blank-content-fallbacks.ts`): flags `?:` on `$s[...]`/`$it[...]` reads in blade block surfaces, and mobile `pickStr()` + non-empty `?? "..."` fallback on content keys. Mobile's public renderer must use blank-aware `pickContentStr()` for content text (its `pickStr` collapses `''` to null, which was the mobile offender). Real-data fallbacks (e.g. label ?: address) go in the guard ALLOWLIST.
 
 **How to apply:** any new surface reading admin block defaults must go through `contentForType()`/`seededSettings()`; when adding content keys decide if they are structural and update `STRUCTURAL_CONTENT_KEYS`.
