@@ -35,15 +35,21 @@ class SyncGoogleContactsJob implements ShouldQueue
     public function handle(GoogleContactsSyncService $sync): void
     {
         $account = GoogleContactsAccount::where('user_id', $this->userId)->first();
-        if (!$account) {
+        if (!$account || $account->needsReauth()) {
             return;
         }
         $sync->syncNow($account);
     }
 
-    /** True when the user has a connected Google Contacts account. */
+    /**
+     * True when the user has a connected Google Contacts account that is
+     * still authorized (accounts flagged needs_reauth are skipped until the
+     * user reconnects — retrying them just burns failing Google calls).
+     */
     public static function shouldQueue(int $userId): bool
     {
-        return GoogleContactsAccount::where('user_id', $userId)->exists();
+        return GoogleContactsAccount::where('user_id', $userId)
+            ->whereNull('needs_reauth_at')
+            ->exists();
     }
 }

@@ -75,6 +75,17 @@
                     <div class="text-xs mb-3" style="color: var(--text-muted);">
                         <i class="fab fa-google text-pink-400 mr-1"></i> {{ $googleAccount->account_email }}
                     </div>
+                    @if($googleAccount->needsReauth())
+                        <div class="mb-3 p-3 rounded-lg" data-testid="google-reauth-banner" style="background:rgba(245,158,11,.10);border:1px solid rgba(245,158,11,.25);">
+                            <div class="text-xs font-medium mb-2" style="color:#f59e0b;">
+                                <i class="fas fa-triangle-exclamation mr-1"></i> Your Google Contacts connection expired
+                            </div>
+                            <p class="text-[11px] mb-2" style="color: var(--text-muted);">Syncing is paused. Reconnect your Google account to resume — your contacts and sync history are kept.</p>
+                            <a href="{{ route('user.contacts.google.connect') }}" class="block w-full px-3 py-2 rounded-lg text-xs font-medium text-center transition" style="background:rgba(245,158,11,.15);color:#f59e0b;border:1px solid rgba(245,158,11,.30)">
+                                <i class="fab fa-google mr-1"></i> Reconnect
+                            </a>
+                        </div>
+                    @endif
                     <div class="text-[11px] mb-3" style="color: var(--text-faint);">
                         Last sync: {{ $googleAccount->last_synced_at ? $googleAccount->last_synced_at->diffForHumans() : 'never' }}
                         @if($googleAccount->last_sync_status === 'error')

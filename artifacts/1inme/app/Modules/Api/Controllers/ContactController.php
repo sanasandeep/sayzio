@@ -1225,6 +1225,15 @@ class ContactController extends Controller
             return $this->fail('Sync failed: ' . $e->getMessage(), 502, 'google_sync_failed');
         }
 
+        if ($result['status'] === 'needs_reauth') {
+            return $this->fail(
+                'Your Google Contacts connection expired — please reconnect to resume syncing.',
+                409,
+                'google_needs_reauth',
+                ['account' => $this->transformGoogleAccount($account->fresh())]
+            );
+        }
+
         if ($result['status'] === 'throttled' || $result['status'] === 'in_progress') {
             return $this->ok([
                 'status'      => $result['status'],
@@ -1303,6 +1312,11 @@ class ContactController extends Controller
             'last_sync_status' => $a->last_sync_status,
             'last_sync_error'  => $a->last_sync_error,
             'last_synced_at'   => optional($a->last_synced_at)->toIso8601String(),
+            'needs_reauth'     => $a->needsReauth(),
+            'needs_reauth_at'  => optional($a->needs_reauth_at)->toIso8601String(),
+            'reconnect_message' => $a->needsReauth()
+                ? 'Your Google Contacts connection expired — reconnect from the web app to resume syncing.'
+                : null,
         ];
     }
 

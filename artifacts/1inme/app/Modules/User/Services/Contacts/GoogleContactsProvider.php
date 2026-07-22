@@ -61,6 +61,9 @@ class GoogleContactsProvider
             'redirect_uri'  => $redirectUri,
         ]);
         if (!$resp->successful()) {
+            if ($this->isRevokedGrantResponse($resp->json())) {
+                throw new GoogleReauthRequiredException('Google rejected the authorization — please try connecting again.');
+            }
             throw new ContactsSyncException('Google token exchange failed: ' . $resp->body());
         }
         $tok = $resp->json();
@@ -82,15 +85,21 @@ class GoogleContactsProvider
                 'scope'               => $tok['scope'] ?? implode(' ', self::SCOPES),
                 'sync_token'          => null, // force initial full pull
                 'last_sync_status'    => null,
+                'last_sync_error'     => null,
+                'needs_reauth_at'     => null, // reconnect clears the expired state
             ]
         )->fresh();
     }
 
     public function refreshIfNeeded(GoogleContactsAccount $account): void
     {
+        if ($account->needsReauth()) {
+            throw new GoogleReauthRequiredException('Google Contacts connection expired — please reconnect.');
+        }
         if (!$account->token_expires_at || $account->token_expires_at->isFuture()) return;
         if (!$account->refresh_token) {
-            throw new ContactsSyncException('Google account has no refresh token — please reconnect.');
+            $account->markNeedsReauth('Google account has no refresh token.');
+            throw new GoogleReauthRequiredException('Google account has no refresh token — please reconnect.');
         }
         $resp = Http::asForm()->post(self::TOKEN_URL, [
             'client_id'     => $this->clientId(),
@@ -99,6 +108,13 @@ class GoogleContactsProvider
             'grant_type'    => 'refresh_token',
         ]);
         if (!$resp->successful()) {
+            // A revoked/expired refresh token comes back as invalid_grant (or
+            // invalid_client for deleted OAuth clients). Persist the state so
+            // sync paths stop retrying until the user reconnects.
+            if ($this->isRevokedGrantResponse($resp->json())) {
+                $account->markNeedsReauth('Google reported the connection as revoked or expired (' . ($resp->json('error') ?? 'invalid_grant') . ').');
+                throw new GoogleReauthRequiredException('Google Contacts connection expired — please reconnect.');
+            }
             throw new ContactsSyncException('Google refresh failed: ' . $resp->body());
         }
         $tok = $resp->json();
@@ -190,6 +206,12 @@ class GoogleContactsProvider
         }
     }
 
+    /** True when a token-endpoint error body means the grant is revoked/expired. */
+    private function isRevokedGrantResponse(?array $body): bool
+    {
+        return in_array($body['error'] ?? null, ['invalid_grant', 'invalid_client'], true);
+    }
+
     private function normalize(array $person): ?array
     {
         $name        = $person['names'][0] ?? [];
@@ -265,3 +287,10 @@ class GoogleContactsProvider
 }
 
 class ContactsSyncException extends \RuntimeException {}
+
+/**
+ * Thrown when Google reports the OAuth grant as revoked or expired
+ * (invalid_grant / invalid_client). Callers should stop retrying and prompt
+ * the user to reconnect instead of surfacing the raw token-endpoint error.
+ */
+class GoogleReauthRequiredException extends ContactsSyncException {}
