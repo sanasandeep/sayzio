@@ -12,6 +12,9 @@
      *   $allowInherit — show an "Inherit from page" option (default false).
      *   $pickerId     — unique id for Alpine scope when multiple pickers
      *                   appear on a page (auto-generated if omitted).
+     *   $hideCustomFonts — hide the user-scoped "My Fonts" section entirely
+     *                   (default false). Used on admin surfaces where there
+     *                   is no web User account to own uploads.
      *
      * The picker shows "My Fonts" at the top, then Google Fonts grouped by
      * category. Search filters by family name. Selected family is mirrored
@@ -33,7 +36,15 @@
     $selectedFamily = (string) $value;
     $selectedIsCustom = str_starts_with($selectedFamily, 'custom:');
     $selectedDisplayName = $selectedIsCustom ? substr($selectedFamily, 7) : $selectedFamily;
-    $customFonts = auth()->check() ? auth()->user()->customFonts()->orderBy('family')->get() : collect();
+    $hideCustomFonts = $hideCustomFonts ?? false;
+    $inheritLabel = $inheritLabel ?? 'Inherit from page';
+    // The picker can render under the admin guard where the authenticated
+    // principal is not a web User (or nobody is logged in on the default
+    // guard). Only resolve custom fonts for a real web User account.
+    $__fpUser = auth('web')->user();
+    $customFonts = (!$hideCustomFonts && $__fpUser instanceof \App\Modules\User\Models\User)
+        ? $__fpUser->customFonts()->orderBy('family')->get()
+        : collect();
 @endphp
 
 <div x-data="fontPickerComponent_{{ $pickerId }}()" x-init="init()" class="font-picker" data-picker-id="{{ $pickerId }}">
@@ -42,7 +53,7 @@
     {{-- Trigger: shows current selection, opens picker on click. --}}
     <button type="button" @click="open = !open" class="theme-input w-full flex items-center justify-between text-left" style="min-height: 38px;">
         <span class="truncate" :style="selected ? ('font-family: ' + previewFamilyCss(selected) + ', sans-serif;') : ''">
-            <span x-show="!selected" class="opacity-60">{{ $allowInherit ? 'Inherit from page' : 'Pick a font' }}</span>
+            <span x-show="!selected" class="opacity-60">{{ $allowInherit ? $inheritLabel : 'Pick a font' }}</span>
             <span x-show="selected" x-text="selectedLabel()"></span>
         </span>
         <i class="fas fa-chevron-down text-[10px] opacity-60 ml-2"></i>
@@ -71,12 +82,14 @@
                     :class="cat === 'all' ? 'bg-blue-600 text-white' : ''"
                     class="text-[10px] font-semibold px-2 py-1 rounded"
                     style="background: var(--bg-glass-input); color: var(--text-faint);">All</button>
+            @if(!$hideCustomFonts)
             <button type="button" @click="cat = 'mine'"
                     :class="cat === 'mine' ? 'bg-blue-600 text-white' : ''"
                     class="text-[10px] font-semibold px-2 py-1 rounded"
                     style="background: var(--bg-glass-input); color: var(--text-faint);">
                 <i class="fas fa-star text-[8px] mr-1"></i>My Fonts (<span x-text="customFonts.length"></span>)
             </button>
+            @endif
             @foreach($fontCats as $catKey => $catLabel)
             <button type="button" @click="cat = '{{ $catKey }}'"
                     :class="cat === '{{ $catKey }}' ? 'bg-blue-600 text-white' : ''"
@@ -87,6 +100,7 @@
 
         {{-- "My Fonts" section: pinned at top whenever there are any uploads
              AND we're either on the All filter or the My Fonts filter. --}}
+        @if(!$hideCustomFonts)
         <div x-show="customFonts.length > 0 && (cat === 'all' || cat === 'mine') && (search === '' || matchesSearch('mine'))" class="space-y-1">
             <div class="flex items-center justify-between">
                 <p class="text-[10px] font-bold uppercase tracking-wider" style="color: var(--text-muted);">My Fonts</p>
@@ -110,8 +124,10 @@
                 </div>
             </template>
         </div>
+        @endif
 
         {{-- Empty-state for My Fonts when filter = mine and no uploads. --}}
+        @if(!$hideCustomFonts)
         <div x-show="cat === 'mine' && customFonts.length === 0" class="text-center py-6">
             <p class="text-xs mb-2" style="color: var(--text-faint);">No custom fonts yet.</p>
             <button type="button" @click="$refs.fileInput.click()"
@@ -120,6 +136,7 @@
                 <i class="fas fa-upload text-[10px] mr-1"></i>Upload .woff/.woff2/.ttf/.otf
             </button>
         </div>
+        @endif
 
         {{-- Google Fonts grid --}}
         <div x-show="cat !== 'mine'" class="space-y-1">
@@ -137,6 +154,7 @@
             </p>
         </div>
 
+        @if(!$hideCustomFonts)
         {{-- Hidden file input for uploads. --}}
         <input type="file" x-ref="fileInput" accept=".woff,.woff2,.ttf,.otf" class="hidden"
                @change="uploadCustomFont($event)">
@@ -144,6 +162,7 @@
         <p x-show="uploading" class="text-[11px]" style="color: var(--text-muted);">
             <i class="fas fa-spinner fa-spin mr-1"></i>Uploading…
         </p>
+        @endif
     </div>
 </div>
 
@@ -182,13 +201,26 @@ window.fontPickerComponent_{{ $pickerId }} = window.fontPickerComponent_{{ $pick
             if (this.selected && !this.selected.startsWith('custom:')) {
                 this.loadGoogleFont(this.selected);
             }
+            // Allow host pages to push a value into the picker (e.g. a
+            // "clear section" action resetting font_family to inherit).
+            window.addEventListener('font-picker-set', (ev) => {
+                if (!ev.detail || ev.detail.pickerId !== @json($pickerId)) return;
+                const val = ev.detail.value || '';
+                if (val === this.selected) return;
+                this.selected = val;
+                if (val && !val.startsWith('custom:')) this.loadGoogleFont(val);
+            });
         },
         select(family) {
             this.selected = family;
             if (family && !family.startsWith('custom:')) this.loadGoogleFont(family);
             // Mirror change into the hidden input so any external listeners
-            // (live preview, dirty-state guards) pick it up.
+            // (live preview, dirty-state guards) pick it up. Set .value
+            // explicitly first — Alpine's :value binding flushes on the next
+            // tick, so listeners reading $event.target.value at dispatch time
+            // would otherwise see the stale selection.
             this.$root.querySelectorAll('input[type=hidden][name="{{ $name }}"]').forEach((el) => {
+                el.value = family;
                 el.dispatchEvent(new Event('change', { bubbles: true }));
             });
         },

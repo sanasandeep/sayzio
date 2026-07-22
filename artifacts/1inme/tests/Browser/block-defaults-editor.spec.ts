@@ -333,6 +333,64 @@ test.describe("admin block-defaults editor save/clear", () => {
     ).toBeUndefined();
   });
 
+  // The Typography "Font family" field is the shared searchable font picker
+  // (not a free-text input). Verify the full wiring: opening the picker,
+  // searching, selecting a font mirrors into the hidden style[font_family]
+  // input AND fires the bubbling change event that flips the section's
+  // override badge; "clear section" resets the picker back to Inherit via the
+  // font-picker-set window event. Admin surface must NOT show "My Fonts".
+  test("font family uses the searchable picker wired to setStyle and clear-section", async ({
+    page,
+  }) => {
+    await openEditor(page);
+
+    const card = typographyCard(page);
+    const header = card.locator("button.bd-section-hd");
+    const picker = page.locator('.font-picker[data-picker-id="bdFontFamily"]');
+    const hidden = picker.locator('input[name="style[font_family]"]');
+
+    // Expand Typography; the picker trigger (not a free-text input) renders.
+    await header.click();
+    await expect(picker).toBeVisible();
+    expect(
+      await page.locator('input[type="text"][name="style[font_family]"]').count(),
+      "the old free-text font input must be gone",
+    ).toBe(0);
+
+    // Open the picker and verify admin guard hides My Fonts entirely.
+    await picker.locator("button.theme-input").click();
+    await expect(picker.locator('input[placeholder="Search fonts…"]')).toBeVisible();
+    await expect(picker.locator("text=My Fonts")).toHaveCount(0);
+
+    // Search narrows the list; select a real Google Font.
+    await picker.locator('input[placeholder="Search fonts…"]').fill("Lobster");
+    const option = picker.locator("span", { hasText: /^Lobster$/ }).first();
+    await option.click();
+
+    // Hidden input mirrors the pick and the section badge flips on
+    // (select() dispatches a bubbling change that the wrapper routes to
+    // setStyle).
+    await expect(hidden).toHaveValue("Lobster");
+    await expect(card.locator(".bd-badge")).toBeVisible();
+    const clearBtn = card.locator(".bd-clear-btn");
+    await expect(clearBtn).toBeVisible();
+
+    // The picker loaded the Google Font stylesheet for the preview.
+    const fontLinks = await page
+      .locator('link[href*="fonts.googleapis.com"][href*="Lobster"]')
+      .count();
+    expect(fontLinks, "selected Google Font stylesheet loaded").toBeGreaterThan(0);
+
+    // Clear section resets the picker to Inherit (font-picker-set event) and
+    // empties the hidden input so a save would drop the override.
+    await clearBtn.click();
+    await expect(hidden).toHaveValue("");
+    await expect(card.locator(".bd-badge")).toBeHidden();
+    await expect(
+      picker.locator("button.theme-input span", { hasText: "Inherit" }).first(),
+    ).toBeVisible();
+  });
+
   // Regression: the section headers used to nest the "clear" <button> inside
   // the header <button>. Nested buttons are invalid HTML — the parser
   // force-closes the outer button, misnesting the whole tree so every card

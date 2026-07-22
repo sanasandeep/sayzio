@@ -106,6 +106,9 @@
     },
     clearSection(fields) {
         fields.forEach(f => { delete this.styleData[f]; });
+        if (fields.includes('font_family')) {
+            window.dispatchEvent(new CustomEvent('font-picker-set', { detail: { pickerId: 'bdFontFamily', value: '' } }));
+        }
     },
     get effective() {
         return Object.assign({}, this.systemStyle, this.styleData);
@@ -333,13 +336,21 @@ x-init="fetchPreview(); $watch('styleData', () => schedulePreview()); $watch('co
                     <div x-show="open.typography" x-collapse>
                         <div class="bd-body">
                             <div class="grid grid-cols-2 gap-3">
-                                <label class="bd-label" style="grid-column: span 2;">
+                                <div class="bd-label" style="grid-column: span 2;">
                                     Font family
-                                    <input type="text" name="style[font_family]" class="bd-input"
-                                           :value="getStyle('font_family')"
-                                           @input="setStyle('font_family', $event.target.value)"
-                                           placeholder="e.g. Space Grotesk">
-                                </label>
+                                    {{-- Shared searchable picker; the hidden input keeps the
+                                         style[font_family] form name. Its change event bubbles
+                                         up here to sync the Alpine style state. --}}
+                                    <div class="mt-1" @change="if ($event.target.name === 'style[font_family]') setStyle('font_family', $event.target.value)">
+                                        @include('user.links.partials.font-picker', [
+                                            'name' => 'style[font_family]',
+                                            'value' => $adminOverride['style']['font_family'] ?? '',
+                                            'pickerId' => 'bdFontFamily',
+                                            'allowInherit' => true,
+                                            'hideCustomFonts' => true,
+                                        ])
+                                    </div>
+                                </div>
                                 <label class="bd-label">
                                     Font size (px)
                                     <input type="text" name="style[font_size]" class="bd-input"

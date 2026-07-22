@@ -23,6 +23,12 @@
     $btnInline = ($isBtnLike && $hasCustomStyle) ? $blockInline : '';
     $gridSpan = intval($blockStyle['grid_span'] ?? 12) ?: 12;
     $fontColor = '#ffffff';
+    // Load the overridden font family (if any) so the sample renders in the
+    // actual face. Unknown/legacy families return null and fall back to the
+    // base Space Grotesk.
+    $previewFontHref = !empty($blockStyle['font_family'])
+        ? \App\Modules\User\Support\FontCatalog::googleHref((string) $blockStyle['font_family'])
+        : null;
 @endphp
 <!DOCTYPE html>
 <html lang="en">
@@ -36,6 +42,9 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    @if($previewFontHref)
+        <link href="{{ $previewFontHref }}" rel="stylesheet">
+    @endif
     <style>
         html { scroll-behavior: smooth; }
         body {
