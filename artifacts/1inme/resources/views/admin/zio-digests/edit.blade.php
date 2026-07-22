@@ -14,7 +14,8 @@
         <h2 class="text-lg font-semibold text-white">{{ $digest->exists ? 'Edit digest' : 'New digest' }}</h2>
         <div class="flex items-center gap-3">
             @if($digest->exists)
-                <a href="{{ route('admin.zio-digests.preview', $digest) }}" target="_blank" class="text-xs text-white/60 hover:text-white"><i class="fas fa-eye mr-1"></i> Preview</a>
+                <a href="{{ route('admin.zio-digests.preview', $digest) }}" target="_blank" class="text-xs text-white/60 hover:text-white"><i class="fas fa-eye mr-1"></i> Page preview</a>
+                <a href="{{ route('admin.zio-digests.email-preview', $digest) }}" target="_blank" class="text-xs text-white/60 hover:text-white"><i class="fas fa-envelope-open-text mr-1"></i> Email preview</a>
             @endif
             <a href="{{ route('admin.zio-digests.index') }}" class="text-xs text-white/60 hover:text-white"><i class="fas fa-arrow-left mr-1"></i> Back</a>
         </div>

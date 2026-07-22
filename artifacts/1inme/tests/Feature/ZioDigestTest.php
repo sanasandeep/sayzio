@@ -112,6 +112,28 @@ class ZioDigestTest extends TestCase
         $this->get('/admin/zio-digests/' . $digest->id . '/preview')->assertOk()->assertSee('Admin preview');
     }
 
+    public function test_admin_email_preview_renders_email_html(): void
+    {
+        $this->be($this->admin(), 'admin');
+        $digest = $this->makeDigest(['status' => 'draft', 'published_at' => null]);
+
+        $this->get('/admin/zio-digests/' . $digest->id . '/email-preview')
+            ->assertOk()
+            ->assertSee('Email preview', false)
+            ->assertSee($digest->title)
+            ->assertSee('Hello')
+            ->assertSee('World')
+            ->assertSee('Read the full digest', false)
+            ->assertSee('Unsubscribe from digests', false);
+    }
+
+    public function test_email_preview_requires_admin(): void
+    {
+        $digest = $this->makeDigest();
+
+        $this->get('/admin/zio-digests/' . $digest->id . '/email-preview')->assertRedirect();
+    }
+
     public function test_send_requires_published_digest(): void
     {
         $this->be($this->admin(), 'admin');
