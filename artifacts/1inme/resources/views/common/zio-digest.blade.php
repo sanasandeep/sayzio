@@ -82,6 +82,14 @@
             font-size: 13px; margin-bottom: 18px; text-align: center;
         }
         html.light-mode .zd-preview-banner { color: #92400e; }
+        .zd-theme-toggle {
+            display: inline-flex; align-items: center; gap: 6px;
+            margin-left: 10px; padding: 3px 10px;
+            font: inherit; font-size: 12px; cursor: pointer;
+            color: inherit; background: rgba(245,158,11,0.12);
+            border: 1px solid rgba(245,158,11,0.45); border-radius: 999px;
+        }
+        .zd-theme-toggle:hover { background: rgba(245,158,11,0.25); }
         .zd-date { font-size: 12px; color: #9ca3af; margin-bottom: 18px; }
         html.light-mode .zd-date { color: #6b7280; }
         .zd-brand { display: flex; justify-content: center; margin: 0 0 22px; }
@@ -103,7 +111,34 @@
             <span class="zd-brand-chip"><img src="{{ $zdLogoUrl }}" alt="Zio Digest — Your Daily Dose of Smart Reads"></span>
         </div>
         @if(!empty($isPreview))
-            <div class="zd-preview-banner"><i class="fas fa-eye"></i> Admin preview — {{ $digest->isPublished() ? 'this digest is live.' : 'this digest is a draft and hidden from the public.' }}</div>
+            <div class="zd-preview-banner">
+                <i class="fas fa-eye"></i> Admin preview — {{ $digest->isPublished() ? 'this digest is live.' : 'this digest is a draft and hidden from the public.' }}
+                <button type="button" class="zd-theme-toggle" id="zdThemeToggle" aria-pressed="false">
+                    <i class="fas fa-moon" aria-hidden="true"></i>
+                    <span>Dark</span>
+                </button>
+            </div>
+            <script>
+            (function(){
+                var btn = document.getElementById('zdThemeToggle');
+                if(!btn) return;
+                var icon = btn.querySelector('i');
+                var label = btn.querySelector('span');
+                function sync(){
+                    var isLight = document.documentElement.classList.contains('light-mode');
+                    icon.className = isLight ? 'fas fa-sun' : 'fas fa-moon';
+                    label.textContent = isLight ? 'Light' : 'Dark';
+                    btn.setAttribute('aria-pressed', isLight ? 'true' : 'false');
+                    btn.setAttribute('title', isLight ? 'Switch preview to dark mode' : 'Switch preview to light mode');
+                }
+                btn.addEventListener('click', function(){
+                    document.documentElement.classList.toggle('light-mode');
+                    sync();
+                });
+                window.addEventListener('1inme:theme-change', sync);
+                sync();
+            })();
+            </script>
         @endif
         <article class="zd-card">
             @if($digest->lead_image)
