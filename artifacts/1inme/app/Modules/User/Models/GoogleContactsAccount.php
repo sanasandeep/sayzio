@@ -10,7 +10,7 @@ class GoogleContactsAccount extends Model
         'user_id', 'account_email', 'external_account_id',
         'access_token', 'refresh_token', 'token_expires_at', 'scope',
         'sync_token', 'last_synced_at', 'last_sync_status', 'last_sync_error',
-        'needs_reauth_at', 'pull_enabled', 'push_enabled', 'settings',
+        'needs_reauth_at', 'reauth_reminder_sent_at', 'pull_enabled', 'push_enabled', 'settings',
     ];
 
     /** last_sync_status value used when the Google connection must be re-authorised. */
@@ -22,6 +22,7 @@ class GoogleContactsAccount extends Model
             'settings'          => 'array',
             'token_expires_at'  => 'datetime',
             'needs_reauth_at'   => 'datetime',
+            'reauth_reminder_sent_at' => 'datetime',
             'last_synced_at'    => 'datetime',
             'pull_enabled'      => 'boolean',
             'push_enabled'      => 'boolean',

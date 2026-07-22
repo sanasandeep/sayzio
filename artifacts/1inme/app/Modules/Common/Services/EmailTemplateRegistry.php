@@ -1054,6 +1054,20 @@ class EmailTemplateRegistry
                     'reconnect_url' => ['label' => 'Reconnect link', 'sample' => 'https://sayzio.app/user/contacts'],
                 ],
             ],
+            'contacts.google_reauth_reminder' => [
+                'category' => 'messaging',
+                'label' => 'Google Contacts reconnect reminder',
+                'description' => 'One-time follow-up sent when a Google Contacts connection has stayed disconnected for a week after the initial alert.',
+                'format' => 'text',
+                'body_type' => 'inline',
+                'subject' => 'Reminder: Google Contacts sync is still paused',
+                'body' => "It's been a week since the connection to {{account_email}} expired, and contact syncing is still paused.\n\nReconnect your Google account to resume syncing: {{reconnect_url}}",
+                'pref_type' => 'contacts.google_reauth_reminder',
+                'variables' => [
+                    'account_email' => ['label' => 'Connected Google account email', 'sample' => 'you@gmail.com'],
+                    'reconnect_url' => ['label' => 'Reconnect link', 'sample' => 'https://sayzio.app/user/contacts'],
+                ],
+            ],
             'store.new_order' => [
                 'category' => 'messaging',
                 'label' => 'New store order request',
