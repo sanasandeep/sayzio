@@ -51,7 +51,7 @@
                     <figure x-show="(t.quote || '').trim() !== ''"
                             class="bg-white/[0.04] border border-white/10 rounded-2xl p-4 flex flex-col">
                         <div class="ak-blue text-blue-300/70 text-xl leading-none mb-2" aria-hidden="true">&ldquo;</div>
-                        <blockquote class="text-gray-200 text-xs leading-relaxed flex-1" x-text="t.quote"></blockquote>
+                        <blockquote class="text-gray-200 text-xs leading-relaxed flex-1 ak-strong" x-text="t.quote"></blockquote>
                         <figcaption class="mt-3 flex items-center gap-2.5">
                             <template x-if="(t.photo || '').trim() !== ''">
                                 <img :src="t.photo" alt="" loading="lazy"
@@ -64,14 +64,14 @@
                             </template>
                             <div class="min-w-0">
                                 <div class="ak-strong text-xs font-semibold text-white truncate" x-text="t.name || ''"></div>
-                                <div class="text-[11px] text-gray-400 truncate" x-show="(t.role || '').trim() !== ''" x-text="t.role"></div>
+                                <div class="text-[11px] text-gray-400 truncate ak-muted" x-show="(t.role || '').trim() !== ''" x-text="t.role"></div>
                             </div>
                         </figcaption>
                     </figure>
                 </template>
             </div>
             <p x-show="{{ $modelKey }}.filter(t => (t.quote || '').trim() !== '').length === 0"
-               class="text-xs text-white/40">Add a quote to see the testimonial card.</p>
+               class="text-xs text-white/40 ak-note">Add a quote to see the testimonial card.</p>
         </div>
     </div>
 </div>

@@ -10,34 +10,34 @@
             <div class="space-y-5">
                 <div class="grid grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-sm font-medium text-white/80 mb-1">Role Name</label>
+                        <label class="block text-sm font-medium text-white/80 mb-1 ak-strong">Role Name</label>
                         <input type="text" name="name" value="{{ old('name', $role->name) }}" required
-                               class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white focus:ring-2 focus:ring-blue-500/40 outline-none">
+                               class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white focus:ring-2 focus:ring-blue-500/40 outline-none ak-strong ak-input">
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-white/80 mb-1">Slug</label>
+                        <label class="block text-sm font-medium text-white/80 mb-1 ak-strong">Slug</label>
                         <input type="text" value="{{ $role->slug }}" disabled
-                               class="w-full px-4 py-2.5 border border-white/10 rounded-xl bg-white/5 text-white/30">
+                               class="w-full px-4 py-2.5 border border-white/10 rounded-xl bg-white/5 text-white/30 ak-note ak-input">
                     </div>
                 </div>
 
                 <div>
-                    <label class="block text-sm font-medium text-white/80 mb-1">Description</label>
+                    <label class="block text-sm font-medium text-white/80 mb-1 ak-strong">Description</label>
                     <textarea name="description" rows="2"
-                              class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white focus:ring-2 focus:ring-blue-500/40 outline-none">{{ old('description', $role->description) }}</textarea>
+                              class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white focus:ring-2 focus:ring-blue-500/40 outline-none ak-strong ak-input">{{ old('description', $role->description) }}</textarea>
                 </div>
 
                 <div>
-                    <label class="block text-sm font-medium text-white/80 mb-3">Permissions</label>
+                    <label class="block text-sm font-medium text-white/80 mb-3 ak-strong">Permissions</label>
                     @foreach($permissions as $group => $perms)
                     <div class="mb-4">
-                        <h4 class="text-sm font-medium text-white/60 mb-2 capitalize">{{ $group ?: 'General' }}</h4>
+                        <h4 class="text-sm font-medium text-white/60 mb-2 capitalize ak-muted">{{ $group ?: 'General' }}</h4>
                         <div class="grid grid-cols-2 md:grid-cols-3 gap-2">
                             @foreach($perms as $perm)
-                            <label class="flex items-center gap-2 text-sm text-white/60 p-2 rounded hover:bg-white/5">
+                            <label class="flex items-center gap-2 text-sm text-white/60 p-2 rounded hover:bg-white/5 ak-muted">
                                 <input type="checkbox" name="permissions[]" value="{{ $perm->id }}"
                                        {{ in_array($perm->id, $rolePermissions) ? 'checked' : '' }}
-                                       class="rounded border-white/10 text-blue-400 focus:ring-blue-500/40">
+                                       class="rounded border-white/10 text-blue-400 focus:ring-blue-500/40 ak-blue">
                                 {{ $perm->name }}
                             </label>
                             @endforeach
@@ -48,7 +48,7 @@
 
                 <div class="flex items-center gap-3 pt-4">
                     <button type="submit" class="px-6 py-2.5 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition">Update Role</button>
-                    <a href="{{ route('admin.roles.index') }}" class="px-6 py-2.5 bg-white/10 text-white/80 rounded-xl font-medium hover:bg-white/[0.06] transition">Cancel</a>
+                    <a href="{{ route('admin.roles.index') }}" class="px-6 py-2.5 bg-white/10 text-white/80 rounded-xl font-medium hover:bg-white/[0.06] transition ak-strong">Cancel</a>
                 </div>
             </div>
         </form>

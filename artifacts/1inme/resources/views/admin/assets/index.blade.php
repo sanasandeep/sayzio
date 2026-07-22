@@ -35,7 +35,7 @@
          style="background: rgba(61,107,255,0.10); backdrop-filter: blur(2px);">
         <div class="rounded-2xl px-10 py-8 text-center"
              style="background: var(--bg-card); border: 2px dashed #3d6bff; box-shadow: 0 20px 60px rgba(0,0,0,.35);">
-            <i class="fas fa-cloud-arrow-up text-5xl text-blue-400 mb-3"></i>
+            <i class="fas fa-cloud-arrow-up text-5xl text-blue-400 mb-3 ak-blue"></i>
             <p class="text-base font-bold" style="color: var(--text-primary);">Drop files to upload</p>
             <p class="text-xs mt-1" style="color: var(--text-faint);"
                x-text="folder ? 'Files will be added to “' + ((folders.find(f => f.slug === folder) || { name: folder }).name) + '”' : 'Files will be added to Unfiled'"></p>
@@ -53,7 +53,7 @@
         </div>
         <div class="flex items-center gap-2">
             <span class="inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1.5 rounded-lg"
-                  :class="storage.is_s3 ? 'text-emerald-300' : 'text-blue-300'"
+                  :class="storage.is_s3 ? 'text-emerald-300 ak-green' : 'text-blue-300 ak-blue'"
                   :style="(storage.is_s3 ? 'background: rgba(16,185,129,0.10); border: 1px solid rgba(16,185,129,0.25);' : 'background: rgba(61,107,255,0.10); border: 1px solid rgba(61,107,255,0.25);')">
                 <i :class="storage.is_s3 ? 'fab fa-aws' : 'fas fa-server'"></i>
                 <span x-text="storage.is_s3 ? 'AWS S3' : 'Local Disk'"></span>
@@ -99,14 +99,14 @@
         <aside class="rounded-xl overflow-hidden" style="background: var(--bg-card); border: 1px solid var(--border-subtle);">
             <div class="px-4 py-3 flex items-center justify-between" style="border-bottom: 1px solid var(--border-subtle);">
                 <span class="text-xs font-bold uppercase tracking-wider" style="color: var(--text-faint);">Folders</span>
-                <button @click="newFolderModal = true" class="text-xs text-blue-400 hover:text-blue-300" title="New folder">
+                <button @click="newFolderModal = true" class="text-xs text-blue-400 hover:text-blue-300 ak-blue" title="New folder">
                     <i class="fas fa-plus"></i>
                 </button>
             </div>
             <div class="p-2 max-h-[480px] overflow-y-auto">
                 <button @click="folder = ''; load(1)"
                         class="w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-all"
-                        :class="folder === '' ? 'bg-blue-500/15 text-blue-200' : 'hover:bg-white/5'"
+                        :class="folder === '' ? 'bg-blue-500/15 text-blue-200 ak-blue' : 'hover:bg-white/5'"
                         :style="folder !== '' ? 'color: var(--text-secondary);' : ''">
                     <span class="flex items-center gap-2"><i class="fas fa-layer-group text-xs"></i> All assets</span>
                     <span class="text-[10px] opacity-70" x-text="storage.file_count"></span>
@@ -116,7 +116,7 @@
                     <div class="group flex items-center">
                         <button @click="folder = f.slug; load(1)"
                                 class="flex-1 flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-all min-w-0"
-                                :class="folder === f.slug ? 'bg-blue-500/15 text-blue-200' : 'hover:bg-white/5'"
+                                :class="folder === f.slug ? 'bg-blue-500/15 text-blue-200 ak-blue' : 'hover:bg-white/5'"
                                 :style="folder !== f.slug ? 'color: var(--text-secondary);' : ''">
                             <span class="flex items-center gap-2 min-w-0">
                                 <i class="fas text-xs" :class="f.system ? 'fa-inbox' : 'fa-folder'"></i>
@@ -126,7 +126,7 @@
                         </button>
                         <template x-if="!f.system">
                             <button @click="deleteFolder(f)" title="Delete folder"
-                                    class="opacity-0 group-hover:opacity-100 text-xs text-red-400 hover:text-red-300 px-2 transition-opacity">
+                                    class="opacity-0 group-hover:opacity-100 text-xs text-red-400 hover:text-red-300 px-2 transition-opacity ak-red">
                                 <i class="fas fa-trash"></i>
                             </button>
                         </template>
@@ -188,7 +188,7 @@
                  @click="$refs.fileInput.click()"
                  class="text-center py-16 rounded-xl cursor-pointer transition-all hover:border-blue-500/50"
                  style="background: var(--bg-card); border: 2px dashed var(--border-glass);">
-                <i class="fas fa-cloud-arrow-up text-4xl mb-3 text-blue-400"></i>
+                <i class="fas fa-cloud-arrow-up text-4xl mb-3 text-blue-400 ak-blue"></i>
                 <p class="text-sm font-semibold" style="color: var(--text-secondary);">Drag &amp; drop files here</p>
                 <p class="text-xs mt-1" style="color: var(--text-faint);">or click anywhere in this box to browse</p>
             </div>
@@ -201,11 +201,11 @@
                             <template x-if="a.type === 'image'">
                                 <img :src="a.url" :alt="a.original_name" class="w-full h-full object-cover" loading="lazy">
                             </template>
-                            <template x-if="a.type === 'video'"><i class="fas fa-film text-3xl text-blue-400"></i></template>
+                            <template x-if="a.type === 'video'"><i class="fas fa-film text-3xl text-blue-400 ak-blue"></i></template>
                             <template x-if="a.type === 'audio'"><i class="fas fa-music text-3xl text-pink-400"></i></template>
-                            <template x-if="a.type === 'document'"><i class="fas fa-file-lines text-3xl text-cyan-400"></i></template>
-                            <template x-if="a.type === 'archive'"><i class="fas fa-file-zipper text-3xl text-amber-400"></i></template>
-                            <template x-if="a.type === 'other'"><i class="fas fa-file text-3xl text-slate-400"></i></template>
+                            <template x-if="a.type === 'document'"><i class="fas fa-file-lines text-3xl text-cyan-400 ak-blue"></i></template>
+                            <template x-if="a.type === 'archive'"><i class="fas fa-file-zipper text-3xl text-amber-400 ak-amber"></i></template>
+                            <template x-if="a.type === 'other'"><i class="fas fa-file text-3xl text-slate-400 ak-muted"></i></template>
                         </div>
                         <div class="p-2.5">
                             <p class="text-xs font-semibold truncate" :title="a.original_name" style="color: var(--text-primary);" x-text="a.label || a.original_name"></p>

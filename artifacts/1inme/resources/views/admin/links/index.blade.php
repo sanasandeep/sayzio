@@ -3,27 +3,27 @@
 
 @section('content')
 <div class="flex items-center justify-between mb-6">
-    <h1 class="text-2xl font-bold text-white">All Links</h1>
+    <h1 class="text-2xl font-bold text-white ak-strong">All Links</h1>
 </div>
 
 <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
     <div class="glass rounded-2xl p-4">
-        <div class="text-2xl font-bold text-white">{{ number_format($stats['total']) }}</div>
-        <div class="text-sm text-white/40">Total Links</div>
+        <div class="text-2xl font-bold text-white ak-strong">{{ number_format($stats['total']) }}</div>
+        <div class="text-sm text-white/40 ak-note">Total Links</div>
     </div>
     <div class="glass rounded-2xl p-4">
-        <div class="text-2xl font-bold text-emerald-400">{{ number_format($stats['active']) }}</div>
-        <div class="text-sm text-white/40">Active</div>
+        <div class="text-2xl font-bold text-emerald-400 ak-green">{{ number_format($stats['active']) }}</div>
+        <div class="text-sm text-white/40 ak-note">Active</div>
     </div>
     <div class="glass rounded-2xl p-4">
-        <div class="text-2xl font-bold text-blue-400">{{ number_format($stats['total_clicks']) }}</div>
-        <div class="text-sm text-white/40">Total Clicks</div>
+        <div class="text-2xl font-bold text-blue-400 ak-blue">{{ number_format($stats['total_clicks']) }}</div>
+        <div class="text-sm text-white/40 ak-note">Total Clicks</div>
     </div>
     <div class="glass rounded-2xl p-4">
-        <div class="text-xs text-white/40 mb-1">By Type</div>
+        <div class="text-xs text-white/40 mb-1 ak-note">By Type</div>
         <div class="flex flex-wrap gap-1">
             @foreach($stats['types'] as $type => $count)
-                <span class="text-xs bg-white/10 text-white/60 px-2 py-0.5 rounded">{{ \App\Modules\User\Models\Link::typeLabel($type) }}: {{ $count }}</span>
+                <span class="text-xs bg-white/10 text-white/60 px-2 py-0.5 rounded ak-muted">{{ \App\Modules\User\Models\Link::typeLabel($type) }}: {{ $count }}</span>
             @endforeach
         </div>
     </div>
@@ -45,7 +45,7 @@
         </select>
         <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded-xl text-sm font-medium hover:bg-blue-700">Filter</button>
         @if(request()->hasAny(['search', 'type', 'status']))
-            <a href="{{ route('admin.links.index') }}" class="text-white/40 hover:text-white/60 px-3 py-2 text-sm">Clear</a>
+            <a href="{{ route('admin.links.index') }}" class="text-white/40 hover:text-white/60 px-3 py-2 text-sm ak-note">Clear</a>
         @endif
     </form>
 </div>
@@ -66,60 +66,60 @@
             <thead class="bg-white/5">
                 <tr>
                     <th class="px-4 py-3 text-left" data-no-sort>
-                        <input type="checkbox" id="selectAll" class="rounded border-white/10 text-blue-400 focus:ring-blue-500/40">
+                        <input type="checkbox" id="selectAll" class="rounded border-white/10 text-blue-400 focus:ring-blue-500/40 ak-blue">
                     </th>
-                    <th class="px-4 py-3 text-left text-xs font-medium text-white/40 uppercase">Link</th>
-                    <th class="px-4 py-3 text-left text-xs font-medium text-white/40 uppercase">User</th>
-                    <th class="px-4 py-3 text-left text-xs font-medium text-white/40 uppercase">Type</th>
-                    <th class="px-4 py-3 text-left text-xs font-medium text-white/40 uppercase">Clicks</th>
-                    <th class="px-4 py-3 text-left text-xs font-medium text-white/40 uppercase">Status</th>
-                    <th class="px-4 py-3 text-left text-xs font-medium text-white/40 uppercase">Created</th>
-                    <th class="px-4 py-3 text-right text-xs font-medium text-white/40 uppercase" data-no-sort>Actions</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-white/40 uppercase ak-note">Link</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-white/40 uppercase ak-note">User</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-white/40 uppercase ak-note">Type</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-white/40 uppercase ak-note">Clicks</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-white/40 uppercase ak-note">Status</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-white/40 uppercase ak-note">Created</th>
+                    <th class="px-4 py-3 text-right text-xs font-medium text-white/40 uppercase ak-note" data-no-sort>Actions</th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-white/5">
                 @forelse($links as $link)
                 <tr class="hover:bg-white/5">
                     <td class="px-4 py-3">
-                        <input type="checkbox" name="link_ids[]" value="{{ $link->id }}" class="link-checkbox rounded border-white/10 text-blue-400 focus:ring-blue-500/40">
+                        <input type="checkbox" name="link_ids[]" value="{{ $link->id }}" class="link-checkbox rounded border-white/10 text-blue-400 focus:ring-blue-500/40 ak-blue">
                     </td>
                     <td class="px-4 py-3">
-                        <div class="text-sm font-medium text-white">{{ Str::limit($link->title ?: $link->alias, 35) }}</div>
-                        <div class="text-xs text-white/40 font-mono">{{ $link->getShortUrl() }}</div>
+                        <div class="text-sm font-medium text-white ak-strong">{{ Str::limit($link->title ?: $link->alias, 35) }}</div>
+                        <div class="text-xs text-white/40 font-mono ak-note">{{ $link->getShortUrl() }}</div>
                         @if($link->long_url)
                             <div class="text-xs text-blue-500 truncate max-w-xs">{{ Str::limit($link->long_url, 50) }}</div>
                         @endif
                     </td>
                     <td class="px-4 py-3">
-                        <div class="text-sm text-white">{{ $link->user->name }}</div>
-                        <div class="text-xs text-white/40">{{ $link->user->email }}</div>
+                        <div class="text-sm text-white ak-strong">{{ $link->user->name }}</div>
+                        <div class="text-xs text-white/40 ak-note">{{ $link->user->email }}</div>
                     </td>
                     <td class="px-4 py-3">
                         <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium
-                            {{ $link->type === 'url' ? 'bg-blue-500/10 text-blue-400' : '' }}
-                            {{ $link->type === 'biolink' ? 'bg-blue-500/10 text-blue-400' : '' }}
-                            {{ $link->type === 'file' ? 'bg-emerald-500/10 text-emerald-400' : '' }}
-                            {{ $link->type === 'ics' ? 'bg-amber-500/10 text-amber-400' : '' }}
+                            {{ $link->type === 'url' ? 'bg-blue-500/10 text-blue-400 ak-blue' : '' }}
+                            {{ $link->type === 'biolink' ? 'bg-blue-500/10 text-blue-400 ak-blue' : '' }}
+                            {{ $link->type === 'file' ? 'bg-emerald-500/10 text-emerald-400 ak-green' : '' }}
+                            {{ $link->type === 'ics' ? 'bg-amber-500/10 text-amber-400 ak-amber' : '' }}
                             {{ $link->type === 'vcf' ? 'bg-pink-50 text-pink-700' : '' }}
                         ">{{ \App\Modules\User\Models\Link::typeLabel($link->type) }}</span>
                     </td>
-                    <td class="px-4 py-3 text-sm text-white/60">{{ number_format($link->total_clicks) }}</td>
+                    <td class="px-4 py-3 text-sm text-white/60 ak-muted">{{ number_format($link->total_clicks) }}</td>
                     <td class="px-4 py-3">
-                        <span class="px-2 py-0.5 rounded text-xs {{ $link->is_active ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400' }}">
+                        <span class="px-2 py-0.5 rounded text-xs {{ $link->is_active ? 'bg-emerald-500/10 text-emerald-400 ak-green' : 'bg-red-500/10 text-red-400 ak-red' }}">
                             {{ $link->is_active ? 'Active' : 'Inactive' }}
                         </span>
                     </td>
-                    <td class="px-4 py-3 text-sm text-white/40">{{ $link->created_at->format('M d, Y') }}</td>
+                    <td class="px-4 py-3 text-sm text-white/40 ak-note">{{ $link->created_at->format('M d, Y') }}</td>
                     <td class="px-4 py-3 text-right">
                         <div class="flex items-center justify-end gap-2">
-                            <a href="{{ route('admin.links.show', $link) }}" class="text-blue-400 hover:text-blue-300 text-sm">View</a>
+                            <a href="{{ route('admin.links.show', $link) }}" class="text-blue-400 hover:text-blue-300 text-sm ak-blue">View</a>
                             <button type="button" class="text-yellow-600 hover:text-yellow-700 text-sm" onclick="document.getElementById('toggle-form-{{ $link->id }}').submit()">{{ $link->is_active ? 'Disable' : 'Enable' }}</button>
-                            <button type="button" class="text-red-400 hover:text-red-400 text-sm" onclick="return window.themedConfirmAction(this, {title: 'Delete this link?', confirmText: 'Delete', confirmIcon: 'fa-trash', iconClass: 'fa-trash', onConfirm: function(){ document.getElementById('delete-form-{{ $link->id }}').submit(); }})">Delete</button>
+                            <button type="button" class="text-red-400 hover:text-red-400 text-sm ak-red" onclick="return window.themedConfirmAction(this, {title: 'Delete this link?', confirmText: 'Delete', confirmIcon: 'fa-trash', iconClass: 'fa-trash', onConfirm: function(){ document.getElementById('delete-form-{{ $link->id }}').submit(); }})">Delete</button>
                         </div>
                     </td>
                 </tr>
                 @empty
-                <tr><td colspan="8" class="px-4 py-8 text-center text-white/40">No links found.</td></tr>
+                <tr><td colspan="8" class="px-4 py-8 text-center text-white/40 ak-note">No links found.</td></tr>
                 @endforelse
             </tbody>
         </table>

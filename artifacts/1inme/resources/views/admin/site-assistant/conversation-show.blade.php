@@ -4,16 +4,16 @@
 
 @section('content')
 <div class="max-w-4xl space-y-6">
-    <div class="text-sm text-white/60"><a href="{{ route('admin.site-assistant.conversations') }}" class="hover:text-white">← All conversations</a></div>
+    <div class="text-sm text-white/60 ak-muted"><a href="{{ route('admin.site-assistant.conversations') }}" class="hover:text-white">← All conversations</a></div>
 
-    <div class="glass rounded-2xl border border-white/10 p-6 grid md:grid-cols-3 gap-3 text-sm text-white/80">
-        <div><span class="text-white/40 text-xs">Visitor:</span> {{ $conversation->visitor_email ?: $conversation->visitor_name ?: '—' }}</div>
-        <div><span class="text-white/40 text-xs">Surface:</span> {{ $conversation->surface }}</div>
-        <div><span class="text-white/40 text-xs">Last route:</span> <code class="text-xs">{{ $conversation->last_route ?: '—' }}</code></div>
-        <div><span class="text-white/40 text-xs">Turns:</span> {{ $conversation->turns_count }}</div>
-        <div><span class="text-white/40 text-xs">Coins:</span> {{ $conversation->credits_spent }}</div>
-        <div><span class="text-white/40 text-xs">Started:</span> {{ optional($conversation->created_at)->toDayDateTimeString() }}</div>
-        @if($conversation->handed_off)<div class="md:col-span-3 text-amber-300 text-xs">Handed off → ContactMessage #{{ $conversation->contact_message_id }}</div>@endif
+    <div class="glass rounded-2xl border border-white/10 p-6 grid md:grid-cols-3 gap-3 text-sm text-white/80 ak-strong">
+        <div><span class="text-white/40 text-xs ak-note">Visitor:</span> {{ $conversation->visitor_email ?: $conversation->visitor_name ?: '—' }}</div>
+        <div><span class="text-white/40 text-xs ak-note">Surface:</span> {{ $conversation->surface }}</div>
+        <div><span class="text-white/40 text-xs ak-note">Last route:</span> <code class="text-xs">{{ $conversation->last_route ?: '—' }}</code></div>
+        <div><span class="text-white/40 text-xs ak-note">Turns:</span> {{ $conversation->turns_count }}</div>
+        <div><span class="text-white/40 text-xs ak-note">Coins:</span> {{ $conversation->credits_spent }}</div>
+        <div><span class="text-white/40 text-xs ak-note">Started:</span> {{ optional($conversation->created_at)->toDayDateTimeString() }}</div>
+        @if($conversation->handed_off)<div class="md:col-span-3 text-amber-300 text-xs ak-amber">Handed off → ContactMessage #{{ $conversation->contact_message_id }}</div>@endif
     </div>
 
     @php
@@ -42,25 +42,25 @@
             @endphp
             <div class="flex {{ $m->role==='user' ? 'justify-end' : 'justify-start' }}">
                 <div class="max-w-[80%] rounded-xl p-3 {{ $bubbleClass }}">
-                    <div class="text-[10px] uppercase tracking-wide text-white/40 mb-1 flex items-center gap-2 flex-wrap">
+                    <div class="text-[10px] uppercase tracking-wide text-white/40 mb-1 flex items-center gap-2 flex-wrap ak-note">
                         <span>{{ $m->role }} · {{ optional($m->created_at)->diffForHumans() }}</span>
                         @if($m->role === 'assistant')
                             @if($streamStatus === 'streamed')
-                                <span class="px-1.5 py-0.5 rounded bg-sky-500/20 text-sky-300 normal-case tracking-normal" title="Delivered to the visitor word-by-word over a streaming connection.">streamed</span>
+                                <span class="px-1.5 py-0.5 rounded bg-sky-500/20 text-sky-300 normal-case tracking-normal ak-blue" title="Delivered to the visitor word-by-word over a streaming connection.">streamed</span>
                             @elseif($streamStatus === 'partial')
-                                <span class="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 normal-case tracking-normal" title="Stream broke mid-reply, the visitor only saw what is shown above.">partial stream</span>
+                                <span class="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 normal-case tracking-normal ak-amber" title="Stream broke mid-reply, the visitor only saw what is shown above.">partial stream</span>
                             @elseif($streamStatus === 'failed')
-                                <span class="px-1.5 py-0.5 rounded bg-red-500/20 text-red-300 normal-case tracking-normal" title="Stream failed before any tokens reached the visitor.">stream failed</span>
+                                <span class="px-1.5 py-0.5 rounded bg-red-500/20 text-red-300 normal-case tracking-normal ak-red" title="Stream failed before any tokens reached the visitor.">stream failed</span>
                             @elseif($streamStatus === 'classic')
-                                <span class="px-1.5 py-0.5 rounded bg-white/10 text-white/60 normal-case tracking-normal" title="Returned in a single non-streaming response.">classic</span>
+                                <span class="px-1.5 py-0.5 rounded bg-white/10 text-white/60 normal-case tracking-normal ak-muted" title="Returned in a single non-streaming response.">classic</span>
                             @else
-                                <span class="px-1.5 py-0.5 rounded bg-slate-500/20 text-slate-300 normal-case tracking-normal" title="This reply pre-dates delivery-mode tracking, we can't tell whether it was streamed or returned in one shot.">unknown</span>
+                                <span class="px-1.5 py-0.5 rounded bg-slate-500/20 text-slate-300 normal-case tracking-normal ak-muted" title="This reply pre-dates delivery-mode tracking, we can't tell whether it was streamed or returned in one shot.">unknown</span>
                             @endif
                             @if($isCutOff)
                                 @if($wasRetried)
-                                    <span class="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 normal-case tracking-normal" title="The visitor clicked Retry on this cut-off reply, the next user message asks the same question again.">visitor retried</span>
+                                    <span class="px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 normal-case tracking-normal ak-green" title="The visitor clicked Retry on this cut-off reply, the next user message asks the same question again.">visitor retried</span>
                                 @else
-                                    <span class="px-1.5 py-0.5 rounded bg-white/10 text-white/60 normal-case tracking-normal" title="The visitor did not click Retry, they either abandoned the chat or moved on to a different question. Frequent abandons usually mean a flaky upstream call worth fixing.">visitor did not retry</span>
+                                    <span class="px-1.5 py-0.5 rounded bg-white/10 text-white/60 normal-case tracking-normal ak-muted" title="The visitor did not click Retry, they either abandoned the chat or moved on to a different question. Frequent abandons usually mean a flaky upstream call worth fixing.">visitor did not retry</span>
                                 @endif
                             @endif
                         @endif
@@ -68,12 +68,12 @@
                     @if($m->content !== '' && $m->content !== null)
                         <div class="whitespace-pre-wrap text-sm">{{ $m->content }}</div>
                     @elseif($streamStatus === 'failed')
-                        <div class="text-xs italic text-red-300/80">No tokens reached the visitor before the stream failed.</div>
+                        <div class="text-xs italic text-red-300/80 ak-red">No tokens reached the visitor before the stream failed.</div>
                     @endif
                     @if($streamError)
-                        <div class="mt-2 text-[11px] text-red-300/80"><span class="text-white/40">Stream error:</span> {{ $streamError }}</div>
+                        <div class="mt-2 text-[11px] text-red-300/80 ak-red"><span class="text-white/40 ak-note">Stream error:</span> {{ $streamError }}</div>
                     @endif
-                    @if($m->blocks)<details class="mt-2 text-xs text-white/50"><summary>Blocks</summary><pre class="overflow-auto">{{ json_encode($m->blocks, JSON_PRETTY_PRINT) }}</pre></details>@endif
+                    @if($m->blocks)<details class="mt-2 text-xs text-white/50 ak-muted"><summary>Blocks</summary><pre class="overflow-auto">{{ json_encode($m->blocks, JSON_PRETTY_PRINT) }}</pre></details>@endif
                     @if($m->role !== 'user' && !empty($m->citations))
                         <div class="mt-2 flex flex-wrap gap-1.5">
                             @foreach($m->citations as $c)
@@ -97,44 +97,44 @@
                                 @endphp
                                 @if($jumpHref)
                                     <a href="{{ $jumpHref }}" title="{{ $tooltip }}"
-                                       class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] border bg-indigo-500/15 border-indigo-400/40 text-indigo-100 hover:bg-indigo-500/25">
-                                        <span class="text-[9px] uppercase tracking-wide text-indigo-300">Asst</span>
+                                       class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] border bg-indigo-500/15 border-indigo-400/40 text-indigo-100 hover:bg-indigo-500/25 ak-blue">
+                                        <span class="text-[9px] uppercase tracking-wide text-indigo-300 ak-blue">Asst</span>
                                         <span class="truncate max-w-[14rem]">{{ $cTitle }}</span>
                                     </a>
                                 @elseif($fromAsst)
                                     <span title="{{ $tooltip }}"
-                                          class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] border bg-indigo-500/15 border-indigo-400/40 text-indigo-100">
-                                        <span class="text-[9px] uppercase tracking-wide text-indigo-300">Asst</span>
+                                          class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] border bg-indigo-500/15 border-indigo-400/40 text-indigo-100 ak-blue">
+                                        <span class="text-[9px] uppercase tracking-wide text-indigo-300 ak-blue">Asst</span>
                                         <span class="truncate max-w-[14rem]">{{ $cTitle }}</span>
-                                        <span class="text-[9px] text-white/40">(deleted)</span>
+                                        <span class="text-[9px] text-white/40 ak-note">(deleted)</span>
                                     </span>
                                 @elseif($cUrl)
                                     <a href="{{ $cUrl }}" target="_blank" rel="noopener" title="{{ $tooltip }}"
-                                       class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] border bg-white/5 border-white/15 text-white/80 hover:bg-white/10">
+                                       class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] border bg-white/5 border-white/15 text-white/80 hover:bg-white/10 ak-strong">
                                         <span class="truncate max-w-[14rem]">{{ $cTitle }}</span>
                                     </a>
                                 @else
                                     <span title="{{ $tooltip }}"
-                                          class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] border bg-white/5 border-white/15 text-white/80">
+                                          class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] border bg-white/5 border-white/15 text-white/80 ak-strong">
                                         <span class="truncate max-w-[14rem]">{{ $cTitle }}</span>
                                     </span>
                                 @endif
                             @endforeach
                         </div>
-                        <details class="mt-2 text-xs text-white/40"><summary>Raw citations ({{ count($m->citations) }})</summary><pre class="overflow-auto">{{ json_encode($m->citations, JSON_PRETTY_PRINT) }}</pre></details>
+                        <details class="mt-2 text-xs text-white/40 ak-note"><summary>Raw citations ({{ count($m->citations) }})</summary><pre class="overflow-auto">{{ json_encode($m->citations, JSON_PRETTY_PRINT) }}</pre></details>
                     @endif
                 </div>
             </div>
         @empty
-            <div class="text-center text-white/40 text-sm">No messages yet.</div>
+            <div class="text-center text-white/40 text-sm ak-note">No messages yet.</div>
         @endforelse
     </div>
 
     <div class="flex gap-2">
         @if($conversation->is_disabled)
-            <form method="POST" action="{{ route('admin.site-assistant.conversations.enable', $conversation) }}">@csrf<button class="px-4 py-2 rounded-xl bg-emerald-500/20 text-emerald-300 text-sm">Re-enable</button></form>
+            <form method="POST" action="{{ route('admin.site-assistant.conversations.enable', $conversation) }}">@csrf<button class="px-4 py-2 rounded-xl bg-emerald-500/20 text-emerald-300 text-sm ak-green">Re-enable</button></form>
         @else
-            <form method="POST" action="{{ route('admin.site-assistant.conversations.disable', $conversation) }}">@csrf<button class="px-4 py-2 rounded-xl bg-red-500/20 text-red-300 text-sm">Disable conversation</button></form>
+            <form method="POST" action="{{ route('admin.site-assistant.conversations.disable', $conversation) }}">@csrf<button class="px-4 py-2 rounded-xl bg-red-500/20 text-red-300 text-sm ak-red">Disable conversation</button></form>
         @endif
     </div>
 </div>

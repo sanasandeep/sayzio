@@ -8,17 +8,17 @@
     <div class="glass rounded-2xl border border-white/10 p-6 mb-6">
         <div class="flex items-start justify-between gap-4 flex-wrap">
             <div>
-                <h2 class="text-lg font-semibold text-white/90">Platform-wide spam rule activity</h2>
-                <p class="text-xs text-white/50 mt-1 max-w-2xl">
+                <h2 class="text-lg font-semibold text-white/90 ak-strong">Platform-wide spam rule activity</h2>
+                <p class="text-xs text-white/50 mt-1 max-w-2xl ak-muted">
                     Aggregated counts across every account. Use this to spot which built-in keywords
                     are universally too aggressive (candidates for removal from the default list)
                     versus the ones doing useful work.
                 </p>
             </div>
             <form method="GET" action="{{ route('admin.spam-rules.index') }}" class="flex items-center gap-2">
-                <label class="text-[10px] uppercase font-bold tracking-wider text-white/50">Window</label>
+                <label class="text-[10px] uppercase font-bold tracking-wider text-white/50 ak-muted">Window</label>
                 <select name="days" onchange="this.form.submit()"
-                        class="bg-black/30 border border-white/15 rounded-lg px-2.5 py-1.5 text-sm text-white">
+                        class="bg-black/30 border border-white/15 rounded-lg px-2.5 py-1.5 text-sm text-white ak-strong">
                     @foreach($allowedWindows as $w)
                         <option value="{{ $w }}" @selected($days === $w)>Last {{ $w }} days</option>
                     @endforeach
@@ -34,12 +34,12 @@
                 'honeypot'        => ['Honeypot',        'fa-spider',       '#ef4444'],
             ] as $code => $meta)
                 <div class="rounded-xl px-4 py-3 border border-white/10 bg-white/[0.02]">
-                    <div class="text-[10px] uppercase font-bold tracking-wider text-white/50">
+                    <div class="text-[10px] uppercase font-bold tracking-wider text-white/50 ak-muted">
                         <i class="fas {{ $meta[1] }} mr-1" style="color: {{ $meta[2] }};"></i>{{ $meta[0] }}
                     </div>
-                    <div class="text-2xl font-bold text-white mt-1">{{ number_format($ruleHits[$code]) }}</div>
+                    <div class="text-2xl font-bold text-white mt-1 ak-strong">{{ number_format($ruleHits[$code]) }}</div>
                     @if($totalRuleHits > 0)
-                        <div class="text-[10px] text-white/40 mt-0.5">
+                        <div class="text-[10px] text-white/40 mt-0.5 ak-note">
                             {{ number_format($ruleHits[$code] / $totalRuleHits * 100, 1) }}% of all hits
                         </div>
                     @endif
@@ -48,11 +48,11 @@
         </div>
 
         @if($totalRuleHits === 0)
-            <div class="mt-4 text-sm text-white/50 italic">
+            <div class="mt-4 text-sm text-white/50 italic ak-muted">
                 No spam was flagged across any account in this window.
             </div>
         @else
-            <div class="mt-3 text-xs text-white/40">
+            <div class="mt-3 text-xs text-white/40 ak-note">
                 {{ number_format($totalRuleHits) }} total {{ \Illuminate\Support\Str::plural('hit', $totalRuleHits) }}
                 across form submissions and Link in Bio subscribers in the last {{ $days }} days.
             </div>
@@ -62,12 +62,12 @@
     <div class="glass rounded-2xl border border-white/10 p-6 mb-6">
         <div class="flex items-center gap-3 mb-4">
             <div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background: rgba(110,97,255,0.15);">
-                <i class="fas fa-key text-indigo-300"></i>
+                <i class="fas fa-key text-indigo-300 ak-blue"></i>
             </div>
             <div>
-                <h3 class="text-base font-semibold text-white/90">Built-in keywords</h3>
-                <p class="text-xs text-white/50">
-                    Hits per default keyword from <code class="text-white/70">SpamChecker::BLOCKED_KEYWORDS</code>.
+                <h3 class="text-base font-semibold text-white/90 ak-strong">Built-in keywords</h3>
+                <p class="text-xs text-white/50 ak-muted">
+                    Hits per default keyword from <code class="text-white/70 ak-strong">SpamChecker::BLOCKED_KEYWORDS</code>.
                     Zero-hit keywords across this window are strong candidates for removal.
                 </p>
             </div>
@@ -76,7 +76,7 @@
         <div class="overflow-x-auto">
             <table class="w-full text-sm">
                 <thead>
-                    <tr class="text-left text-[10px] uppercase font-bold tracking-wider text-white/50 border-b border-white/10">
+                    <tr class="text-left text-[10px] uppercase font-bold tracking-wider text-white/50 border-b border-white/10 ak-muted">
                         <th class="py-2 pr-4">Keyword</th>
                         <th class="py-2 pr-4 text-right">Hits</th>
                         <th class="py-2 pl-4 w-1/2">Share</th>
@@ -86,8 +86,8 @@
                     @php $maxDefault = max(array_map(fn($r) => $r['count'], $defaultKeywordRows) ?: [0]); @endphp
                     @foreach($defaultKeywordRows as $row)
                         <tr class="border-b border-white/5">
-                            <td class="py-2 pr-4 font-mono text-white/80">{{ $row['keyword'] }}</td>
-                            <td class="py-2 pr-4 text-right font-semibold {{ $row['count'] === 0 ? 'text-white/30' : 'text-white' }}">
+                            <td class="py-2 pr-4 font-mono text-white/80 ak-strong">{{ $row['keyword'] }}</td>
+                            <td class="py-2 pr-4 text-right font-semibold {{ $row['count'] === 0 ? 'text-white/30 ak-note' : 'text-white ak-strong' }}">
                                 {{ number_format($row['count']) }}
                             </td>
                             <td class="py-2 pl-4">
@@ -106,11 +106,11 @@
     <div class="glass rounded-2xl border border-white/10 p-6">
         <div class="flex items-center gap-3 mb-4">
             <div class="w-10 h-10 rounded-xl flex items-center justify-center" style="background: rgba(245,158,11,0.15);">
-                <i class="fas fa-user-pen text-amber-300"></i>
+                <i class="fas fa-user-pen text-amber-300 ak-amber"></i>
             </div>
             <div>
-                <h3 class="text-base font-semibold text-white/90">Custom keywords (added by creators)</h3>
-                <p class="text-xs text-white/50">
+                <h3 class="text-base font-semibold text-white/90 ak-strong">Custom keywords (added by creators)</h3>
+                <p class="text-xs text-white/50 ak-muted">
                     Keywords added by individual creators that fired in this window. Useful for spotting common
                     additions that might deserve a place in the platform default list.
                 </p>
@@ -118,12 +118,12 @@
         </div>
 
         @if(empty($customKeywordHits))
-            <div class="text-sm text-white/50 italic">No custom-added keywords fired in this window.</div>
+            <div class="text-sm text-white/50 italic ak-muted">No custom-added keywords fired in this window.</div>
         @else
             <div class="overflow-x-auto">
                 <table class="w-full text-sm">
                     <thead>
-                        <tr class="text-left text-[10px] uppercase font-bold tracking-wider text-white/50 border-b border-white/10">
+                        <tr class="text-left text-[10px] uppercase font-bold tracking-wider text-white/50 border-b border-white/10 ak-muted">
                             <th class="py-2 pr-4">Keyword</th>
                             <th class="py-2 pr-4 text-right">Hits</th>
                             <th class="py-2 pl-4 w-1/2">Share</th>
@@ -133,8 +133,8 @@
                         @php $maxCustom = max($customKeywordHits ?: [0]); @endphp
                         @foreach($customKeywordHits as $kw => $count)
                             <tr class="border-b border-white/5">
-                                <td class="py-2 pr-4 font-mono text-white/80">{{ $kw }}</td>
-                                <td class="py-2 pr-4 text-right font-semibold text-white">{{ number_format($count) }}</td>
+                                <td class="py-2 pr-4 font-mono text-white/80 ak-strong">{{ $kw }}</td>
+                                <td class="py-2 pr-4 text-right font-semibold text-white ak-strong">{{ number_format($count) }}</td>
                                 <td class="py-2 pl-4">
                                     <div class="h-2 bg-white/5 rounded-full overflow-hidden">
                                         <div class="h-full rounded-full"

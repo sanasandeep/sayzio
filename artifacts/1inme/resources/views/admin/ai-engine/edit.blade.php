@@ -349,7 +349,7 @@
                         <label class="ak-strong inline-flex items-center gap-2 text-xs text-white/80 bg-white/5 border border-white/10 rounded-full px-3 py-1">
                             <input type="checkbox" name="voice_plans[]" value="{{ $plan->slug }}"
                                    @checked(in_array($plan->slug, $voicePlans, true))
-                                   class="h-3.5 w-3.5 rounded border-white/20 bg-white/5 text-blue-500">
+                                   class="h-3.5 w-3.5 rounded border-white/20 bg-white/5 text-blue-500 ak-input">
                             {{ $plan->name }}
                         </label>
                     @endforeach

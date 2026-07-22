@@ -204,7 +204,7 @@
                 <div class="rounded-xl bg-gradient-to-br from-slate-900 to-slate-950 border border-white/10 px-4 py-4">
                     <div class="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm">
                         <template x-for="(t,i) in trust" :key="'tp'+i">
-                            <span class="flex items-center gap-2 text-gray-400">
+                            <span class="flex items-center gap-2 text-gray-400 ak-muted">
                                 <i class="ak-blue fas text-[13px] text-blue-300"
                                    :class="(t.icon || 'fa-check').replace(/^fas?\s+/, '')"></i>
                                 <span class="ak-strong font-bold text-white" x-text="t.value || '—'"></span>
@@ -257,14 +257,14 @@
             <div x-show="why.length>0" class="mt-2 pt-4 border-t border-white/5">
                 <div class="ak-note text-[10px] uppercase tracking-wider text-white/40 mb-3">Live preview</div>
                 <div class="rounded-2xl overflow-hidden border border-white/10 bg-gradient-to-br from-slate-900 to-slate-950">
-                    <div class="grid grid-cols-12 px-4 py-3 bg-white/[.04] text-[11px] font-bold uppercase tracking-wider text-gray-400">
+                    <div class="grid grid-cols-12 px-4 py-3 bg-white/[.04] text-[11px] font-bold uppercase tracking-wider text-gray-400 ak-muted">
                         <div class="col-span-6">Feature</div>
                         <div class="ak-strong col-span-3 text-center text-white">Sayzio</div>
                         <div class="col-span-3 text-center">Typical Link in Bio tool</div>
                     </div>
                     <template x-for="(r,i) in why" :key="'wp'+i">
                         <div class="grid grid-cols-12 items-center px-4 py-3 border-t border-white/5 text-sm">
-                            <div class="col-span-6 text-gray-200" x-text="r.feature || '—'"></div>
+                            <div class="col-span-6 text-gray-200 ak-strong" x-text="r.feature || '—'"></div>
                             <div class="col-span-3 text-center">
                                 <template x-if="(r.ours || '').trim().toLowerCase() === 'yes'">
                                     <span class="ak-green inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-300 text-xs font-semibold"><i class="fas fa-check"></i> Yes</span>
@@ -273,7 +273,7 @@
                                     <span class="ak-strong text-white text-xs font-semibold" x-text="r.ours || ''"></span>
                                 </template>
                             </div>
-                            <div class="col-span-3 text-center text-gray-400 text-xs" x-text="r.theirs || ''"></div>
+                            <div class="col-span-3 text-center text-gray-400 text-xs ak-muted" x-text="r.theirs || ''"></div>
                         </div>
                     </template>
                 </div>

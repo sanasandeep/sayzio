@@ -249,13 +249,13 @@ x-init="fetchPreview(); $watch('styleData', () => schedulePreview()); $watch('co
     </div>
 
     @if(session('success'))
-        <div class="mb-4 p-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 text-emerald-200 text-sm">
+        <div class="mb-4 p-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 text-emerald-200 text-sm ak-green">
             <i class="fas fa-check-circle mr-1"></i> {{ session('success') }}
         </div>
     @endif
 
     @if($errors->any())
-        <div class="mb-4 p-3 rounded-xl border border-red-500/30 bg-red-500/10 text-red-300 text-sm">
+        <div class="mb-4 p-3 rounded-xl border border-red-500/30 bg-red-500/10 text-red-300 text-sm ak-red">
             @foreach($errors->all() as $err)
                 <div><i class="fas fa-exclamation-circle mr-1"></i> {{ $err }}</div>
             @endforeach
@@ -266,8 +266,8 @@ x-init="fetchPreview(); $watch('styleData', () => schedulePreview()); $watch('co
     <div class="glass rounded-2xl border border-white/10 p-5 mb-5">
         <div class="flex items-center justify-between gap-4 flex-wrap">
             <div>
-                <h2 class="text-lg font-semibold text-white/90 font-mono">{{ $type }}</h2>
-                <p class="text-sm text-white/50 mt-1">
+                <h2 class="text-lg font-semibold text-white/90 font-mono ak-strong">{{ $type }}</h2>
+                <p class="text-sm text-white/50 mt-1 ak-muted">
                     Overrides are merged on top of system defaults for every <strong>new</strong> block of this type.
                     Existing blocks are not affected.
                 </p>

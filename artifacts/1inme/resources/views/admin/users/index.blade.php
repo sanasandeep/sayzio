@@ -19,8 +19,8 @@ html.light-mode .admin-users-protected { color: #065f46; }
 <div @if($canBulk) x-data="bulkUsers()" @endif>
 @if(request('promote'))
 <div class="mb-6 flex items-start gap-3 p-4 rounded-2xl bg-blue-500/10 border border-blue-500/20">
-    <i class="fas fa-user-shield text-blue-300 mt-0.5"></i>
-    <div class="text-sm text-blue-100">
+    <i class="fas fa-user-shield text-blue-300 mt-0.5 ak-blue"></i>
+    <div class="text-sm text-blue-100 ak-blue">
         <span class="font-medium">Promote an existing user to admin.</span>
         Find the person below, then click the
         <i class="fas fa-user-shield mx-0.5"></i> shield action on their row to grant back-office admin access.
@@ -51,7 +51,7 @@ html.light-mode .admin-users-protected { color: #065f46; }
             @endforeach
         </select>
         @endif
-        <button type="submit" class="px-4 py-2 bg-white/10 text-white/80 rounded-xl text-sm hover:bg-white/[0.06]">Filter</button>
+        <button type="submit" class="px-4 py-2 bg-white/10 text-white/80 rounded-xl text-sm hover:bg-white/[0.06] ak-strong">Filter</button>
     </form>
     @if($canCreateUsers)
     <a href="{{ route('admin.users.create') }}"
@@ -72,13 +72,13 @@ html.light-mode .admin-users-protected { color: #065f46; }
         <template x-for="id in selected" :key="id">
             <input type="hidden" name="user_ids[]" :value="id">
         </template>
-        <div class="text-sm text-white/70 mr-2">
-            <span class="font-semibold text-blue-300" x-text="selected.length"></span> selected
+        <div class="text-sm text-white/70 mr-2 ak-strong">
+            <span class="font-semibold text-blue-300 ak-blue" x-text="selected.length"></span> selected
         </div>
         <div>
-            <label class="block text-[10px] uppercase tracking-wide text-white/40 mb-1">Action</label>
+            <label class="block text-[10px] uppercase tracking-wide text-white/40 mb-1 ak-note">Action</label>
             <select name="action" x-model="action"
-                    class="px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-sm text-white">
+                    class="px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-sm text-white ak-strong ak-input">
                 @if($canBulkPlan)<option value="assign_plan">Assign plan</option>@endif
                 @if($canBulkCredits)<option value="grant_coins">Grant coins</option>@endif
                 @if($canBulkBadges && $badges->isNotEmpty())
@@ -89,8 +89,8 @@ html.light-mode .admin-users-protected { color: #065f46; }
         </div>
         @if($canBulkBadges && $badges->isNotEmpty())
         <div x-show="action === 'assign_badge' || action === 'remove_badge'">
-            <label class="block text-[10px] uppercase tracking-wide text-white/40 mb-1">Badge</label>
-            <select name="badge_id" class="px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-sm text-white">
+            <label class="block text-[10px] uppercase tracking-wide text-white/40 mb-1 ak-note">Badge</label>
+            <select name="badge_id" class="px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-sm text-white ak-strong ak-input">
                 @foreach($badges as $badge)
                     <option value="{{ $badge->id }}">{{ $badge->name }}</option>
                 @endforeach
@@ -98,28 +98,28 @@ html.light-mode .admin-users-protected { color: #065f46; }
         </div>
         @endif
         <div x-show="action === 'assign_plan'">
-            <label class="block text-[10px] uppercase tracking-wide text-white/40 mb-1">Plan</label>
-            <select name="plan_id" class="px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-sm text-white">
+            <label class="block text-[10px] uppercase tracking-wide text-white/40 mb-1 ak-note">Plan</label>
+            <select name="plan_id" class="px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-sm text-white ak-strong ak-input">
                 @foreach($plans as $plan)
                     <option value="{{ $plan->id }}">{{ $plan->name }}{{ $plan->is_internal ? ' (internal)' : '' }}</option>
                 @endforeach
             </select>
         </div>
         <div x-show="action === 'grant_coins'">
-            <label class="block text-[10px] uppercase tracking-wide text-white/40 mb-1">Coins</label>
+            <label class="block text-[10px] uppercase tracking-wide text-white/40 mb-1 ak-note">Coins</label>
             <input type="number" name="coins" min="1" max="1000000" placeholder="100"
-                   class="px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-sm text-white w-28">
+                   class="px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-sm text-white w-28 ak-strong ak-input">
         </div>
         <div x-show="action === 'grant_coins'">
-            <label class="block text-[10px] uppercase tracking-wide text-white/40 mb-1">Reason</label>
+            <label class="block text-[10px] uppercase tracking-wide text-white/40 mb-1 ak-note">Reason</label>
             <input type="text" name="reason" maxlength="255" placeholder="Reason"
-                   class="px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-sm text-white">
+                   class="px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-sm text-white ak-strong ak-input">
         </div>
         <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700">
             Apply to selected
         </button>
         <button type="button" @click="selected = []; document.querySelectorAll('.bulk-cb').forEach(c => c.checked = false)"
-                class="px-3 py-2 text-white/50 hover:text-white/80 text-sm">Clear</button>
+                class="px-3 py-2 text-white/50 hover:text-white/80 text-sm ak-muted">Clear</button>
     </form>
 </div>
 @endif
@@ -130,15 +130,15 @@ html.light-mode .admin-users-protected { color: #065f46; }
             <tr>
                 @if($canBulk)
                 <th class="px-4 py-3 text-left" data-no-sort>
-                    <input type="checkbox" class="rounded bg-white/5 border-white/20"
+                    <input type="checkbox" class="rounded bg-white/5 border-white/20 ak-input"
                            @change="toggleAll($event)" title="Select all on this page">
                 </th>
                 @endif
-                <th class="px-6 py-3 text-left text-xs font-medium text-white/40 uppercase">User</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-white/40 uppercase">Plan</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-white/40 uppercase">Status</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-white/40 uppercase">Joined</th>
-                <th class="px-6 py-3 text-right text-xs font-medium text-white/40 uppercase" data-no-sort>Actions</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-white/40 uppercase ak-note">User</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-white/40 uppercase ak-note">Plan</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-white/40 uppercase ak-note">Status</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-white/40 uppercase ak-note">Joined</th>
+                <th class="px-6 py-3 text-right text-xs font-medium text-white/40 uppercase ak-note" data-no-sort>Actions</th>
             </tr>
         </thead>
         <tbody class="divide-y divide-white/5">
@@ -146,26 +146,26 @@ html.light-mode .admin-users-protected { color: #065f46; }
             <tr class="hover:bg-white/5">
                 @if($canBulk)
                 <td class="px-4 py-4">
-                    <input type="checkbox" value="{{ $user->id }}" class="bulk-cb rounded bg-white/5 border-white/20"
+                    <input type="checkbox" value="{{ $user->id }}" class="bulk-cb rounded bg-white/5 border-white/20 ak-input"
                            @change="toggle({{ $user->id }}, $event)">
                 </td>
                 @endif
                 <td class="px-6 py-4">
                     <div class="flex items-center gap-3">
-                        <div class="w-8 h-8 rounded-full bg-blue-500/10 text-blue-300 flex items-center justify-center text-sm font-medium">
+                        <div class="w-8 h-8 rounded-full bg-blue-500/10 text-blue-300 flex items-center justify-center text-sm font-medium ak-blue">
                             {{ substr($user->name, 0, 1) }}
                         </div>
                         <div>
-                            <p class="text-sm font-medium text-white">{{ $user->name }}</p>
-                            <p class="text-xs text-white/30">{{ $user->email }}</p>
+                            <p class="text-sm font-medium text-white ak-strong">{{ $user->name }}</p>
+                            <p class="text-xs text-white/30 ak-note">{{ $user->email }}</p>
                             @php($userAdmin = $adminAccounts[strtolower(trim((string) $user->email))] ?? null)
                             @if($userAdmin)
-                                <span class="mt-1 inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-medium {{ $userAdmin->status === 'active' ? 'bg-emerald-500/10 text-emerald-300 border border-emerald-500/20' : 'bg-amber-500/10 text-amber-300 border border-amber-500/20' }}">
+                                <span class="mt-1 inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-medium {{ $userAdmin->status === 'active' ? 'bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 ak-green' : 'bg-amber-500/10 text-amber-300 border border-amber-500/20 ak-amber' }}">
                                     <i class="fas fa-user-shield"></i>
                                     {{ $userAdmin->status === 'active' ? 'Admin · active' : 'Admin · ' . ucfirst($userAdmin->status) }}
                                 </span>
                             @else
-                                <span class="mt-1 inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] text-white/30 border border-white/10">Not an admin</span>
+                                <span class="mt-1 inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] text-white/30 border border-white/10 ak-note">Not an admin</span>
                             @endif
                             @if($user->accountBadges->isNotEmpty())
                             <div class="mt-1 flex flex-wrap gap-1">
@@ -180,35 +180,35 @@ html.light-mode .admin-users-protected { color: #065f46; }
                         </div>
                     </div>
                 </td>
-                <td class="px-6 py-4 text-sm text-white/60">{{ $user->plan->name ?? 'Free' }}</td>
+                <td class="px-6 py-4 text-sm text-white/60 ak-muted">{{ $user->plan->name ?? 'Free' }}</td>
                 <td class="px-6 py-4">
                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
-                        {{ $user->status === 'active' ? 'bg-emerald-500/10 text-emerald-400' : ($user->status === 'banned' ? 'bg-red-500/10 text-red-400' : 'bg-yellow-500/10 text-yellow-400') }}">
+                        {{ $user->status === 'active' ? 'bg-emerald-500/10 text-emerald-400 ak-green' : ($user->status === 'banned' ? 'bg-red-500/10 text-red-400 ak-red' : 'bg-yellow-500/10 text-yellow-400 ak-amber') }}">
                         {{ ucfirst($user->status) }}
                     </span>
                 </td>
-                <td class="px-6 py-4 text-sm text-white/40">{{ $user->created_at->format('M d, Y') }}</td>
+                <td class="px-6 py-4 text-sm text-white/40 ak-note">{{ $user->created_at->format('M d, Y') }}</td>
                 <td class="px-6 py-4 text-right">
                     <div class="flex items-center justify-end gap-2">
-                        <a href="{{ route('admin.users.show', $user) }}" class="text-white/30 hover:text-blue-400" title="View"><i class="fas fa-eye"></i></a>
+                        <a href="{{ route('admin.users.show', $user) }}" class="text-white/30 hover:text-blue-400 ak-note" title="View"><i class="fas fa-eye"></i></a>
                         @if($canManageAdminAccess)
                         <a href="{{ route('admin.users.roles.edit', $user) }}#admin-access"
-                           class="{{ $userAdmin ? 'text-blue-300 hover:text-blue-200' : 'text-white/30 hover:text-blue-400' }}"
+                           class="{{ $userAdmin ? 'text-blue-300 hover:text-blue-200 ak-blue' : 'text-white/30 hover:text-blue-400 ak-note' }}"
                            title="Manage admin access"><i class="fas fa-user-shield"></i></a>
                         @endif
                         @if(auth('admin')->user()?->hasPermission('users.impersonate'))
                         <form action="{{ route('admin.users.impersonate', $user) }}" method="POST" class="inline">
                             @csrf
-                            <button type="submit" class="text-white/30 hover:text-amber-400" title="Login as user"><i class="fas fa-user-secret"></i></button>
+                            <button type="submit" class="text-white/30 hover:text-amber-400 ak-note" title="Login as user"><i class="fas fa-user-secret"></i></button>
                         </form>
                         @endif
                         @if($canDeleteUsers)
                         @if((isset($protectedEmails) && $protectedEmails->has(strtolower(trim((string) $user->email)))) || (isset($protectedUserIds) && $protectedUserIds->has($user->id)))
-                        <span class="admin-users-protected text-emerald-400/70" title="Protected, cannot be deleted or suspended"><i class="fas fa-shield-alt"></i></span>
+                        <span class="admin-users-protected text-emerald-400/70 ak-green" title="Protected, cannot be deleted or suspended"><i class="fas fa-shield-alt"></i></span>
                         @else
                         <form action="{{ route('admin.users.destroy', $user) }}" method="POST" class="inline" onsubmit="return window.themedConfirmSubmit(this, {title: 'Delete this user?', message: 'This cannot be undone.', confirmText: 'Delete', confirmIcon: 'fa-trash', iconClass: 'fa-trash'})">
                             @csrf @method('DELETE')
-                            <button type="submit" class="text-white/30 hover:text-red-400" title="Delete"><i class="fas fa-trash"></i></button>
+                            <button type="submit" class="text-white/30 hover:text-red-400 ak-note" title="Delete"><i class="fas fa-trash"></i></button>
                         </form>
                         @endif
                         @endif
@@ -216,7 +216,7 @@ html.light-mode .admin-users-protected { color: #065f46; }
                 </td>
             </tr>
             @empty
-            <tr><td colspan="{{ $canBulk ? 6 : 5 }}" class="px-6 py-8 text-center text-white/30">No users found</td></tr>
+            <tr><td colspan="{{ $canBulk ? 6 : 5 }}" class="px-6 py-8 text-center text-white/30 ak-note">No users found</td></tr>
             @endforelse
         </tbody>
     </table>

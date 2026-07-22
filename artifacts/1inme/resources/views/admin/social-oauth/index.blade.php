@@ -72,7 +72,7 @@
                 <div class="mt-4 rounded-lg bg-white/[0.03] border border-white/10 p-3">
                     <div class="ak-note text-[10px] uppercase tracking-wider text-white/40 mb-1">Redirect URI to register with the provider</div>
                     <div class="flex items-center gap-2">
-                        <code class="font-mono text-[12px] text-white/80 break-all flex-1">{{ $p['redirect_uri'] }}</code>
+                        <code class="font-mono text-[12px] text-white/80 break-all flex-1 ak-strong">{{ $p['redirect_uri'] }}</code>
                         <button type="button"
                                 class="ak-strong text-[11px] px-2 py-1 rounded-md bg-white/5 hover:bg-white/10 border border-white/10 text-white/70"
                                 onclick="navigator.clipboard.writeText(this.previousElementSibling.innerText); this.innerText='Copied'; setTimeout(()=>this.innerText='Copy',1500)">
@@ -114,7 +114,7 @@
                             <input type="checkbox" name="clear" value="1" class="ak-input rounded border-white/20 bg-white/5">
                             Clear stored credentials (revert to env vars)
                         </label>
-                        <button type="submit" class="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-2 rounded-lg bg-indigo-500/20 hover:bg-indigo-500/30 border border-indigo-400/30 text-indigo-200">
+                        <button type="submit" class="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-2 rounded-lg bg-indigo-500/20 hover:bg-indigo-500/30 border border-indigo-400/30 text-indigo-200 ak-blue">
                             <i class="fas fa-floppy-disk text-[11px]"></i> Save
                         </button>
                     </div>
@@ -128,7 +128,7 @@
                 @if($p['register_at'])
                     <div class="mt-3">
                         <a href="{{ $p['register_at'] }}" target="_blank" rel="noopener"
-                           class="inline-flex items-center gap-1.5 text-xs font-medium text-indigo-300 hover:text-indigo-200">
+                           class="inline-flex items-center gap-1.5 text-xs font-medium text-indigo-300 hover:text-indigo-200 ak-blue">
                             <i class="fas fa-arrow-up-right-from-square"></i>
                             Register a developer app
                         </a>

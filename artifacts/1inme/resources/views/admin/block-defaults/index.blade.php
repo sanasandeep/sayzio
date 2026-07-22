@@ -6,13 +6,13 @@
 <div class="max-w-5xl" x-data="{ copySource: null, copyTargets: [] }">
 
     @if(session('success'))
-        <div class="mb-4 p-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 text-emerald-200 text-sm">
+        <div class="mb-4 p-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 text-emerald-200 text-sm ak-green">
             <i class="fas fa-check-circle mr-1"></i> {{ session('success') }}
         </div>
     @endif
 
     @if($errors->any())
-        <div class="mb-4 p-3 rounded-xl border border-red-500/30 bg-red-500/10 text-red-200 text-sm">
+        <div class="mb-4 p-3 rounded-xl border border-red-500/30 bg-red-500/10 text-red-200 text-sm ak-red">
             <i class="fas fa-exclamation-circle mr-1"></i> {{ $errors->first() }}
         </div>
     @endif
@@ -21,8 +21,8 @@
     <div class="glass rounded-2xl border border-white/10 p-6 mb-5">
         <div class="flex items-start justify-between gap-4">
             <div>
-                <h2 class="text-lg font-semibold text-white/90">Block First-Paint Defaults</h2>
-                <p class="text-sm text-white/50 mt-1 max-w-2xl">
+                <h2 class="text-lg font-semibold text-white/90 ak-strong">Block First-Paint Defaults</h2>
+                <p class="text-sm text-white/50 mt-1 max-w-2xl ak-muted">
                     Configure the sample text, placeholder images/media URLs, and structural styling that
                     freshly-added biolink blocks start with. Overrides only affect <strong>new</strong> blocks
                    , existing blocks are never changed.
@@ -101,7 +101,7 @@
                   class="flex flex-col min-h-0">
                 @csrf
                 <div class="flex items-start justify-between gap-3 mb-1">
-                    <h3 class="text-base font-semibold text-white/90">
+                    <h3 class="text-base font-semibold text-white/90 ak-strong">
                         Copy overrides from &laquo;<span x-text="copySource"></span>&raquo;
                     </h3>
                     <button type="button" @click="copySource = null"

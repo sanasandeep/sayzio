@@ -5,7 +5,7 @@
 @section('content')
 <div class="max-w-4xl">
     @if(session('success'))
-        <div class="rounded-xl px-4 py-3 bg-emerald-500/10 border border-emerald-500/30 text-emerald-200 text-sm mb-4">
+        <div class="rounded-xl px-4 py-3 bg-emerald-500/10 border border-emerald-500/30 text-emerald-200 text-sm mb-4 ak-green">
             {{ session('success') }}
         </div>
     @endif
@@ -19,7 +19,7 @@
                     <button type="submit" class="px-4 py-2 rounded-xl text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white">
                         Save changes
                     </button>
-                    <a href="{{ route('admin.bg-templates.index') }}" class="text-sm text-white/60 hover:text-white">Back</a>
+                    <a href="{{ route('admin.bg-templates.index') }}" class="text-sm text-white/60 hover:text-white ak-muted">Back</a>
                 </div>
             </div>
         </form>
@@ -28,7 +28,7 @@
               class="mt-6 pt-5 border-t border-white/10">
             @csrf
             @method('DELETE')
-            <button type="submit" class="text-sm text-rose-300 hover:text-rose-200">
+            <button type="submit" class="text-sm text-rose-300 hover:text-rose-200 ak-red">
                 <i class="fas fa-trash text-xs mr-1"></i> Delete this template
             </button>
         </form>

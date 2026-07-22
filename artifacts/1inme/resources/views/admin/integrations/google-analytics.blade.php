@@ -49,7 +49,7 @@
             <div class="flex items-start justify-between gap-3">
                 <div>
                     <h3 class="ak-strong font-semibold text-white flex items-center gap-2">
-                        <i class="fas fa-chart-line text-orange-400"></i> GA4 forwarding
+                        <i class="fas fa-chart-line text-orange-400 ak-amber"></i> GA4 forwarding
                     </h3>
                     <p class="ak-note text-xs text-white/40">Availability of Google Analytics in the creator Connected Apps area.</p>
                 </div>

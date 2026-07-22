@@ -42,7 +42,7 @@
             <div class="flex items-start justify-between gap-3">
                 <div>
                     <h3 class="ak-strong font-semibold text-white flex items-center gap-2">
-                        <i class="fab fa-whatsapp text-emerald-400"></i> WhatsApp Cloud API
+                        <i class="fab fa-whatsapp text-emerald-400 ak-green"></i> WhatsApp Cloud API
                     </h3>
                     <p class="ak-muted text-xs text-white/40">Used to deliver login &amp; verification OTPs over WhatsApp. Without credentials, OTPs run in preview mode (logged, not sent).</p>
                 </div>
@@ -63,7 +63,7 @@
 
             <div class="ak-warn-banner glass rounded-2xl border border-amber-500/20 bg-amber-500/5 p-3 text-xs text-amber-200/85 space-y-1">
                 <div class="flex items-start gap-2">
-                    <i class="fas fa-triangle-exclamation text-amber-400 mt-0.5 shrink-0"></i>
+                    <i class="fas fa-triangle-exclamation text-amber-400 mt-0.5 shrink-0 ak-amber"></i>
                     <div>
                         <strong>OTP message templates must be pre-approved in Meta Business Suite.</strong>
                         The template name and language entered below must exactly match an <em>approved</em> template in your WhatsApp Business account. Unapproved or mismatched templates cause delivery to fail silently.
@@ -128,14 +128,14 @@
             <div class="flex items-start justify-between gap-3">
                 <div>
                     <h3 class="ak-strong font-semibold text-white flex items-center gap-2">
-                        <i class="fas fa-robot text-emerald-400"></i> WhatsApp AI agent
+                        <i class="fas fa-robot text-emerald-400 ak-green"></i> WhatsApp AI agent
                     </h3>
                     <p class="ak-muted text-xs text-white/40">Lets verified, paid-plan users create &amp; edit links by messaging the WhatsApp number. Requires the Cloud API credentials above plus the inbound webhook below.</p>
                     @include('admin.partials.help-note', [
                         'body' => '<strong>Webhook setup in Meta:</strong> in your Meta app → WhatsApp → Configuration, set the <em>Callback URL</em> to the value shown below and enter your <em>Verify token</em>. Subscribe to the <code>messages</code> webhook field. The <em>App Secret</em> is shown in your Meta app\'s <em>App Settings → Basic</em> page and is used to verify the <code>X-Hub-Signature-256</code> on inbound payloads.',
                     ])
                 </div>
-                <span class="shrink-0 px-2.5 py-1 rounded-lg border text-[11px] font-medium {{ $waAgentEnabled ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30' : 'bg-white/5 text-white/50 border-white/10' }}">
+                <span class="shrink-0 px-2.5 py-1 rounded-lg border text-[11px] font-medium {{ $waAgentEnabled ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30 ak-green' : 'bg-white/5 text-white/50 border-white/10 ak-muted' }}">
                     {{ $waAgentEnabled ? 'Enabled' : 'Disabled' }}
                 </span>
             </div>
@@ -202,7 +202,7 @@
             <div class="flex items-start justify-between gap-3">
                 <div>
                     <h3 class="ak-strong font-semibold text-white flex items-center gap-2">
-                        <i class="fas fa-bell text-amber-400"></i> Internal alerts
+                        <i class="fas fa-bell text-amber-400 ak-amber"></i> Internal alerts
                     </h3>
                     <p class="ak-muted text-xs text-white/40">Post system &amp; team alerts (downtime, broadcasts, health notices) to a Slack and/or Discord incoming webhook.</p>
 

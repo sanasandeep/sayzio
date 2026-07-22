@@ -13,7 +13,7 @@
                 <button type="submit" class="px-4 py-2 rounded-xl text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white">
                     Save changes
                 </button>
-                <a href="{{ route('admin.banned-names.index') }}" class="text-sm text-white/60 hover:text-white">Cancel</a>
+                <a href="{{ route('admin.banned-names.index') }}" class="text-sm text-white/60 hover:text-white ak-muted">Cancel</a>
             </div>
         </form>
     </div>

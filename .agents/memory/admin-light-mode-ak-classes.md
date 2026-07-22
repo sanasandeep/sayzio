@@ -13,3 +13,5 @@ The `ak-*` override block in the admin layout (`admin/layouts/app.blade.php`) is
 - Class attrs containing Blade ternaries (`{{ $x ? 'text-emerald-300' : 'text-white/50' }}`) get BOTH ak classes from a regex sweep — move the ak class inside each ternary branch instead.
 - Dark-only classes also hide in PHP `match` arm strings, `'inputClass' =>` partial args, and JS-built `className` strings — grep those separately.
 - Verify with the `light-mode-pairing` guard workflow + `php artisan view:cache`.
+- The whole-admin sweep (July 2026) covered ALL admin sections, static class attrs, blade-echo ternary literals, Alpine `:class` string literals, and `'inputClass' =>` args. New gotcha: class attrs containing `@if/@switch` BRANCHES get every branch's ak class stacked by a segment-level sweep — place the ak class inside each branch/case instead.
+- Tiering used: text-white or /70+ → ak-strong; /45-69 or gray/slate-300-400 → ak-muted; /<45 → ak-note; amber/emerald/red/blue tints ≤400 → ak-amber/green/red/blue.

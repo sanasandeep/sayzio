@@ -80,7 +80,7 @@
                     <div class="flex gap-4">
                         <dt class="text-xs font-medium w-32 shrink-0" style="color:var(--text-faint)">Linked Account</dt>
                         <dd class="text-sm">
-                            <a href="{{ route('admin.users.show', $customPlanRequest->user) }}" class="text-blue-400 hover:underline">
+                            <a href="{{ route('admin.users.show', $customPlanRequest->user) }}" class="text-blue-400 hover:underline ak-blue">
                                 {{ $customPlanRequest->user->name }}
                             </a>
                         </dd>
@@ -136,7 +136,7 @@
             @if($customPlanRequest->isPending())
             <div class="admin-card p-5" x-data="{ basePlanId: '' }">
                 <h2 class="text-sm font-semibold mb-4" style="color:var(--text-main)">
-                    <i class="fas fa-gem text-green-400 mr-1.5"></i>Approve & Provision Custom Plan
+                    <i class="fas fa-gem text-green-400 mr-1.5 ak-green"></i>Approve & Provision Custom Plan
                 </h2>
                 <form method="POST" action="{{ route('admin.custom-plan-requests.approve', $customPlanRequest) }}" class="space-y-4">
                     @csrf
@@ -153,7 +153,7 @@
                             <p class="mt-1 text-xs" style="color:var(--text-faint)">Features will be copied from the base plan and can be overridden below.</p>
                         </div>
                         <div>
-                            <label class="admin-label">Custom Plan Name <span class="text-red-400">*</span></label>
+                            <label class="admin-label">Custom Plan Name <span class="text-red-400 ak-red">*</span></label>
                             <input type="text" name="plan_name" required
                                    value="{{ old('plan_name', 'Custom, ' . $customPlanRequest->name) }}"
                                    class="admin-input w-full text-sm"
@@ -163,7 +163,7 @@
 
                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                         <div>
-                            <label class="admin-label">Currency <span class="text-red-400">*</span></label>
+                            <label class="admin-label">Currency <span class="text-red-400 ak-red">*</span></label>
                             <select name="currency" class="admin-input w-full text-sm">
                                 <option value="USD">USD ($)</option>
                                 <option value="INR">INR (₹)</option>
@@ -181,14 +181,14 @@
 
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
-                            <label class="admin-label">Billing Cycle for this Offer <span class="text-red-400">*</span></label>
+                            <label class="admin-label">Billing Cycle for this Offer <span class="text-red-400 ak-red">*</span></label>
                             <select name="offer_cycle" class="admin-input w-full text-sm">
                                 <option value="monthly" @selected(($customPlanRequest->preferred_cycle ?? '') === 'monthly')>Monthly</option>
                                 <option value="annual" @selected(($customPlanRequest->preferred_cycle ?? '') === 'annual')>Annual</option>
                             </select>
                         </div>
                         <div>
-                            <label class="admin-label">Assign Offer to Email <span class="text-red-400">*</span></label>
+                            <label class="admin-label">Assign Offer to Email <span class="text-red-400 ak-red">*</span></label>
                             <input type="email" name="assigned_email" required
                                    value="{{ old('assigned_email', $customPlanRequest->email) }}"
                                    class="admin-input w-full text-sm"

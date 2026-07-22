@@ -13,12 +13,12 @@
                 <option value="active" {{ request('status') == 'active' ? 'selected' : '' }}>Active</option>
                 <option value="inactive" {{ request('status') == 'inactive' ? 'selected' : '' }}>Inactive</option>
             </select>
-            <button type="submit" class="px-4 py-2 bg-white/10 text-white/80 rounded-xl text-sm hover:bg-white/[0.06]">Filter</button>
+            <button type="submit" class="px-4 py-2 bg-white/10 text-white/80 rounded-xl text-sm hover:bg-white/[0.06] ak-strong">Filter</button>
         </form>
     </div>
     <div class="flex items-center gap-2">
         @if(auth('admin')->user()?->hasPermission('staff.create'))
-        <button type="button" @click="$dispatch('open-promote-user')" class="px-4 py-2 bg-white/10 text-white/80 rounded-xl text-sm font-medium hover:bg-white/[0.15] transition" title="Grant back-office admin access to a user who already has an account">
+        <button type="button" @click="$dispatch('open-promote-user')" class="px-4 py-2 bg-white/10 text-white/80 rounded-xl text-sm font-medium hover:bg-white/[0.15] transition ak-strong" title="Grant back-office admin access to a user who already has an account">
             <i class="fas fa-user-shield mr-2"></i>Promote existing user
         </button>
         @endif
@@ -38,12 +38,12 @@
     <table class="enhanced-table w-full">
         <thead class="bg-white/5">
             <tr>
-                <th class="px-6 py-3 text-left text-xs font-medium text-white/40 uppercase">Name</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-white/40 uppercase">Email</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-white/40 uppercase">Role</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-white/40 uppercase">Status</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-white/40 uppercase">Last Login</th>
-                <th class="px-6 py-3 text-right text-xs font-medium text-white/40 uppercase" data-no-sort>Actions</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-white/40 uppercase ak-note">Name</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-white/40 uppercase ak-note">Email</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-white/40 uppercase ak-note">Role</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-white/40 uppercase ak-note">Status</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-white/40 uppercase ak-note">Last Login</th>
+                <th class="px-6 py-3 text-right text-xs font-medium text-white/40 uppercase ak-note" data-no-sort>Actions</th>
             </tr>
         </thead>
         <tbody class="divide-y divide-white/5">
@@ -51,37 +51,37 @@
             <tr class="hover:bg-white/5">
                 <td class="px-6 py-4">
                     <div class="flex items-center gap-3">
-                        <div class="w-8 h-8 rounded-full bg-blue-500/10 text-blue-300 flex items-center justify-center text-sm font-medium">
+                        <div class="w-8 h-8 rounded-full bg-blue-500/10 text-blue-300 flex items-center justify-center text-sm font-medium ak-blue">
                             {{ substr($member->name, 0, 1) }}
                         </div>
-                        <span class="text-sm font-medium text-white">{{ $member->name }}</span>
+                        <span class="text-sm font-medium text-white ak-strong">{{ $member->name }}</span>
                     </div>
                 </td>
-                <td class="px-6 py-4 text-sm text-white/40">{{ $member->email }}</td>
-                <td class="px-6 py-4 text-sm text-white/60">{{ $member->role->name ?? 'N/A' }}</td>
+                <td class="px-6 py-4 text-sm text-white/40 ak-note">{{ $member->email }}</td>
+                <td class="px-6 py-4 text-sm text-white/60 ak-muted">{{ $member->role->name ?? 'N/A' }}</td>
                 <td class="px-6 py-4">
                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
-                        {{ $member->status === 'active' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400' }}">
+                        {{ $member->status === 'active' ? 'bg-emerald-500/10 text-emerald-400 ak-green' : 'bg-red-500/10 text-red-400 ak-red' }}">
                         {{ ucfirst($member->status) }}
                     </span>
                 </td>
-                <td class="px-6 py-4 text-sm text-white/40">{{ $member->last_login_at?->diffForHumans() ?? 'Never' }}</td>
+                <td class="px-6 py-4 text-sm text-white/40 ak-note">{{ $member->last_login_at?->diffForHumans() ?? 'Never' }}</td>
                 <td class="px-6 py-4 text-right">
                     <div class="flex items-center justify-end gap-2">
-                        <a href="{{ route('admin.staff.edit', $member) }}" class="text-white/30 hover:text-blue-400"><i class="fas fa-edit"></i></a>
+                        <a href="{{ route('admin.staff.edit', $member) }}" class="text-white/30 hover:text-blue-400 ak-note"><i class="fas fa-edit"></i></a>
                         @if(isset($protectedEmails) && $protectedEmails->has(strtolower(trim((string) $member->email))))
-                        <span class="text-emerald-400/70" title="Protected, cannot be deleted or deactivated"><i class="fas fa-shield-alt"></i></span>
+                        <span class="text-emerald-400/70 ak-green" title="Protected, cannot be deleted or deactivated"><i class="fas fa-shield-alt"></i></span>
                         @elseif($member->id !== auth()->guard('admin')->id())
                         <form action="{{ route('admin.staff.destroy', $member) }}" method="POST" class="inline" onsubmit="return window.themedConfirmSubmit(this, {title: 'Remove this staff member?', message: 'They will lose admin access immediately.', confirmText: 'Remove', confirmIcon: 'fa-user-minus', iconClass: 'fa-user-minus'})">
                             @csrf @method('DELETE')
-                            <button type="submit" class="text-white/30 hover:text-red-400"><i class="fas fa-trash"></i></button>
+                            <button type="submit" class="text-white/30 hover:text-red-400 ak-note"><i class="fas fa-trash"></i></button>
                         </form>
                         @endif
                     </div>
                 </td>
             </tr>
             @empty
-            <tr><td colspan="6" class="px-6 py-8 text-center text-white/30">No staff members found</td></tr>
+            <tr><td colspan="6" class="px-6 py-8 text-center text-white/30 ak-note">No staff members found</td></tr>
             @endforelse
         </tbody>
     </table>
@@ -106,36 +106,36 @@
          x-transition:enter-end="opacity-100 scale-100">
         <div class="flex items-start justify-between mb-4">
             <div>
-                <h3 class="text-lg font-semibold text-white"><i class="fas fa-user-shield text-blue-400 mr-2"></i>Promote existing user</h3>
-                <p class="text-sm text-white/40 mt-1">Search a user account and grant back-office admin access in place.</p>
+                <h3 class="text-lg font-semibold text-white ak-strong"><i class="fas fa-user-shield text-blue-400 mr-2 ak-blue"></i>Promote existing user</h3>
+                <p class="text-sm text-white/40 mt-1 ak-note">Search a user account and grant back-office admin access in place.</p>
             </div>
-            <button type="button" @click="close()" class="text-white/30 hover:text-white"><i class="fas fa-times"></i></button>
+            <button type="button" @click="close()" class="text-white/30 hover:text-white ak-note"><i class="fas fa-times"></i></button>
         </div>
 
         <div class="relative">
-            <label class="block text-xs font-medium text-white/40 uppercase mb-1">User</label>
+            <label class="block text-xs font-medium text-white/40 uppercase mb-1 ak-note">User</label>
             <template x-if="!selected">
                 <div>
                     <div class="relative">
-                        <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-white/30 text-sm"></i>
+                        <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-white/30 text-sm ak-note"></i>
                         <input type="text" x-model="query" @input.debounce.300ms="search()" x-ref="searchInput"
                                placeholder="Search by name or email…" autocomplete="off"
-                               class="w-full pl-9 pr-4 py-2 bg-white/5 border border-white/10 rounded-xl text-sm text-white focus:ring-2 focus:ring-blue-500/40 outline-none">
+                               class="w-full pl-9 pr-4 py-2 bg-white/5 border border-white/10 rounded-xl text-sm text-white focus:ring-2 focus:ring-blue-500/40 outline-none ak-strong ak-input">
                     </div>
                     <div class="mt-2 max-h-56 overflow-y-auto rounded-xl border border-white/10 divide-y divide-white/5" x-show="query.length >= 2" x-cloak>
                         <template x-if="loading">
-                            <div class="px-4 py-3 text-sm text-white/40"><i class="fas fa-spinner fa-spin mr-2"></i>Searching…</div>
+                            <div class="px-4 py-3 text-sm text-white/40 ak-note"><i class="fas fa-spinner fa-spin mr-2"></i>Searching…</div>
                         </template>
                         <template x-if="!loading && results.length === 0">
-                            <div class="px-4 py-3 text-sm text-white/40">No matching users found.</div>
+                            <div class="px-4 py-3 text-sm text-white/40 ak-note">No matching users found.</div>
                         </template>
                         <template x-for="user in results" :key="user.id">
                             <button type="button" @click="pick(user)" class="w-full flex items-center justify-between gap-3 px-4 py-2.5 text-left hover:bg-white/5">
                                 <div class="min-w-0">
-                                    <div class="text-sm font-medium text-white truncate" x-text="user.name"></div>
-                                    <div class="text-xs text-white/40 truncate" x-text="user.email"></div>
+                                    <div class="text-sm font-medium text-white truncate ak-strong" x-text="user.name"></div>
+                                    <div class="text-xs text-white/40 truncate ak-note" x-text="user.email"></div>
                                 </div>
-                                <span x-show="user.is_admin" class="shrink-0 inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-amber-500/10 text-amber-400">Already admin</span>
+                                <span x-show="user.is_admin" class="shrink-0 inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-amber-500/10 text-amber-400 ak-amber">Already admin</span>
                             </button>
                         </template>
                     </div>
@@ -145,11 +145,11 @@
             <template x-if="selected">
                 <div class="flex items-center justify-between gap-3 px-4 py-3 bg-white/5 border border-white/10 rounded-xl">
                     <div class="min-w-0">
-                        <div class="text-sm font-medium text-white truncate" x-text="selected.name"></div>
-                        <div class="text-xs text-white/40 truncate" x-text="selected.email"></div>
-                        <div x-show="selected.is_admin" class="text-[11px] text-amber-400 mt-0.5">This user already has admin access, granting will update their role.</div>
+                        <div class="text-sm font-medium text-white truncate ak-strong" x-text="selected.name"></div>
+                        <div class="text-xs text-white/40 truncate ak-note" x-text="selected.email"></div>
+                        <div x-show="selected.is_admin" class="text-[11px] text-amber-400 mt-0.5 ak-amber">This user already has admin access, granting will update their role.</div>
                     </div>
-                    <button type="button" @click="clear()" class="shrink-0 text-white/30 hover:text-white text-sm"><i class="fas fa-times mr-1"></i>Change</button>
+                    <button type="button" @click="clear()" class="shrink-0 text-white/30 hover:text-white text-sm ak-note"><i class="fas fa-times mr-1"></i>Change</button>
                 </div>
             </template>
         </div>
@@ -157,16 +157,16 @@
         <form method="POST" :action="grantUrl" class="mt-4" x-show="selected" x-cloak @submit="if (!handleGrantSubmit($event)) $event.preventDefault()">
             @csrf
             <input type="hidden" name="redirect_to" value="staff">
-            <label class="block text-xs font-medium text-white/40 uppercase mb-1">Admin role</label>
+            <label class="block text-xs font-medium text-white/40 uppercase mb-1 ak-note">Admin role</label>
             <select name="role_id" x-model="roleId" x-ref="roleSelect" required
-                    class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-sm text-white focus:ring-2 focus:ring-blue-500/40 outline-none">
+                    class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-sm text-white focus:ring-2 focus:ring-blue-500/40 outline-none ak-strong ak-input">
                 <option value="">Select a role…</option>
                 @foreach($adminRoles as $role)
                 <option value="{{ $role->id }}">{{ $role->name }}</option>
                 @endforeach
             </select>
             <div class="flex items-center justify-end gap-2 mt-5">
-                <button type="button" @click="close()" class="px-4 py-2 bg-white/5 text-white/70 rounded-xl text-sm hover:bg-white/10">Cancel</button>
+                <button type="button" @click="close()" class="px-4 py-2 bg-white/5 text-white/70 rounded-xl text-sm hover:bg-white/10 ak-strong">Cancel</button>
                 <button type="submit" :disabled="!roleId" class="px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 transition disabled:opacity-40 disabled:cursor-not-allowed">
                     <i class="fas fa-user-shield mr-2"></i>Grant admin access
                 </button>
@@ -189,68 +189,68 @@
          x-transition:enter-end="opacity-100 scale-100">
         <div class="flex items-start justify-between mb-4">
             <div>
-                <h3 class="text-lg font-semibold text-white"><i class="fas fa-user-plus text-blue-400 mr-2"></i>Add staff member</h3>
-                <p class="text-sm text-white/40 mt-1">Create a brand-new back-office account and pick its role.</p>
+                <h3 class="text-lg font-semibold text-white ak-strong"><i class="fas fa-user-plus text-blue-400 mr-2 ak-blue"></i>Add staff member</h3>
+                <p class="text-sm text-white/40 mt-1 ak-note">Create a brand-new back-office account and pick its role.</p>
             </div>
-            <button type="button" @click="close()" class="text-white/30 hover:text-white"><i class="fas fa-times"></i></button>
+            <button type="button" @click="close()" class="text-white/30 hover:text-white ak-note"><i class="fas fa-times"></i></button>
         </div>
 
         <form method="POST" action="{{ route('admin.staff.store') }}" class="space-y-4">
             @csrf
             <div>
-                <label class="block text-xs font-medium text-white/40 uppercase mb-1">Name</label>
+                <label class="block text-xs font-medium text-white/40 uppercase mb-1 ak-note">Name</label>
                 <input type="text" name="name" value="{{ old('name') }}" required x-ref="nameInput"
-                       class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-sm text-white focus:ring-2 focus:ring-blue-500/40 outline-none">
-                @error('name')<p class="mt-1 text-sm text-red-400">{{ $message }}</p>@enderror
+                       class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-sm text-white focus:ring-2 focus:ring-blue-500/40 outline-none ak-strong ak-input">
+                @error('name')<p class="mt-1 text-sm text-red-400 ak-red">{{ $message }}</p>@enderror
             </div>
             <div>
-                <label class="block text-xs font-medium text-white/40 uppercase mb-1">Email</label>
+                <label class="block text-xs font-medium text-white/40 uppercase mb-1 ak-note">Email</label>
                 <input type="email" name="email" value="{{ old('email') }}" required
-                       class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-sm text-white focus:ring-2 focus:ring-blue-500/40 outline-none">
-                @error('email')<p class="mt-1 text-sm text-red-400">{{ $message }}</p>@enderror
+                       class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-sm text-white focus:ring-2 focus:ring-blue-500/40 outline-none ak-strong ak-input">
+                @error('email')<p class="mt-1 text-sm text-red-400 ak-red">{{ $message }}</p>@enderror
             </div>
             <div class="grid grid-cols-2 gap-4">
                 <div>
-                    <label class="block text-xs font-medium text-white/40 uppercase mb-1">Password</label>
+                    <label class="block text-xs font-medium text-white/40 uppercase mb-1 ak-note">Password</label>
                     @include('common.partials.password-field', [
                         'name' => 'password',
                         'required' => true,
                         'autocomplete' => 'new-password',
-                        'inputClass' => 'w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-sm text-white focus:ring-2 focus:ring-blue-500/40 outline-none',
+                        'inputClass' => 'ak-input w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-sm text-white focus:ring-2 focus:ring-blue-500/40 outline-none',
                     ])
-                    @error('password')<p class="mt-1 text-sm text-red-400">{{ $message }}</p>@enderror
+                    @error('password')<p class="mt-1 text-sm text-red-400 ak-red">{{ $message }}</p>@enderror
                 </div>
                 <div>
-                    <label class="block text-xs font-medium text-white/40 uppercase mb-1">Confirm Password</label>
+                    <label class="block text-xs font-medium text-white/40 uppercase mb-1 ak-note">Confirm Password</label>
                     @include('common.partials.password-field', [
                         'name' => 'password_confirmation',
                         'required' => true,
                         'autocomplete' => 'new-password',
-                        'inputClass' => 'w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-sm text-white focus:ring-2 focus:ring-blue-500/40 outline-none',
+                        'inputClass' => 'ak-input w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-sm text-white focus:ring-2 focus:ring-blue-500/40 outline-none',
                     ])
                 </div>
             </div>
             <div class="grid grid-cols-2 gap-4">
                 <div>
-                    <label class="block text-xs font-medium text-white/40 uppercase mb-1">Role</label>
-                    <select name="role_id" required class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-sm text-white focus:ring-2 focus:ring-blue-500/40 outline-none">
+                    <label class="block text-xs font-medium text-white/40 uppercase mb-1 ak-note">Role</label>
+                    <select name="role_id" required class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-sm text-white focus:ring-2 focus:ring-blue-500/40 outline-none ak-strong ak-input">
                         <option value="">Select a role…</option>
                         @foreach($adminRoles as $role)
                         <option value="{{ $role->id }}" {{ old('role_id') == $role->id ? 'selected' : '' }}>{{ $role->name }}</option>
                         @endforeach
                     </select>
-                    @error('role_id')<p class="mt-1 text-sm text-red-400">{{ $message }}</p>@enderror
+                    @error('role_id')<p class="mt-1 text-sm text-red-400 ak-red">{{ $message }}</p>@enderror
                 </div>
                 <div>
-                    <label class="block text-xs font-medium text-white/40 uppercase mb-1">Status</label>
-                    <select name="status" required class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-sm text-white focus:ring-2 focus:ring-blue-500/40 outline-none">
+                    <label class="block text-xs font-medium text-white/40 uppercase mb-1 ak-note">Status</label>
+                    <select name="status" required class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-sm text-white focus:ring-2 focus:ring-blue-500/40 outline-none ak-strong ak-input">
                         <option value="active" {{ old('status') === 'inactive' ? '' : 'selected' }}>Active</option>
                         <option value="inactive" {{ old('status') === 'inactive' ? 'selected' : '' }}>Inactive</option>
                     </select>
                 </div>
             </div>
             <div class="flex items-center justify-end gap-2 pt-1">
-                <button type="button" @click="close()" class="px-4 py-2 bg-white/5 text-white/70 rounded-xl text-sm hover:bg-white/10">Cancel</button>
+                <button type="button" @click="close()" class="px-4 py-2 bg-white/5 text-white/70 rounded-xl text-sm hover:bg-white/10 ak-strong">Cancel</button>
                 <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700 transition">
                     <i class="fas fa-user-plus mr-2"></i>Create staff member
                 </button>

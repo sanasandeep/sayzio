@@ -4,26 +4,26 @@
 
 @section('content')
 <div class="flex items-center justify-between mb-6">
-    <p class="text-sm text-white/40">Buyable coin bundles. Customers top up coins and spend them on coin-priced add-ons.</p>
+    <p class="text-sm text-white/40 ak-note">Buyable coin bundles. Customers top up coins and spend them on coin-priced add-ons.</p>
     <a href="{{ route('admin.coin-packages.create') }}" class="px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700"><i class="fas fa-plus mr-2"></i>Add Package</a>
 </div>
 
 @if(session('success'))
-    <div class="mb-4 p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-sm">{{ session('success') }}</div>
+    <div class="mb-4 p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-sm ak-green">{{ session('success') }}</div>
 @endif
 
 <div class="glass rounded-2xl border border-white/10 p-5 mb-6">
     <form method="POST" action="{{ route('admin.coin-packages.fx-rate') }}" class="flex flex-wrap items-end gap-4">
         @csrf
         <div>
-            <label class="block text-xs text-white/60 mb-1">INR exchange rate (₹ per $1)</label>
+            <label class="block text-xs text-white/60 mb-1 ak-muted">INR exchange rate (₹ per $1)</label>
             <input type="number" name="fx_rate_inr" min="0.0001" step="0.0001" required
                    value="{{ old('fx_rate_inr', rtrim(rtrim(number_format($fxRate, 4, '.', ''), '0'), '.')) }}"
-                   class="w-44 px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white text-sm">
-            @error('fx_rate_inr')<p class="mt-1 text-sm text-red-400">{{ $message }}</p>@enderror
+                   class="w-44 px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white text-sm ak-strong ak-input">
+            @error('fx_rate_inr')<p class="mt-1 text-sm text-red-400 ak-red">{{ $message }}</p>@enderror
         </div>
         <button class="px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700">Save Rate</button>
-        <p class="text-xs text-white/40 basis-full sm:basis-auto sm:flex-1">Used to compute INR prices when seeding new packages and shown as a hint on the package forms. Existing package prices are not changed automatically.</p>
+        <p class="text-xs text-white/40 basis-full sm:basis-auto sm:flex-1 ak-note">Used to compute INR prices when seeding new packages and shown as a hint on the package forms. Existing package prices are not changed automatically.</p>
     </form>
 </div>
 
@@ -32,44 +32,44 @@
     <div class="glass rounded-2xl border border-white/10 p-6 {{ $pkg->is_archived ? 'opacity-60' : '' }}">
         <div class="flex items-start justify-between mb-2">
             <div>
-                <h3 class="font-semibold text-white">{{ $pkg->name }}</h3>
-                <p class="text-[11px] text-white/30 font-mono">{{ $pkg->slug }}</p>
+                <h3 class="font-semibold text-white ak-strong">{{ $pkg->name }}</h3>
+                <p class="text-[11px] text-white/30 font-mono ak-note">{{ $pkg->slug }}</p>
             </div>
             <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium
-                {{ $pkg->status === 'active' && !$pkg->is_archived ? 'bg-emerald-500/10 text-emerald-400' : 'bg-white/10 text-white/60' }}">
+                {{ $pkg->status === 'active' && !$pkg->is_archived ? 'bg-emerald-500/10 text-emerald-400 ak-green' : 'bg-white/10 text-white/60 ak-muted' }}">
                 {{ $pkg->is_archived ? 'Archived' : ucfirst($pkg->status) }}
             </span>
         </div>
-        <p class="text-sm text-white/40 mb-4">{{ $pkg->description ?? 'No description' }}</p>
+        <p class="text-sm text-white/40 mb-4 ak-note">{{ $pkg->description ?? 'No description' }}</p>
 
         <div class="space-y-1 mb-4 text-sm">
-            <div class="flex justify-between"><span class="text-white/40">Coins</span><span class="font-semibold text-amber-300">{{ number_format($pkg->coin_amount) }}</span></div>
+            <div class="flex justify-between"><span class="text-white/40 ak-note">Coins</span><span class="font-semibold text-amber-300 ak-amber">{{ number_format($pkg->coin_amount) }}</span></div>
             @if($pkg->bonus_coins > 0)
-            <div class="flex justify-between"><span class="text-white/40">Bonus</span><span class="font-semibold text-emerald-300">+{{ number_format($pkg->bonus_coins) }}</span></div>
+            <div class="flex justify-between"><span class="text-white/40 ak-note">Bonus</span><span class="font-semibold text-emerald-300 ak-green">+{{ number_format($pkg->bonus_coins) }}</span></div>
             @endif
             @php $pUsd = $pkg->prices->first(fn($p)=>$p->currency==='USD' && $p->billing_cycle==='monthly'); @endphp
             @php $pInr = $pkg->prices->first(fn($p)=>$p->currency==='INR' && $p->billing_cycle==='monthly'); @endphp
             @php $oUsd = $pkg->originalPriceDisplay('USD', (int)($pUsd->amount_minor_units ?? 0)); @endphp
             @php $oInr = $pkg->originalPriceDisplay('INR', (int)($pInr->amount_minor_units ?? 0)); @endphp
-            <div class="flex justify-between"><span class="text-white/40">Price USD</span><span class="font-semibold text-white">@if($oUsd)<span class="text-white/30 line-through mr-1.5 font-normal">${{ number_format($oUsd['amount_minor']/100, 2) }}</span>@endif${{ number_format(($pUsd->amount_minor_units ?? 0)/100, 2) }}</span></div>
-            <div class="flex justify-between"><span class="text-white/40">Price INR</span><span class="font-semibold text-white">@if($oInr)<span class="text-white/30 line-through mr-1.5 font-normal">₹{{ number_format($oInr['amount_minor']/100, 2) }}</span>@endif₹{{ number_format(($pInr->amount_minor_units ?? 0)/100, 2) }}</span></div>
+            <div class="flex justify-between"><span class="text-white/40 ak-note">Price USD</span><span class="font-semibold text-white ak-strong">@if($oUsd)<span class="text-white/30 line-through mr-1.5 font-normal ak-note">${{ number_format($oUsd['amount_minor']/100, 2) }}</span>@endif${{ number_format(($pUsd->amount_minor_units ?? 0)/100, 2) }}</span></div>
+            <div class="flex justify-between"><span class="text-white/40 ak-note">Price INR</span><span class="font-semibold text-white ak-strong">@if($oInr)<span class="text-white/30 line-through mr-1.5 font-normal ak-note">₹{{ number_format($oInr['amount_minor']/100, 2) }}</span>@endif₹{{ number_format(($pInr->amount_minor_units ?? 0)/100, 2) }}</span></div>
         </div>
 
         <div class="flex items-center justify-end gap-2 pt-4 border-t border-white/5">
-            <a href="{{ route('admin.coin-packages.edit', $pkg) }}" class="text-white/30 hover:text-blue-400" title="Edit"><i class="fas fa-edit"></i></a>
+            <a href="{{ route('admin.coin-packages.edit', $pkg) }}" class="text-white/30 hover:text-blue-400 ak-note" title="Edit"><i class="fas fa-edit"></i></a>
             <form action="{{ route('admin.coin-packages.archive', $pkg) }}" method="POST" class="inline">@csrf
-                <button class="text-white/30 hover:text-amber-400" title="{{ $pkg->is_archived ? 'Restore' : 'Archive' }}">
+                <button class="text-white/30 hover:text-amber-400 ak-note" title="{{ $pkg->is_archived ? 'Restore' : 'Archive' }}">
                     <i class="fas {{ $pkg->is_archived ? 'fa-box-open' : 'fa-box-archive' }}"></i>
                 </button>
             </form>
             <form action="{{ route('admin.coin-packages.destroy', $pkg) }}" method="POST" class="inline" onsubmit="return window.themedConfirmSubmit(this, {title: 'Delete this coin package?', confirmText: 'Delete', confirmIcon: 'fa-trash', iconClass: 'fa-trash'})">@csrf @method('DELETE')
-                <button class="text-white/30 hover:text-red-400" title="Delete"><i class="fas fa-trash"></i></button>
+                <button class="text-white/30 hover:text-red-400 ak-note" title="Delete"><i class="fas fa-trash"></i></button>
             </form>
         </div>
     </div>
     @empty
-    <div class="col-span-full text-center text-white/40 py-12">
-        No coin packages yet. <a href="{{ route('admin.coin-packages.create') }}" class="text-blue-400 hover:underline">Create your first one</a>.
+    <div class="col-span-full text-center text-white/40 py-12 ak-note">
+        No coin packages yet. <a href="{{ route('admin.coin-packages.create') }}" class="text-blue-400 hover:underline ak-blue">Create your first one</a>.
     </div>
     @endforelse
 </div>

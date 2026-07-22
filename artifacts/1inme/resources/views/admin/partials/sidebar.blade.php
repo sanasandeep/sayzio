@@ -21,7 +21,7 @@
         <template x-if="sidebarMode === 'icons'">
             <a href="{{ route('admin.dashboard') }}" class="group" title="Sayzio Admin">
                 <div class="w-9 h-9 rounded-lg flex items-center justify-center" style="background: var(--accent);">
-                    <span class="text-white text-sm font-bold">1</span>
+                    <span class="text-white text-sm font-bold ak-strong">1</span>
                 </div>
             </a>
         </template>
@@ -283,7 +283,7 @@
                 <i class="fas fa-gem"></i>
                 @php $__cprCount = \App\Modules\Admin\Models\CustomPlanRequest::where('status','new')->count(); @endphp
                 @if($__cprCount > 0)
-                    <span class="absolute -top-1 -right-1 inline-flex items-center justify-center min-w-[14px] h-[14px] px-0.5 rounded-full text-[8px] font-bold leading-none text-white" style="background:var(--color-primary-500,#3d6bff);">{{ $__cprCount }}</span>
+                    <span class="absolute -top-1 -right-1 inline-flex items-center justify-center min-w-[14px] h-[14px] px-0.5 rounded-full text-[8px] font-bold leading-none text-white ak-strong" style="background:var(--color-primary-500,#3d6bff);">{{ $__cprCount }}</span>
                 @endif
             </div>
             <span class="nav-label">Custom Requests</span>
@@ -651,10 +651,10 @@
                          alt="{{ auth()->guard('admin')->user()->name ?? 'Admin' }}"
                          class="w-full h-full object-cover"
                          onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
-                    <span class="w-full h-full flex items-center justify-center text-white text-xs font-bold absolute inset-0"
+                    <span class="w-full h-full flex items-center justify-center text-white text-xs font-bold absolute inset-0 ak-strong"
                           style="display:none;">{{ strtoupper(substr(auth()->guard('admin')->user()->name ?? 'A', 0, 1)) }}</span>
                 @else
-                    <span class="w-full h-full flex items-center justify-center text-white text-xs font-bold">{{ strtoupper(substr(auth()->guard('admin')->user()->name ?? 'A', 0, 1)) }}</span>
+                    <span class="w-full h-full flex items-center justify-center text-white text-xs font-bold ak-strong">{{ strtoupper(substr(auth()->guard('admin')->user()->name ?? 'A', 0, 1)) }}</span>
                 @endif
             </div>
             <div class="flex-1 min-w-0 user-info">

@@ -118,7 +118,7 @@
         @csrf @method('PUT')
         <div>
             <label class="ak-muted block text-xs text-white/50 mb-1">Display name</label>
-            <input type="text" name="display_name" value="{{ old('display_name', $row->display_name) }}" required class="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white">
+            <input type="text" name="display_name" value="{{ old('display_name', $row->display_name) }}" required class="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white ak-strong ak-input">
         </div>
 
         <div class="grid grid-cols-2 gap-4">
@@ -132,7 +132,7 @@
             </div>
             <div>
                 <label class="ak-muted block text-xs text-white/50 mb-1">Sort order</label>
-                <input type="number" min="0" name="sort_order" value="{{ old('sort_order', $row->sort_order) }}" class="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white">
+                <input type="number" min="0" name="sort_order" value="{{ old('sort_order', $row->sort_order) }}" class="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white ak-strong ak-input">
             </div>
         </div>
 

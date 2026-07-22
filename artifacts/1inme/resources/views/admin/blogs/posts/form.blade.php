@@ -98,7 +98,7 @@ window.blogUploadCover = async function(input) {
 @section('content')
 @php $action = $post->exists ? route('admin.blogs.posts.update', $post) : route('admin.blogs.posts.store'); @endphp
 <div class="max-w-6xl mx-auto" x-data="blogForm(@js(old('body_html', $post->body_html ?? '')))">
-    <a href="{{ route('admin.blogs.posts.index') }}" class="text-xs text-blue-400 hover:underline"><i class="fas fa-arrow-left mr-1"></i>Back to all posts</a>
+    <a href="{{ route('admin.blogs.posts.index') }}" class="text-xs text-blue-400 hover:underline ak-blue"><i class="fas fa-arrow-left mr-1"></i>Back to all posts</a>
 
     <form method="POST" action="{{ $action }}" class="mt-4 grid lg:grid-cols-3 gap-6">
         @csrf
@@ -107,23 +107,23 @@ window.blogUploadCover = async function(input) {
         <div class="lg:col-span-2 space-y-5">
             <div class="glass rounded-2xl p-6 space-y-4">
                 <div>
-                    <label class="block text-xs uppercase tracking-wider text-white/60 mb-1.5">Title</label>
-                    <input type="text" name="title" required value="{{ old('title', $post->title) }}" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white">
-                    @error('title')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
+                    <label class="block text-xs uppercase tracking-wider text-white/60 mb-1.5 ak-muted">Title</label>
+                    <input type="text" name="title" required value="{{ old('title', $post->title) }}" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white ak-strong ak-input">
+                    @error('title')<p class="mt-1 text-xs text-red-400 ak-red">{{ $message }}</p>@enderror
                 </div>
                 <div>
-                    <label class="block text-xs uppercase tracking-wider text-white/60 mb-1.5">Slug <span class="text-white/40 normal-case">(optional, auto-generated)</span></label>
-                    <input type="text" name="slug" value="{{ old('slug', $post->slug) }}" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white font-mono text-sm">
-                    @error('slug')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
+                    <label class="block text-xs uppercase tracking-wider text-white/60 mb-1.5 ak-muted">Slug <span class="text-white/40 normal-case ak-note">(optional, auto-generated)</span></label>
+                    <input type="text" name="slug" value="{{ old('slug', $post->slug) }}" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white font-mono text-sm ak-strong ak-input">
+                    @error('slug')<p class="mt-1 text-xs text-red-400 ak-red">{{ $message }}</p>@enderror
                 </div>
                 <div>
-                    <label class="block text-xs uppercase tracking-wider text-white/60 mb-1.5">Excerpt</label>
-                    <textarea name="excerpt" rows="2" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm">{{ old('excerpt', $post->excerpt) }}</textarea>
+                    <label class="block text-xs uppercase tracking-wider text-white/60 mb-1.5 ak-muted">Excerpt</label>
+                    <textarea name="excerpt" rows="2" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm ak-strong ak-input">{{ old('excerpt', $post->excerpt) }}</textarea>
                 </div>
             </div>
 
             <div class="glass rounded-2xl p-6">
-                <label class="block text-xs uppercase tracking-wider text-white/60 mb-2">Body</label>
+                <label class="block text-xs uppercase tracking-wider text-white/60 mb-2 ak-muted">Body</label>
                 <div class="flex flex-wrap gap-1 mb-2">
                     <button type="button" class="rte-btn" @click="block('h2')">H2</button>
                     <button type="button" class="rte-btn" @click="block('h3')">H3</button>
@@ -141,27 +141,27 @@ window.blogUploadCover = async function(input) {
                 </div>
                 <div class="rte-content" contenteditable="true" x-init="mount($el)"></div>
                 <textarea name="body_html" class="hidden" x-model="body"></textarea>
-                @error('body_html')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
+                @error('body_html')<p class="mt-1 text-xs text-red-400 ak-red">{{ $message }}</p>@enderror
             </div>
 
             <div class="glass rounded-2xl p-6 space-y-4">
-                <h3 class="text-sm font-semibold text-white">SEO</h3>
+                <h3 class="text-sm font-semibold text-white ak-strong">SEO</h3>
                 <div>
-                    <label class="block text-xs uppercase tracking-wider text-white/60 mb-1.5">Meta title</label>
-                    <input type="text" name="meta_title" value="{{ old('meta_title', $post->meta_title) }}" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm">
+                    <label class="block text-xs uppercase tracking-wider text-white/60 mb-1.5 ak-muted">Meta title</label>
+                    <input type="text" name="meta_title" value="{{ old('meta_title', $post->meta_title) }}" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm ak-strong ak-input">
                 </div>
                 <div>
-                    <label class="block text-xs uppercase tracking-wider text-white/60 mb-1.5">Meta description</label>
-                    <textarea name="meta_description" rows="2" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm">{{ old('meta_description', $post->meta_description) }}</textarea>
+                    <label class="block text-xs uppercase tracking-wider text-white/60 mb-1.5 ak-muted">Meta description</label>
+                    <textarea name="meta_description" rows="2" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm ak-strong ak-input">{{ old('meta_description', $post->meta_description) }}</textarea>
                 </div>
                 <div class="grid sm:grid-cols-2 gap-3">
                     <div>
-                        <label class="block text-xs uppercase tracking-wider text-white/60 mb-1.5">OG image URL</label>
-                        <input type="text" name="og_image" value="{{ old('og_image', $post->og_image) }}" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm">
+                        <label class="block text-xs uppercase tracking-wider text-white/60 mb-1.5 ak-muted">OG image URL</label>
+                        <input type="text" name="og_image" value="{{ old('og_image', $post->og_image) }}" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm ak-strong ak-input">
                     </div>
                     <div>
-                        <label class="block text-xs uppercase tracking-wider text-white/60 mb-1.5">Canonical URL</label>
-                        <input type="text" name="canonical_url" value="{{ old('canonical_url', $post->canonical_url) }}" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm">
+                        <label class="block text-xs uppercase tracking-wider text-white/60 mb-1.5 ak-muted">Canonical URL</label>
+                        <input type="text" name="canonical_url" value="{{ old('canonical_url', $post->canonical_url) }}" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm ak-strong ak-input">
                     </div>
                 </div>
             </div>
@@ -169,46 +169,46 @@ window.blogUploadCover = async function(input) {
 
         <aside class="space-y-5">
             <div class="glass rounded-2xl p-5 space-y-3">
-                <h3 class="text-sm font-semibold text-white">Publish</h3>
+                <h3 class="text-sm font-semibold text-white ak-strong">Publish</h3>
                 <div>
-                    <label class="block text-xs uppercase tracking-wider text-white/60 mb-1.5">Status</label>
-                    <select name="status" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm">
+                    <label class="block text-xs uppercase tracking-wider text-white/60 mb-1.5 ak-muted">Status</label>
+                    <select name="status" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm ak-strong ak-input">
                         @foreach(['draft'=>'Draft','scheduled'=>'Scheduled','published'=>'Published','archived'=>'Archived'] as $k=>$v)
                             <option value="{{ $k }}" @selected(old('status', $post->status ?? 'draft')===$k)>{{ $v }}</option>
                         @endforeach
                     </select>
                 </div>
                 <div>
-                    <label class="block text-xs uppercase tracking-wider text-white/60 mb-1.5">Schedule for</label>
-                    <input type="datetime-local" name="scheduled_at" value="{{ old('scheduled_at', optional($post->scheduled_at)->format('Y-m-d\TH:i')) }}" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm">
+                    <label class="block text-xs uppercase tracking-wider text-white/60 mb-1.5 ak-muted">Schedule for</label>
+                    <input type="datetime-local" name="scheduled_at" value="{{ old('scheduled_at', optional($post->scheduled_at)->format('Y-m-d\TH:i')) }}" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm ak-strong ak-input">
                 </div>
                 <div>
-                    <label class="block text-xs uppercase tracking-wider text-white/60 mb-1.5">Published at</label>
-                    <input type="datetime-local" name="published_at" value="{{ old('published_at', optional($post->published_at)->format('Y-m-d\TH:i')) }}" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm">
+                    <label class="block text-xs uppercase tracking-wider text-white/60 mb-1.5 ak-muted">Published at</label>
+                    <input type="datetime-local" name="published_at" value="{{ old('published_at', optional($post->published_at)->format('Y-m-d\TH:i')) }}" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm ak-strong ak-input">
                 </div>
                 <button class="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-sm font-medium text-white">{{ $post->exists ? 'Save changes' : 'Create post' }}</button>
                 @if($post->exists)
-                    <button form="delete-form" class="w-full px-4 py-2 bg-red-500/15 hover:bg-red-500/25 text-red-300 rounded-lg text-xs">Delete post</button>
+                    <button form="delete-form" class="w-full px-4 py-2 bg-red-500/15 hover:bg-red-500/25 text-red-300 rounded-lg text-xs ak-red">Delete post</button>
                 @endif
             </div>
 
             <div class="glass rounded-2xl p-5 space-y-3">
-                <h3 class="text-sm font-semibold text-white">Organize</h3>
+                <h3 class="text-sm font-semibold text-white ak-strong">Organize</h3>
                 <div>
-                    <label class="block text-xs uppercase tracking-wider text-white/60 mb-1.5">Category</label>
-                    <select name="category_id" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm">
+                    <label class="block text-xs uppercase tracking-wider text-white/60 mb-1.5 ak-muted">Category</label>
+                    <select name="category_id" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm ak-strong ak-input">
                         <option value="">Uncategorized</option>
                         @foreach($categories as $c) <option value="{{ $c->id }}" @selected(old('category_id', $post->category_id)==$c->id)>{{ $c->name }}</option>@endforeach
                     </select>
                 </div>
                 <div>
-                    <label class="block text-xs uppercase tracking-wider text-white/60 mb-1.5">Tags <span class="text-white/40 normal-case">(comma separated)</span></label>
-                    <input type="text" name="tags_input" value="{{ old('tags_input', $post->exists ? $post->tags->pluck('name')->implode(', ') : '') }}" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm">
+                    <label class="block text-xs uppercase tracking-wider text-white/60 mb-1.5 ak-muted">Tags <span class="text-white/40 normal-case ak-note">(comma separated)</span></label>
+                    <input type="text" name="tags_input" value="{{ old('tags_input', $post->exists ? $post->tags->pluck('name')->implode(', ') : '') }}" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm ak-strong ak-input">
                 </div>
                 <div>
-                    <label class="block text-xs uppercase tracking-wider text-white/60 mb-1.5">Author</label>
+                    <label class="block text-xs uppercase tracking-wider text-white/60 mb-1.5 ak-muted">Author</label>
                     @php $authorId = old('author_id', $post->author_id ?? auth('admin')->id()); @endphp
-                    <select name="author_id" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm">
+                    <select name="author_id" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm ak-strong ak-input">
                         <option value="">Unassigned</option>
                         @foreach($authors as $a)
                             <option value="{{ $a->id }}" @selected((int)$authorId === (int)$a->id)>{{ $a->name }}</option>
@@ -216,10 +216,10 @@ window.blogUploadCover = async function(input) {
                     </select>
                 </div>
                 <div>
-                    <label class="block text-xs uppercase tracking-wider text-white/60 mb-1.5">Cover image</label>
-                    <input type="text" name="cover_image" value="{{ old('cover_image', $post->cover_image) }}" placeholder="https://… or upload" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm">
+                    <label class="block text-xs uppercase tracking-wider text-white/60 mb-1.5 ak-muted">Cover image</label>
+                    <input type="text" name="cover_image" value="{{ old('cover_image', $post->cover_image) }}" placeholder="https://… or upload" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm ak-strong ak-input">
                     <div class="mt-2 flex items-center gap-2">
-                        <label class="px-3 py-1.5 text-xs rounded-md bg-white/10 hover:bg-white/15 text-white cursor-pointer">
+                        <label class="px-3 py-1.5 text-xs rounded-md bg-white/10 hover:bg-white/15 text-white cursor-pointer ak-strong">
                             <i class="fas fa-upload mr-1"></i> Upload
                             <input type="file" accept="image/*" class="hidden" onchange="window.blogUploadCover(this)">
                         </label>
@@ -228,23 +228,23 @@ window.blogUploadCover = async function(input) {
             </div>
 
             <div class="glass rounded-2xl p-5 space-y-3">
-                <h3 class="text-sm font-semibold text-white">Discovery</h3>
-                <label class="flex items-center gap-2 text-sm text-white/80">
+                <h3 class="text-sm font-semibold text-white ak-strong">Discovery</h3>
+                <label class="flex items-center gap-2 text-sm text-white/80 ak-strong">
                     <input type="hidden" name="is_featured_home" value="0">
-                    <input type="checkbox" name="is_featured_home" value="1" @checked(old('is_featured_home', $post->is_featured_home)) class="rounded border-white/20 bg-white/5">
+                    <input type="checkbox" name="is_featured_home" value="1" @checked(old('is_featured_home', $post->is_featured_home)) class="rounded border-white/20 bg-white/5 ak-input">
                     Feature on homepage
                 </label>
                 <div>
-                    <label class="block text-xs uppercase tracking-wider text-white/60 mb-1.5">Featured slot</label>
-                    <select name="featured_slot" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm">
+                    <label class="block text-xs uppercase tracking-wider text-white/60 mb-1.5 ak-muted">Featured slot</label>
+                    <select name="featured_slot" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm ak-strong ak-input">
                         <option value="">None</option>
                         <option value="hero"     @selected(old('featured_slot', $post->featured_slot)==='hero')>Hero</option>
                         <option value="carousel" @selected(old('featured_slot', $post->featured_slot)==='carousel')>Carousel</option>
                     </select>
                 </div>
-                <label class="flex items-center gap-2 text-sm text-white/80">
+                <label class="flex items-center gap-2 text-sm text-white/80 ak-strong">
                     <input type="hidden" name="allow_comments" value="0">
-                    <input type="checkbox" name="allow_comments" value="1" @checked(old('allow_comments', $post->exists ? $post->allow_comments : true)) class="rounded border-white/20 bg-white/5">
+                    <input type="checkbox" name="allow_comments" value="1" @checked(old('allow_comments', $post->exists ? $post->allow_comments : true)) class="rounded border-white/20 bg-white/5 ak-input">
                     Allow comments
                 </label>
             </div>

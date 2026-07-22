@@ -5,38 +5,38 @@
 @section('content')
 <div class="max-w-5xl">
     <div class="mb-6">
-        <a href="{{ route('admin.plans.index') }}" class="text-sm text-white/50 hover:text-white/80 transition">
+        <a href="{{ route('admin.plans.index') }}" class="text-sm text-white/50 hover:text-white/80 transition ak-muted">
             <i class="fas fa-arrow-left mr-1.5"></i>Back to plans
         </a>
     </div>
 
     {{-- Summary --}}
     <div class="flex flex-wrap items-center gap-3 mb-6">
-        <span class="px-3 py-1.5 rounded-lg text-sm font-medium bg-emerald-500/10 border border-emerald-500/30 text-emerald-200">
+        <span class="px-3 py-1.5 rounded-lg text-sm font-medium bg-emerald-500/10 border border-emerald-500/30 text-emerald-200 ak-green">
             {{ $changedCount }} to update
         </span>
         @if($createCount > 0)
-        <span class="px-3 py-1.5 rounded-lg text-sm font-medium bg-sky-500/10 border border-sky-500/30 text-sky-200">
+        <span class="px-3 py-1.5 rounded-lg text-sm font-medium bg-sky-500/10 border border-sky-500/30 text-sky-200 ak-blue">
             {{ $createCount }} new plan{{ $createCount === 1 ? '' : 's' }}
         </span>
         @endif
-        <span class="px-3 py-1.5 rounded-lg text-sm font-medium bg-white/5 border border-white/10 text-white/60">
+        <span class="px-3 py-1.5 rounded-lg text-sm font-medium bg-white/5 border border-white/10 text-white/60 ak-muted">
             {{ $unchangedCount }} unchanged
         </span>
         @if($errorCount > 0)
-        <span class="px-3 py-1.5 rounded-lg text-sm font-medium bg-rose-500/10 border border-rose-500/30 text-rose-200">
+        <span class="px-3 py-1.5 rounded-lg text-sm font-medium bg-rose-500/10 border border-rose-500/30 text-rose-200 ak-red">
             {{ $errorCount }} with errors
         </span>
         @endif
         @if($unknownCount > 0)
-        <span class="px-3 py-1.5 rounded-lg text-sm font-medium bg-amber-500/10 border border-amber-500/30 text-amber-200">
+        <span class="px-3 py-1.5 rounded-lg text-sm font-medium bg-amber-500/10 border border-amber-500/30 text-amber-200 ak-amber">
             {{ $unknownCount }} unknown slug{{ $unknownCount === 1 ? '' : 's' }}
         </span>
         @endif
     </div>
 
     @if(!empty($unknownColumns))
-    <div class="rounded-xl px-4 py-3 mb-5 bg-amber-500/10 border border-amber-500/30 text-amber-100 text-sm">
+    <div class="rounded-xl px-4 py-3 mb-5 bg-amber-500/10 border border-amber-500/30 text-amber-100 text-sm ak-amber">
         <i class="fas fa-exclamation-triangle mr-1.5"></i>
         Unrecognised column{{ count($unknownColumns) === 1 ? '' : 's' }} ignored:
         <span class="font-mono">{{ implode(', ', $unknownColumns) }}</span>
@@ -44,7 +44,7 @@
     @endif
 
     @if($createCount > 0)
-    <div class="rounded-xl px-4 py-3 mb-5 bg-sky-500/10 border border-sky-500/30 text-sky-100 text-sm">
+    <div class="rounded-xl px-4 py-3 mb-5 bg-sky-500/10 border border-sky-500/30 text-sky-100 text-sm ak-blue">
         <i class="fas fa-circle-info mr-1.5"></i>
         {{ $createCount }} row{{ $createCount === 1 ? '' : 's' }} with an unrecognised slug can be created as
         <strong>new plan{{ $createCount === 1 ? '' : 's' }}</strong>. Tick the ones you want to add, new plans are
@@ -70,31 +70,31 @@
                         @if($row['status'] === 'create')
                         <label class="inline-flex items-center gap-2 cursor-pointer select-none shrink-0">
                             <input type="checkbox" name="create_slugs[]" value="{{ $row['slug'] }}"
-                                class="rounded border-white/20 bg-white/5 text-sky-500 focus:ring-sky-500/40">
+                                class="rounded border-white/20 bg-white/5 text-sky-500 focus:ring-sky-500/40 ak-input">
                         </label>
                         @endif
                         <span class="min-w-0">
-                            <span class="text-white/90 font-semibold">{{ $row['name'] ?: '—' }}</span>
-                            <span class="text-white/40 text-sm font-mono ml-2">{{ $row['slug'] }}</span>
+                            <span class="text-white/90 font-semibold ak-strong">{{ $row['name'] ?: '—' }}</span>
+                            <span class="text-white/40 text-sm font-mono ml-2 ak-note">{{ $row['slug'] }}</span>
                         </span>
                     </div>
                     <div class="shrink-0">
                         @if($row['status'] === 'update')
-                            <span class="text-xs font-medium text-emerald-300"><i class="fas fa-pen mr-1"></i>{{ count($row['changes']) }} change{{ count($row['changes']) === 1 ? '' : 's' }}</span>
+                            <span class="text-xs font-medium text-emerald-300 ak-green"><i class="fas fa-pen mr-1"></i>{{ count($row['changes']) }} change{{ count($row['changes']) === 1 ? '' : 's' }}</span>
                         @elseif($row['status'] === 'create')
-                            <span class="text-xs font-medium text-sky-300"><i class="fas fa-plus mr-1"></i>New plan</span>
+                            <span class="text-xs font-medium text-sky-300 ak-blue"><i class="fas fa-plus mr-1"></i>New plan</span>
                         @elseif($row['status'] === 'error')
-                            <span class="text-xs font-medium text-rose-300"><i class="fas fa-circle-xmark mr-1"></i>Skipped (errors)</span>
+                            <span class="text-xs font-medium text-rose-300 ak-red"><i class="fas fa-circle-xmark mr-1"></i>Skipped (errors)</span>
                         @elseif($row['status'] === 'unknown')
-                            <span class="text-xs font-medium text-amber-300"><i class="fas fa-question-circle mr-1"></i>Skipped (no match)</span>
+                            <span class="text-xs font-medium text-amber-300 ak-amber"><i class="fas fa-question-circle mr-1"></i>Skipped (no match)</span>
                         @else
-                            <span class="text-xs font-medium text-white/40"><i class="fas fa-check mr-1"></i>No changes</span>
+                            <span class="text-xs font-medium text-white/40 ak-note"><i class="fas fa-check mr-1"></i>No changes</span>
                         @endif
                     </div>
                 </div>
 
                 @if(!empty($row['errors']))
-                <ul class="mt-3 space-y-1 text-sm text-rose-200 list-disc list-inside">
+                <ul class="mt-3 space-y-1 text-sm text-rose-200 list-disc list-inside ak-red">
                     @foreach($row['errors'] as $error)<li>{{ $error }}</li>@endforeach
                 </ul>
                 @endif
@@ -103,13 +103,13 @@
                 <div class="mt-3 divide-y divide-white/5 border-t border-white/5">
                     @foreach($row['changes'] as $change)
                     <div class="flex items-center gap-3 py-2 text-sm">
-                        <span class="w-56 shrink-0 text-white/60">{{ $change['label'] }}</span>
+                        <span class="w-56 shrink-0 text-white/60 ak-muted">{{ $change['label'] }}</span>
                         @if($row['status'] === 'create')
-                        <span class="text-sky-300 font-mono">{{ $change['new'] }}</span>
+                        <span class="text-sky-300 font-mono ak-blue">{{ $change['new'] }}</span>
                         @else
-                        <span class="text-rose-300/80 line-through font-mono">{{ $change['old'] }}</span>
-                        <i class="fas fa-arrow-right text-white/30 text-xs"></i>
-                        <span class="text-emerald-300 font-mono">{{ $change['new'] }}</span>
+                        <span class="text-rose-300/80 line-through font-mono ak-red">{{ $change['old'] }}</span>
+                        <i class="fas fa-arrow-right text-white/30 text-xs ak-note"></i>
+                        <span class="text-emerald-300 font-mono ak-green">{{ $change['new'] }}</span>
                         @endif
                     </div>
                     @endforeach
@@ -126,12 +126,12 @@
                 <i class="fas fa-check mr-2"></i>Apply changes
             </button>
             @if($createCount > 0)
-            <span class="text-xs text-white/50">Only ticked new plans are created.</span>
+            <span class="text-xs text-white/50 ak-muted">Only ticked new plans are created.</span>
             @endif
             @else
-            <span class="text-sm text-white/50">Nothing to apply, no rows changed a value.</span>
+            <span class="text-sm text-white/50 ak-muted">Nothing to apply, no rows changed a value.</span>
             @endif
-            <a href="{{ route('admin.plans.index') }}" class="text-sm text-white/60 hover:text-white transition">Cancel</a>
+            <a href="{{ route('admin.plans.index') }}" class="text-sm text-white/60 hover:text-white transition ak-muted">Cancel</a>
         </div>
     </form>
 </div>
