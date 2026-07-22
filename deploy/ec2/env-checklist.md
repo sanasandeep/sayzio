@@ -115,7 +115,6 @@ env values are the fallback.
 | `YOUTUBE_API_KEY` | ✅ | | YouTube connected app data. |
 | `CONNECTED_APPS_GA_ENABLED` | | | Feature toggle for the GA connected app. |
 | `REPLICATE_API_TOKEN` / `REPLICATE_QR_MODEL` | ✅ | ✅ (AiEngineSettings) | AI Artistic QR; absent = preview/disabled. |
-| `MSG91_AUTH_KEY` / `MSG91_SENDER_ID` / `MSG91_ROUTE` / `MSG91_TEMPLATE_ID` | ✅ | | SMS OTP via MSG91. |
 | `SENDGRID_API_KEY` / `POSTMARK_API_KEY` | ✅ | | Only if you use those mail transports. |
 | `WHATSAPP_PHONE_NUMBER_ID` / `WHATSAPP_ACCESS_TOKEN` / `WHATSAPP_APP_SECRET` / `WHATSAPP_WEBHOOK_VERIFY_TOKEN` | ✅ | | WhatsApp Business API (OTP + agent). |
 | `WHATSAPP_TEMPLATE_NAME` / `WHATSAPP_TEMPLATE_LANG` / `WHATSAPP_GRAPH_VERSION` / `WHATSAPP_AGENT_ENABLED` | | | WhatsApp plain config. |

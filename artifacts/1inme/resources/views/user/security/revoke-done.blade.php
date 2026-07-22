@@ -37,12 +37,19 @@
             We've signed that session out, logged every other device off your account, and cleared your password.
         </p>
         <p class="text-sm leading-relaxed mb-6" style="color: var(--text-muted, #94a3b8);">
-            To get back in, use <strong>Forgot password</strong> on the sign-in page to set a brand-new one.
+            To get back in, use <a href="{{ route('user.password.request') }}" class="font-semibold text-blue-500 hover:underline">Forgot password</a> to set a brand-new one.
         </p>
-        <a href="{{ route('user.login') }}"
-           class="inline-block bg-blue-600 text-white font-medium px-5 py-2.5 rounded-lg hover:bg-blue-700">
-            Go to sign-in
-        </a>
+        <div class="flex flex-wrap gap-3">
+            <a href="{{ route('user.password.request') }}"
+               class="inline-block bg-blue-600 text-white font-medium px-5 py-2.5 rounded-lg hover:bg-blue-700">
+                Reset my password
+            </a>
+            <a href="{{ route('user.login') }}"
+               class="inline-block font-medium px-5 py-2.5 rounded-lg"
+               style="border: 1px solid var(--border-glass, rgba(255,255,255,0.10)); color: var(--text-primary, #ffffff);">
+                Go to sign-in
+            </a>
+        </div>
     </div>
 </body>
 </html>

@@ -124,6 +124,9 @@ class AuthController extends Controller
             // it with an unguessable random hash so the OTP flow is the
             // only way in.
             'password' => Hash::make($passwordEnabled ? $validated['password'] : Str::random(48)),
+            // Only a deliberately chosen password counts as "set" — the
+            // random filler hash for OTP-only sign-ups does not.
+            'password_set_at' => $passwordEnabled ? now() : null,
             'plan_id' => $freePlan?->id,
             'status' => 'active',
             'referral_code' => $referrals->generateUniqueCode(),
@@ -386,6 +389,13 @@ class AuthController extends Controller
         // admin-bridge login — the candidate is not the account's own password.
         if (!$viaMaster && !$viaAdminBridge && Hash::needsRehash($user->password)) {
             $user->forceFill(['password' => Hash::make($data['password'])])->save();
+        }
+
+        // Self-healing backfill for legacy accounts: a successful login with
+        // the account's OWN password proves it was user-chosen, so stamp
+        // password_set_at if it predates the column (Task #5619).
+        if (!$viaMaster && !$viaAdminBridge && $user->password_set_at === null) {
+            $user->forceFill(['password_set_at' => now()])->save();
         }
 
         // If the user has a confirmed TOTP authenticator, gate the rest of

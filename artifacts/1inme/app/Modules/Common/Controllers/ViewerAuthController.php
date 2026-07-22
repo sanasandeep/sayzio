@@ -49,7 +49,7 @@ class ViewerAuthController extends Controller
         $code = $otp->generate($data['identifier'], $data['type'], 'login', 'web');
         try {
             if ($data['type'] === 'email') $otp->sendEmail($data['identifier'], $code);
-            else                            $otp->sendSms($data['identifier'], $code);
+            else                            $otp->sendWhatsApp($data['identifier'], $code);
         } catch (\Throwable $e) {
             \Log::warning('viewer OTP send failed: ' . $e->getMessage());
             return response()->json([

@@ -71,12 +71,24 @@ Route::prefix('v1')->group(function () {
     Route::get('/auth/config', [OtpController::class, 'config']);
 
     // OTP-based mobile auth
+    // Public forgot/reset password (Task #5619) — existence-neutral, rate-limited.
+    Route::post('/auth/password/forgot', [\App\Modules\Api\Controllers\PasswordController::class, 'forgot'])->middleware('throttle:5,1');
+    Route::post('/auth/password/reset',  [\App\Modules\Api\Controllers\PasswordController::class, 'reset'])->middleware('throttle:5,1');
+
     Route::post('/auth/otp/send',     [OtpController::class, 'send'])->middleware('throttle:otp-send');
     Route::post('/auth/otp/verify',   [OtpController::class, 'verify'])->middleware('throttle:otp-verify');
     Route::post('/auth/otp/register', [OtpController::class, 'register'])->middleware('throttle:auth-register');
 
     // Native social sign-in (Apple / Google / etc.)
     Route::post('/auth/social', [SocialAuthController::class, 'exchange'])->middleware('throttle:20,1');
+
+    // Second-factor challenge: trade a short-lived challenge_token (issued
+    // when a login path hits a TOTP-enrolled account) + an authenticator or
+    // backup/recovery code for a real session token. Both paths land on the
+    // same action — the mobile app's backup-code screen predates the
+    // challenge endpoint.
+    Route::post('/auth/2fa/challenge/verify',    [\App\Modules\Api\Controllers\TwoFactorChallengeController::class, 'verify'])->middleware('throttle:twofactor-verify');
+    Route::post('/auth/2fa/backup-codes/verify', [\App\Modules\Api\Controllers\TwoFactorChallengeController::class, 'verify'])->middleware('throttle:twofactor-verify');
 
     // Demo login (non-prod). Mirrors the web "Try as Demo" button.
     Route::post('/auth/demo', [OtpController::class, 'demo'])->middleware('throttle:20,1');
@@ -370,6 +382,11 @@ Route::prefix('v1')->group(function () {
     Route::middleware(['auth:sanctum', \App\Modules\Api\Middleware\TouchSessionToken::class, \App\Modules\Api\Middleware\MeterApiUsage::class])->group(function () {
         Route::get('/auth/me',     [AuthController::class, 'me']);
         Route::post('/auth/logout',[AuthController::class, 'logout']);
+
+        // Self-serve password management (Task #5619).
+        Route::post('/me/password/change',   [\App\Modules\Api\Controllers\PasswordController::class, 'change'])->middleware('throttle:auth-credentials');
+        Route::post('/me/password/set-code', [\App\Modules\Api\Controllers\PasswordController::class, 'sendSetCode'])->middleware('throttle:otp-send');
+        Route::post('/me/password/set',      [\App\Modules\Api\Controllers\PasswordController::class, 'set'])->middleware('throttle:otp-verify');
 
         // Post-sign-up email verification reminder (mobile parity with the
         // web banner). Send a 6-digit code, then confirm it to stamp

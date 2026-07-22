@@ -19,6 +19,27 @@
 --}}
 @php
     $__statusCode  = (int) ($statusCode ?? 500);
+
+    // Production diagnosability: the view-level error net below can swallow
+    // the real exception entirely, leaving deployment logs empty for a 500.
+    // Laravel passes the original Throwable to error views as $exception —
+    // emit a one-line summary (class, message, file:line, request path) to
+    // stderr so it always lands in the deployment logs. No stack trace, no
+    // secrets/PII beyond the exception message itself.
+    if (app()->environment('production') && isset($exception) && $exception instanceof \Throwable) {
+        try {
+            $__summary = sprintf(
+                '[error-page %d] %s: %s at %s:%d (path: %s)',
+                $__statusCode,
+                get_class($exception),
+                \Illuminate\Support\Str::limit((string) $exception->getMessage(), 300),
+                $exception->getFile(),
+                $exception->getLine(),
+                request()?->path() ?? 'unknown'
+            );
+            @file_put_contents('php://stderr', $__summary . PHP_EOL);
+        } catch (\Throwable $__ignore) {}
+    }
     $__slug        = $slug ?? ('error-' . $__statusCode);
     $__suggestions = $suggestions ?? [];
 

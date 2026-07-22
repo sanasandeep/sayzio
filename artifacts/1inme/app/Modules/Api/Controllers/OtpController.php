@@ -134,9 +134,10 @@ class OtpController extends Controller
         // Mirrors the security boundary the web login flow enforces.
         if (!$needsName && app(\App\Modules\User\Services\TwoFactorPolicy::class)->userHasEnrolledTotp($user)) {
             return $this->fail(
-                'This account has two-factor authentication enabled. Please sign in through the web app to complete the second factor.',
+                'This account has two-factor authentication enabled. Enter your authenticator code to finish signing in.',
                 403,
-                'totp_required'
+                'totp_required',
+                ['challenge_token' => TwoFactorChallengeController::issueChallengeToken($user)]
             );
         }
 
@@ -225,7 +226,7 @@ class OtpController extends Controller
         try {
             $data['type'] === 'email'
                 ? $otp->sendEmail($data['identifier'], $code)
-                : $otp->sendSms($data['identifier'], $code);
+                : $otp->sendWhatsApp($data['identifier'], $code);
         } catch (\Throwable $e) {
             \Log::warning('OTP send (register) failed: ' . $e->getMessage());
         }

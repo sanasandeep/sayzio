@@ -89,7 +89,7 @@
                     @else
                         will be
                     @endif
-                    paid with coins@if(!$walletEnabled), but coin top-ups are disabled so they'll be rejected@endif.
+                    paid with coins{{ '' }}@if(!$walletEnabled), but coin top-ups are disabled so they'll be rejected{{ '' }}@endif.
                 </p>
             @elseif($percentUsed >= 80)
                 <p class="text-[11px] mt-2" style="color: #fbbf24;">

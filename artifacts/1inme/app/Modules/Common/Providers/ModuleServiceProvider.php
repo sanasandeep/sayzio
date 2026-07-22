@@ -5,7 +5,6 @@ namespace App\Modules\Common\Providers;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\Route;
 use App\Modules\Common\Services\S3Service;
-use App\Modules\Common\Services\SmsService;
 use App\Modules\Common\Services\LinkTrackingService;
 
 class ModuleServiceProvider extends ServiceProvider
@@ -13,7 +12,6 @@ class ModuleServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->singleton(S3Service::class);
-        $this->app->singleton(SmsService::class);
         $this->app->singleton(LinkTrackingService::class);
     }
 

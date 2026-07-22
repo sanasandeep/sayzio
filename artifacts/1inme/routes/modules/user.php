@@ -115,6 +115,20 @@ Route::prefix('user')->name('user.')->group(function () {
     Route::get('verify-otp', [AuthController::class, 'showOtpVerify'])->name('otp.verify.form');
     Route::post('verify-otp', [AuthController::class, 'verifyOtp'])->middleware('throttle:otp-verify')->name('otp.verify');
 
+    // ---- Public forgot-password flow for regular users (Task #5619) ----
+    // Mirrors the admin PasswordResetController mechanics; responses are
+    // existence-neutral and both POST endpoints are rate-limited.
+    Route::get('forgot-password', [\App\Modules\User\Controllers\PasswordResetController::class, 'showForgotForm'])
+        ->name('password.request');
+    Route::post('forgot-password', [\App\Modules\User\Controllers\PasswordResetController::class, 'sendResetLink'])
+        ->middleware('throttle:5,1')
+        ->name('password.email');
+    Route::get('reset-password/{token}', [\App\Modules\User\Controllers\PasswordResetController::class, 'showResetForm'])
+        ->name('password.reset');
+    Route::post('reset-password', [\App\Modules\User\Controllers\PasswordResetController::class, 'resetPassword'])
+        ->middleware('throttle:5,1')
+        ->name('password.update');
+
     // "Sign in with <provider>" — resolves the social identity to its
     // linked account and signs the visitor in. Available pre-auth.
     Route::get('social-oauth/{provider}/login', [\App\Modules\User\Controllers\SocialOAuthController::class, 'loginConnect'])
@@ -272,6 +286,14 @@ Route::prefix('user')->name('user.')->group(function () {
             ->name('account.two-factor.recovery-codes');
         Route::get   ('account/two-factor/required',  [\App\Modules\User\Controllers\TwoFactorController::class, 'required'])
             ->name('account.two-factor.required');
+
+        // ---- Change / set-first password on the Security tab (Task #5619) ----
+        Route::post('settings/security/password', [\App\Modules\User\Controllers\PasswordController::class, 'update'])
+            ->middleware('throttle:auth-credentials')
+            ->name('account.password.update');
+        Route::post('settings/security/password/code', [\App\Modules\User\Controllers\PasswordController::class, 'sendSetPasswordCode'])
+            ->middleware('throttle:otp-send')
+            ->name('account.password.code');
 
         // ---- Workspace security (owner-only) ----
         Route::put ('workspaces/security',           [\App\Modules\User\Controllers\WorkspaceSecurityController::class, 'update'])

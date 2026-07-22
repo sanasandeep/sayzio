@@ -124,9 +124,10 @@ class SocialAuthController extends Controller
         // web login flow and SiteAssistantController enforce.
         if (!$created && app(\App\Modules\User\Services\TwoFactorPolicy::class)->userHasEnrolledTotp($user)) {
             return $this->fail(
-                'This account has two-factor authentication enabled. Please sign in through the web app to complete the second factor.',
+                'This account has two-factor authentication enabled. Enter your authenticator code to finish signing in.',
                 403,
-                'totp_required'
+                'totp_required',
+                ['challenge_token' => TwoFactorChallengeController::issueChallengeToken($user)]
             );
         }
 

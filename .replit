@@ -460,6 +460,18 @@ args = "api-parity-tests"
 task = "workflow.run"
 args = "e2e-ai-menu-labels"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "eas-apk"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "eas-dialer-apk"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "otp-merge-tests"
+
 [[workflows.workflow]]
 name = "e2e"
 author = "agent"
@@ -1890,6 +1902,39 @@ args = "bash artifacts/1inme/tests/Browser/run-validation.sh ai-menu-labels.spec
 
 [workflows.workflow.metadata]
 isValidation = true
+
+[[workflows.workflow]]
+name = "eas-apk"
+author = "agent"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd artifacts/1inme-mobile && EAS_NO_VCS=1 npx -y eas-cli build --platform android --profile preview --non-interactive --no-wait"
+
+[[workflows.workflow]]
+name = "eas-dialer-apk"
+author = "agent"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd sayzio-dialer-standalone && EAS_NO_VCS=1 npx -y eas-cli build --platform android --profile preview --non-interactive --no-wait"
+
+[[workflows.workflow]]
+name = "otp-merge-tests"
+author = "agent"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd artifacts/1inme && rm -rf /tmp/1inme-testpg.* ; TEST_LOCAL_MODE=artisan bash scripts/test-local.sh --filter='OtpLoginEmailIsolationTest'"
 
   [agent]
 stack = "PNPM_WORKSPACE"

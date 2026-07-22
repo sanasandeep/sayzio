@@ -2,6 +2,7 @@
 
 namespace App\Modules\User\Models;
 
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
@@ -18,7 +19,48 @@ class UserNotification extends Model
 
     public $timestamps = false;
     protected $fillable = ['user_id', 'type', 'data', 'read_at', 'emailed_at', 'created_at', 'dismissed_at'];
-    protected $casts = ['data' => 'array', 'read_at' => 'datetime', 'emailed_at' => 'datetime', 'created_at' => 'datetime', 'dismissed_at' => 'datetime'];
+    protected $casts = ['read_at' => 'datetime', 'emailed_at' => 'datetime', 'created_at' => 'datetime', 'dismissed_at' => 'datetime'];
+
+    protected static function booted(): void
+    {
+        // `$timestamps = false` means Eloquent never auto-stamps created_at,
+        // so any create() call that forgets to pass it would persist NULL and
+        // the feed's "x minutes ago" rendering would fatal. Stamp it centrally
+        // so no call site can produce a NULL created_at row going forward.
+        static::creating(function (self $n) {
+            if (empty($n->created_at)) {
+                $n->created_at = now();
+            }
+        });
+    }
+
+    /**
+     * The data payload, guaranteed to be an array.
+     *
+     * Historically this was a plain 'array' cast, but production rows exist
+     * whose JSON is a scalar/string (or corrupt). json_decode() of those
+     * yields a non-array, and every consumer — the blade views' `$d[...]`
+     * offsets, targetUrl()/previewText() array type-hints, the REST feed —
+     * would fatal per-row and 500 the whole page. Normalize here so a bad
+     * row can never take down the feed.
+     */
+    protected function data(): Attribute
+    {
+        return Attribute::make(
+            get: function ($value) {
+                if (is_array($value)) {
+                    return $value;
+                }
+                if (!is_string($value) || $value === '') {
+                    return [];
+                }
+                $decoded = json_decode($value, true);
+
+                return is_array($decoded) ? $decoded : [];
+            },
+            set: fn ($value) => json_encode(is_array($value) ? $value : []),
+        );
+    }
 
     public function user() { return $this->belongsTo(User::class); }
 

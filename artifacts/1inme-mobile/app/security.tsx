@@ -22,6 +22,7 @@ import {
 
 type Row = {
   href:
+    | "/security/change-password"
     | "/security/two-factor"
     | "/security/backup-codes"
     | "/security/trusted-contacts"
@@ -85,6 +86,13 @@ export default function SecurityHub() {
     recovery.filter((r) => r.status === "pending" && !r.my_confirmation).length;
 
   const rows: Row[] = [
+    {
+      href: "/security/change-password",
+      icon: "lock",
+      title: "Password",
+      body: "Change your sign-in password, or set one if you only use one-time codes. Other devices get signed out.",
+      badge: null,
+    },
     {
       href: "/security/two-factor",
       icon: "shield",

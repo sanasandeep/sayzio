@@ -33,7 +33,7 @@ final class ReservedAlias
         'signed-media', 'stats', 'moderation', 'u', 'p', 'c', 'm',
         'checkout', 'analytics', 'audience', 'integrations',
         'compare', 'for', 'demos', 'dialer-contacts', 'events',
-        'android',
+        'android', 'digest',
     ];
 
     /**

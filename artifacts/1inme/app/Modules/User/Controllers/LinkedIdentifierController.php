@@ -50,7 +50,7 @@ class LinkedIdentifierController extends Controller
         $otp = new OtpService();
         $code = $otp->generate($value, $otpType, 'link', 'web');
         try {
-            if ($kind === 'email') $otp->sendEmail($value, $code); else $otp->sendSms($value, $code);
+            if ($kind === 'email') $otp->sendEmail($value, $code); else $otp->sendWhatsApp($value, $code);
         } catch (\Throwable $e) {
             \Log::warning('linked identifier OTP send failed: ' . $e->getMessage());
         }

@@ -60,6 +60,9 @@ return Application::configure(basePath: dirname(__DIR__))
             // it cannot present a CSRF token. The signed URL itself is
             // the authenticator.
             'newsletter/unsubscribe/*',
+            // RFC 8058 one-click unsubscribe POST for Zio Digest broadcast
+            // emails — same rationale as the newsletter one above.
+            'digest/unsubscribe/*',
             // RFC 8058 one-click unsubscribe POST for the mobile-app launch
             // announcement email — same rationale as the newsletter one above.
             'app-launch/unsubscribe/*',

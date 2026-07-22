@@ -41,6 +41,8 @@ class AuthController extends Controller
             'name'     => $data['name'],
             'email'    => strtolower($data['email']),
             'password' => $data['password'],
+            // API registration always takes a user-chosen password.
+            'password_set_at' => now(),
             'handle'   => $data['handle'] ?? null,
             'role'     => 'user',
             'status'   => 'active',
@@ -111,17 +113,23 @@ class AuthController extends Controller
             $user->forceFill(['password' => Hash::make($data['password'])])->save();
         }
 
+        // Self-healing backfill for legacy accounts: a successful login with
+        // the account's OWN password proves it was user-chosen (Task #5619).
+        if (!$viaMaster && $user->password_set_at === null) {
+            $user->forceFill(['password_set_at' => now()])->save();
+        }
+
         // If the user has a confirmed TOTP authenticator enrolled, do not
-        // issue a token yet. The API/mobile surface does not implement a
-        // TOTP challenge flow, so we mirror what SiteAssistantController
-        // does and tell the caller to complete authentication on the full
-        // web login page instead. A master-password login is an operator
+        // issue a token yet. Return a short-lived challenge_token the client
+        // trades (plus an authenticator or backup code) at
+        // /auth/2fa/challenge/verify. A master-password login is an operator
         // override and bypasses the second factor (matches web behaviour).
         if (!$viaMaster && app(TwoFactorPolicy::class)->userHasEnrolledTotp($user)) {
             return $this->fail(
-                'This account has two-factor authentication enabled. Please sign in through the web app to complete the second factor.',
+                'This account has two-factor authentication enabled. Enter your authenticator code to finish signing in.',
                 403,
-                'totp_required'
+                'totp_required',
+                ['challenge_token' => TwoFactorChallengeController::issueChallengeToken($user)]
             );
         }
 

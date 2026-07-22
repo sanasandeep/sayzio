@@ -13,7 +13,7 @@
     <style>[x-cloak]{display:none !important}</style>
     @include('common.partials.theme-styles')
 </head>
-<body class="min-h-screen relative overflow-hidden" style="background: var(--bg-body);">
+<body class="min-h-screen relative overflow-x-hidden" style="background: var(--bg-body);">
     <div class="bg-mesh"></div>
 
     <div class="particles" id="login-particles"></div>
@@ -30,17 +30,17 @@
     </div>
 
     <div class="min-h-screen flex relative z-10">
-        <div class="hidden lg:block flex-1 relative">
+        <div class="hidden lg:block flex-1 relative lg:sticky lg:top-0 lg:h-screen lg:self-start lg:overflow-hidden">
             <a href="{{ route('home') }}" class="force-dark-logo absolute top-7 left-7 xl:top-9 xl:left-9 z-30 inline-flex items-center group">
                 @include('common.partials.brand-logo', ['height' => 'h-10'])
             </a>
             @include('common.partials.auth-slider', ['variant' => 'page'])
         </div>
 
-        <div class="flex-1 lg:flex-none lg:w-[480px] flex items-center justify-center p-6 lg:p-12 relative">
+        <div class="flex-1 lg:flex-none lg:w-[480px] flex p-6 lg:p-12 relative">
             <div class="hidden lg:block absolute inset-y-0 left-0 w-px" style="background: linear-gradient(180deg, transparent, var(--border-glass), transparent);"></div>
 
-            <div class="w-full max-w-sm" data-ajax-group>
+            <div class="w-full max-w-sm m-auto" data-ajax-group>
                 <div class="text-center mb-7 lg:hidden">
                     <a href="{{ route('home') }}" class="inline-flex items-center justify-center">
                         @include('common.partials.brand-logo', ['height' => 'h-10'])
@@ -108,6 +108,9 @@
                                 <label class="block text-xs font-semibold uppercase tracking-wider mb-1.5" style="color: var(--text-dimmed);">Password</label>
                                 @include('common.partials.password-field', ['name' => 'password', 'placeholder' => 'Your password', 'autocomplete' => 'current-password', 'required' => true])
                                 <p class="mt-1 text-xs text-red-400" data-err="password" @if(!$errors->has('password')) hidden @endif>{{ $errors->first('password') }}</p>
+                            </div>
+                            <div class="text-right -mt-2">
+                                <a href="{{ route('user.password.request') }}" class="text-xs font-medium text-blue-500 hover:underline">Forgot password?</a>
                             </div>
                             <button type="submit" class="btn-primary w-full justify-center py-2.5 text-sm">
                                 <i class="fas fa-arrow-right-to-bracket text-xs"></i> Sign In

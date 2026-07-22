@@ -331,6 +331,24 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::post('/settings', [\App\Modules\Admin\Controllers\NewsletterController::class, 'updateSettings'])->middleware(CheckPermission::class . ':settings.manage')->name('settings.update');
             Route::delete('/{subscriber}', [\App\Modules\Admin\Controllers\NewsletterController::class, 'destroy'])->middleware(CheckPermission::class . ':settings.manage')->name('destroy');
         });
+        Route::prefix('zio-digests')->name('zio-digests.')->group(function () {
+            Route::get('/', [\App\Modules\Admin\Controllers\ZioDigestController::class, 'index'])->middleware(CheckPermission::class . ':settings.manage')->name('index');
+            Route::get('/create', [\App\Modules\Admin\Controllers\ZioDigestController::class, 'create'])->middleware(CheckPermission::class . ':settings.manage')->name('create');
+            Route::post('/', [\App\Modules\Admin\Controllers\ZioDigestController::class, 'store'])->middleware(CheckPermission::class . ':settings.manage')->name('store');
+            Route::post('/settings', [\App\Modules\Admin\Controllers\ZioDigestController::class, 'updateSettings'])->middleware(CheckPermission::class . ':settings.manage')->name('settings.update');
+            Route::post('/logo', [\App\Modules\Admin\Controllers\ZioDigestController::class, 'updateLogo'])->middleware(CheckPermission::class . ':settings.manage')->name('logo.update');
+            Route::delete('/logo', [\App\Modules\Admin\Controllers\ZioDigestController::class, 'removeLogo'])->middleware(CheckPermission::class . ':settings.manage')->name('logo.remove');
+            Route::post('/upload', [\App\Modules\Admin\Controllers\ZioDigestController::class, 'upload'])->middleware(CheckPermission::class . ':settings.manage')->name('upload');
+            Route::post('/audience-count', [\App\Modules\Admin\Controllers\ZioDigestController::class, 'audienceCount'])->middleware(CheckPermission::class . ':settings.manage')->name('audience-count');
+            Route::get('/{digest}/edit', [\App\Modules\Admin\Controllers\ZioDigestController::class, 'edit'])->middleware(CheckPermission::class . ':settings.manage')->name('edit');
+            Route::put('/{digest}', [\App\Modules\Admin\Controllers\ZioDigestController::class, 'update'])->middleware(CheckPermission::class . ':settings.manage')->name('update');
+            Route::delete('/{digest}', [\App\Modules\Admin\Controllers\ZioDigestController::class, 'destroy'])->middleware(CheckPermission::class . ':settings.manage')->name('destroy');
+            Route::post('/{digest}/duplicate', [\App\Modules\Admin\Controllers\ZioDigestController::class, 'duplicate'])->middleware(CheckPermission::class . ':settings.manage')->name('duplicate');
+            Route::get('/{digest}/preview', [\App\Modules\Admin\Controllers\ZioDigestController::class, 'preview'])->middleware(CheckPermission::class . ':settings.manage')->name('preview');
+            Route::post('/{digest}/send', [\App\Modules\Admin\Controllers\ZioDigestController::class, 'send'])->middleware(CheckPermission::class . ':settings.manage')->name('send');
+            Route::post('/{digest}/send-test', [\App\Modules\Admin\Controllers\ZioDigestController::class, 'sendTest'])->middleware(CheckPermission::class . ':settings.manage')->name('send-test');
+            Route::get('/{digest}/report', [\App\Modules\Admin\Controllers\ZioDigestController::class, 'report'])->middleware(CheckPermission::class . ':settings.manage')->name('report');
+        });
         Route::prefix('app-launch')->name('app-launch.')->group(function () {
             Route::get('/', [\App\Modules\Admin\Controllers\AppLaunchSignupController::class, 'index'])->middleware(CheckPermission::class . ':settings.manage')->name('index');
             Route::get('/export', [\App\Modules\Admin\Controllers\AppLaunchSignupController::class, 'export'])->middleware(CheckPermission::class . ':settings.manage')->name('export');

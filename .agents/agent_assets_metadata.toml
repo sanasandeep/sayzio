@@ -1211,3 +1211,27 @@ id = "Tg9cn8VzmbrF4LFOmiTm7"
 uri = "file://.local/outputs/SAYZIO.pptx"
 type = "slides"
 title = "SAYZIO.pptx"
+
+[[outputs]]
+id = "WYQb_w88HgDyjMs8oi80A"
+uri = "file://exports/sayzio-mobile-apk.zip"
+type = "unspecified"
+title = "Sayzio Mobile APK (new build, zipped)"
+
+[[outputs]]
+id = "61ehyUuZe0Q4AyaoLRrud"
+uri = "file://exports/sayzio-dialer-apk.zip"
+type = "unspecified"
+title = "Zio Dialer APK (new build, zipped)"
+
+[[outputs]]
+id = "A42eV5oPrgB89ut9QLbeI"
+uri = "file://exports/sayzio-mobile-2fa.zip"
+type = "unspecified"
+title = "Sayzio Mobile APK (with 2FA login)"
+
+[[outputs]]
+id = "joTWyCZjXtNEcHwkIc_Y8"
+uri = "file://exports/sayzio-dialer-2fa.zip"
+type = "unspecified"
+title = "Sayzio Dialer APK (with 2FA login)"

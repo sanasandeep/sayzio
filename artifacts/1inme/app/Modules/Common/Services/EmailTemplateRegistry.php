@@ -550,6 +550,33 @@ class EmailTemplateRegistry
                     'location' => ['label' => 'Sign-in location', 'sample' => 'US'],
                 ],
             ],
+            'user.password_reset' => [
+                'category' => 'auth',
+                'label' => 'User password reset',
+                'description' => 'Password reset link sent to a regular user from the public forgot-password flow.',
+                'format' => 'text',
+                'body_type' => 'inline',
+                'subject' => 'Reset your Sayzio password',
+                'body' => "Hi {{name}},\n\nA password reset was requested for your Sayzio account. Open the link below to set a new password. This link expires in 60 minutes.\n\n{{reset_url}}\n\nIf you didn't request this, you can safely ignore this email — your password will stay unchanged.",
+                'variables' => [
+                    'name' => ['label' => 'Recipient name', 'sample' => 'Sam Carter'],
+                    'reset_url' => ['label' => 'Reset link', 'sample' => 'https://sayzio.app/user/reset-password/abc'],
+                ],
+            ],
+            'security.password_changed' => [
+                'category' => 'security',
+                'label' => 'Password changed',
+                'description' => 'Security notification sent when the account password is changed or reset.',
+                'format' => 'text',
+                'body_type' => 'inline',
+                'subject' => 'Your Sayzio password was {{action}}',
+                'body' => "Hi {{name}},\n\nYour Sayzio account password was {{action}} on {{time}}. For safety we've signed out every other device and session.\n\nIf this was you, no action is needed. If you don't recognize this change, reset your password immediately from the sign-in page and review your recent logins.",
+                'variables' => [
+                    'name' => ['label' => 'Recipient name', 'sample' => 'Sam Carter'],
+                    'action' => ['label' => 'changed | reset', 'sample' => 'changed'],
+                    'time' => ['label' => 'When it happened', 'sample' => 'Jul 22, 2026 4:20 PM IST'],
+                ],
+            ],
             'security.platform_role_attached' => [
                 'category' => 'security',
                 'label' => 'Platform role attached',
@@ -1320,6 +1347,35 @@ class EmailTemplateRegistry
             ],
 
             // ----------------------------------------------------------------
+            // Zio Digest (Task #5620) — delivered via the SendGrid HTTP API,
+            // logged through the same email_logs conventions.
+            // ----------------------------------------------------------------
+            'digest.issue' => [
+                'category' => 'digest',
+                'label' => 'Zio Digest issue',
+                'description' => 'A broadcast Zio Digest sent to the selected audience (body composed in the digest editor, delivered via SendGrid).',
+                'format' => 'html',
+                'body_type' => 'dynamic',
+                'subject' => '{{subject}}',
+                'body' => '{{body}}',
+                'variables' => [
+                    'subject' => ['label' => 'Digest title', 'sample' => 'This week at Sayzio'],
+                ],
+            ],
+            'digest.test' => [
+                'category' => 'digest',
+                'label' => 'Zio Digest test send',
+                'description' => 'A preview/test copy of a Zio Digest an admin sends to their own inbox before broadcasting.',
+                'format' => 'html',
+                'body_type' => 'dynamic',
+                'subject' => '{{subject}}',
+                'body' => '{{body}}',
+                'variables' => [
+                    'subject' => ['label' => 'Test subject', 'sample' => '[TEST] This week at Sayzio'],
+                ],
+            ],
+
+            // ----------------------------------------------------------------
             // Newsletter
             // ----------------------------------------------------------------
             'newsletter.welcome' => [
@@ -1480,6 +1536,7 @@ class EmailTemplateRegistry
         'account'      => 'Account',
         'messaging'    => 'Messaging & engagement',
         'newsletter'   => 'Newsletter',
+        'digest'       => 'Zio Digest',
         'system'       => 'System alerts',
     ];
 

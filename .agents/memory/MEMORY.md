@@ -155,4 +155,5 @@
 - [Route::redirect in prefixed groups](route-redirect-prefixed-group.md) — relative destinations double the group prefix (/user/user/...→404); always lead with /; PHPUnit 12 needs #[DataProvider] attrs or tests silently never run.
 - [Creator Profile cpLive preview contract](cp-live-preview-contract.md) — density/theme postMessage gated by cp_preview + (owner session OR relative signed URL); post from inside the page (origin check).
 - [GitHub CI workflows](github-ci-workflows.md) — PHP 8.4 pin, MySQL leg removed (PG-only migrations), Vite build required before PHPUnit; remaining test failures are pre-existing.
+- [Mobile 2FA challenge token](mobile-2fa-challenge-token.md) — every login path must catch totp_required + route challenge_token; dedicated twofactor-verify limiter (otp-verify keys on a missing identifier).
 - [Zio Dialer caller-ID overlay](zio-caller-id-overlay.md) — at-ring features must be pure native (JS runtime dead on ring); role grant via OnActivityResult re-check, allow the call before lookup.
