@@ -5,10 +5,10 @@
 @php
     $toneClass = function (string $tone) {
         return match ($tone) {
-            'green' => 'bg-emerald-500/10 border-emerald-500/20 text-emerald-300',
-            'amber' => 'bg-amber-500/10 border-amber-500/20 text-amber-300',
-            'red'   => 'bg-red-500/10 border-red-500/20 text-red-300',
-            default => 'bg-white/5 border-white/10 text-white/50',
+            'green' => 'ak-tone-green bg-emerald-500/10 border-emerald-500/20 text-emerald-300',
+            'amber' => 'ak-tone-amber bg-amber-500/10 border-amber-500/20 text-amber-300',
+            'red'   => 'ak-tone-red bg-red-500/10 border-red-500/20 text-red-300',
+            default => 'ak-tone-neutral bg-white/5 border-white/10 text-white/50',
         };
     };
 @endphp
@@ -16,11 +16,11 @@
 @section('content')
 <div class="max-w-2xl space-y-6">
 
-    <a href="{{ route('admin.integrations.index') }}" class="inline-flex items-center gap-1.5 text-xs text-white/40 hover:text-white/70">
+    <a href="{{ route('admin.integrations.index') }}" class="ak-note inline-flex items-center gap-1.5 text-xs text-white/40 hover:text-white/70">
         <i class="fas fa-arrow-left"></i> Back to Integrations
     </a>
 
-    <p class="text-sm text-white/50">
+    <p class="ak-muted text-sm text-white/50">
         OAuth client credentials powering two-way Google Contacts sync (Google People API). The client secret is
         encrypted at rest and never displayed back &mdash; leave it blank to keep the stored value. Both the client
         ID and secret are required for the connect flow to turn on; until then the platform falls back to the
@@ -47,10 +47,10 @@
 
     {{-- Required scopes --}}
     <div class="rounded-xl border border-white/10 bg-white/[0.03] p-3 text-xs space-y-1.5">
-        <div class="text-[10px] uppercase tracking-wider text-white/40">Required OAuth scopes, add these to your consent screen</div>
+        <div class="ak-note text-[10px] uppercase tracking-wider text-white/40">Required OAuth scopes, add these to your consent screen</div>
         <div class="flex flex-wrap gap-1.5">
-            <code class="px-2 py-0.5 rounded-md bg-white/5 border border-white/10 text-white/80 text-[11px] font-mono">https://www.googleapis.com/auth/contacts</code>
-            <code class="px-2 py-0.5 rounded-md bg-white/5 border border-white/10 text-white/80 text-[11px] font-mono">https://www.googleapis.com/auth/contacts.readonly</code>
+            <code class="ak-strong px-2 py-0.5 rounded-md bg-white/5 border border-white/10 text-white/80 text-[11px] font-mono">https://www.googleapis.com/auth/contacts</code>
+            <code class="ak-strong px-2 py-0.5 rounded-md bg-white/5 border border-white/10 text-white/80 text-[11px] font-mono">https://www.googleapis.com/auth/contacts.readonly</code>
         </div>
     </div>
 
@@ -61,7 +61,7 @@
     ])
 
     @if ($errors->any())
-        <div class="p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-300 text-xs">
+        <div class="ak-red p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-300 text-xs">
             <ul class="list-disc pl-4 space-y-0.5">
                 @foreach ($errors->all() as $e)<li>{{ $e }}</li>@endforeach
             </ul>
@@ -74,10 +74,10 @@
         <div class="glass rounded-2xl border border-white/10 p-6 space-y-5">
             <div class="flex items-start justify-between gap-3">
                 <div>
-                    <h3 class="font-semibold text-white flex items-center gap-2">
-                        <i class="fab fa-google text-sky-400"></i> OAuth client
+                    <h3 class="ak-strong font-semibold text-white flex items-center gap-2">
+                        <i class="ak-blue fab fa-google text-sky-400"></i> OAuth client
                     </h3>
-                    <p class="text-xs text-white/40">From Google Cloud Console &rarr; APIs &amp; Services &rarr; OAuth client (Web application).</p>
+                    <p class="ak-note text-xs text-white/40">From Google Cloud Console &rarr; APIs &amp; Services &rarr; OAuth client (Web application).</p>
                 </div>
                 <span class="shrink-0 px-2.5 py-1 rounded-lg border text-[11px] font-medium {{ $toneClass($status['tone']) }}">
                     {{ $status['label'] }}
@@ -85,32 +85,32 @@
             </div>
 
             <div>
-                <label class="text-xs uppercase tracking-wider text-white/40 mb-1 block">Client ID</label>
+                <label class="ak-note text-xs uppercase tracking-wider text-white/40 mb-1 block">Client ID</label>
                 <input type="text" name="client_id" value="{{ old('client_id', $clientId) }}" autocomplete="off"
                        placeholder="1234567890-abc.apps.googleusercontent.com"
-                       class="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-sm text-white">
-                <p class="text-[11px] text-white/30 mt-1">Plain configuration (not a secret), ends in <code>.apps.googleusercontent.com</code>.</p>
+                       class="ak-strong ak-input w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-sm text-white">
+                <p class="ak-note text-[11px] text-white/30 mt-1">Plain configuration (not a secret), ends in <code>.apps.googleusercontent.com</code>.</p>
             </div>
 
             <div>
-                <label class="text-xs uppercase tracking-wider text-white/40 mb-1 block">Client secret</label>
+                <label class="ak-note text-xs uppercase tracking-wider text-white/40 mb-1 block">Client secret</label>
                 @if($hasSecret)
-                    <p class="text-xs text-white/60 mb-1">Stored: <span class="font-mono text-amber-300">{{ $maskedSecret }}</span></p>
+                    <p class="ak-muted text-xs text-white/60 mb-1">Stored: <span class="ak-amber font-mono text-amber-300">{{ $maskedSecret }}</span></p>
                 @endif
                 @include('common.partials.password-field', [
                     'name' => 'client_secret',
                     'autocomplete' => 'new-password',
                     'placeholder' => $hasSecret ? 'Paste a new secret to replace' : 'GOCSPX-…',
-                    'inputClass' => 'w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-sm text-white',
+                    'inputClass' => 'ak-input w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-sm text-white',
                 ])
                 @if($hasSecret)
-                    <label class="mt-2 inline-flex items-center gap-2 text-xs text-white/60">
+                    <label class="ak-muted mt-2 inline-flex items-center gap-2 text-xs text-white/60">
                         <input type="hidden" name="clear_client_secret" value="0">
                         <input type="checkbox" name="clear_client_secret" value="1" class="accent-red-500">
                         Remove the stored secret (revert to env)
                     </label>
                 @endif
-                <p class="text-[11px] text-white/30 mt-1">Encrypted at rest with the application key. Never displayed back.</p>
+                <p class="ak-note text-[11px] text-white/30 mt-1">Encrypted at rest with the application key. Never displayed back.</p>
             </div>
         </div>
 

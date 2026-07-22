@@ -87,7 +87,12 @@
         html.light-mode .help-note-callout--tip .help-note-icon { color: #059669; }
         html.light-mode .help-note-callout--tip a { color: #065f46; }
 
-        /* ---- API Keys & Plugins page: light-mode text legibility overrides ---- */
+        /* ---- Admin settings pages (API Keys, Mail/SMTP, Integrations, AI Engine, Payment Gateways, etc.):
+               shared light-mode text legibility overrides ---- */
+        html.light-mode .ak-amber { color: #b45309; }
+        html.light-mode .ak-green { color: #047857; }
+        html.light-mode .ak-red { color: #b91c1c; }
+        html.light-mode .ak-blue { color: #1d4ed8; }
         html.light-mode .ak-muted { color: #475569; }
         html.light-mode .ak-strong { color: #0f172a; }
         html.light-mode .ak-label { color: #475569; }

@@ -4,20 +4,20 @@
 <div class="max-w-3xl mx-auto space-y-6">
 
     @if(session('success'))
-        <div class="px-3 py-2 bg-emerald-500/10 border border-emerald-400/30 text-emerald-200 rounded-lg text-sm">
+        <div class="ak-green px-3 py-2 bg-emerald-500/10 border border-emerald-400/30 text-emerald-200 rounded-lg text-sm">
             {{ session('success') }}
         </div>
     @endif
 
     <div class="glass rounded-2xl p-6">
-        <h1 class="text-xl font-semibold text-white">Login &amp; OTP</h1>
-        <p class="text-sm text-white/60 mt-1">
-            Choose how users sign in. You can independently enable <strong class="text-white/80">email + password</strong> and a one-time code sent over <strong class="text-white/80">email</strong>, at least one of these must stay on. You can additionally let users sign in with a one-time code sent over <strong class="text-white/80">WhatsApp</strong>, restricted to an allow-list of country dialling codes.
+        <h1 class="ak-strong text-xl font-semibold text-white">Login &amp; OTP</h1>
+        <p class="ak-muted text-sm text-white/60 mt-1">
+            Choose how users sign in. You can independently enable <strong class="ak-strong text-white/80">email + password</strong> and a one-time code sent over <strong class="ak-strong text-white/80">email</strong>, at least one of these must stay on. You can additionally let users sign in with a one-time code sent over <strong class="ak-strong text-white/80">WhatsApp</strong>, restricted to an allow-list of country dialling codes.
         </p>
     </div>
 
     @if($errors->any())
-        <div class="px-3 py-2 bg-red-500/10 border border-red-400/30 text-red-200 rounded-lg text-sm">
+        <div class="ak-red px-3 py-2 bg-red-500/10 border border-red-400/30 text-red-200 rounded-lg text-sm">
             {{ $errors->first() }}
         </div>
     @endif
@@ -28,8 +28,8 @@
 
         <div class="glass rounded-2xl p-6 space-y-4">
             <div>
-                <h2 class="text-base font-semibold text-white">Email login methods</h2>
-                <p class="text-xs text-white/50">At least one of these must stay enabled so users can always reach their account by email.</p>
+                <h2 class="ak-strong text-base font-semibold text-white">Email login methods</h2>
+                <p class="ak-muted text-xs text-white/50">At least one of these must stay enabled so users can always reach their account by email.</p>
             </div>
 
             <label class="flex items-start gap-4 p-4 rounded-xl border border-white/10 bg-white/[0.03] hover:bg-white/[0.05] transition cursor-pointer">
@@ -41,12 +41,12 @@
                        class="mt-1 w-5 h-5 accent-blue-500 cursor-pointer">
                 <div class="flex-1 min-w-0">
                     <div class="flex items-center gap-2">
-                        <span class="text-sm font-semibold text-white">Enable email + password login</span>
+                        <span class="ak-strong text-sm font-semibold text-white">Enable email + password login</span>
                         @if($emailPasswordEnabled)
-                            <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-emerald-500/15 border border-emerald-400/30 text-emerald-300">On</span>
+                            <span class="ak-green text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-emerald-500/15 border border-emerald-400/30 text-emerald-300">On</span>
                         @endif
                     </div>
-                    <p class="text-xs text-white/50 mt-0.5">
+                    <p class="ak-muted text-xs text-white/50 mt-0.5">
                         Users set a password when they sign up and sign in with their email + password. (Password reset is not yet available.)
                     </p>
                 </div>
@@ -61,12 +61,12 @@
                        class="mt-1 w-5 h-5 accent-blue-500 cursor-pointer">
                 <div class="flex-1 min-w-0">
                     <div class="flex items-center gap-2">
-                        <span class="text-sm font-semibold text-white">Enable email one-time-code login</span>
+                        <span class="ak-strong text-sm font-semibold text-white">Enable email one-time-code login</span>
                         @if($emailOtpEnabled)
-                            <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-emerald-500/15 border border-emerald-400/30 text-emerald-300">On</span>
+                            <span class="ak-green text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-emerald-500/15 border border-emerald-400/30 text-emerald-300">On</span>
                         @endif
                     </div>
-                    <p class="text-xs text-white/50 mt-0.5">
+                    <p class="ak-muted text-xs text-white/50 mt-0.5">
                         Users request a 6-digit code emailed to them each time they sign in, no password required.
                     </p>
                 </div>
@@ -81,15 +81,15 @@
                        class="mt-1 w-5 h-5 accent-blue-500 cursor-pointer">
                 <div class="flex-1 min-w-0">
                     <div class="flex items-center gap-2">
-                        <span class="text-sm font-semibold text-white">Require email verification at sign-up</span>
+                        <span class="ak-strong text-sm font-semibold text-white">Require email verification at sign-up</span>
                         @if($emailVerificationRequired)
-                            <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-emerald-500/15 border border-emerald-400/30 text-emerald-300">On</span>
+                            <span class="ak-green text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-emerald-500/15 border border-emerald-400/30 text-emerald-300">On</span>
                         @endif
                     </div>
-                    <p class="text-xs text-white/50 mt-0.5">
+                    <p class="ak-muted text-xs text-white/50 mt-0.5">
                         When on, new users must enter the 6-digit code emailed to them before reaching their dashboard. Turn it off to sign new users in immediately after they register, they can verify later.
                     </p>
-                    <p class="text-xs text-amber-300/80 mt-1">
+                    <p class="ak-amber text-xs text-amber-300/80 mt-1">
                         Only applies when <strong>email + password login</strong> is enabled. With one-time-code login only, the emailed code is the sole way to sign in, so verification can't be skipped.
                     </p>
                 </div>
@@ -98,8 +98,8 @@
 
         <div class="glass rounded-2xl p-6 space-y-4">
             <div>
-                <h2 class="text-base font-semibold text-white">New registrations</h2>
-                <p class="text-xs text-white/50">Temporarily stop creating brand-new accounts. Existing users are never affected, they keep signing in and using everything as normal.</p>
+                <h2 class="ak-strong text-base font-semibold text-white">New registrations</h2>
+                <p class="ak-muted text-xs text-white/50">Temporarily stop creating brand-new accounts. Existing users are never affected, they keep signing in and using everything as normal.</p>
             </div>
 
             <label class="flex items-start gap-4 p-4 rounded-xl border border-white/10 bg-white/[0.03] hover:bg-white/[0.05] transition cursor-pointer">
@@ -111,15 +111,15 @@
                        class="mt-1 w-5 h-5 accent-amber-500 cursor-pointer">
                 <div class="flex-1 min-w-0">
                     <div class="flex items-center gap-2">
-                        <span class="text-sm font-semibold text-white">Pause new registrations</span>
+                        <span class="ak-strong text-sm font-semibold text-white">Pause new registrations</span>
                         @if($registrationPaused)
-                            <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-amber-500/15 border border-amber-400/30 text-amber-300">Paused</span>
+                            <span class="ak-amber text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-amber-500/15 border border-amber-400/30 text-amber-300">Paused</span>
                         @endif
                     </div>
-                    <p class="text-xs text-white/50 mt-0.5">
+                    <p class="ak-muted text-xs text-white/50 mt-0.5">
                         When on, new visitors trying to sign up (via the register form, a one-time code for an unknown email/phone, social sign-in for an unlinked account, or the mobile app) see a branded &ldquo;we&rsquo;re upgrading&rdquo; page instead of getting an account. Takes effect immediately.
                     </p>
-                    <p class="text-xs text-amber-300/80 mt-1">
+                    <p class="ak-amber text-xs text-amber-300/80 mt-1">
                         Existing users keep logging in normally. You can always reach this page to switch it back off.
                     </p>
                 </div>
@@ -128,8 +128,8 @@
 
         <div class="glass rounded-2xl p-6 space-y-4">
             <div>
-                <h2 class="text-base font-semibold text-white">Demo mode</h2>
-                <p class="text-xs text-white/50">For demos and reviews where a real inbox or phone isn't available.</p>
+                <h2 class="ak-strong text-base font-semibold text-white">Demo mode</h2>
+                <p class="ak-muted text-xs text-white/50">For demos and reviews where a real inbox or phone isn't available.</p>
             </div>
 
             <label class="flex items-start gap-4 p-4 rounded-xl border border-white/10 bg-white/[0.03] hover:bg-white/[0.05] transition cursor-pointer">
@@ -141,15 +141,15 @@
                        class="mt-1 w-5 h-5 accent-blue-500 cursor-pointer">
                 <div class="flex-1 min-w-0">
                     <div class="flex items-center gap-2">
-                        <span class="text-sm font-semibold text-white">Reveal one-time codes on screen</span>
+                        <span class="ak-strong text-sm font-semibold text-white">Reveal one-time codes on screen</span>
                         @if($demoRevealOtpEnabled)
-                            <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-emerald-500/15 border border-emerald-400/30 text-emerald-300">On</span>
+                            <span class="ak-green text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-emerald-500/15 border border-emerald-400/30 text-emerald-300">On</span>
                         @endif
                     </div>
-                    <p class="text-xs text-white/50 mt-0.5">
+                    <p class="ak-muted text-xs text-white/50 mt-0.5">
                         When on, every verification code is shown to the user on the screen right after it's sent (login, sign-up, account merge, and adding a new email/phone). Codes are still emailed/messaged as usual, this only also displays them.
                     </p>
-                    <p class="text-xs text-amber-300/80 mt-1">
+                    <p class="ak-amber text-xs text-amber-300/80 mt-1">
                         Turn this <strong>off</strong> for production: while on, anyone reaching a verification screen can read the live code.
                     </p>
                 </div>
@@ -158,10 +158,10 @@
 
         <div class="glass rounded-2xl p-6 space-y-4">
             <div>
-                <h2 class="text-base font-semibold text-white">WhatsApp login</h2>
-                <p class="text-xs text-white/50">When off, email is the only way to sign in or reset access.</p>
-                <p class="text-xs text-white/40 mt-1">WhatsApp delivery credentials (Phone Number ID, Access Token, and OTP template) are configured on the
-                    <a href="{{ route('admin.api-keys.index') }}" class="text-blue-300 hover:underline">API Keys &amp; Plugins</a> page.
+                <h2 class="ak-strong text-base font-semibold text-white">WhatsApp login</h2>
+                <p class="ak-muted text-xs text-white/50">When off, email is the only way to sign in or reset access.</p>
+                <p class="ak-note text-xs text-white/40 mt-1">WhatsApp delivery credentials (Phone Number ID, Access Token, and OTP template) are configured on the
+                    <a href="{{ route('admin.api-keys.index') }}" class="ak-blue text-blue-300 hover:underline">API Keys &amp; Plugins</a> page.
                 </p>
             </div>
 
@@ -174,20 +174,20 @@
                        class="mt-1 w-5 h-5 accent-blue-500 cursor-pointer">
                 <div class="flex-1 min-w-0">
                     <div class="flex items-center gap-2">
-                        <span class="text-sm font-semibold text-white">Enable WhatsApp (mobile) login</span>
+                        <span class="ak-strong text-sm font-semibold text-white">Enable WhatsApp (mobile) login</span>
                         @if($mobileLoginEnabled)
-                            <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-emerald-500/15 border border-emerald-400/30 text-emerald-300">On</span>
+                            <span class="ak-green text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-emerald-500/15 border border-emerald-400/30 text-emerald-300">On</span>
                         @endif
                     </div>
-                    <p class="text-xs text-white/50 mt-0.5">
+                    <p class="ak-muted text-xs text-white/50 mt-0.5">
                         Users can request a 6-digit code delivered to their WhatsApp number (Meta WhatsApp Cloud API).
                     </p>
                 </div>
             </label>
 
             <div class="flex items-start gap-2 p-3 rounded-xl border {{ $credsConfigured ? 'border-emerald-400/30 bg-emerald-500/10' : 'border-amber-400/30 bg-amber-500/10' }}">
-                <i class="fab fa-whatsapp mt-0.5 {{ $credsConfigured ? 'text-emerald-300' : 'text-amber-300' }}"></i>
-                <div class="text-xs {{ $credsConfigured ? 'text-emerald-200' : 'text-amber-200' }}">
+                <i class="fab fa-whatsapp mt-0.5 {{ $credsConfigured ? 'ak-green text-emerald-300' : 'ak-amber text-amber-300' }}"></i>
+                <div class="text-xs {{ $credsConfigured ? 'ak-green text-emerald-200' : 'ak-amber text-amber-200' }}">
                     @if($credsConfigured)
                         WhatsApp Cloud API credentials are configured, codes will be delivered live.
                     @else
@@ -199,14 +199,14 @@
 
         <div class="glass rounded-2xl p-6 space-y-4">
             <div>
-                <h2 class="text-base font-semibold text-white">Allowed country codes</h2>
-                <p class="text-xs text-white/50">One dialling code per line (or comma-separated), e.g. <code>+91</code>, <code>+1</code>. Only numbers starting with these codes can use WhatsApp login. Leaving it empty restores the defaults.</p>
+                <h2 class="ak-strong text-base font-semibold text-white">Allowed country codes</h2>
+                <p class="ak-muted text-xs text-white/50">One dialling code per line (or comma-separated), e.g. <code>+91</code>, <code>+1</code>. Only numbers starting with these codes can use WhatsApp login. Leaving it empty restores the defaults.</p>
             </div>
             <div>
                 <textarea name="allowed_country_codes" rows="5"
                           placeholder="+91&#10;+1"
-                          class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white font-mono">{{ old('allowed_country_codes', $allowedCodesText) }}</textarea>
-                @error('allowed_country_codes')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
+                          class="ak-strong ak-input w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white font-mono">{{ old('allowed_country_codes', $allowedCodesText) }}</textarea>
+                @error('allowed_country_codes')<p class="ak-red mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
             </div>
         </div>
 

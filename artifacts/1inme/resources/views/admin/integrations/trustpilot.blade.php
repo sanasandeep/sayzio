@@ -5,10 +5,10 @@
 @php
     $toneClass = function (string $tone) {
         return match ($tone) {
-            'green' => 'bg-emerald-500/10 border-emerald-500/20 text-emerald-300',
-            'amber' => 'bg-amber-500/10 border-amber-500/20 text-amber-300',
-            'red'   => 'bg-red-500/10 border-red-500/20 text-red-300',
-            default => 'bg-white/5 border-white/10 text-white/50',
+            'green' => 'ak-tone-green bg-emerald-500/10 border-emerald-500/20 text-emerald-300',
+            'amber' => 'ak-tone-amber bg-amber-500/10 border-amber-500/20 text-amber-300',
+            'red'   => 'ak-tone-red bg-red-500/10 border-red-500/20 text-red-300',
+            default => 'ak-tone-neutral bg-white/5 border-white/10 text-white/50',
         };
     };
 @endphp
@@ -16,11 +16,11 @@
 @section('content')
 <div class="max-w-2xl space-y-6">
 
-    <a href="{{ route('admin.integrations.index') }}" class="inline-flex items-center gap-1.5 text-xs text-white/40 hover:text-white/70">
+    <a href="{{ route('admin.integrations.index') }}" class="ak-note inline-flex items-center gap-1.5 text-xs text-white/40 hover:text-white/70">
         <i class="fas fa-arrow-left"></i> Back to Integrations
     </a>
 
-    <p class="text-sm text-white/50">
+    <p class="ak-muted text-sm text-white/50">
         The Trustpilot API key is used to import Business Unit reviews. The key is encrypted at rest and never
         displayed back &mdash; leave the field blank to keep the stored value. Until you save a key here the platform
         falls back to the <span class="font-mono">TRUSTPILOT_API_KEY</span> environment variable; with no key at
@@ -43,7 +43,7 @@
     ])
 
     @if ($errors->any())
-        <div class="p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-300 text-xs">
+        <div class="ak-red p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-300 text-xs">
             <ul class="list-disc pl-4 space-y-0.5">
                 @foreach ($errors->all() as $e)<li>{{ $e }}</li>@endforeach
             </ul>
@@ -56,10 +56,10 @@
         <div class="glass rounded-2xl border border-white/10 p-6 space-y-5">
             <div class="flex items-start justify-between gap-3">
                 <div>
-                    <h3 class="font-semibold text-white flex items-center gap-2">
-                        <i class="fas fa-star text-amber-400"></i> API key
+                    <h3 class="ak-strong font-semibold text-white flex items-center gap-2">
+                        <i class="ak-amber fas fa-star text-amber-400"></i> API key
                     </h3>
-                    <p class="text-xs text-white/40">The public API key from your Trustpilot Business application.</p>
+                    <p class="ak-note text-xs text-white/40">The public API key from your Trustpilot Business application.</p>
                 </div>
                 <span class="shrink-0 px-2.5 py-1 rounded-lg border text-[11px] font-medium {{ $toneClass($status['tone']) }}">
                     {{ $status['label'] }}
@@ -67,19 +67,19 @@
             </div>
 
             <div>
-                <label class="text-xs uppercase tracking-wider text-white/40 mb-1 block">Trustpilot API key</label>
+                <label class="ak-note text-xs uppercase tracking-wider text-white/40 mb-1 block">Trustpilot API key</label>
                 @if($hasValue)
-                    <p class="text-xs text-white/60 mb-1">Stored: <span class="font-mono text-amber-300">{{ $masked }}</span></p>
+                    <p class="ak-muted text-xs text-white/60 mb-1">Stored: <span class="ak-amber font-mono text-amber-300">{{ $masked }}</span></p>
                 @endif
                 @include('common.partials.password-field', [
                     'name' => 'api_key',
                     'autocomplete' => 'new-password',
                     'placeholder' => $hasValue ? 'Paste a new key to replace' : '••••••••',
-                    'inputClass' => 'w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-sm text-white',
+                    'inputClass' => 'ak-input w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-sm text-white',
                 ])
-                <p class="text-[11px] text-white/30 mt-1">Stored encrypted. Used only for reading Business Unit review data via the Trustpilot public API.</p>
+                <p class="ak-note text-[11px] text-white/30 mt-1">Stored encrypted. Used only for reading Business Unit review data via the Trustpilot public API.</p>
                 @if($hasValue)
-                    <label class="mt-2 inline-flex items-center gap-2 text-xs text-white/60">
+                    <label class="ak-muted mt-2 inline-flex items-center gap-2 text-xs text-white/60">
                         <input type="hidden" name="clear_api_key" value="0">
                         <input type="checkbox" name="clear_api_key" value="1" class="accent-red-500">
                         Remove the stored key (revert to env / preview mode)
