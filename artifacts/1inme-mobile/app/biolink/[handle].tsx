@@ -2417,6 +2417,123 @@ function ProfileCardView({
     );
   }
 
+  // ───────────── BUSINESS CARD ─────────────
+  if (layout === "business_card") {
+    const cleanWeb = website.replace(/^https?:\/\/(www\.)?/, "");
+    return (
+      <View style={surface}>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 16, padding: 20 }}>
+          <ProfileAvatar avatar={avatar} initial={initial} size={80} border={{ borderRadius: 12 }} />
+          <View
+            style={{
+              flex: 1,
+              minWidth: 0,
+              borderLeftWidth: 2,
+              borderLeftColor: `${accent}33`,
+              paddingLeft: 16,
+            }}
+          >
+            {name ? (
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                <Text style={{ fontSize: 17, fontWeight: "700", color: themeText }}>{name}</Text>
+                {verified ? <Feather name="check-circle" size={15} color={accent} /> : null}
+              </View>
+            ) : null}
+            {title ? (
+              <Text
+                style={{
+                  fontSize: 11,
+                  fontWeight: "600",
+                  textTransform: "uppercase",
+                  letterSpacing: 2,
+                  color: accent,
+                }}
+              >
+                {title}
+              </Text>
+            ) : null}
+            {bio ? (
+              <Text style={{ fontSize: 13, marginTop: 8, color: themeText, opacity: 0.72 }}>
+                {bio}
+              </Text>
+            ) : null}
+            {location || website ? (
+              <View
+                style={{
+                  flexDirection: "row",
+                  flexWrap: "wrap",
+                  alignItems: "center",
+                  gap: 12,
+                  marginTop: 8,
+                }}
+              >
+                {location ? (
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+                    <Feather name="map-pin" size={12} color={accent} />
+                    <Text style={{ fontSize: 12, color: themeText, opacity: 0.7 }}>{location}</Text>
+                  </View>
+                ) : null}
+                {website ? (
+                  <Pressable
+                    onPress={() => (isSafeUrl(website) ? onTap(website) : undefined)}
+                    style={{ flexDirection: "row", alignItems: "center", gap: 4 }}
+                  >
+                    <Feather name="link" size={12} color={accent} />
+                    <Text style={{ fontSize: 12, color: accent }}>{cleanWeb}</Text>
+                  </Pressable>
+                ) : null}
+              </View>
+            ) : null}
+            <ProfileSocialsRow socials={socials} accent={accent} onTap={onTap} chip="accent_outline" />
+          </View>
+        </View>
+      </View>
+    );
+  }
+
+  // ───────────── SIDEBAR ACCENT ─────────────
+  if (layout === "sidebar_accent") {
+    return (
+      <View style={surface}>
+        <View style={{ flexDirection: "row", alignItems: "stretch" }}>
+          <LinearGradient
+            colors={[accent, `${accent}99`]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 0, y: 1 }}
+            style={{ width: 10 }}
+          />
+          <View style={{ flex: 1, padding: 20 }}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 16 }}>
+              <ProfileAvatar
+                avatar={avatar}
+                initial={initial}
+                size={64}
+                border={{ borderWidth: 2, borderColor: `${accent}33` }}
+              />
+              <View style={{ minWidth: 0, flex: 1 }}>
+                {name ? (
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                    <Text style={{ fontSize: 17, fontWeight: "700", color: themeText }}>{name}</Text>
+                    {verified ? <Feather name="check-circle" size={15} color={accent} /> : null}
+                  </View>
+                ) : null}
+                {title ? (
+                  <Text style={{ fontSize: 13, fontWeight: "600", color: accent }}>{title}</Text>
+                ) : null}
+              </View>
+            </View>
+            {bio ? (
+              <Text style={{ fontSize: 13, marginTop: 12, color: themeText, opacity: 0.72 }}>
+                {bio}
+              </Text>
+            ) : null}
+            <ProfileSocialsRow socials={socials} accent={accent} onTap={onTap} chip="accent_outline" />
+          </View>
+        </View>
+      </View>
+    );
+  }
+
   // ───────────── LEGACY: STATS (v3 default) ─────────────
   if (layout === "stats") {
     return (
