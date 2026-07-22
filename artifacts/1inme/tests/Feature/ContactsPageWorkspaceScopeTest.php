@@ -109,6 +109,33 @@ class ContactsPageWorkspaceScopeTest extends TestCase
         $resp->assertViewHas('stats', fn ($stats) => (int) ($stats['total'] ?? 0) === 2);
     }
 
+    public function test_contacts_ajax_search_renders_the_list_partial(): void
+    {
+        // Regression (Blade compile 500): the `_list` partial once used the
+        // inline `@php($hasShared = ... && ...)` form, which Blade compiled to
+        // invalid PHP (`<?php(...` with no closing tag), 500-ing both the full
+        // page and the XHR live-search path. Render the partial directly via
+        // the AJAX path to lock the fix in.
+        $owner = $this->makeUser('owner');
+        $activeWs = app(WorkspaceContext::class)->resolve($owner);
+
+        $contact = new Contact();
+        $contact->forceFill([
+            'user_id'      => $owner->id,
+            'workspace_id' => $activeWs->id,
+            'display_name' => 'Ajax Contact ' . Str::random(4),
+        ])->save();
+
+        $resp = $this->actingAs($owner)
+            ->withSession([WorkspaceContext::SESSION_KEY => $activeWs->id])
+            ->get(route('user.contacts.index', ['q' => 'Ajax']), ['X-Requested-With' => 'XMLHttpRequest']);
+
+        $resp->assertOk();
+        $resp->assertSee($contact->display_name);
+        // The AJAX path returns only the list body, never the full layout.
+        $resp->assertDontSee('<html', false);
+    }
+
     public function test_contact_saved_in_a_non_active_workspace_can_be_opened(): void
     {
         // Regression: with the index now account-wide, opening a contact saved
