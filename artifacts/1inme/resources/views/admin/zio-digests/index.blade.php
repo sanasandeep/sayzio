@@ -2,8 +2,13 @@
 @section('title', 'Zio Digests')
 @section('content')
 <div class="max-w-6xl mx-auto space-y-6">
-    <div class="flex items-center justify-between">
-        <h2 class="text-lg font-semibold text-white">Zio Digests</h2>
+    <div class="flex items-center justify-between gap-4">
+        <div class="flex items-center gap-3 min-w-0">
+            <span class="inline-flex items-center bg-white/90 rounded-lg px-2 py-1 shrink-0">
+                <img src="{{ $brandLogoUrl }}" alt="Zio Digest" class="h-8 w-auto max-w-[220px] object-contain">
+            </span>
+            <h2 class="text-lg font-semibold text-white truncate">Zio Digests</h2>
+        </div>
         <a href="{{ route('admin.zio-digests.create') }}"
            class="px-3 py-2 bg-white/10 hover:bg-white/20 border border-white/10 rounded-lg text-sm text-white">
             <i class="fas fa-plus mr-1"></i> New digest
@@ -16,6 +21,35 @@
     @if(session('error'))
         <div class="px-3 py-2 bg-red-500/10 border border-red-400/30 text-red-200 rounded-lg text-sm">{{ session('error') }}</div>
     @endif
+
+    {{-- Branding (logo) card --}}
+    <div class="glass rounded-2xl p-6 space-y-4">
+        <div>
+            <h3 class="text-sm font-semibold text-white"><i class="fas fa-image mr-2 text-white/50"></i>Zio Digest logo</h3>
+            <p class="text-xs text-white/50 mt-1">Shown on public digest pages, digest emails, and this admin section. {{ $brandHasCustomLogo ? 'A custom logo is currently in use.' : 'Currently using the bundled default logo.' }}</p>
+        </div>
+        <div class="flex flex-wrap items-center gap-4">
+            <span class="inline-flex items-center bg-white/90 rounded-xl px-4 py-3">
+                <img src="{{ $brandLogoUrl }}" alt="Current Zio Digest logo" class="h-12 w-auto max-w-[320px] object-contain">
+            </span>
+            <form method="POST" action="{{ route('admin.zio-digests.logo.update') }}" enctype="multipart/form-data" class="flex items-center gap-2">
+                @csrf
+                <input type="file" name="logo" accept="image/png,image/jpeg,image/webp,image/svg+xml" required
+                       class="text-xs text-white/60 file:mr-2 file:px-3 file:py-2 file:bg-white/10 file:hover:bg-white/20 file:border file:border-white/10 file:rounded-lg file:text-sm file:text-white file:cursor-pointer">
+                <button class="px-3 py-2 bg-white/10 hover:bg-white/20 border border-white/10 rounded-lg text-sm text-white shrink-0">Upload new logo</button>
+            </form>
+            @if($brandHasCustomLogo)
+                <form method="POST" action="{{ route('admin.zio-digests.logo.remove') }}"
+                      onsubmit="return window.themedConfirmSubmit(this, {title: 'Revert to the default logo?', message: 'The custom logo will be removed and the bundled Zio Digest logo will be used everywhere.', confirmText: 'Revert', confirmIcon: 'fa-rotate-left', iconClass: 'fa-rotate-left'})">
+                    @csrf @method('DELETE')
+                    <button class="px-3 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-sm text-white/70">Revert to default</button>
+                </form>
+            @endif
+        </div>
+        @error('logo')
+            <div class="px-3 py-2 bg-red-500/10 border border-red-400/30 text-red-200 rounded-lg text-sm">{{ $message }}</div>
+        @enderror
+    </div>
 
     {{-- SendGrid settings card --}}
     <div class="glass rounded-2xl p-6 space-y-4">

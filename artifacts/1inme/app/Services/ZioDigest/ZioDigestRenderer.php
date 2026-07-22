@@ -27,6 +27,10 @@ class ZioDigestRenderer
         $parts[] = '<div style="padding:10px 24px;background:#f9fafb;border-bottom:1px solid #e5e7eb;font-size:12px;color:#6b7280;text-align:center;">'
             . 'Having trouble viewing this? <a href="' . e($publicUrl) . '" style="color:#2563eb;">View it in your browser</a>.</div>';
 
+        // Zio Digest logo (admin-updatable, absolute URL so email clients load it).
+        $parts[] = '<div style="padding:20px 24px 4px;text-align:center;background:#ffffff;">'
+            . '<img src="' . e(ZioDigestBranding::logoAbsoluteUrl()) . '" alt="Zio Digest" width="220" style="display:inline-block;max-width:220px;width:100%;height:auto;"></div>';
+
         if ($digest->lead_image) {
             $parts[] = '<img src="' . e($digest->lead_image) . '" alt="" style="display:block;width:100%;height:auto;">';
         }

@@ -336,6 +336,8 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::get('/create', [\App\Modules\Admin\Controllers\ZioDigestController::class, 'create'])->middleware(CheckPermission::class . ':settings.manage')->name('create');
             Route::post('/', [\App\Modules\Admin\Controllers\ZioDigestController::class, 'store'])->middleware(CheckPermission::class . ':settings.manage')->name('store');
             Route::post('/settings', [\App\Modules\Admin\Controllers\ZioDigestController::class, 'updateSettings'])->middleware(CheckPermission::class . ':settings.manage')->name('settings.update');
+            Route::post('/logo', [\App\Modules\Admin\Controllers\ZioDigestController::class, 'updateLogo'])->middleware(CheckPermission::class . ':settings.manage')->name('logo.update');
+            Route::delete('/logo', [\App\Modules\Admin\Controllers\ZioDigestController::class, 'removeLogo'])->middleware(CheckPermission::class . ':settings.manage')->name('logo.remove');
             Route::post('/upload', [\App\Modules\Admin\Controllers\ZioDigestController::class, 'upload'])->middleware(CheckPermission::class . ':settings.manage')->name('upload');
             Route::post('/audience-count', [\App\Modules\Admin\Controllers\ZioDigestController::class, 'audienceCount'])->middleware(CheckPermission::class . ':settings.manage')->name('audience-count');
             Route::get('/{digest}/edit', [\App\Modules\Admin\Controllers\ZioDigestController::class, 'edit'])->middleware(CheckPermission::class . ':settings.manage')->name('edit');

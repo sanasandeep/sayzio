@@ -15,8 +15,11 @@
     <meta property="og:title" content="{{ $digest->title }}">
     <meta property="og:description" content="{{ \Illuminate\Support\Str::limit($shareDescription, 200) }}">
     <meta property="og:url" content="{{ $digest->publicUrl() }}">
+    @php($zdLogoUrl = \App\Services\ZioDigest\ZioDigestBranding::logoUrl())
     @if($digest->lead_image)
         <meta property="og:image" content="{{ $digest->lead_image }}">
+    @else
+        <meta property="og:image" content="{{ \App\Services\ZioDigest\ZioDigestBranding::logoAbsoluteUrl() }}">
     @endif
     <meta name="twitter:card" content="{{ $digest->lead_image ? 'summary_large_image' : 'summary' }}">
     @include('common.partials.theme-bootstrap')
@@ -79,10 +82,24 @@
         }
         html.light-mode .zd-preview-banner { color: #92400e; }
         .zd-date { font-size: 12px; color: #6b7280; margin-bottom: 18px; }
+        .zd-brand { display: flex; justify-content: center; margin: 0 0 22px; }
+        .zd-brand-chip {
+            display: inline-flex; align-items: center;
+            background: rgba(255,255,255,0.92);
+            border-radius: 14px; padding: 8px 16px;
+        }
+        html.light-mode .zd-brand-chip { background: transparent; padding: 0; border-radius: 0; }
+        .zd-brand img { display: block; height: 44px; width: auto; max-width: 100%; }
+        @media (max-width: 480px) {
+            .zd-brand img { height: 34px; }
+        }
     </style>
 </head>
 <body class="zio-digest-page">
     <div class="zd-wrap">
+        <div class="zd-brand">
+            <span class="zd-brand-chip"><img src="{{ $zdLogoUrl }}" alt="Zio Digest — Your Daily Dose of Smart Reads"></span>
+        </div>
         @if(!empty($isPreview))
             <div class="zd-preview-banner"><i class="fas fa-eye"></i> Admin preview — {{ $digest->isPublished() ? 'this digest is live.' : 'this digest is a draft and hidden from the public.' }}</div>
         @endif

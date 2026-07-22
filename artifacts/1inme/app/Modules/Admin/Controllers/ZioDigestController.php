@@ -10,6 +10,7 @@ use App\Modules\Common\Models\ZioDigest;
 use App\Modules\Common\Models\ZioDigestRecipient;
 use App\Services\Integrations\SendGridSettings;
 use App\Services\ZioDigest\SendGridMailer;
+use App\Services\ZioDigest\ZioDigestBranding;
 use App\Services\ZioDigest\ZioDigestAudience;
 use App\Services\ZioDigest\ZioDigestRenderer;
 use Illuminate\Http\Request;
@@ -32,6 +33,8 @@ class ZioDigestController extends Controller
             'sendgridStatus' => SendGridSettings::status(),
             'sendgridMasked' => SendGridSettings::maskedApiKey(),
             'sendgridFrom'   => ['email' => SendGridSettings::fromEmail(), 'name' => SendGridSettings::fromName()],
+            'brandLogoUrl'   => ZioDigestBranding::logoUrl(),
+            'brandHasCustomLogo' => ZioDigestBranding::hasCustomLogo(),
         ]);
     }
 
@@ -246,6 +249,26 @@ class ZioDigestController extends Controller
         SendGridSettings::setFromName($request->input('from_name'));
 
         return back()->with('success', 'SendGrid settings saved.');
+    }
+
+    /** Upload a replacement platform-wide Zio Digest logo. */
+    public function updateLogo(Request $request)
+    {
+        $request->validate([
+            'logo' => ['required', 'file', 'image', 'mimes:png,jpg,jpeg,webp,svg', 'max:4096'],
+        ]);
+
+        ZioDigestBranding::storeUploadedLogo($request->file('logo'));
+
+        return back()->with('success', 'Zio Digest logo updated. It now appears on the public pages, emails, and this admin section.');
+    }
+
+    /** Revert to the bundled default Zio Digest logo. */
+    public function removeLogo()
+    {
+        ZioDigestBranding::revertToDefault();
+
+        return back()->with('success', 'Reverted to the default Zio Digest logo.');
     }
 
     /** Upload an image for use in digest blocks; returns its public URL. */
