@@ -1,10 +1,12 @@
 import { Feather } from "@expo/vector-icons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { router, Stack, useFocusEffect } from "expo-router";
+import * as WebBrowser from "expo-web-browser";
 import { useCallback, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
+  Linking,
   Platform,
   Pressable,
   RefreshControl,
@@ -127,12 +129,43 @@ export default function ContactsScreen() {
         showAlert(
           "Reconnect Google Contacts",
           e?.message ??
-            "Your Google Contacts connection expired — reconnect from the web app to resume syncing.",
+            "Your Google Contacts connection expired — tap the banner to reconnect.",
         );
         return;
       }
       showAlert("Sync failed", e?.message ?? "Try again");
     },
+  });
+
+  // Google reconnect: mint an authorize URL server-side and run the OAuth
+  // dance in an in-app browser (bounces back via sayzio://google-contacts-oauth).
+  const reconnectMutation = useMutation({
+    mutationFn: googleContacts.connect,
+    onSuccess: async (r) => {
+      try {
+        const result = await WebBrowser.openAuthSessionAsync(
+          r.authorize_url,
+          "sayzio://google-contacts-oauth",
+        );
+        if (result.type === "success" && result.url) {
+          if (result.url.includes("error=")) {
+            showAlert(
+              "Reconnect failed",
+              "Google didn't complete the connection. Please try again.",
+            );
+          }
+        }
+      } catch {
+        // openAuthSessionAsync unavailable (e.g. web) — open externally.
+        Linking.openURL(r.authorize_url).catch(() => {});
+      } finally {
+        qc.invalidateQueries({ queryKey: ["google-contacts-status"] });
+        qc.invalidateQueries({ queryKey: ["contacts"] });
+        qc.invalidateQueries({ queryKey: ["contact-duplicate-count"] });
+      }
+    },
+    onError: (e: any) =>
+      showAlert("Reconnect failed", e?.message ?? "Try again"),
   });
 
   // Device address-book import (expo-contacts). Hidden on web, where the
@@ -282,8 +315,12 @@ export default function ContactsScreen() {
                 : "Not synced yet"}
             </Text>
             {googleAccount.needs_reauth ? (
-              <View
-                style={{
+              <Pressable
+                onPress={() => reconnectMutation.mutate()}
+                disabled={reconnectMutation.isPending}
+                accessibilityRole="button"
+                accessibilityLabel="Reconnect Google Contacts"
+                style={({ pressed }) => ({
                   flexDirection: "row",
                   alignItems: "flex-start",
                   gap: 6,
@@ -292,7 +329,8 @@ export default function ContactsScreen() {
                   paddingHorizontal: 8,
                   borderRadius: 8,
                   backgroundColor: colors.destructive + "18",
-                }}
+                  opacity: pressed || reconnectMutation.isPending ? 0.6 : 1,
+                })}
               >
                 <Feather
                   name="alert-triangle"
@@ -300,19 +338,45 @@ export default function ContactsScreen() {
                   color={colors.destructive}
                   style={{ marginTop: 1 }}
                 />
-                <Text
-                  style={{
-                    flex: 1,
-                    fontFamily: "SpaceGrotesk_500Medium",
-                    fontSize: 11,
-                    lineHeight: 15,
-                    color: colors.destructive,
-                  }}
-                >
-                  {googleAccount.reconnect_message ??
-                    "Your Google Contacts connection expired — reconnect from the web app to resume syncing."}
-                </Text>
-              </View>
+                <View style={{ flex: 1 }}>
+                  <Text
+                    style={{
+                      fontFamily: "SpaceGrotesk_500Medium",
+                      fontSize: 11,
+                      lineHeight: 15,
+                      color: colors.destructive,
+                    }}
+                  >
+                    {googleAccount.reconnect_message ??
+                      "Your Google Contacts connection expired — reconnect to resume syncing."}
+                  </Text>
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      gap: 4,
+                      marginTop: 3,
+                    }}
+                  >
+                    {reconnectMutation.isPending ? (
+                      <ActivityIndicator color={colors.destructive} size="small" />
+                    ) : (
+                      <Feather name="refresh-ccw" size={11} color={colors.destructive} />
+                    )}
+                    <Text
+                      style={{
+                        fontFamily: "SpaceGrotesk_600SemiBold",
+                        fontSize: 11,
+                        color: colors.destructive,
+                      }}
+                    >
+                      {reconnectMutation.isPending
+                        ? "Opening Google…"
+                        : "Tap to reconnect"}
+                    </Text>
+                  </View>
+                </View>
+              </Pressable>
             ) : null}
             {!googleAccount.needs_reauth && googleAccount.last_sync_error ? (
               <Text

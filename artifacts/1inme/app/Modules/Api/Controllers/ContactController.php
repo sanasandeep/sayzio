@@ -24,12 +24,16 @@ use App\Modules\User\Services\Contacts\ContactExportBuilder;
 use App\Modules\User\Services\Contacts\ContactImportParser;
 use App\Modules\User\Services\Contacts\ContactMergeService;
 use App\Modules\User\Services\Contacts\GoogleContactsSyncService;
+use App\Modules\User\Services\Contacts\GoogleContactsProvider;
 use App\Modules\User\Support\ContactWorkspaceShareHelper;
+use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
+use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
+use Illuminate\Support\Str;
 
 class ContactController extends Controller
 {
@@ -38,9 +42,16 @@ class ContactController extends Controller
     /** Parsed-row count above which we punt to a queued job rather than process inline. */
     public const ASYNC_THRESHOLD = 200;
 
+    /** Deep links the mobile app may ask us to bounce back to after Google OAuth. */
+    protected const GOOGLE_MOBILE_RETURN_ALLOWLIST = ['sayzio://google-contacts-oauth'];
+
+    /** Minutes the encrypted Google OAuth state token stays valid. */
+    protected const GOOGLE_STATE_TTL_MINUTES = 15;
+
     public function __construct(
         protected BiolinkAttachResolver $resolver,
         protected GoogleContactsSyncService $sync,
+        protected GoogleContactsProvider $provider,
         protected ContactImportParser $importParser,
         protected ContactExportBuilder $exportBuilder,
         protected ContactDuplicateDetector $detector,
@@ -1206,6 +1217,121 @@ class ContactController extends Controller
     }
 
     /**
+     * Begin the Google Contacts OAuth (re)connect flow from the mobile app.
+     *
+     * OAuth on mobile is stateless (no web session): this mints an
+     * APP_KEY-encrypted, short-lived state token carrying the user + return
+     * deep-link and returns the Google authorize URL for the app to open in
+     * an in-app browser. Google redirects to the PUBLIC, unauthenticated
+     * {@see googleOauthCallback}, which decrypts the token, exchanges the
+     * code, runs an initial sync and bounces back to the app's deep link.
+     *
+     * NOTE for operators: this flow uses its own redirect URI
+     * (`/api/v1/contacts/google/oauth/callback`) which must be registered in
+     * the Google OAuth client alongside the web callback.
+     */
+    public function googleConnect(Request $request)
+    {
+        $user = $request->user();
+
+        // Mirror the web connect route's CheckPlanLimit:contacts_google_sync gate.
+        $features = optional($user->plan)->features ?? [];
+        if ($user->plan && $user->plan->features && empty($features['contacts_google_sync'])) {
+            return $this->fail(
+                'Google Contacts sync is not available on your current plan. Upgrade to connect your Google account.',
+                403,
+                'plan_upgrade_required'
+            );
+        }
+
+        if (!$this->provider->isConfigured()) {
+            return $this->fail(
+                'Google Contacts sync is not configured on this server.',
+                422,
+                'provider_not_configured'
+            );
+        }
+
+        $return = (string) $request->input('return', self::GOOGLE_MOBILE_RETURN_ALLOWLIST[0]);
+        if (!in_array($return, self::GOOGLE_MOBILE_RETURN_ALLOWLIST, true)) {
+            $return = self::GOOGLE_MOBILE_RETURN_ALLOWLIST[0];
+        }
+
+        $state = Crypt::encryptString(json_encode([
+            'u'   => (int) $user->id,
+            'r'   => $return,
+            'n'   => Str::random(16),
+            'exp' => now()->addMinutes(self::GOOGLE_STATE_TTL_MINUTES)->timestamp,
+        ]));
+
+        $url = $this->provider->authorizationUrl($state, $this->googleMobileRedirectUri());
+
+        return $this->ok(['authorize_url' => $url]);
+    }
+
+    /**
+     * PUBLIC Google OAuth landing for the mobile connect flow (no auth:sanctum
+     * — the provider redirect carries no bearer token). Decrypts the state
+     * token, exchanges the code, kicks off an initial sync and redirects back
+     * to the app's deep link with `?status=connected` or `?error=…`.
+     */
+    public function googleOauthCallback(Request $request)
+    {
+        $fallback = self::GOOGLE_MOBILE_RETURN_ALLOWLIST[0];
+
+        $state = (string) $request->query('state', '');
+        try {
+            $data = json_decode(Crypt::decryptString($state), true, 512, JSON_THROW_ON_ERROR);
+        } catch (DecryptException | \JsonException $e) {
+            return $this->googleBounce($fallback, ['error' => 'invalid_state']);
+        }
+        if (!is_array($data)) {
+            return $this->googleBounce($fallback, ['error' => 'invalid_state']);
+        }
+
+        $return = is_string($data['r'] ?? null) && in_array($data['r'], self::GOOGLE_MOBILE_RETURN_ALLOWLIST, true)
+            ? $data['r'] : $fallback;
+        $userId = (int) ($data['u'] ?? 0);
+
+        if (($data['exp'] ?? 0) < now()->timestamp) {
+            return $this->googleBounce($return, ['error' => 'expired']);
+        }
+        if ($request->has('error') || ($request->query('code', '') === '')) {
+            return $this->googleBounce($return, ['error' => 'cancelled']);
+        }
+
+        $user = \App\Modules\User\Models\User::find($userId);
+        if (!$user) {
+            return $this->googleBounce($return, ['error' => 'invalid_state']);
+        }
+
+        try {
+            $account = $this->provider->exchangeCode($user->id, (string) $request->query('code'), $this->googleMobileRedirectUri());
+            $this->sync->syncAccount($account);
+        } catch (\App\Modules\User\Services\Contacts\GoogleReauthRequiredException $e) {
+            \Log::warning('API Google contacts connect rejected', ['err' => $e->getMessage()]);
+            return $this->googleBounce($return, ['error' => 'exchange_failed']);
+        } catch (\Throwable $e) {
+            \Log::error('API Google contacts connect failed', ['err' => $e->getMessage()]);
+            return $this->googleBounce($return, ['error' => 'exchange_failed']);
+        }
+
+        return $this->googleBounce($return, ['status' => 'connected']);
+    }
+
+    /** Redirect URI for the mobile OAuth flow (must be registered with Google). */
+    protected function googleMobileRedirectUri(): string
+    {
+        return url('/api/v1/contacts/google/oauth/callback');
+    }
+
+    /** External redirect back to a mobile deep link with query params. */
+    protected function googleBounce(string $base, array $params)
+    {
+        return redirect()->away($base . '?' . http_build_query($params));
+    }
+
+    /**
      * Run an on-demand sync for the connected Google account now (pull + push).
      * Throttled per-account via the service so it can't be hammered; returns a
      * clear status the client can surface:
@@ -1315,7 +1441,7 @@ class ContactController extends Controller
             'needs_reauth'     => $a->needsReauth(),
             'needs_reauth_at'  => optional($a->needs_reauth_at)->toIso8601String(),
             'reconnect_message' => $a->needsReauth()
-                ? 'Your Google Contacts connection expired — reconnect from the web app to resume syncing.'
+                ? 'Your Google Contacts connection expired — reconnect to resume syncing.'
                 : null,
         ];
     }

@@ -262,6 +262,18 @@ export const googleContacts = {
     );
     return res.data.account;
   },
+  /**
+   * Begin the OAuth (re)connect flow. Returns the Google authorize URL to
+   * open in an in-app browser; the server bounces back to the
+   * `sayzio://google-contacts-oauth` deep link when done.
+   */
+  connect: async (): Promise<{ authorize_url: string }> => {
+    const res = await apiFetch<{ data: { authorize_url: string } }>(
+      `/contacts/google/connect`,
+      { method: "POST" },
+    );
+    return res.data;
+  },
   sync: async (): Promise<GoogleSyncResult> => {
     const res = await apiFetch<{ data: GoogleSyncResult }>(
       `/contacts/google/sync`,
