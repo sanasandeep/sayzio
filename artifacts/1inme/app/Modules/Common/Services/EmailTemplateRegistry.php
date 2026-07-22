@@ -1320,6 +1320,35 @@ class EmailTemplateRegistry
             ],
 
             // ----------------------------------------------------------------
+            // Zio Digest (Task #5620) — delivered via the SendGrid HTTP API,
+            // logged through the same email_logs conventions.
+            // ----------------------------------------------------------------
+            'digest.issue' => [
+                'category' => 'digest',
+                'label' => 'Zio Digest issue',
+                'description' => 'A broadcast Zio Digest sent to the selected audience (body composed in the digest editor, delivered via SendGrid).',
+                'format' => 'html',
+                'body_type' => 'dynamic',
+                'subject' => '{{subject}}',
+                'body' => '{{body}}',
+                'variables' => [
+                    'subject' => ['label' => 'Digest title', 'sample' => 'This week at Sayzio'],
+                ],
+            ],
+            'digest.test' => [
+                'category' => 'digest',
+                'label' => 'Zio Digest test send',
+                'description' => 'A preview/test copy of a Zio Digest an admin sends to their own inbox before broadcasting.',
+                'format' => 'html',
+                'body_type' => 'dynamic',
+                'subject' => '{{subject}}',
+                'body' => '{{body}}',
+                'variables' => [
+                    'subject' => ['label' => 'Test subject', 'sample' => '[TEST] This week at Sayzio'],
+                ],
+            ],
+
+            // ----------------------------------------------------------------
             // Newsletter
             // ----------------------------------------------------------------
             'newsletter.welcome' => [
@@ -1480,6 +1509,7 @@ class EmailTemplateRegistry
         'account'      => 'Account',
         'messaging'    => 'Messaging & engagement',
         'newsletter'   => 'Newsletter',
+        'digest'       => 'Zio Digest',
         'system'       => 'System alerts',
     ];
 

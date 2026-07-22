@@ -64,6 +64,15 @@ class IntegrationCatalog
                         'external' => true,
                     ],
                     [
+                        'key'      => 'sendgrid',
+                        'label'    => 'SendGrid (Zio Digest email)',
+                        'desc'     => 'Delivers Zio Digest broadcast emails via the SendGrid v3 API. Digest email sends fail with a clear error when unset.',
+                        'icon'     => 'fas fa-paper-plane',
+                        'status'   => SendGridSettings::status(),
+                        'route'    => route('admin.zio-digests.index'),
+                        'external' => true,
+                    ],
+                    [
                         'key'      => 'alerts',
                         'label'    => 'Internal alerts (Slack / Discord)',
                         'desc'     => 'Posts system & team alerts (downtime, broadcasts, payment failures) to Slack and/or Discord webhooks.',

@@ -420,6 +420,18 @@ Route::get('/newsletter/unsubscribe/{subscriber}', [\App\Modules\Common\Controll
 Route::post('/newsletter/unsubscribe/{subscriber}', [\App\Modules\Common\Controllers\NewsletterController::class, 'unsubscribe'])
     ->name('site.newsletter.unsubscribe.post')->middleware('throttle:600,1');
 
+// ---- Zio Digest (Task #5620): public page + signed email unsubscribe ----
+// Unsubscribe routes are registered BEFORE the /digest/{slug} page so the
+// literal "unsubscribe" segment can never be swallowed by the slug route.
+// Same GET (footer link) / POST (RFC 8058 one-click, CSRF-exempt in
+// bootstrap/app.php) split and throttle rationale as the newsletter routes.
+Route::get('/digest/unsubscribe/{user}', [\App\Modules\Common\Controllers\ZioDigestController::class, 'unsubscribe'])
+    ->name('site.digest.unsubscribe')->middleware('throttle:30,10');
+Route::post('/digest/unsubscribe/{user}', [\App\Modules\Common\Controllers\ZioDigestController::class, 'unsubscribe'])
+    ->name('site.digest.unsubscribe.post')->middleware('throttle:600,1');
+Route::get('/digest/{slug}', [\App\Modules\Common\Controllers\ZioDigestController::class, 'show'])
+    ->name('site.digest.show');
+
 // ---- Public Unsubscribe Center (3-way Subscribe block "Manage subscriptions") ----
 Route::get ('/subscriptions/manage',
     [\App\Modules\Common\Controllers\SubscriptionsController::class, 'manage'])

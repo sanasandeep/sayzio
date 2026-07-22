@@ -480,6 +480,14 @@
             <span class="sidebar-tooltip">Newsletter</span>
         </a>
 
+        <a href="{{ route('admin.zio-digests.index') }}"
+           class="sidebar-link {{ request()->routeIs('admin.zio-digests.*') ? 'active' : '' }}"
+           style="--nav-tint:#0ea5e9; --nav-tint-soft:rgba(14,165,233,0.12);">
+            <div class="nav-icon-wrap"><i class="fas fa-newspaper"></i></div>
+            <span class="nav-label">Zio Digest</span>
+            <span class="sidebar-tooltip">Zio Digest</span>
+        </a>
+
         <a href="{{ route('admin.app-launch.index') }}"
            class="sidebar-link {{ request()->routeIs('admin.app-launch.*') ? 'active' : '' }}"
            style="--nav-tint:#22c55e; --nav-tint-soft:rgba(34,197,94,0.12);">
