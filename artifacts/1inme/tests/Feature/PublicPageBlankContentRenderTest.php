@@ -242,6 +242,139 @@ class PublicPageBlankContentRenderTest extends TestCase
         $public->assertDontSee('replace with your own');
     }
 
+    // ── Socials blocks (array-shaped platform lists) ────────────────
+    //
+    // The public socials renderer (common/blocks/socials.blade.php)
+    // iterates `$s['platforms'] ?? []`, and the profile-card renderer
+    // (common/biolink-profile-card.blade.php) normalises `$s['socials']`.
+    // An explicitly-empty array must render zero sample handles, while a
+    // block seeded through the real store() pipeline (no socials given)
+    // carries the seeded `yourhandle` sample links from BlockDefaults.
+
+    public function test_socials_with_explicitly_empty_platforms_renders_no_sample_handles(): void
+    {
+        $owner = $this->owner();
+        $link  = $this->biolink($owner);
+
+        $this->block($link, 'socials', [
+            'platforms' => [],
+        ]);
+
+        $resp = $this->visitPublic($link->alias);
+        $resp->assertOk();
+        $resp->assertDontSee('yourhandle');
+    }
+
+    public function test_socials_seeded_via_store_with_no_platforms_shows_sample_handles(): void
+    {
+        $owner = $this->owner();
+        $link  = $this->biolink($owner);
+
+        // Seed through the real store() pipeline — the missing platforms
+        // key must fall back to the BlockDefaults sample handles.
+        $resp = $this->actingAs($owner)
+            ->withHeaders(['X-Requested-With' => 'XMLHttpRequest'])
+            ->post("/user/links/{$link->id}/blocks", ['type' => 'socials']);
+        $resp->assertOk();
+
+        $public = $this->visitPublic($link->alias);
+        $public->assertOk();
+        // The sample URLs are routed through the block click tracker's
+        // ?to= param, so the handle survives urlencode() verbatim.
+        $public->assertSee('yourhandle');
+    }
+
+    public function test_blanked_admin_default_platforms_seed_socials_that_render_blank(): void
+    {
+        // Admin explicitly blanks the socials sample handles platform-wide.
+        BlockDefaults::saveAdminOverrideForType('socials', [
+            'content' => ['platforms' => []],
+        ]);
+
+        $owner = $this->owner();
+        $link  = $this->biolink($owner);
+
+        $resp = $this->actingAs($owner)
+            ->withHeaders(['X-Requested-With' => 'XMLHttpRequest'])
+            ->post("/user/links/{$link->id}/blocks", ['type' => 'socials']);
+        $resp->assertOk();
+
+        $block = BiolinkBlock::where('link_id', $link->id)->latest('id')->firstOrFail();
+        $this->assertSame([], $block->settings['platforms'] ?? null,
+            'pre-condition: the seeded block must carry the explicit empty platforms array');
+
+        $public = $this->visitPublic($link->alias);
+        $public->assertOk();
+        $public->assertDontSee('yourhandle');
+    }
+
+    // ── Profile card (seeded socials list) ─────────────────────────
+
+    public function test_profile_card_with_explicitly_empty_socials_renders_no_sample_handles(): void
+    {
+        $owner = $this->owner();
+        $link  = $this->biolink($owner);
+
+        $this->block($link, 'profile_card_v1', [
+            'name'    => 'Real Name',
+            'socials' => [],
+        ]);
+
+        $resp = $this->visitPublic($link->alias);
+        $resp->assertOk();
+        $resp->assertDontSee('yourhandle');
+    }
+
+    public function test_profile_card_seeded_via_store_with_no_socials_shows_sample_handles(): void
+    {
+        $owner = $this->owner();
+        $link  = $this->biolink($owner);
+
+        $resp = $this->actingAs($owner)
+            ->withHeaders(['X-Requested-With' => 'XMLHttpRequest'])
+            ->post("/user/links/{$link->id}/blocks", ['type' => 'profile_card_v1']);
+        $resp->assertOk();
+
+        $block = BiolinkBlock::where('link_id', $link->id)->latest('id')->firstOrFail();
+        $this->assertNotEmpty($block->settings['socials'] ?? [],
+            'pre-condition: the seeded block must carry the sample socials');
+
+        // The default classic_creator layout has no socials row — switch
+        // the structural layout token to one that renders it (glass), as
+        // the profile_identity designs do.
+        $settings = $block->settings;
+        $settings['_style']['_profile_layout'] = 'glass';
+        $block->update(['settings' => $settings]);
+
+        $public = $this->visitPublic($link->alias);
+        $public->assertOk();
+        $public->assertSee('yourhandle');
+    }
+
+    public function test_blanked_admin_default_socials_seed_profile_card_that_renders_blank(): void
+    {
+        // Admin explicitly blanks the profile-card sample socials.
+        BlockDefaults::saveAdminOverrideForType('profile_card_v1', [
+            'content' => ['socials' => []],
+        ]);
+
+        $owner = $this->owner();
+        $link  = $this->biolink($owner);
+
+        $resp = $this->actingAs($owner)
+            ->withHeaders(['X-Requested-With' => 'XMLHttpRequest'])
+            ->post("/user/links/{$link->id}/blocks", ['type' => 'profile_card_v1']);
+        $resp->assertOk();
+
+        $block = BiolinkBlock::where('link_id', $link->id)->latest('id')->firstOrFail();
+        $this->assertSame([], $block->settings['socials'] ?? null,
+            'pre-condition: the seeded block must carry the explicit empty socials array');
+
+        $public = $this->visitPublic($link->alias);
+        $public->assertOk();
+        $public->assertDontSee('yourhandle');
+    }
+
     // ── Full pipeline: blanked admin default → seeded block → render ──
 
     public function test_blanked_admin_default_seeds_block_that_renders_blank_on_public_page(): void
