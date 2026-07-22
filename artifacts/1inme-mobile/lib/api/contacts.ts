@@ -226,6 +226,11 @@ export type GoogleContactsAccount = {
   last_sync_status: string | null;
   last_sync_error: string | null;
   last_synced_at: string | null;
+  /** True when the stored Google OAuth grant expired/was revoked. */
+  needs_reauth: boolean;
+  needs_reauth_at: string | null;
+  /** Friendly "reconnect on the web" copy from the server when needs_reauth. */
+  reconnect_message: string | null;
 };
 
 export type GoogleSyncStats = {

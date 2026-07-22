@@ -194,6 +194,11 @@ export const TARGETS: Target[] = [
     ],
   },
   {
+    page: "artifacts/1inme/resources/views/common/zio-digest.blade.php",
+    label: "Zio Digest page",
+    allowlist: [],
+  },
+  {
     page: "artifacts/1inme/resources/views/public/faqs.blade.php",
     label: "FAQs page",
     allowlist: [

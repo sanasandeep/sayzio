@@ -71,13 +71,17 @@
                             @endif
                         </div>
                         @if($isCustomised)
-                            <button type="button"
-                                    @click.prevent.stop="copySource = '{{ $type }}'; copyTargets = []"
-                                    class="flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center transition-colors hover:bg-white/10"
-                                    style="color: var(--accent-light); border: 1px solid rgba(92,131,255,0.3);"
-                                    title="Copy overrides from &quot;{{ $type }}&quot; to other types">
+                            {{-- span role=button (not <button>): a real button inside
+                                 the card's <a> is invalid HTML — the parser can eject
+                                 later markup from the layout. --}}
+                            <span role="button" tabindex="0"
+                                  @click.prevent.stop="copySource = '{{ $type }}'; copyTargets = []"
+                                  @keydown.enter.prevent.stop="copySource = '{{ $type }}'; copyTargets = []"
+                                  class="flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center transition-colors hover:bg-white/10 cursor-pointer"
+                                  style="color: var(--accent-light); border: 1px solid rgba(92,131,255,0.3);"
+                                  title="Copy overrides from &quot;{{ $type }}&quot; to other types">
                                 <i class="fas fa-copy text-xs"></i>
-                            </button>
+                            </span>
                         @endif
                         <i class="fas fa-chevron-right text-xs" style="color: var(--text-faint);"></i>
                     </a>

@@ -20,6 +20,7 @@
     "check:blade-comment-echo": "tsx ./src/check-blade-comment-echo.ts",
     "check:storage-url-resolve": "tsx ./src/check-storage-url-resolve.ts",
     "check:blade-json-in-attr": "tsx ./src/check-blade-json-in-attr.ts",
+    "check:nested-interactive": "tsx ./src/check-nested-interactive.ts",
     "check:alpine-line-comments": "tsx ./src/check-alpine-line-comments.ts",
     "check:view-guards": "tsx ./src/check-view-guards.ts",
     "check:demo-login-email": "tsx ./src/check-demo-login-email.ts",

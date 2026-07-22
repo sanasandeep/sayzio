@@ -332,4 +332,65 @@ test.describe("admin block-defaults editor save/clear", () => {
       "clearing the section then saving must remove the stored font_size override",
     ).toBeUndefined();
   });
+
+  // Regression: the section headers used to nest the "clear" <button> inside
+  // the header <button>. Nested buttons are invalid HTML — the parser
+  // force-closes the outer button, misnesting the whole tree so every card
+  // after "Layout & Display" gets ejected from the form column ("floating"
+  // Border panel). Separately, the `.bd-select` rules used the `background:`
+  // shorthand, which resets background-repeat while the admin layout's
+  // higher-specificity chevron background-image survives → a strip of tiled
+  // chevrons on every select (worst in light mode on a white background).
+  test("layout stays intact and selects render a single caret in both themes", async ({
+    page,
+  }) => {
+    await openEditor(page);
+
+    // No <button> may end up nested inside another button in the LIVE DOM.
+    const nestedButtons = await page
+      .locator("button button")
+      .count();
+    expect(nestedButtons, "no nested <button> elements").toBe(0);
+
+    const auditLayout = async () =>
+      page.evaluate(() => {
+        const formCol = document.querySelector(".bd-form-col");
+        if (!formCol) return { escaped: ["<no .bd-form-col>"], repeat: "" };
+        const escaped = Array.from(document.querySelectorAll(".bd-card"))
+          .filter((c) => !formCol.contains(c))
+          .map(
+            (c) =>
+              c.querySelector(".bd-section-title")?.textContent?.trim() ??
+              "(untitled card)",
+          );
+        const sel = document.querySelector<HTMLSelectElement>(
+          'select[name="style[display_mode]"]',
+        );
+        const cs = sel ? getComputedStyle(sel) : null;
+        return {
+          escaped,
+          repeat: cs?.backgroundRepeat ?? "",
+          images: cs ? cs.backgroundImage.split("url(").length - 1 : -1,
+        };
+      });
+
+    for (const theme of ["dark", "light"] as const) {
+      await page.evaluate((t) => {
+        document.documentElement.classList.toggle("light-mode", t === "light");
+      }, theme);
+      const audit = await auditLayout();
+      expect(
+        audit.escaped,
+        `every section card must live inside .bd-form-col (${theme} mode)`,
+      ).toEqual([]);
+      expect(
+        audit.repeat,
+        `display-mode select chevron must not tile (${theme} mode)`,
+      ).toBe("no-repeat");
+      expect(
+        audit.images,
+        `display-mode select must carry exactly one background image (${theme} mode)`,
+      ).toBe(1);
+    }
+  });
 });

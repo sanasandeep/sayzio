@@ -53,7 +53,8 @@
         .zd-block-text { margin: 0 0 16px; color: #d1d5db; }
         html.light-mode .zd-block-text { color: #374151; }
         .zd-block-image img { max-width: 100%; height: auto; border-radius: 12px; display: block; }
-        .zd-caption { font-size: 12px; color: #6b7280; margin: 6px 0 16px; }
+        .zd-caption { font-size: 12px; color: #9ca3af; margin: 6px 0 16px; }
+        html.light-mode .zd-caption { color: #6b7280; }
         .zd-video, .zd-embed { position: relative; margin: 0 0 16px; }
         .zd-video iframe, .zd-embed iframe { width: 100%; aspect-ratio: 16 / 9; border: 0; border-radius: 12px; }
         .zd-video video { width: 100%; border-radius: 12px; }
@@ -73,15 +74,16 @@
             color: #93c5fd; text-decoration: none;
         }
         html.light-mode .zd-embed-fallback { border-color: #d1d5db; color: #2563eb; }
-        .zd-footer { padding: 18px 28px; border-top: 1px solid rgba(255,255,255,0.08); font-size: 12px; color: #6b7280; text-align: center; }
-        html.light-mode .zd-footer { border-top-color: #e5e7eb; }
+        .zd-footer { padding: 18px 28px; border-top: 1px solid rgba(255,255,255,0.08); font-size: 12px; color: #9ca3af; text-align: center; }
+        html.light-mode .zd-footer { border-top-color: #e5e7eb; color: #6b7280; }
         .zd-preview-banner {
             background: rgba(245,158,11,0.15); border: 1px solid rgba(245,158,11,0.4);
             color: #fbbf24; padding: 8px 14px; border-radius: 10px;
             font-size: 13px; margin-bottom: 18px; text-align: center;
         }
         html.light-mode .zd-preview-banner { color: #92400e; }
-        .zd-date { font-size: 12px; color: #6b7280; margin-bottom: 18px; }
+        .zd-date { font-size: 12px; color: #9ca3af; margin-bottom: 18px; }
+        html.light-mode .zd-date { color: #6b7280; }
         .zd-brand { display: flex; justify-content: center; margin: 0 0 22px; }
         .zd-brand-chip {
             display: inline-flex; align-items: center;

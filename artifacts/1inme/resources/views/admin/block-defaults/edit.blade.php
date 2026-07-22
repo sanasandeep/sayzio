@@ -152,12 +152,13 @@ x-init="fetchPreview(); $watch('styleData', () => schedulePreview()); $watch('co
                             <span x-show="hasOverrideIn(@js($layoutFields))" x-cloak class="bd-badge">overrides</span>
                         </div>
                         <div class="bd-section-hd-right">
-                            <button type="button"
+                            <span role="button" tabindex="0"
                                     x-show="hasOverrideIn(@js($layoutFields))" x-cloak
                                     @click.stop="clearSection(@js($layoutFields))"
+                                    @keydown.enter.prevent.stop="clearSection(@js($layoutFields))"
                                     class="bd-clear-btn" title="Clear section overrides">
                                 <i class="fas fa-xmark"></i> clear
-                            </button>
+                                    </span>
                             <i class="fas fa-chevron-down bd-chevron" :class="open.layout && 'rotate-180'"></i>
                         </div>
                     </button>
@@ -198,12 +199,13 @@ x-init="fetchPreview(); $watch('styleData', () => schedulePreview()); $watch('co
                             <span x-show="hasOverrideIn(@js($spacingFields))" x-cloak class="bd-badge">overrides</span>
                         </div>
                         <div class="bd-section-hd-right">
-                            <button type="button"
+                            <span role="button" tabindex="0"
                                     x-show="hasOverrideIn(@js($spacingFields))" x-cloak
                                     @click.stop="clearSection(@js($spacingFields))"
+                                    @keydown.enter.prevent.stop="clearSection(@js($spacingFields))"
                                     class="bd-clear-btn" title="Clear section overrides">
                                 <i class="fas fa-xmark"></i> clear
-                            </button>
+                                    </span>
                             <i class="fas fa-chevron-down bd-chevron" :class="open.spacing && 'rotate-180'"></i>
                         </div>
                     </button>
@@ -256,12 +258,13 @@ x-init="fetchPreview(); $watch('styleData', () => schedulePreview()); $watch('co
                             <span x-show="hasOverrideIn(@js($typographyFields))" x-cloak class="bd-badge">overrides</span>
                         </div>
                         <div class="bd-section-hd-right">
-                            <button type="button"
+                            <span role="button" tabindex="0"
                                     x-show="hasOverrideIn(@js($typographyFields))" x-cloak
                                     @click.stop="clearSection(@js($typographyFields))"
+                                    @keydown.enter.prevent.stop="clearSection(@js($typographyFields))"
                                     class="bd-clear-btn" title="Clear section overrides">
                                 <i class="fas fa-xmark"></i> clear
-                            </button>
+                                    </span>
                             <i class="fas fa-chevron-down bd-chevron" :class="open.typography && 'rotate-180'"></i>
                         </div>
                     </button>
@@ -329,12 +332,13 @@ x-init="fetchPreview(); $watch('styleData', () => schedulePreview()); $watch('co
                             <span x-show="hasOverrideIn(@js($bgFields))" x-cloak class="bd-badge">overrides</span>
                         </div>
                         <div class="bd-section-hd-right">
-                            <button type="button"
+                            <span role="button" tabindex="0"
                                     x-show="hasOverrideIn(@js($bgFields))" x-cloak
                                     @click.stop="clearSection(@js($bgFields))"
+                                    @keydown.enter.prevent.stop="clearSection(@js($bgFields))"
                                     class="bd-clear-btn" title="Clear section overrides">
                                 <i class="fas fa-xmark"></i> clear
-                            </button>
+                                    </span>
                             <i class="fas fa-chevron-down bd-chevron" :class="open.bg && 'rotate-180'"></i>
                         </div>
                     </button>
@@ -381,12 +385,13 @@ x-init="fetchPreview(); $watch('styleData', () => schedulePreview()); $watch('co
                             <span x-show="hasOverrideIn(@js($borderFields))" x-cloak class="bd-badge">overrides</span>
                         </div>
                         <div class="bd-section-hd-right">
-                            <button type="button"
+                            <span role="button" tabindex="0"
                                     x-show="hasOverrideIn(@js($borderFields))" x-cloak
                                     @click.stop="clearSection(@js($borderFields))"
+                                    @keydown.enter.prevent.stop="clearSection(@js($borderFields))"
                                     class="bd-clear-btn" title="Clear section overrides">
                                 <i class="fas fa-xmark"></i> clear
-                            </button>
+                                    </span>
                             <i class="fas fa-chevron-down bd-chevron" :class="open.border && 'rotate-180'"></i>
                         </div>
                     </button>
@@ -444,12 +449,13 @@ x-init="fetchPreview(); $watch('styleData', () => schedulePreview()); $watch('co
                             <span x-show="hasOverrideIn(@js($shadowFields))" x-cloak class="bd-badge">overrides</span>
                         </div>
                         <div class="bd-section-hd-right">
-                            <button type="button"
+                            <span role="button" tabindex="0"
                                     x-show="hasOverrideIn(@js($shadowFields))" x-cloak
                                     @click.stop="clearSection(@js($shadowFields))"
+                                    @keydown.enter.prevent.stop="clearSection(@js($shadowFields))"
                                     class="bd-clear-btn" title="Clear section overrides">
                                 <i class="fas fa-xmark"></i> clear
-                            </button>
+                                    </span>
                             <i class="fas fa-chevron-down bd-chevron" :class="open.shadow && 'rotate-180'"></i>
                         </div>
                     </button>
@@ -691,23 +697,28 @@ html.light-mode .bd-clear-btn:hover { background: rgba(239,68,68,0.14); }
 .bd-input {
     padding: 7px 10px; border-radius: 8px;
     border: 1px solid var(--border-glass);
-    background: var(--bg-glass-input); color: var(--text-primary);
+    background-color: var(--bg-glass-input); color: var(--text-primary);
     font-size: 13px; font-weight: 500;
     text-transform: none; letter-spacing: 0; font-family: inherit;
     transition: border-color 0.15s;
 }
-html.light-mode .bd-input { background: #fff; border-color: rgba(0,0,0,0.14); color: #111; }
+html.light-mode .bd-input { background-color: #fff; border-color: rgba(0,0,0,0.14); color: #111; }
 .bd-input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-glow); }
 .bd-input-sm { font-size: 12px; padding: 5px 8px; }
 
+/* background-color (NOT the `background` shorthand): the admin layout
+   injects the select chevron via a `[data-app-layout] select`
+   background-image; a shorthand here resets background-repeat/position
+   to their initials while the higher-specificity image survives,
+   tiling the chevron across the whole control. */
 .bd-select {
     padding: 7px 10px; border-radius: 8px;
     border: 1px solid var(--border-glass);
-    background: var(--bg-glass-input); color: var(--text-primary);
+    background-color: var(--bg-glass-input); color: var(--text-primary);
     font-size: 13px; text-transform: none; letter-spacing: 0;
     transition: border-color 0.15s;
 }
-html.light-mode .bd-select { background: #fff; border-color: rgba(0,0,0,0.14); color: #111; }
+html.light-mode .bd-select { background-color: #fff; border-color: rgba(0,0,0,0.14); color: #111; }
 .bd-select:focus { outline: none; border-color: var(--accent); }
 
 .bd-color {

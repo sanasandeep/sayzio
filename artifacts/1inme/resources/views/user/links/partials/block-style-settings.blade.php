@@ -296,11 +296,15 @@
                         <i class="fas fa-check text-white text-[8px]"></i>
                     </div>
                     {{-- Favorite star --}}
-                    <button type="button" @click.stop="toggleFavorite('{{ $v['key'] }}')"
-                            class="absolute top-1.5 right-1.5 w-5 h-5 rounded-full flex items-center justify-center transition-all opacity-60 hover:opacity-100"
-                            :style="isFavorite('{{ $v['key'] }}') ? 'background: rgba(236,72,153,0.2); color: #f472b6; opacity: 1;' : 'background: rgba(255,255,255,0.06); color: var(--text-faint);'">
+                    {{-- span role=button (not <button>): this sits inside the
+                         variant card <button>; a button-in-button force-closes
+                         the outer one and ejects later markup from the layout. --}}
+                    <span role="button" tabindex="0" @click.stop="toggleFavorite('{{ $v['key'] }}')"
+                          @keydown.enter.stop.prevent="toggleFavorite('{{ $v['key'] }}')"
+                          class="absolute top-1.5 right-1.5 w-5 h-5 rounded-full flex items-center justify-center transition-all opacity-60 hover:opacity-100 cursor-pointer"
+                          :style="isFavorite('{{ $v['key'] }}') ? 'background: rgba(236,72,153,0.2); color: #f472b6; opacity: 1;' : 'background: rgba(255,255,255,0.06); color: var(--text-faint);'">
                         <i :class="isFavorite('{{ $v['key'] }}') ? 'fas' : 'far'" class="fa-star text-[8px]"></i>
-                    </button>
+                    </span>
 
                     {{-- Thumbnail rendered from preview hints with a small
                          block-shape sketch so creators can see how the
