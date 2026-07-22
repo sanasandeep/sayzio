@@ -375,6 +375,280 @@ class PublicPageBlankContentRenderTest extends TestCase
         $public->assertDontSee('yourhandle');
     }
 
+    // ── Image grid / sliders (array-shaped media content) ──────────
+    //
+    // The public renderer iterates `$s['images'] ?? []` (grid) or
+    // json_encodes it into the Alpine slider state. An explicitly-empty
+    // images array must render zero placeholder media, while a block
+    // seeded through the real store() pipeline carries the sample
+    // `block-placeholders/*.svg` images from BlockDefaults.
+
+    public function test_image_grid_with_explicitly_empty_images_renders_no_placeholder_media(): void
+    {
+        $owner = $this->owner();
+        $link  = $this->biolink($owner);
+
+        $this->block($link, 'image_grid', [
+            'images'  => [],
+            'columns' => 3,
+        ]);
+
+        $resp = $this->visitPublic($link->alias);
+        $resp->assertOk();
+        $resp->assertDontSee('block-placeholders');
+    }
+
+    public function test_image_grid_seeded_via_store_shows_placeholder_media(): void
+    {
+        $owner = $this->owner();
+        $link  = $this->biolink($owner);
+
+        $resp = $this->actingAs($owner)
+            ->withHeaders(['X-Requested-With' => 'XMLHttpRequest'])
+            ->post("/user/links/{$link->id}/blocks", ['type' => 'image_grid']);
+        $resp->assertOk();
+
+        $public = $this->visitPublic($link->alias);
+        $public->assertOk();
+        $public->assertSee('block-placeholders/image.svg');
+    }
+
+    public function test_blanked_admin_default_images_seed_image_grid_that_renders_blank(): void
+    {
+        BlockDefaults::saveAdminOverrideForType('image_grid', [
+            'content' => ['images' => []],
+        ]);
+
+        $owner = $this->owner();
+        $link  = $this->biolink($owner);
+
+        $resp = $this->actingAs($owner)
+            ->withHeaders(['X-Requested-With' => 'XMLHttpRequest'])
+            ->post("/user/links/{$link->id}/blocks", ['type' => 'image_grid']);
+        $resp->assertOk();
+
+        $block = BiolinkBlock::where('link_id', $link->id)->latest('id')->firstOrFail();
+        $this->assertSame([], $block->settings['images'] ?? null,
+            'pre-condition: the seeded block must carry the explicit empty images array');
+
+        $public = $this->visitPublic($link->alias);
+        $public->assertOk();
+        $public->assertDontSee('block-placeholders');
+    }
+
+    public function test_image_slider_with_explicitly_empty_images_renders_no_placeholder_media(): void
+    {
+        $owner = $this->owner();
+        $link  = $this->biolink($owner);
+
+        $this->block($link, 'image_slider', [
+            'images' => [],
+        ]);
+
+        $resp = $this->visitPublic($link->alias);
+        $resp->assertOk();
+        $resp->assertDontSee('block-placeholders');
+    }
+
+    public function test_image_slider_seeded_via_store_shows_placeholder_media(): void
+    {
+        $owner = $this->owner();
+        $link  = $this->biolink($owner);
+
+        $resp = $this->actingAs($owner)
+            ->withHeaders(['X-Requested-With' => 'XMLHttpRequest'])
+            ->post("/user/links/{$link->id}/blocks", ['type' => 'image_slider']);
+        $resp->assertOk();
+
+        $public = $this->visitPublic($link->alias);
+        $public->assertOk();
+        // The slider json_encodes the images into the Alpine x-data
+        // attribute; json_encode escapes '/' so match a slash-free chunk.
+        $public->assertSee('block-placeholders');
+    }
+
+    public function test_image_slider_v2_with_explicitly_empty_images_renders_no_placeholder_media(): void
+    {
+        $owner = $this->owner();
+        $link  = $this->biolink($owner);
+
+        $this->block($link, 'image_slider_v2', [
+            'images' => [],
+        ]);
+
+        $resp = $this->visitPublic($link->alias);
+        $resp->assertOk();
+        $resp->assertDontSee('block-placeholders');
+    }
+
+    public function test_image_slider_v2_seeded_via_store_shows_placeholder_media(): void
+    {
+        $owner = $this->owner();
+        $link  = $this->biolink($owner);
+
+        $resp = $this->actingAs($owner)
+            ->withHeaders(['X-Requested-With' => 'XMLHttpRequest'])
+            ->post("/user/links/{$link->id}/blocks", ['type' => 'image_slider_v2']);
+        $resp->assertOk();
+
+        $public = $this->visitPublic($link->alias);
+        $public->assertOk();
+        $public->assertSee('block-placeholders');
+    }
+
+    // ── Card slider / scroll cards (array-shaped card content) ─────
+    //
+    // The public renderer iterates `$s['cards'] ?? $s['items'] ?? []`;
+    // an explicitly-empty cards array must render zero sample cards.
+
+    public function test_card_slider_with_explicitly_empty_cards_renders_no_sample_cards(): void
+    {
+        $owner = $this->owner();
+        $link  = $this->biolink($owner);
+
+        $this->block($link, 'card_slider', [
+            'cards' => [],
+        ]);
+
+        $resp = $this->visitPublic($link->alias);
+        $resp->assertOk();
+        $resp->assertDontSee('Card one');
+        $resp->assertDontSee('Replace these placeholder cards');
+    }
+
+    public function test_card_slider_seeded_via_store_shows_sample_cards(): void
+    {
+        $owner = $this->owner();
+        $link  = $this->biolink($owner);
+
+        $resp = $this->actingAs($owner)
+            ->withHeaders(['X-Requested-With' => 'XMLHttpRequest'])
+            ->post("/user/links/{$link->id}/blocks", ['type' => 'card_slider']);
+        $resp->assertOk();
+
+        $public = $this->visitPublic($link->alias);
+        $public->assertOk();
+        $public->assertSee('Card one');
+        $public->assertSee('Replace these placeholder cards');
+    }
+
+    public function test_blanked_admin_default_cards_seed_card_slider_that_renders_blank(): void
+    {
+        BlockDefaults::saveAdminOverrideForType('card_slider', [
+            'content' => ['cards' => []],
+        ]);
+
+        $owner = $this->owner();
+        $link  = $this->biolink($owner);
+
+        $resp = $this->actingAs($owner)
+            ->withHeaders(['X-Requested-With' => 'XMLHttpRequest'])
+            ->post("/user/links/{$link->id}/blocks", ['type' => 'card_slider']);
+        $resp->assertOk();
+
+        $block = BiolinkBlock::where('link_id', $link->id)->latest('id')->firstOrFail();
+        $this->assertSame([], $block->settings['cards'] ?? null,
+            'pre-condition: the seeded block must carry the explicit empty cards array');
+
+        $public = $this->visitPublic($link->alias);
+        $public->assertOk();
+        $public->assertDontSee('Card one');
+        $public->assertDontSee('Replace these placeholder cards');
+    }
+
+    public function test_scroll_cards_with_explicitly_empty_cards_renders_no_sample_cards(): void
+    {
+        $owner = $this->owner();
+        $link  = $this->biolink($owner);
+
+        $this->block($link, 'scroll_cards', [
+            'cards' => [],
+        ]);
+
+        $resp = $this->visitPublic($link->alias);
+        $resp->assertOk();
+        $resp->assertDontSee('Card one');
+        $resp->assertDontSee('Up to a dozen cards work nicely here');
+    }
+
+    public function test_scroll_cards_seeded_via_store_shows_sample_cards(): void
+    {
+        $owner = $this->owner();
+        $link  = $this->biolink($owner);
+
+        $resp = $this->actingAs($owner)
+            ->withHeaders(['X-Requested-With' => 'XMLHttpRequest'])
+            ->post("/user/links/{$link->id}/blocks", ['type' => 'scroll_cards']);
+        $resp->assertOk();
+
+        $public = $this->visitPublic($link->alias);
+        $public->assertOk();
+        $public->assertSee('Card one');
+        $public->assertSee('Up to a dozen cards work nicely here');
+    }
+
+    // ── Pricing list (array-shaped items) ──────────────────────────
+    //
+    // common/blocks/list-pricing.blade.php normalises `$s['items'] ?? []`;
+    // an explicitly-empty items array must render zero sample tiers.
+
+    public function test_list_pricing_with_explicitly_empty_items_renders_no_sample_tiers(): void
+    {
+        $owner = $this->owner();
+        $link  = $this->biolink($owner);
+
+        $this->block($link, 'list_pricing', [
+            'style' => 'classic',
+            'items' => [],
+        ]);
+
+        $resp = $this->visitPublic($link->alias);
+        $resp->assertOk();
+        $resp->assertDontSee('Starter');
+        $resp->assertDontSee('$29');
+    }
+
+    public function test_list_pricing_seeded_via_store_shows_sample_tiers(): void
+    {
+        $owner = $this->owner();
+        $link  = $this->biolink($owner);
+
+        $resp = $this->actingAs($owner)
+            ->withHeaders(['X-Requested-With' => 'XMLHttpRequest'])
+            ->post("/user/links/{$link->id}/blocks", ['type' => 'list_pricing']);
+        $resp->assertOk();
+
+        $public = $this->visitPublic($link->alias);
+        $public->assertOk();
+        // The seeded default 'classic' style renders name + price only.
+        $public->assertSee('Starter');
+        $public->assertSee('$29');
+    }
+
+    public function test_blanked_admin_default_items_seed_list_pricing_that_renders_blank(): void
+    {
+        BlockDefaults::saveAdminOverrideForType('list_pricing', [
+            'content' => ['items' => []],
+        ]);
+
+        $owner = $this->owner();
+        $link  = $this->biolink($owner);
+
+        $resp = $this->actingAs($owner)
+            ->withHeaders(['X-Requested-With' => 'XMLHttpRequest'])
+            ->post("/user/links/{$link->id}/blocks", ['type' => 'list_pricing']);
+        $resp->assertOk();
+
+        $block = BiolinkBlock::where('link_id', $link->id)->latest('id')->firstOrFail();
+        $this->assertSame([], $block->settings['items'] ?? null,
+            'pre-condition: the seeded block must carry the explicit empty items array');
+
+        $public = $this->visitPublic($link->alias);
+        $public->assertOk();
+        $public->assertDontSee('Starter');
+        $public->assertDontSee('$29');
+    }
+
     // ── Full pipeline: blanked admin default → seeded block → render ──
 
     public function test_blanked_admin_default_seeds_block_that_renders_blank_on_public_page(): void
