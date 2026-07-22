@@ -371,10 +371,13 @@
             <div class="aisx-cards-col reveal rd-2">
                 <div class="aisx-cards" role="tablist" aria-label="AI Suite products">
                     @foreach($__aiProducts as $i => $a)
-                        <button type="button"
-                                class="aisx-card"
+                        {{-- div (not <button>): the card holds a real "Learn more"
+                             <a>, and interactive content inside a button is invalid
+                             HTML. Enter/Space activation is handled in the JS below. --}}
+                        <div class="aisx-card"
                                 style="--c: {{ $a['color'] }};"
                                 role="tab"
+                                tabindex="0"
                                 data-aisx-tab="{{ $i }}"
                                 aria-selected="{{ $i === 0 ? 'true' : 'false' }}"
                                 aria-controls="aisx-scene-{{ $a['key'] }}">
@@ -392,7 +395,7 @@
                                     Learn more <i class="fas fa-arrow-right text-[10px]"></i>
                                 </a>
                             </span>
-                        </button>
+                        </div>
                     @endforeach
                 </div>
             </div>
@@ -576,7 +579,12 @@
                 stopTimer(); startTimer();
             });
             card.addEventListener('keydown', function (e) {
-                if (e.key === 'ArrowDown' || e.key === 'ArrowRight') {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    // Cards are divs with role="tab" (a real <a> lives inside,
+                    // so they can't be <button>s) — emulate button activation.
+                    if (e.target.closest && e.target.closest('a')) return;
+                    e.preventDefault(); paint(i, true); stopTimer(); startTimer();
+                } else if (e.key === 'ArrowDown' || e.key === 'ArrowRight') {
                     e.preventDefault(); var n = (i + 1) % cards.length; cards[n].focus(); paint(n, true); stopTimer(); startTimer();
                 } else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') {
                     e.preventDefault(); var p = (i - 1 + cards.length) % cards.length; cards[p].focus(); paint(p, true); stopTimer(); startTimer();

@@ -472,6 +472,10 @@ args = "eas-dialer-apk"
 task = "workflow.run"
 args = "otp-merge-tests"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "nested-interactive"
+
 [[workflows.workflow]]
 name = "e2e"
 author = "agent"
@@ -1935,6 +1939,17 @@ isValidation = true
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "cd artifacts/1inme && rm -rf /tmp/1inme-testpg.* ; TEST_LOCAL_MODE=artisan bash scripts/test-local.sh --filter='OtpLoginEmailIsolationTest'"
+
+[[workflows.workflow]]
+name = "nested-interactive"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/scripts run check:nested-interactive"
+
+[workflows.workflow.metadata]
+isValidation = true
 
   [agent]
 stack = "PNPM_WORKSPACE"

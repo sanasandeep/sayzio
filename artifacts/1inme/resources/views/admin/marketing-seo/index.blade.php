@@ -33,8 +33,12 @@
                 @foreach($pages as $p)
                     <div x-data="{ open: {{ ($p['override']['title'] !== '' || $p['override']['description'] !== '' || $p['override']['keywords'] !== '') ? 'true' : 'false' }} }"
                          class="bg-black/20 border border-white/10 rounded-xl">
-                        <button type="button" @click="open = !open"
-                                class="w-full flex items-center justify-between px-4 py-3 text-left">
+                        {{-- div role=button (not <button>): the header row holds a real
+                             <a> to the live page, and interactive content inside a
+                             button is invalid HTML (parser can eject later markup). --}}
+                        <div role="button" tabindex="0" @click="open = !open"
+                             @keydown.enter.prevent="open = !open" @keydown.space.prevent="open = !open"
+                             class="w-full flex items-center justify-between px-4 py-3 text-left cursor-pointer select-none">
                             <span class="flex items-center gap-2 min-w-0">
                                 <span class="text-sm font-semibold text-white truncate">{{ $p['label'] }}</span>
                                 <a href="{{ $p['url'] }}" target="_blank" rel="noopener"
