@@ -124,12 +124,15 @@ export default function ContactsScreen() {
     onError: (e: any) => {
       if (e?.code === "google_needs_reauth") {
         // Connection expired — refresh the status card so the reconnect
-        // banner appears, and show the server's friendly message.
+        // banner appears, and offer the reconnect flow right from the alert.
         qc.invalidateQueries({ queryKey: ["google-contacts-status"] });
         showAlert(
           "Reconnect Google Contacts",
-          e?.message ??
-            "Your Google Contacts connection expired — tap the banner to reconnect.",
+          e?.message ?? "Your Google Contacts connection expired.",
+          [
+            { text: "Not now", style: "cancel" },
+            { text: "Reconnect", onPress: () => reconnectMutation.mutate() },
+          ],
         );
         return;
       }
