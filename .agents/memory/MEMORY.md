@@ -149,5 +149,6 @@
 - [GitHub CI workflows](github-ci-workflows.md) — PHP 8.4 pin, MySQL leg removed (PG-only migrations), Vite build required before PHPUnit; remaining test failures are pre-existing.
 - [Zio Dialer caller-ID overlay](zio-caller-id-overlay.md) — at-ring features must be pure native (JS runtime dead on ring); role grant via OnActivityResult re-check, allow the call before lookup.
 - [Block defaults blank content](block-defaults-blank-content.md) — explicit ''/[] overrides are real blanks (array_replace), start_blank blanks non-structural keys, `_placeholder` recomputed; JSON textarea is the ONLY submitted content field.
+- [Admin light-mode text guard (ratchet)](admin-light-mode-text-guard.md) — check:admin-light-mode-text enforces ak-* pairing on admin blades; new files must be clean, baselined files only shrink.
 - [Admin settings light-mode ak-* classes](admin-light-mode-ak-classes.md) — shared ak-* helpers in the admin layout; ternary/match-arm/inputClass/JS strings need manual handling; never ak-strong on solid buttons.
 - [PHP empty array → JS array in @js()](php-empty-array-js-object.md) — Alpine keyed maps seeded from PHP [] serialize as JS arrays; JSON.stringify drops string keys — cast (object).

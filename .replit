@@ -492,6 +492,10 @@ args = "e2e-block-defaults"
 task = "workflow.run"
 args = "e2e-block-defaults-drag"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "admin-light-mode-text"
+
 [[workflows.workflow]]
 name = "e2e"
 author = "agent"
@@ -1988,6 +1992,17 @@ args = "bash artifacts/1inme/tests/Browser/run-validation.sh block-defaults-edit
 
 [workflows.workflow.metadata]
 isValidation = true
+
+[[workflows.workflow]]
+name = "admin-light-mode-text"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/scripts run check:admin-light-mode-text"
+
+[workflows.workflow.metadata]
+outputType = "console"
 
 
   [agent]

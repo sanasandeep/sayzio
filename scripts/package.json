@@ -10,6 +10,7 @@
     "check:ai-tool-names": "tsx ./src/check-ai-tool-names.ts",
     "check:doc-constants": "tsx ./src/check-doc-constants.ts",
     "check:light-mode-pairing": "tsx ./src/check-light-mode-pairing.ts",
+    "check:admin-light-mode-text": "tsx ./src/check-admin-light-mode-text.ts",
     "check:hardcoded-blue": "tsx ./src/check-hardcoded-blue-accents.ts",
     "check:toolbar-theme-color": "tsx ./src/check-toolbar-theme-color.ts",
     "check:undefined-css-var": "tsx ./src/check-undefined-css-var-fallback.ts",
