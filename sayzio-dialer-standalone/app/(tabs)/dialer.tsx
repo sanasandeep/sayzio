@@ -1724,7 +1724,7 @@ export default function DialerScreen() {
                       fontSize: 13,
                     }}
                   >
-                    Permission denied — enable Contacts access in Settings to show
+                    Permission denied: enable Contacts access in Settings to show
                     your phone's address book here.
                   </Text>
                 )}
@@ -1929,7 +1929,7 @@ export default function DialerScreen() {
                         <Text style={{ fontSize: 14, fontFamily: "SpaceGrotesk_700Bold", color: "#90acff" }}>{d}</Text>
                       </View>
                       <Text style={{ flex: 1, fontSize: 13, fontFamily: "SpaceGrotesk_500Medium", color: owner ? colors.foreground : colors.mutedForeground }}>
-                        {owner ? (owner.label || owner.number || "Favorite") : "— unassigned"}
+                        {owner ? (owner.label || owner.number || "Favorite") : "(unassigned)"}
                       </Text>
                       {owner ? (
                         <Pressable

@@ -47,7 +47,19 @@ class ZioCallScreeningService : CallScreeningService() {
           // Queueing is best-effort.
         }
         try {
-          CallerIdOverlay.show(this, info)
+          // If the lookup itself failed, still show the card in its
+          // "unknown caller" state rather than skipping the alert.
+          val display = info ?: CallerLookup.Result(
+            number = number,
+            name = null,
+            contactPhotoUri = null,
+            remotePhotoUrl = null,
+            organization = null,
+            source = null,
+            locationHint = null,
+            lastInteraction = null,
+          )
+          CallerIdOverlay.show(this, display)
         } catch (_: Exception) {
           // Alert is best-effort; the call itself is already allowed.
         }
