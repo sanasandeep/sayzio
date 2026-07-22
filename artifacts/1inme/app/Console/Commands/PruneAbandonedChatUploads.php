@@ -33,10 +33,11 @@ class PruneAbandonedChatUploads extends Command
         $cutoff = now()->subDays($days)->getTimestamp();
         $disk = Storage::disk('public');
 
-        if (!$disk->exists('cv_uploads')) {
-            $this->info('No cv_uploads directory — nothing to prune.');
-            return self::SUCCESS;
-        }
+        // NOTE: deliberately no $disk->exists('cv_uploads') pre-check here.
+        // On an S3-backed disk a directory-existence check is a list-objects
+        // call that can throw (UnableToCheckExistence) on permission or
+        // transient errors, crashing the job before pruning. We go straight
+        // to listing; an empty listing means nothing to prune.
 
         try {
             $referenced = $this->collectReferencedBasenames();
