@@ -43,6 +43,12 @@ class GoogleContactsSyncService
      */
     public function syncNow(GoogleContactsAccount $account, bool $force = false, int $cooldown = self::SYNC_COOLDOWN_SECONDS): array
     {
+        // Revoked/expired Google connection: don't waste any Google calls,
+        // tell the caller a reconnect is required instead.
+        if ($account->needsReauth()) {
+            return ['status' => 'needs_reauth', 'retry_after' => null, 'stats' => null];
+        }
+
         $stampKey = "google-contacts:sync-at:{$account->id}";
         $now      = time();
 
@@ -188,6 +194,12 @@ class GoogleContactsSyncService
                 'last_synced_at'   => now(),
                 'last_sync_error'  => null,
             ]);
+        } catch (GoogleReauthRequiredException $e) {
+            // The provider already stamped needs_reauth_at; make sure the
+            // status reflects it (and never regress it to a raw 'error').
+            $account->markNeedsReauth($e->getMessage());
+            $stats['errors']++;
+            Log::info('Contacts sync skipped — Google connection needs reauthorization', ['account' => $account->id]);
         } catch (\Throwable $e) {
             $account->update([
                 'last_sync_status' => 'error',

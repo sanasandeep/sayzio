@@ -52,6 +52,9 @@ class GoogleContactsAccountController extends Controller
                 return redirect()->route('user.contacts.index')->with('error', "Google Contacts connected, but {$stats['skipped_capped']} contact(s) were not imported because you've reached your plan's contact limit. Upgrade your plan to import the rest.");
             }
             return redirect()->route('user.contacts.index')->with('success', 'Google Contacts connected — syncing now.');
+        } catch (\App\Modules\User\Services\Contacts\GoogleReauthRequiredException $e) {
+            Log::warning('Google contacts connect rejected', ['err' => $e->getMessage()]);
+            return redirect()->route('user.contacts.index')->with('error', $e->getMessage());
         } catch (\Throwable $e) {
             Log::error('Google contacts connect failed', ['err' => $e->getMessage()]);
             return redirect()->route('user.contacts.index')->with('error', 'Could not connect: ' . $e->getMessage());
@@ -64,6 +67,9 @@ class GoogleContactsAccountController extends Controller
 
         $result = $this->sync->syncNow($account);
 
+        if ($result['status'] === 'needs_reauth') {
+            return back()->with('error', 'Your Google Contacts connection expired — please reconnect to resume syncing.');
+        }
         if ($result['status'] === 'throttled') {
             return back()->with('info', "Already up to date — you just synced. Try again in {$result['retry_after']}s.");
         }

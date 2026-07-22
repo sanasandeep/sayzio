@@ -14,7 +14,13 @@ class SyncContactsCommand extends Command
     public function handle(GoogleContactsSyncService $sync): int
     {
         $q = GoogleContactsAccount::query();
-        if ($id = $this->option('account')) $q->where('id', $id);
+        if ($id = $this->option('account')) {
+            $q->where('id', $id);
+        } else {
+            // Skip revoked/expired connections on the unattended backstop —
+            // they fail every time until the user reconnects.
+            $q->whereNull('needs_reauth_at');
+        }
         $accounts = $q->get();
 
         // An explicit --account run is an operator forcing a sync, so bypass
