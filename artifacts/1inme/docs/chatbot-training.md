@@ -10,7 +10,7 @@
 > FAQ. Admin/back-office tools, internal architecture, and raw API endpoint
 > contracts are intentionally excluded here (those live in
 > [`claude-training.md`](./claude-training.md) and [`api.md`](./api.md)).
-> Plans, the coin wallet, AI credits, and add-ons are explained conceptually
+> Plans, the coin wallet, coins, and add-ons are explained conceptually
 > (how they relate to features), not as a price list.
 >
 > **Sibling docs.** [`knowledge-base.md`](./knowledge-base.md) is the
@@ -25,7 +25,7 @@
 1. [What Sayzio is](#1-what-1inme-is)
 2. [Getting started: accounts & sign-in](#2-getting-started-accounts--sign-in)
 3. [Your profile & public handle](#3-your-profile--public-handle)
-4. [Plans, coins, AI credits & add-ons (concepts)](#4-plans-coins-ai-credits--add-ons-concepts)
+4. [Plans, coins & add-ons (concepts)](#4-plans-coins--add-ons-concepts)
 5. [Links: the basics](#5-links-the-basics)
 6. [Every link type](#6-every-link-type)
 7. [Link management & routing](#7-link-management--routing)
@@ -124,9 +124,24 @@ scheduling and daily digests arrive at the right time. Toggle "Show me in the
 public Creators directory" if you want to be discoverable (this may require a
 specific plan).
 
+**Showcase, theme & preview.** The Creator settings tab lets you dress up your
+public `/@handle` page with **featured links** (shared display style, drag to
+reorder, per-link hide toggle), **tabs**, **highlights**, and a **call-to-action
+button**, plus a **profile theme color**. Your avatar defaults to your account
+profile photo unless you set a profile-specific one, and hovering a creator's
+name elsewhere shows a **mini profile card**. While editing you get a **live
+preview** with Small / Medium / Large density and a dark/light toggle.
+
+**Verified badges.** Under **Settings → Verification & Badges** you can apply
+for an account-level verified badge (different badge "tick" types exist):
+submit your official name, a purpose message, and proof attachments; a reviewer
+approves or rejects and you're notified either way. After approval your
+**verified name and photo are locked** — changing them requires
+re-verification.
+
 ---
 
-## 4. Plans, coins, AI credits & add-ons (concepts)
+## 4. Plans, coins & add-ons (concepts)
 
 Sayzio's pricing is built from a few simple pieces. The emphasis below is on *what
 they are and how they relate to features* — not specific prices.
@@ -147,21 +162,21 @@ example certain add-ons, or developer-API usage beyond your plan's monthly
 allowance. Your balance and a running transaction ledger are always visible in
 your **Wallet**.
 
-**AI credits.** A separate metered balance that powers Sayzio's AI features (the
-AI biolink builder, AI Coach, AI Agents/Knowledge Bases, resume tailoring and cover
+**Coins for AI.** Coins also power Sayzio's AI features (the
+AI biolink builder, AI Coach, AI Agents/AI Minds, resume tailoring and cover
 letters, the card/brochure scanner, the voice assistant, and visitor chats with
 your Chat Widget). Each AI action is billed automatically. Before an action
 runs, Sayzio checks you can afford it — if your balance is too low you're prompted
 to top up rather than charged for something that can't finish. Many failed AI
-runs are automatically refunded, and there's a credit ledger so you can see where
-credits went.
+runs are automatically refunded, and there's a coin ledger so you can see where
+coins went.
 
 **Add-ons.** Optional extras you can attach to your plan to expand specific
 limits or capabilities beyond what your base tier includes. They're billed
 alongside your subscription.
 
 **How they relate.** Your **plan** sets your everyday feature limits; **coins**
-top up optional extras and overage; **AI credits** specifically fuel AI features;
+top up optional extras, overage and every AI feature;
 **add-ons** extend particular limits without changing your whole plan.
 
 ---
@@ -205,7 +220,7 @@ or as biolink blocks.
 | **PDF** | Share a PDF behind a viewer/download page. |
 | **Conversational** | A guided, chat-style page that walks visitors through your links one message at a time on a fixed script. |
 | **Slides** | A swipeable, story-style deck served from a single link — great for presentations or portfolios. |
-| **AI Chatbot** | A full-page AI assistant that answers visitors' questions about you, powered by your Chat Widget and Knowledge Bases. |
+| **AI Chatbot** | A full-page AI assistant that answers visitors' questions about you, powered by your Chat Widget and AI Minds. |
 | **Restaurant Menu** | A digital menu with categories, items, prices, photos, and optional table-side ordering. |
 | **Resume / Portfolio** | A shareable, professional resume page with PDF download and AI tooling. |
 | **Reviews Page** | A standalone wall for collecting and showcasing star reviews. |
@@ -254,8 +269,10 @@ These tools apply to short links and, where relevant, the broader link set.
   reachable, visitors see a clear reason (inactive, expired, limit reached,
   scheduled, or outside open hours).
 - **Custom domains.** Add and verify your own domain (e.g.
-  `links.yourbrand.com`) by setting the DNS records shown, then choose it when
-  creating links. Some plans also offer shared **global domains**.
+  `links.yourbrand.com`) with a **step-by-step setup** showing the exact DNS
+  records to copy; Sayzio **checks propagation automatically** and flips the
+  domain to verified on its own — no manual re-verify needed. Then choose it
+  when creating links. Some plans also offer shared **global domains**.
 - **Splash pages ("Intros").** Optional interstitial pages shown briefly before a
   visitor reaches the final destination — great for announcements or branding.
 - **Link insurance.** Monitors a link's destination and automatically fails over
@@ -285,6 +302,10 @@ of **blocks**. It's split into two pages: **Blocks** and **Settings**.
 5. Newly added blocks arrive pre-filled with friendly placeholder text/media and a
    starter style, and show a "we dropped in placeholder content" banner — just
    edit and save, and the banner clears automatically.
+6. Link-style blocks let you **pick one of your existing links** as the
+   destination, or paste any URL and hit **Fetch details** to auto-fill the
+   title, description and image from the page, shown as a preview card you can
+   **Apply** or **Dismiss** (web and mobile).
 
 **Block catalog (highlights).**
 - **Essentials** — Link Button, Featured Link, Heading / Logo Heading, Rich Text,
@@ -344,7 +365,7 @@ assembles it for you. Open the AI builder, type a prompt (e.g. "A page for my
 coffee shop with my menu, hours, and Instagram"), optionally attach images or
 links, and AI generates a complete page using safe, ready-to-use block types,
 appending any image/link you supplied that it didn't already place. Review and
-edit the result like any biolink. (This uses AI credits; if the result can't be
+edit the result like any biolink. (This uses coins; if the result can’t be
 built, you're refunded.)
 
 **Biolink wizard.** A step-by-step guided builder with no AI prompt required.
@@ -432,8 +453,8 @@ data is used.
 3. To refresh after making big changes, click **Re-estimate → Force refresh**.
    This bypasses the 10-minute result cache and runs a fresh analysis.
 
-**What it costs.** A small number of AI credits per estimate (shown before you
-confirm). If the analysis fails, the credits are automatically refunded. Re-running
+**What it costs.** A small number of coins per estimate (shown before you
+confirm). If the analysis fails, the coins are automatically refunded. Re-running
 within 10 minutes returns the cached result at no charge.
 
 **Plan requirement.** Audience Insights is a paid feature; an upgrade prompt
@@ -572,7 +593,7 @@ unless a visitor opts to show adult content.
 
 ## 18. AI tools
 
-Sayzio includes several AI helpers, all metered with **AI credits**:
+Sayzio includes several AI helpers, all metered with **coins**:
 
 - **AI Coach** — an AI assistant that reviews your account (analytics, biolinks)
   and answers "how do I improve?" questions with actionable, plain-language growth
@@ -582,7 +603,7 @@ Sayzio includes several AI helpers, all metered with **AI credits**:
   Zio Bot can answer questions, guide you to features, or connect you with support.
   You can log in or create an account right inside the chat via a one-time code, and
   you can request to be contacted via WhatsApp, a callback, or email using **Quick
-  Contact**. Zio Bot uses AI credits.
+  Contact**. Zio Bot uses coins.
 - **Persona Generator** — creates a brand persona that shapes the tone and
   personality your AI uses when it writes or replies on your behalf.
 - **AI Agents** — configurable agents you can create and switch between, each with
@@ -592,7 +613,7 @@ Sayzio includes several AI helpers, all metered with **AI credits**:
   get dynamic answers. The **owner** pays for visitor chats, not the visitor.
 - **AI Chat** — a chat assistant that helps you draft content and answer questions
   about your account.
-- **Knowledge Bases / AI Note Summarizer** — build and manage private knowledge bases:
+- **AI Minds / AI Note Summarizer** (formerly **Knowledge Bases**) — build and manage private AI Minds:
   upload documents and links to "train" your AI so its answers reflect your real
   information, and summarize raw notes into clear next steps with **AI Note Summarizer**.
 - **Voice assistant** — a hands-free assistant that listens (speech-to-text), takes
@@ -604,6 +625,14 @@ Sayzio includes several AI helpers, all metered with **AI credits**:
   fonts, voice, taglines, bio) and apply it to your biolinks and QR codes. A
   **Brand Consistency Score** audits how on-brand your pages are, and On-Brand AI
   keeps AI-written content in your brand voice.
+- **AI Brand Studio** — describe what you need in plain language and get a whole
+  on-brand asset kit — bio page, short links, QR codes, a form and a digital
+  card — planned by AI and reviewed by you before anything is created. Bulk mode
+  can create many variations of one asset type at once (limit depends on your
+  plan). You can save asset combinations as reusable combos (up to 20; rename or
+  delete them anytime) to reuse with one tap. A failed run is automatically
+  refunded, and if you discard a planned kit before confirming it, the coins
+  spent on planning are returned to your wallet automatically.
 - **AI QR Art** — turn a plain QR code into on-brand artwork that still scans (a
   built-in check verifies scannability before you use it).
 - **Inbox Agent** — categorizes and prioritizes incoming messages, drafts replies,
@@ -615,21 +644,21 @@ Sayzio includes several AI helpers, all metered with **AI credits**:
   **"Build a better version"** hands those findings to the AI biolink builder to
   assemble an improved page for you. Available on web and mobile.
 
-**Knowledge Base sync sources.** Besides pasting text, uploading documents, and
-adding FAQs or links, a Knowledge Base can stay in sync with outside systems through
+**AI Mind sync sources.** Besides pasting text, uploading documents, and
+adding FAQs or links, an AI Mind can stay in sync with outside systems through
 two additional connection sources — both respect your plan limits, and any
 credentials you enter are encrypted at rest.
 
 - **Webhook (inbound)** — Sayzio generates a unique inbound URL and a secret token.
   Copy both into any external system. When that system POSTs content to the URL,
-  Sayzio verifies the token, stores the payload, and re-trains the Knowledge Base
+  Sayzio verifies the token, stores the payload, and re-trains the AI Mind
   automatically. The source shows its **Last received** timestamp so you can
   confirm the connection is live. For security, the token is shown only once (copy
   it immediately; use **Regenerate** to issue a new one if lost).
 - **API connector (outbound)** — enter an endpoint URL, choose an authentication
   method (none, header API key, or bearer token), and set a refresh interval.
   Sayzio fetches the endpoint on that schedule, turns the response into text, and
-  re-trains the Knowledge Base.
+  re-trains the AI Mind.
 
 Other AI helpers appear inside specific tools — **resume tailoring** and
 **cover-letter generation** in the Resume builder, the **AI biolink builder**, and
@@ -710,6 +739,12 @@ resolution. Found under **Contacts** and **Dialer**.
    attached automatically.
 4. Calls and emails open your device's native dialer/mail (`tel:` / `mailto:`) —
    there's no in-app calling.
+5. **On the mobile app** the dialer can place real device calls with
+   **dual-SIM support** (per-call SIM picker or a default SIM) and an optional
+   **direct call** setting; incoming calls show a **caller-ID alert** with a
+   spam warning for numbers you've flagged. Calls are logged into the contact's
+   history/timeline, and you can attach **notes and tasks with reminder alarms**
+   and review them in **agenda views**.
 
 ---
 
@@ -742,10 +777,10 @@ page.
 each, and PDFs are processed up to **4 pages** (longer PDFs are rejected so you
 can split them).
 
-**What it costs.** Scanning is an AI feature, so it uses **AI credits** from your
+**What it costs.** Scanning is an AI feature, so it uses **coins** from your
 coin wallet. Sayzio checks you can afford it before running, so you're never
 charged for a scan that can't finish; if the extraction fails after charging, the
-credits are refunded automatically.
+coins are refunded automatically.
 
 **Plan limits.** Saving an extracted **contact** counts against your plan's
 contact limit — if you're at the cap, you'll be asked to upgrade, but you can
@@ -967,7 +1002,9 @@ For teams and agencies, Sayzio scales beyond a single user:
 - **Sayzio mobile app** — most creator features have native parity in the mobile
   app, including links, biolink editing, QR Studio, restaurant menus, reviews
   moderation, payouts, the 18+ toggle, AI Coach, AI Agent chat, and a
-  floating-mic voice assistant. Sign in with email/OTP or social.
+  floating-mic voice assistant. Sign in with email/OTP or social. On Android
+  you can **download the APK directly** from the platform's own domain at
+  **/android** — no app store needed.
 - **Browser extension** — helps with things like saving and shortening links
   (including "Shorten as A/B test") and powering the Backlinks radar from your
   browser.
@@ -1006,19 +1043,18 @@ address (`@yourname`) and is used in the Creators directory.
 In **Profile**, toggle "Show me in the public Creators directory" (this may
 require a specific plan).
 
-## Plans, coins & AI credits
+## Plans & coins
 
-**What's the difference between coins and AI credits?**
+**What do coins pay for?**
 **Coins** are a general prepaid balance (top up by buying coin packages) used for
-add-ons and developer-API overage. **AI credits** specifically power AI features
-like the AI builder, AI Coach, AI Agents/Knowledge Bases, the card scanner, and resume AI
-tools.
+add-ons, developer-API overage and every AI feature — the AI builder, AI Coach,
+AI Agents/AI Minds, the card scanner, and resume AI tools all spend coins.
 
 **What are add-ons?**
 Optional extras you attach to your plan to expand specific limits or capabilities
 beyond your base tier; they're billed alongside your subscription.
 
-**What happens if I run out of AI credits?**
+**What happens if I run out of coins?**
 Before an AI action runs, Sayzio checks you can afford it; if not, you're prompted
 to top up rather than charged for something that can't finish. Failed AI runs are
 typically refunded automatically.
@@ -1265,8 +1301,8 @@ assessment, and concrete recommendations to beat it. Tap **"Build a better versi
 and the AI biolink builder turns those findings into a draft page for you.
 
 **Does the Competitor Teardown cost anything?**
-Yes — it uses AI credits (drawn from your coin wallet), and your plan must include
-it. If the analysis fails, credits are automatically refunded.
+Yes — it uses coins (drawn from your wallet), and your plan must include
+it. If the analysis fails, coins are automatically refunded.
 
 **What are Audience Insights?**
 Audience Insights estimates the type of people visiting your Link in Bio page —
@@ -1278,7 +1314,7 @@ individual visitor is identified.
 **How often can I run Audience Insights?**
 Re-running within 10 minutes returns the cached result at no charge. To force a
 fresh analysis sooner, click **Re-estimate → Force refresh**. Each new estimate
-uses a small number of AI credits.
+uses a small number of coins.
 
 **What's the Files/Vault for?**
 It's your personal storage for images, video, audio, and documents you reuse
@@ -1289,13 +1325,13 @@ To your **Inbox** — it gathers biolink DMs and form submissions in one place.
 
 ## AI features
 
-**What's a Chat Widget vs. a Knowledge Base?**
-A **Knowledge Base** is a private store you fill with your documents/links. A
+**What's a Chat Widget vs. an AI Mind?**
+An **AI Mind** is a private store you fill with your documents/links. A
 **Chat Widget** is the chatbot that answers visitors using that knowledge — you can
 embed it as a block or run it as a full-page **AI Chatbot** link.
 
 **Who pays when a visitor chats with my Chat Widget?**
-You do (the owner), from your AI credits — visitors don't pay.
+You do (the owner), from your coins — visitors don’t pay.
 
 **What is the AI Coach?**
 An AI assistant that reviews your account (analytics, biolinks) and gives
@@ -1306,12 +1342,12 @@ plain-language advice on how to grow and improve your links and pages.
 Zio Bot is Sayzio's built-in site assistant — the chat icon you see on the website
 and inside the app. Open it to get help navigating features, ask questions, or
 request to be contacted by support. If you're not signed in you can log in or sign
-up right inside the chat using a one-time code. Zio Bot uses your AI credits.
+up right inside the chat using a one-time code. Zio Bot uses your coins.
 
 **What does the voice assistant do?**
 It listens to you (speech-to-text), takes an AI turn, and can speak its reply
-(text-to-speech); it also offers dictation. Like other AI features, it uses AI
-credits.
+(text-to-speech); it also offers dictation. Like other AI features, it uses
+coins.
 
 **Why is "Scan a card or brochure" disabled?**
 You'll see "AI scanning is currently disabled by your administrator" when AI
@@ -1320,9 +1356,9 @@ causes: the AI engine is turned off, or no AI provider key is configured. Once a
 admin fixes either, scanning works automatically — nothing to change on your side.
 
 **How much does a card scan cost?**
-A scan uses **AI credits** from your coin wallet. Sayzio checks you can afford it
+A scan uses **coins** from your wallet. Sayzio checks you can afford it
 before running, so you're never charged for a scan that can't finish — and if the
-extraction fails after charging, the credits are refunded automatically.
+extraction fails after charging, the coins are refunded automatically.
 
 **What file types can I scan?**
 JPG, PNG, WebP, and PDF. You can send up to 6 files per scan (e.g. both sides of a

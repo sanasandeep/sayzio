@@ -272,7 +272,7 @@ class AiMindFeatureAdapter
             $credits = 0;
         }
         $plan = $user->plan_id ? "plan #{$user->plan_id}" : 'free plan';
-        return "Payments — wallet coins: {$coins}; AI credits: {$credits}; current {$plan}.";
+        return "Payments — wallet coins: {$coins}; coins for AI: {$credits}; current {$plan}.";
     }
 
     protected function audience(User $user): string

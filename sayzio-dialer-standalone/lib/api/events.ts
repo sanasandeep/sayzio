@@ -270,6 +270,29 @@ export async function setEventInterest(
   return res.data;
 }
 
+// ── My events calendar (tickets + interested, past & future) ───────
+
+export type MyEventsItem = {
+  kind: "ticket" | "interested";
+  ticket_code?: string;
+  quantity?: number;
+  status?: string;
+  event: {
+    id: number;
+    alias: string;
+    title: string | null;
+    location: string | null;
+    start_date: string | null;
+    end_date: string | null;
+    url: string;
+  };
+};
+
+export async function getMyEvents(): Promise<MyEventsItem[]> {
+  const res = await apiFetch<{ data: { items: MyEventsItem[] } }>("/me/events");
+  return res.data.items;
+}
+
 export async function getMyEventTickets(): Promise<Paginated<EventTicket>> {
   const res = await apiFetch<{ data: Paginated<EventTicket> }>(
     "/me/event-tickets",

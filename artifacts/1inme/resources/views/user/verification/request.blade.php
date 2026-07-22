@@ -60,7 +60,7 @@
                 </div>
                 <div>
                     <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Message to reviewer (optional)</label>
-                    <textarea name="message" maxlength="2000" rows="3" class="theme-input w-full text-sm" placeholder="Anything else the review team should know — context, links to press, etc.">{{ old('message') }}</textarea>
+                    <textarea name="message" maxlength="2000" rows="3" class="theme-input w-full text-sm" placeholder="Anything else the review team should know: context, links to press, etc.">{{ old('message') }}</textarea>
                     @error('message')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
                 </div>
             </div>
@@ -73,7 +73,7 @@
             @include('user.partials.dropzone-input', [
                 'name'   => 'logo',
                 'policy' => \App\Services\UploadPolicy::for('verification.logo', auth()->user()),
-                'hint'   => 'Profile photo to lock — leave blank to keep current',
+                'hint'   => 'Profile photo to lock (leave blank to keep current)',
             ])
             @error('logo')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
         </div>
@@ -93,7 +93,7 @@
 
         <div class="p-4 rounded-xl text-xs" style="background: rgba(245,158,11,0.07); border: 1px solid rgba(245,158,11,0.2); color: #f59e0b;">
             <i class="fas fa-lock mr-2"></i>
-            <strong>Important:</strong> Once approved, your display name and profile avatar will be locked. You can request a change later — this will temporarily mark your tick as "pending re-verification" while we review.
+            <strong>Important:</strong> Once approved, your display name and profile avatar will be locked. You can request a change later; this will temporarily mark your tick as "pending re-verification" while we review.
         </div>
 
         <div class="flex justify-end gap-3 pb-4">
@@ -124,7 +124,7 @@
                 <p class="text-xs mt-1" style="color: var(--text-muted);">{{ '@' . $user->handle }}</p>
                 @endif
                 <template x-if="tickMap[tickTypeId]">
-                    <span class="inline-block mt-3 px-2.5 py-1 rounded-full text-[10px] font-semibold" :style="'background: ' + tickMap[tickTypeId].color + '20; color: ' + tickMap[tickTypeId].color" x-text="tickMap[tickTypeId].name + ' — verified'"></span>
+                    <span class="inline-block mt-3 px-2.5 py-1 rounded-full text-[10px] font-semibold" :style="'background: ' + tickMap[tickTypeId].color + '20; color: ' + tickMap[tickTypeId].color" x-text="tickMap[tickTypeId].name + ' · verified'"></span>
                 </template>
             </div>
             <p class="text-[10px] mt-3" style="color: var(--text-dimmed);">This is how your name and tick will appear on your creator profile, dialer, and public pages.</p>
@@ -133,10 +133,10 @@
         <div class="card-premium p-6">
             <h3 class="text-sm font-bold mb-3" style="color: var(--text-primary);"><i class="fas fa-star mr-2 text-amber-400"></i>Advantages of Verification</h3>
             <ul class="space-y-2.5 text-xs" style="color: var(--text-secondary);">
-                <li class="flex gap-2.5"><i class="fas fa-check-circle mt-0.5 text-emerald-400"></i><span><strong>Trust badge everywhere</strong> — your colored tick shows on your profile, dialer, and all public pages.</span></li>
-                <li class="flex gap-2.5"><i class="fas fa-user-shield mt-0.5 text-blue-400"></i><span><strong>Impersonation protection</strong> — your verified name and avatar are locked so nobody can pose as you.</span></li>
-                <li class="flex gap-2.5"><i class="fas fa-compass mt-0.5 text-cyan-400"></i><span><strong>Higher discovery credibility</strong> — verified creators stand out in search and discovery surfaces.</span></li>
-                <li class="flex gap-2.5"><i class="fas fa-handshake mt-0.5 text-amber-400"></i><span><strong>Audience confidence</strong> — followers and subscribers know they're connecting with the real you.</span></li>
+                <li class="flex gap-2.5"><i class="fas fa-check-circle mt-0.5 text-emerald-400"></i><span><strong>Trust badge everywhere:</strong> your colored tick shows on your profile, dialer, and all public pages.</span></li>
+                <li class="flex gap-2.5"><i class="fas fa-user-shield mt-0.5 text-blue-400"></i><span><strong>Impersonation protection:</strong> your verified name and avatar are locked so nobody can pose as you.</span></li>
+                <li class="flex gap-2.5"><i class="fas fa-compass mt-0.5 text-cyan-400"></i><span><strong>Higher discovery credibility</strong> · verified creators stand out in search and discovery surfaces.</span></li>
+                <li class="flex gap-2.5"><i class="fas fa-handshake mt-0.5 text-amber-400"></i><span><strong>Audience confidence:</strong> followers and subscribers know they're connecting with the real you.</span></li>
             </ul>
         </div>
     </div>

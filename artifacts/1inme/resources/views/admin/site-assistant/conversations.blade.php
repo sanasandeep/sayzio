@@ -47,7 +47,7 @@
     <div class="glass rounded-2xl border border-white/10 overflow-hidden">
         <table class="w-full text-sm">
             <thead class="bg-white/5 text-white/60 text-xs uppercase">
-                <tr><th class="text-left p-3">When</th><th class="text-left p-3">Visitor</th><th class="text-left p-3">Surface</th><th class="text-left p-3">Last route</th><th class="text-right p-3">Turns</th><th class="text-right p-3">Credits</th><th class="text-left p-3">Status</th><th class="p-3"></th></tr>
+                <tr><th class="text-left p-3">When</th><th class="text-left p-3">Visitor</th><th class="text-left p-3">Surface</th><th class="text-left p-3">Last route</th><th class="text-right p-3">Turns</th><th class="text-right p-3">Coins</th><th class="text-left p-3">Status</th><th class="p-3"></th></tr>
             </thead>
             <tbody>
             @forelse($conversations as $c)

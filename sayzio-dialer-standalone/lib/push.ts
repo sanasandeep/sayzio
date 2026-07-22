@@ -6,8 +6,14 @@ import * as WebBrowser from "expo-web-browser";
 import { Linking, Platform } from "react-native";
 
 import { getBaseUrl } from "@/lib/api";
+import { updateNote } from "@/lib/api/notes";
 import { markRead } from "@/lib/api/notifications";
 import { registerPushToken, unregisterPushToken } from "@/lib/api/push";
+import {
+  cancelNoteAlarm,
+  NOTE_MARK_DONE_ACTION,
+  NOTE_REMINDER_CATEGORY,
+} from "@/lib/localReminders";
 
 let handlerConfigured = false;
 let lastRegisteredToken: string | null = null;
@@ -29,6 +35,18 @@ export function configurePushHandler(): void {
       shouldSetBadge: false,
     }),
   });
+  // Register the "Mark done" quick action for note reminders. Best-effort:
+  // categories are a native-only progressive enhancement (no-op on web),
+  // and a tap without the action still opens the note's editor.
+  if (Platform.OS !== "web") {
+    Notifications.setNotificationCategoryAsync(NOTE_REMINDER_CATEGORY, [
+      {
+        identifier: NOTE_MARK_DONE_ACTION,
+        buttonTitle: "Mark done",
+        options: { opensAppToForeground: false },
+      },
+    ]).catch(() => {});
+  }
 }
 
 /**
@@ -139,6 +157,24 @@ function openPushTarget(target: string): void {
 }
 
 /**
+ * Extract the note id from a note-due reminder payload, or null when the
+ * payload isn't a note reminder / carries no usable `note_id`.
+ */
+export function parseNoteId(
+  data: Record<string, unknown> | undefined,
+): number | null {
+  if (data?.type !== "dialer.note_due") return null;
+  const raw = data?.note_id;
+  const id =
+    typeof raw === "number"
+      ? raw
+      : typeof raw === "string" && raw.trim() !== ""
+        ? Number(raw)
+        : NaN;
+  return Number.isFinite(id) && id > 0 ? id : null;
+}
+
+/**
  * Decide what a tapped push should do, purely from its `data` payload.
  * Kept side-effect free (no markRead / navigation here) so the branch
  * logic that guards deep-linking + mark-read can be unit-tested in
@@ -146,15 +182,18 @@ function openPushTarget(target: string): void {
  *
  *   - `markReadId`: the originating in-app row to mark read, or null when
  *     the payload carried no usable `notification_id`.
- *   - `navigation`: open the deep-link `target` when the server stamped a
- *     `url`; otherwise fall back to the dialer home (this standalone app
- *     has no notifications / API-usage / admin screens).
+ *   - `navigation`: note-due reminders deep-link into the Notes tab (the
+ *     screen opens the note's editor sheet for own notes, or highlights
+ *     shared ones); otherwise open the deep-link `target` when the server
+ *     stamped a `url`; otherwise fall back to the dialer home (this
+ *     standalone app has no notifications / API-usage / admin screens).
  */
 export function decidePushAction(data: Record<string, unknown> | undefined): {
   markReadId: number | null;
   navigation:
     | { kind: "open"; target: string }
-    | { kind: "route"; path: string };
+    | { kind: "route"; path: string }
+    | { kind: "note"; noteId: number };
 } {
   const rawId = data?.notification_id;
   const id =
@@ -165,16 +204,22 @@ export function decidePushAction(data: Record<string, unknown> | undefined): {
         : NaN;
   const markReadId = Number.isFinite(id) ? id : null;
 
+  // Note/to-do reminders (local alarms and server pushes alike) carry
+  // `type: "dialer.note_due"` + `note_id`. Route them into the in-app Notes
+  // tab — never the web fallback — so the tap lands right on the note.
+  const noteId = parseNoteId(data);
+  if (noteId !== null) {
+    return { markReadId, navigation: { kind: "note", noteId } };
+  }
+
   const target = typeof data?.url === "string" ? data.url : null;
   if (target) {
     return { markReadId, navigation: { kind: "open", target } };
   }
 
   // The standalone dialer has no notifications / API-usage / admin screens
-  // (those live in the main Sayzio app), so every fallback routes to the
-  // dialer home. The `type` field is still read so a future screen can
-  // branch on it without changing callers.
-  void (typeof data?.type === "string" ? data.type : null);
+  // (those live in the main Sayzio app), so every other fallback routes to
+  // the dialer home.
   return { markReadId, navigation: { kind: "route", path: "/(tabs)/dialer" } };
 }
 
@@ -191,6 +236,22 @@ export function addPushResponseListener(): Notifications.EventSubscription {
       | Record<string, unknown>
       | undefined;
 
+    // "Mark done" quick action on a note reminder: complete the note in
+    // place (best-effort) and dismiss the notification — no navigation,
+    // the app stays in the background.
+    if (response.actionIdentifier === NOTE_MARK_DONE_ACTION) {
+      const noteId = parseNoteId(data);
+      if (noteId !== null) {
+        updateNote(noteId, { done: true })
+          .then(() => cancelNoteAlarm(noteId))
+          .catch(() => {});
+      }
+      Notifications.dismissNotificationAsync(
+        response.notification.request.identifier,
+      ).catch(() => {});
+      return;
+    }
+
     const { markReadId, navigation } = decidePushAction(data);
 
     // Mark just the originating row read (best-effort), so the badge/list
@@ -201,6 +262,16 @@ export function addPushResponseListener(): Notifications.EventSubscription {
 
     if (navigation.kind === "open") {
       openPushTarget(navigation.target);
+      return;
+    }
+    if (navigation.kind === "note") {
+      // Land on the Notes tab; the screen opens the editor sheet for own
+      // notes (mark done / snooze / edit in one tap) or highlights shared
+      // ones in the list.
+      router.push({
+        pathname: "/(tabs)/notes",
+        params: { noteId: String(navigation.noteId), openedAt: String(Date.now()) },
+      });
       return;
     }
     router.push("/(tabs)/dialer");

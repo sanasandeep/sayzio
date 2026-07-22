@@ -77,7 +77,7 @@ account can't afford the worst-case cost.
   `biolink_builder`); refunds the owner if the AI response fails to
   parse/validate
 - **Voice Assistant** — Whisper STT + GPT reply + ElevenLabs TTS
-- **Knowledge Bases (user knowledge bases)** — `AiMindIngestor::ingest` charges the knowledge base owner
+- **AI Minds (user AI Minds)** — `AiMindIngestor::ingest` charges the AI Mind owner
 
 ### By-design exceptions (explicitly NOT "fixed")
 - **Site Assistant, anonymous visitors** — anonymous on-site/widget chat
@@ -87,7 +87,7 @@ account can't afford the worst-case cost.
 - **Chat Widgets** — a chat turn is billed to the **Chat Widget owner's**
   balance (a visitor chatting with someone's Chat Widget does not pay; the
   owner does). `CompanionRuntime` refunds the owner if a turn fails.
-- **Platform Knowledge Bases** — ingestion of platform-managed knowledge bases is billed to
+- **Platform AI Minds** — ingestion of platform-managed AI Minds is billed to
   the **platform admin** (`user.ai_minds.manage_platform`), not end users.
 
 **Verdict:** every feature meters the correct account with a pre-call

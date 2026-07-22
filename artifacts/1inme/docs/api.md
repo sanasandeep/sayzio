@@ -28,7 +28,7 @@ see [API usage metering](#api-usage-metering)).
 - [Reviews (public)](#reviews-public) · [Reviews moderation (owner)](#reviews-moderation-owner)
 - [Feed](#feed) · [Follows](#follows) · [Subscribers](#subscribers) · [Discovery](#discovery-public) · [Creator profile](#creator-profile-public) · [Paid pages](#paid-pages-public) · [Creator monetization](#creator-monetization) · [Product storefront](#product-storefront) · [Posts](#posts-creator-feed) · [Paid DMs](#paid-dms)
 - [QR Studio](#qr-studio) · [Forms](#forms) · [Contacts & dialer](#contacts) · [Google Contacts sync](#google-contacts-sync) · [Connected apps](#connected-apps-crm-sync) · [Bulk import](#bulk-import-preview-workflow) · [Resume](#resume--portfolio) · [Projects](#projects)
-- [Wallet & coins](#wallet--coins) · [AI](#ai-credits-knowledge-bases-voice-account-assistant-chat-widgets) · [Competitor Biolink Teardown](#competitor-biolink-teardown) · [Creator payouts](#creator-payouts) · [18+ adult content](#adult-content) · [Billing](#billing) · [Plans](#plans)
+- [Wallet & coins](#wallet--coins) · [AI](#ai-coins-ai-minds-voice-account-assistant-chat-widgets) · [Competitor Biolink Teardown](#competitor-biolink-teardown) · [Creator payouts](#creator-payouts) · [18+ adult content](#adult-content) · [Billing](#billing) · [Plans](#plans)
 - [Domains](#custom-domains) · [Splash pages](#splash-pages) · [Restaurant menu](#restaurant-menu) · [Store menu](#store-menu) · [Service booking](#service-booking) · [Workspaces](#workspaces) · [Team](#team--staff) · [Client portals](#client-portals) · [Vault](#vault) · [Inbox](#inbox-biolink-dms) · [Spam settings](#spam-settings) · [Forwarding](#forwarding)
 - [Social connections & proofs](#social-connections--proofs) · [Integrations](#integrations) · [Calendar](#calendar) · [Verification](#verification)
 - [Admin (mobile back-office)](#admin-mobile-back-office) · [Banned names / reserved handles](#banned-names--reserved-handles) · [Plan editor](#plan-editor) · [Scheduled jobs](#admin-scheduled-jobs) · [Admin mail / SMTP](#admin-mail--smtp-settings)
@@ -171,7 +171,7 @@ handle and a first link.
 | GET    | `/links/{id}/rate-limit`   | yes | Per-biolink visitor rate-limit override (read).                          |
 | PATCH  | `/links/{id}/rate-limit`   | yes | Per-biolink visitor rate-limit override (update).                        |
 | GET    | `/links/{id}/rsvps`        | yes | RSVP responses for an event link (see [Calendar](#calendar)).            |
-| POST   | `/links/{id}/audience-estimate` | yes | AI-powered visitor-persona breakdown for a biolink. Plan-gated (`audience_type_estimation`); returns HTTP 402 on plans without the feature. Body: `force?` (bool, default `false`) — pass `true` to bypass the 10-minute freshness cache and always run a fresh estimation. Charges AI credits (coins); auto-refunds on parse failure. Response includes `estimated` (array of `{type, label, pct}`), `coins_per_estimate`, `cached_at?`, and `is_fresh` (bool). Throttle: 10/min. |
+| POST   | `/links/{id}/audience-estimate` | yes | AI-powered visitor-persona breakdown for a biolink. Plan-gated (`audience_type_estimation`); returns HTTP 402 on plans without the feature. Body: `force?` (bool, default `false`) — pass `true` to bypass the 10-minute freshness cache and always run a fresh estimation. Charges coins; auto-refunds on parse failure. Response includes `estimated` (array of `{type, label, pct}`), `coins_per_estimate`, `cached_at?`, and `is_fresh` (bool). Throttle: 10/min. |
 
 ### Guided Link-in-bio wizard
 
@@ -269,6 +269,7 @@ A passed bearer token is honored for the visibility checks on the `show` route.
 | ------ | ------------------------------------- | ---- | ----------------------------------------------------------- |
 | GET    | `/block-catalog`                      | yes  | Block-type palette (categories + picker types, per-user `locked` flag). |
 | GET    | `/bg-presets`                         | yes  | Background preset catalog for the Appearance "Presets" picker (groups + presets with `key`, `label`, `css`, parsed `colors`). |
+| GET    | `/og-meta`                            | yes  | "Fetch details" OG-metadata extractor for the block editor: pass `?url=` and get back the page's title, description and image for prefilling a link block. Per-user rate limit shared with the web editor. Throttle: 30/min. |
 | GET    | `/links/{id}/blocks`                  | yes  | List blocks on a biolink.                                   |
 | POST   | `/links/{id}/blocks`                  | yes  | Create a block (seeds first-paint defaults).               |
 | PATCH  | `/links/{id}/blocks/{blockId}`        | yes  | Update a block (clears the placeholder flag on first save). |
@@ -444,10 +445,20 @@ JSON mirror of the `/@handle` web surface so the app can render the same page.
 | Method | Path                                                  | Auth | Description                                       |
 | ------ | ---------------------------------------------------- | ---- | ------------------------------------------------ |
 | GET    | `/creator-profile/{handle}`                          | opt  | Profile header + tabs.                           |
+| GET    | `/creator-profile/{handle}/mini`                     | opt  | Lightweight mini-profile card (avatar, name, tagline, verification badge) for pickers and previews. Throttle: 180/min. |
 | GET    | `/creator-profile/{handle}/posts`                    | opt  | Paginated post feed.                             |
 | GET    | `/creator-profile/{handle}/posts/{post}/comments`    | opt  | Comments on a post.                              |
 | POST   | `/creator-profile/{handle}/posts/{post}/react`       | opt  | React to a post. Throttle: 120/min.             |
 | POST   | `/creator-profile/{handle}/posts/{post}/comment`     | opt  | Comment on a post. Throttle: 60/min.            |
+
+### Creator profile (owner)
+
+Owner-side editor endpoints (bearer token of the profile owner).
+
+| Method | Path                               | Auth | Description                                        |
+| ------ | ---------------------------------- | ---- | -------------------------------------------------- |
+| GET    | `/me/creator-profile/preview-url`  | yes  | Signed, short-lived live-preview URL for the owner's `/@handle` page (density + theme preview). `422 no_handle` when no handle is claimed. |
+| PATCH  | `/me/creator-profile`              | yes  | Update the creator profile. Core fields (`tagline`, `location`, `bio`, `cover_image_url`, `niche_tags`, `socials`, `profile_theme_color`, `profile_density`, `profile_published`, …) are present-keys-only; sending **any** showcase key (`featured_links`, `featured_links_style`, `intro_video_url`, …) replaces the showcase block as a whole, like the web form. Foreign link IDs in `featured_links` are silently dropped. Publishing without a handle → `422 no_handle`. |
 
 ## Paid pages (public)
 
@@ -704,13 +715,24 @@ API surface of their own. All responses use the unified `{data}` / `{error}` env
 
 | Method | Path                       | Auth | Description                                                                    |
 | ------ | -------------------------- | ---- | ----------------------------------------------------------------------------- |
+| GET    | `/dialer/suggestions`      | yes  | Zero-query home strip — grouped suggestions (`{ total, groups }`) shown before the user types. |
+| GET    | `/dialer/search`           | yes  | Universal finder: grouped search (`?q=`) across Contacts, People, My links, Followed and Workspaces, plus filter chips (`filter`, `tag`, `has_biolink`, …). Mirrors the web dialer via the shared search contract. |
 | POST   | `/dialer/lookup`           | yes  | Resolve an E.164 number → caller-ID. Returns `is_spam`/`is_blocked`/`is_favorite`, matched `contact`, `biolink`, and recent `activity`. Throttle: 60/min. |
+| GET    | `/dialer/profile`          | yes  | Full identity profile for a `number` or `contact` id (resolved person, channels, activity) — backs the dialer's person detail screen. |
 | GET    | `/dialer/history`          | yes  | `{ recents, frequent }` — grouped recents (by number, with call counts, last-call time, outcome/note/tag, spam/block) plus the frequently-contacted strip. |
+| PATCH  | `/dialer/history/{id}`     | yes  | Edit a call-log entry's `outcome` / `note` / `tag`.                            |
+| DELETE | `/dialer/history/{id}`     | yes  | Delete one call-log entry.                                                     |
+| DELETE | `/dialer/history`          | yes  | Clear call history (optionally filtered by `?outcome=` / `?tag=`).             |
+| GET    | `/dialer/channels`         | yes  | The caller's enabled direct-channel actions (call, SMS, WhatsApp, Telegram, email). |
+| PUT    | `/dialer/channels`         | yes  | Replace the enabled channel set (`channels` array; unknown keys dropped).      |
 | GET    | `/dialer/live`             | yes  | Near-real-time cross-device sync (poll, no sockets). Returns `{ cursor, changed }`, plus fresh `favorites`, `frequent` and `recents` **only when** the caller's `?since=<cursor>` differs from the current cursor. Poll every ~12s, passing the last `cursor` back as `since`. |
 | GET    | `/dialer/favorites`        | yes  | Ordered speed-dial favorites (`{ items }`).                                    |
 | POST   | `/dialer/favorites`        | yes  | Add a favorite by `contact_id` or `number` (+ optional `label`). Returns `{ favorite, already? }`. |
 | POST   | `/dialer/favorites/reorder`| yes  | Persist favorite order from an `order` array of favorite ids.                  |
 | DELETE | `/dialer/favorites/{id}`   | yes  | Remove a favorite.                                                             |
+| POST   | `/dialer/speed-dial/assign`| yes  | Bind a favorite (`favorite_id`) to a keypad `digit` 1–9 (steals the digit from any other favorite). |
+| POST   | `/dialer/speed-dial/unassign` | yes | Release a favorite's speed-dial digit.                                       |
+| GET    | `/dialer/flags`            | yes  | List every number the caller has flagged (`{ items: [{ number_e164, is_spam, is_blocked }] }`). |
 | POST   | `/dialer/flag`             | yes  | Set per-user `is_spam` / `is_blocked` for an E.164 `number`. Returns the merged flag state. |
 | POST   | `/dialer/log`              | yes  | Log a call against a `number` (+ optional `contact_id`, `outcome`, `note`, `tag`). Returns `{ log }`. |
 | POST   | `/dialer/callback`         | yes  | Set a call-back reminder (`number`, future `callback_at`, optional `note`). Delivered in-app + scheduled. Returns `{ callback }`. |
@@ -768,19 +790,50 @@ Single resume per user — resolved from the bearer token, so the URL never carr
 
 ## AI Brand Kit
 
-Mobile parity for the web `/user/brand-kits` flow. AI crafts a cohesive brand identity (palette, fonts, voice, taglines, bio and a recommended block theme) from a prompt and optional website/logo URL, then applies it to a biolink or QR code. Kits are owned by the bearer-token user; generation is gated by the per-plan `max_brand_kits` quantity cap and charged in AI credits, with an automatic refund if generation fails (handled in `AiBrandKitService`).
+Mobile parity for the web `/user/brand-kits` flow. AI crafts a cohesive brand identity (palette, fonts, voice, taglines, bio and a recommended block theme) from a prompt and optional website/logo URL, then applies it to a biolink or QR code. Kits are owned by the bearer-token user; generation is gated by the per-plan `max_brand_kits` quantity cap and charged in coins, with an automatic refund if generation fails (handled in `AiBrandKitService`).
 
 | Method | Path                                          | Auth | Description                                                                 |
 | ------ | --------------------------------------------- | ---- | -------------------------------------------------------------------------- |
-| GET    | `/brand-kits`                                 | yes  | List kits + apply targets (biolinks, QR codes), plan cap/gating, credit balance and allowed block themes. |
+| GET    | `/brand-kits`                                 | yes  | List kits + apply targets (biolinks, QR codes), plan cap/gating, coin balance and allowed block themes. |
 | GET    | `/brand-kits/consistency`                     | yes  | Brand Consistency Score (0–100) auditing the user's biolinks against a kit; returns per-biolink findings + one-click apply targets. |
-| POST   | `/brand-kits/estimate`                        | yes  | Upfront, worst-case credit cost. Body: `prompt?`, `website_url?`, `logo_url?`. Throttle 30/min. |
+| POST   | `/brand-kits/estimate`                        | yes  | Upfront, worst-case coin cost. Body: `prompt?`, `website_url?`, `logo_url?`. Throttle 30/min. |
 | POST   | `/brand-kits/generate`                        | yes  | Run generation and save a kit. Same body as estimate. Throttle 10/min. `402 insufficient_credits` when the wallet can't cover the charge. |
 | DELETE | `/brand-kits/{brandKit}`                      | yes  | Delete a kit.                                                               |
 | POST   | `/brand-kits/{brandKit}/apply/biolink/{link}` | yes  | Apply a kit (palette, fonts, block theme) to one of the user's biolinks.    |
 | POST   | `/brand-kits/{brandKit}/apply/qr/{qrCode}`    | yes  | Apply a kit's palette to one of the user's QR codes.                        |
 
+### Brand Kit visual assets
+
+Per-kit AI-generated visual assets (17 types: logo, avatar, favicon, watermark, OG image, social banner, letterhead, business card, email header, QR frame, poster, tagline/mission/vision/stats cards, and PPT cover/slide/closing). Each type keeps exactly one current image per kit; regeneration replaces it and bumps the version. Generation is plan-gated by the `brand_kit_assets` feature with a per-asset regeneration cap (`brand_asset_versions`), charged in coins with an automatic refund on render/storage failure (`BrandKitAssetService`). Generated files are stored in the user's file vault tagged `context=brand_asset` — exempt from the `max_files` count but counted toward the storage-byte quota.
+
+| Method | Path                                          | Auth | Description                                                                 |
+| ------ | --------------------------------------------- | ---- | --------------------------------------------------------------------------- |
+| GET    | `/brand-kits/{brandKit}/assets`               | yes  | Asset catalog for one kit: per-type label, hint, size, coin cost, `apply_targets` and the current asset (or `null`), plus gating flags and coin balance. |
+| POST   | `/brand-kits/{brandKit}/assets/{type}/generate` | yes | Generate or regenerate one asset. Body: `mode?` (`new` \| `variation` \| `alteration`, default `new`), `instructions?` (required intent for `alteration`). Throttle 10/min. `402 insufficient_credits` when the wallet can't cover the charge. |
+| POST   | `/brand-kits/{brandKit}/assets/{type}/apply`  | yes  | One-click apply. Body: `target` (`kit_logo` \| `biolink_favicon` \| `biolink_og` \| `company_letterhead`) plus `link_id` (biolink targets) or `company_id` (letterhead). |
+| DELETE | `/brand-kits/{brandKit}/assets/{type}`        | yes  | Delete the asset and its stored file.                                       |
+
 Plan-gated rejections use the standard `{error:{code:"plan_limit", details:{recommended_plan, recommended_plan_name, feature}}}` envelope; `503 ai_unavailable` when the AI engine is disabled.
+
+## AI Brand Studio
+
+Mobile parity for the web `/user/brand-studio` flow (bulk on-brand asset creator). One plain-language brief — grounded in a saved AI Brand Kit or inline brand details — becomes a structured multi-asset plan (Link in Bio page, short links, QR codes, a form, a digital card) that the user reviews asset-by-asset before anything is created. Two modes: `kit` (full mixed kit) and `bulk` (N variations of one asset kind, capped per plan by `max_brand_studio_bulk`). Planning is charged in coins against the `brand_studio` feature with an automatic refund if the AI response can't be parsed (handled in `AiBrandStudioService`); confirming is deterministic and free, and per-type plan caps (`max_links`, `max_biolinks`, `max_qr_codes`, `max_forms`) are enforced at creation time — capped assets are skipped and reported, never silently created. Availability is plan-gated by the `brand_studio` feature.
+
+**Saved presets (combos).** A kit composition (the list of asset rows in the composer) can be saved as a reusable named preset. `GET /brand-studio` returns them in `saved_presets` — each preset is `{id, label, rows}` where `rows` is the composition (`{kind, count?, purpose?}` entries). Presets are owned per user (max **20** saved combos, `BrandStudioPreset::MAX_PER_USER`); saving with an existing name updates that preset in place, while renaming onto another preset's name is rejected.
+
+**Discard refund.** `DELETE /brand-studio/{kit}` discards a kit. If the kit was planned but never confirmed (materialized), the coins spent on planning are automatically refunded to the wallet; the response reports the amount in `refunded_credits` (an integer coin amount, `0` when nothing was refundable). Kits that were already confirmed keep their created assets and refund nothing.
+
+| Method | Path                          | Auth | Description                                                                 |
+| ------ | ----------------------------- | ---- | --------------------------------------------------------------------------- |
+| GET    | `/brand-studio`               | yes  | Gating + AI-engine status, coin balance, per-plan bulk cap, saved brand kits, past runs, and `saved_presets` (saved combos). |
+| POST   | `/brand-studio/estimate`      | yes  | Upfront, worst-case coin cost. Body: `request`, `mode?` (`kit`\|`bulk`), `bulk_kind?`, `bulk_count?`, `brand_kit_id?` or inline `brand_name?`/`brand_colors?`/`brand_voice?`/`brand_description?`. Throttle 30/min. |
+| POST   | `/brand-studio/plan`          | yes  | Run the AI planning step and save a proposal. Same body as estimate. Throttle 10/min. `402 insufficient_credits` when the wallet can't cover the charge. |
+| GET    | `/brand-studio/{kit}`         | yes  | Proposal / results detail (proposed assets, created asset ids, skipped-cap messages). |
+| POST   | `/brand-studio/{kit}/confirm` | yes  | Materialize the kept assets. Body: `keep?` (array of proposal indexes; omit to keep all). Throttle 20/min. |
+| DELETE | `/brand-studio/{kit}`         | yes  | Discard a kit record (created assets are kept). Unconfirmed plans refund their planning coins; response is `{deleted: true, refunded_credits}`. |
+| POST   | `/brand-studio/presets`       | yes  | Save the current composition as a reusable combo. Body: `name` (≤60 chars), `composition` (1–20 rows of `{kind, count?, purpose?}`). Same-name save updates in place. Errors: `422 invalid_composition`, `422 preset_limit_reached` (max 20 combos). Returns `{preset}`. |
+| PATCH  | `/brand-studio/presets/{preset}` | yes | Rename a saved combo. Body: `name` (≤60 chars). Errors: `422 invalid_name` (empty), `422 name_taken` (another combo already uses the name). Returns `{preset}`. |
+| DELETE | `/brand-studio/presets/{preset}` | yes | Delete a saved combo. Returns `{deleted: true}`. |
 
 ## Projects
 
@@ -806,27 +859,27 @@ Plan-gated rejections use the standard `{error:{code:"plan_limit", details:{reco
 curl $BASE/wallet -H "Authorization: Bearer $TOKEN" -H 'Accept: application/json'
 ```
 
-## AI (credits, Knowledge Bases, voice, Account Assistant, Chat Widgets)
+## AI (coins, AI Minds, voice, Account Assistant, Chat Widgets)
 
 See [Coin & AI-credit audit](./billing-ai-credit-audit.md) for who pays for each AI feature.
 
-### AI credits
+### AI coin balance
 
 | Method | Path                          | Auth | Description                  |
 | ------ | ----------------------------- | ---- | --------------------------- |
-| GET    | `/ai/credits`                 | yes  | AI-credit balance.          |
-| GET    | `/ai/credits/transactions`    | yes  | AI-credit ledger.           |
-| GET    | `/ai/credits/packs`           | yes  | Credit packs for purchase.  |
-| POST   | `/ai/credits/purchase`        | yes  | Buy a credit pack.          |
+| GET    | `/ai/credits`                 | yes  | Coin balance for AI features. |
+| GET    | `/ai/credits/transactions`    | yes  | Coin ledger for AI features. |
+| GET    | `/ai/credits/packs`           | yes  | Coin packs for purchase. |
+| POST   | `/ai/credits/purchase`        | yes  | Buy a coin pack. |
 
-### Knowledge Bases & feature defaults
+### AI Minds & feature defaults
 
 | Method | Path                          | Auth | Description                                         |
 | ------ | ----------------------------- | ---- | ------------------------------------------------- |
-| GET    | `/ai/minds`                   | yes  | Available Knowledge Bases for the picker.         |
-| GET    | `/ai/{feature}/defaults`      | yes  | Default Knowledge Base for `persona` or `coach`.  |
-| PUT    | `/ai/{feature}/defaults`      | yes  | Save default Knowledge Base for `persona` or `coach`. |
-| DELETE | `/ai/{feature}/defaults`      | yes  | Clear default Knowledge Base for `persona` or `coach`. |
+| GET    | `/ai/minds`                   | yes  | Available AI Minds for the picker.         |
+| GET    | `/ai/{feature}/defaults`      | yes  | Default AI Mind for `persona` or `coach`.  |
+| PUT    | `/ai/{feature}/defaults`      | yes  | Save default AI Mind for `persona` or `coach`. |
+| DELETE | `/ai/{feature}/defaults`      | yes  | Clear default AI Mind for `persona` or `coach`. |
 
 ### Voice assistant
 
@@ -866,12 +919,12 @@ Biolink Chat Widgets — list/AI Agent lookup + create-on-the-spot for the block
 
 Generates a structured organic + paid marketing plan grounded on the user's own
 (PII-free) account snapshots, with one-click suggestions and a refinement chat.
-Charged in AI credits (chat metered separately) with auto-refund on failure.
+Charged in coins (chat metered separately) with auto-refund on failure.
 
 | Method | Path                                                         | Auth | Description                                                            |
 | ------ | ---------------------------------------------------------- | ---- | -------------------------------------------------------------------- |
 | GET    | `/ai/marketing-strategist`                                 | yes  | List saved strategies + available grounding snapshots and inputs.    |
-| POST   | `/ai/marketing-strategist/estimate`                        | yes  | Upfront, worst-case credit cost for a generation.                    |
+| POST   | `/ai/marketing-strategist/estimate`                        | yes  | Upfront, worst-case coin cost for a generation.                    |
 | POST   | `/ai/marketing-strategist`                                 | yes  | Generate & save a strategy. Throttle: 20/min. `402` when unaffordable. |
 | GET    | `/ai/marketing-strategist/{strategy}`                      | yes  | Show a saved strategy.                                                |
 | GET    | `/ai/marketing-strategist/{strategy}/export`               | yes  | Export a strategy.                                                    |
@@ -992,6 +1045,7 @@ client-facing email templates. The SMTP password is never returned (masked only)
 | GET    | `/domains/available`          | yes  | Domains the user can attach a link to: their own verified domains **plus** any admin-provisioned global domains. Returns `{ items:[{ id, domain, is_verified, is_global, … }], primary_domain_id, default_host, can_manage }`. |
 | POST   | `/domains`                    | yes  | Add a domain.               |
 | POST   | `/domains/{id}/primary`       | yes  | Make a domain primary.      |
+| POST   | `/domains/{id}/verify`        | yes  | Re-run DNS verification for a pending domain; returns the fresh verification state + the expected DNS records. |
 | DELETE | `/domains/{id}`               | yes  | Remove a domain.            |
 
 ## Splash pages
@@ -1276,8 +1330,38 @@ links and visitor RSVP work without it.
 
 | Method | Path                | Auth | Description                       |
 | ------ | ------------------- | ---- | -------------------------------- |
-| GET    | `/verifications`    | yes  | Creator-badge verification status. |
-| POST   | `/verifications`    | yes  | Submit a verification request.    |
+| GET    | `/verifications`    | yes  | Creator-badge verification status (legacy per-link verification). |
+| POST   | `/verifications`    | yes  | Submit a verification request (legacy per-link verification). |
+
+### Profile verification (account-level)
+
+Account-level verified-badge flow — the mobile mirror of the web
+"Verification & Badges" settings tab. Approval stamps the user's verified
+name/badge; changing the verified name or avatar later requires
+re-verification.
+
+| Method | Path                              | Auth | Description                       |
+| ------ | --------------------------------- | ---- | -------------------------------- |
+| GET    | `/profile-verification`           | yes  | Current status, active request, tick type and verified identity snapshot. |
+| POST   | `/profile-verification`           | yes  | Submit a new verification request (official name, purpose, tick type, proof files). |
+| POST   | `/profile-verification/reverify`  | yes  | Start re-verification after changing the verified name/avatar. |
+| POST   | `/profile-verification/updates`   | yes  | Attach an update/extra proof to the pending request. Throttle: 10/hour. |
+
+### Profile verification moderation (reviewers)
+
+Reviewer-side moderation, gated by the same web-pool
+`user.verifications.review` permission the web review screens use (a
+`403` without it). Approve/reject run the exact same cores as the web
+moderation UI.
+
+| Method | Path                                                  | Auth | Description                       |
+| ------ | ----------------------------------------------------- | ---- | -------------------------------- |
+| GET    | `/admin/profile-verification`                         | yes  | Review queue. `?queue=new\|reverification`, optional `?status=`; includes pending counts for both queues. |
+| GET    | `/admin/profile-verification/{id}`                    | yes  | Full request detail (proof files, requested updates, reviewer). |
+| POST   | `/admin/profile-verification/{id}/approve`            | yes  | Approve (optional `admin_notes`, `tick_type_id` override). `409 already_reviewed` if not pending. |
+| POST   | `/admin/profile-verification/{id}/reject`             | yes  | Reject with required `admin_notes`. `409 already_reviewed` if not pending. |
+| GET    | `/admin/profile-verification/tick-types`              | yes  | Full tick-type catalog (incl. inactive/admin-only). |
+| POST   | `/admin/profile-verification/tick-types/{id}`         | yes  | Update a tick type (name, color, active, sort order). |
 
 ---
 
@@ -1398,8 +1482,8 @@ Endpoints the [browser extension](../../1inme-extension/README.md) relies on (al
 | **Quick QR**             | POST   | `/qr-codes`                        | Creates the QR code. Body: `name`, `type` (`url`), `payload.url`, `design` (from selected preset). Already documented in [QR Studio](#qr-studio). |
 | **Add to calendar**      | GET    | `/calendars`                       | Lists the user's calendars for the picker (see [Calendar](#calendar)). |
 | **Add to calendar**      | POST   | `/calendars/{id}/events`           | Creates the event (see [Calendar](#calendar)). |
-| **Page → bio-link (AI)** | GET    | `/links/{id}/ai-builder`           | Intake for the AI-powered mode against an existing biolink page (plan-allowed block types, credit estimate). |
-| **Page → bio-link (AI)** | POST   | `/links/{id}/ai-builder/generate`  | Generates the page from the captured content via `AiBiolinkBuilderService`. Charged to the `biolink_builder` AI credit feature with auto-refund on parse failure (see [AI tools](#ai-tools)). Throttle: 10/min. |
+| **Page → bio-link (AI)** | GET    | `/links/{id}/ai-builder`           | Intake for the AI-powered mode against an existing biolink page (plan-allowed block types, coin estimate). |
+| **Page → bio-link (AI)** | POST   | `/links/{id}/ai-builder/generate`  | Generates the page from the captured content via `AiBiolinkBuilderService`. Charged to the `biolink_builder` coin-priced AI feature with auto-refund on parse failure (see [AI tools](#ai-tools)). Throttle: 10/min. |
 
 ## Pixel tracking
 

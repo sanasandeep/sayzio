@@ -314,10 +314,6 @@ args = "storage-url-resolve"
 
 [[workflows.workflow.tasks]]
 task = "workflow.run"
-args = "dialer-contact-auto-sync"
-
-[[workflows.workflow.tasks]]
-task = "workflow.run"
 args = "mobile-prod-build"
 
 [[workflows.workflow.tasks]]
@@ -395,6 +391,74 @@ args = "e2e-cp-avatar-stacking"
 [[workflows.workflow.tasks]]
 task = "workflow.run"
 args = "hardcoded-blue"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-sidebar-collapsed"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-profile-settings"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "whatsapp-disconnect-test"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "dialer-contact-auto-sync"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "dialer-note-alarms"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "asset-transfer-tests"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "brand-studio-test"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "bs-verify"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-brand-studio"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-bs-composer"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-brand-studio-bulk"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "bs-discard-e2e"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "bs-preset-rename-test"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-bs-bulk"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-bs-presets"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "api-parity-tests"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-ai-menu-labels"
 
 [[workflows.workflow]]
 name = "e2e"
@@ -1417,7 +1481,7 @@ isValidation = true
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "cd sayzio-dialer-standalone && npm run test:contact-auto-sync && npm run test:device-contacts-fingerprint"
+args = "cd sayzio-dialer-standalone && npm run test:contact-auto-sync && npm run test:device-contacts-fingerprint && npm run test:identified-call-drain && npm run test:push-action"
 
 [[workflows.workflow]]
 name = "mobile-prod-build"
@@ -1639,8 +1703,195 @@ args = "pnpm --filter @workspace/scripts run check:hardcoded-blue"
 [workflows.workflow.metadata]
 isValidation = true
 
+[[workflows.workflow]]
+name = "e2e-sidebar-collapsed"
+author = "agent"
 
-[agent]
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "bash artifacts/1inme/tests/Browser/run-validation.sh user-sidebar-collapsed-icons.spec.ts"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+
+[[workflows.workflow]]
+  name = "e2e-profile-settings"
+  author = "agent"
+
+  [[workflows.workflow.tasks]]
+  task = "shell.exec"
+  args = "bash artifacts/1inme/tests/Browser/run-validation.sh profile-settings-updates.spec.ts"
+
+  [workflows.workflow.metadata]
+  isValidation = true
+
+[[workflows.workflow]]
+name = "whatsapp-disconnect-test"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd artifacts/1inme && TEST_LOCAL_MODE=artisan bash scripts/test-local.sh --filter=WhatsAppDisconnectApiTest"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "dialer-contact-auto-sync"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd sayzio-dialer-standalone && npm run test:contact-auto-sync && npm run test:device-contacts-fingerprint && npm run test:identified-call-drain && npm run test:push-action"
+
+[workflows.workflow.metadata]
+outputType = "console"
+
+[[workflows.workflow]]
+name = "dialer-note-alarms"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd sayzio-dialer-standalone && npm run test:note-alarms"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "brand-studio-test"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd artifacts/1inme && TEST_LOCAL_MODE=artisan TEST_LOCAL_PORT=55471 bash scripts/test-local.sh --filter=AiBrandStudioTest"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "asset-transfer-tests"
+author = "agent"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd artifacts/1inme && TEST_LOCAL_MODE=artisan composer test:local -- --filter AssetTransferTest"
+
+[[workflows.workflow]]
+name = "bs-verify"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd artifacts/1inme && composer lint:deprecations && php artisan route:list | grep -c brand-studio"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-brand-studio"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "bash artifacts/1inme/tests/Browser/run-validation.sh brand-studio-flow.spec.ts"
+
+[workflows.workflow.metadata]
+outputType = "console"
+
+[[workflows.workflow]]
+name = "e2e-bs-composer"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "bash artifacts/1inme/tests/Browser/run-validation.sh brand-studio-composer.spec.ts"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-brand-studio-bulk"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "bash artifacts/1inme/tests/Browser/run-validation.sh brand-studio-bulk.spec.ts"
+
+[workflows.workflow.metadata]
+outputType = "console"
+
+[[workflows.workflow]]
+name = "bs-discard-e2e"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "bash artifacts/1inme/tests/Browser/run-validation.sh brand-studio-flow.spec.ts"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "bs-preset-rename-test"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd artifacts/1inme && TEST_LOCAL_MODE=artisan TEST_LOCAL_PORT=55491 bash scripts/test-local.sh --filter=BrandStudioPresetTest"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-bs-bulk"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "bash artifacts/1inme/tests/Browser/run-validation.sh brand-studio-bulk-caps.spec.ts"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-bs-presets"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "bash artifacts/1inme/tests/Browser/run-validation.sh brand-studio-presets.spec.ts"
+
+[workflows.workflow.metadata]
+outputType = "console"
+
+[[workflows.workflow]]
+name = "api-parity-tests"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd artifacts/1inme && TEST_LOCAL_MODE=artisan TEST_LOCAL_PORT=55444 scripts/test-local.sh --filter='CreatorProfileApiUpdateTest|ProfileVerificationAdminApiTest'"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-ai-menu-labels"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "bash artifacts/1inme/tests/Browser/run-validation.sh ai-menu-labels.spec.ts"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+  [agent]
 stack = "PNPM_WORKSPACE"
 expertMode = true
 

@@ -28,11 +28,19 @@ export type WhatsappStatus = {
   has_whatsapp_number: boolean;
   // Connected number with all but the last 4 digits masked, or null when none.
   mobile_masked: string | null;
-  // Whether the number can be removed; mirrors the web linked-identifier guards
-  // (can't drop a primary identifier or the last verified email/phone).
+  // Whether the number can be removed; mirrors the web remove flow (a primary
+  // number is removable — another verified contact gets auto-promoted; only
+  // the last verified email/phone is blocked).
   can_remove: boolean;
   // Human-readable reason the number can't be removed, or null when it can.
   remove_blocked_reason: string | null;
+  // Whether the connected number is the account's primary sign-in identifier.
+  is_primary: boolean;
+  // When removal would auto-promote another verified contact to primary, the
+  // masked value of that contact (e.g. "j•••@example.com"); null otherwise.
+  promotes_to: string | null;
+  // "email" | "phone" for the contact above; null when promotes_to is null.
+  promotes_to_kind: "email" | "phone" | null;
 };
 
 export type WhatsappDisconnectResult = {

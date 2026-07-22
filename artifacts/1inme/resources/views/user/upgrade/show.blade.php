@@ -286,7 +286,7 @@
                         'max_events' => 'events',
                         'max_workspaces' => 'team workspaces',
                         'max_seats_per_workspace' => 'seats per workspace',
-                        'max_minds' => 'AI Knowledge Bases',
+                        'max_minds' => 'AI Minds',
                         'max_personas' => 'AI Personas',
                         'max_companions' => 'AI Companions',
                     ] as $key => $label)
@@ -459,16 +459,16 @@
     </div>
     @endif
 
-    {{-- ───── Coins → AI credits ───── --}}
+    {{-- ───── Coins for AI ───── --}}
     @if($wallet_enabled)
     <div class="space-y-3 pt-4">
         <div class="flex flex-wrap items-end justify-between gap-3">
             <div>
                 <h2 class="text-xl font-semibold text-white">
-                    <i class="fas fa-coins text-amber-300"></i> Coins &amp; AI credits
+                    <i class="fas fa-coins text-amber-300"></i> Coins &amp; AI
                 </h2>
                 <p class="text-sm text-white/50">
-                    Top up coins to cover API overage, activate paid add-ons, and fund AI credits for the features below.
+                    Top up coins to cover API overage, activate paid add-ons, and fund the AI features below.
                 </p>
             </div>
             <a href="{{ route('user.wallet.buy') }}"

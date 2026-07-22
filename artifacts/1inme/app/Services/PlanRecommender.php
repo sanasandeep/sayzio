@@ -260,7 +260,7 @@ class PlanRecommender
             'max_projects'     => (int) $user->projects()->count(),
             'storage_limit_mb' => (int) round($user->getStorageUsedBytes() / 1048576),
             'contacts_max'     => (int) Contact::where('user_id', $user->id)->count(),
-            'max_files'        => (int) UserFile::where('user_id', $user->id)->count(),
+            'max_files'        => (int) UserFile::where('user_id', $user->id)->whereNull('context')->count(),
             'max_custom_domains' => (int) $user->domains()->count(),
             // Current-period Buzz impressions served across all the user's
             // campaigns (resets monthly). Approximate on the pricing gauge

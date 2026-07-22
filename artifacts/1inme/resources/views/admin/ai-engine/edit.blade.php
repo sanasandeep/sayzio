@@ -420,6 +420,13 @@
                    class="mt-1 w-full bg-white/5 border border-white/10 rounded px-3 py-2 text-white text-sm">
             <p class="text-[11px] text-white/30 mt-1">Flat coin price billed from the user's wallet for each AI Artistic QR (auto-refunded if generation fails).</p>
         </div>
+
+        <div class="pt-4 border-t border-white/10">
+            <label class="text-white/70 text-xs">Brand asset base coins per generation</label>
+            <input type="number" min="1" max="100000" step="1" name="brand_asset_coins" value="{{ $brandAssetCoins }}"
+                   class="mt-1 w-full bg-white/5 border border-white/10 rounded px-3 py-2 text-white text-sm">
+            <p class="text-[11px] text-white/30 mt-1">Base coin price for each Brand Kit visual asset (logo, favicon, banners…). The final charge scales by asset size and the user's plan multiplier; auto-refunded if generation fails. Uses the OpenAI key above.</p>
+        </div>
     </div>
 
     <div class="flex items-center justify-between">

@@ -200,15 +200,8 @@
     }
 
     /* Mascot drift (gentler, section-local variant of the float helpers). */
-    .bs-mascot { animation: bsDrift 7.5s ease-in-out infinite; will-change: transform; }
+    .bs-mascot { animation: bsDrift 7.5s ease-in-out infinite; will-change: transform; display: block; object-fit: contain; aspect-ratio: 1 / 1; }
     @keyframes bsDrift { 0%,100% { transform: translateY(0) rotate(-1.5deg); } 50% { transform: translateY(-8px) rotate(1.5deg); } }
-    /* Animated clip shows by default; the static still is the reduced-motion fallback. */
-    .bs-mascot-video { display: block; object-fit: contain; aspect-ratio: 1 / 1; }
-    .bs-mascot-fallback { display: none; }
-    /* Animated transparent WebP fallback — revealed by the hero's alpha guard for
-       browsers that decode the WebM but ignore its alpha (Safari/iOS). Static PNG
-       fallback stays reserved for the reduced-motion path below. */
-    .bs-mascot-anim { display: none; }
 
     @media (prefers-reduced-motion: reduce) {
         .bs-energy::after, .bs-is-pill::before, .bs-mascot,
@@ -217,8 +210,6 @@
         }
         .bs-energy::after { background: linear-gradient(90deg, var(--c1), #6e61ff, var(--c3)) !important; }
         .bs-backing-word--zio { opacity: .7; }
-        .bs-mascot-video { display: none !important; }
-        .bs-mascot-fallback { display: block !important; }
     }
 </style>
 
@@ -290,26 +281,9 @@
             <div data-anim="fade-left" class="bs-card bs-card--zio p-7 sm:p-9 lg:ml-12 lg:flex-1 lg:min-w-0">
                 <div class="relative flex items-center gap-4 sm:gap-5">
                     <span class="bs-glyph bs-glyph-zio w-16 h-16 sm:w-20 sm:h-20">
-                        {{-- Animated transparent mascot clip (matches the hero). Autoplays
-                             muted + inline, no controls/audio, loops. The transparent still
-                             PNG is the poster (shown while loading or if the video can't
-                             play). Under prefers-reduced-motion the video is hidden and the
-                             static .bs-mascot-fallback image is shown instead (see <style>). --}}
-                        <video class="bs-mascot bs-mascot-video w-12 h-12 sm:w-14 sm:h-14 drop-shadow-[0_10px_26px_rgba(110,97,255,.55)]"
-                               aria-label="Zio, the Sayzio mascot"
-                               width="64" height="64"
-                               autoplay loop muted playsinline disablepictureinpicture
-                               preload="metadata"
-                               poster="{{ asset('branding/sayzio-mascot-still.png') }}">
-                            <source src="{{ asset('branding/sayzio-mascot.webm') }}" type="video/webm">
-                        </video>
-                        <img src="{{ asset('branding/sayzio-mascot-still.png') }}" alt="Zio, the Sayzio mascot" width="64" height="64"
-                             class="bs-mascot bs-mascot-fallback w-12 h-12 sm:w-14 sm:h-14 drop-shadow-[0_10px_26px_rgba(110,97,255,.55)]" loading="lazy" decoding="async">
-                        {{-- Animated transparent WebP, revealed by the hero alpha guard
-                             for browsers that decode the WebM but ignore its alpha
-                             (Safari/iOS). data-src keeps it from downloading otherwise. --}}
-                        <img data-src="{{ asset('branding/sayzio-mascot.webp') }}" alt="Zio, the Sayzio mascot" width="64" height="64"
-                             class="bs-mascot bs-mascot-anim w-12 h-12 sm:w-14 sm:h-14 drop-shadow-[0_10px_26px_rgba(110,97,255,.55)]" decoding="async">
+                        {{-- Static Sayzio icon (transparent PNG). --}}
+                        <img src="{{ asset('branding/sayzio-card-icon.png') }}" alt="Zio, the Sayzio mascot" width="64" height="64"
+                             class="bs-mascot w-12 h-12 sm:w-14 sm:h-14 drop-shadow-[0_10px_26px_rgba(110,97,255,.55)]" loading="lazy" decoding="async">
                     </span>
                     <div class="min-w-0">
                         <div class="text-3xl sm:text-4xl font-black tracking-tight"><span class="bs-word bs-word--zio">Sayzio</span></div>

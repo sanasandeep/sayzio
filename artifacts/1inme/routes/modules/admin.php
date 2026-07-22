@@ -798,6 +798,10 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::get('activity-log',        [ActivityLogController::class, 'index'])->middleware(CheckPermission::class . ':users.view')->name('activity-log.index');
             Route::get('activity-log/export', [ActivityLogController::class, 'export'])->middleware(CheckPermission::class . ':users.view')->name('activity-log.export');
 
+            // Asset-transfer audit log (admin-granted link/workspace
+            // transfers). Literal path, declared before `{user}`.
+            Route::get('asset-transfers', [\App\Modules\Admin\Controllers\AssetTransferLogController::class, 'index'])->middleware(CheckPermission::class . ':users.view')->name('asset-transfers.index');
+
             Route::get('{user}', [UserManagementController::class, 'show'])->middleware(CheckPermission::class . ':users.view')->name('show');
             Route::put('{user}', [UserManagementController::class, 'update'])->middleware(CheckPermission::class . ':users.edit')->name('update');
             Route::delete('{user}', [UserManagementController::class, 'destroy'])->middleware(CheckPermission::class . ':users.delete')->name('destroy');
@@ -815,6 +819,10 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::post('{user}/suspend',       [UserManagementController::class, 'suspend'])->middleware(CheckPermission::class . ':users.suspend')->whereNumber('user')->name('suspend');
             Route::post('{user}/reactivate',   [UserManagementController::class, 'reactivate'])->middleware(CheckPermission::class . ':users.suspend')->whereNumber('user')->name('reactivate');
             Route::post('{user}/set-password', [UserManagementController::class, 'setPassword'])->middleware(CheckPermission::class . ':users.edit')->whereNumber('user')->name('set-password');
+
+            // Grant / revoke the asset-transfer capability (Task: admin-granted
+            // link & workspace transfer). Same gate as other account mutations.
+            Route::post('{user}/transfer-capability', [UserManagementController::class, 'toggleTransferCapability'])->middleware(CheckPermission::class . ':users.edit')->whereNumber('user')->name('transfer-capability');
 
             // Attach/detach admin account badges for a single user.
             Route::put('{user}/badges', [UserManagementController::class, 'updateBadges'])->middleware(CheckPermission::class . ':users.edit')->whereNumber('user')->name('badges.update');

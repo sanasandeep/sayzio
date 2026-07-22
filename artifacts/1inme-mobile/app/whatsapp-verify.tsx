@@ -136,9 +136,19 @@ export default function WhatsappVerify() {
   };
 
   const removeNumber = () => {
+    // When this number is the account's primary sign-in identifier, removal
+    // auto-promotes another verified contact — spell out which one so the
+    // login-identifier switch never comes as a surprise.
+    const promotesTo = status.data?.promotes_to;
+    const promoteNote =
+      status.data?.is_primary && promotesTo
+        ? ` This number is your primary sign-in contact; after removal, your ${
+            status.data.promotes_to_kind === "phone" ? "phone number" : "email"
+          } ${promotesTo} will become your primary sign-in contact.`
+        : "";
     showAlert(
       "Remove WhatsApp number?",
-      "Your WhatsApp alerts will be turned off until you connect a new number.",
+      `Your WhatsApp alerts will be turned off until you connect a new number.${promoteNote}`,
       [
         { text: "Cancel", style: "cancel" },
         {

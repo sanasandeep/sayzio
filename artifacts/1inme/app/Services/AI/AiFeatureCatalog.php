@@ -14,14 +14,14 @@ namespace App\Services\AI;
 class AiFeatureCatalog
 {
     /** Known AI features for filtering / reporting. */
-    public const FEATURES = ['mind', 'persona', 'companion', 'coach', 'ask_coach', 'voice_stt', 'voice_llm', 'voice_tts', 'card_scan', 'resume_import', 'resume_tailor', 'inbox_agent', 'brand_kit', 'qr_art', 'marketing_strategist', 'marketing_strategist.chat', 'marketing_strategist.report', 'ai_staff_billing', 'ai_staff_contacts', 'ai_staff_general', 'competitor_teardown', 'biolink_builder', 'audience_type_estimation'];
+    public const FEATURES = ['mind', 'persona', 'companion', 'coach', 'ask_coach', 'voice_stt', 'voice_llm', 'voice_tts', 'card_scan', 'resume_import', 'resume_tailor', 'inbox_agent', 'brand_kit', 'brand_asset', 'qr_art', 'marketing_strategist', 'marketing_strategist.chat', 'marketing_strategist.report', 'ai_staff_billing', 'ai_staff_contacts', 'ai_staff_general', 'competitor_teardown', 'biolink_builder', 'audience_type_estimation', 'brand_studio'];
 
     /** Friendly labels for ledger / reporting surfaces. */
     public const FEATURE_LABELS = [
         'mind'          => 'AI Note Summarizer',
         'persona'       => 'Persona Generator',
         'companion'     => 'AI Chat',
-        'coach'         => 'AI Growth Coach',
+        'coach'         => 'AI Link Optimizer',
         'ask_coach'     => 'Account Assistant',
         'voice_stt'     => 'Voice — Transcription',
         'voice_llm'     => 'Voice — Reasoning',
@@ -31,6 +31,7 @@ class AiFeatureCatalog
         'resume_tailor' => 'Resume — Tailor to Job',
         'inbox_agent'   => 'Inbox Agent',
         'brand_kit'     => 'Brand Kit',
+        'brand_asset'   => 'Brand Kit — Visual Asset',
         'qr_art'        => 'QR — AI Art',
         'marketing_strategist' => 'Marketing Strategist',
         'marketing_strategist.chat' => 'Marketing Strategist — Chat',
@@ -41,6 +42,7 @@ class AiFeatureCatalog
         'competitor_teardown'   => 'Competitor Biolink Teardown',
         'biolink_builder'       => 'AI Link in Bio Builder',
         'audience_type_estimation' => 'AI Audience Type Estimation',
+        'brand_studio'  => 'AI Brand Studio',
     ];
 
     public static function featureLabel(?string $feature): string

@@ -21,7 +21,7 @@
         'subtitle' => 'Edit anything that looks off, then save it as a contact, seed a Link in Bio draft, or both.',
         'icon' => 'fa-magnifying-glass',
         'chips' => [
-            ['icon' => 'fa-bolt text-pink-400', 'text' => $scan->credits_spent . ' credits used'],
+            ['icon' => 'fa-bolt text-pink-400', 'text' => $scan->credits_spent . ' coins used'],
             ['icon' => 'fa-percent', 'text' => $confPct . '% confidence', 'style' => 'color:' . $confColor],
         ],
     ])

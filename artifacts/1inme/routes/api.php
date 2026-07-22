@@ -174,6 +174,17 @@ Route::prefix('v1')->group(function () {
         // (density + theme preview in the mobile creator settings screen).
         Route::get('/me/creator-profile/preview-url', [\App\Modules\Api\Controllers\CreatorProfileApiController::class, 'previewUrl']);
 
+        // Owner creator-profile editor (mobile parity for the web
+        // "Edit creator profile" page). Delegates to the web controller's
+        // shared save helpers; showcase keys replace the showcase block as
+        // a whole, core fields are present-keys-only.
+        Route::patch('/me/creator-profile', [\App\Modules\Api\Controllers\CreatorProfileApiController::class, 'update']);
+
+        // Owner read of the editable creator-profile state (Task #5600) —
+        // raw resolved showcase (incl. disabled featured links) so the
+        // mobile settings screen can seed losslessly before PATCHing.
+        Route::get('/me/creator-profile', [\App\Modules\Api\Controllers\CreatorProfileApiController::class, 'settings']);
+
         // Unified creator Stats home (mobile parity for web /user/stats).
         Route::get('/stats', [\App\Modules\Api\Controllers\CreatorStatsApiController::class, 'index']);
 
@@ -198,6 +209,8 @@ Route::prefix('v1')->group(function () {
         Route::post('/events/{alias}/buy',                 [\App\Modules\Api\Controllers\EventTicketApiController::class, 'buy'])->middleware('throttle:30,1');
         Route::post('/events/{alias}/interest',            [\App\Modules\Api\Controllers\EventTicketApiController::class, 'interest'])->middleware('throttle:30,1');
         Route::get ('/me/event-tickets',                   [\App\Modules\Api\Controllers\EventTicketApiController::class, 'myTickets']);
+        // My events calendar (dialer app): ticketed + interested, past & future.
+        Route::get ('/me/events',                          [\App\Modules\Api\Controllers\EventTicketApiController::class, 'myEvents']);
 
         // Task #5008 — Event contact exchange: "My card" QR + opt-in people list.
         Route::get ('/me/event-card',                      [\App\Modules\Api\Controllers\EventContactExchangeController::class, 'myCard']);
@@ -547,6 +560,19 @@ Route::prefix('v1')->group(function () {
         Route::delete('/admin/users/{user}/admin-access',     [AdminAccessController::class, 'revokeAdminAccess'])->whereNumber('user');
         Route::post  ('/admin/users/{user}/impersonate',      [AdminAccessController::class, 'impersonate'])->whereNumber('user')->middleware('throttle:20,1');
         Route::post  ('/admin/users/{user}/set-password',    [AdminAccessController::class, 'setUserPassword'])->whereNumber('user');
+
+        // Profile-verification moderation (mobile parity for the web
+        // /user/profile-verification-admin screens). Gated by the SAME
+        // web-pool permission the web routes use (user.can works on the
+        // Sanctum path because $request->user() is the token's web User).
+        Route::middleware('user.can:user.verifications.review')->group(function () {
+            Route::get ('/admin/profile-verification',                 [\App\Modules\Api\Controllers\ProfileVerificationAdminApiController::class, 'index']);
+            Route::get ('/admin/profile-verification/tick-types',      [\App\Modules\Api\Controllers\ProfileVerificationAdminApiController::class, 'tickTypes']);
+            Route::post('/admin/profile-verification/tick-types/{verificationTickType}', [\App\Modules\Api\Controllers\ProfileVerificationAdminApiController::class, 'updateTickType'])->whereNumber('verificationTickType');
+            Route::get ('/admin/profile-verification/{profileVerificationRequest}',         [\App\Modules\Api\Controllers\ProfileVerificationAdminApiController::class, 'show'])->whereNumber('profileVerificationRequest');
+            Route::post('/admin/profile-verification/{profileVerificationRequest}/approve', [\App\Modules\Api\Controllers\ProfileVerificationAdminApiController::class, 'approve'])->whereNumber('profileVerificationRequest');
+            Route::post('/admin/profile-verification/{profileVerificationRequest}/reject',  [\App\Modules\Api\Controllers\ProfileVerificationAdminApiController::class, 'reject'])->whereNumber('profileVerificationRequest');
+        });
 
         // Protected accounts (mobile parity for the web back-office page).
         // The canonical never-delete/suspend list: staff with `users.view`
@@ -963,6 +989,8 @@ Route::prefix('v1')->group(function () {
         Route::post  ('/contacts/{id}/manual-profile', [ContactController::class, 'updateManualProfile'])->whereNumber('id');
         Route::post  ('/contacts/{id}/merge',       [ContactController::class, 'merge'])->whereNumber('id')->middleware('throttle:60,1');
         Route::post  ('/contacts/{id}/sms-biolink', [ContactController::class, 'smsBiolink'])->whereNumber('id')->middleware('throttle:30,1');
+        Route::get   ('/contacts/{id}/calls',       [ContactController::class, 'callLogs'])->whereNumber('id');
+        Route::post  ('/contacts/{id}/calls',       [ContactController::class, 'logCalls'])->whereNumber('id')->middleware('throttle:60,1');
         Route::post  ('/contacts/{id}/follow-up',   [ContactController::class, 'setFollowUp'])->whereNumber('id');
         Route::delete('/contacts/{id}/follow-up',   [ContactController::class, 'clearFollowUp'])->whereNumber('id');
         Route::post  ('/contacts/{id}/share',       [ContactController::class, 'share'])->whereNumber('id');
@@ -1073,6 +1101,14 @@ Route::prefix('v1')->group(function () {
         Route::delete('/workspaces/{id}',         [WorkspaceController::class, 'destroy'])->whereNumber('id');
         Route::get('/workspaces/{id}/members',    [WorkspaceController::class, 'members'])->whereNumber('id');
 
+        // ── Admin-granted asset transfers ────────────────────────────
+        // Capability probe + instant link/workspace transfer to another
+        // account by email. All authorization (grant, ownership,
+        // self-transfer) is enforced in AssetTransferService.
+        Route::get ('/me/transfer-capability',      [\App\Modules\Api\Controllers\AssetTransferController::class, 'capability']);
+        Route::post('/links/{id}/transfer',         [\App\Modules\Api\Controllers\AssetTransferController::class, 'transferLink'])->whereNumber('id');
+        Route::post('/workspaces/{id}/transfer',    [\App\Modules\Api\Controllers\AssetTransferController::class, 'transferWorkspace'])->whereNumber('id');
+
         // Workspace tracking pixels (Meta / TikTok / Google Ads). Used by
         // the browser extension Settings → Tracking pixels panel so the
         // IDs follow the user across devices instead of living only in
@@ -1143,8 +1179,27 @@ Route::prefix('v1')->group(function () {
         Route::post  ('/brand-kits/estimate', [\App\Modules\Api\Controllers\BrandKitController::class, 'estimate'])->middleware('throttle:30,1');
         Route::post  ('/brand-kits/generate', [\App\Modules\Api\Controllers\BrandKitController::class, 'generate'])->middleware('throttle:10,1');
         Route::delete('/brand-kits/{brandKit}', [\App\Modules\Api\Controllers\BrandKitController::class, 'destroy'])->whereNumber('brandKit');
+        // Brand Kit visual assets (Task #5612) — mobile parity for the web
+        // per-kit assets panel: catalog, coin-charged generate/regenerate
+        // (auto-refund on failure), delete, and one-click apply.
+        Route::get   ('/brand-kits/{brandKit}/assets',                 [\App\Modules\Api\Controllers\BrandKitController::class, 'assets'])->whereNumber('brandKit');
+        Route::post  ('/brand-kits/{brandKit}/assets/{type}/generate', [\App\Modules\Api\Controllers\BrandKitController::class, 'generateAsset'])->whereNumber('brandKit')->middleware('throttle:10,1');
+        Route::post  ('/brand-kits/{brandKit}/assets/{type}/apply',    [\App\Modules\Api\Controllers\BrandKitController::class, 'applyAsset'])->whereNumber('brandKit');
+        Route::delete('/brand-kits/{brandKit}/assets/{type}',          [\App\Modules\Api\Controllers\BrandKitController::class, 'destroyAsset'])->whereNumber('brandKit');
         Route::post  ('/brand-kits/{brandKit}/apply/biolink/{link}', [\App\Modules\Api\Controllers\BrandKitController::class, 'applyToBiolink'])->whereNumber('brandKit')->whereNumber('link');
         Route::post  ('/brand-kits/{brandKit}/apply/qr/{qrCode}',    [\App\Modules\Api\Controllers\BrandKitController::class, 'applyToQr'])->whereNumber('brandKit')->whereNumber('qrCode');
+
+        // AI Brand Studio (Task #5551): one brief → reviewed multi-asset plan
+        // → assets created as a named kit. Mirrors /user/brand-studio.
+        Route::get   ('/brand-studio',               [\App\Modules\Api\Controllers\BrandStudioController::class, 'index']);
+        Route::post  ('/brand-studio/estimate',      [\App\Modules\Api\Controllers\BrandStudioController::class, 'estimate'])->middleware('throttle:30,1');
+        Route::post  ('/brand-studio/plan',          [\App\Modules\Api\Controllers\BrandStudioController::class, 'plan'])->middleware('throttle:10,1');
+        Route::post  ('/brand-studio/presets',          [\App\Modules\Api\Controllers\BrandStudioController::class, 'storePreset'])->middleware('throttle:30,1');
+        Route::patch ('/brand-studio/presets/{preset}', [\App\Modules\Api\Controllers\BrandStudioController::class, 'renamePreset'])->whereNumber('preset')->middleware('throttle:30,1');
+        Route::delete('/brand-studio/presets/{preset}', [\App\Modules\Api\Controllers\BrandStudioController::class, 'destroyPreset'])->whereNumber('preset');
+        Route::get   ('/brand-studio/{kit}',         [\App\Modules\Api\Controllers\BrandStudioController::class, 'show'])->whereNumber('kit');
+        Route::post  ('/brand-studio/{kit}/confirm', [\App\Modules\Api\Controllers\BrandStudioController::class, 'confirm'])->whereNumber('kit')->middleware('throttle:20,1');
+        Route::delete('/brand-studio/{kit}',         [\App\Modules\Api\Controllers\BrandStudioController::class, 'destroy'])->whereNumber('kit');
 
         // Restaurant menu (Task #1536) — owner orders dashboard parity.
         Route::get ('/restaurant/links/{link}/orders',                [RestaurantController::class, 'ownerOrders'])->whereNumber('link');
@@ -1377,10 +1432,16 @@ Route::prefix('v1')->group(function () {
         Route::post  ('/dialer/speed-dial/assign',      [DialerController::class, 'assignSpeedDial']);
         Route::post  ('/dialer/speed-dial/unassign',    [DialerController::class, 'unassignSpeedDial']);
         // Per-user spam/block flags.
+        Route::get   ('/dialer/flags',              [DialerController::class, 'flags']);
         Route::post  ('/dialer/flag',               [DialerController::class, 'flag']);
         // Call log (outcome/note/tag) + call-back reminders.
         Route::post  ('/dialer/log',                [DialerController::class, 'logCall']);
         Route::post  ('/dialer/callback',           [DialerController::class, 'setCallback']);
+        // Notes & reminders with server sync + phone-based sharing.
+        Route::get   ('/dialer/notes',              [\App\Modules\Api\Controllers\DialerNoteController::class, 'index']);
+        Route::post  ('/dialer/notes',              [\App\Modules\Api\Controllers\DialerNoteController::class, 'store']);
+        Route::patch ('/dialer/notes/{id}',         [\App\Modules\Api\Controllers\DialerNoteController::class, 'update'])->whereNumber('id');
+        Route::delete('/dialer/notes/{id}',         [\App\Modules\Api\Controllers\DialerNoteController::class, 'destroy'])->whereNumber('id');
         Route::delete('/dialer/callback/{id}',      [DialerController::class, 'clearCallback'])->whereNumber('id');
 
         // ── Zio Browser cloud sync ──────────────────────────────────────────

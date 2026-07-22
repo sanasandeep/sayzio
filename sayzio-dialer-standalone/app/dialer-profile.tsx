@@ -636,14 +636,66 @@ export default function DialerProfileScreen() {
             <Text style={[styles.cardKicker, { color: "#d76dff" }]}>
               Sayzio LINK IN BIO
             </Text>
-            <Text style={[styles.cardTitle, { color: colors.foreground }]}>
-              {bioName}
-            </Text>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+              <Text style={[styles.cardTitle, { color: colors.foreground }]}>
+                {bioName}
+              </Text>
+              {!!profile?.biolink?.verified && (
+                <Feather name="check-circle" size={15} color="#3b82f6" />
+              )}
+            </View>
             {!!bioHandle && (
               <Text style={[styles.sub, { color: colors.mutedForeground }]}>
                 @{bioHandle}
               </Text>
             )}
+            {!!profile?.biolink?.bio && (
+              <Text
+                style={{
+                  color: colors.mutedForeground,
+                  fontSize: 13,
+                  marginTop: 6,
+                }}
+              >
+                {profile.biolink.bio}
+              </Text>
+            )}
+            {!!profile?.biolink?.link_preview &&
+              !!(
+                profile.biolink.link_preview.title ||
+                profile.biolink.link_preview.description
+              ) && (
+                <View
+                  style={{
+                    marginTop: 8,
+                    borderWidth: 1,
+                    borderColor: colors.border,
+                    borderRadius: 10,
+                    padding: 10,
+                    gap: 2,
+                  }}
+                >
+                  {!!profile.biolink.link_preview.title && (
+                    <Text
+                      style={{
+                        color: colors.foreground,
+                        fontSize: 13,
+                        fontFamily: "SpaceGrotesk_600SemiBold",
+                      }}
+                    >
+                      {profile.biolink.link_preview.title}
+                    </Text>
+                  )}
+                  {!!profile.biolink.link_preview.description && (
+                    <Text
+                      numberOfLines={2}
+                      style={{ color: colors.mutedForeground, fontSize: 12 }}
+                    >
+                      {profile.biolink.link_preview.description}
+                    </Text>
+                  )}
+                </View>
+              )}
             <Pressable
               onPress={() => openUrl(bioUrl)}
               style={[styles.bioBtn, { backgroundColor: colors.primary }]}

@@ -1,5 +1,5 @@
 @extends('admin.layouts.app')
-@section('title', 'AI Knowledge Bases')
+@section('title', 'AI Minds')
 
 @section('content')
 <div class="max-w-6xl mx-auto px-4 py-8 space-y-6">
@@ -8,8 +8,8 @@
 
     <div class="flex items-end justify-between gap-3">
         <div>
-            <h1 class="text-2xl font-bold text-white">AI Knowledge Bases</h1>
-            <p class="text-sm text-white/50 mt-1">Per-user knowledge bases and the platform default mind.</p>
+            <h1 class="text-2xl font-bold text-white">AI Minds</h1>
+            <p class="text-sm text-white/50 mt-1">Per-user AI Minds and the platform default mind.</p>
         </div>
         <form method="POST" action="{{ route('admin.ai-minds.reseed') }}" onsubmit="return window.themedConfirmSubmit(this, {title: 'Re-queue every source?', message: 'Ingestion will be re-queued for every source on the platform default Mind.', confirmText: 'Re-queue', confirmIcon: 'fa-rotate', iconClass: 'fa-rotate'})">
             @csrf
@@ -113,25 +113,25 @@
         <div class="flex justify-end"><button class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-sm">Save caps</button></div>
     </form>
 
-    {{-- Global daily AI credit spend trend --}}
+    {{-- Global daily coin spend trend --}}
     <div class="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
         <div class="flex items-center justify-between">
             <h3 class="text-white font-semibold flex items-center gap-2">
-                <i class="fas fa-coins text-amber-300"></i> Daily Mind credit spend
+                <i class="fas fa-coins text-amber-300"></i> Daily Mind coin spend
             </h3>
             <span class="text-[11px] uppercase tracking-wider text-white/40">Last 30 days · all minds</span>
         </div>
         <x-mind-daily-spend-chart :days="$dailySpend" height="h-32" />
     </div>
 
-    {{-- Top minds by AI credit spend --}}
+    {{-- Top minds by coin spend --}}
     <div class="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
         <div class="flex items-center justify-between mb-3">
-            <h3 class="text-white font-semibold">Top 10 Minds by credit spend</h3>
+            <h3 class="text-white font-semibold">Top 10 Minds by coin spend</h3>
             <span class="text-[11px] uppercase tracking-wider text-white/40">Last 30 days</span>
         </div>
         @if($topByCredits->isEmpty())
-            <p class="text-sm text-white/40">No Mind credit spend in the last 30 days.</p>
+            <p class="text-sm text-white/40">No Mind coin spend in the last 30 days.</p>
         @else
             <table class="w-full text-sm text-left">
                 <thead class="text-[11px] uppercase tracking-wider text-white/40">

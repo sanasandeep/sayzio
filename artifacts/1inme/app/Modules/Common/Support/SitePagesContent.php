@@ -986,7 +986,7 @@ class SitePagesContent
             ['q' => 'Do I need to write any prompts or code?', 'a' => 'No. You point it at your Link in Bio, your site or your inbox, set a tone, and it learns from your existing content. You can refine answers from the dashboard at any time.'],
             ['q' => 'What languages does it support?', 'a' => 'Out of the box it understands and replies in 30+ languages and auto-detects what each visitor uses, so you can serve a global audience without setting up separate flows.'],
             ['q' => 'Can I hand off to a human?', 'a' => 'Yes. Every conversation can escalate to your unified inbox the moment a visitor asks for a person, books a call, or hits a topic you mark as human-only.'],
-            ['q' => 'How is my plan billed for usage?', 'a' => 'Each plan includes a monthly conversation allowance. If you grow past it, you can top up with credits or upgrade, no surprise charges.'],
+            ['q' => 'How is my plan billed for usage?', 'a' => 'Each plan includes a monthly conversation allowance. If you grow past it, you can top up with coins or upgrade, no surprise charges.'],
         ];
         $extra = [
             'ai-chatbot' => [
@@ -1859,7 +1859,7 @@ class SitePagesContent
                     ['name' => 'Extension quick QR', 'description' => 'Generate a styled QR code for the current page URL directly from the extension popup; choose a catalog preset, download or copy the result, and it appears in QR Studio automatically.'],
                     ['name' => 'Extension add to calendar', 'description' => 'Extracts structured event data (JSON-LD, Microdata) from any event page and pre-fills an add-to-calendar form so you can save it to a Sayzio calendar in one click.'],
                     ['name' => 'Extension add to bio-link', 'description' => 'Append the current page as a new link block on any of your Link in Bio pages without leaving the browser.'],
-                    ['name' => 'Extension page-to-bio-link (Quick & AI)', 'description' => 'Instantly convert any webpage into a new Link in Bio: choose Quick mode (free, instant) or AI-powered mode (AI Biolink Builder, charged as AI credits).'],
+                    ['name' => 'Extension page-to-bio-link (Quick & AI)', 'description' => 'Instantly convert any webpage into a new Link in Bio: choose Quick mode (free, instant) or AI-powered mode (AI Biolink Builder, charged in coins).'],
                     ['name' => 'Mobile share-sheet import', 'description' => 'Share any URL to Sayzio directly from the iOS or Android share sheet. The app auto-shortens on arrival (toggleable) and lets you switch to Create QR or Add to Calendar without opening the full app.'],
                     ['name' => 'Deep-link URL import', 'description' => 'Open the Import screen from any automation or Shortcut via sayzio://import-url?url=…, works even when the app is fully closed, launching straight to the result.'],
                 ],
@@ -2114,13 +2114,13 @@ class SitePagesContent
             [
                 'id' => 'knowledge-bases',
                 'icon' => 'fa-book',
-                'heading' => 'AI Knowledge Bases',
+                'heading' => 'AI Minds',
                 'intro' => 'Ground every AI feature in your own content: upload docs, links and FAQs so your chatbot, agent and inbox actually know your business.',
                 'features' => [
-                    ['name' => 'Custom knowledge bases', 'description' => 'Upload documents, paste text or point to URLs to build a knowledge base your AI tools can draw on.'],
-                    ['name' => 'Grounded AI Chatbot & Coach', 'description' => 'Connect a knowledge base so answers come from your real content instead of a generic script.'],
+                    ['name' => 'Custom AI Minds', 'description' => 'Upload documents, paste text or point to URLs to build an AI Mind your AI tools can draw on.'],
+                    ['name' => 'Grounded AI Chatbot & Coach', 'description' => 'Connect an AI Mind so answers come from your real content instead of a generic script.'],
                     ['name' => 'External sources', 'description' => 'Sync knowledge in from a webhook or push it out to a connector, keeping your AI tools current automatically.'],
-                    ['name' => 'Owner-controlled access', 'description' => 'You decide which knowledge bases power which AI features.'],
+                    ['name' => 'Owner-controlled access', 'description' => 'You decide which AI Minds power which AI features.'],
                 ],
             ],
             [

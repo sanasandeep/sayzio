@@ -239,6 +239,34 @@ html.light-mode .admin-ushow-comp-note      { color: #92400e; }
                 </button>
             </form>
         </div>
+
+        {{-- Asset transfer capability. Gated behind users.edit (same flag
+             as badges/password). Users whose email matches an Admin record
+             are implicitly granted regardless of this toggle. --}}
+        <div class="glass rounded-2xl border border-white/10 p-6">
+            <h3 class="text-lg font-semibold text-white mb-1"><i class="fas fa-right-left text-blue-400 mr-1"></i> Transfer capability</h3>
+            <p class="text-xs text-white/40 mb-4">Lets this user instantly transfer any link or workspace they own to another account by email. Transfers always succeed regardless of the recipient's plan caps.</p>
+            @if($user->transfer_capability_granted_at)
+                <p class="text-sm text-emerald-300 mb-3"><i class="fas fa-check-circle mr-1"></i> Granted {{ $user->transfer_capability_granted_at->format('M j, Y H:i') }}@if($user->transfer_capability_granted_by) by {{ $user->transfer_capability_granted_by }}@endif</p>
+                <form method="POST" action="{{ route('admin.users.transfer-capability', $user) }}">
+                    @csrf
+                    <input type="hidden" name="grant" value="0">
+                    <button type="submit" class="px-6 py-2.5 bg-red-600/80 text-white rounded-xl font-medium hover:bg-red-700 transition">
+                        <i class="fas fa-ban mr-1"></i> Revoke transfer capability
+                    </button>
+                </form>
+            @elseif($user->canTransferAssets())
+                <p class="text-sm text-blue-300"><i class="fas fa-shield-alt mr-1"></i> Implicitly granted: this user's email matches an admin account.</p>
+            @else
+                <form method="POST" action="{{ route('admin.users.transfer-capability', $user) }}">
+                    @csrf
+                    <input type="hidden" name="grant" value="1">
+                    <button type="submit" class="px-6 py-2.5 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition">
+                        <i class="fas fa-right-left mr-1"></i> Grant transfer capability
+                    </button>
+                </form>
+            @endif
+        </div>
         @endif
 
         @if($canSuspend)

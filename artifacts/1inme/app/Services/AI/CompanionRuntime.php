@@ -133,7 +133,7 @@ class CompanionRuntime
                 $message,
             );
         } catch (InsufficientCoinsForAiException $e) {
-            return ['ok' => false, 'error' => 'This chatbot is out of AI credits. The owner has been notified.'];
+            return ['ok' => false, 'error' => 'This chatbot is out of coins. The owner has been notified.'];
         } catch (\Throwable $e) {
             report($e);
             return ['ok' => false, 'error' => 'The assistant could not respond right now. Please try again.'];

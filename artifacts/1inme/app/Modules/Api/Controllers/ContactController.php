@@ -1020,6 +1020,71 @@ class ContactController extends Controller
     }
 
     /**
+     * Structured call history for a contact, newest first (Dialer caller-ID
+     * timeline). Owner-only, capped at 200 entries.
+     *
+     * GET /contacts/{id}/calls
+     */
+    public function callLogs(Request $request, int $id)
+    {
+        $c = Contact::where('user_id', $request->user()->id)->find($id);
+        if (!$c) return $this->notFound('Contact not found');
+
+        $calls = \App\Modules\User\Models\ContactCallLog::where('contact_id', $c->id)
+            ->orderByDesc('occurred_at')
+            ->limit(200)
+            ->get()
+            ->map(fn ($l) => [
+                'id'          => $l->id,
+                'number'      => $l->number,
+                'direction'   => $l->direction,
+                'occurred_at' => optional($l->occurred_at)->toIso8601String(),
+            ])
+            ->values()
+            ->all();
+
+        return $this->ok(['calls' => $calls]);
+    }
+
+    /**
+     * Batch-log identified incoming calls against a contact (Dialer native
+     * call-screening queue drain). Idempotent: the (contact, number,
+     * occurred_at) unique key lets a re-drained native queue post the same
+     * events again without duplicating rows.
+     *
+     * POST /contacts/{id}/calls  { calls: [{ number, occurred_at }] }
+     */
+    public function logCalls(Request $request, int $id)
+    {
+        $user = $request->user();
+        $c = Contact::where('user_id', $user->id)->find($id);
+        if (!$c) return $this->notFound('Contact not found');
+
+        $v = $request->validate([
+            'calls'               => ['required', 'array', 'min:1', 'max:100'],
+            'calls.*.number'      => ['required', 'string', 'max:64'],
+            'calls.*.occurred_at' => ['required', 'date'],
+            'calls.*.direction'   => ['sometimes', 'string', 'in:incoming,outgoing,missed'],
+        ]);
+
+        $now = now();
+        $rows = collect($v['calls'])->map(fn ($call) => [
+            'user_id'     => $user->id,
+            'contact_id'  => $c->id,
+            'number'      => trim($call['number']),
+            'direction'   => $call['direction'] ?? 'incoming',
+            'occurred_at' => \Illuminate\Support\Carbon::parse($call['occurred_at'])->utc(),
+            'created_at'  => $now,
+            'updated_at'  => $now,
+        ])->unique(fn ($r) => $r['number'] . '|' . $r['occurred_at']->toIso8601String())->values()->all();
+
+        // insertOrIgnore rides the dedupe unique index so retries are no-ops.
+        $logged = \App\Modules\User\Models\ContactCallLog::insertOrIgnore($rows);
+
+        return $this->ok(['logged' => $logged]);
+    }
+
+    /**
      * Return the authenticated user's distinct contact tags for autocomplete.
      */
     public function allTags(Request $request): \Illuminate\Http\JsonResponse

@@ -502,6 +502,39 @@ class EmailTemplateRegistry
                 ],
             ],
 
+            'transfer.sent' => [
+                'category' => 'account',
+                'label' => 'Asset transfer sent',
+                'description' => 'Confirms to the sender that their link or workspace was transferred to another account.',
+                'format' => 'text',
+                'body_type' => 'inline',
+                'pref_type' => 'asset_transfer',
+                'subject' => 'Transfer complete: {{asset_label}}',
+                'body' => "Your {{asset_kind}} \"{{asset_label}}\" was transferred to {{recipient_name}} ({{recipient_email}}). This transfer is instant and cannot be undone.",
+                'variables' => [
+                    'asset_kind' => ['label' => 'Asset kind', 'sample' => 'link'],
+                    'asset_label' => ['label' => 'Asset name', 'sample' => 'My Bio Page'],
+                    'recipient_name' => ['label' => 'Recipient name', 'sample' => 'Sam Carter'],
+                    'recipient_email' => ['label' => 'Recipient email', 'sample' => 'sam@example.com'],
+                ],
+            ],
+            'transfer.received' => [
+                'category' => 'account',
+                'label' => 'Asset transfer received',
+                'description' => 'Notifies the recipient that a link or workspace was transferred into their account.',
+                'format' => 'text',
+                'body_type' => 'inline',
+                'pref_type' => 'asset_transfer',
+                'subject' => 'You received a {{asset_kind}}: {{asset_label}}',
+                'body' => "{{sender_name}} ({{sender_email}}) transferred the {{asset_kind}} \"{{asset_label}}\" to your account. It's available in your dashboard now. If it exceeds your plan limits it will keep working, but editing may require an upgrade.",
+                'variables' => [
+                    'asset_kind' => ['label' => 'Asset kind', 'sample' => 'link'],
+                    'asset_label' => ['label' => 'Asset name', 'sample' => 'My Bio Page'],
+                    'sender_name' => ['label' => 'Sender name', 'sample' => 'Jordan Lee'],
+                    'sender_email' => ['label' => 'Sender email', 'sample' => 'jordan@example.com'],
+                ],
+            ],
+
             // ----------------------------------------------------------------
             // Security
             // ----------------------------------------------------------------

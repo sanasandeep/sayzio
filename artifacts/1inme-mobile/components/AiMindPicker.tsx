@@ -25,7 +25,7 @@ type Props = {
   feature: AiMindFeature;
   title: string;
   subtitle: string;
-  /** Feature label used for the "AI is off" explainer (e.g. "AI Growth Coach"). */
+  /** Feature label used for the "AI is off" explainer (e.g. "AI Link Optimizer"). */
   disabledFeature?: string;
 };
 
@@ -87,7 +87,7 @@ export function AiMindPickerScreen({
       } else if (err?.status === 403) {
         setDisabled("plan");
       } else {
-        showAlert("Couldn't load AI Knowledge Bases", err?.message ?? "Try again in a moment.");
+        showAlert("Couldn't load AI Minds", err?.message ?? "Try again in a moment.");
       }
     } finally {
       setLoading(false);
@@ -230,8 +230,8 @@ export function AiMindPickerScreen({
             ]}
           >
             <Text style={[styles.subtle, { color: colors.mutedForeground }]}>
-              You don't have any AI Knowledge Bases yet. Create one on the web to ground generations
-              in your own knowledge base.
+              You don't have any AI Minds yet. Create one on the web to ground generations
+              in your own AI Mind.
             </Text>
           </View>
         ) : (
@@ -241,10 +241,10 @@ export function AiMindPickerScreen({
               { backgroundColor: colors.card, borderColor: colors.border, borderRadius: colors.radius },
             ]}
           >
-            <Text style={[styles.section, { color: colors.foreground }]}>Your AI Knowledge Bases</Text>
+            <Text style={[styles.section, { color: colors.foreground }]}>Your AI Minds</Text>
             {minds.mine.length === 0 ? (
               <Text style={[styles.subtle, { color: colors.mutedForeground }]}>
-                You haven't created any AI Knowledge Bases yet.
+                You haven't created any AI Minds yet.
               </Text>
             ) : (
               <View style={{ gap: 4 }}>
@@ -285,7 +285,7 @@ export function AiMindPickerScreen({
                   style={[styles.divider, { backgroundColor: colors.border }]}
                 />
                 <Text style={[styles.section, { color: colors.foreground }]}>
-                  Platform AI Knowledge Base
+                  Platform AI Mind
                 </Text>
                 <Pressable
                   onPress={() => setIncludePlatform((v) => !v)}
@@ -310,7 +310,7 @@ export function AiMindPickerScreen({
                       {minds.platform.name}
                     </Text>
                     <Text style={[styles.subtle, { color: colors.mutedForeground }]}>
-                      Opt in to the Sayzio default knowledge base.
+                      Opt in to the Sayzio default AI Mind.
                     </Text>
                   </View>
                 </Pressable>

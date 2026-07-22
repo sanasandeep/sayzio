@@ -4,6 +4,11 @@ import { AppState } from "react-native";
 
 import { googleContacts } from "@/lib/api/contacts";
 import {
+  drainIdentifiedCalls,
+  flushPendingSpamReports,
+  syncCallerDirectory,
+} from "@/lib/callerId";
+import {
   getStoredContactSyncFingerprint,
   importDeviceContacts,
   setStoredContactSyncFingerprint,
@@ -88,6 +93,19 @@ export function useContactAutoSync(
       if (mounted && changed) {
         qc.invalidateQueries({ queryKey: ["contacts"] });
       }
+      // Push any "Report spam" taps made on the incoming-call overlay while
+      // the app was dead (POST /dialer/flag + directory re-sync), then keep
+      // the native caller-ID directory fresh so the overlay resolves Sayzio
+      // contacts even while the app is dead. Android-only no-ops elsewhere;
+      // throttled internally.
+      void flushPendingSpamReports();
+      void drainIdentifiedCalls().then((logged) => {
+        if (mounted && logged > 0) {
+          qc.invalidateQueries({ queryKey: ["contacts"] });
+          qc.invalidateQueries({ queryKey: ["contact"] });
+        }
+      });
+      void syncCallerDirectory({ force: changed });
     };
 
     const start = async () => {

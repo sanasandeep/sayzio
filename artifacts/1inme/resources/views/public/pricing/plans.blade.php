@@ -1242,7 +1242,7 @@
                     ['creator_profile_public',   'Public creator profile',  'bool'],
                 ],
                 'AI features' => [
-                    ['max_minds',                'AI Knowledge Bases',      'number'],
+                    ['max_minds',                'AI Minds',      'number'],
                     ['max_personas',             'AI Agents',               'number'],
                     ['max_companions',           'Chat Widgets',            'number'],
                     ['ai_widget',                'Site Assistant widget',   'bool'],
@@ -1448,8 +1448,8 @@
                         if ($total <= 0) return 'Activating a single paid add-on without subscribing.';
                         if ($total < 1000) return 'One-off campaigns or activating a single add-on.';
                         if ($total < 5000) return 'A batch of NFC tag activations or a short ad burst.';
-                        if ($total < 20000) return 'AI credit top-ups + a few add-on activations.';
-                        return 'Power users who need months of AI generation, gifting credits, or running multiple add-ons in parallel.';
+                        if ($total < 20000) return 'Coin top-ups for AI + a few add-on activations.';
+                        return 'Power users who need months of AI generation, gifting coins, or running multiple add-ons in parallel.';
                     };
                 @endphp
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 mt-10">

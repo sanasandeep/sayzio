@@ -40,6 +40,10 @@ import {
   type Link,
 } from "@/lib/api/links";
 import { listNfcWrites } from "@/lib/api/nfc";
+import {
+  getTransferCapability,
+  transferLink,
+} from "@/lib/api/transfers";
 import { metaForApiType } from "@/lib/linkKinds";
 import { PaidPageTemplatePreview } from "@/components/PaidPageTemplatePreview";
 import {
@@ -265,6 +269,36 @@ export default function EditLinkScreen() {
       qc.invalidateQueries({ queryKey: ["analytics", id] });
       qc.invalidateQueries({ queryKey: ["links"] });
       qc.invalidateQueries({ queryKey: ["dashboard"] });
+    },
+  });
+
+  // Admin-granted asset transfer: the capability probe drives visibility,
+  // the server re-checks the grant + ownership on submit.
+  const transferCap = useQuery({
+    queryKey: ["transfer-capability"],
+    queryFn: getTransferCapability,
+    staleTime: 5 * 60 * 1000,
+  });
+  const [transferOpen, setTransferOpen] = useState(false);
+  const [transferEmail, setTransferEmail] = useState("");
+  const [transferError, setTransferError] = useState<string | null>(null);
+  const transfer = useMutation({
+    mutationFn: () => transferLink(id, transferEmail.trim()),
+    onSuccess: (t) => {
+      qc.invalidateQueries({ queryKey: ["links"] });
+      qc.invalidateQueries({ queryKey: ["dashboard"] });
+      showAlert(
+        "Link transferred",
+        `Ownership moved to ${t.to_email ?? transferEmail.trim()}.`,
+        [{ text: "OK", onPress: () => router.replace("/(tabs)/links") }],
+      );
+    },
+    onError: (e) => {
+      setTransferError(
+        e && typeof e === "object" && typeof (e as { message?: unknown }).message === "string"
+          ? (e as { message: string }).message
+          : "Transfer failed. Please try again.",
+      );
     },
   });
 
@@ -892,6 +926,64 @@ export default function EditLinkScreen() {
           onPress={() => save.mutate()}
           loading={save.isPending}
         />
+
+        {transferCap.data?.can_transfer ? (
+          <View style={{ gap: 10 }}>
+            <Pressable
+              onPress={() => {
+                setTransferError(null);
+                setTransferOpen((v) => !v);
+              }}
+              style={({ pressed }) => [
+                styles.deleteRow,
+                { opacity: pressed ? 0.7 : 1 },
+              ]}
+              accessibilityRole="button"
+              accessibilityLabel="Transfer this link"
+            >
+              <Feather name="send" size={16} color={colors.primary} />
+              <Text style={[styles.deleteText, { color: colors.primary }]}>
+                Transfer to another user
+              </Text>
+            </Pressable>
+            {transferOpen ? (
+              <View style={{ gap: 10 }}>
+                <TextField
+                  label="Recipient email"
+                  value={transferEmail}
+                  onChangeText={(t) => {
+                    setTransferEmail(t);
+                    setTransferError(null);
+                  }}
+                  placeholder="recipient@example.com"
+                  autoCapitalize="none"
+                  keyboardType="email-address"
+                />
+                {transferError ? (
+                  <Text style={{ color: colors.destructive, fontSize: 13 }}>
+                    {transferError}
+                  </Text>
+                ) : null}
+                <Button
+                  label="Transfer ownership"
+                  onPress={() => {
+                    const email = transferEmail.trim();
+                    if (!email) {
+                      setTransferError("Enter the recipient's email.");
+                      return;
+                    }
+                    confirm(
+                      "Transfer link?",
+                      `Move /${l.alias} and its data to ${email}? This is instant and cannot be undone.`,
+                      () => transfer.mutate(),
+                    );
+                  }}
+                  loading={transfer.isPending}
+                />
+              </View>
+            ) : null}
+          </View>
+        ) : null}
 
         <Pressable
           onPress={() =>

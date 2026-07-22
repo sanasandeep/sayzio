@@ -115,7 +115,7 @@ class ResumeImportController extends Controller
             );
         } catch (InsufficientCoinsForAiException $e) {
             return response()->json([
-                'message' => 'Not enough AI credits to generate a draft.',
+                'message' => 'Not enough coins to generate a draft.',
                 'required' => $e->required ?? null,
                 'balance'  => $e->balance ?? null,
             ], 402);

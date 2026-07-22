@@ -188,6 +188,80 @@ class EventTicketApiController extends Controller
         ]);
     }
 
+    /**
+     * My events calendar (dialer app): every event the user has a ticket for
+     * PLUS events they marked "interested" — past and future, sorted by the
+     * event start date. The client splits upcoming vs past locally.
+     */
+    public function myEvents(Request $request)
+    {
+        $user = $request->user();
+        if (!$user) return $this->unauthorized();
+
+        $items = [];
+
+        $tickets = EventTicket::where(function ($q) use ($user) {
+                $q->where('buyer_user_id', $user->id);
+                if ($user->email) $q->orWhere('attendee_email', $user->email);
+            })
+            ->whereIn('status', ['valid', 'checked_in'])
+            ->with('link.icsData')
+            ->orderByDesc('created_at')
+            ->limit(200)
+            ->get();
+
+        $seen = [];
+        foreach ($tickets as $t) {
+            $link = $t->link;
+            if (!$link) continue;
+            $seen[$link->id] = true;
+            $items[] = [
+                'kind'        => 'ticket',
+                'ticket_code' => $t->code,
+                'quantity'    => (int) $t->quantity,
+                'status'      => $t->status,
+                'event'       => $this->eventShapeForCalendar($link),
+            ];
+        }
+
+        $interested = \App\Modules\User\Models\EventInterest::where('user_id', $user->id)
+            ->where('status', 'interested')
+            ->with('link.icsData')
+            ->orderByDesc('updated_at')
+            ->limit(200)
+            ->get();
+
+        foreach ($interested as $i) {
+            $link = $i->link;
+            if (!$link || isset($seen[$link->id])) continue;
+            $items[] = [
+                'kind'  => 'interested',
+                'event' => $this->eventShapeForCalendar($link),
+            ];
+        }
+
+        // Sort by event start date descending (unknown dates last).
+        usort($items, function ($a, $b) {
+            return strcmp($b['event']['start_date'] ?? '', $a['event']['start_date'] ?? '');
+        });
+
+        return $this->ok(['items' => $items]);
+    }
+
+    private function eventShapeForCalendar(Link $link): array
+    {
+        $ics = $link->icsData;
+        return [
+            'id'         => $link->id,
+            'alias'      => $link->alias,
+            'title'      => $ics?->event_name ?: $link->title,
+            'location'   => $ics?->location,
+            'start_date' => optional($ics?->start_date)->toIso8601String(),
+            'end_date'   => optional($ics?->end_date)->toIso8601String(),
+            'url'        => url('/' . $link->alias),
+        ];
+    }
+
     public function ticket(Request $request, string $alias, string $code)
     {
         $link = Link::where('alias', $alias)->where('type', 'ics')->first();

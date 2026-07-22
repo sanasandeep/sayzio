@@ -1,7 +1,7 @@
 {{-- Tailor-to-job modal: paste a JD, run AI, review per-section diff,
      accept the picks you want, apply them. All wiring lives on the
      parent resumeEditor() Alpine component (openTailor, runTailor,
-     applyTailor, …). Recent runs are surfaced from the AI credit
+     applyTailor, …). Recent runs are surfaced from the coin
      ledger via /resume/tailor/history. --}}
 <template x-if="tailorOpen">
     <div class="resume-import-overlay" @click.self="closeTailor()">
@@ -38,13 +38,13 @@
                             <span x-show="tailorEstimate !== null">
                                 Up to
                                 <strong x-text="tailorEstimate"></strong>
-                                <span x-text="tailorEstimate === 1 ? 'credit' : 'credits'"></span>
+                                <span x-text="tailorEstimate === 1 ? 'coin' : 'coins'"></span>
                                 · Balance:
                                 <strong x-text="tailorBalance"></strong>
                             </span>
                         </div>
                         <div class="resume-tailor-cost-hint" x-show="tailorEstimate !== null && tailorEstimate > tailorBalance">
-                            <i class="fas fa-triangle-exclamation"></i> Not enough credits. Top up from <em>Credits</em> first.
+                            <i class="fas fa-triangle-exclamation"></i> Not enough coins. Top up from <em>Coins</em> first.
                         </div>
                     </div>
 
@@ -71,7 +71,7 @@
                                     <div class="resume-tailor-history-meta">
                                         <span x-text="formatTailorWhen(h.when)"></span>
                                         <span>·</span>
-                                        <span x-text="h.credits + ' credit' + (h.credits === 1 ? '' : 's')"></span>
+                                        <span x-text="h.credits + ' coin' + (h.credits === 1 ? '' : 's')"></span>
                                     </div>
                                 </div>
                             </template>
@@ -87,7 +87,7 @@
                         <div class="resume-tailor-summary-bar">
                             <span><i class="fas fa-coins"></i>
                                 Spent <strong x-text="tailorLastSpent"></strong>
-                                <span x-text="tailorLastSpent === 1 ? 'credit' : 'credits'"></span>
+                                <span x-text="tailorLastSpent === 1 ? 'coin' : 'coins'"></span>
                                 · Balance: <strong x-text="tailorBalance"></strong>
                             </span>
                             <span class="resume-tailor-summary-bar-bullet">

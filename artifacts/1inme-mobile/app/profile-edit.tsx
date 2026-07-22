@@ -186,7 +186,7 @@ function ProfilePreview({ hasHandle }: { hasHandle: boolean }) {
         </Text>
       )}
       <Text style={[styles.tHint, { color: colors.mutedForeground }]}>
-        Preview only — visitors always see your published profile at its
+        Preview only: visitors always see your published profile at its
         normal size and theme.
       </Text>
     </View>

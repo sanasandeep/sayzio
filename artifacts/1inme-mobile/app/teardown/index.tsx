@@ -122,7 +122,7 @@ export default function TeardownIndexScreen() {
               autoCapitalize="none"
               autoCorrect={false}
               keyboardType="url"
-              hint={`${data.balance} AI credits available`}
+              hint={`${data.balance} coins available`}
             />
             {!data.allowed ? (
               <Text style={{ color: colors.mutedForeground, fontSize: 12 }}>

@@ -33,7 +33,27 @@ class AiPlanAccess
         'brand_kits' => 'max_brand_kits',
         // Saved AI Marketing Strategist plans (Task #3060).
         'marketing_strategies' => 'max_marketing_strategies',
+        // AI Brand Studio bulk-variations per run (Task #5551).
+        'brand_studio_bulk' => 'max_brand_studio_bulk',
+        // Generations allowed per Brand Kit visual asset (Task #5612).
+        'brand_asset_versions' => 'max_brand_asset_versions',
     ];
+
+    /**
+     * Default AI Brand Studio bulk-variations cap for plans that predate the
+     * `max_brand_studio_bulk` key. Non-zero so paid users whose plan rows
+     * haven't been reseeded yet aren't walled off mid-rollout; free users are
+     * blocked upstream by the `brand_studio` availability gate.
+     */
+    public const BRAND_STUDIO_BULK_FALLBACK = 10;
+
+    /**
+     * Default per-asset generation cap for Brand Kit visual assets on plans
+     * that predate the `max_brand_asset_versions` key (Task #5612). Non-zero
+     * so paid users aren't walled off mid-rollout; free users are blocked
+     * upstream by the `brand_kit_assets` availability gate.
+     */
+    public const BRAND_ASSET_VERSIONS_FALLBACK = 5;
 
     /**
      * Default saved-strategy cap for plans that predate the
@@ -134,6 +154,8 @@ class AiPlanAccess
             'personas'   => (int) PersonaSettings::cap('max_personas_per_user'),
             'companions' => (int) CompanionSettings::cap('max_companions_per_user'),
             'marketing_strategies' => self::MARKETING_STRATEGIES_FALLBACK,
+            'brand_studio_bulk'    => self::BRAND_STUDIO_BULK_FALLBACK,
+            'brand_asset_versions' => self::BRAND_ASSET_VERSIONS_FALLBACK,
             default      => 0,
         };
     }
@@ -191,6 +213,10 @@ class AiPlanAccess
             // AI Artistic QR — no per-plan gating before this; keep it on by
             // default so the per-plan flag is purely additive when seeded.
             'qr_art'             => true,
+            // Brand Kit visual assets (Task #5612) — a paid-plan perk that
+            // drives metered image spend. Until plans carry the explicit
+            // key, gate it to any non-free plan.
+            'brand_kit_assets'   => !$user->isOnFreePlan(),
             // WhatsApp AI agent (Task #2759) — a paid-plan perk. Until plans
             // carry the explicit key, gate it to any non-free plan so free
             // accounts can't drive paid AI spend through the inbound webhook.
@@ -217,6 +243,11 @@ class AiPlanAccess
             // perks above; gate to any non-free plan until plans carry the
             // explicit key.
             'competitor_teardown' => !$user->isOnFreePlan(),
+            // AI Brand Studio (Task #5551) — one brief fans out into a whole
+            // set of AI-planned assets, so it drives metered AI spend like
+            // the other paid-plan perks; gate to any non-free plan until
+            // plans carry the explicit key.
+            'brand_studio'        => !$user->isOnFreePlan(),
             // Audience Type AI Estimation — drives metered AI spend per
             // on-demand analytics call; gate to any non-free plan until
             // plans carry the explicit key.

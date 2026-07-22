@@ -198,7 +198,7 @@ html.light-mode .va-panel .va-caps-lim{color:#64748b}
                     Last turn: STT <span x-text="lastCredits.stt"></span> ·
                     LLM <span x-text="lastCredits.llm"></span> ·
                     TTS <span x-text="lastCredits.tts"></span>
-                    (= <span x-text="lastCredits.total"></span> credits) ·
+                    (= <span x-text="lastCredits.total"></span> coins) ·
                     Balance <span x-text="balance"></span>
                 </p>
             </template>

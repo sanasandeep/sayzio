@@ -18,7 +18,9 @@ class UserFileController extends Controller
         $user = $request->user();
         $type = $request->get('type', 'all');
 
-        $query = $user->files()->orderByDesc('created_at');
+        // System-generated files (Brand Kit assets etc.) live outside the
+        // vault UI and the max_files count; they still count toward storage.
+        $query = $user->files()->whereNull('context')->orderByDesc('created_at');
         if ($type !== 'all' && in_array($type, ['image', 'video', 'audio', 'document'])) {
             $query->where('type', $type);
         }
@@ -465,7 +467,7 @@ class UserFileController extends Controller
             'limit_mb' => round($limitBytes / 1048576),
             'percent' => $limitBytes > 0 ? round(($usedBytes / $limitBytes) * 100, 1) : 0,
             'max_file_size_mb' => $maxFileMb,
-            'file_count' => $user->files()->count(),
+            'file_count' => $user->files()->whereNull('context')->count(),
         ];
     }
 }

@@ -30,6 +30,9 @@
             ->get();
     }
     $__canMove = $__moveTargets->isNotEmpty();
+    // Admin-granted cross-account transfer: capability + link ownership are
+    // re-checked server-side; this only controls action visibility.
+    $__canTransfer = auth()->check() && auth()->user()->canTransferAssets();
     $__summary = $summary ?? ['total' => 0, 'active' => 0, 'clicks' => 0];
 @endphp
 
@@ -404,6 +407,31 @@
                                     </button>
                                 </form>
                             @endforeach
+                        </div>
+                    </div>
+                    @endif
+                    @if($__canTransfer && (int) $link->user_id === auth()->id())
+                    <div class="relative" x-data="{ open: false }">
+                        <button type="button" @click="open = !open" @click.outside="open = false"
+                                class="p-1.5 rounded-md transition-all hover:bg-blue-500/10"
+                                style="color: var(--text-faint);" title="Transfer to another user">
+                            <i class="fas fa-paper-plane text-xs hover:text-blue-400"></i>
+                        </button>
+                        <div x-show="open" x-cloak
+                             class="absolute right-0 top-full mt-1 w-64 rounded-lg border shadow-lg z-20 overflow-hidden"
+                             style="background: var(--bg-card); border-color: var(--border-strong);">
+                            <div class="px-3 py-2 text-[10px] uppercase tracking-wider font-bold border-b" style="color: var(--text-faint); border-color: var(--border-strong);">Transfer to another user</div>
+                            <form method="POST" action="{{ route('user.links.transfer', $link) }}" class="p-3 space-y-2"
+                                  onsubmit="return window.themedConfirmSubmit ? window.themedConfirmSubmit(this, {title: 'Transfer this link? This is instant and cannot be undone.', confirmText: 'Transfer', confirmIcon: 'fa-paper-plane', iconClass: 'fa-paper-plane'}) : confirm('Transfer this link? This cannot be undone.')">
+                                @csrf
+                                <input type="email" name="recipient_email" required placeholder="Recipient's account email"
+                                       class="w-full px-2.5 py-1.5 rounded-lg border text-xs"
+                                       style="background: var(--bg-input, transparent); border-color: var(--border-strong); color: var(--text-primary);">
+                                <button type="submit" class="w-full px-3 py-1.5 rounded-lg bg-blue-600 text-white text-xs font-medium hover:bg-blue-700 transition">
+                                    <i class="fas fa-paper-plane mr-1"></i> Transfer ownership
+                                </button>
+                                <p class="text-[10px] leading-snug" style="color: var(--text-faint);">Moves this link and all its data to the recipient's account instantly.</p>
+                            </form>
                         </div>
                     </div>
                     @endif

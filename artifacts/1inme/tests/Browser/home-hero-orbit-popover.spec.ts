@@ -27,7 +27,7 @@ const CONSENT_COOKIE = "1inme_cookie_consent";
 const NODE_TITLES = [
   // Inner ring
   "AI Page Builder",
-  "AI Growth Coach",
+  "AI Link Optimizer",
   "AI Phone",
   "Live Analytics",
   // Middle ring

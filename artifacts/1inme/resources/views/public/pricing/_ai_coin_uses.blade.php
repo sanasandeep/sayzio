@@ -16,7 +16,7 @@
 --}}
 @php
     $aiCoinFeatures = [
-        ['icon' => 'fa-brain',            'name' => 'AI Knowledge Bases','desc' => 'Train knowledge bases for ingestion and embeddings'],
+        ['icon' => 'fa-brain',            'name' => 'AI Minds','desc' => 'Train AI Minds for ingestion and embeddings'],
         ['icon' => 'fa-user-astronaut',   'name' => 'AI Agents',         'desc' => 'Public chat agents & persona generation'],
         ['icon' => 'fa-robot',            'name' => 'Chat Widgets',      'desc' => 'Always-on chatbots on your biolink'],
         ['icon' => 'fa-headset',          'name' => 'Site Assistant',    'desc' => 'On-site help & support chat widget'],

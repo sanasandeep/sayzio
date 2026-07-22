@@ -247,6 +247,94 @@ export async function getCreatorPreviewUrl(): Promise<{
   return res.data;
 }
 
+// ---------------------------------------------------------------------------
+// Owner creator-profile settings (Task #5600) — GET seeds the settings
+// form losslessly (raw showcase incl. disabled featured links); PATCH
+// saves via the shared web helpers.
+// ---------------------------------------------------------------------------
+
+export type OwnerFeaturedLink = {
+  id: number;
+  enabled: boolean;
+  title: string | null;
+  alias: string | null;
+  type: string | null;
+};
+
+export type OwnerShowcaseItem = {
+  type: string;
+  link_id: number;
+  title: string | null;
+  alias: string | null;
+};
+
+export type CreatorProfileSettings = {
+  handle: string | null;
+  tagline: string | null;
+  location: string | null;
+  bio: string | null;
+  niche_tags: string[];
+  socials: Record<string, string>;
+  sections: Record<string, boolean>;
+  profile_published: boolean;
+  profile_theme_color: string | null;
+  showcase: {
+    featured_links: OwnerFeaturedLink[];
+    featured_links_style: FeaturedLinksStyle;
+    show_link_stats: boolean;
+    showcase_items: OwnerShowcaseItem[];
+    highlights: {
+      show_followers: boolean;
+      show_links: boolean;
+      show_member_since: boolean;
+      show_verified: boolean;
+    };
+    cta: { primary: CtaButton | null; secondary: CtaButton[] };
+  };
+};
+
+export async function getCreatorProfileSettings(): Promise<CreatorProfileSettings> {
+  const res = await apiFetch<{ data: { profile: CreatorProfileSettings } }>(
+    "/me/creator-profile",
+  );
+  return res.data.profile;
+}
+
+/**
+ * PATCH payload. Booleans are sent as "1"/"0" strings — the server
+ * validates with `in:0,1,true,false`, and PHP's (string) cast turns a
+ * JSON `false` into "" which would FAIL that rule, so never send raw
+ * JSON booleans here.
+ */
+export type CreatorProfileUpdatePayload = {
+  tagline?: string | null;
+  location?: string | null;
+  bio?: string | null;
+  profile_theme_color?: string | null;
+  sections?: Record<string, "0" | "1">;
+  featured_links?: { id: number; enabled: "0" | "1" }[];
+  featured_links_style?: FeaturedLinksStyle;
+  showcase_show_link_stats?: "0" | "1";
+  showcase_items?: { type: string; link_id: number }[];
+  highlights_show_followers?: "0" | "1";
+  highlights_show_links?: "0" | "1";
+  highlights_show_member_since?: "0" | "1";
+  highlights_show_verified?: "0" | "1";
+  cta_primary_kind?: CtaButton["kind"] | null;
+  cta_primary_label?: string | null;
+  cta_primary_value?: string | null;
+  cta_secondary?: CtaButton[];
+};
+
+export async function updateCreatorProfile(
+  payload: CreatorProfileUpdatePayload,
+): Promise<void> {
+  await apiFetch("/me/creator-profile", {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+}
+
 export const creatorProfile = {
   show: async (handle: string) => {
     const res = await apiFetch<{ data: ProfileResponse }>(

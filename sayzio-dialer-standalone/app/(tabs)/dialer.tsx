@@ -16,6 +16,7 @@ import {
 import {
   ActivityIndicator,
   Alert,
+  AppState,
   FlatList,
   Linking,
   Modal,
@@ -63,15 +64,11 @@ import {
 } from "@/lib/api/dialer";
 import { type Contact, listContacts } from "@/lib/api/contacts";
 import {
-  getCallAccounts,
-  getCallMode,
-  getSimPref,
-  placeRealCall,
-  setCallMode,
-  setSimPref,
-  type CallMode,
-  type SimPref,
-} from "@/lib/placeCall";
+  getKeypadMode,
+  subscribeDialerPrefs,
+  type KeypadMode,
+} from "@/lib/dialerPrefs";
+import { getCallAccounts, placeRealCall } from "@/lib/placeCall";
 import {
   type CallAccount,
   type CallLogEntry,
@@ -196,7 +193,7 @@ export default function DialerScreen() {
   // Universal finder (keypad): grouped results across Contacts, People, My
   // links, Followed and Workspaces via the shared server contract. `keypadMode`
   // toggles the T9 digit grid ↔ an alphanumeric keyboard; both feed this.
-  const [keypadMode, setKeypadMode] = useState<"t9" | "abc">("t9");
+  const [keypadMode, setKeypadModeState] = useState<KeypadMode>("t9");
   const [uni, setUni] = useState<DialerSearchResult | null>(null);
   const [uniLoading, setUniLoading] = useState(false);
   const [suggestions, setSuggestions] = useState<DialerSuggestionsResult | null>(null);
@@ -214,25 +211,26 @@ export default function DialerScreen() {
     "unavailable" | "unknown" | "granted" | "denied"
   >(Platform.OS === "android" && ZioTelephony ? "unknown" : "unavailable");
 
-  // Dual-SIM: call-capable accounts + the remembered SIM preference.
+  // Dual-SIM: call-capable accounts (SIM preference + call mode now live in
+  // the drawer's Dialer settings; placeRealCall reads them from storage).
   const [simAccounts, setSimAccounts] = useState<CallAccount[]>([]);
-  const [simPref, setSimPrefState] = useState<SimPref>("ask");
 
-  // Calling preference: "direct" (Android default) or "system" (hand off to
-  // the OS phone app). iOS is always "system" — the platform forbids silent
-  // dialing. Initialized from the platform default; loaded from storage on mount.
-  const [callMode, setCallModeState] = useState<CallMode>(
-    Platform.OS === "android" ? "direct" : "system",
-  );
+  // Recent tab accordion: key of the expanded row (details + channel actions).
+  const [expandedRecent, setExpandedRecent] = useState<string | null>(null);
 
   // While a search is active (typed query or a filter chip), hide the
   // favorites/frequent shelves so results are visible above the dock.
   const searchActive =
     number.trim().length >= 2 || filterVerified || filterBiolink;
 
-  // Load the persisted call mode once on mount.
+  // Keypad input mode (T9 ↔ keyboard) is set from the drawer's Dialer
+  // settings; load it on mount and live-reload whenever the drawer saves.
   useEffect(() => {
-    getCallMode().then(setCallModeState).catch(() => {});
+    const load = () => {
+      void getKeypadMode().then(setKeypadModeState).catch(() => {});
+    };
+    load();
+    return subscribeDialerPrefs(load);
   }, []);
 
   // Dual-SIM detection: needs READ_PHONE_STATE, so only probe once the
@@ -250,7 +248,6 @@ export default function DialerScreen() {
         const accounts = getCallAccounts();
         if (cancelled) return;
         setSimAccounts(accounts);
-        setSimPrefState(await getSimPref());
       } catch {
         /* leave single-SIM defaults */
       }
@@ -372,6 +369,19 @@ export default function DialerScreen() {
     }
   }, []);
 
+  // Refresh the recent list whenever the app returns to the foreground —
+  // e.g. right after a call ends and the user comes back from the in-call
+  // screen, so the just-finished call shows up without a manual reload.
+  useEffect(() => {
+    const sub = AppState.addEventListener("change", (state) => {
+      if (state === "active") {
+        void loadDeviceCallLog(false);
+        void refreshRecent();
+      }
+    });
+    return () => sub.remove();
+  }, [loadDeviceCallLog, refreshRecent]);
+
   const refreshFavorites = useCallback(async () => {
     try {
       setFavorites(await listFavorites());
@@ -490,6 +500,10 @@ export default function DialerScreen() {
       if (!num) continue;
       seen.add(num);
       const secs = c.duration > 0 ? ` · ${formatCallDuration(c.duration)}` : "";
+      const direction: "in" | "out" | "missed" =
+        c.type === 2 ? "out" : c.type === 1 ? "in" : "missed";
+      const dirWord =
+        direction === "out" ? "Outgoing" : direction === "in" ? "Incoming" : "Missed";
       rows.push({
         key: `d${num}-${c.date}`,
         number: num,
@@ -499,8 +513,8 @@ export default function DialerScreen() {
         isSpam: false,
         isBlocked: false,
         biolink: false,
-        sub: `${relativeMs(c.date)}${secs}`,
-        direction: c.type === 2 ? "out" : c.type === 1 ? "in" : "missed",
+        sub: `${dirWord} · ${relativeMs(c.date)}${secs}`,
+        direction,
       });
     }
 
@@ -517,8 +531,10 @@ export default function DialerScreen() {
         isSpam: r.is_spam,
         isBlocked: r.is_blocked,
         biolink: r.biolink,
-        sub: r.last_human ?? "",
-        direction: null,
+        // Server history rows are calls placed from this account (logged at
+        // dial time), so they are always outgoing.
+        sub: `Outgoing${r.last_human ? ` · ${r.last_human}` : ""}`,
+        direction: "out",
       });
     }
     for (const r of localRecent) {
@@ -532,8 +548,9 @@ export default function DialerScreen() {
         isSpam: false,
         isBlocked: false,
         biolink: false,
-        sub: relativeMs(r.at),
-        direction: null,
+        // Local rows are dials placed from this app — outgoing by definition.
+        sub: `Outgoing · ${relativeMs(r.at)}`,
+        direction: "out",
       });
     }
     return rows.slice(0, RECENT_MAX);
@@ -569,7 +586,7 @@ export default function DialerScreen() {
   }, []);
 
   const dial = useCallback(
-    async (raw: string, label?: string | null) => {
+    async (raw: string, label?: string | null, simIndex?: number) => {
       const trimmed = raw.trim();
       if (!trimmed) {
         Alert.alert("No number", "Enter a number to dial.");
@@ -597,9 +614,16 @@ export default function DialerScreen() {
 
       // Place a REAL call through the device (ACTION_CALL on Android with
       // the CALL_PHONE permission, tel: fallback everywhere else).
-      void placeRealCall(trimmed);
+      void placeRealCall(trimmed, simIndex != null ? { simIndex } : undefined);
+
+      // The device call log gets the new entry once the call ends; refresh
+      // shortly after so the Recent tab shows it without a manual reload.
+      setTimeout(() => {
+        void loadDeviceCallLog(false);
+        void refreshRecent();
+      }, 4000);
     },
-    [localRecent],
+    [localRecent, loadDeviceCallLog, refreshRecent],
   );
 
   // Open the caller-ID / mini-CRM profile for a number.
@@ -691,8 +715,9 @@ export default function DialerScreen() {
           keyboardShouldPersistTaps="handled"
         >
           {/* Favorites / speed dial — hidden while searching so results are
-              visible above the dock; empty-state CTA teaches how to add. */}
-          {!searchActive && (
+              visible above the dock, and hidden entirely until the first
+              favorite exists (no empty-state card). */}
+          {!searchActive && favorites.length > 0 && (
           <View style={styles.section}>
               <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
                 <Text style={[styles.sectionLabel, { color: colors.mutedForeground, marginBottom: 0 }]}>
@@ -709,22 +734,6 @@ export default function DialerScreen() {
                   </Pressable>
                 )}
               </View>
-              {favorites.length === 0 ? (
-                <View style={[styles.favEmpty, { borderColor: colors.border, backgroundColor: colors.card }]}>
-                  <Feather name="star" size={20} color={colors.mutedForeground} />
-                  <Text style={[styles.favEmptyText, { color: colors.mutedForeground }]}>
-                    No favorites yet. Open a contact and tap "Speed dial" to pin the people you call most.
-                  </Text>
-                  <Pressable
-                    onPress={() => setTab("contacts")}
-                    style={[styles.favEmptyBtn, { backgroundColor: colors.primary }]}
-                  >
-                    <Text style={{ color: "#fff", fontSize: 12, fontFamily: "SpaceGrotesk_600SemiBold" }}>
-                      Browse contacts
-                    </Text>
-                  </Pressable>
-                </View>
-              ) : (
               <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                 {favorites.map((f) => (
                   <Pressable
@@ -775,7 +784,6 @@ export default function DialerScreen() {
                   </Pressable>
                 ))}
               </ScrollView>
-              )}
             </View>
           )}
 
@@ -828,6 +836,41 @@ export default function DialerScreen() {
           )}
 
           <View style={styles.keypadWrap}>
+            {/* Search filter chips (verification badge / on Sayzio) — moved
+                out of the keypad dock so they live with the results area. */}
+            <View style={styles.filterRow}>
+              {(
+                [
+                  { key: "verified", label: "Verified", on: filterVerified, set: setFilterVerified, icon: "check-circle" },
+                  { key: "biolink", label: "On Sayzio", on: filterBiolink, set: setFilterBiolink, icon: "link" },
+                ] as const
+              ).map((f) => (
+                <Pressable
+                  key={f.key}
+                  onPress={() => f.set((v) => !v)}
+                  style={[
+                    styles.filterChip,
+                    {
+                      backgroundColor: f.on ? colors.primary : colors.card,
+                      borderColor: f.on ? colors.primary : colors.border,
+                    },
+                  ]}
+                >
+                  <Feather name={f.icon} size={12} color={f.on ? "#fff" : colors.mutedForeground} />
+                  <Text
+                    style={{
+                      color: f.on ? "#fff" : colors.mutedForeground,
+                      fontSize: 11,
+                      fontFamily: "SpaceGrotesk_500Medium",
+                      marginLeft: 5,
+                    }}
+                  >
+                    {f.label}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+
             {/* Username quick actions (abc mode): open a typed handle
                 directly on Telegram / Instagram. */}
             {keypadMode === "abc" && usernameOf(number) != null && (
@@ -1026,193 +1069,20 @@ export default function DialerScreen() {
           </View>
         </ScrollView>
 
-        {/* Pinned keypad dock — always fully visible above the tab bar. */}
-        <View style={[styles.keypadDock, { borderTopColor: colors.border, backgroundColor: colors.background }]}>
-            {/* Keypad mode toggle: T9 digit grid ↔ alphanumeric keyboard.
-                Both write to the same query and feed the same universal search. */}
-            <View style={styles.modeToggle}>
-              {(["t9", "abc"] as const).map((m) => {
-                const active = keypadMode === m;
-                return (
-                  <Pressable
-                    key={m}
-                    onPress={() => setKeypadMode(m)}
-                    style={[
-                      styles.modeBtn,
-                      {
-                        backgroundColor: active ? colors.primary : colors.card,
-                        borderColor: active ? colors.primary : colors.border,
-                      },
-                    ]}
-                  >
-                    <Feather
-                      name={m === "t9" ? "grid" : "type"}
-                      size={13}
-                      color={active ? "#fff" : colors.mutedForeground}
-                    />
-                    <Text
-                      style={{
-                        color: active ? "#fff" : colors.mutedForeground,
-                        fontSize: 12,
-                        fontFamily: "SpaceGrotesk_600SemiBold",
-                        marginLeft: 6,
-                      }}
-                    >
-                      {m === "t9" ? "T9" : "Keyboard"}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-              {/* Dual-SIM chip: shows the remembered SIM, taps open the
-                  chooser (SIM 1 / SIM 2 / Always ask). Only on 2+ SIMs. */}
-              {simAccounts.length >= 2 && (
-                <Pressable
-                  onPress={() => {
-                    Alert.alert(
-                      "Default SIM for calls",
-                      "Pick a SIM to always call with, or ask every time.",
-                      [
-                        ...simAccounts.slice(0, 2).map((a) => ({
-                          text: a.label,
-                          onPress: () => {
-                            setSimPrefState(a.index);
-                            void setSimPref(a.index);
-                          },
-                        })),
-                        {
-                          text: "Always ask",
-                          onPress: () => {
-                            setSimPrefState("ask");
-                            void setSimPref("ask");
-                          },
-                        },
-                      ],
-                      { cancelable: true },
-                    );
-                  }}
-                  style={[
-                    styles.modeBtn,
-                    { flex: 0, paddingHorizontal: 10, backgroundColor: colors.card, borderColor: colors.border },
-                  ]}
-                >
-                  <Feather name="cpu" size={13} color={colors.mutedForeground} />
-                  <Text
-                    style={{
-                      color: colors.mutedForeground,
-                      fontSize: 12,
-                      fontFamily: "SpaceGrotesk_600SemiBold",
-                      marginLeft: 6,
-                    }}
-                  >
-                    {simPref === "ask"
-                      ? "SIM: Ask"
-                      : simAccounts.find((a) => a.index === simPref)?.label ?? "SIM"}
-                  </Text>
-                </Pressable>
-              )}
-
-              {/* Calling mode chip — Android: toggle Direct call / Phone app.
-                  iOS: shown grayed-out (platform forbids silent dialing). */}
-              <Pressable
-                onPress={() => {
-                  if (Platform.OS !== "android") {
-                    Alert.alert(
-                      "Calling on iOS",
-                      "iOS does not allow apps to place calls directly. Tapping Call always opens the Phone app with the number pre-filled.",
-                      [{ text: "OK" }],
-                    );
-                    return;
-                  }
-                  Alert.alert(
-                    "Calling",
-                    "How should calls be placed?",
-                    [
-                      {
-                        text: "Direct call (place immediately)",
-                        onPress: () => {
-                          setCallModeState("direct");
-                          void setCallMode("direct");
-                        },
-                      },
-                      {
-                        text: "Open phone app",
-                        onPress: () => {
-                          setCallModeState("system");
-                          void setCallMode("system");
-                        },
-                      },
-                      { text: "Cancel", style: "cancel" },
-                    ],
-                    { cancelable: true },
-                  );
-                }}
-                style={[
-                  styles.modeBtn,
-                  {
-                    flex: 0,
-                    paddingHorizontal: 10,
-                    backgroundColor: colors.card,
-                    borderColor: colors.border,
-                    opacity: Platform.OS !== "android" ? 0.5 : 1,
-                  },
-                ]}
-              >
-                <Feather
-                  name={callMode === "direct" ? "phone-call" : "phone-forwarded"}
-                  size={13}
-                  color={colors.mutedForeground}
-                />
-                <Text
-                  style={{
-                    color: colors.mutedForeground,
-                    fontSize: 12,
-                    fontFamily: "SpaceGrotesk_600SemiBold",
-                    marginLeft: 6,
-                  }}
-                >
-                  {Platform.OS !== "android"
-                    ? "Phone app"
-                    : callMode === "direct"
-                      ? "Direct call"
-                      : "Phone app"}
-                </Text>
-              </Pressable>
-            </View>
-
-            {/* Advanced filter chips (verification badge / on Sayzio). */}
-            <View style={styles.filterRow}>
-              {(
-                [
-                  { key: "verified", label: "Verified", on: filterVerified, set: setFilterVerified, icon: "check-circle" },
-                  { key: "biolink", label: "On Sayzio", on: filterBiolink, set: setFilterBiolink, icon: "link" },
-                ] as const
-              ).map((f) => (
-                <Pressable
-                  key={f.key}
-                  onPress={() => f.set((v) => !v)}
-                  style={[
-                    styles.filterChip,
-                    {
-                      backgroundColor: f.on ? colors.primary : colors.card,
-                      borderColor: f.on ? colors.primary : colors.border,
-                    },
-                  ]}
-                >
-                  <Feather name={f.icon} size={12} color={f.on ? "#fff" : colors.mutedForeground} />
-                  <Text
-                    style={{
-                      color: f.on ? "#fff" : colors.mutedForeground,
-                      fontSize: 11,
-                      fontFamily: "SpaceGrotesk_500Medium",
-                      marginLeft: 5,
-                    }}
-                  >
-                    {f.label}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
-
+        {/* Pinned keypad dock — always fully visible above the tab bar and
+            the Android system navigation (safe-area bottom inset). */}
+        <View
+          style={[
+            styles.keypadDock,
+            {
+              borderTopColor: colors.border,
+              backgroundColor: colors.background,
+              paddingBottom: Math.max(insets.bottom, 8),
+            },
+          ]}
+        >
+            {/* Keypad mode toggle, default-SIM and calling-mode settings
+                moved into the menu drawer (Dialer settings). */}
             <View style={styles.numberRow}>
               <Text
                 numberOfLines={1}
@@ -1326,19 +1196,46 @@ export default function DialerScreen() {
               >
                 <Feather name="info" size={20} color={colors.foreground} />
               </Pressable>
-              <Pressable
-                onPress={() => dial(number)}
-                disabled={!number}
-                style={({ pressed }) => [
-                  styles.callBtn,
-                  {
-                    backgroundColor: number ? "#16a34a" : colors.muted,
-                    opacity: pressed ? 0.85 : 1,
-                  },
-                ]}
-              >
-                <Feather name="phone" size={26} color="#fff" />
-              </Pressable>
+              {simAccounts.length >= 2 ? (
+                // Dual SIM: one call button per SIM — no pop-up chooser.
+                <View style={{ flexDirection: "row", gap: 12 }}>
+                  {simAccounts.slice(0, 2).map((a, i) => (
+                    <Pressable
+                      key={a.index}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Call with ${a.label || `SIM ${i + 1}`}`}
+                      onPress={() => dial(number, null, a.index)}
+                      disabled={!number}
+                      style={({ pressed }) => [
+                        styles.simCallBtn,
+                        {
+                          backgroundColor: number ? "#16a34a" : colors.muted,
+                          opacity: pressed ? 0.85 : 1,
+                        },
+                      ]}
+                    >
+                      <Feather name="phone" size={22} color="#fff" />
+                      <Text style={styles.simCallLabel} numberOfLines={1}>
+                        {a.label?.trim() || `SIM ${i + 1}`}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
+              ) : (
+                <Pressable
+                  onPress={() => dial(number)}
+                  disabled={!number}
+                  style={({ pressed }) => [
+                    styles.callBtn,
+                    {
+                      backgroundColor: number ? "#16a34a" : colors.muted,
+                      opacity: pressed ? 0.85 : 1,
+                    },
+                  ]}
+                >
+                  <Feather name="phone" size={26} color="#fff" />
+                </Pressable>
+              )}
               <View style={styles.secondaryBtn} />
             </View>
 
@@ -1381,23 +1278,37 @@ export default function DialerScreen() {
                   styles.deviceCta,
                   {
                     marginHorizontal: 16,
-                    borderColor: colors.border,
-                    backgroundColor: pressed ? colors.muted : colors.card,
+                    borderColor: colors.primary,
+                    backgroundColor: colors.primary,
+                    opacity: pressed ? 0.85 : 1,
+                    paddingVertical: 14,
                   },
                 ]}
               >
-                <Feather name="phone-incoming" size={16} color={colors.primary} />
-                <Text
-                  style={{
-                    color: colors.foreground,
-                    fontFamily: "SpaceGrotesk_500Medium",
-                    fontSize: 13,
-                    marginLeft: 10,
-                    flex: 1,
-                  }}
-                >
-                  Show your phone's call history here
-                </Text>
+                <Feather name="phone-incoming" size={18} color={colors.primaryForeground} />
+                <View style={{ flex: 1, marginLeft: 10 }}>
+                  <Text
+                    style={{
+                      color: colors.primaryForeground,
+                      fontFamily: "SpaceGrotesk_600SemiBold",
+                      fontSize: 14,
+                    }}
+                  >
+                    See your real call history
+                  </Text>
+                  <Text
+                    style={{
+                      color: colors.primaryForeground,
+                      opacity: 0.85,
+                      fontSize: 12,
+                      marginTop: 2,
+                    }}
+                  >
+                    Tap to allow call-log access — incoming, outgoing and missed
+                    calls will show here.
+                  </Text>
+                </View>
+                <Feather name="chevron-right" size={18} color={colors.primaryForeground} />
               </Pressable>
             ) : callLogAccess === "denied" ? (
               <Pressable
@@ -1452,14 +1363,19 @@ export default function DialerScreen() {
               </View>
             )
           }
-          renderItem={({ item }) => (
+          renderItem={({ item }) => {
+            const expanded = expandedRecent === item.key;
+            const dirColor =
+              item.direction === "missed"
+                ? colors.destructive
+                : item.direction === "in"
+                  ? "#16a34a"
+                  : item.direction === "out"
+                    ? "#3b82f6"
+                    : colors.mutedForeground;
+            return (
             <Pressable
-              onPress={() =>
-                openProfile(item.number, {
-                  contactId: item.contactId,
-                  name: item.label,
-                })
-              }
+              onPress={() => setExpandedRecent(expanded ? null : item.key)}
               onLongPress={() => {
                 const isLocal = localRecent.some((r) => r.number === item.number);
                 if (!isLocal) {
@@ -1480,63 +1396,176 @@ export default function DialerScreen() {
               }}
               style={({ pressed }) => [
                 styles.row,
+                // styles.row is a flex-row (shared with other lists); this row
+                // stacks header + expanded panel vertically, so force column
+                // or the accordion renders BESIDE the header, clipped.
                 {
+                  flexDirection: "column",
+                  alignItems: "stretch",
                   borderBottomColor: colors.border,
                   backgroundColor: pressed ? colors.muted : "transparent",
                 },
               ]}
             >
-              <View style={{ flex: 1 }}>
-                <View style={styles.rowTitleLine}>
-                  {item.direction != null && (
-                    <Feather
-                      name={
-                        item.direction === "out"
-                          ? "arrow-up-right"
-                          : item.direction === "in"
-                            ? "arrow-down-left"
-                            : "phone-missed"
-                      }
-                      size={13}
-                      color={
-                        item.direction === "missed"
-                          ? colors.destructive
-                          : colors.mutedForeground
-                      }
-                    />
-                  )}
-                  <Text
-                    style={{
-                      color: colors.foreground,
-                      fontFamily: "SpaceGrotesk_600SemiBold",
-                      fontSize: 16,
-                    }}
-                  >
-                    {item.label ?? item.number}
-                  </Text>
-                  {item.calls > 1 && (
-                    <Text style={[styles.countPill, { color: colors.primary }]}>
-                      ×{item.calls}
+              <View style={{ flexDirection: "row", alignItems: "center" }}>
+                <View style={{ flex: 1 }}>
+                  <View style={styles.rowTitleLine}>
+                    {item.direction != null && (
+                      <Feather
+                        name={
+                          item.direction === "out"
+                            ? "arrow-up-right"
+                            : item.direction === "in"
+                              ? "arrow-down-left"
+                              : "phone-missed"
+                        }
+                        size={16}
+                        color={dirColor}
+                      />
+                    )}
+                    <Text
+                      style={{
+                        color:
+                          item.direction === "missed"
+                            ? colors.destructive
+                            : colors.foreground,
+                        fontFamily: "SpaceGrotesk_600SemiBold",
+                        fontSize: 17,
+                      }}
+                    >
+                      {item.label ?? item.number}
+                    </Text>
+                    {item.calls > 1 && (
+                      <Text style={[styles.countPill, { color: colors.primary }]}>
+                        ×{item.calls}
+                      </Text>
+                    )}
+                    {item.biolink && <MiniTag text="Sayzio" color="#d76dff" />}
+                    {item.isSpam && <MiniTag text="SPAM" color={colors.destructive} />}
+                    {item.isBlocked && <MiniTag text="BLOCKED" color="#9ca3af" />}
+                  </View>
+                  {item.label && (
+                    <Text style={{ color: dirColor, fontSize: 15, marginTop: 2, fontFamily: "SpaceGrotesk_500Medium" }}>
+                      {item.number}
                     </Text>
                   )}
-                  {item.biolink && <MiniTag text="Sayzio" color="#d76dff" />}
-                  {item.isSpam && <MiniTag text="SPAM" color={colors.destructive} />}
-                  {item.isBlocked && <MiniTag text="BLOCKED" color="#9ca3af" />}
-                </View>
-                {item.label && (
                   <Text style={{ color: colors.mutedForeground, fontSize: 13, marginTop: 2 }}>
-                    {item.number}
+                    {item.sub}
                   </Text>
-                )}
-                <Text style={{ color: colors.mutedForeground, fontSize: 12, marginTop: 2 }}>
-                  {item.sub}
-                </Text>
+                </View>
+                {/* One-tap call stays on the collapsed row; details expand below.
+                    stopPropagation keeps the tap from also toggling the accordion
+                    (RN-web bubbles presses to the parent Pressable). */}
+                <Pressable
+                  onPress={(e) => {
+                    e.stopPropagation();
+                    dial(item.number, item.label);
+                  }}
+                  hitSlop={8}
+                  style={({ pressed }) => ({
+                    width: 42,
+                    height: 42,
+                    borderRadius: 21,
+                    alignItems: "center",
+                    justifyContent: "center",
+                    backgroundColor: pressed ? "#15803d" : "#16a34a",
+                    marginRight: 8,
+                  })}
+                >
+                  <Feather name="phone" size={18} color="#fff" />
+                </Pressable>
+                <Feather
+                  name={expanded ? "chevron-up" : "chevron-down"}
+                  size={18}
+                  color={colors.mutedForeground}
+                />
               </View>
-              <View style={styles.rowActions}>
-                <ChannelActions number={item.number} size="md" />
-              </View>
+              {expanded && (
+                <View
+                  style={{
+                    marginTop: 10,
+                    paddingTop: 4,
+                    borderTopWidth: StyleSheet.hairlineWidth,
+                    borderTopColor: colors.border,
+                  }}
+                >
+                  {/* Simple stock-phone style action list. */}
+                  {[
+                    item.contactId == null
+                      ? {
+                          key: "add",
+                          icon: "user-plus" as const,
+                          label: "Add to contacts",
+                          onPress: () =>
+                            router.push({
+                              pathname: "/contacts/new",
+                              params: {
+                                phone: item.number,
+                                ...(item.label ? { name: item.label } : {}),
+                              },
+                            }),
+                        }
+                      : {
+                          key: "view",
+                          icon: "user" as const,
+                          label: "View contact",
+                          onPress: () =>
+                            openProfile(item.number, {
+                              contactId: item.contactId,
+                              name: item.label,
+                            }),
+                        },
+                    {
+                      key: "sms",
+                      icon: "message-circle" as const,
+                      label: "Send message",
+                      onPress: () =>
+                        void Linking.openURL(`sms:${item.number}`).catch(() => {}),
+                    },
+                    {
+                      key: "history",
+                      icon: "clock" as const,
+                      label: "Call history & details",
+                      onPress: () =>
+                        openProfile(item.number, {
+                          contactId: item.contactId,
+                          name: item.label,
+                        }),
+                    },
+                  ].map((a) => (
+                    <Pressable
+                      key={a.key}
+                      onPress={(e) => {
+                        e.stopPropagation();
+                        a.onPress();
+                      }}
+                      style={({ pressed }) => ({
+                        flexDirection: "row",
+                        alignItems: "center",
+                        gap: 14,
+                        paddingVertical: 12,
+                        paddingHorizontal: 4,
+                        borderRadius: 8,
+                        backgroundColor: pressed ? colors.muted : "transparent",
+                      })}
+                    >
+                      <Feather name={a.icon} size={18} color={colors.primary} />
+                      <Text
+                        style={{
+                          color: colors.foreground,
+                          fontSize: 14,
+                          fontFamily: "SpaceGrotesk_500Medium",
+                        }}
+                      >
+                        {a.label}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
+              )}
             </Pressable>
-          )}
+            );
+          }}
         />
       )}
 
@@ -2381,6 +2410,22 @@ const styles = StyleSheet.create({
     borderRadius: 28,
     alignItems: "center",
     justifyContent: "center",
+  },
+  simCallBtn: {
+    minWidth: 84,
+    height: 56,
+    borderRadius: 28,
+    paddingHorizontal: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+  },
+  simCallLabel: {
+    color: "#fff",
+    fontSize: 13,
+    fontWeight: "700",
+    maxWidth: 80,
   },
   loading: { paddingVertical: 48, alignItems: "center", justifyContent: "center" },
   empty: { paddingVertical: 64, alignItems: "center", justifyContent: "center" },

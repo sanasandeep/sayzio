@@ -7,7 +7,7 @@
         <div>
             <p class="text-xs uppercase tracking-wider text-white/40">AI · Coach</p>
             <h1 class="text-2xl font-bold text-white mt-1">Coach usage &amp; quality</h1>
-            <p class="text-sm text-white/50 mt-1">Last <strong>{{ $days }}</strong> days. Spend is the sum of every AI credit charged with feature tag <code>ask_coach.*</code>.</p>
+            <p class="text-sm text-white/50 mt-1">Last <strong>{{ $days }}</strong> days. Spend is the sum of every coin charged with feature tag <code>ask_coach.*</code>.</p>
         </div>
         <form method="GET" action="{{ route('admin.ask-coach.index') }}">
             <select name="days" onchange="this.form.submit()" class="bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white text-sm">
@@ -39,7 +39,7 @@
             <p class="text-2xl font-bold text-white mt-1">{{ number_format($assistantMessages) }}</p>
         </div>
         <div class="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-            <p class="text-xs text-white/40">Credits spent</p>
+            <p class="text-xs text-white/40">Coins spent</p>
             <p class="text-2xl font-bold text-blue-300 mt-1">{{ number_format($creditsSpent) }} ✦</p>
         </div>
         <div class="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
@@ -147,7 +147,7 @@
         <div class="rounded-2xl border border-white/10 bg-white/[0.03] p-5 space-y-4">
             <div>
                 <h2 class="text-lg font-semibold text-white">Usage limits</h2>
-                <p class="text-sm text-white/40 mt-0.5">Throttle Coach usage per plan and apply credit surcharges. Blank or zero values mean unlimited / no surcharge.</p>
+                <p class="text-sm text-white/40 mt-0.5">Throttle Coach usage per plan and apply coin surcharges. Blank or zero values mean unlimited / no surcharge.</p>
             </div>
 
             <div>
@@ -198,7 +198,7 @@
                     <p class="text-xs text-white/40 mt-1">Minimum seconds a user must wait between messages. 0 = no limit.</p>
                 </div>
                 <div>
-                    <label class="block text-sm text-white/70 mb-1">Credit multiplier
+                    <label class="block text-sm text-white/70 mb-1">Coin multiplier
                         <span class="text-white/40 font-normal">(≥1.0, default 1.0 = no surcharge)</span>
                     </label>
                     <input type="number" name="credit_multiplier" step="0.05" min="1" max="10"

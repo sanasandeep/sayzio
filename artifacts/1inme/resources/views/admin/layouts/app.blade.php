@@ -158,6 +158,7 @@
                     <a href="{{ route('admin.badge-requests.index') }}" class="sidebar-link {{ request()->routeIs('admin.badge-requests.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-award"></i></div><span>Badge requests</span></a>
                     @endif
                     <a href="{{ route('admin.users.activity-log.index') }}" class="sidebar-link {{ request()->routeIs('admin.users.activity-log.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-clipboard-list"></i></div><span>Activity log</span></a>
+                    <a href="{{ route('admin.users.asset-transfers.index') }}" class="sidebar-link {{ request()->routeIs('admin.users.asset-transfers.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-right-left"></i></div><span>Asset transfers</span></a>
                     <a href="{{ route('admin.privacy-requests.index') }}" class="sidebar-link {{ request()->routeIs('admin.privacy-requests.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-user-shield"></i></div><span>Privacy Requests</span></a>
                     @if(auth('admin')->user()?->isSuperAdmin())
                         <a href="{{ route('admin.users.role-audit-exports.index') }}" class="sidebar-link {{ request()->routeIs('admin.users.role-audit-exports.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-file-csv"></i></div><span>Audit downloads</span></a>
@@ -200,7 +201,7 @@
                     <div class="section-header pt-4 pb-1 px-3 text-[10px] font-bold uppercase tracking-[0.15em]" style="color: var(--text-faint);">AI</div>
                     <a href="{{ route('admin.ai-engine.edit') }}" class="sidebar-link {{ request()->routeIs('admin.ai-engine.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-brain"></i></div><span>AI Engine</span></a>
                     <a href="{{ route('admin.ai-usage.index') }}" class="sidebar-link {{ request()->routeIs('admin.ai-usage.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-microchip"></i></div><span>AI Usage</span></a>
-                    <a href="{{ route('admin.ai-minds.index') }}" class="sidebar-link {{ request()->routeIs('admin.ai-minds.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-network-wired"></i></div><span>AI Knowledge Bases</span></a>
+                    <a href="{{ route('admin.ai-minds.index') }}" class="sidebar-link {{ request()->routeIs('admin.ai-minds.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-network-wired"></i></div><span>AI Minds</span></a>
                     <a href="{{ route('admin.ai-personas.index') }}" class="sidebar-link {{ request()->routeIs('admin.ai-personas.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-user-astronaut"></i></div><span>AI Personas</span></a>
                     <a href="{{ route('admin.site-assistant.edit') }}" class="sidebar-link {{ request()->routeIs('admin.site-assistant.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-robot"></i></div><span>Site Assistant</span></a>
                     <a href="{{ route('admin.ask-coach.index') }}" class="sidebar-link {{ request()->routeIs('admin.ask-coach.*') ? 'active' : '' }}"><div class="nav-icon-wrap"><i class="fas fa-comment-dots"></i></div><span>AI Coach</span></a>

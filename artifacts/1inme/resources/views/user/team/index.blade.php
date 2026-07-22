@@ -225,12 +225,12 @@
             </div>
             <div class="p-4 space-y-4">
                 <p class="text-xs opacity-70">
-                    Knowledge bases and AI agents that members have shared into this workspace. Anyone with a seat can use them; AI and coin costs are charged to whoever runs them, not the owner.
+                    AI Minds and AI agents that members have shared into this workspace. Anyone with a seat can use them; AI and coin costs are charged to whoever runs them, not the owner.
                 </p>
 
                 @if($sharedAiMinds->isNotEmpty())
                     <div>
-                        <div class="text-xs uppercase tracking-wider opacity-60 mb-2">Knowledge bases</div>
+                        <div class="text-xs uppercase tracking-wider opacity-60 mb-2">AI Minds</div>
                         <div class="space-y-2">
                             @foreach($sharedAiMinds as $s)
                                 <div class="flex items-center justify-between gap-3 rounded-lg border px-3 py-2" style="border-color: var(--border-strong);">
@@ -277,12 +277,12 @@
             </div>
             <div class="p-4 space-y-4">
                 <p class="text-xs opacity-70">
-                    Knowledge bases and AI agents shared with badge groups you currently hold. AI and coin costs are charged to whoever runs them, not the owner. Access ends automatically if you lose the badge.
+                    AI Minds and AI agents shared with badge groups you currently hold. AI and coin costs are charged to whoever runs them, not the owner. Access ends automatically if you lose the badge.
                 </p>
 
                 @if($badgeSharedAiMinds->isNotEmpty())
                     <div>
-                        <div class="text-xs uppercase tracking-wider opacity-60 mb-2">Knowledge bases</div>
+                        <div class="text-xs uppercase tracking-wider opacity-60 mb-2">AI Minds</div>
                         <div class="space-y-2">
                             @foreach($badgeSharedAiMinds as $s)
                                 <div class="flex items-center justify-between gap-3 rounded-lg border px-3 py-2" style="border-color: var(--border-strong);">

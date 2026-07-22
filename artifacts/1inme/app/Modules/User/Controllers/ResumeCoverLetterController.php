@@ -102,7 +102,7 @@ class ResumeCoverLetterController extends Controller
             );
         } catch (InsufficientCoinsForAiException $e) {
             return response()->json([
-                'message'  => 'Not enough AI credits to generate this cover letter.',
+                'message'  => 'Not enough coins to generate this cover letter.',
                 'required' => $e->required ?? null,
                 'balance'  => $e->balance ?? null,
             ], 402);
@@ -185,7 +185,7 @@ class ResumeCoverLetterController extends Controller
             );
         } catch (InsufficientCoinsForAiException $e) {
             return response()->json([
-                'message'  => 'Not enough AI credits to regenerate this section.',
+                'message'  => 'Not enough coins to regenerate this section.',
                 'required' => $e->required ?? null,
                 'balance'  => $e->balance ?? null,
             ], 402);

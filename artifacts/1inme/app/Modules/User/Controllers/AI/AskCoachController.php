@@ -974,7 +974,7 @@ class AskCoachController extends Controller
         try {
             app(\App\Services\Billing\WalletService::class)->debit($user, $surcharge, [
                 'feature' => 'ask_coach.multiplier_surcharge',
-                'reason'  => 'Coach admin credit multiplier surcharge',
+                'reason'  => 'Coach admin coin multiplier surcharge',
             ]);
         } catch (\Throwable $e) {
             Log::warning('Ask Coach multiplier surcharge debit failed: ' . $e->getMessage());

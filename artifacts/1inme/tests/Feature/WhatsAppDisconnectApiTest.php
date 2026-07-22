@@ -53,20 +53,24 @@ class WhatsAppDisconnectApiTest extends TestCase
         return $user->fresh();
     }
 
-    /** Attach a verified email so the account always keeps a primary contact. */
+    /**
+     * The verified primary email identifier auto-created by the User::created
+     * observer from users.email (creating a second primary would violate the
+     * one_primary_per_user constraint).
+     */
     private function verifyEmail(User $u): LinkedIdentifier
     {
-        return LinkedIdentifier::create([
-            'user_id'     => $u->id,
-            'kind'        => 'email',
-            'value'       => $u->email,
-            'verified_at' => now(),
-            'is_primary'  => true,
-        ]);
+        return $u->linkedIdentifiers()->where('kind', 'email')->firstOrFail();
     }
 
     private function verifyPhone(User $u, string $number = '+15551234567', bool $primary = false): LinkedIdentifier
     {
+        if ($primary) {
+            // Only one primary identifier per user — demote the auto-created
+            // primary email before making the phone primary.
+            $u->linkedIdentifiers()->where('is_primary', true)->update(['is_primary' => false]);
+        }
+
         return LinkedIdentifier::create([
             'user_id'     => $u->id,
             'kind'        => 'phone',
@@ -106,7 +110,39 @@ class WhatsAppDisconnectApiTest extends TestCase
             ->assertJsonPath('data.has_whatsapp_number', true)
             ->assertJsonPath('data.mobile_masked', '+•••••••4567')
             ->assertJsonPath('data.can_remove', true)
-            ->assertJsonPath('data.remove_blocked_reason', null);
+            ->assertJsonPath('data.remove_blocked_reason', null)
+            ->assertJsonPath('data.is_primary', false)
+            ->assertJsonPath('data.promotes_to', null)
+            ->assertJsonPath('data.promotes_to_kind', null);
+    }
+
+    public function test_status_exposes_promotion_target_when_number_is_primary(): void
+    {
+        // Phone is the primary sign-in identifier and a verified email exists:
+        // status must tell the client which (masked) contact becomes primary
+        // so the remove confirmation can warn about the sign-in switch.
+        $user = $this->user();
+        LinkedIdentifier::create([
+            'user_id'     => $user->id,
+            'kind'        => 'email',
+            'value'       => $user->email,
+            'verified_at' => now(),
+            'is_primary'  => false,
+        ]);
+        $this->verifyPhone($user, '+15551234567', primary: true);
+
+        $res = $this->withToken($this->token($user))
+            ->getJson('/api/v1/me/whatsapp')
+            ->assertOk()
+            ->assertJsonPath('data.is_primary', true)
+            ->assertJsonPath('data.promotes_to_kind', 'email');
+
+        $masked = $res->json('data.promotes_to');
+        $this->assertIsString($masked);
+        // Masked, not the raw address: first char + bullets + @domain.
+        $this->assertStringContainsString('•', $masked);
+        $this->assertStringNotContainsString(substr($user->email, 1, 4), explode('@', $masked)[0]);
+        $this->assertStringEndsWith('@' . explode('@', $user->email, 2)[1], $masked);
     }
 
     public function test_disconnect_removes_the_number(): void
@@ -136,12 +172,47 @@ class WhatsAppDisconnectApiTest extends TestCase
             ->assertJsonPath('error.code', 'no_number');
     }
 
-    public function test_cannot_disconnect_a_primary_number(): void
+    public function test_disconnect_primary_number_promotes_fallback_contact(): void
+    {
+        // Signed up with the phone (it's the primary identifier) but also has a
+        // verified email — mirrors the web flow that promotes the email to
+        // primary before unlinking the number.
+        $user = $this->user();
+        $email = LinkedIdentifier::create([
+            'user_id'     => $user->id,
+            'kind'        => 'email',
+            'value'       => $user->email,
+            'verified_at' => now(),
+            'is_primary'  => false,
+        ]);
+        $phone = $this->verifyPhone($user, '+15551234567', primary: true);
+
+        $status = $this->withToken($this->token($user))
+            ->getJson('/api/v1/me/whatsapp')
+            ->assertOk();
+        $status->assertJsonPath('data.can_remove', true);
+        $status->assertJsonPath('data.remove_blocked_reason', null);
+
+        $this->withToken($this->token($user))
+            ->deleteJson('/api/v1/me/whatsapp')
+            ->assertOk()
+            ->assertJsonPath('data.has_whatsapp_number', false)
+            ->assertJsonPath('data.mobile_masked', null);
+
+        $this->assertDatabaseMissing('linked_identifiers', ['id' => $phone->id]);
+        $this->assertTrue((bool) $email->fresh()->is_primary);
+        $this->assertFalse($user->fresh()->hasWhatsappNumber());
+    }
+
+    public function test_cannot_disconnect_a_primary_number_without_other_contact(): void
     {
         // Signed up with the phone (it's the primary identifier) and has no other
         // verified contact — mirrors the web guard that blocks the removal.
+        // Drop the auto-created email identifier so the phone is truly the only
+        // verified contact.
         $user = $this->user();
         $phone = $this->verifyPhone($user, '+15551234567', primary: true);
+        $user->linkedIdentifiers()->where('kind', 'email')->delete();
 
         $status = $this->withToken($this->token($user))
             ->getJson('/api/v1/me/whatsapp')

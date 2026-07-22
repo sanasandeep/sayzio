@@ -78,7 +78,7 @@
                 <span style="color: var(--text-dimmed);">Verified name</span>
                 <p class="font-semibold mt-0.5 flex items-center gap-1" style="color: var(--text-primary);">
                     {{ $user->profile_verified_name }}
-                    <i class="fas fa-lock text-[9px]" style="color: var(--text-dimmed);" title="Locked — name and avatar are frozen. Request a change via re-verification."></i>
+                    <i class="fas fa-lock text-[9px]" style="color: var(--text-dimmed);" title="Locked: name and avatar are frozen. Request a change via re-verification."></i>
                 </p>
             </div>
             @if($user->profile_verified_at)
@@ -136,7 +136,7 @@
         <div class="flex items-center justify-between flex-wrap gap-3">
             <div>
                 <h3 class="text-sm font-bold" style="color: var(--text-primary);"><i class="fas fa-comment-dots mr-2" style="color: var(--accent);"></i>Send more info to the review team</h3>
-                <p class="text-xs mt-1" style="color: var(--text-muted);">Add a message or extra documents to your pending request — the reviewer sees them alongside your original application.</p>
+                <p class="text-xs mt-1" style="color: var(--text-muted);">Add a message or extra documents to your pending request; the reviewer sees them alongside your original application.</p>
             </div>
             <button type="button" @click="openUpdate = !openUpdate" class="px-4 py-2 rounded-xl text-xs font-semibold transition-all" style="background: var(--bg-glass); border: 1px solid var(--border-glass); color: var(--text-secondary);">
                 <i class="fas mr-1" :class="openUpdate ? 'fa-chevron-up' : 'fa-plus'"></i><span x-text="openUpdate ? 'Close' : 'Add a message / attachment'">Add a message / attachment</span>
@@ -154,7 +154,7 @@
                 @include('user.partials.dropzone-input', [
                     'name'        => 'attachments',
                     'policy'      => \App\Services\UploadPolicy::for('verification.proof', auth()->user()),
-                    'hint'        => 'Extra proof documents — ID, articles, screenshots...',
+                    'hint'        => 'Extra proof documents: ID, articles, screenshots...',
                     'previewKind' => 'file',
                 ])
                 @error('attachments.*')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror

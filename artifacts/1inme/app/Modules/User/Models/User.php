@@ -901,6 +901,31 @@ class User extends Authenticatable
     }
 
     /**
+     * Admin-granted asset-transfer capability. True when an admin has
+     * explicitly granted it (transfer_capability_granted_at) OR when this
+     * user's email matches a back-office Admin record (implicit grant).
+     * Single authorization helper used by every transfer surface (web,
+     * API, blade visibility) so the check can never drift.
+     */
+    public function canTransferAssets(): bool
+    {
+        if (!empty($this->transfer_capability_granted_at)) {
+            return true;
+        }
+        $email = strtolower(trim((string) $this->email));
+        if ($email === '') {
+            return false;
+        }
+        try {
+            return \App\Modules\Admin\Models\Admin::query()
+                ->whereRaw('lower(email) = ?', [$email])
+                ->exists();
+        } catch (\Throwable) {
+            return false;
+        }
+    }
+
+    /**
      * Lazily ensure this user owns at least one workspace, returning their
      * personal one. Auto-creation marks the new row as `is_personal=true`
      * so it can never be deleted from the UI (every user keeps a personal

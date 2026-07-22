@@ -361,8 +361,8 @@
            class="sidebar-link {{ request()->routeIs('admin.ai-minds.*') ? 'active' : '' }}"
            style="--nav-tint:#22d3ee; --nav-tint-soft:rgba(34,211,238,0.12);">
             <div class="nav-icon-wrap"><i class="fas fa-network-wired"></i></div>
-            <span class="nav-label">AI Knowledge Bases</span>
-            <span class="sidebar-tooltip">AI Knowledge Bases</span>
+            <span class="nav-label">AI Minds</span>
+            <span class="sidebar-tooltip">AI Minds</span>
         </a>
 
         <a href="{{ route('admin.ai-personas.index') }}"

@@ -16,7 +16,7 @@
             </div>
             <h1 class="text-xl sm:text-2xl font-bold text-white">Tell people about yourself</h1>
             <p class="text-sm text-white/60 mt-2 max-w-md mx-auto">
-                A few quick details make your creator profile stand out — tagline, bio, location, and your niche.
+                A few quick details make your creator profile stand out: tagline, bio, location, and your niche.
                 You can always refine everything later from Settings.
             </p>
         </div>
@@ -168,7 +168,7 @@
         </form>
 
         <p class="px-6 sm:px-8 pb-2 text-[11px] text-white/35 text-center -mt-2">
-            Every field is optional — you can complete your profile anytime from
+            Every field is optional; you can complete your profile anytime from
             <a href="{{ route('user.creator-profile.edit') }}" class="underline underline-offset-2 text-white/50 hover:text-white/80">Creator Profile settings</a>.
         </p>
 

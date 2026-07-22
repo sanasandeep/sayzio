@@ -73,7 +73,7 @@
                 </div>
                 <div class="flex-1">
                     <div class="text-lg font-bold text-white">Build with AI</div>
-                    <div class="text-sm text-white/60 mt-1">Describe your page and AI assembles it. Uses AI credits.</div>
+                    <div class="text-sm text-white/60 mt-1">Describe your page and AI assembles it. Uses coins.</div>
                 </div>
                 <div class="mt-4 flex items-center gap-2 text-fuchsia-200 font-medium text-sm">
                     Describe it

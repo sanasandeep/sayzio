@@ -59,7 +59,7 @@ It complements several sibling docs and intentionally does **not** duplicate the
 6. [Creator monetization & payouts](#6-creator-monetization--payouts)
 7. [18+ adult content](#7-18-adult-content)
 8. [AI engine & AI features](#8-ai-engine--ai-features)
-9. [Pricing, plans, coins & AI credits](#9-pricing-plans-coins--ai-credits)
+9. [Pricing, plans & coins](#9-pricing-plans--coins)
 10. [Teams, workspaces, projects & client portals](#10-teams-workspaces-projects--client-portals)
 11. [Security & sessions](#11-security--sessions)
 12. [Admin / back-office systems](#12-admin--back-office-systems)
@@ -228,7 +228,7 @@ Toggle `module_updates`, cap `max_updates`. *Web · REST · Mobile.*
 - **AI Chatbot (`ai_chat`)** — a full-page AI assistant surface. It reuses the
   AI Chat runtime (placement = page) rather than introducing a new runtime;
   bound to a Chat Widget via the `ai_companion_links` pivot. The **owner** pays for
-  visitor chats (AI credits), not the visitor. Toggle `module_ai_chat`, cap
+  visitor chats (coins), not the visitor. Toggle `module_ai_chat`, cap
   `max_ai_chat`. See [§8](#8-ai-engine--ai-features). *Web · REST · Mobile.*
 - **Conversational (`conversational`)** — a scripted, one-message-at-a-time
   walk-through of your links; part of the conversational family alongside
@@ -274,7 +274,11 @@ All applicable to short links and (where relevant) the broader link set.
   surfaces a typed `unavailabilityReason` (inactive / expired / limit_reached /
   scheduled / closed_hours).
 - **Custom domains** — add & verify your own domain (DNS records) or use shared
-  **global domains** tagged per plan (`Domain::availableTo`).
+  **global domains** tagged per plan (`Domain::availableTo`). The setup screen
+  walks you through **step-by-step exact DNS values** (copyable host/value
+  pairs) and shows **automatic propagation status** — verification re-checks in
+  the background so the domain flips to verified without a manual re-verify
+  click (`POST /domains/{id}/verify` re-runs the check on demand).
 - **Splash pages ("Intros")** — reusable interstitial pages shown before the
   destination; reconciled with per-type preview pages via `interstitialMode()`.
 - **Link insurance** — monitors a destination on a cadence and auto-fails-over to
@@ -316,7 +320,11 @@ The editor is split into **Blocks** and **Settings** pages.
 
 **Blocks page** — block picker organized by category; drag-and-drop reorder;
 drop blocks inside **Card** / **Grid** containers with per-child **grid span**;
-device preview (mobile/tablet/desktop). New blocks arrive with **first-paint
+device preview (mobile/tablet/desktop). Link-type blocks get a **link picker +
+OG fetch** helper: pick a destination from your existing links, or paste any
+URL and "Fetch details" auto-fills the block's title, description and image
+from the page's OG metadata, shown as a preview card with **Apply / Dismiss**
+(web + mobile; `GET /og-meta` on the API). New blocks arrive with **first-paint
 defaults** (`BlockDefaults`): placeholder text/media + a seeded `_style` and a
 `_placeholder` flag that drives a banner and clears on first real edit
 (defaults applied only at creation by `BiolinkBlockController::store()`).
@@ -548,6 +556,14 @@ A personal CRM plus an in-app dialer with identity resolution.
 - **Dialer** — number pad with **T9 smart-search** (keypad-spelled names), speed
   dial, recents/frequent; call logging with outcomes/notes. `DialerData` is the
   single read/transform source for web + API.
+- **Native calling (round 2)** — on the mobile apps the dialer places real
+  device calls with **dual-SIM support** (per-call SIM picker + default-SIM
+  setting), an optional **direct-call** setting (dial immediately instead of
+  opening the system dialer), and a **Truecaller-style caller-ID alert** on
+  incoming calls with spam warnings from your per-user flags. Every placed or
+  received call is **logged into the contact's history/timeline**, and the
+  dialer carries **notes & tasks with reminder alarms** plus agenda views
+  (`/dialer/notes`, call-back reminders).
 - **Identity resolution & biolink auto-attach** — resolve a phone number to a
   Sayzio biolink profile (`/dialer/lookup`); contacts whose verified phone matches
   a registered user get that user's biolink **auto-attached** to the contact via
@@ -731,6 +747,22 @@ owner: `GET|POST /me/updates/{link}/entries`, `PUT|DELETE /me/updates/{link}/ent
   link updates).
 - **Discover creators** — public directory; 18+ profiles hidden unless
   `?show_adult=1`.
+- **Creator profile showcase** — the `/@handle` page carries a **showcase**
+  block: featured links (shared display style, drag-reorder, per-link hide
+  toggle), tabs, highlights, and a CTA button, edited from the Creator settings
+  tab (API parity via `PATCH /me/creator-profile`).
+- **Profile theme & mini profile** — a per-profile **theme color**, a hoverable
+  **mini profile popover** (`GET /creator-profile/{handle}/mini`), and an avatar
+  that **defaults to the account profile photo** with a per-profile override.
+- **Creator profile verification** — account-level verified badges with
+  **typed ticks** (admin-managed tick catalog with color/name). Apply with an
+  official name, purpose message and proof attachments; reviewers approve or
+  reject with notifications both ways. Approval **locks the verified name and
+  photo** — changing either requires re-verification. Surfaced in onboarding as
+  a "Creator profile" step and in the settings **Verification & Badges** tab.
+- **Creator settings live preview** — the Creator settings tab previews the
+  public page live while you type, with **Small / Medium / Large density** and
+  a dark/light toggle (signed preview URL; `GET /me/creator-profile/preview-url`).
 - **My Posts (creator feed)** — publish posts that appear in followers' feeds and
   on your paid/creator page; scheduling, editing, and team approval routing.
 - **Engagement primitives** — RSVPs, poll/quiz votes, reactions/comments, block
@@ -851,7 +883,7 @@ timestamp, so subsequent page loads show the cached estimate immediately.
   returned without re-charging (double-tapping costs nothing).
 - Pass `force: true` in the request body to bypass the cache and run a fresh
   estimation regardless.
-- Charged to the `audience_type_estimation` AI-credit feature via
+- Charged to the `audience_type_estimation` coin-charged AI feature via
   `AiUsageCharger`; the cost is shown alongside the result as
   `coins_per_estimate`. On a parse failure the charge is auto-refunded.
 - Plan gate: `AiPlanAccess::featureAllowed($user, 'audience_type_estimation')`.
@@ -923,15 +955,15 @@ Optional mode for creators publishing adult content (`/user/adult-content`).
 (prompt + `max_tokens`) against the user's balance and refuses before calling
 OpenAI; meters fractional coins per 1,000 tokens at admin-defined rates (rounded
 up to whole coins); supports multiple models with retries and key rotation;
-`chatStream` monitors running balance live and cuts the stream if credits run
+`chatStream` monitors running balance live and cuts the stream if coins run
 out. Failed runs are auto-refunded. The AI engine is **off by default in dev**;
 when an admin disables the engine or no provider key is configured, AI surfaces
 show "AI scanning/feature is currently disabled by your administrator."
 
-**AI-credit feature catalog** (`AiFeatureCatalog` FEATURES) — `mind`, `persona`,
+**Coin-charged AI feature catalog** (`AiFeatureCatalog` FEATURES) — `mind`, `persona`,
 `companion`, `coach` / `ask_coach`, `voice_stt`, `voice_llm`, `voice_tts`,
 `card_scan`, `resume_import`, `resume_tailor`, `inbox_agent`, `brand_kit`,
-`qr_art`, `marketing_strategist` (+ `marketing_strategist.chat`), and
+`qr_art`, `marketing_strategist` (+ `marketing_strategist.chat`), `brand_studio`, and
 `audience_type_estimation` (Visitor Type Audience Insights — see
 [§5.17](#517-visitor-type-audience-insights)). Additional AI surfaces gated
 through the engine settings include the `biolink_builder`,
@@ -941,7 +973,7 @@ through the engine settings include the `biolink_builder`,
   images/links) into a full page, constrained to a safe block subset and the
   user's plan-allowed types; charged to `biolink_builder` with auto-refund on
   parse failure.
-- **Knowledge Bases / AI Note Summarizer** — private RAG knowledge base: `AiMindSource`
+- **AI Minds / AI Note Summarizer** — private RAG knowledge store: `AiMindSource`
   chunked and embedded (`AiMindChunk`) to ground answers; the single-base view is
   surfaced to users as **AI Note Summarizer**. Sources can be **uploaded / crawled**
   (PDF, web link, plain text) or kept live from **external systems**: a **webhook**
@@ -952,7 +984,7 @@ through the engine settings include the `biolink_builder`,
   JSON / HTML / text endpoint with `none` / `bearer` / custom-header auth.
   Connector credentials and webhook tokens are encrypted at rest, revealed once and
   rotatable, and every outbound fetch is SSRF-guarded against private / loopback
-  hosts. (User-facing label: **Knowledge Bases**.)
+  hosts. (User-facing label: **AI Minds**; formerly **Knowledge Bases**.)
 - **AI Agents / Persona Generator / Chat Widgets** — customizable agents with system
   prompts and chat history (`CompanionThread`); a Chat Widget can be embedded as a
   biolink **block** or run as a full-page **AI Chatbot** (`ai_chat`) link, and the
@@ -985,7 +1017,7 @@ through the engine settings include the `biolink_builder`,
   the **workspace owner**, with auto-refund on parse failure.
 - **AI Marketing Strategist** — generates a structured "organic + paid" marketing
   plan from the user's own account data. It grounds on selectable, PII-free
-  snapshots (links, analytics, audience, tracking pixels, Knowledge Bases, Brand
+  snapshots (links, analytics, audience, tracking pixels, AI Minds, Brand
   Kits) plus goal / parameter inputs (region, content types, budget, "avoid"
   constraints), proposes **one-click suggestions** that map to real Sayzio actions
   (e.g. create a link, add a block), and supports a **refinement chat**
@@ -1002,7 +1034,34 @@ through the engine settings include the `biolink_builder`,
   findings with one-click "apply fix" links. Kit generation is charged to
   `brand_kit`; the number of saved AI kits is capped by `max_brand_kits`. (The
   separate `brand_kit` **link type** publishes a shareable press-kit page — see
-  [§2.3](#23-business--monetization).)
+  [§2.3](#23-business--monetization).) **Brand Kit visual assets**
+  (`BrandKitAssetService`) extend a saved kit with AI-generated imagery: 17 asset
+  types (logo, avatar, favicon, watermark, OG image, social banner, letterhead,
+  business card, email header, QR frame, poster, tagline/mission/vision/stats
+  statement cards and a PPT cover/slide/closing set), each holding one current
+  image per kit with per-asset regenerate (fresh **variation** or instruction-led
+  **alteration**), download, one-click apply (kit logo, biolink favicon/OG image,
+  company letterhead) and delete. Generation is coin-charged with an automatic
+  refund on failure, plan-gated by the `brand_kit_assets` feature with a per-asset
+  regeneration cap (`brand_asset_versions`); generated files live in the file
+  vault tagged `brand_asset` — exempt from `max_files` but counted toward storage
+  bytes. Full REST + mobile parity at `/api/v1/brand-kits/{kit}/assets/*`.
+- **AI Brand Studio** (`AiBrandStudioService`) — a bulk on-brand asset creator at
+  `/user/brand-studio`: one plain-language brief (grounded in a saved Brand Kit or
+  inline brand details) becomes a structured multi-asset plan — a Link in Bio page,
+  short links, QR codes, a form and a digital card — reviewed asset-by-asset
+  before anything is created; confirmed assets are materialized as a named kit
+  (`BrandStudioKit`) with a results page. Two modes: **full kit** and **bulk
+  variations** (N variants of one asset kind, capped per plan by
+  `max_brand_studio_bulk`). Planning is charged to the `brand_studio` coin-priced AI
+  feature with auto-refund on parse failure; confirming is deterministic and free,
+  with per-type plan caps enforced at creation (capped assets are skipped and
+  reported). A kit composition can be saved as a reusable named **preset/combo**
+  (`BrandStudioPreset`, up to 20 per user; save/reuse/rename/delete — same-name
+  save updates in place, renaming onto an existing name is rejected), and
+  **discarding** a planned-but-unconfirmed kit automatically refunds the coins
+  spent on planning (the API reports the amount as `refunded_credits`). Full
+  mobile parity via `/api/v1/brand-studio`. *Web + mobile.*
 - **QR AI Art** — generates eye-catching, on-brand artistic QR codes that still
   scan reliably; gated/charged as `qr_art` and integrated with QR Studio (see
   [§5.6](#56-qr-studio-pro)).
@@ -1047,7 +1106,7 @@ Teardown).*
 
 ---
 
-## 9. Pricing, plans, coins & AI credits
+## 9. Pricing, plans & coins
 
 - **Plans** (`Plan` model) — name, monthly/annual price (prices live in the
   `prices` table), and a JSON `features` blob holding feature toggles + numeric
@@ -1080,7 +1139,7 @@ Teardown).*
 - **Coin wallet** — prepaid balance (`Wallet` + `WalletTransaction` ledger);
   buy **coin packages** (some with bonus coins); coins pay add-ons and developer-
   API overage.
-- **AI credits** — metered AI balance drawn from the wallet; per-feature ledger;
+- **Coins for AI** — every AI feature is charged in coins from the wallet; per-feature ledger;
   pre-charge affordability check; auto-refund on failure (see
   [§8](#8-ai-engine--ai-features) and
   [`billing-ai-credit-audit.md`](./billing-ai-credit-audit.md)).
@@ -1091,6 +1150,9 @@ Teardown).*
   add-ons as `addons[ID]=QTY` (per-unit amount in minor units, quantity carried in
   metadata); eligibility is constrained by the `addon_plan` pivot.
 - **Plan changes** apply immediately on successful payment.
+- **Billing address form** — checkout/billing details ask for **country first,
+  then postal code**; entering a postal code **auto-fills city and state** via a
+  server-side postal lookup (web billing form).
 - **Invoices & credit notes** — every paid platform charge produces an invoice with
   a strictly serial, per-financial-year number; a refund (self-serve within the
   policy window via `BillingController`, or admin / gateway-initiated) mints an
@@ -1205,6 +1267,16 @@ screen).*
   never triggering a rehash or 2FA on the master path.
 - **Protected accounts** — an email-keyed never-delete/suspend list enforced
   server-side (`ProtectedAccount::isProtected()`) on every destructive path.
+- **Admin password control** — an admin can **set a user's password** from the
+  user editor, and admin-set credentials work on the normal user login across
+  web, API and mobile. Protected accounts block the password change on every
+  surface.
+- **GitHub Token settings page** — self-service admin page to store the
+  platform's GitHub token, with a throttled **Verify** button and a
+  last-verified timestamp display.
+- **Scheduled Jobs run history** — the admin Scheduled Jobs screen keeps a
+  per-run history and now surfaces each failed run's **failure output** for
+  diagnosis.
 - **Users, roles & moderation** — manage users and roles; link/abuse moderation;
   adult-content moderation. A Sanctum token's web user is bridged to a back-office
   Admin by email (`User::adminAccount`), authorizing `/api/v1/admin/*` from mobile
@@ -1244,7 +1316,7 @@ High-level groups:
 - **Creator stack** — creator profile, posts, feed, paid DMs, tiers.
 - **Business tools** — store/products, restaurant menu & orders, reviews (public
   feed + moderation), contacts/dialer.
-- **Platform & AI** — wallet/coins, AI (Knowledge Bases, voice, AI Coach), onboarding slides.
+- **Platform & AI** — wallet/coins, AI (AI Minds, voice, AI Coach), onboarding slides.
 - **Back-office** — users, roles, protected accounts, mail settings, schema
   health.
 
@@ -1261,7 +1333,8 @@ plan allowance with coin-wallet overage (see [§8](#8-ai-engine--ai-features)).
 ### 14.1 Mobile app (`artifacts/1inme-mobile`)
 
 A native Expo / React Native app with broad parity to the web creator features
-over `/api/v1`.
+over `/api/v1`. The **Android APK** is downloadable directly from the
+platform's own domain at `/android` (no store required).
 
 - **Auth** — email/OTP (single flow for login + signup) and native social
   exchange.

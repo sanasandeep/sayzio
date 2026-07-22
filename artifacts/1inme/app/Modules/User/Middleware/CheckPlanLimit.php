@@ -143,7 +143,7 @@ class CheckPlanLimit
                     return back()->with('error', $this->withTarget('File hosting is not available on your current plan.', $user, 'files'));
                 }
                 $maxFiles = (int) ($features['max_files'] ?? -1);
-                $cur = UserFile::where('user_id', $user->id)->count();
+                $cur = UserFile::where('user_id', $user->id)->whereNull('context')->count();
                 if ($maxFiles !== -1 && $cur >= $maxFiles) {
                     return back()->with('error', $this->withTarget("You've reached your plan's file limit ({$maxFiles}).", $user, 'max_files', $cur));
                 }

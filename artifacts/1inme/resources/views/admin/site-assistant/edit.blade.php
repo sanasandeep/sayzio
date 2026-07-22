@@ -17,7 +17,7 @@
         <div><div class="text-2xl font-semibold text-white">{{ number_format($totals['conversations']) }}</div><div class="text-xs text-white/50">Conversations</div></div>
         <div><div class="text-2xl font-semibold text-white">{{ number_format($totals['handoffs']) }}</div><div class="text-xs text-white/50">Handoffs</div></div>
         <div><div class="text-2xl font-semibold text-white">{{ number_format($totals['turns_month']) }}</div><div class="text-xs text-white/50">Turns this month</div></div>
-        <div><div class="text-2xl font-semibold text-white">{{ number_format($monthly_spend) }}</div><div class="text-xs text-white/50">Credits this month</div></div>
+        <div><div class="text-2xl font-semibold text-white">{{ number_format($monthly_spend) }}</div><div class="text-xs text-white/50">Coins this month</div></div>
         <div><div class="text-2xl font-semibold text-white">{{ number_format($totals['page_hints']) }} / {{ $totals['templates'] }}</div><div class="text-xs text-white/50">Hints / Templates</div></div>
     </div>
 
@@ -970,7 +970,7 @@
                     <input type="number" min="1" max="120" name="session_rate_per_minute" value="{{ $cfg['session_rate_per_minute'] }}" class="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white">
                 </div>
                 <div>
-                    <label class="block text-xs text-white/60 mb-1">Monthly budget (credits, 0 = unlimited)</label>
+                    <label class="block text-xs text-white/60 mb-1">Monthly budget (coins, 0 = unlimited)</label>
                     <input type="number" min="0" name="monthly_budget_credits" value="{{ $cfg['monthly_budget_credits'] }}" class="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white">
                 </div>
                 <div>
@@ -1016,7 +1016,7 @@
 
         <div class="glass rounded-2xl border border-white/10 p-6 space-y-4">
             <h3 class="font-semibold text-white">Low-balance warning</h3>
-            <p class="text-xs text-white/40">Shown to visitors before they send a message when their AI credit balance is close to running out. The runtime estimates an average reply cost from recent history; the fallback below is used when there's no history yet.</p>
+            <p class="text-xs text-white/40">Shown to visitors before they send a message when their coin balance is close to running out. The runtime estimates an average reply cost from recent history; the fallback below is used when there's no history yet.</p>
             <div class="grid md:grid-cols-2 gap-4">
                 <div>
                     <label class="block text-xs text-white/60 mb-1">Trigger threshold (× average reply)</label>
@@ -1024,7 +1024,7 @@
                     <p class="text-xs text-white/40 mt-1">Warn when balance is below this many average replies. Default 3.</p>
                 </div>
                 <div>
-                    <label class="block text-xs text-white/60 mb-1">Fallback average reply (credits)</label>
+                    <label class="block text-xs text-white/60 mb-1">Fallback average reply (coins)</label>
                     <input type="number" min="1" max="100000" name="low_balance_default_credits" value="{{ $cfg['low_balance_default_credits'] }}" class="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white">
                     <p class="text-xs text-white/40 mt-1">Used until the visitor has assistant replies on record.</p>
                 </div>
@@ -1032,7 +1032,7 @@
             <div>
                 <label class="block text-xs text-white/60 mb-1">Signed-in message</label>
                 <input type="text" maxlength="500" name="low_balance_message_signed_in" value="{{ $cfg['low_balance_message_signed_in'] }}" class="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white">
-                <p class="text-xs text-white/40 mt-1">Use <code>{remaining}</code> for replies left, <code>{avg}</code> for average reply cost, <code>{balance}</code> for raw credits.</p>
+                <p class="text-xs text-white/40 mt-1">Use <code>{remaining}</code> for replies left, <code>{avg}</code> for average reply cost, <code>{balance}</code> for raw coins.</p>
             </div>
             <div>
                 <label class="block text-xs text-white/60 mb-1">Anonymous visitor message</label>

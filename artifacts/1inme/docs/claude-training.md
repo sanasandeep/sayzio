@@ -167,7 +167,7 @@ tests on routing). Declare a winner to promote one variant.
 
 **AI biolink builder.** `AiBiolinkBuilderService` turns a prompt (+images/links)
 into a full page via OpenAI, constrained to a safe block subset and the user's
-plan-allowed types. Charged against `biolink_builder` AI credit feature; auto-refund
+plan-allowed types. Charged against `biolink_builder` coin-priced AI feature; auto-refund
 on parse failure. The browser extension also offers a "page → bio-link" mode
 (Quick or AI-powered) that reuses this service.
 
@@ -315,7 +315,7 @@ personas: Student, Professional/Employee, Business Owner, Creator/Artist, Other.
 The model only sees aggregate counts (referrer domain, geographic region, device
 type, browser language, time-of-day distribution, block engagement). No individual
 is identified, no third-party data used. 10-minute result cache; Force Refresh
-bypasses it. Deducts AI credits (shown before confirm, auto-refunded on failure).
+bypasses it. Deducts coins (shown before confirm, auto-refunded on failure).
 Web: Link in Bio → Analytics → Audience Insights. Mobile: link → Analytics →
 Audience Insights tab.
 
@@ -355,12 +355,12 @@ admin moderation at `/admin/adult-moderation`. Mobile parity.
 (b) an OpenAI API key configured. Missing either → "AI is currently disabled by
 your administrator" on any AI surface.
 
-**AI credit pattern.** Every AI feature: pre-check affordability → charge credits
+**Coin charging pattern.** Every AI feature: pre-check affordability → charge coins
 → call OpenAI → auto-refund on parse/validation failure. Per-feature ledger.
 Feature key goes in `FEATURES`; call `OpenAiService::chat` (auto-charges).
 
 **Per-plan AI gating.** `AiPlanAccess` is the single source of truth:
-- **Quantity caps:** `max_minds` (Knowledge Bases), `max_personas` (AI Agents),
+- **Quantity caps:** `max_minds` (AI Minds), `max_personas` (AI Agents),
   `max_companions` (Chat Widgets), `max_brand_kits` (saved AI Brand Kits); -1=unlimited.
 - **Availability booleans:** `ask_coach`, `ai_voice_assistant`, `ai_widget`,
   `card_scan`, `ai_resume_tools`, `inbox_agent`, `marketing_strategist`,
@@ -371,11 +371,11 @@ Feature key goes in `FEATURES`; call `OpenAiService::chat` (auto-charges).
 
 **AI features list:**
 
-| Feature | Credit key | Notes |
+| Feature | Feature key | Notes |
 |---|---|---|
 | AI Biolink Builder | `biolink_builder` | Prompt + images/links → full page via OpenAI |
 | AI Coach | `ask_coach` | Reviews account, gives growth advice (formerly: Account Assistant / AI Growth Coach) |
-| AI Agents / Knowledge Bases | various | Configurable agents with KB grounding |
+| AI Agents / AI Minds (formerly Knowledge Bases) | various | Configurable agents with AI Mind grounding |
 | Chat Widgets | `ai_widget` | Embed chatbot; owner pays for visitor chats |
 | AI Note Summarizer | — | Summarizes raw notes into action steps |
 | Voice assistant | `ai_voice_assistant` | STT (Whisper) + AI turn + TTS (ElevenLabs) |
@@ -384,13 +384,14 @@ Feature key goes in `FEATURES`; call `OpenAiService::chat` (auto-charges).
 | Resume AI (tailor, cover letter, ATS) | `ai_resume_tools` | Resume-specific AI tools |
 | AI Marketing Strategist | `marketing_strategist` | Organic+paid marketing plan; refinement chat |
 | AI Brand Kits & On-Brand AI | `brand_kit` | Palette/font/voice/taglines; BrandConsistencyScore |
+| AI Brand Studio | `brand_studio` | One brief → reviewed multi-asset kit; bulk variations capped by `max_brand_studio_bulk`; compositions saveable as reusable presets/combos (max 20/user); discarding an unconfirmed plan auto-refunds its planning coins (`refunded_credits`) |
 | AI QR Art | `qr_art` | Artistic QR with scannability verify (jsQR, client-side) |
 | WhatsApp AI Agent | `whatsapp_agent` | Inbound WhatsApp responder |
 | Inbox Agent | `inbox_agent` | Triage + reply draft + autopilot |
 | Competitor Biolink Teardown | `competitor_teardown` | Score+score a competitor's page; "Build better version" |
 | Visitor Type Audience Insights | `audience_type_estimation` | Estimate visitor persona mix |
 
-**Knowledge Base sync sources (in addition to paste/upload/FAQ/crawl):**
+**AI Mind sync sources (in addition to paste/upload/FAQ/crawl):**
 - **Webhook (inbound):** Sayzio generates URL + secret token. Third-party POSTs
   content; Sayzio verifies token, stores payload, re-trains. Token shown once.
   Send token in `X-Mind-Webhook-Token` header, `?token=` param, or body field.
@@ -409,7 +410,7 @@ behavior). Charged/gated as `competitor_teardown`. Web + mobile.
 brand voice, taglines, block theme) → brand identity. `BrandKit::promptDirectives()`
 injected into builder and persona prompts. `BrandConsistencyService` (0–100 score)
 audits button colour, font family, font colour, block theme against the kit — mismatch
-findings with one-click "apply fix" links. Kit generation → `brand_kit` credit.
+findings with one-click "apply fix" links. Kit generation → `brand_kit` coin charge.
 The `brand_kit` **link type** publishes a shareable press-kit page (separate from
 the AI Brand Kits feature).
 
@@ -419,8 +420,8 @@ users get the full chat surface. Capabilities: general help/navigation, in-chat 
 login/signup (OTP verify = account creation for new emails), Quick Contact (callback /
 WhatsApp / email channels to reach support), and a voice mic for eligible users.
 Session auth. Mobile panel pins height to `vv.height - 100` and translateY-lifts
-above keyboard using `vv.offsetTop`. Zio Bot charges AI credits from the user's
-wallet; a low-balance banner is shown when credits are insufficient.
+above keyboard using `vv.offsetTop`. Zio Bot charges coins from the user’s
+wallet; a low-balance banner is shown when coins are insufficient.
 
 ---
 
@@ -448,7 +449,7 @@ quantity. Checkout bills add-ons as `addons[ID]=QTY`; eligibility via
 **Coin wallet.** `Wallet` + `WalletTransaction` ledger; buy coin packages (some
 with bonus coins); coins pay add-ons and developer-API overage.
 
-**AI credits.** Metered balance drawn from wallet; per-feature ledger; pre-charge
+**Coins for AI.** Every AI feature is charged in coins from the wallet; per-feature ledger; pre-charge
 affordability check; auto-refund on failure. See
 [`billing-ai-credit-audit.md`](./billing-ai-credit-audit.md).
 
@@ -540,9 +541,10 @@ coin wallet; 80%/100%/overage warnings.
 |---|---|
 | Auth & identity | login, register, OTP, social exchange, sessions, profile, merge |
 | Link engine | link CRUD, analytics, routing rules, A/B tests, NFC writes, public biolink resolution |
-| Creator stack | creator profile, posts, feed, paid DMs, tiers |
+| Creator stack | creator profile (public + owner editor: [api.md#creator-profile-owner](./api.md#creator-profile-owner)), posts, feed, paid DMs, tiers |
+| Verification | legacy per-link verification, account-level profile verification ([api.md#profile-verification-account-level](./api.md#profile-verification-account-level)) + reviewer moderation ([api.md#profile-verification-moderation-reviewers](./api.md#profile-verification-moderation-reviewers)) |
 | Business tools | store/products, restaurant menu & orders, service booking, reviews, contacts/dialer |
-| Platform & AI | wallet/coins, AI (Knowledge Bases, voice, coaching), onboarding slides |
+| Platform & AI | wallet/coins, AI (AI Minds, voice, coaching), onboarding slides |
 | Admin | users, roles, protected accounts, mail settings, schema health |
 | Billing | invoices, credit notes, wallet, plans |
 | Payouts | payout connections, onboarding status, 18+ toggle |
@@ -591,7 +593,31 @@ users can still sign in.
 
 **Users, roles & moderation.** Link/abuse moderation; adult-content moderation;
 mobile admin ↔ user switch is navigation (no re-login); Sanctum token's web User
-bridged to back-office Admin by email (`User::adminAccount`).
+bridged to back-office Admin by email (`User::adminAccount`). An admin can
+**set a user's password** from the user editor; admin-set credentials work on
+the normal user login across web/API/mobile, and protected accounts block the
+change on every surface.
+
+**Profile verification moderation.** Account-level verified badges with typed
+ticks: users apply with official name, purpose message and proof attachments;
+reviewers (web-pool `user.verifications.review` permission) approve/reject with
+notifications; approval locks the verified name/photo (changes trigger
+re-verification). REST parity: user endpoints at `/api/v1/profile-verification*`,
+reviewer endpoints at `/api/v1/admin/profile-verification*` (approve/reject
+return `409 already_reviewed` when not pending).
+
+**GitHub Token settings.** Self-service admin page storing the platform GitHub
+token in `app_settings` (encrypted), with a throttled **Verify** button that
+checks the token against the GitHub API and a last-verified timestamp display.
+
+**Scheduled Jobs run history.** The admin Scheduled Jobs screen keeps per-run
+history and surfaces each failed run's **failure output** (captured
+stderr/exception text) for diagnosis.
+
+**Webhook delivery failure monitoring.** Link-event webhook destinations keep a
+per-destination delivery log; a scheduled health check detects **silent
+failures** (destinations that keep failing) and emails the owner. Individual
+failed deliveries can be retried and destinations test-fired.
 
 **Banned names.** See §11.
 
@@ -692,7 +718,7 @@ using `created_at` on the clicks relation throw on fresh/CI schema.
 **Banned handles enforce 4 surfaces.** Profile handle, link alias, biolink alias,
 registration — all must use `NotBannedName`.
 
-**AI token not re-shown.** Knowledge Base webhook secret and API connector
+**AI token not re-shown.** AI Mind webhook secret and API connector
 credentials shown only once (or on regenerate). Old token becomes invalid immediately
 on regenerate.
 
@@ -726,7 +752,7 @@ management tools only. Diners and customers settle directly with the owner.
 the plan's features blob for the relevant key (e.g. `competitor_teardown`,
 `audience_type_estimation`). If greyed out, the plan doesn't include it.
 
-**"I lost my Knowledge Base webhook token."** Use **Regenerate** on the source.
+**"I lost my AI Mind webhook token."** Use **Regenerate** on the source.
 The old token stops working immediately. Update any system that was using it.
 
 **"Why do I get a 402 on API calls?"** Developer API key calls exceeded the plan's

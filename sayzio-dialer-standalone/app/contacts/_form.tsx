@@ -1,5 +1,5 @@
 import { Feather } from "@expo/vector-icons";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Stack, useRouter } from "expo-router";
 import { useState } from "react";
 import {
@@ -23,6 +23,7 @@ import {
   clearContactFollowUp,
   createContact,
   deleteContact,
+  listContactCalls,
   setContactFollowUp,
   smsBiolinkToContact,
   updateContact,
@@ -55,16 +56,23 @@ export default function ContactForm({
   mode,
   contact,
   onSuccess,
+  initialName,
+  initialPhone,
 }: {
   mode: "create" | "edit";
   contact?: Contact;
   onSuccess: () => void;
+  /** Prefill (create mode only) — e.g. "Add to contacts" from a recents row. */
+  initialName?: string | null;
+  initialPhone?: string | null;
 }) {
   const colors = useColors();
   const router = useRouter();
   const qc = useQueryClient();
 
-  const [given, setGiven] = useState(contact?.given_name ?? "");
+  const [given, setGiven] = useState(
+    contact?.given_name ?? (mode === "create" ? initialName?.trim() || "" : ""),
+  );
   const [family, setFamily] = useState(contact?.family_name ?? "");
   const [org, setOrg] = useState(contact?.organization ?? "");
   const [job, setJob] = useState(contact?.job_title ?? "");
@@ -73,7 +81,10 @@ export default function ContactForm({
     contact?.emails.map((e) => ({ value: e.value, label: e.label })) ?? [],
   );
   const [phones, setPhones] = useState<{ value: string; label: string | null }[]>(
-    contact?.phones.map((p) => ({ value: p.value, label: p.label })) ?? [],
+    contact?.phones.map((p) => ({ value: p.value, label: p.label })) ??
+      (mode === "create" && initialPhone?.trim()
+        ? [{ value: initialPhone.trim(), label: null }]
+        : []),
   );
 
   const buildPayload = (): ContactPayload => ({
@@ -377,6 +388,8 @@ export default function ContactForm({
           </View>
         ) : null}
 
+        {mode === "edit" && contact ? <CallHistory contactId={contact.id} /> : null}
+
         <Button
           label={save.isPending ? "Saving…" : "Save contact"}
           onPress={() => save.mutate()}
@@ -422,6 +435,127 @@ export default function ContactForm({
         ) : null}
       </ScrollView>
     </KeyboardAvoidingView>
+  );
+}
+
+function formatCallMoment(iso: string | null): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  return d.toLocaleString(undefined, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
+/**
+ * Structured "Call history" timeline (Dialer caller-ID drains). Rendered
+ * only in edit mode and hidden entirely while there are no logged calls,
+ * so fresh contacts don't show an empty section.
+ */
+function CallHistory({ contactId }: { contactId: number }) {
+  const colors = useColors();
+  const q = useQuery({
+    queryKey: ["contact-calls", contactId],
+    queryFn: () => listContactCalls(contactId),
+  });
+  const calls = q.data ?? [];
+  if (!calls.length) return null;
+
+  return (
+    <View
+      style={{
+        borderWidth: 1,
+        borderColor: colors.border,
+        backgroundColor: colors.card,
+        borderRadius: colors.radius,
+        padding: 14,
+        gap: 0,
+      }}
+    >
+      <Text
+        style={[
+          styles.section,
+          { color: colors.mutedForeground, marginTop: 0, marginBottom: 10 },
+        ]}
+      >
+        Call history
+      </Text>
+      {calls.map((call, i) => (
+        <View
+          key={call.id}
+          style={{ flexDirection: "row", gap: 12, alignItems: "stretch" }}
+        >
+          {/* Timeline rail: icon dot + connecting line */}
+          <View style={{ alignItems: "center", width: 28 }}>
+            <View
+              style={{
+                width: 28,
+                height: 28,
+                borderRadius: 999,
+                backgroundColor: colors.muted,
+                borderWidth: 1,
+                borderColor: colors.border,
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <Feather
+                name={
+                  call.direction === "outgoing"
+                    ? "phone-outgoing"
+                    : call.direction === "missed"
+                      ? "phone-missed"
+                      : "phone-incoming"
+                }
+                size={13}
+                color={
+                  call.direction === "missed"
+                    ? colors.destructive
+                    : colors.primary
+                }
+              />
+            </View>
+            {i < calls.length - 1 ? (
+              <View
+                style={{ width: 1, flex: 1, backgroundColor: colors.border }}
+              />
+            ) : null}
+          </View>
+          <View style={{ flex: 1, paddingBottom: i < calls.length - 1 ? 14 : 0 }}>
+            <Text
+              style={{
+                color: colors.foreground,
+                fontFamily: "SpaceGrotesk_500Medium",
+                fontSize: 14,
+              }}
+            >
+              {call.direction === "outgoing"
+                ? "Call placed"
+                : call.direction === "missed"
+                  ? "Call missed"
+                  : "Call received"}
+            </Text>
+            <Text
+              style={{
+                color: colors.mutedForeground,
+                fontFamily: "SpaceGrotesk_400Regular",
+                fontSize: 12,
+                marginTop: 2,
+              }}
+            >
+              {call.number}
+              {formatCallMoment(call.occurred_at)
+                ? ` · ${formatCallMoment(call.occurred_at)}`
+                : ""}
+            </Text>
+          </View>
+        </View>
+      ))}
+    </View>
   );
 }
 

@@ -125,7 +125,7 @@ class AiBiolinkBuilderController extends Controller
             );
         } catch (InsufficientCoinsForAiException $e) {
             return response()->json([
-                'message'  => 'Not enough AI credits to build this page.',
+                'message'  => 'Not enough coins to build this page.',
                 'required' => $e->required ?? null,
                 'balance'  => $e->balance ?? null,
             ], 402);

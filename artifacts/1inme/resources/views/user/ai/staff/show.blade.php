@@ -14,7 +14,7 @@
         <div>
             <a href="{{ route('user.ai.staff.index') }}" class="text-xs text-white/40 hover:text-white/70"><i class="fas fa-arrow-left mr-1"></i>All staff</a>
             <h1 class="text-2xl font-bold text-white mt-2">{{ $staff->name }}</h1>
-            <p class="text-sm text-white/50">{{ $staff->domainLabel() }} &middot; {{ number_format($balance) }} credits available</p>
+            <p class="text-sm text-white/50">{{ $staff->domainLabel() }} &middot; {{ number_format($balance) }} coins available</p>
         </div>
         <form method="POST" action="{{ route('user.ai.staff.update', $staff) }}">
             @csrf @method('PUT')

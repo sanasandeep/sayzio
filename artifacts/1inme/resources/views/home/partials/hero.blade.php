@@ -130,7 +130,7 @@
                             // Inner ring (4) — Zio's core AI brain.
                             ['cls' => 'r1', 'nodes' => [
                                 ['a' => 0,   'img' => 'ai.png',        'c' => 'var(--c2)', 't' => 'AI Page Builder', 'd' => 'Describe your idea in a sentence and Zio assembles a complete, on-brand page for you.', 'tag' => 'Live in ~30s'],
-                                ['a' => 90,  'img' => 'growth.png',    'c' => 'var(--c1)', 't' => 'AI Growth Coach',     'd' => "Zio reads your stats, flags what's working and hands you the next move to grow.", 'tag' => 'Weekly tips'],
+                                ['a' => 90,  'img' => 'growth.png',    'c' => 'var(--c1)', 't' => 'AI Link Optimizer',     'd' => "Zio reads your stats, flags what's working and hands you the next move to grow.", 'tag' => 'Weekly tips'],
                                 ['a' => 180, 'img' => 'calls.png',     'c' => 'var(--c4)', 't' => 'AI Phone',         'd' => 'Zio answers your calls and turns every caller into a captured lead while you focus.', 'tag' => '24/7 answer'],
                                 ['a' => 270, 'img' => 'analytics.png', 'c' => 'var(--c2)', 't' => 'Live Analytics',   'd' => 'Watch every click, scan and visit land in real time on a live world map.', 'tag' => 'Real-time'],
                             ]],
@@ -800,14 +800,12 @@
         // The clip is same-origin, so the canvas is not tainted. If the corner
         // is opaque, the browser is not honoring alpha — hide the video and
         // show the transparent still PNG instead (mascot still visible, no box).
-        // Covers both home mascot clips: the hero (.zio-mascot-video) and the
-        // "1IN.ME is Sayzio" section (.bs-mascot-video), each paired with its
-        // own transparent still (*-fallback) sibling. Runs after DOMContentLoaded
-        // because brand-sayzio is included further down the page than this hero,
-        // so its <video> doesn't exist yet at parse time.
+        // Covers the hero mascot clip (.zio-mascot-video), paired with its
+        // transparent still (*-fallback) sibling. (The "1IN.ME is Sayzio"
+        // section now uses a static icon, so only the hero clip is guarded.)
         (function () {
             function initMascotAlphaGuard() {
-            var videos = document.querySelectorAll('.zio-mascot-video, .bs-mascot-video');
+            var videos = document.querySelectorAll('.zio-mascot-video');
             if (!videos.length) { return; }
             var reduceMotion = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
             Array.prototype.forEach.call(videos, function (video) {

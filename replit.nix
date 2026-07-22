@@ -8,20 +8,20 @@
     pkgs.xorg.libXcomposite
     pkgs.xorg.libX11
     pkgs.systemdLibs
-    pkgs.libgbm
-    pkgs.gtk3
-    pkgs.at-spi2-core
-    pkgs.at-spi2-atk
-    pkgs.alsa-lib
+    pkgs.udev
     pkgs.cairo
     pkgs.pango
+    pkgs.alsa-lib
+    pkgs.libgbm
     pkgs.mesa
     pkgs.libxkbcommon
     pkgs.libdrm
     pkgs.expat
-    pkgs.dbus
     pkgs.cups
+    pkgs.at-spi2-core
+    pkgs.at-spi2-atk
     pkgs.atk
+    pkgs.dbus
     pkgs.nspr
     pkgs.nss
     pkgs.glib

@@ -211,6 +211,24 @@ export async function flagNumber(input: {
   return res.data;
 }
 
+export type DialerFlaggedNumber = {
+  number_e164: string;
+  is_spam: boolean;
+  is_blocked: boolean;
+};
+
+/**
+ * Every number the user flagged as spam and/or blocked. Feeds the native
+ * caller-ID directory so the incoming-call card can warn about flagged
+ * numbers while the JS runtime is dead (display-only — never blocks).
+ */
+export async function listFlaggedNumbers(): Promise<DialerFlaggedNumber[]> {
+  const res = await apiFetch<{ data: { items: DialerFlaggedNumber[] } }>(
+    `/dialer/flags`,
+  );
+  return res.data.items;
+}
+
 // ── Call log (mini-CRM) + callback reminders ─────────────────────────
 
 export async function logCall(input: {
@@ -410,6 +428,13 @@ export type DialerProfileBiolink = {
   url: string | null;
   link_id: number | null;
   avatar_url: string | null;
+  bio?: string | null;
+  verified?: boolean;
+  link_preview?: {
+    title: string | null;
+    description: string | null;
+    alias: string | null;
+  } | null;
 };
 
 export type DialerManualProfile = {

@@ -27,6 +27,7 @@ import { useFeatureStates } from "@/hooks/useFeatureStates";
 import { wallet as walletApi } from "@/lib/api";
 import { openUpgradeInBrowser } from "@/lib/upgradePrompt";
 import { getProfile } from "@/lib/api/profile";
+import { listVerificationReviews } from "@/lib/api/verificationAdmin";
 import {
   formatIdleTimeout,
   formatLockWarningLead,
@@ -157,6 +158,7 @@ const TOOL_PAGES: {
 const SETTINGS_PAGES: {
   href:
     | "/profile-edit"
+    | "/creator-settings"
     | "/security"
     | "/account-sessions"
     | "/identifiers"
@@ -174,6 +176,7 @@ const SETTINGS_PAGES: {
   icon: keyof typeof Feather.glyphMap;
 }[] = [
   { href: "/profile-edit", label: "Edit profile", icon: "edit-3" },
+  { href: "/creator-settings", label: "Creator profile", icon: "sliders" },
   { href: "/security", label: "Security & recovery", icon: "shield" },
   { href: "/account-sessions", label: "Devices & sessions", icon: "shield" },
   { href: "/identifiers", label: "Linked emails & phones", icon: "at-sign" },
@@ -234,6 +237,21 @@ export default function Profile() {
     staleTime: 60_000,
   });
   const accountBadges = profileQuery.data?.account_badges ?? [];
+
+  // Reviewer gate for the verification-review surface (Task #5600). The
+  // server enforces the `user.verifications.review` permission; a 403 here
+  // just means "not a reviewer" so the entry fails closed (hidden).
+  const reviewerQuery = useQuery({
+    queryKey: ["verification-reviewer-gate"],
+    queryFn: () => listVerificationReviews({ queue: "new", per_page: 1 }),
+    retry: false,
+    staleTime: 5 * 60_000,
+  });
+  const isReviewer = reviewerQuery.isSuccess;
+  const pendingReviewCount = reviewerQuery.data
+    ? reviewerQuery.data.pending_new_count +
+      reviewerQuery.data.pending_reverification_count
+    : 0;
   const [coinBalance, setCoinBalance] = useState<number | null>(null);
   const [biometricBusy, setBiometricBusy] = useState(false);
   const [wakeWordEnabled, setWakeWordEnabledState] = useState(false);
@@ -631,6 +649,31 @@ export default function Profile() {
                 </Pressable>
               );
             })}
+            {isReviewer ? (
+              <Pressable
+                onPress={() => router.push("/verification-review")}
+                style={({ pressed }) => [
+                  styles.listItem,
+                  {
+                    borderTopWidth: StyleSheet.hairlineWidth,
+                    borderTopColor: colors.border,
+                    opacity: pressed ? 0.7 : 1,
+                  },
+                ]}
+                accessibilityRole="button"
+              >
+                <Feather name="check-circle" size={18} color={colors.primary} />
+                <Text style={[styles.listLabel, { color: colors.foreground }]}>
+                  Verification reviews
+                  {pendingReviewCount > 0 ? ` (${pendingReviewCount})` : ""}
+                </Text>
+                <Feather
+                  name="chevron-right"
+                  size={18}
+                  color={colors.mutedForeground}
+                />
+              </Pressable>
+            ) : null}
             {showBiometricRow ? (
               <Pressable
                 onPress={biometricSupported ? onToggleBiometric : undefined}
@@ -727,7 +770,7 @@ export default function Profile() {
                     ]}
                   >
                     {wakeWordEnabled
-                      ? "On: listens while the app is open. Wake checks don't use AI credits."
+                      ? "On: listens while the app is open. Wake checks don't use coins."
                       : "Off: tap the floating mic to start the AI Voice Assistant."}
                   </Text>
                 </View>

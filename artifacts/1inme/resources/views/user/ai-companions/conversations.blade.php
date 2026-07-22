@@ -54,7 +54,7 @@
                     </p>
                     <p class="text-[11px] text-white/40">
                         {{ $conv->turns_count }} turn{{ $conv->turns_count === 1 ? '' : 's' }} ·
-                        {{ $conv->credits_spent }} credits ·
+                        {{ $conv->credits_spent }} coins ·
                         last active {{ $conv->last_message_at?->diffForHumans() ?? '—' }}
                         @if($conv->source_origin) · {{ parse_url($conv->source_origin, PHP_URL_HOST) ?: $conv->source_origin }}@endif
                     </p>

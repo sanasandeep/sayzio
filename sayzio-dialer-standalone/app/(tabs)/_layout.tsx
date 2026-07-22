@@ -1,14 +1,19 @@
 import Feather from "@expo/vector-icons/Feather";
-import { Redirect, Tabs, useRouter } from "expo-router";
-import { Image, Pressable, Text, View } from "react-native";
+import { Redirect, Tabs, usePathname, useRouter } from "expo-router";
+import { useEffect, useState } from "react";
+import { AppState, Image, Pressable, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { DialerTabBar, TAB_BAR_CLEARANCE } from "@/components/DialerTabBar";
+import { DialerDrawer } from "@/components/DialerDrawer";
 import { NameRequiredGate } from "@/components/NameRequiredGate";
 import { useAuth } from "@/contexts/AuthContext";
 import { useColors } from "@/hooks/useColors";
 import { useContactAutoSync } from "@/hooks/useContactAutoSync";
 import { useNearbyEventAlerts } from "@/hooks/useNearbyEventAlerts";
+import {
+  rearmNoteAlarmsOnForeground,
+  rearmNoteAlarmsOnLaunch,
+} from "@/lib/localReminders";
 
 export default function TabsLayout() {
   const colors = useColors();
@@ -27,6 +32,28 @@ export default function TabsLayout() {
   const { latest: newEvent, count: newEventCount, dismiss: dismissNewEvent } =
     useNearbyEventAlerts(ready && !!user);
 
+  // Re-arm local note alarms on app launch AND on foreground transitions.
+  // Some OEM battery managers (Xiaomi/Oppo) drop scheduled notifications
+  // after a reboot or while the app sits backgrounded for days; re-syncing
+  // every open note with a future remind_at is idempotent (identifiers are
+  // keyed dialer-note-{id}, so re-scheduling replaces rather than
+  // duplicates). The foreground pass is throttled inside localReminders to
+  // at most once per hour. Best-effort and fully async, never blocks the UI.
+  const signedIn = ready && !!user;
+  useEffect(() => {
+    if (!signedIn) return;
+    void rearmNoteAlarmsOnLaunch();
+    const sub = AppState.addEventListener("change", (state) => {
+      if (state === "active") void rearmNoteAlarmsOnForeground();
+    });
+    return () => sub.remove();
+  }, [signedIn]);
+
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const pathname = usePathname();
+  // "/dialer" | "/contacts" | "/caller-id" | "/events" → tab route name.
+  const activeRoute = pathname?.replace(/^\//, "").split("/")[0] || null;
+
   if (ready && !user) return <Redirect href="/(auth)" />;
 
   const SearchButton = () => (
@@ -39,13 +66,47 @@ export default function TabsLayout() {
     </Pressable>
   );
 
+  const MenuButton = () => (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel="Open menu"
+      onPress={() => setDrawerOpen(true)}
+      hitSlop={12}
+      style={{ paddingHorizontal: 12 }}
+    >
+      <View>
+        <Feather name="menu" size={22} color={colors.foreground} />
+        {newEventCount > 0 ? (
+          <View
+            style={{
+              position: "absolute",
+              top: -2,
+              right: -4,
+              width: 8,
+              height: 8,
+              borderRadius: 4,
+              backgroundColor: colors.primary,
+            }}
+          />
+        ) : null}
+      </View>
+    </Pressable>
+  );
+
   return (
     <>
     <NameRequiredGate />
+    <DialerDrawer
+      open={drawerOpen}
+      onClose={() => setDrawerOpen(false)}
+      activeRoute={activeRoute}
+      onNavigateTab={(name) => router.navigate(`/(tabs)/${name}` as never)}
+      eventBadgeCount={newEventCount}
+    />
     <Tabs
-      tabBar={(props) => (
-        <DialerTabBar {...props} eventBadgeCount={newEventCount} />
-      )}
+      // Navigation now lives in the slide-in drawer (hamburger in the
+      // header); no bottom tab bar.
+      tabBar={() => null}
       screenOptions={{
         headerStyle: { backgroundColor: colors.background },
         headerTitleStyle: {
@@ -53,12 +114,10 @@ export default function TabsLayout() {
           fontFamily: "SpaceGrotesk_600SemiBold",
         },
         headerShadowVisible: false,
+        headerLeft: () => <MenuButton />,
         headerRight: () => <SearchButton />,
-        // The floating bar hovers over content, so every scene reserves
-        // clearance at the bottom instead of a solid tab strip.
         sceneStyle: {
           backgroundColor: colors.background,
-          paddingBottom: TAB_BAR_CLEARANCE,
         },
       }}
     >
@@ -113,6 +172,15 @@ export default function TabsLayout() {
                 />
               ) : null}
             </View>
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="notes"
+        options={{
+          title: "Notes",
+          tabBarIcon: ({ color, size }) => (
+            <Feather name="edit-3" size={size} color={color} />
           ),
         }}
       />

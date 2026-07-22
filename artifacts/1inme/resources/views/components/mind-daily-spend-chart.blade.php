@@ -18,7 +18,7 @@
         <p class="text-[11px] text-white/40">No data.</p>
     @else
         <div class="flex items-end gap-px {{ $height }}" role="img"
-             aria-label="Daily AI credit spend, last {{ $count }} days, ingestion vs questions stacked">
+             aria-label="Daily coin spend, last {{ $count }} days, ingestion vs questions stacked">
             @foreach($days as $d)
                 @php
                     $ingest = (int) ($d['ingest'] ?? 0);
@@ -28,7 +28,7 @@
                     $qH     = ($query  / $denom) * 100;
                     $date   = \Illuminate\Support\Carbon::parse($d['date'])->format('M j, Y');
                     $title  = $tot > 0
-                        ? $date.' — '.number_format($tot).' credits ('.number_format($ingest).' ingest, '.number_format($query).' questions)'
+                        ? $date.' — '.number_format($tot).' coins ('.number_format($ingest).' ingest, '.number_format($query).' questions)'
                         : $date.' — no spend';
                 @endphp
                 <div class="flex-1 h-full flex flex-col justify-end min-w-0" title="{{ $title }}">

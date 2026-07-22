@@ -64,7 +64,7 @@ class CreatorProfileApiController extends Controller
     {
         $user = $request->user();
         if (!$user || empty($user->handle)) {
-            return $this->error('Claim a handle first to preview your profile.', 'no_handle', 422);
+            return $this->fail('Claim a handle first to preview your profile.', 422, 'no_handle');
         }
 
         $url = \Illuminate\Support\Facades\URL::temporarySignedRoute(
@@ -77,6 +77,176 @@ class CreatorProfileApiController extends Controller
         return $this->ok([
             'url'        => $url,
             'expires_in' => 30 * 60,
+        ]);
+    }
+
+    /**
+     * Owner read of the editable creator-profile state (Task #5600).
+     * Unlike the public show() payload this returns the RAW resolved
+     * showcase config — including disabled featured links and items in
+     * hidden sections — so the mobile settings form can seed losslessly.
+     */
+    public function settings(Request $request)
+    {
+        $user = $request->user();
+        if (!$user) {
+            return $this->fail('Unauthenticated.', 401, 'unauthenticated');
+        }
+
+        return $this->ok(['profile' => $this->ownerProfilePayload($user)]);
+    }
+
+    /**
+     * Shared owner-editor payload used by settings() and update().
+     *
+     * @return array<string,mixed>
+     */
+    private function ownerProfilePayload(User $user): array
+    {
+        $showcase = $user->resolvedProfileShowcase();
+
+        // Titles for every referenced link so the app can label rows
+        // without a second request. Includes inactive/non-public links —
+        // this is the OWNER's editor, mirroring the web picker.
+        $refIds = array_values(array_unique(array_merge(
+            array_column($showcase['featured_links'], 'id'),
+            array_column($showcase['showcase_items'], 'link_id'),
+        )));
+        $refLinks = empty($refIds) ? collect() : Link::query()
+            ->withoutGlobalScope('workspace')
+            ->where('user_id', $user->id)
+            ->whereIn('id', $refIds)
+            ->get(['id', 'title', 'alias', 'type'])
+            ->keyBy('id');
+
+        $labelled = fn (int $id) => ($l = $refLinks[$id] ?? null)
+            ? ['title' => $l->title, 'alias' => $l->alias, 'type' => $l->type]
+            : ['title' => null, 'alias' => null, 'type' => null];
+
+        return [
+            'handle'              => $user->handle,
+            'tagline'             => $user->tagline,
+            'location'            => $user->location,
+            'bio'                 => $user->bio,
+            'niche_tags'          => is_array($user->niche_tags) ? $user->niche_tags : [],
+            'socials'             => is_array($user->socials) ? $user->socials : [],
+            'sections'            => $user->profileSectionVisibility(),
+            'profile_published'   => (bool) $user->profile_published,
+            'profile_theme_color' => $user->profile_theme_color ?: null,
+            'showcase'            => [
+                'featured_links' => array_map(
+                    fn ($fl) => $fl + $labelled((int) $fl['id']),
+                    $showcase['featured_links'],
+                ),
+                'featured_links_style' => $showcase['featured_links_style'],
+                'show_link_stats'      => (bool) $showcase['show_link_stats'],
+                'showcase_items'       => array_map(
+                    fn ($it) => $it + $labelled((int) ($it['link_id'] ?? 0)),
+                    $showcase['showcase_items'],
+                ),
+                'highlights' => $showcase['highlights'],
+                'cta'        => $showcase['cta'],
+            ],
+        ];
+    }
+
+    /**
+     * Owner update of the creator profile (mobile parity for the web
+     * "Edit creator profile" page). Delegates to the web controller's
+     * shared helpers so validation semantics, ownership checks and the
+     * showcase assembly cannot drift:
+     *  - saveCoreProfileFields() — tagline/location/bio/tags/socials/
+     *    section visibility/theme color (present-keys only).
+     *  - saveShowcaseFields()   — featured links, showcase items,
+     *    highlights, CTAs (applied only when a showcase key is present;
+     *    the showcase block is then replaced as a whole, like the web form).
+     * JSON-only: avatar/cover uploads go through the files API; this
+     * endpoint accepts `cover_image_url` for an already-uploaded image.
+     */
+    public function update(Request $request)
+    {
+        $user = $request->user();
+        if (!$user) {
+            return $this->fail('Unauthenticated.', 401, 'unauthenticated');
+        }
+
+        $data = $request->validate([
+            'tagline'             => 'nullable|string|max:200',
+            'location'            => 'nullable|string|max:120',
+            'bio'                 => 'nullable|string|max:2000',
+            'cover_image_url'     => 'nullable|string|max:1024',
+            'niche_tags'          => 'nullable|array|max:8',
+            'niche_tags.*'        => 'string|max:32',
+            'socials'             => 'nullable|array',
+            'socials.*'           => 'nullable|string|max:200',
+            'sections'            => 'nullable|array',
+            'sections.*'          => 'nullable|in:0,1,true,false',
+            'profile_published'   => 'nullable|in:0,1,true,false',
+            'profile_theme_color' => ['nullable', 'string', 'max:7', 'regex:/^#[0-9a-fA-F]{6}$/'],
+            'featured_links'            => 'nullable|array|max:8',
+            'featured_links.*.id'       => 'nullable|integer|min:1',
+            'featured_links.*.enabled'  => 'nullable|in:0,1,true,false',
+            'featured_links_style'      => 'nullable|string|in:classic,outline,solid,ghost,pill,card_heading',
+            'showcase_show_link_stats'  => 'nullable|in:0,1,true,false',
+            'showcase_items'               => 'nullable|array|max:20',
+            'showcase_items.*'             => 'array',
+            'showcase_items.*.type'        => 'required_with:showcase_items.*|string',
+            'showcase_items.*.link_id'     => 'required_with:showcase_items.*|integer|min:1',
+            'highlights_show_followers'    => 'nullable|in:0,1,true,false',
+            'highlights_show_links'        => 'nullable|in:0,1,true,false',
+            'highlights_show_member_since' => 'nullable|in:0,1,true,false',
+            'highlights_show_verified'     => 'nullable|in:0,1,true,false',
+            'cta_primary_kind'             => 'nullable|string|in:email,whatsapp,call,link,form',
+            'cta_primary_label'            => 'nullable|string|max:80',
+            'cta_primary_value'            => 'nullable|string|max:500',
+            'cta_secondary'                => 'nullable|array|max:3',
+            'cta_secondary.*.kind'         => 'required_with:cta_secondary.*|string|in:email,whatsapp,call,link,form',
+            'cta_secondary.*.label'        => 'required_with:cta_secondary.*|string|max:80',
+            'cta_secondary.*.value'        => 'required_with:cta_secondary.*|string|max:500',
+        ]);
+
+        \App\Modules\User\Controllers\CreatorProfileController::saveCoreProfileFields($user, $data, $request);
+
+        // Publish toggle — same handle guard as the web editor: a published
+        // profile without a handle would 404 at /@handle.
+        if ($request->has('profile_published')) {
+            $wantsPublished = filter_var($data['profile_published'], FILTER_VALIDATE_BOOLEAN);
+            if ($wantsPublished && empty($user->handle)) {
+                return $this->fail('Claim a handle before publishing — your profile lives at /@handle.', 422, 'no_handle');
+            }
+            $user->profile_published = $wantsPublished;
+        }
+
+        // Showcase block: only touched when the request carries at least one
+        // showcase key (a pure core-fields PATCH must not reset the showcase).
+        $showcaseKeys = [
+            'featured_links', 'featured_links_style', 'showcase_show_link_stats',
+            'showcase_items', 'highlights_show_followers', 'highlights_show_links',
+            'highlights_show_member_since', 'highlights_show_verified',
+            'cta_primary_kind', 'cta_primary_label', 'cta_primary_value', 'cta_secondary',
+        ];
+        if ($request->hasAny($showcaseKeys)) {
+            // Absent boolean toggles fall back to the same defaults as the
+            // web form, so senders should submit the full showcase state.
+            \App\Modules\User\Controllers\CreatorProfileController::saveShowcaseFields($user, $data);
+        }
+
+        $user->save();
+        $user->refresh();
+
+        return $this->ok([
+            'profile' => [
+                'handle'              => $user->handle,
+                'tagline'             => $user->tagline,
+                'location'            => $user->location,
+                'bio'                 => $user->bio,
+                'niche_tags'          => $user->niche_tags ?? [],
+                'socials'             => $user->socials ?? [],
+                'sections'            => $user->profile_section_visibility ?? [],
+                'profile_published'   => (bool) $user->profile_published,
+                'profile_theme_color' => $user->profile_theme_color,
+                'showcase'            => $user->profile_showcase,
+            ],
         ]);
     }
 

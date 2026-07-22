@@ -261,7 +261,7 @@ class AiMindProvisioner
             AiMind::create([
                 'user_id'     => $user->id,
                 'name'        => 'My Mind',
-                'description' => 'Your personal knowledge base. Add text, documents, FAQs, and links to teach your AI persona.',
+                'description' => 'Your personal AI Mind. Add text, documents, FAQs, and links to teach your AI persona.',
             ]);
         }
         // Ensure the platform default exists too so "All Minds" never
@@ -278,7 +278,7 @@ Core features:
 - Biolinks: a customizable mobile-first profile that hosts your links, posts, payments, and forms in one place.
 - Short Links and File/Event Links: branded URLs with click analytics, alias rotation, and bot filtering.
 - Analytics: per-link visitor stats, retention windows, and a Performance Coach that suggests improvements.
-- Wallet & AI Credits: an in-app coin wallet that converts to AI credits used by every AI feature on the platform.
+- Wallet & Coins: an in-app coin wallet that pays for every AI feature on the platform.
 - Inbox & Forms: collect leads and DMs through forms attached to biolinks; replies live in a unified inbox.
 - Followers & Posts: creators can publish updates and grow a follower list with email digests.
 - Vault: encrypted client/credentials storage for working with collaborators.
@@ -294,8 +294,8 @@ TXT;
         return [
             ['q' => 'How do I create a biolink?',
              'a' => 'Open the dashboard, click "Create Link" → "Biolink", and follow the wizard. You can pick a template, set an alias, and add blocks (links, posts, payments, forms).'],
-            ['q' => 'How are AI credits different from wallet coins?',
-             'a' => 'Wallet coins are general-purpose Sayzio currency. AI credits are spent only by AI features (Mind, Persona, Companion, Coach). Buy credits from "AI Credits" in the dashboard — wallet coins convert to credits at the admin-set rate.'],
+            ['q' => 'How do coins pay for AI features?',
+             'a' => 'Coins are Sayzio\'s single wallet currency. Every AI feature (Mind, Persona, Companion, Coach) is charged in coins from the same wallet you use for add-ons and API overage. Top up coins from the Wallet page in the dashboard.'],
             ['q' => 'What does the Performance Coach do?',
              'a' => 'The Performance Coach scores each link daily on visit volume, dwell time, and CTR, and suggests fixes (rename, add a CTA, pause if dead). Snapshots build a 30-day trend you can revisit.'],
             ['q' => 'Can I use my own domain?',

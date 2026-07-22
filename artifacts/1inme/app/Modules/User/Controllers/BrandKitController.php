@@ -16,6 +16,7 @@ use App\Services\AI\AiUsageCharger;
 use App\Services\AI\InsufficientCoinsForAiException;
 use App\Services\Brand\AiBrandKitService;
 use App\Services\Brand\BrandConsistencyService;
+use App\Services\Brand\BrandKitAssetService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -41,6 +42,7 @@ class BrandKitController extends Controller
         protected AiBrandKitService $kits,
         protected AiUsageCharger $credits,
         protected AiMindQueryService $minds,
+        protected BrandKitAssetService $assets,
     ) {}
 
     public function index(Request $request)
@@ -104,6 +106,7 @@ class BrandKitController extends Controller
             'platformMind' => $this->platformMind(),
             'hasDefault'   => (bool) $default,
             'defaultFeature' => AiBrandKitService::FEATURE,
+            'assetTypes'    => $this->assetTypeOptions($user),
         ]);
     }
 
@@ -168,13 +171,19 @@ class BrandKitController extends Controller
         $data = $this->validatePayload($request);
 
         try {
-            $cost = $this->kits->estimateCredits($user, $data['prompt'], $data['website_url'], $data['logo_url']);
+            $cost = $this->kits->estimateCredits($user, $data['prompt'], $data['website_url'], $data['logo_url'], '', $data['components']);
         } catch (\RuntimeException $e) {
             return response()->json(['message' => $e->getMessage()], 422);
         }
 
+        // Each requested image asset is a separate flat per-generation charge.
+        $assetCost = 0;
+        foreach ($data['asset_types'] as $type) {
+            $assetCost += $this->assets->coinCost($user, $type);
+        }
+
         return response()->json([
-            'estimated_credits' => $cost,
+            'estimated_credits' => $cost + $assetCost,
             'balance'           => $this->credits->getBalance($user),
         ]);
     }
@@ -224,10 +233,10 @@ class BrandKitController extends Controller
         }
 
         try {
-            $result = $this->kits->generate($user, $data['prompt'], $data['website_url'], $data['logo_url'], $kbContext);
+            $result = $this->kits->generate($user, $data['prompt'], $data['website_url'], $data['logo_url'], $kbContext, $data['components']);
         } catch (InsufficientCoinsForAiException $e) {
             return response()->json([
-                'message'  => 'Not enough AI credits to generate this brand kit.',
+                'message'  => 'Not enough coins to generate this brand kit.',
                 'required' => $e->required ?? null,
                 'balance'  => $e->balance ?? null,
             ], 402);
@@ -235,8 +244,32 @@ class BrandKitController extends Controller
             return response()->json(['message' => $e->getMessage()], 422);
         }
 
+        // Generate any requested image assets right after the kit. Each is a
+        // separate charge with its own refund-on-failure inside the service;
+        // one failed image never rolls back the kit or the other images.
+        $assetsSpent  = 0;
+        $assetsDone   = [];
+        $assetErrors  = [];
+        foreach ($data['asset_types'] as $type) {
+            try {
+                $asset = $this->assets->generate($user, $result['kit'], $type);
+                $assetsSpent += (int) $asset->credits_spent;
+                $assetsDone[] = $type;
+            } catch (\Throwable $e) {
+                $label = BrandKitAssetService::TYPES[$type]['label'] ?? $type;
+                $assetErrors[] = $label . ': ' . $e->getMessage();
+                Log::warning('Brand kit inline asset generation failed', ['type' => $type, 'error' => $e->getMessage()]);
+            }
+        }
+        if ($assetsDone) {
+            session()->flash('status', count($assetsDone) . ' brand image' . (count($assetsDone) === 1 ? '' : 's') . ' generated: open the kit\'s Visual assets panel to view them.');
+        }
+        if ($assetErrors) {
+            session()->flash('error', 'Some images could not be generated: ' . implode(' · ', $assetErrors));
+        }
+
         return response()->json([
-            'credits_spent' => (int) $result['credits_spent'] + $kbCreditsSpent,
+            'credits_spent' => (int) $result['credits_spent'] + $kbCreditsSpent + $assetsSpent,
             'balance'       => $this->credits->getBalance($user),
             'kit'           => [
                 'id'     => $result['kit']->id,
@@ -306,7 +339,7 @@ class BrandKitController extends Controller
     }
 
     /**
-     * @return array{prompt:string,website_url:?string,logo_url:?string,mind_ids:int[],include_platform:bool}
+     * @return array{prompt:string,website_url:?string,logo_url:?string,mind_ids:int[],include_platform:bool,components:string[]}
      */
     private function validatePayload(Request $request): array
     {
@@ -317,6 +350,10 @@ class BrandKitController extends Controller
             'mind_ids'         => ['nullable', 'array'],
             'mind_ids.*'       => ['integer'],
             'include_platform' => ['nullable', 'boolean'],
+            'components'       => ['nullable', 'array'],
+            'components.*'     => ['string', 'in:' . implode(',', AiBrandKitService::COMPONENTS)],
+            'asset_types'      => ['nullable', 'array'],
+            'asset_types.*'    => ['string', 'in:' . implode(',', array_keys(BrandKitAssetService::TYPES))],
         ]);
 
         return [
@@ -325,7 +362,36 @@ class BrandKitController extends Controller
             'logo_url'         => $data['logo_url'] ?? null,
             'mind_ids'         => array_map('intval', $data['mind_ids'] ?? []),
             'include_platform' => (bool) ($data['include_platform'] ?? false),
+            // Empty selection = generate everything (back-compat for callers
+            // that never send the field, e.g. the mobile API path).
+            'components'       => array_values(array_map('strval', $data['components'] ?? [])),
+            // Optional image assets to generate right after the kit itself
+            // (each is a separate flat coin charge; empty = none).
+            'asset_types'      => array_values(array_unique(array_map('strval', $data['asset_types'] ?? []))),
         ];
+    }
+
+    /**
+     * Image-asset choices for the generate form's "What to include" section.
+     * Empty when image generation is unavailable (engine off / no key) or the
+     * user's plan doesn't include brand asset generation.
+     *
+     * @return list<array{type:string,label:string,cost:int}>
+     */
+    private function assetTypeOptions($user): array
+    {
+        if (!$this->assets->enabled() || !AiPlanAccess::featureAllowed($user, 'brand_kit_assets')) {
+            return [];
+        }
+        $out = [];
+        foreach (BrandKitAssetService::TYPES as $type => $meta) {
+            $out[] = [
+                'type'  => $type,
+                'label' => $meta['label'],
+                'cost'  => $this->assets->coinCost($user, $type),
+            ];
+        }
+        return $out;
     }
 
     /** @return \Illuminate\Support\Collection<int,AiMind> */
@@ -348,5 +414,117 @@ class BrandKitController extends Controller
     private function authorizeKit(Request $request, BrandKit $brandKit): void
     {
         abort_if($brandKit->user_id !== $request->user()->id, 403);
+    }
+
+    // ── AI-generated visual assets (Task #5612) ───────────────────────
+
+    /** Catalog + current assets for one kit (drives the Assets panel). */
+    public function assets(Request $request, BrandKit $brandKit, \App\Services\Brand\BrandKitAssetService $assets): JsonResponse
+    {
+        $this->authorizeKit($request, $brandKit);
+        $user = $request->user();
+
+        return response()->json([
+            'enabled'   => $assets->enabled(),
+            'allowed'   => AiPlanAccess::featureAllowed($user, 'brand_kit_assets'),
+            'balance'   => $this->credits->getBalance($user),
+            'types'     => $assets->catalogFor($user, $brandKit),
+        ]);
+    }
+
+    /** Generate or regenerate one asset (optional tweak instructions). */
+    public function generateAsset(Request $request, BrandKit $brandKit, string $type, \App\Services\Brand\BrandKitAssetService $assets): JsonResponse
+    {
+        $this->authorizeKit($request, $brandKit);
+        $user = $request->user();
+
+        $data = $request->validate([
+            'instructions' => 'nullable|string|max:1000',
+            'mode'         => 'nullable|string|in:new,variation,alteration',
+        ]);
+
+        try {
+            $asset = $assets->generate($user, $brandKit, $type, $data['instructions'] ?? null, $data['mode'] ?? 'new');
+        } catch (InsufficientCoinsForAiException $e) {
+            return response()->json([
+                'message'  => 'Not enough coins to generate this asset.',
+                'required' => $e->required ?? null,
+                'balance'  => $e->balance ?? null,
+            ], 402);
+        } catch (\RuntimeException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+
+        return response()->json([
+            'asset'   => $assets->present($asset),
+            'balance' => $this->credits->getBalance($user),
+        ]);
+    }
+
+    /** Delete one asset and its stored image. */
+    public function destroyAsset(Request $request, BrandKit $brandKit, string $type, \App\Services\Brand\BrandKitAssetService $assets): JsonResponse
+    {
+        $this->authorizeKit($request, $brandKit);
+
+        $asset = \App\Modules\User\Models\BrandKitAsset::where('brand_kit_id', $brandKit->id)
+            ->where('type', $type)->first();
+        abort_if(!$asset, 404);
+
+        $assets->delete($asset);
+
+        return response()->json(['ok' => true]);
+    }
+
+    /**
+     * One-click apply. Targets:
+     *   kit_logo            — set the kit's config logo_url (logo/avatar/watermark)
+     *   biolink_favicon     — set a biolink's favicon (requires link_id)
+     *   biolink_og          — set a biolink's SEO share image (requires link_id)
+     *   company_letterhead  — set a BillingCompany's letterhead (requires company_id)
+     */
+    public function applyAsset(Request $request, BrandKit $brandKit, string $type, \App\Services\Brand\BrandKitAssetService $assets): JsonResponse
+    {
+        $this->authorizeKit($request, $brandKit);
+        $user = $request->user();
+
+        $data = $request->validate([
+            'target'     => 'required|string|in:kit_logo,biolink_favicon,biolink_og,company_letterhead',
+            'link_id'    => 'nullable|integer',
+            'company_id' => 'nullable|integer',
+        ]);
+
+        $asset = \App\Modules\User\Models\BrandKitAsset::where('brand_kit_id', $brandKit->id)
+            ->where('type', $type)->first();
+        abort_if(!$asset || $asset->status !== \App\Modules\User\Models\BrandKitAsset::STATUS_READY, 404);
+
+        try {
+            switch ($data['target']) {
+                case 'kit_logo':
+                    $assets->applyLogoToKit($asset, $brandKit);
+                    break;
+
+                case 'biolink_favicon':
+                case 'biolink_og':
+                    $link = Link::where('user_id', workspace_owner_id())
+                        ->where('type', 'biolink')
+                        ->find((int) ($data['link_id'] ?? 0));
+                    abort_if(!$link, 404, 'Link in Bio page not found.');
+                    $data['target'] === 'biolink_favicon'
+                        ? $assets->applyFaviconToLink($asset, $link)
+                        : $assets->applyOgToLink($asset, $link);
+                    break;
+
+                case 'company_letterhead':
+                    $company = \App\Modules\User\Models\BillingCompany::where('user_id', $user->id)
+                        ->find((int) ($data['company_id'] ?? 0));
+                    abort_if(!$company, 404, 'Billing company not found.');
+                    $assets->applyLetterheadToCompany($asset, $company);
+                    break;
+            }
+        } catch (\RuntimeException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+
+        return response()->json(['ok' => true]);
     }
 }

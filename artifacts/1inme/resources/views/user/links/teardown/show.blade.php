@@ -103,7 +103,7 @@
         <div class="glass rounded-2xl p-6 flex items-center justify-between gap-4">
             <div>
                 <p class="text-sm text-white font-medium"><i class="fas fa-wand-magic-sparkles text-blue-400 mr-1.5"></i> Ready to beat this page?</p>
-                <p class="text-xs text-white/40 mt-1">AI credit balance: <span class="text-white/70">{{ $balance }}</span></p>
+                <p class="text-xs text-white/40 mt-1">Coin balance: <span class="text-white/70">{{ $balance }}</span></p>
             </div>
             <form method="POST" action="{{ route('user.links.teardown.build', $teardown) }}" @submit="building = true">
                 @csrf

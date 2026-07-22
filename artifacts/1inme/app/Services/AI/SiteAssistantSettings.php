@@ -40,9 +40,9 @@ class SiteAssistantSettings
             'low_balance_multiplier'      => 3,
             'low_balance_default_credits' => 50,
             'low_balance_message_signed_in' =>
-                'Only enough credits left for about {remaining} more replies — top up to keep chatting.',
+                'Only enough coins left for about {remaining} more replies — top up to keep chatting.',
             'low_balance_message_anonymous' =>
-                'Heads up — this chat is running low on credits and replies may be cut short soon.',
+                'Heads up — this chat is running low on coins and replies may be cut short soon.',
             // Optional per-locale overrides for the two messages above.
             // Shape: ['fr' => ['signed_in' => '…', 'anonymous' => '…'], …]
             // Empty/missing entries fall back to the default English copy.

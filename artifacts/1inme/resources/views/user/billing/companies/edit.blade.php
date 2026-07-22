@@ -1,7 +1,7 @@
-@extends('user.layouts.app')
+@extends('user.layouts.settings')
 @section('title', $company->exists ? 'Edit Company' : 'New Company')
-@section('content')
-<div class="max-w-3xl mx-auto px-4 py-8">
+@section('settings-content')
+<div class="max-w-3xl">
     <div class="page-hero mb-6 flex items-center justify-between">
         <div>
             <h1 class="hero-title">{{ $company->exists ? 'Edit Company' : 'New Company' }}</h1>
@@ -105,15 +105,71 @@
             </div>
         </section>
 
-        <section class="p-4 rounded-xl border" style="border-color: var(--border-soft); background: var(--bg-card);">
+        @php
+            $companyCountryInit = strtoupper((string) old('country',     $company->country ?? ''));
+            $companyCityInit    = (string) old('city',        $company->city        ?? '');
+            $companyStateInit   = (string) old('state',       $company->state       ?? '');
+            $companyPostalInit  = (string) old('postal_code', $company->postal_code ?? '');
+        @endphp
+        <section class="p-4 rounded-xl border" style="border-color: var(--border-soft); background: var(--bg-card);"
+                 @country-picked="onCountryInput($event.detail)"
+                 x-data="{
+                     country: @js($companyCountryInit),
+                     cityVal: @js($companyCityInit),
+                     stateVal: @js($companyStateInit),
+                     cityEdited: false,
+                     stateEdited: false,
+                     lookupTimer: null,
+                     lookupUrl: @js(route('user.profile.postal.lookup')),
+                     onCountryInput(val) {
+                         this.country = val;
+                         this.scheduleLookup();
+                     },
+                     scheduleLookup() {
+                         clearTimeout(this.lookupTimer);
+                         this.lookupTimer = setTimeout(() => this.doLookup(), 600);
+                     },
+                     async doLookup() {
+                         const country = this.country.trim();
+                         const postalEl = this.$el.querySelector('[name=postal_code]');
+                         const postal = postalEl ? postalEl.value.trim() : '';
+                         if (country.length !== 2 || !postal) return;
+                         try {
+                             const r = await fetch(this.lookupUrl + '?country=' + encodeURIComponent(country) + '&postal_code=' + encodeURIComponent(postal), { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+                             if (!r.ok) return;
+                             const d = await r.json();
+                             if (d.city && !this.cityEdited) this.cityVal = d.city;
+                             if (!this.stateEdited && (d.region || d.region_code)) this.stateVal = d.region || d.region_code;
+                         } catch (e) {}
+                     }
+                 }">
             <h2 class="font-bold mb-3" style="color: var(--text-primary);">Address</h2>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {!! $field('address_line1', 'Address line 1') !!}
                 {!! $field('address_line2', 'Address line 2') !!}
-                {!! $field('city', 'City') !!}
-                {!! $field('state', 'State / Region') !!}
-                {!! $field('postal_code', 'Postal code') !!}
-                {!! $field('country', 'Country (2-letter)') !!}
+                <label class="text-xs" style="color: var(--text-muted);">Country
+                    <div class="mt-1">
+                        @include('common.partials.country-select', [
+                            'csName'        => 'country',
+                            'csValue'       => $companyCountryInit,
+                            'csId'          => 'company-country',
+                            'csPlaceholder' => 'Select country',
+                        ])
+                    </div>
+                </label>
+                <label class="text-xs" style="color: var(--text-muted);">Postal code
+                    <input type="text" name="postal_code" value="{{ $companyPostalInit }}" maxlength="32"
+                           x-on:input="scheduleLookup()" x-on:blur="doLookup()"
+                           class="block w-full mt-1 p-2 rounded-lg border" style="background: var(--bg-glass-input); border-color: var(--border-soft); color: var(--text-primary);">
+                </label>
+                <label class="text-xs" style="color: var(--text-muted);">City
+                    <input type="text" name="city" x-model="cityVal" x-on:input="cityEdited = true" maxlength="120"
+                           class="block w-full mt-1 p-2 rounded-lg border" style="background: var(--bg-glass-input); border-color: var(--border-soft); color: var(--text-primary);">
+                </label>
+                <label class="text-xs" style="color: var(--text-muted);">State / Region
+                    <input type="text" name="state" x-model="stateVal" x-on:input="stateEdited = true" maxlength="120"
+                           class="block w-full mt-1 p-2 rounded-lg border" style="background: var(--bg-glass-input); border-color: var(--border-soft); color: var(--text-primary);">
+                </label>
             </div>
         </section>
 

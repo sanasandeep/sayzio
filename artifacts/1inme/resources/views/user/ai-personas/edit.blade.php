@@ -16,7 +16,7 @@
             <h1 class="text-2xl font-bold text-white mt-2">{{ $persona->name }}
                 @if(!$isOwner)<span class="ml-2 text-[10px] uppercase tracking-wider text-sky-300/80 align-middle">Shared · {{ $shareAccess === \App\Modules\User\Models\AiResourceShare::ACCESS_EDIT ? 'Can edit' : 'View only' }}</span>@endif
             </h1>
-            <p class="text-[11px] text-white/40">v{{ optional($persona->activeVersion)->revision ?? '—' }} &middot; AI credit balance: <span class="text-blue-300">{{ number_format($balance) }}</span></p>
+            <p class="text-[11px] text-white/40">v{{ optional($persona->activeVersion)->revision ?? '—' }} &middot; Coin balance: <span class="text-blue-300">{{ number_format($balance) }}</span></p>
             @if($persona->is_disabled)
                 <p class="mt-2 text-xs text-red-300">This AI agent is disabled by an administrator: {{ $persona->disabled_reason }}</p>
             @endif
@@ -96,7 +96,7 @@
                 <label class="flex items-start gap-2 cursor-pointer">
                     <input type="hidden" name="use_brand_kit" value="0">
                     <input type="checkbox" name="use_brand_kit" value="1" @checked(old('use_brand_kit', $persona->use_brand_kit ?? true))
-                        class="mt-0.5 rounded border-white/20 bg-white/5 text-pink-500">
+                        class="mt-0.5 rounded border-white/20 bg-white/5 text-blue-500">
                     <span class="text-sm text-white">
                         Keep replies on-brand
                         <span class="block text-[10px] text-white/40">Blend your saved AI Brand Kit’s voice &amp; tone into this Companion’s system prompt.</span>
@@ -135,25 +135,25 @@
 
             {{-- Knowledge --}}
             <div class="rounded-2xl border border-white/10 bg-white/[0.03] p-5 space-y-4">
-                <h3 class="text-white font-semibold">Knowledge bases</h3>
+                <h3 class="text-white font-semibold">AI Minds</h3>
                 <label class="flex items-center gap-2 cursor-pointer">
                     <input type="hidden" name="use_default_mind" value="0">
                     <input type="checkbox" name="use_default_mind" value="1" @checked(old('use_default_mind', $persona->use_default_mind))
-                        class="rounded border-white/20 bg-white/5 text-pink-500">
+                        class="rounded border-white/20 bg-white/5 text-blue-500">
                     <span class="text-sm text-white">
-                        Use the platform default knowledge base
+                        Use the platform default AI Mind
                         @if($defaultMind)
                             <span class="text-[10px] text-white/40">({{ $defaultMind->name }})</span>
                         @else
-                            <span class="text-[10px] text-amber-300">(no default knowledge base configured yet)</span>
+                            <span class="text-[10px] text-amber-300">(no default AI Mind configured yet)</span>
                         @endif
                     </span>
                 </label>
                 <div>
-                    <label class="text-[11px] uppercase tracking-wider text-white/50">Your knowledge bases (max {{ $caps['max_minds_per_persona'] }})</label>
+                    <label class="text-[11px] uppercase tracking-wider text-white/50">Your AI Minds (max {{ $caps['max_minds_per_persona'] }})</label>
                     @if($myMinds->isEmpty())
-                        <p class="mt-2 text-xs text-white/40">You don't have any knowledge bases yet.
-                            <a href="{{ route('user.minds.index') }}" class="text-pink-300 hover:underline">Create one →</a>
+                        <p class="mt-2 text-xs text-white/40">You don't have any AI Minds yet.
+                            <a href="{{ route('user.minds.index') }}" class="text-blue-300 hover:underline">Create one →</a>
                         </p>
                     @else
                         <div class="mt-2 grid grid-cols-1 md:grid-cols-2 gap-2 max-h-64 overflow-y-auto pr-1">
@@ -161,7 +161,7 @@
                                 <label class="flex items-center gap-2 px-3 py-2 rounded-xl border border-white/10 bg-white/[0.02] cursor-pointer hover:bg-white/[0.05]">
                                     <input type="checkbox" name="mind_ids[]" value="{{ $m->id }}"
                                         @checked(in_array($m->id, old('mind_ids', $attachedIds), true))
-                                        class="rounded border-white/20 bg-white/5 text-pink-500">
+                                        class="rounded border-white/20 bg-white/5 text-blue-500">
                                     <span class="text-sm text-white truncate">{{ $m->name }}</span>
                                 </label>
                             @endforeach
@@ -187,7 +187,7 @@
                         <label class="flex items-center gap-2 cursor-pointer">
                             <input type="checkbox" name="allowed_actions[{{ $key }}]" value="1"
                                 @checked(old("allowed_actions.$key", ($persona->allowed_actions[$key] ?? false)))
-                                class="rounded border-white/20 bg-white/5 text-pink-500">
+                                class="rounded border-white/20 bg-white/5 text-blue-500">
                             <span class="text-sm text-white/80">{{ $label }}</span>
                         </label>
                     @endforeach
@@ -230,7 +230,7 @@
                 <input type="text" name="summary" maxlength="500" placeholder="What changed in this revision?"
                     class="w-full bg-white/[0.04] border border-white/10 rounded-xl px-3 py-2 text-white text-sm">
                 <div class="flex justify-end gap-2">
-                    <button type="submit" class="px-4 py-2 rounded-xl bg-pink-600 hover:bg-pink-500 text-white text-sm">
+                    <button type="submit" class="btn-primary text-sm">
                         Save as new version
                     </button>
                 </div>
@@ -241,11 +241,11 @@
         {{-- ================= TEST + VERSIONS ================= --}}
         <div class="space-y-5">
             {{-- Test panel --}}
-            <div class="rounded-2xl border border-pink-500/20 bg-pink-500/[0.04] p-5">
+            <div class="rounded-2xl border border-blue-500/20 bg-blue-500/[0.04] p-5">
                 <h3 class="text-white font-semibold flex items-center gap-2">
-                    <i class="fas fa-flask text-pink-300"></i> Test panel
+                    <i class="fas fa-flask text-blue-300"></i> Test panel
                 </h3>
-                <p class="text-[11px] text-white/50 mt-1">Hit a saved version of this AI agent with the runtime visitors will use. Each turn spends AI credits.</p>
+                <p class="text-[11px] text-white/50 mt-1">Hit a saved version of this AI agent with the runtime visitors will use. Each turn spends coins.</p>
 
                 <div class="mt-3 max-h-80 overflow-y-auto space-y-2 pr-1" x-ref="log">
                     <template x-if="!log.length">
@@ -254,11 +254,11 @@
                     <template x-for="(t,i) in log" :key="i">
                         <div :class="t.role === 'user' ? 'text-right' : ''">
                             <div class="inline-block max-w-full text-left rounded-xl px-3 py-2 text-sm whitespace-pre-wrap"
-                                 :class="t.role === 'user' ? 'bg-white/10 text-white' : 'bg-pink-500/10 text-pink-100 border border-pink-500/20'"
+                                 :class="t.role === 'user' ? 'bg-white/10 text-white' : 'bg-blue-500/10 text-blue-100 border border-blue-500/20'"
                                  x-text="t.content"></div>
                             <template x-if="t.meta">
                                 <div class="text-[10px] text-white/40 mt-1">
-                                    <span x-text="t.meta.model"></span> · <span x-text="t.meta.credits_spent + ' credits'"></span>
+                                    <span x-text="t.meta.model"></span> · <span x-text="t.meta.credits_spent + ' coins'"></span>
                                     · <span x-text="t.meta.tokens_in + '↑/' + t.meta.tokens_out + '↓ tokens'"></span>
                                 </div>
                             </template>
@@ -291,7 +291,7 @@
                     <input type="text" x-model="message" :disabled="busy" placeholder="Type a visitor question…"
                         class="flex-1 bg-white/[0.04] border border-white/10 rounded-xl px-3 py-2 text-white text-sm">
                     <button :disabled="busy || !message.trim()"
-                        class="px-3 py-2 rounded-xl bg-pink-600 hover:bg-pink-500 text-white text-sm disabled:opacity-50">
+                        class="btn-primary text-sm disabled:opacity-50">
                         <i class="fas" :class="busy ? 'fa-spinner fa-spin' : 'fa-paper-plane'"></i>
                     </button>
                 </form>

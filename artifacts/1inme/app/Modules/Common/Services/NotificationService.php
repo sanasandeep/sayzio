@@ -70,6 +70,13 @@ class NotificationService
                 'default_email'  => true,
                 'default_push'   => true,
             ],
+            'asset_transfer' => [
+                'label'          => 'Asset transfers',
+                'description'    => 'When a link or workspace is transferred to or from your account.',
+                'default_in_app' => true,
+                'default_email'  => true,
+                'default_push'   => true,
+            ],
             'post_review_request' => [
                 'label'          => 'Posts waiting for your review',
                 'description'    => 'When an editor sends a post to the review queue in a workspace where you can approve.',
@@ -286,6 +293,14 @@ class NotificationService
                 'description'    => 'When a call-back you scheduled from the dialer is due.',
                 'default_in_app' => true,
                 'default_email'  => false,
+                'default_push'   => true,
+            ],
+            // Dialer note / to-do reminders (Task #5508).
+            'dialer.note_due' => [
+                'label'          => 'Note & to-do reminders',
+                'description'    => 'When a note or to-do reminder you set (or one shared with you) is due.',
+                'default_in_app' => true,
+                'default_email'  => true,
                 'default_push'   => true,
             ],
             // Contact / lead follow-up reminders (Task #3524).

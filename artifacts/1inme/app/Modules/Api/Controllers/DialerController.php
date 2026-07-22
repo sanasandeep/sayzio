@@ -470,6 +470,30 @@ class DialerController extends Controller
 
     // ── Spam / block flags ────────────────────────────────────────────
 
+    /**
+     * All numbers the user flagged as spam and/or blocked. Powers the
+     * mobile caller-ID directory sync so the native incoming-call card
+     * can show a warning while the JS runtime is dead (display-only —
+     * no call is ever blocked or silenced).
+     */
+    public function flags(Request $request)
+    {
+        $items = DialerNumberFlag::where('user_id', $request->user()->id)
+            ->where(function ($q) {
+                $q->where('is_spam', true)->orWhere('is_blocked', true);
+            })
+            ->orderBy('number_e164')
+            ->get(['number_e164', 'is_spam', 'is_blocked'])
+            ->map(fn ($f) => [
+                'number_e164' => $f->number_e164,
+                'is_spam'     => (bool) $f->is_spam,
+                'is_blocked'  => (bool) $f->is_blocked,
+            ])
+            ->values();
+
+        return $this->ok(['items' => $items]);
+    }
+
     public function flag(Request $request)
     {
         $userId = $request->user()->id;

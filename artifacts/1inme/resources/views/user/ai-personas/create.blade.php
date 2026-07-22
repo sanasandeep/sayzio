@@ -23,7 +23,7 @@
             <div class="mt-2 grid grid-cols-1 md:grid-cols-2 gap-2">
                 @foreach($templates as $key => $tpl)
                     <label class="cursor-pointer rounded-xl border p-3 transition"
-                        :class="tpl === '{{ $key }}' ? 'border-pink-500/50 bg-pink-500/10' : 'border-white/10 bg-white/[0.03] hover:bg-white/5'">
+                        :class="tpl === '{{ $key }}' ? 'border-blue-500/50 bg-blue-500/10' : 'border-white/10 bg-white/[0.03] hover:bg-white/5'">
                         <input type="radio" name="template" value="{{ $key }}" x-model="tpl" class="sr-only">
                         <p class="text-white text-sm font-semibold">{{ $tpl['label'] }}</p>
                         <p class="text-xs text-white/50 mt-0.5">{{ $tpl['description'] }}</p>
@@ -34,7 +34,7 @@
 
         <div class="flex justify-end gap-2">
             <a href="{{ route('user.ai-personas.index') }}" class="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-white text-sm">Cancel</a>
-            <button class="px-4 py-2 rounded-xl bg-pink-600 hover:bg-pink-500 text-white text-sm">Create AI Agent</button>
+            <button class="btn-primary text-sm">Create AI Agent</button>
         </div>
     </form>
 </div>

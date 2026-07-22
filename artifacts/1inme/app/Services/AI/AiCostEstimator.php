@@ -83,6 +83,9 @@ class AiCostEstimator
             case 'qr_art':
                 return ['coins' => $this->qrArtCoins($user), 'mode' => 'fixed'];
 
+            case 'brand_asset':
+                return ['coins' => $this->brandAssetCoins($user), 'mode' => 'fixed'];
+
             case 'voice':
                 return ['coins' => $this->voiceTurnCoins($user), 'mode' => 'fixed'];
 
@@ -146,6 +149,13 @@ class AiCostEstimator
     {
         $base = AiEngineSettings::qrArtCoinsPerGeneration();
         $mult = AiPlanAccess::coinMultiplier($user, 'replicate');
+        return max(1, (int) ceil($base * $mult));
+    }
+
+    private function brandAssetCoins(User $user): int
+    {
+        $base = AiEngineSettings::brandAssetCoinsPerGeneration();
+        $mult = AiPlanAccess::coinMultiplier($user, 'openai');
         return max(1, (int) ceil($base * $mult));
     }
 

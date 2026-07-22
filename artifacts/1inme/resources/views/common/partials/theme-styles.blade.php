@@ -585,6 +585,29 @@
         box-shadow: 0 4px 12px -2px rgba(61,107,255,0.35), inset 0 1px 0 rgba(255,255,255,0.18);
     }
 
+    /* Gradient variant of the primary button — same geometry as .btn-primary,
+       but the surface is a brand-blue gradient built from the theme-flipping
+       accent tokens so it stays legible in both modes. */
+    .btn-primary-gradient {
+        background: linear-gradient(135deg, var(--accent), var(--accent-light));
+        color: white;
+    }
+    .btn-primary-gradient:hover {
+        background: linear-gradient(135deg, var(--accent-light), var(--accent));
+        box-shadow: 0 4px 14px -4px var(--accent-glow);
+        transform: translateY(-1px);
+    }
+    .btn-primary-gradient:active { transform: translateY(0); }
+    html.light-mode .btn-primary-gradient {
+        background: linear-gradient(135deg, var(--accent), var(--accent-light));
+        color: white;
+        box-shadow: 0 1px 2px rgba(61,107,255,0.20), inset 0 1px 0 rgba(255,255,255,0.18);
+    }
+    html.light-mode .btn-primary-gradient:hover {
+        background: linear-gradient(135deg, var(--accent-light), var(--accent));
+        box-shadow: 0 4px 12px -2px rgba(61,107,255,0.35), inset 0 1px 0 rgba(255,255,255,0.18);
+    }
+
     .btn-ghost {
         display: inline-flex;
         align-items: center;
@@ -927,10 +950,10 @@
 <script>
 (function(){
     var css = `
-        html.light-mode [class*="text-white"]:not([class*="bg-indigo-"]):not([class*="bg-blue-"]):not([class*="bg-fuchsia-"]):not([class*="bg-emerald-"]):not([class*="bg-red-"]):not([class*="bg-rose-"]):not([class*="bg-gradient"]):not(.toggle-knob):not([class*="bg-amber-"]):not([class*="bg-orange-"]):not([class*="bg-blue-"]):not([class*="bg-sky-"]):not([class*="bg-green-"]):not([class*="bg-teal-"]):not([class*="bg-lime-"]):not([class*="bg-pink-"]):not([class*="bg-yellow-"]):not([class*="bg-cyan-"]):not([class*="bg-indigo-"]):not(.btn-primary) {
+        html.light-mode [class*="text-white"]:not([class*="bg-indigo-"]):not([class*="bg-blue-"]):not([class*="bg-fuchsia-"]):not([class*="bg-emerald-"]):not([class*="bg-red-"]):not([class*="bg-rose-"]):not([class*="bg-gradient"]):not(.toggle-knob):not([class*="bg-amber-"]):not([class*="bg-orange-"]):not([class*="bg-blue-"]):not([class*="bg-sky-"]):not([class*="bg-green-"]):not([class*="bg-teal-"]):not([class*="bg-lime-"]):not([class*="bg-pink-"]):not([class*="bg-yellow-"]):not([class*="bg-cyan-"]):not([class*="bg-indigo-"]):not([class*="bg-primary-"]):not(.btn-primary) {
             color: var(--text-primary) !important;
         }
-        html.light-mode [class*="text-white/"]:not([class*="bg-indigo-"]):not([class*="bg-blue-"]):not([class*="bg-fuchsia-"]):not([class*="bg-emerald-"]):not([class*="bg-red-"]):not([class*="bg-rose-"]):not([class*="bg-gradient"]):not(.toggle-knob):not([class*="bg-amber-"]):not([class*="bg-orange-"]):not([class*="bg-blue-"]):not([class*="bg-sky-"]):not([class*="bg-green-"]):not([class*="bg-teal-"]):not([class*="bg-lime-"]):not([class*="bg-pink-"]):not([class*="bg-yellow-"]):not([class*="bg-cyan-"]):not([class*="bg-indigo-"]):not(.btn-primary) {
+        html.light-mode [class*="text-white/"]:not([class*="bg-indigo-"]):not([class*="bg-blue-"]):not([class*="bg-fuchsia-"]):not([class*="bg-emerald-"]):not([class*="bg-red-"]):not([class*="bg-rose-"]):not([class*="bg-gradient"]):not(.toggle-knob):not([class*="bg-amber-"]):not([class*="bg-orange-"]):not([class*="bg-blue-"]):not([class*="bg-sky-"]):not([class*="bg-green-"]):not([class*="bg-teal-"]):not([class*="bg-lime-"]):not([class*="bg-pink-"]):not([class*="bg-yellow-"]):not([class*="bg-cyan-"]):not([class*="bg-indigo-"]):not([class*="bg-primary-"]):not(.btn-primary) {
             color: var(--text-muted) !important;
         }
         html.light-mode [class*="text-white/8"],

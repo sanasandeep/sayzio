@@ -25,7 +25,7 @@ class AiPersonaAgent extends Model
 
     /** Allowed-action toggle keys exposed in the persona builder. */
     public const ACTIONS = [
-        'quote_prices'      => 'May quote plan prices and AI credit costs',
+        'quote_prices'      => 'May quote plan prices and coin costs',
         'share_biolinks'    => 'May share the user\'s public biolink URLs',
         'collect_email'     => 'May ask the visitor for an email address',
         'book_calls'        => 'May suggest booking a call / sending a calendar link',

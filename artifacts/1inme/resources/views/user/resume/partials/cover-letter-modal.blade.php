@@ -85,13 +85,13 @@
                                     <span x-show="coverEstimate !== null">
                                         Up to
                                         <strong x-text="coverEstimate"></strong>
-                                        <span x-text="coverEstimate === 1 ? 'credit' : 'credits'"></span>
+                                        <span x-text="coverEstimate === 1 ? 'coin' : 'coins'"></span>
                                         · Balance:
                                         <strong x-text="coverBalance"></strong>
                                     </span>
                                 </div>
                                 <div class="resume-tailor-cost-hint" x-show="coverEstimate !== null && coverEstimate > coverBalance">
-                                    <i class="fas fa-triangle-exclamation"></i> Not enough credits. Top up from <em>Credits</em> first.
+                                    <i class="fas fa-triangle-exclamation"></i> Not enough coins. Top up from <em>Coins</em> first.
                                 </div>
                             </div>
 
@@ -117,7 +117,7 @@
                             <div class="resume-tailor-summary-bar">
                                 <span><i class="fas fa-coins"></i>
                                     Spent <strong x-text="coverLetter.credits_spent"></strong>
-                                    <span x-text="coverLetter.credits_spent === 1 ? 'credit' : 'credits'"></span>
+                                    <span x-text="coverLetter.credits_spent === 1 ? 'coin' : 'coins'"></span>
                                     · Balance: <strong x-text="coverBalance"></strong>
                                 </span>
                                 <span class="resume-tailor-summary-bar-bullet">
@@ -252,7 +252,7 @@
                             <div class="resume-tailor-history-meta">
                                 <span x-text="formatTailorWhen(h.created_at)"></span>
                                 <span>·</span>
-                                <span x-text="(h.credits_spent || 0) + ' cr'"></span>
+                                <span x-text="(h.credits_spent || 0) + ' coins'"></span>
                                 <span>·</span>
                                 <span x-text="h.tone || 'professional'"></span>
                                 <span>·</span>

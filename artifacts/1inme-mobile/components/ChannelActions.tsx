@@ -4,6 +4,7 @@ import { type ComponentProps, useEffect, useSyncExternalStore } from "react";
 import { Alert, Linking, Platform, Pressable, View } from "react-native";
 
 import { type DialerChannelDef, getDialerChannels } from "@/lib/api/dialer";
+import { placeRealCall } from "@/lib/placeCall";
 import { ZioTelephony } from "@/modules/zio-telephony";
 
 // ── Direct channel actions (shared across every dialer surface) ──────
@@ -107,7 +108,11 @@ export function chanOpen(mode: string, v: string): void {
   const d = digitsOf(v);
   let url = "";
   switch (mode) {
-    case "tel":    url = t ? `tel:${t}` : ""; break;
+    case "tel":
+      // Route through placeRealCall so the user's "Calling" preference
+      // (Direct call vs Open phone app) is respected on every call surface.
+      if (t) void placeRealCall(t);
+      return;
     case "sms":    url = t ? `sms:${t}` : ""; break;
     case "wa":
       if (d) void openWhatsAppUrl(`https://wa.me/${d}`);

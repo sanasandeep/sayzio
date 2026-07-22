@@ -145,6 +145,8 @@ class PremiumFeatures
             ['key' => 'custom_favicon', 'group' => 'Branding', 'name' => 'Custom favicon', 'description' => 'Use your own favicon (browser tab icon) on every public page served from your account or custom domain.'],
             ['key' => 'custom_code', 'group' => 'Branding', 'name' => 'Custom HTML / JS', 'description' => 'Drop in custom <head> snippets, scripts and CSS overrides for advanced theming and integrations.'],
             ['key' => 'max_brand_kits', 'group' => 'Branding', 'name' => 'AI brand kits', 'description' => 'How many AI-generated brand kits (palette, fonts, voice, taglines) you can save and reuse.', 'unit' => 'brand kits'],
+            ['key' => 'brand_kit_assets', 'group' => 'Branding', 'name' => 'AI brand visual assets', 'description' => 'Generate ready-to-use brand images from your Brand Kit — logo, favicon, letterhead, social banners, avatar, share image, business card, email banner, background and watermark.'],
+            ['key' => 'max_brand_asset_versions', 'group' => 'Branding', 'name' => 'Brand asset generations', 'description' => 'How many times each Brand Kit visual asset can be generated or regenerated.', 'unit' => 'generations / asset'],
 
             // ---- Selling ----
             ['key' => 'ecommerce', 'group' => 'Selling', 'name' => 'Sell from your bio', 'description' => 'Add product blocks with prices and checkout to your Link in Bio pages so you can sell directly from your link.'],
@@ -159,8 +161,8 @@ class PremiumFeatures
             ['key' => 'ai_agent', 'group' => 'AI suite', 'name' => 'AI Agent', 'description' => 'A multi-step AI agent that runs playbooks across your contacts, inbox and calendar — qualifying leads and following up on its own.'],
             ['key' => 'ai_widget', 'group' => 'AI suite', 'name' => 'AI Widget', 'description' => 'Embed an AI assistant on any external site with a single snippet — answers questions and captures leads into your unified inbox.'],
             ['key' => 'ai_voice_assistant', 'group' => 'AI suite', 'name' => 'AI Voice Assistant', 'description' => 'AI receptionist that picks up calls to your number, qualifies callers and books or routes them — no missed leads.'],
-            ['key' => 'max_minds', 'group' => 'AI suite', 'name' => 'AI Knowledge Bases', 'description' => 'Labelled knowledge bases your AI agents and coach can draw on — add text, FAQs, documents, links or live Sayzio data.', 'unit' => 'knowledge bases'],
-            ['key' => 'max_personas', 'group' => 'AI suite', 'name' => 'AI Agents', 'description' => 'Configurable AI agents that combine a system prompt, tone and the AI Knowledge Bases you choose.', 'unit' => 'agents'],
+            ['key' => 'max_minds', 'group' => 'AI suite', 'name' => 'AI Minds', 'description' => 'Labelled AI Minds your AI agents and coach can draw on — add text, FAQs, documents, links or live Sayzio data.', 'unit' => 'AI Minds'],
+            ['key' => 'max_personas', 'group' => 'AI suite', 'name' => 'AI Agents', 'description' => 'Configurable AI agents that combine a system prompt, tone and the AI Minds you choose.', 'unit' => 'agents'],
             ['key' => 'max_companions', 'group' => 'AI suite', 'name' => 'Chat Widgets', 'description' => 'Deploy an AI Agent as a Link in Bio chatbot, an external website embed, or an inbox auto-reply bot.', 'unit' => 'widgets'],
             ['key' => 'ask_coach', 'group' => 'AI suite', 'name' => 'AI Coach', 'description' => 'Chat with an AI advisor for plain-English, one-tap tips on improving your account.'],
             ['key' => 'card_scan', 'group' => 'AI suite', 'name' => 'Card & Brochure Scanner', 'description' => 'Snap a business card or brochure and let AI extract the details straight into a Link in Bio or contact.'],
@@ -170,6 +172,8 @@ class PremiumFeatures
             ['key' => 'qr_art', 'group' => 'AI suite', 'name' => 'AI Artistic QR', 'description' => 'Generate eye-catching, on-brand artistic QR codes with AI that still scan reliably.'],
             ['key' => 'whatsapp_agent', 'group' => 'AI suite', 'name' => 'WhatsApp AI Agent', 'description' => 'An AI responder for inbound WhatsApp messages that answers questions and captures leads in your voice, around the clock.'],
             ['key' => 'marketing_strategist', 'group' => 'AI suite', 'name' => 'AI Marketing Strategist', 'description' => 'An AI strategist that analyses your account and audience to build saved, actionable marketing plans and campaign ideas.'],
+            ['key' => 'brand_studio', 'group' => 'AI suite', 'name' => 'AI Brand Studio', 'description' => 'Turn one plain-language brief into a whole on-brand asset kit — Link in Bio page, short links, QR codes, a form and a digital card — reviewed before anything is created.'],
+            ['key' => 'max_brand_studio_bulk', 'group' => 'AI suite', 'name' => 'AI Brand Studio bulk variations', 'description' => 'How many on-brand variants one AI Brand Studio bulk run can generate at once (e.g. 20 personalized QR codes or short links).', 'unit' => 'variants / run'],
             ['key' => 'competitor_teardown', 'group' => 'AI suite', 'name' => 'Competitor Biolink Teardown', 'description' => 'Paste any competitor\'s link-in-bio URL and get an AI-scored teardown — strengths, weaknesses, missing elements and CTA quality — then build a better version with one click.'],
         ];
     }

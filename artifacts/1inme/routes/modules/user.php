@@ -289,6 +289,8 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::put ('workspaces/{workspace}',                  [\App\Modules\User\Controllers\WorkspaceController::class, 'update']) ->name('workspaces.update');
         Route::put ('workspaces/{workspace}/post-approval',    [\App\Modules\User\Controllers\WorkspaceController::class, 'updatePostApproval'])->name('workspaces.post-approval.update');
         Route::delete('workspaces/{workspace}',                [\App\Modules\User\Controllers\WorkspaceController::class, 'destroy'])->name('workspaces.destroy');
+        // Admin-granted cross-account workspace transfer.
+        Route::post('workspaces/{workspace}/transfer',         [\App\Modules\User\Controllers\AssetTransferController::class, 'transferWorkspace'])->name('workspaces.transfer');
 
         // ---- Sensitive-action audit log (owner / admin only). Append-only
         // ledger of high-risk actions on this workspace plus the per-action
@@ -357,6 +359,7 @@ Route::prefix('user')->name('user.')->group(function () {
             Route::post('whatsapp/send',   [\App\Modules\User\Controllers\OnboardingController::class, 'whatsappSend'])->middleware('throttle:5,1')->name('whatsapp.send');
             Route::post('whatsapp/verify', [\App\Modules\User\Controllers\OnboardingController::class, 'whatsappVerify'])->middleware('throttle:10,1')->name('whatsapp.verify');
             Route::post('whatsapp/skip',   [\App\Modules\User\Controllers\OnboardingController::class, 'whatsappSkip'])->name('whatsapp.skip');
+            Route::post('whatsapp/remove', [\App\Modules\User\Controllers\OnboardingController::class, 'whatsappRemove'])->middleware('throttle:10,1')->name('whatsapp.remove');
 
             // Post-registration contact-privacy step (Task #3497) — no
             // forced default, one-time nudge, editable later from Settings.
@@ -771,6 +774,9 @@ Route::prefix('user')->name('user.')->group(function () {
         // Cross-workspace move (owner-only — see LinkController::move).
         Route::post('links/{link}/move',  [LinkController::class, 'move'])->middleware('workspace.can:links.edit')->name('links.move');
         Route::post('links/move-bulk',    [LinkController::class, 'moveBulk'])->middleware('workspace.can:links.edit')->name('links.move-bulk');
+        // Admin-granted cross-account transfer (capability + ownership are
+        // enforced in AssetTransferService, not middleware).
+        Route::post('links/{link}/transfer', [\App\Modules\User\Controllers\AssetTransferController::class, 'transferLink'])->name('links.transfer');
         Route::post('links/{link}/coach-action', [LinkController::class, 'coachAction'])->middleware('workspace.can:links.edit')->name('links.coach-action');
 
         // Public-roadmap triage dashboard for a biolink
@@ -923,6 +929,28 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::post  ('brand-kits/defaults',                     [\App\Modules\User\Controllers\BrandKitController::class, 'saveDefaults'])->middleware('workspace.can:links.view')->name('brand-kits.defaults.save');
         Route::delete('brand-kits/defaults',                     [\App\Modules\User\Controllers\BrandKitController::class, 'clearDefaults'])->middleware('workspace.can:links.view')->name('brand-kits.defaults.clear');
         Route::delete('brand-kits/{brandKit}',                   [\App\Modules\User\Controllers\BrandKitController::class, 'destroy'])->middleware('workspace.can:links.create')->name('brand-kits.destroy');
+
+        // Brand Kit visual assets (Task #5612): AI-generated logo, favicon,
+        // letterhead, banners, avatar, OG image, business card, background and
+        // watermark per kit. Coin-charged with auto-refund; plan-gated via the
+        // brand_kit_assets availability flag + max_brand_asset_versions cap.
+        Route::get   ('brand-kits/{brandKit}/assets',                 [\App\Modules\User\Controllers\BrandKitController::class, 'assets'])->whereNumber('brandKit')->middleware('workspace.can:links.view')->name('brand-kits.assets.index');
+        Route::post  ('brand-kits/{brandKit}/assets/{type}/generate', [\App\Modules\User\Controllers\BrandKitController::class, 'generateAsset'])->whereNumber('brandKit')->middleware(['workspace.can:links.create', 'throttle:10,1'])->name('brand-kits.assets.generate');
+        Route::post  ('brand-kits/{brandKit}/assets/{type}/apply',    [\App\Modules\User\Controllers\BrandKitController::class, 'applyAsset'])->whereNumber('brandKit')->middleware('workspace.can:links.edit')->name('brand-kits.assets.apply');
+        Route::delete('brand-kits/{brandKit}/assets/{type}',          [\App\Modules\User\Controllers\BrandKitController::class, 'destroyAsset'])->whereNumber('brandKit')->middleware('workspace.can:links.create')->name('brand-kits.assets.destroy');
+
+        // AI Brand Studio (Task #5551): one plain-language brief → a reviewed,
+        // structured multi-asset plan → assets created together as a named
+        // kit. Charged against the `brand_studio` AI feature; plan-gated.
+        Route::get   ('brand-studio',               [\App\Modules\User\Controllers\BrandStudioController::class, 'index'])->middleware('workspace.can:links.view')->name('brand-studio.index');
+        Route::post  ('brand-studio/estimate',      [\App\Modules\User\Controllers\BrandStudioController::class, 'estimate'])->middleware(['workspace.can:links.create', 'throttle:30,1'])->name('brand-studio.estimate');
+        Route::post  ('brand-studio/plan',          [\App\Modules\User\Controllers\BrandStudioController::class, 'plan'])->middleware(['workspace.can:links.create', 'throttle:10,1'])->name('brand-studio.plan');
+        Route::post  ('brand-studio/presets',           [\App\Modules\User\Controllers\BrandStudioController::class, 'storePreset'])->middleware(['workspace.can:links.create', 'throttle:30,1'])->name('brand-studio.presets.store');
+        Route::patch ('brand-studio/presets/{preset}',  [\App\Modules\User\Controllers\BrandStudioController::class, 'renamePreset'])->whereNumber('preset')->middleware(['workspace.can:links.create', 'throttle:30,1'])->name('brand-studio.presets.rename');
+        Route::delete('brand-studio/presets/{preset}',  [\App\Modules\User\Controllers\BrandStudioController::class, 'destroyPreset'])->whereNumber('preset')->middleware('workspace.can:links.create')->name('brand-studio.presets.destroy');
+        Route::get   ('brand-studio/{kit}',         [\App\Modules\User\Controllers\BrandStudioController::class, 'show'])->whereNumber('kit')->middleware('workspace.can:links.view')->name('brand-studio.show');
+        Route::post  ('brand-studio/{kit}/confirm', [\App\Modules\User\Controllers\BrandStudioController::class, 'confirm'])->whereNumber('kit')->middleware(['workspace.can:links.create', 'throttle:20,1'])->name('brand-studio.confirm');
+        Route::delete('brand-studio/{kit}',         [\App\Modules\User\Controllers\BrandStudioController::class, 'destroy'])->whereNumber('kit')->middleware('workspace.can:links.create')->name('brand-studio.destroy');
         Route::post  ('brand-kits/{brandKit}/apply/biolink/{link}', [\App\Modules\User\Controllers\BrandKitController::class, 'applyToBiolink'])->middleware('workspace.can:links.edit')->name('brand-kits.apply.biolink');
         Route::post  ('brand-kits/{brandKit}/apply/qr/{qrCode}',    [\App\Modules\User\Controllers\BrandKitController::class, 'applyToQr'])->middleware('workspace.can:links.edit')->name('brand-kits.apply.qr');
 
@@ -1479,6 +1507,17 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::delete('dialer/history',                     [DialerController::class, 'historyClear'])->middleware('workspace.can:settings.edit')->name('dialer.history.clear');
         Route::patch ('dialer/history/{log}',               [DialerController::class, 'historyUpdate'])->whereNumber('log')->middleware('workspace.can:settings.edit')->name('dialer.history.update');
         Route::delete('dialer/history/{log}',               [DialerController::class, 'historyDestroy'])->whereNumber('log')->middleware('workspace.can:settings.edit')->name('dialer.history.destroy');
+
+        // ===== Notes & reminders (Task #5508) =====
+        // Account-scoped (not workspace data): deliberately NO workspace.can
+        // gate so the page stays reachable no matter which workspace is
+        // active. JSON CRUD reuses the API controller (same envelope) so the
+        // web page and the dialer app can never drift.
+        Route::get   ('dialer/notes',           [DialerController::class, 'notesPage'])->name('dialer.notes');
+        Route::get   ('dialer/notes/data',      [\App\Modules\Api\Controllers\DialerNoteController::class, 'index'])->name('dialer.notes.data');
+        Route::post  ('dialer/notes/data',      [\App\Modules\Api\Controllers\DialerNoteController::class, 'store'])->name('dialer.notes.store');
+        Route::patch ('dialer/notes/data/{id}', [\App\Modules\Api\Controllers\DialerNoteController::class, 'update'])->whereNumber('id')->name('dialer.notes.update');
+        Route::delete('dialer/notes/data/{id}', [\App\Modules\Api\Controllers\DialerNoteController::class, 'destroy'])->whereNumber('id')->name('dialer.notes.destroy');
 
         // ===== Events calendar (month / week / day / list views) =====
         Route::get('events',                                [CalendarAccountController::class, 'events'])->middleware('workspace.can:settings.view')->name('events.index');

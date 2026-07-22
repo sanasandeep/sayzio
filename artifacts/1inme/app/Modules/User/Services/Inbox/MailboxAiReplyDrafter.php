@@ -194,7 +194,7 @@ PROMPT;
 
         $citations = collect($ctx['citations'] ?? [])->map(fn ($c) => [
             'id'   => (int) ($c['mind_id'] ?? 0),
-            'name' => (string) ($c['mind_name'] ?? 'Knowledge Base'),
+            'name' => (string) ($c['mind_name'] ?? 'AI Mind'),
         ])->filter(fn ($c) => $c['id'] > 0)->values()->all();
 
         $block = "\n\nKnowledge Base context (use this to inform your reply where relevant):\n{$contextText}";

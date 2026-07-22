@@ -98,7 +98,7 @@ class ResumeTailorController extends Controller
             $result = $this->tailor->run($request->user(), $resume, $data['job_description']);
         } catch (InsufficientCoinsForAiException $e) {
             return response()->json([
-                'message'  => 'Not enough AI credits to tailor this resume.',
+                'message'  => 'Not enough coins to tailor this resume.',
                 'required' => $e->required ?? null,
                 'balance'  => $e->balance ?? null,
             ], 402);

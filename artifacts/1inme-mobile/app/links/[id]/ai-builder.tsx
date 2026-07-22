@@ -35,7 +35,7 @@ import { showAlert } from "@/lib/webAlert";
  * links/{link}/ai-builder flow. The creator describes the page they want,
  * optionally attaches images (uploaded to their vault) and destination links,
  * and the server's AiBiolinkBuilderService assembles a full page and REPLACES
- * this biolink's blocks. The AI credit charge (auto-refunded on parse failure)
+ * this biolink's blocks. The coin charge (auto-refunded on parse failure)
  * and the curated, plan-allowed block subset live server-side. When the
  * creator's plan unlocks On-Brand AI, a toggle injects their Brand Kit voice.
  */
@@ -106,7 +106,7 @@ export default function AiBuilderScreen() {
       showAlert(
         "Page built",
         `Created ${res.blocks} block${res.blocks === 1 ? "" : "s"}.${
-          res.credits_spent > 0 ? ` Used ${res.credits_spent} credits.` : ""
+          res.credits_spent > 0 ? ` Used ${res.credits_spent} coins.` : ""
         }`,
       );
       // Land in the standard block editor on the freshly-built page, mirroring
@@ -243,7 +243,7 @@ export default function AiBuilderScreen() {
           multiline
           numberOfLines={5}
           style={{ minHeight: 120, textAlignVertical: "top" }}
-          hint={`${intake.balance} AI credits available`}
+          hint={`${intake.balance} coins available`}
           trailing={
             <DictationMic
               onText={(t) =>
@@ -328,7 +328,7 @@ export default function AiBuilderScreen() {
 
         {estimate !== null ? (
           <Text style={{ color: colors.mutedForeground, fontSize: 13 }}>
-            Estimated cost: ~{estimate} credits ({intake.balance} available)
+            Estimated cost: ~{estimate} coins ({intake.balance} available)
           </Text>
         ) : null}
 

@@ -80,7 +80,7 @@ export function useVoiceDictation(onText: (text: string) => void) {
       const err = e as { status?: number; message?: string } | undefined;
       setError(
         err?.status === 402
-          ? "Out of AI credits — top up to keep dictating."
+          ? "Out of coins — top up to keep dictating."
           : (err?.message ?? "Could not transcribe."),
       );
     } finally {

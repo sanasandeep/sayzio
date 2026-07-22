@@ -1246,7 +1246,7 @@ function resumeEditor() {
         tailorBusy: false,
         tailorError: '',
         tailorJd: '',
-        tailorEstimate: null,        // worst-case credits (null = unknown)
+        tailorEstimate: null,        // worst-case coins (null = unknown)
         tailorBalance: 0,
         tailorLastSpent: 0,
         tailorSuggestions: { summary: null, experience: [], skills: { additions: [] }, keywords: [] },

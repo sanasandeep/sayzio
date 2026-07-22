@@ -77,7 +77,7 @@ class CompetitorTeardownController extends Controller
         try {
             $teardown = $this->teardown->analyze($user, $user, $data['url']);
         } catch (InsufficientCoinsForAiException $e) {
-            return $this->fail('Not enough AI credits to run a teardown.', 402, 'insufficient_credits', [
+            return $this->fail('Not enough coins to run a teardown.', 402, 'insufficient_credits', [
                 'required' => $e->required ?? null,
                 'balance'  => $e->balance ?? null,
             ]);
@@ -121,7 +121,7 @@ class CompetitorTeardownController extends Controller
         try {
             $link = $this->teardown->buildBetterVersion($user, $user, $teardown);
         } catch (InsufficientCoinsForAiException $e) {
-            return $this->fail('Not enough AI credits to build this page.', 402, 'insufficient_credits', [
+            return $this->fail('Not enough coins to build this page.', 402, 'insufficient_credits', [
                 'required' => $e->required ?? null,
                 'balance'  => $e->balance ?? null,
             ]);

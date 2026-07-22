@@ -17,3 +17,5 @@ Three precision tiers:
 **How to apply:** new false positive → prefer teaching the alias learner or DYNAMIC_COLUMNS over per-site ALLOWLIST entries (which fail loudly when stale). Meta-test: `tests/Unit/Support/CheckQueryColumnsGuardTest.php`.
 
 Also: a pre-existing parse fatal (duplicate `testGitHub()` in admin IntegrationsController) was only exposed because model discovery autoloads app classes — `php -l` sweeps don't run in CI for every file; class-loading guards double as syntax canaries.
+
+**Pre-existing failure (July 2026):** the guard flags `where('mobile', ...)` on `users` in 6 auth controllers (AccountMergeController, OtpController, SiteAssistantController, ViewerAuthController x2, AuthController). `users.mobile` DOES exist in the live DB (`Schema::hasColumn` true) but the migration-replay-derived schema lacks it — likely applied-migration edit drift. Unrelated tasks will see query-columns FAILED; check the flagged files against your diff before blaming your change.

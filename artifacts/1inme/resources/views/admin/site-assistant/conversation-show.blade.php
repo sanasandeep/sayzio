@@ -11,7 +11,7 @@
         <div><span class="text-white/40 text-xs">Surface:</span> {{ $conversation->surface }}</div>
         <div><span class="text-white/40 text-xs">Last route:</span> <code class="text-xs">{{ $conversation->last_route ?: '—' }}</code></div>
         <div><span class="text-white/40 text-xs">Turns:</span> {{ $conversation->turns_count }}</div>
-        <div><span class="text-white/40 text-xs">Credits:</span> {{ $conversation->credits_spent }}</div>
+        <div><span class="text-white/40 text-xs">Coins:</span> {{ $conversation->credits_spent }}</div>
         <div><span class="text-white/40 text-xs">Started:</span> {{ optional($conversation->created_at)->toDayDateTimeString() }}</div>
         @if($conversation->handed_off)<div class="md:col-span-3 text-amber-300 text-xs">Handed off → ContactMessage #{{ $conversation->contact_message_id }}</div>@endif
     </div>

@@ -179,6 +179,16 @@ class DialerController extends Controller
         return response()->json(['data' => ['enabled' => $enabled]]);
     }
 
+    /**
+     * Notes & reminders page (Task #5508). Account-scoped — deliberately not
+     * workspace-gated so it is reachable regardless of the active workspace.
+     * All data flows through the JSON endpoints (shared with the API).
+     */
+    public function notesPage(Request $request)
+    {
+        return view('user.dialer.notes');
+    }
+
     public function profile(Request $request)
     {
         $user = $request->user();

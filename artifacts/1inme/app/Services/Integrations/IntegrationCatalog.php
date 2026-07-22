@@ -41,7 +41,7 @@ class IntegrationCatalog
                     [
                         'key'      => 'ai-engine',
                         'label'    => 'AI Engine (OpenAI)',
-                        'desc'     => 'OpenAI key powering chat, embeddings and every AI-credit feature, plus Whisper (STT) and ElevenLabs (TTS) for the voice assistant.',
+                        'desc'     => 'OpenAI key powering chat, embeddings and every coin-charged AI feature, plus Whisper (STT) and ElevenLabs (TTS) for the voice assistant.',
                         'icon'     => 'fas fa-brain',
                         'status'   => self::aiEngineStatus(),
                         'route'    => route('admin.ai-engine.edit'),

@@ -41,7 +41,7 @@
             <p class="text-[10px] text-white/40">Hard cap: {{ $companion->hard_cap_per_month ?: '∞' }}</p>
         </div>
         <div class="rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-center">
-            <p class="text-[10px] uppercase tracking-wider text-white/40">AI credits used</p>
+            <p class="text-[10px] uppercase tracking-wider text-white/40">Coins used</p>
             <p class="text-2xl font-bold text-white mt-1">{{ number_format($usage['credits']) }}</p>
             <p class="text-[10px] text-white/40">Balance: {{ number_format($balance) }}</p>
         </div>
@@ -60,7 +60,7 @@
         <div class="rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-center">
             <p class="text-[10px] uppercase tracking-wider text-white/40">Free turns / mo</p>
             <p class="text-2xl font-bold text-white mt-1">{{ $companion->free_turns_per_month }}</p>
-            <p class="text-[10px] text-white/40">Beyond this, turns charge AI credits</p>
+            <p class="text-[10px] text-white/40">Beyond this, turns charge coins</p>
         </div>
     </div>
 

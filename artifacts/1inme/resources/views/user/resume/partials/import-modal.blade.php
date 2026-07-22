@@ -86,7 +86,7 @@
                     <div x-show="importTab === 'ai'" class="resume-import-pane">
                         <p class="resume-import-help">
                             Describe yourself, your role and your wins. AI will draft a summary, experience bullets and
-                            skills you can review before merging. Uses your AI credits.
+                            skills you can review before merging. Uses your coins.
                         </p>
                         <textarea class="resume-textarea mb-3" rows="5" maxlength="1500" id="resume-import-ai-prompt"
                                   placeholder="e.g. Senior product designer with 8 years in fintech. Led the redesign of…"

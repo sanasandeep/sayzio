@@ -40,6 +40,16 @@ return [
         'cadence'     => ['everyFiveMinutes'],
     ],
     [
+        'key'         => 'dialer:send-note-reminders',
+        'description' => 'Deliver due dialer note/to-do reminders (in-app + push + email), once each.',
+        'cadence'     => ['everyFiveMinutes'],
+    ],
+    [
+        'key'         => 'dialer:sync-auto-tasks',
+        'description' => 'Create/refresh auto tasks in dialer notes from upcoming RSVP\'d/ticketed events and scheduled call-backs.',
+        'cadence'     => ['hourlyAt', 10],
+    ],
+    [
         'key'         => 'contacts:send-follow-up-reminders',
         'description' => 'Deliver due contact/lead follow-up reminders (in-app + email + push, honoring per-channel prefs), once each.',
         'cadence'     => ['everyFiveMinutes'],

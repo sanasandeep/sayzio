@@ -112,7 +112,7 @@ class VoiceAssistantController extends Controller
             );
         } catch (InsufficientCoinsForAiException $e) {
             return response()->json([
-                'error'    => 'Out of AI credits — top up to keep using voice.',
+                'error'    => 'Out of coins — top up to keep using voice.',
                 'balance'  => $this->credits->getBalance($user),
                 'required' => $e->required,
             ], 402);
@@ -148,7 +148,7 @@ class VoiceAssistantController extends Controller
             ]);
         } catch (InsufficientCoinsForAiException $e) {
             return response()->json([
-                'error'    => 'Out of AI credits — top up to keep using voice.',
+                'error'    => 'Out of coins — top up to keep using voice.',
                 'balance'  => $this->credits->getBalance($user),
                 'required' => $e->required,
             ], 402);

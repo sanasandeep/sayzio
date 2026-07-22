@@ -243,7 +243,7 @@
       "standalone": "app/_layout.tsx",
       "source": "app/_layout.tsx",
       "relation": "adapted",
-      "note": "root providers trimmed to what the dialer needs (no VoiceAssistant, DeepLinkRouter, ImpersonationBanner, IdleLockWarning, KeyboardProvider, RevenueCat/SubscriptionProvider, push registration, @workspace/api-client-react wiring); mounts useContactAutoSync; Stack.Screen list only carries dialer-relevant routes (search/dialer-profile/call/contacts/info/oauth-callback) — new main-app-only screens (calendars, brand-kits, delivery-projects, marketing-strategist, etc.) are not dialer surfaces and intentionally omitted",
+      "note": "root providers trimmed to what the dialer needs (no VoiceAssistant, DeepLinkRouter, ImpersonationBanner, IdleLockWarning, KeyboardProvider, RevenueCat/SubscriptionProvider, push registration, @workspace/api-client-react wiring); mounts useContactAutoSync; Stack.Screen list only carries dialer-relevant routes (search/dialer-profile/call/contacts/info/oauth-callback) \u2014 new main-app-only screens (calendars, brand-kits, delivery-projects, marketing-strategist, etc.) are not dialer surfaces and intentionally omitted",
       "sourceSha256": "4bb1b301311e2488a09305c93d0a9d427776112ce6f95952066d0dab914aa714"
     },
     {
@@ -301,7 +301,7 @@
       "source": "app/dialer-profile.tsx",
       "relation": "adapted",
       "note": "main app has no /contacts/new form, so its saveOrEdit falls back to the /contacts list; otherwise identical (Task #5399 port).",
-      "sourceSha256": "7307646845f29539d979ee5426548b5aa7c1e84e91309dd4e5a963aa0d09bdd8"
+      "sourceSha256": "702d93a4d25c861652cf2c613bea91b401345fe2f9cf0ebef24aa7a85d3aa095"
     },
     {
       "standalone": "lib/api/dialer.ts",
@@ -336,21 +336,6 @@
       "relation": "identical"
     },
     {
-      "standalone": "modules/zio-telephony/android/build.gradle",
-      "source": "modules/zio-telephony/android/build.gradle",
-      "relation": "identical"
-    },
-    {
-      "standalone": "modules/zio-telephony/android/src/main/AndroidManifest.xml",
-      "source": "modules/zio-telephony/android/src/main/AndroidManifest.xml",
-      "relation": "identical"
-    },
-    {
-      "standalone": "modules/zio-telephony/android/src/main/java/expo/modules/ziotelephony/ZioTelephonyModule.kt",
-      "source": "modules/zio-telephony/android/src/main/java/expo/modules/ziotelephony/ZioTelephonyModule.kt",
-      "relation": "identical"
-    },
-    {
       "standalone": "plugins/withAndroidQueries.js",
       "source": "plugins/withAndroidQueries.js",
       "relation": "identical"
@@ -371,7 +356,7 @@
     },
     {
       "path": "app/(tabs)/contacts.tsx",
-      "note": "contacts list screen; the main app removed its app/contacts/ screens — device import goes through lib/deviceContacts.ts"
+      "note": "contacts list screen; the main app removed its app/contacts/ screens \u2014 device import goes through lib/deviceContacts.ts"
     },
     {
       "path": "app/call/incoming.tsx",
@@ -407,7 +392,7 @@
     },
     {
       "path": "lib/eventsLocation.ts",
-      "note": "Single saved 'my location' anchoring Events near-me filtering + nearby-event alerts, set via device GPS or the shared MapPickerModal (the dialer's existing location-picker UI) — one location concept in this app, not a separate store; the main app has no equivalent single-location concept"
+      "note": "Single saved 'my location' anchoring Events near-me filtering + nearby-event alerts, set via device GPS or the shared MapPickerModal (the dialer's existing location-picker UI) \u2014 one location concept in this app, not a separate store; the main app has no equivalent single-location concept"
     },
     {
       "path": "app/(tabs)/events.tsx",
@@ -415,7 +400,7 @@
     },
     {
       "path": "app/events/[alias].tsx",
-      "note": "Event detail/RSVP/buy/interest screen adapted from the main app's app/events/[alias].tsx to this app's auth context field names (user.display_name) and colors; adds an in-app RsvpWebViewModal (embeds the existing public /{alias}/rsvp page) for non-ticketed events since there is no JSON RSVP API — otherwise the same hashtags/gallery/info-sections/interest UI"
+      "note": "Event detail/RSVP/buy/interest screen adapted from the main app's app/events/[alias].tsx to this app's auth context field names (user.display_name) and colors; adds an in-app RsvpWebViewModal (embeds the existing public /{alias}/rsvp page) for non-ticketed events since there is no JSON RSVP API \u2014 otherwise the same hashtags/gallery/info-sections/interest UI"
     },
     {
       "path": "hooks/useNearbyEventAlerts.ts",
@@ -428,6 +413,34 @@
     {
       "path": "app/contact-duplicates.tsx",
       "note": "duplicates review screen adapted from the main app's app/contact-duplicates.tsx (nullable display_name); reached from the device-import completion alert on the contacts tab"
+    },
+    {
+      "path": "modules/zio-telephony/android/build.gradle",
+      "note": "native Android call-screening/overlay implementation; the main app deleted its android/ module sources (JS stub only), so the standalone copy is the sole implementation"
+    },
+    {
+      "path": "modules/zio-telephony/android/src/main/AndroidManifest.xml",
+      "note": "native Android call-screening/overlay implementation; the main app deleted its android/ module sources (JS stub only), so the standalone copy is the sole implementation"
+    },
+    {
+      "path": "modules/zio-telephony/android/src/main/java/expo/modules/ziotelephony/ZioTelephonyModule.kt",
+      "note": "native Android call-screening/overlay implementation; the main app deleted its android/ module sources (JS stub only), so the standalone copy is the sole implementation"
+    },
+    {
+      "path": "modules/zio-telephony/android/src/main/java/expo/modules/ziotelephony/CallerIdStore.kt",
+      "note": "native Android call-screening/overlay implementation; the main app deleted its android/ module sources (JS stub only), so the standalone copy is the sole implementation"
+    },
+    {
+      "path": "modules/zio-telephony/android/src/main/java/expo/modules/ziotelephony/CallerLookup.kt",
+      "note": "native Android call-screening/overlay implementation; the main app deleted its android/ module sources (JS stub only), so the standalone copy is the sole implementation"
+    },
+    {
+      "path": "modules/zio-telephony/android/src/main/java/expo/modules/ziotelephony/CallerIdOverlay.kt",
+      "note": "native Android call-screening/overlay implementation; the main app deleted its android/ module sources (JS stub only), so the standalone copy is the sole implementation"
+    },
+    {
+      "path": "modules/zio-telephony/android/src/main/java/expo/modules/ziotelephony/ZioCallScreeningService.kt",
+      "note": "native Android call-screening/overlay implementation; the main app deleted its android/ module sources (JS stub only), so the standalone copy is the sole implementation"
     }
   ]
 }

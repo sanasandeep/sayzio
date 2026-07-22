@@ -12,7 +12,10 @@
     "typecheck": "tsc --noEmit",
     "test:channel-actions": "node scripts/test-channel-actions.mjs",
     "test:contact-auto-sync": "node scripts/test-contact-auto-sync.mjs",
-    "test:device-contacts-fingerprint": "node scripts/test-device-contacts-fingerprint.mjs"
+    "test:device-contacts-fingerprint": "node scripts/test-device-contacts-fingerprint.mjs",
+    "test:identified-call-drain": "node scripts/test-identified-call-drain.mjs",
+    "test:push-action": "node scripts/test-push-action.mjs",
+    "test:note-alarms": "node scripts/test-note-alarms.mjs"
   },
   "dependencies": {
     "@expo-google-fonts/space-grotesk": "^0.4.1",

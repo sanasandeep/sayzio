@@ -204,7 +204,7 @@ class BrandKitController extends Controller
             $result = $this->kits->generate($user, $data['prompt'], $data['website_url'], $data['logo_url']);
         } catch (InsufficientCoinsForAiException $e) {
             return $this->fail(
-                'Not enough AI credits to generate this brand kit.',
+                'Not enough coins to generate this brand kit.',
                 402,
                 'insufficient_credits',
                 ['required' => $e->required ?? null, 'balance' => $e->balance ?? null],
@@ -273,6 +273,131 @@ class BrandKitController extends Controller
             'ok'      => true,
             'qr_code' => ['id' => $target->id, 'name' => $target->name],
         ]);
+    }
+
+    // ── AI-generated visual assets (Task #5612) ──────────────────────
+
+    /** Catalog + current assets for one kit (mirrors web assets panel). */
+    public function assets(Request $request, int $brandKit, \App\Services\Brand\BrandKitAssetService $assets)
+    {
+        $kit = $this->resolveKit($request, $brandKit);
+        if (!$kit) {
+            return $this->notFound('Brand kit not found.');
+        }
+        $user = $request->user();
+
+        return $this->ok([
+            'enabled' => $assets->enabled(),
+            'allowed' => AiPlanAccess::featureAllowed($user, 'brand_kit_assets'),
+            'balance' => $this->credits->getBalance($user),
+            'types'   => $assets->catalogFor($user, $kit),
+        ]);
+    }
+
+    /** Generate or regenerate one asset (optional tweak instructions). */
+    public function generateAsset(Request $request, int $brandKit, string $type, \App\Services\Brand\BrandKitAssetService $assets)
+    {
+        $kit = $this->resolveKit($request, $brandKit);
+        if (!$kit) {
+            return $this->notFound('Brand kit not found.');
+        }
+        $user = $request->user();
+
+        $data = $request->validate([
+            'instructions' => 'nullable|string|max:1000',
+            'mode'         => 'nullable|string|in:new,variation,alteration',
+        ]);
+
+        try {
+            $asset = $assets->generate($user, $kit, $type, $data['instructions'] ?? null, $data['mode'] ?? 'new');
+        } catch (InsufficientCoinsForAiException $e) {
+            return $this->fail('Not enough coins to generate this asset.', 402, 'insufficient_coins', [
+                'required' => $e->required ?? null,
+                'balance'  => $e->balance ?? null,
+            ]);
+        } catch (\RuntimeException $e) {
+            return $this->fail($e->getMessage(), 422, 'generation_failed');
+        }
+
+        return $this->ok([
+            'asset'   => $assets->present($asset),
+            'balance' => $this->credits->getBalance($user),
+        ]);
+    }
+
+    /** Delete one asset and its stored image. */
+    public function destroyAsset(Request $request, int $brandKit, string $type, \App\Services\Brand\BrandKitAssetService $assets)
+    {
+        $kit = $this->resolveKit($request, $brandKit);
+        if (!$kit) {
+            return $this->notFound('Brand kit not found.');
+        }
+
+        $asset = \App\Modules\User\Models\BrandKitAsset::where('brand_kit_id', $kit->id)
+            ->where('type', $type)->first();
+        if (!$asset) {
+            return $this->notFound('Asset not found.');
+        }
+
+        $assets->delete($asset);
+
+        return $this->ok(['ok' => true]);
+    }
+
+    /** One-click apply — same targets as the web applyAsset endpoint. */
+    public function applyAsset(Request $request, int $brandKit, string $type, \App\Services\Brand\BrandKitAssetService $assets)
+    {
+        $kit = $this->resolveKit($request, $brandKit);
+        if (!$kit) {
+            return $this->notFound('Brand kit not found.');
+        }
+        $user = $request->user();
+
+        $data = $request->validate([
+            'target'     => 'required|string|in:kit_logo,biolink_favicon,biolink_og,company_letterhead',
+            'link_id'    => 'nullable|integer',
+            'company_id' => 'nullable|integer',
+        ]);
+
+        $asset = \App\Modules\User\Models\BrandKitAsset::where('brand_kit_id', $kit->id)
+            ->where('type', $type)->first();
+        if (!$asset || $asset->status !== \App\Modules\User\Models\BrandKitAsset::STATUS_READY) {
+            return $this->notFound('Asset not found.');
+        }
+
+        try {
+            switch ($data['target']) {
+                case 'kit_logo':
+                    $assets->applyLogoToKit($asset, $kit);
+                    break;
+
+                case 'biolink_favicon':
+                case 'biolink_og':
+                    $link = Link::where('user_id', $user->id)
+                        ->where('type', 'biolink')
+                        ->find((int) ($data['link_id'] ?? 0));
+                    if (!$link) {
+                        return $this->notFound('Link in Bio not found.');
+                    }
+                    $data['target'] === 'biolink_favicon'
+                        ? $assets->applyFaviconToLink($asset, $link)
+                        : $assets->applyOgToLink($asset, $link);
+                    break;
+
+                case 'company_letterhead':
+                    $company = \App\Modules\User\Models\BillingCompany::where('user_id', $user->id)
+                        ->find((int) ($data['company_id'] ?? 0));
+                    if (!$company) {
+                        return $this->notFound('Billing company not found.');
+                    }
+                    $assets->applyLetterheadToCompany($asset, $company);
+                    break;
+            }
+        } catch (\RuntimeException $e) {
+            return $this->fail($e->getMessage(), 422, 'apply_failed');
+        }
+
+        return $this->ok(['ok' => true]);
     }
 
     // ── helpers ──────────────────────────────────────────────────────

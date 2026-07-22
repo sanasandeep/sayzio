@@ -64,6 +64,9 @@ class AiEngineController extends Controller
             'hasReplicateKey'       => AiEngineSettings::replicateKey() !== null,
             'hasStoredReplicateKey' => AiEngineSettings::hasStoredReplicateKey(),
             'qrArtCoins'            => AiEngineSettings::qrArtCoinsPerGeneration(),
+
+            // Brand Kit visual assets (OpenAI gpt-image-1)
+            'brandAssetCoins'       => AiEngineSettings::brandAssetCoinsPerGeneration(),
         ]);
     }
 
@@ -102,6 +105,7 @@ class AiEngineController extends Controller
             'replicate_api_key'             => 'nullable|string|max:255',
             'clear_replicate_api_key'       => 'nullable|boolean',
             'qr_art_coins'                  => 'nullable|integer|min:1|max:100000',
+            'brand_asset_coins'             => 'nullable|integer|min:1|max:100000',
         ]);
 
         // Validate that no AI feature ends up pointing at a missing,
@@ -223,6 +227,9 @@ class AiEngineController extends Controller
         }
         if (isset($data['qr_art_coins'])) {
             AiEngineSettings::setQrArtCoinsPerGeneration((int) $data['qr_art_coins']);
+        }
+        if (isset($data['brand_asset_coins'])) {
+            AiEngineSettings::setBrandAssetCoinsPerGeneration((int) $data['brand_asset_coins']);
         }
 
         return redirect()->route('admin.ai-engine.edit')

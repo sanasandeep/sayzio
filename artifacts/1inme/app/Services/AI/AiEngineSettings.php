@@ -37,6 +37,12 @@ class AiEngineSettings
     public const KEY_QR_ART_COINS      = 'ai.qr_art.coins_per_generation';
     public const DEFAULT_QR_ART_COINS  = 20;
 
+    // ── Brand Kit visual assets (OpenAI gpt-image-1) ──────────────
+    // Admin-configurable base coin price per asset generation; the final
+    // charge is base × per-type weight × the user's plan multiplier.
+    public const KEY_BRAND_ASSET_COINS     = 'ai.brand_asset.coins_per_generation';
+    public const DEFAULT_BRAND_ASSET_COINS = 25;
+
     // ── Voice Assistant (Whisper STT + GPT + ElevenLabs TTS) ──────
     public const KEY_VOICE_ENABLED          = 'ai.voice.enabled';
     public const KEY_VOICE_PLANS            = 'ai.voice.enabled_plans';
@@ -885,6 +891,17 @@ PROMPT;
     public static function setQrArtCoinsPerGeneration(int $n): void
     {
         AppSetting::put(self::KEY_QR_ART_COINS, max(1, $n));
+    }
+
+    /** Admin-set BASE coins charged per Brand Kit asset generation (>= 1). */
+    public static function brandAssetCoinsPerGeneration(): int
+    {
+        return max(1, (int) AppSetting::get(self::KEY_BRAND_ASSET_COINS, self::DEFAULT_BRAND_ASSET_COINS));
+    }
+
+    public static function setBrandAssetCoinsPerGeneration(int $n): void
+    {
+        AppSetting::put(self::KEY_BRAND_ASSET_COINS, max(1, $n));
     }
 
     private static function decryptKey(string $key): ?string

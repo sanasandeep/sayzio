@@ -175,7 +175,7 @@ class AiBiolinkBuilderController extends Controller
                 $this->brandDirectives($request, $data['use_brand_kit']),
             );
         } catch (InsufficientCoinsForAiException $e) {
-            return $this->fail('Not enough AI credits to build this page.', 402, 'insufficient_credits', [
+            return $this->fail('Not enough coins to build this page.', 402, 'insufficient_credits', [
                 'required' => $e->required ?? null,
                 'balance'  => $e->balance ?? null,
             ]);
