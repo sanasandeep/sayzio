@@ -120,6 +120,17 @@ export default function ContactsScreen() {
       );
     },
     onError: (e: any) => {
+      if (e?.code === "google_needs_reauth") {
+        // Connection expired — refresh the status card so the reconnect
+        // banner appears, and show the server's friendly message.
+        qc.invalidateQueries({ queryKey: ["google-contacts-status"] });
+        showAlert(
+          "Reconnect Google Contacts",
+          e?.message ??
+            "Your Google Contacts connection expired — reconnect from the web app to resume syncing.",
+        );
+        return;
+      }
       showAlert("Sync failed", e?.message ?? "Try again");
     },
   });
@@ -270,7 +281,40 @@ export default function ContactsScreen() {
                   }`
                 : "Not synced yet"}
             </Text>
-            {googleAccount.last_sync_error ? (
+            {googleAccount.needs_reauth ? (
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "flex-start",
+                  gap: 6,
+                  marginTop: 6,
+                  paddingVertical: 6,
+                  paddingHorizontal: 8,
+                  borderRadius: 8,
+                  backgroundColor: colors.destructive + "18",
+                }}
+              >
+                <Feather
+                  name="alert-triangle"
+                  size={13}
+                  color={colors.destructive}
+                  style={{ marginTop: 1 }}
+                />
+                <Text
+                  style={{
+                    flex: 1,
+                    fontFamily: "SpaceGrotesk_500Medium",
+                    fontSize: 11,
+                    lineHeight: 15,
+                    color: colors.destructive,
+                  }}
+                >
+                  {googleAccount.reconnect_message ??
+                    "Your Google Contacts connection expired — reconnect from the web app to resume syncing."}
+                </Text>
+              </View>
+            ) : null}
+            {!googleAccount.needs_reauth && googleAccount.last_sync_error ? (
               <Text
                 numberOfLines={2}
                 style={{

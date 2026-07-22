@@ -229,7 +229,7 @@
       "standalone": "app/(auth)/index.tsx",
       "source": "app/(auth)/index.tsx",
       "relation": "adapted",
-      "sourceSha256": "7675de53538613a31ef07aff2438a23042334d72a211ae931b857670b9ed93de",
+      "sourceSha256": "04581e37f70a01a18d8bbf692859f346e2c3e7758dd64b480d182005dffe30b4",
       "note": "dev-only missing-env alert text reworded (no monorepo path); also omits the intro-style reanimated AnimatedBlob decorative background the main app adds, because the standalone deliberately does not depend on react-native-reanimated (same policy as the static InfoPage entry); everything else must match the main app"
     },
     {
@@ -313,7 +313,7 @@
       "source": "lib/api/contacts.ts",
       "relation": "adapted",
       "note": "diverged API surfaces: main copy grew its own helpers (getContact/updateContactNotes/updateContactTags/duplicate + google-sync helpers, opts-object listContacts) while the standalone keeps the original CRUD/import surface. Manual-profile types + updateContactManualProfile now exist in both.",
-      "sourceSha256": "f1f8a6ddb185d5516fd4aa653500c38b91576c01232f4eb8fdf12f1ac304557c"
+      "sourceSha256": "53dcd469b575830480f852999e0802f840f00e82f50fbe40d85763d71b59f884"
     },
     {
       "standalone": "components/ChannelActions.tsx",

@@ -48,6 +48,10 @@ export type AuthUser = {
   // ISO-8601 timestamp when the email was verified, or null/absent if not.
   // Drives the in-app "verify your email" reminder (mobile parity with web).
   email_verified_at?: string | null;
+  // When the user last deliberately chose a password (null/absent = the
+  // account only has the OTP/social filler hash). Drives the change- vs
+  // set-first-password variant on the security screen.
+  password_set_at?: string | null;
   // True only when email is a usable sign-in method under the current login
   // policy — mirrors the web banner's visibility rule so the nudge never
   // shows for accounts that can never meaningfully verify.

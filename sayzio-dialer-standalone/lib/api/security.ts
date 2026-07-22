@@ -148,6 +148,47 @@ export async function verifyTotpChallenge(input: {
   return res.data;
 }
 
+// ── Password management (Task #5619) ─────────────────────────────
+export async function changePassword(input: {
+  current_password: string;
+  password: string;
+  password_confirmation: string;
+}): Promise<void> {
+  await apiFetch("/me/password/change", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export async function sendSetPasswordCode(): Promise<{
+  sent: boolean;
+  channel: "email" | "mobile";
+}> {
+  const res = await apiFetch<{
+    data: { sent: boolean; channel: "email" | "mobile" };
+  }>("/me/password/set-code", { method: "POST", body: JSON.stringify({}) });
+  return res.data;
+}
+
+export async function setFirstPassword(input: {
+  code: string;
+  password: string;
+  password_confirmation: string;
+}): Promise<void> {
+  await apiFetch("/me/password/set", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export async function forgotPassword(email: string): Promise<string> {
+  const res = await apiFetch<{ data: { message: string } }>(
+    "/auth/password/forgot",
+    { method: "POST", body: JSON.stringify({ email }) },
+  );
+  return res.data.message;
+}
+
 // ── Settings ──────────────────────────────────────────────────────
 export async function getSecuritySettings(): Promise<SecuritySettings> {
   const res = await apiFetch<{ data: { settings: SecuritySettings } }>(
