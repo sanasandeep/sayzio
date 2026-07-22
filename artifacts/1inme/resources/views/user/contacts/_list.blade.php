@@ -2,7 +2,7 @@
      as-you-type AJAX search (ContactController@index returns just this partial
      when the request is XHR). Keeps the tab-specific rendering, empty-state and
      pagination in one place so the two code paths can never drift. --}}
-@php($hasShared = isset($sharedContacts) && $sharedContacts->isNotEmpty())
+@php $hasShared = isset($sharedContacts) && $sharedContacts->isNotEmpty(); @endphp
 @if($contacts->isEmpty() && !$hasShared)
     <div class="text-center py-16">
         <div class="w-16 h-16 mx-auto rounded-2xl flex items-center justify-center mb-4" style="background: linear-gradient(135deg, rgba(34,211,238,0.18), rgba(61,107,255,0.18));">
