@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="robots" content="noindex,nofollow">
     @php $style = ($style ?? 'standard') === 'upgrade' ? 'upgrade' : 'standard'; @endphp
-    <title>@if($style === 'upgrade')Sayzio 2.0 is coming@else We&rsquo;ll be right back @endif &mdash; Sayzio</title>
+    <title>@if($style === 'upgrade')Sayzio 2.0 is coming{{ '' }}@else We&rsquo;ll be right back @endif &mdash; Sayzio</title>
     <style>
         :root { color-scheme: dark; }
         * { box-sizing: border-box; }

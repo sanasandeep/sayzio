@@ -1349,13 +1349,13 @@
                             @else
                                 <div class="max-h-80 overflow-y-auto">
                                     @foreach($__hdrNotifications as $__hdrN)
-                                        @php $__hdrD = $__hdrN->data ?? []; @endphp
+                                        @php $__hdrD = is_array($__hdrN->data) ? $__hdrN->data : []; @endphp
                                         <a href="{{ route('user.notifications.open', $__hdrN->id) }}"
                                            class="px-3.5 py-2 flex items-start gap-2.5 transition-colors hover:bg-blue-500/5 {{ $__hdrN->read_at ? '' : 'bg-blue-50/30' }}">
                                             @include('user.notifications._icon', ['n' => $__hdrN, 'd' => $__hdrD, 'size' => 'w-8 h-8'])
                                             <div class="min-w-0 flex-1">
                                                 <p class="text-xs {{ $__hdrN->read_at ? '' : 'font-semibold' }}" style="color: var(--text-primary);">{{ \Illuminate\Support\Str::limit($__hdrN->previewText(), 90) }}</p>
-                                                <p class="text-[10px] mt-0.5" style="color: var(--text-muted);">{{ $__hdrN->created_at->diffForHumans() }}</p>
+                                                <p class="text-[10px] mt-0.5" style="color: var(--text-muted);">{{ $__hdrN->created_at?->diffForHumans() ?? 'recently' }}</p>
                                             </div>
                                             @if(!$__hdrN->read_at)
                                                 <span class="w-1.5 h-1.5 rounded-full bg-blue-500 mt-1.5 flex-shrink-0"></span>

@@ -35,7 +35,7 @@
     @else
         <div class="rounded-2xl border divide-y" style="background: var(--bg-card); border-color: var(--border-soft);">
             @foreach($notifications as $n)
-                @php $d = $n->data ?? []; $target = $n->targetUrl(); @endphp
+                @php $d = is_array($n->data) ? $n->data : []; $target = $n->targetUrl(); @endphp
                 <div class="relative p-4 flex items-start gap-3 {{ $n->read_at ? '' : 'bg-blue-50/30' }} {{ $target ? 'hover:bg-blue-500/5 transition-colors' : '' }}">
                     @if($target)
                         {{-- Stretched link: clicking anywhere on the row opens the
@@ -75,7 +75,12 @@
                         @elseif($n->type === 'workspace_member_left')
                             <p class="text-sm" style="color: var(--text-primary);">
                                 <span class="font-semibold">{{ $d['user_name'] ?? 'A teammate' }}</span>
-                                left <span class="font-semibold">{{ $d['workspace_name'] ?? 'your workspace' }}</span>@if(!empty($d['reassigned'])), their {{ $d['reassigned'] }} item{{ $d['reassigned'] == 1 ? '' : 's' }} moved to you@endif.
+                                left <span class="font-semibold">{{ $d['workspace_name'] ?? 'your workspace' }}</span>@if(!empty($d['reassigned'])), their {{ $d['reassigned'] }} item{{ $d['reassigned'] == 1 ? '' : 's' }} moved to you{{ '' }}@endif.
+                                {{-- NOTE: `you@endif` (no separator) is NOT parsed as a Blade
+                                     directive — the @ must not follow a word character. That
+                                     left an unclosed @if, a compiled-view parse error, and a
+                                     production-wide 500 on this page. The {{ '' }} spacer keeps
+                                     the rendered text identical while letting @endif compile. --}}
                             </p>
                             <a href="{{ route('user.team.index') }}" class="inline-flex items-center gap-1 mt-1 text-xs font-semibold text-blue-600 hover:underline">
                                 <i class="fas fa-users"></i> View team
@@ -197,7 +202,7 @@
                         @else
                             <p class="text-sm" style="color: var(--text-primary);">{{ $d['message'] ?? $n->type }}</p>
                         @endif
-                        <p class="text-xs mt-1" style="color: var(--text-faint);">{{ $n->created_at->diffForHumans() }}</p>
+                        <p class="text-xs mt-1" style="color: var(--text-faint);">{{ $n->created_at?->diffForHumans() ?? 'recently' }}</p>
                     </div>
                     <div class="relative z-10 flex items-center gap-1 flex-shrink-0">
                         @if(!$n->read_at)
@@ -233,7 +238,7 @@
             </div>
             <div class="rounded-2xl border divide-y" style="background: var(--bg-card); border-color: var(--border-soft);">
                 @foreach($dismissed as $n)
-                    @php $d = $n->data ?? []; @endphp
+                    @php $d = is_array($n->data) ? $n->data : []; @endphp
                     <div class="p-4 flex items-start gap-3 opacity-75">
                         <div class="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
                              style="background: rgba(148,163,184,0.15); color: var(--text-faint);">
@@ -241,7 +246,7 @@
                         </div>
                         <div class="flex-1 min-w-0">
                             <p class="text-sm truncate" style="color: var(--text-primary);">{{ $d['message'] ?? $n->type }}</p>
-                            <p class="text-xs mt-1" style="color: var(--text-faint);">dismissed {{ $n->dismissed_at->diffForHumans() }}</p>
+                            <p class="text-xs mt-1" style="color: var(--text-faint);">dismissed {{ $n->dismissed_at?->diffForHumans() ?? 'recently' }}</p>
                         </div>
                         <form action="{{ route('user.notifications.restore', $n->id) }}" method="POST" class="flex-shrink-0">@csrf
                             <button type="submit"
