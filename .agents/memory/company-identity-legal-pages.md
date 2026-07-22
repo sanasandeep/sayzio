@@ -42,3 +42,6 @@ changed in a generation, freeze only that page's outgoing entry (V3 is
 privacy-only). Unchanged pages are already covered by earlier snapshots +
 current defaults, and `policyPreviousDefaults()` is keyed per slug so partial
 sets compose fine.
+
+## Per-section refresh fallback (July 2026)
+Shared-DB policy rows can drift from EVERY frozen snapshot (e.g. an em-dash copy sweep changed defaults without freezing a new generation), so whole-page "untouched" detection fails and body edits to existing sections never land via append-missing. Fix pattern (see 2029_07_22_000001 migration): a SECTION_REFRESH map replaces a single section's body only when that section's current body verbatim-matches ANY previous default for the same id — safe on admin-edited pages because a touched section never matches. Appended sections on drifted pages keep their new-generation heading number (e.g. "10." after "24."), accepted per prior generations; pristine installs still get wholesale replacement with correct ordering/renumbering.
