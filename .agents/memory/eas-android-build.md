@@ -3,7 +3,7 @@ name: EAS Android APK builds from this workspace
 description: How to run eas-cli builds for artifacts/1inme-mobile from the Replit env (auth, gotchas, polling)
 ---
 
-- Auth: `EXPO_TOKEN` secret authenticates eas-cli non-interactively (robot "SAYZIO", account **eefind** — not "sayzio"). Project: `@eefind/sayzio-mobile`, projectId `7d456b75-3a4b-4f59-95b1-369f0cb1ba77` (now in app.json).
+- Auth: `EXPO_TOKEN` secret authenticates eas-cli non-interactively. Since July 2026 the account is **sayzio-app** (robot "Replit"): project `@sayzio-app/sayzio-mobile`, projectId `c7081597-fcfe-4b80-bb8a-c2727a0678b8` (in app.json). Old eefind account hit the free-quota wall; relink recipe = pop `extra.eas.projectId` + `owner` from app.json, `project:init --non-interactive --force`, then DELETE the re-injected `extra.eas.build` block (appExtensions dupe) before building.
 - **Why the first init failed:** a placeholder `extra.eas.projectId` makes `eas project:init` think it's already linked, then GraphQL fails on "Invalid UUID appId". Remove the field first, then `project:init --non-interactive --force`.
 - **expo-share-intent duplicate ShareExtension:** the plugin injects its own iOS appExtension; ANY manual `extra.eas.build.experimental.ios.appExtensions` ShareExtension entry makes `expo config` fatal ("more than one appExtensions"). Remove the manual block entirely — deduping to one still fails.
 - **Git is blocked:** eas-cli's default VCS mode touches `.git/index.lock`, which the agent sandbox forbids. Always run with `EAS_NO_VCS=1`.
