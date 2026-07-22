@@ -87,7 +87,12 @@
     },
     ensureListOverride(key) {
         if (!this.fieldOverridden(key) || !Array.isArray(this.contentData[key])) {
-            this.contentData[key] = JSON.parse(JSON.stringify(this.listValue(key)));
+            /* Reassign the whole object (not just add the key): Alpine's
+               reactivity does not track hasOwnProperty/key-addition, so a
+               plain `contentData[key] = ...` on a brand-new key would leave
+               the x-for rows rendering the stale system default. */
+            const copy = JSON.parse(JSON.stringify(this.listValue(key)));
+            this.contentData = { ...this.contentData, [key]: copy };
         }
         return this.contentData[key];
     },
@@ -135,6 +140,33 @@
         const [row] = arr.splice(idx, 1);
         arr.splice(to, 0, row);
         this.writeJsonFromData();
+    },
+    /* ── Drag-and-drop reordering (rows within one list) ── */
+    listDrag: { key: null, from: null },
+    listDragStart(key, idx, e) {
+        this.listDrag = { key, from: idx };
+        if (e.dataTransfer) {
+            e.dataTransfer.effectAllowed = 'move';
+            try { e.dataTransfer.setData('text/plain', String(idx)); } catch (err) { /* IE/edge cases */ }
+        }
+    },
+    listDragOver(key, e) {
+        if (this.listDrag.key !== key) return;
+        if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
+    },
+    listDrop(key, idx) {
+        if (this.listDrag.key !== key || this.listDrag.from === null) return;
+        const from = this.listDrag.from;
+        this.listDragEnd();
+        if (from === idx) return;
+        const arr = this.ensureListOverride(key);
+        if (from < 0 || from >= arr.length || idx < 0 || idx >= arr.length) return;
+        const [row] = arr.splice(from, 1);
+        arr.splice(idx, 0, row);
+        this.writeJsonFromData();
+    },
+    listDragEnd() {
+        this.listDrag = { key: null, from: null };
     },
     writeJsonFromData() {
         this.syncing = true;
@@ -726,8 +758,19 @@ x-init="fetchPreview(); $watch('styleData', () => schedulePreview()); $watch('co
                                         </p>
                                         <div class="space-y-2">
                                             <template x-for="(item, idx) in listValue(@js($key))" :key="idx">
-                                                <div class="flex items-start gap-2 p-2 rounded-xl"
-                                                     style="background: var(--bg-glass); border: 1px solid var(--border-glass);">
+                                                <div class="flex items-start gap-2 p-2 rounded-xl transition-opacity"
+                                                     style="background: var(--bg-glass); border: 1px solid var(--border-glass);"
+                                                     :class="listDrag.key === @js($key) && listDrag.from === idx ? 'opacity-50' : ''"
+                                                     @dragover.prevent="listDragOver(@js($key), $event)"
+                                                     @drop.prevent="listDrop(@js($key), idx)">
+                                                    <span draggable="true" data-testid="list-drag-{{ $key }}"
+                                                          @dragstart="listDragStart(@js($key), idx, $event)"
+                                                          @dragend="listDragEnd()"
+                                                          class="cursor-grab active:cursor-grabbing select-none pt-2 px-1"
+                                                          style="color: var(--text-faint);"
+                                                          title="Drag to reorder">
+                                                        <i class="fas fa-grip-vertical"></i>
+                                                    </span>
                                                     <div class="flex flex-col gap-1 pt-1">
                                                         <button type="button" class="bd-clear-btn" title="Move up"
                                                                 :disabled="idx === 0" :style="idx === 0 && 'opacity:0.3'"

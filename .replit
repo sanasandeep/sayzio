@@ -488,6 +488,10 @@ args = "blank-content-fallbacks"
 task = "workflow.run"
 args = "e2e-block-defaults"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-block-defaults-drag"
+
 [[workflows.workflow]]
 name = "e2e"
 author = "agent"
@@ -1970,6 +1974,17 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "pnpm --filter @workspace/scripts run check:blank-content-fallbacks"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-block-defaults-drag"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "bash artifacts/1inme/tests/Browser/run-validation.sh block-defaults-editor.spec.ts"
 
 [workflows.workflow.metadata]
 isValidation = true

@@ -532,4 +532,97 @@ test.describe("admin block-defaults editor save/clear", () => {
       "saving with zero rows must persist an explicit empty items list",
     ).toEqual([]);
   });
+
+  // Coverage for drag-and-drop row reordering (Task: rows can be dragged to
+  // reorder, not just moved via the arrow buttons; JSON textarea sync
+  // unchanged). Native HTML5 drag events don't fire from Playwright mouse
+  // moves, so the test dispatches real DragEvents with a shared DataTransfer —
+  // the exact events the Alpine handlers (@dragstart/@dragover/@drop) listen
+  // for.
+  test("list rows reorder via drag-and-drop and the JSON textarea reflects the new order", async ({
+    page,
+  }) => {
+    const LIST_TYPE = "list";
+    runTinker(
+      `use App\\Modules\\User\\Support\\BlockDefaults; BlockDefaults::resetAdminOverrideForType('${LIST_TYPE}'); echo 'RESET_OK';`,
+    );
+
+    await page.goto(`/admin/block-defaults/${LIST_TYPE}`, { timeout: 120_000 });
+    await page
+      .locator('button[type="submit"]', { hasText: "Save overrides" })
+      .waitFor({ state: "visible", timeout: 120_000 });
+
+    const container = page.locator('[data-testid="content-list-items"]');
+    await expect(container).toBeVisible();
+    const rows = container.locator(".space-y-2 > div");
+    await expect(rows).toHaveCount(3);
+
+    // Every row exposes a drag handle.
+    await expect(container.locator('[data-testid="list-drag-items"]')).toHaveCount(3);
+
+    // Capture the seeded row texts so we can assert the exact permutation.
+    const readRowTexts = async (): Promise<string[]> => {
+      const n = await rows.count();
+      const texts: string[] = [];
+      for (let i = 0; i < n; i++) {
+        texts.push(
+          await rows.nth(i).locator('input[type="text"]').first().inputValue(),
+        );
+      }
+      return texts;
+    };
+    const before = await readRowTexts();
+    expect(new Set(before).size, "seeded rows must be distinct").toBe(3);
+
+    // Drag the LAST row's handle onto the FIRST row.
+    const diag = await page.evaluate(() => {
+      const container = document.querySelector(
+        '[data-testid="content-list-items"]',
+      )!;
+      const rowEls = container.querySelectorAll(
+        ":scope .space-y-2 > div",
+      ) as NodeListOf<HTMLElement>;
+      const handle = rowEls[2].querySelector(
+        '[data-testid="list-drag-items"]',
+      ) as HTMLElement;
+      const dt = new DataTransfer();
+      const fire = (target: Element, type: string) =>
+        target.dispatchEvent(
+          new DragEvent(type, { bubbles: true, cancelable: true, dataTransfer: dt }),
+        );
+      const alpine = (window as unknown as {
+        Alpine?: { $data: (el: Element) => Record<string, unknown> };
+      }).Alpine;
+      const data = alpine ? alpine.$data(container) : null;
+      fire(handle, "dragstart");
+      const afterStart = data ? JSON.stringify(data.listDrag) : "no-alpine";
+      fire(rowEls[0], "dragover");
+      fire(rowEls[0], "drop");
+      const afterDrop = data
+        ? JSON.stringify((data.contentData as Record<string, unknown>).items)
+        : "no-alpine";
+      fire(handle, "dragend");
+      return { afterStart, afterDrop, rowCount: rowEls.length };
+    });
+    // Fail loudly if dragstart never reached the Alpine handler (would
+    // otherwise surface as a confusing "order unchanged" poll timeout).
+    expect(diag.afterStart, "dragstart must register in listDrag").toContain(
+      '"from":2',
+    );
+
+    // Rows now read [c, a, b] and the JSON textarea mirrors the same order.
+    await expect
+      .poll(readRowTexts, { timeout: 10_000 })
+      .toEqual([before[2], before[0], before[1]]);
+
+    const jsonBox = page.locator('textarea[name="content_json"]');
+    const jsonVal = await jsonBox.inputValue();
+    const parsed = JSON.parse(jsonVal) as {
+      items: Array<{ text: string }>;
+    };
+    expect(
+      parsed.items.map((i) => i.text),
+      "JSON textarea must carry the dragged order",
+    ).toEqual([before[2], before[0], before[1]]);
+  });
 });
