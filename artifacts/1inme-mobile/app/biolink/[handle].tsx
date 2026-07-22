@@ -177,6 +177,23 @@ function pickStr(s: Record<string, unknown> | null, ...keys: string[]): string |
   return null;
 }
 
+// Blank-aware variant for block CONTENT text (labels/titles/captions).
+// Admin block defaults can be explicitly blanked to "" — those must render
+// blank (web `??` parity), not fall back to sample text. Returns "" when a
+// key exists but is blank, null only when all keys are truly absent.
+function pickContentStr(s: Record<string, unknown> | null, ...keys: string[]): string | null {
+  if (!s) return null;
+  let sawBlank = false;
+  for (const k of keys) {
+    const v = s[k];
+    if (typeof v === "string") {
+      if (v.trim() !== "") return v.trim();
+      sawBlank = true;
+    }
+  }
+  return sawBlank ? "" : null;
+}
+
 // Block link URLs come from creator-defined block settings, which we treat as
 // untrusted: only allow http/https and tel/mailto/sms so a malicious entry
 // can't fire `javascript:` or `intent:` schemes from a tap.
@@ -220,7 +237,7 @@ function PollBlock({
   settings: Record<string, unknown>;
   colors: PaletteColors;
 }) {
-  const question = pickStr(settings, "question", "title", "text", "heading") ?? "Vote";
+  const question = pickContentStr(settings, "question", "title", "text", "heading") ?? "Vote";
   const rawOptions: unknown =
     Array.isArray(settings.options) ? settings.options :
     Array.isArray(settings.choices) ? settings.choices :
@@ -432,7 +449,7 @@ function RsvpBlock({
   settings: Record<string, unknown>;
   colors: PaletteColors;
 }) {
-  const title = pickStr(settings, "title", "heading", "event_title") ?? "RSVP";
+  const title = pickContentStr(settings, "title", "heading", "event_title") ?? "RSVP";
   const date = pickStr(settings, "date", "event_date", "starts_at");
   const allowPlusOnes = pickBool(settings, "rsvp_allow_plus_ones", false)
     || pickBool(settings, "allow_plus_ones", false);
@@ -808,7 +825,7 @@ function NativeProductBlock({
   const [busy, setBusy] = useState(false);
 
   const s = block.settings ?? {};
-  const name = (pickStr(s, "name", "title") ?? "Product").trim() || "Product";
+  const name = (pickContentStr(s, "name", "title") ?? "Product").trim();
   const desc = pickStr(s, "description", "subtitle");
   const priceCents = pickNum(s, "price_cents") ?? 0;
   const currency = (pickStr(s, "currency") ?? "USD").toUpperCase();
@@ -1130,7 +1147,7 @@ export function BlockView({ block, alias, allBlocks, openEmbed }: { block: Bioli
 
   if (t === "cta_button") {
     const url = pickStr(s, "url", "link");
-    const label = pickStr(s, "text", "label", "title") ?? "Get started";
+    const label = pickContentStr(s, "text", "label", "title") ?? "Get started";
     if (!url || !isSafeUrl(url)) return null;
     return (
       <Pressable onPress={() => handleTap(url)} style={[styles.btn, { backgroundColor: colors.primary, borderColor: colors.primary }]}>
@@ -1147,7 +1164,7 @@ export function BlockView({ block, alias, allBlocks, openEmbed }: { block: Bioli
         : [];
     const links = items
       .map((it) => ({
-        label: pickStr(it, "label", "name", "platform", "title") ?? "Open",
+        label: pickContentStr(it, "label", "name", "platform", "title") ?? "Open",
         url: pickStr(it, "url", "link", "href"),
       }))
       .filter((x): x is { label: string; url: string } => !!x.url && isSafeUrl(x.url));
@@ -1173,7 +1190,7 @@ export function BlockView({ block, alias, allBlocks, openEmbed }: { block: Bioli
       (pickStr(s, "video_id") ? `https://youtube.com/watch?v=${pickStr(s, "video_id")}` : null) ??
       (pickStr(s, "channel") ? `https://youtube.com/${pickStr(s, "channel")!.replace(/^@?\/?/, "@")}` : null);
     const thumb = pickStr(s, "thumbnail", "image");
-    const label = pickStr(s, "title", "text") ?? "Watch video";
+    const label = pickContentStr(s, "title", "text") ?? "Watch video";
     if (!url || !isSafeUrl(url)) return null;
     return (
       <Pressable onPress={() => handleTap(url)} style={[styles.mediaCard, blockCardStyle(block, colors)]}>
@@ -1188,7 +1205,7 @@ export function BlockView({ block, alias, allBlocks, openEmbed }: { block: Bioli
 
   if (t === "spotify" || t === "audio" || t === "soundcloud") {
     const url = pickStr(s, "url", "audio_url", "track_url");
-    const label = pickStr(s, "title", "text") ?? "Listen";
+    const label = pickContentStr(s, "title", "text") ?? "Listen";
     if (!url || !isSafeUrl(url)) return null;
     // Spotify / SoundCloud have first-party web players that work in an
     // in-app WebView, so keep the user inside the app rather than handing
@@ -1222,7 +1239,7 @@ export function BlockView({ block, alias, allBlocks, openEmbed }: { block: Bioli
         <View style={styles.mediaBody}>
           <Feather name="instagram" size={20} color={colors.primary} />
           <Text style={[styles.mediaLabel, { color: colors.foreground }]} numberOfLines={2}>
-            {pickStr(s, "caption") ?? "View on Instagram"}
+            {pickContentStr(s, "caption") ?? "View on Instagram"}
           </Text>
         </View>
       </Pressable>
@@ -1230,9 +1247,9 @@ export function BlockView({ block, alias, allBlocks, openEmbed }: { block: Bioli
   }
 
   if (t === "tip_jar") {
-    const title = pickStr(s, "title") ?? "Send me a tip";
+    const title = pickContentStr(s, "title") ?? "Send me a tip";
     const message = pickStr(s, "message");
-    const btnText = pickStr(s, "button_text") ?? "Send Tip";
+    const btnText = pickContentStr(s, "button_text") ?? "Send Tip";
     const rawAmounts = Array.isArray(s.amounts) ? (s.amounts as unknown[]) : [];
     const parsedAmounts = rawAmounts
       .map((n) => (typeof n === "number" ? n : typeof n === "string" ? parseInt(n, 10) : 0))
@@ -1298,7 +1315,7 @@ export function BlockView({ block, alias, allBlocks, openEmbed }: { block: Bioli
           ? "https://www.patreon.com/"
           : "https://ko-fi.com/";
     const url = username ? `${base}${username.replace(/^@?\/?/, "")}` : "";
-    const label = pickStr(s, "text") ?? "Support me";
+    const label = pickContentStr(s, "text") ?? "Support me";
     if (!url || !isSafeUrl(url)) return null;
     const bg =
       t === "buy_me_coffee" ? "#FFDD00" : t === "patreon" ? "#F96854" : "#FF5E5B";
@@ -1312,7 +1329,7 @@ export function BlockView({ block, alias, allBlocks, openEmbed }: { block: Bioli
 
   if (t === "featured_pin") {
     const url = pickStr(s, "url");
-    const text = pickStr(s, "text") ?? "Featured";
+    const text = pickContentStr(s, "text") ?? "Featured";
     const desc = pickStr(s, "description");
     const accent = pickStr(s, "accent_color") ?? "#f59e0b";
     if (!url || !isSafeUrl(url)) return null;
@@ -1343,7 +1360,7 @@ export function BlockView({ block, alias, allBlocks, openEmbed }: { block: Bioli
 
   if (t === "file") {
     const url = pickStr(s, "url");
-    const name = pickStr(s, "name", "title") ?? "Download file";
+    const name = pickContentStr(s, "name", "title") ?? "Download file";
     if (!url || !isSafeUrl(url)) return null;
     return (
       <Pressable onPress={() => handleTap(url)} style={[styles.btn, blockCardStyle(block, colors)]}>
@@ -1354,7 +1371,7 @@ export function BlockView({ block, alias, allBlocks, openEmbed }: { block: Bioli
 
   if (t === "donation" || t === "paypal" || t === "price" || t === "coupon" || t === "one_time_offer") {
     const url = pickStr(s, "url");
-    const label = pickStr(s, "title", "text", "code") ?? "View offer";
+    const label = pickContentStr(s, "title", "text", "code") ?? "View offer";
     if (!url || !isSafeUrl(url)) return null;
     return (
       <Pressable onPress={() => handleTap(url)} style={[styles.btn, { backgroundColor: colors.primary, borderColor: colors.primary }]}>
@@ -1442,7 +1459,7 @@ export function BlockView({ block, alias, allBlocks, openEmbed }: { block: Bioli
 
   if (t === "countdown") {
     const target = pickStr(s, "target_date", "date", "ends_at");
-    const title = pickStr(s, "title", "text") ?? "Coming soon";
+    const title = pickContentStr(s, "title", "text") ?? "Coming soon";
     const tsMs = target ? Date.parse(target) : NaN;
     const remaining = Number.isFinite(tsMs) ? Math.max(0, tsMs - Date.now()) : 0;
     const days = Math.floor(remaining / 86400000);
@@ -1505,7 +1522,7 @@ export function BlockView({ block, alias, allBlocks, openEmbed }: { block: Bioli
   // fill it out without leaving the app.
   if (t === "typeform") {
     const url = pickStr(s, "url", "form_url");
-    const label = pickStr(s, "title", "heading", "text") ?? "Open form";
+    const label = pickContentStr(s, "title", "heading", "text") ?? "Open form";
     if (!url || !isSafeUrl(url)) return null;
     return (
       <Pressable
@@ -1592,7 +1609,7 @@ export function BlockView({ block, alias, allBlocks, openEmbed }: { block: Bioli
       ? `https://wa.me/${phone.replace(/[^0-9]/g, "")}`
       : channel ?? null;
     if (!url || !isSafeUrl(url)) return null;
-    const label = pickStr(s, "button_text", "text", "title", "name") ?? "Chat on WhatsApp";
+    const label = pickContentStr(s, "button_text", "text", "title", "name") ?? "Chat on WhatsApp";
     return (
       <Pressable onPress={() => handleTap(url)} style={[styles.btn, { backgroundColor: "#25D366", borderColor: "#25D366" }]}>
         <Text style={[styles.btnLabel, { color: "#fff" }]}>💬 {label}</Text>
@@ -1602,7 +1619,7 @@ export function BlockView({ block, alias, allBlocks, openEmbed }: { block: Bioli
 
   if (t === "calendly" || t === "calendly_embed") {
     const url = pickStr(s, "url");
-    const label = pickStr(s, "text", "title") ?? "Book a time";
+    const label = pickContentStr(s, "text", "title") ?? "Book a time";
     if (!url || !isSafeUrl(url)) return null;
     // Calendly's standalone scheduling page works fine inside an in-app
     // WebView; keep the booking flow inside the app.
@@ -1639,7 +1656,7 @@ export function BlockView({ block, alias, allBlocks, openEmbed }: { block: Bioli
         const m = html.match(/src=["']([^"']+)["']/i);
         return m ? m[1] : null;
       })();
-    const label = pickStr(s, "title", "text", "label") ?? "Open embed";
+    const label = pickContentStr(s, "title", "text", "label") ?? "Open embed";
     if (!url || !isSafeUrl(url)) {
       // Without a safe URL we can't render anything trustworthy — show a
       // disabled-style notice instead of a tappable button.
@@ -1719,7 +1736,7 @@ export function BlockView({ block, alias, allBlocks, openEmbed }: { block: Bioli
       style={[styles.btn, blockCardStyle(block, colors)]}
     >
       <Text style={[styles.btnLabel, { color: colors.foreground }]}>
-        {pickStr(s, "title", "text", "label") ?? "Open on web"}
+        {pickContentStr(s, "title", "text", "label") ?? "Open on web"}
       </Text>
       <Text style={[styles.body, { color: colors.mutedForeground, fontSize: 11, marginTop: 2 }]}>
         Tap to view this block in your browser
@@ -2395,6 +2412,497 @@ function ProfileCardView({
             </Text>
           ) : null}
           <ProfileSocialsRow socials={socials} accent={accent} onTap={onTap} chip="accent_outline" />
+        </View>
+      </View>
+    );
+  }
+
+  // ───────────── BUSINESS CARD ─────────────
+  if (layout === "business_card") {
+    const cleanWeb = website.replace(/^https?:\/\/(www\.)?/, "");
+    return (
+      <View style={surface}>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 16, padding: 20 }}>
+          <ProfileAvatar avatar={avatar} initial={initial} size={80} border={{ borderRadius: 12 }} />
+          <View
+            style={{
+              flex: 1,
+              minWidth: 0,
+              borderLeftWidth: 2,
+              borderLeftColor: `${accent}33`,
+              paddingLeft: 16,
+            }}
+          >
+            {name ? (
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                <Text style={{ fontSize: 17, fontWeight: "700", color: themeText }}>{name}</Text>
+                {verified ? <Feather name="check-circle" size={15} color={accent} /> : null}
+              </View>
+            ) : null}
+            {title ? (
+              <Text
+                style={{
+                  fontSize: 11,
+                  fontWeight: "600",
+                  textTransform: "uppercase",
+                  letterSpacing: 2,
+                  color: accent,
+                }}
+              >
+                {title}
+              </Text>
+            ) : null}
+            {bio ? (
+              <Text style={{ fontSize: 13, marginTop: 8, color: themeText, opacity: 0.72 }}>
+                {bio}
+              </Text>
+            ) : null}
+            {location || website ? (
+              <View
+                style={{
+                  flexDirection: "row",
+                  flexWrap: "wrap",
+                  alignItems: "center",
+                  gap: 12,
+                  marginTop: 8,
+                }}
+              >
+                {location ? (
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+                    <Feather name="map-pin" size={12} color={accent} />
+                    <Text style={{ fontSize: 12, color: themeText, opacity: 0.7 }}>{location}</Text>
+                  </View>
+                ) : null}
+                {website ? (
+                  <Pressable
+                    onPress={() => (isSafeUrl(website) ? onTap(website) : undefined)}
+                    style={{ flexDirection: "row", alignItems: "center", gap: 4 }}
+                  >
+                    <Feather name="link" size={12} color={accent} />
+                    <Text style={{ fontSize: 12, color: accent }}>{cleanWeb}</Text>
+                  </Pressable>
+                ) : null}
+              </View>
+            ) : null}
+            <ProfileSocialsRow socials={socials} accent={accent} onTap={onTap} chip="accent_outline" />
+          </View>
+        </View>
+      </View>
+    );
+  }
+
+  // ───────────── SIDEBAR ACCENT ─────────────
+  if (layout === "sidebar_accent") {
+    return (
+      <View style={surface}>
+        <View style={{ flexDirection: "row", alignItems: "stretch" }}>
+          <LinearGradient
+            colors={[accent, `${accent}99`]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 0, y: 1 }}
+            style={{ width: 10 }}
+          />
+          <View style={{ flex: 1, padding: 20 }}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 16 }}>
+              <ProfileAvatar
+                avatar={avatar}
+                initial={initial}
+                size={64}
+                border={{ borderWidth: 2, borderColor: `${accent}33` }}
+              />
+              <View style={{ minWidth: 0, flex: 1 }}>
+                {name ? (
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                    <Text style={{ fontSize: 17, fontWeight: "700", color: themeText }}>{name}</Text>
+                    {verified ? <Feather name="check-circle" size={15} color={accent} /> : null}
+                  </View>
+                ) : null}
+                {title ? (
+                  <Text style={{ fontSize: 13, fontWeight: "600", color: accent }}>{title}</Text>
+                ) : null}
+              </View>
+            </View>
+            {bio ? (
+              <Text style={{ fontSize: 13, marginTop: 12, color: themeText, opacity: 0.72 }}>
+                {bio}
+              </Text>
+            ) : null}
+            <ProfileSocialsRow socials={socials} accent={accent} onTap={onTap} chip="accent_outline" />
+          </View>
+        </View>
+      </View>
+    );
+  }
+
+  // ───────────── ID BADGE / LANYARD ─────────────
+  if (layout === "id_badge") {
+    return (
+      <View style={{ marginBottom: 16, alignItems: "center" }}>
+        {/* Lanyard strap + clip */}
+        <View style={{ alignItems: "center" }}>
+          <View
+            style={{
+              width: 8,
+              height: 20,
+              backgroundColor: accent,
+              borderTopLeftRadius: 3,
+              borderTopRightRadius: 3,
+              opacity: 0.85,
+            }}
+          />
+          <View
+            style={{
+              width: 36,
+              height: 11,
+              borderWidth: 2,
+              borderColor: accent,
+              borderRadius: 6,
+              marginTop: -2,
+            }}
+          />
+        </View>
+        <View style={[surface, { width: "100%", marginBottom: 0 }]}>
+          {/* Punch hole */}
+          <View style={{ alignItems: "center", paddingTop: 12 }}>
+            <View
+              style={{
+                width: 46,
+                height: 8,
+                borderRadius: 999,
+                backgroundColor: "rgba(15,23,42,0.14)",
+              }}
+            />
+          </View>
+          {/* Accent header band */}
+          <View
+            style={{
+              marginTop: 12,
+              paddingHorizontal: 20,
+              paddingVertical: 10,
+              backgroundColor: accent,
+              alignItems: "center",
+            }}
+          >
+            <Text
+              style={{
+                fontSize: 10,
+                fontWeight: "700",
+                textTransform: "uppercase",
+                letterSpacing: 4,
+                color: "#fff",
+              }}
+            >
+              Identification
+            </Text>
+          </View>
+          <View style={{ paddingHorizontal: 20, paddingVertical: 20, alignItems: "center" }}>
+            <ProfileAvatar
+              avatar={avatar}
+              initial={initial}
+              size={80}
+              border={{ borderWidth: 3, borderColor: accent, borderRadius: 10 }}
+              textColor={accent}
+            />
+            {name ? (
+              <View style={{ flexDirection: "row", alignItems: "center", marginTop: 12, gap: 6 }}>
+                <Text style={{ fontSize: 18, fontWeight: "700", color: themeText }}>{name}</Text>
+                {verified ? <Feather name="check-circle" size={16} color={accent} /> : null}
+              </View>
+            ) : null}
+            {title ? (
+              <View
+                style={{
+                  marginTop: 6,
+                  paddingHorizontal: 12,
+                  paddingVertical: 3,
+                  borderRadius: 999,
+                  backgroundColor: `${accent}1a`,
+                }}
+              >
+                <Text
+                  style={{
+                    fontSize: 11,
+                    fontWeight: "700",
+                    textTransform: "uppercase",
+                    letterSpacing: 1,
+                    color: accent,
+                  }}
+                >
+                  {title}
+                </Text>
+              </View>
+            ) : null}
+            {bio ? (
+              <Text
+                style={{ fontSize: 13, marginTop: 12, color: themeText, opacity: 0.7, textAlign: "center" }}
+              >
+                {bio}
+              </Text>
+            ) : null}
+            {/* Barcode footer */}
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "flex-end",
+                justifyContent: "center",
+                gap: 3,
+                marginTop: 16,
+                opacity: 0.55,
+              }}
+            >
+              {[3, 1, 2, 1, 3, 1, 1, 2, 1, 3, 2, 1, 1, 3, 1, 2].map((bw, i) => (
+                <View key={i} style={{ width: bw, height: 22, backgroundColor: themeText }} />
+              ))}
+            </View>
+          </View>
+        </View>
+      </View>
+    );
+  }
+
+  // ───────────── TICKET STUB ─────────────
+  if (layout === "ticket_stub") {
+    return (
+      <View style={surface}>
+        <View style={{ flexDirection: "row", alignItems: "stretch" }}>
+          <View style={{ flex: 1, padding: 20, alignItems: "center" }}>
+            <Text
+              style={{
+                fontSize: 10,
+                fontWeight: "700",
+                textTransform: "uppercase",
+                letterSpacing: 3,
+                color: accent,
+                opacity: 0.85,
+              }}
+            >
+              Admit One
+            </Text>
+            <View style={{ marginTop: 12 }}>
+              <ProfileAvatar
+                avatar={avatar}
+                initial={initial}
+                size={64}
+                border={{ borderWidth: 2, borderColor: accent }}
+                textColor={accent}
+              />
+            </View>
+            {name ? (
+              <Text style={{ marginTop: 12, fontSize: 20, fontWeight: "700", color: themeText }}>
+                {name}
+              </Text>
+            ) : null}
+            {bio ? (
+              <Text
+                style={{ fontSize: 13, marginTop: 8, color: themeText, opacity: 0.7, textAlign: "center" }}
+              >
+                {bio}
+              </Text>
+            ) : null}
+          </View>
+          {/* Perforated divider */}
+          <View
+            style={{
+              borderLeftWidth: 2,
+              borderLeftColor: `${accent}66`,
+              borderStyle: "dashed",
+            }}
+          />
+          <View
+            style={{
+              width: 96,
+              alignItems: "center",
+              justifyContent: "center",
+              padding: 12,
+            }}
+          >
+            <Text
+              style={{
+                fontSize: 9,
+                fontWeight: "700",
+                textTransform: "uppercase",
+                letterSpacing: 1,
+                color: themeText,
+                opacity: 0.55,
+              }}
+            >
+              Section
+            </Text>
+            <Text style={{ fontSize: 13, fontWeight: "700", marginTop: 4, color: accent }}>
+              {title !== "" ? title : "GA"}
+            </Text>
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "flex-end",
+                gap: 2,
+                marginTop: 8,
+                opacity: 0.5,
+              }}
+            >
+              {[2, 1, 3, 1, 2, 1, 3, 1].map((bw, i) => (
+                <View key={i} style={{ width: bw, height: 28, backgroundColor: accent }} />
+              ))}
+            </View>
+          </View>
+        </View>
+      </View>
+    );
+  }
+
+  // ───────────── POLAROID ─────────────
+  if (layout === "polaroid") {
+    return (
+      <View style={{ marginBottom: 24, alignItems: "center" }}>
+        <View
+          style={[
+            surface,
+            {
+              marginBottom: 0,
+              maxWidth: 288,
+              width: "100%",
+              transform: [{ rotate: "-2.5deg" }],
+            },
+            cardOverlay?.backgroundColor == null ? { backgroundColor: "#ffffff" } : null,
+          ]}
+        >
+          <View style={{ padding: 12, paddingBottom: 4 }}>
+            <View
+              style={{
+                width: "100%",
+                aspectRatio: 1,
+                overflow: "hidden",
+                backgroundColor: PROFILE_AVATAR_BG,
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              {avatar && isSafeUrl(avatar) ? (
+                <Image source={{ uri: avatar }} style={{ width: "100%", height: "100%" }} />
+              ) : (
+                <Text style={{ fontSize: 60, fontWeight: "700", color: accent }}>{initial}</Text>
+              )}
+            </View>
+          </View>
+          <View style={{ paddingHorizontal: 16, paddingBottom: 20, paddingTop: 8, alignItems: "center" }}>
+            {name ? (
+              <Text style={{ fontSize: 22, fontStyle: "italic", color: "#1f2937" }}>{name}</Text>
+            ) : null}
+            {title ? (
+              <Text style={{ fontSize: 15, fontStyle: "italic", opacity: 0.75, color: "#374151" }}>
+                {title}
+              </Text>
+            ) : null}
+            {bio ? (
+              <Text
+                style={{
+                  fontSize: 15,
+                  fontStyle: "italic",
+                  marginTop: 4,
+                  opacity: 0.6,
+                  color: "#374151",
+                  textAlign: "center",
+                }}
+              >
+                {bio}
+              </Text>
+            ) : null}
+          </View>
+        </View>
+      </View>
+    );
+  }
+
+  // ───────────── TERMINAL / CODE ─────────────
+  if (layout === "terminal") {
+    const mono = Platform.OS === "ios" ? "Menlo" : "monospace";
+    const cleanWeb = website.replace(/^https?:\/\/(www\.)?/, "");
+    const termText = cardOverlay?.backgroundColor == null ? "#e2e8f0" : themeText;
+    return (
+      <View
+        style={[
+          surface,
+          { borderRadius: 12 },
+          cardOverlay?.backgroundColor == null ? { backgroundColor: "#0d1117" } : null,
+        ]}
+      >
+        {/* Title bar with traffic lights */}
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 6,
+            paddingHorizontal: 16,
+            paddingVertical: 8,
+            backgroundColor: "rgba(255,255,255,0.06)",
+            borderBottomWidth: 1,
+            borderBottomColor: "rgba(255,255,255,0.08)",
+          }}
+        >
+          <View style={{ width: 11, height: 11, borderRadius: 999, backgroundColor: "#ff5f56" }} />
+          <View style={{ width: 11, height: 11, borderRadius: 999, backgroundColor: "#ffbd2e" }} />
+          <View style={{ width: 11, height: 11, borderRadius: 999, backgroundColor: "#27c93f" }} />
+          <Text style={{ marginLeft: 8, fontSize: 10, fontFamily: mono, color: termText, opacity: 0.6 }}>
+            ~ /profile
+          </Text>
+        </View>
+        <View style={{ padding: 16 }}>
+          <Text style={{ fontFamily: mono, fontSize: 13, lineHeight: 22, color: termText }}>
+            <Text style={{ opacity: 0.6 }}>$ </Text>whoami
+          </Text>
+          {avatar || name ? (
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 12, marginTop: 8, marginBottom: 4 }}>
+              {avatar && isSafeUrl(avatar) ? (
+                <Image
+                  source={{ uri: avatar }}
+                  style={{
+                    width: 48,
+                    height: 48,
+                    borderRadius: 4,
+                    borderWidth: 1,
+                    borderColor: `${accent}55`,
+                  }}
+                />
+              ) : null}
+              {name ? (
+                <Text style={{ fontFamily: mono, fontSize: 15, fontWeight: "700", color: termText }}>
+                  {name}
+                </Text>
+              ) : null}
+            </View>
+          ) : null}
+          {title ? (
+            <Text style={{ fontFamily: mono, fontSize: 13, lineHeight: 22, color: termText }}>
+              <Text style={{ opacity: 0.6 }}>role: </Text>
+              <Text style={{ color: accent }}>{title}</Text>
+            </Text>
+          ) : null}
+          {bio ? (
+            <Text
+              style={{ fontFamily: mono, fontSize: 13, lineHeight: 22, marginTop: 4, color: termText, opacity: 0.85 }}
+            >
+              <Text style={{ opacity: 0.6 }}>bio: </Text>
+              {bio}
+            </Text>
+          ) : null}
+          {location ? (
+            <Text style={{ fontFamily: mono, fontSize: 13, lineHeight: 22, color: termText, opacity: 0.85 }}>
+              <Text style={{ opacity: 0.6 }}>loc: </Text>
+              {location}
+            </Text>
+          ) : null}
+          {website && isSafeUrl(website) ? (
+            <Pressable onPress={() => onTap(website)}>
+              <Text style={{ fontFamily: mono, fontSize: 13, lineHeight: 22, color: termText }}>
+                <Text style={{ opacity: 0.6 }}>url: </Text>
+                <Text style={{ color: accent, textDecorationLine: "underline" }}>{cleanWeb}</Text>
+              </Text>
+            </Pressable>
+          ) : null}
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginTop: 8 }}>
+            <Text style={{ fontFamily: mono, fontSize: 13, color: termText, opacity: 0.6 }}>$</Text>
+            <View style={{ width: 8, height: 16, backgroundColor: accent }} />
+          </View>
         </View>
       </View>
     );

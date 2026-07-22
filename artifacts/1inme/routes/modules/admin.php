@@ -345,6 +345,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::delete('/{digest}', [\App\Modules\Admin\Controllers\ZioDigestController::class, 'destroy'])->middleware(CheckPermission::class . ':settings.manage')->name('destroy');
             Route::post('/{digest}/duplicate', [\App\Modules\Admin\Controllers\ZioDigestController::class, 'duplicate'])->middleware(CheckPermission::class . ':settings.manage')->name('duplicate');
             Route::get('/{digest}/preview', [\App\Modules\Admin\Controllers\ZioDigestController::class, 'preview'])->middleware(CheckPermission::class . ':settings.manage')->name('preview');
+            Route::get('/{digest}/email-preview', [\App\Modules\Admin\Controllers\ZioDigestController::class, 'emailPreview'])->middleware(CheckPermission::class . ':settings.manage')->name('email-preview');
             Route::post('/{digest}/send', [\App\Modules\Admin\Controllers\ZioDigestController::class, 'send'])->middleware(CheckPermission::class . ':settings.manage')->name('send');
             Route::post('/{digest}/send-test', [\App\Modules\Admin\Controllers\ZioDigestController::class, 'sendTest'])->middleware(CheckPermission::class . ':settings.manage')->name('send-test');
             Route::get('/{digest}/report', [\App\Modules\Admin\Controllers\ZioDigestController::class, 'report'])->middleware(CheckPermission::class . ':settings.manage')->name('report');

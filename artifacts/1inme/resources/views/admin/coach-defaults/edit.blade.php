@@ -35,7 +35,7 @@
      }">
 
     @if(session('success'))
-        <div class="mb-4 p-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 text-emerald-200 text-sm">
+        <div class="mb-4 p-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 text-emerald-200 text-sm ak-green">
             <i class="fas fa-check-circle mr-1"></i> {{ session('success') }}
         </div>
     @endif
@@ -45,8 +45,8 @@
             @csrf
 
             <div class="mb-5">
-                <h2 class="text-lg font-semibold text-white/90">Workspace defaults</h2>
-                <p class="text-xs text-white/50 mt-1">
+                <h2 class="text-lg font-semibold text-white/90 ak-strong">Workspace defaults</h2>
+                <p class="text-xs text-white/50 mt-1 ak-muted">
                     Brand-new links start from the preset you pick here. Creators can still override it per link.
                 </p>
             </div>
@@ -59,9 +59,9 @@
                            @click.prevent="apply('{{ $key }}')">
                         <div class="flex items-center gap-2">
                             <input type="radio" name="preset" value="{{ $key }}" :checked="preset === '{{ $key }}'" class="accent-indigo-400">
-                            <span class="font-semibold text-white">{{ $meta['label'] }}</span>
+                            <span class="font-semibold text-white ak-strong">{{ $meta['label'] }}</span>
                         </div>
-                        <div class="text-xs text-white/50 mt-1">{{ $meta['description'] }}</div>
+                        <div class="text-xs text-white/50 mt-1 ak-muted">{{ $meta['description'] }}</div>
                     </label>
                 @endforeach
                 <template x-for="(c, i) in customs" :key="'pick-' + i">
@@ -70,25 +70,25 @@
                            @click.prevent="c.key && apply(c.key)">
                         <div class="flex items-center gap-2">
                             <input type="radio" name="preset" :value="c.key" :checked="preset === c.key" class="accent-indigo-400" :disabled="!c.key">
-                            <span class="font-semibold text-white" x-text="c.label || 'Untitled custom preset'"></span>
-                            <span class="text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-blue-500/20 text-indigo-200 border border-blue-400/30">Custom</span>
+                            <span class="font-semibold text-white ak-strong" x-text="c.label || 'Untitled custom preset'"></span>
+                            <span class="text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-blue-500/20 text-indigo-200 border border-blue-400/30 ak-blue">Custom</span>
                         </div>
-                        <div class="text-xs text-white/50 mt-1" x-text="c.description || 'Workspace preset'"></div>
+                        <div class="text-xs text-white/50 mt-1 ak-muted" x-text="c.description || 'Workspace preset'"></div>
                     </label>
                 </template>
                 <label class="pc-admin-card" :class="preset === 'custom' ? 'is-active' : ''"
                        @click.prevent="apply('custom')">
                     <div class="flex items-center gap-2">
                         <input type="radio" name="preset" value="custom" :checked="preset === 'custom'" class="accent-indigo-400">
-                        <span class="font-semibold text-white">Custom</span>
+                        <span class="font-semibold text-white ak-strong">Custom</span>
                     </div>
-                    <div class="text-xs text-white/50 mt-1">Hand-tune each threshold below.</div>
+                    <div class="text-xs text-white/50 mt-1 ak-muted">Hand-tune each threshold below.</div>
                 </label>
             </div>
 
             {{-- Thresholds --}}
             <div class="mt-6 border-t border-white/10 pt-5">
-                <h3 class="text-sm font-semibold text-white/80 mb-3">Thresholds</h3>
+                <h3 class="text-sm font-semibold text-white/80 mb-3 ak-strong">Thresholds</h3>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div class="pc-admin-group">
                         <div class="pc-admin-group-title">Click-through rate (fraction)</div>
@@ -122,7 +122,7 @@
                         </div>
                     </div>
                 </div>
-                <p class="text-[11px] text-white/40 mt-2">
+                <p class="text-[11px] text-white/40 mt-2 ak-note">
                     These values are saved as the workspace "Custom" overrides and only apply when the Custom preset is selected above.
                 </p>
             </div>
@@ -131,8 +131,8 @@
             <div class="mt-6 border-t border-white/10 pt-5">
                 <div class="flex items-center justify-between mb-3">
                     <div>
-                        <h3 class="text-sm font-semibold text-white/80">Custom presets</h3>
-                        <p class="text-xs text-white/50 mt-1">
+                        <h3 class="text-sm font-semibold text-white/80 ak-strong">Custom presets</h3>
+                        <p class="text-xs text-white/50 mt-1 ak-muted">
                             Published presets appear alongside the built-ins in every creator's per-link picker.
                         </p>
                     </div>
@@ -155,7 +155,7 @@
                                        class="pc-admin-input" maxlength="64">
                             </label>
                             <button type="button" @click="removeCustom(i)"
-                                    class="mt-5 px-2 py-1.5 text-xs bg-red-500/20 text-red-300 border border-red-500/30 rounded-lg hover:bg-red-500/30 transition"
+                                    class="mt-5 px-2 py-1.5 text-xs bg-red-500/20 text-red-300 border border-red-500/30 rounded-lg hover:bg-red-500/30 transition ak-red"
                                     title="Remove">
                                 <i class="fas fa-trash"></i>
                             </button>
@@ -189,7 +189,7 @@
                     </div>
                 </template>
 
-                <div x-show="customs.length === 0" class="text-xs text-white/40 italic">
+                <div x-show="customs.length === 0" class="text-xs text-white/40 italic ak-note">
                     No custom presets published yet.
                 </div>
             </div>
@@ -198,7 +198,7 @@
                 <button type="submit" class="px-6 py-2.5 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition">
                     <i class="fas fa-check mr-1"></i> Save defaults
                 </button>
-                <a href="{{ route('admin.dashboard') }}" class="px-6 py-2.5 bg-white/10 text-white/80 rounded-xl font-medium hover:bg-white/[0.06] transition">Cancel</a>
+                <a href="{{ route('admin.dashboard') }}" class="px-6 py-2.5 bg-white/10 text-white/80 rounded-xl font-medium hover:bg-white/[0.06] transition ak-strong">Cancel</a>
             </div>
         </form>
     </div>

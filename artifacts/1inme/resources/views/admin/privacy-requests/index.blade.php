@@ -16,10 +16,10 @@
 @endphp
 <div class="max-w-6xl mx-auto space-y-6">
     @if(session('status'))
-        <div class="rounded-xl px-4 py-3 text-sm bg-emerald-500/10 border border-emerald-500/30 text-emerald-300">{{ session('status') }}</div>
+        <div class="rounded-xl px-4 py-3 text-sm bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 ak-green">{{ session('status') }}</div>
     @endif
     @if($errors->any())
-        <div class="rounded-xl px-4 py-3 text-sm bg-red-500/10 border border-red-500/30 text-red-300">
+        <div class="rounded-xl px-4 py-3 text-sm bg-red-500/10 border border-red-500/30 text-red-300 ak-red">
             @foreach($errors->all() as $e)<div>{{ $e }}</div>@endforeach
         </div>
     @endif
@@ -27,13 +27,13 @@
     <div class="glass rounded-2xl p-6">
         <div class="flex flex-wrap items-center justify-between gap-3 mb-5">
             <div>
-                <h2 class="text-lg font-semibold text-white">Privacy Requests</h2>
-                <p class="text-xs text-white/50 mt-1">GDPR / CCPA account deletion & data export requests.</p>
+                <h2 class="text-lg font-semibold text-white ak-strong">Privacy Requests</h2>
+                <p class="text-xs text-white/50 mt-1 ak-muted">GDPR / CCPA account deletion & data export requests.</p>
             </div>
             <form method="GET" class="flex items-center gap-2">
                 <input type="search" name="q" value="{{ $filters['q'] }}" placeholder="Search email…"
-                       class="px-3 py-1.5 rounded-lg text-xs bg-white/5 border border-white/10 text-white w-44">
-                <select name="type" class="px-3 py-1.5 rounded-lg text-xs bg-white/5 border border-white/10 text-white">
+                       class="px-3 py-1.5 rounded-lg text-xs bg-white/5 border border-white/10 text-white w-44 ak-strong ak-input">
+                <select name="type" class="px-3 py-1.5 rounded-lg text-xs bg-white/5 border border-white/10 text-white ak-strong ak-input">
                     <option value="all" @selected($filters['type']==='all')>All types</option>
                     <option value="deletion" @selected($filters['type']==='deletion')>Deletion</option>
                     <option value="export" @selected($filters['type']==='export')>Export</option>
@@ -48,19 +48,19 @@
             @endphp
             @foreach($statusFilters as $key=>$label)
                 <a href="{{ route('admin.privacy-requests.index', array_merge($filters, ['status'=>$key])) }}"
-                   class="px-3 py-1.5 rounded-lg text-xs {{ $filters['status']===$key ? 'bg-blue-600 text-white' : 'bg-white/5 text-white/70 hover:bg-white/10' }}">
+                   class="px-3 py-1.5 rounded-lg text-xs {{ $filters['status']===$key ? 'bg-blue-600 text-white' : 'bg-white/5 text-white/70 hover:bg-white/10 ak-muted' }}">
                     {{ $label }}@if($key!=='all' && isset($counts[$key])) <span class="opacity-60">({{ $counts[$key] }})</span>@endif
                 </a>
             @endforeach
         </div>
 
         @if($requests->count() === 0)
-            <div class="text-center text-white/40 py-12 text-sm">No privacy requests found.</div>
+            <div class="text-center text-white/40 py-12 text-sm ak-note">No privacy requests found.</div>
         @else
             <div class="overflow-x-auto">
                 <table class="w-full text-sm">
                     <thead>
-                        <tr class="text-left text-white/40 text-xs uppercase tracking-wider border-b border-white/10">
+                        <tr class="text-left text-white/40 text-xs uppercase tracking-wider border-b border-white/10 ak-note">
                             <th class="py-2 pr-4">Type</th>
                             <th class="py-2 pr-4">Email</th>
                             <th class="py-2 pr-4">Account</th>
@@ -73,22 +73,22 @@
                         @foreach($requests as $r)
                             <tr class="border-b border-white/5 hover:bg-white/[0.02]">
                                 <td class="py-3 pr-4">
-                                    <span class="inline-flex items-center gap-1.5 text-white/90">
-                                        <i class="fas {{ $r->isDeletion() ? 'fa-user-slash text-red-300' : 'fa-download text-blue-300' }} text-xs"></i>
+                                    <span class="inline-flex items-center gap-1.5 text-white/90 ak-strong">
+                                        <i class="fas {{ $r->isDeletion() ? 'fa-user-slash text-red-300 ak-red' : 'fa-download text-blue-300 ak-blue' }} text-xs"></i>
                                         {{ $r->typeLabel() }}
                                     </span>
                                 </td>
-                                <td class="py-3 pr-4 text-white/80">{{ $r->email }}</td>
-                                <td class="py-3 pr-4 text-white/50">{{ $r->user_id ? '#'.$r->user_id : '—' }}</td>
+                                <td class="py-3 pr-4 text-white/80 ak-strong">{{ $r->email }}</td>
+                                <td class="py-3 pr-4 text-white/50 ak-muted">{{ $r->user_id ? '#'.$r->user_id : '—' }}</td>
                                 <td class="py-3 pr-4">
-                                    <span class="text-[10px] px-2 py-0.5 rounded-full {{ $statusStyles[$r->status] ?? 'bg-white/10 text-white/60' }}">
+                                    <span class="text-[10px] px-2 py-0.5 rounded-full {{ $statusStyles[$r->status] ?? 'bg-white/10 text-white/60 ak-muted' }}">
                                         {{ $statusLabel($r->status) }}
                                     </span>
                                 </td>
-                                <td class="py-3 pr-4 text-white/50 text-xs">{{ $r->created_at?->format('M j, Y g:i a') }}</td>
+                                <td class="py-3 pr-4 text-white/50 text-xs ak-muted">{{ $r->created_at?->format('M j, Y g:i a') }}</td>
                                 <td class="py-3 pr-4 text-right">
                                     <a href="{{ route('admin.privacy-requests.show', $r->id) }}"
-                                       class="px-3 py-1.5 rounded-lg text-xs bg-white/5 text-white/80 hover:bg-white/10">Review</a>
+                                       class="px-3 py-1.5 rounded-lg text-xs bg-white/5 text-white/80 hover:bg-white/10 ak-strong">Review</a>
                                 </td>
                             </tr>
                         @endforeach

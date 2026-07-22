@@ -61,21 +61,21 @@
                  class="relative glass rounded-2xl border border-white/10 max-w-md w-full p-6 shadow-2xl">
                 <div class="flex items-start gap-3 mb-4">
                     <div class="shrink-0 w-10 h-10 rounded-xl bg-amber-500/15 border border-amber-500/25 flex items-center justify-center">
-                        <i class="fas fa-triangle-exclamation text-amber-300"></i>
+                        <i class="fas fa-triangle-exclamation text-amber-300 ak-amber"></i>
                     </div>
                     <div>
-                        <h3 class="text-base font-semibold text-white">All prices are $0 / ₹0</h3>
-                        <p class="text-xs text-white/50 mt-0.5">Every currency and billing cycle is set to zero.</p>
+                        <h3 class="text-base font-semibold text-white ak-strong">All prices are $0 / ₹0</h3>
+                        <p class="text-xs text-white/50 mt-0.5 ak-muted">Every currency and billing cycle is set to zero.</p>
                     </div>
                 </div>
-                <p class="text-sm text-white/70 leading-relaxed mb-5">
+                <p class="text-sm text-white/70 leading-relaxed mb-5 ak-strong">
                     Saving will make this {{ '' }}<span x-text="label"></span> completely free for
-                    <strong class="text-white/90">all users in every currency</strong> (USD &amp; INR, monthly &amp; annual).
+                    <strong class="text-white/90 ak-strong">all users in every currency</strong> (USD &amp; INR, monthly &amp; annual).
                     If you meant to charge for it, go back and enter the prices first.
                 </p>
                 <div class="flex items-center justify-end gap-3">
                     <button type="button" @click="open = false"
-                            class="px-5 py-2 bg-white/10 text-white/80 rounded-xl font-medium hover:bg-white/[0.06] transition text-sm">
+                            class="px-5 py-2 bg-white/10 text-white/80 rounded-xl font-medium hover:bg-white/[0.06] transition text-sm ak-strong">
                         Go back &amp; set prices
                     </button>
                     <button type="button" @click="proceed()"

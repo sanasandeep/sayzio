@@ -8,10 +8,10 @@
      @keydown.escape.window="cropping && cancelCrop()">
     <div class="bg-[#1a1d2a] border border-white/10 rounded-2xl p-5 max-w-md w-full" @click.stop>
         <div class="flex items-center justify-between mb-3">
-            <h4 class="text-sm font-semibold text-white">Crop photo</h4>
-            <button type="button" @click="cancelCrop()" class="text-white/60 hover:text-white" title="Close"><i class="fas fa-times"></i></button>
+            <h4 class="text-sm font-semibold text-white ak-strong">Crop photo</h4>
+            <button type="button" @click="cancelCrop()" class="text-white/60 hover:text-white ak-muted" title="Close"><i class="fas fa-times"></i></button>
         </div>
-        <p class="text-xs text-white/50 mb-3" x-text="isCircle ? 'Drag the photo and use the slider to zoom. The card on /about is shown as a circle, so the area inside the ring is what visitors will see.' : 'Drag the photo and use the slider to zoom. The area inside the frame is what visitors will see on /about.'"></p>
+        <p class="text-xs text-white/50 mb-3 ak-muted" x-text="isCircle ? 'Drag the photo and use the slider to zoom. The card on /about is shown as a circle, so the area inside the ring is what visitors will see.' : 'Drag the photo and use the slider to zoom. The area inside the frame is what visitors will see on /about.'"></p>
         <div class="mx-auto bg-black border border-white/10 rounded-lg overflow-hidden relative select-none touch-none cursor-move"
              :style="`width:${vpW}px;height:${vpH}px;`"
              @mousedown="startDrag($event)"
@@ -28,16 +28,16 @@
             </div>
         </div>
         <div class="mt-3 flex items-center gap-2">
-            <i class="fas fa-search-minus text-white/40 text-xs"></i>
+            <i class="fas fa-search-minus text-white/40 text-xs ak-note"></i>
             <input type="range" min="1" max="4" step="0.01" :value="zoom" @input="onZoom($event.target.value)" class="flex-1 accent-blue-500">
-            <i class="fas fa-search-plus text-white/40 text-xs"></i>
+            <i class="fas fa-search-plus text-white/40 text-xs ak-note"></i>
         </div>
-        <p x-show="error" x-text="error" class="text-xs text-red-400 mt-2"></p>
+        <p x-show="error" x-text="error" class="text-xs text-red-400 mt-2 ak-red"></p>
         <div class="mt-4 flex items-center justify-between gap-2">
-            <button type="button" x-show="pendingFile" @click="skipCrop()" class="text-xs px-3 py-1.5 text-white/70 hover:text-white" title="Upload the original photo without cropping">Skip cropping</button>
-            <span x-show="!pendingFile" class="text-xs text-white/40">Re-cropping current photo</span>
+            <button type="button" x-show="pendingFile" @click="skipCrop()" class="text-xs px-3 py-1.5 text-white/70 hover:text-white ak-strong" title="Upload the original photo without cropping">Skip cropping</button>
+            <span x-show="!pendingFile" class="text-xs text-white/40 ak-note">Re-cropping current photo</span>
             <div class="flex items-center gap-2">
-                <button type="button" @click="cancelCrop()" class="text-xs px-3 py-1.5 text-white/70 hover:text-white">Cancel</button>
+                <button type="button" @click="cancelCrop()" class="text-xs px-3 py-1.5 text-white/70 hover:text-white ak-strong">Cancel</button>
                 <button type="button" @click="confirmCrop()" :disabled="!natW" class="text-xs px-3 py-1.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 rounded-lg text-white inline-flex items-center gap-1">
                     <i class="fas fa-crop"></i><span>Save crop</span>
                 </button>

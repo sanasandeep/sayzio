@@ -10,7 +10,7 @@ class GoogleContactsAccount extends Model
         'user_id', 'account_email', 'external_account_id',
         'access_token', 'refresh_token', 'token_expires_at', 'scope',
         'sync_token', 'last_synced_at', 'last_sync_status', 'last_sync_error',
-        'needs_reauth_at', 'pull_enabled', 'push_enabled', 'settings',
+        'needs_reauth_at', 'reauth_reminder_sent_at', 'pull_enabled', 'push_enabled', 'settings',
     ];
 
     /** last_sync_status value used when the Google connection must be re-authorised. */
@@ -22,6 +22,7 @@ class GoogleContactsAccount extends Model
             'settings'          => 'array',
             'token_expires_at'  => 'datetime',
             'needs_reauth_at'   => 'datetime',
+            'reauth_reminder_sent_at' => 'datetime',
             'last_synced_at'    => 'datetime',
             'pull_enabled'      => 'boolean',
             'push_enabled'      => 'boolean',
@@ -42,11 +43,30 @@ class GoogleContactsAccount extends Model
      */
     public function markNeedsReauth(?string $reason = null): void
     {
+        // Only the FIRST stamp of needs_reauth_at counts as a new expiry —
+        // that keys the once-per-expiry user notification below so retrying
+        // sync jobs never re-notify. Reconnecting nulls the column, arming
+        // the notice again for a future expiry.
+        $firstTransition = $this->needs_reauth_at === null;
+
         $this->forceFill([
             'needs_reauth_at'  => $this->needs_reauth_at ?? now(),
             'last_sync_status' => self::STATUS_NEEDS_REAUTH,
             'last_sync_error'  => $reason ? \Illuminate\Support\Str::limit($reason, 500) : $this->last_sync_error,
         ])->save();
+
+        if ($firstTransition) {
+            // Best-effort: alert delivery must never break the sync path
+            // that detected the revocation.
+            try {
+                app(\App\Modules\User\Services\Contacts\GoogleContactsReauthNotifier::class)->send($this);
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::warning(
+                    'Google Contacts reauth notification failed: ' . $e->getMessage(),
+                    ['account_id' => $this->id, 'user_id' => $this->user_id],
+                );
+            }
+        }
     }
 
     public function user()      { return $this->belongsTo(User::class); }

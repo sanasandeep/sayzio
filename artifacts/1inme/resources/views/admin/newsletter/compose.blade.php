@@ -3,19 +3,19 @@
 @section('content')
 <div class="max-w-6xl mx-auto space-y-6">
     <div class="flex items-center justify-between">
-        <h2 class="text-lg font-semibold text-white">Send a newsletter</h2>
-        <a href="{{ route('admin.newsletter.index') }}" class="text-xs text-white/60 hover:text-white">
+        <h2 class="text-lg font-semibold text-white ak-strong">Send a newsletter</h2>
+        <a href="{{ route('admin.newsletter.index') }}" class="text-xs text-white/60 hover:text-white ak-muted">
             <i class="fas fa-arrow-left mr-1"></i> Back to subscribers
         </a>
     </div>
 
     @if(session('success'))
-        <div class="px-3 py-2 bg-emerald-500/10 border border-emerald-400/30 text-emerald-200 rounded-lg text-sm">
+        <div class="px-3 py-2 bg-emerald-500/10 border border-emerald-400/30 text-emerald-200 rounded-lg text-sm ak-green">
             {{ session('success') }}
         </div>
     @endif
     @if(session('error'))
-        <div class="px-3 py-2 bg-red-500/10 border border-red-400/30 text-red-200 rounded-lg text-sm">
+        <div class="px-3 py-2 bg-red-500/10 border border-red-400/30 text-red-200 rounded-lg text-sm ak-red">
             {{ session('error') }}
         </div>
     @endif
@@ -25,40 +25,40 @@
               onsubmit="return window.themedConfirmSubmit(this, {title: 'Send this issue?', message: 'It will be delivered to {{ number_format($activeCount) }} active subscriber(s).', confirmText: 'Send', confirmIcon: 'fa-paper-plane', iconClass: 'fa-paper-plane'})">
             @csrf
 
-            <div class="text-sm text-white/60">
+            <div class="text-sm text-white/60 ak-muted">
                 This will be queued and delivered to
-                <span class="text-white font-medium">{{ number_format($activeCount) }}</span>
+                <span class="text-white font-medium ak-strong">{{ number_format($activeCount) }}</span>
                 active subscriber{{ $activeCount === 1 ? '' : 's' }} (people who have not unsubscribed).
             </div>
 
             <div>
-                <label class="block text-xs uppercase tracking-wider text-white/40 mb-1">Subject</label>
+                <label class="block text-xs uppercase tracking-wider text-white/40 mb-1 ak-note">Subject</label>
                 <input type="text" name="subject" id="nl-subject" required maxlength="255"
                        value="{{ old('subject') }}"
-                       class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
+                       class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white ak-strong ak-input">
                 @error('subject')
-                    <p class="mt-1 text-xs text-red-300">{{ $message }}</p>
+                    <p class="mt-1 text-xs text-red-300 ak-red">{{ $message }}</p>
                 @enderror
             </div>
 
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 <div>
-                    <label class="block text-xs uppercase tracking-wider text-white/40 mb-1">
+                    <label class="block text-xs uppercase tracking-wider text-white/40 mb-1 ak-note">
                         Body (HTML allowed)
                     </label>
                     <textarea name="body_html" id="nl-body" required rows="18"
-                              class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white font-mono"
+                              class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white font-mono ak-strong ak-input"
                               placeholder="<h1>Hello!</h1>&#10;<p>What's new this month…</p>">{{ old('body_html') }}</textarea>
-                    <p class="mt-1 text-[11px] text-white/40">
+                    <p class="mt-1 text-[11px] text-white/40 ak-note">
                         Plain text is fine too, basic HTML tags (h1, p, a, ul, strong, em, br) will render in most email clients.
                     </p>
                     @error('body_html')
-                        <p class="mt-1 text-xs text-red-300">{{ $message }}</p>
+                        <p class="mt-1 text-xs text-red-300 ak-red">{{ $message }}</p>
                     @enderror
                 </div>
 
                 <div>
-                    <label class="block text-xs uppercase tracking-wider text-white/40 mb-1">
+                    <label class="block text-xs uppercase tracking-wider text-white/40 mb-1 ak-note">
                         Live preview
                     </label>
                     <div class="w-full bg-white rounded-lg overflow-hidden border border-white/10" style="height: 28rem;">
@@ -66,7 +66,7 @@
                                 title="Newsletter preview"
                                 class="w-full h-full bg-white"></iframe>
                     </div>
-                    <p class="mt-1 text-[11px] text-white/40">
+                    <p class="mt-1 text-[11px] text-white/40 ak-note">
                         This is an approximation, final rendering varies between email clients.
                     </p>
                 </div>
@@ -74,16 +74,16 @@
 
             <div class="flex flex-wrap items-center justify-end gap-2 pt-2">
                 <a href="{{ route('admin.newsletter.index') }}"
-                   class="px-3 py-2 bg-white/5 border border-white/10 hover:bg-white/10 rounded-lg text-xs text-white">
+                   class="px-3 py-2 bg-white/5 border border-white/10 hover:bg-white/10 rounded-lg text-xs text-white ak-strong">
                     Cancel
                 </a>
                 <button type="button" id="nl-send-test"
                         formaction="{{ route('admin.newsletter.send-test') }}"
-                        class="px-3 py-2 bg-sky-500/20 border border-sky-400/40 hover:bg-sky-500/30 rounded-lg text-xs text-sky-100">
+                        class="px-3 py-2 bg-sky-500/20 border border-sky-400/40 hover:bg-sky-500/30 rounded-lg text-xs text-sky-100 ak-blue">
                     <i class="fas fa-vial mr-1"></i> Send test to me
                 </button>
                 <button type="submit"
-                        class="px-4 py-2 bg-emerald-500/20 border border-emerald-400/40 hover:bg-emerald-500/30 rounded-lg text-xs text-emerald-100"
+                        class="px-4 py-2 bg-emerald-500/20 border border-emerald-400/40 hover:bg-emerald-500/30 rounded-lg text-xs text-emerald-100 ak-green"
                         @if($activeCount === 0) disabled @endif>
                     <i class="fas fa-paper-plane mr-1"></i> Queue &amp; send
                 </button>
@@ -126,8 +126,8 @@
 
         <div class="flex items-start justify-between gap-4 flex-wrap mb-3">
             <div>
-                <h3 class="text-sm font-semibold text-white">Newsletter settings</h3>
-                <p class="text-xs text-white/50 mt-1">
+                <h3 class="text-sm font-semibold text-white ak-strong">Newsletter settings</h3>
+                <p class="text-xs text-white/50 mt-1 ak-muted">
                     Past issues with an unsubscribe rate at or above this threshold are flagged as unusually high.
                 </p>
             </div>
@@ -135,20 +135,20 @@
                   class="flex items-end gap-2">
                 @csrf
                 <div>
-                    <label for="nl-unsub-threshold" class="block text-[11px] uppercase tracking-wider text-white/40 mb-1">
+                    <label for="nl-unsub-threshold" class="block text-[11px] uppercase tracking-wider text-white/40 mb-1 ak-note">
                         Unsubscribe-rate warning threshold (%)
                     </label>
                     <input type="number" step="0.01" min="0" max="100"
                            id="nl-unsub-threshold" name="unsub_warning_pct"
                            value="{{ old('unsub_warning_pct', number_format($unsubWarningPct, 2, '.', '')) }}"
                            placeholder="1.00"
-                           class="w-32 px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
+                           class="w-32 px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white ak-strong ak-input">
                     @error('unsub_warning_pct')
-                        <p class="mt-1 text-xs text-red-300">{{ $message }}</p>
+                        <p class="mt-1 text-xs text-red-300 ak-red">{{ $message }}</p>
                     @enderror
                 </div>
                 <button type="submit"
-                        class="px-3 py-2 bg-white/5 border border-white/10 hover:bg-white/10 rounded-lg text-xs text-white">
+                        class="px-3 py-2 bg-white/5 border border-white/10 hover:bg-white/10 rounded-lg text-xs text-white ak-strong">
                     Save
                 </button>
             </form>
@@ -156,8 +156,8 @@
 
         <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
             <div class="flex items-center gap-2">
-                <h3 class="text-sm font-semibold text-white">Past issues</h3>
-                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-500/10 border border-red-400/30 text-[11px] text-red-200"
+                <h3 class="text-sm font-semibold text-white ak-strong">Past issues</h3>
+                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-500/10 border border-red-400/30 text-[11px] text-red-200 ak-red"
                       title="Issues at or above this unsubscribe rate are flagged with a warning badge.">
                     <i class="fas fa-triangle-exclamation text-[10px]"></i>
                     warns at ≥ {{ number_format($unsubWarningPct, 2) }}%
@@ -165,14 +165,14 @@
             </div>
             <div class="flex flex-wrap items-center gap-2 text-xs">
                 <a href="{{ $toggleHighUrl }}"
-                   class="px-2 py-1 rounded-lg border {{ $highOnly ? 'bg-red-500/20 border-red-400/40 text-red-100' : 'bg-white/5 border-white/10 text-white/70 hover:bg-white/10' }}"
+                   class="px-2 py-1 rounded-lg border {{ $highOnly ? 'bg-red-500/20 border-red-400/40 text-red-100 ak-red' : 'bg-white/5 border-white/10 text-white/70 hover:bg-white/10 ak-strong' }}"
                    title="Show only issues with an unsubscribe rate at or above {{ number_format($highRateThreshold, 2) }}%">
                     <i class="fas {{ $highOnly ? 'fa-check-square' : 'fa-square' }} mr-1"></i>
                     High unsubscribe rate only (≥ {{ number_format($highRateThreshold, 2) }}%)
                 </a>
                 @if($highOnly || $sort !== 'recent')
                     <a href="{{ $clearUrl }}"
-                       class="px-2 py-1 rounded-lg bg-white/5 border border-white/10 text-white/60 hover:bg-white/10">
+                       class="px-2 py-1 rounded-lg bg-white/5 border border-white/10 text-white/60 hover:bg-white/10 ak-muted">
                         <i class="fas fa-xmark mr-1"></i> Clear
                     </a>
                 @endif
@@ -182,11 +182,11 @@
         <div class="overflow-x-auto">
             <table class="w-full text-sm">
                 <thead>
-                    <tr class="text-left text-[11px] uppercase tracking-wider text-white/40 border-b border-white/10">
+                    <tr class="text-left text-[11px] uppercase tracking-wider text-white/40 border-b border-white/10 ak-note">
                         <th class="py-2 pr-3">Subject</th>
                         <th class="py-2 pr-3">
                             <a href="{{ $recentSortUrl }}"
-                               class="inline-flex items-center gap-1 hover:text-white {{ $recentActive ? 'text-white' : '' }}">
+                               class="inline-flex items-center gap-1 hover:text-white {{ $recentActive ? 'text-white ak-strong' : '' }}">
                                 Started
                                 <i class="fas {{ $recentArrow }} text-[10px]"></i>
                             </a>
@@ -196,7 +196,7 @@
                         <th class="py-2 pr-3">Delivered</th>
                         <th class="py-2 pr-3">
                             <a href="{{ $rateSortUrl }}"
-                               class="inline-flex items-center gap-1 hover:text-white {{ $rateActive ? 'text-white' : '' }}"
+                               class="inline-flex items-center gap-1 hover:text-white {{ $rateActive ? 'text-white ak-strong' : '' }}"
                                title="Sort by unsubscribe rate">
                                 Unsubscribed
                                 <i class="fas {{ $rateArrow }} text-[10px]"></i>
@@ -207,12 +207,12 @@
                 </thead>
                 <tbody class="divide-y divide-white/5">
                     @forelse($issues as $issue)
-                        <tr class="text-white/80 align-top">
-                            <td class="py-2 pr-3 text-white">{{ $issue->subject }}</td>
-                            <td class="py-2 pr-3 text-xs text-white/60">
+                        <tr class="text-white/80 align-top ak-strong">
+                            <td class="py-2 pr-3 text-white ak-strong">{{ $issue->subject }}</td>
+                            <td class="py-2 pr-3 text-xs text-white/60 ak-muted">
                                 {{ optional($issue->sent_at ?? $issue->created_at)->format('Y-m-d H:i') }}
                             </td>
-                            <td class="py-2 pr-3 text-xs text-white/60">
+                            <td class="py-2 pr-3 text-xs text-white/60 ak-muted">
                                 {{ $issue->finished_at ? $issue->finished_at->format('Y-m-d H:i') : '-' }}
                             </td>
                             <td class="py-2 pr-3 text-xs">
@@ -221,15 +221,15 @@
                                         'sent'    => 'bg-emerald-500/15 text-emerald-200',
                                         'sending' => 'bg-amber-500/15 text-amber-200',
                                         'failed'  => 'bg-red-500/15 text-red-200',
-                                        default   => 'bg-white/5 text-white/60',
+                                        default   => 'bg-white/5 text-white/60 ak-muted',
                                     };
                                 @endphp
                                 <span class="px-2 py-0.5 rounded-full {{ $statusClass }}">{{ $issue->status }}</span>
                             </td>
-                            <td class="py-2 pr-3 text-xs text-white/60">
+                            <td class="py-2 pr-3 text-xs text-white/60 ak-muted">
                                 {{ number_format($issue->sent_count) }} / {{ number_format($issue->recipients_count) }}
                                 @if($issue->failed_count > 0)
-                                    <span class="text-red-300 ml-1">({{ number_format($issue->failed_count) }} failed)</span>
+                                    <span class="text-red-300 ml-1 ak-red">({{ number_format($issue->failed_count) }} failed)</span>
                                 @endif
                             </td>
                             <td class="py-2 pr-3 text-xs">
@@ -241,36 +241,36 @@
                                 @endphp
                                 @if($unsubs > 0)
                                     <a href="{{ route('admin.newsletter.issues.unsubscribes', $issue) }}"
-                                       class="text-amber-200 hover:text-amber-100 underline decoration-dotted underline-offset-2"
+                                       class="text-amber-200 hover:text-amber-100 underline decoration-dotted underline-offset-2 ak-amber"
                                        title="See who unsubscribed from this issue">
                                         {{ number_format($unsubs) }}
                                     </a>
                                     @if($rate !== null)
                                         @if($isHigh)
-                                            <span class="ml-1 px-1.5 py-0.5 rounded-full bg-red-500/20 text-red-200 border border-red-400/40"
+                                            <span class="ml-1 px-1.5 py-0.5 rounded-full bg-red-500/20 text-red-200 border border-red-400/40 ak-red"
                                                   title="Unsubscribe rate is unusually high (≥ {{ number_format($unsubWarningPct, 2) }}% of delivered)">
                                                 {{ number_format($rate, 2) }}%
                                                 <i class="fas fa-triangle-exclamation ml-0.5"></i>
                                             </span>
                                         @else
-                                            <span class="ml-1 text-white/50">({{ number_format($rate, 2) }}%)</span>
+                                            <span class="ml-1 text-white/50 ak-muted">({{ number_format($rate, 2) }}%)</span>
                                         @endif
                                     @else
-                                        <span class="ml-1 text-white/40" title="No delivered recipients yet">( - )</span>
+                                        <span class="ml-1 text-white/40 ak-note" title="No delivered recipients yet">( - )</span>
                                     @endif
                                 @else
-                                    <span class="text-white/40">0</span>
+                                    <span class="text-white/40 ak-note">0</span>
                                     @if($rate !== null)
-                                        <span class="ml-1 text-white/40">(0.00%)</span>
+                                        <span class="ml-1 text-white/40 ak-note">(0.00%)</span>
                                     @else
-                                        <span class="ml-1 text-white/40" title="No delivered recipients yet">( - )</span>
+                                        <span class="ml-1 text-white/40 ak-note" title="No delivered recipients yet">( - )</span>
                                     @endif
                                 @endif
                             </td>
-                            <td class="py-2 pr-3 text-xs text-white/60">{{ $issue->sender_email ?: '—' }}</td>
+                            <td class="py-2 pr-3 text-xs text-white/60 ak-muted">{{ $issue->sender_email ?: '—' }}</td>
                         </tr>
                     @empty
-                        <tr><td colspan="7" class="py-6 text-center text-white/40 text-sm">No issues sent yet.</td></tr>
+                        <tr><td colspan="7" class="py-6 text-center text-white/40 text-sm ak-note">No issues sent yet.</td></tr>
                     @endforelse
                 </tbody>
             </table>

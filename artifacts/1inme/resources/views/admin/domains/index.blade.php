@@ -11,20 +11,20 @@
     </div>
 
     @if($errors->any())
-        <div class="mb-4 p-3 rounded-xl text-red-400 text-xs" style="background: rgba(239,68,68,0.06); border:1px solid rgba(239,68,68,0.15);">
+        <div class="mb-4 p-3 rounded-xl text-red-400 text-xs ak-red" style="background: rgba(239,68,68,0.06); border:1px solid rgba(239,68,68,0.15);">
             @foreach($errors->all() as $e)<div>{{ $e }}</div>@endforeach
         </div>
     @endif
 
     @if(session('success'))
-        <div class="mb-4 p-3 rounded-xl text-emerald-400 text-xs" style="background: rgba(16,185,129,0.06); border:1px solid rgba(16,185,129,0.15);">{{ session('success') }}</div>
+        <div class="mb-4 p-3 rounded-xl text-emerald-400 text-xs ak-green" style="background: rgba(16,185,129,0.06); border:1px solid rgba(16,185,129,0.15);">{{ session('success') }}</div>
     @endif
 
     {{-- ============ Add new global domain ============ --}}
     <div class="rounded-2xl mb-6 overflow-hidden" style="background: var(--bg-card); border:1px solid var(--border-strong);" x-data="{ open: {{ $errors->any() ? 'true' : 'false' }} }">
         <button type="button" @click="open = !open" class="w-full flex items-center justify-between px-6 py-4 text-left">
             <span class="flex items-center gap-3">
-                <span class="w-9 h-9 rounded-xl flex items-center justify-center" style="background: rgba(61,107,255,0.12); border:1px solid rgba(61,107,255,0.25);"><i class="fas fa-globe text-sm text-blue-400"></i></span>
+                <span class="w-9 h-9 rounded-xl flex items-center justify-center" style="background: rgba(61,107,255,0.12); border:1px solid rgba(61,107,255,0.25);"><i class="fas fa-globe text-sm text-blue-400 ak-blue"></i></span>
                 <span>
                     <span class="block text-base font-semibold" style="color: var(--text-primary);">Add Global Domain</span>
                     <span class="block text-[11px]" style="color: var(--text-faint);">Make a new platform domain selectable when users create links</span>
@@ -111,7 +111,7 @@
                 {{-- Card header --}}
                 <div class="flex flex-wrap items-center gap-3 px-5 py-4">
                     <div class="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style="background: {{ $d->is_primary ? 'rgba(61,107,255,0.12)' : 'var(--bg-input)' }}; border:1px solid {{ $d->is_primary ? 'rgba(61,107,255,0.3)' : 'var(--border-subtle)' }};">
-                        <i class="fas {{ $d->is_primary ? 'fa-star text-blue-400' : 'fa-globe' }} text-sm" @unless($d->is_primary) style="color: var(--text-faint);" @endunless></i>
+                        <i class="fas {{ $d->is_primary ? 'fa-star text-blue-400 ak-blue' : 'fa-globe' }} text-sm" @unless($d->is_primary) style="color: var(--text-faint);" @endunless></i>
                     </div>
                     <div class="min-w-0 flex-1">
                         <div class="flex flex-wrap items-center gap-2">
@@ -226,7 +226,7 @@
                         <div class="flex items-center gap-1.5">
                             @unless($d->is_primary)
                                 <button type="submit" form="primary-{{ $d->id }}" class="px-3 py-2 rounded-lg text-xs" style="background: var(--bg-input); border:1px solid var(--border-subtle); color: var(--text-muted);" title="Make this the platform default domain"><i class="fas fa-star mr-1 text-[9px]"></i>Make primary</button>
-                                <button type="submit" form="del-{{ $d->id }}" class="px-3 py-2 rounded-lg text-xs bg-red-600/15 text-red-400 hover:bg-red-600/25" style="border:1px solid rgba(239,68,68,0.25);" onclick="return window.themedConfirmAction(this, {title: 'Remove this domain?', message: 'Links bound to it will lose their host.', confirmText: 'Remove', confirmIcon: 'fa-trash', iconClass: 'fa-trash'})"><i class="fas fa-trash mr-1 text-[9px]"></i>Remove</button>
+                                <button type="submit" form="del-{{ $d->id }}" class="px-3 py-2 rounded-lg text-xs bg-red-600/15 text-red-400 hover:bg-red-600/25 ak-red" style="border:1px solid rgba(239,68,68,0.25);" onclick="return window.themedConfirmAction(this, {title: 'Remove this domain?', message: 'Links bound to it will lose their host.', confirmText: 'Remove', confirmIcon: 'fa-trash', iconClass: 'fa-trash'})"><i class="fas fa-trash mr-1 text-[9px]"></i>Remove</button>
                             @endunless
                         </div>
                         <button type="submit" class="px-5 py-2 rounded-lg text-xs font-medium bg-emerald-600 hover:bg-emerald-700 text-white"><i class="fas fa-check mr-1 text-[9px]"></i>Save changes</button>
@@ -263,8 +263,8 @@
                 <tr style="border-top:1px solid var(--border-subtle); color: var(--text-primary);">
                     <td class="py-2.5 font-mono">{{ $d->domain }}</td>
                     <td>{{ $d->user?->email ?? '—' }}</td>
-                    <td>{!! $d->is_verified ? '<span class="text-emerald-400">yes</span>' : '<span class="text-amber-400">pending</span>' !!}</td>
-                    <td>{!! $d->is_active ? '<span class="text-emerald-400">yes</span>' : '<span class="text-red-400">no</span>' !!}</td>
+                    <td>{!! $d->is_verified ? '<span class="text-emerald-400 ak-green">yes</span>' : '<span class="text-amber-400 ak-amber">pending</span>' !!}</td>
+                    <td>{!! $d->is_active ? '<span class="text-emerald-400 ak-green">yes</span>' : '<span class="text-red-400 ak-red">no</span>' !!}</td>
                 </tr>
             @endforeach
             </tbody>

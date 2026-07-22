@@ -2,19 +2,19 @@
 @section('title', 'Perfect Pairings')
 @section('content')
 <div class="max-w-4xl mx-auto space-y-6">
-    <a href="{{ route('admin.site-pages.index') }}" class="text-xs text-blue-400 hover:underline">
+    <a href="{{ route('admin.site-pages.index') }}" class="text-xs text-blue-400 hover:underline ak-blue">
         <i class="fas fa-arrow-left mr-1"></i>Back to all pages
     </a>
 
     @if(session('success'))
-        <div class="px-3 py-2 bg-emerald-500/10 border border-emerald-400/30 text-emerald-200 rounded-lg text-sm">
+        <div class="px-3 py-2 bg-emerald-500/10 border border-emerald-400/30 text-emerald-200 rounded-lg text-sm ak-green">
             {{ session('success') }}
         </div>
     @endif
 
     <div class="glass rounded-2xl p-6">
-        <h1 class="text-lg font-semibold text-white">Perfect Pairings</h1>
-        <p class="text-xs text-white/50 mt-1">
+        <h1 class="text-lg font-semibold text-white ak-strong">Perfect Pairings</h1>
+        <p class="text-xs text-white/50 mt-1 ak-muted">
             Control the "Perfect pairings" cross-promo cards shown on public link-type pages.
             Uncheck a card to hide it on that page type, everywhere: web public pages and the
             mobile app. Unchecking every card for a page type hides the whole section there.
@@ -30,8 +30,8 @@
         @foreach($sections as $section)
             <div class="glass rounded-2xl p-6 space-y-4">
                 <div class="flex items-center justify-between gap-3">
-                    <h2 class="text-base font-semibold text-white">{{ $section['label'] }}</h2>
-                    <span class="text-[11px] text-white/40 uppercase tracking-wider">{{ $section['key'] }}</span>
+                    <h2 class="text-base font-semibold text-white ak-strong">{{ $section['label'] }}</h2>
+                    <span class="text-[11px] text-white/40 uppercase tracking-wider ak-note">{{ $section['key'] }}</span>
                 </div>
                 <div class="grid sm:grid-cols-2 gap-3">
                     @foreach($section['items'] as $item)
@@ -50,10 +50,10 @@
                                            @checked($checked)
                                            class="h-4 w-4 rounded border-white/20 bg-transparent text-blue-500 focus:ring-blue-500/40">
                                     <span class="flex items-center gap-2 min-w-0">
-                                        <i class="fas {{ $item['icon'] }} text-[12px] text-white/60"></i>
-                                        <span class="block font-semibold text-sm text-white truncate">{{ $item['default_name'] }}</span>
+                                        <i class="fas {{ $item['icon'] }} text-[12px] text-white/60 ak-muted"></i>
+                                        <span class="block font-semibold text-sm text-white truncate ak-strong">{{ $item['default_name'] }}</span>
                                         <span data-custom-badge
-                                              class="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-400/15 text-amber-300 border border-amber-400/25 whitespace-nowrap {{ $customized ? '' : 'hidden' }}">
+                                              class="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-400/15 text-amber-300 border border-amber-400/25 whitespace-nowrap {{ $customized ? '' : 'hidden' }} ak-amber">
                                             customized
                                         </span>
                                     </span>
@@ -61,7 +61,7 @@
                                 <button type="button"
                                         data-reset-card
                                         title="Reset this card's wording to the shipped default"
-                                        class="text-[11px] text-white/40 hover:text-white whitespace-nowrap transition">
+                                        class="text-[11px] text-white/40 hover:text-white whitespace-nowrap transition ak-note">
                                     <i class="fas fa-rotate-left mr-1"></i>Reset
                                 </button>
                             </div>
@@ -73,14 +73,14 @@
                                        placeholder="{{ $item['default_name'] }}"
                                        data-copy-field
                                        data-default="{{ $item['default_name'] }}"
-                                       class="w-full px-2.5 py-1.5 rounded-lg bg-white/[.04] border border-white/10 text-sm text-white placeholder-white/30 focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/30 outline-none transition">
+                                       class="w-full px-2.5 py-1.5 rounded-lg bg-white/[.04] border border-white/10 text-sm text-white placeholder-white/30 focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/30 outline-none transition ak-strong">
                                 <textarea name="copy[{{ $section['key'] }}][{{ $item['type'] }}][benefit]"
                                           rows="2"
                                           maxlength="220"
                                           placeholder="{{ $item['default_benefit'] }}"
                                           data-copy-field
                                           data-default="{{ $item['default_benefit'] }}"
-                                          class="w-full px-2.5 py-1.5 rounded-lg bg-white/[.04] border border-white/10 text-xs text-white/80 placeholder-white/30 leading-relaxed resize-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/30 outline-none transition">{{ $item['benefit'] }}</textarea>
+                                          class="w-full px-2.5 py-1.5 rounded-lg bg-white/[.04] border border-white/10 text-xs text-white/80 placeholder-white/30 leading-relaxed resize-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/30 outline-none transition ak-strong">{{ $item['benefit'] }}</textarea>
                             </div>
                         </div>
                     @endforeach
@@ -97,7 +97,7 @@
 
     <form method="POST" action="{{ route('admin.link-type-pairings.restore-defaults') }}">
         @csrf
-        <button type="submit" class="px-4 py-2 rounded-xl border border-white/15 text-white/70 hover:text-white hover:border-white/30 text-xs font-semibold transition">
+        <button type="submit" class="px-4 py-2 rounded-xl border border-white/15 text-white/70 hover:text-white hover:border-white/30 text-xs font-semibold transition ak-strong">
             <i class="fas fa-rotate-left mr-1.5"></i>Restore defaults (enable all cards)
         </button>
     </form>

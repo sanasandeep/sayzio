@@ -50,7 +50,7 @@
                 <div class="flex justify-center lg:justify-start mb-4">
                     <div class="inline-flex items-center gap-1.5">
                         <div class="w-5 h-5 rounded-md flex items-center justify-center" style="background: rgba(61,107,255,0.12); border: 1px solid rgba(61,107,255,0.15);">
-                            <i class="fas fa-shield-alt text-blue-400 text-[8px]"></i>
+                            <i class="fas fa-shield-alt text-blue-400 text-[8px] ak-blue"></i>
                         </div>
                         <span class="text-xs font-semibold uppercase tracking-wider" style="color: var(--text-dimmed);">Admin Panel</span>
                     </div>
@@ -67,7 +67,7 @@
                 </div>
 
                 {{-- Status / AJAX status (shown for flash success) --}}
-                <div class="mb-4 p-3 rounded-xl text-emerald-400 text-xs font-medium" style="border: 1px solid rgba(16,185,129,0.15); background: rgba(16,185,129,0.06);" data-ajax-status @if(!session('success')) hidden @endif>
+                <div class="mb-4 p-3 rounded-xl text-emerald-400 text-xs font-medium ak-green" style="border: 1px solid rgba(16,185,129,0.15); background: rgba(16,185,129,0.06);" data-ajax-status @if(!session('success')) hidden @endif>
                     {{ session('success') }}
                 </div>
 
@@ -76,7 +76,7 @@
                     <input type="hidden" name="token" value="{{ $token }}">
                     <input type="hidden" name="email" value="{{ $email }}">
 
-                    <div class="mb-3 p-3 rounded-xl text-red-400 text-xs font-medium" style="border: 1px solid rgba(239,68,68,0.15); background: rgba(239,68,68,0.06);" data-general-err @if(!$errors->any()) hidden @endif>
+                    <div class="mb-3 p-3 rounded-xl text-red-400 text-xs font-medium ak-red" style="border: 1px solid rgba(239,68,68,0.15); background: rgba(239,68,68,0.06);" data-general-err @if(!$errors->any()) hidden @endif>
                         @foreach($errors->all() as $error) <p>{{ $error }}</p> @endforeach
                     </div>
 
@@ -90,7 +90,7 @@
                                 'placeholder' => 'Min 8 characters',
                                 'autocomplete' => 'new-password',
                             ])
-                            <p class="mt-1 text-xs text-red-400" data-err="password" @if(!$errors->has('password')) hidden @endif>{{ $errors->first('password') }}</p>
+                            <p class="mt-1 text-xs text-red-400 ak-red" data-err="password" @if(!$errors->has('password')) hidden @endif>{{ $errors->first('password') }}</p>
                         </div>
                         <div>
                             <label class="block text-xs font-semibold uppercase tracking-wider mb-1.5" style="color: var(--text-dimmed);">Confirm Password</label>
@@ -100,7 +100,7 @@
                                 'placeholder' => 'Repeat password',
                                 'autocomplete' => 'new-password',
                             ])
-                            <p class="mt-1 text-xs text-red-400" data-err="password_confirmation" hidden></p>
+                            <p class="mt-1 text-xs text-red-400 ak-red" data-err="password_confirmation" hidden></p>
                         </div>
                         <button type="submit" class="btn-primary w-full justify-center py-2.5 text-sm">
                             Reset Password <i class="fas fa-arrow-right text-[10px] ml-1"></i>
@@ -109,7 +109,7 @@
                 </form>
 
                 <p class="mt-6 text-center text-xs">
-                    <a href="{{ route('admin.login') }}" class="text-blue-400 hover:text-blue-300 font-semibold transition-colors">
+                    <a href="{{ route('admin.login') }}" class="text-blue-400 hover:text-blue-300 font-semibold transition-colors ak-blue">
                         <i class="fas fa-arrow-left text-[10px] mr-1"></i> Back to login
                     </a>
                 </p>

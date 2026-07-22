@@ -371,19 +371,19 @@ html.light-mode .cmp-modal-footer { border-top-color: #e2e8f0; }
     <div class="flex items-center gap-3">
         <a href="{{ route('admin.plans.index') }}"
            @click.prevent="if (anyDirty()) { if (!confirm('You have unsaved changes. Leave anyway?')) return; } window.location.href = $event.currentTarget.href"
-           class="p-2 rounded-xl border border-white/10 text-white/50 hover:text-white hover:border-white/30 transition text-sm">
+           class="p-2 rounded-xl border border-white/10 text-white/50 hover:text-white hover:border-white/30 transition text-sm ak-muted">
             <i class="fas fa-arrow-left"></i>
         </a>
         <div>
-            <h1 class="text-base font-semibold text-white/90">Comparing {{ $plans->count() }} plans</h1>
-            <p class="text-xs text-white/40 mt-0.5">Edit any cell and click <strong>Save changes</strong>. All plan settings are editable here. Use <span class="text-amber-300/70">∞</span> to set unlimited (-1).</p>
+            <h1 class="text-base font-semibold text-white/90 ak-strong">Comparing {{ $plans->count() }} plans</h1>
+            <p class="text-xs text-white/40 mt-0.5 ak-note">Edit any cell and click <strong>Save changes</strong>. All plan settings are editable here. Use <span class="text-amber-300/70 ak-amber">∞</span> to set unlimited (-1).</p>
         </div>
     </div>
     <div class="flex items-center gap-3 flex-wrap">
-        <span x-show="saveOk" x-cloak x-transition class="text-sm text-emerald-400 flex items-center gap-1.5">
+        <span x-show="saveOk" x-cloak x-transition class="text-sm text-emerald-400 flex items-center gap-1.5 ak-green">
             <i class="fas fa-check-circle"></i> Saved!
         </span>
-        <span x-show="saving" x-cloak class="text-sm text-white/50 flex items-center gap-1.5">
+        <span x-show="saving" x-cloak class="text-sm text-white/50 flex items-center gap-1.5 ak-muted">
             <i class="fas fa-spinner fa-spin"></i> Saving…
         </span>
         <button type="button" @click="save()"
@@ -391,13 +391,13 @@ html.light-mode .cmp-modal-footer { border-top-color: #e2e8f0; }
                 class="px-5 py-2 rounded-xl text-sm font-semibold bg-blue-600 hover:bg-blue-700 text-white transition disabled:opacity-40 disabled:cursor-not-allowed">
             <i class="fas fa-save mr-2"></i>Save changes
         </button>
-        <span class="text-[11px] text-white/30"><span x-text="dirtyCount()"></span> plan(s) changed</span>
+        <span class="text-[11px] text-white/30 ak-note"><span x-text="dirtyCount()"></span> plan(s) changed</span>
     </div>
 </div>
 
 {{-- ── Error summary ──────────────────────────────────────────────────────── --}}
 <template x-if="Object.keys(errors).length > 0">
-    <div class="mb-4 glass rounded-xl border border-rose-500/30 bg-rose-500/5 p-4 text-sm text-rose-200">
+    <div class="mb-4 glass rounded-xl border border-rose-500/30 bg-rose-500/5 p-4 text-sm text-rose-200 ak-red">
         <p class="font-semibold mb-2"><i class="fas fa-exclamation-circle mr-1.5"></i>Some plans could not be saved:</p>
         <ul class="space-y-1 text-xs">
             <template x-for="[planId, planErrors] in Object.entries(errors)" :key="planId">
@@ -408,7 +408,7 @@ html.light-mode .cmp-modal-footer { border-top-color: #e2e8f0; }
 </template>
 
 {{-- ── Legend ──────────────────────────────────────────────────────────────── --}}
-<div class="flex items-center gap-5 mb-4 text-xs text-white/40">
+<div class="flex items-center gap-5 mb-4 text-xs text-white/40 ak-note">
     <span class="flex items-center gap-1.5">
         <span class="inline-block w-3 h-3 rounded" style="background:rgba(245,158,11,0.18);border:1px solid rgba(245,158,11,0.5);"></span>
         Values differ across plans
@@ -417,7 +417,7 @@ html.light-mode .cmp-modal-footer { border-top-color: #e2e8f0; }
         <span class="inline-block w-3 h-3 rounded" style="border:2px solid rgba(245,158,11,0.6);"></span>
         Cell edited (unsaved)
     </span>
-    <span class="text-white/25">-1 = unlimited</span>
+    <span class="text-white/25 ak-note">-1 = unlimited</span>
 </div>
 
 {{-- ── Compare table ──────────────────────────────────────────────────────── --}}
@@ -427,17 +427,17 @@ html.light-mode .cmp-modal-footer { border-top-color: #e2e8f0; }
         <thead>
             <tr>
                 <th class="compare-label-col compare-plan-header">
-                    <span class="text-[10px] uppercase tracking-wider font-bold text-white/30">Field</span>
+                    <span class="text-[10px] uppercase tracking-wider font-bold text-white/30 ak-note">Field</span>
                 </th>
                 @foreach($plans as $plan)
                 <th class="compare-plan-header text-left">
-                    <div class="font-semibold text-white text-sm truncate">{{ $plan->name }}</div>
-                    <div class="text-[10px] text-white/40 mt-0.5">
+                    <div class="font-semibold text-white text-sm truncate ak-strong">{{ $plan->name }}</div>
+                    <div class="text-[10px] text-white/40 mt-0.5 ak-note">
                         #{{ $plan->id }} · {{ ucfirst($plan->status) }}
-                        @if($plan->is_internal) · <span class="text-amber-300/70">Internal</span>@endif
+                        @if($plan->is_internal) · <span class="text-amber-300/70 ak-amber">Internal</span>@endif
                     </div>
                     <a href="{{ route('admin.plans.edit', $plan) }}"
-                       class="inline-flex items-center gap-1 text-[10px] text-blue-400/70 hover:text-blue-400 mt-1 transition">
+                       class="inline-flex items-center gap-1 text-[10px] text-blue-400/70 hover:text-blue-400 mt-1 transition ak-blue">
                         <i class="fas fa-external-link-alt"></i>Full editor
                     </a>
                 </th>
@@ -457,9 +457,9 @@ html.light-mode .cmp-modal-footer { border-top-color: #e2e8f0; }
         @php $rk = $row['key']; @endphp
         <tr class="compare-data-row" :class="coreRowDiffers('{{ $rk }}') ? 'row-differs' : ''">
             <td class="compare-label-col px-4 py-2.5">
-                <div class="text-xs font-medium text-white/80">{{ $row['label'] }}</div>
+                <div class="text-xs font-medium text-white/80 ak-strong">{{ $row['label'] }}</div>
                 @if(!empty($row['hint']))
-                <div class="text-[10px] text-white/35 mt-0.5">{{ $row['hint'] }}</div>
+                <div class="text-[10px] text-white/35 mt-0.5 ak-note">{{ $row['hint'] }}</div>
                 @endif
             </td>
             @foreach($plans as $plan)
@@ -469,7 +469,7 @@ html.light-mode .cmp-modal-footer { border-top-color: #e2e8f0; }
                 @if($row['type'] === 'bool')
                     <label class="flex items-center gap-2 cursor-pointer select-none">
                         <input type="checkbox" class="cmp-toggle" x-model="plans['{{ $pid }}']['{{ $rk }}']">
-                        <span class="text-xs" :class="plans['{{ $pid }}']['{{ $rk }}'] ? 'text-blue-300' : 'text-white/40'"
+                        <span class="text-xs" :class="plans['{{ $pid }}']['{{ $rk }}'] ? 'text-blue-300 ak-blue' : 'text-white/40 ak-note'"
                               x-text="plans['{{ $pid }}']['{{ $rk }}'] ? 'Yes' : 'No'"></span>
                     </label>
                 @elseif($row['type'] === 'select')
@@ -487,7 +487,7 @@ html.light-mode .cmp-modal-footer { border-top-color: #e2e8f0; }
                     <input type="text" class="cmp-input" x-model="plans['{{ $pid }}']['{{ $rk }}']">
                 @endif
                 <p x-show="coreErr('{{ $pid }}', '{{ $rk }}')" x-text="coreErr('{{ $pid }}', '{{ $rk }}')"
-                   class="text-[10px] text-rose-400 mt-1 px-1" x-cloak></p>
+                   class="text-[10px] text-rose-400 mt-1 px-1 ak-red" x-cloak></p>
             </td>
             @endforeach
         </tr>
@@ -517,9 +517,9 @@ html.light-mode .cmp-modal-footer { border-top-color: #e2e8f0; }
             @endif
             >
             <td class="compare-label-col px-4 py-2.5">
-                <div class="text-xs font-medium text-white/80">{{ $row['label'] }}</div>
+                <div class="text-xs font-medium text-white/80 ak-strong">{{ $row['label'] }}</div>
                 @if(!empty($row['hint']))
-                <div class="text-[10px] text-white/35 mt-0.5">{{ $row['hint'] }}</div>
+                <div class="text-[10px] text-white/35 mt-0.5 ak-note">{{ $row['hint'] }}</div>
                 @endif
             </td>
             @foreach($plans as $plan)
@@ -537,7 +537,7 @@ html.light-mode .cmp-modal-footer { border-top-color: #e2e8f0; }
                 @if($row['type'] === 'bool')
                     <label class="flex items-center gap-2 cursor-pointer select-none">
                         <input type="checkbox" class="cmp-toggle" x-model="plans['{{ $pid }}']['{{ $rk }}']">
-                        <span class="text-xs" :class="plans['{{ $pid }}']['{{ $rk }}'] ? 'text-blue-300' : 'text-white/40'"
+                        <span class="text-xs" :class="plans['{{ $pid }}']['{{ $rk }}'] ? 'text-blue-300 ak-blue' : 'text-white/40 ak-note'"
                               x-text="plans['{{ $pid }}']['{{ $rk }}'] ? 'Yes' : 'No'"></span>
                     </label>
                 @elseif($row['type'] === 'select')
@@ -568,9 +568,9 @@ html.light-mode .cmp-modal-footer { border-top-color: #e2e8f0; }
         @php $qk = $q['key']; @endphp
         <tr class="compare-data-row" :class="featRowDiffers('{{ $qk }}') ? 'row-differs' : ''">
             <td class="compare-label-col px-4 py-2.5">
-                <div class="text-xs font-medium text-white/80">{{ $q['label'] }}</div>
+                <div class="text-xs font-medium text-white/80 ak-strong">{{ $q['label'] }}</div>
                 @if(!empty($q['hint']))
-                <div class="text-[10px] text-white/35 mt-0.5 leading-tight">{{ $q['hint'] }}</div>
+                <div class="text-[10px] text-white/35 mt-0.5 leading-tight ak-note">{{ $q['hint'] }}</div>
                 @endif
             </td>
             @foreach($plans as $plan)
@@ -583,10 +583,10 @@ html.light-mode .cmp-modal-footer { border-top-color: #e2e8f0; }
                            x-model.number="plans['{{ $pid }}'].features['{{ $qk }}']">
                     <button type="button" @click="plans['{{ $pid }}'].features['{{ $qk }}'] = -1"
                             title="Set unlimited (-1)"
-                            class="shrink-0 px-2 py-1.5 rounded-lg text-[11px] font-bold text-white/50 hover:text-white bg-white/5 hover:bg-white/10 transition">∞</button>
+                            class="shrink-0 px-2 py-1.5 rounded-lg text-[11px] font-bold text-white/50 hover:text-white bg-white/5 hover:bg-white/10 transition ak-muted">∞</button>
                 </div>
                 <p x-show="featErr('{{ $pid }}', '{{ $qk }}')" x-text="featErr('{{ $pid }}', '{{ $qk }}')"
-                   class="text-[10px] text-rose-400 mt-1 px-1" x-cloak></p>
+                   class="text-[10px] text-rose-400 mt-1 px-1 ak-red" x-cloak></p>
             </td>
             @endforeach
         </tr>
@@ -595,12 +595,12 @@ html.light-mode .cmp-modal-footer { border-top-color: #e2e8f0; }
         {{-- ── Per-link-type alias overrides (collapsible) ─────────────────── --}}
         <tr class="compare-section-toggle" @click="aliasOverridesOpen = !aliasOverridesOpen">
             <td class="compare-label-col px-4 py-2">
-                <span class="flex items-center gap-2 text-[11px] font-semibold text-white/50">
+                <span class="flex items-center gap-2 text-[11px] font-semibold text-white/50 ak-muted">
                     <i class="fas" :class="aliasOverridesOpen ? 'fa-chevron-down' : 'fa-chevron-right'"></i>
                     Per-type alias overrides
                 </span>
             </td>
-            <td colspan="{{ $plans->count() }}" class="px-4 py-2 text-[10px] text-white/30">
+            <td colspan="{{ $plans->count() }}" class="px-4 py-2 text-[10px] text-white/30 ak-note">
                 Blank = inherit global "Extra aliases per link" value above. Click to expand.
             </td>
         </tr>
@@ -609,7 +609,7 @@ html.light-mode .cmp-modal-footer { border-top-color: #e2e8f0; }
             x-show="aliasOverridesOpen"
             style="display:none">
             <td class="compare-label-col px-4 py-2">
-                <div class="text-[11px] font-medium text-white/70">{{ $label }}</div>
+                <div class="text-[11px] font-medium text-white/70 ak-strong">{{ $label }}</div>
             </td>
             @foreach($plans as $plan)
             @php $pid = (string) $plan->id; @endphp
@@ -620,7 +620,7 @@ html.light-mode .cmp-modal-footer { border-top-color: #e2e8f0; }
                            :value="plans['{{ $pid }}'].features.max_aliases_per_link_by_type?.['{{ $slug }}'] ?? ''"
                            @input="setAliasOverride('{{ $pid }}', '{{ $slug }}', $event.target.value)">
                     <button type="button" @click="setAliasOverride('{{ $pid }}', '{{ $slug }}', -1)"
-                            title="Unlimited" class="shrink-0 px-2 py-1.5 rounded-lg text-[11px] font-bold text-white/50 hover:text-white bg-white/5 hover:bg-white/10 transition">∞</button>
+                            title="Unlimited" class="shrink-0 px-2 py-1.5 rounded-lg text-[11px] font-bold text-white/50 hover:text-white bg-white/5 hover:bg-white/10 transition ak-muted">∞</button>
                 </div>
             </td>
             @endforeach
@@ -635,15 +635,15 @@ html.light-mode .cmp-modal-footer { border-top-color: #e2e8f0; }
         @foreach($modules as $mk => $moduleMeta)
         <tr class="compare-data-row" :class="featRowDiffers('{{ $mk }}') ? 'row-differs' : ''">
             <td class="compare-label-col px-4 py-2.5">
-                <div class="text-xs font-medium text-white/80">{{ $moduleMeta['label'] }}</div>
-                <div class="text-[10px] text-white/35 mt-0.5 leading-tight">{{ $moduleMeta['desc'] }}</div>
+                <div class="text-xs font-medium text-white/80 ak-strong">{{ $moduleMeta['label'] }}</div>
+                <div class="text-[10px] text-white/35 mt-0.5 leading-tight ak-note">{{ $moduleMeta['desc'] }}</div>
             </td>
             @foreach($plans as $plan)
             @php $pid = (string) $plan->id; @endphp
             <td class="px-3 py-2.5" :class="{ 'compare-cell-dirty': isFeatDirty('{{ $pid }}', '{{ $mk }}') }">
                 <label class="flex items-center gap-2 cursor-pointer select-none">
                     <input type="checkbox" class="cmp-toggle" x-model="plans['{{ $pid }}'].features['{{ $mk }}']">
-                    <span class="text-xs" :class="plans['{{ $pid }}'].features['{{ $mk }}'] ? 'text-blue-300' : 'text-white/40'"
+                    <span class="text-xs" :class="plans['{{ $pid }}'].features['{{ $mk }}'] ? 'text-blue-300 ak-blue' : 'text-white/40 ak-note'"
                           x-text="plans['{{ $pid }}'].features['{{ $mk }}'] ? 'On' : 'Off'"></span>
                 </label>
             </td>
@@ -666,9 +666,9 @@ html.light-mode .cmp-modal-footer { border-top-color: #e2e8f0; }
         @endphp
         <tr class="compare-data-row" :class="featRowDiffers('{{ $fk }}') ? 'row-differs' : ''">
             <td class="compare-label-col px-4 py-2.5">
-                <div class="text-xs font-medium text-white/80">{{ $flagLabel }}</div>
+                <div class="text-xs font-medium text-white/80 ak-strong">{{ $flagLabel }}</div>
                 @if($flagDesc)
-                <div class="text-[10px] text-white/35 mt-0.5 leading-tight">{{ $flagDesc }}</div>
+                <div class="text-[10px] text-white/35 mt-0.5 leading-tight ak-note">{{ $flagDesc }}</div>
                 @endif
             </td>
             @foreach($plans as $plan)
@@ -683,7 +683,7 @@ html.light-mode .cmp-modal-footer { border-top-color: #e2e8f0; }
                 @else
                     <label class="flex items-center gap-2 cursor-pointer select-none">
                         <input type="checkbox" class="cmp-toggle" x-model="plans['{{ $pid }}'].features['{{ $fk }}']">
-                        <span class="text-xs" :class="plans['{{ $pid }}'].features['{{ $fk }}'] ? 'text-blue-300' : 'text-white/40'"
+                        <span class="text-xs" :class="plans['{{ $pid }}'].features['{{ $fk }}'] ? 'text-blue-300 ak-blue' : 'text-white/40 ak-note'"
                               x-text="plans['{{ $pid }}'].features['{{ $fk }}'] ? 'Yes' : 'No'"></span>
                     </label>
                 @endif
@@ -705,14 +705,14 @@ html.light-mode .cmp-modal-footer { border-top-color: #e2e8f0; }
         @endphp
         <tr class="compare-data-row" :class="featRowDiffers('{{ $ak }}') ? 'row-differs' : ''">
             <td class="compare-label-col px-4 py-2.5">
-                <div class="text-xs font-medium text-white/80">{{ $aiLabel }}</div>
+                <div class="text-xs font-medium text-white/80 ak-strong">{{ $aiLabel }}</div>
             </td>
             @foreach($plans as $plan)
             @php $pid = (string) $plan->id; @endphp
             <td class="px-3 py-2.5" :class="{ 'compare-cell-dirty': isFeatDirty('{{ $pid }}', '{{ $ak }}') }">
                 <label class="flex items-center gap-2 cursor-pointer select-none">
                     <input type="checkbox" class="cmp-toggle" x-model="plans['{{ $pid }}'].features['{{ $ak }}']">
-                    <span class="text-xs" :class="plans['{{ $pid }}'].features['{{ $ak }}'] ? 'text-blue-300' : 'text-white/40'"
+                    <span class="text-xs" :class="plans['{{ $pid }}'].features['{{ $ak }}'] ? 'text-blue-300 ak-blue' : 'text-white/40 ak-note'"
                           x-text="plans['{{ $pid }}'].features['{{ $ak }}'] ? 'Yes' : 'No'"></span>
                 </label>
             </td>
@@ -729,8 +729,8 @@ html.light-mode .cmp-modal-footer { border-top-color: #e2e8f0; }
         @php $mk2 = $m['key']; @endphp
         <tr class="compare-data-row" :class="featRowDiffers('{{ $mk2 }}') ? 'row-differs' : ''">
             <td class="compare-label-col px-4 py-2.5">
-                <div class="text-xs font-medium text-white/80">{{ $m['label'] }}</div>
-                <div class="text-[10px] text-white/35 mt-0.5 leading-tight">{{ $m['hint'] }}</div>
+                <div class="text-xs font-medium text-white/80 ak-strong">{{ $m['label'] }}</div>
+                <div class="text-[10px] text-white/35 mt-0.5 leading-tight ak-note">{{ $m['hint'] }}</div>
             </td>
             @foreach($plans as $plan)
             @php $pid = (string) $plan->id; @endphp
@@ -752,8 +752,8 @@ html.light-mode .cmp-modal-footer { border-top-color: #e2e8f0; }
         @php $rk2 = $r['key']; @endphp
         <tr class="compare-data-row" :class="featRowDiffers('{{ $rk2 }}') ? 'row-differs' : ''">
             <td class="compare-label-col px-4 py-2.5">
-                <div class="text-xs font-medium text-white/80">{{ $r['label'] }}</div>
-                <div class="text-[10px] text-white/35 mt-0.5 leading-tight">{{ $r['hint'] }}</div>
+                <div class="text-xs font-medium text-white/80 ak-strong">{{ $r['label'] }}</div>
+                <div class="text-[10px] text-white/35 mt-0.5 leading-tight ak-note">{{ $r['hint'] }}</div>
             </td>
             @foreach($plans as $plan)
             @php $pid = (string) $plan->id; @endphp
@@ -774,8 +774,8 @@ html.light-mode .cmp-modal-footer { border-top-color: #e2e8f0; }
         @php $cgk = $cg['key']; @endphp
         <tr class="compare-data-row" :class="featRowDiffers('{{ $cgk }}') ? 'row-differs' : ''">
             <td class="compare-label-col px-4 py-2.5">
-                <div class="text-xs font-medium text-white/80">{{ $cg['label'] }}</div>
-                <div class="text-[10px] text-white/35 mt-0.5 leading-tight">{{ $cg['hint'] }}</div>
+                <div class="text-xs font-medium text-white/80 ak-strong">{{ $cg['label'] }}</div>
+                <div class="text-[10px] text-white/35 mt-0.5 leading-tight ak-note">{{ $cg['hint'] }}</div>
             </td>
             @foreach($plans as $plan)
             @php $pid = (string) $plan->id; @endphp
@@ -794,19 +794,19 @@ html.light-mode .cmp-modal-footer { border-top-color: #e2e8f0; }
         </tr>
         <tr class="compare-data-row" :class="blockModeRowDiffers() ? 'row-differs' : ''">
             <td class="compare-label-col px-4 py-2.5">
-                <div class="text-xs font-medium text-white/80">Block access mode</div>
-                <div class="text-[10px] text-white/35 mt-0.5">Which Link in Bio block types users on this plan can use.</div>
+                <div class="text-xs font-medium text-white/80 ak-strong">Block access mode</div>
+                <div class="text-[10px] text-white/35 mt-0.5 ak-note">Which Link in Bio block types users on this plan can use.</div>
             </td>
             @foreach($plans as $plan)
             @php $pid = (string) $plan->id; @endphp
             <td class="px-3 py-2.5" :class="{ 'compare-cell-dirty': isPlanBlockDirty('{{ $pid }}') }">
                 <div class="flex flex-col gap-2">
                     <div class="flex gap-3">
-                        <label class="flex items-center gap-1.5 text-xs text-white/80 cursor-pointer">
+                        <label class="flex items-center gap-1.5 text-xs text-white/80 cursor-pointer ak-strong">
                             <input type="radio" class="accent-blue-500" x-model="plans['{{ $pid }}'].block_mode" value="all">
                             All blocks
                         </label>
-                        <label class="flex items-center gap-1.5 text-xs text-white/80 cursor-pointer">
+                        <label class="flex items-center gap-1.5 text-xs text-white/80 cursor-pointer ak-strong">
                             <input type="radio" class="accent-blue-500" x-model="plans['{{ $pid }}'].block_mode" value="pick">
                             Pick…
                         </label>
@@ -829,12 +829,12 @@ html.light-mode .cmp-modal-footer { border-top-color: #e2e8f0; }
         @foreach($integrations as $kind => $info)
         <tr class="compare-section-row">
             <td class="compare-label-col">{{ $info['label'] }}</td>
-            <td colspan="{{ $plans->count() }}" class="text-[10px] text-white/30 px-4">{{ $info['subtitle'] }}</td>
+            <td colspan="{{ $plans->count() }}" class="text-[10px] text-white/30 px-4 ak-note">{{ $info['subtitle'] }}</td>
         </tr>
         <tr class="compare-data-row" :class="integrationCapRowDiffers('{{ $kind }}') ? 'row-differs' : ''">
             <td class="compare-label-col px-4 py-2.5">
-                <div class="text-xs font-medium text-white/80">Max accounts</div>
-                <div class="text-[10px] text-white/35 mt-0.5">-1 = unlimited</div>
+                <div class="text-xs font-medium text-white/80 ak-strong">Max accounts</div>
+                <div class="text-[10px] text-white/35 mt-0.5 ak-note">-1 = unlimited</div>
             </td>
             @foreach($plans as $plan)
             @php $pid = (string) $plan->id; @endphp
@@ -843,25 +843,25 @@ html.light-mode .cmp-modal-footer { border-top-color: #e2e8f0; }
                     <input type="number" class="cmp-input" min="-1"
                            x-model.number="plans['{{ $pid }}'].integration_caps['{{ $kind }}']">
                     <button type="button" @click="plans['{{ $pid }}'].integration_caps['{{ $kind }}'] = -1"
-                            title="Unlimited" class="shrink-0 px-2 py-1.5 rounded-lg text-[11px] font-bold text-white/50 hover:text-white bg-white/5 hover:bg-white/10 transition">∞</button>
+                            title="Unlimited" class="shrink-0 px-2 py-1.5 rounded-lg text-[11px] font-bold text-white/50 hover:text-white bg-white/5 hover:bg-white/10 transition ak-muted">∞</button>
                 </div>
             </td>
             @endforeach
         </tr>
         <tr class="compare-data-row" :class="integrationModeRowDiffers('{{ $kind }}') ? 'row-differs' : ''">
             <td class="compare-label-col px-4 py-2.5">
-                <div class="text-xs font-medium text-white/80">Allowed providers</div>
+                <div class="text-xs font-medium text-white/80 ak-strong">Allowed providers</div>
             </td>
             @foreach($plans as $plan)
             @php $pid = (string) $plan->id; @endphp
             <td class="px-3 py-2.5" :class="{ 'compare-cell-dirty': isIntModeDirty('{{ $pid }}', '{{ $kind }}') }">
                 <div class="flex flex-col gap-2">
                     <div class="flex gap-3">
-                        <label class="flex items-center gap-1.5 text-xs text-white/80 cursor-pointer">
+                        <label class="flex items-center gap-1.5 text-xs text-white/80 cursor-pointer ak-strong">
                             <input type="radio" class="accent-blue-500" x-model="plans['{{ $pid }}'].integration_mode['{{ $kind }}']" value="all">
                             All
                         </label>
-                        <label class="flex items-center gap-1.5 text-xs text-white/80 cursor-pointer">
+                        <label class="flex items-center gap-1.5 text-xs text-white/80 cursor-pointer ak-strong">
                             <input type="radio" class="accent-blue-500" x-model="plans['{{ $pid }}'].integration_mode['{{ $kind }}']" value="pick">
                             Pick…
                         </label>
@@ -888,15 +888,15 @@ html.light-mode .cmp-modal-footer { border-top-color: #e2e8f0; }
         </tr>
         @if($addons->isEmpty())
         <tr class="compare-data-row">
-            <td class="compare-label-col px-4 py-3 text-xs text-white/40" colspan="{{ $plans->count() + 1 }}">No addons in the catalog.</td>
+            <td class="compare-label-col px-4 py-3 text-xs text-white/40 ak-note" colspan="{{ $plans->count() + 1 }}">No addons in the catalog.</td>
         </tr>
         @else
         @foreach($addons as $addon)
         @php $addonId = (int) $addon->id; @endphp
         <tr class="compare-data-row" :class="addonRowDiffers({{ $addonId }}) ? 'row-differs' : ''">
             <td class="compare-label-col px-4 py-2.5">
-                <div class="text-xs font-medium text-white/80">{{ $addon->name }}</div>
-                <div class="text-[10px] text-white/35 mt-0.5">${{ number_format($addon->monthly_price, 2) }}/mo · {{ str_replace('_',' ',$addon->type) }}@if($addon->is_archived) · <span class="text-amber-400/70">archived</span>@endif</div>
+                <div class="text-xs font-medium text-white/80 ak-strong">{{ $addon->name }}</div>
+                <div class="text-[10px] text-white/35 mt-0.5 ak-note">${{ number_format($addon->monthly_price, 2) }}/mo · {{ str_replace('_',' ',$addon->type) }}@if($addon->is_archived) · <span class="text-amber-400/70 ak-amber">archived</span>@endif</div>
             </td>
             @foreach($plans as $plan)
             @php $pid = (string) $plan->id; @endphp
@@ -905,7 +905,7 @@ html.light-mode .cmp-modal-footer { border-top-color: #e2e8f0; }
                     <input type="checkbox" class="cmp-toggle"
                            :checked="plans['{{ $pid }}'].addon_ids.includes({{ $addonId }})"
                            @change="toggleAddon('{{ $pid }}', {{ $addonId }}, $event.target.checked)">
-                    <span class="text-xs" :class="plans['{{ $pid }}'].addon_ids.includes({{ $addonId }}) ? 'text-blue-300' : 'text-white/40'"
+                    <span class="text-xs" :class="plans['{{ $pid }}'].addon_ids.includes({{ $addonId }}) ? 'text-blue-300 ak-blue' : 'text-white/40 ak-note'"
                           x-text="plans['{{ $pid }}'].addon_ids.includes({{ $addonId }}) ? 'Eligible' : 'Not eligible'"></span>
                 </label>
             </td>
@@ -920,19 +920,19 @@ html.light-mode .cmp-modal-footer { border-top-color: #e2e8f0; }
 
 {{-- ── Sticky save bar ────────────────────────────────────────────────────── --}}
 <div class="compare-save-bar mt-0">
-    <span class="text-xs text-white/40 flex-1">
+    <span class="text-xs text-white/40 flex-1 ak-note">
         <span x-show="anyDirty()" x-cloak><span x-text="dirtyCount()"></span> plan(s) have unsaved edits.</span>
         <span x-show="!anyDirty()">No unsaved changes.</span>
     </span>
-    <span x-show="saveOk" x-cloak x-transition class="text-sm text-emerald-400 flex items-center gap-1.5"><i class="fas fa-check-circle"></i> Saved!</span>
-    <span x-show="saving" x-cloak class="text-sm text-white/50 flex items-center gap-1.5"><i class="fas fa-spinner fa-spin"></i> Saving…</span>
+    <span x-show="saveOk" x-cloak x-transition class="text-sm text-emerald-400 flex items-center gap-1.5 ak-green"><i class="fas fa-check-circle"></i> Saved!</span>
+    <span x-show="saving" x-cloak class="text-sm text-white/50 flex items-center gap-1.5 ak-muted"><i class="fas fa-spinner fa-spin"></i> Saving…</span>
     <button type="button" @click="save()" :disabled="!anyDirty() || saving"
             class="px-5 py-2 rounded-xl text-sm font-semibold bg-blue-600 hover:bg-blue-700 text-white transition disabled:opacity-40 disabled:cursor-not-allowed">
         <i class="fas fa-save mr-2"></i>Save changes
     </button>
     <a href="{{ route('admin.plans.index') }}"
        @click.prevent="if (anyDirty()) { if (!confirm('You have unsaved changes. Leave anyway?')) return; } window.location.href = $event.currentTarget.href"
-       class="px-4 py-2 rounded-xl text-sm font-medium text-white/60 hover:text-white border border-white/10 hover:border-white/25 transition">
+       class="px-4 py-2 rounded-xl text-sm font-medium text-white/60 hover:text-white border border-white/10 hover:border-white/25 transition ak-muted">
         <i class="fas fa-arrow-left mr-1.5"></i>Back
     </a>
 </div>
@@ -943,33 +943,33 @@ html.light-mode .cmp-modal-footer { border-top-color: #e2e8f0; }
         <div class="cmp-modal-box">
             <div class="cmp-modal-header">
                 <div>
-                    <h3 class="text-sm font-semibold text-white" x-text="'Block types, ' + planNameById(blockModalPlanId)"></h3>
-                    <p class="text-[11px] text-white/40 mt-0.5">
+                    <h3 class="text-sm font-semibold text-white ak-strong" x-text="'Block types, ' + planNameById(blockModalPlanId)"></h3>
+                    <p class="text-[11px] text-white/40 mt-0.5 ak-note">
                         <span x-text="plans[blockModalPlanId]?.block_types.length"></span> selected of {{ count($allBlockSlugs) }} total
                     </p>
                 </div>
-                <button type="button" @click="closeBlockModal()" class="text-white/40 hover:text-white text-lg leading-none transition"><i class="fas fa-times"></i></button>
+                <button type="button" @click="closeBlockModal()" class="text-white/40 hover:text-white text-lg leading-none transition ak-note"><i class="fas fa-times"></i></button>
             </div>
             <div class="cmp-modal-body space-y-4">
                 <div class="flex items-center gap-3 flex-wrap">
-                    <button type="button" @click="selectAllBlocks()" class="text-xs px-3 py-1.5 rounded-lg bg-blue-600/20 text-blue-300 hover:bg-blue-600/30 border border-blue-500/20 transition">Select all</button>
-                    <button type="button" @click="deselectAllBlocks()" class="text-xs px-3 py-1.5 rounded-lg bg-white/5 text-white/60 hover:bg-white/10 border border-white/10 transition">Deselect all</button>
+                    <button type="button" @click="selectAllBlocks()" class="text-xs px-3 py-1.5 rounded-lg bg-blue-600/20 text-blue-300 hover:bg-blue-600/30 border border-blue-500/20 transition ak-blue">Select all</button>
+                    <button type="button" @click="deselectAllBlocks()" class="text-xs px-3 py-1.5 rounded-lg bg-white/5 text-white/60 hover:bg-white/10 border border-white/10 transition ak-muted">Deselect all</button>
                 </div>
                 @foreach($blocksByCat as $catKey => $cat)
                 <div>
                     <div class="flex items-center justify-between mb-2">
-                        <h4 class="text-xs font-semibold text-white/70">{{ $cat['label'] }} <span class="text-white/30 font-normal">({{ count($cat['types']) }})</span></h4>
+                        <h4 class="text-xs font-semibold text-white/70 ak-strong">{{ $cat['label'] }} <span class="text-white/30 font-normal ak-note">({{ count($cat['types']) }})</span></h4>
                         <button type="button" @click="selectBlockCat(@js(array_keys($cat['types'])))"
-                                class="text-[10px] px-2 py-1 rounded bg-white/5 text-white/50 hover:bg-white/10 transition">All</button>
+                                class="text-[10px] px-2 py-1 rounded bg-white/5 text-white/50 hover:bg-white/10 transition ak-muted">All</button>
                     </div>
                     <div class="grid grid-cols-2 gap-1.5">
                         @foreach($cat['types'] as $slug => $meta)
-                        <label class="flex items-center gap-2 text-xs text-white/70 px-2.5 py-1.5 rounded-lg hover:bg-white/5 cursor-pointer border border-transparent hover:border-white/5"
+                        <label class="flex items-center gap-2 text-xs text-white/70 px-2.5 py-1.5 rounded-lg hover:bg-white/5 cursor-pointer border border-transparent hover:border-white/5 ak-strong"
                                :class="plans[blockModalPlanId]?.block_types.includes('{{ $slug }}') ? 'bg-blue-600/10 border-blue-500/20 text-blue-200' : ''">
                             <input type="checkbox" class="accent-blue-500 shrink-0"
                                    :checked="plans[blockModalPlanId]?.block_types.includes('{{ $slug }}')"
                                    @change="toggleBlockType('{{ $slug }}', $event.target.checked)">
-                            <i class="fas {{ $meta['icon'] ?? 'fa-cube' }} text-[10px] text-white/40 shrink-0"></i>
+                            <i class="fas {{ $meta['icon'] ?? 'fa-cube' }} text-[10px] text-white/40 shrink-0 ak-note"></i>
                             {{ $meta['label'] }}
                         </label>
                         @endforeach
@@ -993,19 +993,19 @@ html.light-mode .cmp-modal-footer { border-top-color: #e2e8f0; }
         <div class="cmp-modal-box">
             <div class="cmp-modal-header">
                 <div>
-                    <h3 class="text-sm font-semibold text-white" x-text="'Provider allowlist, ' + planNameById(intModalState.planId)"></h3>
-                    <p class="text-[11px] text-white/40 mt-0.5" x-text="'Integration kind: ' + intModalState.kind"></p>
+                    <h3 class="text-sm font-semibold text-white ak-strong" x-text="'Provider allowlist, ' + planNameById(intModalState.planId)"></h3>
+                    <p class="text-[11px] text-white/40 mt-0.5 ak-note" x-text="'Integration kind: ' + intModalState.kind"></p>
                 </div>
-                <button type="button" @click="closeIntModal()" class="text-white/40 hover:text-white text-lg leading-none transition"><i class="fas fa-times"></i></button>
+                <button type="button" @click="closeIntModal()" class="text-white/40 hover:text-white text-lg leading-none transition ak-note"><i class="fas fa-times"></i></button>
             </div>
             <div class="cmp-modal-body">
                 @foreach($integrations as $kind => $info)
                 <template x-if="intModalState.kind === '{{ $kind }}'">
                     <div>
-                        <p class="text-xs text-white/50 mb-3">{{ $info['subtitle'] }}</p>
+                        <p class="text-xs text-white/50 mb-3 ak-muted">{{ $info['subtitle'] }}</p>
                         <div class="grid grid-cols-2 gap-2">
                             @foreach($info['providers'] as $p)
-                            <label class="flex items-center gap-2 text-xs text-white/70 px-2.5 py-2 rounded-lg hover:bg-white/5 cursor-pointer border border-transparent hover:border-white/5"
+                            <label class="flex items-center gap-2 text-xs text-white/70 px-2.5 py-2 rounded-lg hover:bg-white/5 cursor-pointer border border-transparent hover:border-white/5 ak-strong"
                                    :class="(plans[intModalState.planId]?.integration_providers['{{ $kind }}'] || []).includes('{{ $p['slug'] }}') ? 'bg-blue-600/10 border-blue-500/20 text-blue-200' : ''">
                                 <input type="checkbox" class="accent-blue-500"
                                        :checked="(plans[intModalState.planId]?.integration_providers['{{ $kind }}'] || []).includes('{{ $p['slug'] }}')"

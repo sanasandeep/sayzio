@@ -24,9 +24,9 @@
         default => 'bg-blue-500/10 border-blue-500/20',
     };
     $noteText  = match($noteType) {
-        'warn'  => 'text-amber-200/85',
-        'tip'   => 'text-emerald-200/85',
-        default => 'text-blue-200/85',
+        'warn'  => 'text-amber-200/85 ak-amber',
+        'tip'   => 'text-emerald-200/85 ak-green',
+        default => 'text-blue-200/85 ak-blue',
     };
     $noteIconC = match($noteType) {
         'warn'  => 'text-amber-400',

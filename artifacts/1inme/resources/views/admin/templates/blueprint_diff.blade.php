@@ -19,18 +19,18 @@
 
 @section('content')
 <div class="max-w-6xl">
-    <a href="{{ route('admin.templates.index', ['tab' => 'page']) }}" class="text-xs text-white/40 hover:text-white mb-4 inline-block">
+    <a href="{{ route('admin.templates.index', ['tab' => 'page']) }}" class="text-xs text-white/40 hover:text-white mb-4 inline-block ak-note">
         <i class="fas fa-arrow-left mr-1"></i>Back to templates
     </a>
 
     <div class="glass rounded-2xl border border-amber-500/30 bg-amber-500/5 p-4 mb-5">
         <div class="flex items-start gap-3">
-            <i class="fas fa-triangle-exclamation text-amber-400 text-lg mt-0.5"></i>
+            <i class="fas fa-triangle-exclamation text-amber-400 text-lg mt-0.5 ak-amber"></i>
             <div class="flex-1">
-                <div class="text-sm font-semibold text-white mb-1">
+                <div class="text-sm font-semibold text-white mb-1 ak-strong">
                     Stored blueprint v{{ $storedVersion }} · current design v{{ $currentVersion }}
                 </div>
-                <p class="text-xs text-white/60">
+                <p class="text-xs text-white/60 ak-muted">
                     This persona template was originally generated from an older blueprint.
                     Untouched seed rows auto-refresh on the next deploy, but this row was
                     customized in the admin panel so it stayed pinned to v{{ $storedVersion }}.
@@ -51,61 +51,61 @@
 
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-5 text-xs">
         <div class="glass rounded-xl border border-white/10 p-4">
-            <div class="text-white/40 uppercase tracking-wide text-[10px] mb-1">Slug</div>
-            <div class="text-white font-mono break-all">{{ $tpl->slug }}</div>
+            <div class="text-white/40 uppercase tracking-wide text-[10px] mb-1 ak-note">Slug</div>
+            <div class="text-white font-mono break-all ak-strong">{{ $tpl->slug }}</div>
         </div>
         <div class="glass rounded-xl border border-white/10 p-4">
-            <div class="text-white/40 uppercase tracking-wide text-[10px] mb-1">Block count</div>
-            <div class="text-white">
-                <span class="{{ count($currentBlocks) !== count($latestBlocks) ? 'text-amber-300' : '' }}">
+            <div class="text-white/40 uppercase tracking-wide text-[10px] mb-1 ak-note">Block count</div>
+            <div class="text-white ak-strong">
+                <span class="{{ count($currentBlocks) !== count($latestBlocks) ? 'text-amber-300 ak-amber' : '' }}">
                     Stored: {{ count($currentBlocks) }}
                 </span>
-                <span class="text-white/30 mx-1">→</span>
-                <span class="text-emerald-300">Current: {{ count($latestBlocks) }}</span>
+                <span class="text-white/30 mx-1 ak-note">→</span>
+                <span class="text-emerald-300 ak-green">Current: {{ count($latestBlocks) }}</span>
             </div>
         </div>
         <div class="glass rounded-xl border border-white/10 p-4">
-            <div class="text-white/40 uppercase tracking-wide text-[10px] mb-1">Persona</div>
-            <div class="text-white">{{ $tpl->personaSeedSlug() }}</div>
+            <div class="text-white/40 uppercase tracking-wide text-[10px] mb-1 ak-note">Persona</div>
+            <div class="text-white ak-strong">{{ $tpl->personaSeedSlug() }}</div>
         </div>
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
         <div class="glass rounded-2xl border border-white/10 p-4">
             <div class="flex items-center gap-2 mb-2">
-                <span class="text-[10px] uppercase tracking-wide text-white/40">Stored (v{{ $storedVersion }})</span>
+                <span class="text-[10px] uppercase tracking-wide text-white/40 ak-note">Stored (v{{ $storedVersion }})</span>
             </div>
             <div class="space-y-2 text-xs">
                 <div>
-                    <div class="text-white/40 mb-0.5">Name</div>
-                    <div class="text-white {{ $current['name'] !== $latest['name'] ? 'bg-amber-500/10 px-1 rounded' : '' }}">{{ $current['name'] }}</div>
+                    <div class="text-white/40 mb-0.5 ak-note">Name</div>
+                    <div class="text-white {{ $current['name'] !== $latest['name'] ? 'bg-amber-500/10 px-1 rounded' : '' }} ak-strong">{{ $current['name'] }}</div>
                 </div>
                 <div>
-                    <div class="text-white/40 mb-0.5">Description</div>
-                    <div class="text-white/80 {{ $current['description'] !== $latest['description'] ? 'bg-amber-500/10 px-1 rounded' : '' }}">{{ $current['description'] ?: '—' }}</div>
+                    <div class="text-white/40 mb-0.5 ak-note">Description</div>
+                    <div class="text-white/80 {{ $current['description'] !== $latest['description'] ? 'bg-amber-500/10 px-1 rounded' : '' }} ak-strong">{{ $current['description'] ?: '—' }}</div>
                 </div>
                 <div>
-                    <div class="text-white/40 mb-0.5">Block types</div>
-                    <div class="text-white/70 font-mono text-[11px] break-words">{{ implode(', ', $currentBlocks) ?: '—' }}</div>
+                    <div class="text-white/40 mb-0.5 ak-note">Block types</div>
+                    <div class="text-white/70 font-mono text-[11px] break-words ak-strong">{{ implode(', ', $currentBlocks) ?: '—' }}</div>
                 </div>
             </div>
         </div>
         <div class="glass rounded-2xl border border-emerald-500/20 p-4">
             <div class="flex items-center gap-2 mb-2">
-                <span class="text-[10px] uppercase tracking-wide text-emerald-300/70">Current blueprint (v{{ $currentVersion }})</span>
+                <span class="text-[10px] uppercase tracking-wide text-emerald-300/70 ak-green">Current blueprint (v{{ $currentVersion }})</span>
             </div>
             <div class="space-y-2 text-xs">
                 <div>
-                    <div class="text-white/40 mb-0.5">Name</div>
-                    <div class="text-white {{ $current['name'] !== $latest['name'] ? 'bg-emerald-500/10 px-1 rounded' : '' }}">{{ $latest['name'] }}</div>
+                    <div class="text-white/40 mb-0.5 ak-note">Name</div>
+                    <div class="text-white {{ $current['name'] !== $latest['name'] ? 'bg-emerald-500/10 px-1 rounded' : '' }} ak-strong">{{ $latest['name'] }}</div>
                 </div>
                 <div>
-                    <div class="text-white/40 mb-0.5">Description</div>
-                    <div class="text-white/80 {{ $current['description'] !== $latest['description'] ? 'bg-emerald-500/10 px-1 rounded' : '' }}">{{ $latest['description'] ?: '—' }}</div>
+                    <div class="text-white/40 mb-0.5 ak-note">Description</div>
+                    <div class="text-white/80 {{ $current['description'] !== $latest['description'] ? 'bg-emerald-500/10 px-1 rounded' : '' }} ak-strong">{{ $latest['description'] ?: '—' }}</div>
                 </div>
                 <div>
-                    <div class="text-white/40 mb-0.5">Block types</div>
-                    <div class="text-white/70 font-mono text-[11px] break-words">{{ implode(', ', $latestBlocks) ?: '—' }}</div>
+                    <div class="text-white/40 mb-0.5 ak-note">Block types</div>
+                    <div class="text-white/70 font-mono text-[11px] break-words ak-strong">{{ implode(', ', $latestBlocks) ?: '—' }}</div>
                 </div>
             </div>
         </div>
@@ -113,18 +113,18 @@
 
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div class="glass rounded-2xl border border-white/10 p-4">
-            <div class="text-[10px] uppercase tracking-wide text-white/40 mb-2">Stored snapshot JSON</div>
-            <pre class="text-[11px] text-white/70 bg-black/40 rounded-lg p-3 overflow-auto max-h-[60vh] whitespace-pre-wrap break-words">{{ $currentJson }}</pre>
+            <div class="text-[10px] uppercase tracking-wide text-white/40 mb-2 ak-note">Stored snapshot JSON</div>
+            <pre class="text-[11px] text-white/70 bg-black/40 rounded-lg p-3 overflow-auto max-h-[60vh] whitespace-pre-wrap break-words ak-strong">{{ $currentJson }}</pre>
         </div>
         <div class="glass rounded-2xl border border-emerald-500/20 p-4">
-            <div class="text-[10px] uppercase tracking-wide text-emerald-300/70 mb-2">Current blueprint JSON</div>
-            <pre class="text-[11px] text-white/70 bg-black/40 rounded-lg p-3 overflow-auto max-h-[60vh] whitespace-pre-wrap break-words">{{ $latestJson }}</pre>
+            <div class="text-[10px] uppercase tracking-wide text-emerald-300/70 mb-2 ak-green">Current blueprint JSON</div>
+            <pre class="text-[11px] text-white/70 bg-black/40 rounded-lg p-3 overflow-auto max-h-[60vh] whitespace-pre-wrap break-words ak-strong">{{ $latestJson }}</pre>
         </div>
     </div>
 
     <div class="mt-5 flex items-center justify-between">
         <a href="{{ route('admin.templates.edit', ['kind' => 'page', 'id' => $tpl->id]) }}"
-           class="text-xs text-white/40 hover:text-white">
+           class="text-xs text-white/40 hover:text-white ak-note">
             <i class="fas fa-edit mr-1"></i>Edit this template manually instead
         </a>
         <form action="{{ route('admin.templates.blueprint.reset', ['id' => $tpl->id]) }}"

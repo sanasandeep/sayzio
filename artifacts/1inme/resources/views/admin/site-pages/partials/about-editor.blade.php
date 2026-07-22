@@ -94,24 +94,24 @@
 
     {{-- ========== HERO ========== --}}
     <div>
-        <h3 class="text-sm font-semibold text-white">Hero</h3>
-        <p class="text-xs text-white/50 mb-3">Top of /about, badge pill, side image, location card and the small stats trio.</p>
+        <h3 class="text-sm font-semibold text-white ak-strong">Hero</h3>
+        <p class="text-xs text-white/50 mb-3 ak-muted">Top of /about, badge pill, side image, location card and the small stats trio.</p>
         <div class="bg-white/5 border border-white/10 rounded-xl p-4 space-y-4">
             <div class="grid sm:grid-cols-2 gap-3">
                 <div>
-                    <label class="block text-[10px] uppercase tracking-wider text-white/40 mb-1">Badge label</label>
-                    <input type="text" name="extra[hero][badge_label]" value="{{ $aboutHero['badge_label'] }}" maxlength="60" placeholder="About" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
-                    @error('extra.hero.badge_label')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
+                    <label class="block text-[10px] uppercase tracking-wider text-white/40 mb-1 ak-note">Badge label</label>
+                    <input type="text" name="extra[hero][badge_label]" value="{{ $aboutHero['badge_label'] }}" maxlength="60" placeholder="About" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white ak-strong ak-input">
+                    @error('extra.hero.badge_label')<p class="mt-1 text-xs text-red-400 ak-red">{{ $message }}</p>@enderror
                 </div>
                 <div>
-                    <label class="block text-[10px] uppercase tracking-wider text-white/40 mb-1">Badge icon (FontAwesome class)</label>
-                    <input type="text" name="extra[hero][badge_icon]" value="{{ $aboutHero['badge_icon'] }}" maxlength="60" placeholder="fa-heart" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white font-mono">
-                    @error('extra.hero.badge_icon')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
+                    <label class="block text-[10px] uppercase tracking-wider text-white/40 mb-1 ak-note">Badge icon (FontAwesome class)</label>
+                    <input type="text" name="extra[hero][badge_icon]" value="{{ $aboutHero['badge_icon'] }}" maxlength="60" placeholder="fa-heart" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white font-mono ak-strong ak-input">
+                    @error('extra.hero.badge_icon')<p class="mt-1 text-xs text-red-400 ak-red">{{ $message }}</p>@enderror
                 </div>
             </div>
 
             <div x-data="{ url: @js((string)($aboutHero['side_image'] ?? '')) }">
-                <label class="block text-[10px] uppercase tracking-wider text-white/40 mb-1">Hero side image <span class="normal-case tracking-normal text-white/40">(16:10)</span></label>
+                <label class="block text-[10px] uppercase tracking-wider text-white/40 mb-1 ak-note">Hero side image <span class="normal-case tracking-normal text-white/40 ak-note">(16:10)</span></label>
                 <div x-data="aboutPhotoUploader({ get: () => url, set: (v) => url = v, aspect: 16/10, outputSize: 1200, isCircle: false })" class="space-y-2">
                     <div class="flex items-start gap-3">
                         <div class="shrink-0 text-center">
@@ -119,134 +119,134 @@
                                 <img :src="url" alt="" class="w-40 h-25 object-cover rounded-md border border-white/10 bg-white/5" style="height:100px" x-on:error="$el.style.display='none'">
                             </template>
                             <template x-if="!url">
-                                <div class="w-40 rounded-md border-2 border-dashed border-white/15 bg-white/5 flex items-center justify-center text-[10px] text-white/40 text-center px-2" style="height:100px">Falls back to bundled hero.png</div>
+                                <div class="w-40 rounded-md border-2 border-dashed border-white/15 bg-white/5 flex items-center justify-center text-[10px] text-white/40 text-center px-2 ak-note" style="height:100px">Falls back to bundled hero.png</div>
                             </template>
-                            <div class="text-[10px] text-white/40 mt-1">Live preview</div>
+                            <div class="text-[10px] text-white/40 mt-1 ak-note">Live preview</div>
                         </div>
                         <div class="flex-1 space-y-2">
-                            <input type="url" name="extra[hero][side_image]" x-model="url" placeholder="https://… or /storage/… (or upload below)" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
-                            @error('extra.hero.side_image')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
+                            <input type="url" name="extra[hero][side_image]" x-model="url" placeholder="https://… or /storage/… (or upload below)" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white ak-strong ak-input">
+                            @error('extra.hero.side_image')<p class="mt-1 text-xs text-red-400 ak-red">{{ $message }}</p>@enderror
                             <div class="flex items-center gap-2 flex-wrap">
                                 <button type="button" @click="pickFile()" :disabled="uploading" class="text-xs px-3 py-1.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 rounded-lg text-white inline-flex items-center gap-1">
                                     <i class="fas fa-upload"></i>
                                     <span x-text="uploading ? ('Uploading… ' + progress + '%') : 'Upload image'"></span>
                                 </button>
-                                <button type="button" x-show="url" @click="recropFromUrl()" :disabled="uploading" class="text-xs px-3 py-1.5 bg-white/10 hover:bg-white/20 disabled:opacity-50 rounded-lg text-white inline-flex items-center gap-1"><i class="fas fa-crop"></i><span>Re-crop current photo</span></button>
-                                <button type="button" x-show="url" @click="clear()" class="text-xs px-2 py-1.5 text-white/60 hover:text-white"><i class="fas fa-times mr-1"></i>Remove</button>
+                                <button type="button" x-show="url" @click="recropFromUrl()" :disabled="uploading" class="text-xs px-3 py-1.5 bg-white/10 hover:bg-white/20 disabled:opacity-50 rounded-lg text-white inline-flex items-center gap-1 ak-strong"><i class="fas fa-crop"></i><span>Re-crop current photo</span></button>
+                                <button type="button" x-show="url" @click="clear()" class="text-xs px-2 py-1.5 text-white/60 hover:text-white ak-muted"><i class="fas fa-times mr-1"></i>Remove</button>
                             </div>
-                            <p x-show="error" x-text="error" class="text-xs text-red-400"></p>
+                            <p x-show="error" x-text="error" class="text-xs text-red-400 ak-red"></p>
                         </div>
                     </div>
                     <input type="file" x-ref="fileInput" @change="handleFile($event)" accept="image/*" class="hidden">
                     @include('admin.site-pages.partials.about-crop-modal')
                 </div>
-                <label class="block text-[10px] uppercase tracking-wider text-white/40 mb-1 mt-2">Hero side image alt text</label>
-                <input type="text" name="extra[hero][side_image_alt]" value="{{ $aboutHero['side_image_alt'] }}" maxlength="200" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
-                @error('extra.hero.side_image_alt')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
+                <label class="block text-[10px] uppercase tracking-wider text-white/40 mb-1 mt-2 ak-note">Hero side image alt text</label>
+                <input type="text" name="extra[hero][side_image_alt]" value="{{ $aboutHero['side_image_alt'] }}" maxlength="200" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white ak-strong ak-input">
+                @error('extra.hero.side_image_alt')<p class="mt-1 text-xs text-red-400 ak-red">{{ $message }}</p>@enderror
             </div>
 
             <div class="grid sm:grid-cols-3 gap-3">
                 <div>
-                    <label class="block text-[10px] uppercase tracking-wider text-white/40 mb-1">Floating card title</label>
-                    <input type="text" name="extra[hero][location_title]" value="{{ $aboutHero['location_title'] }}" maxlength="120" placeholder="Hyderabad · India" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
-                    @error('extra.hero.location_title')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
+                    <label class="block text-[10px] uppercase tracking-wider text-white/40 mb-1 ak-note">Floating card title</label>
+                    <input type="text" name="extra[hero][location_title]" value="{{ $aboutHero['location_title'] }}" maxlength="120" placeholder="Hyderabad · India" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white ak-strong ak-input">
+                    @error('extra.hero.location_title')<p class="mt-1 text-xs text-red-400 ak-red">{{ $message }}</p>@enderror
                 </div>
                 <div>
-                    <label class="block text-[10px] uppercase tracking-wider text-white/40 mb-1">Floating card subtitle</label>
-                    <input type="text" name="extra[hero][location_subtitle]" value="{{ $aboutHero['location_subtitle'] }}" maxlength="120" placeholder="Remote-friendly" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
-                    @error('extra.hero.location_subtitle')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
+                    <label class="block text-[10px] uppercase tracking-wider text-white/40 mb-1 ak-note">Floating card subtitle</label>
+                    <input type="text" name="extra[hero][location_subtitle]" value="{{ $aboutHero['location_subtitle'] }}" maxlength="120" placeholder="Remote-friendly" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white ak-strong ak-input">
+                    @error('extra.hero.location_subtitle')<p class="mt-1 text-xs text-red-400 ak-red">{{ $message }}</p>@enderror
                 </div>
                 <div>
-                    <label class="block text-[10px] uppercase tracking-wider text-white/40 mb-1">Floating card icon</label>
-                    <input type="text" name="extra[hero][location_icon]" value="{{ $aboutHero['location_icon'] }}" maxlength="60" placeholder="fa-location-dot" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white font-mono">
-                    @error('extra.hero.location_icon')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
+                    <label class="block text-[10px] uppercase tracking-wider text-white/40 mb-1 ak-note">Floating card icon</label>
+                    <input type="text" name="extra[hero][location_icon]" value="{{ $aboutHero['location_icon'] }}" maxlength="60" placeholder="fa-location-dot" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white font-mono ak-strong ak-input">
+                    @error('extra.hero.location_icon')<p class="mt-1 text-xs text-red-400 ak-red">{{ $message }}</p>@enderror
                 </div>
             </div>
 
             <div x-data="{ rows: {{ json_encode($aboutHeroStats) }}, moveUp(i){ if(i>0){ const a=this.rows; [a[i-1],a[i]]=[a[i],a[i-1]]; } }, moveDown(i){ const a=this.rows; if(i<a.length-1){ [a[i+1],a[i]]=[a[i],a[i+1]]; } } }">
                 <div class="flex items-center justify-between mb-2">
                     <div>
-                        <label class="text-[10px] uppercase tracking-wider text-white/40">Hero stats trio</label>
-                        <p class="text-[11px] text-white/40">Numeric values animate; non-numeric values are shown as plain text.</p>
+                        <label class="text-[10px] uppercase tracking-wider text-white/40 ak-note">Hero stats trio</label>
+                        <p class="text-[11px] text-white/40 ak-note">Numeric values animate; non-numeric values are shown as plain text.</p>
                     </div>
                     <button type="button" @click="if(rows.length<6) rows.push({value:'',suffix:'',label:'',visible:true})" class="text-xs px-3 py-1.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 rounded-lg text-white" :disabled="rows.length>=6"><i class="fas fa-plus mr-1"></i>Add stat</button>
                 </div>
                 <template x-for="(s, i) in rows" :key="i">
                     <div class="bg-white/[0.04] border border-white/10 rounded-lg p-3 mb-2 space-y-2" :class="{'opacity-50': !s.visible}">
                         <div class="flex items-center justify-between gap-2 flex-wrap">
-                            <span class="text-[10px] uppercase tracking-wider text-white/40">Stat <span x-text="i+1"></span></span>
+                            <span class="text-[10px] uppercase tracking-wider text-white/40 ak-note">Stat <span x-text="i+1"></span></span>
                             <div class="flex items-center gap-2">
-                                <label class="inline-flex items-center gap-1.5 text-[11px] text-white/70 cursor-pointer select-none">
+                                <label class="inline-flex items-center gap-1.5 text-[11px] text-white/70 cursor-pointer select-none ak-strong">
                                     <input type="hidden" :name="'extra[hero][stats]['+i+'][visible]'" value="0">
-                                    <input type="checkbox" :name="'extra[hero][stats]['+i+'][visible]'" value="1" x-model="s.visible" class="rounded border-white/20 bg-white/5">
+                                    <input type="checkbox" :name="'extra[hero][stats]['+i+'][visible]'" value="1" x-model="s.visible" class="rounded border-white/20 bg-white/5 ak-input">
                                     <span x-text="s.visible ? 'Visible' : 'Hidden'"></span>
                                 </label>
-                                <button type="button" @click="moveUp(i)" :disabled="i===0" class="text-xs text-white/60 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed px-1.5 py-1"><i class="fas fa-arrow-up"></i></button>
-                                <button type="button" @click="moveDown(i)" :disabled="i===rows.length-1" class="text-xs text-white/60 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed px-1.5 py-1"><i class="fas fa-arrow-down"></i></button>
-                                <button type="button" @click="rows.splice(i,1)" class="text-xs text-red-400 hover:text-red-300 px-1.5 py-1"><i class="fas fa-trash"></i></button>
+                                <button type="button" @click="moveUp(i)" :disabled="i===0" class="text-xs text-white/60 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed px-1.5 py-1 ak-muted"><i class="fas fa-arrow-up"></i></button>
+                                <button type="button" @click="moveDown(i)" :disabled="i===rows.length-1" class="text-xs text-white/60 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed px-1.5 py-1 ak-muted"><i class="fas fa-arrow-down"></i></button>
+                                <button type="button" @click="rows.splice(i,1)" class="text-xs text-red-400 hover:text-red-300 px-1.5 py-1 ak-red"><i class="fas fa-trash"></i></button>
                             </div>
                         </div>
                         <div class="grid sm:grid-cols-3 gap-2">
-                            <input type="text" :name="'extra[hero][stats]['+i+'][value]'" x-model="s.value" maxlength="40" placeholder="120000" class="w-full px-2.5 py-1.5 bg-white/5 border border-white/10 rounded text-sm text-white">
-                            <input type="text" :name="'extra[hero][stats]['+i+'][suffix]'" x-model="s.suffix" maxlength="10" placeholder="+" class="w-full px-2.5 py-1.5 bg-white/5 border border-white/10 rounded text-sm text-white">
-                            <input type="text" :name="'extra[hero][stats]['+i+'][label]'" x-model="s.label" maxlength="120" placeholder="Creators served" class="w-full px-2.5 py-1.5 bg-white/5 border border-white/10 rounded text-sm text-white">
+                            <input type="text" :name="'extra[hero][stats]['+i+'][value]'" x-model="s.value" maxlength="40" placeholder="120000" class="w-full px-2.5 py-1.5 bg-white/5 border border-white/10 rounded text-sm text-white ak-strong ak-input">
+                            <input type="text" :name="'extra[hero][stats]['+i+'][suffix]'" x-model="s.suffix" maxlength="10" placeholder="+" class="w-full px-2.5 py-1.5 bg-white/5 border border-white/10 rounded text-sm text-white ak-strong ak-input">
+                            <input type="text" :name="'extra[hero][stats]['+i+'][label]'" x-model="s.label" maxlength="120" placeholder="Creators served" class="w-full px-2.5 py-1.5 bg-white/5 border border-white/10 rounded text-sm text-white ak-strong ak-input">
                         </div>
                     </div>
                 </template>
-                <div x-show="rows.length===0" class="text-xs text-white/40 text-center py-3">No hero stats — the trio under the headline will be hidden.</div>
+                <div x-show="rows.length===0" class="text-xs text-white/40 text-center py-3 ak-note">No hero stats — the trio under the headline will be hidden.</div>
             </div>
         </div>
     </div>
 
     {{-- ========== VALUES SECTION ========== --}}
     <div>
-        <h3 class="text-sm font-semibold text-white">Values section</h3>
-        <p class="text-xs text-white/50 mb-3">"What we believe in" heading, supporting line and the value cards row.</p>
+        <h3 class="text-sm font-semibold text-white ak-strong">Values section</h3>
+        <p class="text-xs text-white/50 mb-3 ak-muted">"What we believe in" heading, supporting line and the value cards row.</p>
         <div class="bg-white/5 border border-white/10 rounded-xl p-4 space-y-4">
             <div>
-                <label class="block text-[10px] uppercase tracking-wider text-white/40 mb-1">Heading</label>
-                <input type="text" name="extra[values][heading]" value="{{ $aboutValues['heading'] }}" maxlength="200" placeholder="What we believe in" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
-                @error('extra.values.heading')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
+                <label class="block text-[10px] uppercase tracking-wider text-white/40 mb-1 ak-note">Heading</label>
+                <input type="text" name="extra[values][heading]" value="{{ $aboutValues['heading'] }}" maxlength="200" placeholder="What we believe in" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white ak-strong ak-input">
+                @error('extra.values.heading')<p class="mt-1 text-xs text-red-400 ak-red">{{ $message }}</p>@enderror
             </div>
             <div>
-                <label class="block text-[10px] uppercase tracking-wider text-white/40 mb-1">Subheading</label>
-                <textarea name="extra[values][subheading]" rows="2" maxlength="500" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">{{ $aboutValues['subheading'] }}</textarea>
-                @error('extra.values.subheading')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
+                <label class="block text-[10px] uppercase tracking-wider text-white/40 mb-1 ak-note">Subheading</label>
+                <textarea name="extra[values][subheading]" rows="2" maxlength="500" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white ak-strong ak-input">{{ $aboutValues['subheading'] }}</textarea>
+                @error('extra.values.subheading')<p class="mt-1 text-xs text-red-400 ak-red">{{ $message }}</p>@enderror
             </div>
             <div x-data="{ rows: {{ json_encode($aboutValueCards) }}, moveUp(i){ if(i>0){ const a=this.rows; [a[i-1],a[i]]=[a[i],a[i-1]]; } }, moveDown(i){ const a=this.rows; if(i<a.length-1){ [a[i+1],a[i]]=[a[i],a[i+1]]; } } }">
                 <div class="flex items-center justify-between mb-2">
                     <div>
-                        <label class="text-[10px] uppercase tracking-wider text-white/40">Value cards</label>
-                        <p class="text-[11px] text-white/40">Removing all cards hides the entire row on /about.</p>
+                        <label class="text-[10px] uppercase tracking-wider text-white/40 ak-note">Value cards</label>
+                        <p class="text-[11px] text-white/40 ak-note">Removing all cards hides the entire row on /about.</p>
                     </div>
                     <button type="button" @click="if(rows.length<8) rows.push({icon:'fa-circle-dot',title:'',desc:''})" :disabled="rows.length>=8" class="text-xs px-3 py-1.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 rounded-lg text-white"><i class="fas fa-plus mr-1"></i>Add card</button>
                 </div>
                 <template x-for="(c, i) in rows" :key="i">
                     <div class="bg-white/[0.04] border border-white/10 rounded-lg p-3 mb-2 space-y-2">
                         <div class="flex items-center justify-between gap-2">
-                            <span class="text-[10px] uppercase tracking-wider text-white/40">Card <span x-text="i+1"></span></span>
+                            <span class="text-[10px] uppercase tracking-wider text-white/40 ak-note">Card <span x-text="i+1"></span></span>
                             <div class="flex items-center gap-1">
-                                <button type="button" @click="moveUp(i)" :disabled="i===0" class="text-xs text-white/60 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed px-1.5 py-1"><i class="fas fa-arrow-up"></i></button>
-                                <button type="button" @click="moveDown(i)" :disabled="i===rows.length-1" class="text-xs text-white/60 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed px-1.5 py-1"><i class="fas fa-arrow-down"></i></button>
-                                <button type="button" @click="rows.splice(i,1)" class="text-xs text-red-400 hover:text-red-300 px-1.5 py-1"><i class="fas fa-trash"></i></button>
+                                <button type="button" @click="moveUp(i)" :disabled="i===0" class="text-xs text-white/60 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed px-1.5 py-1 ak-muted"><i class="fas fa-arrow-up"></i></button>
+                                <button type="button" @click="moveDown(i)" :disabled="i===rows.length-1" class="text-xs text-white/60 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed px-1.5 py-1 ak-muted"><i class="fas fa-arrow-down"></i></button>
+                                <button type="button" @click="rows.splice(i,1)" class="text-xs text-red-400 hover:text-red-300 px-1.5 py-1 ak-red"><i class="fas fa-trash"></i></button>
                             </div>
                         </div>
                         <div class="grid sm:grid-cols-[140px_1fr] gap-2">
-                            <input type="text" :name="'extra[values][cards]['+i+'][icon]'" x-model="c.icon" maxlength="60" placeholder="fa-bolt" class="w-full px-2.5 py-1.5 bg-white/5 border border-white/10 rounded text-sm text-white font-mono">
-                            <input type="text" :name="'extra[values][cards]['+i+'][title]'" x-model="c.title" maxlength="200" placeholder="Title" class="w-full px-2.5 py-1.5 bg-white/5 border border-white/10 rounded text-sm text-white">
+                            <input type="text" :name="'extra[values][cards]['+i+'][icon]'" x-model="c.icon" maxlength="60" placeholder="fa-bolt" class="w-full px-2.5 py-1.5 bg-white/5 border border-white/10 rounded text-sm text-white font-mono ak-strong ak-input">
+                            <input type="text" :name="'extra[values][cards]['+i+'][title]'" x-model="c.title" maxlength="200" placeholder="Title" class="w-full px-2.5 py-1.5 bg-white/5 border border-white/10 rounded text-sm text-white ak-strong ak-input">
                         </div>
-                        <textarea :name="'extra[values][cards]['+i+'][desc]'" x-model="c.desc" rows="2" maxlength="500" placeholder="Short description shown under the title." class="w-full px-2.5 py-1.5 bg-white/5 border border-white/10 rounded text-sm text-white"></textarea>
+                        <textarea :name="'extra[values][cards]['+i+'][desc]'" x-model="c.desc" rows="2" maxlength="500" placeholder="Short description shown under the title." class="w-full px-2.5 py-1.5 bg-white/5 border border-white/10 rounded text-sm text-white ak-strong ak-input"></textarea>
                     </div>
                 </template>
-                <div x-show="rows.length===0" class="text-xs text-white/40 text-center py-3">No value cards — the "What we believe in" cards row will be hidden.</div>
+                <div x-show="rows.length===0" class="text-xs text-white/40 text-center py-3 ak-note">No value cards — the "What we believe in" cards row will be hidden.</div>
             </div>
         </div>
     </div>
 
     {{-- ========== STORY IMAGES ========== --}}
     <div>
-        <h3 class="text-sm font-semibold text-white">Story images</h3>
-        <p class="text-xs text-white/50 mb-3">The two side images next to the story sections, plus the wide team band beneath.</p>
+        <h3 class="text-sm font-semibold text-white ak-strong">Story images</h3>
+        <p class="text-xs text-white/50 mb-3 ak-muted">The two side images next to the story sections, plus the wide team band beneath.</p>
         <div class="bg-white/5 border border-white/10 rounded-xl p-4 space-y-4">
             @foreach([
                 ['key' => 'office',    'label' => 'Office image (story side, top)',     'aspect' => '4/3',  'aspectVal' => 4/3,  'output' => 1000, 'placeholderH' => 90],
@@ -255,7 +255,7 @@
             ] as $img)
                 @php $cfg = $aboutStoryImages[$img['key']] ?? ['url' => '', 'alt' => '']; @endphp
                 <div x-data="{ url: @js((string)($cfg['url'] ?? '')) }">
-                    <label class="block text-[10px] uppercase tracking-wider text-white/40 mb-1">{{ $img['label'] }} <span class="normal-case tracking-normal text-white/40">({{ $img['aspect'] }})</span></label>
+                    <label class="block text-[10px] uppercase tracking-wider text-white/40 mb-1 ak-note">{{ $img['label'] }} <span class="normal-case tracking-normal text-white/40 ak-note">({{ $img['aspect'] }})</span></label>
                     <div x-data="aboutPhotoUploader({ get: () => url, set: (v) => url = v, aspect: {{ $img['aspectVal'] }}, outputSize: {{ $img['output'] }}, isCircle: false })" class="space-y-2">
                         <div class="flex items-start gap-3">
                             <div class="shrink-0 text-center">
@@ -263,24 +263,24 @@
                                     <img :src="url" alt="" class="w-40 object-cover rounded-md border border-white/10 bg-white/5" style="height:{{ $img['placeholderH'] }}px" x-on:error="$el.style.display='none'">
                                 </template>
                                 <template x-if="!url">
-                                    <div class="w-40 rounded-md border-2 border-dashed border-white/15 bg-white/5 flex items-center justify-center text-[10px] text-white/40 text-center px-2" style="height:{{ $img['placeholderH'] }}px">Falls back to bundled image</div>
+                                    <div class="w-40 rounded-md border-2 border-dashed border-white/15 bg-white/5 flex items-center justify-center text-[10px] text-white/40 text-center px-2 ak-note" style="height:{{ $img['placeholderH'] }}px">Falls back to bundled image</div>
                                 </template>
-                                <div class="text-[10px] text-white/40 mt-1">Live preview</div>
+                                <div class="text-[10px] text-white/40 mt-1 ak-note">Live preview</div>
                             </div>
                             <div class="flex-1 space-y-2">
-                                <input type="url" name="extra[story_images][{{ $img['key'] }}][url]" x-model="url" placeholder="https://… or /storage/…" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
-                                @error('extra.story_images.'.$img['key'].'.url')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
+                                <input type="url" name="extra[story_images][{{ $img['key'] }}][url]" x-model="url" placeholder="https://… or /storage/…" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white ak-strong ak-input">
+                                @error('extra.story_images.'.$img['key'].'.url')<p class="mt-1 text-xs text-red-400 ak-red">{{ $message }}</p>@enderror
                                 <div class="flex items-center gap-2 flex-wrap">
                                     <button type="button" @click="pickFile()" :disabled="uploading" class="text-xs px-3 py-1.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 rounded-lg text-white inline-flex items-center gap-1">
                                         <i class="fas fa-upload"></i>
                                         <span x-text="uploading ? ('Uploading… ' + progress + '%') : 'Upload image'"></span>
                                     </button>
-                                    <button type="button" x-show="url" @click="recropFromUrl()" :disabled="uploading" class="text-xs px-3 py-1.5 bg-white/10 hover:bg-white/20 disabled:opacity-50 rounded-lg text-white inline-flex items-center gap-1"><i class="fas fa-crop"></i><span>Re-crop current photo</span></button>
-                                    <button type="button" x-show="url" @click="clear()" class="text-xs px-2 py-1.5 text-white/60 hover:text-white"><i class="fas fa-times mr-1"></i>Remove</button>
+                                    <button type="button" x-show="url" @click="recropFromUrl()" :disabled="uploading" class="text-xs px-3 py-1.5 bg-white/10 hover:bg-white/20 disabled:opacity-50 rounded-lg text-white inline-flex items-center gap-1 ak-strong"><i class="fas fa-crop"></i><span>Re-crop current photo</span></button>
+                                    <button type="button" x-show="url" @click="clear()" class="text-xs px-2 py-1.5 text-white/60 hover:text-white ak-muted"><i class="fas fa-times mr-1"></i>Remove</button>
                                 </div>
-                                <p x-show="error" x-text="error" class="text-xs text-red-400"></p>
-                                <input type="text" name="extra[story_images][{{ $img['key'] }}][alt]" value="{{ $cfg['alt'] ?? '' }}" maxlength="200" placeholder="Alt text" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
-                                @error('extra.story_images.'.$img['key'].'.alt')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
+                                <p x-show="error" x-text="error" class="text-xs text-red-400 ak-red"></p>
+                                <input type="text" name="extra[story_images][{{ $img['key'] }}][alt]" value="{{ $cfg['alt'] ?? '' }}" maxlength="200" placeholder="Alt text" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white ak-strong ak-input">
+                                @error('extra.story_images.'.$img['key'].'.alt')<p class="mt-1 text-xs text-red-400 ak-red">{{ $message }}</p>@enderror
                             </div>
                         </div>
                         <input type="file" x-ref="fileInput" @change="handleFile($event)" accept="image/*" class="hidden">
@@ -293,23 +293,23 @@
 
     {{-- ========== SECTION TITLES ========== --}}
     <div>
-        <h3 class="text-sm font-semibold text-white">Section titles</h3>
-        <p class="text-xs text-white/50 mb-3">Headings (and a couple of subheadings) for the lower four sections of /about.</p>
+        <h3 class="text-sm font-semibold text-white ak-strong">Section titles</h3>
+        <p class="text-xs text-white/50 mb-3 ak-muted">Headings (and a couple of subheadings) for the lower four sections of /about.</p>
         <div class="bg-white/5 border border-white/10 rounded-xl p-4 grid sm:grid-cols-2 gap-3">
             <div>
-                <label class="block text-[10px] uppercase tracking-wider text-white/40 mb-1">"Meet the founder" heading</label>
-                <input type="text" name="extra[section_titles][founder]" value="{{ $aboutSectionTitles['founder'] }}" maxlength="200" placeholder="Meet the founder" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
-                @error('extra.section_titles.founder')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
+                <label class="block text-[10px] uppercase tracking-wider text-white/40 mb-1 ak-note">"Meet the founder" heading</label>
+                <input type="text" name="extra[section_titles][founder]" value="{{ $aboutSectionTitles['founder'] }}" maxlength="200" placeholder="Meet the founder" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white ak-strong ak-input">
+                @error('extra.section_titles.founder')<p class="mt-1 text-xs text-red-400 ak-red">{{ $message }}</p>@enderror
             </div>
             <div>
-                <label class="block text-[10px] uppercase tracking-wider text-white/40 mb-1">"Milestones" heading</label>
-                <input type="text" name="extra[section_titles][milestones_title]" value="{{ $aboutSectionTitles['milestones_title'] }}" maxlength="200" placeholder="Milestones" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
-                @error('extra.section_titles.milestones_title')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
+                <label class="block text-[10px] uppercase tracking-wider text-white/40 mb-1 ak-note">"Milestones" heading</label>
+                <input type="text" name="extra[section_titles][milestones_title]" value="{{ $aboutSectionTitles['milestones_title'] }}" maxlength="200" placeholder="Milestones" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white ak-strong ak-input">
+                @error('extra.section_titles.milestones_title')<p class="mt-1 text-xs text-red-400 ak-red">{{ $message }}</p>@enderror
             </div>
             <div>
-                <label class="block text-[10px] uppercase tracking-wider text-white/40 mb-1">"Milestones" subtitle</label>
-                <input type="text" name="extra[section_titles][milestones_subtitle]" value="{{ $aboutSectionTitles['milestones_subtitle'] }}" maxlength="300" placeholder="A short history of how we got here." class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
-                @error('extra.section_titles.milestones_subtitle')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
+                <label class="block text-[10px] uppercase tracking-wider text-white/40 mb-1 ak-note">"Milestones" subtitle</label>
+                <input type="text" name="extra[section_titles][milestones_subtitle]" value="{{ $aboutSectionTitles['milestones_subtitle'] }}" maxlength="300" placeholder="A short history of how we got here." class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white ak-strong ak-input">
+                @error('extra.section_titles.milestones_subtitle')<p class="mt-1 text-xs text-red-400 ak-red">{{ $message }}</p>@enderror
             </div>
         </div>
     </div>
@@ -357,10 +357,10 @@
         }">
         <div class="flex items-center justify-between mb-2">
             <div>
-                <h3 class="text-sm font-semibold text-white">Section order</h3>
-                <p class="text-xs text-white/50">Drag the cards (or use the arrows) to change the order of the lower sections of /about, and use the toggle to show or hide each one without losing its content. The hero, stats, values and story-images blocks above always stay where they are.</p>
+                <h3 class="text-sm font-semibold text-white ak-strong">Section order</h3>
+                <p class="text-xs text-white/50 ak-muted">Drag the cards (or use the arrows) to change the order of the lower sections of /about, and use the toggle to show or hide each one without losing its content. The hero, stats, values and story-images blocks above always stay where they are.</p>
             </div>
-            <button type="button" @click="resetOrder()" class="text-xs px-3 py-1.5 bg-white/10 hover:bg-white/20 rounded-lg text-white"><i class="fas fa-rotate-left mr-1"></i>Reset to default</button>
+            <button type="button" @click="resetOrder()" class="text-xs px-3 py-1.5 bg-white/10 hover:bg-white/20 rounded-lg text-white ak-strong"><i class="fas fa-rotate-left mr-1"></i>Reset to default</button>
         </div>
         <ul class="space-y-2">
             <template x-for="(s, i) in items" :key="s.slug">
@@ -381,14 +381,14 @@
                     {{-- Always submit a value for every slug so the server map is complete:
                          a "1" when visible, "0" when hidden. --}}
                     <input type="hidden" :name="'extra[section_visibility][' + s.slug + ']'" :value="s.visible ? '1' : '0'">
-                    <i class="fas fa-grip-vertical text-white/40 cursor-move" title="Drag to reorder"></i>
-                    <span class="inline-flex items-center justify-center w-6 h-6 rounded-md bg-blue-500/20 border border-blue-400/30 text-[11px] font-semibold text-blue-200" x-text="i + 1"></span>
+                    <i class="fas fa-grip-vertical text-white/40 cursor-move ak-note" title="Drag to reorder"></i>
+                    <span class="inline-flex items-center justify-center w-6 h-6 rounded-md bg-blue-500/20 border border-blue-400/30 text-[11px] font-semibold text-blue-200 ak-blue" x-text="i + 1"></span>
                     <div class="flex-1 min-w-0">
-                        <div class="text-sm font-medium flex items-center gap-2" :class="s.visible ? 'text-white' : 'text-white/60'">
+                        <div class="text-sm font-medium flex items-center gap-2" :class="s.visible ? 'text-white ak-strong' : 'text-white/60 ak-muted'">
                             <span x-text="s.label"></span>
-                            <span x-show="!s.visible" class="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-white/10 text-white/60 border border-white/10">Hidden</span>
+                            <span x-show="!s.visible" class="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-white/10 text-white/60 border border-white/10 ak-muted">Hidden</span>
                         </div>
-                        <div class="text-[11px] text-white/50 truncate" x-text="s.desc"></div>
+                        <div class="text-[11px] text-white/50 truncate ak-muted" x-text="s.desc"></div>
                     </div>
                     <div class="flex items-center gap-1 shrink-0">
                         {{-- Visibility toggle: button-styled switch so it works without extra CSS. --}}
@@ -401,72 +401,72 @@
                             <span class="inline-block h-4 w-4 transform rounded-full bg-white shadow transition"
                                 :class="s.visible ? 'translate-x-4' : 'translate-x-0.5'"></span>
                         </button>
-                        <button type="button" @click="moveUp(i)" :disabled="i===0" class="text-xs text-white/60 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed px-1.5 py-1" title="Move up"><i class="fas fa-arrow-up"></i></button>
-                        <button type="button" @click="moveDown(i)" :disabled="i===items.length-1" class="text-xs text-white/60 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed px-1.5 py-1" title="Move down"><i class="fas fa-arrow-down"></i></button>
+                        <button type="button" @click="moveUp(i)" :disabled="i===0" class="text-xs text-white/60 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed px-1.5 py-1 ak-muted" title="Move up"><i class="fas fa-arrow-up"></i></button>
+                        <button type="button" @click="moveDown(i)" :disabled="i===items.length-1" class="text-xs text-white/60 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed px-1.5 py-1 ak-muted" title="Move down"><i class="fas fa-arrow-down"></i></button>
                     </div>
                 </li>
             </template>
         </ul>
-        @error('extra.section_order')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
-        @error('extra.section_order.*')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
-        @error('extra.section_visibility')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
-        @error('extra.section_visibility.*')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
+        @error('extra.section_order')<p class="mt-1 text-xs text-red-400 ak-red">{{ $message }}</p>@enderror
+        @error('extra.section_order.*')<p class="mt-1 text-xs text-red-400 ak-red">{{ $message }}</p>@enderror
+        @error('extra.section_visibility')<p class="mt-1 text-xs text-red-400 ak-red">{{ $message }}</p>@enderror
+        @error('extra.section_visibility.*')<p class="mt-1 text-xs text-red-400 ak-red">{{ $message }}</p>@enderror
     </div>
 
     {{-- ========== BOTTOM CTA ========== --}}
     <div>
-        <h3 class="text-sm font-semibold text-white">Bottom call to action</h3>
-        <p class="text-xs text-white/50 mb-3">The "Want to build with us?" panel at the foot of /about.</p>
+        <h3 class="text-sm font-semibold text-white ak-strong">Bottom call to action</h3>
+        <p class="text-xs text-white/50 mb-3 ak-muted">The "Want to build with us?" panel at the foot of /about.</p>
         <div class="bg-white/5 border border-white/10 rounded-xl p-4 space-y-3">
             <div>
-                <label class="block text-[10px] uppercase tracking-wider text-white/40 mb-1">Heading</label>
-                <input type="text" name="extra[cta][heading]" value="{{ $aboutCta['heading'] }}" maxlength="200" placeholder="Want to build with us?" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
-                @error('extra.cta.heading')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
+                <label class="block text-[10px] uppercase tracking-wider text-white/40 mb-1 ak-note">Heading</label>
+                <input type="text" name="extra[cta][heading]" value="{{ $aboutCta['heading'] }}" maxlength="200" placeholder="Want to build with us?" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white ak-strong ak-input">
+                @error('extra.cta.heading')<p class="mt-1 text-xs text-red-400 ak-red">{{ $message }}</p>@enderror
             </div>
             <div>
-                <label class="block text-[10px] uppercase tracking-wider text-white/40 mb-1">Body paragraph</label>
-                <textarea name="extra[cta][body]" rows="3" maxlength="1000" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">{{ $aboutCta['body'] }}</textarea>
-                @error('extra.cta.body')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
+                <label class="block text-[10px] uppercase tracking-wider text-white/40 mb-1 ak-note">Body paragraph</label>
+                <textarea name="extra[cta][body]" rows="3" maxlength="1000" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white ak-strong ak-input">{{ $aboutCta['body'] }}</textarea>
+                @error('extra.cta.body')<p class="mt-1 text-xs text-red-400 ak-red">{{ $message }}</p>@enderror
             </div>
             <div class="grid sm:grid-cols-2 gap-3">
                 <div>
-                    <label class="block text-[10px] uppercase tracking-wider text-white/40 mb-1">Primary button label</label>
-                    <input type="text" name="extra[cta][primary_label]" value="{{ $aboutCta['primary_label'] }}" maxlength="120" placeholder="Try Sayzio free" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
-                    @error('extra.cta.primary_label')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
+                    <label class="block text-[10px] uppercase tracking-wider text-white/40 mb-1 ak-note">Primary button label</label>
+                    <input type="text" name="extra[cta][primary_label]" value="{{ $aboutCta['primary_label'] }}" maxlength="120" placeholder="Try Sayzio free" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white ak-strong ak-input">
+                    @error('extra.cta.primary_label')<p class="mt-1 text-xs text-red-400 ak-red">{{ $message }}</p>@enderror
                 </div>
                 <div>
-                    <label class="block text-[10px] uppercase tracking-wider text-white/40 mb-1">Primary button URL <span class="normal-case tracking-normal text-white/40">(blank = register page)</span></label>
-                    <input type="text" name="extra[cta][primary_url]" value="{{ $aboutCta['primary_url'] }}" maxlength="500" placeholder="/register or https://…" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
-                    @error('extra.cta.primary_url')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
+                    <label class="block text-[10px] uppercase tracking-wider text-white/40 mb-1 ak-note">Primary button URL <span class="normal-case tracking-normal text-white/40 ak-note">(blank = register page)</span></label>
+                    <input type="text" name="extra[cta][primary_url]" value="{{ $aboutCta['primary_url'] }}" maxlength="500" placeholder="/register or https://…" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white ak-strong ak-input">
+                    @error('extra.cta.primary_url')<p class="mt-1 text-xs text-red-400 ak-red">{{ $message }}</p>@enderror
                 </div>
                 <div>
-                    <label class="block text-[10px] uppercase tracking-wider text-white/40 mb-1">Secondary button label</label>
-                    <input type="text" name="extra[cta][secondary_label]" value="{{ $aboutCta['secondary_label'] }}" maxlength="120" placeholder="Say hello" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
-                    @error('extra.cta.secondary_label')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
+                    <label class="block text-[10px] uppercase tracking-wider text-white/40 mb-1 ak-note">Secondary button label</label>
+                    <input type="text" name="extra[cta][secondary_label]" value="{{ $aboutCta['secondary_label'] }}" maxlength="120" placeholder="Say hello" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white ak-strong ak-input">
+                    @error('extra.cta.secondary_label')<p class="mt-1 text-xs text-red-400 ak-red">{{ $message }}</p>@enderror
                 </div>
                 <div>
-                    <label class="block text-[10px] uppercase tracking-wider text-white/40 mb-1">Secondary button URL <span class="normal-case tracking-normal text-white/40">(blank = contact page)</span></label>
-                    <input type="text" name="extra[cta][secondary_url]" value="{{ $aboutCta['secondary_url'] }}" maxlength="500" placeholder="/contact or https://…" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
-                    @error('extra.cta.secondary_url')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
+                    <label class="block text-[10px] uppercase tracking-wider text-white/40 mb-1 ak-note">Secondary button URL <span class="normal-case tracking-normal text-white/40 ak-note">(blank = contact page)</span></label>
+                    <input type="text" name="extra[cta][secondary_url]" value="{{ $aboutCta['secondary_url'] }}" maxlength="500" placeholder="/contact or https://…" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white ak-strong ak-input">
+                    @error('extra.cta.secondary_url')<p class="mt-1 text-xs text-red-400 ak-red">{{ $message }}</p>@enderror
                 </div>
             </div>
         </div>
     </div>
 
     <div>
-        <h3 class="text-sm font-semibold text-white">Founder</h3>
-        <p class="text-xs text-white/50 mb-3">The featured founder card at the top of /about.</p>
+        <h3 class="text-sm font-semibold text-white ak-strong">Founder</h3>
+        <p class="text-xs text-white/50 mb-3 ak-muted">The featured founder card at the top of /about.</p>
         <div class="bg-white/5 border border-white/10 rounded-xl p-4 grid sm:grid-cols-2 gap-3">
             <div>
-                <label class="block text-[10px] uppercase tracking-wider text-white/40 mb-1">Name</label>
-                <input type="text" name="extra[founder][name]" value="{{ $founder['name'] ?? '' }}" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
+                <label class="block text-[10px] uppercase tracking-wider text-white/40 mb-1 ak-note">Name</label>
+                <input type="text" name="extra[founder][name]" value="{{ $founder['name'] ?? '' }}" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white ak-strong ak-input">
             </div>
             <div>
-                <label class="block text-[10px] uppercase tracking-wider text-white/40 mb-1">Role / title</label>
-                <input type="text" name="extra[founder][role]" value="{{ $founder['role'] ?? '' }}" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
+                <label class="block text-[10px] uppercase tracking-wider text-white/40 mb-1 ak-note">Role / title</label>
+                <input type="text" name="extra[founder][role]" value="{{ $founder['role'] ?? '' }}" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white ak-strong ak-input">
             </div>
             <div class="sm:col-span-2" x-data="{ photo: @js((string)($founder['photo'] ?? '')) }">
-                <label class="block text-[10px] uppercase tracking-wider text-white/40 mb-1">Photo <span class="normal-case tracking-normal text-white/40">(upload an image or paste a URL)</span></label>
+                <label class="block text-[10px] uppercase tracking-wider text-white/40 mb-1 ak-note">Photo <span class="normal-case tracking-normal text-white/40 ak-note">(upload an image or paste a URL)</span></label>
                 <div x-data="aboutPhotoUploader({ get: () => photo, set: (v) => photo = v })" class="space-y-2">
                     <div class="flex items-start gap-3">
                         <div class="shrink-0 text-center">
@@ -474,21 +474,21 @@
                                 <img :src="photo" alt="" class="w-32 h-32 rounded-full object-cover border-2 border-blue-400/40 bg-white/5" x-on:error="$el.style.display='none'">
                             </template>
                             <template x-if="!photo">
-                                <div class="w-32 h-32 rounded-full border-2 border-dashed border-white/15 bg-white/5 flex items-center justify-center text-[10px] text-white/40 text-center px-2">As shown on /about</div>
+                                <div class="w-32 h-32 rounded-full border-2 border-dashed border-white/15 bg-white/5 flex items-center justify-center text-[10px] text-white/40 text-center px-2 ak-note">As shown on /about</div>
                             </template>
-                            <div class="text-[10px] text-white/40 mt-1">Live /about preview</div>
+                            <div class="text-[10px] text-white/40 mt-1 ak-note">Live /about preview</div>
                         </div>
                         <div class="flex-1 space-y-2">
-                            <input type="url" name="extra[founder][photo]" x-model="photo" placeholder="https://… or upload below" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
+                            <input type="url" name="extra[founder][photo]" x-model="photo" placeholder="https://… or upload below" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white ak-strong ak-input">
                             <div class="flex items-center gap-2 flex-wrap">
                                 <button type="button" @click="pickFile()" :disabled="uploading" class="text-xs px-3 py-1.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 rounded-lg text-white inline-flex items-center gap-1">
                                     <i class="fas fa-upload"></i>
                                     <span x-text="uploading ? ('Uploading… ' + progress + '%') : 'Upload image'"></span>
                                 </button>
-                                <button type="button" x-show="photo" @click="recropFromUrl()" :disabled="uploading" class="text-xs px-3 py-1.5 bg-white/10 hover:bg-white/20 disabled:opacity-50 rounded-lg text-white inline-flex items-center gap-1" title="Re-crop the photo currently in the URL field"><i class="fas fa-crop"></i><span>Re-crop current photo</span></button>
-                                <button type="button" x-show="photo" @click="clear()" class="text-xs px-2 py-1.5 text-white/60 hover:text-white"><i class="fas fa-times mr-1"></i>Remove</button>
+                                <button type="button" x-show="photo" @click="recropFromUrl()" :disabled="uploading" class="text-xs px-3 py-1.5 bg-white/10 hover:bg-white/20 disabled:opacity-50 rounded-lg text-white inline-flex items-center gap-1 ak-strong" title="Re-crop the photo currently in the URL field"><i class="fas fa-crop"></i><span>Re-crop current photo</span></button>
+                                <button type="button" x-show="photo" @click="clear()" class="text-xs px-2 py-1.5 text-white/60 hover:text-white ak-muted"><i class="fas fa-times mr-1"></i>Remove</button>
                             </div>
-                            <p x-show="error" x-text="error" class="text-xs text-red-400"></p>
+                            <p x-show="error" x-text="error" class="text-xs text-red-400 ak-red"></p>
                         </div>
                     </div>
                     <input type="file" x-ref="fileInput" @change="handleFile($event)" accept="image/*" class="hidden">
@@ -496,96 +496,96 @@
                 </div>
             </div>
             <div class="sm:col-span-2">
-                <label class="block text-[10px] uppercase tracking-wider text-white/40 mb-1">Short bio</label>
-                <textarea name="extra[founder][bio]" rows="3" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">{{ $founder['bio'] ?? '' }}</textarea>
+                <label class="block text-[10px] uppercase tracking-wider text-white/40 mb-1 ak-note">Short bio</label>
+                <textarea name="extra[founder][bio]" rows="3" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white ak-strong ak-input">{{ $founder['bio'] ?? '' }}</textarea>
             </div>
             <div>
-                <label class="block text-[10px] uppercase tracking-wider text-white/40 mb-1">Twitter / X URL</label>
-                <input type="url" name="extra[founder][links][twitter]" value="{{ $founder['links']['twitter'] ?? '' }}" placeholder="https://x.com/…" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
+                <label class="block text-[10px] uppercase tracking-wider text-white/40 mb-1 ak-note">Twitter / X URL</label>
+                <input type="url" name="extra[founder][links][twitter]" value="{{ $founder['links']['twitter'] ?? '' }}" placeholder="https://x.com/…" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white ak-strong ak-input">
             </div>
             <div>
-                <label class="block text-[10px] uppercase tracking-wider text-white/40 mb-1">LinkedIn URL</label>
-                <input type="url" name="extra[founder][links][linkedin]" value="{{ $founder['links']['linkedin'] ?? '' }}" placeholder="https://linkedin.com/in/…" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
+                <label class="block text-[10px] uppercase tracking-wider text-white/40 mb-1 ak-note">LinkedIn URL</label>
+                <input type="url" name="extra[founder][links][linkedin]" value="{{ $founder['links']['linkedin'] ?? '' }}" placeholder="https://linkedin.com/in/…" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white ak-strong ak-input">
             </div>
         </div>
     </div>
 
     {{-- ========== ABOUT EEFIND (PARENT COMPANY) ========== --}}
     <div>
-        <h3 class="text-sm font-semibold text-white">About EEFind (parent company)</h3>
-        <p class="text-xs text-white/50 mb-3">The parent-company block explaining that Sayzio is built by EEFind Private Limited. Use the Section order control above to position or hide it.</p>
+        <h3 class="text-sm font-semibold text-white ak-strong">About EEFind (parent company)</h3>
+        <p class="text-xs text-white/50 mb-3 ak-muted">The parent-company block explaining that Sayzio is built by EEFind Private Limited. Use the Section order control above to position or hide it.</p>
         <div class="bg-white/5 border border-white/10 rounded-xl p-4 space-y-4">
             <div class="grid sm:grid-cols-2 gap-3">
                 <div>
-                    <label class="block text-[10px] uppercase tracking-wider text-white/40 mb-1">Eyebrow / pill label</label>
-                    <input type="text" name="extra[eefind][eyebrow]" value="{{ $aboutEefind['eyebrow'] }}" maxlength="120" placeholder="Part of EEFind" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
-                    @error('extra.eefind.eyebrow')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
+                    <label class="block text-[10px] uppercase tracking-wider text-white/40 mb-1 ak-note">Eyebrow / pill label</label>
+                    <input type="text" name="extra[eefind][eyebrow]" value="{{ $aboutEefind['eyebrow'] }}" maxlength="120" placeholder="Part of EEFind" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white ak-strong ak-input">
+                    @error('extra.eefind.eyebrow')<p class="mt-1 text-xs text-red-400 ak-red">{{ $message }}</p>@enderror
                 </div>
                 <div>
-                    <label class="block text-[10px] uppercase tracking-wider text-white/40 mb-1">Heading</label>
-                    <input type="text" name="extra[eefind][heading]" value="{{ $aboutEefind['heading'] }}" maxlength="200" placeholder="Built by EEFind Private Limited" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
-                    @error('extra.eefind.heading')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
+                    <label class="block text-[10px] uppercase tracking-wider text-white/40 mb-1 ak-note">Heading</label>
+                    <input type="text" name="extra[eefind][heading]" value="{{ $aboutEefind['heading'] }}" maxlength="200" placeholder="Built by EEFind Private Limited" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white ak-strong ak-input">
+                    @error('extra.eefind.heading')<p class="mt-1 text-xs text-red-400 ak-red">{{ $message }}</p>@enderror
                 </div>
             </div>
             <div>
-                <label class="block text-[10px] uppercase tracking-wider text-white/40 mb-1">Body</label>
-                <textarea name="extra[eefind][body]" rows="4" maxlength="2000" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">{{ $aboutEefind['body'] }}</textarea>
-                @error('extra.eefind.body')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
+                <label class="block text-[10px] uppercase tracking-wider text-white/40 mb-1 ak-note">Body</label>
+                <textarea name="extra[eefind][body]" rows="4" maxlength="2000" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white ak-strong ak-input">{{ $aboutEefind['body'] }}</textarea>
+                @error('extra.eefind.body')<p class="mt-1 text-xs text-red-400 ak-red">{{ $message }}</p>@enderror
             </div>
 
             <div x-data="{ rows: {{ json_encode($aboutEefindStats) }}, moveUp(i){ if(i>0){ const a=this.rows; [a[i-1],a[i]]=[a[i],a[i-1]]; } }, moveDown(i){ const a=this.rows; if(i<a.length-1){ [a[i+1],a[i]]=[a[i],a[i+1]]; } } }">
                 <div class="flex items-center justify-between mb-2">
                     <div>
-                        <label class="text-[10px] uppercase tracking-wider text-white/40">Company stats</label>
-                        <p class="text-[11px] text-white/40">Numeric values animate; non-numeric values are shown as plain text. Remove all to hide the row.</p>
+                        <label class="text-[10px] uppercase tracking-wider text-white/40 ak-note">Company stats</label>
+                        <p class="text-[11px] text-white/40 ak-note">Numeric values animate; non-numeric values are shown as plain text. Remove all to hide the row.</p>
                     </div>
                     <button type="button" @click="if(rows.length<6) rows.push({value:'',suffix:'',label:''})" :disabled="rows.length>=6" class="text-xs px-3 py-1.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 rounded-lg text-white"><i class="fas fa-plus mr-1"></i>Add stat</button>
                 </div>
                 <template x-for="(s, i) in rows" :key="i">
                     <div class="bg-white/[0.04] border border-white/10 rounded-lg p-3 mb-2 space-y-2">
                         <div class="flex items-center justify-between gap-2">
-                            <span class="text-[10px] uppercase tracking-wider text-white/40">Stat <span x-text="i+1"></span></span>
+                            <span class="text-[10px] uppercase tracking-wider text-white/40 ak-note">Stat <span x-text="i+1"></span></span>
                             <div class="flex items-center gap-1">
-                                <button type="button" @click="moveUp(i)" :disabled="i===0" class="text-xs text-white/60 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed px-1.5 py-1"><i class="fas fa-arrow-up"></i></button>
-                                <button type="button" @click="moveDown(i)" :disabled="i===rows.length-1" class="text-xs text-white/60 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed px-1.5 py-1"><i class="fas fa-arrow-down"></i></button>
-                                <button type="button" @click="rows.splice(i,1)" class="text-xs text-red-400 hover:text-red-300 px-1.5 py-1"><i class="fas fa-trash"></i></button>
+                                <button type="button" @click="moveUp(i)" :disabled="i===0" class="text-xs text-white/60 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed px-1.5 py-1 ak-muted"><i class="fas fa-arrow-up"></i></button>
+                                <button type="button" @click="moveDown(i)" :disabled="i===rows.length-1" class="text-xs text-white/60 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed px-1.5 py-1 ak-muted"><i class="fas fa-arrow-down"></i></button>
+                                <button type="button" @click="rows.splice(i,1)" class="text-xs text-red-400 hover:text-red-300 px-1.5 py-1 ak-red"><i class="fas fa-trash"></i></button>
                             </div>
                         </div>
                         <div class="grid sm:grid-cols-3 gap-2">
-                            <input type="text" :name="'extra[eefind][stats]['+i+'][value]'" x-model="s.value" maxlength="40" placeholder="4000" class="w-full px-2.5 py-1.5 bg-white/5 border border-white/10 rounded text-sm text-white">
-                            <input type="text" :name="'extra[eefind][stats]['+i+'][suffix]'" x-model="s.suffix" maxlength="10" placeholder="+" class="w-full px-2.5 py-1.5 bg-white/5 border border-white/10 rounded text-sm text-white">
-                            <input type="text" :name="'extra[eefind][stats]['+i+'][label]'" x-model="s.label" maxlength="120" placeholder="Products" class="w-full px-2.5 py-1.5 bg-white/5 border border-white/10 rounded text-sm text-white">
+                            <input type="text" :name="'extra[eefind][stats]['+i+'][value]'" x-model="s.value" maxlength="40" placeholder="4000" class="w-full px-2.5 py-1.5 bg-white/5 border border-white/10 rounded text-sm text-white ak-strong ak-input">
+                            <input type="text" :name="'extra[eefind][stats]['+i+'][suffix]'" x-model="s.suffix" maxlength="10" placeholder="+" class="w-full px-2.5 py-1.5 bg-white/5 border border-white/10 rounded text-sm text-white ak-strong ak-input">
+                            <input type="text" :name="'extra[eefind][stats]['+i+'][label]'" x-model="s.label" maxlength="120" placeholder="Products" class="w-full px-2.5 py-1.5 bg-white/5 border border-white/10 rounded text-sm text-white ak-strong ak-input">
                         </div>
                     </div>
                 </template>
-                <div x-show="rows.length===0" class="text-xs text-white/40 text-center py-3">No stats, the company stats row will be hidden.</div>
+                <div x-show="rows.length===0" class="text-xs text-white/40 text-center py-3 ak-note">No stats, the company stats row will be hidden.</div>
             </div>
 
             <div class="grid sm:grid-cols-2 gap-3">
                 <div class="sm:col-span-2">
-                    <label class="block text-[10px] uppercase tracking-wider text-white/40 mb-1">Registered office address</label>
-                    <input type="text" name="extra[eefind][address]" value="{{ $aboutEefind['address'] }}" maxlength="300" placeholder="8 Amrutha Nilayam, Banjara Hills, Hyderabad, Telangana 500034" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
-                    @error('extra.eefind.address')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
+                    <label class="block text-[10px] uppercase tracking-wider text-white/40 mb-1 ak-note">Registered office address</label>
+                    <input type="text" name="extra[eefind][address]" value="{{ $aboutEefind['address'] }}" maxlength="300" placeholder="8 Amrutha Nilayam, Banjara Hills, Hyderabad, Telangana 500034" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white ak-strong ak-input">
+                    @error('extra.eefind.address')<p class="mt-1 text-xs text-red-400 ak-red">{{ $message }}</p>@enderror
                 </div>
                 <div>
-                    <label class="block text-[10px] uppercase tracking-wider text-white/40 mb-1">Support email</label>
-                    <input type="text" name="extra[eefind][email]" value="{{ $aboutEefind['email'] }}" maxlength="190" placeholder="support@eefind.com" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
-                    @error('extra.eefind.email')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
+                    <label class="block text-[10px] uppercase tracking-wider text-white/40 mb-1 ak-note">Support email</label>
+                    <input type="text" name="extra[eefind][email]" value="{{ $aboutEefind['email'] }}" maxlength="190" placeholder="support@eefind.com" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white ak-strong ak-input">
+                    @error('extra.eefind.email')<p class="mt-1 text-xs text-red-400 ak-red">{{ $message }}</p>@enderror
                 </div>
                 <div>
-                    <label class="block text-[10px] uppercase tracking-wider text-white/40 mb-1">WhatsApp</label>
-                    <input type="text" name="extra[eefind][whatsapp]" value="{{ $aboutEefind['whatsapp'] }}" maxlength="60" placeholder="+91 81210 57755" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
-                    @error('extra.eefind.whatsapp')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
+                    <label class="block text-[10px] uppercase tracking-wider text-white/40 mb-1 ak-note">WhatsApp</label>
+                    <input type="text" name="extra[eefind][whatsapp]" value="{{ $aboutEefind['whatsapp'] }}" maxlength="60" placeholder="+91 81210 57755" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white ak-strong ak-input">
+                    @error('extra.eefind.whatsapp')<p class="mt-1 text-xs text-red-400 ak-red">{{ $message }}</p>@enderror
                 </div>
                 <div>
-                    <label class="block text-[10px] uppercase tracking-wider text-white/40 mb-1">Website (display text)</label>
-                    <input type="text" name="extra[eefind][website]" value="{{ $aboutEefind['website'] }}" maxlength="190" placeholder="eefind.com" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
-                    @error('extra.eefind.website')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
+                    <label class="block text-[10px] uppercase tracking-wider text-white/40 mb-1 ak-note">Website (display text)</label>
+                    <input type="text" name="extra[eefind][website]" value="{{ $aboutEefind['website'] }}" maxlength="190" placeholder="eefind.com" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white ak-strong ak-input">
+                    @error('extra.eefind.website')<p class="mt-1 text-xs text-red-400 ak-red">{{ $message }}</p>@enderror
                 </div>
                 <div>
-                    <label class="block text-[10px] uppercase tracking-wider text-white/40 mb-1">Website URL <span class="normal-case tracking-normal text-white/40">(blank = https://eefind.com)</span></label>
-                    <input type="text" name="extra[eefind][website_url]" value="{{ $aboutEefind['website_url'] }}" maxlength="300" placeholder="https://eefind.com" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
-                    @error('extra.eefind.website_url')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
+                    <label class="block text-[10px] uppercase tracking-wider text-white/40 mb-1 ak-note">Website URL <span class="normal-case tracking-normal text-white/40 ak-note">(blank = https://eefind.com)</span></label>
+                    <input type="text" name="extra[eefind][website_url]" value="{{ $aboutEefind['website_url'] }}" maxlength="300" placeholder="https://eefind.com" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white ak-strong ak-input">
+                    @error('extra.eefind.website_url')<p class="mt-1 text-xs text-red-400 ak-red">{{ $message }}</p>@enderror
                 </div>
             </div>
         </div>
@@ -594,29 +594,29 @@
     <div x-data="{ rows: {{ json_encode($milestoneRows) }}, moveUp(i){ if(i>0){ const a=this.rows; [a[i-1],a[i]]=[a[i],a[i-1]]; } }, moveDown(i){ const a=this.rows; if(i<a.length-1){ [a[i+1],a[i]]=[a[i],a[i+1]]; } } }">
         <div class="flex items-center justify-between mb-2">
             <div>
-                <h3 class="text-sm font-semibold text-white">Milestones timeline</h3>
-                <p class="text-xs text-white/50">Use <code class="text-white/60">YYYY-MM</code> or <code class="text-white/60">YYYY-MM-DD</code> for dates.</p>
+                <h3 class="text-sm font-semibold text-white ak-strong">Milestones timeline</h3>
+                <p class="text-xs text-white/50 ak-muted">Use <code class="text-white/60 ak-muted">YYYY-MM</code> or <code class="text-white/60 ak-muted">YYYY-MM-DD</code> for dates.</p>
             </div>
             <button type="button" @click="rows.push({date:'',title:'',description:''})" class="text-xs px-3 py-1.5 bg-blue-600 hover:bg-blue-700 rounded-lg text-white"><i class="fas fa-plus mr-1"></i>Add milestone</button>
         </div>
         <template x-for="(m, i) in rows" :key="i">
             <div class="bg-white/5 border border-white/10 rounded-xl p-4 mb-3 space-y-2">
                 <div class="flex items-center justify-between gap-2">
-                    <span class="text-[10px] uppercase tracking-wider text-white/40">Milestone <span x-text="i+1"></span></span>
+                    <span class="text-[10px] uppercase tracking-wider text-white/40 ak-note">Milestone <span x-text="i+1"></span></span>
                     <div class="flex items-center gap-1">
-                        <button type="button" @click="moveUp(i)" :disabled="i===0" class="text-xs text-white/60 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed px-1.5 py-1" title="Move up"><i class="fas fa-arrow-up"></i></button>
-                        <button type="button" @click="moveDown(i)" :disabled="i===rows.length-1" class="text-xs text-white/60 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed px-1.5 py-1" title="Move down"><i class="fas fa-arrow-down"></i></button>
-                        <button type="button" @click="rows.splice(i,1)" class="text-xs text-red-400 hover:text-red-300 px-1.5 py-1"><i class="fas fa-trash"></i></button>
+                        <button type="button" @click="moveUp(i)" :disabled="i===0" class="text-xs text-white/60 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed px-1.5 py-1 ak-muted" title="Move up"><i class="fas fa-arrow-up"></i></button>
+                        <button type="button" @click="moveDown(i)" :disabled="i===rows.length-1" class="text-xs text-white/60 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed px-1.5 py-1 ak-muted" title="Move down"><i class="fas fa-arrow-down"></i></button>
+                        <button type="button" @click="rows.splice(i,1)" class="text-xs text-red-400 hover:text-red-300 px-1.5 py-1 ak-red"><i class="fas fa-trash"></i></button>
                     </div>
                 </div>
                 <div class="grid sm:grid-cols-3 gap-3">
-                    <input type="text" :name="'extra[milestones]['+i+'][date]'" x-model="m.date" placeholder="2024-03" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white font-mono">
-                    <input type="text" :name="'extra[milestones]['+i+'][title]'" x-model="m.title" placeholder="Title" class="sm:col-span-2 w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
+                    <input type="text" :name="'extra[milestones]['+i+'][date]'" x-model="m.date" placeholder="2024-03" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white font-mono ak-strong ak-input">
+                    <input type="text" :name="'extra[milestones]['+i+'][title]'" x-model="m.title" placeholder="Title" class="sm:col-span-2 w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white ak-strong ak-input">
                 </div>
-                <textarea :name="'extra[milestones]['+i+'][description]'" x-model="m.description" rows="2" placeholder="What happened" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white"></textarea>
+                <textarea :name="'extra[milestones]['+i+'][description]'" x-model="m.description" rows="2" placeholder="What happened" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white ak-strong ak-input"></textarea>
             </div>
         </template>
-        <div x-show="rows.length===0" class="text-xs text-white/40 text-center py-4">No milestones yet, click "Add milestone".</div>
+        <div x-show="rows.length===0" class="text-xs text-white/40 text-center py-4 ak-note">No milestones yet, click "Add milestone".</div>
     </div>
 </div>
 
@@ -641,22 +641,22 @@
          class="fixed bottom-4 right-4 z-40 w-[min(440px,calc(100vw-2rem))] h-[min(78vh,720px)] rounded-2xl bg-[#0b0712] border border-white/10 shadow-2xl shadow-black/60 flex flex-col overflow-hidden">
         <div class="flex items-center justify-between gap-2 px-3 py-2 border-b border-white/10 bg-white/5">
             <div class="flex items-center gap-2 min-w-0">
-                <i class="fas fa-eye text-blue-400 text-xs"></i>
-                <span class="text-xs font-semibold text-white truncate">About preview</span>
-                <span x-show="loading" class="text-[10px] uppercase tracking-wider text-white/40">Loading…</span>
+                <i class="fas fa-eye text-blue-400 text-xs ak-blue"></i>
+                <span class="text-xs font-semibold text-white truncate ak-strong">About preview</span>
+                <span x-show="loading" class="text-[10px] uppercase tracking-wider text-white/40 ak-note">Loading…</span>
             </div>
             <div class="flex items-center gap-0.5 shrink-0">
-                <button type="button" @click="reload()" class="text-xs px-2 py-1 rounded text-white/70 hover:text-white hover:bg-white/10" title="Refresh preview"><i class="fas fa-rotate-right"></i></button>
-                <a :href="src" target="_blank" rel="noopener" class="text-xs px-2 py-1 rounded text-white/70 hover:text-white hover:bg-white/10" title="Open /about in a new tab"><i class="fas fa-up-right-from-square"></i></a>
-                <button type="button" @click="setOpen(false)" class="text-xs px-2 py-1 rounded text-white/70 hover:text-white hover:bg-white/10" title="Close preview"><i class="fas fa-xmark"></i></button>
+                <button type="button" @click="reload()" class="text-xs px-2 py-1 rounded text-white/70 hover:text-white hover:bg-white/10 ak-strong" title="Refresh preview"><i class="fas fa-rotate-right"></i></button>
+                <a :href="src" target="_blank" rel="noopener" class="text-xs px-2 py-1 rounded text-white/70 hover:text-white hover:bg-white/10 ak-strong" title="Open /about in a new tab"><i class="fas fa-up-right-from-square"></i></a>
+                <button type="button" @click="setOpen(false)" class="text-xs px-2 py-1 rounded text-white/70 hover:text-white hover:bg-white/10 ak-strong" title="Close preview"><i class="fas fa-xmark"></i></button>
             </div>
         </div>
         <div class="flex-1 bg-white">
             <iframe :src="src" @load="loading=false" class="w-full h-full border-0 block" title="About page preview"></iframe>
         </div>
-        <div class="px-3 py-1.5 text-[10px] text-white/50 border-t border-white/10 bg-black/30 flex items-center justify-between gap-2">
+        <div class="px-3 py-1.5 text-[10px] text-white/50 border-t border-white/10 bg-black/30 flex items-center justify-between gap-2 ak-muted">
             <span class="truncate">Save changes to refresh the preview.</span>
-            <span class="shrink-0 text-white/30">/about</span>
+            <span class="shrink-0 text-white/30 ak-note">/about</span>
         </div>
     </div>
 </div>

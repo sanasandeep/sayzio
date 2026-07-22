@@ -11,17 +11,17 @@
     @endif
 
     <div class="glass rounded-2xl p-6">
-        <h2 class="text-lg font-semibold text-white mb-1">Social profile links</h2>
-        <p class="text-sm text-white/50 mb-6">
+        <h2 class="text-lg font-semibold text-white mb-1 ak-strong">Social profile links</h2>
+        <p class="text-sm text-white/50 mb-6 ak-muted">
             Paste the full URL to each of your brand's public social profiles. We'll show an icon for every network you fill in
-            in the public site footer; networks left blank are hidden entirely. Each URL must start with <code class="text-blue-300">http://</code> or <code class="text-blue-300">https://</code>.
+            in the public site footer; networks left blank are hidden entirely. Each URL must start with <code class="text-blue-300 ak-blue">http://</code> or <code class="text-blue-300 ak-blue">https://</code>.
         </p>
 
         <form method="POST" action="{{ route('admin.social-links.update') }}" class="space-y-4">
             @csrf
             @foreach($networks as $key => $meta)
                 <div>
-                    <label class="block text-xs font-semibold uppercase tracking-wider text-white/60 mb-1.5">
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-white/60 mb-1.5 ak-muted">
                         <i class="fa-brands {{ $meta['icon'] }} mr-1.5"></i>
                         {{ $meta['label'] }}
                     </label>
@@ -29,9 +29,9 @@
                            name="{{ $key }}"
                            value="{{ old($key, $values[$key]) }}"
                            placeholder="{{ $meta['placeholder'] }}"
-                           class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
+                           class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white ak-strong ak-input">
                     @error($key)
-                        <p class="mt-1 text-xs text-red-400">{{ $message }}</p>
+                        <p class="mt-1 text-xs text-red-400 ak-red">{{ $message }}</p>
                     @enderror
                 </div>
             @endforeach

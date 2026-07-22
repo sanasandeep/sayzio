@@ -34,7 +34,7 @@
                         <option value="country">Users in a specific country</option>
                         <option value="user">Specific users (emails or IDs)</option>
                     </select>
-                    @error('target_kind')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
+                    @error('target_kind')<p class="mt-1 text-xs text-red-400 ak-red">{{ $message }}</p>@enderror
                 </div>
 
                 <div>
@@ -78,7 +78,7 @@
                         <input type="text" disabled value="All active users" class="theme-input w-full opacity-60"/>
                     </template>
 
-                    @error('target_value')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
+                    @error('target_value')<p class="mt-1 text-xs text-red-400 ak-red">{{ $message }}</p>@enderror
                 </div>
             </div>
 
@@ -87,7 +87,7 @@
                 <input type="text" name="subject" value="{{ old('subject') }}" maxlength="200" required
                        placeholder="Scheduled maintenance Sunday 02:00 IST"
                        class="theme-input w-full"/>
-                @error('subject')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
+                @error('subject')<p class="mt-1 text-xs text-red-400 ak-red">{{ $message }}</p>@enderror
             </div>
 
             <div>
@@ -95,14 +95,14 @@
                 <textarea name="body" rows="4" maxlength="4000" required
                           placeholder="Hi! We're rolling out a new analytics filter on Sunday…"
                           class="theme-input w-full">{{ old('body') }}</textarea>
-                @error('body')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
+                @error('body')<p class="mt-1 text-xs text-red-400 ak-red">{{ $message }}</p>@enderror
             </div>
 
             <div>
                 <label class="block text-xs font-semibold uppercase tracking-wider mb-1.5" style="color: var(--text-dimmed);">Optional CTA URL</label>
                 <input type="url" name="target_url" value="{{ old('target_url') }}" placeholder="https://1inme.com/changelog"
                        class="theme-input w-full"/>
-                @error('target_url')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
+                @error('target_url')<p class="mt-1 text-xs text-red-400 ak-red">{{ $message }}</p>@enderror
             </div>
 
             <div class="flex items-center justify-between pt-2">

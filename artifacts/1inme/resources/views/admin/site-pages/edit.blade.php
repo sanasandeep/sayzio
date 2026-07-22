@@ -90,7 +90,7 @@
 
 @section('content')
 <div class="max-w-4xl mx-auto space-y-6">
-    <a href="{{ route('admin.site-pages.index') }}" class="text-xs text-blue-400 hover:underline"><i class="fas fa-arrow-left mr-1"></i>Back to all pages</a>
+    <a href="{{ route('admin.site-pages.index') }}" class="text-xs text-blue-400 hover:underline ak-blue"><i class="fas fa-arrow-left mr-1"></i>Back to all pages</a>
 
     @php
         $isServices = $page->slug === 'services';
@@ -148,47 +148,47 @@
         @csrf
         @method('PUT')
         <div>
-            <h2 class="text-lg font-semibold text-white">{{ $page->title }} <span class="text-xs text-white/40 ml-2">/{{ $page->slug === 'home' ? '' : $page->slug }}</span></h2>
+            <h2 class="text-lg font-semibold text-white ak-strong">{{ $page->title }} <span class="text-xs text-white/40 ml-2 ak-note">/{{ $page->slug === 'home' ? '' : $page->slug }}</span></h2>
         </div>
 
         <div>
-            <label class="block text-xs font-semibold uppercase tracking-wider text-white/60 mb-1.5">Page title</label>
-            <input type="text" name="title" required value="{{ old('title', $page->title) }}" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
-            @error('title')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
+            <label class="block text-xs font-semibold uppercase tracking-wider text-white/60 mb-1.5 ak-muted">Page title</label>
+            <input type="text" name="title" required value="{{ old('title', $page->title) }}" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white ak-strong ak-input">
+            @error('title')<p class="mt-1 text-xs text-red-400 ak-red">{{ $message }}</p>@enderror
         </div>
 
         <div>
-            <label class="block text-xs font-semibold uppercase tracking-wider text-white/60 mb-1.5">Meta description</label>
-            <textarea name="meta_description" rows="2" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">{{ old('meta_description', $page->meta_description) }}</textarea>
+            <label class="block text-xs font-semibold uppercase tracking-wider text-white/60 mb-1.5 ak-muted">Meta description</label>
+            <textarea name="meta_description" rows="2" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white ak-strong ak-input">{{ old('meta_description', $page->meta_description) }}</textarea>
             @if($isServices)
-                <p class="mt-1 text-[11px] text-white/40">Doubles as the hero subtitle on the public /services page.</p>
+                <p class="mt-1 text-[11px] text-white/40 ak-note">Doubles as the hero subtitle on the public /services page.</p>
             @endif
-            @error('meta_description')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
+            @error('meta_description')<p class="mt-1 text-xs text-red-400 ak-red">{{ $message }}</p>@enderror
         </div>
 
         <div>
-            <label class="block text-xs font-semibold uppercase tracking-wider text-white/60 mb-1.5">Meta keywords</label>
-            <input type="text" name="meta_keywords" value="{{ old('meta_keywords', $page->meta_keywords) }}" placeholder="comma, separated, keywords" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
-            <p class="mt-1 text-[11px] text-white/40">Comma-separated keywords for the page's <code>&lt;meta name="keywords"&gt;</code> tag. Leave blank to use the seeded default.</p>
-            @error('meta_keywords')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
+            <label class="block text-xs font-semibold uppercase tracking-wider text-white/60 mb-1.5 ak-muted">Meta keywords</label>
+            <input type="text" name="meta_keywords" value="{{ old('meta_keywords', $page->meta_keywords) }}" placeholder="comma, separated, keywords" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white ak-strong ak-input">
+            <p class="mt-1 text-[11px] text-white/40 ak-note">Comma-separated keywords for the page's <code>&lt;meta name="keywords"&gt;</code> tag. Leave blank to use the seeded default.</p>
+            @error('meta_keywords')<p class="mt-1 text-xs text-red-400 ak-red">{{ $message }}</p>@enderror
         </div>
 
         @if($isPolicy)
             <div>
-                <label class="block text-xs font-semibold uppercase tracking-wider text-white/60 mb-1.5">Intro paragraph</label>
-                <textarea name="intro" rows="3" placeholder="Short intro shown under the page title." class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">{{ old('intro', $page->intro) }}</textarea>
-                @error('intro')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
+                <label class="block text-xs font-semibold uppercase tracking-wider text-white/60 mb-1.5 ak-muted">Intro paragraph</label>
+                <textarea name="intro" rows="3" placeholder="Short intro shown under the page title." class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white ak-strong ak-input">{{ old('intro', $page->intro) }}</textarea>
+                @error('intro')<p class="mt-1 text-xs text-red-400 ak-red">{{ $message }}</p>@enderror
             </div>
             <div class="grid sm:grid-cols-2 gap-4">
                 <div>
-                    <label class="block text-xs font-semibold uppercase tracking-wider text-white/60 mb-1.5">Last updated</label>
-                    <input type="date" name="last_updated_at" value="{{ old('last_updated_at', optional($page->last_updated_at)->format('Y-m-d')) }}" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
-                    @error('last_updated_at')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-white/60 mb-1.5 ak-muted">Last updated</label>
+                    <input type="date" name="last_updated_at" value="{{ old('last_updated_at', optional($page->last_updated_at)->format('Y-m-d')) }}" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white ak-strong ak-input">
+                    @error('last_updated_at')<p class="mt-1 text-xs text-red-400 ak-red">{{ $message }}</p>@enderror
                 </div>
                 <div class="flex items-end">
-                    <label class="inline-flex items-center gap-2 text-sm text-white">
+                    <label class="inline-flex items-center gap-2 text-sm text-white ak-strong">
                         <input type="hidden" name="show_toc" value="0">
-                        <input type="checkbox" name="show_toc" value="1" {{ old('show_toc', $page->show_toc ?? true) ? 'checked' : '' }} class="rounded border-white/20 bg-white/5">
+                        <input type="checkbox" name="show_toc" value="1" {{ old('show_toc', $page->show_toc ?? true) ? 'checked' : '' }} class="rounded border-white/20 bg-white/5 ak-input">
                         Show table of contents
                     </label>
                 </div>
@@ -198,7 +198,7 @@
         @if($isServices)
             <div>
                 <div class="flex items-center justify-between mb-2">
-                    <label class="text-xs font-semibold uppercase tracking-wider text-white/60">Use-case blocks</label>
+                    <label class="text-xs font-semibold uppercase tracking-wider text-white/60 ak-muted">Use-case blocks</label>
                     <button type="button" @click="sections.push({heading:'',tagline:'',body:'',icon:'fa-circle-dot',tint:'',bullets:'',cta_label:'Get started',cta_url:'/register'})" class="text-xs px-3 py-1.5 bg-blue-600 hover:bg-blue-700 rounded-lg text-white">
                         <i class="fas fa-plus mr-1"></i> Add use case
                     </button>
@@ -206,41 +206,41 @@
                 <template x-for="(s, i) in sections" :key="i">
                     <div class="bg-white/5 border border-white/10 rounded-xl p-4 mb-3 space-y-3">
                         <div class="flex items-center justify-between">
-                            <span class="text-[10px] uppercase tracking-wider text-white/40">Use case <span x-text="i+1"></span></span>
-                            <button type="button" @click="sections.splice(i,1)" class="text-xs text-red-400 hover:text-red-300"><i class="fas fa-trash"></i></button>
+                            <span class="text-[10px] uppercase tracking-wider text-white/40 ak-note">Use case <span x-text="i+1"></span></span>
+                            <button type="button" @click="sections.splice(i,1)" class="text-xs text-red-400 hover:text-red-300 ak-red"><i class="fas fa-trash"></i></button>
                         </div>
                         <div class="grid sm:grid-cols-2 gap-3">
                             <div>
-                                <label class="block text-[10px] uppercase tracking-wider text-white/40 mb-1">Title</label>
+                                <label class="block text-[10px] uppercase tracking-wider text-white/40 mb-1 ak-note">Title</label>
                                 <input type="text" :name="'sections['+i+'][heading]'" x-model="s.heading" placeholder="Marketing channel"
-                                       class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
+                                       class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white ak-strong ak-input">
                             </div>
                             <div>
-                                <label class="block text-[10px] uppercase tracking-wider text-white/40 mb-1">Tagline</label>
+                                <label class="block text-[10px] uppercase tracking-wider text-white/40 mb-1 ak-note">Tagline</label>
                                 <input type="text" :name="'sections['+i+'][tagline]'" x-model="s.tagline" placeholder="Run campaigns from a single, trackable hub."
-                                       class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
+                                       class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white ak-strong ak-input">
                             </div>
                         </div>
                         <div>
-                            <label class="block text-[10px] uppercase tracking-wider text-white/40 mb-1">Description</label>
+                            <label class="block text-[10px] uppercase tracking-wider text-white/40 mb-1 ak-note">Description</label>
                             <textarea :name="'sections['+i+'][body]'" x-model="s.body" rows="3" placeholder="Short paragraph that pitches this use case."
-                                      class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white"></textarea>
+                                      class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white ak-strong ak-input"></textarea>
                         </div>
                         <div>
-                            <label class="block text-[10px] uppercase tracking-wider text-white/40 mb-1">Bullets <span class="normal-case tracking-normal text-white/40">(one per line)</span></label>
+                            <label class="block text-[10px] uppercase tracking-wider text-white/40 mb-1 ak-note">Bullets <span class="normal-case tracking-normal text-white/40 ak-note">(one per line)</span></label>
                             <textarea :name="'sections['+i+'][bullets]'" x-model="s.bullets" rows="4" placeholder="Branded link-in-bio with UTM-friendly short links&#10;Per-link click analytics and traffic sources"
-                                      class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white font-mono"></textarea>
+                                      class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white font-mono ak-strong ak-input"></textarea>
                         </div>
                         <div class="grid sm:grid-cols-2 gap-3">
                             <div>
-                                <label class="block text-[10px] uppercase tracking-wider text-white/40 mb-1">Icon</label>
+                                <label class="block text-[10px] uppercase tracking-wider text-white/40 mb-1 ak-note">Icon</label>
                                 <div class="flex gap-1">
                                     <input type="text" :name="'sections['+i+'][icon]'" x-model="s.icon" placeholder="fa-bullhorn"
-                                           class="flex-1 min-w-0 px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white font-mono">
+                                           class="flex-1 min-w-0 px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white font-mono ak-strong ak-input">
                                     <button type="button" @click="$store.iconPicker.openFor(s.icon, (name) => s.icon = name)"
-                                            class="shrink-0 px-2.5 py-2 bg-white/5 border border-white/10 hover:bg-white/10 rounded-lg text-white/70 hover:text-white text-sm flex items-center gap-2"
+                                            class="shrink-0 px-2.5 py-2 bg-white/5 border border-white/10 hover:bg-white/10 rounded-lg text-white/70 hover:text-white text-sm flex items-center gap-2 ak-strong"
                                             title="Pick from gallery">
-                                        <span class="w-5 h-5 flex items-center justify-center text-blue-200">
+                                        <span class="w-5 h-5 flex items-center justify-center text-blue-200 ak-blue">
                                             <i class="fas" :class="s.icon || 'fa-circle-dot'"></i>
                                         </span>
                                         <i class="fas fa-th"></i>
@@ -248,32 +248,32 @@
                                 </div>
                             </div>
                             <div>
-                                <label class="block text-[10px] uppercase tracking-wider text-white/40 mb-1">Tint (Tailwind gradient classes)</label>
+                                <label class="block text-[10px] uppercase tracking-wider text-white/40 mb-1 ak-note">Tint (Tailwind gradient classes)</label>
                                 <input type="text" :name="'sections['+i+'][tint]'" x-model="s.tint" placeholder="from-blue-500/30 to-fuchsia-500/10"
-                                       class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white font-mono">
-                                <p class="mt-1 text-[11px] text-white/40">Leave empty to use a built-in default.</p>
+                                       class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white font-mono ak-strong ak-input">
+                                <p class="mt-1 text-[11px] text-white/40 ak-note">Leave empty to use a built-in default.</p>
                             </div>
                         </div>
                         <div class="grid sm:grid-cols-2 gap-3">
                             <div>
-                                <label class="block text-[10px] uppercase tracking-wider text-white/40 mb-1">CTA label</label>
+                                <label class="block text-[10px] uppercase tracking-wider text-white/40 mb-1 ak-note">CTA label</label>
                                 <input type="text" :name="'sections['+i+'][cta_label]'" x-model="s.cta_label" placeholder="Get started"
-                                       class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
+                                       class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white ak-strong ak-input">
                             </div>
                             <div>
-                                <label class="block text-[10px] uppercase tracking-wider text-white/40 mb-1">CTA URL</label>
+                                <label class="block text-[10px] uppercase tracking-wider text-white/40 mb-1 ak-note">CTA URL</label>
                                 <input type="text" :name="'sections['+i+'][cta_url]'" x-model="s.cta_url" placeholder="/register"
-                                       class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
+                                       class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white ak-strong ak-input">
                             </div>
                         </div>
                     </div>
                 </template>
-                <div x-show="sections.length===0" class="text-xs text-white/40 text-center py-4">No use cases yet, click "Add use case".</div>
+                <div x-show="sections.length===0" class="text-xs text-white/40 text-center py-4 ak-note">No use cases yet, click "Add use case".</div>
             </div>
         @else
             <div>
                 <div class="flex items-center justify-between mb-2">
-                    <label class="text-xs font-semibold uppercase tracking-wider text-white/60">Content sections</label>
+                    <label class="text-xs font-semibold uppercase tracking-wider text-white/60 ak-muted">Content sections</label>
                     <button type="button" @click="sections.push(newBlank())" class="text-xs px-3 py-1.5 bg-blue-600 hover:bg-blue-700 rounded-lg text-white">
                         <i class="fas fa-plus mr-1"></i> Add section
                     </button>
@@ -282,7 +282,7 @@
                 <div x-show="sections.length>0" class="relative flex items-center justify-center h-7 group -mb-1">
                     <div class="absolute inset-x-0 top-1/2 -translate-y-1/2 h-px bg-white/5 group-hover:bg-blue-500/30 transition-colors"></div>
                     <button type="button" @click="insertAt(0)" title="Insert section at top"
-                            class="relative z-10 opacity-0 group-hover:opacity-100 transition-opacity bg-[color:var(--bg-card,#1a1b2e)] border border-blue-500/50 hover:border-blue-400 text-blue-400 hover:text-blue-300 rounded-full w-6 h-6 flex items-center justify-center text-xs">
+                            class="relative z-10 opacity-0 group-hover:opacity-100 transition-opacity bg-[color:var(--bg-card,#1a1b2e)] border border-blue-500/50 hover:border-blue-400 text-blue-400 hover:text-blue-300 rounded-full w-6 h-6 flex items-center justify-center text-xs ak-blue">
                         <i class="fas fa-plus"></i>
                     </button>
                 </div>
@@ -291,22 +291,22 @@
                         <div class="bg-white/5 border border-white/10 rounded-xl p-4 space-y-2"
                              :class="{ 'opacity-60': !s.visible }">
                             <div class="flex items-center justify-between gap-2 flex-wrap">
-                                <span class="text-[10px] uppercase tracking-wider text-white/40">Section <span x-text="i+1"></span></span>
+                                <span class="text-[10px] uppercase tracking-wider text-white/40 ak-note">Section <span x-text="i+1"></span></span>
                                 <div class="flex items-center gap-2">
-                                    <label class="inline-flex items-center gap-1.5 text-[11px] text-white/70 cursor-pointer select-none">
+                                    <label class="inline-flex items-center gap-1.5 text-[11px] text-white/70 cursor-pointer select-none ak-strong">
                                         <input type="hidden" :name="'sections['+i+'][visible]'" value="0">
-                                        <input type="checkbox" :name="'sections['+i+'][visible]'" value="1" x-model="s.visible" class="rounded border-white/20 bg-white/5">
+                                        <input type="checkbox" :name="'sections['+i+'][visible]'" value="1" x-model="s.visible" class="rounded border-white/20 bg-white/5 ak-input">
                                         <span x-text="s.visible ? 'Visible' : 'Hidden'"></span>
                                     </label>
-                                    <button type="button" @click="moveUp(i)" :disabled="i===0" class="text-xs text-white/60 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed px-1.5 py-1" title="Move up"><i class="fas fa-arrow-up"></i></button>
-                                    <button type="button" @click="moveDown(i)" :disabled="i===sections.length-1" class="text-xs text-white/60 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed px-1.5 py-1" title="Move down"><i class="fas fa-arrow-down"></i></button>
-                                    <button type="button" @click="window.themedConfirm({title:'Delete this section?', message:'It will be removed when you save the page.', confirmText:'Delete', confirmIcon:'fa-trash', iconClass:'fa-trash', onConfirm: () => sections.splice(i,1)})" class="text-xs text-red-400 hover:text-red-300 px-1.5 py-1" title="Delete"><i class="fas fa-trash"></i></button>
+                                    <button type="button" @click="moveUp(i)" :disabled="i===0" class="text-xs text-white/60 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed px-1.5 py-1 ak-muted" title="Move up"><i class="fas fa-arrow-up"></i></button>
+                                    <button type="button" @click="moveDown(i)" :disabled="i===sections.length-1" class="text-xs text-white/60 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed px-1.5 py-1 ak-muted" title="Move down"><i class="fas fa-arrow-down"></i></button>
+                                    <button type="button" @click="window.themedConfirm({title:'Delete this section?', message:'It will be removed when you save the page.', confirmText:'Delete', confirmIcon:'fa-trash', iconClass:'fa-trash', onConfirm: () => sections.splice(i,1)})" class="text-xs text-red-400 hover:text-red-300 px-1.5 py-1 ak-red" title="Delete"><i class="fas fa-trash"></i></button>
                                 </div>
                             </div>
                             <input type="hidden" :name="'sections['+i+'][id]'" :value="s.id">
                             <input type="text" :name="'sections['+i+'][heading]'" x-model="s.heading" placeholder="Section heading"
-                                   class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
-                            <label class="block text-[10px] uppercase tracking-wider text-white/40">Body @if(!$isPolicy)<span class="normal-case tracking-normal text-white/40">(Markdown or basic HTML)</span>@endif</label>
+                                   class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white ak-strong ak-input">
+                            <label class="block text-[10px] uppercase tracking-wider text-white/40 ak-note">Body @if(!$isPolicy)<span class="normal-case tracking-normal text-white/40 ak-note">(Markdown or basic HTML)</span>@endif</label>
                             @if($isPolicy)
                                 <div x-data="rteEditor()"
                                      x-init="mount($refs.editor, s.body || '', html => s.body = html)"
@@ -329,22 +329,22 @@
                                         <button type="button" @mousedown.prevent="exec('unlink')" title="Remove link" class="rte-btn"><i class="fas fa-unlink"></i></button>
                                     </div>
                                     <div x-ref="editor" contenteditable="true" spellcheck="true"
-                                         class="rte-content min-h-[160px] px-3 py-2 text-sm text-white focus:outline-none"></div>
+                                         class="rte-content min-h-[160px] px-3 py-2 text-sm text-white focus:outline-none ak-strong"></div>
                                 </div>
                                 <input type="hidden" :name="'sections['+i+'][body]'" :value="s.body">
-                                <p class="text-[11px] text-white/40 leading-relaxed">
-                                    Use the toolbar to format text. Allowed tags: <code class="text-white/60">a, strong, em, u, ul, ol, li, p, br, h3, h4, blockquote, code</code>. Output is sanitized on save, anything else (scripts, inline handlers, unsafe link protocols) is stripped.
+                                <p class="text-[11px] text-white/40 leading-relaxed ak-note">
+                                    Use the toolbar to format text. Allowed tags: <code class="text-white/60 ak-muted">a, strong, em, u, ul, ol, li, p, br, h3, h4, blockquote, code</code>. Output is sanitized on save, anything else (scripts, inline handlers, unsafe link protocols) is stripped.
                                 </p>
                             @else
                                 <textarea :name="'sections['+i+'][body]'" x-model="s.body" rows="6" placeholder="Body, line breaks are preserved."
-                                          class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white font-mono"></textarea>
-                                <p class="text-[11px] text-white/40 leading-relaxed">
-                                    Formatting: <code class="text-white/60">**bold**</code>,
-                                    <code class="text-white/60">*italic*</code>,
-                                    <code class="text-white/60">[text](https://url)</code>,
-                                    lines starting with <code class="text-white/60">-</code> become bullet lists,
-                                    <code class="text-white/60">1.</code> become numbered lists.
-                                    Safe HTML tags (<code class="text-white/60">a, strong, em, ul, ol, li, p, br, h3, h4, blockquote, code</code>) are allowed; anything else (including scripts, inline event handlers, and unsafe link protocols) is filtered out.
+                                          class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white font-mono ak-strong ak-input"></textarea>
+                                <p class="text-[11px] text-white/40 leading-relaxed ak-note">
+                                    Formatting: <code class="text-white/60 ak-muted">**bold**</code>,
+                                    <code class="text-white/60 ak-muted">*italic*</code>,
+                                    <code class="text-white/60 ak-muted">[text](https://url)</code>,
+                                    lines starting with <code class="text-white/60 ak-muted">-</code> become bullet lists,
+                                    <code class="text-white/60 ak-muted">1.</code> become numbered lists.
+                                    Safe HTML tags (<code class="text-white/60 ak-muted">a, strong, em, ul, ol, li, p, br, h3, h4, blockquote, code</code>) are allowed; anything else (including scripts, inline event handlers, and unsafe link protocols) is filtered out.
                                 </p>
                             @endif
                         </div>
@@ -352,15 +352,15 @@
                         <div class="relative flex items-center justify-center h-7 group -mt-1">
                             <div class="absolute inset-x-0 top-1/2 -translate-y-1/2 h-px bg-white/5 group-hover:bg-blue-500/30 transition-colors"></div>
                             <button type="button" @click="insertAt(i+1)" title="Insert section below"
-                                    class="relative z-10 opacity-0 group-hover:opacity-100 transition-opacity bg-[color:var(--bg-card,#1a1b2e)] border border-blue-500/50 hover:border-blue-400 text-blue-400 hover:text-blue-300 rounded-full w-6 h-6 flex items-center justify-center text-xs">
+                                    class="relative z-10 opacity-0 group-hover:opacity-100 transition-opacity bg-[color:var(--bg-card,#1a1b2e)] border border-blue-500/50 hover:border-blue-400 text-blue-400 hover:text-blue-300 rounded-full w-6 h-6 flex items-center justify-center text-xs ak-blue">
                                 <i class="fas fa-plus"></i>
                             </button>
                         </div>
                     </div>
                 </template>
-                <div x-show="sections.length===0" class="text-xs text-white/40 text-center py-4">No sections yet, click "Add section".</div>
+                <div x-show="sections.length===0" class="text-xs text-white/40 text-center py-4 ak-note">No sections yet, click "Add section".</div>
                 <div class="pt-1">
-                    <button type="button" @click="sections.push(newBlank())" class="w-full text-xs px-3 py-2 border border-dashed border-white/20 hover:border-blue-500/50 hover:text-blue-400 rounded-xl text-white/40 transition-colors">
+                    <button type="button" @click="sections.push(newBlank())" class="w-full text-xs px-3 py-2 border border-dashed border-white/20 hover:border-blue-500/50 hover:text-blue-400 rounded-xl text-white/40 transition-colors ak-note">
                         <i class="fas fa-plus mr-1"></i> Add section
                     </button>
                 </div>
@@ -382,26 +382,26 @@
         @if(in_array($page->slug, $errorSlugs))
             <div class="grid sm:grid-cols-2 gap-4 pt-2">
                 <div>
-                    <label class="block text-xs font-semibold uppercase tracking-wider text-white/60 mb-1.5">Call-to-action label</label>
-                    <input type="text" name="cta_label" value="{{ old('cta_label', $page->cta_label) }}" placeholder="Back to home" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
-                    @error('cta_label')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-white/60 mb-1.5 ak-muted">Call-to-action label</label>
+                    <input type="text" name="cta_label" value="{{ old('cta_label', $page->cta_label) }}" placeholder="Back to home" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white ak-strong ak-input">
+                    @error('cta_label')<p class="mt-1 text-xs text-red-400 ak-red">{{ $message }}</p>@enderror
                 </div>
                 <div>
-                    <label class="block text-xs font-semibold uppercase tracking-wider text-white/60 mb-1.5">Call-to-action URL</label>
-                    <input type="text" name="cta_url" value="{{ old('cta_url', $page->cta_url) }}" placeholder="/" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
-                    @error('cta_url')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-white/60 mb-1.5 ak-muted">Call-to-action URL</label>
+                    <input type="text" name="cta_url" value="{{ old('cta_url', $page->cta_url) }}" placeholder="/" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white ak-strong ak-input">
+                    @error('cta_url')<p class="mt-1 text-xs text-red-400 ak-red">{{ $message }}</p>@enderror
                 </div>
             </div>
         @endif
 
         @if($page->slug === 'error-404')
             <div class="pt-2">
-                <label class="inline-flex items-start gap-2 text-sm text-white">
+                <label class="inline-flex items-start gap-2 text-sm text-white ak-strong">
                     <input type="hidden" name="error_404_suggestions_enabled" value="0">
-                    <input type="checkbox" name="error_404_suggestions_enabled" value="1" {{ old('error_404_suggestions_enabled', $settings['error_404_suggestions_enabled']) ? 'checked' : '' }} class="mt-0.5 rounded border-white/20 bg-white/5">
+                    <input type="checkbox" name="error_404_suggestions_enabled" value="1" {{ old('error_404_suggestions_enabled', $settings['error_404_suggestions_enabled']) ? 'checked' : '' }} class="mt-0.5 rounded border-white/20 bg-white/5 ak-input">
                     <span>
                         Show "Did you mean…?" suggestions
-                        <span class="block text-xs text-white/50 mt-0.5">When a visitor hits a 404, show up to 3 close matches from your biolinks, short links and site pages. Nothing is shown when no match is close enough.</span>
+                        <span class="block text-xs text-white/50 mt-0.5 ak-muted">When a visitor hits a 404, show up to 3 close matches from your biolinks, short links and site pages. Nothing is shown when no match is close enough.</span>
                     </span>
                 </label>
             </div>
@@ -426,22 +426,22 @@
             $bbLimit   = (int) ($blogBlock['limit'] ?? 3);
         @endphp
         <details class="glass rounded-2xl p-5" @if($bbEnabled) open @endif>
-            <summary class="cursor-pointer text-sm font-semibold text-white">Related blog posts block</summary>
-            <p class="text-xs text-white/50 mt-1 mb-4">Show a "Related from the blog" panel below the page content. Pick specific posts, a category, or both.</p>
+            <summary class="cursor-pointer text-sm font-semibold text-white ak-strong">Related blog posts block</summary>
+            <p class="text-xs text-white/50 mt-1 mb-4 ak-muted">Show a "Related from the blog" panel below the page content. Pick specific posts, a category, or both.</p>
             <div class="space-y-4">
-                <label class="flex items-center gap-2 text-sm text-white/80">
+                <label class="flex items-center gap-2 text-sm text-white/80 ak-strong">
                     <input type="hidden" name="extra[blog_block][enabled]" value="0">
-                    <input type="checkbox" name="extra[blog_block][enabled]" value="1" @checked($bbEnabled) class="rounded border-white/20 bg-white/5">
+                    <input type="checkbox" name="extra[blog_block][enabled]" value="1" @checked($bbEnabled) class="rounded border-white/20 bg-white/5 ak-input">
                     Show this block on the public page
                 </label>
                 <div>
-                    <label class="block text-xs uppercase tracking-wider text-white/60 mb-1.5">Heading</label>
-                    <input type="text" name="extra[blog_block][heading]" value="{{ old('extra.blog_block.heading', $bbHeading) }}" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm">
+                    <label class="block text-xs uppercase tracking-wider text-white/60 mb-1.5 ak-muted">Heading</label>
+                    <input type="text" name="extra[blog_block][heading]" value="{{ old('extra.blog_block.heading', $bbHeading) }}" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm ak-strong ak-input">
                 </div>
                 <div class="grid sm:grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-xs uppercase tracking-wider text-white/60 mb-1.5">From category (optional)</label>
-                        <select name="extra[blog_block][category_id]" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm">
+                        <label class="block text-xs uppercase tracking-wider text-white/60 mb-1.5 ak-muted">From category (optional)</label>
+                        <select name="extra[blog_block][category_id]" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm ak-strong ak-input">
                             <option value="">Any</option>
                             @foreach($blogCategories ?? [] as $c)
                                 <option value="{{ $c->id }}" @selected((int) old('extra.blog_block.category_id', $bbCatId) === (int) $c->id)>{{ $c->name }}</option>
@@ -449,27 +449,27 @@
                         </select>
                     </div>
                     <div>
-                        <label class="block text-xs uppercase tracking-wider text-white/60 mb-1.5">How many posts to show</label>
-                        <input type="number" min="1" max="6" name="extra[blog_block][limit]" value="{{ old('extra.blog_block.limit', $bbLimit) }}" class="w-32 px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm">
+                        <label class="block text-xs uppercase tracking-wider text-white/60 mb-1.5 ak-muted">How many posts to show</label>
+                        <input type="number" min="1" max="6" name="extra[blog_block][limit]" value="{{ old('extra.blog_block.limit', $bbLimit) }}" class="w-32 px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm ak-strong ak-input">
                     </div>
                 </div>
                 <div>
-                    <label class="block text-xs uppercase tracking-wider text-white/60 mb-1.5">Pick specific posts (optional, overrides category)</label>
-                    <select name="extra[blog_block][post_ids][]" multiple size="6" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm">
+                    <label class="block text-xs uppercase tracking-wider text-white/60 mb-1.5 ak-muted">Pick specific posts (optional, overrides category)</label>
+                    <select name="extra[blog_block][post_ids][]" multiple size="6" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm ak-strong ak-input">
                         @foreach($blogPosts ?? [] as $p)
                             <option value="{{ $p->id }}" @selected(in_array((int) $p->id, array_map('intval', (array) old('extra.blog_block.post_ids', $bbPostIds)), true))>{{ $p->title }}</option>
                         @endforeach
                     </select>
-                    <p class="mt-1 text-[11px] text-white/40">Hold Ctrl/Cmd to select up to 6 posts.</p>
+                    <p class="mt-1 text-[11px] text-white/40 ak-note">Hold Ctrl/Cmd to select up to 6 posts.</p>
                 </div>
             </div>
         </details>
 
         <div class="pt-4 border-t border-white/10 flex items-center justify-between">
             @if(in_array($page->slug, $errorSlugs))
-                <span class="text-xs text-white/40">Shown automatically when visitors hit a {{ $errorLabels[$page->slug] }} response.</span>
+                <span class="text-xs text-white/40 ak-note">Shown automatically when visitors hit a {{ $errorLabels[$page->slug] }} response.</span>
             @else
-                <a href="/{{ $page->slug === 'home' ? '' : $page->slug }}" target="_blank" class="text-xs text-blue-400 hover:underline">View live page <i class="fas fa-external-link-alt ml-1 text-[10px]"></i></a>
+                <a href="/{{ $page->slug === 'home' ? '' : $page->slug }}" target="_blank" class="text-xs text-blue-400 hover:underline ak-blue">View live page <i class="fas fa-external-link-alt ml-1 text-[10px]"></i></a>
             @endif
             <button type="submit" class="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-medium">Save changes</button>
         </div>
@@ -478,16 +478,16 @@
 
     @if($page->slug === 'discovery')
         <div class="glass rounded-2xl p-6">
-            <h3 class="text-sm font-semibold text-white mb-1">Discovery settings</h3>
-            <p class="text-xs text-white/50 mb-4">Controls how the public /discovery page renders Link in Bio pages.</p>
+            <h3 class="text-sm font-semibold text-white mb-1 ak-strong">Discovery settings</h3>
+            <p class="text-xs text-white/50 mb-4 ak-muted">Controls how the public /discovery page renders Link in Bio pages.</p>
             <form method="POST" action="{{ route('admin.site-pages.discovery-settings') }}" class="space-y-4">
                 @csrf
                 <div>
-                    <label class="block text-xs font-semibold uppercase tracking-wider text-white/60 mb-1.5">Link in Bio pages per page</label>
-                    <input type="number" min="4" max="60" name="discovery_per_page" value="{{ old('discovery_per_page', $settings['discovery_per_page']) }}" class="w-32 px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-white/60 mb-1.5 ak-muted">Link in Bio pages per page</label>
+                    <input type="number" min="4" max="60" name="discovery_per_page" value="{{ old('discovery_per_page', $settings['discovery_per_page']) }}" class="w-32 px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white ak-strong ak-input">
                 </div>
-                <label class="inline-flex items-center gap-2 text-sm text-white">
-                    <input type="checkbox" name="discovery_show_search" value="1" {{ $settings['discovery_show_search'] ? 'checked' : '' }} class="rounded border-white/20 bg-white/5">
+                <label class="inline-flex items-center gap-2 text-sm text-white ak-strong">
+                    <input type="checkbox" name="discovery_show_search" value="1" {{ $settings['discovery_show_search'] ? 'checked' : '' }} class="rounded border-white/20 bg-white/5 ak-input">
                     Show search bar
                 </label>
                 <div class="pt-2">
@@ -499,16 +499,16 @@
 
     @if($page->slug === 'creators-feed')
         <div class="glass rounded-2xl p-6">
-            <h3 class="text-sm font-semibold text-white mb-1">Creators feed settings</h3>
-            <p class="text-xs text-white/50 mb-4">Controls how the public /creators-feed page renders posts.</p>
+            <h3 class="text-sm font-semibold text-white mb-1 ak-strong">Creators feed settings</h3>
+            <p class="text-xs text-white/50 mb-4 ak-muted">Controls how the public /creators-feed page renders posts.</p>
             <form method="POST" action="{{ route('admin.site-pages.creators-feed-settings') }}" class="space-y-4">
                 @csrf
                 <div>
-                    <label class="block text-xs font-semibold uppercase tracking-wider text-white/60 mb-1.5">Posts per page</label>
-                    <input type="number" min="4" max="60" name="creators_feed_per_page" value="{{ old('creators_feed_per_page', $settings['creators_feed_per_page']) }}" class="w-32 px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-white/60 mb-1.5 ak-muted">Posts per page</label>
+                    <input type="number" min="4" max="60" name="creators_feed_per_page" value="{{ old('creators_feed_per_page', $settings['creators_feed_per_page']) }}" class="w-32 px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white ak-strong ak-input">
                 </div>
-                <label class="inline-flex items-center gap-2 text-sm text-white">
-                    <input type="checkbox" name="creators_feed_show_pinned" value="1" {{ $settings['creators_feed_show_pinned'] ? 'checked' : '' }} class="rounded border-white/20 bg-white/5">
+                <label class="inline-flex items-center gap-2 text-sm text-white ak-strong">
+                    <input type="checkbox" name="creators_feed_show_pinned" value="1" {{ $settings['creators_feed_show_pinned'] ? 'checked' : '' }} class="rounded border-white/20 bg-white/5 ak-input">
                     Show pinned posts at the top
                 </label>
                 <div class="pt-2">
@@ -520,33 +520,33 @@
 
     @if(isset($revisions) && $revisions->count())
         <div class="glass rounded-2xl p-6">
-            <h3 class="text-sm font-semibold text-white mb-1">Revision history</h3>
-            <p class="text-xs text-white/50 mb-4">Every save snapshots the page so you can see what changed and roll back if needed.</p>
+            <h3 class="text-sm font-semibold text-white mb-1 ak-strong">Revision history</h3>
+            <p class="text-xs text-white/50 mb-4 ak-muted">Every save snapshots the page so you can see what changed and roll back if needed.</p>
             <div class="space-y-2 max-h-96 overflow-y-auto pr-2">
                 @foreach($revisions as $rev)
                     @php $revEditor = $rev->editor(); @endphp
                     <div class="flex items-start justify-between gap-3 p-3 bg-white/5 border border-white/10 rounded-xl">
                         <div class="min-w-0">
-                            <p class="text-sm text-white">
+                            <p class="text-sm text-white ak-strong">
                                 {{ $rev->created_at->format('M j, Y g:i a') }}
-                                <span class="text-xs text-white/50 ml-1">#{{ $rev->id }}</span>
+                                <span class="text-xs text-white/50 ml-1 ak-muted">#{{ $rev->id }}</span>
                             </p>
-                            <p class="text-xs text-white/60 mt-0.5">
+                            <p class="text-xs text-white/60 mt-0.5 ak-muted">
                                 @if($revEditor)
                                     <i class="far fa-user mr-1"></i>{{ $revEditor->name ?? $rev->editor_name }}
                                 @elseif($rev->editor_name)
                                     <i class="far fa-user mr-1"></i>{{ $rev->editor_name }}
                                 @else
-                                    <i class="far fa-user mr-1"></i><span class="text-white/40">System</span>
+                                    <i class="far fa-user mr-1"></i><span class="text-white/40 ak-note">System</span>
                                 @endif
                             </p>
                             @if($rev->summary)
-                                <p class="text-xs text-white/70 mt-1">{{ $rev->summary }}</p>
+                                <p class="text-xs text-white/70 mt-1 ak-strong">{{ $rev->summary }}</p>
                             @endif
                         </div>
                         <div class="flex items-center gap-2 shrink-0">
                             <a href="{{ route('admin.site-pages.revisions.show', [$page->slug, $rev->id]) }}"
-                               class="text-xs px-3 py-1.5 bg-white/10 hover:bg-white/15 text-white rounded-lg">
+                               class="text-xs px-3 py-1.5 bg-white/10 hover:bg-white/15 text-white rounded-lg ak-strong">
                                 <i class="far fa-eye mr-1"></i>View
                             </a>
                             @if(!$loop->first)
@@ -567,11 +567,11 @@
 
     @if($page->slug === 'faqs')
         <div class="glass rounded-2xl p-6">
-            <h3 class="text-sm font-semibold text-white mb-3">FAQ items</h3>
+            <h3 class="text-sm font-semibold text-white mb-3 ak-strong">FAQ items</h3>
             <form method="POST" action="{{ route('admin.site-pages.faqs.store') }}" class="space-y-2 mb-5 pb-5 border-b border-white/10">
                 @csrf
-                <input type="text" name="question" required placeholder="Question" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
-                <textarea name="answer" required rows="3" placeholder="Answer" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white"></textarea>
+                <input type="text" name="question" required placeholder="Question" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white ak-strong ak-input">
+                <textarea name="answer" required rows="3" placeholder="Answer" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white ak-strong ak-input"></textarea>
                 <button type="submit" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-xs font-medium text-white"><i class="fas fa-plus mr-1"></i> Add FAQ</button>
             </form>
 
@@ -581,15 +581,15 @@
                         <form method="POST" action="{{ route('admin.site-pages.faqs.update', $f) }}" class="space-y-2">
                             @csrf @method('PUT')
                             <div class="flex items-center gap-2">
-                                <input type="number" name="sort_order" value="{{ $f->sort_order }}" class="w-20 px-2 py-1.5 bg-white/5 border border-white/10 rounded-lg text-xs text-white">
-                                <input type="text" name="question" value="{{ $f->question }}" required class="flex-1 px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">
+                                <input type="number" name="sort_order" value="{{ $f->sort_order }}" class="w-20 px-2 py-1.5 bg-white/5 border border-white/10 rounded-lg text-xs text-white ak-strong ak-input">
+                                <input type="text" name="question" value="{{ $f->question }}" required class="flex-1 px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white ak-strong ak-input">
                             </div>
-                            <textarea name="answer" required rows="3" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white">{{ $f->answer }}</textarea>
+                            <textarea name="answer" required rows="3" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white ak-strong ak-input">{{ $f->answer }}</textarea>
                             <button type="submit" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 rounded-lg text-xs text-white">Save</button>
                         </form>
                         <form method="POST" action="{{ route('admin.site-pages.faqs.destroy', $f) }}" onsubmit="return window.themedConfirmSubmit(this, {title: 'Delete this FAQ?', confirmText: 'Delete', confirmIcon: 'fa-trash', iconClass: 'fa-trash'})">
                             @csrf @method('DELETE')
-                            <button type="submit" class="px-3 py-1.5 bg-red-500/20 hover:bg-red-500/30 text-red-300 rounded-lg text-xs"><i class="fas fa-trash mr-1"></i>Delete</button>
+                            <button type="submit" class="px-3 py-1.5 bg-red-500/20 hover:bg-red-500/30 text-red-300 rounded-lg text-xs ak-red"><i class="fas fa-trash mr-1"></i>Delete</button>
                         </form>
                     </div>
                 @endforeach

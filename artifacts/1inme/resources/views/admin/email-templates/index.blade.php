@@ -6,20 +6,20 @@
 <div class="max-w-5xl space-y-6">
 
     @if (session('success'))
-        <div class="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-xs">{{ session('success') }}</div>
+        <div class="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-xs ak-green">{{ session('success') }}</div>
     @endif
 
-    <p class="text-sm text-white/50">
+    <p class="text-sm text-white/50 ak-muted">
         Every transactional email the platform sends is listed below, grouped by area. Edit any one to
         customise its subject and body &mdash; templates with no override keep sending their built-in
-        content. Variables like <code class="text-white/70">&#123;&#123;name&#125;&#125;</code> are documented on each editor.
+        content. Variables like <code class="text-white/70 ak-strong">&#123;&#123;name&#125;&#125;</code> are documented on each editor.
     </p>
 
     <section class="rounded-2xl border border-white/10 bg-white/[0.02]">
         <div class="px-4 py-3 border-b border-white/10">
-            <h2 class="text-sm font-semibold text-white">Billing notification CC</h2>
-            <p class="text-xs text-white/40 mt-1">
-                These addresses are CC'd on every <span class="text-white/60">billing</span> email &mdash; plan,
+            <h2 class="text-sm font-semibold text-white ak-strong">Billing notification CC</h2>
+            <p class="text-xs text-white/40 mt-1 ak-note">
+                These addresses are CC'd on every <span class="text-white/60 ak-muted">billing</span> email &mdash; plan,
                 coin and add-on purchase receipts plus payment reminders (renewal failed, grace ending, offline
                 renewal due). The customer's own copy is unchanged. One address per line; leave blank to disable.
             </p>
@@ -28,15 +28,15 @@
             @csrf
 
             @error('billing_cc.*')
-                <div class="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs">{{ $message }}</div>
+                <div class="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs ak-red">{{ $message }}</div>
             @enderror
 
             <textarea name="billing_cc" rows="3"
                       placeholder="finance@example.com"
-                      class="w-full rounded-xl bg-white/[0.03] border border-white/10 px-3 py-2 text-sm text-white placeholder-white/30 focus:outline-none focus:border-white/30 font-mono">{{ old('billing_cc', implode("\n", $billingCc)) }}</textarea>
+                      class="w-full rounded-xl bg-white/[0.03] border border-white/10 px-3 py-2 text-sm text-white placeholder-white/30 focus:outline-none focus:border-white/30 font-mono ak-strong">{{ old('billing_cc', implode("\n", $billingCc)) }}</textarea>
 
             <div class="flex items-center justify-between gap-3">
-                <span class="text-[11px] text-white/35">
+                <span class="text-[11px] text-white/35 ak-note">
                     @if ($billingCcDefault)
                         Using the built-in default recipients.
                     @else
@@ -44,7 +44,7 @@
                     @endif
                 </span>
                 <button type="submit"
-                        class="text-xs px-3 py-1.5 rounded-lg bg-indigo-500/20 border border-indigo-500/30 text-indigo-200 hover:bg-indigo-500/30 transition-colors">
+                        class="text-xs px-3 py-1.5 rounded-lg bg-indigo-500/20 border border-indigo-500/30 text-indigo-200 hover:bg-indigo-500/30 transition-colors ak-blue">
                     Save CC list
                 </button>
             </div>
@@ -54,7 +54,7 @@
     @foreach ($grouped as $category => $group)
         <section class="rounded-2xl border border-white/10 bg-white/[0.02]">
             <div class="px-4 py-3 border-b border-white/10">
-                <h2 class="text-sm font-semibold text-white">{{ $group['label'] }}</h2>
+                <h2 class="text-sm font-semibold text-white ak-strong">{{ $group['label'] }}</h2>
             </div>
             <div class="divide-y divide-white/5">
                 @foreach ($group['rows'] as $key => $row)
@@ -62,15 +62,15 @@
                        class="flex items-center justify-between gap-3 px-4 py-3 hover:bg-white/[0.03] transition-colors">
                         <div class="min-w-0">
                             <div class="flex items-center gap-2">
-                                <span class="text-sm text-white truncate">{{ $row['entry']['label'] ?? $key }}</span>
+                                <span class="text-sm text-white truncate ak-strong">{{ $row['entry']['label'] ?? $key }}</span>
                                 @if ($row['override'])
-                                    <span class="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/25 text-amber-300">Customised</span>
+                                    <span class="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/25 text-amber-300 ak-amber">Customised</span>
                                 @endif
                             </div>
-                            <div class="text-xs text-white/40 truncate">{{ $row['entry']['description'] ?? '' }}</div>
-                            <code class="text-[10px] text-white/30">{{ $key }}</code>
+                            <div class="text-xs text-white/40 truncate ak-note">{{ $row['entry']['description'] ?? '' }}</div>
+                            <code class="text-[10px] text-white/30 ak-note">{{ $key }}</code>
                         </div>
-                        <i class="fas fa-chevron-right text-white/30 text-xs shrink-0"></i>
+                        <i class="fas fa-chevron-right text-white/30 text-xs shrink-0 ak-note"></i>
                     </a>
                 @endforeach
             </div>

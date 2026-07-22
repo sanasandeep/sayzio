@@ -5,13 +5,13 @@
 @section('content')
 <div class="max-w-2xl mx-auto space-y-4">
 
-    <a href="{{ route('admin.payment-gateways.index') }}" class="inline-flex items-center gap-1.5 text-xs text-white/40 hover:text-white/70">
+    <a href="{{ route('admin.payment-gateways.index') }}" class="ak-note inline-flex items-center gap-1.5 text-xs text-white/40 hover:text-white/70">
         <i class="fas fa-arrow-left"></i> Back to Payment Gateways
     </a>
 
     <div>
-        <h1 class="text-2xl font-semibold text-white">{{ $row->display_name }}</h1>
-        <p class="text-sm text-white/50 font-mono">{{ $row->gateway_slug }}</p>
+        <h1 class="ak-strong text-2xl font-semibold text-white">{{ $row->display_name }}</h1>
+        <p class="ak-muted text-sm text-white/50 font-mono">{{ $row->gateway_slug }}</p>
     </div>
 
     {{-- Per-gateway setup help --}}
@@ -109,7 +109,7 @@
     @endswitch
 
     @if($errors->any())
-        <div class="rounded-xl bg-rose-500/10 border border-rose-400/30 p-3 text-sm text-rose-200">
+        <div class="ak-red rounded-xl bg-rose-500/10 border border-rose-400/30 p-3 text-sm text-rose-200">
             @foreach($errors->all() as $e)<div>{{ $e }}</div>@endforeach
         </div>
     @endif
@@ -117,32 +117,32 @@
     <form method="POST" action="{{ route('admin.payment-gateways.update', $row->gateway_slug) }}" class="rounded-2xl border border-white/10 bg-white/[0.02] p-5 space-y-4">
         @csrf @method('PUT')
         <div>
-            <label class="block text-xs text-white/50 mb-1">Display name</label>
-            <input type="text" name="display_name" value="{{ old('display_name', $row->display_name) }}" required class="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white">
+            <label class="ak-muted block text-xs text-white/50 mb-1">Display name</label>
+            <input type="text" name="display_name" value="{{ old('display_name', $row->display_name) }}" required class="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white ak-strong ak-input">
         </div>
 
         <div class="grid grid-cols-2 gap-4">
             <div>
-                <label class="block text-xs text-white/50 mb-1">Mode</label>
-                <select name="mode" class="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white">
+                <label class="ak-muted block text-xs text-white/50 mb-1">Mode</label>
+                <select name="mode" class="ak-strong ak-input w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white">
                     <option value="test" @selected($row->mode === 'test')>Test</option>
                     <option value="live" @selected($row->mode === 'live')>Live</option>
                 </select>
-                <p class="text-[11px] text-white/30 mt-1">Use <em>Test</em> with sandbox/test credentials; switch to <em>Live</em> only with production keys.</p>
+                <p class="ak-note text-[11px] text-white/30 mt-1">Use <em>Test</em> with sandbox/test credentials; switch to <em>Live</em> only with production keys.</p>
             </div>
             <div>
-                <label class="block text-xs text-white/50 mb-1">Sort order</label>
-                <input type="number" min="0" name="sort_order" value="{{ old('sort_order', $row->sort_order) }}" class="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white">
+                <label class="ak-muted block text-xs text-white/50 mb-1">Sort order</label>
+                <input type="number" min="0" name="sort_order" value="{{ old('sort_order', $row->sort_order) }}" class="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white ak-strong ak-input">
             </div>
         </div>
 
-        <label class="flex items-center gap-2 text-sm text-white/80">
+        <label class="ak-strong flex items-center gap-2 text-sm text-white/80">
             <input type="checkbox" name="is_enabled" value="1" @checked($row->is_enabled) class="accent-blue-500">
             Enable this gateway on the checkout page
         </label>
 
         <div class="pt-3 border-t border-white/10 space-y-3">
-            <p class="text-xs text-white/50">Credentials are encrypted at rest. Leave a field blank to keep the stored value unchanged. Stored values are never shown here.</p>
+            <p class="ak-muted text-xs text-white/50">Credentials are encrypted at rest. Leave a field blank to keep the stored value unchanged. Stored values are never shown here.</p>
             @foreach($fields as $f)
                 @php
                     $isSecret = !in_array($f, ['payee_name','bank_details','upi_id','instructions']);
@@ -169,14 +169,14 @@
                     $hint = $fieldHints[$f] ?? null;
                 @endphp
                 <div>
-                    <label class="block text-xs text-white/50 mb-1">{{ ucwords(str_replace('_',' ', $f)) }}</label>
+                    <label class="ak-muted block text-xs text-white/50 mb-1">{{ ucwords(str_replace('_',' ', $f)) }}</label>
                     @if($isLong)
-                        <textarea name="credentials[{{ $f }}]" rows="3" placeholder="{{ $placeholder }}" class="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white font-mono text-xs">{{ old("credentials.$f") }}</textarea>
+                        <textarea name="credentials[{{ $f }}]" rows="3" placeholder="{{ $placeholder }}" class="ak-strong ak-input w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white font-mono text-xs">{{ old("credentials.$f") }}</textarea>
                     @else
-                        <input type="{{ $isSecret ? 'password' : 'text' }}" name="credentials[{{ $f }}]" value="{{ old("credentials.$f") }}" placeholder="{{ $placeholder }}" autocomplete="off" class="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white font-mono text-xs">
+                        <input type="{{ $isSecret ? 'password' : 'text' }}" name="credentials[{{ $f }}]" value="{{ old("credentials.$f") }}" placeholder="{{ $placeholder }}" autocomplete="off" class="ak-strong ak-input w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white font-mono text-xs">
                     @endif
                     @if($hint)
-                        <p class="text-[11px] text-white/30 mt-0.5">{{ $hint }}</p>
+                        <p class="ak-note text-[11px] text-white/30 mt-0.5">{{ $hint }}</p>
                     @endif
                 </div>
             @endforeach
@@ -184,7 +184,7 @@
 
         <div class="flex gap-3 pt-2">
             <button type="submit" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-medium">Save</button>
-            <a href="{{ route('admin.payment-gateways.index') }}" class="px-4 py-2 bg-white/5 hover:bg-white/10 text-white/70 rounded-xl">Cancel</a>
+            <a href="{{ route('admin.payment-gateways.index') }}" class="ak-strong px-4 py-2 bg-white/5 hover:bg-white/10 text-white/70 rounded-xl">Cancel</a>
         </div>
     </form>
 </div>

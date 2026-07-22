@@ -119,10 +119,10 @@ echo 'SEED_OK';
  * Read the CURRENT stored admin override for the block type straight from the
  * AppSetting-backed store — the source of truth the task cares about.
  */
-function readStoredOverride(): Record<string, unknown> {
+function readStoredOverride(type: string = BLOCK_TYPE): Record<string, unknown> {
   const php = `
 use App\\Modules\\User\\Support\\BlockDefaults;
-echo 'OVR<<<' . json_encode(BlockDefaults::getAdminOverrideForType('${BLOCK_TYPE}')) . '>>>OVR';
+echo 'OVR<<<' . json_encode(BlockDefaults::getAdminOverrideForType('${type}')) . '>>>OVR';
 `.trim();
   const out = runTinker(php);
   const m = out.match(/OVR<<<(.*)>>>OVR/s);
@@ -225,7 +225,7 @@ test.describe("admin block-defaults editor save/clear", () => {
     // Leave no override behind for other suites/envs.
     try {
       runTinker(
-        `use App\\Modules\\User\\Support\\BlockDefaults; BlockDefaults::resetAdminOverrideForType('${BLOCK_TYPE}'); echo 'CLEAN_OK';`,
+        `use App\\Modules\\User\\Support\\BlockDefaults; BlockDefaults::resetAdminOverrideForType('${BLOCK_TYPE}'); BlockDefaults::resetAdminOverrideForType('list'); echo 'CLEAN_OK';`,
       );
     } catch {
       /* best-effort cleanup */
@@ -333,6 +333,64 @@ test.describe("admin block-defaults editor save/clear", () => {
     ).toBeUndefined();
   });
 
+  // The Typography "Font family" field is the shared searchable font picker
+  // (not a free-text input). Verify the full wiring: opening the picker,
+  // searching, selecting a font mirrors into the hidden style[font_family]
+  // input AND fires the bubbling change event that flips the section's
+  // override badge; "clear section" resets the picker back to Inherit via the
+  // font-picker-set window event. Admin surface must NOT show "My Fonts".
+  test("font family uses the searchable picker wired to setStyle and clear-section", async ({
+    page,
+  }) => {
+    await openEditor(page);
+
+    const card = typographyCard(page);
+    const header = card.locator("button.bd-section-hd");
+    const picker = page.locator('.font-picker[data-picker-id="bdFontFamily"]');
+    const hidden = picker.locator('input[name="style[font_family]"]');
+
+    // Expand Typography; the picker trigger (not a free-text input) renders.
+    await header.click();
+    await expect(picker).toBeVisible();
+    expect(
+      await page.locator('input[type="text"][name="style[font_family]"]').count(),
+      "the old free-text font input must be gone",
+    ).toBe(0);
+
+    // Open the picker and verify admin guard hides My Fonts entirely.
+    await picker.locator("button.theme-input").click();
+    await expect(picker.locator('input[placeholder="Search fonts…"]')).toBeVisible();
+    await expect(picker.locator("text=My Fonts")).toHaveCount(0);
+
+    // Search narrows the list; select a real Google Font.
+    await picker.locator('input[placeholder="Search fonts…"]').fill("Lobster");
+    const option = picker.locator("span", { hasText: /^Lobster$/ }).first();
+    await option.click();
+
+    // Hidden input mirrors the pick and the section badge flips on
+    // (select() dispatches a bubbling change that the wrapper routes to
+    // setStyle).
+    await expect(hidden).toHaveValue("Lobster");
+    await expect(card.locator(".bd-badge")).toBeVisible();
+    const clearBtn = card.locator(".bd-clear-btn");
+    await expect(clearBtn).toBeVisible();
+
+    // The picker loaded the Google Font stylesheet for the preview.
+    const fontLinks = await page
+      .locator('link[href*="fonts.googleapis.com"][href*="Lobster"]')
+      .count();
+    expect(fontLinks, "selected Google Font stylesheet loaded").toBeGreaterThan(0);
+
+    // Clear section resets the picker to Inherit (font-picker-set event) and
+    // empties the hidden input so a save would drop the override.
+    await clearBtn.click();
+    await expect(hidden).toHaveValue("");
+    await expect(card.locator(".bd-badge")).toBeHidden();
+    await expect(
+      picker.locator("button.theme-input span", { hasText: "Inherit" }).first(),
+    ).toBeVisible();
+  });
+
   // Regression: the section headers used to nest the "clear" <button> inside
   // the header <button>. Nested buttons are invalid HTML — the parser
   // force-closes the outer button, misnesting the whole tree so every card
@@ -392,5 +450,179 @@ test.describe("admin block-defaults editor save/clear", () => {
         `display-mode select must carry exactly one background image (${theme} mode)`,
       ).toBe(1);
     }
+  });
+
+  // Coverage for the friendly array-content row editor (Task: array-of-strings
+  // and array-of-objects content keys get add/remove/reorder rows that stay in
+  // two-way sync with the JSON textarea, and emptying all rows saves an
+  // explicit []).
+  test("list row editor two-way syncs with the JSON textarea and saving zero rows stores an explicit empty list", async ({
+    page,
+  }) => {
+    const LIST_TYPE = "list";
+    runTinker(
+      `use App\\Modules\\User\\Support\\BlockDefaults; BlockDefaults::resetAdminOverrideForType('${LIST_TYPE}'); echo 'RESET_OK';`,
+    );
+
+    await page.goto(`/admin/block-defaults/${LIST_TYPE}`, { timeout: 120_000 });
+    await page
+      .locator('button[type="submit"]', { hasText: "Save overrides" })
+      .waitFor({ state: "visible", timeout: 120_000 });
+
+    const container = page.locator('[data-testid="content-list-items"]');
+    await expect(container).toBeVisible();
+    const rows = container.locator(".space-y-2 > div");
+    // System default seeds three list items.
+    await expect(rows).toHaveCount(3);
+
+    const jsonBox = page.locator('textarea[name="content_json"]');
+
+    // ── rows → JSON: editing a row must land in the JSON textarea.
+    const uniqueText = `Row edit ${Date.now()}`;
+    await rows.nth(0).locator('input[type="text"]').first().fill(uniqueText);
+    await expect(jsonBox).toHaveValue(new RegExp(uniqueText));
+
+    // ── JSON → rows: editing the JSON must rebuild the rows. The JSON
+    // section is collapsed by default, so expand it before filling.
+    await page
+      .locator("button.bd-section-hd", { hasText: "Content overrides (JSON)" })
+      .click();
+    await expect(jsonBox).toBeVisible();
+    await jsonBox.fill(
+      JSON.stringify({ items: [{ text: "FromJsonSync", icon: "" }] }, null, 2),
+    );
+    await expect(rows).toHaveCount(1);
+    await expect(rows.nth(0).locator('input[type="text"]').first()).toHaveValue(
+      "FromJsonSync",
+    );
+
+    // ── add + remove rows: removing every row shows the empty hint and the
+    // JSON keeps an explicit [] for the key.
+    await page.locator('[data-testid="list-add-items"]').click();
+    await expect(rows).toHaveCount(2);
+    const removeButtons = container.locator('button[title="Remove item"]');
+    while ((await removeButtons.count()) > 0) {
+      await removeButtons.first().click();
+    }
+    await expect(rows).toHaveCount(0);
+    await expect(
+      container.locator("text=saving keeps this list explicitly empty"),
+    ).toBeVisible();
+    await expect(jsonBox).toHaveValue(/"items":\s*\[\]/);
+
+    // ── save: the stored override must carry the explicit empty list.
+    await Promise.all([
+      page.waitForResponse(
+        (r) =>
+          r.request().method() === "POST" &&
+          r.url().includes(`/admin/block-defaults/${LIST_TYPE}`),
+        { timeout: 120_000 },
+      ),
+      submitSaveForm(page),
+    ]);
+    await page.waitForLoadState("load", { timeout: 120_000 });
+    await expect(page.locator("text=Block defaults saved").first()).toBeVisible({
+      timeout: 60_000,
+    });
+
+    const stored = readStoredOverride(LIST_TYPE);
+    const content = (stored.content ?? {}) as Record<string, unknown>;
+    expect(
+      content.items,
+      "saving with zero rows must persist an explicit empty items list",
+    ).toEqual([]);
+  });
+
+  // Coverage for drag-and-drop row reordering (Task: rows can be dragged to
+  // reorder, not just moved via the arrow buttons; JSON textarea sync
+  // unchanged). Native HTML5 drag events don't fire from Playwright mouse
+  // moves, so the test dispatches real DragEvents with a shared DataTransfer —
+  // the exact events the Alpine handlers (@dragstart/@dragover/@drop) listen
+  // for.
+  test("list rows reorder via drag-and-drop and the JSON textarea reflects the new order", async ({
+    page,
+  }) => {
+    const LIST_TYPE = "list";
+    runTinker(
+      `use App\\Modules\\User\\Support\\BlockDefaults; BlockDefaults::resetAdminOverrideForType('${LIST_TYPE}'); echo 'RESET_OK';`,
+    );
+
+    await page.goto(`/admin/block-defaults/${LIST_TYPE}`, { timeout: 120_000 });
+    await page
+      .locator('button[type="submit"]', { hasText: "Save overrides" })
+      .waitFor({ state: "visible", timeout: 120_000 });
+
+    const container = page.locator('[data-testid="content-list-items"]');
+    await expect(container).toBeVisible();
+    const rows = container.locator(".space-y-2 > div");
+    await expect(rows).toHaveCount(3);
+
+    // Every row exposes a drag handle.
+    await expect(container.locator('[data-testid="list-drag-items"]')).toHaveCount(3);
+
+    // Capture the seeded row texts so we can assert the exact permutation.
+    const readRowTexts = async (): Promise<string[]> => {
+      const n = await rows.count();
+      const texts: string[] = [];
+      for (let i = 0; i < n; i++) {
+        texts.push(
+          await rows.nth(i).locator('input[type="text"]').first().inputValue(),
+        );
+      }
+      return texts;
+    };
+    const before = await readRowTexts();
+    expect(new Set(before).size, "seeded rows must be distinct").toBe(3);
+
+    // Drag the LAST row's handle onto the FIRST row.
+    const diag = await page.evaluate(() => {
+      const container = document.querySelector(
+        '[data-testid="content-list-items"]',
+      )!;
+      const rowEls = container.querySelectorAll(
+        ":scope .space-y-2 > div",
+      ) as NodeListOf<HTMLElement>;
+      const handle = rowEls[2].querySelector(
+        '[data-testid="list-drag-items"]',
+      ) as HTMLElement;
+      const dt = new DataTransfer();
+      const fire = (target: Element, type: string) =>
+        target.dispatchEvent(
+          new DragEvent(type, { bubbles: true, cancelable: true, dataTransfer: dt }),
+        );
+      const alpine = (window as unknown as {
+        Alpine?: { $data: (el: Element) => Record<string, unknown> };
+      }).Alpine;
+      const data = alpine ? alpine.$data(container) : null;
+      fire(handle, "dragstart");
+      const afterStart = data ? JSON.stringify(data.listDrag) : "no-alpine";
+      fire(rowEls[0], "dragover");
+      fire(rowEls[0], "drop");
+      const afterDrop = data
+        ? JSON.stringify((data.contentData as Record<string, unknown>).items)
+        : "no-alpine";
+      fire(handle, "dragend");
+      return { afterStart, afterDrop, rowCount: rowEls.length };
+    });
+    // Fail loudly if dragstart never reached the Alpine handler (would
+    // otherwise surface as a confusing "order unchanged" poll timeout).
+    expect(diag.afterStart, "dragstart must register in listDrag").toContain(
+      '"from":2',
+    );
+
+    // Rows now read [c, a, b] and the JSON textarea mirrors the same order.
+    await expect
+      .poll(readRowTexts, { timeout: 10_000 })
+      .toEqual([before[2], before[0], before[1]]);
+
+    const jsonBox = page.locator('textarea[name="content_json"]');
+    const jsonVal = await jsonBox.inputValue();
+    const parsed = JSON.parse(jsonVal) as {
+      items: Array<{ text: string }>;
+    };
+    expect(
+      parsed.items.map((i) => i.text),
+      "JSON textarea must carry the dragged order",
+    ).toEqual([before[2], before[0], before[1]]);
   });
 });

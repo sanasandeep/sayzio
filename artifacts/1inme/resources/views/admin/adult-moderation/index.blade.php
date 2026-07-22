@@ -31,7 +31,7 @@
         @foreach($tabs as $key => $label)
             <a href="{{ route('admin.adult-moderation.index', ['tab' => $key]) }}"
                class="px-4 py-2 text-sm font-semibold border-b-2 -mb-px {{ $tab === $key ? 'border-rose-600 text-rose-700' : 'border-transparent text-slate-500 hover:text-slate-800' }}">
-                {{ $label }} <span class="ml-1 text-xs text-slate-400">({{ $counts[$key] }})</span>
+                {{ $label }} <span class="ml-1 text-xs text-slate-400 ak-muted">({{ $counts[$key] }})</span>
             </a>
         @endforeach
     </div>
@@ -87,7 +87,7 @@
                         <td class="px-4 py-3 text-xs text-slate-500">
                             @if($u->adult_content_enabled_at){{ $u->adult_content_enabled_at->diffForHumans() }}@else &mdash; @endif
                             @if($u->age_verified_at)
-                                <div class="text-[11px] text-slate-400">age-affirmed {{ $u->age_verified_at->diffForHumans() }}</div>
+                                <div class="text-[11px] text-slate-400 ak-muted">age-affirmed {{ $u->age_verified_at->diffForHumans() }}</div>
                             @endif
                         </td>
                         <td class="px-4 py-3 text-right">

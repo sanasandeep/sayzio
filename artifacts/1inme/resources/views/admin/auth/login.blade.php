@@ -49,7 +49,7 @@
                 <div class="flex justify-center lg:justify-start mb-4">
                     <div class="inline-flex items-center gap-1.5">
                         <div class="w-5 h-5 rounded-md flex items-center justify-center" style="background: rgba(61,107,255,0.12); border: 1px solid rgba(61,107,255,0.15);">
-                            <i class="fas fa-shield-alt text-blue-400 text-[8px]"></i>
+                            <i class="fas fa-shield-alt text-blue-400 text-[8px] ak-blue"></i>
                         </div>
                         <span class="text-xs font-semibold uppercase tracking-wider" style="color: var(--text-dimmed);">Admin Panel</span>
                     </div>
@@ -66,7 +66,7 @@
                 </div>
 
                 @if(session('error'))
-                    <div class="mb-4 p-3 rounded-xl text-red-400 text-xs font-medium flex items-center gap-2" style="border: 1px solid rgba(239,68,68,0.15); background: rgba(239,68,68,0.06);">
+                    <div class="mb-4 p-3 rounded-xl text-red-400 text-xs font-medium flex items-center gap-2 ak-red" style="border: 1px solid rgba(239,68,68,0.15); background: rgba(239,68,68,0.06);">
                         <i class="fas fa-exclamation-circle"></i> {{ session('error') }}
                     </div>
                 @endif
@@ -77,7 +77,7 @@
                         <div>
                             <label class="block text-xs font-semibold uppercase tracking-wider mb-1.5" style="color: var(--text-dimmed);">Email</label>
                             <input type="email" name="email" value="{{ old('email') }}" required autofocus placeholder="admin@example.com" class="theme-input w-full">
-                            @error('email')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
+                            @error('email')<p class="mt-1 text-xs text-red-400 ak-red">{{ $message }}</p>@enderror
                         </div>
 
                         <div>
@@ -88,7 +88,7 @@
                                 'placeholder' => 'Enter your password',
                                 'autocomplete' => 'current-password',
                             ])
-                            @error('password')<p class="mt-1 text-xs text-red-400">{{ $message }}</p>@enderror
+                            @error('password')<p class="mt-1 text-xs text-red-400 ak-red">{{ $message }}</p>@enderror
                         </div>
 
                         <div class="flex items-center justify-between">
@@ -96,7 +96,7 @@
                                 <input type="checkbox" name="remember" class="rounded text-blue-500 focus:ring-blue-500/40 w-3.5 h-3.5" style="background: var(--bg-glass-input); border-color: var(--border-glass);">
                                 Remember me
                             </label>
-                            <a href="{{ route('admin.password.request') }}" class="text-xs font-medium text-blue-400 hover:text-blue-300 transition-colors">Forgot?</a>
+                            <a href="{{ route('admin.password.request') }}" class="text-xs font-medium text-blue-400 hover:text-blue-300 transition-colors ak-blue">Forgot?</a>
                         </div>
 
                         <button type="submit" class="btn-primary w-full justify-center py-2.5 text-sm">

@@ -57,11 +57,11 @@
                                 @endif
                             </td>
                             <td class="px-4 py-3">
-                                <span class="px-2 py-0.5 rounded-full text-[11px] font-bold text-white" style="background: {{ $c }};">{{ ucfirst($r->status) }}</span>
+                                <span class="px-2 py-0.5 rounded-full text-[11px] font-bold text-white ak-strong" style="background: {{ $c }};">{{ ucfirst($r->status) }}</span>
                             </td>
                             <td class="px-4 py-3" style="color: var(--text-faint);">{{ $r->created_at->diffForHumans() }}</td>
                             <td class="px-4 py-3 text-right">
-                                <a href="{{ route('admin.badge-requests.review', $r->id) }}" class="text-blue-400 hover:underline font-semibold text-xs">Review</a>
+                                <a href="{{ route('admin.badge-requests.review', $r->id) }}" class="text-blue-400 hover:underline font-semibold text-xs ak-blue">Review</a>
                             </td>
                         </tr>
                     @endforeach

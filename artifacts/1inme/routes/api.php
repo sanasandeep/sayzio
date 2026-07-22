@@ -100,6 +100,12 @@ Route::prefix('v1')->group(function () {
     Route::get('/cloud-files/oauth/callback', [\App\Modules\Api\Controllers\CloudFilesApiController::class, 'oauthCallback'])
         ->middleware('throttle:30,1');
 
+    // Google Contacts OAuth landing for mobile (PUBLIC — same stateless
+    // encrypted-state pattern as the cloud-files callback above). Minted by
+    // the authed POST /contacts/google/connect; bounces to the app deep link.
+    Route::get('/contacts/google/oauth/callback', [ContactController::class, 'googleOauthCallback'])
+        ->middleware('throttle:30,1');
+
     // ── Public, visibility-aware (optional bearer token) ────────────
     Route::middleware('api.optional_auth')->group(function () {
         Route::get('/biolinks/{alias}',            [BiolinkController::class, 'show']);
@@ -1018,6 +1024,7 @@ Route::prefix('v1')->group(function () {
 
         // Contacts — Google Contacts sync
         Route::get   ('/contacts/google/status',     [ContactController::class, 'googleStatus']);
+        Route::post  ('/contacts/google/connect',    [ContactController::class, 'googleConnect'])->middleware('throttle:12,1');
         Route::post  ('/contacts/google/sync',       [ContactController::class, 'googleSync'])->middleware('throttle:12,1');
         Route::patch ('/contacts/google',            [ContactController::class, 'googleUpdate']);
         Route::delete('/contacts/google',            [ContactController::class, 'googleDisconnect']);

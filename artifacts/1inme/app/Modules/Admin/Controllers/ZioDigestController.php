@@ -114,6 +114,24 @@ class ZioDigestController extends Controller
         return view('common.zio-digest', ['digest' => $digest, 'isPreview' => true]);
     }
 
+    /** Render the outbound email HTML as an admin preview (drafts allowed). */
+    public function emailPreview(ZioDigest $digest)
+    {
+        $html = (new ZioDigestRenderer())->emailHtml($digest, '#');
+
+        return response(
+            '<!DOCTYPE html><html><head><meta charset="utf-8">'
+            . '<meta name="viewport" content="width=device-width, initial-scale=1">'
+            . '<title>' . e('[Email preview] ' . $digest->title) . '</title></head>'
+            . '<body style="margin:0;">'
+            . '<div style="position:sticky;top:0;z-index:10;background:#111827;color:#e5e7eb;font-family:Arial,Helvetica,sans-serif;font-size:12px;padding:8px 16px;text-align:center;">'
+            . 'Email preview — this is the exact HTML sent to inboxes. The unsubscribe link is a per-recipient placeholder here.'
+            . '</div>'
+            . $html
+            . '</body></html>'
+        )->header('Content-Type', 'text/html; charset=utf-8');
+    }
+
     /** Live audience counts for the composer (JSON). */
     public function audienceCount(Request $request)
     {

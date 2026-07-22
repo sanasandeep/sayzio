@@ -106,7 +106,7 @@
         @case('button')
             <div class="bpt-btn" style="background: {{ $catColor }};">
                 <i class="fas fa-link"></i>
-                <span>{{ \Illuminate\Support\Str::limit($s['text'] ?? $s['title'] ?? 'My Link', 18) }}</span>
+                <span>{{ \Illuminate\Support\Str::limit(($s['text'] ?? '') !== '' ? $s['text'] : (($s['title'] ?? '') !== '' ? $s['title'] : ''), 18) }}</span>
             </div>
             @break
 

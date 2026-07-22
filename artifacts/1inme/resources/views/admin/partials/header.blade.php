@@ -11,12 +11,12 @@
 
     <div class="flex items-center gap-2">
         @if(session('impersonate_user_id'))
-            <div class="flex items-center gap-2 bg-yellow-500/10 border border-yellow-500/20 text-yellow-400 px-2.5 py-1 rounded-lg text-[10px] font-semibold">
+            <div class="flex items-center gap-2 bg-yellow-500/10 border border-yellow-500/20 text-yellow-400 px-2.5 py-1 rounded-lg text-[10px] font-semibold ak-amber">
                 <i class="fas fa-user-secret"></i>
                 <span>Impersonating user</span>
                 <form action="{{ route('admin.users.stop-impersonation') }}" method="POST" class="inline">
                     @csrf
-                    <button type="submit" class="ml-1 text-yellow-300 hover:text-yellow-200 font-bold">Stop</button>
+                    <button type="submit" class="ml-1 text-yellow-300 hover:text-yellow-200 font-bold ak-amber">Stop</button>
                 </form>
             </div>
         @endif
@@ -67,7 +67,7 @@
                  class="absolute right-0 mt-2 w-44 glass rounded-xl py-1 z-50" style="box-shadow: var(--card-shadow);">
                 <form action="{{ route('admin.logout') }}" method="POST">
                     @csrf
-                    <button type="submit" class="w-full text-left px-3 py-2 text-xs text-red-400 hover:bg-white/5 transition-colors">
+                    <button type="submit" class="w-full text-left px-3 py-2 text-xs text-red-400 hover:bg-white/5 transition-colors ak-red">
                         <i class="fas fa-sign-out-alt mr-2"></i> Logout
                     </button>
                 </form>

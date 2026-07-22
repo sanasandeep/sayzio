@@ -50,7 +50,7 @@
                 <div class="flex justify-center lg:justify-start mb-4">
                     <div class="inline-flex items-center gap-1.5">
                         <div class="w-5 h-5 rounded-md flex items-center justify-center" style="background: rgba(61,107,255,0.12); border: 1px solid rgba(61,107,255,0.15);">
-                            <i class="fas fa-shield-alt text-blue-400 text-[8px]"></i>
+                            <i class="fas fa-shield-alt text-blue-400 text-[8px] ak-blue"></i>
                         </div>
                         <span class="text-xs font-semibold uppercase tracking-wider" style="color: var(--text-dimmed);">Admin Panel</span>
                     </div>
@@ -67,7 +67,7 @@
                 </div>
 
                 @if(session('resend_throttled'))
-                    <div class="mb-4 p-3 rounded-xl text-blue-400 text-xs font-medium flex items-center gap-2" style="border: 1px solid rgba(61,107,255,0.15); background: rgba(61,107,255,0.06);">
+                    <div class="mb-4 p-3 rounded-xl text-blue-400 text-xs font-medium flex items-center gap-2 ak-blue" style="border: 1px solid rgba(61,107,255,0.15); background: rgba(61,107,255,0.06);">
                         <i class="fas fa-clock"></i> Please wait {{ session('resend_throttled') }} second(s) before requesting another link.
                     </div>
                 @endif
@@ -75,14 +75,14 @@
                 {{-- Main send-link form --}}
                 <div data-ajax-group>
                     {{-- Status box (success + AJAX updates). Shows delivery_error on initial page load if applicable. --}}
-                    <div class="mb-4 p-3 rounded-xl text-emerald-400 text-xs font-medium" style="border: 1px solid rgba(16,185,129,0.15); background: rgba(16,185,129,0.06);" data-ajax-status @if(!session('status') && !session('delivery_error')) hidden @endif>
+                    <div class="mb-4 p-3 rounded-xl text-emerald-400 text-xs font-medium ak-green" style="border: 1px solid rgba(16,185,129,0.15); background: rgba(16,185,129,0.06);" data-ajax-status @if(!session('status') && !session('delivery_error')) hidden @endif>
                         @if(session('delivery_error'))
-                            <div class="flex items-start gap-2 text-amber-400">
+                            <div class="flex items-start gap-2 text-amber-400 ak-amber">
                                 <i class="fas fa-exclamation-triangle mt-0.5 shrink-0"></i>
                                 <span>
                                     {{ session('delivery_error') }}
                                     @if(session('delivery_error_log'))
-                                        <a href="{{ route('admin.email-logs.index', ['key' => 'admin.password_reset', 'status' => 'failed']) }}" class="inline-flex items-center gap-1 mt-1 font-semibold text-amber-300 hover:text-amber-200 underline transition-colors">
+                                        <a href="{{ route('admin.email-logs.index', ['key' => 'admin.password_reset', 'status' => 'failed']) }}" class="inline-flex items-center gap-1 mt-1 font-semibold text-amber-300 hover:text-amber-200 underline transition-colors ak-amber">
                                             View error details <i class="fas fa-arrow-right text-[9px]"></i>
                                         </a>
                                     @endif
@@ -95,14 +95,14 @@
 
                     <form id="forgot-send-form" method="POST" action="{{ route('admin.password.email') }}" data-ajax>
                         @csrf
-                        <div class="mb-3 p-3 rounded-xl text-red-400 text-xs font-medium" style="border: 1px solid rgba(239,68,68,0.15); background: rgba(239,68,68,0.06);" data-general-err @if(!$errors->any()) hidden @endif>
+                        <div class="mb-3 p-3 rounded-xl text-red-400 text-xs font-medium ak-red" style="border: 1px solid rgba(239,68,68,0.15); background: rgba(239,68,68,0.06);" data-general-err @if(!$errors->any()) hidden @endif>
                             @foreach($errors->all() as $error) <p>{{ $error }}</p> @endforeach
                         </div>
                         <div class="space-y-4">
                             <div>
                                 <label class="block text-xs font-semibold uppercase tracking-wider mb-1.5" style="color: var(--text-dimmed);">Email</label>
                                 <input type="email" name="email" id="forgot-email" value="{{ old('email', session('reset_email_sent_to')) }}" required autofocus placeholder="admin@example.com" class="theme-input w-full">
-                                <p class="mt-1 text-xs text-red-400" data-err="email" @if(!$errors->has('email')) hidden @endif>{{ $errors->first('email') }}</p>
+                                <p class="mt-1 text-xs text-red-400 ak-red" data-err="email" @if(!$errors->has('email')) hidden @endif>{{ $errors->first('email') }}</p>
                             </div>
                             <button type="submit" class="btn-primary w-full justify-center py-2.5 text-sm">
                                 Send Reset Link <i class="fas fa-arrow-right text-[10px] ml-1"></i>
@@ -115,12 +115,12 @@
                 <div id="resend-section" @if(!session('reset_email_sent_to')) hidden @endif>
                     <div class="mt-4 pt-4" style="border-top: 1px solid var(--border-glass);">
                         <div data-ajax-group>
-                            <div class="mb-2 p-2 rounded-xl text-emerald-400 text-xs font-medium" style="border: 1px solid rgba(16,185,129,0.15); background: rgba(16,185,129,0.06);" data-ajax-status hidden></div>
+                            <div class="mb-2 p-2 rounded-xl text-emerald-400 text-xs font-medium ak-green" style="border: 1px solid rgba(16,185,129,0.15); background: rgba(16,185,129,0.06);" data-ajax-status hidden></div>
                             <p class="text-xs mb-2" style="color: var(--text-dimmed);">Didn't receive the email? Check your spam folder, or resend the link.</p>
                             <form method="POST" action="{{ route('admin.password.resend') }}" data-ajax>
                                 @csrf
                                 <input type="hidden" name="email" id="resend-email" value="{{ session('reset_email_sent_to') }}">
-                                <div class="mb-2 p-2 rounded-xl text-red-400 text-xs font-medium" style="border: 1px solid rgba(239,68,68,0.15); background: rgba(239,68,68,0.06);" data-general-err hidden></div>
+                                <div class="mb-2 p-2 rounded-xl text-red-400 text-xs font-medium ak-red" style="border: 1px solid rgba(239,68,68,0.15); background: rgba(239,68,68,0.06);" data-general-err hidden></div>
                                 <button type="submit" class="w-full py-2 text-xs font-semibold rounded-xl transition-colors flex items-center justify-center gap-1.5" style="color: var(--text-secondary); border: 1px solid var(--border-glass); background: var(--bg-card);">
                                     <i class="fas fa-redo text-[9px]"></i> Resend reset link
                                 </button>
@@ -130,7 +130,7 @@
                 </div>
 
                 <p class="mt-6 text-center text-xs">
-                    <a href="{{ route('admin.login') }}" class="text-blue-400 hover:text-blue-300 font-semibold transition-colors">
+                    <a href="{{ route('admin.login') }}" class="text-blue-400 hover:text-blue-300 font-semibold transition-colors ak-blue">
                         <i class="fas fa-arrow-left text-[10px] mr-1"></i> Back to login
                     </a>
                 </p>

@@ -8,14 +8,14 @@
      @click.self="$store.iconPicker.close()">
     <div class="w-full max-w-2xl max-h-[80vh] flex flex-col bg-zinc-900 border border-white/10 rounded-2xl shadow-2xl">
         <div class="flex items-center justify-between p-4 border-b border-white/10">
-            <h3 class="text-sm font-semibold text-white">Pick an icon</h3>
-            <button type="button" @click="$store.iconPicker.close()" class="text-white/60 hover:text-white text-sm" title="Close"><i class="fas fa-times"></i></button>
+            <h3 class="text-sm font-semibold text-white ak-strong">Pick an icon</h3>
+            <button type="button" @click="$store.iconPicker.close()" class="text-white/60 hover:text-white text-sm ak-muted" title="Close"><i class="fas fa-times"></i></button>
         </div>
         <div class="p-4 border-b border-white/10">
             <div class="relative">
-                <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-white/40 text-xs"></i>
+                <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-white/40 text-xs ak-note"></i>
                 <input type="text" x-model="$store.iconPicker.query" placeholder="Search icons (e.g. share, link, chart)"
-                       class="w-full pl-8 pr-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white"
+                       class="w-full pl-8 pr-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white ak-strong ak-input"
                        x-ref="iconPickerSearch"
                        x-effect="if ($store.iconPicker.open) $nextTick(() => $refs.iconPickerSearch && $refs.iconPickerSearch.focus())">
             </div>
@@ -26,27 +26,27 @@
                     <button type="button" @click="$store.iconPicker.tapIcon(ic)"
                             @mouseenter="$store.iconPicker.hover = ic" @mouseleave="if ($store.iconPicker.hover === ic) $store.iconPicker.hover = null"
                             @focus="$store.iconPicker.hover = ic" @blur="if ($store.iconPicker.hover === ic) $store.iconPicker.hover = null"
-                            :class="'group flex items-center justify-center aspect-square rounded-lg border text-white/80 hover:text-white hover:bg-blue-500/20 transition ' + ($store.iconPicker.hover === ic ? 'ring-2 ring-blue-400/60 ' : '') + ($store.iconPicker.current === ic ? 'bg-blue-500/30 border-blue-400/50' : 'bg-white/5 border-white/10')"
+                            :class="'group flex items-center justify-center aspect-square rounded-lg border text-white/80 hover:text-white hover:bg-blue-500/20 transition ' + ($store.iconPicker.hover === ic ? 'ring-2 ring-blue-400/60 ' : '') + ($store.iconPicker.current === ic ? 'bg-blue-500/30 border-blue-400/50' : 'bg-white/5 border-white/10') ak-strong"
                             :title="ic" :aria-label="ic">
                         <i :class="'fas ' + ic + ' text-base'"></i>
                     </button>
                 </template>
             </div>
-            <div x-show="$store.iconPicker.filteredIcons().length === 0" class="text-xs text-white/40 text-center py-6">No icons match "<span x-text="$store.iconPicker.query"></span>".</div>
+            <div x-show="$store.iconPicker.filteredIcons().length === 0" class="text-xs text-white/40 text-center py-6 ak-note">No icons match "<span x-text="$store.iconPicker.query"></span>".</div>
         </div>
         <div class="px-4 py-2 border-t border-white/10 bg-black/30 flex items-center justify-center gap-2 min-h-[36px]">
             <template x-if="$store.iconPicker.hover">
-                <span class="flex items-center gap-2 text-xs text-white">
-                    <i :class="'fas ' + $store.iconPicker.hover + ' text-blue-300'"></i>
-                    <code class="text-white/90" x-text="$store.iconPicker.hover"></code>
-                    <span class="text-white/40 hidden sm:inline"> - tap again to select</span>
+                <span class="flex items-center gap-2 text-xs text-white ak-strong">
+                    <i :class="'fas ' + $store.iconPicker.hover + ' text-blue-300 ak-blue'"></i>
+                    <code class="text-white/90 ak-strong" x-text="$store.iconPicker.hover"></code>
+                    <span class="text-white/40 hidden sm:inline ak-note"> - tap again to select</span>
                 </span>
             </template>
             <template x-if="!$store.iconPicker.hover">
-                <span class="text-[11px] text-white/40">Hover or tap an icon to see its name.</span>
+                <span class="text-[11px] text-white/40 ak-note">Hover or tap an icon to see its name.</span>
             </template>
         </div>
-        <div class="p-3 border-t border-white/10 text-[11px] text-white/40 text-center">
+        <div class="p-3 border-t border-white/10 text-[11px] text-white/40 text-center ak-note">
             You can also type a FontAwesome class name directly in the icon field.
         </div>
     </div>

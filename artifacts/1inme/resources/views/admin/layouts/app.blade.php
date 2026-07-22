@@ -87,6 +87,31 @@
         html.light-mode .help-note-callout--tip .help-note-icon { color: #059669; }
         html.light-mode .help-note-callout--tip a { color: #065f46; }
 
+        /* ---- Admin settings pages (API Keys, Mail/SMTP, Integrations, AI Engine, Payment Gateways, etc.):
+               shared light-mode text legibility overrides ---- */
+        html.light-mode .ak-amber { color: #b45309; }
+        html.light-mode .ak-green { color: #047857; }
+        html.light-mode .ak-red { color: #b91c1c; }
+        html.light-mode .ak-blue { color: #1d4ed8; }
+        html.light-mode .ak-muted { color: #475569; }
+        html.light-mode .ak-strong { color: #0f172a; }
+        html.light-mode .ak-label { color: #475569; }
+        html.light-mode .ak-note { color: #64748b; }
+        html.light-mode .ak-stored { color: #475569; }
+        html.light-mode .ak-masked { color: #92400e; }
+        html.light-mode .ak-input { color: #0f172a; background-color: rgba(15,23,42,.04); border-color: #cbd5e1; }
+        html.light-mode .ak-input::placeholder { color: #94a3b8; }
+        html.light-mode .ak-warn-banner { color: #78350f; border-color: rgba(245,158,11,.35); background-color: rgba(245,158,11,.08); }
+        html.light-mode .ak-warn-banner .fa-triangle-exclamation { color: #b45309; }
+        html.light-mode .ak-warn-banner a { color: #92400e; }
+        html.light-mode .ak-tone-green { color: #047857; border-color: rgba(16,185,129,.35); background-color: rgba(16,185,129,.10); }
+        html.light-mode .ak-tone-amber { color: #b45309; border-color: rgba(245,158,11,.35); background-color: rgba(245,158,11,.10); }
+        html.light-mode .ak-tone-red { color: #dc2626; border-color: rgba(239,68,68,.35); background-color: rgba(239,68,68,.08); }
+        html.light-mode .ak-tone-neutral { color: #475569; border-color: #cbd5e1; background-color: rgba(15,23,42,.04); }
+        html.light-mode .ak-error { color: #b91c1c; border-color: rgba(239,68,68,.35); background-color: rgba(239,68,68,.06); }
+        html.light-mode .ak-btn-disabled { color: #94a3b8; background-color: rgba(15,23,42,.05); }
+        html.light-mode .ak-open-link { color: #1d4ed8; }
+
         .sidebar-tooltip {
             position: absolute; left: calc(100% + 8px); top: 50%; transform: translateY(-50%);
             padding: 4px 10px; border-radius: 8px;

@@ -43,11 +43,11 @@
         </div>
     @endif
 
-    <div class="glass rounded-2xl p-5 text-sm text-white/70">
+    <div class="glass rounded-2xl p-5 text-sm text-white/70 ak-strong">
         <div class="flex items-center justify-between">
             <div>
-                <div class="text-white font-semibold">Cookie consent banner</div>
-                <div class="text-white/50 text-xs">Visible policy version: <span class="font-mono text-white">v{{ $cfg['policy_version'] }}</span> &mdash; bumping it re-prompts every visitor.</div>
+                <div class="text-white font-semibold ak-strong">Cookie consent banner</div>
+                <div class="text-white/50 text-xs ak-muted">Visible policy version: <span class="font-mono text-white ak-strong">v{{ $cfg['policy_version'] }}</span> &mdash; bumping it re-prompts every visitor.</div>
             </div>
             <a target="_blank" href="/" class="px-3 py-1.5 rounded-lg text-xs font-medium" style="background: rgba(255,255,255,0.05); border: 1px solid var(--border-glass); color: var(--text-muted);">
                 <i class="fas fa-external-link-alt mr-1"></i> Open marketing site
@@ -61,24 +61,24 @@
 
         <div class="space-y-6">
             <div class="glass rounded-2xl p-6 space-y-4">
-                <h2 class="text-base font-semibold text-white">Where it shows</h2>
-                <label class="flex items-center gap-2 text-sm text-white/80">
+                <h2 class="text-base font-semibold text-white ak-strong">Where it shows</h2>
+                <label class="flex items-center gap-2 text-sm text-white/80 ak-strong">
                     <input type="hidden" name="enabled" value="0">
                     <input type="checkbox" name="enabled" value="1" {{ $cfg['enabled'] ? 'checked' : '' }}> Enable cookie consent globally
                 </label>
-                <label class="flex items-center gap-2 text-sm text-white/80">
+                <label class="flex items-center gap-2 text-sm text-white/80 ak-strong">
                     <input type="hidden" name="scope_marketing" value="0">
                     <input type="checkbox" name="scope_marketing" value="1" {{ $cfg['scope_marketing'] ? 'checked' : '' }}> Show on marketing site
                 </label>
-                <label class="flex items-center gap-2 text-sm text-white/80">
+                <label class="flex items-center gap-2 text-sm text-white/80 ak-strong">
                     <input type="hidden" name="scope_biolink" value="0">
                     <input type="checkbox" name="scope_biolink" value="1" {{ $cfg['scope_biolink'] ? 'checked' : '' }}> Show on public biolink pages
                 </label>
             </div>
 
             <div class="glass rounded-2xl p-6 space-y-4">
-                <h2 class="text-base font-semibold text-white">Categories</h2>
-                <p class="text-xs text-white/50">Essential cookies (session, CSRF, theme) are always on and never blocked. Toggle which optional categories visitors can opt into.</p>
+                <h2 class="text-base font-semibold text-white ak-strong">Categories</h2>
+                <p class="text-xs text-white/50 ak-muted">Essential cookies (session, CSRF, theme) are always on and never blocked. Toggle which optional categories visitors can opt into.</p>
 
                 @foreach($allCats as $i => $cid)
                     @php $row = $catById[$cid] ?? ['id'=>$cid,'name'=>$catNames[$cid],'description'=>'','cookies'=>'','default_on'=>false]; @endphp
@@ -87,13 +87,13 @@
                         <div class="flex items-start justify-between gap-3">
                             <div class="flex-1 space-y-2">
                                 <input type="text" name="categories[{{ $i }}][name]" value="{{ $row['name'] }}" placeholder="{{ $catNames[$cid] }}"
-                                    class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white">
+                                    class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white ak-strong ak-input">
                                 <textarea name="categories[{{ $i }}][description]" rows="2" placeholder="What this category does"
-                                    class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white">{{ $row['description'] }}</textarea>
+                                    class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white ak-strong ak-input">{{ $row['description'] }}</textarea>
                                 <textarea name="categories[{{ $i }}][cookies]" rows="2" placeholder="Cookies / scripts in this category (comma separated)"
-                                    class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs font-mono text-white">{{ $row['cookies'] }}</textarea>
+                                    class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs font-mono text-white ak-strong ak-input">{{ $row['cookies'] }}</textarea>
                             </div>
-                            <label class="text-xs text-white/70 flex items-center gap-2 whitespace-nowrap pt-2">
+                            <label class="text-xs text-white/70 flex items-center gap-2 whitespace-nowrap pt-2 ak-strong">
                                 <input type="hidden" name="categories[{{ $i }}][default_on]" value="0">
                                 <input type="checkbox" name="categories[{{ $i }}][default_on]" value="1" {{ !empty($row['default_on']) ? 'checked' : '' }}>
                                 Default on
@@ -104,36 +104,36 @@
             </div>
 
             <div class="glass rounded-2xl p-6 space-y-4">
-                <h2 class="text-base font-semibold text-white">Visitor copy</h2>
+                <h2 class="text-base font-semibold text-white ak-strong">Visitor copy</h2>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <label class="block text-xs text-white/60">Title
-                        <input id="cc_title" type="text" name="copy[title]" value="{{ $cfg['copy']['title'] }}" class="mt-1 w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white">
+                    <label class="block text-xs text-white/60 ak-muted">Title
+                        <input id="cc_title" type="text" name="copy[title]" value="{{ $cfg['copy']['title'] }}" class="mt-1 w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white ak-strong ak-input">
                     </label>
-                    <label class="block text-xs text-white/60">Cookie policy link label
-                        <input id="cc_link_label" type="text" name="copy[policy_link_label]" value="{{ $cfg['copy']['policy_link_label'] }}" class="mt-1 w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white">
+                    <label class="block text-xs text-white/60 ak-muted">Cookie policy link label
+                        <input id="cc_link_label" type="text" name="copy[policy_link_label]" value="{{ $cfg['copy']['policy_link_label'] }}" class="mt-1 w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white ak-strong ak-input">
                     </label>
-                    <label class="md:col-span-2 block text-xs text-white/60">Body
-                        <textarea id="cc_body" name="copy[body]" rows="3" class="mt-1 w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white">{{ $cfg['copy']['body'] }}</textarea>
+                    <label class="md:col-span-2 block text-xs text-white/60 ak-muted">Body
+                        <textarea id="cc_body" name="copy[body]" rows="3" class="mt-1 w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white ak-strong ak-input">{{ $cfg['copy']['body'] }}</textarea>
                     </label>
-                    <label class="block text-xs text-white/60">Accept all label
-                        <input id="cc_accept" type="text" name="copy[accept_all]" value="{{ $cfg['copy']['accept_all'] }}" class="mt-1 w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white">
+                    <label class="block text-xs text-white/60 ak-muted">Accept all label
+                        <input id="cc_accept" type="text" name="copy[accept_all]" value="{{ $cfg['copy']['accept_all'] }}" class="mt-1 w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white ak-strong ak-input">
                     </label>
-                    <label class="block text-xs text-white/60">Reject all label
-                        <input id="cc_reject" type="text" name="copy[reject_all]" value="{{ $cfg['copy']['reject_all'] }}" class="mt-1 w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white">
+                    <label class="block text-xs text-white/60 ak-muted">Reject all label
+                        <input id="cc_reject" type="text" name="copy[reject_all]" value="{{ $cfg['copy']['reject_all'] }}" class="mt-1 w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white ak-strong ak-input">
                     </label>
-                    <label class="block text-xs text-white/60">Customize label
-                        <input id="cc_customize" type="text" name="copy[customize]" value="{{ $cfg['copy']['customize'] }}" class="mt-1 w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white">
+                    <label class="block text-xs text-white/60 ak-muted">Customize label
+                        <input id="cc_customize" type="text" name="copy[customize]" value="{{ $cfg['copy']['customize'] }}" class="mt-1 w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white ak-strong ak-input">
                     </label>
-                    <label class="block text-xs text-white/60">Save label
-                        <input id="cc_save" type="text" name="copy[save]" value="{{ $cfg['copy']['save'] }}" class="mt-1 w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white">
+                    <label class="block text-xs text-white/60 ak-muted">Save label
+                        <input id="cc_save" type="text" name="copy[save]" value="{{ $cfg['copy']['save'] }}" class="mt-1 w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white ak-strong ak-input">
                     </label>
-                    <label class="md:col-span-2 block text-xs text-white/60">Cookie policy URL
-                        <input type="text" name="copy[policy_link_url]" value="{{ $cfg['copy']['policy_link_url'] }}" class="mt-1 w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white" placeholder="/cookies or https://...">
+                    <label class="md:col-span-2 block text-xs text-white/60 ak-muted">Cookie policy URL
+                        <input type="text" name="copy[policy_link_url]" value="{{ $cfg['copy']['policy_link_url'] }}" class="mt-1 w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white ak-strong ak-input" placeholder="/cookies or https://...">
                     </label>
-                    <label class="block text-xs text-white/60">Footer reopen link label
-                        <input type="text" name="copy[reopen_link_label]" value="{{ $cfg['copy']['reopen_link_label'] }}" class="mt-1 w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white" placeholder="Cookie preferences">
+                    <label class="block text-xs text-white/60 ak-muted">Footer reopen link label
+                        <input type="text" name="copy[reopen_link_label]" value="{{ $cfg['copy']['reopen_link_label'] }}" class="mt-1 w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white ak-strong ak-input" placeholder="Cookie preferences">
                     </label>
-                    <label class="flex items-end gap-2 text-sm text-white/80">
+                    <label class="flex items-end gap-2 text-sm text-white/80 ak-strong">
                         <input type="hidden" name="show_policy_link" value="0">
                         <input type="checkbox" name="show_policy_link" value="1" {{ $cfg['show_policy_link'] ? 'checked' : '' }}>
                         Show "{{ $cfg['copy']['policy_link_label'] }}" link in prompt
@@ -142,11 +142,11 @@
             </div>
 
             <div class="glass rounded-2xl p-6 space-y-4">
-                <h2 class="text-base font-semibold text-white">Per-language copy</h2>
-                <p class="text-xs text-white/50">
+                <h2 class="text-base font-semibold text-white ak-strong">Per-language copy</h2>
+                <p class="text-xs text-white/50 ak-muted">
                     Add translated versions of the prompt copy. Visitors are matched to the closest language from their browser's
-                    <span class="font-mono text-white/70">Accept-Language</span> header (e.g. <span class="font-mono text-white/70">fr-CA</span> falls back to <span class="font-mono text-white/70">fr</span>). Any field left blank uses the default copy above. Use BCP-47 codes like
-                    <span class="font-mono text-white/70">fr</span>, <span class="font-mono text-white/70">es</span>, <span class="font-mono text-white/70">pt-BR</span>, <span class="font-mono text-white/70">zh-CN</span>.
+                    <span class="font-mono text-white/70 ak-strong">Accept-Language</span> header (e.g. <span class="font-mono text-white/70 ak-strong">fr-CA</span> falls back to <span class="font-mono text-white/70 ak-strong">fr</span>). Any field left blank uses the default copy above. Use BCP-47 codes like
+                    <span class="font-mono text-white/70 ak-strong">fr</span>, <span class="font-mono text-white/70 ak-strong">es</span>, <span class="font-mono text-white/70 ak-strong">pt-BR</span>, <span class="font-mono text-white/70 ak-strong">zh-CN</span>.
                 </p>
 
                 <div id="cc_locales" class="space-y-3"></div>
@@ -157,45 +157,45 @@
                         style="background: rgba(61,107,255,0.15); border: 1px solid rgba(61,107,255,0.35); color: #bccfff;">
                         <i class="fas fa-plus mr-1"></i> Add language
                     </button>
-                    <span class="text-[11px] text-white/40">Up to 50 languages.</span>
+                    <span class="text-[11px] text-white/40 ak-note">Up to 50 languages.</span>
                 </div>
 
                 <template id="cc_locale_row_tpl">
                     <div class="cc-locale-row rounded-xl p-4" style="background:rgba(255,255,255,0.03); border:1px solid var(--border-glass);">
                         <div class="flex items-center justify-between gap-3 mb-3">
-                            <label class="block text-xs text-white/60 flex-1 max-w-[240px]">Language code (BCP-47)
+                            <label class="block text-xs text-white/60 flex-1 max-w-[240px] ak-muted">Language code (BCP-47)
                                 <input type="text" data-cc-locale-code value="" placeholder="fr or pt-BR"
-                                    class="mt-1 w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white font-mono"
+                                    class="mt-1 w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white font-mono ak-strong ak-input"
                                     pattern="[A-Za-z]{2,3}([-_][A-Za-z]{2,4})?">
                             </label>
-                            <button type="button" data-cc-locale-remove class="text-xs text-red-300 hover:text-red-200 px-2 py-1">
+                            <button type="button" data-cc-locale-remove class="text-xs text-red-300 hover:text-red-200 px-2 py-1 ak-red">
                                 <i class="fas fa-trash"></i> Remove
                             </button>
                         </div>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                            <label class="block text-xs text-white/60">Title
-                                <input type="text" data-cc-loc="title" class="cc-loc-field mt-1 w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white">
+                            <label class="block text-xs text-white/60 ak-muted">Title
+                                <input type="text" data-cc-loc="title" class="cc-loc-field mt-1 w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white ak-strong ak-input">
                             </label>
-                            <label class="block text-xs text-white/60">Cookie policy link label
-                                <input type="text" data-cc-loc="policy_link_label" class="cc-loc-field mt-1 w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white">
+                            <label class="block text-xs text-white/60 ak-muted">Cookie policy link label
+                                <input type="text" data-cc-loc="policy_link_label" class="cc-loc-field mt-1 w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white ak-strong ak-input">
                             </label>
-                            <label class="md:col-span-2 block text-xs text-white/60">Body
-                                <textarea rows="2" data-cc-loc="body" class="cc-loc-field mt-1 w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white"></textarea>
+                            <label class="md:col-span-2 block text-xs text-white/60 ak-muted">Body
+                                <textarea rows="2" data-cc-loc="body" class="cc-loc-field mt-1 w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white ak-strong ak-input"></textarea>
                             </label>
-                            <label class="block text-xs text-white/60">Accept all label
-                                <input type="text" data-cc-loc="accept_all" class="cc-loc-field mt-1 w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white">
+                            <label class="block text-xs text-white/60 ak-muted">Accept all label
+                                <input type="text" data-cc-loc="accept_all" class="cc-loc-field mt-1 w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white ak-strong ak-input">
                             </label>
-                            <label class="block text-xs text-white/60">Reject all label
-                                <input type="text" data-cc-loc="reject_all" class="cc-loc-field mt-1 w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white">
+                            <label class="block text-xs text-white/60 ak-muted">Reject all label
+                                <input type="text" data-cc-loc="reject_all" class="cc-loc-field mt-1 w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white ak-strong ak-input">
                             </label>
-                            <label class="block text-xs text-white/60">Customize label
-                                <input type="text" data-cc-loc="customize" class="cc-loc-field mt-1 w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white">
+                            <label class="block text-xs text-white/60 ak-muted">Customize label
+                                <input type="text" data-cc-loc="customize" class="cc-loc-field mt-1 w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white ak-strong ak-input">
                             </label>
-                            <label class="block text-xs text-white/60">Save label
-                                <input type="text" data-cc-loc="save" class="cc-loc-field mt-1 w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white">
+                            <label class="block text-xs text-white/60 ak-muted">Save label
+                                <input type="text" data-cc-loc="save" class="cc-loc-field mt-1 w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white ak-strong ak-input">
                             </label>
-                            <label class="md:col-span-2 block text-xs text-white/60">Footer reopen link label
-                                <input type="text" data-cc-loc="reopen_link_label" class="cc-loc-field mt-1 w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white">
+                            <label class="md:col-span-2 block text-xs text-white/60 ak-muted">Footer reopen link label
+                                <input type="text" data-cc-loc="reopen_link_label" class="cc-loc-field mt-1 w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white ak-strong ak-input">
                             </label>
                         </div>
                     </div>
@@ -203,38 +203,38 @@
             </div>
 
             <div class="glass rounded-2xl p-6 space-y-4">
-                <h2 class="text-base font-semibold text-white">Layout &amp; position</h2>
+                <h2 class="text-base font-semibold text-white ak-strong">Layout &amp; position</h2>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-                    <label class="block text-xs text-white/60">Layout
-                        <select id="cc_layout" name="layout" class="mt-1 w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white">
+                    <label class="block text-xs text-white/60 ak-muted">Layout
+                        <select id="cc_layout" name="layout" class="mt-1 w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white ak-strong ak-input">
                             @foreach($layoutLabels as $k=>$v)
                                 <option value="{{ $k }}" {{ $cfg['layout']===$k ? 'selected' : '' }}>{{ $v }}</option>
                             @endforeach
                         </select>
                     </label>
-                    <label class="block text-xs text-white/60" id="cc_position_wrap">Position
-                        <select id="cc_position" name="position" class="mt-1 w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white">
+                    <label class="block text-xs text-white/60 ak-muted" id="cc_position_wrap">Position
+                        <select id="cc_position" name="position" class="mt-1 w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white ak-strong ak-input">
                             @foreach($positionLabels as $k=>$v)
                                 <option value="{{ $k }}" {{ $cfg['position']===$k ? 'selected' : '' }}>{{ $v }}</option>
                             @endforeach
                         </select>
-                        <span class="text-[10px] text-white/40 mt-1 block">Applies to banner / corner / pill layouts.</span>
+                        <span class="text-[10px] text-white/40 mt-1 block ak-note">Applies to banner / corner / pill layouts.</span>
                     </label>
-                    <label class="block text-xs text-white/60">Size
-                        <select id="cc_size" name="size" class="mt-1 w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white">
+                    <label class="block text-xs text-white/60 ak-muted">Size
+                        <select id="cc_size" name="size" class="mt-1 w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white ak-strong ak-input">
                             @foreach(['compact'=>'Compact','default'=>'Default','wide'=>'Wide'] as $k=>$v)
                                 <option value="{{ $k }}" {{ $cfg['size']===$k ? 'selected' : '' }}>{{ $v }}</option>
                             @endforeach
                         </select>
                     </label>
-                    <label class="block text-xs text-white/60">Max width (px)
-                        <input id="cc_maxw" type="number" min="280" max="960" name="max_width" value="{{ $cfg['max_width'] }}" class="mt-1 w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white">
+                    <label class="block text-xs text-white/60 ak-muted">Max width (px)
+                        <input id="cc_maxw" type="number" min="280" max="960" name="max_width" value="{{ $cfg['max_width'] }}" class="mt-1 w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white ak-strong ak-input">
                     </label>
-                    <label class="block text-xs text-white/60">Corner radius (px)
-                        <input id="cc_radius" type="number" min="0" max="40" name="radius" value="{{ $cfg['radius'] }}" class="mt-1 w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white">
+                    <label class="block text-xs text-white/60 ak-muted">Corner radius (px)
+                        <input id="cc_radius" type="number" min="0" max="40" name="radius" value="{{ $cfg['radius'] }}" class="mt-1 w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white ak-strong ak-input">
                     </label>
-                    <label class="block text-xs text-white/60">Theme
-                        <select id="cc_theme" name="theme" class="mt-1 w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white">
+                    <label class="block text-xs text-white/60 ak-muted">Theme
+                        <select id="cc_theme" name="theme" class="mt-1 w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white ak-strong ak-input">
                             @foreach(['auto'=>'Auto','light'=>'Light','dark'=>'Dark'] as $k=>$v)
                                 <option value="{{ $k }}" {{ $cfg['theme']===$k ? 'selected' : '' }}>{{ $v }}</option>
                             @endforeach
@@ -243,22 +243,22 @@
                 </div>
 
                 <div class="border-t border-white/5 pt-4">
-                    <div class="text-xs uppercase tracking-wider text-white/40 font-semibold mb-2">Per-surface override</div>
-                    <p class="text-[11px] text-white/40 mb-3">Leave on "Inherit" to use the global layout/position above. Useful if you want, e.g. a slim inline bar on biolinks but a centered modal on the marketing site.</p>
+                    <div class="text-xs uppercase tracking-wider text-white/40 font-semibold mb-2 ak-note">Per-surface override</div>
+                    <p class="text-[11px] text-white/40 mb-3 ak-note">Leave on "Inherit" to use the global layout/position above. Useful if you want, e.g. a slim inline bar on biolinks but a centered modal on the marketing site.</p>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         @foreach(['site' => 'Marketing site', 'biolink' => 'Public biolinks'] as $sk => $sl)
                             <div class="rounded-lg p-3" style="background:rgba(255,255,255,0.03); border:1px solid var(--border-glass);">
-                                <div class="text-xs font-semibold text-white/80 mb-2">{{ $sl }}</div>
-                                <label class="block text-[11px] text-white/50 mb-2">Layout
-                                    <select name="surface_overrides[{{ $sk }}][layout]" class="mt-1 w-full bg-white/5 border border-white/10 rounded-lg px-2 py-1.5 text-xs text-white">
+                                <div class="text-xs font-semibold text-white/80 mb-2 ak-strong">{{ $sl }}</div>
+                                <label class="block text-[11px] text-white/50 mb-2 ak-muted">Layout
+                                    <select name="surface_overrides[{{ $sk }}][layout]" class="mt-1 w-full bg-white/5 border border-white/10 rounded-lg px-2 py-1.5 text-xs text-white ak-strong ak-input">
                                         <option value="">Inherit</option>
                                         @foreach($layoutLabels as $k=>$v)
                                             <option value="{{ $k }}" {{ ($cfg['surface_overrides'][$sk]['layout'] ?? '')===$k ? 'selected' : '' }}>{{ $v }}</option>
                                         @endforeach
                                     </select>
                                 </label>
-                                <label class="block text-[11px] text-white/50">Position
-                                    <select name="surface_overrides[{{ $sk }}][position]" class="mt-1 w-full bg-white/5 border border-white/10 rounded-lg px-2 py-1.5 text-xs text-white">
+                                <label class="block text-[11px] text-white/50 ak-muted">Position
+                                    <select name="surface_overrides[{{ $sk }}][position]" class="mt-1 w-full bg-white/5 border border-white/10 rounded-lg px-2 py-1.5 text-xs text-white ak-strong ak-input">
                                         <option value="">Inherit</option>
                                         @foreach($positionLabels as $k=>$v)
                                             <option value="{{ $k }}" {{ ($cfg['surface_overrides'][$sk]['position'] ?? '')===$k ? 'selected' : '' }}>{{ $v }}</option>
@@ -272,21 +272,21 @@
             </div>
 
             <div class="glass rounded-2xl p-6 space-y-4">
-                <h2 class="text-base font-semibold text-white">Buttons</h2>
-                <p class="text-xs text-white/50">Style each button role independently. "Link" style strips the background and shows the text only.</p>
+                <h2 class="text-base font-semibold text-white ak-strong">Buttons</h2>
+                <p class="text-xs text-white/50 ak-muted">Style each button role independently. "Link" style strips the background and shows the text only.</p>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
                     @foreach(['primary','secondary','tertiary'] as $role)
                         @php $b = $cfg['buttons'][$role]; @endphp
                         <div class="rounded-lg p-3" style="background:rgba(255,255,255,0.03); border:1px solid var(--border-glass);">
-                            <div class="text-xs font-semibold text-white/80 mb-2">{{ $btnLabels[$role] }}</div>
-                            <label class="block text-[11px] text-white/50 mb-2">Background
-                                <input id="cc_btn_{{ $role }}_bg" type="color" name="buttons[{{ $role }}][bg]" value="{{ $b['bg'] }}" class="mt-1 w-full h-8 bg-white/5 border border-white/10 rounded cursor-pointer">
+                            <div class="text-xs font-semibold text-white/80 mb-2 ak-strong">{{ $btnLabels[$role] }}</div>
+                            <label class="block text-[11px] text-white/50 mb-2 ak-muted">Background
+                                <input id="cc_btn_{{ $role }}_bg" type="color" name="buttons[{{ $role }}][bg]" value="{{ $b['bg'] }}" class="mt-1 w-full h-8 bg-white/5 border border-white/10 rounded cursor-pointer ak-input">
                             </label>
-                            <label class="block text-[11px] text-white/50 mb-2">Text
-                                <input id="cc_btn_{{ $role }}_text" type="color" name="buttons[{{ $role }}][text]" value="{{ $b['text'] }}" class="mt-1 w-full h-8 bg-white/5 border border-white/10 rounded cursor-pointer">
+                            <label class="block text-[11px] text-white/50 mb-2 ak-muted">Text
+                                <input id="cc_btn_{{ $role }}_text" type="color" name="buttons[{{ $role }}][text]" value="{{ $b['text'] }}" class="mt-1 w-full h-8 bg-white/5 border border-white/10 rounded cursor-pointer ak-input">
                             </label>
-                            <label class="block text-[11px] text-white/50">Style
-                                <select id="cc_btn_{{ $role }}_style" name="buttons[{{ $role }}][style]" class="mt-1 w-full bg-white/5 border border-white/10 rounded-lg px-2 py-1.5 text-xs text-white">
+                            <label class="block text-[11px] text-white/50 ak-muted">Style
+                                <select id="cc_btn_{{ $role }}_style" name="buttons[{{ $role }}][style]" class="mt-1 w-full bg-white/5 border border-white/10 rounded-lg px-2 py-1.5 text-xs text-white ak-strong ak-input">
                                     @foreach(['solid'=>'Solid','outline'=>'Outline','link'=>'Link'] as $k=>$v)
                                         <option value="{{ $k }}" {{ $b['style']===$k ? 'selected' : '' }}>{{ $v }}</option>
                                     @endforeach
@@ -295,51 +295,51 @@
                         </div>
                     @endforeach
                 </div>
-                <label class="block text-xs text-white/60 max-w-[200px]">Accent (links / switches)
-                    <input id="cc_accent" type="color" name="accent" value="{{ $cfg['accent'] }}" class="mt-1 w-full h-9 bg-white/5 border border-white/10 rounded-lg cursor-pointer">
+                <label class="block text-xs text-white/60 max-w-[200px] ak-muted">Accent (links / switches)
+                    <input id="cc_accent" type="color" name="accent" value="{{ $cfg['accent'] }}" class="mt-1 w-full h-9 bg-white/5 border border-white/10 rounded-lg cursor-pointer ak-input">
                 </label>
             </div>
 
             <div class="glass rounded-2xl p-6 space-y-4">
-                <h2 class="text-base font-semibold text-white">Backdrop &amp; animation</h2>
+                <h2 class="text-base font-semibold text-white ak-strong">Backdrop &amp; animation</h2>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-                    <label class="flex items-center gap-2 text-sm text-white/80 mt-5">
+                    <label class="flex items-center gap-2 text-sm text-white/80 mt-5 ak-strong">
                         <input type="hidden" name="backdrop[show]" value="0">
                         <input id="cc_bd_show" type="checkbox" name="backdrop[show]" value="1" {{ $cfg['backdrop']['show'] ? 'checked' : '' }}>
                         Show backdrop (modal / takeover)
                     </label>
-                    <label class="block text-xs text-white/60">Backdrop dim (%)
-                        <input id="cc_bd_dim" type="number" min="0" max="100" name="backdrop[dim]" value="{{ $cfg['backdrop']['dim'] }}" class="mt-1 w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white">
+                    <label class="block text-xs text-white/60 ak-muted">Backdrop dim (%)
+                        <input id="cc_bd_dim" type="number" min="0" max="100" name="backdrop[dim]" value="{{ $cfg['backdrop']['dim'] }}" class="mt-1 w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white ak-strong ak-input">
                     </label>
-                    <label class="flex items-center gap-2 text-sm text-white/80 mt-5">
+                    <label class="flex items-center gap-2 text-sm text-white/80 mt-5 ak-strong">
                         <input type="hidden" name="backdrop[blur]" value="0">
                         <input id="cc_bd_blur" type="checkbox" name="backdrop[blur]" value="1" {{ $cfg['backdrop']['blur'] ? 'checked' : '' }}>
                         Blur the backdrop
                     </label>
-                    <label class="block text-xs text-white/60">Animation
-                        <select id="cc_anim" name="animation" class="mt-1 w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white">
+                    <label class="block text-xs text-white/60 ak-muted">Animation
+                        <select id="cc_anim" name="animation" class="mt-1 w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white ak-strong ak-input">
                             @foreach(['none'=>'None','fade'=>'Fade','slide-up'=>'Slide up','slide-down'=>'Slide down'] as $k=>$v)
                                 <option value="{{ $k }}" {{ $cfg['animation']===$k ? 'selected' : '' }}>{{ $v }}</option>
                             @endforeach
                         </select>
                     </label>
-                    <label class="block text-xs text-white/60">Entrance delay (s)
-                        <input type="number" min="0" max="30" name="entrance_delay" value="{{ $cfg['entrance_delay'] }}" class="mt-1 w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white">
+                    <label class="block text-xs text-white/60 ak-muted">Entrance delay (s)
+                        <input type="number" min="0" max="30" name="entrance_delay" value="{{ $cfg['entrance_delay'] }}" class="mt-1 w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white ak-strong ak-input">
                     </label>
                 </div>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2 border-t border-white/5">
-                    <label class="flex items-center gap-2 text-sm text-white/80">
+                    <label class="flex items-center gap-2 text-sm text-white/80 ak-strong">
                         <input type="hidden" name="header_logo_enabled" value="0">
                         <input id="cc_logo_on" type="checkbox" name="header_logo_enabled" value="1" {{ $cfg['header_logo_enabled'] ? 'checked' : '' }}>
                         Show small logo / icon in prompt header
                     </label>
                     <div class="space-y-2">
-                        <div class="text-xs text-white/60">Logo image</div>
+                        <div class="text-xs text-white/60 ak-muted">Logo image</div>
                         <input type="hidden" name="remove_header_logo" id="cc_logo_remove" value="0">
                         @if(!empty($cfg['header_logo_url']))
                             <div id="cc_logo_preview" class="rounded-lg p-2 flex items-center gap-2" style="background:rgba(255,255,255,0.04); border:1px solid var(--border-glass);">
                                 <img src="{{ $cfg['header_logo_url'] }}" alt="Current header logo" class="h-8 w-8 object-contain rounded">
-                                <span class="text-[11px] text-white/50 truncate flex-1">{{ $cfg['header_logo_url'] }}</span>
+                                <span class="text-[11px] text-white/50 truncate flex-1 ak-muted">{{ $cfg['header_logo_url'] }}</span>
                                 <button type="button" id="cc_logo_remove_btn"
                                         class="px-2 py-1 rounded-md text-[11px] font-medium whitespace-nowrap"
                                         style="background: rgba(239,68,68,0.10); border: 1px solid rgba(239,68,68,0.30); color: #fca5a5;">
@@ -349,11 +349,11 @@
                         @endif
                         <input id="cc_logo_file" type="file" name="header_logo_file" accept="image/png,image/jpeg,image/webp,image/svg+xml"
                                class="block w-full text-xs text-white/70 file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-medium file:bg-blue-600 file:text-white hover:file:bg-blue-700 file:cursor-pointer">
-                        @error('header_logo_file')<p class="text-xs text-red-400">{{ $message }}</p>@enderror
-                        <label class="block text-[11px] text-white/40">Or paste a URL / path
-                            <input id="cc_logo_url" type="text" name="header_logo_url" value="{{ $cfg['header_logo_url'] }}" placeholder="/img/logo.png or https://..." class="mt-1 w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-white">
+                        @error('header_logo_file')<p class="text-xs text-red-400 ak-red">{{ $message }}</p>@enderror
+                        <label class="block text-[11px] text-white/40 ak-note">Or paste a URL / path
+                            <input id="cc_logo_url" type="text" name="header_logo_url" value="{{ $cfg['header_logo_url'] }}" placeholder="/img/logo.png or https://..." class="mt-1 w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-white ak-strong ak-input">
                         </label>
-                        <p id="cc_logo_remove_hint" class="text-[11px] text-amber-300/80 hidden">
+                        <p id="cc_logo_remove_hint" class="text-[11px] text-amber-300/80 hidden ak-amber">
                             Logo will be removed when you save.
                         </p>
                     </div>
@@ -361,37 +361,37 @@
             </div>
 
             <div class="glass rounded-2xl p-6 space-y-4">
-                <h2 class="text-base font-semibold text-white">Behavior</h2>
+                <h2 class="text-base font-semibold text-white ak-strong">Behavior</h2>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <label class="block text-xs text-white/60">Remember choice for (days)
-                        <input type="number" min="1" max="730" name="remember_days" value="{{ $cfg['remember_days'] }}" class="mt-1 w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white">
+                    <label class="block text-xs text-white/60 ak-muted">Remember choice for (days)
+                        <input type="number" min="1" max="730" name="remember_days" value="{{ $cfg['remember_days'] }}" class="mt-1 w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white ak-strong ak-input">
                     </label>
-                    <label class="block text-xs text-white/60">Geo scope
-                        <select name="geo_scope" class="mt-1 w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white" id="cc_geo_scope">
+                    <label class="block text-xs text-white/60 ak-muted">Geo scope
+                        <select name="geo_scope" class="mt-1 w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white ak-strong ak-input" id="cc_geo_scope">
                             <option value="all" {{ $cfg['geo_scope']==='all'?'selected':'' }}>Show to everyone</option>
                             <option value="eu"  {{ $cfg['geo_scope']==='eu' ?'selected':'' }}>EU/EEA + UK only</option>
                             <option value="custom" {{ $cfg['geo_scope']==='custom'?'selected':'' }}>Custom country list</option>
                         </select>
                     </label>
-                    <label class="md:col-span-2 block text-xs text-white/60">Custom country codes (ISO-3166 alpha-2, comma separated)
-                        <input type="text" name="geo_countries" value="{{ implode(', ', $cfg['geo_countries']) }}" class="mt-1 w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white font-mono" placeholder="e.g. DE, FR, IT">
+                    <label class="md:col-span-2 block text-xs text-white/60 ak-muted">Custom country codes (ISO-3166 alpha-2, comma separated)
+                        <input type="text" name="geo_countries" value="{{ implode(', ', $cfg['geo_countries']) }}" class="mt-1 w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white font-mono ak-strong ak-input" placeholder="e.g. DE, FR, IT">
                     </label>
-                    <label class="flex items-center gap-2 text-sm text-white/80">
+                    <label class="flex items-center gap-2 text-sm text-white/80 ak-strong">
                         <input type="hidden" name="reprompt_on_change" value="0">
                         <input type="checkbox" name="reprompt_on_change" value="1" {{ $cfg['reprompt_on_change'] ? 'checked' : '' }}>
                         Re-prompt when policy version changes
                     </label>
-                    <label class="flex items-center gap-2 text-sm text-white/80">
+                    <label class="flex items-center gap-2 text-sm text-white/80 ak-strong">
                         <input type="hidden" name="scroll_acceptance" value="0">
                         <input type="checkbox" name="scroll_acceptance" value="1" {{ $cfg['scroll_acceptance'] ? 'checked' : '' }}>
                         Treat scrolling as implicit acceptance
                     </label>
-                    <label class="md:col-span-2 flex items-center gap-2 text-sm text-white/80">
+                    <label class="md:col-span-2 flex items-center gap-2 text-sm text-white/80 ak-strong">
                         <input type="hidden" name="block_until_consent" value="0">
                         <input type="checkbox" name="block_until_consent" value="1" {{ $cfg['block_until_consent'] ? 'checked' : '' }}>
                         Block non-essential scripts until consent is given
                     </label>
-                    <label class="md:col-span-2 flex items-center gap-2 text-sm text-white/80">
+                    <label class="md:col-span-2 flex items-center gap-2 text-sm text-white/80 ak-strong">
                         <input type="hidden" name="bump_version" value="0">
                         <input type="checkbox" name="bump_version" value="1">
                         Bump policy version on save (re-prompt all visitors)
@@ -400,8 +400,8 @@
             </div>
 
             <div class="glass rounded-2xl p-6 space-y-3">
-                <h2 class="text-base font-semibold text-white">Reopen link</h2>
-                <p class="text-xs text-white/50">A "{{ $cfg['copy']['reopen_link_label'] }}" text link is added to the marketing site footer and the public biolink footer area whenever consent is enabled for that surface. Visitors click it to reopen this prompt. The previous floating cookie icon has been retired.</p>
+                <h2 class="text-base font-semibold text-white ak-strong">Reopen link</h2>
+                <p class="text-xs text-white/50 ak-muted">A "{{ $cfg['copy']['reopen_link_label'] }}" text link is added to the marketing site footer and the public biolink footer area whenever consent is enabled for that surface. Visitors click it to reopen this prompt. The previous floating cookie icon has been retired.</p>
                 {{-- show_reopen_button is hard-pinned to false; the field is retained in the schema for back-compat with old payloads. --}}
                 <input type="hidden" name="show_reopen_button" value="0">
             </div>
@@ -410,23 +410,23 @@
                 <button type="submit" class="px-6 py-2.5 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700">
                     Save settings
                 </button>
-                <span class="text-xs text-white/40">Categories changes always trigger a version bump.</span>
+                <span class="text-xs text-white/40 ak-note">Categories changes always trigger a version bump.</span>
             </div>
         </div>
 
         <div class="space-y-3">
             <div class="flex items-center justify-between">
-                <div class="text-xs uppercase tracking-wider text-white/40 font-semibold">Live preview</div>
+                <div class="text-xs uppercase tracking-wider text-white/40 font-semibold ak-note">Live preview</div>
                 <div class="flex items-center gap-1 text-[11px]">
-                    <button type="button" data-cc-surface="site"    class="cc-surface-tab px-2 py-1 rounded-md bg-blue-600/30 text-blue-200">Site</button>
-                    <button type="button" data-cc-surface="biolink" class="cc-surface-tab px-2 py-1 rounded-md bg-white/5 text-white/60">Link in Bio</button>
+                    <button type="button" data-cc-surface="site"    class="cc-surface-tab px-2 py-1 rounded-md bg-blue-600/30 text-blue-200 ak-blue">Site</button>
+                    <button type="button" data-cc-surface="biolink" class="cc-surface-tab px-2 py-1 rounded-md bg-white/5 text-white/60 ak-muted">Link in Bio</button>
                 </div>
             </div>
             <div id="cc_preview_wrap" class="rounded-2xl p-4 min-h-[480px] relative overflow-hidden" style="background:#0d1322; border:1px solid var(--border-glass);">
                 <div class="absolute inset-0 opacity-30" style="background: radial-gradient(circle at top right, #312e81, transparent 60%);"></div>
                 <div id="cc_backdrop" class="absolute inset-0" style="display:none;"></div>
                 <div id="cc_preview" class="relative h-full"></div>
-                <div id="cc_preview_meta" class="absolute bottom-2 right-3 text-[10px] text-white/30 font-mono"></div>
+                <div id="cc_preview_meta" class="absolute bottom-2 right-3 text-[10px] text-white/30 font-mono ak-note"></div>
             </div>
         </div>
     </form>

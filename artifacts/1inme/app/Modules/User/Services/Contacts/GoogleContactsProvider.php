@@ -87,6 +87,7 @@ class GoogleContactsProvider
                 'last_sync_status'    => null,
                 'last_sync_error'     => null,
                 'needs_reauth_at'     => null, // reconnect clears the expired state
+                'reauth_reminder_sent_at' => null, // re-arm the 7-day follow-up reminder
             ]
         )->fresh();
     }

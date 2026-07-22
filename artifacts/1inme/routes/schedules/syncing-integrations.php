@@ -32,6 +32,14 @@ return [
         'without_overlapping' => 10,
     ],
     [
+        // One-time follow-up for accounts still disconnected 7 days after the
+        // initial "reconnect" alert; the reauth_reminder_sent_at stamp keeps
+        // it strictly once per expiry, so a daily tick is plenty.
+        'key'         => 'contacts:send-reauth-reminders',
+        'description' => 'Remind users once when their Google Contacts connection has stayed disconnected for a week.',
+        'cadence'     => ['dailyAt', '09:15'],
+    ],
+    [
         'key'         => 'contacts:reconcile-attachments',
         'description' => 'Clear caller-ID biolink attachments whose creator is no longer reachable to the contact owner (blocked/suspended/deleted).',
         'cadence'     => ['hourly'],

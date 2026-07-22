@@ -177,6 +177,54 @@ class GoogleContactsNeedsReauthTest extends TestCase
         $this->assertFalse($reconnected->fresh()->needsReauth());
     }
 
+    public function test_first_needs_reauth_transition_sends_one_email_and_in_app_notification(): void
+    {
+        $user    = $this->user();
+        $account = $this->account($user);
+
+        $account->markNeedsReauth('Google reported the connection as revoked or expired (invalid_grant).');
+
+        $notes = \App\Modules\User\Models\UserNotification::where('user_id', $user->id)
+            ->where('type', 'contacts.google_reauth')->get();
+        $this->assertCount(1, $notes);
+        $this->assertSame(route('user.contacts.index'), $notes->first()->data['url'] ?? null);
+
+        $emails = \App\Modules\Common\Models\EmailLog::where('user_id', $user->id)
+            ->where('email_key', 'contacts.google_reauth')->get();
+        $this->assertCount(1, $emails);
+        $this->assertSame($user->email, $emails->first()->recipient);
+        $this->assertStringContainsString($account->account_email, $emails->first()->body);
+        $this->assertStringContainsString(route('user.contacts.index'), $emails->first()->body);
+
+        // Retries while still expired must NOT re-notify.
+        $account->fresh()->markNeedsReauth('still revoked');
+        $account->fresh()->markNeedsReauth('still revoked again');
+
+        $this->assertSame(1, \App\Modules\User\Models\UserNotification::where('user_id', $user->id)
+            ->where('type', 'contacts.google_reauth')->count());
+        $this->assertSame(1, \App\Modules\Common\Models\EmailLog::where('user_id', $user->id)
+            ->where('email_key', 'contacts.google_reauth')->count());
+    }
+
+    public function test_reconnect_rearms_the_expiry_notification(): void
+    {
+        $user    = $this->user();
+        $account = $this->account($user);
+
+        $account->markNeedsReauth('revoked');
+
+        // Reconnect clears the state…
+        $account->fresh()->forceFill(['needs_reauth_at' => null, 'last_sync_status' => null])->save();
+
+        // …so a future expiry notifies again.
+        $account->fresh()->markNeedsReauth('revoked again');
+
+        $this->assertSame(2, \App\Modules\User\Models\UserNotification::where('user_id', $user->id)
+            ->where('type', 'contacts.google_reauth')->count());
+        $this->assertSame(2, \App\Modules\Common\Models\EmailLog::where('user_id', $user->id)
+            ->where('email_key', 'contacts.google_reauth')->count());
+    }
+
     public function test_api_status_and_sync_expose_the_needs_reauth_state(): void
     {
         $user = $this->user();

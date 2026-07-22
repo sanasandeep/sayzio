@@ -8,7 +8,7 @@
     {{-- Open failure-episode banner: which jobs are in an active failure streak --}}
     @include('admin.partials.scheduled-job-failure-banner', ['failureEpisodes' => $failureEpisodes])
 
-    <p class="text-sm text-white/50 max-w-3xl">
+    <p class="text-sm text-white/50 max-w-3xl ak-muted">
         Every scheduled job the platform relies on, grouped by area and derived live from the app's
         job registry &mdash; so this list always stays in sync with the code. Jobs only run if the single
         master cron entry below is configured on the server. From here you can pause or resume a job and
@@ -16,13 +16,13 @@
     </p>
 
     @if(session('success'))
-        <div class="rounded-2xl p-4 border border-emerald-500/20 bg-emerald-500/[0.07] text-sm text-emerald-100">
-            <i class="fas fa-circle-check text-emerald-300 mr-1.5"></i>{{ session('success') }}
+        <div class="rounded-2xl p-4 border border-emerald-500/20 bg-emerald-500/[0.07] text-sm text-emerald-100 ak-green">
+            <i class="fas fa-circle-check text-emerald-300 mr-1.5 ak-green"></i>{{ session('success') }}
         </div>
     @endif
     @if(session('error'))
-        <div class="rounded-2xl p-4 border border-rose-500/30 bg-rose-500/10 text-sm text-rose-100">
-            <i class="fas fa-circle-xmark text-rose-300 mr-1.5"></i>{{ session('error') }}
+        <div class="rounded-2xl p-4 border border-rose-500/30 bg-rose-500/10 text-sm text-rose-100 ak-red">
+            <i class="fas fa-circle-xmark text-rose-300 mr-1.5 ak-red"></i>{{ session('error') }}
         </div>
     @endif
 
@@ -33,12 +33,12 @@
          correctly even before Alpine boots. --}}
     <div x-show="status.state === 'stale'" @if($status['state'] !== 'stale') style="display: none" @endif
          class="rounded-2xl p-4 border border-rose-500/30 bg-rose-500/10 flex items-start gap-3">
-        <i class="fas fa-triangle-exclamation text-rose-300 mt-0.5"></i>
+        <i class="fas fa-triangle-exclamation text-rose-300 mt-0.5 ak-red"></i>
         <div class="text-sm">
-            <p class="text-rose-100 font-semibold">The scheduler appears to have stopped.</p>
-            <p class="text-rose-200/70 mt-0.5">
+            <p class="text-rose-100 font-semibold ak-red">The scheduler appears to have stopped.</p>
+            <p class="text-rose-200/70 mt-0.5 ak-red">
                 No scheduled job has run since
-                <span class="font-medium text-rose-100" x-text="status.last_tick">{{ $status['state'] === 'stale' ? \App\Support\PlatformTimezone::format($status['last_tick'], 'M j, H:i', false) : '' }}</span>
+                <span class="font-medium text-rose-100 ak-red" x-text="status.last_tick">{{ $status['state'] === 'stale' ? \App\Support\PlatformTimezone::format($status['last_tick'], 'M j, H:i', false) : '' }}</span>
                 (<span x-text="status.last_tick_human">{{ $status['state'] === 'stale' ? $status['last_tick']->diffForHumans() : '' }}</span>). Jobs are no longer firing &mdash; check that the master
                 cron entry below is still present on the server.
             </p>
@@ -46,10 +46,10 @@
     </div>
     <div x-show="status.state === 'unknown'" @if($status['state'] !== 'unknown') style="display: none" @endif
          class="rounded-2xl p-4 border border-amber-500/30 bg-amber-500/10 flex items-start gap-3">
-        <i class="fas fa-circle-exclamation text-amber-300 mt-0.5"></i>
+        <i class="fas fa-circle-exclamation text-amber-300 mt-0.5 ak-amber"></i>
         <div class="text-sm">
-            <p class="text-amber-100 font-semibold">No scheduled job has run yet.</p>
-            <p class="text-amber-200/70 mt-0.5">
+            <p class="text-amber-100 font-semibold ak-amber">No scheduled job has run yet.</p>
+            <p class="text-amber-200/70 mt-0.5 ak-amber">
                 If you just added the master cron line below it can take up to a minute to record the first run.
                 If this persists, the server crontab is most likely not configured &mdash; add the line below.
             </p>
@@ -57,13 +57,13 @@
     </div>
     <div x-show="status.state === 'healthy'" @if($status['state'] !== 'healthy') style="display: none" @endif
          class="rounded-2xl p-4 border border-emerald-500/20 bg-emerald-500/[0.07] flex items-start gap-3">
-        <i class="fas fa-circle-check text-emerald-300 mt-0.5"></i>
+        <i class="fas fa-circle-check text-emerald-300 mt-0.5 ak-green"></i>
         <div class="text-sm">
-            <p class="text-emerald-100 font-semibold">Scheduler is active.</p>
-            <p class="text-emerald-200/70 mt-0.5">
+            <p class="text-emerald-100 font-semibold ak-green">Scheduler is active.</p>
+            <p class="text-emerald-200/70 mt-0.5 ak-green">
                 Last activity <span x-text="status.last_tick_human">{{ $status['state'] === 'healthy' ? $status['last_tick']->diffForHumans() : '' }}</span>
                 (<span x-text="status.last_tick">{{ $status['state'] === 'healthy' ? \App\Support\PlatformTimezone::format($status['last_tick'], 'M j, H:i', false) : '' }}</span>).
-                <span class="text-amber-200" x-show="status.overdue_count > 0" @if(!($status['state'] === 'healthy' && $status['overdue_count'] > 0)) style="display: none" @endif>
+                <span class="text-amber-200 ak-amber" x-show="status.overdue_count > 0" @if(!($status['state'] === 'healthy' && $status['overdue_count'] > 0)) style="display: none" @endif>
                     <span x-text="status.overdue_count">{{ $status['overdue_count'] }}</span>
                     job<span x-text="status.overdue_count === 1 ? '' : 's'">{{ $status['overdue_count'] === 1 ? '' : 's' }}</span>
                     below <span x-text="status.overdue_count === 1 ? 'is' : 'are'">{{ $status['overdue_count'] === 1 ? 'is' : 'are' }}</span>
@@ -76,13 +76,13 @@
     {{-- Master cron line --}}
     <div class="glass rounded-2xl p-6 space-y-3 border border-blue-500/20">
         <div class="flex items-start gap-3">
-            <div class="w-10 h-10 rounded-xl flex items-center justify-center text-blue-300 bg-blue-500/10 border border-blue-500/20 shrink-0">
+            <div class="w-10 h-10 rounded-xl flex items-center justify-center text-blue-300 bg-blue-500/10 border border-blue-500/20 shrink-0 ak-blue">
                 <i class="fas fa-clock"></i>
             </div>
             <div class="min-w-0">
-                <h2 class="text-base font-semibold text-white">The single line the server crontab needs</h2>
-                <p class="text-xs text-white/50 mt-0.5">
-                    Run <code class="text-white/70">crontab -e</code> on the server and add the line below. This one entry runs
+                <h2 class="text-base font-semibold text-white ak-strong">The single line the server crontab needs</h2>
+                <p class="text-xs text-white/50 mt-0.5 ak-muted">
+                    Run <code class="text-white/70 ak-strong">crontab -e</code> on the server and add the line below. This one entry runs
                     Laravel's scheduler every minute, which in turn fires all the jobs listed underneath at their own times.
                     Nothing else needs to be added per-job.
                 </p>
@@ -90,7 +90,7 @@
         </div>
 
         <div class="flex items-stretch gap-2">
-            <code class="flex-1 px-3 py-2.5 bg-black/30 border border-white/10 rounded-lg text-sm text-emerald-200 font-mono break-all">{{ $masterCronLine }}</code>
+            <code class="flex-1 px-3 py-2.5 bg-black/30 border border-white/10 rounded-lg text-sm text-emerald-200 font-mono break-all ak-green">{{ $masterCronLine }}</code>
             <button type="button"
                     @click="copy($refs.master.textContent, 'master')"
                     class="shrink-0 px-3 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold transition flex items-center gap-1.5">
@@ -104,12 +104,12 @@
     {{-- Failure-alert tuning --}}
     <div class="glass rounded-2xl p-6 border border-white/10">
         <div class="flex items-start gap-3">
-            <div class="w-10 h-10 rounded-xl flex items-center justify-center text-rose-300 bg-rose-500/10 border border-rose-500/20 shrink-0">
+            <div class="w-10 h-10 rounded-xl flex items-center justify-center text-rose-300 bg-rose-500/10 border border-rose-500/20 shrink-0 ak-red">
                 <i class="fas fa-bell"></i>
             </div>
             <div class="min-w-0 flex-1">
-                <h2 class="text-base font-semibold text-white">Job-failure alert sensitivity</h2>
-                <p class="text-xs text-white/50 mt-0.5 max-w-3xl">
+                <h2 class="text-base font-semibold text-white ak-strong">Job-failure alert sensitivity</h2>
+                <p class="text-xs text-white/50 mt-0.5 max-w-3xl ak-muted">
                     When a job fails this many times in a row (with no success in between), ops admins get an in-app + email
                     alert. If the streak keeps growing, a reminder is sent at most once per cooldown period. Lower the threshold
                     for platforms where frequent jobs matter most; raise it if occasional flakiness is expected. The scheduler
@@ -118,7 +118,7 @@
                 </p>
 
                 @if($errors->any())
-                    <div class="mt-3 rounded-xl p-3 border border-rose-500/30 bg-rose-500/10 text-xs text-rose-200">
+                    <div class="mt-3 rounded-xl p-3 border border-rose-500/30 bg-rose-500/10 text-xs text-rose-200 ak-red">
                         @foreach($errors->all() as $err)
                             <p><i class="fas fa-circle-xmark mr-1"></i>{{ $err }}</p>
                         @endforeach
@@ -129,34 +129,34 @@
                       class="mt-4 flex flex-wrap items-end gap-4">
                     @csrf
                     <div>
-                        <label for="fa-threshold" class="block text-[11px] uppercase tracking-wider text-white/40 font-semibold mb-1">
+                        <label for="fa-threshold" class="block text-[11px] uppercase tracking-wider text-white/40 font-semibold mb-1 ak-note">
                             Consecutive failures before alerting
                         </label>
                         <input type="number" id="fa-threshold" name="threshold"
                                value="{{ old('threshold', $alertSettings['threshold']) }}"
                                min="{{ $alertSettings['min_threshold'] }}" max="{{ $alertSettings['max_threshold'] }}" step="1" required
-                               class="w-40 px-3 py-2 bg-black/30 border border-white/10 rounded-lg text-sm text-white focus:outline-none focus:border-blue-400/50">
-                        <p class="text-[11px] text-white/30 mt-1">{{ $alertSettings['min_threshold'] }}&ndash;{{ $alertSettings['max_threshold'] }} &middot; default {{ $alertSettings['default_threshold'] }}</p>
+                               class="w-40 px-3 py-2 bg-black/30 border border-white/10 rounded-lg text-sm text-white focus:outline-none focus:border-blue-400/50 ak-strong">
+                        <p class="text-[11px] text-white/30 mt-1 ak-note">{{ $alertSettings['min_threshold'] }}&ndash;{{ $alertSettings['max_threshold'] }} &middot; default {{ $alertSettings['default_threshold'] }}</p>
                     </div>
                     <div>
-                        <label for="fa-cooldown" class="block text-[11px] uppercase tracking-wider text-white/40 font-semibold mb-1">
+                        <label for="fa-cooldown" class="block text-[11px] uppercase tracking-wider text-white/40 font-semibold mb-1 ak-note">
                             Reminder cooldown (hours)
                         </label>
                         <input type="number" id="fa-cooldown" name="cooldown_hours"
                                value="{{ old('cooldown_hours', $alertSettings['cooldown_hours']) }}"
                                min="{{ $alertSettings['min_cooldown_hours'] }}" max="{{ $alertSettings['max_cooldown_hours'] }}" step="1" required
-                               class="w-40 px-3 py-2 bg-black/30 border border-white/10 rounded-lg text-sm text-white focus:outline-none focus:border-blue-400/50">
-                        <p class="text-[11px] text-white/30 mt-1">{{ $alertSettings['min_cooldown_hours'] }}&ndash;{{ $alertSettings['max_cooldown_hours'] }} &middot; default {{ $alertSettings['default_cooldown_hours'] }}</p>
+                               class="w-40 px-3 py-2 bg-black/30 border border-white/10 rounded-lg text-sm text-white focus:outline-none focus:border-blue-400/50 ak-strong">
+                        <p class="text-[11px] text-white/30 mt-1 ak-note">{{ $alertSettings['min_cooldown_hours'] }}&ndash;{{ $alertSettings['max_cooldown_hours'] }} &middot; default {{ $alertSettings['default_cooldown_hours'] }}</p>
                     </div>
                     <div>
-                        <label for="fa-stale" class="block text-[11px] uppercase tracking-wider text-white/40 font-semibold mb-1">
+                        <label for="fa-stale" class="block text-[11px] uppercase tracking-wider text-white/40 font-semibold mb-1 ak-note">
                             Scheduler down after (minutes)
                         </label>
                         <input type="number" id="fa-stale" name="stale_after_minutes"
                                value="{{ old('stale_after_minutes', $alertSettings['stale_after_minutes']) }}"
                                min="{{ $alertSettings['min_stale_after_minutes'] }}" max="{{ $alertSettings['max_stale_after_minutes'] }}" step="1" required
-                               class="w-40 px-3 py-2 bg-black/30 border border-white/10 rounded-lg text-sm text-white focus:outline-none focus:border-blue-400/50">
-                        <p class="text-[11px] text-white/30 mt-1">{{ $alertSettings['min_stale_after_minutes'] }}&ndash;{{ $alertSettings['max_stale_after_minutes'] }} &middot; default {{ $alertSettings['default_stale_after_minutes'] }}</p>
+                               class="w-40 px-3 py-2 bg-black/30 border border-white/10 rounded-lg text-sm text-white focus:outline-none focus:border-blue-400/50 ak-strong">
+                        <p class="text-[11px] text-white/30 mt-1 ak-note">{{ $alertSettings['min_stale_after_minutes'] }}&ndash;{{ $alertSettings['max_stale_after_minutes'] }} &middot; default {{ $alertSettings['default_stale_after_minutes'] }}</p>
                     </div>
                     <button type="submit"
                             class="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold transition">
@@ -172,15 +172,15 @@
         <div class="glass rounded-2xl border border-white/10 overflow-hidden">
             <div class="px-6 py-4 border-b border-white/10 flex items-center justify-between gap-3">
                 <div>
-                    <h2 class="text-base font-semibold text-white">{{ $group['label'] }}</h2>
-                    <p class="text-xs text-white/50 mt-0.5">{{ count($group['jobs']) }} job{{ count($group['jobs']) === 1 ? '' : 's' }}. Times shown in {{ \App\Support\PlatformTimezone::platformDefault() }}.</p>
+                    <h2 class="text-base font-semibold text-white ak-strong">{{ $group['label'] }}</h2>
+                    <p class="text-xs text-white/50 mt-0.5 ak-muted">{{ count($group['jobs']) }} job{{ count($group['jobs']) === 1 ? '' : 's' }}. Times shown in {{ \App\Support\PlatformTimezone::platformDefault() }}.</p>
                 </div>
             </div>
 
             <div class="overflow-x-auto">
                 <table class="w-full text-sm">
                     <thead>
-                        <tr class="text-left text-[11px] uppercase tracking-wider text-white/40 border-b border-white/10">
+                        <tr class="text-left text-[11px] uppercase tracking-wider text-white/40 border-b border-white/10 ak-note">
                             <th class="px-6 py-3 font-semibold">Job &amp; purpose</th>
                             <th class="px-4 py-3 font-semibold whitespace-nowrap">Frequency</th>
                             <th class="px-4 py-3 font-semibold whitespace-nowrap">Cron</th>
@@ -195,46 +195,46 @@
                             <tr class="transition align-top {{ ($job['overdue'] || !empty($job['failing_repeatedly'])) ? 'bg-rose-500/[0.06] hover:bg-rose-500/[0.1]' : ($job['paused'] ? 'bg-amber-500/[0.04] hover:bg-amber-500/[0.07]' : 'hover:bg-white/[0.02]') }}">
                                 <td class="px-6 py-4 max-w-md">
                                     <div class="flex items-center gap-2 flex-wrap">
-                                        <code class="text-blue-200 font-mono text-[13px] break-all">{{ $job['command'] }}</code>
+                                        <code class="text-blue-200 font-mono text-[13px] break-all ak-blue">{{ $job['command'] }}</code>
                                         @if($job['is_callback'])
-                                            <span class="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-white/40">Closure</span>
+                                            <span class="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-white/40 ak-note">Closure</span>
                                         @endif
                                         @if($job['protected'])
-                                            <span class="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-blue-500/10 border border-blue-400/30 text-blue-300" title="Critical for billing, data integrity or platform health, cannot be paused."><i class="fas fa-shield-halved text-[9px] mr-0.5"></i>Protected</span>
+                                            <span class="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-blue-500/10 border border-blue-400/30 text-blue-300 ak-blue" title="Critical for billing, data integrity or platform health, cannot be paused."><i class="fas fa-shield-halved text-[9px] mr-0.5"></i>Protected</span>
                                         @endif
                                         @if($job['paused'])
-                                            <span class="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-500/15 border border-amber-400/30 text-amber-300"><i class="fas fa-pause text-[9px] mr-0.5"></i>Paused</span>
+                                            <span class="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-500/15 border border-amber-400/30 text-amber-300 ak-amber"><i class="fas fa-pause text-[9px] mr-0.5"></i>Paused</span>
                                         @endif
                                         @if($job['key'] && in_array($job['key'], $mutedAlertJobs, true))
-                                            <span class="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-white/40" title="Failure alerts for this job are muted, it still runs on schedule, but ops admins are not notified when it fails."><i class="fas fa-bell-slash text-[9px] mr-0.5"></i>Alerts muted</span>
+                                            <span class="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-white/40 ak-note" title="Failure alerts for this job are muted, it still runs on schedule, but ops admins are not notified when it fails."><i class="fas fa-bell-slash text-[9px] mr-0.5"></i>Alerts muted</span>
                                         @endif
                                         @if($job['key'])
                                             {{-- Live badge: driven by the polling loop so it appears/disappears without a reload. --}}
                                             <span x-show="isRunning('{{ $job['key'] }}')" x-cloak
-                                                  class="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-emerald-500/15 border border-emerald-400/30 text-emerald-300">
+                                                  class="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-emerald-500/15 border border-emerald-400/30 text-emerald-300 ak-green">
                                                 <i class="fas fa-spinner fa-spin text-[9px] mr-0.5"></i>Running now
                                             </span>
                                         @endif
                                         @if($job['running_now'])
-                                            <span class="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-emerald-500/15 border border-emerald-400/30 text-emerald-300">Running now</span>
+                                            <span class="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-emerald-500/15 border border-emerald-400/30 text-emerald-300 ak-green">Running now</span>
                                         @endif
                                         @if(!empty($job['failing_repeatedly']))
-                                            <span class="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-rose-500/15 border border-rose-400/30 text-rose-300 font-semibold" title="Every run since this job's last success has failed. Inspect the run history and error output, then fix the cause or use Run now to retry, the badge clears once the job succeeds again."><i class="fas fa-triangle-exclamation text-[9px] mr-0.5"></i>Failing repeatedly ({{ $job['failing_streak'] }} in a row)</span>
+                                            <span class="text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-rose-500/15 border border-rose-400/30 text-rose-300 font-semibold ak-red" title="Every run since this job's last success has failed. Inspect the run history and error output, then fix the cause or use Run now to retry, the badge clears once the job succeeds again."><i class="fas fa-triangle-exclamation text-[9px] mr-0.5"></i>Failing repeatedly ({{ $job['failing_streak'] }} in a row)</span>
                                         @endif
                                     </div>
-                                    <p class="text-xs text-white/50 mt-1 leading-relaxed">{{ $job['purpose'] }}</p>
+                                    <p class="text-xs text-white/50 mt-1 leading-relaxed ak-muted">{{ $job['purpose'] }}</p>
                                     <div class="flex items-center gap-2 mt-1.5">
                                         @if($job['without_overlapping'])
-                                            <span class="text-[10px] text-white/30 flex items-center gap-1"><i class="fas fa-lock text-[9px]"></i> No overlap</span>
+                                            <span class="text-[10px] text-white/30 flex items-center gap-1 ak-note"><i class="fas fa-lock text-[9px]"></i> No overlap</span>
                                         @endif
                                         @if($job['on_one_server'])
-                                            <span class="text-[10px] text-white/30 flex items-center gap-1"><i class="fas fa-server text-[9px]"></i> One server</span>
+                                            <span class="text-[10px] text-white/30 flex items-center gap-1 ak-note"><i class="fas fa-server text-[9px]"></i> One server</span>
                                         @endif
                                     </div>
                                 </td>
-                                <td class="px-4 py-4 whitespace-nowrap text-white/70">{{ $job['frequency'] }}</td>
+                                <td class="px-4 py-4 whitespace-nowrap text-white/70 ak-strong">{{ $job['frequency'] }}</td>
                                 <td class="px-4 py-4 whitespace-nowrap">
-                                    <code class="text-[12px] text-white/50 font-mono">{{ $job['expression'] }}</code>
+                                    <code class="text-[12px] text-white/50 font-mono ak-muted">{{ $job['expression'] }}</code>
                                 </td>
                                 <td class="px-4 py-4 whitespace-nowrap">
                                     @if($job['key'])
@@ -247,12 +247,12 @@
                                                     <i class="fas text-[11px]"
                                                        :class="lj({{ $jsKey }}).last_run_ok === false ? 'fa-circle-xmark text-rose-400' : 'fa-circle-check text-emerald-400'"
                                                        :title="lj({{ $jsKey }}).last_run_ok === false ? 'Last run failed' : 'Last run succeeded'"></i>
-                                                    <span class="text-white/80" x-text="lj({{ $jsKey }}).last_run"></span>
+                                                    <span class="text-white/80 ak-strong" x-text="lj({{ $jsKey }}).last_run"></span>
                                                     <template x-if="lj({{ $jsKey }}).last_run_source === 'manual'">
-                                                        <span class="text-[10px] uppercase tracking-wider px-1 py-0.5 rounded bg-white/5 border border-white/10 text-white/40" title="Triggered manually with Run now">Manual</span>
+                                                        <span class="text-[10px] uppercase tracking-wider px-1 py-0.5 rounded bg-white/5 border border-white/10 text-white/40 ak-note" title="Triggered manually with Run now">Manual</span>
                                                     </template>
                                                 </div>
-                                                <div class="text-[11px] text-white/40 mt-0.5">
+                                                <div class="text-[11px] text-white/40 mt-0.5 ak-note">
                                                     <span x-text="lj({{ $jsKey }}).last_run_human"></span>
                                                     <template x-if="lj({{ $jsKey }}).last_runtime !== null && lj({{ $jsKey }}).last_runtime !== undefined">
                                                         <span>&middot; <span x-text="fmtRuntime(lj({{ $jsKey }}).last_runtime)"></span>s</span>
@@ -262,29 +262,29 @@
                                                     </template>
                                                 </div>
                                                 <template x-if="lj({{ $jsKey }}).overdue">
-                                                    <span class="inline-block mt-1 text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-rose-500/15 border border-rose-400/30 text-rose-300">Overdue</span>
+                                                    <span class="inline-block mt-1 text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-rose-500/15 border border-rose-400/30 text-rose-300 ak-red">Overdue</span>
                                                 </template>
                                                 <template x-if="lj({{ $jsKey }}).last_run_ok === false && lj({{ $jsKey }}).last_run_error">
-                                                    <div class="text-[11px] text-rose-300/70 mt-1 max-w-[16rem] truncate" :title="lj({{ $jsKey }}).last_run_error" x-text="lj({{ $jsKey }}).last_run_error"></div>
+                                                    <div class="text-[11px] text-rose-300/70 mt-1 max-w-[16rem] truncate ak-red" :title="lj({{ $jsKey }}).last_run_error" x-text="lj({{ $jsKey }}).last_run_error"></div>
                                                 </template>
                                             </div>
                                         </template>
                                         <template x-if="! lj({{ $jsKey }}).last_run">
-                                            <span class="text-white/30 text-[12px]">Never</span>
+                                            <span class="text-white/30 text-[12px] ak-note">Never</span>
                                         </template>
                                     @elseif($job['last_run'])
                                         <div class="flex items-center gap-1.5">
                                             @if($job['last_run_ok'] === false)
-                                                <i class="fas fa-circle-xmark text-rose-400 text-[11px]" title="Last run failed"></i>
+                                                <i class="fas fa-circle-xmark text-rose-400 text-[11px] ak-red" title="Last run failed"></i>
                                             @else
-                                                <i class="fas fa-circle-check text-emerald-400 text-[11px]" title="Last run succeeded"></i>
+                                                <i class="fas fa-circle-check text-emerald-400 text-[11px] ak-green" title="Last run succeeded"></i>
                                             @endif
-                                            <span class="text-white/80">{{ \App\Support\PlatformTimezone::format($job['last_run'], 'M j, H:i', false) }}</span>
+                                            <span class="text-white/80 ak-strong">{{ \App\Support\PlatformTimezone::format($job['last_run'], 'M j, H:i', false) }}</span>
                                             @if(($job['last_run_source'] ?? null) === 'manual')
-                                                <span class="text-[10px] uppercase tracking-wider px-1 py-0.5 rounded bg-white/5 border border-white/10 text-white/40" title="Triggered manually with Run now">Manual</span>
+                                                <span class="text-[10px] uppercase tracking-wider px-1 py-0.5 rounded bg-white/5 border border-white/10 text-white/40 ak-note" title="Triggered manually with Run now">Manual</span>
                                             @endif
                                         </div>
-                                        <div class="text-[11px] text-white/40 mt-0.5">
+                                        <div class="text-[11px] text-white/40 mt-0.5 ak-note">
                                             {{ $job['last_run']->diffForHumans() }}
                                             @if($job['last_runtime'] !== null)
                                                 &middot; {{ rtrim(rtrim(number_format($job['last_runtime'], 2), '0'), '.') }}s
@@ -294,23 +294,23 @@
                                             @endif
                                         </div>
                                         @if($job['overdue'])
-                                            <span class="inline-block mt-1 text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-rose-500/15 border border-rose-400/30 text-rose-300">Overdue</span>
+                                            <span class="inline-block mt-1 text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-rose-500/15 border border-rose-400/30 text-rose-300 ak-red">Overdue</span>
                                         @endif
                                         @if($job['last_run_ok'] === false && $job['last_run_error'])
-                                            <div class="text-[11px] text-rose-300/70 mt-1 max-w-[16rem] truncate" title="{{ $job['last_run_error'] }}">{{ $job['last_run_error'] }}</div>
+                                            <div class="text-[11px] text-rose-300/70 mt-1 max-w-[16rem] truncate ak-red" title="{{ $job['last_run_error'] }}">{{ $job['last_run_error'] }}</div>
                                         @endif
                                     @else
-                                        <span class="text-white/30 text-[12px]">Never</span>
+                                        <span class="text-white/30 text-[12px] ak-note">Never</span>
                                     @endif
                                 </td>
-                                <td class="px-4 py-4 whitespace-nowrap text-white/60">
+                                <td class="px-4 py-4 whitespace-nowrap text-white/60 ak-muted">
                                     @if($job['paused'])
-                                        <span class="text-amber-300/80 text-[12px]">Paused</span>
+                                        <span class="text-amber-300/80 text-[12px] ak-amber">Paused</span>
                                     @elseif($job['next_run'])
-                                        <div class="text-white/80">{{ \App\Support\PlatformTimezone::format($job['next_run'], 'M j, H:i', false) }}</div>
-                                        <div class="text-[11px] text-white/40">{{ $job['next_run']->diffForHumans() }}</div>
+                                        <div class="text-white/80 ak-strong">{{ \App\Support\PlatformTimezone::format($job['next_run'], 'M j, H:i', false) }}</div>
+                                        <div class="text-[11px] text-white/40 ak-note">{{ $job['next_run']->diffForHumans() }}</div>
                                     @else
-                                        <span class="text-white/30">&mdash;</span>
+                                        <span class="text-white/30 ak-note">&mdash;</span>
                                     @endif
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap">
@@ -321,7 +321,7 @@
                                                   onsubmit="return confirm('Run {{ $job['key'] }} now, in the background?');">
                                                 @csrf
                                                 <button type="submit" title="Run now (in the background)"
-                                                        class="w-8 h-8 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-400/20 text-emerald-300 transition flex items-center justify-center">
+                                                        class="w-8 h-8 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-400/20 text-emerald-300 transition flex items-center justify-center ak-green">
                                                     <i class="fas fa-play text-[11px]"></i>
                                                 </button>
                                             </form>
@@ -331,7 +331,7 @@
                                                 <form method="POST" action="{{ route('admin.cron-jobs.resume', ['key' => $job['key']]) }}">
                                                     @csrf
                                                     <button type="submit" title="Resume this job"
-                                                            class="w-8 h-8 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 border border-amber-400/20 text-amber-300 transition flex items-center justify-center">
+                                                            class="w-8 h-8 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 border border-amber-400/20 text-amber-300 transition flex items-center justify-center ak-amber">
                                                         <i class="fas fa-rotate-right text-[11px]"></i>
                                                     </button>
                                                 </form>
@@ -340,12 +340,12 @@
                                                       onsubmit="return confirm('Pause {{ $job['key'] }}? The scheduler will skip it until you resume it.');">
                                                     @csrf
                                                     <button type="submit" title="Pause this job"
-                                                            class="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-white/60 transition flex items-center justify-center">
+                                                            class="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-white/60 transition flex items-center justify-center ak-muted">
                                                         <i class="fas fa-pause text-[11px]"></i>
                                                     </button>
                                                 </form>
                                             @else
-                                                <span class="w-8 h-8 rounded-lg bg-white/[0.02] border border-white/5 text-white/20 flex items-center justify-center" title="Protected, cannot be paused.">
+                                                <span class="w-8 h-8 rounded-lg bg-white/[0.02] border border-white/5 text-white/20 flex items-center justify-center ak-note" title="Protected, cannot be paused.">
                                                     <i class="fas fa-pause text-[11px]"></i>
                                                 </span>
                                             @endif
@@ -355,7 +355,7 @@
                                                 <form method="POST" action="{{ route('admin.cron-jobs.unmute-alerts', ['key' => $job['key']]) }}">
                                                     @csrf
                                                     <button type="submit" title="Alerts are muted for this job, click to re-enable failure alerts"
-                                                            class="w-8 h-8 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 border border-amber-400/20 text-amber-300 transition flex items-center justify-center">
+                                                            class="w-8 h-8 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 border border-amber-400/20 text-amber-300 transition flex items-center justify-center ak-amber">
                                                         <i class="fas fa-bell-slash text-[11px]"></i>
                                                     </button>
                                                 </form>
@@ -364,7 +364,7 @@
                                                       onsubmit="return confirm('Mute failure alerts for {{ $job['key'] }}? It will keep running on schedule, but ops admins will no longer be notified when it fails.');">
                                                     @csrf
                                                     <button type="submit" title="Mute failure alerts for this job"
-                                                            class="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-white/60 transition flex items-center justify-center">
+                                                            class="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-white/60 transition flex items-center justify-center ak-muted">
                                                         <i class="fas fa-bell text-[11px]"></i>
                                                     </button>
                                                 </form>
@@ -372,13 +372,13 @@
 
                                             {{-- History --}}
                                             <button type="button" @click="toggleHistory('{{ $job['key'] }}')" title="Recent run history"
-                                                    class="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-white/60 transition flex items-center justify-center"
-                                                    :class="historyKey === '{{ $job['key'] }}' ? 'bg-white/10 text-white' : ''">
+                                                    class="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-white/60 transition flex items-center justify-center ak-muted"
+                                                    :class="historyKey === '{{ $job['key'] }}' ? 'bg-white/10 text-white ak-strong' : ''">
                                                 <i class="fas fa-clock-rotate-left text-[11px]"></i>
                                             </button>
                                         </div>
                                     @else
-                                        <span class="text-[11px] text-white/30">&mdash;</span>
+                                        <span class="text-[11px] text-white/30 ak-note">&mdash;</span>
                                     @endif
                                 </td>
                             </tr>
@@ -387,19 +387,19 @@
                                 <td colspan="6" class="px-6 pb-5 pt-0 bg-black/20">
                                     <div class="mt-3 rounded-xl border border-white/10 overflow-hidden">
                                         <div class="px-4 py-2.5 border-b border-white/10 flex items-center justify-between">
-                                            <span class="text-xs font-semibold text-white/70">Recent runs &mdash; <code class="text-blue-200">{{ $job['key'] }}</code></span>
-                                            <button type="button" class="text-white/40 hover:text-white/70 text-xs" @click="historyKey = null">Close</button>
+                                            <span class="text-xs font-semibold text-white/70 ak-strong">Recent runs &mdash; <code class="text-blue-200 ak-blue">{{ $job['key'] }}</code></span>
+                                            <button type="button" class="text-white/40 hover:text-white/70 text-xs ak-note" @click="historyKey = null">Close</button>
                                         </div>
                                         <template x-if="historyLoading">
-                                            <p class="px-4 py-3 text-xs text-white/40">Loading&hellip;</p>
+                                            <p class="px-4 py-3 text-xs text-white/40 ak-note">Loading&hellip;</p>
                                         </template>
                                         <template x-if="! historyLoading && historyRuns.length === 0">
-                                            <p class="px-4 py-3 text-xs text-white/40">No recorded runs yet. Runs are recorded from the moment this panel shipped; older executions only appear in the "Last ran" column.</p>
+                                            <p class="px-4 py-3 text-xs text-white/40 ak-note">No recorded runs yet. Runs are recorded from the moment this panel shipped; older executions only appear in the "Last ran" column.</p>
                                         </template>
                                         <template x-if="! historyLoading && historyRuns.length > 0">
                                             <table class="w-full text-xs">
                                                 <thead>
-                                                    <tr class="text-left text-[10px] uppercase tracking-wider text-white/40 border-b border-white/10">
+                                                    <tr class="text-left text-[10px] uppercase tracking-wider text-white/40 border-b border-white/10 ak-note">
                                                         <th class="px-4 py-2 font-semibold">Started</th>
                                                         <th class="px-4 py-2 font-semibold">Status</th>
                                                         <th class="px-4 py-2 font-semibold">Duration</th>
@@ -411,38 +411,38 @@
                                                 <tbody class="divide-y divide-white/5">
                                                     <template x-for="run in historyRuns" :key="run.id">
                                                         <tr>
-                                                            <td class="px-4 py-2 whitespace-nowrap text-white/70" x-text="formatWhen(run.started_at)"></td>
+                                                            <td class="px-4 py-2 whitespace-nowrap text-white/70 ak-strong" x-text="formatWhen(run.started_at)"></td>
                                                             <td class="px-4 py-2 whitespace-nowrap">
-                                                                <span x-show="run.status === 'success'" class="text-emerald-300"><i class="fas fa-circle-check text-[10px] mr-1"></i>Success</span>
-                                                                <span x-show="run.status === 'failed'" class="text-rose-300"><i class="fas fa-circle-xmark text-[10px] mr-1"></i>Failed</span>
-                                                                <span x-show="run.status === 'running'" class="text-blue-300"><i class="fas fa-spinner text-[10px] mr-1"></i>Running</span>
+                                                                <span x-show="run.status === 'success'" class="text-emerald-300 ak-green"><i class="fas fa-circle-check text-[10px] mr-1"></i>Success</span>
+                                                                <span x-show="run.status === 'failed'" class="text-rose-300 ak-red"><i class="fas fa-circle-xmark text-[10px] mr-1"></i>Failed</span>
+                                                                <span x-show="run.status === 'running'" class="text-blue-300 ak-blue"><i class="fas fa-spinner text-[10px] mr-1"></i>Running</span>
                                                             </td>
-                                                            <td class="px-4 py-2 whitespace-nowrap text-white/60" x-text="run.runtime !== null ? (Math.round(run.runtime * 100) / 100) + 's' : '—'"></td>
-                                                            <td class="px-4 py-2 whitespace-nowrap text-white/60" x-text="run.exit_code !== null ? run.exit_code : '—'"></td>
-                                                            <td class="px-4 py-2 whitespace-nowrap text-white/60" x-text="run.source"></td>
+                                                            <td class="px-4 py-2 whitespace-nowrap text-white/60 ak-muted" x-text="run.runtime !== null ? (Math.round(run.runtime * 100) / 100) + 's' : '—'"></td>
+                                                            <td class="px-4 py-2 whitespace-nowrap text-white/60 ak-muted" x-text="run.exit_code !== null ? run.exit_code : '—'"></td>
+                                                            <td class="px-4 py-2 whitespace-nowrap text-white/60 ak-muted" x-text="run.source"></td>
                                                             <td class="px-4 py-2 align-top max-w-[28rem]">
                                                                 <template x-if="! run.error">
-                                                                    <span class="text-white/30">&mdash;</span>
+                                                                    <span class="text-white/30 ak-note">&mdash;</span>
                                                                 </template>
                                                                 <template x-if="run.error">
                                                                     <div>
                                                                         <div class="flex items-center gap-2 mb-1">
                                                                             <button type="button"
-                                                                                class="text-[10px] uppercase tracking-wider font-semibold px-1.5 py-0.5 rounded border border-white/15 text-white/50 hover:text-white/80 hover:border-white/30 transition"
+                                                                                class="text-[10px] uppercase tracking-wider font-semibold px-1.5 py-0.5 rounded border border-white/15 text-white/50 hover:text-white/80 hover:border-white/30 transition ak-muted"
                                                                                 @click="copy(run.error, 'run-err-' + run.id)">
-                                                                                <i class="fas text-[9px] mr-0.5" :class="copied === 'run-err-' + run.id ? 'fa-check text-emerald-300' : 'fa-copy'"></i>
+                                                                                <i class="fas text-[9px] mr-0.5" :class="copied === 'run-err-' + run.id ? 'fa-check text-emerald-300 ak-green' : 'fa-copy'"></i>
                                                                                 <span x-text="copied === 'run-err-' + run.id ? 'Copied' : 'Copy error'"></span>
                                                                             </button>
                                                                             <template x-if="errorLineCount(run) > 5">
                                                                                 <button type="button"
-                                                                                    class="text-[10px] uppercase tracking-wider font-semibold px-1.5 py-0.5 rounded border border-white/15 text-white/50 hover:text-white/80 hover:border-white/30 transition"
+                                                                                    class="text-[10px] uppercase tracking-wider font-semibold px-1.5 py-0.5 rounded border border-white/15 text-white/50 hover:text-white/80 hover:border-white/30 transition ak-muted"
                                                                                     @click="toggleErrorExpand(run.id)">
                                                                                     <i class="fas text-[9px] mr-0.5" :class="isErrorExpanded(run.id) ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
                                                                                     <span x-text="isErrorExpanded(run.id) ? 'Show less' : ('Show all ' + errorLineCount(run) + ' lines')"></span>
                                                                                 </button>
                                                                             </template>
                                                                         </div>
-                                                                        <pre class="font-mono text-[11px] leading-4 text-rose-300/80 bg-black/30 border border-rose-400/15 rounded-lg px-2.5 py-2 whitespace-pre-wrap break-words max-h-72 overflow-y-auto" x-text="errorDisplay(run)"></pre>
+                                                                        <pre class="font-mono text-[11px] leading-4 text-rose-300/80 bg-black/30 border border-rose-400/15 rounded-lg px-2.5 py-2 whitespace-pre-wrap break-words max-h-72 overflow-y-auto ak-red" x-text="errorDisplay(run)"></pre>
                                                                     </div>
                                                                 </template>
                                                             </td>
@@ -461,11 +461,11 @@
         </div>
     @endforeach
 
-    <p class="text-xs text-white/40 max-w-3xl">
+    <p class="text-xs text-white/40 max-w-3xl ak-note">
         <i class="fas fa-circle-info mr-1"></i>
         "Run now" executes a single job immediately in the background, regardless of its schedule, and records the
-        result in that job's history. You can also run any command manually with <code class="text-white/60">php artisan &lt;command&gt;</code>
-        from the app directory (<code class="text-white/60">{{ $appPath }}</code>). Most jobs are idempotent and safe to re-run.
+        result in that job's history. You can also run any command manually with <code class="text-white/60 ak-muted">php artisan &lt;command&gt;</code>
+        from the app directory (<code class="text-white/60 ak-muted">{{ $appPath }}</code>). Most jobs are idempotent and safe to re-run.
     </p>
 </div>
 

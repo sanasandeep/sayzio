@@ -20,18 +20,18 @@ html.light-mode .admin-ushow-comp-note      { color: #92400e; }
 @endphp
 @if($user->isSuspended())
 <div class="mb-6 rounded-2xl border border-rose-500/30 bg-rose-500/10 p-4 flex flex-wrap items-center justify-between gap-3">
-    <div class="text-sm text-rose-200">
+    <div class="text-sm text-rose-200 ak-red">
         <i class="fas fa-ban mr-1"></i>
         <span class="font-semibold">Account suspended</span>
-        @if($user->suspension_reason)<span class="admin-ushow-suspend-reason text-rose-200/80"> - {{ $user->suspension_reason }}</span>@endif
+        @if($user->suspension_reason)<span class="admin-ushow-suspend-reason text-rose-200/80 ak-red"> - {{ $user->suspension_reason }}</span>@endif
         @if($user->reactivate_at)
-            <span class="admin-ushow-suspend-sub block text-xs text-rose-200/60 mt-1">Auto-reactivates on {{ $user->reactivate_at->format('M j, Y') }}</span>
+            <span class="admin-ushow-suspend-sub block text-xs text-rose-200/60 mt-1 ak-red">Auto-reactivates on {{ $user->reactivate_at->format('M j, Y') }}</span>
         @endif
     </div>
     @if(auth('admin')->user()?->hasPermission('users.suspend'))
     <form method="POST" action="{{ route('admin.users.reactivate', $user) }}">
         @csrf
-        <button type="submit" class="px-4 py-2 bg-emerald-500/20 text-emerald-200 rounded-xl text-sm font-medium hover:bg-emerald-500/30 transition">
+        <button type="submit" class="px-4 py-2 bg-emerald-500/20 text-emerald-200 rounded-xl text-sm font-medium hover:bg-emerald-500/30 transition ak-green">
             <i class="fas fa-unlock mr-1"></i> Reactivate now
         </button>
     </form>
@@ -42,30 +42,30 @@ html.light-mode .admin-ushow-comp-note      { color: #92400e; }
     <div class="lg:col-span-1">
         <div class="glass rounded-2xl border border-white/10  p-6">
             <div class="text-center">
-                <div class="w-20 h-20 rounded-full bg-blue-500/10 text-blue-300 flex items-center justify-center text-2xl font-bold mx-auto">
+                <div class="w-20 h-20 rounded-full bg-blue-500/10 text-blue-300 flex items-center justify-center text-2xl font-bold mx-auto ak-blue">
                     {{ substr($user->name, 0, 1) }}
                 </div>
-                <h2 class="mt-4 text-lg font-semibold text-white">{{ $user->name }}</h2>
-                <p class="text-sm text-white/40">{{ $user->email }}</p>
+                <h2 class="mt-4 text-lg font-semibold text-white ak-strong">{{ $user->name }}</h2>
+                <p class="text-sm text-white/40 ak-note">{{ $user->email }}</p>
                 <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium mt-2
-                    {{ $user->status === 'active' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400' }}">
+                    {{ $user->status === 'active' ? 'bg-emerald-500/10 text-emerald-400 ak-green' : 'bg-red-500/10 text-red-400 ak-red' }}">
                     {{ ucfirst($user->status) }}
                 </span>
             </div>
 
             <div class="mt-6 space-y-3 text-sm">
-                <div class="flex justify-between"><span class="text-white/40">Phone</span><span class="text-white">{{ $user->phone ?? 'N/A' }}</span></div>
-                <div class="flex justify-between"><span class="text-white/40">Plan</span><span class="text-white">{{ $user->plan->name ?? 'Free' }}</span></div>
-                <div class="flex justify-between"><span class="text-white/40">Joined</span><span class="text-white">{{ $user->created_at->format('M d, Y') }}</span></div>
-                <div class="flex justify-between"><span class="text-white/40">Last Login</span><span class="text-white">{{ $user->last_login_at?->diffForHumans() ?? 'Never' }}</span></div>
-                <div class="flex justify-between"><span class="text-white/40">Timezone</span><span class="text-white">{{ $user->timezone }}</span></div>
+                <div class="flex justify-between"><span class="text-white/40 ak-note">Phone</span><span class="text-white ak-strong">{{ $user->phone ?? 'N/A' }}</span></div>
+                <div class="flex justify-between"><span class="text-white/40 ak-note">Plan</span><span class="text-white ak-strong">{{ $user->plan->name ?? 'Free' }}</span></div>
+                <div class="flex justify-between"><span class="text-white/40 ak-note">Joined</span><span class="text-white ak-strong">{{ $user->created_at->format('M d, Y') }}</span></div>
+                <div class="flex justify-between"><span class="text-white/40 ak-note">Last Login</span><span class="text-white ak-strong">{{ $user->last_login_at?->diffForHumans() ?? 'Never' }}</span></div>
+                <div class="flex justify-between"><span class="text-white/40 ak-note">Timezone</span><span class="text-white ak-strong">{{ $user->timezone }}</span></div>
             </div>
 
             @if(auth('admin')->user()?->hasPermission('users.impersonate'))
             <div class="mt-6 flex gap-2">
                 <form action="{{ route('admin.users.impersonate', $user) }}" method="POST" class="flex-1">
                     @csrf
-                    <button type="submit" class="w-full px-4 py-2 bg-amber-500/10 text-amber-400 rounded-xl text-sm font-medium hover:bg-amber-500/10 transition">
+                    <button type="submit" class="w-full px-4 py-2 bg-amber-500/10 text-amber-400 rounded-xl text-sm font-medium hover:bg-amber-500/10 transition ak-amber">
                         <i class="fas fa-user-secret mr-1"></i> Login as User
                     </button>
                 </form>
@@ -74,7 +74,7 @@ html.light-mode .admin-ushow-comp-note      { color: #92400e; }
             @if(auth('admin')->user()?->hasPermission('users.assign_roles') || auth('admin')->user()?->hasPermission('users.grant_admin') || auth('admin')->user()?->hasPermission('users.revoke_admin'))
             <div class="mt-3">
                 <a href="{{ route('admin.users.roles.edit', $user) }}"
-                   class="block w-full text-center px-4 py-2 bg-blue-500/10 text-blue-300 rounded-xl text-sm font-medium hover:bg-blue-500/20 transition">
+                   class="block w-full text-center px-4 py-2 bg-blue-500/10 text-blue-300 rounded-xl text-sm font-medium hover:bg-blue-500/20 transition ak-blue">
                     <i class="fas fa-user-shield mr-1"></i> Manage roles
                 </a>
             </div>
@@ -84,18 +84,18 @@ html.light-mode .admin-ushow-comp-note      { color: #92400e; }
 
     <div class="lg:col-span-2">
         <div class="glass rounded-2xl border border-white/10  p-6">
-            <h3 class="text-lg font-semibold text-white mb-4">Edit User</h3>
+            <h3 class="text-lg font-semibold text-white mb-4 ak-strong">Edit User</h3>
             <form method="POST" action="{{ route('admin.users.update', $user) }}">
                 @csrf @method('PUT')
                 <div class="space-y-4">
                     <div>
-                        <label class="block text-sm font-medium text-white/80 mb-1">Name</label>
+                        <label class="block text-sm font-medium text-white/80 mb-1 ak-strong">Name</label>
                         <input type="text" name="name" value="{{ $user->name }}"
                                class="w-full px-4 py-2.5 border border-white/10 rounded-xl focus:ring-2 focus:ring-blue-500/40 outline-none">
                     </div>
                     <div class="grid grid-cols-2 gap-4">
                         <div>
-                            <label class="block text-sm font-medium text-white/80 mb-1">Status</label>
+                            <label class="block text-sm font-medium text-white/80 mb-1 ak-strong">Status</label>
                             @if($canSuspend)
                             <select name="status" @if(!empty($isProtected)) disabled @endif class="w-full px-4 py-2.5 border border-white/10 rounded-xl focus:ring-2 focus:ring-blue-500/40 outline-none @if(!empty($isProtected)) opacity-60 cursor-not-allowed @endif">
                                 <option value="active" {{ $user->status == 'active' ? 'selected' : '' }}>Active</option>
@@ -105,16 +105,16 @@ html.light-mode .admin-ushow-comp-note      { color: #92400e; }
                             @if(!empty($isProtected))
                             {{-- A disabled select isn't submitted; keep the current status in the payload so this account can never be suspended/banned via the edit form. --}}
                             <input type="hidden" name="status" value="{{ $user->status }}">
-                            <p class="admin-ushow-protected mt-1 text-xs text-emerald-400/80"><i class="fas fa-shield-alt mr-1"></i> Protected account, status is locked.</p>
+                            <p class="admin-ushow-protected mt-1 text-xs text-emerald-400/80 ak-green"><i class="fas fa-shield-alt mr-1"></i> Protected account, status is locked.</p>
                             @endif
                             @else
                             {{-- No users.suspend permission: show status read-only and submit nothing (server strips it too). --}}
-                            <div class="w-full px-4 py-2.5 border border-white/10 rounded-xl bg-white/5 text-white/70">{{ ucfirst($user->status) }}</div>
-                            <p class="mt-1 text-xs text-white/40"><i class="fas fa-lock mr-1"></i> Requires the Suspend / Reactivate permission.</p>
+                            <div class="w-full px-4 py-2.5 border border-white/10 rounded-xl bg-white/5 text-white/70 ak-strong">{{ ucfirst($user->status) }}</div>
+                            <p class="mt-1 text-xs text-white/40 ak-note"><i class="fas fa-lock mr-1"></i> Requires the Suspend / Reactivate permission.</p>
                             @endif
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-white/80 mb-1">Plan</label>
+                            <label class="block text-sm font-medium text-white/80 mb-1 ak-strong">Plan</label>
                             @if($canAssignPlan)
                             <select name="plan_id" class="w-full px-4 py-2.5 border border-white/10 rounded-xl focus:ring-2 focus:ring-blue-500/40 outline-none">
                                 <option value="">No Plan</option>
@@ -124,14 +124,14 @@ html.light-mode .admin-ushow-comp-note      { color: #92400e; }
                             </select>
                             @else
                             {{-- No users.assign_plan permission: show plan read-only and submit nothing (server strips it too). --}}
-                            <div class="w-full px-4 py-2.5 border border-white/10 rounded-xl bg-white/5 text-white/70">{{ $user->plan->name ?? 'No Plan' }}</div>
-                            <p class="mt-1 text-xs text-white/40"><i class="fas fa-lock mr-1"></i> Requires the Assign / Comp Plans permission.</p>
+                            <div class="w-full px-4 py-2.5 border border-white/10 rounded-xl bg-white/5 text-white/70 ak-strong">{{ $user->plan->name ?? 'No Plan' }}</div>
+                            <p class="mt-1 text-xs text-white/40 ak-note"><i class="fas fa-lock mr-1"></i> Requires the Assign / Comp Plans permission.</p>
                             @endif
                         </div>
                     </div>
                     @if($canAssignPlan)
                     <div>
-                        <label class="block text-sm font-medium text-white/80 mb-1">Plan Expires At</label>
+                        <label class="block text-sm font-medium text-white/80 mb-1 ak-strong">Plan Expires At</label>
                         <input type="datetime-local" name="plan_expires_at" value="{{ $user->plan_expires_at?->format('Y-m-d\TH:i') }}"
                                class="w-full px-4 py-2.5 border border-white/10 rounded-xl focus:ring-2 focus:ring-blue-500/40 outline-none">
                     </div>
@@ -151,14 +151,14 @@ html.light-mode .admin-ushow-comp-note      { color: #92400e; }
              Leaving "Complimentary days" blank assigns the plan permanently
              and clears any prior comp window. --}}
         <div class="glass rounded-2xl border border-white/10 p-6">
-            <h3 class="text-lg font-semibold text-white mb-1">Assign plan</h3>
-            <p class="text-xs text-white/40 mb-4">Includes internal plans. Add a comp window to auto-revert to the default plan.</p>
+            <h3 class="text-lg font-semibold text-white mb-1 ak-strong">Assign plan</h3>
+            <p class="text-xs text-white/40 mb-4 ak-note">Includes internal plans. Add a comp window to auto-revert to the default plan.</p>
             <form method="POST" action="{{ route('admin.users.assign-plan', $user) }}" class="space-y-4">
                 @csrf
                 <div>
-                    <label class="block text-sm font-medium text-white/80 mb-1">Plan</label>
+                    <label class="block text-sm font-medium text-white/80 mb-1 ak-strong">Plan</label>
                     <select name="plan_id" required
-                            class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white focus:ring-2 focus:ring-blue-500/40 outline-none">
+                            class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white focus:ring-2 focus:ring-blue-500/40 outline-none ak-strong ak-input">
                         @foreach($plans as $plan)
                             <option value="{{ $plan->id }}" {{ $user->plan_id == $plan->id ? 'selected' : '' }}>
                                 {{ $plan->name }}{{ $plan->is_internal ? ' (internal)' : '' }}
@@ -167,11 +167,11 @@ html.light-mode .admin-ushow-comp-note      { color: #92400e; }
                     </select>
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-white/80 mb-1">Complimentary days <span class="text-white/40">(optional)</span></label>
+                    <label class="block text-sm font-medium text-white/80 mb-1 ak-strong">Complimentary days <span class="text-white/40 ak-note">(optional)</span></label>
                     <input type="number" name="comp_days" min="1" max="3650" placeholder="e.g. 30, leave blank for permanent"
-                           class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder:text-white/30 focus:ring-2 focus:ring-blue-500/40 outline-none">
+                           class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder:text-white/30 focus:ring-2 focus:ring-blue-500/40 outline-none ak-strong ak-input">
                     @if($user->comp_plan_expires_at)
-                        <p class="admin-ushow-comp-note text-xs text-amber-300/80 mt-1">Current comp window ends {{ $user->comp_plan_expires_at->format('M j, Y') }}.</p>
+                        <p class="admin-ushow-comp-note text-xs text-amber-300/80 mt-1 ak-amber">Current comp window ends {{ $user->comp_plan_expires_at->format('M j, Y') }}.</p>
                     @endif
                 </div>
                 <button type="submit" class="px-6 py-2.5 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition">
@@ -185,10 +185,10 @@ html.light-mode .admin-ushow-comp-note      { color: #92400e; }
         {{-- Account badges: staff-only labels. Submitting the full set of
              checked badges replaces this account's badges (unchecked = removed). --}}
         <div class="glass rounded-2xl border border-white/10 p-6">
-            <h3 class="text-lg font-semibold text-white mb-1">Account badges</h3>
-            <p class="text-xs text-white/40 mb-4">Staff-only labels. Shown on the user's own dashboard, never on their public biolink.</p>
+            <h3 class="text-lg font-semibold text-white mb-1 ak-strong">Account badges</h3>
+            <p class="text-xs text-white/40 mb-4 ak-note">Staff-only labels. Shown on the user's own dashboard, never on their public biolink.</p>
             @if($badges->isEmpty())
-                <p class="text-sm text-white/50">No badges defined yet. <a href="{{ route('admin.badges.index') }}" class="text-blue-300 hover:underline">Create one</a>.</p>
+                <p class="text-sm text-white/50 ak-muted">No badges defined yet. <a href="{{ route('admin.badges.index') }}" class="text-blue-300 hover:underline ak-blue">Create one</a>.</p>
             @else
             <form method="POST" action="{{ route('admin.users.badges.update', $user) }}" class="space-y-4">
                 @csrf @method('PUT')
@@ -197,7 +197,7 @@ html.light-mode .admin-ushow-comp-note      { color: #92400e; }
                         <label class="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl border border-white/10 bg-white/5 cursor-pointer hover:bg-white/10 transition">
                             <input type="checkbox" name="badge_ids[]" value="{{ $badge->id }}"
                                    {{ in_array($badge->id, $userBadgeIds) ? 'checked' : '' }}
-                                   class="rounded bg-white/5 border-white/20">
+                                   class="rounded bg-white/5 border-white/20 ak-input">
                             <span class="inline-flex items-center gap-1 text-xs font-medium"
                                   style="color: {{ $badge->color }};">
                                 <i class="fas fa-certificate text-[10px]"></i>{{ $badge->name }}
@@ -218,21 +218,21 @@ html.light-mode .admin-ushow-comp-note      { color: #92400e; }
              accounts are blocked at the controller layer so this form renders
              but the submit bounces back with an error for those accounts. --}}
         <div class="glass rounded-2xl border border-white/10 p-6">
-            <h3 class="text-lg font-semibold text-white mb-1"><i class="fas fa-key text-blue-400 mr-1"></i> Set password</h3>
-            <p class="text-xs text-white/40 mb-4">Replace this user's password so they (or a bridged admin) can sign in at /login with the new credential immediately. Does not affect OTP or social logins.</p>
+            <h3 class="text-lg font-semibold text-white mb-1 ak-strong"><i class="fas fa-key text-blue-400 mr-1 ak-blue"></i> Set password</h3>
+            <p class="text-xs text-white/40 mb-4 ak-note">Replace this user's password so they (or a bridged admin) can sign in at /login with the new credential immediately. Does not affect OTP or social logins.</p>
             <form method="POST" action="{{ route('admin.users.set-password', $user) }}" class="space-y-4">
                 @csrf
                 <div>
-                    <label class="block text-sm font-medium text-white/80 mb-1">New password <span class="text-white/40">(min 8 chars)</span></label>
+                    <label class="block text-sm font-medium text-white/80 mb-1 ak-strong">New password <span class="text-white/40 ak-note">(min 8 chars)</span></label>
                     <input type="password" name="password" required minlength="8" maxlength="72"
                            autocomplete="new-password"
-                           class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder:text-white/30 focus:ring-2 focus:ring-blue-500/40 outline-none">
+                           class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder:text-white/30 focus:ring-2 focus:ring-blue-500/40 outline-none ak-strong ak-input">
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-white/80 mb-1">Confirm password</label>
+                    <label class="block text-sm font-medium text-white/80 mb-1 ak-strong">Confirm password</label>
                     <input type="password" name="password_confirmation" required minlength="8" maxlength="72"
                            autocomplete="new-password"
-                           class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder:text-white/30 focus:ring-2 focus:ring-blue-500/40 outline-none">
+                           class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder:text-white/30 focus:ring-2 focus:ring-blue-500/40 outline-none ak-strong ak-input">
                 </div>
                 <button type="submit" class="px-6 py-2.5 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition">
                     <i class="fas fa-lock mr-1"></i> Set password
@@ -244,10 +244,10 @@ html.light-mode .admin-ushow-comp-note      { color: #92400e; }
              as badges/password). Users whose email matches an Admin record
              are implicitly granted regardless of this toggle. --}}
         <div class="glass rounded-2xl border border-white/10 p-6">
-            <h3 class="text-lg font-semibold text-white mb-1"><i class="fas fa-right-left text-blue-400 mr-1"></i> Transfer capability</h3>
-            <p class="text-xs text-white/40 mb-4">Lets this user instantly transfer any link or workspace they own to another account by email. Transfers always succeed regardless of the recipient's plan caps.</p>
+            <h3 class="text-lg font-semibold text-white mb-1 ak-strong"><i class="fas fa-right-left text-blue-400 mr-1 ak-blue"></i> Transfer capability</h3>
+            <p class="text-xs text-white/40 mb-4 ak-note">Lets this user instantly transfer any link or workspace they own to another account by email. Transfers always succeed regardless of the recipient's plan caps.</p>
             @if($user->transfer_capability_granted_at)
-                <p class="text-sm text-emerald-300 mb-3"><i class="fas fa-check-circle mr-1"></i> Granted {{ $user->transfer_capability_granted_at->format('M j, Y H:i') }}@if($user->transfer_capability_granted_by) by {{ $user->transfer_capability_granted_by }}@endif</p>
+                <p class="text-sm text-emerald-300 mb-3 ak-green"><i class="fas fa-check-circle mr-1"></i> Granted {{ $user->transfer_capability_granted_at->format('M j, Y H:i') }}@if($user->transfer_capability_granted_by) by {{ $user->transfer_capability_granted_by }}@endif</p>
                 <form method="POST" action="{{ route('admin.users.transfer-capability', $user) }}">
                     @csrf
                     <input type="hidden" name="grant" value="0">
@@ -256,7 +256,7 @@ html.light-mode .admin-ushow-comp-note      { color: #92400e; }
                     </button>
                 </form>
             @elseif($user->canTransferAssets())
-                <p class="text-sm text-blue-300"><i class="fas fa-shield-alt mr-1"></i> Implicitly granted: this user's email matches an admin account.</p>
+                <p class="text-sm text-blue-300 ak-blue"><i class="fas fa-shield-alt mr-1"></i> Implicitly granted: this user's email matches an admin account.</p>
             @else
                 <form method="POST" action="{{ route('admin.users.transfer-capability', $user) }}">
                     @csrf
@@ -274,11 +274,11 @@ html.light-mode .admin-ushow-comp-note      { color: #92400e; }
              optional auto-reactivation date enforced at login + by a job. --}}
         <div class="glass rounded-2xl border border-white/10 p-6">
             @if(!empty($isProtected))
-                <h3 class="text-lg font-semibold text-white mb-1"><i class="fas fa-shield-alt text-emerald-400 mr-1"></i> Protected account</h3>
-                <p class="text-xs text-white/40">This account is on the protected list and cannot be suspended or deleted. Manage protection from <a href="{{ route('admin.protected-accounts.index') }}" class="text-blue-300 hover:text-blue-200 underline">Protected accounts</a>.</p>
+                <h3 class="text-lg font-semibold text-white mb-1 ak-strong"><i class="fas fa-shield-alt text-emerald-400 mr-1 ak-green"></i> Protected account</h3>
+                <p class="text-xs text-white/40 ak-note">This account is on the protected list and cannot be suspended or deleted. Manage protection from <a href="{{ route('admin.protected-accounts.index') }}" class="text-blue-300 hover:text-blue-200 underline ak-blue">Protected accounts</a>.</p>
             @elseif($user->isSuspended())
-                <h3 class="text-lg font-semibold text-white mb-1">Reactivate account</h3>
-                <p class="text-xs text-white/40 mb-4">This account is currently on hold. Lift it immediately below.</p>
+                <h3 class="text-lg font-semibold text-white mb-1 ak-strong">Reactivate account</h3>
+                <p class="text-xs text-white/40 mb-4 ak-note">This account is currently on hold. Lift it immediately below.</p>
                 <form method="POST" action="{{ route('admin.users.reactivate', $user) }}">
                     @csrf
                     <button type="submit" class="px-6 py-2.5 bg-emerald-600 text-white rounded-xl font-medium hover:bg-emerald-700 transition">
@@ -286,19 +286,19 @@ html.light-mode .admin-ushow-comp-note      { color: #92400e; }
                     </button>
                 </form>
             @else
-                <h3 class="text-lg font-semibold text-white mb-1">Suspend account</h3>
-                <p class="text-xs text-white/40 mb-4">Blocks sign-in with a reason. Optionally auto-reactivate on a date.</p>
+                <h3 class="text-lg font-semibold text-white mb-1 ak-strong">Suspend account</h3>
+                <p class="text-xs text-white/40 mb-4 ak-note">Blocks sign-in with a reason. Optionally auto-reactivate on a date.</p>
                 <form method="POST" action="{{ route('admin.users.suspend', $user) }}" class="space-y-4">
                     @csrf
                     <div>
-                        <label class="block text-sm font-medium text-white/80 mb-1">Reason</label>
+                        <label class="block text-sm font-medium text-white/80 mb-1 ak-strong">Reason</label>
                         <textarea name="reason" rows="2" required maxlength="1000" placeholder="Shown to the user at sign-in"
-                                  class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder:text-white/30 focus:ring-2 focus:ring-blue-500/40 outline-none"></textarea>
+                                  class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder:text-white/30 focus:ring-2 focus:ring-blue-500/40 outline-none ak-strong ak-input"></textarea>
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-white/80 mb-1">Auto-reactivate at <span class="text-white/40">(optional)</span></label>
+                        <label class="block text-sm font-medium text-white/80 mb-1 ak-strong">Auto-reactivate at <span class="text-white/40 ak-note">(optional)</span></label>
                         <input type="datetime-local" name="reactivate_at"
-                               class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white focus:ring-2 focus:ring-blue-500/40 outline-none">
+                               class="w-full px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white focus:ring-2 focus:ring-blue-500/40 outline-none ak-strong ak-input">
                     </div>
                     <button type="submit" class="px-6 py-2.5 bg-rose-600 text-white rounded-xl font-medium hover:bg-rose-700 transition">
                         <i class="fas fa-ban mr-1"></i> Suspend account
@@ -327,21 +327,21 @@ html.light-mode .admin-ushow-comp-note      { color: #92400e; }
         <div class="glass rounded-2xl border border-white/10 p-6">
             <div class="flex items-center justify-between mb-4 gap-2 flex-wrap">
                 <div>
-                    <h3 class="text-white font-semibold">Role change history</h3>
-                    <p class="text-xs text-white/40">Latest grants / revokes against this user.</p>
+                    <h3 class="text-white font-semibold ak-strong">Role change history</h3>
+                    <p class="text-xs text-white/40 ak-note">Latest grants / revokes against this user.</p>
                 </div>
                 <div class="flex items-center gap-2 flex-wrap">
                     <a href="{{ route('admin.users.role-audits.index', ['target' => $user->id]) }}"
-                       class="text-xs px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-white/70">
+                       class="text-xs px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-white/70 ak-strong">
                         <i class="fas fa-clipboard-list mr-1"></i> Full audit log
                     </a>
                     <a href="{{ route('admin.users.roles.audit.export', $exportParams) }}"
-                       class="text-xs px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-white/70 whitespace-nowrap"
+                       class="text-xs px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-white/70 whitespace-nowrap ak-strong"
                        title="Download the role-change history for {{ $user->name }} matching the filters below as CSV.">
                         <i class="fas fa-file-csv mr-1"></i> Export CSV
                     </a>
                     <a href="{{ route('admin.users.roles.edit', $user) }}"
-                       class="text-xs px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-white/70">
+                       class="text-xs px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-white/70 ak-strong">
                         Manage roles
                     </a>
                 </div>
@@ -356,15 +356,15 @@ html.light-mode .admin-ushow-comp-note      { color: #92400e; }
                   class="rounded-xl border border-white/5 bg-white/[0.02] p-3 mb-4 space-y-3">
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
                     <label class="block">
-                        <span class="block text-[10px] uppercase tracking-wide text-white/40 mb-1">Actor</span>
+                        <span class="block text-[10px] uppercase tracking-wide text-white/40 mb-1 ak-note">Actor</span>
                         <input type="text" name="actor" value="{{ $auditFilters['actor'] ?? '' }}"
                                placeholder="Name, email, or id"
-                               class="w-full px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs text-white placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-blue-500/40">
+                               class="w-full px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs text-white placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-blue-500/40 ak-strong ak-input">
                     </label>
                     <label class="block">
-                        <span class="block text-[10px] uppercase tracking-wide text-white/40 mb-1">Role</span>
+                        <span class="block text-[10px] uppercase tracking-wide text-white/40 mb-1 ak-note">Role</span>
                         <select name="role"
-                                class="w-full px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs text-white focus:outline-none focus:ring-2 focus:ring-blue-500/40">
+                                class="w-full px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs text-white focus:outline-none focus:ring-2 focus:ring-blue-500/40 ak-strong ak-input">
                             <option value="">Any role</option>
                             @foreach(($auditRoleSlugs ?? []) as $slug)
                                 <option value="{{ $slug }}" @selected(($auditFilters['role'] ?? '') === $slug)>{{ $slug }}</option>
@@ -372,9 +372,9 @@ html.light-mode .admin-ushow-comp-note      { color: #92400e; }
                         </select>
                     </label>
                     <label class="block">
-                        <span class="block text-[10px] uppercase tracking-wide text-white/40 mb-1">Action</span>
+                        <span class="block text-[10px] uppercase tracking-wide text-white/40 mb-1 ak-note">Action</span>
                         <select name="action"
-                                class="w-full px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs text-white focus:outline-none focus:ring-2 focus:ring-blue-500/40">
+                                class="w-full px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs text-white focus:outline-none focus:ring-2 focus:ring-blue-500/40 ak-strong ak-input">
                             <option value="">Any action</option>
                             @foreach(($auditActions ?? []) as $value => $label)
                                 <option value="{{ $value }}" @selected(($auditFilters['action'] ?? '') === $value)>{{ $label }}</option>
@@ -382,9 +382,9 @@ html.light-mode .admin-ushow-comp-note      { color: #92400e; }
                         </select>
                     </label>
                     <label class="block">
-                        <span class="block text-[10px] uppercase tracking-wide text-white/40 mb-1">Source</span>
+                        <span class="block text-[10px] uppercase tracking-wide text-white/40 mb-1 ak-note">Source</span>
                         <select name="audit_source"
-                                class="w-full px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs text-white focus:outline-none focus:ring-2 focus:ring-blue-500/40">
+                                class="w-full px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs text-white focus:outline-none focus:ring-2 focus:ring-blue-500/40 ak-strong ak-input">
                             <option value="">Any source</option>
                             @foreach(($auditSources ?? []) as $value => $label)
                                 <option value="{{ $value }}" @selected(($auditFilters['audit_source'] ?? '') === $value)>{{ $label }}</option>
@@ -392,9 +392,9 @@ html.light-mode .admin-ushow-comp-note      { color: #92400e; }
                         </select>
                     </label>
                     <label class="block">
-                        <span class="block text-[10px] uppercase tracking-wide text-white/40 mb-1">Range</span>
+                        <span class="block text-[10px] uppercase tracking-wide text-white/40 mb-1 ak-note">Range</span>
                         <select name="audit_range" data-testid="audit-range-filter"
-                                class="w-full px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs text-white focus:outline-none focus:ring-2 focus:ring-blue-500/40">
+                                class="w-full px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs text-white focus:outline-none focus:ring-2 focus:ring-blue-500/40 ak-strong ak-input">
                             <option value="">All time</option>
                             @foreach(($auditRanges ?? []) as $value => $label)
                                 @continue($value === \App\Modules\User\Models\UserRoleAudit::RANGE_ALL)
@@ -403,30 +403,30 @@ html.light-mode .admin-ushow-comp-note      { color: #92400e; }
                         </select>
                     </label>
                     <label class="block">
-                        <span class="block text-[10px] uppercase tracking-wide text-white/40 mb-1">From</span>
+                        <span class="block text-[10px] uppercase tracking-wide text-white/40 mb-1 ak-note">From</span>
                         <input type="date" name="audit_from" value="{{ $auditFilters['audit_from'] ?? '' }}"
-                               class="w-full px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs text-white focus:outline-none focus:ring-2 focus:ring-blue-500/40">
+                               class="w-full px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs text-white focus:outline-none focus:ring-2 focus:ring-blue-500/40 ak-strong ak-input">
                     </label>
                     <label class="block">
-                        <span class="block text-[10px] uppercase tracking-wide text-white/40 mb-1">To</span>
+                        <span class="block text-[10px] uppercase tracking-wide text-white/40 mb-1 ak-note">To</span>
                         <input type="date" name="audit_to" value="{{ $auditFilters['audit_to'] ?? '' }}"
-                               class="w-full px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs text-white focus:outline-none focus:ring-2 focus:ring-blue-500/40">
+                               class="w-full px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs text-white focus:outline-none focus:ring-2 focus:ring-blue-500/40 ak-strong ak-input">
                     </label>
                 </div>
                 <div class="flex flex-wrap items-center gap-2">
                     <button type="submit"
-                            class="px-3 py-1.5 rounded-lg bg-blue-500/20 text-blue-200 hover:bg-blue-500/30 text-xs font-medium">
+                            class="px-3 py-1.5 rounded-lg bg-blue-500/20 text-blue-200 hover:bg-blue-500/30 text-xs font-medium ak-blue">
                         <i class="fas fa-filter mr-1"></i> Apply filters
                     </button>
                     @if($hasAuditFilter)
                         <a href="{{ route('admin.users.show', $user) }}"
-                           class="px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-white/60 text-xs">Clear filters</a>
+                           class="px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-white/60 text-xs ak-muted">Clear filters</a>
                     @endif
                 </div>
             </form>
 
             @if(empty($roleAudits) || $roleAudits->isEmpty())
-                <p class="text-sm text-white/40">
+                <p class="text-sm text-white/40 ak-note">
                     @if($hasAuditFilter)
                         No entries match this filter.
                     @else
@@ -437,18 +437,18 @@ html.light-mode .admin-ushow-comp-note      { color: #92400e; }
                 <ul class="divide-y divide-white/5 text-sm">
                     @foreach($roleAudits as $a)
                         <li class="py-2 flex flex-wrap items-baseline gap-x-2 gap-y-1">
-                            <span class="text-white/40 text-xs whitespace-nowrap"
+                            <span class="text-white/40 text-xs whitespace-nowrap ak-note"
                                   title="{{ $a->created_at?->toDateTimeString() }}">
                                 {{ $a->created_at?->diffForHumans() }}
                             </span>
-                            <span class="text-white">{{ $a->actorLabel() }}</span>
+                            <span class="text-white ak-strong">{{ $a->actorLabel() }}</span>
                             @if($a->source === 'backfill')
-                                <span class="px-2 py-0.5 rounded-md text-xs bg-amber-500/10 text-amber-300 border border-amber-500/20"
+                                <span class="px-2 py-0.5 rounded-md text-xs bg-amber-500/10 text-amber-300 border border-amber-500/20 ak-amber"
                                       title="This entry was generated by a one-time backfill from the original role assignment's created_at timestamp. It does not represent a live action by a person.">
                                     Backfilled
                                 </span>
                             @endif
-                            <span class="text-white/50">
+                            <span class="text-white/50 ak-muted">
                                 @if($a->action === 'attached')
                                     granted
                                 @else
@@ -456,14 +456,14 @@ html.light-mode .admin-ushow-comp-note      { color: #92400e; }
                                 @endif
                             </span>
                             <span class="px-2 py-0.5 rounded-md text-xs
-                                {{ $a->action === 'attached' ? 'bg-emerald-500/10 text-emerald-300' : 'bg-rose-500/10 text-rose-300' }}">
+                                {{ $a->action === 'attached' ? 'bg-emerald-500/10 text-emerald-300 ak-green' : 'bg-rose-500/10 text-rose-300 ak-red' }}">
                                 {{ $a->role_name ?: $a->role_slug }}
                             </span>
                             @if($a->source === 'user_access')
-                                <span class="text-xs text-white/30">via user access page</span>
+                                <span class="text-xs text-white/30 ak-note">via user access page</span>
                             @endif
                             @if($a->ip)
-                                <span class="text-xs text-white/30">· {{ $a->ip }}</span>
+                                <span class="text-xs text-white/30 ak-note">· {{ $a->ip }}</span>
                             @endif
                         </li>
                     @endforeach
@@ -477,28 +477,28 @@ html.light-mode .admin-ushow-comp-note      { color: #92400e; }
     <div class="glass rounded-2xl border border-white/10 p-6 mt-6">
         <div class="flex items-center justify-between mb-4">
             <div>
-                <h3 class="text-white font-semibold">Wallet</h3>
-                <p class="text-xs text-white/40">Coin balance and recent transactions.</p>
+                <h3 class="text-white font-semibold ak-strong">Wallet</h3>
+                <p class="text-xs text-white/40 ak-note">Coin balance and recent transactions.</p>
             </div>
-            <div class="text-2xl font-bold text-amber-300">{{ number_format($wallet->balance) }} 🪙</div>
+            <div class="text-2xl font-bold text-amber-300 ak-amber">{{ number_format($wallet->balance) }} 🪙</div>
         </div>
 
         @if(auth('admin')->user()?->hasPermission('users.credits'))
         <form method="POST" action="{{ route('admin.users.wallet.adjust', $user) }}" class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6">
             @csrf
             <input type="number" name="delta" placeholder="Δ coins (use - to debit)" required
-                   class="px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white text-sm">
+                   class="px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white text-sm ak-strong ak-input">
             <input type="text" name="reason" placeholder="Reason (required)" required
-                   class="px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white text-sm md:col-span-1">
+                   class="px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white text-sm md:col-span-1 ak-strong ak-input">
             <button class="px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-700">Apply adjustment</button>
         </form>
         @endif
 
         @if($walletTransactions->isEmpty())
-            <p class="text-sm text-white/40">No transactions yet.</p>
+            <p class="text-sm text-white/40 ak-note">No transactions yet.</p>
         @else
         <table class="w-full text-sm">
-            <thead><tr class="text-white/40 text-xs uppercase tracking-wider">
+            <thead><tr class="text-white/40 text-xs uppercase tracking-wider ak-note">
                 <th class="text-left py-2">When</th><th class="text-left">Type</th>
                 <th class="text-right">Δ Coins</th><th class="text-right">Balance</th>
                 <th class="text-left pl-3">Reason</th>
@@ -506,13 +506,13 @@ html.light-mode .admin-ushow-comp-note      { color: #92400e; }
             <tbody>
             @foreach($walletTransactions as $tx)
                 <tr class="border-t border-white/5">
-                    <td class="py-2 text-white/60">{{ $tx->created_at->diffForHumans() }}</td>
-                    <td><span class="px-2 py-0.5 rounded-full text-xs bg-white/10 text-white/70">{{ $tx->type }}</span></td>
-                    <td class="text-right font-semibold {{ $tx->delta_coins >= 0 ? 'text-emerald-300' : 'text-red-300' }}">
+                    <td class="py-2 text-white/60 ak-muted">{{ $tx->created_at->diffForHumans() }}</td>
+                    <td><span class="px-2 py-0.5 rounded-full text-xs bg-white/10 text-white/70 ak-strong">{{ $tx->type }}</span></td>
+                    <td class="text-right font-semibold {{ $tx->delta_coins >= 0 ? 'text-emerald-300 ak-green' : 'text-red-300 ak-red' }}">
                         {{ $tx->delta_coins >= 0 ? '+' : '' }}{{ number_format($tx->delta_coins) }}
                     </td>
-                    <td class="text-right text-white/80">{{ number_format($tx->balance_after) }}</td>
-                    <td class="pl-3 text-white/50">{{ $tx->reason ?? '—' }}</td>
+                    <td class="text-right text-white/80 ak-strong">{{ number_format($tx->balance_after) }}</td>
+                    <td class="pl-3 text-white/50 ak-muted">{{ $tx->reason ?? '—' }}</td>
                 </tr>
             @endforeach
             </tbody>

@@ -103,9 +103,25 @@ class BlockDefaultsController extends Controller
         $adminOverride = BlockDefaults::getAdminOverrideForType($type);
         $systemContent = $this->rawSystemContent($type);
         $systemStyle   = $this->rawSystemStyle($type);
-        $effectiveContent = array_replace($systemContent, $adminOverride['content'] ?? []);
+        $startBlank    = (bool) ($adminOverride['start_blank'] ?? false);
+        $contentBase   = $startBlank ? BlockDefaults::blankedContent($systemContent) : $systemContent;
+        $effectiveContent = array_replace($contentBase, $adminOverride['content'] ?? []);
         $effectiveStyle   = array_merge($systemStyle, $adminOverride['style'] ?? []);
         $hasOverride = !empty($adminOverride);
+
+        // Simple scalar content keys (strings / numbers / booleans) get
+        // friendly form fields; nested structures stay JSON-only.
+        $scalarContentKeys = [];
+        foreach ($systemContent as $key => $value) {
+            if (!str_starts_with((string) $key, '_') && is_scalar($value)) {
+                $scalarContentKeys[] = $key;
+            }
+        }
+
+        // Repeatable list keys: arrays of strings or arrays of flat
+        // scalar-valued objects get an add/remove/reorder row editor.
+        // Deeper nesting (arrays inside items) stays JSON-only.
+        $arrayContentKeys = $this->arrayContentKeys($systemContent);
 
         return view('admin.block-defaults.edit', compact(
             'type',
@@ -115,6 +131,9 @@ class BlockDefaultsController extends Controller
             'effectiveContent',
             'effectiveStyle',
             'hasOverride',
+            'startBlank',
+            'scalarContentKeys',
+            'arrayContentKeys',
         ));
     }
 
@@ -140,6 +159,9 @@ class BlockDefaultsController extends Controller
         }
 
         // --- Content overrides ---
+        // Explicit empty strings / empty arrays inside the JSON are honoured
+        // as real "blank" overrides; only a fully-empty textarea (or an empty
+        // object) means "use system defaults".
         $rawJson = trim((string) $request->input('content_json', ''));
         if ($rawJson !== '') {
             $decoded = json_decode($rawJson, true);
@@ -153,6 +175,9 @@ class BlockDefaultsController extends Controller
         } else {
             $data['content'] = null;
         }
+
+        // --- Start blank ---
+        $data['start_blank'] = $request->boolean('start_blank');
 
         BlockDefaults::saveAdminOverrideForType($type, $data);
 
@@ -184,8 +209,13 @@ class BlockDefaultsController extends Controller
             }
         }
 
-        // Effective content = system defaults overlaid with the JSON override.
+        // Effective content = system defaults (blanked when "start blank" is
+        // on) overlaid with the JSON override. Explicit empty values in the
+        // JSON are honoured so the preview shows genuinely blank fields.
         $content = $this->rawSystemContent($type);
+        if ($request->boolean('start_blank')) {
+            $content = BlockDefaults::blankedContent($content);
+        }
         $rawJson = trim((string) $request->input('content_json', ''));
         if ($rawJson !== '') {
             $decoded = json_decode($rawJson, true);
@@ -273,8 +303,9 @@ class BlockDefaultsController extends Controller
             // (saveAdminOverrideForType treats [] as "unset this part"), so
             // the target ends up an exact copy of the source override.
             BlockDefaults::saveAdminOverrideForType($target, [
-                'content' => $source['content'] ?? [],
-                'style'   => $source['style'] ?? [],
+                'content'     => $source['content'] ?? [],
+                'style'       => $source['style'] ?? [],
+                'start_blank' => (bool) ($source['start_blank'] ?? false),
             ]);
         }
 
@@ -294,6 +325,60 @@ class BlockDefaultsController extends Controller
 
     // ---------------------------------------------------------------
     // Helpers
+
+    /**
+     * Derive repeatable-list content keys from a system-content payload.
+     *
+     * Returns key => shape metadata for keys whose system value is a
+     * non-empty list of strings ('strings') or a list of flat objects
+     * whose values are all scalars/null ('objects', with a fields map of
+     * field => string|number|boolean derived across all items). Keys
+     * with empty arrays, mixed shapes, or nested structures are skipped
+     * and remain JSON-only.
+     *
+     * @param array<string,mixed> $systemContent
+     * @return array<string,array{kind:string,fields?:array<string,string>}>
+     */
+    private function arrayContentKeys(array $systemContent): array
+    {
+        $out = [];
+        foreach ($systemContent as $key => $value) {
+            if (str_starts_with((string) $key, '_') || !is_array($value) || $value === [] || !array_is_list($value)) {
+                continue;
+            }
+            $allStrings = true;
+            $allObjects = true;
+            foreach ($value as $item) {
+                if (!is_string($item)) {
+                    $allStrings = false;
+                }
+                if (!is_array($item) || $item === [] || array_is_list($item)) {
+                    $allObjects = false;
+                    continue;
+                }
+                foreach ($item as $v) {
+                    if (!is_scalar($v) && $v !== null) {
+                        $allObjects = false;
+                        break;
+                    }
+                }
+            }
+            if ($allStrings) {
+                $out[$key] = ['kind' => 'strings'];
+            } elseif ($allObjects) {
+                $fields = [];
+                foreach ($value as $item) {
+                    foreach ($item as $field => $v) {
+                        if (!isset($fields[$field])) {
+                            $fields[$field] = is_bool($v) ? 'boolean' : (is_int($v) || is_float($v) ? 'number' : 'string');
+                        }
+                    }
+                }
+                $out[$key] = ['kind' => 'objects', 'fields' => $fields];
+            }
+        }
+        return $out;
+    }
 
     /**
      * Return hardcoded system content for a type, bypassing any admin
