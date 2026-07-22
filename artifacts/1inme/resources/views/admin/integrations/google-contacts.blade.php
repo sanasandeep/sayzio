@@ -57,7 +57,7 @@
     {{-- Redirect URI --}}
     @include('admin.partials.copy-uri', [
         'label' => 'Authorised redirect URI, add this exact value in Google Cloud Console → OAuth client',
-        'value' => route('contacts.google.callback'),
+        'value' => route('user.contacts.google.callback'),
     ])
 
     @if ($errors->any())
