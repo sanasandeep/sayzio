@@ -2534,6 +2534,380 @@ function ProfileCardView({
     );
   }
 
+  // ───────────── ID BADGE / LANYARD ─────────────
+  if (layout === "id_badge") {
+    return (
+      <View style={{ marginBottom: 16, alignItems: "center" }}>
+        {/* Lanyard strap + clip */}
+        <View style={{ alignItems: "center" }}>
+          <View
+            style={{
+              width: 8,
+              height: 20,
+              backgroundColor: accent,
+              borderTopLeftRadius: 3,
+              borderTopRightRadius: 3,
+              opacity: 0.85,
+            }}
+          />
+          <View
+            style={{
+              width: 36,
+              height: 11,
+              borderWidth: 2,
+              borderColor: accent,
+              borderRadius: 6,
+              marginTop: -2,
+            }}
+          />
+        </View>
+        <View style={[surface, { width: "100%", marginBottom: 0 }]}>
+          {/* Punch hole */}
+          <View style={{ alignItems: "center", paddingTop: 12 }}>
+            <View
+              style={{
+                width: 46,
+                height: 8,
+                borderRadius: 999,
+                backgroundColor: "rgba(15,23,42,0.14)",
+              }}
+            />
+          </View>
+          {/* Accent header band */}
+          <View
+            style={{
+              marginTop: 12,
+              paddingHorizontal: 20,
+              paddingVertical: 10,
+              backgroundColor: accent,
+              alignItems: "center",
+            }}
+          >
+            <Text
+              style={{
+                fontSize: 10,
+                fontWeight: "700",
+                textTransform: "uppercase",
+                letterSpacing: 4,
+                color: "#fff",
+              }}
+            >
+              Identification
+            </Text>
+          </View>
+          <View style={{ paddingHorizontal: 20, paddingVertical: 20, alignItems: "center" }}>
+            <ProfileAvatar
+              avatar={avatar}
+              initial={initial}
+              size={80}
+              border={{ borderWidth: 3, borderColor: accent, borderRadius: 10 }}
+              textColor={accent}
+            />
+            {name ? (
+              <View style={{ flexDirection: "row", alignItems: "center", marginTop: 12, gap: 6 }}>
+                <Text style={{ fontSize: 18, fontWeight: "700", color: themeText }}>{name}</Text>
+                {verified ? <Feather name="check-circle" size={16} color={accent} /> : null}
+              </View>
+            ) : null}
+            {title ? (
+              <View
+                style={{
+                  marginTop: 6,
+                  paddingHorizontal: 12,
+                  paddingVertical: 3,
+                  borderRadius: 999,
+                  backgroundColor: `${accent}1a`,
+                }}
+              >
+                <Text
+                  style={{
+                    fontSize: 11,
+                    fontWeight: "700",
+                    textTransform: "uppercase",
+                    letterSpacing: 1,
+                    color: accent,
+                  }}
+                >
+                  {title}
+                </Text>
+              </View>
+            ) : null}
+            {bio ? (
+              <Text
+                style={{ fontSize: 13, marginTop: 12, color: themeText, opacity: 0.7, textAlign: "center" }}
+              >
+                {bio}
+              </Text>
+            ) : null}
+            {/* Barcode footer */}
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "flex-end",
+                justifyContent: "center",
+                gap: 3,
+                marginTop: 16,
+                opacity: 0.55,
+              }}
+            >
+              {[3, 1, 2, 1, 3, 1, 1, 2, 1, 3, 2, 1, 1, 3, 1, 2].map((bw, i) => (
+                <View key={i} style={{ width: bw, height: 22, backgroundColor: themeText }} />
+              ))}
+            </View>
+          </View>
+        </View>
+      </View>
+    );
+  }
+
+  // ───────────── TICKET STUB ─────────────
+  if (layout === "ticket_stub") {
+    return (
+      <View style={surface}>
+        <View style={{ flexDirection: "row", alignItems: "stretch" }}>
+          <View style={{ flex: 1, padding: 20, alignItems: "center" }}>
+            <Text
+              style={{
+                fontSize: 10,
+                fontWeight: "700",
+                textTransform: "uppercase",
+                letterSpacing: 3,
+                color: accent,
+                opacity: 0.85,
+              }}
+            >
+              Admit One
+            </Text>
+            <View style={{ marginTop: 12 }}>
+              <ProfileAvatar
+                avatar={avatar}
+                initial={initial}
+                size={64}
+                border={{ borderWidth: 2, borderColor: accent }}
+                textColor={accent}
+              />
+            </View>
+            {name ? (
+              <Text style={{ marginTop: 12, fontSize: 20, fontWeight: "700", color: themeText }}>
+                {name}
+              </Text>
+            ) : null}
+            {bio ? (
+              <Text
+                style={{ fontSize: 13, marginTop: 8, color: themeText, opacity: 0.7, textAlign: "center" }}
+              >
+                {bio}
+              </Text>
+            ) : null}
+          </View>
+          {/* Perforated divider */}
+          <View
+            style={{
+              borderLeftWidth: 2,
+              borderLeftColor: `${accent}66`,
+              borderStyle: "dashed",
+            }}
+          />
+          <View
+            style={{
+              width: 96,
+              alignItems: "center",
+              justifyContent: "center",
+              padding: 12,
+            }}
+          >
+            <Text
+              style={{
+                fontSize: 9,
+                fontWeight: "700",
+                textTransform: "uppercase",
+                letterSpacing: 1,
+                color: themeText,
+                opacity: 0.55,
+              }}
+            >
+              Section
+            </Text>
+            <Text style={{ fontSize: 13, fontWeight: "700", marginTop: 4, color: accent }}>
+              {title !== "" ? title : "GA"}
+            </Text>
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "flex-end",
+                gap: 2,
+                marginTop: 8,
+                opacity: 0.5,
+              }}
+            >
+              {[2, 1, 3, 1, 2, 1, 3, 1].map((bw, i) => (
+                <View key={i} style={{ width: bw, height: 28, backgroundColor: accent }} />
+              ))}
+            </View>
+          </View>
+        </View>
+      </View>
+    );
+  }
+
+  // ───────────── POLAROID ─────────────
+  if (layout === "polaroid") {
+    return (
+      <View style={{ marginBottom: 24, alignItems: "center" }}>
+        <View
+          style={[
+            surface,
+            {
+              marginBottom: 0,
+              maxWidth: 288,
+              width: "100%",
+              transform: [{ rotate: "-2.5deg" }],
+            },
+            cardOverlay?.backgroundColor == null ? { backgroundColor: "#ffffff" } : null,
+          ]}
+        >
+          <View style={{ padding: 12, paddingBottom: 4 }}>
+            <View
+              style={{
+                width: "100%",
+                aspectRatio: 1,
+                overflow: "hidden",
+                backgroundColor: PROFILE_AVATAR_BG,
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              {avatar && isSafeUrl(avatar) ? (
+                <Image source={{ uri: avatar }} style={{ width: "100%", height: "100%" }} />
+              ) : (
+                <Text style={{ fontSize: 60, fontWeight: "700", color: accent }}>{initial}</Text>
+              )}
+            </View>
+          </View>
+          <View style={{ paddingHorizontal: 16, paddingBottom: 20, paddingTop: 8, alignItems: "center" }}>
+            {name ? (
+              <Text style={{ fontSize: 22, fontStyle: "italic", color: "#1f2937" }}>{name}</Text>
+            ) : null}
+            {title ? (
+              <Text style={{ fontSize: 15, fontStyle: "italic", opacity: 0.75, color: "#374151" }}>
+                {title}
+              </Text>
+            ) : null}
+            {bio ? (
+              <Text
+                style={{
+                  fontSize: 15,
+                  fontStyle: "italic",
+                  marginTop: 4,
+                  opacity: 0.6,
+                  color: "#374151",
+                  textAlign: "center",
+                }}
+              >
+                {bio}
+              </Text>
+            ) : null}
+          </View>
+        </View>
+      </View>
+    );
+  }
+
+  // ───────────── TERMINAL / CODE ─────────────
+  if (layout === "terminal") {
+    const mono = Platform.OS === "ios" ? "Menlo" : "monospace";
+    const cleanWeb = website.replace(/^https?:\/\/(www\.)?/, "");
+    const termText = cardOverlay?.backgroundColor == null ? "#e2e8f0" : themeText;
+    return (
+      <View
+        style={[
+          surface,
+          { borderRadius: 12 },
+          cardOverlay?.backgroundColor == null ? { backgroundColor: "#0d1117" } : null,
+        ]}
+      >
+        {/* Title bar with traffic lights */}
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 6,
+            paddingHorizontal: 16,
+            paddingVertical: 8,
+            backgroundColor: "rgba(255,255,255,0.06)",
+            borderBottomWidth: 1,
+            borderBottomColor: "rgba(255,255,255,0.08)",
+          }}
+        >
+          <View style={{ width: 11, height: 11, borderRadius: 999, backgroundColor: "#ff5f56" }} />
+          <View style={{ width: 11, height: 11, borderRadius: 999, backgroundColor: "#ffbd2e" }} />
+          <View style={{ width: 11, height: 11, borderRadius: 999, backgroundColor: "#27c93f" }} />
+          <Text style={{ marginLeft: 8, fontSize: 10, fontFamily: mono, color: termText, opacity: 0.6 }}>
+            ~ /profile
+          </Text>
+        </View>
+        <View style={{ padding: 16 }}>
+          <Text style={{ fontFamily: mono, fontSize: 13, lineHeight: 22, color: termText }}>
+            <Text style={{ opacity: 0.6 }}>$ </Text>whoami
+          </Text>
+          {avatar || name ? (
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 12, marginTop: 8, marginBottom: 4 }}>
+              {avatar && isSafeUrl(avatar) ? (
+                <Image
+                  source={{ uri: avatar }}
+                  style={{
+                    width: 48,
+                    height: 48,
+                    borderRadius: 4,
+                    borderWidth: 1,
+                    borderColor: `${accent}55`,
+                  }}
+                />
+              ) : null}
+              {name ? (
+                <Text style={{ fontFamily: mono, fontSize: 15, fontWeight: "700", color: termText }}>
+                  {name}
+                </Text>
+              ) : null}
+            </View>
+          ) : null}
+          {title ? (
+            <Text style={{ fontFamily: mono, fontSize: 13, lineHeight: 22, color: termText }}>
+              <Text style={{ opacity: 0.6 }}>role: </Text>
+              <Text style={{ color: accent }}>{title}</Text>
+            </Text>
+          ) : null}
+          {bio ? (
+            <Text
+              style={{ fontFamily: mono, fontSize: 13, lineHeight: 22, marginTop: 4, color: termText, opacity: 0.85 }}
+            >
+              <Text style={{ opacity: 0.6 }}>bio: </Text>
+              {bio}
+            </Text>
+          ) : null}
+          {location ? (
+            <Text style={{ fontFamily: mono, fontSize: 13, lineHeight: 22, color: termText, opacity: 0.85 }}>
+              <Text style={{ opacity: 0.6 }}>loc: </Text>
+              {location}
+            </Text>
+          ) : null}
+          {website && isSafeUrl(website) ? (
+            <Pressable onPress={() => onTap(website)}>
+              <Text style={{ fontFamily: mono, fontSize: 13, lineHeight: 22, color: termText }}>
+                <Text style={{ opacity: 0.6 }}>url: </Text>
+                <Text style={{ color: accent, textDecorationLine: "underline" }}>{cleanWeb}</Text>
+              </Text>
+            </Pressable>
+          ) : null}
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginTop: 8 }}>
+            <Text style={{ fontFamily: mono, fontSize: 13, color: termText, opacity: 0.6 }}>$</Text>
+            <View style={{ width: 8, height: 16, backgroundColor: accent }} />
+          </View>
+        </View>
+      </View>
+    );
+  }
+
   // ───────────── LEGACY: STATS (v3 default) ─────────────
   if (layout === "stats") {
     return (
