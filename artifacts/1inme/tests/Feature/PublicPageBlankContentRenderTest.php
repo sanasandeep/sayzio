@@ -957,6 +957,530 @@ class PublicPageBlankContentRenderTest extends TestCase
         $public->assertDontSee('Pop-up workshop');
     }
 
+    // ── Testimonials (array-shaped items) ───────────────────────────
+    //
+    // common/blocks/testimonials.blade.php iterates `$s['items'] ?? []`;
+    // an explicitly-empty items array must render zero sample quotes.
+
+    public function test_testimonials_with_explicitly_empty_items_renders_no_sample_quotes(): void
+    {
+        $owner = $this->owner();
+        $link  = $this->biolink($owner);
+
+        $this->block($link, 'testimonials', [
+            'items' => [],
+        ]);
+
+        $resp = $this->visitPublic($link->alias);
+        $resp->assertOk();
+        $resp->assertDontSee('A glowing testimonial goes here');
+        $resp->assertDontSee('Alex Carter');
+    }
+
+    public function test_testimonials_seeded_via_store_shows_sample_quotes(): void
+    {
+        $owner = $this->owner();
+        $link  = $this->biolink($owner);
+
+        $resp = $this->actingAs($owner)
+            ->withHeaders(['X-Requested-With' => 'XMLHttpRequest'])
+            ->post("/user/links/{$link->id}/blocks", ['type' => 'testimonials']);
+        $resp->assertOk();
+
+        $public = $this->visitPublic($link->alias);
+        $public->assertOk();
+        $public->assertSee('A glowing testimonial goes here');
+        $public->assertSee('Alex Carter');
+    }
+
+    public function test_blanked_admin_default_items_seed_testimonials_that_render_blank(): void
+    {
+        BlockDefaults::saveAdminOverrideForType('testimonials', [
+            'content' => ['items' => []],
+        ]);
+
+        $owner = $this->owner();
+        $link  = $this->biolink($owner);
+
+        $resp = $this->actingAs($owner)
+            ->withHeaders(['X-Requested-With' => 'XMLHttpRequest'])
+            ->post("/user/links/{$link->id}/blocks", ['type' => 'testimonials']);
+        $resp->assertOk();
+
+        $block = BiolinkBlock::where('link_id', $link->id)->latest('id')->firstOrFail();
+        $this->assertSame([], $block->settings['items'] ?? null,
+            'pre-condition: the seeded block must carry the explicit empty items array');
+
+        $public = $this->visitPublic($link->alias);
+        $public->assertOk();
+        $public->assertDontSee('A glowing testimonial goes here');
+        $public->assertDontSee('Alex Carter');
+    }
+
+    // ── Testimonial carousel (array-shaped items) ───────────────────
+    //
+    // common/blocks/testimonial-carousel.blade.php normalises
+    // `$s['items']`; the default carousel layout renders the "No
+    // testimonials yet" empty state when the array is explicitly empty.
+
+    public function test_testimonial_carousel_with_explicitly_empty_items_renders_no_sample_quotes(): void
+    {
+        $owner = $this->owner();
+        $link  = $this->biolink($owner);
+
+        $this->block($link, 'testimonial_carousel', [
+            'items' => [],
+        ]);
+
+        $resp = $this->visitPublic($link->alias);
+        $resp->assertOk();
+        $resp->assertDontSee('Genuinely the best service');
+        $resp->assertSee('No testimonials yet');
+    }
+
+    public function test_testimonial_carousel_seeded_via_store_shows_sample_quotes(): void
+    {
+        $owner = $this->owner();
+        $link  = $this->biolink($owner);
+
+        $resp = $this->actingAs($owner)
+            ->withHeaders(['X-Requested-With' => 'XMLHttpRequest'])
+            ->post("/user/links/{$link->id}/blocks", ['type' => 'testimonial_carousel']);
+        $resp->assertOk();
+
+        $public = $this->visitPublic($link->alias);
+        $public->assertOk();
+        // The quote survives every carousel/stack layout branch.
+        $public->assertSee('Genuinely the best service');
+    }
+
+    // ── Timeline / staged timeline (array-shaped items) ─────────────
+    //
+    // The inline renderer branch iterates `$s['items'] ?? []` for both
+    // timeline flavours; an explicitly-empty array renders zero entries.
+
+    public function test_timeline_with_explicitly_empty_items_renders_no_sample_entries(): void
+    {
+        $owner = $this->owner();
+        $link  = $this->biolink($owner);
+
+        $this->block($link, 'timeline', [
+            'items' => [],
+        ]);
+
+        $resp = $this->visitPublic($link->alias);
+        $resp->assertOk();
+        $resp->assertDontSee('Got started');
+        $resp->assertDontSee('Hit a milestone');
+    }
+
+    public function test_timeline_seeded_via_store_shows_sample_entries(): void
+    {
+        $owner = $this->owner();
+        $link  = $this->biolink($owner);
+
+        $resp = $this->actingAs($owner)
+            ->withHeaders(['X-Requested-With' => 'XMLHttpRequest'])
+            ->post("/user/links/{$link->id}/blocks", ['type' => 'timeline']);
+        $resp->assertOk();
+
+        $public = $this->visitPublic($link->alias);
+        $public->assertOk();
+        $public->assertSee('Got started');
+        $public->assertSee('Hit a milestone');
+    }
+
+    public function test_blanked_admin_default_items_seed_timeline_that_renders_blank(): void
+    {
+        BlockDefaults::saveAdminOverrideForType('timeline', [
+            'content' => ['items' => []],
+        ]);
+
+        $owner = $this->owner();
+        $link  = $this->biolink($owner);
+
+        $resp = $this->actingAs($owner)
+            ->withHeaders(['X-Requested-With' => 'XMLHttpRequest'])
+            ->post("/user/links/{$link->id}/blocks", ['type' => 'timeline']);
+        $resp->assertOk();
+
+        $block = BiolinkBlock::where('link_id', $link->id)->latest('id')->firstOrFail();
+        $this->assertSame([], $block->settings['items'] ?? null,
+            'pre-condition: the seeded block must carry the explicit empty items array');
+
+        $public = $this->visitPublic($link->alias);
+        $public->assertOk();
+        $public->assertDontSee('Got started');
+        $public->assertDontSee('Hit a milestone');
+    }
+
+    public function test_timeline_staged_with_explicitly_empty_items_renders_no_sample_stages(): void
+    {
+        $owner = $this->owner();
+        $link  = $this->biolink($owner);
+
+        $this->block($link, 'timeline_staged', [
+            'items' => [],
+        ]);
+
+        $resp = $this->visitPublic($link->alias);
+        $resp->assertOk();
+        $resp->assertDontSee('Replace with your first stage.');
+    }
+
+    public function test_timeline_staged_seeded_via_store_shows_sample_stages(): void
+    {
+        $owner = $this->owner();
+        $link  = $this->biolink($owner);
+
+        $resp = $this->actingAs($owner)
+            ->withHeaders(['X-Requested-With' => 'XMLHttpRequest'])
+            ->post("/user/links/{$link->id}/blocks", ['type' => 'timeline_staged']);
+        $resp->assertOk();
+
+        $public = $this->visitPublic($link->alias);
+        $public->assertOk();
+        // The stage description survives the renderer (titles carry an
+        // em dash that HTML-escaping would complicate matching on).
+        $public->assertSee('Replace with your first stage.');
+    }
+
+    // ── Catalog / market (array-shaped product items) ───────────────
+    //
+    // The inline renderer branch iterates `$s['items'] ?? []` for both
+    // catalog flavours; an explicitly-empty array renders zero items.
+
+    public function test_catalog_with_explicitly_empty_items_renders_no_sample_items(): void
+    {
+        $owner = $this->owner();
+        $link  = $this->biolink($owner);
+
+        $this->block($link, 'catalog', [
+            'items' => [],
+        ]);
+
+        $resp = $this->visitPublic($link->alias);
+        $resp->assertOk();
+        $resp->assertDontSee('Sample Item 1');
+        $resp->assertDontSee('$19');
+    }
+
+    public function test_catalog_seeded_via_store_shows_sample_items(): void
+    {
+        $owner = $this->owner();
+        $link  = $this->biolink($owner);
+
+        $resp = $this->actingAs($owner)
+            ->withHeaders(['X-Requested-With' => 'XMLHttpRequest'])
+            ->post("/user/links/{$link->id}/blocks", ['type' => 'catalog']);
+        $resp->assertOk();
+
+        $public = $this->visitPublic($link->alias);
+        $public->assertOk();
+        $public->assertSee('Sample Item 1');
+        $public->assertSee('$19');
+    }
+
+    public function test_blanked_admin_default_items_seed_catalog_that_renders_blank(): void
+    {
+        BlockDefaults::saveAdminOverrideForType('catalog', [
+            'content' => ['items' => []],
+        ]);
+
+        $owner = $this->owner();
+        $link  = $this->biolink($owner);
+
+        $resp = $this->actingAs($owner)
+            ->withHeaders(['X-Requested-With' => 'XMLHttpRequest'])
+            ->post("/user/links/{$link->id}/blocks", ['type' => 'catalog']);
+        $resp->assertOk();
+
+        $block = BiolinkBlock::where('link_id', $link->id)->latest('id')->firstOrFail();
+        $this->assertSame([], $block->settings['items'] ?? null,
+            'pre-condition: the seeded block must carry the explicit empty items array');
+
+        $public = $this->visitPublic($link->alias);
+        $public->assertOk();
+        $public->assertDontSee('Sample Item 1');
+        $public->assertDontSee('$19');
+    }
+
+    public function test_market_with_explicitly_empty_items_renders_no_sample_items(): void
+    {
+        $owner = $this->owner();
+        $link  = $this->biolink($owner);
+
+        $this->block($link, 'market', [
+            'items' => [],
+        ]);
+
+        $resp = $this->visitPublic($link->alias);
+        $resp->assertOk();
+        $resp->assertDontSee('Another Product');
+        $resp->assertDontSee('$49');
+    }
+
+    public function test_market_seeded_via_store_shows_sample_items(): void
+    {
+        $owner = $this->owner();
+        $link  = $this->biolink($owner);
+
+        $resp = $this->actingAs($owner)
+            ->withHeaders(['X-Requested-With' => 'XMLHttpRequest'])
+            ->post("/user/links/{$link->id}/blocks", ['type' => 'market']);
+        $resp->assertOk();
+
+        $public = $this->visitPublic($link->alias);
+        $public->assertOk();
+        $public->assertSee('Another Product');
+        $public->assertSee('$49');
+    }
+
+    // ── Nav menu (array-shaped menu items) ──────────────────────────
+    //
+    // The inline renderer branch iterates `$s['items'] ?? []`. The
+    // store() pipeline's sanitizeUrl() blanks the sample '#about' /
+    // '#contact' anchors (non-http), so assert on the rendered anchor
+    // labels (raw '>About</a>' markup keeps the match specific).
+
+    public function test_nav_menu_with_explicitly_empty_items_renders_no_sample_links(): void
+    {
+        $owner = $this->owner();
+        $link  = $this->biolink($owner);
+
+        $this->block($link, 'nav_menu', [
+            'items' => [],
+        ]);
+
+        $resp = $this->visitPublic($link->alias);
+        $resp->assertOk();
+        $resp->assertDontSee('>About</a>', false);
+        $resp->assertDontSee('>Contact</a>', false);
+    }
+
+    public function test_nav_menu_seeded_via_store_shows_sample_links(): void
+    {
+        $owner = $this->owner();
+        $link  = $this->biolink($owner);
+
+        $resp = $this->actingAs($owner)
+            ->withHeaders(['X-Requested-With' => 'XMLHttpRequest'])
+            ->post("/user/links/{$link->id}/blocks", ['type' => 'nav_menu']);
+        $resp->assertOk();
+
+        $public = $this->visitPublic($link->alias);
+        $public->assertOk();
+        $public->assertSee('>About</a>', false);
+        $public->assertSee('>Contact</a>', false);
+    }
+
+    // ── Ticker (array of plain strings) ─────────────────────────────
+
+    public function test_ticker_with_explicitly_empty_items_renders_no_sample_announcements(): void
+    {
+        $owner = $this->owner();
+        $link  = $this->biolink($owner);
+
+        $this->block($link, 'ticker', [
+            'items' => [],
+        ]);
+
+        $resp = $this->visitPublic($link->alias);
+        $resp->assertOk();
+        $resp->assertDontSee('Breaking news');
+        $resp->assertDontSee('Replace with your own announcements');
+    }
+
+    public function test_ticker_seeded_via_store_shows_sample_announcements(): void
+    {
+        $owner = $this->owner();
+        $link  = $this->biolink($owner);
+
+        $resp = $this->actingAs($owner)
+            ->withHeaders(['X-Requested-With' => 'XMLHttpRequest'])
+            ->post("/user/links/{$link->id}/blocks", ['type' => 'ticker']);
+        $resp->assertOk();
+
+        $public = $this->visitPublic($link->alias);
+        $public->assertOk();
+        $public->assertSee('Breaking news');
+        $public->assertSee('Replace with your own announcements');
+    }
+
+    // ── Tabs (array-shaped tab panes under the 'tabs' key) ──────────
+    //
+    // common/blocks/tabs.blade.php normalises `$s['tabs']`; an
+    // explicitly-empty array renders the "Add tabs" empty state.
+
+    public function test_tabs_with_explicitly_empty_tabs_renders_no_sample_panes(): void
+    {
+        $owner = $this->owner();
+        $link  = $this->biolink($owner);
+
+        $this->block($link, 'tabs', [
+            'tabs' => [],
+        ]);
+
+        $resp = $this->visitPublic($link->alias);
+        $resp->assertOk();
+        $resp->assertDontSee('Replace with what you offer.');
+        $resp->assertSee('Add tabs to get started');
+    }
+
+    public function test_tabs_seeded_via_store_shows_sample_panes(): void
+    {
+        $owner = $this->owner();
+        $link  = $this->biolink($owner);
+
+        $resp = $this->actingAs($owner)
+            ->withHeaders(['X-Requested-With' => 'XMLHttpRequest'])
+            ->post("/user/links/{$link->id}/blocks", ['type' => 'tabs']);
+        $resp->assertOk();
+
+        $public = $this->visitPublic($link->alias);
+        $public->assertOk();
+        $public->assertSee('Services');
+        $public->assertSee('Replace with what you offer.');
+    }
+
+    // ── Accordion (array-shaped items) ──────────────────────────────
+
+    public function test_accordion_with_explicitly_empty_items_renders_no_sample_rows(): void
+    {
+        $owner = $this->owner();
+        $link  = $this->biolink($owner);
+
+        $this->block($link, 'accordion', [
+            'items' => [],
+        ]);
+
+        $resp = $this->visitPublic($link->alias);
+        $resp->assertOk();
+        $resp->assertDontSee('How does it work?');
+        $resp->assertDontSee('Where can I learn more?');
+    }
+
+    public function test_accordion_seeded_via_store_shows_sample_rows(): void
+    {
+        $owner = $this->owner();
+        $link  = $this->biolink($owner);
+
+        $resp = $this->actingAs($owner)
+            ->withHeaders(['X-Requested-With' => 'XMLHttpRequest'])
+            ->post("/user/links/{$link->id}/blocks", ['type' => 'accordion']);
+        $resp->assertOk();
+
+        $public = $this->visitPublic($link->alias);
+        $public->assertOk();
+        $public->assertSee('How does it work?');
+        $public->assertSee('Where can I learn more?');
+    }
+
+    // ── Link tree group (array-shaped link items) ───────────────────
+
+    public function test_link_tree_group_with_explicitly_empty_items_renders_no_sample_links(): void
+    {
+        $owner = $this->owner();
+        $link  = $this->biolink($owner);
+
+        $this->block($link, 'link_tree_group', [
+            'title' => 'My Links',
+            'items' => [],
+        ]);
+
+        $resp = $this->visitPublic($link->alias);
+        $resp->assertOk();
+        $resp->assertDontSee('My website');
+        $resp->assertDontSee('Latest project');
+    }
+
+    public function test_link_tree_group_seeded_via_store_shows_sample_links(): void
+    {
+        $owner = $this->owner();
+        $link  = $this->biolink($owner);
+
+        $resp = $this->actingAs($owner)
+            ->withHeaders(['X-Requested-With' => 'XMLHttpRequest'])
+            ->post("/user/links/{$link->id}/blocks", ['type' => 'link_tree_group']);
+        $resp->assertOk();
+
+        $public = $this->visitPublic($link->alias);
+        $public->assertOk();
+        $public->assertSee('My website');
+        $public->assertSee('Latest project');
+    }
+
+    // ── File list (array-shaped file items) ─────────────────────────
+
+    public function test_file_list_with_explicitly_empty_items_renders_no_sample_files(): void
+    {
+        $owner = $this->owner();
+        $link  = $this->biolink($owner);
+
+        $this->block($link, 'file_list', [
+            'items' => [],
+        ]);
+
+        $resp = $this->visitPublic($link->alias);
+        $resp->assertOk();
+        $resp->assertDontSee('Placeholder document.pdf');
+        $resp->assertSee('No files yet');
+    }
+
+    public function test_file_list_seeded_via_store_shows_sample_files(): void
+    {
+        $owner = $this->owner();
+        $link  = $this->biolink($owner);
+
+        $resp = $this->actingAs($owner)
+            ->withHeaders(['X-Requested-With' => 'XMLHttpRequest'])
+            ->post("/user/links/{$link->id}/blocks", ['type' => 'file_list']);
+        $resp->assertOk();
+
+        $public = $this->visitPublic($link->alias);
+        $public->assertOk();
+        $public->assertSee('Placeholder document.pdf');
+    }
+
+    // ── Audio list (array-shaped tracks under the 'tracks' key) ─────
+
+    public function test_audio_list_with_explicitly_empty_tracks_renders_no_sample_tracks(): void
+    {
+        $owner = $this->owner();
+        $link  = $this->biolink($owner);
+
+        $this->block($link, 'audio_list', [
+            'tracks' => [],
+        ]);
+
+        $resp = $this->visitPublic($link->alias);
+        $resp->assertOk();
+        $resp->assertDontSee('Placeholder track');
+        $resp->assertDontSee('SoundHelix');
+        $resp->assertSee('No tracks yet');
+    }
+
+    public function test_audio_list_seeded_via_store_shows_sample_tracks(): void
+    {
+        $owner = $this->owner();
+        $link  = $this->biolink($owner);
+
+        $resp = $this->actingAs($owner)
+            ->withHeaders(['X-Requested-With' => 'XMLHttpRequest'])
+            ->post("/user/links/{$link->id}/blocks", ['type' => 'audio_list']);
+        $resp->assertOk();
+
+        $public = $this->visitPublic($link->alias);
+        $public->assertOk();
+        $public->assertSee('Placeholder track');
+        $public->assertSee('SoundHelix');
+    }
+
+    // Note: `insider` (settings posts) and `fan_leaderboard` (settings
+    // fans) render via DB-driven community partials that never read the
+    // seeded arrays on the public page, so a blanked array cannot leak
+    // there and they are intentionally not covered here.
+
     // ── Full pipeline: blanked admin default → seeded block → render ──
 
     public function test_blanked_admin_default_seeds_block_that_renders_blank_on_public_page(): void
