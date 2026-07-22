@@ -27,7 +27,8 @@
     startBlank: {{ $startBlank ? 'true' : 'false' }},
     structuralKeys: @js(\App\Modules\User\Support\BlockDefaults::structuralContentKeys()),
     scalarKeys: @js($scalarContentKeys),
-    contentData: @js($adminOverride['content'] ?? []),
+    arrayMeta: @js($arrayContentKeys),
+    contentData: @js((object) ($adminOverride['content'] ?? [])),
     syncing: false,
     open: {
         layout:     {{ $hasLayout     ? 'true' : 'true' }},
@@ -77,6 +78,62 @@
     },
     resetField(key) {
         delete this.contentData[key];
+        this.writeJsonFromData();
+    },
+    /* ── Repeatable list editors (array-of-strings / array-of-objects) ── */
+    listValue(key) {
+        const v = this.fieldValue(key);
+        return Array.isArray(v) ? v : [];
+    },
+    ensureListOverride(key) {
+        if (!this.fieldOverridden(key) || !Array.isArray(this.contentData[key])) {
+            this.contentData[key] = JSON.parse(JSON.stringify(this.listValue(key)));
+        }
+        return this.contentData[key];
+    },
+    listSetString(key, idx, val) {
+        const arr = this.ensureListOverride(key);
+        arr[idx] = val;
+        this.writeJsonFromData();
+    },
+    listSetField(key, idx, field, val) {
+        const arr = this.ensureListOverride(key);
+        if (!arr[idx] || typeof arr[idx] !== 'object') arr[idx] = {};
+        const ftype = (this.arrayMeta[key].fields || {})[field] || 'string';
+        if (ftype === 'number') {
+            arr[idx][field] = (val === '' || isNaN(Number(val))) ? val : Number(val);
+        } else if (ftype === 'boolean') {
+            arr[idx][field] = !!val;
+        } else {
+            arr[idx][field] = val;
+        }
+        this.writeJsonFromData();
+    },
+    listAdd(key) {
+        const arr = this.ensureListOverride(key);
+        const meta = this.arrayMeta[key];
+        if (meta.kind === 'strings') {
+            arr.push('');
+        } else {
+            const row = {};
+            Object.entries(meta.fields || {}).forEach(([f, t]) => {
+                row[f] = t === 'boolean' ? false : (t === 'number' ? 0 : '');
+            });
+            arr.push(row);
+        }
+        this.writeJsonFromData();
+    },
+    listRemove(key, idx) {
+        const arr = this.ensureListOverride(key);
+        arr.splice(idx, 1);
+        this.writeJsonFromData();
+    },
+    listMove(key, idx, dir) {
+        const arr = this.ensureListOverride(key);
+        const to = idx + dir;
+        if (to < 0 || to >= arr.length) return;
+        const [row] = arr.splice(idx, 1);
+        arr.splice(to, 0, row);
         this.writeJsonFromData();
     },
     writeJsonFromData() {
@@ -602,7 +659,7 @@ x-init="fetchPreview(); $watch('styleData', () => schedulePreview()); $watch('co
                                 </span>
                             </label>
 
-                            @if(!empty($scalarContentKeys))
+                            @if(!empty($scalarContentKeys) || !empty($arrayContentKeys))
                                 <p class="bd-hint mb-3">
                                     Edit the default content for new blocks. Clearing a field saves an explicit
                                     blank (new blocks start empty for that field); "system" restores the
@@ -646,6 +703,83 @@ x-init="fetchPreview(); $watch('styleData', () => schedulePreview()); $watch('co
                                         </label>
                                     @endforeach
                                 </div>
+
+                                @foreach($arrayContentKeys as $key => $meta)
+                                    <div class="mt-4" data-testid="content-list-{{ $key }}">
+                                        <div class="flex items-center justify-between gap-2 mb-2">
+                                            <span class="bd-label" style="margin:0;">{{ str_replace('_', ' ', $key) }}</span>
+                                            <span class="flex items-center gap-2">
+                                                <span role="button" tabindex="0" x-show="fieldOverridden(@js($key))" x-cloak
+                                                      @click.prevent="resetField(@js($key))"
+                                                      @keydown.enter.prevent="resetField(@js($key))"
+                                                      class="bd-clear-btn" title="Remove override, use system default">
+                                                    <i class="fas fa-xmark"></i> system
+                                                </span>
+                                                <button type="button" class="bd-clear-btn" data-testid="list-add-{{ $key }}"
+                                                        @click="listAdd(@js($key))" title="Add item">
+                                                    <i class="fas fa-plus"></i> add
+                                                </button>
+                                            </span>
+                                        </div>
+                                        <p x-show="listValue(@js($key)).length === 0" x-cloak class="bd-hint mb-2">
+                                            No items — saving keeps this list explicitly empty for new blocks.
+                                        </p>
+                                        <div class="space-y-2">
+                                            <template x-for="(item, idx) in listValue(@js($key))" :key="idx">
+                                                <div class="flex items-start gap-2 p-2 rounded-xl"
+                                                     style="background: var(--bg-glass); border: 1px solid var(--border-glass);">
+                                                    <div class="flex flex-col gap-1 pt-1">
+                                                        <button type="button" class="bd-clear-btn" title="Move up"
+                                                                :disabled="idx === 0" :style="idx === 0 && 'opacity:0.3'"
+                                                                @click="listMove(@js($key), idx, -1)">
+                                                            <i class="fas fa-chevron-up"></i>
+                                                        </button>
+                                                        <button type="button" class="bd-clear-btn" title="Move down"
+                                                                :disabled="idx === listValue(@js($key)).length - 1"
+                                                                :style="idx === listValue(@js($key)).length - 1 && 'opacity:0.3'"
+                                                                @click="listMove(@js($key), idx, 1)">
+                                                            <i class="fas fa-chevron-down"></i>
+                                                        </button>
+                                                    </div>
+                                                    <div class="flex-1 min-w-0">
+                                                        @if(($meta['kind'] ?? '') === 'strings')
+                                                            <input type="text" class="bd-input w-full"
+                                                                   :value="item"
+                                                                   @input="listSetString(@js($key), idx, $event.target.value)">
+                                                        @else
+                                                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                                                @foreach(($meta['fields'] ?? []) as $field => $ftype)
+                                                                    <label class="bd-label" style="margin:0;">
+                                                                        <span class="text-xs" style="color: var(--text-faint);">{{ str_replace('_', ' ', $field) }}</span>
+                                                                        @if($ftype === 'boolean')
+                                                                            <span class="flex items-center gap-2 mt-1">
+                                                                                <input type="checkbox"
+                                                                                       :checked="!!(item && item[@js($field)])"
+                                                                                       @change="listSetField(@js($key), idx, @js($field), $event.target.checked)">
+                                                                            </span>
+                                                                        @elseif($ftype === 'number')
+                                                                            <input type="number" class="bd-input w-full"
+                                                                                   :value="item ? item[@js($field)] : ''"
+                                                                                   @input="listSetField(@js($key), idx, @js($field), $event.target.value)">
+                                                                        @else
+                                                                            <input type="text" class="bd-input w-full"
+                                                                                   :value="item ? (item[@js($field)] ?? '') : ''"
+                                                                                   @input="listSetField(@js($key), idx, @js($field), $event.target.value)">
+                                                                        @endif
+                                                                    </label>
+                                                                @endforeach
+                                                            </div>
+                                                        @endif
+                                                    </div>
+                                                    <button type="button" class="bd-clear-btn mt-1" title="Remove item"
+                                                            @click="listRemove(@js($key), idx)">
+                                                        <i class="fas fa-trash-can"></i>
+                                                    </button>
+                                                </div>
+                                            </template>
+                                        </div>
+                                    </div>
+                                @endforeach
                             @else
                                 <p class="bd-hint">
                                     This block type has no simple text fields — edit its default content

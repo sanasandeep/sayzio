@@ -118,6 +118,11 @@ class BlockDefaultsController extends Controller
             }
         }
 
+        // Repeatable list keys: arrays of strings or arrays of flat
+        // scalar-valued objects get an add/remove/reorder row editor.
+        // Deeper nesting (arrays inside items) stays JSON-only.
+        $arrayContentKeys = $this->arrayContentKeys($systemContent);
+
         return view('admin.block-defaults.edit', compact(
             'type',
             'adminOverride',
@@ -128,6 +133,7 @@ class BlockDefaultsController extends Controller
             'hasOverride',
             'startBlank',
             'scalarContentKeys',
+            'arrayContentKeys',
         ));
     }
 
@@ -319,6 +325,60 @@ class BlockDefaultsController extends Controller
 
     // ---------------------------------------------------------------
     // Helpers
+
+    /**
+     * Derive repeatable-list content keys from a system-content payload.
+     *
+     * Returns key => shape metadata for keys whose system value is a
+     * non-empty list of strings ('strings') or a list of flat objects
+     * whose values are all scalars/null ('objects', with a fields map of
+     * field => string|number|boolean derived across all items). Keys
+     * with empty arrays, mixed shapes, or nested structures are skipped
+     * and remain JSON-only.
+     *
+     * @param array<string,mixed> $systemContent
+     * @return array<string,array{kind:string,fields?:array<string,string>}>
+     */
+    private function arrayContentKeys(array $systemContent): array
+    {
+        $out = [];
+        foreach ($systemContent as $key => $value) {
+            if (str_starts_with((string) $key, '_') || !is_array($value) || $value === [] || !array_is_list($value)) {
+                continue;
+            }
+            $allStrings = true;
+            $allObjects = true;
+            foreach ($value as $item) {
+                if (!is_string($item)) {
+                    $allStrings = false;
+                }
+                if (!is_array($item) || $item === [] || array_is_list($item)) {
+                    $allObjects = false;
+                    continue;
+                }
+                foreach ($item as $v) {
+                    if (!is_scalar($v) && $v !== null) {
+                        $allObjects = false;
+                        break;
+                    }
+                }
+            }
+            if ($allStrings) {
+                $out[$key] = ['kind' => 'strings'];
+            } elseif ($allObjects) {
+                $fields = [];
+                foreach ($value as $item) {
+                    foreach ($item as $field => $v) {
+                        if (!isset($fields[$field])) {
+                            $fields[$field] = is_bool($v) ? 'boolean' : (is_int($v) || is_float($v) ? 'number' : 'string');
+                        }
+                    }
+                }
+                $out[$key] = ['kind' => 'objects', 'fields' => $fields];
+            }
+        }
+        return $out;
+    }
 
     /**
      * Return hardcoded system content for a type, bypassing any admin

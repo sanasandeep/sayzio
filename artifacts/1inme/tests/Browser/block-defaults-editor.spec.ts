@@ -119,10 +119,10 @@ echo 'SEED_OK';
  * Read the CURRENT stored admin override for the block type straight from the
  * AppSetting-backed store — the source of truth the task cares about.
  */
-function readStoredOverride(): Record<string, unknown> {
+function readStoredOverride(type: string = BLOCK_TYPE): Record<string, unknown> {
   const php = `
 use App\\Modules\\User\\Support\\BlockDefaults;
-echo 'OVR<<<' . json_encode(BlockDefaults::getAdminOverrideForType('${BLOCK_TYPE}')) . '>>>OVR';
+echo 'OVR<<<' . json_encode(BlockDefaults::getAdminOverrideForType('${type}')) . '>>>OVR';
 `.trim();
   const out = runTinker(php);
   const m = out.match(/OVR<<<(.*)>>>OVR/s);
@@ -225,7 +225,7 @@ test.describe("admin block-defaults editor save/clear", () => {
     // Leave no override behind for other suites/envs.
     try {
       runTinker(
-        `use App\\Modules\\User\\Support\\BlockDefaults; BlockDefaults::resetAdminOverrideForType('${BLOCK_TYPE}'); echo 'CLEAN_OK';`,
+        `use App\\Modules\\User\\Support\\BlockDefaults; BlockDefaults::resetAdminOverrideForType('${BLOCK_TYPE}'); BlockDefaults::resetAdminOverrideForType('list'); echo 'CLEAN_OK';`,
       );
     } catch {
       /* best-effort cleanup */
@@ -450,5 +450,86 @@ test.describe("admin block-defaults editor save/clear", () => {
         `display-mode select must carry exactly one background image (${theme} mode)`,
       ).toBe(1);
     }
+  });
+
+  // Coverage for the friendly array-content row editor (Task: array-of-strings
+  // and array-of-objects content keys get add/remove/reorder rows that stay in
+  // two-way sync with the JSON textarea, and emptying all rows saves an
+  // explicit []).
+  test("list row editor two-way syncs with the JSON textarea and saving zero rows stores an explicit empty list", async ({
+    page,
+  }) => {
+    const LIST_TYPE = "list";
+    runTinker(
+      `use App\\Modules\\User\\Support\\BlockDefaults; BlockDefaults::resetAdminOverrideForType('${LIST_TYPE}'); echo 'RESET_OK';`,
+    );
+
+    await page.goto(`/admin/block-defaults/${LIST_TYPE}`, { timeout: 120_000 });
+    await page
+      .locator('button[type="submit"]', { hasText: "Save overrides" })
+      .waitFor({ state: "visible", timeout: 120_000 });
+
+    const container = page.locator('[data-testid="content-list-items"]');
+    await expect(container).toBeVisible();
+    const rows = container.locator(".space-y-2 > div");
+    // System default seeds three list items.
+    await expect(rows).toHaveCount(3);
+
+    const jsonBox = page.locator('textarea[name="content_json"]');
+
+    // ── rows → JSON: editing a row must land in the JSON textarea.
+    const uniqueText = `Row edit ${Date.now()}`;
+    await rows.nth(0).locator('input[type="text"]').first().fill(uniqueText);
+    await expect(jsonBox).toHaveValue(new RegExp(uniqueText));
+
+    // ── JSON → rows: editing the JSON must rebuild the rows. The JSON
+    // section is collapsed by default, so expand it before filling.
+    await page
+      .locator("button.bd-section-hd", { hasText: "Content overrides (JSON)" })
+      .click();
+    await expect(jsonBox).toBeVisible();
+    await jsonBox.fill(
+      JSON.stringify({ items: [{ text: "FromJsonSync", icon: "" }] }, null, 2),
+    );
+    await expect(rows).toHaveCount(1);
+    await expect(rows.nth(0).locator('input[type="text"]').first()).toHaveValue(
+      "FromJsonSync",
+    );
+
+    // ── add + remove rows: removing every row shows the empty hint and the
+    // JSON keeps an explicit [] for the key.
+    await page.locator('[data-testid="list-add-items"]').click();
+    await expect(rows).toHaveCount(2);
+    const removeButtons = container.locator('button[title="Remove item"]');
+    while ((await removeButtons.count()) > 0) {
+      await removeButtons.first().click();
+    }
+    await expect(rows).toHaveCount(0);
+    await expect(
+      container.locator("text=saving keeps this list explicitly empty"),
+    ).toBeVisible();
+    await expect(jsonBox).toHaveValue(/"items":\s*\[\]/);
+
+    // ── save: the stored override must carry the explicit empty list.
+    await Promise.all([
+      page.waitForResponse(
+        (r) =>
+          r.request().method() === "POST" &&
+          r.url().includes(`/admin/block-defaults/${LIST_TYPE}`),
+        { timeout: 120_000 },
+      ),
+      submitSaveForm(page),
+    ]);
+    await page.waitForLoadState("load", { timeout: 120_000 });
+    await expect(page.locator("text=Block defaults saved").first()).toBeVisible({
+      timeout: 60_000,
+    });
+
+    const stored = readStoredOverride(LIST_TYPE);
+    const content = (stored.content ?? {}) as Record<string, unknown>;
+    expect(
+      content.items,
+      "saving with zero rows must persist an explicit empty items list",
+    ).toEqual([]);
   });
 });
