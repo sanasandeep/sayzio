@@ -20,6 +20,15 @@ class rather than a `bg-*` utility class, it needs its own
 `html.light-mode <scope> <selector> { color:#fff !important; }` override —
 don't assume the sitewide allowlist already covers it.
 
+**Third gap — the `bg-primary-` exemption vs translucent tints:** the
+theme-styles remap exempts `[class*="bg-primary-"]` so solid primary
+buttons keep white text — but that substring also matches low-opacity
+tints (`bg-primary-500/10` chips/badges) whose background is nearly white
+in light mode, leaving invisible white text. Fixed with higher-specificity
+overrides re-darkening `[class*="text-white"][class*="bg-primary-XXX/1|2|3"]`
+(near-solid fills like `/90` deliberately excluded). Any new exemption on a
+substring selector must consider opacity variants of the same utility.
+
 **Second gap — opacity-modified accent shades:** the theme-styles remap of
 light accent shades (`.text-emerald-300`, `.text-amber-300`, …) uses EXACT
 class selectors, so an opacity-modified variant like `text-emerald-300/70`

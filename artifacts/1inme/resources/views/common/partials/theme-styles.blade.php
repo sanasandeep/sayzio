@@ -972,6 +972,21 @@
         html.light-mode [class*="text-white/1"] {
             color: var(--text-faint) !important;
         }
+        /* Low-opacity primary tints (chips/badges like bg-primary-500/10)
+           are nearly white in light mode, so the bg-primary- exemption
+           above must NOT keep their text white. Near-solid fills
+           (e.g. bg-primary-600/90) are intentionally excluded. */
+        html.light-mode [class*="text-white"][class*="bg-primary-500/1"],
+        html.light-mode [class*="text-white"][class*="bg-primary-500/2"],
+        html.light-mode [class*="text-white"][class*="bg-primary-500/3"],
+        html.light-mode [class*="text-white"][class*="bg-primary-400/1"],
+        html.light-mode [class*="text-white"][class*="bg-primary-400/2"],
+        html.light-mode [class*="text-white"][class*="bg-primary-400/3"],
+        html.light-mode [class*="text-white"][class*="bg-primary-600/1"],
+        html.light-mode [class*="text-white"][class*="bg-primary-600/2"],
+        html.light-mode [class*="text-white"][class*="bg-primary-600/3"] {
+            color: var(--text-primary) !important;
+        }
         html.light-mode [class*="border-white/"] {
             border-color: var(--border-glass) !important;
         }
