@@ -113,6 +113,13 @@ class BlockDefaults
                     $entry['style'] = $data['style'];
                 }
             }
+            if (array_key_exists('start_blank', $data)) {
+                if ($data['start_blank']) {
+                    $entry['start_blank'] = true;
+                } else {
+                    unset($entry['start_blank']);
+                }
+            }
             if (empty($entry)) {
                 unset($all[$canonical]);
             } else {
@@ -120,6 +127,94 @@ class BlockDefaults
             }
         }
         AppSetting::put(self::SETTING_KEY, $all);
+    }
+
+    /**
+     * Whether the admin flagged this type to start with all seeded sample
+     * content blanked out ("No sample content"). Explicit content overrides
+     * still apply on top of the blanked baseline.
+     */
+    public static function startBlankForType(string $type): bool
+    {
+        return (bool) (self::getAdminOverrideForType($type)['start_blank'] ?? false);
+    }
+
+    /**
+     * Content keys that carry structural/config meaning (layout modes,
+     * enum-ish presentation choices, colours, toggles, numeric knobs)
+     * rather than seeded sample copy. "Start blank" preserves these so a
+     * blank block still renders with a sane structure.
+     */
+    private const STRUCTURAL_CONTENT_KEYS = [
+        'align', 'alignment', 'size', 'style', 'layout', 'shape', 'mode', 'type',
+        'columns', 'gap', 'interval', 'zoom', 'height', 'count', 'limit',
+        'period', 'source', 'sort', 'effect', 'icon_style', 'channel',
+        'accent_color', 'color', 'bg_color', 'text_color',
+        'rounded', 'verified', 'locked_text', 'locked_image',
+        'font_size',
+    ];
+
+    /**
+     * Public accessor so the admin editor UI can mirror the blanking
+     * rules client-side (which keys "start blank" preserves).
+     *
+     * @return string[]
+     */
+    public static function structuralContentKeys(): array
+    {
+        return self::STRUCTURAL_CONTENT_KEYS;
+    }
+
+    /**
+     * Blank out seeded sample content in a system-content payload:
+     * strings become '', list arrays become [], booleans/numbers and
+     * structural keys (see STRUCTURAL_CONTENT_KEYS) are preserved.
+     * Meta keys (underscore-prefixed) are preserved.
+     *
+     * @param array<string,mixed> $content
+     * @return array<string,mixed>
+     */
+    public static function blankedContent(array $content): array
+    {
+        $out = [];
+        foreach ($content as $key => $value) {
+            if (str_starts_with((string) $key, '_')
+                || in_array($key, self::STRUCTURAL_CONTENT_KEYS, true)) {
+                $out[$key] = $value;
+                continue;
+            }
+            if (is_string($value)) {
+                $out[$key] = '';
+            } elseif (is_array($value)) {
+                $out[$key] = [];
+            } else {
+                $out[$key] = $value;
+            }
+        }
+        return $out;
+    }
+
+    /**
+     * True when a merged content payload still contains seeded sample
+     * copy (any non-structural, non-meta string/array value that is
+     * non-empty). Used to decide whether the "_placeholder" banner is
+     * still meaningful: intentionally-blank content shouldn't nag the
+     * user to "replace the sample content".
+     *
+     * @param array<string,mixed> $content
+     */
+    private static function hasSampleContent(array $content): bool
+    {
+        foreach ($content as $key => $value) {
+            if (str_starts_with((string) $key, '_')
+                || in_array($key, self::STRUCTURAL_CONTENT_KEYS, true)) {
+                continue;
+            }
+            if ((is_string($value) && trim($value) !== '') || (is_array($value) && $value !== [])) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
@@ -666,18 +761,32 @@ class BlockDefaults
             default => [],
         };
 
-        $adminOverride = self::getAdminOverrideForType($type)['content'] ?? [];
-        if (!empty($adminOverride) && is_array($adminOverride)) {
-            // Preserve the _placeholder flag from the hardcoded defaults so the
-            // "sample content" banner still fires for admin-overridden content.
-            $placeholder = $hardcoded['_placeholder'] ?? false;
-            $merged = array_replace($hardcoded, $adminOverride);
-            if ($placeholder && !isset($adminOverride['_placeholder'])) {
-                $merged['_placeholder'] = true;
-            }
-            return $merged;
+        $overrideEntry = self::getAdminOverrideForType($type);
+        $adminOverride = $overrideEntry['content'] ?? [];
+        $startBlank    = (bool) ($overrideEntry['start_blank'] ?? false);
+
+        if (!$startBlank && (!is_array($adminOverride) || $adminOverride === [])) {
+            return $hardcoded;
         }
-        return $hardcoded;
+
+        $placeholder = $hardcoded['_placeholder'] ?? false;
+        $base = $startBlank ? self::blankedContent($hardcoded) : $hardcoded;
+
+        // array_replace honours explicit empty strings / empty arrays in the
+        // override: an admin-cleared field stays genuinely blank rather than
+        // falling back to the system sample text.
+        $merged = is_array($adminOverride) ? array_replace($base, $adminOverride) : $base;
+
+        // The "_placeholder" banner nags the creator to replace sample copy.
+        // Intentionally-blank content (start-blank, or every sample field
+        // cleared) has no sample copy left, so the banner is suppressed.
+        if ($placeholder && !isset($adminOverride['_placeholder'])) {
+            $merged['_placeholder'] = self::hasSampleContent($merged);
+        }
+        if (empty($merged['_placeholder'])) {
+            unset($merged['_placeholder']);
+        }
+        return $merged;
     }
 
     /**

@@ -24,6 +24,11 @@
     contentJson: @js(!empty($adminOverride['content']) ? json_encode($adminOverride['content'], JSON_PRETTY_PRINT) : ''),
     systemContent: @js($systemContent),
     systemStyle: @js($systemStyle),
+    startBlank: {{ $startBlank ? 'true' : 'false' }},
+    structuralKeys: @js(\App\Modules\User\Support\BlockDefaults::structuralContentKeys()),
+    scalarKeys: @js($scalarContentKeys),
+    contentData: @js($adminOverride['content'] ?? []),
+    syncing: false,
     open: {
         layout:     {{ $hasLayout     ? 'true' : 'true' }},
         spacing:    {{ $hasSpacing    ? 'true' : 'false' }},
@@ -31,10 +36,66 @@
         bg:         {{ $hasBg         ? 'true' : 'false' }},
         border:     {{ $hasBorder     ? 'true' : 'false' }},
         shadow:     {{ $hasShadow     ? 'true' : 'false' }},
+        contentFields: {{ (!empty($adminOverride['content']) || $startBlank) ? 'true' : 'true' }},
         content:    false,
     },
     resetJson() {
         this.contentJson = JSON.stringify(this.systemContent, null, 2);
+    },
+    /* ── Friendly content fields ↔ JSON sync ─────────────────────────
+       The JSON textarea is the single submitted source of truth; the
+       friendly inputs read/write keys inside it. An explicit '' written
+       by a field is a real blank override; deleting the key falls back
+       to the system default. */
+    baseValue(key) {
+        const sys = this.systemContent[key];
+        if (this.startBlank && !this.structuralKeys.includes(key)) {
+            if (typeof sys === 'string') return '';
+            if (Array.isArray(sys)) return [];
+        }
+        return sys;
+    },
+    fieldValue(key) {
+        return Object.prototype.hasOwnProperty.call(this.contentData, key)
+            ? this.contentData[key]
+            : this.baseValue(key);
+    },
+    fieldOverridden(key) {
+        return Object.prototype.hasOwnProperty.call(this.contentData, key);
+    },
+    setField(key, val) {
+        const sys = this.systemContent[key];
+        if (typeof sys === 'number' && val !== '' && !isNaN(Number(val))) {
+            this.contentData[key] = Number(val);
+        } else if (typeof sys === 'boolean') {
+            if (val === '') { delete this.contentData[key]; }
+            else { this.contentData[key] = (val === 'true' || val === '1'); }
+        } else {
+            this.contentData[key] = val;
+        }
+        this.writeJsonFromData();
+    },
+    resetField(key) {
+        delete this.contentData[key];
+        this.writeJsonFromData();
+    },
+    writeJsonFromData() {
+        this.syncing = true;
+        this.contentJson = Object.keys(this.contentData).length
+            ? JSON.stringify(this.contentData, null, 2)
+            : '';
+        this.$nextTick(() => { this.syncing = false; });
+    },
+    readDataFromJson() {
+        if (this.syncing) return;
+        const raw = this.contentJson.trim();
+        if (raw === '') { this.contentData = {}; return; }
+        try {
+            const parsed = JSON.parse(raw);
+            if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+                this.contentData = parsed;
+            }
+        } catch (e) { /* invalid JSON: keep last good contentData */ }
     },
     getStyle(field) { return this.styleData[field] ?? ''; },
     setStyle(field, val) {
@@ -69,6 +130,7 @@
                 if (v !== undefined && v !== null && v !== '') body.append('style[' + k + ']', v);
             });
             body.append('content_json', content);
+            if (this.startBlank) body.append('start_blank', '1');
             const res = await fetch(@js(route('admin.block-defaults.preview', $type)), {
                 method: 'POST',
                 headers: { 'X-CSRF-TOKEN': @js(csrf_token()), 'Accept': 'text/html' },
@@ -85,7 +147,7 @@
         }
     },
 }"
-x-init="fetchPreview(); $watch('styleData', () => schedulePreview()); $watch('contentJson', () => schedulePreview())">
+x-init="fetchPreview(); $watch('styleData', () => schedulePreview()); $watch('contentJson', () => { readDataFromJson(); schedulePreview(); }); $watch('startBlank', () => schedulePreview())">
 
     {{-- Back link --}}
     <div class="mb-4">
@@ -496,6 +558,89 @@ x-init="fetchPreview(); $watch('styleData', () => schedulePreview()); $watch('co
                                     </select>
                                 </label>
                             </div>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- ── Content (friendly fields + start blank) ── --}}
+                <div class="bd-card mb-3">
+                    <button type="button" class="bd-section-hd" @click="open.contentFields = !open.contentFields">
+                        <div class="bd-section-hd-left">
+                            <i class="fas fa-pen-to-square bd-section-icon"></i>
+                            <span class="bd-section-title">Content</span>
+                            <span x-show="startBlank || Object.keys(contentData).length" x-cloak class="bd-badge">overrides</span>
+                        </div>
+                        <i class="fas fa-chevron-down bd-chevron" :class="open.contentFields && 'rotate-180'"></i>
+                    </button>
+                    <div x-show="open.contentFields" x-collapse>
+                        <div class="bd-body">
+
+                            {{-- Start blank toggle --}}
+                            <input type="hidden" name="start_blank" value="0">
+                            <label class="flex items-start gap-3 mb-4 cursor-pointer p-3 rounded-xl"
+                                   style="background: var(--bg-glass); border: 1px solid var(--border-glass);">
+                                <input type="checkbox" name="start_blank" value="1" x-model="startBlank"
+                                       class="mt-0.5" data-testid="checkbox-start-blank">
+                                <span>
+                                    <span class="block text-sm font-semibold" style="color: var(--text-primary);">Start blank (no sample content)</span>
+                                    <span class="block bd-hint mt-0.5">
+                                        New blocks of this type start with all seeded sample text, media and list
+                                        items blanked out. Layout, colours and toggles are kept. Any content
+                                        overrides below still apply on top.
+                                    </span>
+                                </span>
+                            </label>
+
+                            @if(!empty($scalarContentKeys))
+                                <p class="bd-hint mb-3">
+                                    Edit the default content for new blocks. Clearing a field saves an explicit
+                                    blank (new blocks start empty for that field); "system" restores the
+                                    system default. Values sync with the JSON editor below.
+                                </p>
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    @foreach($scalarContentKeys as $key)
+                                        @php $sysVal = $systemContent[$key]; @endphp
+                                        <label class="bd-label" @if(is_string($sysVal) && mb_strlen($sysVal) > 60) style="grid-column: 1 / -1;" @endif>
+                                            <span class="flex items-center justify-between gap-2">
+                                                <span>{{ str_replace('_', ' ', $key) }}</span>
+                                                <span role="button" tabindex="0" x-show="fieldOverridden(@js($key))" x-cloak
+                                                      @click.prevent="resetField(@js($key))"
+                                                      @keydown.enter.prevent="resetField(@js($key))"
+                                                      class="bd-clear-btn" title="Remove override, use system default">
+                                                    <i class="fas fa-xmark"></i> system
+                                                </span>
+                                            </span>
+                                            @if(is_bool($sysVal))
+                                                <select class="bd-select" data-testid="content-field-{{ $key }}"
+                                                        :value="fieldOverridden(@js($key)) ? String(contentData[@js($key)]) : ''"
+                                                        @change="setField(@js($key), $event.target.value)">
+                                                    <option value="">system ({{ $sysVal ? 'true' : 'false' }})</option>
+                                                    <option value="true">true</option>
+                                                    <option value="false">false</option>
+                                                </select>
+                                            @elseif(is_int($sysVal) || is_float($sysVal))
+                                                <input type="number" class="bd-input" data-testid="content-field-{{ $key }}"
+                                                       :value="fieldValue(@js($key))"
+                                                       @input="setField(@js($key), $event.target.value)"
+                                                       placeholder="system: {{ $sysVal }}">
+                                            @elseif(is_string($sysVal) && mb_strlen($sysVal) > 60)
+                                                <textarea class="bd-input" rows="2" data-testid="content-field-{{ $key }}"
+                                                          :value="fieldValue(@js($key))"
+                                                          @input="setField(@js($key), $event.target.value)"></textarea>
+                                            @else
+                                                <input type="text" class="bd-input" data-testid="content-field-{{ $key }}"
+                                                       :value="fieldValue(@js($key))"
+                                                       @input="setField(@js($key), $event.target.value)">
+                                            @endif
+                                        </label>
+                                    @endforeach
+                                </div>
+                            @else
+                                <p class="bd-hint">
+                                    This block type has no simple text fields — edit its default content
+                                    (lists, cards, items) via the JSON editor below.
+                                </p>
+                            @endif
                         </div>
                     </div>
                 </div>
