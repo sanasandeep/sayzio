@@ -649,6 +649,314 @@ class PublicPageBlankContentRenderTest extends TestCase
         $public->assertDontSee('$29');
     }
 
+    // ── FAQ (array-shaped Q&A items) ────────────────────────────────
+    //
+    // common/blocks/faq.blade.php iterates `$s['items'] ?? []`; an
+    // explicitly-empty items array must render zero sample questions.
+
+    public function test_faq_with_explicitly_empty_items_renders_no_sample_questions(): void
+    {
+        $owner = $this->owner();
+        $link  = $this->biolink($owner);
+
+        $this->block($link, 'faq', [
+            'items' => [],
+        ]);
+
+        $resp = $this->visitPublic($link->alias);
+        $resp->assertOk();
+        $resp->assertDontSee('How do I get started?');
+        $resp->assertDontSee('Do you offer support?');
+    }
+
+    public function test_faq_seeded_via_store_shows_sample_questions(): void
+    {
+        $owner = $this->owner();
+        $link  = $this->biolink($owner);
+
+        $resp = $this->actingAs($owner)
+            ->withHeaders(['X-Requested-With' => 'XMLHttpRequest'])
+            ->post("/user/links/{$link->id}/blocks", ['type' => 'faq']);
+        $resp->assertOk();
+
+        $public = $this->visitPublic($link->alias);
+        $public->assertOk();
+        $public->assertSee('How do I get started?');
+        $public->assertSee('Do you offer support?');
+    }
+
+    public function test_blanked_admin_default_items_seed_faq_that_renders_blank(): void
+    {
+        BlockDefaults::saveAdminOverrideForType('faq', [
+            'content' => ['items' => []],
+        ]);
+
+        $owner = $this->owner();
+        $link  = $this->biolink($owner);
+
+        $resp = $this->actingAs($owner)
+            ->withHeaders(['X-Requested-With' => 'XMLHttpRequest'])
+            ->post("/user/links/{$link->id}/blocks", ['type' => 'faq']);
+        $resp->assertOk();
+
+        $block = BiolinkBlock::where('link_id', $link->id)->latest('id')->firstOrFail();
+        $this->assertSame([], $block->settings['items'] ?? null,
+            'pre-condition: the seeded block must carry the explicit empty items array');
+
+        $public = $this->visitPublic($link->alias);
+        $public->assertOk();
+        $public->assertDontSee('How do I get started?');
+        $public->assertDontSee('Do you offer support?');
+    }
+
+    // ── Progress bars (array-shaped goal items) ─────────────────────
+    //
+    // common/blocks/progress.blade.php iterates `$s['items'] ?? []`;
+    // an explicitly-empty items array must render zero sample goals.
+
+    public function test_progress_with_explicitly_empty_items_renders_no_sample_goals(): void
+    {
+        $owner = $this->owner();
+        $link  = $this->biolink($owner);
+
+        $this->block($link, 'progress', [
+            'items' => [],
+        ]);
+
+        $resp = $this->visitPublic($link->alias);
+        $resp->assertOk();
+        $resp->assertDontSee('Goal one');
+        $resp->assertDontSee('Goal two');
+    }
+
+    public function test_progress_seeded_via_store_shows_sample_goals(): void
+    {
+        $owner = $this->owner();
+        $link  = $this->biolink($owner);
+
+        $resp = $this->actingAs($owner)
+            ->withHeaders(['X-Requested-With' => 'XMLHttpRequest'])
+            ->post("/user/links/{$link->id}/blocks", ['type' => 'progress']);
+        $resp->assertOk();
+
+        $public = $this->visitPublic($link->alias);
+        $public->assertOk();
+        // The renderer shows label + value; both sample labels survive.
+        $public->assertSee('Goal one');
+        $public->assertSee('Goal two');
+    }
+
+    public function test_blanked_admin_default_items_seed_progress_that_renders_blank(): void
+    {
+        BlockDefaults::saveAdminOverrideForType('progress', [
+            'content' => ['items' => []],
+        ]);
+
+        $owner = $this->owner();
+        $link  = $this->biolink($owner);
+
+        $resp = $this->actingAs($owner)
+            ->withHeaders(['X-Requested-With' => 'XMLHttpRequest'])
+            ->post("/user/links/{$link->id}/blocks", ['type' => 'progress']);
+        $resp->assertOk();
+
+        $block = BiolinkBlock::where('link_id', $link->id)->latest('id')->firstOrFail();
+        $this->assertSame([], $block->settings['items'] ?? null,
+            'pre-condition: the seeded block must carry the explicit empty items array');
+
+        $public = $this->visitPublic($link->alias);
+        $public->assertOk();
+        $public->assertDontSee('Goal one');
+        $public->assertDontSee('Goal two');
+    }
+
+    // ── Menu (array-shaped sections of dishes) ──────────────────────
+    //
+    // common/blocks/menu.blade.php normalises `$s['sections']`/`$s['items']`
+    // into sections; an explicitly-empty sections array renders the empty
+    // state ("No menu items yet") and zero sample dishes.
+
+    public function test_menu_with_explicitly_empty_sections_renders_no_sample_dishes(): void
+    {
+        $owner = $this->owner();
+        $link  = $this->biolink($owner);
+
+        $this->block($link, 'menu', [
+            'sections' => [],
+        ]);
+
+        $resp = $this->visitPublic($link->alias);
+        $resp->assertOk();
+        $resp->assertDontSee('House focaccia');
+        $resp->assertDontSee('Margherita pizza');
+        $resp->assertSee('No menu items yet');
+    }
+
+    public function test_menu_seeded_via_store_shows_sample_dishes(): void
+    {
+        $owner = $this->owner();
+        $link  = $this->biolink($owner);
+
+        $resp = $this->actingAs($owner)
+            ->withHeaders(['X-Requested-With' => 'XMLHttpRequest'])
+            ->post("/user/links/{$link->id}/blocks", ['type' => 'menu']);
+        $resp->assertOk();
+
+        $public = $this->visitPublic($link->alias);
+        $public->assertOk();
+        $public->assertSee('House focaccia');
+        $public->assertSee('Margherita pizza');
+    }
+
+    public function test_blanked_admin_default_sections_seed_menu_that_renders_blank(): void
+    {
+        BlockDefaults::saveAdminOverrideForType('menu', [
+            'content' => ['sections' => []],
+        ]);
+
+        $owner = $this->owner();
+        $link  = $this->biolink($owner);
+
+        $resp = $this->actingAs($owner)
+            ->withHeaders(['X-Requested-With' => 'XMLHttpRequest'])
+            ->post("/user/links/{$link->id}/blocks", ['type' => 'menu']);
+        $resp->assertOk();
+
+        $block = BiolinkBlock::where('link_id', $link->id)->latest('id')->firstOrFail();
+        $this->assertSame([], $block->settings['sections'] ?? null,
+            'pre-condition: the seeded block must carry the explicit empty sections array');
+
+        $public = $this->visitPublic($link->alias);
+        $public->assertOk();
+        $public->assertDontSee('House focaccia');
+        $public->assertDontSee('Margherita pizza');
+    }
+
+    // ── Menu section (array-shaped dish items) ──────────────────────
+    //
+    // common/blocks/menu-section.blade.php iterates a normalised
+    // `$s['items']`; an explicitly-empty items array must render zero
+    // sample dishes (the section name may still show).
+
+    public function test_menu_section_with_explicitly_empty_items_renders_no_sample_dishes(): void
+    {
+        $owner = $this->owner();
+        $link  = $this->biolink($owner);
+
+        $this->block($link, 'menu_section', [
+            'name'  => 'Mains',
+            'items' => [],
+        ]);
+
+        $resp = $this->visitPublic($link->alias);
+        $resp->assertOk();
+        $resp->assertDontSee('Margherita pizza');
+        $resp->assertDontSee('Cacio e pepe');
+    }
+
+    public function test_menu_section_seeded_via_store_shows_sample_dishes(): void
+    {
+        $owner = $this->owner();
+        $link  = $this->biolink($owner);
+
+        $resp = $this->actingAs($owner)
+            ->withHeaders(['X-Requested-With' => 'XMLHttpRequest'])
+            ->post("/user/links/{$link->id}/blocks", ['type' => 'menu_section']);
+        $resp->assertOk();
+
+        $public = $this->visitPublic($link->alias);
+        $public->assertOk();
+        $public->assertSee('Margherita pizza');
+        $public->assertSee('Cacio e pepe');
+    }
+
+    public function test_blanked_admin_default_items_seed_menu_section_that_renders_blank(): void
+    {
+        BlockDefaults::saveAdminOverrideForType('menu_section', [
+            'content' => ['items' => []],
+        ]);
+
+        $owner = $this->owner();
+        $link  = $this->biolink($owner);
+
+        $resp = $this->actingAs($owner)
+            ->withHeaders(['X-Requested-With' => 'XMLHttpRequest'])
+            ->post("/user/links/{$link->id}/blocks", ['type' => 'menu_section']);
+        $resp->assertOk();
+
+        $block = BiolinkBlock::where('link_id', $link->id)->latest('id')->firstOrFail();
+        $this->assertSame([], $block->settings['items'] ?? null,
+            'pre-condition: the seeded block must carry the explicit empty items array');
+
+        $public = $this->visitPublic($link->alias);
+        $public->assertOk();
+        $public->assertDontSee('Margherita pizza');
+        $public->assertDontSee('Cacio e pepe');
+    }
+
+    // ── Event list (array-shaped events) ────────────────────────────
+    //
+    // common/blocks/event-list.blade.php falls back through
+    // `$s['events']`/`$s['items']`; an explicitly-empty events array
+    // renders the empty state ("No events yet") and zero sample events.
+
+    public function test_event_list_with_explicitly_empty_events_renders_no_sample_events(): void
+    {
+        $owner = $this->owner();
+        $link  = $this->biolink($owner);
+
+        $this->block($link, 'event_list', [
+            'events' => [],
+        ]);
+
+        $resp = $this->visitPublic($link->alias);
+        $resp->assertOk();
+        $resp->assertDontSee('Live Q&amp;A on YouTube', false);
+        $resp->assertDontSee('Pop-up workshop');
+        $resp->assertSee('No events yet');
+    }
+
+    public function test_event_list_seeded_via_store_shows_sample_events(): void
+    {
+        $owner = $this->owner();
+        $link  = $this->biolink($owner);
+
+        $resp = $this->actingAs($owner)
+            ->withHeaders(['X-Requested-With' => 'XMLHttpRequest'])
+            ->post("/user/links/{$link->id}/blocks", ['type' => 'event_list']);
+        $resp->assertOk();
+
+        $public = $this->visitPublic($link->alias);
+        $public->assertOk();
+        // Event titles survive every layout branch of the renderer.
+        $public->assertSee('Live Q&A on YouTube');
+        $public->assertSee('Pop-up workshop');
+    }
+
+    public function test_blanked_admin_default_events_seed_event_list_that_renders_blank(): void
+    {
+        BlockDefaults::saveAdminOverrideForType('event_list', [
+            'content' => ['events' => []],
+        ]);
+
+        $owner = $this->owner();
+        $link  = $this->biolink($owner);
+
+        $resp = $this->actingAs($owner)
+            ->withHeaders(['X-Requested-With' => 'XMLHttpRequest'])
+            ->post("/user/links/{$link->id}/blocks", ['type' => 'event_list']);
+        $resp->assertOk();
+
+        $block = BiolinkBlock::where('link_id', $link->id)->latest('id')->firstOrFail();
+        $this->assertSame([], $block->settings['events'] ?? null,
+            'pre-condition: the seeded block must carry the explicit empty events array');
+
+        $public = $this->visitPublic($link->alias);
+        $public->assertOk();
+        $public->assertDontSee('Live Q&amp;A on YouTube', false);
+        $public->assertDontSee('Pop-up workshop');
+    }
+
     // ── Full pipeline: blanked admin default → seeded block → render ──
 
     public function test_blanked_admin_default_seeds_block_that_renders_blank_on_public_page(): void
