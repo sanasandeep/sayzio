@@ -274,17 +274,6 @@ class ExternalValueGuides
                 'docs_url' => 'https://www.twilio.com/docs/iam/api',
                 'docs_label' => 'Twilio Account API documentation',
             ],
-            'integrations.sms.msg91' => [
-                'title' => 'Where do I find my MSG91 credentials?',
-                'steps' => [
-                    'Sign in to your <strong>MSG91</strong> dashboard.',
-                    'Open <em>API → Auth Key</em> (or Settings → API) and copy your <strong>Auth key</strong>.',
-                    'Under <em>SMS → Sender ID</em>, copy an approved 6-character <strong>Sender ID</strong>.',
-                    'Choose the <strong>Route</strong> that matches your approved SMS template (Promotional or Transactional).',
-                ],
-                'docs_url' => 'https://docs.msg91.com/',
-                'docs_label' => 'MSG91 API documentation',
-            ],
             'integrations.sms.plivo' => [
                 'title' => 'Where do I find my Plivo credentials?',
                 'steps' => [

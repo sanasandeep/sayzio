@@ -86,14 +86,6 @@ class IntegrationConfigRegistry
                         ['key' => 'from_number',  'label' => 'From number', 'type' => 'text',     'required' => true, 'group' => 'meta',        'placeholder' => '+15551234567'],
                     ],
                 ],
-                'msg91' => [
-                    'label' => 'MSG91', 'icon' => 'fa-mobile-alt', 'color' => '#3b82f6',
-                    'fields' => [
-                        ['key' => 'auth_key',  'label' => 'Auth key', 'type' => 'password', 'required' => true, 'group' => 'credentials'],
-                        ['key' => 'sender_id', 'label' => 'Sender ID', 'type' => 'text',    'required' => true, 'group' => 'meta', 'help' => '6-character alpha sender ID.'],
-                        ['key' => 'route',     'label' => 'Route',    'type' => 'select',   'required' => false, 'group' => 'meta', 'options' => ['1' => 'Promotional', '4' => 'Transactional']],
-                    ],
-                ],
                 'plivo' => [
                     'label' => 'Plivo', 'icon' => 'fa-comment-dots', 'color' => '#0085ff',
                     'fields' => [

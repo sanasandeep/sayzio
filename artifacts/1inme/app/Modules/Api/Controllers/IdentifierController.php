@@ -91,7 +91,7 @@ class IdentifierController extends Controller
             if ($kind === 'email') {
                 $otp->sendEmail($value, $code);
             } else {
-                $otp->sendSms($value, $code);
+                $otp->sendWhatsApp($value, $code);
             }
         } catch (\Throwable $e) {
             Log::warning('linked identifier OTP send failed (api): ' . $e->getMessage());

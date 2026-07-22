@@ -226,7 +226,7 @@ class OtpController extends Controller
         try {
             $data['type'] === 'email'
                 ? $otp->sendEmail($data['identifier'], $code)
-                : $otp->sendSms($data['identifier'], $code);
+                : $otp->sendWhatsApp($data['identifier'], $code);
         } catch (\Throwable $e) {
             \Log::warning('OTP send (register) failed: ' . $e->getMessage());
         }

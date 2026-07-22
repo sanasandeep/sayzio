@@ -128,13 +128,6 @@ class OtpService
         }
     }
 
-    public function sendSms(string $mobile, string $code): void
-    {
-        // Legacy SMS stub kept for backwards-compatibility. Mobile login is
-        // now WhatsApp-only; route phone OTP through sendWhatsApp() instead.
-        $this->sendWhatsApp($mobile, $code);
-    }
-
     /**
      * Deliver a code over WhatsApp via the Meta WhatsApp Cloud API.
      *

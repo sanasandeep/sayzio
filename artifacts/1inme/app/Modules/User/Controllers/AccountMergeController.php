@@ -48,7 +48,7 @@ class AccountMergeController extends Controller
         $otp = new OtpService();
         $code = $otp->generate($value, $otpType, 'login', 'web');
         try {
-            if ($kind === 'email') $otp->sendEmail($value, $code); else $otp->sendSms($value, $code);
+            if ($kind === 'email') $otp->sendEmail($value, $code); else $otp->sendWhatsApp($value, $code);
         } catch (\Throwable $e) {
             \Log::warning('merge challenge OTP send failed: ' . $e->getMessage());
         }
