@@ -1961,7 +1961,7 @@ isValidation = true
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "cd artifacts/1inme && TEST_LOCAL_MODE=artisan bash scripts/test-local.sh --filter='AdminBlockDefaultsCopyToTest|BlockDefaultsPreviewTest'"
+args = "cd artifacts/1inme && TEST_LOCAL_MODE=artisan bash scripts/test-local.sh --filter='AdminBlockDefaultsCopyToTest|BlockDefaultsPreviewTest|PublicPageBlankContentRenderTest'"
 
 [[workflows.workflow]]
 name = "blank-content-fallbacks"
