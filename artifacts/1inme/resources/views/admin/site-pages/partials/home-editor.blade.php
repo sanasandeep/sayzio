@@ -148,7 +148,7 @@
                     <div class="relative flex items-start gap-2.5">
                         <div class="w-8 h-8 shrink-0 rounded-lg flex items-center justify-center"
                              :style="'background:' + (lt.color || '#3d6bff') + '; box-shadow:0 8px 18px -8px ' + (lt.color || '#3d6bff') + ';'">
-                            <i :class="'fas ' + (lt.icon || 'fa-link') + ' text-white text-xs' ak-strong"></i>
+                            <i :class="'fas ' + (lt.icon || 'fa-link') + ' text-white text-xs'"></i>
                         </div>
                         <div class="min-w-0 pt-0.5">
                             <div class="text-[12px] font-bold text-white leading-snug truncate ak-strong" x-text="lt.name || 'Untitled type'"></div>
@@ -171,7 +171,7 @@
                         <div class="relative overflow-hidden bg-white/5 border border-white/10 rounded-lg px-2 py-1.5 flex items-center gap-1.5 min-w-0">
                             <div class="w-5 h-5 shrink-0 rounded flex items-center justify-center"
                                  :style="'background:' + (lt.color || '#3d6bff')">
-                                <i :class="'fas ' + (lt.icon || 'fa-link') + ' text-white text-[8px]' ak-strong"></i>
+                                <i :class="'fas ' + (lt.icon || 'fa-link') + ' text-white text-[8px]'"></i>
                             </div>
                             <span class="text-[10px] font-semibold text-white/80 truncate ak-strong" x-text="lt.name || 'Untitled type'"></span>
                             <span x-show="lt.new" class="shrink-0 inline-flex items-center text-[6px] font-bold uppercase tracking-wider px-1 py-px rounded-full"

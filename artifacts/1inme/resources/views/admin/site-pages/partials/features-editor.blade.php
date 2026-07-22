@@ -71,7 +71,7 @@
                     </div>
                     <div class="sm:col-span-1 flex items-end">
                         <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500/30 to-fuchsia-500/20 border border-blue-400/30 flex items-center justify-center">
-                            <i :class="'fas ' + (cat.icon || 'fa-circle') + ' text-blue-300 text-lg' ak-blue"></i>
+                            <i :class="'fas ' + (cat.icon || 'fa-circle') + ' text-blue-300 text-lg ak-blue'"></i>
                         </div>
                     </div>
                 </div>

@@ -221,7 +221,7 @@
                                         'sent'    => 'bg-emerald-500/15 text-emerald-200',
                                         'sending' => 'bg-amber-500/15 text-amber-200',
                                         'failed'  => 'bg-red-500/15 text-red-200',
-                                        default   => 'bg-white/5 text-white/60',
+                                        default   => 'bg-white/5 text-white/60 ak-muted',
                                     };
                                 @endphp
                                 <span class="px-2 py-0.5 rounded-full {{ $statusClass }}">{{ $issue->status }}</span>

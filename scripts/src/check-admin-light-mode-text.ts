@@ -75,6 +75,11 @@ export function stripBladeComments(src: string): string {
   return src.replace(/\{\{--[\s\S]*?--\}\}/g, (m) => m.replace(/[^\n]/g, " "));
 }
 
+/** Blank a region while preserving newlines so line numbers stay stable. */
+function blank(s: string): string {
+  return s.replace(/[^\n]/g, " ");
+}
+
 function lineOf(src: string, index: number): number {
   let line = 1;
   for (let i = 0; i < index && i < src.length; i++) if (src[i] === "\n") line++;
@@ -88,7 +93,7 @@ function lineOf(src: string, index: number): number {
 export function scanSource(fileRel: string, rawSrc: string): Violation[] {
   const src = stripBladeComments(rawSrc);
   const out: Violation[] = [];
-  const attrRe = /\bclass\s*=\s*("([^"]*)"|'([^']*)')/g;
+  const attrRe = /(?<![:\w-])class\s*=\s*("([^"]*)"|'([^']*)')/g;
   let m: RegExpExecArray | null;
   while ((m = attrRe.exec(src))) {
     const value = m[2] ?? m[3] ?? "";
@@ -138,6 +143,78 @@ export function scanSource(fileRel: string, rawSrc: string): Violation[] {
       }
     }
   }
+
+  const pushStringViolations = (str: string, absStart: number, extraExempt = false) => {
+    if (AK_RE.test(str) || SOLID_SURFACE_RE.test(str) || extraExempt) return;
+    let t: RegExpExecArray | null;
+    DARK_TOKEN_RE.lastIndex = 0;
+    while ((t = DARK_TOKEN_RE.exec(str))) {
+      out.push({
+        file: fileRel,
+        line: lineOf(src, absStart),
+        token: t[0],
+        context: str.trim().slice(0, 120),
+      });
+    }
+  };
+
+  // Alpine dynamic class bindings (`:class` / `x-bind:class`): each quoted
+  // string carrying a dark token needs ak-* (or a solid-surface signal) in
+  // the SAME string — unless the element's STATIC class already carries
+  // ak-*/solid (the shared helper re-themes the whole element).
+  const bindRe = /(?:x-bind)?:class\s*=\s*("([^"]*)"|'([^']*)')/g;
+  let b: RegExpExecArray | null;
+  while ((b = bindRe.exec(src))) {
+    const value = b[2] ?? b[3] ?? "";
+    const valueStart = b.index + b[0].indexOf(b[2] !== undefined ? '"' : "'") + 1;
+    // Approximate the enclosing tag to honor a static ak-*/solid class.
+    const tagStart = src.lastIndexOf("<", b.index);
+    const tagEnd = src.indexOf(">", b.index);
+    const tag = tagStart >= 0 && tagEnd > tagStart ? src.slice(tagStart, tagEnd) : "";
+    const staticClass = /(?<![:\w-])class\s*=\s*("[^"]*"|'[^']*')/.exec(tag)?.[1] ?? "";
+    // A bound `:style` painting a background means the element sits on a
+    // dynamically-colored surface (icon tiles) — white text is correct there.
+    // Checked on the tag itself AND on the immediately-enclosing markup window
+    // (the tile pattern puts :style on the parent div, the icon inside it).
+    const styleBgRe = /:style\s*=\s*("[^"]*background[^"]*"|'[^']*background[^']*')/;
+    const parentWindow = tagStart >= 0 ? src.slice(Math.max(0, tagStart - 400), tagStart) : "";
+    const dynamicBg = styleBgRe.test(tag) || styleBgRe.test(parentWindow);
+    const tagExempt = AK_RE.test(staticClass) || SOLID_SURFACE_RE.test(staticClass) || dynamicBg;
+    const strRe = /'([^']*)'|"([^"]*)"/g;
+    let s: RegExpExecArray | null;
+    while ((s = strRe.exec(value))) {
+      pushStringViolations(s[1] ?? s[2] ?? "", valueStart + s.index, tagExempt);
+    }
+  }
+
+  // Quoted strings on the right side of `=>` inside @php blocks — this is
+  // where match-arm class strings and array'd class fragments live.
+  const phpBlockRe = /@php\b([\s\S]*?)@endphp/g;
+  let p: RegExpExecArray | null;
+  const phpRanges: Array<[number, number]> = [];
+  while ((p = phpBlockRe.exec(src))) {
+    phpRanges.push([p.index, p.index + p[0].length]);
+    const body = p[1];
+    const bodyStart = p.index + p[0].indexOf(body);
+    const armRe = /=>\s*('([^']*)'|"([^"]*)")/g;
+    let a: RegExpExecArray | null;
+    while ((a = armRe.exec(body))) {
+      const str = a[2] ?? a[3] ?? "";
+      pushStringViolations(str, bodyStart + a.index + a[0].indexOf(a[1]));
+    }
+  }
+
+  // `'inputClass' => '…'` partial args outside @php blocks (e.g. @include
+  // argument arrays) — the partial splices the string straight into class="".
+  const inputClassRe = /['"]inputClass['"]\s*=>\s*('([^']*)'|"([^"]*)")/g;
+  let ic: RegExpExecArray | null;
+  while ((ic = inputClassRe.exec(src))) {
+    const inPhp = phpRanges.some(([a2, z]) => ic!.index >= a2 && ic!.index < z);
+    if (inPhp) continue; // already covered by the @php arm scan
+    const str = ic[2] ?? ic[3] ?? "";
+    pushStringViolations(str, ic.index + ic[0].indexOf(ic[1]));
+  }
+
   return out;
 }
 

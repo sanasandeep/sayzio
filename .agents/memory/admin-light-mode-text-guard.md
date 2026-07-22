@@ -11,3 +11,5 @@ The `admin-light-mode-text` validation workflow (`check:admin-light-mode-text`) 
 - New admin blades (not in `scripts/src/data/admin-light-mode-baseline.json`) must be clean; baselined files may only shrink. After fixing files, re-tighten with `-- --update-baseline` (note the double `--` through pnpm).
 - Auto-exempt: white text with a solid `bg-*-500..950` / `bg-gradient-to-*` / `bg-black` surface in the same static class string; prefixed variants (`hover:`, `dark:`) ignored.
 - ak-* in the STATIC part clears the whole element; inside a `{{ ternary }}` each quoted branch needs its own ak-*/solid signal.
+- Also scans dynamic surfaces: quoted strings in `:class`/`x-bind:class` (per-string ak/solid, exempt if the tag's static class has ak/solid OR the tag/parent window paints a `:style` background — dynamic icon tiles), `=>` arm strings in `@php` blocks (match arms), and `'inputClass' =>` partial args.
+- Gotcha: an ak-* token dropped OUTSIDE the quoted string inside a `:class` expression (`'…' ak-blue"`) is an Alpine JS syntax error that silently breaks the binding — pair inside the string or on the static class attr.

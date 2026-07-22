@@ -45,6 +45,62 @@ describe("scanSource — flags un-paired dark-only text", () => {
   });
 });
 
+describe("scanSource — JS-built / dynamic class surfaces", () => {
+  it("flags a dark token inside an Alpine :class string lacking ak-*", () => {
+    expect(tokens(`<span :class="open ? 'text-white/50' : 'text-white/80 ak-strong'">x</span>`)).toEqual([
+      "text-white/50",
+    ]);
+  });
+
+  it("flags a dark token inside an x-bind:class object key", () => {
+    expect(tokens(`<i x-bind:class="{'text-amber-300': warn}"></i>`)).toEqual(["text-amber-300"]);
+  });
+
+  it("accepts :class strings that carry their own ak-* helper", () => {
+    expect(tokens(`<span :class="ok ? 'text-emerald-300 ak-green' : 'ak-muted text-white/50'">x</span>`)).toEqual([]);
+  });
+
+  it("accepts a :class dark token when the element's STATIC class has ak-*", () => {
+    expect(tokens(`<span class="text-xs ak-muted" :class="open ? 'text-white/50' : ''">x</span>`)).toEqual([]);
+  });
+
+  it("accepts white text in :class when the tag paints a dynamic :style background", () => {
+    expect(
+      tokens(`<i :style="'background:' + c" :class="'fas ' + icon + ' text-white text-xs'"></i>`),
+    ).toEqual([]);
+  });
+
+  it("accepts white text in :class when the enclosing parent tile paints a :style background", () => {
+    const src = `<div class="w-8 h-8" :style="'background:' + (lt.color || '#3d6bff')">\n<i :class="'fas ' + lt.icon + ' text-white text-xs'"></i></div>`;
+    expect(tokens(src)).toEqual([]);
+  });
+
+  it("flags a dark token in an @php match arm lacking ak-*", () => {
+    const src = `@php $c = match($s) { 'ok' => 'text-emerald-300 ak-green', default => 'text-white/60' }; @endphp`;
+    expect(tokens(src)).toEqual(["text-white/60"]);
+  });
+
+  it("accepts @php match arms that each carry ak-* or a solid surface", () => {
+    const src = `@php $c = match($s) { 'ok' => 'bg-emerald-600 text-white', default => 'text-white/60 ak-muted' }; @endphp`;
+    expect(tokens(src)).toEqual([]);
+  });
+
+  it("flags a dark token in an inputClass partial arg lacking ak-*", () => {
+    const src = `@include('admin.partials.password-field', ['inputClass' => 'w-full text-sm text-white'])`;
+    expect(tokens(src)).toEqual(["text-white"]);
+  });
+
+  it("accepts an inputClass partial arg paired with ak-*", () => {
+    const src = `@include('admin.partials.password-field', ['inputClass' => 'w-full text-sm text-white ak-strong'])`;
+    expect(tokens(src)).toEqual([]);
+  });
+
+  it("does not double-count inputClass inside an @php block", () => {
+    const src = `@php $f = ['inputClass' => 'text-white']; @endphp`;
+    expect(tokens(src)).toEqual(["text-white"]);
+  });
+});
+
 describe("scanSource — stays quiet on legitimate cases", () => {
   it("accepts a dark token paired with an ak-* helper", () => {
     expect(tokens('<span class="text-white/50 ak-muted">x</span>')).toEqual([]);

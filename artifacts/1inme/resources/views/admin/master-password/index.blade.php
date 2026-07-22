@@ -8,7 +8,7 @@
             'green' => 'bg-emerald-500/10 border-emerald-500/20 text-emerald-300 admin-mp-tone-green',
             'amber' => 'bg-amber-500/10 border-amber-500/20 text-amber-300 admin-mp-tone-amber',
             'red'   => 'bg-red-500/10 border-red-500/20 text-red-300 admin-mp-tone-red',
-            default => 'bg-white/5 border-white/10 text-white/50',
+            default => 'bg-white/5 border-white/10 text-white/50 ak-muted',
         };
     };
 @endphp
@@ -90,7 +90,7 @@ html.light-mode .admin-mp-tone-red      { color: #991b1b; }
                     'name' => 'password',
                     'placeholder' => $hasPassword ? 'Type a new password to replace' : 'At least 8 characters',
                     'autocomplete' => 'new-password',
-                    'inputClass' => 'w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-sm text-white',
+                    'inputClass' => 'w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-sm text-white ak-strong',
                 ])
                 <p class="text-[11px] text-white/30 mt-1 ak-note">
                     Stored as a one-way hash, encrypted at rest with the application key. It is never displayed back.

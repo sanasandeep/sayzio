@@ -21,11 +21,11 @@
 
 <div class="flex items-center gap-1 mb-4 p-1 rounded-xl bg-white/5 border border-white/5 w-max">
     <a href="{{ route('admin.templates.index', ['tab' => 'page']) }}"
-       class="px-4 py-1.5 text-xs font-semibold rounded-lg transition {{ $tab === 'page' ? 'bg-blue-600 text-white' : 'text-white/50 hover:text-white' }}">
+       class="px-4 py-1.5 text-xs font-semibold rounded-lg transition {{ $tab === 'page' ? 'bg-blue-600 text-white' : 'text-white/50 hover:text-white ak-muted' }}">
         Page Templates ({{ $pageTemplates->count() }})
     </a>
     <a href="{{ route('admin.templates.index', ['tab' => 'card']) }}"
-       class="px-4 py-1.5 text-xs font-semibold rounded-lg transition {{ $tab === 'card' ? 'bg-blue-600 text-white' : 'text-white/50 hover:text-white' }}">
+       class="px-4 py-1.5 text-xs font-semibold rounded-lg transition {{ $tab === 'card' ? 'bg-blue-600 text-white' : 'text-white/50 hover:text-white ak-muted' }}">
         Card Templates ({{ $cardTemplates->count() }})
     </a>
 </div>
@@ -90,12 +90,12 @@
 <div class="flex items-center gap-2 mb-4 flex-wrap">
     <div class="flex items-center gap-1 p-1 rounded-xl bg-white/5 border border-white/5 w-max">
         <button type="button" @click="active = 'all'"
-                :class="active === 'all' ? 'bg-blue-600 text-white' : 'text-white/50 hover:text-white'"
+                :class="active === 'all' ? 'bg-blue-600 text-white' : 'text-white/50 hover:text-white ak-muted'"
                 class="px-3 py-1.5 text-xs font-semibold rounded-lg transition">
             All ({{ $rows->count() }})
         </button>
         <button type="button" @click="active = 'yes'"
-                :class="active === 'yes' ? 'bg-emerald-600 text-white' : 'text-white/50 hover:text-white'"
+                :class="active === 'yes' ? 'bg-emerald-600 text-white' : 'text-white/50 hover:text-white ak-muted'"
                 class="px-3 py-1.5 text-xs font-semibold rounded-lg transition">
             <i class="fas fa-eye mr-1 text-[10px]"></i>Active ({{ $activeCount }})
         </button>
@@ -117,18 +117,18 @@
     <div class="flex items-center gap-2 mb-4 flex-wrap">
         <div class="flex items-center gap-1 p-1 rounded-xl bg-white/5 border border-white/5 w-max">
             <button type="button" @click="customized = 'all'"
-                    :class="customized === 'all' ? 'bg-blue-600 text-white' : 'text-white/50 hover:text-white'"
+                    :class="customized === 'all' ? 'bg-blue-600 text-white' : 'text-white/50 hover:text-white ak-muted'"
                     class="px-3 py-1.5 text-xs font-semibold rounded-lg transition">
                 All ({{ $rows->count() }})
             </button>
             <button type="button" @click="customized = 'yes'"
-                    :class="customized === 'yes' ? 'bg-blue-600 text-white' : 'text-white/50 hover:text-white'"
+                    :class="customized === 'yes' ? 'bg-blue-600 text-white' : 'text-white/50 hover:text-white ak-muted'"
                     class="px-3 py-1.5 text-xs font-semibold rounded-lg transition"
                     title="Templates an admin has saved at least once since they were created">
                 <i class="fas fa-pen-nib mr-1 text-[10px]"></i>Customized ({{ $customizedCount }})
             </button>
             <button type="button" @click="customized = 'no'"
-                    :class="customized === 'no' ? 'bg-blue-600 text-white' : 'text-white/50 hover:text-white'"
+                    :class="customized === 'no' ? 'bg-blue-600 text-white' : 'text-white/50 hover:text-white ak-muted'"
                     class="px-3 py-1.5 text-xs font-semibold rounded-lg transition"
                     title="Untouched seed defaults, never edited in the admin panel">
                 <i class="fas fa-seedling mr-1 text-[10px]"></i>Untouched ({{ $untouchedCount }})
@@ -136,13 +136,13 @@
         </div>
         <div class="flex items-center gap-1 p-1 rounded-xl bg-white/5 border border-white/5 w-max">
             <button type="button" @click="outdated = 'all'"
-                    :class="outdated === 'all' ? 'bg-blue-600 text-white' : 'text-white/50 hover:text-white'"
+                    :class="outdated === 'all' ? 'bg-blue-600 text-white' : 'text-white/50 hover:text-white ak-muted'"
                     class="px-3 py-1.5 text-xs font-semibold rounded-lg transition"
                     title="Show templates regardless of blueprint version">
                 Any blueprint
             </button>
             <button type="button" @click="outdated = 'yes'"
-                    :class="outdated === 'yes' ? 'bg-amber-500 text-white' : 'text-white/50 hover:text-white'"
+                    :class="outdated === 'yes' ? 'bg-amber-500 text-white' : 'text-white/50 hover:text-white ak-muted'"
                     class="px-3 py-1.5 text-xs font-semibold rounded-lg transition"
                     title="Persona templates whose stored blueprint is older than the seeder's current SEED_VERSION ({{ $currentSeedVersion }}). Untouched ones get auto-refreshed on the next deploy; admin-edited ones stay until you reset them.">
                 <i class="fas fa-triangle-exclamation mr-1 text-[10px]"></i>Outdated design ({{ $outdatedCount }})
