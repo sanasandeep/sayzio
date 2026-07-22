@@ -117,5 +117,79 @@
             </ul>
         </div>
     </div>
+
+    {{-- ---- Password card (Task #5619) ---- --}}
+    <div class="mt-6 rounded-lg border p-6 max-w-2xl" style="border-color: var(--border-strong); background: var(--bg-card);" id="password">
+        <div class="flex items-center gap-3 mb-4">
+            <div class="w-10 h-10 rounded-full flex items-center justify-center" style="background: rgba(59,130,246,0.15);">
+                <i class="fas fa-key" style="color: #3b82f6;"></i>
+            </div>
+            <div>
+                <h2 class="font-bold" style="color: var(--text-primary);">Password</h2>
+                <p class="text-xs opacity-70">
+                    @if($hasChosenPassword)
+                        Change the password you use to sign in. Every other device will be signed out.
+                    @else
+                        Your account signs in with one-time codes. Set a password to also enable password sign-in.
+                    @endif
+                </p>
+            </div>
+        </div>
+
+        @if(session('password_code_sent'))
+            <div class="mb-4 p-3 rounded-lg text-sm font-medium" style="background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.25); color: #10b981;">
+                {{ session('password_code_sent') }}
+            </div>
+        @endif
+        @if($errors->hasAny(['current_password', 'password', 'code']))
+            <div class="mb-4 p-3 rounded-lg text-sm font-medium" style="background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.25); color: #ef4444;">
+                {{ $errors->first('current_password') ?: ($errors->first('password') ?: $errors->first('code')) }}
+            </div>
+        @endif
+
+        @if(!$hasChosenPassword && !$passwordCodeChannel)
+            <p class="text-sm opacity-70" style="color: var(--text-primary);">
+                We can't verify a code because your account has no email or WhatsApp number on file. Add one first from your profile settings.
+            </p>
+        @else
+            @if(!$hasChosenPassword)
+                <form method="POST" action="{{ route('user.account.password.code') }}" class="mb-4">
+                    @csrf
+                    <button class="px-3 py-2 rounded border text-sm font-semibold" style="border-color: var(--border-strong); color: var(--text-primary);">
+                        <i class="fas fa-paper-plane mr-1"></i>
+                        Send code to my {{ $passwordCodeChannel === 'email' ? 'email' : 'WhatsApp' }}
+                    </button>
+                </form>
+            @endif
+
+            <form method="POST" action="{{ route('user.account.password.update') }}" class="space-y-4 max-w-md">
+                @csrf
+                @if($hasChosenPassword)
+                    <div>
+                        <label class="block text-xs font-semibold uppercase tracking-wider mb-1.5 opacity-70" style="color: var(--text-primary);">Current password</label>
+                        @include('common.partials.password-field', ['name' => 'current_password', 'placeholder' => 'Your current password', 'autocomplete' => 'current-password', 'required' => true])
+                    </div>
+                @else
+                    <div>
+                        <label class="block text-xs font-semibold uppercase tracking-wider mb-1.5 opacity-70" style="color: var(--text-primary);">Verification code</label>
+                        <input type="text" name="code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" required placeholder="6-digit code"
+                               class="w-full rounded-lg px-3 py-2.5 text-sm"
+                               style="background: var(--bg-glass-light); border: 1px solid var(--border-strong); color: var(--text-primary);">
+                    </div>
+                @endif
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider mb-1.5 opacity-70" style="color: var(--text-primary);">New password</label>
+                    @include('common.partials.password-field', ['name' => 'password', 'placeholder' => 'At least 8 characters', 'autocomplete' => 'new-password', 'required' => true])
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider mb-1.5 opacity-70" style="color: var(--text-primary);">Confirm new password</label>
+                    @include('common.partials.password-field', ['name' => 'password_confirmation', 'placeholder' => 'Repeat the password', 'autocomplete' => 'new-password', 'required' => true])
+                </div>
+                <button type="submit" class="px-4 py-2.5 rounded-lg text-sm font-semibold bg-blue-600 text-white hover:bg-blue-700">
+                    {{ $hasChosenPassword ? 'Change password' : 'Set password' }}
+                </button>
+            </form>
+        @endif
+    </div>
 </div>
 @endsection

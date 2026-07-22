@@ -109,6 +109,9 @@
                                 @include('common.partials.password-field', ['name' => 'password', 'placeholder' => 'Your password', 'autocomplete' => 'current-password', 'required' => true])
                                 <p class="mt-1 text-xs text-red-400" data-err="password" @if(!$errors->has('password')) hidden @endif>{{ $errors->first('password') }}</p>
                             </div>
+                            <div class="text-right -mt-2">
+                                <a href="{{ route('user.password.request') }}" class="text-xs font-medium text-blue-500 hover:underline">Forgot password?</a>
+                            </div>
                             <button type="submit" class="btn-primary w-full justify-center py-2.5 text-sm">
                                 <i class="fas fa-arrow-right-to-bracket text-xs"></i> Sign In
                             </button>

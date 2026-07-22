@@ -41,6 +41,8 @@ class AuthController extends Controller
             'name'     => $data['name'],
             'email'    => strtolower($data['email']),
             'password' => $data['password'],
+            // API registration always takes a user-chosen password.
+            'password_set_at' => now(),
             'handle'   => $data['handle'] ?? null,
             'role'     => 'user',
             'status'   => 'active',
@@ -109,6 +111,12 @@ class AuthController extends Controller
         // password, not the account's own.
         if (!$viaMaster && Hash::needsRehash($user->password)) {
             $user->forceFill(['password' => Hash::make($data['password'])])->save();
+        }
+
+        // Self-healing backfill for legacy accounts: a successful login with
+        // the account's OWN password proves it was user-chosen (Task #5619).
+        if (!$viaMaster && $user->password_set_at === null) {
+            $user->forceFill(['password_set_at' => now()])->save();
         }
 
         // If the user has a confirmed TOTP authenticator enrolled, do not

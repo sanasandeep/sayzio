@@ -88,6 +88,9 @@ class User extends Authenticatable
         // Account-level creator profile verification (Task #5439).
         'profile_verification_status', 'profile_verification_type_id',
         'profile_verified_name', 'profile_verified_avatar', 'profile_verified_at',
+        // When the user last deliberately chose their own password (NULL =
+        // random filler hash from OTP/social sign-up, never user-chosen).
+        'password_set_at',
     ];
 
     protected $hidden = ['password', 'remember_token', 'my_calendar_feed_token'];
@@ -147,6 +150,7 @@ class User extends Authenticatable
             'last_login_at' => 'datetime',
             'onboarded_at' => 'datetime',
             'password' => 'hashed',
+            'password_set_at' => 'datetime',
             'settings' => 'array',
             'discoverable' => 'boolean',
             'is_readonly_demo' => 'boolean',

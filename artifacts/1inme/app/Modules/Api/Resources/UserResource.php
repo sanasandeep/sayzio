@@ -42,6 +42,10 @@ class UserResource
                 'role'              => $u->role,
                 'status'            => $u->status,
                 'email_verified_at' => optional($u->email_verified_at)->toIso8601String(),
+                // When the user last deliberately chose a password (null =
+                // OTP/social filler hash only). Drives the mobile change- vs
+                // set-first-password variant (Task #5619).
+                'password_set_at'   => optional($u->password_set_at)->toIso8601String(),
                 // Mirrors the web reminder-banner visibility rule: only true
                 // when email is a usable sign-in method (not a mobile-only
                 // login policy), so the mobile nudge never shows for accounts

@@ -587,13 +587,27 @@ export default function AuthLanding() {
 
         <View style={{ height: 12 }} />
         {channel === "email" && loginMethod === "password" ? (
-          <Button
-            label="Sign in"
-            variant="cta"
-            onPress={onLoginWithPw}
-            loading={busy === "pw-login"}
-            disabled={!!busy && busy !== "pw-login"}
-          />
+          <>
+            <Button
+              label="Sign in"
+              variant="cta"
+              onPress={onLoginWithPw}
+              loading={busy === "pw-login"}
+              disabled={!!busy && busy !== "pw-login"}
+            />
+            <Pressable
+              {...WEB_FOCUS_RING_PROPS}
+              onPress={() =>
+                Linking.openURL(`${getBaseUrl()}/user/forgot-password`)
+              }
+              hitSlop={8}
+              style={{ alignItems: "center", paddingTop: 10 }}
+            >
+              <Text style={[styles.methodToggle, { color: colors.primary }]}>
+                Forgot password?
+              </Text>
+            </Pressable>
+          </>
         ) : (
           <Button
             label="Send code"

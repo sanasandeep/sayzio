@@ -54,6 +54,10 @@ class TwoFactorController extends Controller
             'qrSvg'          => $qrSvg,
             'recoveryCodes'  => $request->session()->pull('show_recovery_codes', []),
             'policyCovers'   => $this->policy->userIsCoveredByAnyPolicy($user),
+            // Change-password card (Task #5619): which variant to show and
+            // where the set-first-password code would be delivered.
+            'hasChosenPassword' => app(\App\Modules\User\Services\UserPasswordService::class)->hasChosenPassword($user),
+            'passwordCodeChannel' => !blank($user->email) ? 'email' : (!blank($user->mobile) ? 'mobile' : null),
         ]);
     }
 
