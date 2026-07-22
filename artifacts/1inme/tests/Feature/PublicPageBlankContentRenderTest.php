@@ -160,6 +160,88 @@ class PublicPageBlankContentRenderTest extends TestCase
         $resp->assertSee('Send Tip');
     }
 
+    // ── List blocks (array-shaped content) ─────────────────────────
+    //
+    // The public list renderer (common/blocks/list.blade.php) iterates
+    // `$s['items'] ?? []`; an explicitly-empty items array must render
+    // zero items, while a block seeded through the real store() pipeline
+    // (no items provided) carries the sample items from BlockDefaults.
+
+    public function test_list_with_explicitly_empty_items_renders_no_sample_items(): void
+    {
+        $owner = $this->owner();
+        $link  = $this->biolink($owner);
+
+        $this->block($link, 'list', [
+            'style' => 'clean',
+            'items' => [],
+        ]);
+
+        $resp = $this->visitPublic($link->alias);
+        $resp->assertOk();
+        $resp->assertDontSee('First item');
+        $resp->assertDontSee('replace with your own');
+    }
+
+    public function test_list_numbered_with_explicitly_empty_items_renders_no_sample_items(): void
+    {
+        $owner = $this->owner();
+        $link  = $this->biolink($owner);
+
+        $this->block($link, 'list_numbered', [
+            'style' => 'clean',
+            'items' => [],
+        ]);
+
+        $resp = $this->visitPublic($link->alias);
+        $resp->assertOk();
+        $resp->assertDontSee('First step');
+        $resp->assertDontSee('keep going');
+    }
+
+    public function test_list_seeded_via_store_with_no_items_shows_sample_items(): void
+    {
+        $owner = $this->owner();
+        $link  = $this->biolink($owner);
+
+        // Seed through the real store() pipeline — the missing items key
+        // must fall back to the BlockDefaults sample items.
+        $resp = $this->actingAs($owner)
+            ->withHeaders(['X-Requested-With' => 'XMLHttpRequest'])
+            ->post("/user/links/{$link->id}/blocks", ['type' => 'list']);
+        $resp->assertOk();
+
+        $public = $this->visitPublic($link->alias);
+        $public->assertOk();
+        $public->assertSee('First item');
+        $public->assertSee('replace with your own');
+    }
+
+    public function test_blanked_admin_default_items_seed_list_that_renders_blank(): void
+    {
+        // Admin explicitly blanks the list sample items platform-wide.
+        BlockDefaults::saveAdminOverrideForType('list', [
+            'content' => ['items' => []],
+        ]);
+
+        $owner = $this->owner();
+        $link  = $this->biolink($owner);
+
+        $resp = $this->actingAs($owner)
+            ->withHeaders(['X-Requested-With' => 'XMLHttpRequest'])
+            ->post("/user/links/{$link->id}/blocks", ['type' => 'list']);
+        $resp->assertOk();
+
+        $block = BiolinkBlock::where('link_id', $link->id)->latest('id')->firstOrFail();
+        $this->assertSame([], $block->settings['items'] ?? null,
+            'pre-condition: the seeded block must carry the explicit empty items array');
+
+        $public = $this->visitPublic($link->alias);
+        $public->assertOk();
+        $public->assertDontSee('First item');
+        $public->assertDontSee('replace with your own');
+    }
+
     // ── Full pipeline: blanked admin default → seeded block → render ──
 
     public function test_blanked_admin_default_seeds_block_that_renders_blank_on_public_page(): void
