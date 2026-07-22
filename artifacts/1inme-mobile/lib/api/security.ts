@@ -130,6 +130,24 @@ export async function verifyBackupCode(input: {
   return res.data;
 }
 
+/**
+ * Complete a sign-in that was interrupted by the second factor: trade the
+ * short-lived `challenge_token` (returned alongside `totp_required`) plus a
+ * 6-digit authenticator code for a real session. The backend accepts a
+ * backup code here too — both /auth/2fa endpoints land on the same action.
+ */
+export async function verifyTotpChallenge(input: {
+  challenge_token: string;
+  code: string;
+  device?: string | null;
+}): Promise<{ token: string; user: unknown }> {
+  const res = await apiFetch<{ data: { token: string; user: unknown } }>(
+    "/auth/2fa/challenge/verify",
+    { method: "POST", body: JSON.stringify(input) },
+  );
+  return res.data;
+}
+
 // ── Settings ──────────────────────────────────────────────────────
 export async function getSecuritySettings(): Promise<SecuritySettings> {
   const res = await apiFetch<{ data: { settings: SecuritySettings } }>(

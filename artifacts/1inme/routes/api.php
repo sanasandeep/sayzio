@@ -78,6 +78,14 @@ Route::prefix('v1')->group(function () {
     // Native social sign-in (Apple / Google / etc.)
     Route::post('/auth/social', [SocialAuthController::class, 'exchange'])->middleware('throttle:20,1');
 
+    // Second-factor challenge: trade a short-lived challenge_token (issued
+    // when a login path hits a TOTP-enrolled account) + an authenticator or
+    // backup/recovery code for a real session token. Both paths land on the
+    // same action — the mobile app's backup-code screen predates the
+    // challenge endpoint.
+    Route::post('/auth/2fa/challenge/verify',    [\App\Modules\Api\Controllers\TwoFactorChallengeController::class, 'verify'])->middleware('throttle:twofactor-verify');
+    Route::post('/auth/2fa/backup-codes/verify', [\App\Modules\Api\Controllers\TwoFactorChallengeController::class, 'verify'])->middleware('throttle:twofactor-verify');
+
     // Demo login (non-prod). Mirrors the web "Try as Demo" button.
     Route::post('/auth/demo', [OtpController::class, 'demo'])->middleware('throttle:20,1');
 

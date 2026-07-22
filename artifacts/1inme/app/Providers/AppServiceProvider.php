@@ -605,6 +605,20 @@ class AppServiceProvider extends ServiceProvider
             ];
         });
 
+        // 2FA challenge verification (mobile API). The endpoint has no
+        // `identifier` input, so it needs its own limiter — keyed by a hash
+        // of the challenge_token (per pending sign-in) plus IP. Codes are
+        // 6-digit TOTP / single-use recovery codes, so a tight per-token
+        // budget matters.
+        RateLimiter::for('twofactor-verify', function (Request $request) {
+            $tokenKey = sha1((string) $request->input('challenge_token', ''));
+            $ip       = (string) $request->ip();
+            return [
+                Limit::perMinute(8)->by('2fa-verify:tok:' . $tokenKey),
+                Limit::perMinute(30)->by('2fa-verify:ip:' . $ip),
+            ];
+        });
+
         // Password-credential login (mobile API).
         RateLimiter::for('auth-credentials', function (Request $request) {
             $email = strtolower((string) $request->input('email', ''));

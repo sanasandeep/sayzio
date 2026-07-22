@@ -1903,12 +1903,12 @@ isValidation = true
 name = "eas-apk"
 author = "agent"
 
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "cd artifacts/1inme-mobile && EAS_NO_VCS=1 npx -y eas-cli build --platform android --profile preview --non-interactive --no-wait 2>&1"
-
 [workflows.workflow.metadata]
 isValidation = true
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd artifacts/1inme-mobile && EAS_NO_VCS=1 npx -y eas-cli build --platform android --profile preview --non-interactive --no-wait"
 
 [[workflows.workflow]]
 name = "eas-dialer-apk"

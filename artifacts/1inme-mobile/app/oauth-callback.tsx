@@ -164,6 +164,19 @@ export default function OAuthCallback() {
             setMergeProvider(provider);
             return;
           }
+          // Account has an authenticator app enrolled — carry the
+          // short-lived challenge token to the verify screen, which opens
+          // straight in its authenticator-code step.
+          if (e?.code === "totp_required") {
+            const challenge = e?.details?.challenge_token;
+            if (typeof challenge === "string" && challenge) {
+              router.replace({
+                pathname: "/(auth)/verify",
+                params: { challenge_token: challenge },
+              });
+              return;
+            }
+          }
           if (label) setProviderLabel(label);
           setError(e?.message ?? "Sign-in failed");
         });

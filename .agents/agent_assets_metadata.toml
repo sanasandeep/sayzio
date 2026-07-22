@@ -1223,3 +1223,9 @@ id = "61ehyUuZe0Q4AyaoLRrud"
 uri = "file://exports/sayzio-dialer-apk.zip"
 type = "unspecified"
 title = "Zio Dialer APK (new build, zipped)"
+
+[[outputs]]
+id = "A42eV5oPrgB89ut9QLbeI"
+uri = "file://exports/sayzio-mobile-2fa.zip"
+type = "unspecified"
+title = "Sayzio Mobile APK (with 2FA login)"
