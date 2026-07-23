@@ -379,6 +379,68 @@ test("search endpoint failure renders the inline error, not a broken grid", asyn
   ).toHaveCount(0);
 });
 
+test("image_search_unavailable collapses the whole picker section mid-session", async ({
+  page,
+}) => {
+  test.setTimeout(180_000);
+
+  // The admin removed/disabled the Google CSE keys while the intake page was
+  // open: the server answers 404 JSON with code=image_search_unavailable and
+  // the client must hide the ENTIRE picker section (toggle included), not
+  // just paint an inline error the creator would keep retrying against.
+  await page.route("**/ai-builder/image-search", async (route) => {
+    await route.fulfill({
+      status: 404,
+      contentType: "application/json",
+      body: JSON.stringify({
+        message: "Image search is not available.",
+        code: "image_search_unavailable",
+      }),
+    });
+  });
+
+  await page.goto(`/user/links/${ids.linkId}/ai-builder`, {
+    waitUntil: "domcontentloaded",
+    timeout: 90_000,
+  });
+
+  const toggle = page.getByRole("button", {
+    name: /Search the web for images/i,
+  });
+  await expect(toggle).toBeVisible({ timeout: 30_000 });
+  await toggle.click();
+
+  const queryInput = page.getByPlaceholder("e.g. minimalist fitness logo");
+  await expect(queryInput).toBeVisible();
+  await queryInput.fill("anything at all");
+  const failedResponse = page.waitForResponse(
+    (r) => r.url().includes("/ai-builder/image-search"),
+    { timeout: 30_000 },
+  );
+  await queryInput.locator("xpath=following-sibling::button[1]").click();
+  await failedResponse;
+
+  // The whole section collapses (x-show="searchAvailable" flips false):
+  // toggle, query input, everything — not an inline error left retryable.
+  await expect(toggle).toBeHidden({ timeout: 15_000 });
+  await expect(queryInput).toBeHidden();
+  await expect(
+    page.getByText("Image search is not available."),
+  ).toHaveCount(0);
+  await expect(
+    page.getByText("Search failed. Please try again."),
+  ).toHaveCount(0);
+  await expect(
+    page.getByRole("button", { name: /Add selected/i }),
+  ).toHaveCount(0);
+
+  // Positive anchor: the rest of the intake page is still alive (the
+  // creator can keep uploading their own images).
+  await expect(
+    page.getByText("Photos", { exact: false }).first(),
+  ).toBeVisible();
+});
+
 // Keep this LAST: it temporarily clears the CSE config seeded in beforeAll,
 // then restores it so afterAll's targeted cleanup still applies.
 test("section is hidden entirely when Google CSE is not configured", async ({

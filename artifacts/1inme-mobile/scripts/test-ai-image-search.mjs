@@ -151,6 +151,9 @@ function makeHarness({ results, disclaimer, searchError }) {
     results: "UNTOUCHED",
     disclaimer: "UNTOUCHED",
     selected: "UNTOUCHED",
+    unavailable: "UNTOUCHED",
+    open: "UNTOUCHED",
+    refetches: 0,
     searchCalls: [],
   };
   const scope = {
@@ -164,6 +167,9 @@ function makeHarness({ results, disclaimer, searchError }) {
     setSearchResults: (v) => (state.results = v),
     setSearchDisclaimer: (v) => (state.disclaimer = v),
     setSelectedCandidates: (v) => (state.selected = v),
+    setSearchUnavailable: (v) => (state.unavailable = v),
+    setSearchOpen: (v) => (state.open = v),
+    intakeQ: { refetch: () => (state.refetches += 1) },
     showAlert: (title, message) => state.alerts.push({ title, message }),
   };
   const cfg = runExtractedCall(`(${searchMSrc})`, scope, "searchM config");
@@ -191,6 +197,34 @@ function makeHarness({ results, disclaimer, searchError }) {
     { title: "Search failed", message: "Please try again." },
   ]);
   ok("message-less failure falls back to 'Please try again.'");
+}
+
+{
+  // Mid-session collapse: an error carrying code=image_search_unavailable
+  // (admin removed the Google CSE keys) must collapse the picker — flip
+  // searchUnavailable on, close the section, clear results/selection,
+  // refetch the intake — and must NOT show the retryable "Search failed"
+  // alert (a friendly "unavailable" alert instead).
+  const err = Object.assign(new Error("Image search is not available."), {
+    code: "image_search_unavailable",
+  });
+  const h = makeHarness({ searchError: err });
+  h.cfg.onError(err);
+  assert.equal(h.state.unavailable, true, "setSearchUnavailable(true) must fire");
+  assert.equal(h.state.open, false, "setSearchOpen(false) must fire");
+  assert.deepEqual(h.state.results, [], "stale results cleared");
+  assert.deepEqual(h.state.selected, [], "stale selection cleared");
+  assert.equal(h.state.refetches, 1, "intake refetched for fresh image_search_enabled");
+  assert.equal(h.state.alerts.length, 1, "exactly one alert");
+  assert.notEqual(
+    h.state.alerts[0].title,
+    "Search failed",
+    "must NOT show the retryable 'Search failed' alert",
+  );
+  assert.equal(h.state.alerts[0].title, "Image search unavailable");
+  ok(
+    "image_search_unavailable → picker collapses (unavailable=true, open=false), no 'Search failed' alert",
+  );
 }
 
 {
