@@ -58,7 +58,7 @@
             {{-- Photos --}}
             <div>
                 <label class="block text-sm font-medium text-white/70 mb-1.5">Photos <span class="text-white/30 font-normal">(optional)</span></label>
-                <p class="text-xs text-white/30 mb-2">Upload images for your avatar, gallery, or featured links. Only uploaded photos will be used.</p>
+                <p class="text-xs text-white/30 mb-2">Upload images for your avatar, gallery, or featured links. No uploads? We'll pull images from your links automatically — and if none are found, AI can generate a matching avatar and cover (extra coins, included in the estimate).</p>
 
                 <div class="relative rounded-xl overflow-hidden transition-all"
                      :class="{ 'ring-2 ring-blue-500/60 bg-blue-500/5': dragging, 'bg-white/5': !dragging }"

@@ -19,6 +19,15 @@ class OgMetadataService
     public const MAX_BYTES = 1_000_000;
     public const TIMEOUT_SECONDS = 8;
 
+    /** Cap for downloadImage() — big enough for OG covers, small enough to bound abuse. */
+    public const MAX_IMAGE_BYTES = 5_000_000;
+
+    /** Image MIME types downloadImage() will accept. */
+    public const IMAGE_MIMES = [
+        'image/png', 'image/jpeg', 'image/gif', 'image/webp',
+        'image/x-icon', 'image/vnd.microsoft.icon', 'image/bmp',
+    ];
+
     /**
      * @return array{title:?string, description:?string, image_url:?string, favicon_url:?string}
      * @throws RuntimeException for caller-fixable problems (bad URL, unreachable host, blocked target).
@@ -86,6 +95,79 @@ class OgMetadataService
         }
 
         return $this->extract($html, $finalUrl);
+    }
+
+    /**
+     * SSRF-safe image download for the AI builder's auto-sourcing step.
+     *
+     * Applies the same private-host guard (initial + post-redirect) as
+     * extractFromUrl, caps the payload at MAX_IMAGE_BYTES, and verifies
+     * the bytes decode as a real raster image of an accepted MIME type.
+     * Best-effort by design: any failure returns null, never throws.
+     *
+     * @return array{bytes:string, mime:string}|null
+     */
+    public function downloadImage(string $url): ?array
+    {
+        $url = trim($url);
+        if ($url === '' || mb_strlen($url) > 2048 || !preg_match('#^https?://#i', $url)) {
+            return null;
+        }
+        $host = parse_url($url, PHP_URL_HOST);
+        if (!is_string($host) || $host === '') {
+            return null;
+        }
+
+        try {
+            $this->guardAgainstPrivateHost($host);
+
+            $response = Http::timeout(self::TIMEOUT_SECONDS)
+                ->connectTimeout(5)
+                ->withHeaders([
+                    'User-Agent' => 'Mozilla/5.0 (compatible; SayzioMetaBot/1.0; +https://1in.me)',
+                    'Accept'     => 'image/*',
+                ])
+                ->withOptions(['allow_redirects' => ['max' => 5, 'strict' => true]])
+                ->get($url);
+
+            if (!$response->successful()) {
+                return null;
+            }
+
+            // Re-check the final (post-redirect) host for open-redirect SSRF.
+            try {
+                $effective = $response->effectiveUri();
+                if ($effective) {
+                    $finalHost = parse_url((string) $effective, PHP_URL_HOST);
+                    if (is_string($finalHost) && $finalHost !== '') {
+                        $this->guardAgainstPrivateHost($finalHost);
+                    }
+                }
+            } catch (RuntimeException $e) {
+                return null;
+            }
+
+            $bytes = $response->body();
+        } catch (\Throwable $e) {
+            return null;
+        }
+
+        if ($bytes === '' || strlen($bytes) > self::MAX_IMAGE_BYTES) {
+            return null;
+        }
+
+        // The bytes must decode as a real image; trust the decoded MIME,
+        // not the response header.
+        $info = @getimagesizefromstring($bytes);
+        if ($info === false) {
+            return null;
+        }
+        $mime = strtolower((string) ($info['mime'] ?? ''));
+        if (!in_array($mime, self::IMAGE_MIMES, true)) {
+            return null;
+        }
+
+        return ['bytes' => $bytes, 'mime' => $mime];
     }
 
     /**

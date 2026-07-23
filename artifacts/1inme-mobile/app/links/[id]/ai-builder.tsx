@@ -257,6 +257,11 @@ export default function AiBuilderScreen() {
           <Text style={[styles.label, { color: colors.mutedForeground }]}>
             Images (optional)
           </Text>
+          <Text style={{ fontSize: 12, color: colors.mutedForeground }}>
+            No uploads? We'll pull images from your links automatically — and
+            if none are found, AI can generate a matching avatar and cover
+            (extra coins, included in the estimate).
+          </Text>
           {images.length > 0 ? (
             <View style={styles.imageRow}>
               {images.map((url) => (

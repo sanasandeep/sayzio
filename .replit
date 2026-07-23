@@ -520,6 +520,10 @@ args = "showcase-analytics-only"
 task = "workflow.run"
 args = "dialer-2fa-e2e"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "ai-image-sourcing-test"
+
 [[workflows.workflow]]
 name = "e2e"
 author = "agent"
@@ -2093,6 +2097,17 @@ args = "cd sayzio-dialer-standalone && node scripts/test-2fa-login-e2e.mjs"
 
 [workflows.workflow.metadata]
 isValidation = true
+
+[[workflows.workflow]]
+name = "ai-image-sourcing-test"
+author = "agent"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd artifacts/1inme && TEST_LOCAL_MODE=artisan bash scripts/test-local.sh --filter=AiBiolinkBuilderTest"
 
 
   [agent]
