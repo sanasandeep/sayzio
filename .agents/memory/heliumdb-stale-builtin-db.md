@@ -49,6 +49,13 @@ guarded). Missing `role` is CORRECT, not drift.
 expected tables have their columns — no drift." Trust this over per-column
 guessing or the heliumdb popup.
 
+**Publishing banner "Failed to fetch PostgreSQL major version for development
+database" (July 2026):** cause was the built-in DB being DE-REGISTERED
+(`checkDatabase()` → provisioned:false) while heliumdb still answered queries.
+Fix: `createDatabase()` (returns alreadyExisted:true, re-registers metadata) →
+provisioned:true and the version probe succeeds. Non-destructive; app stayed on
+RDS throughout.
+
 **Clean fix for publishing:** detach/remove the unused built-in `heliumdb`
 database from the deployment (Database pane → Manage) so the deploy stops trying
 to migrate a DB the app doesn't use. Safe because the app runs on RDS via `DB_*`.
