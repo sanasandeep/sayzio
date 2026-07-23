@@ -540,6 +540,10 @@ args = "e2e-ai-builder-source-preview"
 task = "workflow.run"
 args = "test-page-settings-url-sanitizer"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-ai-builder-upload-instead"
+
 [[workflows.workflow]]
 name = "e2e"
 author = "agent"
@@ -2168,6 +2172,17 @@ args = "TEST_LOCAL_MODE=artisan bash artifacts/1inme/scripts/test-local.sh --fil
 
 [workflows.workflow.metadata]
 isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-ai-builder-upload-instead"
+author = "agent"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "bash artifacts/1inme/tests/Browser/run-validation.sh ai-builder-upload-instead.spec.ts"
 
 
   [agent]

@@ -76,6 +76,7 @@
     "test:profile-socials-parity": "node scripts/test-profile-socials-parity.mjs",
     "test:inline-block-edit": "node scripts/test-inline-block-edit.mjs",
     "test:import-url": "node scripts/test-import-url.mjs",
+    "test:ai-builder-upload-instead": "node scripts/test-ai-builder-upload-instead.mjs",
     "test:og-preview-card": "node scripts/test-og-preview-card.mjs",
     "test:ai-image-search": "node scripts/test-ai-image-search.mjs",
     "test:onboarding-slides-cache": "node scripts/test-onboarding-slides-cache.mjs",
