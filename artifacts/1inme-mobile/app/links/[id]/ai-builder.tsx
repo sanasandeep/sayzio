@@ -55,6 +55,11 @@ export default function AiBuilderScreen() {
   const [linksText, setLinksText] = useState("");
   const [useBrandKit, setUseBrandKit] = useState(true);
   const [uploading, setUploading] = useState(false);
+  // Inline upload failure message (quota exceeded, oversized file, network…).
+  // Rendered next to the upload control instead of a transient alert so the
+  // creator is never stranded on a silent failure — cleared on the next
+  // attempt and on success, mirroring the web intake's uploadError.
+  const [uploadError, setUploadError] = useState<string | null>(null);
   const [estimate, setEstimate] = useState<number | null>(null);
   // Auto-sourced image preview (Task #5722): the creator can review the
   // images the builder would use (extracted from links, or AI-generated)
@@ -275,6 +280,7 @@ export default function AiBuilderScreen() {
     if (res.canceled || !res.assets?.[0]) return;
     const asset = res.assets[0];
     setUploading(true);
+    setUploadError(null);
     try {
       const url = await uploadWizardImage({
         uri: asset.uri,
@@ -284,9 +290,14 @@ export default function AiBuilderScreen() {
       setImages((prev) => [...prev, url]);
       setEstimate(null);
     } catch (e: any) {
-      showAlert(
-        "Couldn't upload image",
-        e?.message ?? "Please try again.",
+      // Inline, persistent error next to the upload control (a transient
+      // alert can be missed, stranding the creator with no feedback). The
+      // finally below resets `uploading`, so the button flips back from
+      // "Uploading…" and a retry is immediately possible.
+      setUploadError(
+        typeof e?.message === "string" && e.message.length > 0
+          ? e.message
+          : "Couldn't upload the image. Please try again.",
       );
     } finally {
       setUploading(false);
@@ -419,6 +430,11 @@ export default function AiBuilderScreen() {
             loading={uploading}
             onPress={addImage}
           />
+          {uploadError ? (
+            <Text style={{ fontSize: 12, color: colors.destructive }}>
+              {uploadError}
+            </Text>
+          ) : null}
 
           {intake.image_search_enabled ? (searchUnavailable ? null : (
             <View
@@ -703,6 +719,11 @@ export default function AiBuilderScreen() {
                 loading={uploading}
                 onPress={addImage}
               />
+              {uploadError ? (
+                <Text style={{ fontSize: 12, color: colors.destructive }}>
+                  {uploadError}
+                </Text>
+              ) : null}
             </View>
           </View>
         ) : null}
