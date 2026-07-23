@@ -1543,7 +1543,14 @@ class BiolinkBlockController extends Controller
     private function sanitizeUrl(?string $url): string
     {
         if (empty($url)) return '';
-        return preg_match('/^https?:\/\//i', $url) ? $url : '';
+        if (preg_match('/^https?:\/\//i', $url)) return $url;
+        // Relative vault media paths (/f/{id}/{filename}) are safe: a single
+        // leading slash, no scheme, no protocol-relative "//" host escape,
+        // and no control characters/backslashes that could smuggle one in.
+        if (preg_match('/^\/f\/[^\/\\\\\s][^\\\\\s]*$/', $url) && ! str_contains($url, '//')) {
+            return $url;
+        }
+        return '';
     }
 
     private function sanitizeHtml(string $html): string

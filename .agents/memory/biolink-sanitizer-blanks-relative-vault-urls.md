@@ -7,4 +7,4 @@ BiolinkBlockController::sanitizeUrl only accepts absolute http(s) URLs; the urlF
 
 **Why:** AiBiolinkBuilderTest::test_generate_constrains_to_allowed_blocks_and_keeps_relative_image_urls fails on this today — verified pre-existing by swapping the unmodified HEAD service in and re-running (same failure). Not caused by the image-sourcing feature.
 
-**How to apply:** if a feature feeds vault-relative image URLs into biolink block settings, either emit absolute URLs (PublicStorageUrl::resolve) or fix sanitizeUrl to allow single-leading-slash `/f/` paths (reject `//` and unsafe schemes). Follow-up filed to fix the sanitizer.
+**How to apply:** FIXED July 2026 — sanitizeUrl now accepts single-leading-slash `/f/...` vault paths (rejects `//` anywhere, backslashes, whitespace, and non-http(s) schemes). Any other relative path is still blanked; features feeding non-vault relative URLs must emit absolute URLs (PublicStorageUrl::resolve).
