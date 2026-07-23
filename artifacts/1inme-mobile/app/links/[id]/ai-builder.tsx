@@ -433,6 +433,7 @@ export default function AiBuilderScreen() {
                   <Image source={{ uri: url }} style={styles.thumb} />
                   <Pressable
                     onPress={() => removeImage(url)}
+                    testID="ai-builder-remove-upload"
                     style={[
                       styles.thumbRemove,
                       { backgroundColor: colors.destructive },

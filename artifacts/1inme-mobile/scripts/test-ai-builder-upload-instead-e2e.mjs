@@ -15,6 +15,11 @@
  *   4. Once the upload resolves, the WHOLE preview box disappears (it is
  *      gated on images.length === 0) and the uploaded thumbnail renders in
  *      the Photos/uploads row instead.
+ *   5. Removing the only upload (the "x" on the thumbnail) brings the
+ *      preview box back — the "No uploads — preview the images we'd use"
+ *      copy reappears with a WORKING preview action (tapping it POSTs
+ *      /ai-builder/source-preview again), so creators are never stuck
+ *      without image options after deleting their upload.
  *
  * Every /api/** call is intercepted against in-memory mocks so nothing
  * reaches a real backend; the upload itself is a real multipart POST from
@@ -262,9 +267,52 @@ async function run(appUrl) {
     await page.waitForFunction(urlRenderedPredicate(), UPLOADED_URL);
     log("uploaded vault image renders in the uploads row");
 
+    // 5. Removing the only upload (the "x" on the thumbnail) brings the
+    //    preview box back so the creator can return to extracted/generated
+    //    images.
+    await page.getByTestId("ai-builder-remove-upload").click();
+    await previewCopy.waitFor({ state: "visible" });
+    await page
+      .getByText("Upload instead", { exact: true })
+      .waitFor({ state: "visible" });
+    // The uploaded thumbnail is gone from the uploads row.
+    await page.waitForFunction((url) => {
+      const abs = new URL(url, window.location.origin).href;
+      for (const img of document.querySelectorAll("img")) {
+        if (img.src === abs || img.src.endsWith(url)) return false;
+      }
+      for (const el of document.querySelectorAll("[style]")) {
+        if ((el.style.backgroundImage || "").includes(url)) return false;
+      }
+      return true;
+    }, UPLOADED_URL);
+    log("preview box reappeared after removing the only upload");
+
+    // The preview action still works: tapping it POSTs source-preview again
+    // and renders the extracted thumbnails.
+    const previewPostsBefore = previewPosts;
+    await page
+      .getByText(/^(Preview images|Refresh preview)$/)
+      .first()
+      .click();
+    const previewDeadline = Date.now() + STEP_TIMEOUT_MS;
+    while (previewPosts === previewPostsBefore && Date.now() < previewDeadline) {
+      await new Promise((r) => setTimeout(r, 100));
+    }
+    if (previewPosts === previewPostsBefore) {
+      fail(
+        "preview action after removing the upload never POSTed /ai-builder/source-preview",
+      );
+    }
+    await page
+      .getByText(/Found on your links — tap to keep or remove/)
+      .waitFor({ state: "visible" });
+    await page.waitForFunction(urlRenderedPredicate(), EXTRACTED_URL);
+    log("preview action works again and re-renders the extracted thumbnail");
+
     await context.close();
     log(
-      "PASS — 'Upload instead' hides the auto-sourced preview flow and shows the upload.",
+      "PASS — 'Upload instead' hides the auto-sourced preview flow, and removing the upload brings it back.",
     );
   } finally {
     await browser.close();
