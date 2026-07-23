@@ -72,7 +72,11 @@ const TINY_PNG = Buffer.from(
 // Mocked server-side state. Paths on the app origin so RNW <Image> can load
 // them through our route without external hosts.
 const EXTRACTED_URL = "/e2e-mock-img/extracted-1.png";
-const UPLOADED_URL = "/e2e-mock-img/uploaded-photo.png";
+// The upload mock mints a DISTINCT URL per upload (uploaded-photo-N.png) so
+// the multi-upload phase can tell the two thumbnails apart; removeImage()
+// filters by URL, so duplicates would vanish together and mask a bug.
+const uploadedUrl = (n) => `/e2e-mock-img/uploaded-photo-${n}.png`;
+const UPLOADED_URL = uploadedUrl(1);
 
 const INTAKE = {
   ai_enabled: true,
@@ -142,7 +146,7 @@ async function mockApi(context) {
         contentType: req.headers()["content-type"] || "",
         postDataLength: (req.postDataBuffer() || Buffer.alloc(0)).length,
       });
-      body = { data: { photo_url: UPLOADED_URL } };
+      body = { data: { photo_url: uploadedUrl(uploadPosts.length) } };
     }
 
     await route.fulfill({
@@ -310,9 +314,99 @@ async function run(appUrl) {
     await page.waitForFunction(urlRenderedPredicate(), EXTRACTED_URL);
     log("preview action works again and re-renders the extracted thumbnail");
 
+    // 6. Multi-upload: with TWO uploads, removing ONE must NOT re-show the
+    //    preview box (it is gated on images.length === 0) and the remaining
+    //    thumbnail must stay; only removing the LAST upload restores the
+    //    preview flow. A regression here would confusingly show the
+    //    auto-source box while the creator still has a photo attached.
+    const pickFile = async (buttonLocator, name) => {
+      const chooser = page.waitForEvent("filechooser", {
+        timeout: STEP_TIMEOUT_MS,
+      });
+      await buttonLocator.click();
+      await (await chooser).setFiles({
+        name,
+        mimeType: "image/png",
+        buffer: TINY_PNG,
+      });
+    };
+    const waitForUploadCount = async (n, what) => {
+      const dl = Date.now() + STEP_TIMEOUT_MS;
+      while (uploadPosts.length < n && Date.now() < dl) {
+        await new Promise((r) => setTimeout(r, 100));
+      }
+      if (uploadPosts.length < n) fail(`${what} never POSTed /links/wizard/image`);
+    };
+
+    // First upload of this phase goes through "Upload instead" (box visible),
+    // the second through the always-present "Add an image" button.
+    await pickFile(
+      page.getByText("Upload instead", { exact: true }),
+      "multi-photo-a.png",
+    );
+    await waitForUploadCount(2, "second upload (multi phase)");
+    const SECOND_URL = uploadedUrl(2);
+    await page.waitForFunction(urlRenderedPredicate(), SECOND_URL);
+    await previewCopy.waitFor({ state: "hidden" });
+    await pickFile(
+      page.getByText("Add an image", { exact: true }),
+      "multi-photo-b.png",
+    );
+    await waitForUploadCount(3, "third upload (multi phase)");
+    const THIRD_URL = uploadedUrl(3);
+    await page.waitForFunction(urlRenderedPredicate(), THIRD_URL);
+    const removeButtons = page.getByTestId("ai-builder-remove-upload");
+    if ((await removeButtons.count()) !== 2) {
+      fail(
+        `expected 2 upload thumbnails in the multi phase, got ${await removeButtons.count()}`,
+      );
+    }
+    log("two uploads attached — both thumbnails render");
+
+    // Remove ONE of the two uploads…
+    await removeButtons.first().click();
+    // …its thumbnail leaves…
+    await page.waitForFunction((url) => {
+      const abs = new URL(url, window.location.origin).href;
+      for (const img of document.querySelectorAll("img")) {
+        if (img.src === abs || img.src.endsWith(url)) return false;
+      }
+      for (const el of document.querySelectorAll("[style]")) {
+        if ((el.style.backgroundImage || "").includes(url)) return false;
+      }
+      return true;
+    }, SECOND_URL);
+    // …the OTHER thumbnail stays…
+    if (!(await page.evaluate(urlRenderedPredicate(), THIRD_URL))) {
+      fail("remaining upload thumbnail vanished after removing its sibling");
+    }
+    if ((await removeButtons.count()) !== 1) {
+      fail("expected exactly 1 remaining upload thumbnail after removing one");
+    }
+    // …and the preview box must STAY hidden while an upload remains.
+    if (await previewCopy.count()) {
+      fail(
+        "preview box re-appeared after removing ONE of TWO uploads (should stay hidden while images remain)",
+      );
+    }
+    if (await page.getByText("Upload instead", { exact: true }).count()) {
+      fail("'Upload instead' re-appeared while an upload is still attached");
+    }
+    log(
+      "removing one of two uploads keeps the preview box hidden and the other thumbnail intact",
+    );
+
+    // Removing the LAST upload restores the preview flow.
+    await removeButtons.first().click();
+    await previewCopy.waitFor({ state: "visible" });
+    await page
+      .getByText("Upload instead", { exact: true })
+      .waitFor({ state: "visible" });
+    log("removing the last upload brings the preview box back");
+
     await context.close();
     log(
-      "PASS — 'Upload instead' hides the auto-sourced preview flow, and removing the upload brings it back.",
+      "PASS — 'Upload instead' hides the auto-sourced preview flow, removing one of several uploads keeps it hidden, and removing the last upload brings it back.",
     );
   } finally {
     await browser.close();
