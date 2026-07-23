@@ -532,6 +532,10 @@ args = "e2e-ai-builder-image-search"
 task = "workflow.run"
 args = "ai-type-builder-test"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-ai-builder-source-preview"
+
 [[workflows.workflow]]
 name = "e2e"
 author = "agent"
@@ -2135,6 +2139,17 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "cd artifacts/1inme && TEST_LOCAL_MODE=artisan bash scripts/test-local.sh --filter=AiTypeBuilderTest"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-ai-builder-source-preview"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "bash artifacts/1inme/tests/Browser/run-validation.sh ai-builder-source-preview.spec.ts"
 
 [workflows.workflow.metadata]
 isValidation = true
