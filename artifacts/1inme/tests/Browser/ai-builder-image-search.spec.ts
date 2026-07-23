@@ -310,3 +310,150 @@ test("search, select and import candidates into the images list", async ({
   await expect(importBtn).toHaveText(/Add selected \(0\)/);
   await expect(importBtn).toBeDisabled();
 });
+
+test("search endpoint failure renders the inline error, not a broken grid", async ({
+  page,
+}) => {
+  test.setTimeout(180_000);
+
+  // Simulate a server-side failure (e.g. CSE quota/404/500 surfaced as a
+  // JSON error) — the UI must show the inline message and paint no grid.
+  await page.route("**/ai-builder/image-search", async (route) => {
+    await route.fulfill({
+      status: 500,
+      contentType: "application/json",
+      body: JSON.stringify({ message: "Image search is unavailable right now." }),
+    });
+  });
+
+  await page.goto(`/user/links/${ids.linkId}/ai-builder`, {
+    waitUntil: "domcontentloaded",
+    timeout: 90_000,
+  });
+
+  const toggle = page.getByRole("button", {
+    name: /Search the web for images/i,
+  });
+  await expect(toggle).toBeVisible({ timeout: 30_000 });
+  await toggle.click();
+
+  const queryInput = page.getByPlaceholder("e.g. minimalist fitness logo");
+  await queryInput.fill("anything at all");
+  const failedResponse = page.waitForResponse(
+    (r) => r.url().includes("/ai-builder/image-search"),
+    { timeout: 30_000 },
+  );
+  await queryInput.locator("xpath=following-sibling::button[1]").click();
+  await failedResponse;
+
+  // Inline error from the JSON body; no candidate grid, no import button.
+  await expect(
+    page.getByText("Image search is unavailable right now."),
+  ).toBeVisible({ timeout: 15_000 });
+  await expect(
+    page.getByRole("button", { name: /Add selected/i }),
+  ).toHaveCount(0);
+  await expect(page.getByText(DISCLAIMER)).toHaveCount(0);
+
+  // And a non-JSON hard failure (proxy 404 page) falls back to the generic
+  // message instead of leaving the spinner stuck.
+  await page.unroute("**/ai-builder/image-search");
+  await page.route("**/ai-builder/image-search", async (route) => {
+    await route.fulfill({
+      status: 404,
+      contentType: "text/html",
+      body: "<html><body>Not Found</body></html>",
+    });
+  });
+  const secondResponse = page.waitForResponse(
+    (r) => r.url().includes("/ai-builder/image-search"),
+    { timeout: 30_000 },
+  );
+  await queryInput.locator("xpath=following-sibling::button[1]").click();
+  await secondResponse;
+  await expect(
+    page.getByText("Search failed. Please try again."),
+  ).toBeVisible({ timeout: 15_000 });
+  await expect(
+    page.getByRole("button", { name: /Add selected/i }),
+  ).toHaveCount(0);
+});
+
+// Keep this LAST: it temporarily clears the CSE config seeded in beforeAll,
+// then restores it so afterAll's targeted cleanup still applies.
+test("section is hidden entirely when Google CSE is not configured", async ({
+  page,
+}) => {
+  test.setTimeout(180_000);
+
+  // Snapshot the current admin values, clear BOTH, and verify nothing else
+  // (e.g. env fallback keys) still resolves the config. Restored in finally.
+  const clearPhp = `
+use App\\Services\\Integrations\\PlatformServiceSettings;
+$prevKey = PlatformServiceSettings::googleCseApiKey();
+$prevEngine = PlatformServiceSettings::googleCseEngineId();
+PlatformServiceSettings::setGoogleCseApiKey(null);
+PlatformServiceSettings::setGoogleCseEngineId(null);
+// applyRuntimeConfig() at THIS process's boot copied the (then-present)
+// admin values into config('services.google_cse.*'); clear that stale
+// runtime copy so 'configured' reflects what a fresh request would see.
+config(['services.google_cse.api_key' => null, 'services.google_cse.engine_id' => null]);
+echo 'SNAP=' . json_encode([
+  'key' => $prevKey,
+  'engine' => $prevEngine,
+  'configured' => PlatformServiceSettings::googleCseConfigured(),
+]);
+`.trim();
+
+  const out = runTinker(clearPhp);
+  const snapMatch = out.match(/SNAP=(\{.*\})/);
+  if (!snapMatch) throw new Error("CSE snapshot failed, output:\n" + out);
+  const snap: {
+    key: string | null;
+    engine: string | null;
+    configured: boolean;
+  } = JSON.parse(snapMatch[1]);
+
+  const restore = () => {
+    const restorePhp = `
+use App\\Services\\Integrations\\PlatformServiceSettings;
+PlatformServiceSettings::setGoogleCseApiKey(${JSON.stringify(snap.key)});
+PlatformServiceSettings::setGoogleCseEngineId(${JSON.stringify(snap.engine)});
+echo 'RESTORED';
+`.trim();
+    runTinker(restorePhp);
+  };
+
+  // If the config still resolves after clearing admin values, an env
+  // fallback exists that we cannot unset — restore and skip.
+  if (snap.configured) {
+    restore();
+    test.skip(
+      true,
+      "CSE still configured via env fallback; cannot simulate preview mode.",
+    );
+  }
+
+  try {
+    await page.goto(`/user/links/${ids.linkId}/ai-builder`, {
+      waitUntil: "domcontentloaded",
+      timeout: 90_000,
+    });
+
+    // Positive anchor first — the intake page itself rendered — so the
+    // absence assertions below can't pass on a blank/error page.
+    await expect(page.getByText("Photos", { exact: false }).first()).toBeVisible(
+      { timeout: 30_000 },
+    );
+    await expect(
+      page.getByPlaceholder("e.g. minimalist fitness logo"),
+    ).toHaveCount(0);
+    await expect(
+      page.getByRole("button", { name: /Search the web for images/i }),
+    ).toHaveCount(0);
+    await expect(page.getByText(/Search the web for images/i)).toHaveCount(0);
+  } finally {
+    // Restore the exact snapshot so afterAll cleanup stays correct.
+    restore();
+  }
+});
