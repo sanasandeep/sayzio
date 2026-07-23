@@ -41,6 +41,9 @@
             <p class="text-sm" style="color:var(--text-muted)">Restaurant Menu · /{{ $link->alias }}</p>
         </div>
         <div class="flex gap-2">
+            @if(\App\Services\AI\AiEngineSettings::isEnabled() && \App\Services\AI\AiPlanAccess::featureAllowed(auth()->user(), 'restaurant_menu_builder'))
+                <a href="{{ route('user.links.ai-type-builder', $link) }}" class="rm-btn ghost"><i class="fas fa-wand-magic-sparkles"></i> Build with AI</a>
+            @endif
             <a href="{{ route('user.links.restaurant.orders', $link) }}" class="rm-btn ghost">
                 <i class="fas fa-receipt"></i> Orders @if($openOrders > 0)<span class="rm-pill">{{ $openOrders }}</span>@endif
             </a>

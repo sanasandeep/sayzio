@@ -44,6 +44,9 @@
             <p class="text-sm" style="color:var(--text-muted)">Service Booking · /{{ $link->alias }}</p>
         </div>
         <div class="flex gap-2">
+            @if(\App\Services\AI\AiEngineSettings::isEnabled() && \App\Services\AI\AiPlanAccess::featureAllowed(auth()->user(), 'service_booking_builder'))
+                <a href="{{ route('user.links.ai-type-builder', $link) }}" class="sb-btn ghost"><i class="fas fa-wand-magic-sparkles"></i> Build with AI</a>
+            @endif
             <a href="{{ route('user.links.service-booking.bookings', $link) }}" class="sb-btn ghost">
                 <i class="fas fa-calendar-check"></i> Bookings @if($openBookings > 0)<span class="sb-pill">{{ $openBookings }}</span>@endif
             </a>
