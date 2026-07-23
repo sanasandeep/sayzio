@@ -11,6 +11,7 @@ use App\Services\AI\AiUsageCharger;
 use App\Services\AI\AiEngineSettings;
 use App\Services\AI\InsufficientCoinsForAiException;
 use App\Services\Biolink\AiBiolinkBuilderService;
+use App\Services\Integrations\GoogleCseUsage;
 use App\Services\Integrations\GoogleImageSearchService;
 use App\Services\OgMetadataService;
 use App\Modules\User\Models\UserFile;
@@ -164,12 +165,18 @@ class AiBiolinkBuilderController extends Controller
             return response()->json(['message' => 'Image search is not available.'], 404);
         }
 
+        if (GoogleCseUsage::capReached($request->user()?->id)) {
+            return response()->json([
+                'message' => __("You've reached today's image search limit — try again tomorrow."),
+            ], 429);
+        }
+
         $data = $request->validate([
             'query' => ['required', 'string', 'min:2', 'max:200'],
         ]);
 
         return response()->json([
-            'results'    => $search->search($data['query'], 8),
+            'results'    => $search->search($data['query'], 8, $request->user()?->id),
             'disclaimer' => __('Make sure you have the rights to use any image you pick — search results may be copyrighted.'),
         ]);
     }

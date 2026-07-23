@@ -47,6 +47,52 @@
         </div>
     @endif
 
+    {{-- Usage: daily CSE query counters (every search costs Google quota) --}}
+    <div class="glass rounded-2xl border border-white/10 p-6 space-y-4">
+        <div class="flex items-start justify-between gap-3">
+            <div>
+                <h3 class="ak-strong font-semibold text-white flex items-center gap-2">
+                    <i class="ak-blue fas fa-chart-line text-sky-400"></i> Usage
+                </h3>
+                <p class="ak-note text-xs text-white/40">Every image search costs one Google CSE query ({{ $freeTier }}/day on the free tier).</p>
+            </div>
+            @php $overFree = $todayQueries >= $freeTier; @endphp
+            <span class="shrink-0 px-2.5 py-1 rounded-lg border text-[11px] font-medium {{ $toneClass($overFree ? 'red' : ($todayQueries >= (int) ($freeTier * 0.8) ? 'amber' : 'green')) }}">
+                Today: {{ number_format($todayQueries) }} / {{ $freeTier }}
+            </span>
+        </div>
+
+        @if (count($recentDaily))
+            <div>
+                <p class="ak-note text-[11px] uppercase tracking-wider text-white/30 mb-1.5">Last 7 days</p>
+                <div class="space-y-1">
+                    @foreach ($recentDaily as $row)
+                        <div class="flex items-center justify-between text-xs">
+                            <span class="ak-muted text-white/50">{{ \Illuminate\Support\Carbon::parse($row['day'])->format('D, M j') }}</span>
+                            <span class="ak-strong font-mono text-white/80">{{ number_format($row['queries']) }}</span>
+                        </div>
+                    @endforeach
+                </div>
+            </div>
+        @else
+            <p class="ak-muted text-xs text-white/40">No queries recorded yet.</p>
+        @endif
+
+        @if (count($topUsers))
+            <div>
+                <p class="ak-note text-[11px] uppercase tracking-wider text-white/30 mb-1.5">Heaviest users today</p>
+                <div class="space-y-1">
+                    @foreach ($topUsers as $row)
+                        <div class="flex items-center justify-between text-xs">
+                            <a href="{{ route('admin.users.edit', $row['user_id']) }}" class="ak-blue text-sky-400 hover:underline">User #{{ $row['user_id'] }}</a>
+                            <span class="ak-strong font-mono text-white/80">{{ number_format($row['queries']) }}</span>
+                        </div>
+                    @endforeach
+                </div>
+            </div>
+        @endif
+    </div>
+
     <form method="POST" action="{{ route('admin.integrations.google-cse.update') }}" class="space-y-6">
         @csrf @method('PUT')
 

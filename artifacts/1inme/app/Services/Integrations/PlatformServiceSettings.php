@@ -53,6 +53,7 @@ class PlatformServiceSettings
     // ── Google Custom Search (AI builder image search) ────────────
     public const KEY_GOOGLE_CSE_API_KEY_ENC = 'google_cse.api_key_enc';
     public const KEY_GOOGLE_CSE_ENGINE_ID   = 'google_cse.engine_id';
+    public const KEY_GOOGLE_CSE_USER_DAILY_CAP = 'google_cse.user_daily_cap';
 
     // ── GitHub personal access token ──────────────────────────────
     // Shared by the GitHub push sync (SystemUpdateService / github:check-token)
@@ -644,6 +645,18 @@ class PlatformServiceSettings
     public static function googleCseConfigured(): bool
     {
         return self::googleCseApiKey() !== null && self::googleCseEngineId() !== null;
+    }
+
+    /** Per-user daily image-search cap. 0 = unlimited. */
+    public static function googleCseUserDailyCap(): int
+    {
+        $v = AppSetting::get(self::KEY_GOOGLE_CSE_USER_DAILY_CAP);
+        return is_numeric($v) ? max(0, (int) $v) : 0;
+    }
+
+    public static function setGoogleCseUserDailyCap(?int $v): void
+    {
+        AppSetting::put(self::KEY_GOOGLE_CSE_USER_DAILY_CAP, $v !== null ? max(0, $v) : null);
     }
 
     public static function googleCseStatus(): array

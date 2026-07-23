@@ -34,7 +34,7 @@ class GoogleImageSearchService
      *
      * @return list<array{url:string,thumbnail:?string,title:?string,source:?string,width:?int,height:?int}>
      */
-    public function search(string $query, int $count = 8): array
+    public function search(string $query, int $count = 8, ?int $userId = null): array
     {
         $query = trim($query);
         if ($query === '' || !$this->enabled()) {
@@ -42,6 +42,10 @@ class GoogleImageSearchService
         }
 
         $count = max(1, min($count, self::MAX_RESULTS));
+
+        // Every outbound request consumes Google CSE quota (100/day free),
+        // so count it regardless of the eventual response status.
+        GoogleCseUsage::record($userId);
 
         try {
             $response = Http::timeout(8)->get(self::ENDPOINT, [

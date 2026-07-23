@@ -7,7 +7,9 @@ use App\Modules\User\Models\Link;
 use App\Modules\User\Models\User;
 use App\Modules\User\Models\UserFile;
 use App\Modules\User\Services\WorkspaceContext;
+use App\Services\Integrations\GoogleCseUsage;
 use App\Services\Integrations\GoogleImageSearchService;
+use App\Services\Integrations\PlatformServiceSettings;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
@@ -176,6 +178,79 @@ class AiBuilderImageSearchTest extends TestCase
             ->postJson(route('user.links.ai-builder.image-search', $link), ['query' => 'coffee shop'])
             ->assertOk()
             ->assertJsonPath('results', []);
+    }
+
+    // ── Usage counters + per-user daily cap (Task #5724) ──────────────
+
+    public function test_search_records_daily_usage_counters(): void
+    {
+        $this->enableCse();
+        Http::fake([
+            GoogleImageSearchService::ENDPOINT . '*' => Http::response($this->cseResponse()),
+        ]);
+
+        $user = $this->makeUser();
+        $link = $this->biolink($user);
+
+        $this->actingAs($user)
+            ->postJson(route('user.links.ai-builder.image-search', $link), ['query' => 'coffee shop'])
+            ->assertOk();
+        $this->actingAs($user)
+            ->postJson(route('user.links.ai-builder.image-search', $link), ['query' => 'tea house'])
+            ->assertOk();
+
+        $this->assertSame(2, GoogleCseUsage::todayTotal());
+        $this->assertSame(2, GoogleCseUsage::todayForUser($user->id));
+        $recent = GoogleCseUsage::recentDaily();
+        $this->assertSame(2, $recent[0]['queries']);
+        $this->assertSame([['user_id' => $user->id, 'queries' => 2]], GoogleCseUsage::topUsersToday());
+    }
+
+    public function test_per_user_daily_cap_returns_friendly_429(): void
+    {
+        $this->enableCse();
+        Http::fake([
+            GoogleImageSearchService::ENDPOINT . '*' => Http::response($this->cseResponse()),
+        ]);
+
+        PlatformServiceSettings::setGoogleCseUserDailyCap(1);
+
+        $user = $this->makeUser();
+        $link = $this->biolink($user);
+
+        $this->actingAs($user)
+            ->postJson(route('user.links.ai-builder.image-search', $link), ['query' => 'coffee shop'])
+            ->assertOk();
+
+        $res = $this->actingAs($user)
+            ->postJson(route('user.links.ai-builder.image-search', $link), ['query' => 'coffee shop'])
+            ->assertStatus(429);
+        $this->assertStringContainsString('try again tomorrow', $res->json('message'));
+
+        // API parity: capped user gets the coded 429.
+        $token = $user->createToken('test')->plainTextToken;
+        $this->withToken($token)
+            ->postJson("/api/v1/links/{$link->id}/ai-builder/image-search", ['query' => 'coffee shop'])
+            ->assertStatus(429)
+            ->assertJsonPath('error.code', 'image_search_daily_cap');
+        $this->flushHeaders();
+
+        // A different user is unaffected by someone else's cap.
+        $other = $this->makeUser();
+        $otherLink = $this->biolink($other);
+        $this->actingAs($other)
+            ->postJson(route('user.links.ai-builder.image-search', $otherLink), ['query' => 'coffee shop'])
+            ->assertOk();
+
+        // Cap 0 = unlimited again. Re-bind the capped user's workspace —
+        // the $other request above left its workspace bound, which would
+        // hide $link from route binding.
+        app()->instance('current_workspace', app(WorkspaceContext::class)->resolve($user));
+        app()->instance('workspace_owner', $user);
+        PlatformServiceSettings::setGoogleCseUserDailyCap(0);
+        $this->actingAs($user)
+            ->postJson(route('user.links.ai-builder.image-search', $link), ['query' => 'coffee shop'])
+            ->assertOk();
     }
 
     // ── Import: SSRF-safe vault store, dedupe, all-fail 422 ───────────

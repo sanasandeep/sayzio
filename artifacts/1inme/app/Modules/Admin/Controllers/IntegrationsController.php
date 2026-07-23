@@ -138,10 +138,15 @@ class IntegrationsController extends Controller
     public function editGoogleCse()
     {
         return view('admin.integrations.google-cse', [
-            'status'    => PlatformServiceSettings::googleCseStatus(),
-            'engineId'  => PlatformServiceSettings::googleCseEngineId(),
-            'hasKey'    => PlatformServiceSettings::googleCseApiKey() !== null,
-            'maskedKey' => PlatformServiceSettings::maskedGoogleCseApiKey(),
+            'status'       => PlatformServiceSettings::googleCseStatus(),
+            'engineId'     => PlatformServiceSettings::googleCseEngineId(),
+            'hasKey'       => PlatformServiceSettings::googleCseApiKey() !== null,
+            'maskedKey'    => PlatformServiceSettings::maskedGoogleCseApiKey(),
+            'userDailyCap' => PlatformServiceSettings::googleCseUserDailyCap(),
+            'todayQueries' => \App\Services\Integrations\GoogleCseUsage::todayTotal(),
+            'recentDaily'  => \App\Services\Integrations\GoogleCseUsage::recentDaily(7),
+            'topUsers'     => \App\Services\Integrations\GoogleCseUsage::topUsersToday(5),
+            'freeTier'     => \App\Services\Integrations\GoogleCseUsage::FREE_TIER_DAILY,
         ]);
     }
 
@@ -151,9 +156,13 @@ class IntegrationsController extends Controller
             'engine_id'     => 'nullable|string|max:255',
             'api_key'       => 'nullable|string|max:255',
             'clear_api_key' => 'nullable|boolean',
+            'user_daily_cap' => 'nullable|integer|min:0|max:100000',
         ]);
 
         PlatformServiceSettings::setGoogleCseEngineId($data['engine_id'] ?? null);
+        PlatformServiceSettings::setGoogleCseUserDailyCap(
+            isset($data['user_daily_cap']) && $data['user_daily_cap'] !== null ? (int) $data['user_daily_cap'] : 0
+        );
 
         if ($request->boolean('clear_api_key')) {
             PlatformServiceSettings::setGoogleCseApiKey(null);
