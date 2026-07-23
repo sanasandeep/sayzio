@@ -28,6 +28,20 @@ class OgMetadataService
         'image/x-icon', 'image/vnd.microsoft.icon', 'image/bmp',
     ];
 
+    /** Cap on prominent in-page <img> candidates returned per page. */
+    public const MAX_CONTENT_IMAGES = 12;
+
+    /**
+     * URL substrings that mark obvious non-content images (trackers,
+     * sprites, pixels, ad beacons, icon sets). Matched case-insensitively
+     * against the whole candidate URL.
+     */
+    private const CONTENT_IMAGE_URL_BLOCKLIST = [
+        'sprite', 'pixel', 'tracking', 'tracker', 'beacon', 'spacer',
+        'blank.', '1x1', 'counter', 'adserver', 'doubleclick', 'analytics',
+        'badge', 'captcha', 'gravatar.com/avatar',
+    ];
+
     /**
      * @return array{title:?string, description:?string, image_url:?string, favicon_url:?string}
      * @throws RuntimeException for caller-fixable problems (bad URL, unreachable host, blocked target).
@@ -167,7 +181,12 @@ class OgMetadataService
             return null;
         }
 
-        return ['bytes' => $bytes, 'mime' => $mime];
+        return [
+            'bytes'  => $bytes,
+            'mime'   => $mime,
+            'width'  => (int) ($info[0] ?? 0),
+            'height' => (int) ($info[1] ?? 0),
+        ];
     }
 
     /**
@@ -198,11 +217,85 @@ class OgMetadataService
         }
 
         return [
-            'title'       => $title !== null ? mb_substr($title, 0, 160) : null,
-            'description' => $description !== null ? mb_substr($description, 0, 500) : null,
-            'image_url'   => $imageUrl !== null ? mb_substr($imageUrl, 0, 2048) : null,
-            'favicon_url' => $faviconUrl !== null ? mb_substr($faviconUrl, 0, 2048) : null,
+            'title'          => $title !== null ? mb_substr($title, 0, 160) : null,
+            'description'    => $description !== null ? mb_substr($description, 0, 500) : null,
+            'image_url'      => $imageUrl !== null ? mb_substr($imageUrl, 0, 2048) : null,
+            'favicon_url'    => $faviconUrl !== null ? mb_substr($faviconUrl, 0, 2048) : null,
+            'content_images' => $this->extractContentImages($xpath, $url),
         ];
+    }
+
+    /**
+     * Prominent in-page <img> candidates in document order (hero images,
+     * product shots, gallery photos). Attribute-level prefiltering only —
+     * the caller still downloads (SSRF-safe) and applies real pixel-size
+     * checks on the decoded bytes:
+     *
+     *   - data:/blob:/javascript: sources are skipped;
+     *   - declared width/height attrs below 100px are skipped (icons);
+     *   - obvious tracker/sprite/pixel/beacon URLs are skipped;
+     *   - lazy-load `data-src`/`data-lazy-src` are honored over `src`;
+     *   - duplicates removed, capped at {@see MAX_CONTENT_IMAGES}.
+     *
+     * @return list<string> absolute http(s) URLs
+     */
+    private function extractContentImages(\DOMXPath $xpath, string $pageUrl): array
+    {
+        $out  = [];
+        $seen = [];
+
+        foreach ($xpath->query('//img') as $node) {
+            if (count($out) >= self::MAX_CONTENT_IMAGES) {
+                break;
+            }
+            if (!$node instanceof \DOMElement) {
+                continue;
+            }
+
+            $src = trim($node->getAttribute('data-src'))
+                ?: trim($node->getAttribute('data-lazy-src'))
+                ?: trim($node->getAttribute('src'));
+            if ($src === '' || mb_strlen($src) > 2048) {
+                continue;
+            }
+
+            // Only http(s) or relative sources — never data:/blob:/etc.
+            if (preg_match('/^[a-z][a-z0-9+.\-]*:/i', $src) && !preg_match('#^https?:#i', $src)) {
+                continue;
+            }
+
+            // Declared-size prefilter: skip obvious icons/pixels.
+            foreach (['width', 'height'] as $attr) {
+                $v = trim($node->getAttribute($attr));
+                if ($v !== '' && is_numeric($v) && (float) $v < 100) {
+                    continue 2;
+                }
+            }
+
+            $resolved = $this->resolveUrl($src, $pageUrl);
+            if (!preg_match('#^https?://#i', $resolved)) {
+                continue;
+            }
+
+            $lower = strtolower($resolved);
+            if (str_ends_with(parse_url($lower, PHP_URL_PATH) ?? '', '.svg')) {
+                continue; // vector icons/logos — not raster content
+            }
+            foreach (self::CONTENT_IMAGE_URL_BLOCKLIST as $needle) {
+                if (str_contains($lower, $needle)) {
+                    continue 2;
+                }
+            }
+
+            if (isset($seen[$lower])) {
+                continue;
+            }
+            $seen[$lower] = true;
+
+            $out[] = mb_substr($resolved, 0, 2048);
+        }
+
+        return $out;
     }
 
     /**

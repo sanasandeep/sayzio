@@ -41,6 +41,12 @@ class BuilderImageSourcer
     /** Cap on extracted images fed to the model. */
     public const MAX_EXTRACTED = 6;
 
+    /** Cap on stored images per source page (og/favicon + content). */
+    public const MAX_PER_PAGE = 3;
+
+    /** Minimum decoded pixel dimension for in-page content images. */
+    public const MIN_CONTENT_DIMENSION = 200;
+
     /** What the generation fallback produces: slot => gpt-image-1 size. */
     public const GENERATED_SLOTS = [
         'avatar' => '1024x1024',
@@ -154,8 +160,14 @@ class BuilderImageSourcer
     }
 
     /**
-     * Scan the first links for og:image/favicon, download SSRF-safe,
-     * validate, de-dupe by content hash, and store in the vault.
+     * Scan the first links for og:image/favicon plus prominent in-page
+     * content images, download SSRF-safe, validate, de-dupe by content
+     * hash, and store in the vault. Free — no AI credits.
+     *
+     * Per page: the og:image (or favicon fallback) is taken first, then
+     * in-page content images fill up to {@see MAX_PER_PAGE} slots. Content
+     * images must decode to at least {@see MIN_CONTENT_DIMENSION}px on
+     * both axes so icons, trackers, and thumbnails never make it in.
      *
      * @param list<string> $links
      * @return list<string> relative vault URLs (`/f/{id}/{filename}`)
@@ -177,17 +189,53 @@ class BuilderImageSourcer
                 continue; // unreachable/blocked page — skip silently
             }
 
-            foreach ([$meta['image_url'] ?? null, $meta['favicon_url'] ?? null] as $candidate) {
+            // Candidate order: og:image (or favicon fallback) first, then
+            // prominent in-page content images. Content images carry a
+            // minimum decoded-dimension requirement; og/favicon do not
+            // (favicons are intentionally small).
+            $candidates = [];
+            foreach ([$meta['image_url'] ?? null, $meta['favicon_url'] ?? null] as $primary) {
+                if (is_string($primary) && $primary !== '') {
+                    $candidates[] = ['url' => $primary, 'content' => false];
+                }
+            }
+            foreach ($meta['content_images'] ?? [] as $contentUrl) {
+                if (is_string($contentUrl) && $contentUrl !== '') {
+                    $candidates[] = ['url' => $contentUrl, 'content' => true];
+                }
+            }
+
+            $storedForPage = 0;
+            $primaryTaken  = false;
+
+            foreach ($candidates as $candidate) {
                 if (count($stored) >= self::MAX_EXTRACTED) {
                     break 2;
                 }
-                if (!is_string($candidate) || $candidate === '' || isset($seenCandidates[$candidate])) {
+                if ($storedForPage >= self::MAX_PER_PAGE) {
+                    break;
+                }
+                // og:image + favicon are alternates: once one of the two
+                // primary candidates stuck, skip the other.
+                if (!$candidate['content'] && $primaryTaken) {
                     continue;
                 }
-                $seenCandidates[$candidate] = true;
 
-                $img = $this->og->downloadImage($candidate);
+                $url = $candidate['url'];
+                if (isset($seenCandidates[$url])) {
+                    continue;
+                }
+                $seenCandidates[$url] = true;
+
+                $img = $this->og->downloadImage($url);
                 if ($img === null) {
+                    continue;
+                }
+
+                // Real-pixel filter for content images (attributes lie).
+                if ($candidate['content']
+                    && (($img['width'] ?? 0) < self::MIN_CONTENT_DIMENSION
+                        || ($img['height'] ?? 0) < self::MIN_CONTENT_DIMENSION)) {
                     continue;
                 }
 
@@ -212,10 +260,10 @@ class BuilderImageSourcer
                 }
 
                 $stored[] = $file->url_path;
-
-                // One image per source page is plenty — favicon is only the
-                // fallback when the page had no usable og:image.
-                continue 2;
+                $storedForPage++;
+                if (!$candidate['content']) {
+                    $primaryTaken = true;
+                }
             }
         }
 

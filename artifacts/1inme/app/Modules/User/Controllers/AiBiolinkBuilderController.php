@@ -11,6 +11,9 @@ use App\Services\AI\AiUsageCharger;
 use App\Services\AI\AiEngineSettings;
 use App\Services\AI\InsufficientCoinsForAiException;
 use App\Services\Biolink\AiBiolinkBuilderService;
+use App\Services\Integrations\GoogleImageSearchService;
+use App\Services\OgMetadataService;
+use App\Modules\User\Models\UserFile;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -47,6 +50,7 @@ class AiBiolinkBuilderController extends Controller
             'maxFiles'       => 15,
             'onBrandAllowed' => $onBrandAllowed,
             'brandKit'       => $onBrandAllowed ? BrandKit::defaultFor(workspace_owner_id()) : null,
+            'imageSearchEnabled' => app(GoogleImageSearchService::class)->enabled(),
         ]);
     }
 
@@ -143,6 +147,96 @@ class AiBiolinkBuilderController extends Controller
             'balance'       => $this->credits->getBalance($request->user()),
             'redirect'      => route('user.links.blocks.editor', $link),
         ]);
+    }
+
+    /**
+     * Google image search: candidate suggestions the creator explicitly
+     * picks from (rights disclaimer shown client-side; nothing is ever
+     * auto-placed). Free of AI credits; the route carries a throttle and
+     * the service itself is bounded. 404s in preview mode so the feature
+     * hides gracefully when no admin/env keys exist.
+     */
+    public function imageSearch(Request $request, Link $link, GoogleImageSearchService $search): JsonResponse
+    {
+        $this->authorizeLink($link);
+
+        if (!$search->enabled()) {
+            return response()->json(['message' => 'Image search is not available.'], 404);
+        }
+
+        $data = $request->validate([
+            'query' => ['required', 'string', 'min:2', 'max:200'],
+        ]);
+
+        return response()->json([
+            'results'    => $search->search($data['query'], 8),
+            'disclaimer' => __('Make sure you have the rights to use any image you pick — search results may be copyrighted.'),
+        ]);
+    }
+
+    /**
+     * Download the creator's chosen candidate images (SSRF-safe via
+     * OgMetadataService::downloadImage), store them in the vault under the
+     * `ai_builder` context, and return relative vault URLs the intake form
+     * appends to its images[] list — the same shape uploads use.
+     */
+    public function importImages(Request $request, Link $link, OgMetadataService $og): JsonResponse
+    {
+        $this->authorizeLink($link);
+
+        $data = $request->validate([
+            'urls'   => ['required', 'array', 'min:1', 'max:6'],
+            'urls.*' => ['string', 'url', 'max:2048', 'starts_with:http://,https://'],
+        ]);
+
+        $stored = [];
+        $seenHashes = [];
+        foreach (array_values(array_unique($data['urls'])) as $url) {
+            $img = $og->downloadImage($url);
+            if ($img === null) {
+                continue;
+            }
+            $hash = md5($img['bytes']);
+            if (isset($seenHashes[$hash])) {
+                continue;
+            }
+            $seenHashes[$hash] = true;
+
+            try {
+                $file = UserFile::createFromBytes(
+                    $img['bytes'],
+                    'ai-builder-' . substr($hash, 0, 8) . '.' . $this->extensionFor($img['mime']),
+                    $img['mime'],
+                    $request->user(),
+                    ['skip_scan' => true, 'context' => 'ai_builder'],
+                );
+            } catch (\RuntimeException $e) {
+                // Storage quota — surface loudly instead of silently dropping.
+                return response()->json(['message' => $e->getMessage()], 422);
+            }
+
+            $stored[] = ['url' => $file->url_path, 'source_url' => $url];
+        }
+
+        if ($stored === []) {
+            return response()->json([
+                'message' => 'None of the selected images could be downloaded. They may be blocked or too large.',
+            ], 422);
+        }
+
+        return response()->json(['images' => $stored]);
+    }
+
+    private function extensionFor(string $mime): string
+    {
+        return match ($mime) {
+            'image/png'  => 'png',
+            'image/gif'  => 'gif',
+            'image/webp' => 'webp',
+            'image/bmp'  => 'bmp',
+            'image/x-icon', 'image/vnd.microsoft.icon' => 'ico',
+            default      => 'jpg',
+        };
     }
 
     /**

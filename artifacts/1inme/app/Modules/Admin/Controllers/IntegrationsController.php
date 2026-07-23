@@ -132,6 +132,40 @@ class IntegrationsController extends Controller
     }
 
     // ═════════════════════════════════════════════════════════════
+    // Google Custom Search (AI builder image search)
+    // ═════════════════════════════════════════════════════════════
+
+    public function editGoogleCse()
+    {
+        return view('admin.integrations.google-cse', [
+            'status'    => PlatformServiceSettings::googleCseStatus(),
+            'engineId'  => PlatformServiceSettings::googleCseEngineId(),
+            'hasKey'    => PlatformServiceSettings::googleCseApiKey() !== null,
+            'maskedKey' => PlatformServiceSettings::maskedGoogleCseApiKey(),
+        ]);
+    }
+
+    public function updateGoogleCse(Request $request)
+    {
+        $data = $request->validate([
+            'engine_id'     => 'nullable|string|max:255',
+            'api_key'       => 'nullable|string|max:255',
+            'clear_api_key' => 'nullable|boolean',
+        ]);
+
+        PlatformServiceSettings::setGoogleCseEngineId($data['engine_id'] ?? null);
+
+        if ($request->boolean('clear_api_key')) {
+            PlatformServiceSettings::setGoogleCseApiKey(null);
+        } elseif (!empty($data['api_key'])) {
+            PlatformServiceSettings::setGoogleCseApiKey($data['api_key']);
+        }
+
+        return redirect()->route('admin.integrations.google-cse.edit')
+            ->with('success', 'Google image search settings saved.');
+    }
+
+    // ═════════════════════════════════════════════════════════════
     // GitHub personal access token
     // ═════════════════════════════════════════════════════════════
 

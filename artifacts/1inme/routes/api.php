@@ -855,6 +855,8 @@ Route::prefix('v1')->group(function () {
         Route::get ('/links/{id}/ai-builder',          [\App\Modules\Api\Controllers\AiBiolinkBuilderController::class, 'intake'])->whereNumber('id');
         Route::post('/links/{id}/ai-builder/estimate', [\App\Modules\Api\Controllers\AiBiolinkBuilderController::class, 'estimate'])->whereNumber('id')->middleware('throttle:30,1');
         Route::post('/links/{id}/ai-builder/generate', [\App\Modules\Api\Controllers\AiBiolinkBuilderController::class, 'generate'])->whereNumber('id')->middleware('throttle:10,1');
+        Route::post('/links/{id}/ai-builder/image-search', [\App\Modules\Api\Controllers\AiBiolinkBuilderController::class, 'imageSearch'])->whereNumber('id')->middleware('throttle:20,1');
+        Route::post('/links/{id}/ai-builder/import-images', [\App\Modules\Api\Controllers\AiBiolinkBuilderController::class, 'importImages'])->whereNumber('id')->middleware('throttle:10,1');
 
         // Competitor Biolink Teardown (mobile parity for the web
         // links-teardown flow). Paste a competitor URL, get an AI-scored

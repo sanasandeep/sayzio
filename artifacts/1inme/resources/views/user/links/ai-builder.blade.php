@@ -87,6 +87,54 @@
                         </div>
                     </template>
                 </div>
+
+                @if(!empty($imageSearchEnabled))
+                {{-- Google image search: candidate suggestions the creator explicitly
+                     picks from — never auto-placed. Free of AI coins. --}}
+                <div class="mt-4 rounded-xl border border-white/10 bg-white/[0.03] p-3">
+                    <button type="button" @click="searchOpen = !searchOpen"
+                            class="w-full flex items-center justify-between text-left">
+                        <span class="text-sm text-white/70"><i class="fas fa-magnifying-glass text-blue-300 mr-1.5"></i> Search the web for images <span class="text-white/30 font-normal">(free)</span></span>
+                        <i class="fas text-white/40 text-xs" :class="searchOpen ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
+                    </button>
+
+                    <div x-show="searchOpen" x-cloak class="mt-3 space-y-3">
+                        <div class="flex gap-2">
+                            <input type="text" x-model="searchQuery" @keydown.enter.prevent="runImageSearch()"
+                                   placeholder="e.g. minimalist fitness logo"
+                                   class="flex-1 px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-sm text-white placeholder-white/25">
+                            <button type="button" @click="runImageSearch()" :disabled="searching || searchQuery.trim().length < 2"
+                                    class="px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white text-sm font-medium">
+                                <i class="fas" :class="searching ? 'fa-spinner fa-spin' : 'fa-magnifying-glass'"></i>
+                            </button>
+                        </div>
+                        <p class="text-xs text-red-400" x-show="searchError" x-text="searchError"></p>
+
+                        <template x-if="searchResults.length">
+                            <div class="space-y-2.5">
+                                <p class="text-[11px] text-amber-300/80"><i class="fas fa-circle-info mr-1"></i> <span x-text="searchDisclaimer"></span></p>
+                                <div class="grid grid-cols-4 gap-2">
+                                    <template x-for="r in searchResults" :key="r.url">
+                                        <button type="button" @click="toggleCandidate(r.url)"
+                                                class="relative aspect-square rounded-lg overflow-hidden bg-white/5 border-2 transition-colors"
+                                                :class="selectedCandidates.includes(r.url) ? 'border-blue-500' : 'border-transparent hover:border-white/20'">
+                                            <img :src="r.thumbnail || r.url" class="w-full h-full object-cover" :alt="r.title || ''" loading="lazy">
+                                            <span class="absolute bottom-0 inset-x-0 bg-black/60 text-white/70 text-[9px] px-1 py-0.5 truncate" x-text="r.source || ''"></span>
+                                            <span x-show="selectedCandidates.includes(r.url)"
+                                                  class="absolute top-1 right-1 w-4 h-4 rounded-full bg-blue-500 text-white text-[9px] flex items-center justify-center"><i class="fas fa-check"></i></span>
+                                        </button>
+                                    </template>
+                                </div>
+                                <button type="button" @click="importSelected()" :disabled="importing || !selectedCandidates.length"
+                                        class="px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/15 disabled:opacity-40 text-white text-xs font-medium">
+                                    <i class="fas mr-1" :class="importing ? 'fa-spinner fa-spin' : 'fa-download'"></i>
+                                    <span x-text="importing ? 'Adding…' : ('Add selected (' + selectedCandidates.length + ')')"></span>
+                                </button>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+                @endif
             </div>
 
             @if(!empty($onBrandAllowed) && $brandKit)
@@ -188,6 +236,86 @@ function aiBiolinkBuilder() {
         docError: '',
         maxImages: {{ $maxImages }},
         maxFiles: {{ $maxFiles }},
+        searchOpen: false,
+        searchQuery: '',
+        searching: false,
+        searchError: '',
+        searchResults: [],
+        searchDisclaimer: '',
+        selectedCandidates: [],
+        importing: false,
+
+        async runImageSearch() {
+            const q = this.searchQuery.trim();
+            if (q.length < 2 || this.searching) return;
+            this.searching = true;
+            this.searchError = '';
+            this.searchResults = [];
+            this.selectedCandidates = [];
+            try {
+                const res = await fetch(@json(route('user.links.ai-builder.image-search', $link)), {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'application/json',
+                    },
+                    body: JSON.stringify({ query: q }),
+                });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok) {
+                    this.searchError = data.message || 'Search failed. Please try again.';
+                    return;
+                }
+                this.searchResults = data.results || [];
+                this.searchDisclaimer = data.disclaimer || '';
+                if (!this.searchResults.length) this.searchError = 'No images found for that search.';
+            } catch (e) {
+                this.searchError = 'Search failed. Please check your connection and try again.';
+            } finally {
+                this.searching = false;
+            }
+        },
+
+        toggleCandidate(url) {
+            const i = this.selectedCandidates.indexOf(url);
+            if (i >= 0) { this.selectedCandidates.splice(i, 1); return; }
+            if (this.selectedCandidates.length >= 6) return;
+            this.selectedCandidates.push(url);
+        },
+
+        async importSelected() {
+            if (!this.selectedCandidates.length || this.importing) return;
+            this.importing = true;
+            this.searchError = '';
+            try {
+                const res = await fetch(@json(route('user.links.ai-builder.import-images', $link)), {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'application/json',
+                    },
+                    body: JSON.stringify({ urls: this.selectedCandidates }),
+                });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok) {
+                    this.searchError = data.message || 'Could not add those images.';
+                    return;
+                }
+                for (const img of (data.images || [])) {
+                    if (this.images.length >= this.maxImages) break;
+                    if (img.url && !this.images.includes(img.url)) this.images.push(img.url);
+                }
+                this.selectedCandidates = [];
+            } catch (e) {
+                this.searchError = 'Could not add those images. Please try again.';
+            } finally {
+                this.importing = false;
+            }
+        },
 
         get cleanLinks() {
             return this.links.map(l => (l || '').trim()).filter(Boolean);

@@ -166,6 +166,22 @@ class IntegrationCatalog
                 ],
             ],
             [
+                'key'   => 'ai-image-search',
+                'label' => 'AI builder image search',
+                'icon'  => 'fas fa-image',
+                'items' => [
+                    [
+                        'key'      => 'google-cse',
+                        'label'    => 'Google image search (Custom Search)',
+                        'desc'     => 'Image suggestions in the AI biolink builder via the Custom Search JSON API. Absent keys ⇒ feature hidden.',
+                        'icon'     => 'fab fa-google',
+                        'status'   => PlatformServiceSettings::googleCseStatus(),
+                        'route'    => route('admin.integrations.google-cse.edit'),
+                        'external' => false,
+                    ],
+                ],
+            ],
+            [
                 'key'   => 'crm-analytics',
                 'label' => 'CRM & Analytics',
                 'icon'  => 'fas fa-plug-circle-bolt',

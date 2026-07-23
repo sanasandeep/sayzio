@@ -12,6 +12,9 @@ use App\Services\AI\AiPlanAccess;
 use App\Services\AI\AiUsageCharger;
 use App\Services\AI\InsufficientCoinsForAiException;
 use App\Services\Biolink\AiBiolinkBuilderService;
+use App\Services\Integrations\GoogleImageSearchService;
+use App\Services\OgMetadataService;
+use App\Modules\User\Models\UserFile;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 
@@ -91,6 +94,7 @@ class AiBiolinkBuilderController extends Controller
             'max_images'      => 25,
             'max_files'       => 15,
             'on_brand_allowed' => $onBrandAllowed,
+            'image_search_enabled' => app(GoogleImageSearchService::class)->enabled(),
             'brand_kit'       => $kit ? [
                 'id'   => (int) $kit->id,
                 'name' => (string) $kit->name,
@@ -193,6 +197,101 @@ class AiBiolinkBuilderController extends Controller
             'balance'       => $this->credits->getBalance($request->user()),
             'link'          => LinkResource::toArray($link->fresh()),
         ]);
+    }
+
+    /**
+     * Google image search (mobile parity with the web builder's picker).
+     * Suggestions only — the creator explicitly picks, nothing is ever
+     * auto-placed. Free of AI credits; 404s in preview mode so the mobile
+     * client hides the feature when no keys are configured.
+     */
+    public function imageSearch(Request $request, int $linkId, GoogleImageSearchService $search)
+    {
+        $link = $this->ownedBiolink($request, $linkId);
+        if (!$link) {
+            return $this->notFound('Link in Bio not found');
+        }
+
+        if (!$search->enabled()) {
+            return $this->fail('Image search is not available.', 404, 'image_search_unavailable');
+        }
+
+        $data = $request->validate([
+            'query' => ['required', 'string', 'min:2', 'max:200'],
+        ]);
+
+        return $this->ok([
+            'results'    => $search->search($data['query'], 8),
+            'disclaimer' => 'Make sure you have the rights to use any image you pick — search results may be copyrighted.',
+        ]);
+    }
+
+    /**
+     * Import chosen candidate images into the caller's vault (SSRF-safe
+     * download via OgMetadataService, context `ai_builder`) and return the
+     * relative vault URLs the mobile intake appends to images[].
+     */
+    public function importImages(Request $request, int $linkId, OgMetadataService $og)
+    {
+        $link = $this->ownedBiolink($request, $linkId);
+        if (!$link) {
+            return $this->notFound('Link in Bio not found');
+        }
+
+        $data = $request->validate([
+            'urls'   => ['required', 'array', 'min:1', 'max:6'],
+            'urls.*' => ['string', 'url', 'max:2048', 'starts_with:http://,https://'],
+        ]);
+
+        $stored = [];
+        $seenHashes = [];
+        foreach (array_values(array_unique($data['urls'])) as $url) {
+            $img = $og->downloadImage($url);
+            if ($img === null) {
+                continue;
+            }
+            $hash = md5($img['bytes']);
+            if (isset($seenHashes[$hash])) {
+                continue;
+            }
+            $seenHashes[$hash] = true;
+
+            try {
+                $file = UserFile::createFromBytes(
+                    $img['bytes'],
+                    'ai-builder-' . substr($hash, 0, 8) . '.' . $this->extensionFor($img['mime']),
+                    $img['mime'],
+                    $request->user(),
+                    ['skip_scan' => true, 'context' => 'ai_builder'],
+                );
+            } catch (\RuntimeException $e) {
+                return $this->fail($e->getMessage(), 422, 'storage_quota');
+            }
+
+            $stored[] = ['url' => $file->url_path, 'source_url' => $url];
+        }
+
+        if ($stored === []) {
+            return $this->fail(
+                'None of the selected images could be downloaded. They may be blocked or too large.',
+                422,
+                'import_failed',
+            );
+        }
+
+        return $this->ok(['images' => $stored]);
+    }
+
+    private function extensionFor(string $mime): string
+    {
+        return match ($mime) {
+            'image/png'  => 'png',
+            'image/gif'  => 'gif',
+            'image/webp' => 'webp',
+            'image/bmp'  => 'bmp',
+            'image/x-icon', 'image/vnd.microsoft.icon' => 'ico',
+            default      => 'jpg',
+        };
     }
 
     /**

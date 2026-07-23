@@ -24,6 +24,9 @@ import {
   estimateAiBuilder,
   generateAiBuilder,
   getAiBuilderIntake,
+  importAiBuilderImages,
+  searchAiBuilderImages,
+  type AiBuilderImageResult,
   type AiBuilderIntake,
   type AiBuilderPayload,
 } from "@/lib/api/aiBuilder";
@@ -51,6 +54,16 @@ export default function AiBuilderScreen() {
   const [useBrandKit, setUseBrandKit] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [estimate, setEstimate] = useState<number | null>(null);
+
+  // Google image search picker (only rendered when the server reports the
+  // admin has configured search keys — preview mode hides it entirely).
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<AiBuilderImageResult[]>(
+    [],
+  );
+  const [searchDisclaimer, setSearchDisclaimer] = useState("");
+  const [selectedCandidates, setSelectedCandidates] = useState<string[]>([]);
 
   const intakeQ = useQuery<AiBuilderIntake>({
     queryKey: ["ai-builder-intake", linkId],
@@ -122,6 +135,51 @@ export default function AiBuilderScreen() {
       );
     },
   });
+
+  const searchM = useMutation({
+    mutationFn: () => searchAiBuilderImages(linkId, searchQuery.trim()),
+    onSuccess: (res) => {
+      setSearchResults(res.results);
+      setSearchDisclaimer(res.disclaimer);
+      setSelectedCandidates([]);
+      if (res.results.length === 0) {
+        showAlert("No images found", "Try a different search.");
+      }
+    },
+    onError: (e: any) => {
+      showAlert("Search failed", e?.message ?? "Please try again.");
+    },
+  });
+
+  const importM = useMutation({
+    mutationFn: () => importAiBuilderImages(linkId, selectedCandidates),
+    onSuccess: (imported) => {
+      setImages((prev) => {
+        const next = [...prev];
+        for (const img of imported) {
+          if (next.length >= (intake?.max_images ?? 25)) break;
+          if (!next.includes(img.url)) next.push(img.url);
+        }
+        return next;
+      });
+      setSelectedCandidates([]);
+      setEstimate(null);
+    },
+    onError: (e: any) => {
+      showAlert(
+        "Couldn't add those images",
+        e?.message ?? "They may be blocked or too large.",
+      );
+    },
+  });
+
+  function toggleCandidate(url: string) {
+    setSelectedCandidates((prev) => {
+      if (prev.includes(url)) return prev.filter((u) => u !== url);
+      if (prev.length >= 6) return prev;
+      return [...prev, url];
+    });
+  }
 
   async function addImage() {
     if ((images.length ?? 0) >= (intake?.max_images ?? 25)) {
@@ -287,6 +345,113 @@ export default function AiBuilderScreen() {
             loading={uploading}
             onPress={addImage}
           />
+
+          {intake.image_search_enabled ? (
+            <View
+              style={[
+                styles.searchBox,
+                { borderColor: colors.border, borderRadius: colors.radius },
+              ]}
+            >
+              <Pressable
+                onPress={() => setSearchOpen((v) => !v)}
+                style={styles.searchToggle}
+              >
+                <Feather name="search" size={14} color={colors.primary} />
+                <Text
+                  style={{
+                    color: colors.foreground,
+                    fontWeight: "600",
+                    fontSize: 13,
+                    flex: 1,
+                  }}
+                >
+                  Search the web for images (free)
+                </Text>
+                <Feather
+                  name={searchOpen ? "chevron-up" : "chevron-down"}
+                  size={16}
+                  color={colors.mutedForeground}
+                />
+              </Pressable>
+
+              {searchOpen ? (
+                <View style={{ gap: 10 }}>
+                  <TextField
+                    placeholder="e.g. minimalist fitness logo"
+                    value={searchQuery}
+                    onChangeText={setSearchQuery}
+                    autoCapitalize="none"
+                    returnKeyType="search"
+                    onSubmitEditing={() => {
+                      if (searchQuery.trim().length >= 2) searchM.mutate();
+                    }}
+                  />
+                  <Button
+                    label={searchM.isPending ? "Searching…" : "Search"}
+                    variant="ghost"
+                    loading={searchM.isPending}
+                    disabled={searchQuery.trim().length < 2}
+                    onPress={() => searchM.mutate()}
+                  />
+                  {searchResults.length > 0 ? (
+                    <>
+                      <Text
+                        style={{ color: colors.mutedForeground, fontSize: 11 }}
+                      >
+                        {searchDisclaimer}
+                      </Text>
+                      <View style={styles.imageRow}>
+                        {searchResults.map((r) => {
+                          const selected = selectedCandidates.includes(r.url);
+                          return (
+                            <Pressable
+                              key={r.url}
+                              onPress={() => toggleCandidate(r.url)}
+                              style={[
+                                styles.thumbWrap,
+                                selected && {
+                                  borderWidth: 2,
+                                  borderColor: colors.primary,
+                                  borderRadius: 10,
+                                },
+                              ]}
+                            >
+                              <Image
+                                source={{ uri: r.thumbnail ?? r.url }}
+                                style={styles.thumb}
+                              />
+                              {selected ? (
+                                <View
+                                  style={[
+                                    styles.thumbRemove,
+                                    { backgroundColor: colors.primary },
+                                  ]}
+                                >
+                                  <Feather name="check" size={12} color="#fff" />
+                                </View>
+                              ) : null}
+                            </Pressable>
+                          );
+                        })}
+                      </View>
+                      <Button
+                        label={
+                          importM.isPending
+                            ? "Adding…"
+                            : `Add selected (${selectedCandidates.length})`
+                        }
+                        variant="ghost"
+                        loading={importM.isPending}
+                        disabled={selectedCandidates.length === 0}
+                        onPress={() => importM.mutate()}
+                      />
+                    </>
+                  ) : null}
+                </View>
+              ) : null}
+            </View>
+          ) : null}
         </View>
 
         <TextField
@@ -391,6 +556,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+  searchBox: { borderWidth: 1, padding: 12, gap: 10 },
+  searchToggle: { flexDirection: "row", alignItems: "center", gap: 8 },
   brandRow: {
     flexDirection: "row",
     alignItems: "center",
