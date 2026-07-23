@@ -133,6 +133,70 @@ class BiolinkPageSettingsUrlSanitizerTest extends TestCase
         $this->assertArrayNotHasKey('icon_512', $favicons);
     }
 
+    #[\PHPUnit\Framework\Attributes\DataProvider('unsafeUrls')]
+    public function test_unsafe_video_url_is_blanked(string $bad): void
+    {
+        $u = $this->user();
+        $link = $this->biolink($u);
+
+        $resp = $this->postSettings($u, $link, [
+            'background_type' => 'video',
+            'video_url'       => $bad,
+        ]);
+        $resp->assertSessionMissing('error');
+
+        $bio = $link->refresh()->settings['biolink'] ?? [];
+        $this->assertSame('', $bio['video_url'] ?? null, 'video_url must be blanked — it renders as <source src> on the public page');
+    }
+
+    #[\PHPUnit\Framework\Attributes\DataProvider('unsafeUrls')]
+    public function test_unsafe_manifest_start_url_is_dropped(string $bad): void
+    {
+        $u = $this->user();
+        $link = $this->biolink($u);
+
+        $resp = $this->postSettings($u, $link, [
+            'manifest' => ['enabled' => '1', 'name' => 'My PWA', 'start_url' => $bad],
+        ]);
+        $resp->assertSessionMissing('error');
+
+        $manifest = $link->refresh()->settings['biolink']['manifest'] ?? [];
+        $this->assertNull($manifest['start_url'] ?? null, 'unsafe start_url must be dropped so the manifest falls back to the biolink URL');
+        $this->assertSame('My PWA', $manifest['name'] ?? null);
+    }
+
+    public function test_javascript_scheme_manifest_start_url_is_dropped(): void
+    {
+        $u = $this->user();
+        $link = $this->biolink($u);
+
+        $this->postSettings($u, $link, [
+            'manifest' => ['enabled' => '1', 'start_url' => 'javascript:alert(1)'],
+        ])->assertSessionMissing('error');
+
+        $this->assertNull($link->refresh()->settings['biolink']['manifest']['start_url'] ?? null);
+    }
+
+    public function test_safe_video_and_start_urls_round_trip(): void
+    {
+        $u = $this->user();
+        $link = $this->biolink($u);
+
+        $this->postSettings($u, $link, [
+            'background_type' => 'video',
+            'video_url'       => 'https://cdn.example.com/bg.mp4',
+            'manifest'        => ['enabled' => '1', 'start_url' => '/my-page'],
+        ])->assertSessionMissing('error');
+
+        $bio = $link->refresh()->settings['biolink'] ?? [];
+        $this->assertSame('https://cdn.example.com/bg.mp4', $bio['video_url'] ?? null);
+        $this->assertSame('/my-page', $bio['manifest']['start_url'] ?? null);
+
+        // Vault video paths are also allowed.
+        $this->postSettings($u, $link, ['video_url' => '/f/123/clip.webm'])->assertSessionMissing('error');
+        $this->assertSame('/f/123/clip.webm', $link->refresh()->settings['biolink']['video_url'] ?? null);
+    }
+
     public function test_safe_https_and_vault_urls_round_trip_unchanged(): void
     {
         $u = $this->user();
