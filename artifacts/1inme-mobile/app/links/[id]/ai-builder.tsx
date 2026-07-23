@@ -428,12 +428,12 @@ export default function AiBuilderScreen() {
           </Text>
           {images.length > 0 ? (
             <View style={styles.imageRow}>
-              {images.map((url) => (
+              {images.map((url, index) => (
                 <View key={url} style={styles.thumbWrap}>
                   <Image source={{ uri: url }} style={styles.thumb} />
                   <Pressable
                     onPress={() => removeImage(url)}
-                    testID="ai-builder-remove-upload"
+                    testID={`ai-builder-remove-upload-${index}`}
                     style={[
                       styles.thumbRemove,
                       { backgroundColor: colors.destructive },

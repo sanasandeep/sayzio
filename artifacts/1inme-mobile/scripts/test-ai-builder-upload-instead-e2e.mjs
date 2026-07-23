@@ -274,7 +274,7 @@ async function run(appUrl) {
     // 5. Removing the only upload (the "x" on the thumbnail) brings the
     //    preview box back so the creator can return to extracted/generated
     //    images.
-    await page.getByTestId("ai-builder-remove-upload").click();
+    await page.getByTestId("ai-builder-remove-upload-0").click();
     await previewCopy.waitFor({ state: "visible" });
     await page
       .getByText("Upload instead", { exact: true })
@@ -355,7 +355,9 @@ async function run(appUrl) {
     await waitForUploadCount(3, "third upload (multi phase)");
     const THIRD_URL = uploadedUrl(3);
     await page.waitForFunction(urlRenderedPredicate(), THIRD_URL);
-    const removeButtons = page.getByTestId("ai-builder-remove-upload");
+    const removeButtons = page.locator(
+      '[data-testid^="ai-builder-remove-upload-"]',
+    );
     if ((await removeButtons.count()) !== 2) {
       fail(
         `expected 2 upload thumbnails in the multi phase, got ${await removeButtons.count()}`,
@@ -363,9 +365,12 @@ async function run(appUrl) {
     }
     log("two uploads attached — both thumbnails render");
 
-    // Remove ONE of the two uploads…
-    await removeButtons.first().click();
-    // …its thumbnail leaves…
+    // Remove the SECOND thumbnail specifically (index 1 = THIRD_URL, since
+    // uploads render in insertion order). This proves removeImage targets the
+    // tapped item: a regression that always drops the first/any item would
+    // keep the count right but delete the WRONG photo.
+    await page.getByTestId("ai-builder-remove-upload-1").click();
+    // …exactly that photo's thumbnail leaves…
     await page.waitForFunction((url) => {
       const abs = new URL(url, window.location.origin).href;
       for (const img of document.querySelectorAll("img")) {
@@ -375,10 +380,12 @@ async function run(appUrl) {
         if ((el.style.backgroundImage || "").includes(url)) return false;
       }
       return true;
-    }, SECOND_URL);
-    // …the OTHER thumbnail stays…
-    if (!(await page.evaluate(urlRenderedPredicate(), THIRD_URL))) {
-      fail("remaining upload thumbnail vanished after removing its sibling");
+    }, THIRD_URL);
+    // …the FIRST thumbnail stays…
+    if (!(await page.evaluate(urlRenderedPredicate(), SECOND_URL))) {
+      fail(
+        "tapping the SECOND thumbnail's x removed the FIRST photo (wrong item deleted)",
+      );
     }
     if ((await removeButtons.count()) !== 1) {
       fail("expected exactly 1 remaining upload thumbnail after removing one");
