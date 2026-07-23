@@ -726,7 +726,7 @@ function shapePicker({ kind, groups }) {
         },
         thumb(id) {
             if (!window.QrStudio) return '';
-            const fg = (this.$root && this.$root.design && this.$root.design.fg_color) || '#0f172a';
+            const fg = (this.design && this.design.fg_color) || '#0f172a';
             if (this.kind === 'dot')   return window.QrStudio.thumbDot(id, fg);
             if (this.kind === 'outer') return window.QrStudio.thumbOuter(id, fg);
             if (this.kind === 'inner') return window.QrStudio.thumbInner(id, fg);
@@ -737,10 +737,10 @@ function shapePicker({ kind, groups }) {
 function templatesPicker({ presets }) {
     return {
         presets,
-        get activeId() { return (this.$root && this.$root.lastPresetId) || null; },
+        get activeId() { return this.lastPresetId || null; },
         apply(preset) {
-            if (this.$root && typeof this.$root.applyPreset === 'function') {
-                this.$root.applyPreset(preset);
+            if (typeof this.applyPreset === 'function') {
+                this.applyPreset(preset);
             }
         },
         renderThumbs() {

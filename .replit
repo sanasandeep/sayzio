@@ -500,6 +500,10 @@ args = "admin-light-mode-text"
 task = "workflow.run"
 args = "lm-visual-verify"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-qr-template-apply"
+
 [[workflows.workflow]]
 name = "e2e"
 author = "agent"
@@ -2018,6 +2022,17 @@ args = "cd artifacts/1inme && node lm-verify.mjs"
 
 [workflows.workflow.metadata]
 isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-qr-template-apply"
+author = "agent"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd artifacts/1inme && bash tests/Browser/run-validation.sh qr-template-apply.spec.ts"
 
 
   [agent]
