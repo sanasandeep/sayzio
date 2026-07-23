@@ -516,6 +516,10 @@ args = "showcase-rollup"
 task = "workflow.run"
 args = "showcase-analytics-only"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "dialer-2fa-e2e"
+
 [[workflows.workflow]]
 name = "e2e"
 author = "agent"
@@ -2075,6 +2079,17 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "cd artifacts/1inme && php artisan showcase:seed --analytics-only"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "dialer-2fa-e2e"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd sayzio-dialer-standalone && node scripts/test-2fa-login-e2e.mjs"
 
 [workflows.workflow.metadata]
 isValidation = true

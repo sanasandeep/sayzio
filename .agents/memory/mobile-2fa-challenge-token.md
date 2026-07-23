@@ -11,3 +11,5 @@ TOTP-enrolled accounts no longer dead-end on mobile: every API login path (OTP v
 - Adding a NEW login path? It must catch `totp_required` and route to the verify screen with `challenge_token` — the native-Google catch was the one everyone forgets (it bypasses oauth-callback).
 - Rate limiting: the challenge endpoints use the dedicated `twofactor-verify` limiter (keyed sha1(challenge_token)+IP). Do NOT reuse `otp-verify` — it keys on an `identifier` input this endpoint doesn't have, collapsing to one shared global bucket.
 - Errors: wrong code → 400 `invalid_2fa_code`; bad/expired token → 410 `challenge_expired`; recovery codes are single-use.
+
+**Old-APK symptom:** "asks for 2FA but never shows the 2FA page" = the installed APK predates the totp_required catch (inline error shows the backend 2FA message, no navigation). Current source verified end-to-end via `sayzio-dialer-standalone/scripts/test-2fa-login-e2e.mjs` (Expo web + mock API + Playwright; also proves the base64 challenge_token round-trips router params intact). Run it via the `dialer-2fa-e2e` validation command — plain bash reaps the Expo tree.
