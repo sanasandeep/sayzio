@@ -315,3 +315,143 @@ test("upload instead replaces the extracted/generated preview flow", async ({
     page.getByRole("button", { name: /Upload instead/i }),
   ).toBeVisible();
 });
+
+/**
+ * Failure path: when /user/files/upload rejects (quota exceeded, oversized
+ * file, …) the intake must not strand the creator. The inline uploadError
+ * message renders, the auto-sourced preview panel stays visible (no upload
+ * landed, so images.length is still 0), and the button flips back from
+ * "Uploading…" to "Upload instead" (uploading flag reset in finally) so a
+ * retry is possible — and the retry succeeds.
+ */
+test("failed upload shows the inline error, keeps the preview panel and allows a retry", async ({
+  page,
+}) => {
+  test.setTimeout(180_000);
+
+  await page.route("**/ai-builder/source-preview", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ extracted: EXTRACTED, generation: GENERATION }),
+    });
+  });
+
+  const QUOTA_ERROR =
+    "Storage quota exceeded. Delete some files or upgrade your plan.";
+  let uploadCount = 0;
+  await page.route("**/user/files/upload", async (route) => {
+    uploadCount += 1;
+    if (uploadCount === 1) {
+      // First attempt fails the way FileController does: 422 envelope with
+      // success:false and a human error message.
+      await route.fulfill({
+        status: 422,
+        contentType: "application/json",
+        body: JSON.stringify({ success: false, error: QUOTA_ERROR }),
+      });
+      return;
+    }
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        success: true,
+        file: { url: UPLOADED_URL, name: "e2e-upload-instead.png" },
+      }),
+    });
+  });
+
+  await page.goto(`/user/links/${ids.linkId}/ai-builder`, {
+    waitUntil: "domcontentloaded",
+    timeout: 90_000,
+  });
+
+  await page
+    .locator('textarea[maxlength="4000"]')
+    .fill(DESCRIPTION, { timeout: 30_000 });
+  await page.locator('input[type="url"]').first().fill(SOURCE_LINK);
+
+  // Paint the extracted preview so we can prove the panel survives the
+  // failed upload.
+  const previewBtn = page.getByRole("button", { name: /Preview images/i });
+  await expect(previewBtn).toBeVisible({ timeout: 30_000 });
+  const previewResponse = page.waitForResponse(
+    (r) => r.url().includes("/ai-builder/source-preview"),
+    { timeout: 30_000 },
+  );
+  await previewBtn.click();
+  await previewResponse;
+
+  const thumbA = page.locator(`button:has(img[src="${EXTRACTED[0]}"])`);
+  const thumbB = page.locator(`button:has(img[src="${EXTRACTED[1]}"])`);
+  await expect(thumbA).toBeVisible({ timeout: 15_000 });
+  await expect(thumbB).toBeVisible();
+
+  const uploadInsteadBtn = page.getByRole("button", {
+    name: /Upload instead/i,
+  });
+  await expect(uploadInsteadBtn).toBeVisible();
+
+  // Attempt 1: the stub rejects with 422.
+  const chooser1Promise = page.waitForEvent("filechooser", {
+    timeout: 15_000,
+  });
+  const failedUpload = page.waitForResponse(
+    (r) => r.url().includes("/user/files/upload"),
+    { timeout: 30_000 },
+  );
+  await uploadInsteadBtn.click();
+  const chooser1 = await chooser1Promise;
+  await chooser1.setFiles({
+    name: "e2e-upload-fail.png",
+    mimeType: "image/png",
+    buffer: PNG_BYTES,
+  });
+  await failedUpload;
+  expect(uploadCount).toBe(1);
+
+  // The server's error message renders inline.
+  await expect(page.getByText(QUOTA_ERROR)).toBeVisible({ timeout: 15_000 });
+
+  // Nothing landed in the uploads grid, so the auto-sourced preview panel
+  // stays fully visible — the creator is not stranded.
+  await expect(page.locator(`img[src="${UPLOADED_URL}"]`)).toHaveCount(0);
+  await expect(thumbA).toBeVisible();
+  await expect(thumbB).toBeVisible();
+
+  // The uploading flag reset: the button reads "Upload instead" again (not
+  // stuck on "Uploading…") and is clickable for a retry.
+  await expect(uploadInsteadBtn).toBeVisible();
+  await expect(uploadInsteadBtn).toContainText("Upload instead");
+  await expect(uploadInsteadBtn).toBeEnabled();
+  await expect(page.getByText("Uploading…")).toBeHidden();
+
+  // Attempt 2: retry through the same button succeeds.
+  const chooser2Promise = page.waitForEvent("filechooser", {
+    timeout: 15_000,
+  });
+  const retryUpload = page.waitForResponse(
+    (r) => r.url().includes("/user/files/upload"),
+    { timeout: 30_000 },
+  );
+  await uploadInsteadBtn.click();
+  const chooser2 = await chooser2Promise;
+  await chooser2.setFiles({
+    name: "e2e-upload-instead.png",
+    mimeType: "image/png",
+    buffer: PNG_BYTES,
+  });
+  await retryUpload;
+  expect(uploadCount).toBe(2);
+
+  // The retry wins: uploaded thumb shows, the error clears (handleFiles
+  // resets uploadError at the top) and the preview panel hides as usual.
+  await expect(page.locator(`img[src="${UPLOADED_URL}"]`)).toBeVisible({
+    timeout: 15_000,
+  });
+  await expect(page.getByText(QUOTA_ERROR)).toBeHidden();
+  await expect(thumbA).toBeHidden();
+  await expect(thumbB).toBeHidden();
+  await expect(uploadInsteadBtn).toBeHidden();
+});
