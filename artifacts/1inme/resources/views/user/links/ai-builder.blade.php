@@ -305,6 +305,7 @@ function aiBiolinkBuilder() {
         maxImages: {{ $maxImages }},
         maxFiles: {{ $maxFiles }},
         searchAvailable: true,
+        searchRechecking: false,
         searchOpen: false,
         searchQuery: '',
         searching: false,
@@ -313,6 +314,36 @@ function aiBiolinkBuilder() {
         searchDisclaimer: '',
         selectedCandidates: [],
         importing: false,
+
+        init() {
+            // Inverse of the mid-session collapse: while the picker is hidden
+            // (admin removed the CSE keys), a lightweight recheck on window
+            // focus lets it reappear without a full page reload once the
+            // keys are re-added.
+            window.addEventListener('focus', () => this.recheckSearchAvailability());
+        },
+
+        async recheckSearchAvailability() {
+            if (this.searchAvailable || this.searchRechecking) return;
+            this.searchRechecking = true;
+            try {
+                const res = await fetch(@json(route('user.links.ai-builder.image-search.availability', $link)), {
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                });
+                const data = await res.json().catch(() => ({}));
+                if (res.ok && data.enabled) {
+                    this.searchAvailable = true;
+                    this.searchError = '';
+                }
+            } catch (e) {
+                // Network hiccup — the next focus will retry.
+            } finally {
+                this.searchRechecking = false;
+            }
+        },
 
         async runImageSearch() {
             const q = this.searchQuery.trim();

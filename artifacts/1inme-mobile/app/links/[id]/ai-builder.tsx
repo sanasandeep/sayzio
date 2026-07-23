@@ -1,8 +1,13 @@
 import { Feather } from "@expo/vector-icons";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { Stack, useLocalSearchParams, useRouter } from "expo-router";
+import {
+  Stack,
+  useFocusEffect,
+  useLocalSearchParams,
+  useRouter,
+} from "expo-router";
 import * as ImagePicker from "expo-image-picker";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Image,
@@ -91,6 +96,22 @@ export default function AiBuilderScreen() {
   });
 
   const intake = intakeQ.data;
+
+  // Inverse of the mid-session collapse: when a refetched intake reports the
+  // admin re-added the search keys (`image_search_enabled: true` again), the
+  // picker reappears without a remount.
+  useEffect(() => {
+    if (intake?.image_search_enabled) setSearchUnavailable(false);
+  }, [intake?.image_search_enabled]);
+
+  // While the picker is collapsed as unavailable, a light refetch on screen
+  // focus picks up the admin re-enabling search without a remount.
+  useFocusEffect(
+    useCallback(() => {
+      if (searchUnavailable) intakeQ.refetch();
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [searchUnavailable]),
+  );
 
   // Default the On-Brand toggle to on whenever it's available.
   useEffect(() => {

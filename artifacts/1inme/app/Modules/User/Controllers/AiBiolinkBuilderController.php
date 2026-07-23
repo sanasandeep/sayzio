@@ -179,6 +179,19 @@ class AiBiolinkBuilderController extends Controller
     }
 
     /**
+     * Lightweight availability recheck for the image-search picker: the
+     * intake page polls this on window focus while the picker is collapsed
+     * (admin removed the CSE keys mid-session) so it can reappear without a
+     * full page reload once the keys are re-added.
+     */
+    public function imageSearchAvailability(Request $request, Link $link, GoogleImageSearchService $search): JsonResponse
+    {
+        $this->authorizeLink($link);
+
+        return response()->json(['enabled' => $search->enabled()]);
+    }
+
+    /**
      * Google image search: candidate suggestions the creator explicitly
      * picks from (rights disclaimer shown client-side; nothing is ever
      * auto-placed). Free of AI credits; the route carries a throttle and

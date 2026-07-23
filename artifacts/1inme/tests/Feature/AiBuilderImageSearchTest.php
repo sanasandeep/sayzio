@@ -127,6 +127,39 @@ class AiBuilderImageSearchTest extends TestCase
         $this->flushHeaders();
     }
 
+    // ── Availability recheck: focus-poll endpoint (Task #5753) ─────────
+
+    public function test_availability_endpoint_reflects_cse_config(): void
+    {
+        $user = $this->makeUser();
+        $link = $this->biolink($user);
+
+        $this->actingAs($user)
+            ->getJson(route('user.links.ai-builder.image-search.availability', $link))
+            ->assertOk()
+            ->assertJsonPath('enabled', false);
+
+        $this->enableCse();
+
+        $this->actingAs($user)
+            ->getJson(route('user.links.ai-builder.image-search.availability', $link))
+            ->assertOk()
+            ->assertJsonPath('enabled', true);
+    }
+
+    public function test_availability_endpoint_denies_foreign_links(): void
+    {
+        $owner = $this->makeUser();
+        $link = $this->biolink($owner);
+        $other = $this->makeUser();
+
+        // Denied before the controller runs: the workspace.can middleware
+        // 403s a caller with no rights on the owning workspace.
+        $this->actingAs($other)
+            ->getJson(route('user.links.ai-builder.image-search.availability', $link))
+            ->assertStatus(403);
+    }
+
     // ── Search proxy: results + disclaimer, service shape ──────────────
 
     public function test_web_search_returns_candidates_with_disclaimer(): void
