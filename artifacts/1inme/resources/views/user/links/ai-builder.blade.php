@@ -190,6 +190,16 @@
                     <template x-if="previewed && !extractedImgs.length && (!genInfo || !genInfo.enabled)">
                         <p class="text-xs text-white/40 mt-2">No images found on your links — your page will be built without images.</p>
                     </template>
+
+                    {{-- Inline upload (Task #5735): replace the auto-sourced flow right here --}}
+                    <div class="mt-3 pt-3 border-t border-white/10 flex items-center justify-between gap-2">
+                        <p class="text-xs text-white/40">Don't like these? Upload your own instead — uploads replace the extracted and generated images.</p>
+                        <button type="button" @click="$refs.fileInput.click()" :disabled="uploading"
+                                class="text-xs px-3 py-1.5 rounded-lg border border-blue-500/40 text-blue-300 hover:text-blue-200 hover:border-blue-400/60 disabled:opacity-40 transition-colors whitespace-nowrap">
+                            <i class="fas mr-1" :class="uploading ? 'fa-spinner fa-spin' : 'fa-cloud-upload-alt'"></i>
+                            <span x-text="uploading ? 'Uploading…' : 'Upload instead'"></span>
+                        </button>
+                    </div>
                 </div>
             </div>
 

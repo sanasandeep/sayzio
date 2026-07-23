@@ -663,6 +663,27 @@ export default function AiBuilderScreen() {
                 images.
               </Text>
             ) : null}
+
+            {/* Inline upload (Task #5735): replace the auto-sourced flow right here */}
+            <View
+              style={{
+                borderTopWidth: StyleSheet.hairlineWidth,
+                borderTopColor: colors.border,
+                paddingTop: 10,
+                gap: 8,
+              }}
+            >
+              <Text style={{ fontSize: 12, color: colors.mutedForeground }}>
+                Don't like these? Upload your own instead — uploads replace the
+                extracted and generated images.
+              </Text>
+              <Button
+                label={uploading ? "Uploading…" : "Upload instead"}
+                variant="ghost"
+                loading={uploading}
+                onPress={addImage}
+              />
+            </View>
           </View>
         ) : null}
 
