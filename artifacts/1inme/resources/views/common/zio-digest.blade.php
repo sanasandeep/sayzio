@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    @php($pageTitle = $digest->title . ' — ' . config('app.name'))
+    @php($pageTitle = $digest->title . ' · ' . config('app.name'))
     @php($shareDescription = trim((string) ($digest->summary ?: ('A digest from ' . config('app.name')))))
     <title>{{ $pageTitle }}</title>
     <meta name="description" content="{{ \Illuminate\Support\Str::limit($shareDescription, 160) }}">
@@ -108,11 +108,11 @@
 <body class="zio-digest-page">
     <div class="zd-wrap">
         <div class="zd-brand">
-            <span class="zd-brand-chip"><img src="{{ $zdLogoUrl }}" alt="Zio Digest — Your Daily Dose of Smart Reads"></span>
+            <span class="zd-brand-chip"><img src="{{ $zdLogoUrl }}" alt="Zio Digest: Your Daily Dose of Smart Reads"></span>
         </div>
         @if(!empty($isPreview))
             <div class="zd-preview-banner">
-                <i class="fas fa-eye"></i> Admin preview — {{ $digest->isPublished() ? 'this digest is live.' : 'this digest is a draft and hidden from the public.' }}
+                <i class="fas fa-eye"></i> Admin preview: {{ $digest->isPublished() ? 'this digest is live.' : 'this digest is a draft and hidden from the public.' }}
                 <button type="button" class="zd-theme-toggle" id="zdThemeToggle" aria-pressed="false">
                     <i class="fas fa-moon" aria-hidden="true"></i>
                     <span>Dark</span>

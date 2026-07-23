@@ -229,7 +229,7 @@ export default function CreatorSettingsScreen() {
       <ScrollView contentContainerStyle={{ padding: 20, gap: 14, paddingBottom: 40 }}>
         {!q.data.handle ? (
           <Text style={[styles.hint, { color: colors.mutedForeground }]}>
-            Claim a handle in Edit profile first — your public page lives at
+            Claim a handle in Edit profile first. Your public page lives at
             /@handle.
           </Text>
         ) : null}

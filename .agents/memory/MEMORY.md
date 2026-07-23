@@ -151,4 +151,6 @@
 - [Block defaults blank content](block-defaults-blank-content.md) — explicit ''/[] overrides are real blanks (array_replace), start_blank blanks non-structural keys, `_placeholder` recomputed; JSON textarea is the ONLY submitted content field.
 - [Admin light-mode text guard (ratchet)](admin-light-mode-text-guard.md) — check:admin-light-mode-text enforces ak-* pairing on admin blades; new files must be clean, baselined files only shrink.
 - [Admin settings light-mode ak-* classes](admin-light-mode-ak-classes.md) — shared ak-* helpers in the admin layout; ternary/match-arm/inputClass/JS strings need manual handling; never ak-strong on solid buttons.
+- [Playwright PDF layout vs viewport](playwright-pdf-viewport-fit.md) — measurements feeding pg.pdf() need viewport = physical page px; default viewport gives different flex heights (cropped print art).
 - [PHP empty array → JS array in @js()](php-empty-array-js-object.md) — Alpine keyed maps seeded from PHP [] serialize as JS arrays; JSON.stringify drops string keys — cast (object).
+- [zbar QR verification render DPI](zbar-decode-render-dpi.md) — zbarimg fails on large rasters; verify print QRs at ~100dpi-per-piece renders; ImageMagick PDF page sizing broken, use Playwright pdf.
