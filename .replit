@@ -548,6 +548,10 @@ args = "e2e-ai-builder-upload-instead"
 task = "workflow.run"
 args = "test-slide-bg-url-sanitizer"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-mobile-ai-upload-instead"
+
 [[workflows.workflow]]
 name = "e2e"
 author = "agent"
@@ -2195,6 +2199,17 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "TEST_LOCAL_MODE=artisan bash artifacts/1inme/scripts/test-local.sh --filter=SlideDeckBackgroundUrlSanitizerTest"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-mobile-ai-upload-instead"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/1inme-mobile run test:ai-builder-upload-instead-e2e"
 
 [workflows.workflow.metadata]
 isValidation = true
