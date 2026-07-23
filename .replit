@@ -524,6 +524,10 @@ args = "dialer-2fa-e2e"
 task = "workflow.run"
 args = "ai-image-sourcing-test"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-ai-builder-image-search"
+
 [[workflows.workflow]]
 name = "e2e"
 author = "agent"
@@ -2108,6 +2112,17 @@ isValidation = true
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "cd artifacts/1inme && TEST_LOCAL_MODE=artisan bash scripts/test-local.sh --filter=AiBiolinkBuilderTest"
+
+[[workflows.workflow]]
+name = "e2e-ai-builder-image-search"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "bash artifacts/1inme/tests/Browser/run-validation.sh ai-builder-image-search.spec.ts"
+
+[workflows.workflow.metadata]
+isValidation = true
 
 
   [agent]
