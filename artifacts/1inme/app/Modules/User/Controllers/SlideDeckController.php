@@ -202,6 +202,28 @@ class SlideDeckController extends Controller
             $data['slides'][$i]['block_ids'] = array_values(array_intersect(
                 array_map('intval', $ids), $allowedBlockIds,
             ));
+
+            // Background media URLs render on the public slides page as
+            // <source src> / background-image:url() / <img src>, so they must
+            // pass the same sanitizer as biolink block URLs (https?://
+            // absolute or /f/... vault paths only). Unsafe values
+            // (javascript:, //evil.com, backslash smuggling) are blanked; a
+            // blanked url makes the renderer fall back to a plain color.
+            $bgc = $row['background'] ?? null;
+            if (is_array($bgc)) {
+                foreach (['image_url', 'video_url'] as $f) {
+                    if (isset($bgc[$f]) && $bgc[$f] !== '') {
+                        $bgc[$f] = BiolinkBlockController::sanitizeUrl(trim((string) $bgc[$f]));
+                    }
+                }
+                if (isset($bgc['images']) && is_array($bgc['images'])) {
+                    $bgc['images'] = array_values(array_filter(array_map(
+                        fn ($u) => BiolinkBlockController::sanitizeUrl(trim((string) $u)),
+                        $bgc['images'],
+                    )));
+                }
+                $data['slides'][$i]['background'] = $bgc;
+            }
         }
 
         DB::transaction(function () use ($deck, $data, $link) {

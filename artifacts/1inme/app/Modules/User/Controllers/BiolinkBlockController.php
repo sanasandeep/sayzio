@@ -1554,7 +1554,10 @@ class BiolinkBlockController extends Controller
         return $result;
     }
 
-    private function sanitizeUrl(?string $url): string
+    // Public + static so sibling save paths that persist user URLs rendered
+    // on public pages (e.g. SlideDeckController slide backgrounds) reuse the
+    // exact same rules instead of drifting with their own copy.
+    public static function sanitizeUrl(?string $url): string
     {
         if (empty($url)) return '';
         if (preg_match('/^https?:\/\//i', $url)) return $url;
