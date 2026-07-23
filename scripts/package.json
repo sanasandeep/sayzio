@@ -42,7 +42,8 @@
     "test": "vitest run",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "check:unbalanced-parens": "tsx ./src/check-unbalanced-parens.ts",
-    "print:sheets": "tsx ./src/print-collateral/sheets.ts"
+    "print:sheets": "tsx ./src/print-collateral/sheets.ts",
+    "print:booklet": "tsx ./src/print-collateral/booklet.ts"
   },
   "devDependencies": {
     "@types/node": "catalog:",

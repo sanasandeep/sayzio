@@ -1535,3 +1535,27 @@ id = "3PkMckH_0iyY10z7Kbuh8"
 uri = "file://.local/print-out/sayzio-boards-a3-sheet-3.pdf"
 type = "pdf"
 title = "4-up A3 sheet 3 (boards 9-12)"
+
+[[outputs]]
+id = "1gO63rErKBNpY5Wqhsocq"
+uri = "file://.local/print-out/booklet/sayzio-booklet-print-pack.zip"
+type = "unspecified"
+title = "Sayzio booklet — full print pack (zip)"
+
+[[outputs]]
+id = "GzTswv5OB4o-v4Vs0_eTm"
+uri = "file://.local/print-out/booklet/sayzio-booklet-imposed-a3.pdf"
+type = "pdf"
+title = "Imposed A3 PDF — hand this to the printer"
+
+[[outputs]]
+id = "ueXXVVCqQVf9xk72CLMm-"
+uri = "file://.local/print-out/booklet/sayzio-booklet-reader.pdf"
+type = "pdf"
+title = "Reader PDF — pages 1–16 for proofing"
+
+[[outputs]]
+id = "uVrEtwdY9Q0otl8SfXI7h"
+uri = "file://.local/print-out/booklet/README-booklet.md"
+type = "text"
+title = "Print spec (README)"

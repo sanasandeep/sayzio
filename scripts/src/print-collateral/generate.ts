@@ -21,7 +21,7 @@ const OUT = path.join(ROOT, ".local/print-out");
 const BRANDING = path.join(ROOT, "artifacts/1inme/public/branding");
 const FONTS = path.join(import.meta.dirname, "assets/fonts");
 
-const BLEED = 3; // mm each side
+export const BLEED = 3; // mm each side
 
 // ---------- assets ----------
 const b64 = (p: string) => readFileSync(p).toString("base64");
@@ -30,8 +30,8 @@ const jpg = (p: string) => `data:image/jpeg;base64,${b64(p)}`;
 const font = (f: string) => `data:font/ttf;base64,${b64(path.join(FONTS, f))}`;
 
 const ATTACHED = path.join(ROOT, "attached_assets");
-const PHOTOS = path.join(import.meta.dirname, "assets/photos");
-const ASSET = {
+export const PHOTOS = path.join(import.meta.dirname, "assets/photos");
+export const ASSET = {
   mark: png(path.join(ATTACHED, "icon_1784787352733.png")),
   logo: png(path.join(ATTACHED, "logo_white_1784787374729.png")),
   mascot: png(path.join(ATTACHED, "icon_1784787352733.png")),
@@ -50,7 +50,7 @@ const PHOTO = {
 // ---------- QR ----------
 // Designer QR: brand-gradient modules on white (EC level H tolerates the
 // centre logo badge that .qr-card::after overlays in CSS).
-async function qrSvg(url: string): Promise<string> {
+export async function qrSvg(url: string): Promise<string> {
   const darkKey = "#0a0f22";
   let svg = await QRCode.toString(url, {
     type: "svg",
@@ -71,7 +71,7 @@ async function qrSvg(url: string): Promise<string> {
 }
 
 // QR destinations: all live pages.
-const QR_URLS = {
+export const QR_URLS = {
   home: "https://sayzio.app/",
   pricing: "https://sayzio.app/pricing",
   demos: "https://sayzio.app/demos",
@@ -79,7 +79,7 @@ const QR_URLS = {
 };
 
 // Contact details (visiting card + footers)
-const CONTACT = {
+export const CONTACT = {
   founder: "Sana Sandeep",
   phone: "+91 70134 06816",
   email: "support@sayzio.app",
@@ -87,7 +87,7 @@ const CONTACT = {
 };
 
 // ---------- shared CSS ----------
-const BASE_CSS = `
+export const BASE_CSS = `
 @font-face { font-family:'Space Grotesk'; font-weight:300; src:url(${font("SpaceGrotesk-Light.ttf")}) format('truetype'); }
 @font-face { font-family:'Space Grotesk'; font-weight:400; src:url(${font("SpaceGrotesk-Regular.ttf")}) format('truetype'); }
 @font-face { font-family:'Space Grotesk'; font-weight:500; src:url(${font("SpaceGrotesk-Medium.ttf")}) format('truetype'); }
@@ -174,11 +174,11 @@ body{font-family:'Space Grotesk',sans-serif;color:var(--ink);background:var(--bg
 
 /* ================= CSS artwork components =================
  * Each returns a full-bleed .art tile. Scale with fontMm. */
-const art = (fontMm: number, inner: string) =>
+export const art = (fontMm: number, inner: string) =>
   `<div class="art" style="font-size:${fontMm}mm;"><div class="art-tex"></div><div class="art-fit">${inner}</div></div>`;
 
 /** AI chat conversation inside a phone frame. */
-const artChat = (fontMm: number) =>
+export const artChat = (fontMm: number) =>
   art(
     fontMm,
     `
@@ -202,7 +202,7 @@ const artChat = (fontMm: number) =>
   );
 
 /** Voice answer card: waveform + mic. */
-const artVoice = (fontMm: number) =>
+export const artVoice = (fontMm: number) =>
   art(
     fontMm,
     `
@@ -223,7 +223,7 @@ const artVoice = (fontMm: number) =>
   );
 
 /** Prompt → assembled page (AI builder). */
-const artBuilder = (fontMm: number) =>
+export const artBuilder = (fontMm: number) =>
   art(
     fontMm,
     `
@@ -253,7 +253,7 @@ const artBuilder = (fontMm: number) =>
   );
 
 /** A finished creator biolink page in a phone. */
-const artBiolink = (fontMm: number) =>
+export const artBiolink = (fontMm: number) =>
   art(
     fontMm,
     `
@@ -277,7 +277,7 @@ const artBiolink = (fontMm: number) =>
   );
 
 /** Dashboard analytics card (browser style). */
-const artDashboard = (fontMm: number) =>
+export const artDashboard = (fontMm: number) =>
   art(
     fontMm,
     `
@@ -300,7 +300,7 @@ const artDashboard = (fontMm: number) =>
   );
 
 /** Designer QR tiles fanned out. `qr` should be a QR svg data URL. */
-const artQrTiles = (fontMm: number, qr: string) =>
+export const artQrTiles = (fontMm: number, qr: string) =>
   art(
     fontMm,
     `
@@ -316,7 +316,7 @@ const artQrTiles = (fontMm: number, qr: string) =>
   );
 
 /** World-map click heatmap. */
-const artMap = (fontMm: number) =>
+export const artMap = (fontMm: number) =>
   art(
     fontMm,
     `
@@ -339,7 +339,7 @@ const artMap = (fontMm: number) =>
   );
 
 /** Creator earnings / payouts wallet. */
-const artPayouts = (fontMm: number) =>
+export const artPayouts = (fontMm: number) =>
   art(
     fontMm,
     `
@@ -357,7 +357,7 @@ const artPayouts = (fontMm: number) =>
   );
 
 /** Live restaurant orders dashboard rows. */
-const artOrders = (fontMm: number) =>
+export const artOrders = (fontMm: number) =>
   art(
     fontMm,
     `
@@ -382,7 +382,7 @@ const artOrders = (fontMm: number) =>
   );
 
 /** Unified AI inbox rows. */
-const artInbox = (fontMm: number) =>
+export const artInbox = (fontMm: number) =>
   art(
     fontMm,
     `
@@ -410,7 +410,7 @@ const artInbox = (fontMm: number) =>
   );
 
 /** Menu + table ordering in a phone. */
-const artRestaurant = (fontMm: number) =>
+export const artRestaurant = (fontMm: number) =>
   art(
     fontMm,
     `
@@ -445,7 +445,7 @@ const artRestaurant = (fontMm: number) =>
   );
 
 /** Zio Dialer keypad in a phone. */
-const artDialer = (fontMm: number) =>
+export const artDialer = (fontMm: number) =>
   art(
     fontMm,
     `
@@ -485,7 +485,7 @@ const artDialer = (fontMm: number) =>
   );
 
 /** Browser extension popup over a toolbar. */
-const artExtension = (fontMm: number) =>
+export const artExtension = (fontMm: number) =>
   art(
     fontMm,
     `
@@ -513,7 +513,7 @@ const artExtension = (fontMm: number) =>
   );
 
 /** Forms builder card. */
-const artForms = (fontMm: number) =>
+export const artForms = (fontMm: number) =>
   art(
     fontMm,
     `
@@ -537,7 +537,7 @@ const artForms = (fontMm: number) =>
   );
 
 /** Team workspace card. */
-const artWorkspace = (fontMm: number) =>
+export const artWorkspace = (fontMm: number) =>
   art(
     fontMm,
     `
@@ -561,7 +561,7 @@ const artWorkspace = (fontMm: number) =>
   );
 
 /** REST API code card. */
-const artApi = (fontMm: number) =>
+export const artApi = (fontMm: number) =>
   art(
     fontMm,
     `
@@ -575,7 +575,7 @@ const artApi = (fontMm: number) =>
   );
 
 /** Digital vCard. */
-const artVcard = (fontMm: number) =>
+export const artVcard = (fontMm: number) =>
   art(
     fontMm,
     `
@@ -662,12 +662,12 @@ const artHeroBiz = (fontMm: number, qr: string) =>
   </div>`
   );
 
-function doc(bodyHtml: string, extraCss = ""): string {
+export function doc(bodyHtml: string, extraCss = ""): string {
   return `<!doctype html><html><head><meta charset="utf-8"><style>${BASE_CSS}${extraCss}</style></head><body>${bodyHtml}</body></html>`;
 }
 
 // Official white logo lockup (mascot + SAYZIO wordmark), height = imgMm.
-const wordmark = (imgMm: number, _fontMm = 0, _gapMm = 0) => `
+export const wordmark = (imgMm: number, _fontMm = 0, _gapMm = 0) => `
   <div class="wordmark">
     <img src="${ASSET.logo}" style="height:${imgMm}mm;width:auto;" alt="Sayzio">
   </div>`;
@@ -680,7 +680,7 @@ const page = (inner: string, padMm: number) =>
   `<div class="page" style="padding:${BLEED + padMm}mm;">${inner}</div>`;
 
 // framed art tile with optional caption
-const vis = (inner: string, style: string) => `<div class="img-frame" style="${style}">${inner}</div>`;
+export const vis = (inner: string, style: string) => `<div class="img-frame" style="${style}">${inner}</div>`;
 
 /* ============ 1–2. Visiting card 3.5in x 2in (88.9 x 50.8mm) ============ */
 // Shared card chrome: angled electric-blue band + accent hairline.
@@ -1450,7 +1450,11 @@ async function main() {
   await browser.close();
 }
 
-main().catch((e) => {
-  console.error(e);
-  process.exit(1);
-});
+// Only run when executed directly (booklet.ts imports this module).
+import { pathToFileURL } from "node:url";
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  main().catch((e) => {
+    console.error(e);
+    process.exit(1);
+  });
+}
