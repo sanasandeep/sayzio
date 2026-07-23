@@ -504,6 +504,18 @@ args = "lm-visual-verify"
 task = "workflow.run"
 args = "e2e-qr-template-apply"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "showcase-seed"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "showcase-rollup"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "showcase-analytics-only"
+
 [[workflows.workflow]]
 name = "e2e"
 author = "agent"
@@ -2033,6 +2045,39 @@ isValidation = true
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "cd artifacts/1inme && bash tests/Browser/run-validation.sh qr-template-apply.spec.ts"
+
+[[workflows.workflow]]
+name = "showcase-seed"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd artifacts/1inme && php artisan showcase:seed"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "showcase-rollup"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd artifacts/1inme && php artisan analytics:rollup-daily --days=120"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "showcase-analytics-only"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd artifacts/1inme && php artisan showcase:seed --analytics-only"
+
+[workflows.workflow.metadata]
+isValidation = true
 
 
   [agent]
