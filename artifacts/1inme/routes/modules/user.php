@@ -930,6 +930,7 @@ Route::prefix('user')->name('user.')->group(function () {
         // AI Biolink Page Builder — describe a page, AI assembles it from
         // real supported block types, then opens the standard editor.
         Route::get('links/{link}/ai-builder', [\App\Modules\User\Controllers\AiBiolinkBuilderController::class, 'intake'])->middleware('workspace.can:links.view')->name('links.ai-builder');
+        Route::post('links/{link}/ai-builder/source-preview', [\App\Modules\User\Controllers\AiBiolinkBuilderController::class, 'sourcePreview'])->middleware(['workspace.can:links.edit', 'throttle:15,1'])->name('links.ai-builder.source-preview');
         Route::post('links/{link}/ai-builder/estimate', [\App\Modules\User\Controllers\AiBiolinkBuilderController::class, 'estimate'])->middleware(['workspace.can:links.edit', 'throttle:30,1'])->name('links.ai-builder.estimate');
         Route::post('links/{link}/ai-builder/generate', [\App\Modules\User\Controllers\AiBiolinkBuilderController::class, 'generate'])->middleware(['workspace.can:links.edit', 'throttle:10,1'])->name('links.ai-builder.generate');
         Route::post('links/{link}/ai-builder/image-search', [\App\Modules\User\Controllers\AiBiolinkBuilderController::class, 'imageSearch'])->middleware(['workspace.can:links.edit', 'throttle:20,1'])->name('links.ai-builder.image-search');

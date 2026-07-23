@@ -87,7 +87,6 @@
                         </div>
                     </template>
                 </div>
-
                 @if(!empty($imageSearchEnabled))
                 {{-- Google image search: candidate suggestions the creator explicitly
                      picks from — never auto-placed. Free of AI coins. --}}
@@ -135,6 +134,63 @@
                     </div>
                 </div>
                 @endif
+
+                {{-- Auto-sourced image preview (Task #5722): review before building --}}
+                <div class="mt-3 rounded-xl border border-white/10 bg-white/[0.03] p-3" x-show="images.length === 0">
+                    <div class="flex items-center justify-between gap-2">
+                        <p class="text-xs text-white/50">
+                            <i class="fas fa-images text-blue-300 mr-1"></i>
+                            No uploads — preview the images we'd use so you can pick which to keep.
+                        </p>
+                        <button type="button" @click="runPreview" :disabled="previewing"
+                                class="text-xs text-blue-300 hover:text-blue-200 disabled:opacity-40 transition-colors whitespace-nowrap">
+                            <i class="fas fa-spinner fa-spin mr-1" x-show="previewing"></i>
+                            <span x-text="previewing ? 'Checking…' : (previewed ? 'Refresh preview' : 'Preview images')"></span>
+                        </button>
+                    </div>
+                    <p class="text-xs text-red-400 mt-1.5" x-show="previewError" x-text="previewError"></p>
+
+                    <template x-if="previewed && extractedImgs.length">
+                        <div class="mt-3">
+                            <p class="text-xs text-white/40 mb-2">Found on your links — tap to keep or remove (free):</p>
+                            <div class="grid grid-cols-4 sm:grid-cols-5 gap-2">
+                                <template x-for="img in extractedImgs" :key="img.url">
+                                    <button type="button" @click="img.keep = !img.keep"
+                                            class="relative aspect-square rounded-lg overflow-hidden bg-white/5 transition-all"
+                                            :class="img.keep ? 'ring-2 ring-blue-500/70' : 'opacity-40 grayscale'">
+                                        <img :src="img.url" class="w-full h-full object-cover" alt="">
+                                        <span class="absolute top-1 right-1 w-5 h-5 rounded-full text-[10px] flex items-center justify-center"
+                                              :class="img.keep ? 'bg-blue-500 text-white' : 'bg-black/60 text-white/70'">
+                                            <i class="fas" :class="img.keep ? 'fa-check' : 'fa-times'"></i>
+                                        </span>
+                                    </button>
+                                </template>
+                            </div>
+                        </div>
+                    </template>
+
+                    <template x-if="previewed && !keptImages.length && genInfo && genInfo.enabled">
+                        <div class="mt-3">
+                            <p class="text-xs text-white/40 mb-2">
+                                <span x-show="extractedImgs.length">Nothing kept — </span><span x-show="!extractedImgs.length">Nothing found on your links — </span>AI can generate these instead (<span x-text="genInfo.cost_per_image"></span> coins each). Untick any you don't want:
+                            </p>
+                            <div class="flex flex-wrap gap-2">
+                                <template x-for="slot in genInfo.slots" :key="slot">
+                                    <button type="button" @click="genSlots[slot] = !genSlots[slot]"
+                                            class="text-xs px-3 py-1.5 rounded-lg border transition-all capitalize"
+                                            :class="genSlots[slot] ? 'border-blue-500/60 bg-blue-500/10 text-blue-200' : 'border-white/10 text-white/30'">
+                                        <i class="fas mr-1" :class="genSlots[slot] ? 'fa-check' : 'fa-times'"></i>
+                                        <span x-text="slot"></span>
+                                    </button>
+                                </template>
+                            </div>
+                        </div>
+                    </template>
+
+                    <template x-if="previewed && !extractedImgs.length && (!genInfo || !genInfo.enabled)">
+                        <p class="text-xs text-white/40 mt-2">No images found on your links — your page will be built without images.</p>
+                    </template>
+                </div>
             </div>
 
             @if(!empty($onBrandAllowed) && $brandKit)
@@ -317,8 +373,56 @@ function aiBiolinkBuilder() {
             }
         },
 
+        // Auto-sourced image preview (Task #5722)
+        previewing: false,
+        previewed: false,
+        previewError: '',
+        extractedImgs: [],
+        genInfo: null,
+        genSlots: {},
+
         get cleanLinks() {
             return this.links.map(l => (l || '').trim()).filter(Boolean);
+        },
+        get keptImages() {
+            return this.extractedImgs.filter(i => i.keep).map(i => i.url);
+        },
+        get skippedSlots() {
+            return Object.keys(this.genSlots).filter(s => !this.genSlots[s]);
+        },
+
+        async runPreview() {
+            if (this.previewing) return;
+            this.previewing = true;
+            this.previewError = '';
+            try {
+                const res = await fetch(@json(route('user.links.ai-builder.source-preview', $link)), {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'application/json',
+                    },
+                    body: JSON.stringify({ links: this.cleanLinks }),
+                });
+                const body = await res.json().catch(() => ({}));
+                if (!res.ok) {
+                    this.previewError = body.message || 'Could not preview images. Please try again.';
+                    return;
+                }
+                this.extractedImgs = (body.extracted || []).map(url => ({ url, keep: true }));
+                this.genInfo = body.generation || null;
+                const slots = {};
+                ((this.genInfo && this.genInfo.slots) || []).forEach(s => { slots[s] = true; });
+                this.genSlots = slots;
+                this.previewed = true;
+                this.estimate = null;
+            } catch (e) {
+                this.previewError = 'Could not preview images. Please check your connection and try again.';
+            } finally {
+                this.previewing = false;
+            }
         },
         get canSubmit() {
             return this.description.trim().length >= 10;
@@ -464,6 +568,13 @@ function aiBiolinkBuilder() {
                     images: this.images,
                     files: this.files.map(f => f.url),
                     use_brand_kit: this.useBrandKit,
+                    // Image preview choices (Task #5722): only sent once the
+                    // creator has previewed and no uploads are attached —
+                    // presence of kept_images means "use my list verbatim".
+                    ...(this.previewed && this.images.length === 0 ? {
+                        kept_images: this.keptImages,
+                        skip_generated_slots: this.skippedSlots,
+                    } : {}),
                 }),
             });
             const body = await res.json().catch(() => ({}));

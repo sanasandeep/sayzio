@@ -259,14 +259,25 @@ class AiBiolinkBuilderService
      * quote includes that generation cost too (extraction from links is
      * free — if it succeeds the build costs less than quoted).
      */
-    public function estimateCredits(User $user, string $description, array $links, array $images, array $files = [], string $grounding = '', string $brandDirectives = ''): int
+    public function estimateCredits(User $user, string $description, array $links, array $images, array $files = [], string $grounding = '', string $brandDirectives = '', array $imageChoices = []): int
     {
         $model    = AiEngineSettings::featureModel(self::FEATURE);
         $messages = $this->buildMessages($user, $description, $links, $images, $files, $grounding, $brandDirectives);
         $cost     = $this->openai->estimateChatCoins($model, $messages, self::MAX_OUTPUT_TOKENS, $user);
 
         if ($this->cleanImageUrls($images) === []) {
-            $cost += $this->imageSourcer->fallbackGenerationEstimate($user);
+            // Preview-confirmed choices (Task #5722): kept extracted images
+            // mean generation never runs; explicitly skipped slots are
+            // removed from the worst-case quote too.
+            $kept = $imageChoices['kept'] ?? null;
+            if (is_array($kept) && $this->cleanImageUrls($kept) !== []) {
+                // Extraction is free — no generation fallback in the quote.
+            } else {
+                $cost += $this->imageSourcer->fallbackGenerationEstimate(
+                    $user,
+                    array_values((array) ($imageChoices['skip_slots'] ?? [])),
+                );
+            }
         }
 
         return $cost;
@@ -280,7 +291,7 @@ class AiBiolinkBuilderService
      *
      * @return array{credits_spent:int,blocks:int,model:string}
      */
-    public function generate(User $user, Link $link, string $description, array $links, array $images, array $files = [], string $grounding = '', bool $replaceBlocks = true, string $brandDirectives = ''): array
+    public function generate(User $user, Link $link, string $description, array $links, array $images, array $files = [], string $grounding = '', bool $replaceBlocks = true, string $brandDirectives = '', array $imageChoices = []): array
     {
         $links  = $this->cleanUrls($links);
         $images = $this->cleanImageUrls($images);
@@ -290,7 +301,15 @@ class AiBiolinkBuilderService
         // extract from their links (free), else AI-generate an avatar +
         // cover (charged per image inside the sourcer, refunded below if
         // the build ultimately fails). Uploads always win untouched.
-        $sourced = $this->imageSourcer->source($user, $description, $links, $images, $link->id);
+        // When the creator confirmed the image preview step (Task #5722)
+        // their kept extracted images are used verbatim (no re-extraction)
+        // and any deselected generation slots are skipped.
+        $kept = $imageChoices['kept'] ?? null;
+        $sourced = $this->imageSourcer->source(
+            $user, $description, $links, $images, $link->id,
+            is_array($kept) ? $this->cleanImageUrls($kept) : null,
+            array_values((array) ($imageChoices['skip_slots'] ?? [])),
+        );
         $images  = $this->cleanImageUrls($sourced['images']);
 
         $messages = $this->buildMessages(

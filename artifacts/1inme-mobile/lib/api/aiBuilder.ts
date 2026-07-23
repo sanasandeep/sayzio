@@ -45,6 +45,24 @@ export type AiBuilderPayload = {
   // Default on; sent as an explicit opt-out, mirroring the web intake form's
   // "Use my Brand Kit voice" checkbox.
   use_brand_kit?: boolean;
+  // Image preview confirmation (Task #5722): the exact extracted images the
+  // creator kept after previewing. Sending the key (even as []) means "I
+  // reviewed the candidates — use my list verbatim, don't re-extract".
+  kept_images?: string[];
+  // Generation fallback slots ('avatar'/'cover') the creator opted out of.
+  skip_generated_slots?: string[];
+};
+
+// Free preview of the images the builder would auto-source (Task #5722):
+// og:image/favicon candidates extracted from the supplied links now (stored
+// in the vault), plus what the AI-generation fallback would produce.
+export type AiBuilderImagePreview = {
+  extracted: string[];
+  generation: {
+    enabled: boolean;
+    cost_per_image: number;
+    slots: string[];
+  };
 };
 
 export type AiBuilderEstimate = {
@@ -64,6 +82,17 @@ export async function getAiBuilderIntake(
 ): Promise<AiBuilderIntake> {
   const res = await apiFetch<{ data: AiBuilderIntake }>(
     `/links/${linkId}/ai-builder`,
+  );
+  return res.data;
+}
+
+export async function previewAiBuilderImages(
+  linkId: number,
+  links: string[],
+): Promise<AiBuilderImagePreview> {
+  const res = await apiFetch<{ data: AiBuilderImagePreview }>(
+    `/links/${linkId}/ai-builder/source-preview`,
+    { method: "POST", body: JSON.stringify({ links }) },
   );
   return res.data;
 }

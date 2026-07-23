@@ -55,6 +55,32 @@ class AiBiolinkBuilderController extends Controller
         ]);
     }
 
+    /**
+     * Free image-preview step (Task #5722): run the extraction pass on the
+     * supplied links now so the creator can see the candidate images and
+     * deselect the ones they don't want before the paid build runs. Also
+     * reports the generation fallback (slots + per-image coin cost) so the
+     * UI can offer per-slot skip toggles.
+     */
+    public function sourcePreview(Request $request, Link $link): JsonResponse
+    {
+        $this->authorizeLink($link);
+
+        if (!AiEngineSettings::isEnabled()) {
+            return response()->json(['message' => 'AI Engine is disabled.'], 404);
+        }
+
+        $data = $request->validate([
+            'links'   => ['nullable', 'array', 'max:25'],
+            'links.*' => ['string', 'max:2048'],
+        ]);
+
+        $preview = app(\App\Services\Biolink\BuilderImageSourcer::class)
+            ->preview($request->user(), array_values($data['links'] ?? []));
+
+        return response()->json($preview);
+    }
+
     public function estimate(Request $request, Link $link): JsonResponse
     {
         $this->authorizeLink($link);
@@ -74,6 +100,7 @@ class AiBiolinkBuilderController extends Controller
                 $data['files'],
                 '',
                 $this->brandDirectives($request, $data['use_brand_kit']),
+                $data['image_choices'],
             );
         } catch (\RuntimeException $e) {
             return response()->json(['message' => $e->getMessage()], 422);
@@ -127,6 +154,7 @@ class AiBiolinkBuilderController extends Controller
                 '',
                 true,
                 $this->brandDirectives($request, $data['use_brand_kit']),
+                $data['image_choices'],
             );
         } catch (InsufficientCoinsForAiException $e) {
             return response()->json([
@@ -247,7 +275,7 @@ class AiBiolinkBuilderController extends Controller
     }
 
     /**
-     * @return array{description:string,links:list<string>,images:list<string>,files:list<string>,use_brand_kit:bool}
+     * @return array{description:string,links:list<string>,images:list<string>,files:list<string>,use_brand_kit:bool,image_choices:array{kept?:list<string>,skip_slots?:list<string>}}
      */
     private function validatePayload(Request $request): array
     {
@@ -260,7 +288,23 @@ class AiBiolinkBuilderController extends Controller
             'files'         => ['nullable', 'array', 'max:15'],
             'files.*'       => ['string', 'max:2048'],
             'use_brand_kit' => ['nullable', 'boolean'],
+            // Image preview confirmation (Task #5722): the exact extracted
+            // images the creator kept, and any generation slots they skipped.
+            // Sending `kept_images` (even empty) means "I reviewed the
+            // candidates — don't re-extract, use my list".
+            'kept_images'           => ['nullable', 'array', 'max:25'],
+            'kept_images.*'         => ['string', 'max:2048'],
+            'skip_generated_slots'  => ['nullable', 'array'],
+            'skip_generated_slots.*' => ['string', 'in:avatar,cover'],
         ]);
+
+        $imageChoices = [];
+        if ($request->has('kept_images')) {
+            $imageChoices['kept'] = array_values($data['kept_images'] ?? []);
+        }
+        if (!empty($data['skip_generated_slots'])) {
+            $imageChoices['skip_slots'] = array_values($data['skip_generated_slots']);
+        }
 
         return [
             'description'   => $data['description'],
@@ -269,6 +313,7 @@ class AiBiolinkBuilderController extends Controller
             'files'         => array_values($data['files'] ?? []),
             // On-brand by default; the intake form sends an explicit opt-out.
             'use_brand_kit' => $request->has('use_brand_kit') ? $request->boolean('use_brand_kit') : true,
+            'image_choices' => $imageChoices,
         ];
     }
 

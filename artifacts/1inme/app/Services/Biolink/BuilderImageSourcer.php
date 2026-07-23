@@ -77,15 +77,48 @@ class BuilderImageSourcer
     /**
      * Worst-case extra coins the fallback may add to a build (used by the
      * upfront estimate when the creator attached no images). Zero when
-     * generation isn't available.
+     * generation isn't available. When the creator explicitly skipped
+     * generation slots in the image preview step (Task #5722) only the
+     * remaining slots are counted.
+     *
+     * @param list<string> $skipSlots slot names ('avatar'/'cover') to exclude
      */
-    public function fallbackGenerationEstimate(User $user): int
+    public function fallbackGenerationEstimate(User $user, array $skipSlots = []): int
     {
         if (!$this->generationEnabled()) {
             return 0;
         }
 
-        return count(self::GENERATED_SLOTS) * $this->generationCoinCost($user);
+        $slots = array_diff(array_keys(self::GENERATED_SLOTS), $skipSlots);
+
+        return count($slots) * $this->generationCoinCost($user);
+    }
+
+    /**
+     * Free preview step (Task #5722): run the extraction pass now so the
+     * creator can see the candidate images and deselect the ones they don't
+     * want before the (possibly paid) build runs. Extracted files land in
+     * the vault exactly as they would during a build, so keeping them in
+     * the later generate call costs nothing extra. Also reports what the
+     * generation fallback would produce (slots + per-image coin cost) so
+     * the UI can offer per-slot skip toggles.
+     *
+     * @param list<string> $links cleaned absolute http(s) URLs
+     * @return array{
+     *   extracted: list<string>,
+     *   generation: array{enabled:bool,cost_per_image:int,slots:list<string>}
+     * }
+     */
+    public function preview(User $user, array $links): array
+    {
+        return [
+            'extracted'  => $this->extractFromLinks($user, $links),
+            'generation' => [
+                'enabled'        => $this->generationEnabled(),
+                'cost_per_image' => $this->generationEnabled() ? $this->generationCoinCost($user) : 0,
+                'slots'          => array_keys(self::GENERATED_SLOTS),
+            ],
+        ];
     }
 
     /**
@@ -93,6 +126,11 @@ class BuilderImageSourcer
      *
      * @param list<string> $links          cleaned absolute http(s) URLs
      * @param list<string> $uploadedImages cleaned user-supplied image URLs
+     * @param ?list<string> $keptExtracted when the creator confirmed the image
+     *        preview step (Task #5722) this is the exact list of extracted
+     *        images they chose to keep (possibly empty) — extraction is NOT
+     *        re-run, the kept list is used verbatim
+     * @param list<string> $skipSlots     generation slots the creator opted out of
      * @return array{
      *   images: list<string>,
      *   uploaded: int,
@@ -100,7 +138,7 @@ class BuilderImageSourcer
      *   generated: list<array{url:string,file_id:int,tx_id:int,cost:int}>
      * }
      */
-    public function source(User $user, string $description, array $links, array $uploadedImages, ?int $relatedLinkId = null): array
+    public function source(User $user, string $description, array $links, array $uploadedImages, ?int $relatedLinkId = null, ?array $keptExtracted = null, array $skipSlots = []): array
     {
         $out = [
             'images'    => array_values($uploadedImages),
@@ -114,16 +152,20 @@ class BuilderImageSourcer
             return $out;
         }
 
-        // 2. Pull og:image / favicon candidates from the supplied links.
-        $out['extracted'] = $this->extractFromLinks($user, $links);
+        // 2. Pull og:image / favicon candidates from the supplied links —
+        //    unless the creator already reviewed the candidates in the
+        //    preview step, in which case their kept list is authoritative.
+        $out['extracted'] = $keptExtracted !== null
+            ? array_values($keptExtracted)
+            : $this->extractFromLinks($user, $links);
         if ($out['extracted'] !== []) {
             $out['images'] = $out['extracted'];
 
             return $out;
         }
 
-        // 3. Nothing supplied and nothing extractable → generate.
-        $out['generated'] = $this->generateFallback($user, $description, $relatedLinkId);
+        // 3. Nothing supplied and nothing extractable (or kept) → generate.
+        $out['generated'] = $this->generateFallback($user, $description, $relatedLinkId, $skipSlots);
         $out['images']    = array_values(array_map(static fn (array $g) => $g['url'], $out['generated']));
 
         return $out;
@@ -275,9 +317,10 @@ class BuilderImageSourcer
      * up-front and refunded individually if its render/store fails;
      * failures degrade to fewer (or zero) images, never an exception.
      *
+     * @param list<string> $skipSlots slots the creator opted out of (Task #5722)
      * @return list<array{url:string,file_id:int,tx_id:int,cost:int}>
      */
-    protected function generateFallback(User $user, string $description, ?int $relatedLinkId): array
+    protected function generateFallback(User $user, string $description, ?int $relatedLinkId, array $skipSlots = []): array
     {
         if (!$this->generationEnabled()) {
             return [];
@@ -285,6 +328,9 @@ class BuilderImageSourcer
 
         $generated = [];
         foreach (self::GENERATED_SLOTS as $slot => $size) {
+            if (in_array($slot, $skipSlots, true)) {
+                continue;
+            }
             $cost = $this->generationCoinCost($user);
 
             try {

@@ -25,7 +25,9 @@ import {
   generateAiBuilder,
   getAiBuilderIntake,
   importAiBuilderImages,
+  previewAiBuilderImages,
   searchAiBuilderImages,
+  type AiBuilderImagePreview,
   type AiBuilderImageResult,
   type AiBuilderIntake,
   type AiBuilderPayload,
@@ -54,6 +56,13 @@ export default function AiBuilderScreen() {
   const [useBrandKit, setUseBrandKit] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [estimate, setEstimate] = useState<number | null>(null);
+  // Auto-sourced image preview (Task #5722): the creator can review the
+  // images the builder would use (extracted from links, or AI-generated)
+  // and deselect any before the paid build runs.
+  const [preview, setPreview] = useState<AiBuilderImagePreview | null>(null);
+  const [previewing, setPreviewing] = useState(false);
+  const [removedExtracted, setRemovedExtracted] = useState<string[]>([]);
+  const [skippedSlots, setSkippedSlots] = useState<string[]>([]);
 
   // Google image search picker (only rendered when the server reports the
   // admin has configured search keys — preview mode hides it entirely).
@@ -92,12 +101,57 @@ export default function AiBuilderScreen() {
 
   const showBrandToggle = !!intake?.on_brand_allowed && !!intake?.brand_kit;
 
+  const keptImages = useMemo(
+    () =>
+      (preview?.extracted ?? []).filter((u) => !removedExtracted.includes(u)),
+    [preview?.extracted, removedExtracted],
+  );
+
   const buildPayload = (): AiBuilderPayload => ({
     description: description.trim(),
     links,
     images,
     use_brand_kit: showBrandToggle ? useBrandKit : undefined,
+    // Only meaningful once the creator has previewed and attached no uploads
+    // (uploads win outright server-side). Presence of kept_images means
+    // "use my reviewed list verbatim — don't re-extract".
+    ...(preview && images.length === 0
+      ? { kept_images: keptImages, skip_generated_slots: skippedSlots }
+      : {}),
   });
+
+  async function runPreview() {
+    if (previewing) return;
+    setPreviewing(true);
+    try {
+      const res = await previewAiBuilderImages(linkId, links);
+      setPreview(res);
+      setRemovedExtracted([]);
+      setSkippedSlots([]);
+      setEstimate(null);
+    } catch (e: any) {
+      showAlert(
+        "Couldn't preview images",
+        e?.message ?? "Please try again in a moment.",
+      );
+    } finally {
+      setPreviewing(false);
+    }
+  }
+
+  function toggleExtracted(url: string) {
+    setRemovedExtracted((prev) =>
+      prev.includes(url) ? prev.filter((u) => u !== url) : [...prev, url],
+    );
+    setEstimate(null);
+  }
+
+  function toggleSlot(slot: string) {
+    setSkippedSlots((prev) =>
+      prev.includes(slot) ? prev.filter((s) => s !== slot) : [...prev, slot],
+    );
+    setEstimate(null);
+  }
 
   const descTooShort = description.trim().length < 10;
 
@@ -470,6 +524,148 @@ export default function AiBuilderScreen() {
           hint={links.length > 0 ? `${links.length} link(s)` : undefined}
         />
 
+        {images.length === 0 ? (
+          <View
+            style={[
+              styles.previewBox,
+              { borderColor: colors.border, borderRadius: colors.radius },
+            ]}
+          >
+            <View style={styles.previewHeader}>
+              <Text
+                style={{
+                  flex: 1,
+                  fontSize: 12,
+                  color: colors.mutedForeground,
+                }}
+              >
+                No uploads — preview the images we'd use so you can pick which
+                to keep.
+              </Text>
+              <Pressable onPress={runPreview} disabled={previewing} hitSlop={6}>
+                <Text
+                  style={{
+                    color: colors.primary,
+                    fontSize: 12,
+                    fontWeight: "600",
+                    opacity: previewing ? 0.5 : 1,
+                  }}
+                >
+                  {previewing
+                    ? "Checking…"
+                    : preview
+                      ? "Refresh preview"
+                      : "Preview images"}
+                </Text>
+              </Pressable>
+            </View>
+
+            {preview && preview.extracted.length > 0 ? (
+              <View style={{ gap: 8 }}>
+                <Text style={{ fontSize: 12, color: colors.mutedForeground }}>
+                  Found on your links — tap to keep or remove (free):
+                </Text>
+                <View style={styles.imageRow}>
+                  {preview.extracted.map((url) => {
+                    const kept = !removedExtracted.includes(url);
+                    return (
+                      <Pressable
+                        key={url}
+                        onPress={() => toggleExtracted(url)}
+                        style={[
+                          styles.previewThumbWrap,
+                          kept
+                            ? { borderColor: colors.primary }
+                            : { borderColor: "transparent", opacity: 0.35 },
+                        ]}
+                      >
+                        <Image source={{ uri: url }} style={styles.thumb} />
+                        <View
+                          style={[
+                            styles.previewBadge,
+                            {
+                              backgroundColor: kept
+                                ? colors.primary
+                                : colors.muted,
+                            },
+                          ]}
+                        >
+                          <Feather
+                            name={kept ? "check" : "x"}
+                            size={10}
+                            color={kept ? "#fff" : colors.mutedForeground}
+                          />
+                        </View>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              </View>
+            ) : null}
+
+            {preview &&
+            keptImages.length === 0 &&
+            preview.generation.enabled ? (
+              <View style={{ gap: 8 }}>
+                <Text style={{ fontSize: 12, color: colors.mutedForeground }}>
+                  {preview.extracted.length > 0
+                    ? "Nothing kept — "
+                    : "Nothing found on your links — "}
+                  AI can generate these instead (
+                  {preview.generation.cost_per_image} coins each). Untick any
+                  you don't want:
+                </Text>
+                <View style={{ flexDirection: "row", gap: 8 }}>
+                  {preview.generation.slots.map((slot) => {
+                    const on = !skippedSlots.includes(slot);
+                    return (
+                      <Pressable
+                        key={slot}
+                        onPress={() => toggleSlot(slot)}
+                        style={[
+                          styles.slotChip,
+                          {
+                            borderColor: on ? colors.primary : colors.border,
+                            backgroundColor: on
+                              ? colors.primary + "1A"
+                              : "transparent",
+                          },
+                        ]}
+                      >
+                        <Feather
+                          name={on ? "check" : "x"}
+                          size={12}
+                          color={on ? colors.primary : colors.mutedForeground}
+                        />
+                        <Text
+                          style={{
+                            fontSize: 12,
+                            textTransform: "capitalize",
+                            color: on
+                              ? colors.primary
+                              : colors.mutedForeground,
+                          }}
+                        >
+                          {slot}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              </View>
+            ) : null}
+
+            {preview &&
+            preview.extracted.length === 0 &&
+            !preview.generation.enabled ? (
+              <Text style={{ fontSize: 12, color: colors.mutedForeground }}>
+                No images found on your links — your page will be built without
+                images.
+              </Text>
+            ) : null}
+          </View>
+        ) : null}
+
         {showBrandToggle ? (
           <View
             style={[
@@ -564,5 +760,32 @@ const styles = StyleSheet.create({
     gap: 12,
     borderWidth: 1,
     padding: 12,
+  },
+  previewBox: { borderWidth: 1, padding: 12, gap: 10 },
+  previewHeader: { flexDirection: "row", alignItems: "center", gap: 8 },
+  previewThumbWrap: {
+    position: "relative",
+    borderWidth: 2,
+    borderRadius: 10,
+    padding: 1,
+  },
+  previewBadge: {
+    position: "absolute",
+    top: 4,
+    right: 4,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  slotChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    borderWidth: 1,
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
   },
 });

@@ -332,4 +332,133 @@ class AiBuilderImageSourcingTest extends TestCase
         $this->assertSame(10, $withUploads);
         $this->assertSame(10 + 2 * $perImage, $withoutUploads);
     }
+
+    // ── 8. preview(): free extraction + generation info (Task #5722) ──
+
+    public function test_preview_extracts_images_and_reports_generation_info(): void
+    {
+        Http::fake([
+            'https://bobbakes.test' => Http::response(
+                '<html><head><meta property="og:image" content="https://bobbakes.test/cover.png"></head></html>',
+                200, ['Content-Type' => 'text/html'],
+            ),
+            'https://bobbakes.test/cover.png' => Http::response($this->png(), 200, ['Content-Type' => 'image/png']),
+        ]);
+        $this->bindImageClient(true);
+        $charger = $this->bindCharger();
+
+        $user = $this->makeUser();
+        $preview = app(BuilderImageSourcer::class)->preview($user, ['https://bobbakes.test']);
+
+        $this->assertCount(1, $preview['extracted']);
+        $this->assertTrue($preview['generation']['enabled']);
+        $this->assertSame(['avatar', 'cover'], $preview['generation']['slots']);
+        $this->assertGreaterThan(0, $preview['generation']['cost_per_image']);
+        $this->assertSame(1, UserFile::count());
+        $charger->shouldNotHaveReceived('charge');
+    }
+
+    // ── 9. kept list is authoritative — no re-extraction, no generation ──
+
+    public function test_kept_extracted_images_are_used_verbatim_without_refetch(): void
+    {
+        Http::fake();
+        $this->bindChat();
+        $this->bindImageClient(true);
+        $charger = $this->bindCharger();
+
+        $user = $this->makeUser();
+        $link = $this->biolink($user);
+
+        app(AiBiolinkBuilderService::class)->generate(
+            $user, $link, 'A bakery page', ['https://bobbakes.test'], [], [],
+            '', true, '', ['kept' => ['/f/9/kept-cover.png']],
+        );
+
+        // No page fetch, no generation charge — the kept URL reached the prompt.
+        Http::assertNothingSent();
+        $charger->shouldNotHaveReceived('charge');
+        $this->assertStringContainsString('/f/9/kept-cover.png', $this->promptText());
+        $this->assertStringContainsString('auto-sourced', $this->promptText());
+    }
+
+    // ── 10. kept empty + all slots skipped → zero-image build ─────────
+
+    public function test_empty_kept_with_all_slots_skipped_builds_without_images(): void
+    {
+        Http::fake();
+        $this->bindChat();
+        $this->bindImageClient(true);
+        $charger = $this->bindCharger();
+
+        $user = $this->makeUser();
+        $link = $this->biolink($user);
+
+        $result = app(AiBiolinkBuilderService::class)->generate(
+            $user, $link, 'A bakery page', ['https://bobbakes.test'], [], [],
+            '', true, '', ['kept' => [], 'skip_slots' => ['avatar', 'cover']],
+        );
+
+        Http::assertNothingSent();
+        $charger->shouldNotHaveReceived('charge');
+        $this->assertSame(0, UserFile::count());
+        $this->assertGreaterThan(0, $result['blocks']);
+        $this->assertStringContainsString('No images were supplied', $this->promptText());
+    }
+
+    // ── 11. skipping one generation slot only produces the other ──────
+
+    public function test_skipping_one_generation_slot_generates_only_the_other(): void
+    {
+        Http::fake();
+        $this->bindChat();
+        $this->bindImageClient(true);
+        $charger = $this->bindCharger();
+
+        $user = $this->makeUser();
+        $link = $this->biolink($user);
+
+        app(AiBiolinkBuilderService::class)->generate(
+            $user, $link, 'A bakery page', [], [], [],
+            '', true, '', ['kept' => [], 'skip_slots' => ['cover']],
+        );
+
+        $this->assertSame(1, UserFile::count(), 'Only the avatar slot should generate.');
+        $charger->shouldHaveReceived('charge')->once();
+    }
+
+    // ── 12. estimate honors kept images and skipped slots ─────────────
+
+    public function test_estimate_honors_kept_images_and_skipped_slots(): void
+    {
+        $this->bindImageClient(true);
+
+        $openai = Mockery::mock(OpenAiService::class);
+        $openai->shouldReceive('estimateChatCoins')->andReturn(10);
+        $this->app->instance(OpenAiService::class, $openai);
+
+        $user = $this->makeUser();
+        $builder = app(AiBiolinkBuilderService::class);
+        $perImage = app(BuilderImageSourcer::class)->generationCoinCost($user);
+
+        // Kept extracted images → extraction is free, no fallback in the quote.
+        $withKept = $builder->estimateCredits(
+            $user, 'A bakery page', [], [], [], '', '',
+            ['kept' => ['/f/9/kept.png']],
+        );
+        // Kept empty + one slot skipped → only the remaining slot is quoted.
+        $oneSlot = $builder->estimateCredits(
+            $user, 'A bakery page', [], [], [], '', '',
+            ['kept' => [], 'skip_slots' => ['cover']],
+        );
+        // Kept empty + both slots skipped → no generation cost at all.
+        $noSlots = $builder->estimateCredits(
+            $user, 'A bakery page', [], [], [], '', '',
+            ['kept' => [], 'skip_slots' => ['avatar', 'cover']],
+        );
+
+        $this->assertSame(10, $withKept);
+        $this->assertSame(10 + $perImage, $oneSlot);
+        $this->assertSame(10, $noSlots);
+    }
 }

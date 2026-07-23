@@ -103,6 +103,34 @@ class AiBiolinkBuilderController extends Controller
         ]);
     }
 
+    /**
+     * Free image-preview step (Task #5722) — mobile parity with the web
+     * source-preview endpoint. Runs the extraction pass on the supplied
+     * links so the creator can review/deselect candidate images before the
+     * paid build, and reports the generation fallback slots + per-image cost.
+     */
+    public function sourcePreview(Request $request, int $linkId)
+    {
+        $link = $this->ownedBiolink($request, $linkId);
+        if (!$link) {
+            return $this->notFound('Link in Bio not found');
+        }
+
+        if (!AiEngineSettings::isEnabled()) {
+            return $this->fail('AI generation is currently unavailable.', 503, 'ai_unavailable');
+        }
+
+        $data = $request->validate([
+            'links'   => ['nullable', 'array', 'max:25'],
+            'links.*' => ['string', 'max:2048'],
+        ]);
+
+        $preview = app(\App\Services\Biolink\BuilderImageSourcer::class)
+            ->preview($request->user(), array_values($data['links'] ?? []));
+
+        return $this->ok($preview);
+    }
+
     public function estimate(Request $request, int $linkId)
     {
         $link = $this->ownedBiolink($request, $linkId);
@@ -125,6 +153,7 @@ class AiBiolinkBuilderController extends Controller
                 $data['files'],
                 '',
                 $this->brandDirectives($request, $data['use_brand_kit']),
+                $data['image_choices'],
             );
         } catch (\RuntimeException $e) {
             return $this->fail($e->getMessage(), 422, 'invalid_request');
@@ -178,6 +207,7 @@ class AiBiolinkBuilderController extends Controller
                 '',
                 true,
                 $this->brandDirectives($request, $data['use_brand_kit']),
+                $data['image_choices'],
             );
         } catch (InsufficientCoinsForAiException $e) {
             return $this->fail('Not enough coins to build this page.', 402, 'insufficient_credits', [
@@ -300,7 +330,7 @@ class AiBiolinkBuilderController extends Controller
     }
 
     /**
-     * @return array{description:string,links:list<string>,images:list<string>,files:list<string>,use_brand_kit:bool}
+     * @return array{description:string,links:list<string>,images:list<string>,files:list<string>,use_brand_kit:bool,image_choices:array{kept?:list<string>,skip_slots?:list<string>}}
      */
     private function validatePayload(Request $request): array
     {
@@ -313,7 +343,23 @@ class AiBiolinkBuilderController extends Controller
             'files'         => ['nullable', 'array', 'max:15'],
             'files.*'       => ['string', 'max:2048'],
             'use_brand_kit' => ['nullable', 'boolean'],
+            // Image preview confirmation (Task #5722): the exact extracted
+            // images the creator kept, and any generation slots they skipped.
+            // Sending `kept_images` (even empty) means "I reviewed the
+            // candidates — don't re-extract, use my list".
+            'kept_images'            => ['nullable', 'array', 'max:25'],
+            'kept_images.*'          => ['string', 'max:2048'],
+            'skip_generated_slots'   => ['nullable', 'array'],
+            'skip_generated_slots.*' => ['string', 'in:avatar,cover'],
         ]);
+
+        $imageChoices = [];
+        if ($request->has('kept_images')) {
+            $imageChoices['kept'] = array_values($data['kept_images'] ?? []);
+        }
+        if (!empty($data['skip_generated_slots'])) {
+            $imageChoices['skip_slots'] = array_values($data['skip_generated_slots']);
+        }
 
         return [
             'description'   => $data['description'],
@@ -322,6 +368,7 @@ class AiBiolinkBuilderController extends Controller
             'files'         => array_values($data['files'] ?? []),
             // On-brand by default; the mobile form sends an explicit opt-out.
             'use_brand_kit' => $request->has('use_brand_kit') ? $request->boolean('use_brand_kit') : true,
+            'image_choices' => $imageChoices,
         ];
     }
 
