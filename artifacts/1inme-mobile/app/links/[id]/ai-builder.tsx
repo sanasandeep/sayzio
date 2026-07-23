@@ -73,6 +73,11 @@ export default function AiBuilderScreen() {
   );
   const [searchDisclaimer, setSearchDisclaimer] = useState("");
   const [selectedCandidates, setSelectedCandidates] = useState<string[]>([]);
+  // Set when a search fails because the admin removed/disabled the Google CSE
+  // keys mid-session (`image_search_unavailable`): the picker collapses
+  // instead of staying retryable forever, and the intake is refetched so the
+  // server's fresh `image_search_enabled` flag takes over.
+  const [searchUnavailable, setSearchUnavailable] = useState(false);
 
   const intakeQ = useQuery<AiBuilderIntake>({
     queryKey: ["ai-builder-intake", linkId],
@@ -201,6 +206,21 @@ export default function AiBuilderScreen() {
       }
     },
     onError: (e: any) => {
+      // The admin removed/disabled the Google CSE keys mid-session: collapse
+      // the picker (no point retrying a dead feature) and refetch the intake
+      // so `image_search_enabled` reflects the fresh server state.
+      if (e?.code === "image_search_unavailable") {
+        setSearchUnavailable(true);
+        setSearchOpen(false);
+        setSearchResults([]);
+        setSelectedCandidates([]);
+        intakeQ.refetch();
+        showAlert(
+          "Image search unavailable",
+          "Web image search was turned off. You can still upload your own images.",
+        );
+        return;
+      }
       showAlert("Search failed", e?.message ?? "Please try again.");
     },
   });
@@ -400,7 +420,7 @@ export default function AiBuilderScreen() {
             onPress={addImage}
           />
 
-          {intake.image_search_enabled ? (
+          {intake.image_search_enabled ? (searchUnavailable ? null : (
             <View
               style={[
                 styles.searchBox,
@@ -505,7 +525,7 @@ export default function AiBuilderScreen() {
                 </View>
               ) : null}
             </View>
-          ) : null}
+          )) : null}
         </View>
 
         <TextField

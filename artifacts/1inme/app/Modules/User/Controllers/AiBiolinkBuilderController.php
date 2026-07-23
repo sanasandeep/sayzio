@@ -190,7 +190,13 @@ class AiBiolinkBuilderController extends Controller
         $this->authorizeLink($link);
 
         if (!$search->enabled()) {
-            return response()->json(['message' => 'Image search is not available.'], 404);
+            // `code` lets a mid-session client (admin removed the CSE keys
+            // while the intake was open) collapse the picker instead of
+            // leaving it retryable forever.
+            return response()->json([
+                'message' => 'Image search is not available.',
+                'code'    => 'image_search_unavailable',
+            ], 404);
         }
 
         if (GoogleCseUsage::capReached($request->user()?->id)) {

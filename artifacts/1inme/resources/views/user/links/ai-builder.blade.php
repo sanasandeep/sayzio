@@ -89,8 +89,10 @@
                 </div>
                 @if(!empty($imageSearchEnabled))
                 {{-- Google image search: candidate suggestions the creator explicitly
-                     picks from — never auto-placed. Free of AI coins. --}}
-                <div class="mt-4 rounded-xl border border-white/10 bg-white/[0.03] p-3">
+                     picks from — never auto-placed. Free of AI coins. Hidden
+                     mid-session (searchAvailable) if the admin removes the keys
+                     while this page is open. --}}
+                <div class="mt-4 rounded-xl border border-white/10 bg-white/[0.03] p-3" x-show="searchAvailable">
                     <button type="button" @click="searchOpen = !searchOpen"
                             class="w-full flex items-center justify-between text-left">
                         <span class="text-sm text-white/70"><i class="fas fa-magnifying-glass text-blue-300 mr-1.5"></i> Search the web for images <span class="text-white/30 font-normal">(free)</span></span>
@@ -302,6 +304,7 @@ function aiBiolinkBuilder() {
         docError: '',
         maxImages: {{ $maxImages }},
         maxFiles: {{ $maxFiles }},
+        searchAvailable: true,
         searchOpen: false,
         searchQuery: '',
         searching: false,
@@ -331,6 +334,15 @@ function aiBiolinkBuilder() {
                 });
                 const data = await res.json().catch(() => ({}));
                 if (!res.ok) {
+                    // Admin removed/disabled the Google CSE keys mid-session:
+                    // collapse the picker instead of leaving it retryable forever.
+                    if (data.code === 'image_search_unavailable') {
+                        this.searchAvailable = false;
+                        this.searchOpen = false;
+                        this.searchResults = [];
+                        this.selectedCandidates = [];
+                        return;
+                    }
                     this.searchError = data.message || 'Search failed. Please try again.';
                     return;
                 }
