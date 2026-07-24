@@ -1,5 +1,5 @@
 /**
- * Sayzio Browser — auto-update bootstrap (electron-updater).
+ * Zio Browser — auto-update bootstrap (electron-updater).
  *
  * The update feed is the GitHub Releases channel configured in
  * electron-builder.config.ts (`publish: { provider: 'github', ... }`).
@@ -39,7 +39,7 @@ export function setupAutoUpdater(): void {
       .showMessageBox({
         type: 'info',
         title: 'Update ready',
-        message: `Sayzio Browser ${info.version} has been downloaded.`,
+        message: `Zio Browser ${info.version} has been downloaded.`,
         detail: 'Restart the app to apply the update.',
         buttons: ['Restart now', 'Later'],
         defaultId: 0,
