@@ -8,7 +8,7 @@ export type ExtensionStore = {
 };
 
 /**
- * Pre-publish fallbacks (store search pages for "Sayzio") used when the
+ * Pre-publish fallbacks (store search pages for "Zio Extension") used when the
  * request fails or the server has no admin-configured listing URLs yet.
  * Mirrors ExtensionStoreLinks defaults on the Laravel side.
  */
@@ -16,19 +16,19 @@ export const DEFAULT_EXTENSION_STORES: ExtensionStore[] = [
   {
     key: "chrome",
     label: "Chrome Web Store",
-    url: "https://chromewebstore.google.com/search/Sayzio",
+    url: "https://chromewebstore.google.com/search/Zio%20Extension",
     isListing: false,
   },
   {
     key: "edge",
     label: "Edge Add-ons",
-    url: "https://microsoftedge.microsoft.com/addons/Search/Sayzio",
+    url: "https://microsoftedge.microsoft.com/addons/Search/Zio%20Extension",
     isListing: false,
   },
   {
     key: "firefox",
     label: "Firefox Add-ons",
-    url: "https://addons.mozilla.org/en-US/firefox/search/?q=Sayzio",
+    url: "https://addons.mozilla.org/en-US/firefox/search/?q=Zio%20Extension",
     isListing: false,
   },
 ];

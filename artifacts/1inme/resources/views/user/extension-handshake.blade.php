@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Connecting Sayzio extension…</title>
+    <title>Connecting Zio Extension…</title>
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
                background: linear-gradient(135deg, #6366f1 0%, #5c83ff 100%);
@@ -26,7 +26,7 @@
 <body>
     <div class="card">
         <h1><span class="pulse"></span>Connecting…</h1>
-        <p>Linking your Sayzio account to the browser extension.</p>
+        <p>Linking your Sayzio account to the Zio Extension.</p>
         <p>You can close this tab once it disappears automatically.</p>
     </div>
 

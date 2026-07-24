@@ -106,7 +106,7 @@
         <div class="glass rounded-2xl p-6 space-y-5">
             <div>
                 <h2 class="ak-strong text-lg font-semibold text-white">Browser extension store links</h2>
-                <p class="ak-muted text-xs text-white/50">Direct listing URLs for the Sayzio browser extension. Power the install buttons on Settings → Connected Accounts &amp; Apps (web) and the mobile Browser extension page. Leave a field blank and its button falls back to a store search for "Sayzio" (pre-publish state).</p>
+                <p class="ak-muted text-xs text-white/50">Direct listing URLs for the Zio Extension. Power the install buttons on Settings → Connected Accounts &amp; Apps (web) and the mobile Browser extension page. Leave a field blank and its button falls back to a store search for "Zio Extension" (pre-publish state).</p>
             </div>
             <div class="grid sm:grid-cols-3 gap-4">
                 <div>

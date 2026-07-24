@@ -10,7 +10,7 @@ use App\Modules\Admin\Models\AppSetting;
  * mobile Browser extension info page (via GET /api/v1/extension/stores).
  *
  * Until the extension is published, each store falls back to a search-results
- * URL for "Sayzio". Once a listing exists, an admin pastes the direct listing
+ * URL for "Zio Extension". Once a listing exists, an admin pastes the direct listing
  * URL in Admin → Marketing settings ("Browser extension store links") and both
  * surfaces switch to it — no code deploy needed.
  */
@@ -23,11 +23,11 @@ class ExtensionStoreLinks
         'firefox' => 'extension_firefox_store_url',
     ];
 
-    /** Pre-publish fallbacks: store search pages for "Sayzio". */
+    /** Pre-publish fallbacks: store search pages for "Zio Extension". */
     private const SEARCH_URLS = [
-        'chrome'  => 'https://chromewebstore.google.com/search/Sayzio',
-        'edge'    => 'https://microsoftedge.microsoft.com/addons/Search/Sayzio',
-        'firefox' => 'https://addons.mozilla.org/en-US/firefox/search/?q=Sayzio',
+        'chrome'  => 'https://chromewebstore.google.com/search/Zio%20Extension',
+        'edge'    => 'https://microsoftedge.microsoft.com/addons/Search/Zio%20Extension',
+        'firefox' => 'https://addons.mozilla.org/en-US/firefox/search/?q=Zio%20Extension',
     ];
 
     private const LABELS = [
