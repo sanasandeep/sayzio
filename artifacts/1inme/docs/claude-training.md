@@ -674,7 +674,7 @@ Cross-platform Electron app (Windows / macOS / Linux); downloaded from `/downloa
 
 ### 14.2 Browser extension (`artifacts/1inme-extension`)
 
-Seven capabilities:
+Product name: **Zio Extension**. Seven capabilities:
 1. **Notifications** — polls `GET /api/v1/notifications` every 30s; badge + native browser notifications.
 2. **Click-to-dial** (opt-in) — content script detects phone numbers; hover overlay with Sayzio contact/biolink/dial action. Token relayed through background worker.
 3. **Capture reviews** — detects Google Maps or Trustpilot business pages; calls `POST /api/v1/me/reviews/capture-source`.
