@@ -62,6 +62,11 @@ const config = {
   // ("Database not initialized" downstream error). Force-unpack them.
   asarUnpack: ['**/*.node'],
 
+  // CI force-installs the exact electron+arch prebuild per packaging run
+  // (scripts/rebuild-native.sh); electron-builder's own rebuild must not run
+  // afterwards or it can overwrite that binary with a host-arch build.
+  npmRebuild: false,
+
   extraMetadata: {
     main: 'dist/main/main/index.js',
   },
