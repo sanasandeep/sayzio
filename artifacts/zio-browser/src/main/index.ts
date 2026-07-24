@@ -2,10 +2,10 @@
  * Zio Browser — Electron main process entry point.
  */
 import path from 'path';
-import { app, BrowserWindow, Menu, session, nativeTheme } from 'electron';
+import { app, BrowserWindow, Menu, session, nativeTheme, dialog } from 'electron';
 import type { BaseWindow } from 'electron';
 import { initDb, getPreference, setPreference, getMuteAllTabs, isDomainMuted, setDomainMuted } from './db';
-import { PREFERENCE_KEYS } from '../shared/db-schema';
+import { PREFERENCE_KEYS, type PreferenceKey } from '../shared/db-schema';
 import { hostForMutePolicy } from '../shared/mute-policy';
 import { sessionPartitionForProfile, DEFAULT_PROFILE_ID } from '../shared/profile-store';
 import { TabManager } from './tab-manager';
@@ -29,6 +29,43 @@ import type { RecentlyClosedEntry } from './tab-manager';
 const isDev = process.env['NODE_ENV'] === 'development';
 
 let mainWindow: BrowserWindow | null = null;
+
+// ── Fail-soft DB access ───────────────────────────────────────────────────────
+// If the native SQLite module fails to load (e.g. an ABI mismatch in a packaged
+// build), the browser must still open — preferences simply won't persist.
+// Every startup-path DB call goes through these wrappers so a DB failure can
+// never prevent the main window from appearing.
+
+function safeGetPreference(key: PreferenceKey): string | null {
+  try {
+    return getPreference(key);
+  } catch {
+    return null;
+  }
+}
+
+function safeSetPreference(key: PreferenceKey, value: string): void {
+  try {
+    setPreference(key, value);
+  } catch {
+    // DB unavailable — skip persistence rather than crash.
+  }
+}
+
+// Surface unexpected main-process errors instead of dying silently with a
+// menu bar and no window.
+let startupErrorShown = false;
+function reportStartupError(context: string, err: unknown): void {
+  const detail = err instanceof Error ? (err.stack ?? err.message) : String(err);
+  console.error(`${context}:`, detail);
+  if (!startupErrorShown && app.isReady()) {
+    startupErrorShown = true;
+    dialog.showErrorBox(`Zio Browser — ${context}`, detail);
+  }
+}
+
+process.on('uncaughtException', (err) => reportStartupError('Unexpected error', err));
+process.on('unhandledRejection', (reason) => reportStartupError('Unexpected error', reason));
 
 function getRendererUrl(): string {
   if (isDev) {
@@ -65,7 +102,7 @@ function createWindow(): BrowserWindow {
 
   // Restore the last-used profile from persisted preferences and bind it to
   // THIS window only (profiles are tracked per-window, never process-global).
-  const savedProfileId = getPreference(PREFERENCE_KEYS.ACTIVE_PROFILE) ?? DEFAULT_PROFILE_ID;
+  const savedProfileId = safeGetPreference(PREFERENCE_KEYS.ACTIVE_PROFILE) ?? DEFAULT_PROFILE_ID;
   registerWindowProfile(win, savedProfileId);
 
   // Pre-warm the profile session so it's available before the first tab opens
@@ -92,23 +129,31 @@ function createWindow(): BrowserWindow {
     onDeviceLabPreview: (url)         => win.webContents.send('device-lab:preview-url', url),
     onFindResult:      (result) => win.webContents.send('tab:find-result', result),
     onTabOrderChange: (order) => win.webContents.send('tab:order-changed', order),
-    onPinnedUrlsChange: (urls) => { setPreference(PREFERENCE_KEYS.PINNED_TABS, JSON.stringify(urls)); },
+    onPinnedUrlsChange: (urls) => { safeSetPreference(PREFERENCE_KEYS.PINNED_TABS, JSON.stringify(urls)); },
     onRecentlyClosedChange: (entries: RecentlyClosedEntry[]) => win.webContents.send('tab:recently-closed-changed', entries),
     // Auto-mute: global "mute all tabs" policy or per-domain mute memory.
     resolveAutoMute: (url) => {
-      if (getMuteAllTabs()) return true;
-      const host = hostForMutePolicy(url);
-      return host !== null && isDomainMuted(host);
+      try {
+        if (getMuteAllTabs()) return true;
+        const host = hostForMutePolicy(url);
+        return host !== null && isDomainMuted(host);
+      } catch {
+        return false;
+      }
     },
     // Persist the user's explicit per-tab mute choice as domain memory.
     onUserMuteChange: (url, muted) => {
-      const host = hostForMutePolicy(url);
-      if (host) setDomainMuted(host, muted);
+      try {
+        const host = hostForMutePolicy(url);
+        if (host) setDomainMuted(host, muted);
+      } catch {
+        // DB unavailable — skip persistence rather than crash.
+      }
     },
   });
 
-  const savedMode  = (getPreference(PREFERENCE_KEYS.WINDOW_MODE) as WindowMode | null) ?? 'browser';
-  const savedRatio = parseFloat(getPreference(PREFERENCE_KEYS.SPLIT_RATIO) ?? '0.35') || 0.35;
+  const savedMode  = (safeGetPreference(PREFERENCE_KEYS.WINDOW_MODE) as WindowMode | null) ?? 'browser';
+  const savedRatio = parseFloat(safeGetPreference(PREFERENCE_KEYS.SPLIT_RATIO) ?? '0.35') || 0.35;
 
   const modeManager = new WindowModeManager(win, tabManager, savedMode, savedRatio);
   registerModeManager(win, modeManager);
@@ -117,6 +162,17 @@ function createWindow(): BrowserWindow {
   setupDownloadManager(session.defaultSession, win, false);
 
   win.on('resize', () => modeManager.applyBounds());
+
+  // Failsafe: never leave the user with an invisible window. If the renderer
+  // fails to load (so 'ready-to-show' never fires), show the window anyway
+  // after a short grace period so at least the frame is visible.
+  win.webContents.on('did-fail-load', (_e, code, desc, url) => {
+    console.error(`Renderer failed to load (${code} ${desc}) at ${url}`);
+  });
+  const showFailsafe = setTimeout(() => {
+    if (!win.isDestroyed() && !win.isVisible()) win.show();
+  }, 6000);
+
   void win.loadURL(getRendererUrl());
 
   // Setup permission request / check handlers
@@ -136,11 +192,12 @@ function createWindow(): BrowserWindow {
   );
 
   win.once('ready-to-show', () => {
+    clearTimeout(showFailsafe);
     win.show();
     modeManager.setMode(savedMode);
     if (savedMode === 'browser') {
       // Restore pinned tabs from persistence (background, so they load silently)
-      const savedPinnedJson = getPreference(PREFERENCE_KEYS.PINNED_TABS) ?? '[]';
+      const savedPinnedJson = safeGetPreference(PREFERENCE_KEYS.PINNED_TABS) ?? '[]';
       let savedPinnedUrls: string[] = [];
       try {
         savedPinnedUrls = JSON.parse(savedPinnedJson) as string[];
@@ -199,7 +256,7 @@ function createWindow(): BrowserWindow {
   win.on('close', () => {
     try {
       const snapshot = tabManager.getSessionSnapshot();
-      setPreference(PREFERENCE_KEYS.SESSION_TABS, JSON.stringify(snapshot));
+      safeSetPreference(PREFERENCE_KEYS.SESSION_TABS, JSON.stringify(snapshot));
     } catch {
       // Never block window close on persistence errors
     }
@@ -253,7 +310,7 @@ export function createPrivateWindow(startUrl?: string): BrowserWindow {
 
   // Private windows still read profile-scoped data (bookmarks/collections)
   // for the user's last-used profile, but never write history.
-  const savedProfileId = getPreference(PREFERENCE_KEYS.ACTIVE_PROFILE) ?? DEFAULT_PROFILE_ID;
+  const savedProfileId = safeGetPreference(PREFERENCE_KEYS.ACTIVE_PROFILE) ?? DEFAULT_PROFILE_ID;
   registerWindowProfile(win, savedProfileId);
 
   // Private TabManager uses the isolated in-memory session for all tabs.
@@ -273,9 +330,13 @@ export function createPrivateWindow(startUrl?: string): BrowserWindow {
     onFindResult: (result) => win.webContents.send('tab:find-result', result),
     // Private windows still honor stored mute policy (read-only)…
     resolveAutoMute: (url) => {
-      if (getMuteAllTabs()) return true;
-      const host = hostForMutePolicy(url);
-      return host !== null && isDomainMuted(host);
+      try {
+        if (getMuteAllTabs()) return true;
+        const host = hostForMutePolicy(url);
+        return host !== null && isDomainMuted(host);
+      } catch {
+        return false;
+      }
     },
     // …but never persist new mute preferences (no onUserMuteChange).
   });
@@ -289,9 +350,15 @@ export function createPrivateWindow(startUrl?: string): BrowserWindow {
   setupDownloadManager(privateSession, win, true);
 
   win.on('resize', () => modeManager.applyBounds());
+
+  const showFailsafe = setTimeout(() => {
+    if (!win.isDestroyed() && !win.isVisible()) win.show();
+  }, 6000);
+
   void win.loadURL(getRendererUrl());
 
   win.once('ready-to-show', () => {
+    clearTimeout(showFailsafe);
     win.show();
     modeManager.setMode('browser');
     tabManager.createTab(startUrl);
@@ -528,14 +595,26 @@ app.whenReady().then(() => {
     initDb();
   } catch (err) {
     console.error('Failed to initialize database:', err);
+    // Fall back to an in-memory database so the browser still opens —
+    // history/bookmarks won't persist this session, but nothing crashes.
+    try {
+      initDb(':memory:');
+      console.error('Using in-memory database fallback (no persistence this session).');
+    } catch (err2) {
+      console.error('In-memory database fallback also failed:', err2);
+    }
   }
-  mainWindow = createWindow();
-  setupAutoUpdater();
+  try {
+    mainWindow = createWindow();
+    setupAutoUpdater();
 
-  // Register IPC handlers once — global, serves all windows.
-  registerIpcHandlers(mainWindow);
+    // Register IPC handlers once — global, serves all windows.
+    registerIpcHandlers(mainWindow);
 
-  buildMenu();
+    buildMenu();
+  } catch (err) {
+    reportStartupError('Failed to start', err);
+  }
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
