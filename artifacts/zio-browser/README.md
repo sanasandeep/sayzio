@@ -86,7 +86,7 @@ The build is **unsigned by default** (works on dev machines; macOS Gatekeeper wi
 4. **App-specific password**: at <https://account.apple.com> → Sign-In and Security → App-Specific Passwords (= `APPLE_APP_SPECIFIC_PASSWORD`; format `xxxx-xxxx-xxxx-xxxx`).
 5. **Team ID**: shown on <https://developer.apple.com/account> under Membership details (= `APPLE_TEAM_ID`).
 
-The workflow maps these into electron-builder's `CSC_LINK` / `CSC_KEY_PASSWORD` / `APPLE_ID` / `APPLE_APP_SPECIFIC_PASSWORD` / `APPLE_TEAM_ID` env vars only when non-empty, enabling hardened runtime + notarization (see `electron-builder.config.cjs`). Once set, dispatch **SayZio Browser Build & Package** with `release: true` to produce signed + notarized mac ZIPs; publish the draft release so installed apps pick up the update.
+The workflow maps these into electron-builder's `CSC_LINK` / `CSC_KEY_PASSWORD` / `APPLE_ID` / `APPLE_APP_SPECIFIC_PASSWORD` / `APPLE_TEAM_ID` env vars only when non-empty, enabling hardened runtime + notarization (see `electron-builder.config.cjs`). Once set, dispatch **Sayzio Browser Build & Package** with `release: true` to produce signed + notarized mac ZIPs; publish the draft release so installed apps pick up the update.
 
 ### Auto-updates
 
