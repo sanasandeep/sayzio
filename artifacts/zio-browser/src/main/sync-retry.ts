@@ -109,6 +109,10 @@ export class SyncRetryRunner {
         const ok = await this.attempt(item);
         if (ok) flushed += 1;
       }
+    } catch (err) {
+      // Never let a background tick crash the process (e.g. DB unavailable) —
+      // log and try again on the next interval.
+      console.error('Sync retry tick failed:', err);
     } finally {
       this.processing = false;
     }

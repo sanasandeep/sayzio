@@ -16,6 +16,7 @@ import type { SyncEntityKind } from '../shared/sync-engine';
 import { isSyncDue, SYNC_INTERVALS } from '../shared/sync-engine';
 import {
   initDb,
+  isDbInitialized,
   getPreference,
   setPreference,
   getAllPreferences,
@@ -193,7 +194,11 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
       mainWindow.webContents.send('sync:queue-changed', pendingCount, countSyncQueueByProfile());
     },
   });
-  syncRetryRunner.start();
+  // Only run the background sync loop when the local database is available —
+  // without it every tick would throw (degraded mode: browsing still works).
+  if (isDbInitialized()) {
+    syncRetryRunner.start();
+  }
 
   // ── DB init ──────────────────────────────────────────────────────────────
   ipcMain.handle('db:init', () => { initDb(); return { ok: true }; });

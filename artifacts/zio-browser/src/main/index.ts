@@ -682,6 +682,10 @@ app.whenReady().then(() => {
       console.error('Using in-memory database fallback (no persistence this session).');
     } catch (err2) {
       console.error('In-memory database fallback also failed:', err2);
+      // Surface the ORIGINAL failure — it names the real cause (e.g. a native
+      // module built for the wrong CPU architecture). The app continues in
+      // degraded mode: browsing works, history/bookmarks/sync are off.
+      reportStartupError('Local database unavailable', err);
     }
   }
   try {
