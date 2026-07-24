@@ -135,6 +135,13 @@ export function NewTabPage({ onNavigate, isPrivate = false }: Props) {
   const formatDate = (d: Date) =>
     d.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' });
 
+  const WHY_ZIO = [
+    { icon: '🛡️', title: 'Private by design', desc: 'Built-in tracker blocking and true private windows — no ads following you around.' },
+    { icon: '🗂️', title: 'Three ways to work', desc: 'Browser, Dashboard, or Split mode — switch between browsing and your workspace instantly.' },
+    { icon: '👤', title: 'Profiles that stay separate', desc: 'Work and personal logins live in fully separate profiles, one click apart.' },
+    { icon: '⚡', title: 'Sayzio tools built in', desc: 'Shorten links, build biolinks, and create QR codes from any page you visit.' },
+  ];
+
   const QUICK_LINKS = [
     { title: 'Sayzio', url: 'https://1in.me', icon: '⚡' },
     { title: 'Gmail', url: 'https://mail.google.com', icon: '📧' },
@@ -266,6 +273,55 @@ export function NewTabPage({ onNavigate, isPrivate = false }: Props) {
           </div>
         </div>
       )}
+
+      {/* Why Zio? */}
+      <div style={{ width: '100%', maxWidth: 560, marginTop: 40 }}>
+        <p style={{ fontSize: 11, fontWeight: 600, color: 'var(--color-text-muted)', marginBottom: 10, textTransform: 'uppercase', letterSpacing: 1 }}>
+          Why Zio?
+        </p>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+          {WHY_ZIO.map(f => (
+            <div
+              key={f.title}
+              style={{
+                display: 'flex',
+                gap: 10,
+                padding: '12px 14px',
+                borderRadius: 12,
+                background: 'var(--color-bg-surface)',
+                border: '1px solid var(--color-border)',
+                alignItems: 'flex-start',
+              }}
+            >
+              <span style={{ fontSize: 20, lineHeight: '24px' }}>{f.icon}</span>
+              <span>
+                <span style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--color-text)', marginBottom: 2 }}>
+                  {f.title}
+                </span>
+                <span style={{ display: 'block', fontSize: 11, color: 'var(--color-text-muted)', lineHeight: 1.5 }}>
+                  {f.desc}
+                </span>
+              </span>
+            </div>
+          ))}
+        </div>
+        <div style={{ textAlign: 'center', marginTop: 14 }}>
+          <button
+            onClick={() => onNavigate('https://sayzio.app')}
+            style={{
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              fontSize: 12,
+              color: 'var(--color-primary)',
+              fontWeight: 600,
+              padding: '6px 10px',
+            }}
+          >
+            Learn more at sayzio.app →
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

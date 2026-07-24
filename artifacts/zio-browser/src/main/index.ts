@@ -29,6 +29,79 @@ import type { RecentlyClosedEntry } from './tab-manager';
 const isDev = process.env['NODE_ENV'] === 'development';
 
 let mainWindow: BrowserWindow | null = null;
+let splashWindow: BrowserWindow | null = null;
+
+// ── Branded splash screen ─────────────────────────────────────────────────────
+// A small frameless window shown instantly on launch (Opera-style) while the
+// main window loads. Closed by closeSplash() when the main window is ready.
+
+const SPLASH_HTML = `<!doctype html><html><head><meta charset="utf-8"><style>
+  html,body{margin:0;height:100%;overflow:hidden;user-select:none;-webkit-user-select:none}
+  body{display:flex;flex-direction:column;align-items:center;justify-content:center;
+    background:radial-gradient(120% 120% at 50% 0%,#232347 0%,#14142a 55%,#0d0d1a 100%);
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#e8e6ff;
+    -webkit-app-region:drag}
+  .logo{position:relative;width:88px;height:88px;margin-bottom:22px}
+  .core{position:absolute;inset:0;border-radius:26px;
+    background:linear-gradient(135deg,#4f7cff 0%,#7a5cff 100%);
+    display:flex;align-items:center;justify-content:center;
+    font-size:44px;font-weight:800;color:#fff;letter-spacing:-2px;
+    box-shadow:0 8px 40px rgba(90,110,255,.45);
+    animation:pop .6s cubic-bezier(.2,1.4,.4,1) both}
+  .ring{position:absolute;inset:-10px;border-radius:34px;border:2px solid rgba(120,130,255,.5);
+    animation:pulse 1.6s ease-out infinite}
+  .name{font-size:22px;font-weight:700;letter-spacing:-.5px;animation:fade .8s .15s ease both}
+  .by{font-size:12px;color:rgba(200,200,255,.55);margin-top:6px;animation:fade .8s .3s ease both}
+  .bar{width:150px;height:3px;border-radius:2px;background:rgba(255,255,255,.10);
+    margin-top:26px;overflow:hidden;animation:fade .8s .4s ease both}
+  .bar i{display:block;width:40%;height:100%;border-radius:2px;
+    background:linear-gradient(90deg,#4f7cff,#7a5cff);
+    animation:slide 1.1s ease-in-out infinite}
+  @keyframes pulse{0%{transform:scale(.92);opacity:.9}100%{transform:scale(1.25);opacity:0}}
+  @keyframes pop{from{transform:scale(.6);opacity:0}to{transform:scale(1);opacity:1}}
+  @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+  @keyframes slide{0%{margin-left:-40%}100%{margin-left:100%}}
+</style></head><body>
+  <div class="logo"><div class="ring"></div><div class="core">Z</div></div>
+  <div class="name">Zio Browser</div>
+  <div class="by">by Sayzio &middot; sayzio.app</div>
+  <div class="bar"><i></i></div>
+</body></html>`;
+
+function createSplashWindow(): void {
+  try {
+    splashWindow = new BrowserWindow({
+      width: 420,
+      height: 300,
+      frame: false,
+      resizable: false,
+      movable: true,
+      minimizable: false,
+      maximizable: false,
+      fullscreenable: false,
+      alwaysOnTop: true,
+      show: true,
+      backgroundColor: '#0d0d1a',
+      title: 'Zio Browser',
+      webPreferences: { contextIsolation: true, nodeIntegration: false, sandbox: true },
+    });
+    splashWindow.on('closed', () => { splashWindow = null; });
+    void splashWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(SPLASH_HTML)}`);
+  } catch (err) {
+    // The splash is purely cosmetic — never let it interfere with startup.
+    console.error('Splash window failed:', err);
+    splashWindow = null;
+  }
+}
+
+function closeSplash(): void {
+  try {
+    if (splashWindow && !splashWindow.isDestroyed()) splashWindow.destroy();
+  } catch {
+    // ignore — cosmetic only
+  }
+  splashWindow = null;
+}
 
 // ── Fail-soft DB access ───────────────────────────────────────────────────────
 // If the native SQLite module fails to load (e.g. an ABI mismatch in a packaged
@@ -170,6 +243,7 @@ function createWindow(): BrowserWindow {
     console.error(`Renderer failed to load (${code} ${desc}) at ${url}`);
   });
   const showFailsafe = setTimeout(() => {
+    closeSplash();
     if (!win.isDestroyed() && !win.isVisible()) win.show();
   }, 6000);
 
@@ -193,6 +267,7 @@ function createWindow(): BrowserWindow {
 
   win.once('ready-to-show', () => {
     clearTimeout(showFailsafe);
+    closeSplash();
     win.show();
     modeManager.setMode(savedMode);
     if (savedMode === 'browser') {
@@ -594,6 +669,8 @@ function buildMenu(): void {
 // ── App lifecycle ─────────────────────────────────────────────────────────────
 
 app.whenReady().then(() => {
+  // Show the branded splash immediately — before any heavy startup work.
+  createSplashWindow();
   try {
     initDb();
   } catch (err) {
@@ -616,6 +693,7 @@ app.whenReady().then(() => {
 
     buildMenu();
   } catch (err) {
+    closeSplash();
     reportStartupError('Failed to start', err);
   }
 
