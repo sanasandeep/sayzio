@@ -32,3 +32,7 @@ Runtime-startup lessons (v0.1.6, July 2026):
 electron-builder's smartUnpack fails to detect native modules in this pnpm workspace (symlinked node_modules), so better_sqlite3.node shipped INSIDE app.asar — Electron can't load .node files from asar, so every packaged build's initDb() threw at runtime ("Database not initialized" downstream). Fix: explicit `asarUnpack: ['**/*.node']` in electron-builder.config.cjs.
 **How to verify:** the release zip must contain `app.asar.unpacked/node_modules/better-sqlite3/build/Release/better_sqlite3.node` with the right Mach-O arch (`unzip` + `npx @electron/asar extract-file` + `file`).
 Also: mac CI now runs `install-app-deps --arch x64|arm64` immediately before each per-arch packaging run (arch-drift defense), and the app degrades gracefully when DB init fails (skip sync runner, catch background tick errors, surface the ORIGINAL init error).
+
+## pnpm also omits native modules' transitive runtime deps
+Even with asarUnpack fixed, packaged app crashed with "Cannot find module 'bindings'" — electron-builder under pnpm only reliably packs the artifact's DIRECT dependencies. better-sqlite3's runtime deps (bindings, file-uri-to-path@^1 — v2 is ESM-only and breaks require) must be declared as direct dependencies of the desktop package.
+**How to verify:** `npx @electron/asar list app.asar | grep bindings` on the release zip.
