@@ -21,6 +21,23 @@ const macNotarizeEnabled = Boolean(
 
 /** @type {import('electron-builder').Configuration} */
 const config = {
+  // Unsigned mac builds: electron-builder's repack invalidates Electron's
+  // original ad-hoc signature, and macOS 15+ reports an app with a broken
+  // signature as "contains malware" (hard block, no Open Anyway). Re-applying
+  // a fresh ad-hoc signature after packaging restores internal consistency so
+  // Gatekeeper downgrades to the normal unidentified-developer warning that
+  // users can bypass. Skipped when real signing is enabled.
+  afterPack: async (context) => {
+    if (context.electronPlatformName !== 'darwin' || macSigningEnabled) return;
+    const path = require('path');
+    const { execSync } = require('child_process');
+    const appPath = path.join(
+      context.appOutDir,
+      `${context.packager.appInfo.productFilename}.app`,
+    );
+    execSync(`codesign --force --deep --sign - "${appPath}"`, { stdio: 'inherit' });
+    execSync(`codesign --verify --deep --strict "${appPath}"`, { stdio: 'inherit' });
+  },
   appId: 'com.sayzio.browser',
   productName: 'Zio Browser',
   // No spaces in artifact names: GitHub converts spaces to dots on upload,
