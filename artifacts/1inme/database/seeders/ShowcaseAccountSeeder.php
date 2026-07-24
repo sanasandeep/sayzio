@@ -50,11 +50,15 @@ use Illuminate\Support\Str;
 /**
  * Task #3489 — provisions a single, fully-loaded showcase/demo account
  * (`sana@sayzio.app`) on the internal "Unlimited" comp plan with admin +
- * super-admin access, three examples of every `links.type`, a biolink page
- * covering every widget/block type, every other feature surface populated
- * (forms, QR studio, subscribers, reviews, Buzz, contacts) and backdated
- * analytics (clicks / sessions / heatmap / rollups) so the account is a
- * ready-made walkthrough of the whole product.
+ * super-admin access, a fresh main link-in-bio page, two realistic demo
+ * links plus one usage-explainer page for every `links.type`, a biolink
+ * page covering every widget/block type, every other feature surface
+ * populated (forms, QR studio, subscribers, reviews, Buzz, contacts) and
+ * 90 days of backdated analytics (clicks / sessions / heatmap / rollups)
+ * so the account is a ready-made walkthrough of the whole product.
+ *
+ * Also runnable via the guarded `php artisan showcase:seed` command
+ * ({@see \App\Console\Commands\SeedShowcaseAccount}).
  *
  * Strictly additive/idempotent: everything is scoped to this one fixed
  * email and wiped-then-rebuilt on every run (never touches any other
@@ -164,6 +168,11 @@ class ShowcaseAccountSeeder extends Seeder
         $links['conversational'] = $this->seedConversationalLinks();
         $lap('seedConversationalLinks');
 
+        $this->seedExplainerLinks();
+        $lap('seedExplainerLinks');
+        $this->seedMainBioPage();
+        $lap('seedMainBioPage');
+
         $form = $this->seedForms();
         $lap('seedForms');
         $socialProof = $this->seedBuzz();
@@ -186,10 +195,9 @@ class ShowcaseAccountSeeder extends Seeder
         $lap('seedAnalytics');
 
         $this->command?->info(sprintf(
-            'Showcase account ready: %s (%d links across 16 types, %d biolinks incl. widget catalog, backdated analytics included).',
+            'Showcase account ready: %s (%d links across 16 types — 2 demos + 1 explainer per type, fresh main bio page, widget catalog, 90 days of backdated analytics).',
             static::EMAIL,
-            count($allLinkIds),
-            count($links['biolink'])
+            count($allLinkIds)
         ));
 
         // Don't leak the workspace binding into whatever else runs in this
@@ -401,7 +409,6 @@ class ShowcaseAccountSeeder extends Seeder
         $defs = [
             ['product-launch', 'Product Launch Announcement', 'https://sayzio.example.com/blog/product-launch'],
             ['event-signup', 'Community Event Signup', 'https://sayzio.example.com/events/community-meetup'],
-            ['portfolio-site', 'Personal Portfolio', 'https://sayzio.example.com/portfolio/sana'],
         ];
         $out = [];
         foreach ($defs as $i => [$suffix, $title, $url]) {
@@ -423,7 +430,6 @@ class ShowcaseAccountSeeder extends Seeder
         $defs = [
             ['media-kit', 'Media Kit PDF', 'media-kit.pdf', 'application/pdf', 245_000],
             ['pricing-sheet', 'Pricing Sheet', 'pricing-sheet.pdf', 'application/pdf', 128_000],
-            ['brand-assets', 'Brand Asset Pack', 'brand-assets.zip', 'application/zip', 4_500_000],
         ];
         $out = [];
         foreach ($defs as [$suffix, $title, $filename, $mime, $size]) {
@@ -451,7 +457,6 @@ class ShowcaseAccountSeeder extends Seeder
         $defs = [
             ['webinar', 'Product Webinar', now()->addDays(10), 'Live Webinar'],
             ['workshop', 'Design Workshop', now()->addDays(20), 'In-Person Workshop'],
-            ['launch-party', 'Launch Party', now()->addDays(30), 'Launch Party'],
         ];
         $out = [];
         foreach ($defs as [$suffix, $title, $start, $eventName]) {
@@ -481,7 +486,6 @@ class ShowcaseAccountSeeder extends Seeder
         $defs = [
             ['personal', 'Personal Contact Card', 'Sana', 'Rahman', 'Sayzio Showcase'],
             ['work', 'Work Contact Card', 'Sana', 'Rahman', 'Sayzio Inc.'],
-            ['support', 'Support Contact Card', 'Sayzio', 'Support', 'Sayzio Inc.'],
         ];
         $out = [];
         foreach ($defs as [$suffix, $title, $first, $last, $org]) {
@@ -610,7 +614,6 @@ class ShowcaseAccountSeeder extends Seeder
         $titles = [
             ['story', 'Our Story', ['How it started', 'Why we built Sayzio', 'What comes next']],
             ['case-study', 'Customer Case Study', ['The challenge', 'Our solution', 'The results']],
-            ['deck', 'Mini Pitch Deck', ['Problem', 'Solution', 'Traction', 'Ask']],
         ];
         $out = [];
         foreach ($titles as [$suffix, $title, $slideTitles]) {
@@ -645,7 +648,7 @@ class ShowcaseAccountSeeder extends Seeder
     /** @return Link[] */
     private function seedRestaurantMenus(): array
     {
-        $defs = ['downtown', 'rooftop', 'weekend-brunch'];
+        $defs = ['downtown', 'rooftop'];
         $out = [];
         foreach ($defs as $i => $suffix) {
             $link = $this->makeLink('restaurant_menu', "menu-{$suffix}", 'Restaurant Menu: ' . Str::headline($suffix));
@@ -696,7 +699,7 @@ class ShowcaseAccountSeeder extends Seeder
     /** @return Link[] */
     private function seedStoreMenus(): array
     {
-        $defs = ['apparel', 'accessories', 'seasonal'];
+        $defs = ['apparel', 'accessories'];
         $out = [];
         foreach ($defs as $i => $suffix) {
             $link = $this->makeLink('store_menu', "store-{$suffix}", 'Store: ' . Str::headline($suffix));
@@ -750,7 +753,6 @@ class ShowcaseAccountSeeder extends Seeder
         $defs = [
             ['consult', 'Strategy Consultation', 30],
             ['design-review', 'Design Review Session', 45],
-            ['onboarding-call', 'Onboarding Call', 60],
         ];
         $out = [];
         foreach ($defs as [$suffix, $title, $slot]) {
@@ -781,7 +783,7 @@ class ShowcaseAccountSeeder extends Seeder
     /** @return Link[] */
     private function seedResumes(): array
     {
-        $defs = ['product-designer', 'growth-marketer', 'software-engineer'];
+        $defs = ['product-designer', 'growth-marketer'];
         $out = [];
         foreach ($defs as $i => $suffix) {
             $link = $this->makeLink('resume', "resume-{$suffix}", 'Resume: ' . Str::headline($suffix));
@@ -822,7 +824,7 @@ class ShowcaseAccountSeeder extends Seeder
     /** @return Link[] */
     private function seedCalendars(): array
     {
-        $defs = ['events', 'office-hours', 'community'];
+        $defs = ['events', 'office-hours'];
         $out = [];
         foreach ($defs as $i => $suffix) {
             $link = $this->makeLink('calendar', "cal-{$suffix}", 'Calendar: ' . Str::headline($suffix));
@@ -861,7 +863,7 @@ class ShowcaseAccountSeeder extends Seeder
     /** @return Link[] */
     private function seedPaidPages(): array
     {
-        $defs = ['creator-hub', 'membership', 'exclusive-content'];
+        $defs = ['creator-hub', 'membership'];
         $out = [];
         foreach ($defs as $suffix) {
             $out[] = $this->makeLink('paid_page', "paid-{$suffix}", 'Paid Page: ' . Str::headline($suffix), [
@@ -888,7 +890,7 @@ class ShowcaseAccountSeeder extends Seeder
     /** @return Link[] */
     private function seedReviewLinks(): array
     {
-        $defs = ['product', 'service', 'general'];
+        $defs = ['product', 'service'];
         $out = [];
         foreach ($defs as $suffix) {
             $out[] = $this->makeLink('reviews', "reviews-{$suffix}", 'Reviews: ' . Str::headline($suffix));
@@ -904,7 +906,6 @@ class ShowcaseAccountSeeder extends Seeder
         $defs = [
             ['main', 'Sayzio Showcase', ['#7c3aed', '#22d3ee', '#f472b6'], 'Confident, warm, playful'],
             ['sub-brand', 'Showcase Studio', ['#0ea5e9', '#f59e0b', '#111827'], 'Bold, modern, minimal'],
-            ['press-kit', 'Press Kit', ['#10b981', '#6366f1', '#f43f5e'], 'Professional, trustworthy'],
         ];
         $out = [];
         foreach ($defs as $i => [$suffix, $name, $palette, $tone]) {
@@ -944,7 +945,7 @@ class ShowcaseAccountSeeder extends Seeder
             'starter_questions' => ['What can Sayzio do?', 'Show me the pricing', 'How do QR codes work?'],
         ]);
 
-        $defs = ['support-bot', 'sales-bot', 'faq-bot'];
+        $defs = ['support-bot', 'sales-bot'];
         $out = [];
         foreach ($defs as $suffix) {
             $link = $this->makeLink('ai_chat', "aichat-{$suffix}", 'AI Chatbot: ' . Str::headline($suffix));
@@ -976,7 +977,7 @@ class ShowcaseAccountSeeder extends Seeder
     /** @return Link[] */
     private function seedConversationalLinks(): array
     {
-        $defs = ['discover', 'onboarding', 'survey'];
+        $defs = ['discover', 'onboarding'];
         $out = [];
         foreach ($defs as $suffix) {
             $link = $this->makeLink('conversational', "conv-{$suffix}", 'Conversational: ' . Str::headline($suffix));
@@ -1008,6 +1009,353 @@ class ShowcaseAccountSeeder extends Seeder
             $out[] = $link;
         }
         return $out;
+    }
+
+    // ── Usage-explainer pages (one per link type) ────────────────────────
+
+    /**
+     * One "usage explainer" biolink page per supported link type: a short,
+     * hand-written walkthrough of what the type is for and what you can do
+     * with it, ending in a CTA that opens one of this account's own live
+     * demo links of that type. Copy/block pattern mirrors
+     * {@see LinkTypeExplainerSeeder} (heading → intro → checklist → CTA)
+     * but the pages live on the showcase account and link to its demos.
+     *
+     * @return Link[]
+     */
+    private function seedExplainerLinks(): array
+    {
+        $out = [];
+        foreach ($this->explainerPages() as $page) {
+            $link = $this->makeLink('biolink', 'explain-' . $page['slug'], $page['title'], [
+                'settings' => [
+                    'biolink' => [
+                        'biolink_title' => $page['title'],
+                        'biolink_description' => $page['intro'],
+                    ],
+                ],
+            ]);
+            $this->buildExplainerBlocks($link, $page);
+            $out[] = $link;
+        }
+        return $out;
+    }
+
+    /**
+     * Heading / intro / checklist / CTA blocks with fully-populated
+     * settings and styles (no `_placeholder` first-paint banner). The
+     * public renderer echoes each list item directly as a string, so
+     * `items` must stay a flat string[].
+     */
+    private function buildExplainerBlocks(Link $link, array $page): void
+    {
+        $defs = [
+            ['heading', ['text' => $page['heading'], 'size' => 'h1', 'align' => 'center', 'style' => 'plain']],
+            ['paragraph', ['text' => $page['intro'], 'align' => 'center']],
+            ['heading', ['text' => 'What you can do', 'size' => 'h3', 'align' => 'center', 'style' => 'plain']],
+            ['list', ['style' => 'checklist', 'icon' => 'fa-check', 'items' => array_values($page['features'])]],
+            ['link', ['text' => $page['cta_label'], 'url' => url('/' . $page['cta_alias']), 'icon' => $page['cta_icon'] ?? 'fa-arrow-right']],
+        ];
+
+        foreach ($defs as $i => [$type, $settings]) {
+            $settings['_style'] = array_merge(
+                BiolinkBlock::STYLE_DEFAULTS,
+                BlockDefaults::styleForType($type)
+            );
+            BiolinkBlock::forceCreate([
+                'link_id' => $link->id,
+                'type' => $type,
+                'settings' => $settings,
+                'sort_order' => $i,
+                'is_active' => true,
+            ]);
+        }
+    }
+
+    /**
+     * Explainer copy for all 16 supported link types. Each entry: slug
+     * (alias suffix), title, heading, intro, 4–5 feature bullets, and a CTA
+     * pointing at one of this account's own live demo links of that type.
+     */
+    private function explainerPages(): array
+    {
+        $h = static::HANDLE;
+
+        return [
+            [
+                'slug' => 'url', 'title' => 'Short Links: how to use them',
+                'heading' => 'Short Links 🔗',
+                'intro' => 'Turn long, ugly URLs into clean, branded links you can share anywhere — and see every click in real time.',
+                'features' => [
+                    'Shorten any URL into a clean, on-brand link',
+                    'Repoint the destination any time, the link never changes',
+                    'Add UTMs, password protection and expiry rules',
+                    'Route visitors by country, device or language',
+                    'Track every click with live analytics',
+                ],
+                'cta_label' => 'See a live short link', 'cta_alias' => "{$h}-url-product-launch", 'cta_icon' => 'fa-link',
+            ],
+            [
+                'slug' => 'file', 'title' => 'File Links: how to use them',
+                'heading' => 'File Links 📁',
+                'intro' => 'Share PDFs, images and downloads from one tidy link with an optional branded download page.',
+                'features' => [
+                    'Upload once, share a single short link anywhere',
+                    'Optional download page with your branding',
+                    'Swap the file later without changing the link',
+                    'See download counts in your analytics',
+                ],
+                'cta_label' => 'Open a sample file link', 'cta_alias' => "{$h}-file-media-kit", 'cta_icon' => 'fa-file-arrow-down',
+            ],
+            [
+                'slug' => 'ics', 'title' => 'Event Links: how to use them',
+                'heading' => 'Event Links 📅',
+                'intro' => 'One link that adds your event straight to any calendar — no attachments, no confusion.',
+                'features' => [
+                    'Share date, time, location and organizer in one link',
+                    'Visitors add it to Google, Apple or Outlook in one tap',
+                    'Update details later, everyone gets the latest',
+                    'Track interest through link clicks',
+                ],
+                'cta_label' => 'Try a live event link', 'cta_alias' => "{$h}-ics-webinar", 'cta_icon' => 'fa-calendar-plus',
+            ],
+            [
+                'slug' => 'vcf', 'title' => 'Digital Cards: how to use them',
+                'heading' => 'Digital Contact Cards 📇',
+                'intro' => 'A modern business card: one link (or QR) that saves your full contact details to any phone.',
+                'features' => [
+                    'Full vCard: phones, emails, socials, address and more',
+                    'Saves straight into the visitor\'s contacts app',
+                    'Pair it with a QR code for events and print',
+                    'Update your details without reprinting anything',
+                ],
+                'cta_label' => 'View a sample contact card', 'cta_alias' => "{$h}-vcf-personal", 'cta_icon' => 'fa-address-card',
+            ],
+            [
+                'slug' => 'biolink', 'title' => 'Link in Bio: how to use it',
+                'heading' => 'Link in Bio 🌟',
+                'intro' => 'One beautiful page for all your links — built for the "link in bio" slot on every social platform.',
+                'features' => [
+                    'Drag-and-drop blocks for text, media, products and more',
+                    'Dozens of themes and full visual customization',
+                    'Capture emails, sell products and take bookings',
+                    'Schedule blocks and hide them by device or location',
+                    'Live analytics on every visit and click',
+                ],
+                'cta_label' => 'Explore a live bio page', 'cta_alias' => "{$h}-bio-personal", 'cta_icon' => 'fa-star',
+            ],
+            [
+                'slug' => 'slides', 'title' => 'Slides: how to use them',
+                'heading' => 'Slides 🖼️',
+                'intro' => 'Tell your story as a swipeable, story-style presentation — perfect for portfolios and product tours.',
+                'features' => [
+                    'Swipeable, full-screen story slides',
+                    'Mix text, images and links per slide',
+                    'Great for portfolios, pitches and tutorials',
+                    'Mobile-first, tap-to-advance experience',
+                ],
+                'cta_label' => 'Swipe through a live deck', 'cta_alias' => "{$h}-slides-story", 'cta_icon' => 'fa-images',
+            ],
+            [
+                'slug' => 'restaurant-menu', 'title' => 'Restaurant Menu: how to use it',
+                'heading' => 'Restaurant Menu 🍽️',
+                'intro' => 'A digital menu with photos, prices and table-side ordering — a QR menu that actually takes orders.',
+                'features' => [
+                    'Build categories and items with photos and prices',
+                    'Each table gets its own QR code and ordering link',
+                    'Visitors order from the page; staff track it live',
+                    'Coupons and tax build a live estimated bill',
+                    'Update the menu any time, no reprinting',
+                ],
+                'cta_label' => 'Browse a live demo menu', 'cta_alias' => "{$h}-menu-downtown", 'cta_icon' => 'fa-utensils',
+            ],
+            [
+                'slug' => 'store', 'title' => 'Store: how to use it',
+                'heading' => 'Store 🛍️',
+                'intro' => 'A simple product catalog with order requests — visitors browse, pick and send their order in seconds.',
+                'features' => [
+                    'Categories and products with photos and prices',
+                    'Order requests with name and contact, no payment needed',
+                    'Owner dashboard tracks New → Ready → Completed',
+                    'Pause ordering any time with one toggle',
+                    'Optional WhatsApp handoff for confirmations',
+                ],
+                'cta_label' => 'Visit a live demo store', 'cta_alias' => "{$h}-store-apparel", 'cta_icon' => 'fa-bag-shopping',
+            ],
+            [
+                'slug' => 'booking', 'title' => 'Service Booking: how to use it',
+                'heading' => 'Service Booking 🗓️',
+                'intro' => 'Let clients book time with you straight from a link — pick a service, pick a slot, done.',
+                'features' => [
+                    'Offer services with set durations and availability',
+                    'Visitors pick a slot without back-and-forth emails',
+                    'Bookings land in your dashboard automatically',
+                    'Share the link anywhere: bio page, DMs, email',
+                ],
+                'cta_label' => 'Try a live booking page', 'cta_alias' => "{$h}-booking-consult", 'cta_icon' => 'fa-calendar-check',
+            ],
+            [
+                'slug' => 'resume', 'title' => 'Resume Links: how to use them',
+                'heading' => 'Resume & Portfolio 📄',
+                'intro' => 'A living resume you share as a link — always current, beautifully presented, with a PDF one tap away.',
+                'features' => [
+                    'Structured sections: experience, education, skills, projects',
+                    'Share one link instead of emailing attachments',
+                    'Keep named versions for different applications',
+                    'Download as a polished PDF any time',
+                    'See when people actually view it',
+                ],
+                'cta_label' => 'View a live resume', 'cta_alias' => "{$h}-resume-product-designer", 'cta_icon' => 'fa-file-lines',
+            ],
+            [
+                'slug' => 'calendar', 'title' => 'Calendar Links: how to use them',
+                'heading' => 'Followable Calendars 📆',
+                'intro' => 'Publish a whole calendar of events people can follow — new events appear in their calendar automatically.',
+                'features' => [
+                    'One link for your full schedule of events',
+                    'Visitors subscribe once, updates sync automatically',
+                    'Works with Google, Apple and Outlook calendars',
+                    'Perfect for classes, communities and office hours',
+                ],
+                'cta_label' => 'Follow a live calendar', 'cta_alias' => "{$h}-cal-events", 'cta_icon' => 'fa-calendar-days',
+            ],
+            [
+                'slug' => 'paid-page', 'title' => 'Paid Pages: how to use them',
+                'heading' => 'Paid Pages 💎',
+                'intro' => 'Put your best content behind a link — supporters unlock it, you keep 100% of what you earn.',
+                'features' => [
+                    'Gate exclusive content behind a subscription or payment',
+                    'Reuses your creator feed with visibility tiers',
+                    'Pick a template that fits your content',
+                    '0% platform fee on creator payouts',
+                ],
+                'cta_label' => 'Peek at a live paid page', 'cta_alias' => "{$h}-paid-creator-hub", 'cta_icon' => 'fa-gem',
+            ],
+            [
+                'slug' => 'reviews', 'title' => 'Review Pages: how to use them',
+                'heading' => 'Reviews ⭐',
+                'intro' => 'Collect and showcase reviews on one page — native reviews plus imports from Google and Trustpilot.',
+                'features' => [
+                    'Visitors leave reviews right on your page',
+                    'Import and merge Google and Trustpilot reviews',
+                    'Moderate everything before it goes live',
+                    'Pin your best reviews to the top',
+                    'Embed a reviews wall on your bio page',
+                ],
+                'cta_label' => 'See a live reviews page', 'cta_alias' => "{$h}-reviews-product", 'cta_icon' => 'fa-star-half-stroke',
+            ],
+            [
+                'slug' => 'brand-kit', 'title' => 'Brand Kits: how to use them',
+                'heading' => 'Brand Kits 🎨',
+                'intro' => 'One shareable page for your logos, colors, fonts and voice — so everyone stays on brand.',
+                'features' => [
+                    'Collect logos, palette, typography and tone in one link',
+                    'Share with partners, press and collaborators',
+                    'Keep separate kits for sub-brands or campaigns',
+                    'AI features reuse your kit to stay on brand',
+                ],
+                'cta_label' => 'Open a live brand kit', 'cta_alias' => "{$h}-brandkit-main", 'cta_icon' => 'fa-palette',
+            ],
+            [
+                'slug' => 'ai-chat', 'title' => 'AI Chatbot: how to use it',
+                'heading' => 'AI Chatbot 🤖',
+                'intro' => 'A smart AI companion that answers questions about you or your business 24/7, in your voice.',
+                'features' => [
+                    'An AI that answers around the clock',
+                    'Trained on your bio, links and the details you choose',
+                    'Handles FAQs so you do not have to',
+                    'Lives on its own shareable chat page',
+                    'Stays on-brand with full theming',
+                ],
+                'cta_label' => 'Chat with a live bot', 'cta_alias' => "{$h}-aichat-support-bot", 'cta_icon' => 'fa-robot',
+            ],
+            [
+                'slug' => 'conversational', 'title' => 'Conversational Pages: how to use them',
+                'heading' => 'Conversational 💬',
+                'intro' => 'Guide visitors through your links one friendly message at a time — great for onboarding and storytelling.',
+                'features' => [
+                    'A chat-style flow that reveals links step by step',
+                    'Write a fixed script that feels personal',
+                    'Keep visitors focused on one action at a time',
+                    'Perfect for launches, funnels and FAQs',
+                ],
+                'cta_label' => 'Walk through a live flow', 'cta_alias' => "{$h}-conv-discover", 'cta_icon' => 'fa-comments',
+            ],
+        ];
+    }
+
+    // ── Fresh main link-in-bio page ──────────────────────────────────────
+
+    /**
+     * The account's headline link-in-bio page at `/{handle}` — designed
+     * from scratch for this showcase (hero, socials, featured links into
+     * the live demos, newsletter capture). Deliberately NOT a copy of the
+     * marketing /demo page.
+     */
+    private function seedMainBioPage(): Link
+    {
+        $h = static::HANDLE;
+
+        $link = Link::create([
+            'user_id' => $this->user->id,
+            'type' => 'biolink',
+            'alias' => $h,
+            'title' => 'Sana Rahman — Everything in one link',
+            'is_active' => true,
+            'visibility' => 'public',
+            'is_demo' => true,
+            'settings' => [
+                'biolink' => [
+                    'biolink_title' => 'Sana Rahman',
+                    'biolink_description' => 'Designer, founder & creator — everything I make, teach and sell, in one link.',
+                ],
+            ],
+        ]);
+
+        $defs = [
+            ['avatar', ['url' => $this->img('sana-avatar', 320, 320), 'size' => 112, 'rounded' => true]],
+            ['heading', ['text' => 'Sana Rahman ✨', 'size' => 'h1', 'align' => 'center', 'style' => 'plain']],
+            ['paragraph', ['text' => 'Designer, founder & creator. I help small brands look big — browse my work, book time with me, or grab something from the studio store.', 'align' => 'center']],
+            ['socials', ['platforms' => [
+                ['platform' => 'instagram', 'url' => 'https://instagram.com/sanarahman'],
+                ['platform' => 'twitter', 'url' => 'https://twitter.com/sanarahman'],
+                ['platform' => 'youtube', 'url' => 'https://youtube.com/@sanarahman'],
+                ['platform' => 'linkedin', 'url' => 'https://linkedin.com/in/sanarahman'],
+            ]]],
+            ['heading', ['text' => 'Work with me', 'size' => 'h3', 'align' => 'center', 'style' => 'plain']],
+            ['link', ['text' => 'Book a strategy call', 'url' => url("/{$h}-booking-consult"), 'icon' => 'fa-calendar-check']],
+            ['link', ['text' => 'My resume & portfolio', 'url' => url("/{$h}-resume-product-designer"), 'icon' => 'fa-file-lines']],
+            ['link', ['text' => 'Chat with my AI assistant', 'url' => url("/{$h}-aichat-support-bot"), 'icon' => 'fa-robot']],
+            ['heading', ['text' => 'From the studio', 'size' => 'h3', 'align' => 'center', 'style' => 'plain']],
+            ['link', ['text' => 'Shop the apparel collection', 'url' => url("/{$h}-store-apparel"), 'icon' => 'fa-bag-shopping']],
+            ['link', ['text' => 'Our story, in slides', 'url' => url("/{$h}-slides-story"), 'icon' => 'fa-images']],
+            ['link', ['text' => 'What clients say', 'url' => url("/{$h}-reviews-product"), 'icon' => 'fa-star']],
+            ['email_subscribe', [
+                'title' => 'Get my monthly studio notes',
+                'description' => 'One email a month: what I shipped, learned and loved.',
+                'placeholder' => 'you@example.com',
+                'button_text' => 'Subscribe',
+                'success_message' => 'Thanks — you\'re on the list!',
+                'name_field' => false,
+            ]],
+            ['paragraph', ['text' => 'Made with Sayzio — one link for everything.', 'align' => 'center']],
+        ];
+
+        foreach ($defs as $i => [$type, $settings]) {
+            $settings['_style'] = array_merge(
+                BiolinkBlock::STYLE_DEFAULTS,
+                BlockDefaults::styleForType($type)
+            );
+            BiolinkBlock::forceCreate([
+                'link_id' => $link->id,
+                'type' => $type,
+                'settings' => $settings,
+                'sort_order' => $i,
+                'is_active' => true,
+            ]);
+        }
+
+        return $link;
     }
 
     // ── Other feature surfaces ───────────────────────────────────────────

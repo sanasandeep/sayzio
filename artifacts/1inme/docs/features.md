@@ -1387,7 +1387,7 @@ available for Windows, macOS, and Linux. Downloaded from the `/download` page
 
 ### 14.2 Browser extension (`artifacts/1inme-extension`)
 
-A cross-browser extension (Chrome / Edge / Firefox-compatible) that surfaces
+The Zio Extension, a cross-browser extension (Chrome / Edge / Firefox-compatible) that surfaces
 Sayzio tools on any page. In addition to the original backlink radar, pixel
 manager, and thank-you queue, seven capabilities were recently shipped:
 

@@ -19,6 +19,29 @@ class OgMetadataService
     public const MAX_BYTES = 1_000_000;
     public const TIMEOUT_SECONDS = 8;
 
+    /** Cap for downloadImage() — big enough for OG covers, small enough to bound abuse. */
+    public const MAX_IMAGE_BYTES = 5_000_000;
+
+    /** Image MIME types downloadImage() will accept. */
+    public const IMAGE_MIMES = [
+        'image/png', 'image/jpeg', 'image/gif', 'image/webp',
+        'image/x-icon', 'image/vnd.microsoft.icon', 'image/bmp',
+    ];
+
+    /** Cap on prominent in-page <img> candidates returned per page. */
+    public const MAX_CONTENT_IMAGES = 12;
+
+    /**
+     * URL substrings that mark obvious non-content images (trackers,
+     * sprites, pixels, ad beacons, icon sets). Matched case-insensitively
+     * against the whole candidate URL.
+     */
+    private const CONTENT_IMAGE_URL_BLOCKLIST = [
+        'sprite', 'pixel', 'tracking', 'tracker', 'beacon', 'spacer',
+        'blank.', '1x1', 'counter', 'adserver', 'doubleclick', 'analytics',
+        'badge', 'captcha', 'gravatar.com/avatar',
+    ];
+
     /**
      * @return array{title:?string, description:?string, image_url:?string, favicon_url:?string}
      * @throws RuntimeException for caller-fixable problems (bad URL, unreachable host, blocked target).
@@ -89,6 +112,84 @@ class OgMetadataService
     }
 
     /**
+     * SSRF-safe image download for the AI builder's auto-sourcing step.
+     *
+     * Applies the same private-host guard (initial + post-redirect) as
+     * extractFromUrl, caps the payload at MAX_IMAGE_BYTES, and verifies
+     * the bytes decode as a real raster image of an accepted MIME type.
+     * Best-effort by design: any failure returns null, never throws.
+     *
+     * @return array{bytes:string, mime:string}|null
+     */
+    public function downloadImage(string $url): ?array
+    {
+        $url = trim($url);
+        if ($url === '' || mb_strlen($url) > 2048 || !preg_match('#^https?://#i', $url)) {
+            return null;
+        }
+        $host = parse_url($url, PHP_URL_HOST);
+        if (!is_string($host) || $host === '') {
+            return null;
+        }
+
+        try {
+            $this->guardAgainstPrivateHost($host);
+
+            $response = Http::timeout(self::TIMEOUT_SECONDS)
+                ->connectTimeout(5)
+                ->withHeaders([
+                    'User-Agent' => 'Mozilla/5.0 (compatible; SayzioMetaBot/1.0; +https://1in.me)',
+                    'Accept'     => 'image/*',
+                ])
+                ->withOptions(['allow_redirects' => ['max' => 5, 'strict' => true]])
+                ->get($url);
+
+            if (!$response->successful()) {
+                return null;
+            }
+
+            // Re-check the final (post-redirect) host for open-redirect SSRF.
+            try {
+                $effective = $response->effectiveUri();
+                if ($effective) {
+                    $finalHost = parse_url((string) $effective, PHP_URL_HOST);
+                    if (is_string($finalHost) && $finalHost !== '') {
+                        $this->guardAgainstPrivateHost($finalHost);
+                    }
+                }
+            } catch (RuntimeException $e) {
+                return null;
+            }
+
+            $bytes = $response->body();
+        } catch (\Throwable $e) {
+            return null;
+        }
+
+        if ($bytes === '' || strlen($bytes) > self::MAX_IMAGE_BYTES) {
+            return null;
+        }
+
+        // The bytes must decode as a real image; trust the decoded MIME,
+        // not the response header.
+        $info = @getimagesizefromstring($bytes);
+        if ($info === false) {
+            return null;
+        }
+        $mime = strtolower((string) ($info['mime'] ?? ''));
+        if (!in_array($mime, self::IMAGE_MIMES, true)) {
+            return null;
+        }
+
+        return [
+            'bytes'  => $bytes,
+            'mime'   => $mime,
+            'width'  => (int) ($info[0] ?? 0),
+            'height' => (int) ($info[1] ?? 0),
+        ];
+    }
+
+    /**
      * Extract OG metadata from raw HTML. Public so tests can exercise
      * parsing without a network fetch.
      *
@@ -116,11 +217,85 @@ class OgMetadataService
         }
 
         return [
-            'title'       => $title !== null ? mb_substr($title, 0, 160) : null,
-            'description' => $description !== null ? mb_substr($description, 0, 500) : null,
-            'image_url'   => $imageUrl !== null ? mb_substr($imageUrl, 0, 2048) : null,
-            'favicon_url' => $faviconUrl !== null ? mb_substr($faviconUrl, 0, 2048) : null,
+            'title'          => $title !== null ? mb_substr($title, 0, 160) : null,
+            'description'    => $description !== null ? mb_substr($description, 0, 500) : null,
+            'image_url'      => $imageUrl !== null ? mb_substr($imageUrl, 0, 2048) : null,
+            'favicon_url'    => $faviconUrl !== null ? mb_substr($faviconUrl, 0, 2048) : null,
+            'content_images' => $this->extractContentImages($xpath, $url),
         ];
+    }
+
+    /**
+     * Prominent in-page <img> candidates in document order (hero images,
+     * product shots, gallery photos). Attribute-level prefiltering only —
+     * the caller still downloads (SSRF-safe) and applies real pixel-size
+     * checks on the decoded bytes:
+     *
+     *   - data:/blob:/javascript: sources are skipped;
+     *   - declared width/height attrs below 100px are skipped (icons);
+     *   - obvious tracker/sprite/pixel/beacon URLs are skipped;
+     *   - lazy-load `data-src`/`data-lazy-src` are honored over `src`;
+     *   - duplicates removed, capped at {@see MAX_CONTENT_IMAGES}.
+     *
+     * @return list<string> absolute http(s) URLs
+     */
+    private function extractContentImages(\DOMXPath $xpath, string $pageUrl): array
+    {
+        $out  = [];
+        $seen = [];
+
+        foreach ($xpath->query('//img') as $node) {
+            if (count($out) >= self::MAX_CONTENT_IMAGES) {
+                break;
+            }
+            if (!$node instanceof \DOMElement) {
+                continue;
+            }
+
+            $src = trim($node->getAttribute('data-src'))
+                ?: trim($node->getAttribute('data-lazy-src'))
+                ?: trim($node->getAttribute('src'));
+            if ($src === '' || mb_strlen($src) > 2048) {
+                continue;
+            }
+
+            // Only http(s) or relative sources — never data:/blob:/etc.
+            if (preg_match('/^[a-z][a-z0-9+.\-]*:/i', $src) && !preg_match('#^https?:#i', $src)) {
+                continue;
+            }
+
+            // Declared-size prefilter: skip obvious icons/pixels.
+            foreach (['width', 'height'] as $attr) {
+                $v = trim($node->getAttribute($attr));
+                if ($v !== '' && is_numeric($v) && (float) $v < 100) {
+                    continue 2;
+                }
+            }
+
+            $resolved = $this->resolveUrl($src, $pageUrl);
+            if (!preg_match('#^https?://#i', $resolved)) {
+                continue;
+            }
+
+            $lower = strtolower($resolved);
+            if (str_ends_with(parse_url($lower, PHP_URL_PATH) ?? '', '.svg')) {
+                continue; // vector icons/logos — not raster content
+            }
+            foreach (self::CONTENT_IMAGE_URL_BLOCKLIST as $needle) {
+                if (str_contains($lower, $needle)) {
+                    continue 2;
+                }
+            }
+
+            if (isset($seen[$lower])) {
+                continue;
+            }
+            $seen[$lower] = true;
+
+            $out[] = mb_substr($resolved, 0, 2048);
+        }
+
+        return $out;
     }
 
     /**

@@ -80,7 +80,7 @@
                             <div class="text-xs font-medium mb-2" style="color:#f59e0b;">
                                 <i class="fas fa-triangle-exclamation mr-1"></i> Your Google Contacts connection expired
                             </div>
-                            <p class="text-[11px] mb-2" style="color: var(--text-muted);">Syncing is paused. Reconnect your Google account to resume — your contacts and sync history are kept.</p>
+                            <p class="text-[11px] mb-2" style="color: var(--text-muted);">Syncing is paused. Reconnect your Google account to resume. Your contacts and sync history are kept.</p>
                             <a href="{{ route('user.contacts.google.connect') }}" class="block w-full px-3 py-2 rounded-lg text-xs font-medium text-center transition" style="background:rgba(245,158,11,.15);color:#f59e0b;border:1px solid rgba(245,158,11,.30)">
                                 <i class="fab fa-google mr-1"></i> Reconnect
                             </a>

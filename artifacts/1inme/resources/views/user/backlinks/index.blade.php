@@ -80,7 +80,7 @@
             </div>
             <p class="text-sm mb-1 font-bold" style="color: var(--text-muted);">No backlinks yet</p>
             <p class="text-xs mb-1" style="color: var(--text-dimmed);">
-                Install the Sayzio browser extension to start collecting pages that link to your properties.
+                Install the Zio Extension to start collecting pages that link to your properties.
             </p>
         </div>
     @else

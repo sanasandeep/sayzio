@@ -39,7 +39,28 @@ class DashboardController extends Controller
         $user   = $request->user();
         $userId = $user->id;
 
-        $cacheKey = "api.dashboard.v1.{$userId}";
+        // Scope all link aggregates to the ACTIVE workspace (same rule as the
+        // web dashboard/links list): links owned by the workspace owner and
+        // tagged with the workspace id. Falls back to caller-owned links when
+        // the workspace column is unavailable (old DBs).
+        $ws = null;
+        try {
+            if (\Illuminate\Support\Facades\Schema::hasColumn('links', 'workspace_id')) {
+                $ws = $this->activeWorkspace($user);
+            }
+        } catch (\Throwable) {
+            $ws = null;
+        }
+        $linksQuery = function () use ($ws, $userId) {
+            return $ws
+                ? Link::withoutWorkspaceScope()
+                    ->where('user_id', $ws->owner_user_id)
+                    ->where('workspace_id', $ws->id)
+                : Link::where('user_id', $userId);
+        };
+
+        // Cache varies by workspace so switching never serves stale scope.
+        $cacheKey = 'api.dashboard.v2.' . $userId . '.' . ($ws?->id ?? 0);
 
         $cached = cache()->get($cacheKey);
         if ($cached !== null && is_array($cached)) {
@@ -53,8 +74,7 @@ class DashboardController extends Controller
         }
 
         // Single aggregate query replaces four separate count/sum queries.
-        $agg = DB::table('links')
-            ->where('user_id', $userId)
+        $agg = $linksQuery()
             ->selectRaw(
                 'count(*) as total_links,'
                 . ' sum(case when is_active then 1 else 0 end) as active_links,'
@@ -63,7 +83,7 @@ class DashboardController extends Controller
             )
             ->first();
 
-        $byType = Link::where('user_id', $userId)
+        $byType = $linksQuery()
             ->selectRaw('type, count(*) as c, sum(coalesce(total_clicks,0)) as clicks')
             ->groupBy('type')
             ->get()
@@ -74,13 +94,13 @@ class DashboardController extends Controller
 
         // Eager-load the `domain` relation so LinkResource::toArray() doesn't
         // trigger a per-link lazy load when reading `$l->domain?->domain`.
-        $recentLinks = Link::where('user_id', $userId)
+        $recentLinks = $linksQuery()
             ->with('domain')
             ->orderByDesc('id')
             ->limit(5)
             ->get();
 
-        $topLink = Link::where('user_id', $userId)
+        $topLink = $linksQuery()
             ->with('domain')
             ->orderByDesc('total_clicks')
             ->limit(1)

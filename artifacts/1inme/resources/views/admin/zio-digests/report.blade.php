@@ -3,7 +3,7 @@
 @section('content')
 <div class="max-w-6xl mx-auto space-y-6">
     <div class="flex items-center justify-between">
-        <h2 class="text-lg font-semibold text-white ak-strong">Delivery report — {{ $digest->title }}</h2>
+        <h2 class="text-lg font-semibold text-white ak-strong">Delivery report: {{ $digest->title }}</h2>
         <a href="{{ route('admin.zio-digests.index') }}" class="text-xs text-white/60 hover:text-white ak-muted">
             <i class="fas fa-arrow-left mr-1"></i> Back to digests
         </a>

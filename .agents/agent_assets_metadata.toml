@@ -942,6 +942,162 @@ uri = "file://artifacts/1inme/storage/app/public/onboarding/get-started_3.png"
 type = "image"
 title = "onboarding get-started_3"
 
+[[generated]]
+id = "IGPP_a7NtpF4Q_F1GpaYs"
+uri = "file://scripts/src/print-collateral/assets/images/chat-phone.png"
+type = "image"
+title = "chat-phone"
+
+[[generated]]
+id = "M5X8QfKHJd8Q_lzS5Bgax"
+uri = "file://scripts/src/print-collateral/assets/images/standee-hero-talk.png"
+type = "image"
+title = "standee-hero-talk"
+
+[[generated]]
+id = "z8RWzpopmjUYF25Yejmce"
+uri = "file://scripts/src/print-collateral/assets/images/standee-business.png"
+type = "image"
+title = "standee-business"
+
+[[generated]]
+id = "9WuK5QGfY0ABBdMFcoC56"
+uri = "file://scripts/src/print-collateral/assets/images/prompt-to-page.png"
+type = "image"
+title = "prompt-to-page"
+
+[[generated]]
+id = "OZZNtxY96-nYbAskqq7sq"
+uri = "file://scripts/src/print-collateral/assets/images/restaurant-qr.png"
+type = "image"
+title = "restaurant-qr"
+
+[[generated]]
+id = "zgPDOvncNTnU7IpfLTZXk"
+uri = "file://scripts/src/print-collateral/assets/images/analytics-map.png"
+type = "image"
+title = "analytics-map"
+
+[[generated]]
+id = "R8rhD5WuK81Q-WWEyjxAz"
+uri = "file://scripts/src/print-collateral/assets/images/api-code.png"
+type = "image"
+title = "api-code"
+
+[[generated]]
+id = "fePcEyxt3qRJ0rnZHVjbp"
+uri = "file://scripts/src/print-collateral/assets/images/creator-links.png"
+type = "image"
+title = "creator-links"
+
+[[generated]]
+id = "PFAvqSGQrdtJDwhRlVmqJ"
+uri = "file://scripts/src/print-collateral/assets/images/qr-studio.png"
+type = "image"
+title = "qr-studio"
+
+[[generated]]
+id = "xOnwZIqjMIBHwMHGPAgC2"
+uri = "file://scripts/src/print-collateral/assets/images/payouts.png"
+type = "image"
+title = "payouts"
+
+[[generated]]
+id = "ayopox31nFQJ4CXJkNz1-"
+uri = "file://scripts/src/print-collateral/assets/images/app-dashboard.png"
+type = "image"
+title = "app-dashboard"
+
+[[generated]]
+id = "6JoY_VfN8dbS9NRW25Eo5"
+uri = "file://scripts/src/print-collateral/assets/images/dialer-phone.png"
+type = "image"
+title = "dialer-phone"
+
+[[generated]]
+id = "2ZRYGvkUt8uiakPFVbL81"
+uri = "file://scripts/src/print-collateral/assets/images/browser-extension.png"
+type = "image"
+title = "browser-extension"
+
+[[generated]]
+id = "VIsw3wwfahJpwDz7spvdu"
+uri = "file://scripts/src/print-collateral/assets/images/ai-voice.png"
+type = "image"
+title = "ai-voice"
+
+[[generated]]
+id = "L6UfZAHNNVXs_G0cvzebB"
+uri = "file://scripts/src/print-collateral/assets/images/biolink-phone.png"
+type = "image"
+title = "biolink-phone"
+
+[[generated]]
+id = "X2kJ8FDTCLSs3bAOQjI0L"
+uri = "file://scripts/src/print-collateral/assets/images/forms-builder.png"
+type = "image"
+title = "forms-builder"
+
+[[generated]]
+id = "eaIFzNyoKPX_QPpuVIGr8"
+uri = "file://scripts/src/print-collateral/assets/images/events-tickets.png"
+type = "image"
+title = "events-tickets"
+
+[[generated]]
+id = "X3MsD99R8noTaiRLaIkMu"
+uri = "file://scripts/src/print-collateral/assets/images/digital-card.png"
+type = "image"
+title = "digital-card"
+
+[[generated]]
+id = "htpI9OB5BloRT23o1cq7D"
+uri = "file://scripts/src/print-collateral/assets/images/inbox-unified.png"
+type = "image"
+title = "inbox-unified"
+
+[[generated]]
+id = "MBkcdXLbZAamxMnDM6Gob"
+uri = "file://scripts/src/print-collateral/assets/images/workspace-team.png"
+type = "image"
+title = "workspace-team"
+
+[[generated]]
+id = "nxCdi4DXe4fI53_ozYNne"
+uri = "file://scripts/src/print-collateral/assets/photos/pizza.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "7TUWywP6OQjmV3hquzKgk"
+uri = "file://scripts/src/print-collateral/assets/photos/pasta.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "rS2mMz_QqR68Wgno-Jl2T"
+uri = "file://scripts/src/print-collateral/assets/photos/limesoda.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "WwSzqxYDZeEPy1wYQWDPB"
+uri = "file://scripts/src/print-collateral/assets/photos/bakery.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "8N4nAnh2SHSj6iVkFEEjq"
+uri = "file://scripts/src/print-collateral/assets/photos/avatar-maya.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "pMAtr9GFbjnrDRFvKregw"
+uri = "file://scripts/src/print-collateral/assets/photos/avatar-arjun.png"
+type = "image"
+title = "generated_image"
+
 [[outputs]]
 id = "e3t8rw5hE2-FfEtnuBmVI"
 uri = "file://attached_assets/stock_images/role_artist.jpg"
@@ -1235,3 +1391,171 @@ id = "joTWyCZjXtNEcHwkIc_Y8"
 uri = "file://exports/sayzio-dialer-2fa.zip"
 type = "unspecified"
 title = "Sayzio Dialer APK (with 2FA login)"
+
+[[outputs]]
+id = "sxQrzaKLDwYzWkg9RvLFI"
+uri = "file://.local/print-out/sayzio-print-collateral.zip"
+type = "unspecified"
+title = "Sayzio print collateral (21 PDFs + README)"
+
+[[outputs]]
+id = "nK7GhLajzdawQOTpghmtD"
+uri = "file://.local/print-out/README.md"
+type = "text"
+title = "Print specs & QR notes"
+
+[[outputs]]
+id = "fmXdDpoc1F9pq59SfgRAA"
+uri = "file://.local/print-out/sayzio-card-front.pdf"
+type = "pdf"
+title = "Visiting card - front (redesigned)"
+
+[[outputs]]
+id = "gFjHU-l_P1dKN9j2g9ljB"
+uri = "file://.local/print-out/sayzio-card-back.pdf"
+type = "pdf"
+title = "Visiting card - back (redesigned)"
+
+[[outputs]]
+id = "Jm-on_nPIF-Cb3CZ610Uj"
+uri = "file://.local/print-out/sayzio-standee-A-what-if-your-link-could-talk.pdf"
+type = "pdf"
+title = "Standee A — What if your link could talk"
+
+[[outputs]]
+id = "5Gb5Vk6qgxOyGimJ6ONvs"
+uri = "file://.local/print-out/sayzio-standee-B-sayzio-does-business.pdf"
+type = "pdf"
+title = "Standee B — Sayzio does business"
+
+[[outputs]]
+id = "W71F-aq_5TRL0T4jUfEW5"
+uri = "file://.local/print-out/sayzio-trifold-outside.pdf"
+type = "pdf"
+title = "Trifold - outside spread"
+
+[[outputs]]
+id = "shBsTvm6fN8LFMGKUuQ7_"
+uri = "file://.local/print-out/sayzio-trifold-inside.pdf"
+type = "pdf"
+title = "Trifold - inside spread"
+
+[[outputs]]
+id = "FPKJTaOD5eT7bNkiZwxwO"
+uri = "file://.local/print-out/sayzio-board-1-talk-to-this-poster.pdf"
+type = "pdf"
+title = "A3 Board 1 — Talk to this poster"
+
+[[outputs]]
+id = "ZAuVWMLhJzp01NzGnZVgX"
+uri = "file://.local/print-out/sayzio-board-2-prompt-to-page.pdf"
+type = "pdf"
+title = "A3 Board 2 — Prompt to page"
+
+[[outputs]]
+id = "HcC-JJ5jq3aOSjvOwFdco"
+uri = "file://.local/print-out/sayzio-board-3-restaurant-one-qr.pdf"
+type = "pdf"
+title = "A3 Board 3 — Restaurant, one QR"
+
+[[outputs]]
+id = "ga0t9ORDMsIMBWRyRZQvE"
+uri = "file://.local/print-out/sayzio-board-4-analytics-zero-fee.pdf"
+type = "pdf"
+title = "A3 Board 4 — Analytics, zero fee"
+
+[[outputs]]
+id = "pvKt5X9shQCU-n8TEnDSb"
+uri = "file://.local/print-out/sayzio-board-5-api-behind-it-all.pdf"
+type = "pdf"
+title = "A3 Board 5 — API behind it all"
+
+[[outputs]]
+id = "TsSX0Igsn13r7qeVK1wvC"
+uri = "file://.local/print-out/sayzio-board-6-one-platform-three-apps.pdf"
+type = "pdf"
+title = "A3 Board 6 — One platform, three apps"
+
+[[outputs]]
+id = "viMbyT8eUrwlx16Lq0j3f"
+uri = "file://.local/print-out/sayzio-board-5-qr-studio-pro.pdf"
+type = "pdf"
+title = "Board 5 - QR Studio Pro (replaces API board)"
+
+[[outputs]]
+id = "OUuyccB2jJ2o9v9HXa-Qm"
+uri = "file://.local/print-out/sayzio-board-7-forms-and-leads.pdf"
+type = "pdf"
+title = "Board 7 - Forms & Leads"
+
+[[outputs]]
+id = "webSKyOYdKSqyYTwjmNzG"
+uri = "file://.local/print-out/sayzio-board-8-digital-cards-dialer.pdf"
+type = "pdf"
+title = "Board 8 - Digital Cards & Dialer"
+
+[[outputs]]
+id = "ll9e06zWY_N7fKQpPRYAb"
+uri = "file://.local/print-out/sayzio-board-9-twenty-link-types.pdf"
+type = "pdf"
+title = "Board 9 - 20+ Link Types"
+
+[[outputs]]
+id = "jCkHDqfrUPOGfPjxNCCLJ"
+uri = "file://.local/print-out/sayzio-board-10-ai-inbox.pdf"
+type = "pdf"
+title = "Board 10 - AI Inbox"
+
+[[outputs]]
+id = "I9XSjRjbR_EWxKBJB3dJ1"
+uri = "file://.local/print-out/sayzio-board-11-built-for-teams.pdf"
+type = "pdf"
+title = "Board 11 - Built for Teams"
+
+[[outputs]]
+id = "l-au8hhG3HWcFCVJQXZLs"
+uri = "file://.local/print-out/sayzio-board-12-1inme-is-now-sayzio.pdf"
+type = "pdf"
+title = "Board 12: 1INME is now Sayzio"
+
+[[outputs]]
+id = "6_tlZjgWj6LEDL7zLjB9O"
+uri = "file://.local/print-out/sayzio-boards-a3-sheet-1.pdf"
+type = "pdf"
+title = "4-up A3 sheet 1 (boards 1-4)"
+
+[[outputs]]
+id = "W3Ceoa9FT8bXQCNNV6B8o"
+uri = "file://.local/print-out/sayzio-boards-a3-sheet-2.pdf"
+type = "pdf"
+title = "4-up A3 sheet 2 (boards 5-8)"
+
+[[outputs]]
+id = "3PkMckH_0iyY10z7Kbuh8"
+uri = "file://.local/print-out/sayzio-boards-a3-sheet-3.pdf"
+type = "pdf"
+title = "4-up A3 sheet 3 (boards 9-12)"
+
+[[outputs]]
+id = "1gO63rErKBNpY5Wqhsocq"
+uri = "file://.local/print-out/booklet/sayzio-booklet-print-pack.zip"
+type = "unspecified"
+title = "Sayzio booklet — full print pack (zip)"
+
+[[outputs]]
+id = "GzTswv5OB4o-v4Vs0_eTm"
+uri = "file://.local/print-out/booklet/sayzio-booklet-imposed-a3.pdf"
+type = "pdf"
+title = "Imposed A3 PDF — hand this to the printer"
+
+[[outputs]]
+id = "ueXXVVCqQVf9xk72CLMm-"
+uri = "file://.local/print-out/booklet/sayzio-booklet-reader.pdf"
+type = "pdf"
+title = "Reader PDF — pages 1–16 for proofing"
+
+[[outputs]]
+id = "uVrEtwdY9Q0otl8SfXI7h"
+uri = "file://.local/print-out/booklet/README-booklet.md"
+type = "text"
+title = "Print spec (README)"

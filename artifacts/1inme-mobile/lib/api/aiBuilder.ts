@@ -22,7 +22,19 @@ export type AiBuilderIntake = {
   // On-Brand AI (Task #2664): whether the caller's plan unlocks injecting
   // their Brand Kit voice, plus a light summary of the default kit (if any).
   on_brand_allowed: boolean;
+  // Google image search availability (admin-configured keys). When false the
+  // client hides the search picker entirely (preview mode).
+  image_search_enabled?: boolean;
   brand_kit: { id: number; name: string } | null;
+};
+
+export type AiBuilderImageResult = {
+  url: string;
+  thumbnail: string | null;
+  title: string | null;
+  source: string | null;
+  width: number | null;
+  height: number | null;
 };
 
 export type AiBuilderPayload = {
@@ -33,6 +45,24 @@ export type AiBuilderPayload = {
   // Default on; sent as an explicit opt-out, mirroring the web intake form's
   // "Use my Brand Kit voice" checkbox.
   use_brand_kit?: boolean;
+  // Image preview confirmation (Task #5722): the exact extracted images the
+  // creator kept after previewing. Sending the key (even as []) means "I
+  // reviewed the candidates — use my list verbatim, don't re-extract".
+  kept_images?: string[];
+  // Generation fallback slots ('avatar'/'cover') the creator opted out of.
+  skip_generated_slots?: string[];
+};
+
+// Free preview of the images the builder would auto-source (Task #5722):
+// og:image/favicon candidates extracted from the supplied links now (stored
+// in the vault), plus what the AI-generation fallback would produce.
+export type AiBuilderImagePreview = {
+  extracted: string[];
+  generation: {
+    enabled: boolean;
+    cost_per_image: number;
+    slots: string[];
+  };
 };
 
 export type AiBuilderEstimate = {
@@ -56,6 +86,17 @@ export async function getAiBuilderIntake(
   return res.data;
 }
 
+export async function previewAiBuilderImages(
+  linkId: number,
+  links: string[],
+): Promise<AiBuilderImagePreview> {
+  const res = await apiFetch<{ data: AiBuilderImagePreview }>(
+    `/links/${linkId}/ai-builder/source-preview`,
+    { method: "POST", body: JSON.stringify({ links }) },
+  );
+  return res.data;
+}
+
 export async function estimateAiBuilder(
   linkId: number,
   payload: AiBuilderPayload,
@@ -65,6 +106,36 @@ export async function estimateAiBuilder(
     { method: "POST", body: JSON.stringify(payload) },
   );
   return res.data;
+}
+
+// Google image search: candidate suggestions the creator explicitly picks
+// from (rights disclaimer shown in the UI) — never auto-placed, free of coins.
+export async function searchAiBuilderImages(
+  linkId: number,
+  query: string,
+): Promise<{ results: AiBuilderImageResult[]; disclaimer: string }> {
+  const res = await apiFetch<{
+    data: { results: AiBuilderImageResult[]; disclaimer: string };
+  }>(`/links/${linkId}/ai-builder/image-search`, {
+    method: "POST",
+    body: JSON.stringify({ query }),
+  });
+  return res.data;
+}
+
+// Import chosen candidates into the vault (server-side SSRF-safe download);
+// returns relative vault URLs to append to the intake images[] list.
+export async function importAiBuilderImages(
+  linkId: number,
+  urls: string[],
+): Promise<{ url: string; source_url: string }[]> {
+  const res = await apiFetch<{
+    data: { images: { url: string; source_url: string }[] };
+  }>(`/links/${linkId}/ai-builder/import-images`, {
+    method: "POST",
+    body: JSON.stringify({ urls }),
+  });
+  return res.data.images;
 }
 
 export async function generateAiBuilder(

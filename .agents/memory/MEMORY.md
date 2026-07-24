@@ -140,6 +140,7 @@
 - [better-sqlite3 needs source build on Node 24](better-sqlite3-node24-source-build.md) — no prebuilt binary; background node-gyp rebuild in node_modules, ignore the bogus node_gyp_bins ENOENT.
 - [Electron desktop CI packaging](electron-desktop-ci-packaging.md) — workspace blocks non-Linux native binaries (strip ': -' overrides in CI); electron-builder needs explicit .cjs --config; empty WIN_CSC_LINK breaks signing.
 - [Bulk copy sweeps via guard file:line output](text-sweep-guard-line-numbers.md) — span-blanking scanners must preserve newlines or line numbers drift and bulk fixers edit the wrong lines.
+- [Biolink sanitizer blanks relative vault URLs](biolink-sanitizer-blanks-relative-vault-urls.md) — sanitizeUrl strips non-http(s), so /f/ vault paths in block settings persist as '' via template/AI-builder apply.
 - [Link model has no factory](link-model-no-factory.md) — Link::factory() tests fail at boot (coverage illusory); links SEO column is seo_title not meta_title; create links via Link::create + workspace binding.
 - [Query-columns static guard](query-columns-guard.md) — 3-tier literal-column validation w/ per-file SQL-alias learning; workspaces/follows/vault use owner_user_id/creator_id/created_by_user_id, never user_id.
 - [HTML nesting parser ejection](nested-form-breaks-outer-layout.md) — inner </form> ejects later fieldsets/sticky bars from the outer form's grid; button-in-button force-closes the outer button and ejects later panels from their column ([button](nested-button-parser-ejection.md)); served HTML looks right, verify layout in a real browser.
@@ -151,4 +152,8 @@
 - [Block defaults blank content](block-defaults-blank-content.md) — explicit ''/[] overrides are real blanks (array_replace), start_blank blanks non-structural keys, `_placeholder` recomputed; JSON textarea is the ONLY submitted content field.
 - [Admin light-mode text guard (ratchet)](admin-light-mode-text-guard.md) — check:admin-light-mode-text enforces ak-* pairing on admin blades; new files must be clean, baselined files only shrink.
 - [Admin settings light-mode ak-* classes](admin-light-mode-ak-classes.md) — shared ak-* helpers in the admin layout; ternary/match-arm/inputClass/JS strings need manual handling; never ak-strong on solid buttons.
+- [Playwright PDF layout vs viewport](playwright-pdf-viewport-fit.md) — measurements feeding pg.pdf() need viewport = physical page px; default viewport gives different flex heights (cropped print art).
 - [PHP empty array → JS array in @js()](php-empty-array-js-object.md) — Alpine keyed maps seeded from PHP [] serialize as JS arrays; JSON.stringify drops string keys — cast (object).
+- [zbar QR verification render DPI](zbar-decode-render-dpi.md) — zbarimg fails on large rasters; verify print QRs at ~100dpi-per-piece renders; ImageMagick PDF page sizing broken, use Playwright pdf.
+- [Print booklet imposition pipeline](print-booklet-imposition.md) — saddle-stitch A3 booklet reuses generate.ts via export+direct-run guard; vector imposition = clipped 213mm halves trimming inner bleed at fold; multi-page pg.pdf needs sheet CSS injected (unstyled classes → giant QRs).
+- [Runtime config cache vs cleared admin setting](runtime-config-cache-vs-cleared-admin-setting.md) — nulling an admin credential mid-process leaves the boot-time config() copy; clear config() too before asserting unconfigured.

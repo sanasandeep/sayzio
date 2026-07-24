@@ -930,8 +930,19 @@ Route::prefix('user')->name('user.')->group(function () {
         // AI Biolink Page Builder — describe a page, AI assembles it from
         // real supported block types, then opens the standard editor.
         Route::get('links/{link}/ai-builder', [\App\Modules\User\Controllers\AiBiolinkBuilderController::class, 'intake'])->middleware('workspace.can:links.view')->name('links.ai-builder');
+        Route::post('links/{link}/ai-builder/source-preview', [\App\Modules\User\Controllers\AiBiolinkBuilderController::class, 'sourcePreview'])->middleware(['workspace.can:links.edit', 'throttle:15,1'])->name('links.ai-builder.source-preview');
         Route::post('links/{link}/ai-builder/estimate', [\App\Modules\User\Controllers\AiBiolinkBuilderController::class, 'estimate'])->middleware(['workspace.can:links.edit', 'throttle:30,1'])->name('links.ai-builder.estimate');
         Route::post('links/{link}/ai-builder/generate', [\App\Modules\User\Controllers\AiBiolinkBuilderController::class, 'generate'])->middleware(['workspace.can:links.edit', 'throttle:10,1'])->name('links.ai-builder.generate');
+        Route::get('links/{link}/ai-builder/image-search/availability', [\App\Modules\User\Controllers\AiBiolinkBuilderController::class, 'imageSearchAvailability'])->middleware(['workspace.can:links.view', 'throttle:30,1'])->name('links.ai-builder.image-search.availability');
+        Route::post('links/{link}/ai-builder/image-search', [\App\Modules\User\Controllers\AiBiolinkBuilderController::class, 'imageSearch'])->middleware(['workspace.can:links.edit', 'throttle:20,1'])->name('links.ai-builder.image-search');
+        Route::post('links/{link}/ai-builder/import-images', [\App\Modules\User\Controllers\AiBiolinkBuilderController::class, 'importImages'])->middleware(['workspace.can:links.edit', 'throttle:10,1'])->name('links.ai-builder.import-images');
+
+        // "Build with AI" for the non-biolink link types (Slides, Restaurant
+        // Menu, Store, Service Booking, Resume) — Task #5727. Same middleware
+        // + throttle posture as the biolink AI builder above.
+        Route::get('links/{link}/ai-type-builder', [\App\Modules\User\Controllers\AiTypeBuilderController::class, 'intake'])->middleware('workspace.can:links.view')->name('links.ai-type-builder');
+        Route::post('links/{link}/ai-type-builder/estimate', [\App\Modules\User\Controllers\AiTypeBuilderController::class, 'estimate'])->middleware(['workspace.can:links.edit', 'throttle:30,1'])->name('links.ai-type-builder.estimate');
+        Route::post('links/{link}/ai-type-builder/generate', [\App\Modules\User\Controllers\AiTypeBuilderController::class, 'generate'])->middleware(['workspace.can:links.edit', 'throttle:10,1'])->name('links.ai-type-builder.generate');
 
         // Competitor Biolink Teardown — paste a competitor URL, get an
         // AI-scored teardown (strengths/weaknesses/missing elements/CTA

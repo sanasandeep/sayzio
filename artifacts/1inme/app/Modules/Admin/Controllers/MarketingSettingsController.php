@@ -62,7 +62,7 @@ class MarketingSettingsController extends Controller
             'app_store_url'                   => ['nullable', 'string', 'max:500', 'regex:#^https?://#i'],
             // Browser-extension store listing URLs. When empty, the web card
             // and mobile info page fall back to store search pages for
-            // "Sayzio" (pre-publish state). See ExtensionStoreLinks.
+            // "Zio Extension" (pre-publish state). See ExtensionStoreLinks.
             'extension_chrome_url'            => ['nullable', 'string', 'max:500', 'regex:#^https?://#i'],
             'extension_edge_url'              => ['nullable', 'string', 'max:500', 'regex:#^https?://#i'],
             'extension_firefox_url'           => ['nullable', 'string', 'max:500', 'regex:#^https?://#i'],

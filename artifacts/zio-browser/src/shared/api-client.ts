@@ -190,6 +190,28 @@ export class ApiClient {
     return this.post('/auth/otp/verify', { identifier, code, channel });
   }
 
+  /**
+   * Complete a 2FA login challenge with a 6-digit authenticator (TOTP) code.
+   * Used when login/OTP-verify fails with code `totp_required` and provides a
+   * `challenge_token` in the error details.
+   */
+  async verifyTotpChallenge(challengeToken: string, code: string, device?: string): Promise<{ user: ApiUser; token: string }> {
+    return this.post('/auth/2fa/challenge/verify', {
+      challenge_token: challengeToken,
+      code,
+      device: device ?? 'Zio Browser',
+    });
+  }
+
+  /** Complete a 2FA login challenge with a recovery (backup) code. */
+  async verifyBackupCode(challengeToken: string, code: string, device?: string): Promise<{ user: ApiUser; token: string }> {
+    return this.post('/auth/2fa/backup-codes/verify', {
+      challenge_token: challengeToken,
+      code,
+      device: device ?? 'Zio Browser',
+    });
+  }
+
   async me(): Promise<{ user: ApiUser }> {
     return this.get('/auth/me');
   }

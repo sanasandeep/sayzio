@@ -1005,7 +1005,7 @@ For teams and agencies, Sayzio scales beyond a single user:
   floating-mic voice assistant. Sign in with email/OTP or social. On Android
   you can **download the APK directly** from the platform's own domain at
   **/android** — no app store needed.
-- **Browser extension** — helps with things like saving and shortening links
+- **Zio Extension (browser extension)** — helps with things like saving and shortening links
   (including "Shorten as A/B test") and powering the Backlinks radar from your
   browser.
 

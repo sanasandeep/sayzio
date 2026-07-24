@@ -226,6 +226,19 @@
             <p class="text-xs mt-1" style="color: var(--text-muted,#9ca3af);">Build a polished resume with a live preview. Switch templates and color themes any time.</p>
         </div>
         <div class="flex items-center gap-2 flex-wrap">
+            @php
+                // "Build with AI" needs the bridging resume-type link — the
+                // intake/generate routes are link-scoped like the other types.
+                $aiResumeLink = \App\Services\AI\AiEngineSettings::isEnabled()
+                    && \App\Services\AI\AiPlanAccess::featureAllowed(auth()->user(), 'resume_builder')
+                    ? \App\Modules\User\Models\Link::where('user_id', workspace_owner_id())->where('type', \App\Modules\User\Models\Link::TYPE_RESUME)->orderBy('id')->first()
+                    : null;
+            @endphp
+            @if($aiResumeLink)
+                <a href="{{ route('user.links.ai-type-builder', $aiResumeLink) }}" class="resume-add-btn" title="Draft the whole resume from a description with AI">
+                    <i class="fas fa-wand-magic-sparkles"></i> Build with AI
+                </a>
+            @endif
             <button type="button" class="resume-add-btn" @click="openImport()" title="Import from PDF, LinkedIn, your Link in Bio, or AI">
                 <i class="fas fa-file-import"></i> Import
             </button>

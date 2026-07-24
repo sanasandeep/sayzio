@@ -1,11 +1,11 @@
 {
   "manifest_version": 3,
-  "name": "Sayzio — Shorten & Bio-Link",
-  "short_name": "Sayzio",
+  "name": "Zio Extension — Shorten & Bio-Link",
+  "short_name": "Zio Extension",
   "version": "0.2.0",
   "description": "One-click shorten the current tab through Sayzio and turn any page into a draft bio-link page.",
   "action": {
-    "default_title": "Sayzio",
+    "default_title": "Zio Extension",
     "default_popup": "src/popup/index.html",
     "default_icon": {
       "16": "icons/icon-16.png",

@@ -853,8 +853,11 @@ Route::prefix('v1')->group(function () {
         // auto-refund-on-parse-failure, and On-Brand AI `use_brand_kit` opt-in
         // as web. Throttles mirror the web routes.
         Route::get ('/links/{id}/ai-builder',          [\App\Modules\Api\Controllers\AiBiolinkBuilderController::class, 'intake'])->whereNumber('id');
+        Route::post('/links/{id}/ai-builder/source-preview', [\App\Modules\Api\Controllers\AiBiolinkBuilderController::class, 'sourcePreview'])->whereNumber('id')->middleware('throttle:15,1');
         Route::post('/links/{id}/ai-builder/estimate', [\App\Modules\Api\Controllers\AiBiolinkBuilderController::class, 'estimate'])->whereNumber('id')->middleware('throttle:30,1');
         Route::post('/links/{id}/ai-builder/generate', [\App\Modules\Api\Controllers\AiBiolinkBuilderController::class, 'generate'])->whereNumber('id')->middleware('throttle:10,1');
+        Route::post('/links/{id}/ai-builder/image-search', [\App\Modules\Api\Controllers\AiBiolinkBuilderController::class, 'imageSearch'])->whereNumber('id')->middleware('throttle:20,1');
+        Route::post('/links/{id}/ai-builder/import-images', [\App\Modules\Api\Controllers\AiBiolinkBuilderController::class, 'importImages'])->whereNumber('id')->middleware('throttle:10,1');
 
         // Competitor Biolink Teardown (mobile parity for the web
         // links-teardown flow). Paste a competitor URL, get an AI-scored
@@ -1124,6 +1127,9 @@ Route::prefix('v1')->group(function () {
         Route::patch('/workspaces/{id}',          [WorkspaceController::class, 'update'])->whereNumber('id');
         Route::delete('/workspaces/{id}',         [WorkspaceController::class, 'destroy'])->whereNumber('id');
         Route::get('/workspaces/{id}/members',    [WorkspaceController::class, 'members'])->whereNumber('id');
+        // Active-workspace switch (mobile switcher). Persists the pointer the
+        // web session resolver also honours, keeping web and app in sync.
+        Route::post('/workspaces/{id}/activate',  [WorkspaceController::class, 'activate'])->whereNumber('id');
 
         // ── Admin-granted asset transfers ────────────────────────────
         // Capability probe + instant link/workspace transfer to another

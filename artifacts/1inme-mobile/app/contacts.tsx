@@ -351,7 +351,7 @@ export default function ContactsScreen() {
                     }}
                   >
                     {googleAccount.reconnect_message ??
-                      "Your Google Contacts connection expired — reconnect to resume syncing."}
+                      "Your Google Contacts connection expired. Reconnect to resume syncing."}
                   </Text>
                   <View
                     style={{

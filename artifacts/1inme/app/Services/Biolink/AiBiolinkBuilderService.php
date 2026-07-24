@@ -47,6 +47,7 @@ class AiBiolinkBuilderService
     public function __construct(
         protected OpenAiService $openai,
         protected AiUsageCharger $credits,
+        protected BuilderImageSourcer $imageSourcer,
     ) {}
 
     /**
@@ -144,7 +145,7 @@ class AiBiolinkBuilderService
      *                              in the user's own facts; never invents URLs.
      * @return list<array{role:string,content:string}>
      */
-    public function buildMessages(User $user, string $description, array $links, array $images, array $files = [], string $grounding = '', string $brandDirectives = ''): array
+    public function buildMessages(User $user, string $description, array $links, array $images, array $files = [], string $grounding = '', string $brandDirectives = '', bool $autoSourced = false): array
     {
         $description = trim($description);
         if ($description === '') {
@@ -231,7 +232,10 @@ class AiBiolinkBuilderService
             $userParts[] = "SUPPLIED LINKS (use these as destination URLs):\n- " . implode("\n- ", $links);
         }
         if ($images) {
-            $userParts[] = "SUPPLIED IMAGE URLS (use these for image/avatar/cover/thumbnail fields):\n- " . implode("\n- ", $images);
+            $label = $autoSourced
+                ? "SUPPLIED IMAGE URLS (auto-sourced from the user's links or AI-generated to match the description — use them for image/avatar/cover/thumbnail fields)"
+                : "SUPPLIED IMAGE URLS (use these for image/avatar/cover/thumbnail fields)";
+            $userParts[] = $label . ":\n- " . implode("\n- ", $images);
         } else {
             $userParts[] = "No images were supplied — do not add image blocks and leave avatar/cover empty.";
         }
@@ -249,12 +253,34 @@ class AiBiolinkBuilderService
 
     /**
      * Worst-case credit cost shown before the user clicks Generate.
+     *
+     * When the user attached no images the auto-sourcing step (Task #5720)
+     * may fall back to generating an avatar + cover, so the worst-case
+     * quote includes that generation cost too (extraction from links is
+     * free — if it succeeds the build costs less than quoted).
      */
-    public function estimateCredits(User $user, string $description, array $links, array $images, array $files = [], string $grounding = '', string $brandDirectives = ''): int
+    public function estimateCredits(User $user, string $description, array $links, array $images, array $files = [], string $grounding = '', string $brandDirectives = '', array $imageChoices = []): int
     {
         $model    = AiEngineSettings::featureModel(self::FEATURE);
         $messages = $this->buildMessages($user, $description, $links, $images, $files, $grounding, $brandDirectives);
-        return $this->openai->estimateChatCoins($model, $messages, self::MAX_OUTPUT_TOKENS, $user);
+        $cost     = $this->openai->estimateChatCoins($model, $messages, self::MAX_OUTPUT_TOKENS, $user);
+
+        if ($this->cleanImageUrls($images) === []) {
+            // Preview-confirmed choices (Task #5722): kept extracted images
+            // mean generation never runs; explicitly skipped slots are
+            // removed from the worst-case quote too.
+            $kept = $imageChoices['kept'] ?? null;
+            if (is_array($kept) && $this->cleanImageUrls($kept) !== []) {
+                // Extraction is free — no generation fallback in the quote.
+            } else {
+                $cost += $this->imageSourcer->fallbackGenerationEstimate(
+                    $user,
+                    array_values((array) ($imageChoices['skip_slots'] ?? [])),
+                );
+            }
+        }
+
+        return $cost;
     }
 
     /**
@@ -265,29 +291,56 @@ class AiBiolinkBuilderService
      *
      * @return array{credits_spent:int,blocks:int,model:string}
      */
-    public function generate(User $user, Link $link, string $description, array $links, array $images, array $files = [], string $grounding = '', bool $replaceBlocks = true, string $brandDirectives = ''): array
+    public function generate(User $user, Link $link, string $description, array $links, array $images, array $files = [], string $grounding = '', bool $replaceBlocks = true, string $brandDirectives = '', array $imageChoices = []): array
     {
         $links  = $this->cleanUrls($links);
         $images = $this->cleanImageUrls($images);
         $files  = $this->cleanImageUrls($files);
 
-        $messages = $this->buildMessages($user, $description, $links, $images, $files, $grounding, $brandDirectives);
-        $model    = AiEngineSettings::featureModel(self::FEATURE);
+        // Auto-source images when the user attached none (Task #5720):
+        // extract from their links (free), else AI-generate an avatar +
+        // cover (charged per image inside the sourcer, refunded below if
+        // the build ultimately fails). Uploads always win untouched.
+        // When the creator confirmed the image preview step (Task #5722)
+        // their kept extracted images are used verbatim (no re-extraction)
+        // and any deselected generation slots are skipped.
+        $kept = $imageChoices['kept'] ?? null;
+        $sourced = $this->imageSourcer->source(
+            $user, $description, $links, $images, $link->id,
+            is_array($kept) ? $this->cleanImageUrls($kept) : null,
+            array_values((array) ($imageChoices['skip_slots'] ?? [])),
+        );
+        $images  = $this->cleanImageUrls($sourced['images']);
 
-        $result = $this->openai->chat($user, $model, $messages, [
-            'temperature'     => 0.4,
-            'max_tokens'      => self::MAX_OUTPUT_TOKENS,
-            'response_format' => ['type' => 'json_object'],
-            'feature'         => self::FEATURE,
-            'related_id'      => $link->id,
-            'reason'          => 'AI Link in Bio page builder',
-            'meta'            => [
-                'desc_excerpt' => mb_substr($description, 0, 160),
-                'links'        => count($links),
-                'images'       => count($images),
-                'files'        => count($files),
-            ],
-        ]);
+        $messages = $this->buildMessages(
+            $user, $description, $links, $images, $files, $grounding, $brandDirectives,
+            $sourced['uploaded'] === 0 && $images !== [],
+        );
+        $model = AiEngineSettings::featureModel(self::FEATURE);
+
+        try {
+            $result = $this->openai->chat($user, $model, $messages, [
+                'temperature'     => 0.4,
+                'max_tokens'      => self::MAX_OUTPUT_TOKENS,
+                'response_format' => ['type' => 'json_object'],
+                'feature'         => self::FEATURE,
+                'related_id'      => $link->id,
+                'reason'          => 'AI Link in Bio page builder',
+                'meta'            => [
+                    'desc_excerpt'     => mb_substr($description, 0, 160),
+                    'links'            => count($links),
+                    'images'           => count($images),
+                    'files'            => count($files),
+                    'images_extracted' => count($sourced['extracted']),
+                    'images_generated' => count($sourced['generated']),
+                ],
+            ]);
+        } catch (\Throwable $e) {
+            // The chat call itself failed — undo any generated-image
+            // charges/files so a page that never materialized costs nothing.
+            $this->imageSourcer->rollback($user, $sourced);
+            throw $e;
+        }
 
         // OpenAiService::chat() charges on a successful API call. Everything
         // below (parsing, validation, materialisation) can still fail — if it

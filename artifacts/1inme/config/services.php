@@ -28,6 +28,14 @@ return [
         'api_key' => env('TRUSTPILOT_API_KEY'),
     ],
 
+    // Google Custom Search JSON API (Programmable Search Engine) — image
+    // search for the AI biolink builder. Read by GoogleImageSearchService;
+    // absent key/engine = preview mode (feature hidden gracefully).
+    'google_cse' => [
+        'api_key'   => env('GOOGLE_CSE_API_KEY'),
+        'engine_id' => env('GOOGLE_CSE_ENGINE_ID'),
+    ],
+
     'google_calendar' => [
         'client_id'     => env('GOOGLE_CALENDAR_CLIENT_ID'),
         'client_secret' => env('GOOGLE_CALENDAR_CLIENT_SECRET'),

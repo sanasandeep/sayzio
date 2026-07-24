@@ -1338,7 +1338,7 @@ the home tabs first.
 
 ### Browser extension
 
-The Sayzio browser extension (Chrome, Edge, and Firefox-compatible) brings your
+The Zio Extension (Chrome, Edge, and Firefox-compatible) brings your
 Sayzio tools into any webpage. Install it from your browser's extension store or
 from **Settings → Connected Accounts & Apps**.
 
@@ -1799,8 +1799,8 @@ you can still create the new link if you want separate tracking.
 
 ### Browser extension
 
-**Where do I get the Sayzio browser extension?**
-Search for "Sayzio" in the Chrome Web Store, Edge Add-ons, or Firefox Add-ons,
+**Where do I get the Zio Extension?**
+Search for "Zio Extension" in the Chrome Web Store, Edge Add-ons, or Firefox Add-ons,
 or click the link in **Settings → Connected Accounts & Apps**.
 
 **How do I enable notifications from the extension?**

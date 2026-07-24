@@ -1,5 +1,6 @@
 {pkgs}: {
   deps = [
+    pkgs.zbar
     pkgs.xorg.libxcb
     pkgs.xorg.libXrandr
     pkgs.xorg.libXfixes

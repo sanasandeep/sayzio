@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "hello": "tsx ./src/hello.ts",
+    "print:collateral": "tsx ./src/print-collateral/generate.ts",
     "check:brand-color": "tsx ./src/check-brand-color.ts",
     "check:brand-color-build": "tsx ./src/check-brand-color-build.ts",
     "check:ai-tool-names": "tsx ./src/check-ai-tool-names.ts",
@@ -40,10 +41,15 @@
     "sync:branch-protection": "tsx ./src/sync-branch-protection.ts",
     "test": "vitest run",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "check:unbalanced-parens": "tsx ./src/check-unbalanced-parens.ts"
+    "check:unbalanced-parens": "tsx ./src/check-unbalanced-parens.ts",
+    "print:sheets": "tsx ./src/print-collateral/sheets.ts",
+    "print:booklet": "tsx ./src/print-collateral/booklet.ts"
   },
   "devDependencies": {
     "@types/node": "catalog:",
+    "@types/qrcode": "^1.5.6",
+    "playwright": "^1.59.1",
+    "qrcode": "^1.5.4",
     "tsx": "catalog:",
     "vitest": "^4.1.9",
     "yaml": "^2.9.0"

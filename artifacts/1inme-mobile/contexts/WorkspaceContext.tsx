@@ -69,10 +69,20 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
       setActiveId(ws.id);
       await AsyncStorage.setItem(ACTIVE_WS_KEY, String(ws.id));
       try {
+        // Persists users.active_workspace_id server-side; the API links list
+        // and dashboard are scoped by it, and the web session honours it too,
+        // so switching here keeps both surfaces in sync.
         await apiSwitchWorkspace(ws.id);
-      } catch {
+      } catch (e) {
+        if (__DEV__) console.warn("workspace activate failed", e);
       }
-      await queryClient.invalidateQueries({ queryKey: ["workspaces-list"] });
+      // Server-side scoping depends on the active workspace — refetch every
+      // workspace-scoped surface so lists/counters match the new scope.
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["workspaces-list"] }),
+        queryClient.invalidateQueries({ queryKey: ["links"] }),
+        queryClient.invalidateQueries({ queryKey: ["dashboard"] }),
+      ]);
     },
     [queryClient],
   );

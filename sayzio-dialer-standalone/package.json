@@ -15,7 +15,8 @@
     "test:device-contacts-fingerprint": "node scripts/test-device-contacts-fingerprint.mjs",
     "test:identified-call-drain": "node scripts/test-identified-call-drain.mjs",
     "test:push-action": "node scripts/test-push-action.mjs",
-    "test:note-alarms": "node scripts/test-note-alarms.mjs"
+    "test:note-alarms": "node scripts/test-note-alarms.mjs",
+    "test:2fa-login-e2e": "node scripts/test-2fa-login-e2e.mjs"
   },
   "dependencies": {
     "@expo-google-fonts/space-grotesk": "^0.4.1",

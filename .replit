@@ -500,6 +500,62 @@ args = "admin-light-mode-text"
 task = "workflow.run"
 args = "lm-visual-verify"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-qr-template-apply"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "showcase-seed"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "showcase-rollup"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "showcase-analytics-only"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "dialer-2fa-e2e"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "ai-image-sourcing-test"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-ai-builder-image-search"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "ai-type-builder-test"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-ai-builder-source-preview"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "test-page-settings-url-sanitizer"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-ai-builder-upload-instead"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "test-slide-bg-url-sanitizer"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-mobile-ai-upload-instead"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-zio-2fa"
+
 [[workflows.workflow]]
 name = "e2e"
 author = "agent"
@@ -2015,6 +2071,160 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "cd artifacts/1inme && node lm-verify.mjs"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-qr-template-apply"
+author = "agent"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd artifacts/1inme && bash tests/Browser/run-validation.sh qr-template-apply.spec.ts"
+
+[[workflows.workflow]]
+name = "showcase-seed"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd artifacts/1inme && php artisan showcase:seed"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "showcase-rollup"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd artifacts/1inme && php artisan analytics:rollup-daily --days=120"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "showcase-analytics-only"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd artifacts/1inme && php artisan showcase:seed --analytics-only"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "dialer-2fa-e2e"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd sayzio-dialer-standalone && node scripts/test-2fa-login-e2e.mjs"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "ai-image-sourcing-test"
+author = "agent"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd artifacts/1inme && TEST_LOCAL_MODE=artisan bash scripts/test-local.sh --filter=AiBiolinkBuilderTest"
+
+[[workflows.workflow]]
+name = "e2e-ai-builder-image-search"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "bash artifacts/1inme/tests/Browser/run-validation.sh ai-builder-image-search.spec.ts"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "ai-type-builder-test"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd artifacts/1inme && TEST_LOCAL_MODE=artisan bash scripts/test-local.sh --filter=AiTypeBuilderTest"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-ai-builder-source-preview"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "bash artifacts/1inme/tests/Browser/run-validation.sh ai-builder-source-preview.spec.ts"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "test-page-settings-url-sanitizer"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "TEST_LOCAL_MODE=artisan bash artifacts/1inme/scripts/test-local.sh --filter=BiolinkPageSettingsUrlSanitizerTest"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-ai-builder-upload-instead"
+author = "agent"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "bash artifacts/1inme/tests/Browser/run-validation.sh ai-builder-upload-instead.spec.ts"
+
+[[workflows.workflow]]
+name = "test-slide-bg-url-sanitizer"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "TEST_LOCAL_MODE=artisan bash artifacts/1inme/scripts/test-local.sh --filter=SlideDeckBackgroundUrlSanitizerTest"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-mobile-ai-upload-instead"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/1inme-mobile run test:ai-builder-upload-instead-e2e"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-zio-2fa"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "bash artifacts/1inme/tests/Browser/run-validation.sh zio-browser-2fa-auth.spec.ts"
 
 [workflows.workflow.metadata]
 isValidation = true

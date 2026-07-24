@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Sayzio browser extension (Chrome, Firefox, Edge): one-click shorten + page-to-biolink",
+  "description": "Zio Extension (Chrome, Firefox, Edge): one-click shorten + page-to-biolink",
   "scripts": {
     "build": "node scripts/build.mjs chrome",
     "build:chrome": "node scripts/build.mjs chrome",

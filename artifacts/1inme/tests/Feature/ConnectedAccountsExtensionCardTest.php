@@ -41,9 +41,9 @@ class ConnectedAccountsExtensionCardTest extends TestCase
         $response->assertOk();
         $response->assertSee('Browser Extension');
         $response->assertSee('Not installed');
-        $response->assertSee('https://chromewebstore.google.com/search/Sayzio');
-        $response->assertSee('https://microsoftedge.microsoft.com/addons/Search/Sayzio');
-        $response->assertSee('https://addons.mozilla.org/en-US/firefox/search/?q=Sayzio', false);
+        $response->assertSee('https://chromewebstore.google.com/search/Zio%20Extension', false);
+        $response->assertSee('https://microsoftedge.microsoft.com/addons/Search/Zio%20Extension', false);
+        $response->assertSee('https://addons.mozilla.org/en-US/firefox/search/?q=Zio%20Extension', false);
     }
 
     public function test_extension_card_uses_admin_configured_listing_urls(): void
@@ -58,9 +58,9 @@ class ConnectedAccountsExtensionCardTest extends TestCase
         $response->assertOk();
         $response->assertSee('https://chromewebstore.google.com/detail/sayzio/abcdef');
         $response->assertSee('https://addons.mozilla.org/en-US/firefox/addon/sayzio/', false);
-        $response->assertDontSee('https://chromewebstore.google.com/search/Sayzio');
+        $response->assertDontSee('https://chromewebstore.google.com/search/Zio%20Extension', false);
         // Edge is still unpublished, so its button keeps the search fallback.
-        $response->assertSee('https://microsoftedge.microsoft.com/addons/Search/Sayzio');
+        $response->assertSee('https://microsoftedge.microsoft.com/addons/Search/Zio%20Extension', false);
     }
 
     public function test_public_api_returns_shared_store_links(): void
@@ -73,7 +73,7 @@ class ConnectedAccountsExtensionCardTest extends TestCase
         $stores = collect($response->json('data.stores'))->keyBy('key');
         $this->assertSame('https://microsoftedge.microsoft.com/addons/detail/sayzio/xyz', $stores['edge']['url']);
         $this->assertTrue($stores['edge']['is_listing']);
-        $this->assertSame('https://chromewebstore.google.com/search/Sayzio', $stores['chrome']['url']);
+        $this->assertSame('https://chromewebstore.google.com/search/Zio%20Extension', $stores['chrome']['url']);
         $this->assertFalse($stores['chrome']['is_listing']);
         $this->assertFalse($stores['firefox']['is_listing']);
     }

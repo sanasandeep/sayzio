@@ -37,7 +37,7 @@ const SECTIONS: { heading: string; body: string }[] = [
   },
   {
     heading: "How to install",
-    body: 'Open one of the stores below on your computer, search for "Sayzio", and add the extension to your browser. It works on Chrome, Edge, and Firefox.',
+    body: 'Open one of the stores below on your computer, search for "Zio Extension", and add the extension to your browser. It works on Chrome, Edge, and Firefox.',
   },
   {
     heading: "Signing in",
@@ -85,7 +85,7 @@ export default function BrowserExtensionInfo() {
           Browser extension
         </Text>
         <Text style={[styles.intro, { color: colors.mutedForeground }]}>
-          The Sayzio extension brings link shortening, review capture, and
+          The Zio Extension brings link shortening, review capture, and
           notifications right into your desktop browser.
         </Text>
 

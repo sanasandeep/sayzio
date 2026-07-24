@@ -224,6 +224,11 @@
                 <h5>Deck settings</h5>
                 <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
                     <span id="sl-autosave" class="sl-autosave is-idle"><span class="dot"></span><span class="label">Saved</span></span>
+                    @if(\App\Services\AI\AiEngineSettings::isEnabled() && \App\Services\AI\AiPlanAccess::featureAllowed(auth()->user(), 'slides_builder'))
+                        <a href="{{ route('user.links.ai-type-builder', $link) }}" class="sl-btn" title="Build this deck with AI">
+                            <i class="fas fa-wand-magic-sparkles"></i> Build with AI
+                        </a>
+                    @endif
                     <a href="{{ route('user.links.slides.analytics', $link) }}" class="sl-btn" title="View slide analytics">
                         <i class="fas fa-chart-bar"></i> Analytics
                     </a>

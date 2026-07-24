@@ -327,3 +327,114 @@ describe('ApiClient', () => {
     expect(result.type).toBe('link');
   });
 });
+
+describe('2FA login challenge', () => {
+  const baseUrl = 'https://1in.me';
+  let client: ApiClient;
+
+  beforeEach(() => {
+    client = new ApiClient({ baseUrl });
+  });
+
+  it('login surfaces totp_required with challenge_token in details', async () => {
+    global.fetch = mockFetch({
+      ok: false,
+      status: 403,
+      body: {
+        error: {
+          message: 'Two-factor authentication required',
+          code: 'totp_required',
+          details: { challenge_token: 'chal-123' },
+        },
+      },
+    });
+
+    try {
+      await client.login('user@example.com', 'secret');
+      expect.unreachable('login should have thrown');
+    } catch (err) {
+      const apiErr = err as ApiClientError;
+      expect(apiErr).toBeInstanceOf(ApiClientError);
+      expect(apiErr.code).toBe('totp_required');
+      expect((apiErr.details as { challenge_token: string }).challenge_token).toBe('chal-123');
+    }
+  });
+
+  it('verifyTotpChallenge posts token + code to the challenge endpoint and returns user/token', async () => {
+    let capturedUrl = '';
+    let capturedBody: Record<string, unknown> = {};
+    global.fetch = vi.fn().mockImplementation((url: string, opts: RequestInit) => {
+      capturedUrl = url;
+      capturedBody = JSON.parse(opts.body as string) as Record<string, unknown>;
+      return Promise.resolve({
+        ok: true,
+        status: 200,
+        json: async () => ({ data: { user: { id: 7, name: 'TOTP User' }, token: 'tok-2fa' } }),
+      });
+    });
+
+    const result = await client.verifyTotpChallenge('chal-123', '654321');
+    expect(capturedUrl).toBe('https://1in.me/api/v1/auth/2fa/challenge/verify');
+    expect(capturedBody).toEqual({ challenge_token: 'chal-123', code: '654321', device: 'Zio Browser' });
+    expect(result.token).toBe('tok-2fa');
+    expect(result.user.id).toBe(7);
+  });
+
+  it('verifyBackupCode posts to the backup-codes endpoint', async () => {
+    let capturedUrl = '';
+    let capturedBody: Record<string, unknown> = {};
+    global.fetch = vi.fn().mockImplementation((url: string, opts: RequestInit) => {
+      capturedUrl = url;
+      capturedBody = JSON.parse(opts.body as string) as Record<string, unknown>;
+      return Promise.resolve({
+        ok: true,
+        status: 200,
+        json: async () => ({ data: { user: { id: 7, name: 'TOTP User' }, token: 'tok-recovery' } }),
+      });
+    });
+
+    const result = await client.verifyBackupCode('chal-123', 'RECOVERY-CODE-1');
+    expect(capturedUrl).toBe('https://1in.me/api/v1/auth/2fa/backup-codes/verify');
+    expect(capturedBody).toEqual({ challenge_token: 'chal-123', code: 'RECOVERY-CODE-1', device: 'Zio Browser' });
+    expect(result.token).toBe('tok-recovery');
+  });
+
+  it('wrong 2FA code throws a retriable ApiClientError (not 410)', async () => {
+    global.fetch = mockFetch({
+      ok: false,
+      status: 422,
+      body: { error: { message: 'Invalid authentication code', code: 'invalid_code' } },
+    });
+
+    try {
+      await client.verifyTotpChallenge('chal-123', '000000');
+      expect.unreachable('should have thrown');
+    } catch (err) {
+      const apiErr = err as ApiClientError;
+      expect(apiErr.code).toBe('invalid_code');
+      expect(apiErr.status).toBe(422);
+    }
+  });
+
+  it('expired challenge returns 410 so the UI restarts the flow', async () => {
+    global.fetch = mockFetch({
+      ok: false,
+      status: 410,
+      body: { error: { message: 'Challenge expired', code: 'challenge_expired' } },
+    });
+
+    await expect(client.verifyTotpChallenge('chal-old', '123456')).rejects.toMatchObject({ status: 410 });
+  });
+
+  it('non-2FA login is unaffected and returns user/token directly', async () => {
+    global.fetch = mockFetch({
+      ok: true,
+      status: 200,
+      body: { data: { user: { id: 1, name: 'Plain User' }, token: 'tok-plain' } },
+    });
+
+    const result = await client.login('plain@example.com', 'secret');
+    expect(result.token).toBe('tok-plain');
+    expect(result.user.id).toBe(1);
+  });
+});

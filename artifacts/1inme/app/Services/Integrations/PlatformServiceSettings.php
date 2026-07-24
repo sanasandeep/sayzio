@@ -50,6 +50,11 @@ class PlatformServiceSettings
 
     public const S3_DISK_NAMES = ['public', 'user_files', 'admin_assets', 's3'];
 
+    // ── Google Custom Search (AI builder image search) ────────────
+    public const KEY_GOOGLE_CSE_API_KEY_ENC = 'google_cse.api_key_enc';
+    public const KEY_GOOGLE_CSE_ENGINE_ID   = 'google_cse.engine_id';
+    public const KEY_GOOGLE_CSE_USER_DAILY_CAP = 'google_cse.user_daily_cap';
+
     // ── GitHub personal access token ──────────────────────────────
     // Shared by the GitHub push sync (SystemUpdateService / github:check-token)
     // and the zio-browser:refresh-release GitHub API calls (raises the
@@ -587,6 +592,88 @@ class PlatformServiceSettings
     }
 
     // ═════════════════════════════════════════════════════════════
+    // Google Custom Search (Programmable Search Engine) — image search
+    // for the AI biolink builder. API key is a secret; the engine ID
+    // (cx) is plain configuration.
+    // ═════════════════════════════════════════════════════════════
+
+    public static function googleCseApiKey(): ?string
+    {
+        $admin = self::decrypt(self::KEY_GOOGLE_CSE_API_KEY_ENC);
+        if ($admin !== null && $admin !== '') return $admin;
+        $cfg = (string) (config('services.google_cse.api_key') ?: env('GOOGLE_CSE_API_KEY', ''));
+        return $cfg !== '' ? $cfg : null;
+    }
+
+    public static function googleCseEngineId(): ?string
+    {
+        $admin = AppSetting::get(self::KEY_GOOGLE_CSE_ENGINE_ID);
+        if (is_string($admin) && trim($admin) !== '') return trim($admin);
+        $cfg = (string) (config('services.google_cse.engine_id') ?: env('GOOGLE_CSE_ENGINE_ID', ''));
+        return $cfg !== '' ? $cfg : null;
+    }
+
+    public static function setGoogleCseApiKey(?string $v): void
+    {
+        self::storeSecret(self::KEY_GOOGLE_CSE_API_KEY_ENC, $v);
+    }
+
+    public static function setGoogleCseEngineId(?string $v): void
+    {
+        AppSetting::put(self::KEY_GOOGLE_CSE_ENGINE_ID, self::cleanScalar($v));
+    }
+
+    public static function maskedGoogleCseApiKey(): ?string
+    {
+        return self::maskSecret(self::googleCseApiKey());
+    }
+
+    public static function googleCseHasAdminValue(): bool
+    {
+        $id  = AppSetting::get(self::KEY_GOOGLE_CSE_ENGINE_ID);
+        $sec = self::decrypt(self::KEY_GOOGLE_CSE_API_KEY_ENC);
+        return (is_string($id) && trim($id) !== '') || ($sec !== null && $sec !== '');
+    }
+
+    public static function googleCseHasKeyAdminValue(): bool
+    {
+        $v = self::decrypt(self::KEY_GOOGLE_CSE_API_KEY_ENC);
+        return $v !== null && $v !== '';
+    }
+
+    /** Both the API key and the engine ID resolve ⇒ image search is live. */
+    public static function googleCseConfigured(): bool
+    {
+        return self::googleCseApiKey() !== null && self::googleCseEngineId() !== null;
+    }
+
+    /** Per-user daily image-search cap. 0 = unlimited. */
+    public static function googleCseUserDailyCap(): int
+    {
+        $v = AppSetting::get(self::KEY_GOOGLE_CSE_USER_DAILY_CAP);
+        return is_numeric($v) ? max(0, (int) $v) : 0;
+    }
+
+    public static function setGoogleCseUserDailyCap(?int $v): void
+    {
+        AppSetting::put(self::KEY_GOOGLE_CSE_USER_DAILY_CAP, $v !== null ? max(0, $v) : null);
+    }
+
+    public static function googleCseStatus(): array
+    {
+        if (self::googleCseHasAdminValue()) {
+            if (!self::googleCseConfigured()) {
+                return ['key' => 'incomplete', 'label' => 'Incomplete (need both)', 'tone' => 'amber'];
+            }
+            return ['key' => 'configured', 'label' => 'Configured', 'tone' => 'green'];
+        }
+        if (self::googleCseConfigured()) {
+            return ['key' => 'env', 'label' => 'Using env fallback', 'tone' => 'amber'];
+        }
+        return ['key' => 'preview', 'label' => 'Preview mode', 'tone' => 'slate'];
+    }
+
+    // ═════════════════════════════════════════════════════════════
     // GitHub personal access token
     // ═════════════════════════════════════════════════════════════
 
@@ -649,6 +736,14 @@ class PlatformServiceSettings
             config([
                 'services.google_contacts.client_id'     => self::googleContactsClientId(),
                 'services.google_contacts.client_secret' => self::googleContactsClientSecret(),
+            ]);
+        }
+
+        // ── Google Custom Search (AI builder image search) ───────
+        if (self::googleCseHasAdminValue()) {
+            config([
+                'services.google_cse.api_key'   => self::googleCseApiKey(),
+                'services.google_cse.engine_id' => self::googleCseEngineId(),
             ]);
         }
 

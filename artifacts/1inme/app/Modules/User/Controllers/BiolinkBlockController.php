@@ -1239,6 +1239,13 @@ class BiolinkBlockController extends Controller
 
         $settings['biolink'] = array_merge($settings['biolink'] ?? [], $validated);
 
+        // video_url is echoed into the public page as a <video><source src>
+        // (common/biolink.blade.php), so it must pass the same sanitizer as
+        // the other page-level URL fields: https?:// or a /f/ vault path only.
+        if (array_key_exists('video_url', $validated)) {
+            $settings['biolink']['video_url'] = $this->sanitizeUrl(trim((string) ($validated['video_url'] ?? '')));
+        }
+
         if ($blockTheme !== null) {
             $settings['biolink']['block_theme'] = $this->sanitizeBlockStyle($blockTheme);
             $settings['biolink']['block_theme']['apply_to_all'] = !empty($blockTheme['apply_to_all']);
@@ -1265,6 +1272,13 @@ class BiolinkBlockController extends Controller
         if ($manifestInput !== null) {
             $settings['biolink']['manifest'] = $nullifyEmpty($manifestInput);
             $settings['biolink']['manifest']['enabled'] = !empty($manifestInput['enabled']);
+            // start_url is emitted verbatim into the public PWA manifest JSON
+            // (RedirectController::manifest). Allow https?:// absolute URLs or
+            // a same-origin relative path (single leading slash, no "//" host
+            // escape, no backslashes/control chars); anything else is dropped
+            // so the manifest falls back to the biolink's own URL.
+            $rawStart = trim((string) ($settings['biolink']['manifest']['start_url'] ?? ''));
+            $settings['biolink']['manifest']['start_url'] = $this->sanitizeStartUrl($rawStart);
         }
 
         if ($shareButtonInput !== null) {
@@ -1540,10 +1554,38 @@ class BiolinkBlockController extends Controller
         return $result;
     }
 
-    private function sanitizeUrl(?string $url): string
+    // Public + static so sibling save paths that persist user URLs rendered
+    // on public pages (e.g. SlideDeckController slide backgrounds) reuse the
+    // exact same rules instead of drifting with their own copy.
+    public static function sanitizeUrl(?string $url): string
     {
         if (empty($url)) return '';
-        return preg_match('/^https?:\/\//i', $url) ? $url : '';
+        if (preg_match('/^https?:\/\//i', $url)) return $url;
+        // Relative vault media paths (/f/{id}/{filename}) are safe: a single
+        // leading slash, no scheme, no protocol-relative "//" host escape,
+        // and no control characters/backslashes that could smuggle one in.
+        if (preg_match('/^\/f\/[^\/\\\\\s][^\\\\\s]*$/', $url) && ! str_contains($url, '//')) {
+            return $url;
+        }
+        return '';
+    }
+
+    /**
+     * PWA manifest start_url sanitizer: https?:// absolute URLs pass through;
+     * same-origin relative paths need a single leading slash (no "//" host
+     * escape) and no backslashes or whitespace/control characters. Anything
+     * else returns null so RedirectController::manifest falls back to the
+     * biolink's own URL.
+     */
+    private function sanitizeStartUrl(?string $url): ?string
+    {
+        $url = trim((string) $url);
+        if ($url === '') return null;
+        if (preg_match('/^https?:\/\//i', $url)) return $url;
+        if (preg_match('/^\/(?!\/)[^\\\\\s]*$/', $url) && ! str_contains($url, '//')) {
+            return $url;
+        }
+        return null;
     }
 
     private function sanitizeHtml(string $html): string

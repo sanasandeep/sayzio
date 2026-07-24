@@ -754,7 +754,7 @@ x-init="fetchPreview(); $watch('styleData', () => schedulePreview()); $watch('co
                                             </span>
                                         </div>
                                         <p x-show="listValue(@js($key)).length === 0" x-cloak class="bd-hint mb-2">
-                                            No items — saving keeps this list explicitly empty for new blocks.
+                                            No items. Saving keeps this list explicitly empty for new blocks.
                                         </p>
                                         <div class="space-y-2">
                                             <template x-for="(item, idx) in listValue(@js($key))" :key="idx">
@@ -825,7 +825,7 @@ x-init="fetchPreview(); $watch('styleData', () => schedulePreview()); $watch('co
                                 @endforeach
                             @else
                                 <p class="bd-hint">
-                                    This block type has no simple text fields — edit its default content
+                                    This block type has no simple text fields. Edit its default content
                                     (lists, cards, items) via the JSON editor below.
                                 </p>
                             @endif

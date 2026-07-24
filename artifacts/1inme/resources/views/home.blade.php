@@ -3410,7 +3410,7 @@
             <h2 class="reveal rd-1 text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-5">
                 Share your Sayzio<br><span class="grad-text">anywhere you like.</span>
             </h2>
-            <p class="reveal rd-2 text-lg text-gray-400">Branded short links and dynamic QR codes you can repoint at any time. Add your link to bios, posters, business cards, packaging — anywhere. Save links from any browser tab with the Sayzio extension, or share straight from any mobile app into Sayzio.</p>
+            <p class="reveal rd-2 text-lg text-gray-400">Branded short links and dynamic QR codes you can repoint at any time. Add your link to bios, posters, business cards, packaging — anywhere. Save links from any browser tab with the Zio Extension, or share straight from any mobile app into Sayzio.</p>
         </div>
 
         <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
