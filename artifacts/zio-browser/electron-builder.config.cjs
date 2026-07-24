@@ -1,5 +1,5 @@
 /**
- * SayZio Browser — electron-builder configuration.
+ * Sayzio Browser — electron-builder configuration.
  *
  * Code signing & notarization are driven entirely by environment variables so
  * the same config produces unsigned dev builds locally and fully
@@ -22,11 +22,11 @@ const macNotarizeEnabled = Boolean(
 /** @type {import('electron-builder').Configuration} */
 const config = {
   appId: 'com.sayzio.browser',
-  productName: 'SayZio Browser',
+  productName: 'Sayzio Browser',
   // No spaces in artifact names: GitHub converts spaces to dots on upload,
   // which breaks the electron-updater feed (latest.yml uses hyphenated names).
-  artifactName: 'SayZio-Browser-${version}-${arch}.${ext}',
-  copyright: 'Copyright © 2026 SayZio',
+  artifactName: 'Sayzio-Browser-${version}-${arch}.${ext}',
+  copyright: 'Copyright © 2026 Sayzio',
 
   directories: {
     output: 'release',
@@ -94,7 +94,7 @@ const config = {
     allowToChangeInstallationDirectory: true,
     createDesktopShortcut: true,
     createStartMenuShortcut: true,
-    shortcutName: 'SayZio Browser',
+    shortcutName: 'Sayzio Browser',
   },
 
   // Auto-update feed — electron-updater reads GitHub Releases of this repo.
