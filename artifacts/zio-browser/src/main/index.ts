@@ -183,7 +183,7 @@ function createWindow(): BrowserWindow {
   );
 
   // Setup tracker / ad blocking
-  const trackerInitialEnabled = (getPreference(PREFERENCE_KEYS.TRACKER_BLOCKING_ENABLED) ?? '0') === '1';
+  const trackerInitialEnabled = (safeGetPreference(PREFERENCE_KEYS.TRACKER_BLOCKING_ENABLED) ?? '0') === '1';
   setupTrackerBlocking(
     session.defaultSession,
     win,
@@ -210,7 +210,7 @@ function createWindow(): BrowserWindow {
       }
 
       // Restore the previous session's open tabs (in order, with active tab)
-      const savedSessionJson = getPreference(PREFERENCE_KEYS.SESSION_TABS) ?? '';
+      const savedSessionJson = safeGetPreference(PREFERENCE_KEYS.SESSION_TABS) ?? '';
       let sessionUrls: string[] = [];
       let sessionActiveIndex = -1;
       let sessionActivePinnedIndex = -1;
@@ -245,7 +245,7 @@ function createWindow(): BrowserWindow {
         }
       } else {
         // Open the default new tab (active, placed after pinned tabs)
-        const newTabUrl = getPreference(PREFERENCE_KEYS.NEW_TAB_PAGE) ?? undefined;
+        const newTabUrl = safeGetPreference(PREFERENCE_KEYS.NEW_TAB_PAGE) ?? undefined;
         tabManager.createTab(newTabUrl);
       }
     }
@@ -351,6 +351,9 @@ export function createPrivateWindow(startUrl?: string): BrowserWindow {
 
   win.on('resize', () => modeManager.applyBounds());
 
+  win.webContents.on('did-fail-load', (_e, code, desc, url) => {
+    console.error(`Renderer failed to load (${code} ${desc}) at ${url}`);
+  });
   const showFailsafe = setTimeout(() => {
     if (!win.isDestroyed() && !win.isVisible()) win.show();
   }, 6000);
