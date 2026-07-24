@@ -67,18 +67,26 @@ export function useModeStore(): ModeStoreState {
 
   const init = useCallback(async () => {
     wireIpc();
-    const [mode, ratio, panelWidth, panelDocked] = await Promise.all([
-      window.zio.window.getMode() as Promise<WindowMode>,
-      window.zio.window.getSplitRatio() as Promise<number>,
-      window.zio.window.getZioPanelWidth() as Promise<number>,
-      window.zio.window.getZioPanelDocked() as Promise<boolean>,
-    ]);
-    modeState = mode;
-    splitRatioState = Math.max(MIN_SPLIT_RATIO, Math.min(MAX_SPLIT_RATIO, ratio));
-    zioPanelWidthState = Math.max(MIN_ZIO_PANEL_WIDTH, Math.min(MAX_ZIO_PANEL_WIDTH, panelWidth));
-    zioPanelDockedState = panelDocked;
-    isInitializedState = true;
-    notify();
+    // Fail open: if any init IPC rejects (e.g. main-process DB unavailable),
+    // fall back to defaults instead of leaving the app on its blank pre-init
+    // gate forever.
+    try {
+      const [mode, ratio, panelWidth, panelDocked] = await Promise.all([
+        window.zio.window.getMode() as Promise<WindowMode>,
+        window.zio.window.getSplitRatio() as Promise<number>,
+        window.zio.window.getZioPanelWidth() as Promise<number>,
+        window.zio.window.getZioPanelDocked() as Promise<boolean>,
+      ]);
+      modeState = mode;
+      splitRatioState = Math.max(MIN_SPLIT_RATIO, Math.min(MAX_SPLIT_RATIO, ratio));
+      zioPanelWidthState = Math.max(MIN_ZIO_PANEL_WIDTH, Math.min(MAX_ZIO_PANEL_WIDTH, panelWidth));
+      zioPanelDockedState = panelDocked;
+    } catch (err) {
+      console.error('Mode store init failed — using defaults:', err);
+    } finally {
+      isInitializedState = true;
+      notify();
+    }
   }, []);
 
   const setMode = useCallback(async (mode: WindowMode) => {

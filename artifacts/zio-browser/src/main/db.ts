@@ -207,20 +207,25 @@ export function profileExists(profileId: string): boolean {
 
 // ── Preferences ─────────────────────────────────────────────────────────────
 
+// Preferences fail soft when the database never initialized (e.g. the native
+// SQLite binding failed to load). Reads return null / defaults and writes
+// no-op, so startup IPC handlers (window mode, panel width, auth token) never
+// reject — a rejected init IPC used to leave the renderer stuck on its blank
+// pre-init gate forever.
 export function getPreference(key: PreferenceKey): string | null {
-  const db = getDb();
-  const row = db.prepare('SELECT value FROM preferences WHERE key = ?').get(key) as { value: string } | undefined;
+  if (!_db) return null;
+  const row = _db.prepare('SELECT value FROM preferences WHERE key = ?').get(key) as { value: string } | undefined;
   return row?.value ?? null;
 }
 
 export function setPreference(key: PreferenceKey, value: string): void {
-  const db = getDb();
-  db.prepare('INSERT OR REPLACE INTO preferences(key, value) VALUES(?, ?)').run(key, value);
+  if (!_db) return;
+  _db.prepare('INSERT OR REPLACE INTO preferences(key, value) VALUES(?, ?)').run(key, value);
 }
 
 export function getAllPreferences(): Record<string, string> {
-  const db = getDb();
-  const rows = db.prepare('SELECT key, value FROM preferences').all() as Array<{ key: string; value: string }>;
+  if (!_db) return {};
+  const rows = _db.prepare('SELECT key, value FROM preferences').all() as Array<{ key: string; value: string }>;
   return Object.fromEntries(rows.map(r => [r.key, r.value]));
 }
 

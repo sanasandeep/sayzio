@@ -111,7 +111,7 @@ export function SplitLayout({
           display: 'flex',
           alignItems: 'center',
           gap: 6,
-          padding: `0 10px 0 ${process.platform === 'darwin' ? '80px' : '10px'}`,
+          padding: `0 10px 0 ${window.zio.platform === 'darwin' ? '80px' : '10px'}`,
           WebkitAppRegion: 'drag',
         } as React.CSSProperties}>
 
