@@ -86,6 +86,12 @@ jobs:
       - name: Build main process
         run: pnpm run build:main && pnpm run build:preload
 
+      # Rebuild native modules (better-sqlite3) against Electron's ABI.
+      # Without this the packaged app can ship a Node-ABI binary that fails
+      # to load at runtime (app launches but the window never appears).
+      - name: Rebuild native modules for Electron
+        run: pnpm exec electron-builder install-app-deps
+
       # Signing/notarization activates automatically when the secrets are set:
       #   MAC_CERT_P12_BASE64 / MAC_CERT_PASSWORD  → codesign (Developer ID)
       #   APPLE_ID / APPLE_APP_SPECIFIC_PASSWORD / APPLE_TEAM_ID → notarization
@@ -156,6 +162,10 @@ jobs:
 
       - name: Build main process
         run: pnpm run build:main && pnpm run build:preload
+
+      # Rebuild native modules (better-sqlite3) against Electron's ABI.
+      - name: Rebuild native modules for Electron
+        run: pnpm exec electron-builder install-app-deps
 
       # Signing activates automatically when the secrets are set:
       #   WIN_CERT_P12_BASE64 / WIN_CERT_PASSWORD → Authenticode signing
