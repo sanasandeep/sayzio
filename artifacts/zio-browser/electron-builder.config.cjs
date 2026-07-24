@@ -55,6 +55,13 @@ const config = {
     'package.json',
   ],
 
+  // Native modules (better-sqlite3) CANNOT be loaded from inside app.asar.
+  // electron-builder's smartUnpack fails to detect them in this pnpm
+  // workspace (symlinked node_modules), so v0.1.7 shipped better_sqlite3.node
+  // packed inside the asar — initDb() threw at runtime on every install
+  // ("Database not initialized" downstream error). Force-unpack them.
+  asarUnpack: ['**/*.node'],
+
   extraMetadata: {
     main: 'dist/main/main/index.js',
   },

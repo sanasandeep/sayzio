@@ -90,6 +90,11 @@ export interface SavedPassword {
 
 let _db: Database.Database | null = null;
 
+/** True once initDb() has succeeded — callers can degrade gracefully. */
+export function isDbInitialized(): boolean {
+  return _db !== null;
+}
+
 export function getDb(): Database.Database {
   if (!_db) {
     throw new Error('Database not initialized. Call initDb() first.');

@@ -116,7 +116,15 @@ jobs:
           # Sequential per-arch packaging: the DMG target's dmgbuild helper
           # hits a background.tiff ENOENT race when both arch builds run in a
           # single invocation on GitHub macOS runners.
+          # Rebuild better-sqlite3 for EACH target arch immediately before its
+          # packaging run — the implicit npmRebuild is unreliable in this pnpm
+          # workspace, and a single host-arch rebuild ships a wrong-arch binary
+          # in the other flavor (v0.1.7: arm64 app crashed with
+          # "Database not initialized" because the second package run reused a
+          # stale binary).
+          pnpm exec electron-builder install-app-deps --arch x64
           pnpm exec electron-builder --config electron-builder.config.cjs --mac --x64 --publish never
+          pnpm exec electron-builder install-app-deps --arch arm64
           pnpm exec electron-builder --config electron-builder.config.cjs --mac --arm64 --publish never
 
       - name: Upload macOS artifacts
