@@ -1127,6 +1127,9 @@ Route::prefix('v1')->group(function () {
         Route::patch('/workspaces/{id}',          [WorkspaceController::class, 'update'])->whereNumber('id');
         Route::delete('/workspaces/{id}',         [WorkspaceController::class, 'destroy'])->whereNumber('id');
         Route::get('/workspaces/{id}/members',    [WorkspaceController::class, 'members'])->whereNumber('id');
+        // Active-workspace switch (mobile switcher). Persists the pointer the
+        // web session resolver also honours, keeping web and app in sync.
+        Route::post('/workspaces/{id}/activate',  [WorkspaceController::class, 'activate'])->whereNumber('id');
 
         // ── Admin-granted asset transfers ────────────────────────────
         // Capability probe + instant link/workspace transfer to another

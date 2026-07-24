@@ -25,9 +25,29 @@ trait ApiResponses
      */
     protected function activeWorkspaceId(?User $user): ?int
     {
+        return $this->activeWorkspace($user)?->id;
+    }
+
+    /**
+     * Resolve the user's active workspace for the stateless API. Prefers the
+     * persisted `users.active_workspace_id` pointer (kept in sync by the web
+     * session's WorkspaceContext and the API activate endpoint) so web and
+     * app agree on scoping, then falls back to first accessible → lazily
+     * created personal workspace, mirroring WorkspaceContext::resolve().
+     */
+    protected function activeWorkspace(?User $user): ?\App\Modules\User\Models\Workspace
+    {
         if (!$user) return null;
-        $ws = $user->accessibleWorkspaces()->first() ?? $user->ensureDefaultWorkspace();
-        return $ws?->id;
+
+        $persisted = (int) ($user->active_workspace_id ?? 0);
+        if ($persisted) {
+            $ws = \App\Modules\User\Models\Workspace::find($persisted);
+            if ($ws && $user->belongsToWorkspace($ws)) {
+                return $ws;
+            }
+        }
+
+        return $user->accessibleWorkspaces()->first() ?? $user->ensureDefaultWorkspace();
     }
 
     /**

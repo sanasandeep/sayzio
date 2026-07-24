@@ -112,6 +112,35 @@ class WorkspaceController extends Controller
         return $this->created(['item' => $this->present($ws->fresh(), (int) $user->id)]);
     }
 
+    /**
+     * Make the given workspace the caller's active workspace. The mobile
+     * switcher has always POSTed here; the route simply didn't exist, so the
+     * switch silently no-oped and the app stayed pinned to the fallback
+     * workspace while the web session moved on — the web/app links desync.
+     *
+     * Persists `users.active_workspace_id`, which the web session resolver
+     * (WorkspaceContext) also reads and writes, so switching on either
+     * surface keeps the other in sync.
+     */
+    public function activate(Request $request, int $id)
+    {
+        $user = $request->user();
+        $ws = Workspace::find($id);
+        if (!$ws || !$user->belongsToWorkspace($ws)) {
+            return $this->fail('Workspace not found.', 404, 'not_found');
+        }
+
+        try {
+            \Illuminate\Support\Facades\DB::table('users')
+                ->where('id', $user->id)
+                ->update(['active_workspace_id' => $ws->id]);
+        } catch (\Throwable) {
+            // Column not migrated yet — treat as a no-op rather than a 500.
+        }
+
+        return $this->ok(['item' => $this->present($ws, (int) $user->id)]);
+    }
+
     public function members(Request $request, int $id)
     {
         $userId = $request->user()->id;

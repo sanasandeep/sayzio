@@ -21,6 +21,7 @@ import { VerifyEmailReminder } from "@/components/VerifyEmailReminder";
 import { useAuth } from "@/contexts/AuthContext";
 import { TOP_BAR_H, useTabBar, useTabBarBottomInset } from "@/contexts/TabBarContext";
 import { useColors } from "@/hooks/useColors";
+import { errorStatus } from "@/lib/api";
 import { getDashboard } from "@/lib/api/dashboard";
 
 export default function Home() {
@@ -77,9 +78,33 @@ export default function Home() {
             <ActivityIndicator color={colors.primary} />
           </View>
         ) : q.error ? (
-          <Text style={{ color: colors.destructive }}>
-            Couldn't load dashboard.
-          </Text>
+          <View style={{ gap: 10, alignItems: "flex-start" }}>
+            <Text style={{ color: colors.destructive }}>
+              {errorStatus(q.error) === 401
+                ? "Your session has expired. Please sign in again."
+                : `Couldn't load dashboard${
+                    q.error instanceof Error || (q.error as { message?: string })?.message
+                      ? `: ${(q.error as { message?: string }).message}`
+                      : "."
+                  }`}
+            </Text>
+            <Pressable
+              onPress={() => q.refetch()}
+              accessibilityRole="button"
+              accessibilityLabel="Retry loading dashboard"
+              style={{
+                borderWidth: 1,
+                borderColor: colors.border,
+                borderRadius: 10,
+                paddingHorizontal: 14,
+                paddingVertical: 8,
+              }}
+            >
+              <Text style={{ color: colors.foreground, fontWeight: "600" }}>
+                Retry
+              </Text>
+            </Pressable>
+          </View>
         ) : (
           <>
             <View style={styles.tileRow}>

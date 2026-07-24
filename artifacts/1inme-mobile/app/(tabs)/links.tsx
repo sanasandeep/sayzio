@@ -22,6 +22,7 @@ import { onVoiceAction, setVoiceSurface } from "@/components/VoiceAssistant";
 import { TOP_BAR_H, useTabBar, useTabBarBottomInset } from "@/contexts/TabBarContext";
 import { useColors } from "@/hooks/useColors";
 import type { VoiceClientAction } from "@/lib/api/voice";
+import { errorStatus } from "@/lib/api";
 import { exportLinksCsv, listLinks } from "@/lib/api/links";
 import { LINK_KINDS } from "@/lib/linkKinds";
 import { showAlert } from "@/lib/webAlert";
@@ -223,6 +224,42 @@ export default function LinksTab() {
       {query.isLoading ? (
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
           <ActivityIndicator color={colors.primary} />
+        </View>
+      ) : query.error ? (
+        <View
+          style={{
+            flex: 1,
+            alignItems: "center",
+            justifyContent: "center",
+            paddingHorizontal: 32,
+            gap: 12,
+          }}
+        >
+          <Text style={{ color: colors.destructive, textAlign: "center" }}>
+            {errorStatus(query.error) === 401
+              ? "Your session has expired. Please sign in again."
+              : `Couldn't load your links${
+                  (query.error as { message?: string })?.message
+                    ? `: ${(query.error as { message?: string }).message}`
+                    : "."
+                }`}
+          </Text>
+          <Pressable
+            onPress={() => query.refetch()}
+            accessibilityRole="button"
+            accessibilityLabel="Retry loading links"
+            style={{
+              borderWidth: 1,
+              borderColor: colors.border,
+              borderRadius: 10,
+              paddingHorizontal: 14,
+              paddingVertical: 8,
+            }}
+          >
+            <Text style={{ color: colors.foreground, fontWeight: "600" }}>
+              Retry
+            </Text>
+          </Pressable>
         </View>
       ) : (
         <FlatList

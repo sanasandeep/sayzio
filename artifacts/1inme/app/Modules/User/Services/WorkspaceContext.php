@@ -21,6 +21,26 @@ class WorkspaceContext
         session([self::SESSION_KEY => $ws->id]);
         $this->cached = $ws;
         app()->instance('current_workspace', $ws);
+        // Persist the choice on the user row so the stateless Sanctum API
+        // (mobile app) resolves the SAME active workspace as the web session
+        // instead of silently falling back to "first accessible" — the source
+        // of web/app links-list desync.
+        $this->persist($ws);
+    }
+
+    /** Best-effort stamp of users.active_workspace_id (column may lag on old DBs). */
+    protected function persist(Workspace $ws): void
+    {
+        try {
+            $user = auth()->user();
+            if ($user && (int) ($user->active_workspace_id ?? 0) !== (int) $ws->id) {
+                \DB::table('users')->where('id', $user->id)
+                    ->update(['active_workspace_id' => $ws->id]);
+                $user->active_workspace_id = $ws->id;
+            }
+        } catch (\Throwable) {
+            // Column not migrated yet — session-only behaviour, as before.
+        }
     }
 
     public function clear(): void
@@ -53,6 +73,18 @@ class WorkspaceContext
             // Stored workspace is no longer accessible (member removed,
             // workspace deleted) — fall through to default resolution and
             // overwrite the session pointer below.
+        }
+
+        // No session pointer (fresh session) — honour the persisted
+        // active workspace (set by web or the mobile app) before falling
+        // back to the first accessible workspace.
+        $persisted = (int) ($user->active_workspace_id ?? 0);
+        if ($persisted) {
+            $ws = Workspace::find($persisted);
+            if ($ws && $user->belongsToWorkspace($ws)) {
+                $this->set($ws);
+                return $ws;
+            }
         }
 
         $accessible = $user->accessibleWorkspaces();

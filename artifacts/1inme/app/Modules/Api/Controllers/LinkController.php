@@ -64,9 +64,40 @@ class LinkController extends Controller
         );
     }
 
+    /**
+     * Build the workspace-scoped base query for the caller's link list,
+     * mirroring the web "My Links" page exactly: links owned by the ACTIVE
+     * workspace's owner AND tagged with that workspace id. Before this, the
+     * API listed every link owned by the caller across all workspaces (and
+     * never the owner's links when the caller is a team member), so the
+     * mobile Links tab showed a different set than the web list.
+     *
+     * Falls back to the legacy caller-owned query when the workspace
+     * column/tables are unavailable (old DBs).
+     */
+    protected function scopedLinksQuery(Request $request)
+    {
+        $user = $request->user();
+
+        try {
+            if (Schema::hasColumn('links', 'workspace_id')) {
+                $ws = $this->activeWorkspace($user);
+                if ($ws) {
+                    return Link::withoutWorkspaceScope()
+                        ->where('user_id', $ws->owner_user_id)
+                        ->where('workspace_id', $ws->id);
+                }
+            }
+        } catch (\Throwable) {
+            // fall through to legacy scoping
+        }
+
+        return Link::where('user_id', $user->id);
+    }
+
     public function index(Request $request)
     {
-        $q = Link::where('user_id', $request->user()->id)->with('domain');
+        $q = $this->scopedLinksQuery($request)->with('domain');
 
         if ($type = $request->string('type')->toString()) {
             $q->where('type', $type);
@@ -80,6 +111,11 @@ class LinkController extends Controller
         }
 
         $page = $q->orderByDesc('id')->paginate(min(100, max(1, (int) $request->input('per_page', 20))));
+
+        // Batch-preload pixel-fire data — without this every serialized link
+        // fired 2 extra queries, making a 100-row page take minutes against
+        // the distant RDS (the mobile "Couldn't load" timeouts).
+        LinkResource::preload($page->items());
 
         return $this->ok([
             'items' => collect($page->items())->map(fn ($l) => LinkResource::toArray($l))->all(),
@@ -102,7 +138,7 @@ class LinkController extends Controller
      */
     public function export(Request $request): \Symfony\Component\HttpFoundation\StreamedResponse
     {
-        $q = Link::where('user_id', $request->user()->id)->with(['project', 'domain']);
+        $q = $this->scopedLinksQuery($request)->with(['project', 'domain']);
 
         if ($type = $request->string('type')->toString()) {
             $q->where('type', $type);
