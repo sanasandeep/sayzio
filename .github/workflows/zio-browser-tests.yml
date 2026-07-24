@@ -1,6 +1,6 @@
-name: Sayzio Browser Tests
+name: Zio Browser Tests
 
-# PR gate for the Sayzio Browser (Electron) artifact.
+# PR gate for the Zio Browser (Electron) artifact.
 #
 # IMPORTANT — why there is no `paths:` filter on the triggers below, and a
 # `changes` detection job instead:
@@ -41,7 +41,7 @@ jobs:
               - '.github/workflows/zio-browser-tests.yml'
 
   test:
-    name: Sayzio Browser test & typecheck
+    name: Zio Browser test & typecheck
     needs: changes
     if: needs.changes.outputs.onein == 'true' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
@@ -78,7 +78,7 @@ jobs:
   # when the PR touches nothing under artifacts/zio-browser/**, so the check
   # can be safely marked required without deadlocking unrelated PRs.
   test-passthrough:
-    name: Sayzio Browser test & typecheck
+    name: Zio Browser test & typecheck
     needs: changes
     if: needs.changes.outputs.onein != 'true' && github.event_name != 'workflow_dispatch'
     runs-on: ubuntu-latest
