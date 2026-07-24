@@ -148,9 +148,20 @@ export default function App() {
     return () => window.zio.off('permission:request', listener);
   }, []);
 
+  // While the mode picker is visible, detach all tab WebContentsViews.
+  // Native views sit ABOVE the renderer DOM, so a restored tab view would
+  // otherwise silently swallow clicks on the picker cards.
+  useEffect(() => {
+    if (showModePicker) {
+      void window.zio.tabs.hideAll();
+    }
+  }, [showModePicker]);
+
   const handlePickMode = useCallback((picked: WindowMode) => {
     localStorage.setItem(FIRST_LAUNCH_KEY, '1');
     setShowModePicker(false);
+    // setMode always round-trips to the main process, which re-applies view
+    // bounds — re-attaching the active tab view hidden while the picker was up.
     void setMode(picked);
   }, [setMode]);
 
