@@ -1,4 +1,4 @@
-# Sayzio Browser Extension
+# Zio Extension
 
 Cross-browser MV3 extension (Chrome, Firefox, Edge) for [Sayzio](https://sayzio.app).
 

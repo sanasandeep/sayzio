@@ -283,7 +283,7 @@ async function extractContactCandidate(tabId: number): Promise<{ ok: true; candi
 async function stashContactCandidateAndOpenPopup(tabId: number) {
   const result = await extractContactCandidate(tabId);
   if (!result.ok) {
-    notify("Sayzio — error", result.error);
+    notify("Zio Extension — error", result.error);
     return;
   }
   await browser.storage.local.set({
@@ -295,10 +295,10 @@ async function stashContactCandidateAndOpenPopup(tabId: number) {
     if ((browser.action as any)?.openPopup) {
       await (browser.action as any).openPopup();
     } else {
-      notify("Sayzio", "Open the Sayzio extension popup to review the contact.");
+      notify("Zio Extension", "Open the Zio Extension popup to review the contact.");
     }
   } catch {
-    notify("Sayzio", "Open the Sayzio extension popup to review the contact.");
+    notify("Zio Extension", "Open the Zio Extension popup to review the contact.");
   }
 }
 
@@ -465,7 +465,7 @@ async function syncNotifications() {
         try { return new Date(n.created_at).getTime() > lastPolled; } catch { return false; }
       });
       for (const item of newItems.slice(0, 3)) {
-        notify(`Sayzio ${notifIcon(item.type)}`, notifLabel(item));
+        notify(`Zio Extension ${notifIcon(item.type)}`, notifLabel(item));
       }
     }
   } catch { /* offline — retry on next alarm */ }
@@ -597,10 +597,10 @@ async function stashPendingAction(action: {
     if ((browser.action as any)?.openPopup) {
       await (browser.action as any).openPopup();
     } else {
-      notify("Sayzio", "Open the Sayzio extension to continue.");
+      notify("Zio Extension", "Open the Zio Extension to continue.");
     }
   } catch {
-    notify("Sayzio", "Open the Sayzio extension to continue.");
+    notify("Zio Extension", "Open the Zio Extension to continue.");
   }
 }
 
@@ -608,11 +608,11 @@ browser.contextMenus?.onClicked.addListener(async (info, tab) => {
   if (!tab?.id) return;
   if (info.menuItemId === "1inme-shorten-page") {
     const result = await shortenAndCopy(tab.url || "", tab.title, tab.id);
-    if (!result.ok) notify("Sayzio — error", result.error);
+    if (!result.ok) notify("Zio Extension — error", result.error);
   } else if (info.menuItemId === "1inme-shorten-link") {
     const url = info.linkUrl || "";
     const result = await shortenAndCopy(url, undefined, tab.id);
-    if (!result.ok) notify("Sayzio — error", result.error);
+    if (!result.ok) notify("Zio Extension — error", result.error);
   } else if (info.menuItemId === "1inme-page-to-biolink") {
     // Open popup with the biolink mode picker so user can choose Quick vs AI.
     await stashPendingAction({ type: "PAGE_TO_BIOLINK_MODE", url: tab.url || "", title: tab.title || "" });
@@ -632,41 +632,41 @@ browser.contextMenus?.onClicked.addListener(async (info, tab) => {
   // ── New v0.2 context menu handlers ───────────────────────────────
   else if (info.menuItemId === "1inme-shorten-selection") {
     const sel = (info.selectionText || "").trim();
-    if (!sel) { notify("Sayzio", "No text selected."); return; }
+    if (!sel) { notify("Zio Extension", "No text selected."); return; }
     let targetUrl = sel;
     try { new URL(sel); } catch {
       // Not a bare URL — try prefixing https://
       try { targetUrl = new URL("https://" + sel).href; } catch {
-        notify("Sayzio — error", "Selected text is not a valid URL.");
+        notify("Zio Extension — error", "Selected text is not a valid URL.");
         return;
       }
     }
     const result = await shortenAndCopy(targetUrl, undefined, tab.id);
-    if (!result.ok) notify("Sayzio — error", result.error);
+    if (!result.ok) notify("Zio Extension — error", result.error);
   } else if (info.menuItemId === "1inme-qr-selection") {
     const sel = (info.selectionText || "").trim();
-    if (!sel) { notify("Sayzio", "No text selected."); return; }
+    if (!sel) { notify("Zio Extension", "No text selected."); return; }
     await stashPendingAction({ type: "QR_SELECTION", url: tab.url || "", title: tab.title || "", selectionText: sel });
   } else if (info.menuItemId === "1inme-note-to-contact") {
     const sel = (info.selectionText || "").trim();
-    if (!sel) { notify("Sayzio", "No text selected."); return; }
+    if (!sel) { notify("Zio Extension", "No text selected."); return; }
     await stashPendingAction({ type: "CONTACT_NOTE", url: tab.url || "", title: tab.title || "", selectionText: sel });
   } else if (info.menuItemId === "1inme-dialer-lookup") {
     const sel = (info.selectionText || "").trim();
-    if (!sel) { notify("Sayzio", "No text selected."); return; }
+    if (!sel) { notify("Zio Extension", "No text selected."); return; }
     await stashPendingAction({ type: "DIALER_LOOKUP", url: tab.url || "", title: tab.title || "", selectionText: sel });
   } else if (info.menuItemId === "1inme-save-image") {
     const imageUrl = info.srcUrl || "";
-    if (!imageUrl) { notify("Sayzio — error", "No image URL found."); return; }
+    if (!imageUrl) { notify("Zio Extension — error", "No image URL found."); return; }
     const settings = await getSettings();
-    if (!settings.token) { notify("Sayzio", "Sign in to Sayzio to save files."); return; }
+    if (!settings.token) { notify("Zio Extension", "Sign in to Sayzio to save files."); return; }
     try {
       const filename = imageUrl.split("/").pop()?.split("?")[0] || "image.jpg";
       await api.saveImageFromUrl(imageUrl, filename);
-      notify("Sayzio — Saved", `Image saved to Sayzio Files: ${filename}`);
+      notify("Zio Extension — Saved", `Image saved to Sayzio Files: ${filename}`);
     } catch (e: any) {
       const msg = e instanceof ApiError ? e.message : (e?.message || "Could not save image");
-      notify("Sayzio — error", msg);
+      notify("Zio Extension — error", msg);
     }
   } else if (info.menuItemId === "1inme-send-to-subscribers") {
     await stashPendingAction({ type: "SEND_TO_SUBSCRIBERS", url: tab.url || "", title: tab.title || "" });
@@ -750,10 +750,10 @@ browser.runtime.onMessage.addListener(async (msg: any, sender: any) => {
         if ((browser.action as any)?.openPopup) {
           await (browser.action as any).openPopup();
         } else {
-          notify("Sayzio", "Open the Sayzio extension popup to save the contact.");
+          notify("Zio Extension", "Open the Zio Extension popup to save the contact.");
         }
       } catch {
-        notify("Sayzio", "Open the Sayzio extension popup to save the contact.");
+        notify("Zio Extension", "Open the Zio Extension popup to save the contact.");
       }
       return { ok: true };
     }
@@ -768,7 +768,7 @@ browser.runtime.onMessage.addListener(async (msg: any, sender: any) => {
       const quickResult = await pageToBiolink(tabId);
       if (!quickResult.ok) return quickResult;
       // The popup will open the editor — user can run AI builder from there.
-      notify("Sayzio — AI builder", "Bio-link draft created. Use the AI Builder in the editor to enhance it.");
+      notify("Zio Extension — AI builder", "Bio-link draft created. Use the AI Builder in the editor to enhance it.");
       return quickResult;
     }
     case "SHORTEN_URL": {
@@ -869,10 +869,10 @@ if ((browser as any).omnibox) {
         const result = await api.createShortLink(rawUrl, undefined, settings.workspaceId ?? undefined, false);
         const short = result.link.short_url || `${base}/${result.link.alias}`;
         // Copy the result; notify the user.
-        notify("Sayzio — shortened", short);
+        notify("Zio Extension — shortened", short);
         targetUrl = short;
       } catch (e: any) {
-        notify("Sayzio — error", e?.message || "Could not shorten URL");
+        notify("Zio Extension — error", e?.message || "Could not shorten URL");
         return;
       }
     } else {
@@ -907,14 +907,14 @@ if ((browser as any).commands?.onCommand) {
     if (!tab) return;
     const settings = await getSettings();
     if (!settings.token) {
-      notify("Sayzio", "Sign in to Sayzio first.");
+      notify("Zio Extension", "Sign in to Sayzio first.");
       return;
     }
     if (command === "shorten-tab") {
       // Ctrl+Shift+S: shorten the current tab URL silently
       const result = await shortenAndCopy(tab.url || "", tab.title, tab.id);
-      if (!result.ok) notify("Sayzio — error", result.error);
-      else notify("Sayzio — copied!", result.shortUrl);
+      if (!result.ok) notify("Zio Extension — error", result.error);
+      else notify("Zio Extension — copied!", result.shortUrl);
     } else if (command === "open-search") {
       // Ctrl+Shift+F: open the popup in search view
       await stashPendingAction({ type: "OPEN_SEARCH", url: tab.url || "", title: tab.title || "" });

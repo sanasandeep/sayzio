@@ -22,7 +22,7 @@ import { browser } from "../lib/browser";
     });
     // Visual confirmation, then close.
     const banner = document.createElement("div");
-    banner.textContent = "Signed in to Sayzio extension. You can close this tab.";
+    banner.textContent = "Signed in to Zio Extension. You can close this tab.";
     banner.style.cssText = "position:fixed;top:0;left:0;right:0;background:#047857;color:white;padding:12px;text-align:center;z-index:2147483647;font-family:sans-serif;";
     document.body.appendChild(banner);
     setTimeout(() => { try { window.close(); } catch { /* ignore */ } }, 1200);

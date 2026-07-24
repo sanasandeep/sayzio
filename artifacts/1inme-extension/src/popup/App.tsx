@@ -876,7 +876,7 @@ function Header({
     <>
       <div className="header">
         <div>
-          <h1>Sayzio</h1>
+          <h1>Zio Extension</h1>
           {settings.user && <div className="who">{settings.user.name || settings.user.email}</div>}
         </div>
         <button className="btn-link" style={{ color: "white" }} onClick={() => onTabChange(view === "settings" ? "main" : "settings")} title="Settings">⚙</button>

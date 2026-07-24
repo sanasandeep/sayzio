@@ -176,10 +176,10 @@ export async function updateBadgeForTab(tabId: number, count: number) {
     if (count > 0) {
       await action.setBadgeText?.({ tabId, text: String(count) });
       await action.setBadgeBackgroundColor?.({ tabId, color: RADAR_BADGE_COLOR });
-      await action.setTitle?.({ tabId, title: `Sayzio — ${count} link${count === 1 ? "" : "s"} to you on this page` });
+      await action.setTitle?.({ tabId, title: `Zio Extension — ${count} link${count === 1 ? "" : "s"} to you on this page` });
     } else {
       await action.setBadgeText?.({ tabId, text: "" });
-      await action.setTitle?.({ tabId, title: "Sayzio" });
+      await action.setTitle?.({ tabId, title: "Zio Extension" });
     }
   } catch { /* badge updates are best-effort */ }
 }
