@@ -50,7 +50,7 @@ export function DashboardLayout({ mode, onSetMode, authModalOpen, onOpenAuth, on
         display: 'flex',
         alignItems: 'center',
         gap: 8,
-        padding: `0 12px 0 ${process.platform === 'darwin' ? '80px' : '12px'}`,
+        padding: `0 12px 0 ${window.zio.platform === 'darwin' ? '80px' : '12px'}`,
         WebkitAppRegion: 'drag',
       } as React.CSSProperties}>
 

@@ -189,21 +189,29 @@ function createWindow(): BrowserWindow {
   registerTabManager(win, tabManager);
 
 
+  // Guard against sends after the window is destroyed — tab teardown during
+  // quit (destroyAll) still fires these callbacks, and an unguarded
+  // webContents.send throws "Object has been destroyed".
+  const sendToWin = (channel: string, ...args: unknown[]): void => {
+    if (!win.isDestroyed() && !win.webContents.isDestroyed()) {
+      win.webContents.send(channel, ...args);
+    }
+  };
   tabManager.setCallbacks({
-    onTabStateChange: (tabId, state) => win.webContents.send('tab:state-changed', tabId, state),
-    onTabCreated:      (tabId)        => win.webContents.send('tab:created', tabId),
-    onTabClosed:       (tabId)        => win.webContents.send('tab:closed', tabId),
-    onActiveTabChange: (tabId)        => win.webContents.send('tab:activated', tabId),
+    onTabStateChange: (tabId, state) => sendToWin('tab:state-changed', tabId, state),
+    onTabCreated:      (tabId)        => sendToWin('tab:created', tabId),
+    onTabClosed:       (tabId)        => sendToWin('tab:closed', tabId),
+    onActiveTabChange: (tabId)        => sendToWin('tab:activated', tabId),
     onNavigate:        (tabId, url, title) => {
-      win.webContents.send('tab:navigated', tabId, url, title);
+      sendToWin('tab:navigated', tabId, url, title);
       resetBlockedCount(tabId);
     },
-    onAddToBiolink:    (url, title)   => win.webContents.send('biolink:add-page', url, title),
-    onDeviceLabPreview: (url)         => win.webContents.send('device-lab:preview-url', url),
-    onFindResult:      (result) => win.webContents.send('tab:find-result', result),
-    onTabOrderChange: (order) => win.webContents.send('tab:order-changed', order),
+    onAddToBiolink:    (url, title)   => sendToWin('biolink:add-page', url, title),
+    onDeviceLabPreview: (url)         => sendToWin('device-lab:preview-url', url),
+    onFindResult:      (result) => sendToWin('tab:find-result', result),
+    onTabOrderChange: (order) => sendToWin('tab:order-changed', order),
     onPinnedUrlsChange: (urls) => { safeSetPreference(PREFERENCE_KEYS.PINNED_TABS, JSON.stringify(urls)); },
-    onRecentlyClosedChange: (entries: RecentlyClosedEntry[]) => win.webContents.send('tab:recently-closed-changed', entries),
+    onRecentlyClosedChange: (entries: RecentlyClosedEntry[]) => sendToWin('tab:recently-closed-changed', entries),
     // Auto-mute: global "mute all tabs" policy or per-domain mute memory.
     resolveAutoMute: (url) => {
       try {
@@ -230,7 +238,7 @@ function createWindow(): BrowserWindow {
 
   const modeManager = new WindowModeManager(win, tabManager, savedMode, savedRatio);
   registerModeManager(win, modeManager);
-  modeManager.setModeChangeCallback((mode) => win.webContents.send('window:mode-changed', mode));
+  modeManager.setModeChangeCallback((mode) => sendToWin('window:mode-changed', mode));
 
   setupDownloadManager(session.defaultSession, win, false);
 
@@ -392,17 +400,23 @@ export function createPrivateWindow(startUrl?: string): BrowserWindow {
   const tabManager = new TabManager(win, { privateSession });
   registerTabManager(win, tabManager);
 
+  // Guard against sends after the window is destroyed (quit-time teardown).
+  const sendToWin = (channel: string, ...args: unknown[]): void => {
+    if (!win.isDestroyed() && !win.webContents.isDestroyed()) {
+      win.webContents.send(channel, ...args);
+    }
+  };
   tabManager.setCallbacks({
-    onTabStateChange: (tabId, state) => win.webContents.send('tab:state-changed', tabId, state),
-    onTabCreated:      (tabId)        => win.webContents.send('tab:created', tabId),
-    onTabClosed:       (tabId)        => win.webContents.send('tab:closed', tabId),
-    onActiveTabChange: (tabId)        => win.webContents.send('tab:activated', tabId),
-    onNavigate:        (tabId, url, title) => win.webContents.send('tab:navigated', tabId, url, title),
+    onTabStateChange: (tabId, state) => sendToWin('tab:state-changed', tabId, state),
+    onTabCreated:      (tabId)        => sendToWin('tab:created', tabId),
+    onTabClosed:       (tabId)        => sendToWin('tab:closed', tabId),
+    onActiveTabChange: (tabId)        => sendToWin('tab:activated', tabId),
+    onNavigate:        (tabId, url, title) => sendToWin('tab:navigated', tabId, url, title),
     // Link tools (shorten/QR) still work in private mode — they require the
     // account credentials but the visited page itself is never recorded.
-    onAddToBiolink: (url, title) => win.webContents.send('biolink:add-page', url, title),
-    onDeviceLabPreview: (url) => win.webContents.send('device-lab:preview-url', url),
-    onFindResult: (result) => win.webContents.send('tab:find-result', result),
+    onAddToBiolink: (url, title) => sendToWin('biolink:add-page', url, title),
+    onDeviceLabPreview: (url) => sendToWin('device-lab:preview-url', url),
+    onFindResult: (result) => sendToWin('tab:find-result', result),
     // Private windows still honor stored mute policy (read-only)…
     resolveAutoMute: (url) => {
       try {
@@ -419,7 +433,7 @@ export function createPrivateWindow(startUrl?: string): BrowserWindow {
   // Private windows are browser-only — no dashboard or split pane.
   const modeManager = new WindowModeManager(win, tabManager, 'browser', 0.35);
   registerModeManager(win, modeManager);
-  modeManager.setModeChangeCallback((mode) => win.webContents.send('window:mode-changed', mode));
+  modeManager.setModeChangeCallback((mode) => sendToWin('window:mode-changed', mode));
 
   // Downloads complete normally but are NOT written to the persistent DB.
   setupDownloadManager(privateSession, win, true);

@@ -33,6 +33,12 @@ electron-builder's smartUnpack fails to detect native modules in this pnpm works
 **How to verify:** the release zip must contain `app.asar.unpacked/node_modules/better-sqlite3/build/Release/better_sqlite3.node` with the right Mach-O arch (`unzip` + `npx @electron/asar extract-file` + `file`).
 Also: mac CI now runs `install-app-deps --arch x64|arm64` immediately before each per-arch packaging run (arch-drift defense), and the app degrades gracefully when DB init fails (skip sync runner, catch background tick errors, surface the ORIGINAL init error).
 
+## Renderer must never touch bare `process` (v0.1.12 lesson)
+With `contextIsolation:true` + `nodeIntegration:false`, the packaged renderer has NO `process` global — a bare `process.platform` inside a component render throws `ReferenceError: process is not defined` and blanks the whole React tree the moment the init gate lifts (masked earlier by the DB-init blank). Use the preload-exposed `window.zio.platform` instead; vite does not define `process` (only `process.env.NODE_ENV` in some paths). Grep `src/renderer` for `process\.` before any release.
+
+## Blank-window debugging recipe (Linux sandbox)
+Simulate a mac DB failure locally: hide better-sqlite3's `build/` dir, `pnpm run build && pnpm run build:preload` (plain build SKIPS preload → window.zio undefined → misleading blank), then `xvfb-run pnpm exec electron dist/main/main/index.js --no-sandbox` with `ELECTRON_ENABLE_LOGGING=1`; xdotool Return dismisses the error dialog; `import -window root` screenshots. Renderer console lines appear as `INFO:CONSOLE(...)` in stderr.
+
 ## pnpm also omits native modules' transitive runtime deps
 Even with asarUnpack fixed, packaged app crashed with "Cannot find module 'bindings'" — electron-builder under pnpm only reliably packs the artifact's DIRECT dependencies. better-sqlite3's runtime deps (bindings, file-uri-to-path@^1 — v2 is ESM-only and breaks require) must be declared as direct dependencies of the desktop package.
 **How to verify:** `npx @electron/asar list app.asar | grep bindings` on the release zip.

@@ -110,6 +110,10 @@ export default function App() {
       // Sync workspace profiles (token may be available now)
       const tok = await window.zio.auth.getToken() as string | null;
       void initProfiles(tok);
+    }).catch((err) => {
+      // Fail open: never leave the window on the blank pre-init gate because
+      // one startup IPC rejected (e.g. main-process DB unavailable).
+      console.error('App init failed — continuing with defaults:', err);
     });
   }, [initAuth, initTabs, initMode, initProfiles]);
 

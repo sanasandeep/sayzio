@@ -72,6 +72,12 @@ export function useProfileStore(): ProfileState {
       if (token) {
         void syncWorkspacesImpl(token);
       }
+    } catch (err) {
+      // Fail soft (e.g. main-process DB unavailable) — fall back to the
+      // default profile instead of surfacing an unhandled rejection.
+      console.error('Profile store init failed — using default profile:', err);
+      profilesState = [defaultProfile()];
+      activeProfileIdState = DEFAULT_PROFILE_ID;
     } finally {
       loadingState = false;
       notifyProfiles();

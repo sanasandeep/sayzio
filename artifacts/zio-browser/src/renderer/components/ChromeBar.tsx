@@ -550,7 +550,7 @@ export function ChromeBar({
         height: 'var(--tab-height)',
         display: 'flex',
         alignItems: 'center',
-        paddingLeft: process.platform === 'darwin' ? 80 : 8,
+        paddingLeft: window.zio.platform === 'darwin' ? 80 : 8,
         paddingRight: 4,
         gap: 2,
         overflowX: 'auto',

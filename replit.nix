@@ -1,5 +1,9 @@
 {pkgs}: {
   deps = [
+    pkgs.imagemagick
+    pkgs.gtk3
+    pkgs.gdk-pixbuf
+    pkgs.xvfb-run
     pkgs.zbar
     pkgs.xorg.libxcb
     pkgs.xorg.libXrandr
