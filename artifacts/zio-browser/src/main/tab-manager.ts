@@ -142,6 +142,10 @@ export class TabManager {
   private resolveZioPanelReserve?: () => number;
   /** Last content-area bounds applied via resizeTabs (browser/split layouts). */
   private contentBounds: { x: number; y: number; width: number; height: number } | null = null;
+  /** Returns whether spell checking is currently enabled (preference-backed). */
+  private resolveSpellcheckEnabled?: () => boolean;
+  /** Returns the target language code for "Translate this page" (e.g. 'en'). */
+  private resolveTranslateLang?: () => string;
 
   constructor(win: BrowserWindow, options: TabManagerOptions = {}) {
     this.win = win;
@@ -164,6 +168,8 @@ export class TabManager {
     resolveAutoMute?: (url: string) => boolean;
     onUserMuteChange?: (url: string, muted: boolean) => void;
     resolveZioPanelReserve?: () => number;
+    resolveSpellcheckEnabled?: () => boolean;
+    resolveTranslateLang?: () => string;
   }): void {
     this.onTabStateChange = cbs.onTabStateChange;
     this.onTabCreated = cbs.onTabCreated;
@@ -179,6 +185,8 @@ export class TabManager {
     this.resolveAutoMute = cbs.resolveAutoMute;
     this.onUserMuteChange = cbs.onUserMuteChange;
     this.resolveZioPanelReserve = cbs.resolveZioPanelReserve;
+    this.resolveSpellcheckEnabled = cbs.resolveSpellcheckEnabled;
+    this.resolveTranslateLang = cbs.resolveTranslateLang;
   }
 
   setSearchEngine(engine: SearchEngineConfig): void {
@@ -226,6 +234,12 @@ export class TabManager {
     const id = crypto.randomUUID();
 
     const tabSession = session.fromPartition(this.activePartition);
+
+    // Apply the spell-check preference to this tab's session (idempotent).
+    try {
+      const ses = this.isPrivate ? this.tabSession : tabSession;
+      ses.setSpellCheckerEnabled(this.resolveSpellcheckEnabled?.() ?? true);
+    } catch { /* spellchecker unavailable on some platforms */ }
 
     const view = new WebContentsView({
       webPreferences: {
@@ -319,6 +333,28 @@ export class TabManager {
 
       const menuItems: Electron.MenuItemConstructorOptions[] = [];
 
+      // ── Spell check — replacement suggestions + add-to-dictionary ─────────
+      if (params.misspelledWord) {
+        for (const suggestion of params.dictionarySuggestions.slice(0, 5)) {
+          menuItems.push({
+            label: suggestion,
+            click: () => { if (isAlive(wc)) wc.replaceMisspelling(suggestion); },
+          });
+        }
+        if (params.dictionarySuggestions.length === 0) {
+          menuItems.push({ label: 'No spelling suggestions', enabled: false });
+        }
+        menuItems.push(
+          {
+            label: `Add "${params.misspelledWord}" to dictionary`,
+            click: () => {
+              try { wc.session.addWordToSpellCheckerDictionary(params.misspelledWord); } catch { }
+            },
+          },
+          { type: 'separator' },
+        );
+      }
+
       if (params.isEditable) {
         menuItems.push({ role: 'cut' }, { role: 'copy' }, { role: 'paste' }, { type: 'separator' });
       } else if (params.selectionText) {
@@ -338,6 +374,55 @@ export class TabManager {
             },
           },
           { label: 'Copy link address', click: () => { clipboard.writeText(params.linkURL); } },
+          { type: 'separator' },
+        );
+      }
+
+      // ── Picture-in-Picture for videos ─────────────────────────────────────
+      if (params.mediaType === 'video') {
+        menuItems.push(
+          {
+            label: 'Picture in Picture',
+            click: () => {
+              if (!isAlive(wc)) return;
+              const js = `(function(){
+                try {
+                  if (document.pictureInPictureElement) {
+                    document.exitPictureInPicture().catch(function(){});
+                    return;
+                  }
+                  var el = document.elementFromPoint(${params.x}, ${params.y});
+                  var video = (el && el.tagName === 'VIDEO') ? el : null;
+                  if (!video) {
+                    var vids = Array.prototype.slice.call(document.querySelectorAll('video'));
+                    vids.sort(function(a,b){ return (b.clientWidth*b.clientHeight) - (a.clientWidth*a.clientHeight); });
+                    video = vids[0] || null;
+                  }
+                  if (video && video.requestPictureInPicture) {
+                    video.requestPictureInPicture().catch(function(){});
+                  }
+                } catch (e) { }
+              })()`;
+              void wc.executeJavaScript(js, true).catch(() => { });
+            },
+          },
+          { type: 'separator' },
+        );
+      }
+
+      // ── Translate this page ───────────────────────────────────────────────
+      if (pageUrl && (pageUrl.startsWith('http://') || pageUrl.startsWith('https://')) &&
+          !pageUrl.includes('translate.goog') && !pageUrl.startsWith('https://translate.google.com')) {
+        const lang = this.resolveTranslateLang?.() || 'en';
+        menuItems.push(
+          {
+            label: 'Translate this page',
+            click: () => {
+              if (!isAlive(wc)) return;
+              const translated = `https://translate.google.com/translate?sl=auto&tl=${encodeURIComponent(lang)}&u=${encodeURIComponent(pageUrl)}`;
+              void wc.loadURL(translated);
+            },
+          },
           { type: 'separator' },
         );
       }

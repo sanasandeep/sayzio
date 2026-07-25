@@ -18,6 +18,7 @@ import { PermissionPrompt } from './components/PermissionPrompt';
 import type { PendingPermission } from './components/PermissionPrompt';
 import { SiteSettingsPanel } from './components/SiteSettingsPanel';
 import { ReadingListPanel } from './components/ReadingListPanel';
+import { SettingsPanel } from './components/SettingsPanel';
 import { useTabStore } from './store/tab-store';
 import { useAuthStore } from './store/auth-store';
 import { useModeStore } from './store/mode-store';
@@ -39,6 +40,7 @@ const FIRST_LAUNCH_KEY = 'zio_mode_picker_shown';
 export default function App() {
   const [zioPanelOpen, setZioPanelOpen] = useState(false);
   const [readingListOpen, setReadingListOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [showModePicker, setShowModePicker] = useState(false);
   const [isPrivate, setIsPrivate] = useState(false);
@@ -475,6 +477,8 @@ export default function App() {
         onOpenSiteSettings={() => setSiteSettingsOpen(true)}
         readingListOpen={readingListOpen}
         onToggleReadingList={handleToggleReadingList}
+        onOpenSettings={() => setSettingsOpen(prev => !prev)}
+        settingsOpen={settingsOpen}
       />
 
       {/* Content area */}
@@ -545,6 +549,10 @@ export default function App() {
             panelWidth={zioPanelWidth}
             onSetDocked={(d) => void setZioPanelDocked(d)}
           />
+        )}
+
+        {settingsOpen && (
+          <SettingsPanel onClose={() => setSettingsOpen(false)} />
         )}
 
         {readingListOpen && (

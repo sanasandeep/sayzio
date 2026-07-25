@@ -95,6 +95,7 @@ import {
   MAX_ZIO_PANEL_WIDTH,
 } from '../shared/window-mode';
 import { isPrivateWindow } from './private-session';
+import { listExtensions, addExtensionFromDialog, removeExtension } from './extension-manager';
 import { profileFromWorkspace, sessionPartitionForProfile, DEFAULT_PROFILE_ID } from '../shared/profile-store';
 import type { BrowserProfile } from '../shared/profile-store';
 
@@ -282,6 +283,39 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
     // (never persisted from private windows).
     if (!senderIsPrivate(event)) setMuteAllTabs(target);
     return true;
+  });
+
+  // ── Spell check ───────────────────────────────────────────────────────────
+  ipcMain.handle('spellcheck:get-enabled', () => {
+    try {
+      return (getPreference(PREFERENCE_KEYS.SPELLCHECK_ENABLED) ?? '1') === '1';
+    } catch {
+      return true;
+    }
+  });
+  ipcMain.handle('spellcheck:set-enabled', (event, enabled: boolean) => {
+    if (senderIsPrivate(event)) return false;
+    try { setPreference(PREFERENCE_KEYS.SPELLCHECK_ENABLED, enabled ? '1' : '0'); } catch { }
+    // Apply immediately to the default session and the active profile session.
+    try { session.defaultSession.setSpellCheckerEnabled(enabled); } catch { }
+    try {
+      const tm = resolveTabManager(event);
+      if (tm) session.fromPartition(tm.getActivePartition()).setSpellCheckerEnabled(enabled);
+    } catch { }
+    return true;
+  });
+
+  // ── Extensions (unpacked) ────────────────────────────────────────────────
+  ipcMain.handle('extensions:list', () => listExtensions());
+  ipcMain.handle('extensions:add', async (event) => {
+    if (senderIsPrivate(event)) return { ok: false, error: 'Extensions are unavailable in private windows.' };
+    const win = BrowserWindow.fromWebContents(event.sender);
+    if (!win) return { ok: false, error: 'No window' };
+    return addExtensionFromDialog(win);
+  });
+  ipcMain.handle('extensions:remove', (event, id: string) => {
+    if (senderIsPrivate(event)) return false;
+    return removeExtension(id);
   });
 
   // ── Audio policy (per-domain mute memory + global mute) ──────────────────

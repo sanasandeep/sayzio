@@ -25,6 +25,7 @@ import { setupTrackerBlocking, resetBlockedCount } from './tracker-blocker';
 import type { WindowMode } from '../shared/window-mode';
 import { ZIO_PANEL_DIVIDER_WIDTH } from '../shared/window-mode';
 import { setupAutoUpdater } from './auto-updater';
+import { loadStoredExtensions } from './extension-manager';
 import type { RecentlyClosedEntry } from './tab-manager';
 
 const isDev = process.env['NODE_ENV'] === 'development';
@@ -242,6 +243,10 @@ export function createWindow(): BrowserWindow {
       modeManager && !modeManager.getZioPanelDocked()
         ? modeManager.getZioPanelWidth() + ZIO_PANEL_DIVIDER_WIDTH
         : 0,
+    resolveSpellcheckEnabled: () =>
+      (safeGetPreference(PREFERENCE_KEYS.SPELLCHECK_ENABLED) ?? '1') === '1',
+    resolveTranslateLang: () =>
+      safeGetPreference(PREFERENCE_KEYS.TRANSLATE_TARGET_LANG) ?? 'en',
   });
 
   const savedMode  = (safeGetPreference(PREFERENCE_KEYS.WINDOW_MODE) as WindowMode | null) ?? 'browser';
@@ -452,6 +457,10 @@ export function createPrivateWindow(startUrl?: string): BrowserWindow {
       }
     },
     // …but never persist new mute preferences (no onUserMuteChange).
+    resolveSpellcheckEnabled: () =>
+      (safeGetPreference(PREFERENCE_KEYS.SPELLCHECK_ENABLED) ?? '1') === '1',
+    resolveTranslateLang: () =>
+      safeGetPreference(PREFERENCE_KEYS.TRANSLATE_TARGET_LANG) ?? 'en',
   });
 
   // Private windows are browser-only — no dashboard or split pane.
@@ -731,6 +740,11 @@ app.whenReady().then(() => {
       reportStartupError('Local database unavailable', err);
     }
   }
+  // Load persisted unpacked extensions into the default session before the
+  // first window opens (fail-soft — a broken extension never blocks startup).
+  void loadStoredExtensions().catch((err) => {
+    console.error('Failed to load stored extensions:', err);
+  });
   try {
     mainWindow = createWindow();
     setupAutoUpdater();

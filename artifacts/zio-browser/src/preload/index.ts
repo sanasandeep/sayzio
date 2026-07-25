@@ -163,6 +163,21 @@ const api = {
     deleteAll: () => ipcRenderer.invoke('passwords:delete-all'),
   },
 
+  // ── Spell check ───────────────────────────────────────────────────────────
+  spellcheck: {
+    getEnabled: () => ipcRenderer.invoke('spellcheck:get-enabled') as Promise<boolean>,
+    setEnabled: (enabled: boolean) => ipcRenderer.invoke('spellcheck:set-enabled', enabled) as Promise<boolean>,
+  },
+
+  // ── Extensions (unpacked) ─────────────────────────────────────────────────
+  extensions: {
+    list: () => ipcRenderer.invoke('extensions:list') as Promise<Array<{ id: string; name: string; version: string; path: string }>>,
+    add: () => ipcRenderer.invoke('extensions:add') as Promise<
+      { ok: true; extension: { id: string; name: string; version: string; path: string } } | { ok: false; error: string }
+    >,
+    remove: (id: string) => ipcRenderer.invoke('extensions:remove', id) as Promise<boolean>,
+  },
+
   // ── Browsing data ─────────────────────────────────────────────────────────
   browsingData: {
     clear: (options: {

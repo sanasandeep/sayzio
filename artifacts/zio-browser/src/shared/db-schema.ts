@@ -265,6 +265,9 @@ export const PREFERENCE_KEYS = {
   TRACKER_BLOCKING_ENABLED: 'tracker_blocking_enabled',
   MUTED_DOMAINS: 'muted_domains',
   MUTE_ALL_TABS: 'mute_all_tabs',
+  SPELLCHECK_ENABLED: 'spellcheck_enabled',
+  TRANSLATE_TARGET_LANG: 'translate_target_lang',
+  EXTENSION_PATHS: 'extension_paths',
 } as const;
 
 export type PreferenceKey = typeof PREFERENCE_KEYS[keyof typeof PREFERENCE_KEYS];
