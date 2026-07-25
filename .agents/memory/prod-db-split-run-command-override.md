@@ -11,6 +11,9 @@ The published app talks to a separate production RDS host while the dev workspac
 
 **How to apply:** any new deployable artifact that reads the DB must copy the same prelude, or it silently keeps using the dev host in production. Both servers share identical credentials/db name — only the host differs. `DB_URL` must stay unset in secrets or it would bypass `DB_HOST` in Laravel.
 
+## Seeders/artisan data commands don't reach prod automatically
+Any `php artisan` seeding run in the workspace only touches the DEV RDS. To apply to production, run it with `DB_HOST="$PROD_DATABASE_URL"` (e.g. the `showcase-prod-seed` workflow). Symptom: "content I asked for isn't visible" on the published app while dev DB shows it. Long seeds (~30+ min over cross-region RDS) must run as a workflow — nohup'd bash background processes are killed when the shell call ends.
+
 ## Prod timeout postmortem (July 2026): single-worker php -S, not the DB
 After the DB split, sayzio.app fully timed out. Both RDS hosts benchmark identical
 (~2.1s connect+SSL from the container, queries fine) — the new DB was NOT slower.
