@@ -157,6 +157,24 @@ export default function App() {
     }
   }, [showModePicker]);
 
+  // While the auth modal is open, detach all tab WebContentsViews for the same
+  // reason: a native tab view sitting above the DOM would keep keyboard focus
+  // and swallow typing into the modal's inputs. When the modal closes, re-apply
+  // the current mode so the active tab view (and its bounds) are restored.
+  const authModalWasOpen = useRef(false);
+  useEffect(() => {
+    if (authModalOpen) {
+      authModalWasOpen.current = true;
+      void window.zio.tabs.hideAll();
+    } else if (authModalWasOpen.current) {
+      authModalWasOpen.current = false;
+      if (!showModePicker) {
+        // setMode round-trips to main, which re-applies view bounds.
+        void setMode(mode);
+      }
+    }
+  }, [authModalOpen, showModePicker, mode, setMode]);
+
   const handlePickMode = useCallback((picked: WindowMode) => {
     localStorage.setItem(FIRST_LAUNCH_KEY, '1');
     setShowModePicker(false);
