@@ -278,7 +278,10 @@ function createWindow(): BrowserWindow {
     closeSplash();
     win.show();
     modeManager.setMode(savedMode);
-    if (savedMode === 'browser') {
+    {
+      // Restore pinned + session tabs regardless of the launch mode. This used
+      // to run only for 'browser', which made all previous tabs vanish when
+      // the app launched in dashboard/split mode.
       // Restore pinned tabs from persistence (background, so they load silently)
       const savedPinnedJson = safeGetPreference(PREFERENCE_KEYS.PINNED_TABS) ?? '[]';
       let savedPinnedUrls: string[] = [];
@@ -330,6 +333,16 @@ function createWindow(): BrowserWindow {
         // Open the default new tab (active, placed after pinned tabs)
         const newTabUrl = safeGetPreference(PREFERENCE_KEYS.NEW_TAB_PAGE) ?? undefined;
         tabManager.createTab(newTabUrl);
+      }
+
+      if (savedMode !== 'browser') {
+        // Re-assert the launch mode: restoring/activating a tab attached and
+        // focused its view, but dashboard/split own the startup layout.
+        // setMode re-applies bounds (dashboard hides all tab views).
+        modeManager.setMode(savedMode);
+        if (savedMode === 'dashboard') {
+          modeManager.getDashboardView()?.webContents.focus();
+        }
       }
     }
     if (isDev) win.webContents.openDevTools({ mode: 'detach' });
