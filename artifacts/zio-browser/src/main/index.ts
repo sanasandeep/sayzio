@@ -150,7 +150,7 @@ function getRendererUrl(): string {
 
 // ── Normal window ─────────────────────────────────────────────────────────────
 
-function createWindow(): BrowserWindow {
+export function createWindow(): BrowserWindow {
   session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
     callback({ responseHeaders: { ...details.responseHeaders } });
   });
@@ -535,6 +535,11 @@ function buildMenu(): void {
             }
             tm.createTab();
           },
+        },
+        {
+          label: 'New Window',
+          accelerator: 'CmdOrCtrl+N',
+          click: () => { createWindow(); },
         },
         {
           label: 'New Private Window',

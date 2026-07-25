@@ -421,6 +421,14 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
     return true;
   });
 
+  // ── Open a new normal window (from renderer) ─────────────────────────────
+  ipcMain.handle('window:open-new', () => {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { createWindow } = require('./index') as typeof import('./index');
+    createWindow();
+    return true;
+  });
+
   // ── Zio panel width / presentation (browser mode) ────────────────────────
   ipcMain.handle('window:get-zio-panel-width', () => {
     const stored = getPreference('zio_panel_width');

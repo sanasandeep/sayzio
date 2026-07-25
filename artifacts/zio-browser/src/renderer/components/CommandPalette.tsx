@@ -303,6 +303,9 @@ export function CommandPalette({
             }));
           }
           break;
+        case 'new-window':
+          void window.zio.window.openNew();
+          break;
         case 'new-private-window':
           void window.zio.window.openPrivate();
           break;

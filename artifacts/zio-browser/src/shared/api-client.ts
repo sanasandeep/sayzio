@@ -509,6 +509,18 @@ export class ApiClient {
    * can encode it correctly — no Node.js Buffer needed in the renderer.
    */
   async uploadScreenshot(dataUrl: string, filename: string): Promise<ApiFile> {
+    // Convert base64 data URL → Blob
+    const base64 = dataUrl.replace(/^data:image\/png;base64,/, '');
+    const bytes = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
+    const blob = new Blob([bytes], { type: 'image/png' });
+    return this.uploadFile(blob, filename);
+  }
+
+  /**
+   * Upload any file (as a Blob) to the user's Sayzio file storage.
+   * Throws ApiClientError('quota_exceeded') when the storage limit is hit.
+   */
+  async uploadFile(blob: Blob, filename: string): Promise<ApiFile> {
     const url = `${this.baseUrl}/api/v1/files`;
     const headers: Record<string, string> = {
       'Accept': 'application/json',
@@ -516,11 +528,6 @@ export class ApiClient {
       'X-App-Platform': 'desktop',
     };
     if (this.token) headers['Authorization'] = `Bearer ${this.token}`;
-
-    // Convert base64 data URL → Blob
-    const base64 = dataUrl.replace(/^data:image\/png;base64,/, '');
-    const bytes = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
-    const blob = new Blob([bytes], { type: 'image/png' });
 
     const formData = new FormData();
     formData.append('file', blob, filename);

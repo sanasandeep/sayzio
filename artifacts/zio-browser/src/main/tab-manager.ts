@@ -113,6 +113,11 @@ export class TabManager {
   private searchEngine: SearchEngineConfig = DEFAULT_SEARCH_ENGINE;
   /** Active session partition — changes when the user switches profiles. */
   private activePartition: string = sessionPartitionForProfile(DEFAULT_PROFILE_ID);
+  /**
+   * insertCSS keys for the "hide embedded site assistant" rule, per Sayzio
+   * view. Present ⇒ the hide CSS is currently inserted in that view.
+   */
+  private assistantHideCssKeys = new WeakMap<WebContentsView, string>();
   private onTabStateChange?: (tabId: TabId, state: Partial<TabState>) => void;
   private onTabCreated?: (tabId: TabId) => void;
   private onTabClosed?: (tabId: TabId) => void;
@@ -687,12 +692,17 @@ export class TabManager {
     tab.mode = mode;
 
     // Lazily create the Sayzio views the new mode needs.
+    const shouldHideAssistant = () => tabModeIncludes(tab.mode, 'zio');
     if (tabModeIncludes(mode, 'sayzio') && !tab.sayzioView) {
-      tab.sayzioView = this.createSayzioView(SAYZIO_HOME_URL);
+      tab.sayzioView = this.createSayzioView(SAYZIO_HOME_URL, shouldHideAssistant);
     }
     if (tabModeIncludes(mode, 'dashboard') && !tab.dashboardView) {
-      tab.dashboardView = this.createSayzioView(SAYZIO_DASHBOARD_URL);
+      tab.dashboardView = this.createSayzioView(SAYZIO_DASHBOARD_URL, shouldHideAssistant);
     }
+
+    // Hide the embedded site chatbot inside Sayzio panes whenever this tab
+    // also shows the Ask Zio pane (two assistants at once is confusing).
+    this.updateSiteAssistantVisibility(tab);
 
     if (id === this.activeTabId) {
       this.layoutActiveTab();
@@ -792,7 +802,44 @@ export class TabManager {
    * for a single tab. Navigation is kept on the Sayzio host; external links
    * open as new browser tabs.
    */
-  private createSayzioView(startUrl: string): WebContentsView {
+  /** CSS that hides the Sayzio in-page assistant widget. */
+  private static readonly HIDE_SITE_ASSISTANT_CSS = '#site-assistant-root{display:none!important}';
+
+  /**
+   * Insert/remove the "hide the in-page Zio Bot widget" CSS on this tab's
+   * Sayzio views so the embedded site chatbot doesn't double up with the
+   * Ask Zio pane when the tab mode includes 'zio'.
+   */
+  private updateSiteAssistantVisibility(tab: ManagedTab): void {
+    const hide = tabModeIncludes(tab.mode, 'zio');
+    for (const view of [tab.sayzioView, tab.dashboardView]) {
+      if (!view) continue;
+      const wc = view.webContents;
+      if (!isAlive(wc)) continue;
+      const existingKey = this.assistantHideCssKeys.get(view);
+      if (hide && !existingKey) {
+        // Mark synchronously to avoid double-insert races, then fix up async.
+        this.assistantHideCssKeys.set(view, 'pending');
+        wc.insertCSS(TabManager.HIDE_SITE_ASSISTANT_CSS)
+          .then((key) => {
+            if (this.assistantHideCssKeys.get(view) === 'pending') {
+              this.assistantHideCssKeys.set(view, key);
+            } else {
+              // Mode flipped back while inserting — undo.
+              wc.removeInsertedCSS(key).catch(() => { });
+            }
+          })
+          .catch(() => { this.assistantHideCssKeys.delete(view); });
+      } else if (!hide && existingKey) {
+        this.assistantHideCssKeys.delete(view);
+        if (existingKey !== 'pending') {
+          wc.removeInsertedCSS(existingKey).catch(() => { });
+        }
+      }
+    }
+  }
+
+  private createSayzioView(startUrl: string, shouldHideAssistant?: () => boolean): WebContentsView {
     const view = new WebContentsView({
       webPreferences: {
         nodeIntegration: false,
@@ -835,6 +882,24 @@ export class TabManager {
         // ignore
       }
       return { action: 'deny' };
+    });
+
+    // Inserted CSS does not survive navigation — re-apply the assistant-hide
+    // rule on every page load while the owning tab's mode includes 'zio'.
+    wc.on('dom-ready', () => {
+      this.assistantHideCssKeys.delete(view);
+      if (shouldHideAssistant?.()) {
+        this.assistantHideCssKeys.set(view, 'pending');
+        wc.insertCSS(TabManager.HIDE_SITE_ASSISTANT_CSS)
+          .then((key) => {
+            if (this.assistantHideCssKeys.get(view) === 'pending') {
+              this.assistantHideCssKeys.set(view, key);
+            } else {
+              wc.removeInsertedCSS(key).catch(() => { });
+            }
+          })
+          .catch(() => { this.assistantHideCssKeys.delete(view); });
+      }
     });
 
     view.setBackgroundColor(VIEW_BG_COLOR);

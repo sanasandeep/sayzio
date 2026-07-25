@@ -76,6 +76,14 @@ export const COMMAND_REGISTRY: CommandEntry[] = [
     keywords: ['biolink', 'block', 'add'],
   },
   {
+    id: 'new-window',
+    title: 'New Window',
+    subtitle: 'Open another browser window',
+    icon: '🪟',
+    action: 'new-window',
+    keywords: ['window', 'open', 'new'],
+  },
+  {
     id: 'new-private-window',
     title: 'New Private Window',
     subtitle: 'Open an incognito window',

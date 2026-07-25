@@ -91,6 +91,7 @@ const api = {
     isPrivate: () => ipcRenderer.invoke('window:is-private') as Promise<boolean>,
     /** Ask the main process to open a new private window, optionally starting at a URL. */
     openPrivate: (url?: string) => ipcRenderer.invoke('window:open-private', url) as Promise<boolean>,
+    openNew: () => ipcRenderer.invoke('window:open-new') as Promise<boolean>,
   },
 
   // ── History ───────────────────────────────────────────────────────────────
