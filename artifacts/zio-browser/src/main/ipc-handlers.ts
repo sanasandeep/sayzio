@@ -301,7 +301,14 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
   });
   // Restore the last saved browsing session (non-pinned tabs from the
   // previous run). Returns the number of tabs restored.
-  ipcMain.handle('tabs:hide-all', (event) => { resolveTabManager(event)?.hideAllTabs(); return true; });
+  ipcMain.handle('tabs:hide-all', (event) => {
+    resolveTabManager(event)?.hideAllTabs();
+    // Return keyboard focus to the chrome renderer — a tab WebContentsView may
+    // still hold focus, which would swallow typing into DOM overlays (auth
+    // modal, mode picker).
+    try { event.sender.focus(); } catch { }
+    return true;
+  });
   ipcMain.handle('tabs:restore-session', (event) => {
     const tm = resolveTabManager(event);
     if (!tm || tm.isPrivate) return 0;
