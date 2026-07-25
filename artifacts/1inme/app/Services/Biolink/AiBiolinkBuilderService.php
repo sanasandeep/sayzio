@@ -332,6 +332,7 @@ class AiBiolinkBuilderService
                     'images'           => count($images),
                     'files'            => count($files),
                     'images_extracted' => count($sourced['extracted']),
+                    'images_searched'  => count($sourced['searched'] ?? []),
                     'images_generated' => count($sourced['generated']),
                 ],
             ]);

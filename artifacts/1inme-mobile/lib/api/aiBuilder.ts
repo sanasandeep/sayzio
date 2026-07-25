@@ -89,10 +89,11 @@ export async function getAiBuilderIntake(
 export async function previewAiBuilderImages(
   linkId: number,
   links: string[],
+  description = "",
 ): Promise<AiBuilderImagePreview> {
   const res = await apiFetch<{ data: AiBuilderImagePreview }>(
     `/links/${linkId}/ai-builder/source-preview`,
-    { method: "POST", body: JSON.stringify({ links }) },
+    { method: "POST", body: JSON.stringify({ links, description }) },
   );
   return res.data;
 }

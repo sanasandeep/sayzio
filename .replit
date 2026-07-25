@@ -556,6 +556,10 @@ args = "e2e-mobile-ai-upload-instead"
 task = "workflow.run"
 args = "e2e-zio-2fa"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "showcase-prod-seed"
+
 [[workflows.workflow]]
 name = "e2e"
 author = "agent"
@@ -2229,6 +2233,17 @@ args = "bash artifacts/1inme/tests/Browser/run-validation.sh zio-browser-2fa-aut
 [workflows.workflow.metadata]
 isValidation = true
 
+[[workflows.workflow]]
+name = "showcase-prod-seed"
+author = "agent"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd artifacts/1inme && DB_HOST=\"$PROD_DATABASE_URL\" php artisan showcase:seed --force"
+
 
   [agent]
 stack = "PNPM_WORKSPACE"
@@ -2249,7 +2264,7 @@ AWS_DEFAULT_REGION = "ap-south-2"
 AWS_URL = "https://d3l7wvr1shk1cg.cloudfront.net"
 AWS_USE_PATH_STYLE_ENDPOINT = "true"
 USER_CONTENT_DISK = "s3"
-CONTACT_ADMIN_TOKEN = ""
+CONTACT_ADMIN_TOKEN = "qNApHcj3SDKCnQRrNcTyWOXdsxQMmeyhRy4Mf0"
 APP_NAME = "Sayzio"
 
 [[ports]]

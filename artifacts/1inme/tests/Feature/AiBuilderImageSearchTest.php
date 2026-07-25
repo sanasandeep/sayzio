@@ -46,6 +46,17 @@ class AiBuilderImageSearchTest extends TestCase
         return base64_decode(self::PNG_B64);
     }
 
+    /** A real 300x300 PNG — passes the auto-tier minimum-dimension filter. */
+    private function bigPng(): string
+    {
+        $im = imagecreatetruecolor(300, 300);
+        imagefill($im, 0, 0, imagecolorallocate($im, 120, 90, 200));
+        ob_start();
+        imagepng($im);
+
+        return (string) ob_get_clean();
+    }
+
     private function enableCse(): void
     {
         config()->set('services.google_cse.api_key', 'test-key');
@@ -414,6 +425,99 @@ class AiBuilderImageSearchTest extends TestCase
         $this->assertCount(1, $import['data']['images']);
         $this->assertSame('ai_builder', UserFile::where('user_id', $user->id)->firstOrFail()->context);
         $this->flushHeaders();
+    }
+
+    // ── Automatic web-photo tier (uploads → extraction → search → gen) ─
+
+    public function test_source_auto_searches_web_when_nothing_supplied(): void
+    {
+        $this->enableCse();
+        Http::fake([
+            GoogleImageSearchService::ENDPOINT . '*' => Http::response($this->cseResponse()),
+            'https://images.example.com/*' => Http::response($this->bigPng(), 200, ['Content-Type' => 'image/png']),
+        ]);
+
+        $user = $this->makeUser();
+
+        $sourced = app(\App\Services\Biolink\BuilderImageSourcer::class)
+            ->source($user, 'Personal page for Jane Doe, founder of Acme.', [], []);
+
+        // Identical PNG bytes for both results → dedupe keeps one.
+        $this->assertCount(1, $sourced['searched']);
+        $this->assertSame($sourced['searched'], $sourced['images']);
+        $this->assertSame([], $sourced['generated']);
+        $this->assertSame('ai_builder', UserFile::where('user_id', $user->id)->firstOrFail()->context);
+    }
+
+    public function test_source_skips_web_search_when_creator_reviewed_preview(): void
+    {
+        $this->enableCse();
+        Http::fake();
+
+        $user = $this->makeUser();
+
+        // Creator confirmed the preview step and kept nothing → their
+        // choice is authoritative; no web search runs.
+        $sourced = app(\App\Services\Biolink\BuilderImageSourcer::class)
+            ->source($user, 'Personal page for Jane Doe.', [], [], null, []);
+
+        $this->assertSame([], $sourced['searched']);
+        Http::assertNothingSent();
+    }
+
+    public function test_source_web_tier_respects_daily_cap(): void
+    {
+        $this->enableCse();
+        Http::fake();
+
+        PlatformServiceSettings::setGoogleCseUserDailyCap(1);
+
+        $user = $this->makeUser();
+        GoogleCseUsage::record($user->id); // already at the cap today
+
+        $sourced = app(\App\Services\Biolink\BuilderImageSourcer::class)
+            ->source($user, 'Personal page for Jane Doe.', [], []);
+
+        $this->assertSame([], $sourced['searched']);
+        Http::assertNothingSent();
+    }
+
+    public function test_source_web_tier_silent_when_cse_unconfigured(): void
+    {
+        Http::fake();
+
+        $user = $this->makeUser();
+
+        $sourced = app(\App\Services\Biolink\BuilderImageSourcer::class)
+            ->source($user, 'Personal page for Jane Doe.', [], []);
+
+        $this->assertSame([], $sourced['searched']);
+        $this->assertSame([], $sourced['images']);
+        Http::assertNothingSent();
+    }
+
+    public function test_preview_surfaces_web_candidates_when_links_yield_nothing(): void
+    {
+        $this->enableCse();
+        \App\Services\AI\AiEngineSettings::setEnabled(true);
+        Http::fake([
+            GoogleImageSearchService::ENDPOINT . '*' => Http::response($this->cseResponse()),
+            'https://images.example.com/*' => Http::response($this->bigPng(), 200, ['Content-Type' => 'image/png']),
+        ]);
+
+        $user = $this->makeUser();
+        $link = $this->biolink($user);
+
+        $res = $this->actingAs($user)
+            ->postJson(route('user.links.ai-builder.source-preview', $link), [
+                'links'       => [],
+                'description' => 'Personal page for Jane Doe, founder of Acme.',
+            ])
+            ->assertOk()
+            ->json();
+
+        $this->assertCount(1, $res['extracted']);
+        $this->assertStringStartsWith('/f/', $res['extracted'][0]);
     }
 
     public function test_api_search_is_404_in_preview_mode(): void
