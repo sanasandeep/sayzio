@@ -378,6 +378,21 @@ export function clearHistoryByRange(sinceIso: string | null): HistoryEntry[] {
   return rows;
 }
 
+/**
+ * Soft-delete history entries whose last visit is older than `days` days.
+ * Used by the auto-delete retention sweep. Returns the number of entries removed.
+ */
+export function pruneHistoryOlderThan(days: number): number {
+  if (!Number.isFinite(days) || days <= 0) return 0;
+  const db = getDb();
+  const cutoff = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
+  const now = new Date().toISOString();
+  const res = db.prepare(
+    'UPDATE history SET deleted = 1, updated_at = ? WHERE deleted = 0 AND last_visited < ?',
+  ).run(now, cutoff);
+  return res.changes;
+}
+
 /** Count non-deleted history entries visited at or after `sinceIso` (all when null). */
 export function countHistorySince(sinceIso: string | null): number {
   const db = getDb();

@@ -28,6 +28,7 @@ import {
   getRecentHistory,
   clearHistory,
   clearHistoryByRange,
+  pruneHistoryOlderThan,
   countHistorySince,
   deleteHistoryByHost,
   deleteHistoryEntry,
@@ -291,6 +292,13 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
       setDoNotTrack(value === '1');
     } else if (key === PREFERENCE_KEYS.BLOCK_THIRD_PARTY_COOKIES) {
       setBlockThirdPartyCookies(value === '1');
+    } else if (key === PREFERENCE_KEYS.HISTORY_DAYS_RETENTION) {
+      // Apply the new retention window immediately (the periodic sweep in
+      // main/index.ts keeps it enforced afterwards).
+      const days = parseInt(value, 10);
+      if (days > 0) {
+        try { pruneHistoryOlderThan(days); } catch { /* best-effort */ }
+      }
     }
     return true;
   });
@@ -610,8 +618,12 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
   });
 
   // ── Import from other browsers ────────────────────────────────────────────
+  // User-configurable kill switch: when the "Allow importing" preference is
+  // off, every import channel refuses to detect or read anything.
+  const importFeatureEnabled = () => (getPreference(PREFERENCE_KEYS.IMPORT_ENABLED) ?? '1') !== '0';
+
   ipcMain.handle('import:detect', (event) => {
-    if (senderIsPrivate(event)) return [];
+    if (senderIsPrivate(event) || !importFeatureEnabled()) return [];
     try {
       return detectBrowsers().map(b => ({
         id: b.id,
@@ -626,6 +638,7 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
 
   ipcMain.handle('import:run', (event, browserId: string, want: { bookmarks?: boolean; history?: boolean }) => {
     if (senderIsPrivate(event)) return { ok: false, error: 'Not available in private windows.' };
+    if (!importFeatureEnabled()) return { ok: false, error: 'Importing is turned off in Settings.' };
     try {
       const browser = detectBrowsers().find(b => b.id === browserId);
       if (!browser) return { ok: false, error: 'That browser could not be found anymore.' };
@@ -650,6 +663,7 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
 
   ipcMain.handle('import:html-file', async (event) => {
     if (senderIsPrivate(event)) return { ok: false, error: 'Not available in private windows.' };
+    if (!importFeatureEnabled()) return { ok: false, error: 'Importing is turned off in Settings.' };
     const win = BrowserWindow.fromWebContents(event.sender);
     const result = await dialog.showOpenDialog(win ?? BrowserWindow.getAllWindows()[0], {
       title: 'Choose a bookmarks HTML file',

@@ -293,6 +293,7 @@ function GeneralSection() {
 interface DetectedImportBrowser { id: string; name: string; hasBookmarks: boolean; hasHistory: boolean }
 
 function ImportBlock() {
+  const [enabled, setEnabled] = useState<boolean | null>(null);
   const [browsers, setBrowsers] = useState<DetectedImportBrowser[] | null>(null);
   const [wantBookmarks, setWantBookmarks] = useState(true);
   const [wantHistory, setWantHistory] = useState(true);
@@ -300,8 +301,22 @@ function ImportBlock() {
   const [message, setMessage] = useState<string | null>(null);
 
   useEffect(() => {
-    void window.zio.browserImport.detect().then(setBrowsers).catch(() => setBrowsers([]));
+    void window.zio.prefs.get('import_enabled').then((v) => setEnabled(v !== '0')).catch(() => setEnabled(true));
   }, []);
+
+  useEffect(() => {
+    if (enabled !== true) return;
+    setBrowsers(null);
+    void window.zio.browserImport.detect().then(setBrowsers).catch(() => setBrowsers([]));
+  }, [enabled]);
+
+  const toggleEnabled = useCallback(async () => {
+    if (enabled === null) return;
+    const next = !enabled;
+    setEnabled(next);
+    setMessage(null);
+    try { await window.zio.prefs.set('import_enabled', next ? '1' : '0'); } catch { setEnabled(!next); }
+  }, [enabled]);
 
   const summarize = (r: { ok: boolean; bookmarksImported?: number; historyImported?: number; error?: string; canceled?: boolean }) => {
     if (r.canceled) return null;
@@ -344,12 +359,25 @@ function ImportBlock() {
 
   return (
     <div style={cardStyle}>
-      <div style={cardTitleStyle}>Import bookmarks &amp; history</div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+        <div style={cardTitleStyle}>Import bookmarks &amp; history</div>
+        <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+          <input type="checkbox" checked={enabled === true} disabled={enabled === null} onChange={() => void toggleEnabled()} />
+          Allow importing
+        </label>
+      </div>
       <div style={mutedTextStyle}>
         Bring your bookmarks and browsing history over from another browser on this computer.
         Your other browser is never changed.
       </div>
 
+      {enabled === false && (
+        <div style={{ ...mutedTextStyle, marginTop: 8 }}>
+          Importing is turned off. Zio will not look at or read data from other browsers until you turn it back on.
+        </div>
+      )}
+
+      {enabled === true && (<>
       <div style={{ display: 'flex', gap: 16, margin: '10px 0 6px' }}>
         <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, cursor: 'pointer' }}>
           <input type="checkbox" checked={wantBookmarks} onChange={() => setWantBookmarks(v => !v)} />
@@ -397,6 +425,7 @@ function ImportBlock() {
       </div>
 
       {message && <div style={{ ...mutedTextStyle, marginTop: 8, fontSize: 12 }}>{message}</div>}
+      </>)}
     </div>
   );
 }
@@ -427,8 +456,10 @@ function PrivacySection() {
   const [safetyRunning, setSafetyRunning] = useState(false);
   const [forgetHost, setForgetHost] = useState('');
   const [forgetNote, setForgetNote] = useState<string | null>(null);
+  const [retentionDays, setRetentionDays] = useState<string | null>(null);
 
   useEffect(() => {
+    void window.zio.prefs.get('history_days_retention').then((v) => setRetentionDays(v && parseInt(v, 10) > 0 ? v : '0')).catch(() => setRetentionDays('0'));
     void window.zio.tracker.isEnabled().then((v: boolean) => setTrackerEnabled(v)).catch(() => setTrackerEnabled(null));
     void window.zio.prefs.get('do_not_track').then((v) => setDnt(v === '1')).catch(() => setDnt(false));
     void window.zio.prefs.get('block_third_party_cookies').then((v) => setBlock3p(v === '1')).catch(() => setBlock3p(false));
@@ -455,6 +486,12 @@ function PrivacySection() {
     setBlock3p(next);
     try { await window.zio.prefs.set('block_third_party_cookies', next ? '1' : '0'); } catch { setBlock3p(!next); }
   }, [block3p]);
+
+  const changeRetention = useCallback(async (value: string) => {
+    const prev = retentionDays;
+    setRetentionDays(value);
+    try { await window.zio.prefs.set('history_days_retention', value); } catch { setRetentionDays(prev); }
+  }, [retentionDays]);
 
   const runSafetyCheck = useCallback(async () => {
     setSafetyRunning(true);
@@ -503,6 +540,22 @@ function PrivacySection() {
 
       <SettingRow title="Block third-party cookies" description="Stop sites you're not visiting from setting cookies. Some sign-in flows may break.">
         <Toggle checked={block3p === true} disabled={block3p === null} onChange={() => void toggleBlock3p()} />
+      </SettingRow>
+
+      <SettingRow title="Auto-delete history" description="Automatically delete browsing history older than the time you choose. Runs at startup and in the background.">
+        <select
+          style={selectStyle}
+          value={retentionDays ?? '0'}
+          disabled={retentionDays === null}
+          onChange={(e) => void changeRetention(e.target.value)}
+        >
+          <option value="0">Never</option>
+          <option value="7">After 7 days</option>
+          <option value="30">After 30 days</option>
+          <option value="90">After 90 days</option>
+          <option value="180">After 180 days</option>
+          <option value="365">After 1 year</option>
+        </select>
       </SettingRow>
 
       <SettingRow title="Delete browsing data" description="Delete history, cookies, cache, downloads and permissions for a time range you pick.">

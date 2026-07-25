@@ -4,7 +4,7 @@
 import path from 'path';
 import { app, BrowserWindow, Menu, session, nativeTheme, dialog } from 'electron';
 import type { BaseWindow } from 'electron';
-import { initDb, getPreference, setPreference, getMuteAllTabs, isDomainMuted, setDomainMuted } from './db';
+import { initDb, getPreference, setPreference, getMuteAllTabs, isDomainMuted, setDomainMuted, pruneHistoryOlderThan } from './db';
 import { PREFERENCE_KEYS, type PreferenceKey } from '../shared/db-schema';
 import { hostForMutePolicy } from '../shared/mute-policy';
 import { sessionPartitionForProfile, DEFAULT_PROFILE_ID } from '../shared/profile-store';
@@ -800,6 +800,19 @@ app.whenReady().then(() => {
       reportStartupError('Local database unavailable', err);
     }
   }
+  // ── History auto-delete (retention sweep) ────────────────────────────────
+  // When the user picks an auto-delete window (e.g. 30 days), prune older
+  // history at startup and every 6 hours while the app runs. '0'/unset = keep
+  // forever. Never let a sweep failure interfere with startup.
+  const runHistoryRetentionSweep = () => {
+    try {
+      const days = parseInt(safeGetPreference(PREFERENCE_KEYS.HISTORY_DAYS_RETENTION) ?? '0', 10);
+      if (days > 0) pruneHistoryOlderThan(days);
+    } catch { /* sweep is best-effort */ }
+  };
+  runHistoryRetentionSweep();
+  setInterval(runHistoryRetentionSweep, 6 * 60 * 60 * 1000);
+
   // ── Crash recovery ──────────────────────────────────────────────────────
   // '0' means the previous run never reached before-quit — i.e. it crashed or
   // was force-killed. Offer to restore (the periodic auto-snapshot keeps

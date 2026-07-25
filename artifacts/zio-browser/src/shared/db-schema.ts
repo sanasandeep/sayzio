@@ -290,6 +290,7 @@ export const PREFERENCE_KEYS = {
   DO_NOT_TRACK: 'do_not_track',
   BLOCK_THIRD_PARTY_COOKIES: 'block_third_party_cookies',
   TRACKER_STATS: 'tracker_stats',
+  IMPORT_ENABLED: 'import_enabled',
 } as const;
 
 export type PreferenceKey = typeof PREFERENCE_KEYS[keyof typeof PREFERENCE_KEYS];
