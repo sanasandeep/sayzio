@@ -32,6 +32,7 @@ interface TabStoreState {
   closeOtherTabs: (id: string) => Promise<void>;
   closeTabsToRight: (id: string) => Promise<void>;
   muteAllTabs: (muted?: boolean) => Promise<void>;
+  setTabMode: (id: string, mode: string) => Promise<void>;
   reopenClosedTab: () => Promise<string | null>;
   reopenFromRecent: (url: string) => Promise<string | null>;
 }
@@ -206,6 +207,10 @@ export function useTabStore(): TabStoreState {
     await window.zio.tabs.muteAll(muted);
   }, []);
 
+  const setTabMode = useCallback(async (id: string, mode: string): Promise<void> => {
+    await window.zio.tabs.setMode(id, mode);
+  }, []);
+
   const reopenClosedTab = useCallback(async (): Promise<string | null> => {
     return window.zio.tabs.reopenClosed() as Promise<string | null>;
   }, []);
@@ -233,6 +238,7 @@ export function useTabStore(): TabStoreState {
     closeOtherTabs,
     closeTabsToRight,
     muteAllTabs,
+    setTabMode,
     reopenClosedTab,
     reopenFromRecent,
   };

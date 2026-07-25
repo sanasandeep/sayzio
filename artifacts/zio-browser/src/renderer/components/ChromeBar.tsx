@@ -9,6 +9,8 @@ import { useAuthStore } from '../store/auth-store';
 import { ShortenPopover } from './ShortenPopover';
 import { CreateLinkPopover } from './CreateLinkPopover';
 import { ModeSwitcher } from './ModeSwitcher';
+import { TabModeSwitcher } from './TabModeSwitcher';
+import type { TabMode } from '../../shared/window-mode';
 import { ProfileSwitcher } from './ProfileSwitcher';
 import { useModeStore } from '../store/mode-store';
 import type { RecentlyClosedEntry } from '../../main/tab-manager';
@@ -339,7 +341,7 @@ export function ChromeBar({
   const {
     tabs, tabOrder, activeTabId, recentlyClosed,
     createTab, closeTab, activateTab, navigate, goBack, goForward, reload, stop,
-    pinTab, duplicateTab, closeOtherTabs, closeTabsToRight, muteAllTabs, reopenFromRecent,
+    pinTab, duplicateTab, closeOtherTabs, closeTabsToRight, muteAllTabs, setTabMode, reopenFromRecent,
   } = useTabStore();
   const { user, token } = useAuthStore();
   const { mode, setMode } = useModeStore();
@@ -827,6 +829,11 @@ export function ChromeBar({
           style={{ fontSize: 14, padding: '2px 6px' }}
           title={activeTabState?.isLoading ? 'Stop' : 'Reload'}
         >{activeTabState?.isLoading ? '✕' : '↻'}</button>
+        <button
+          onClick={() => activeTabId && void navigate(activeTabId, BASE_URL)}
+          style={{ fontSize: 14, padding: '2px 6px' }}
+          title="Home"
+        >⌂</button>
 
         {/* Omnibox */}
         <form onSubmit={handleOmniboxSubmit} style={{ flex: 1 }}>
@@ -1143,6 +1150,14 @@ export function ChromeBar({
               userSelect: 'none',
             }}
           >⚡ Zio</div>
+        )}
+
+        {/* Per-tab view mode switcher — not available in private windows */}
+        {!isPrivate && activeTabId && (
+          <TabModeSwitcher
+            currentMode={(activeTab?.mode as TabMode | undefined) ?? 'web'}
+            onSetMode={(m) => void setTabMode(activeTabId, m)}
+          />
         )}
 
         {/* Mode switcher — shown in browser mode, hidden in split right-pane */}
