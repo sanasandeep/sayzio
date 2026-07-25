@@ -21,8 +21,9 @@ import { AuthModal } from './AuthModal';
 import { ModeSwitcher } from './ModeSwitcher';
 import { FindBar } from './FindBar';
 import { DownloadsPanel } from './DownloadsPanel';
+import { AccountButton } from './AccountButton';
+import { NewTabButton } from './NewTabButton';
 import { useTabStore } from '../store/tab-store';
-import { useAuthStore } from '../store/auth-store';
 import { useFindStore } from '../store/find-store';
 import { useDownloadStore } from '../store/download-store';
 import type { WindowMode } from '../../shared/window-mode';
@@ -47,7 +48,6 @@ export function SplitLayout({
   authModalOpen, onOpenAuth, onCloseAuth,
 }: Props) {
   const { tabs, activeTabId } = useTabStore();
-  const { user } = useAuthStore();
   const { isOpen: findOpen } = useFindStore();
   const {
     activeDownloadCount,
@@ -148,40 +148,14 @@ export function SplitLayout({
           <span style={{ flex: 1, WebkitAppRegion: 'drag' } as React.CSSProperties} />
 
           <div style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
+            <NewTabButton currentMode={mode} onSetMode={onSetMode} />
+          </div>
+
+          <div style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
             <ModeSwitcher currentMode={mode} onSetMode={onSetMode} />
           </div>
 
-          {user ? (
-            <div style={{
-              width: 24,
-              height: 24,
-              borderRadius: '50%',
-              background: 'var(--color-primary)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: 11,
-              fontWeight: 700,
-              color: '#fff',
-              flexShrink: 0,
-              WebkitAppRegion: 'no-drag',
-            } as React.CSSProperties} title={user.name}>
-              {(user.name ?? 'U').charAt(0).toUpperCase()}
-            </div>
-          ) : (
-            <button
-              onClick={onOpenAuth}
-              style={{
-                padding: '3px 8px',
-                borderRadius: 8,
-                background: 'var(--color-bg-elevated)',
-                border: '1px solid var(--color-border)',
-                fontSize: 11,
-                whiteSpace: 'nowrap',
-                WebkitAppRegion: 'no-drag',
-              } as React.CSSProperties}
-            >Sign in</button>
-          )}
+          <AccountButton onOpenAuth={onOpenAuth} compact />
         </div>
 
         {/* Left pane content */}

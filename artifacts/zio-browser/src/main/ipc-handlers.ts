@@ -380,6 +380,17 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
     return true;
   });
   ipcMain.handle('window:reload-dashboard', (event) => { resolveModeManager(event)?.reloadDashboard(); return true; });
+  // Chrome-overlay: hide ALL native views (tabs + dashboard) while a renderer
+  // dropdown/menu is open; closing re-applies the current mode.
+  ipcMain.handle('window:set-chrome-overlay', (event, open: boolean) => {
+    const mm = resolveModeManager(event);
+    if (!mm) return false;
+    mm.setChromeOverlay(!!open);
+    if (open) {
+      try { event.sender.focus(); } catch { }
+    }
+    return true;
+  });
 
   // ── Private mode indicator ───────────────────────────────────────────────
   ipcMain.handle('window:is-private', (event) => senderIsPrivate(event));

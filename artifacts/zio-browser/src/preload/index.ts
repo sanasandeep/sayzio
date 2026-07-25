@@ -80,6 +80,8 @@ const api = {
     getSplitRatio: () => ipcRenderer.invoke('window:get-split-ratio'),
     setSplitRatio: (ratio: number) => ipcRenderer.invoke('window:set-split-ratio', ratio),
     reloadDashboard: () => ipcRenderer.invoke('window:reload-dashboard'),
+    /** Hide/restore all native views while a chrome dropdown/menu is open. */
+    setChromeOverlay: (open: boolean) => ipcRenderer.invoke('window:set-chrome-overlay', open),
     getZioPanelWidth: () => ipcRenderer.invoke('window:get-zio-panel-width'),
     setZioPanelWidth: (width: number) => ipcRenderer.invoke('window:set-zio-panel-width', width),
     getZioPanelDocked: () => ipcRenderer.invoke('window:get-zio-panel-docked'),
