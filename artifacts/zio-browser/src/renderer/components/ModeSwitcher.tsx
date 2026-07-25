@@ -18,6 +18,27 @@ interface Props {
 export function ModeSwitcher({ currentMode, onSetMode }: Props) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const wasOpen = useRef(false);
+  const picked = useRef(false);
+
+  // The dropdown menu extends below the chrome bar, into the region covered by
+  // the active tab's native WebContentsView. Native views sit ABOVE the
+  // renderer DOM, so the view would swallow clicks on the menu items. Detach
+  // all tab views while the menu is open; when it closes without a selection,
+  // re-apply the current mode so the active tab view is re-attached. (When a
+  // mode IS picked, onSetMode already round-trips and restores views.)
+  useEffect(() => {
+    if (open) {
+      wasOpen.current = true;
+      picked.current = false;
+      void window.zio.tabs.hideAll();
+    } else if (wasOpen.current) {
+      wasOpen.current = false;
+      if (!picked.current) {
+        void window.zio.window.setMode(currentMode);
+      }
+    }
+  }, [open, currentMode]);
 
   useEffect(() => {
     if (!open) return;
@@ -81,7 +102,7 @@ export function ModeSwitcher({ currentMode, onSetMode }: Props) {
           {WINDOW_MODES.map(mode => (
             <button
               key={mode}
-              onClick={() => { onSetMode(mode); setOpen(false); }}
+              onClick={() => { picked.current = true; onSetMode(mode); setOpen(false); }}
               style={{
                 width: '100%',
                 display: 'flex',
