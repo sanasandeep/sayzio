@@ -518,13 +518,26 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
   ipcMain.handle('history:delete', (_, id: string) => deleteHistoryEntry(id));
 
   // ── Bookmarks ────────────────────────────────────────────────────────────
-  ipcMain.handle('bookmarks:add', (event, url: string, title: string, opts?: Record<string, string>) =>
-    addBookmark(url, title, opts, resolveProfileId(event)),
-  );
-  ipcMain.handle('bookmarks:remove', (event, url: string) => removeBookmark(url, resolveProfileId(event)));
-  ipcMain.handle('bookmarks:is-bookmarked', (event, url: string) => isBookmarked(url, resolveProfileId(event)));
-  ipcMain.handle('bookmarks:all', (event, folder?: string) => getAllBookmarks(folder, resolveProfileId(event)));
-  ipcMain.handle('bookmarks:search', (event, q: string) => searchBookmarks(q, 20, resolveProfileId(event)));
+  ipcMain.handle('bookmarks:add', (event, url: string, title: string, opts?: Record<string, string>) => {
+    if (senderIsPrivate(event)) return null;
+    return addBookmark(url, title, opts, resolveProfileId(event));
+  });
+  ipcMain.handle('bookmarks:remove', (event, url: string) => {
+    if (senderIsPrivate(event)) return false;
+    return removeBookmark(url, resolveProfileId(event));
+  });
+  ipcMain.handle('bookmarks:is-bookmarked', (event, url: string) => {
+    if (senderIsPrivate(event)) return false;
+    return isBookmarked(url, resolveProfileId(event));
+  });
+  ipcMain.handle('bookmarks:all', (event, folder?: string) => {
+    if (senderIsPrivate(event)) return [];
+    return getAllBookmarks(folder, resolveProfileId(event));
+  });
+  ipcMain.handle('bookmarks:search', (event, q: string) => {
+    if (senderIsPrivate(event)) return [];
+    return searchBookmarks(q, 20, resolveProfileId(event));
+  });
 
   // ── Collections ──────────────────────────────────────────────────────────
   ipcMain.handle('collections:all', (event) => getAllCollections(resolveProfileId(event)));

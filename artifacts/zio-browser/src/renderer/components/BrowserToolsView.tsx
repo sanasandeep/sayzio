@@ -47,7 +47,14 @@ interface DownloadEntry {
   completed_at: string | null;
 }
 
-type BrowserSection = 'history' | 'cookies' | 'passwords' | 'downloads' | 'sound';
+interface BookmarkEntry {
+  id: string;
+  url: string;
+  title: string | null;
+  folder: string | null;
+}
+
+type BrowserSection = 'history' | 'bookmarks' | 'cookies' | 'passwords' | 'downloads' | 'sound';
 
 interface ConfirmState {
   message: string;
@@ -94,6 +101,7 @@ export function BrowserToolsView({ currentUrl, focusSection, onFocusSectionConsu
 
   const sections: { id: BrowserSection; label: string }[] = [
     { id: 'history', label: '🕐 History' },
+    { id: 'bookmarks', label: '⭐ Bookmarks' },
     { id: 'cookies', label: '🍪 Cookies' },
     { id: 'passwords', label: '🔑 Passwords' },
     { id: 'downloads', label: '⬇ Downloads' },
@@ -146,6 +154,7 @@ export function BrowserToolsView({ currentUrl, focusSection, onFocusSectionConsu
             onRegisterRefresh={(fn) => { historyRefreshRef.current = fn; }}
           />
         )}
+        {section === 'bookmarks' && <BookmarksSection onConfirm={requestConfirm} />}
         {section === 'cookies' && <CookiesSection currentUrl={currentUrl} onConfirm={requestConfirm} />}
         {section === 'passwords' && <PasswordsSection currentUrl={currentUrl} onConfirm={requestConfirm} />}
         {section === 'downloads' && <DownloadsSection />}
@@ -373,6 +382,90 @@ function HistorySection({
 }
 
 // ── Cookies section ───────────────────────────────────────────────────────────
+
+// ── Bookmarks ─────────────────────────────────────────────────────────────────
+
+function BookmarksSection({ onConfirm }: { onConfirm: (msg: string, cb: () => void) => void }) {
+  const [entries, setEntries] = useState<BookmarkEntry[]>([]);
+  const [query, setQuery] = useState('');
+  const [loading, setLoading] = useState(false);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const load = useCallback(async (q?: string) => {
+    setLoading(true);
+    try {
+      const rows = q && q.trim()
+        ? await window.zio.bookmarks.search(q.trim())
+        : await window.zio.bookmarks.all();
+      setEntries(Array.isArray(rows) ? (rows as BookmarkEntry[]) : []);
+    } catch {
+      setEntries([]);
+    }
+    setLoading(false);
+  }, []);
+
+  useEffect(() => { void load(); }, [load]);
+
+  const handleSearch = (val: string) => {
+    setQuery(val);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => void load(val), 250);
+  };
+
+  const handleRemove = useCallback((url: string) => {
+    void window.zio.bookmarks.remove(url).then(() => {
+      setEntries(prev => prev.filter(e => e.url !== url));
+    });
+  }, []);
+
+  const handleOpen = useCallback((url: string) => {
+    void window.zio.tabs.create(url);
+  }, []);
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
+      <div style={{ padding: '8px 12px', display: 'flex', gap: 8, alignItems: 'center' }}>
+        <input
+          value={query}
+          onChange={e => handleSearch(e.target.value)}
+          placeholder="Search bookmarks…"
+          style={searchInputStyle}
+        />
+      </div>
+      <div style={{ flex: 1, overflowY: 'auto' }}>
+        {loading && entries.length === 0 && (
+          <div style={emptyNoteStyle}>Loading…</div>
+        )}
+        {!loading && entries.length === 0 && (
+          <div style={emptyNoteStyle}>
+            {query ? 'No bookmarks match your search.' : 'No bookmarks yet. Click the ☆ star in the address bar to bookmark a page.'}
+          </div>
+        )}
+        {entries.map(e => (
+          <div key={e.id} style={listRowStyle}>
+            <div
+              style={{ flex: 1, minWidth: 0, cursor: 'pointer' }}
+              onClick={() => handleOpen(e.url)}
+              title="Open in a new tab"
+            >
+              <div style={{ fontSize: 12, color: 'var(--color-text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                ★ {e.title || e.url}
+              </div>
+              <div style={{ fontSize: 10, color: 'var(--color-text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginTop: 1 }}>
+                {e.url}
+              </div>
+            </div>
+            <button
+              onClick={() => onConfirm('Remove this bookmark?', () => handleRemove(e.url))}
+              style={deleteRowBtn}
+              title="Remove bookmark"
+            >✕</button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 function CookiesSection({ currentUrl, onConfirm }: { currentUrl: string | null; onConfirm: (msg: string, cb: () => void) => void }) {
   const [cookies, setCookies] = useState<CookieInfo[]>([]);
@@ -891,6 +984,13 @@ const listRowStyle: React.CSSProperties = {
   gap: 10,
   padding: '8px 12px',
   borderBottom: '1px solid color-mix(in srgb, var(--color-border) 50%, transparent)',
+};
+
+const emptyNoteStyle: React.CSSProperties = {
+  padding: '20px 16px',
+  fontSize: 12,
+  color: 'var(--color-text-muted)',
+  textAlign: 'center',
 };
 
 const deleteRowBtn: React.CSSProperties = {

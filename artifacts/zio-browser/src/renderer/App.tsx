@@ -106,6 +106,14 @@ export default function App() {
         setShowModePicker(true);
       }
 
+      // Restore the saved theme (dark / light / system)
+      try {
+        const savedTheme = await window.zio.prefs.get('theme');
+        const mode = savedTheme === 'light' || savedTheme === 'dark' ? savedTheme : 'system';
+        const resolved = await window.zio.theme.set(mode) as 'dark' | 'light';
+        document.documentElement.classList.toggle('light-mode', resolved === 'light');
+      } catch { /* keep default dark */ }
+
       // Restore the active profile from preferences
       const savedProfileId = await window.zio.prefs.get('active_profile') as string | null;
       if (savedProfileId && savedProfileId !== 'default') {

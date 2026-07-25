@@ -4,12 +4,21 @@
  * Passwords (saved-password manager), Extensions (unpacked extension loader).
  */
 import { useState, useEffect, useCallback } from 'react';
+import { ClearDataDialog } from './ClearDataDialog';
+import { KEYBOARD_SHORTCUTS } from '../../shared/command-palette';
 
 interface Props {
   onClose: () => void;
 }
 
-type SettingsTab = 'general' | 'sessions' | 'passwords' | 'extensions';
+type SettingsTab = 'general' | 'sessions' | 'passwords' | 'extensions' | 'shortcuts';
+
+type ThemeMode = 'system' | 'dark' | 'light';
+
+/** Apply the resolved theme to the window chrome. */
+export function applyResolvedTheme(resolved: 'dark' | 'light') {
+  document.documentElement.classList.toggle('light-mode', resolved === 'light');
+}
 
 const TRANSLATE_LANGS: Array<{ code: string; label: string }> = [
   { code: 'en', label: 'English' },
@@ -65,7 +74,7 @@ export function SettingsPanel({ onClose }: Props) {
         borderBottom: '1px solid var(--color-border)',
         flexShrink: 0,
       }}>
-        {([['general', 'General'], ['sessions', 'Sessions'], ['passwords', 'Passwords'], ['extensions', 'Extensions']] as Array<[SettingsTab, string]>).map(([key, label]) => (
+        {([['general', 'General'], ['sessions', 'Sessions'], ['passwords', 'Passwords'], ['extensions', 'Extensions'], ['shortcuts', 'Shortcuts']] as Array<[SettingsTab, string]>).map(([key, label]) => (
           <button
             key={key}
             onClick={() => setTab(key)}
@@ -89,6 +98,7 @@ export function SettingsPanel({ onClose }: Props) {
         {tab === 'sessions' && <SessionsSection />}
         {tab === 'passwords' && <PasswordsSection />}
         {tab === 'extensions' && <ExtensionsSection />}
+        {tab === 'shortcuts' && <ShortcutsSection />}
       </div>
     </div>
   );
@@ -101,6 +111,8 @@ function GeneralSection() {
   const [spellcheckNote, setSpellcheckNote] = useState<string | null>(null);
   const [translateLang, setTranslateLang] = useState('en');
   const [trackerEnabled, setTrackerEnabled] = useState<boolean | null>(null);
+  const [themeMode, setThemeMode] = useState<ThemeMode>('system');
+  const [clearDialogOpen, setClearDialogOpen] = useState(false);
 
   useEffect(() => {
     void window.zio.spellcheck.getEnabled().then(setSpellcheck).catch(() => setSpellcheck(true));
@@ -108,6 +120,18 @@ function GeneralSection() {
       .then((v) => { if (typeof v === 'string' && v) setTranslateLang(v); })
       .catch(() => {});
     void window.zio.tracker.isEnabled().then((v: boolean) => setTrackerEnabled(v)).catch(() => setTrackerEnabled(null));
+    void window.zio.prefs.get('theme')
+      .then((v) => { if (v === 'light' || v === 'dark' || v === 'system') setThemeMode(v); })
+      .catch(() => {});
+  }, []);
+
+  const changeTheme = useCallback(async (mode: ThemeMode) => {
+    setThemeMode(mode);
+    try {
+      const resolved = await window.zio.theme.set(mode) as 'dark' | 'light';
+      applyResolvedTheme(resolved);
+      await window.zio.prefs.set('theme', mode);
+    } catch { /* non-fatal */ }
   }, []);
 
   const toggleSpellcheck = useCallback(async () => {
@@ -140,6 +164,29 @@ function GeneralSection() {
 
   return (
     <div style={{ padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 18 }}>
+      <SettingRow
+        title="Appearance"
+        description="Choose a dark or light look, or follow your computer's setting."
+      >
+        <select
+          value={themeMode}
+          onChange={(e) => void changeTheme(e.target.value as ThemeMode)}
+          style={{
+            fontSize: 12,
+            padding: '4px 8px',
+            borderRadius: 8,
+            background: 'var(--color-bg-elevated)',
+            color: 'var(--color-text)',
+            border: '1px solid var(--color-border)',
+            maxWidth: 160,
+          }}
+        >
+          <option value="system">System</option>
+          <option value="dark">Dark</option>
+          <option value="light">Light</option>
+        </select>
+      </SettingRow>
+
       <SettingRow
         title="Spell check"
         description={spellcheckNote ?? 'Underline misspelled words as you type. Right-click a word for suggestions. Applies to new pages after reload.'}
@@ -176,6 +223,65 @@ function GeneralSection() {
           <Toggle checked={trackerEnabled} onChange={() => void toggleTracker()} />
         </SettingRow>
       )}
+
+      <SettingRow
+        title="Clear browsing data"
+        description="Delete history, cookies and cached files for a time range you pick."
+      >
+        <button
+          onClick={() => setClearDialogOpen(true)}
+          style={{
+            fontSize: 12,
+            fontWeight: 600,
+            padding: '5px 12px',
+            borderRadius: 8,
+            background: 'color-mix(in srgb, var(--color-danger, #ef4444) 12%, var(--color-bg-elevated))',
+            border: '1px solid color-mix(in srgb, var(--color-danger, #ef4444) 30%, transparent)',
+            color: 'var(--color-danger, #ef4444)',
+            whiteSpace: 'nowrap',
+          }}
+        >Clear…</button>
+      </SettingRow>
+
+      {clearDialogOpen && <ClearDataDialog onClose={() => setClearDialogOpen(false)} />}
+    </div>
+  );
+}
+
+// ── Shortcuts ─────────────────────────────────────────────────────────────────
+
+function ShortcutsSection() {
+  const categories = [...new Set(KEYBOARD_SHORTCUTS.map(s => s.category))];
+  return (
+    <div style={{ padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+      {categories.map(cat => (
+        <div key={cat}>
+          <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, color: 'var(--color-text-muted)', marginBottom: 6 }}>
+            {cat}
+          </div>
+          {KEYBOARD_SHORTCUTS.filter(s => s.category === cat).map(s => (
+            <div key={s.label} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '5px 0', gap: 8 }}>
+              <span style={{ fontSize: 12, color: 'var(--color-text)' }}>{s.label}</span>
+              <span style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
+                {s.keys.map((k, i) => (
+                  <kbd key={i} style={{
+                    fontSize: 10,
+                    fontWeight: 600,
+                    padding: '2px 6px',
+                    borderRadius: 5,
+                    background: 'var(--color-bg-elevated)',
+                    border: '1px solid var(--color-border)',
+                    color: 'var(--color-text-muted)',
+                  }}>{k}</kbd>
+                ))}
+              </span>
+            </div>
+          ))}
+        </div>
+      ))}
+      <div style={{ fontSize: 11, color: 'var(--color-text-muted)' }}>
+        Tip: press <kbd style={{ fontSize: 10, padding: '1px 5px', borderRadius: 4, background: 'var(--color-bg-elevated)', border: '1px solid var(--color-border)' }}>Ctrl/Cmd + K</kbd> anywhere to open the command palette.
+      </div>
     </div>
   );
 }

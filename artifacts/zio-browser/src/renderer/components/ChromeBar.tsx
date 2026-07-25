@@ -376,6 +376,7 @@ export function ChromeBar({
   const dragTabIdRef = useRef<string | null>(null);
   const [savedInReadingList, setSavedInReadingList] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [isBookmarked, setIsBookmarked] = useState(false);
   const omniboxRef = useRef<HTMLInputElement>(null);
   const stripMenuBtnRef = useRef<HTMLButtonElement>(null);
 
@@ -483,6 +484,34 @@ export function ChromeBar({
     }).catch(() => { /* main not ready */ });
     return () => { cancelled = true; };
   }, [readingListOpen]);
+
+  // Track bookmark state for the active page
+  useEffect(() => {
+    const url = activeTab?.url;
+    if (!url || url === 'about:newtab' || url === '') {
+      setIsBookmarked(false);
+      return;
+    }
+    let cancelled = false;
+    void window.zio.bookmarks.isBookmarked(url).then((saved: boolean) => {
+      if (!cancelled) setIsBookmarked(saved);
+    }).catch(() => { /* main not ready */ });
+    return () => { cancelled = true; };
+  }, [activeTab?.url]);
+
+  const handleToggleBookmark = useCallback(async () => {
+    const url = activeTab?.url;
+    if (!url || url === 'about:newtab') return;
+    try {
+      if (isBookmarked) {
+        await window.zio.bookmarks.remove(url);
+        setIsBookmarked(false);
+      } else {
+        await window.zio.bookmarks.add(url, activeTab?.title ?? url);
+        setIsBookmarked(true);
+      }
+    } catch { /* non-fatal */ }
+  }, [activeTab?.url, activeTab?.title, isBookmarked]);
 
   const handleSaveToReadingList = useCallback(async () => {
     if (!activeTab?.url || activeTab.url === 'about:newtab') return;
@@ -1227,8 +1256,21 @@ export function ChromeBar({
           )}
         </div>
 
-        {/* Bookmark button */}
-        <button style={{ fontSize: 16, padding: '2px 6px', opacity: 0.7 }} title="Bookmark">☆</button>
+        {/* Bookmark button (hidden in private windows — bookmarks are not saved there) */}
+        {!isPrivate && (
+        <button
+          onClick={() => void handleToggleBookmark()}
+          title={isBookmarked ? 'Remove bookmark' : 'Bookmark this page'}
+          style={{
+            fontSize: 16,
+            padding: '2px 6px',
+            color: isBookmarked ? 'var(--color-primary)' : 'var(--color-text-muted)',
+            transition: 'color 0.15s',
+          }}
+        >
+          {isBookmarked ? '★' : '☆'}
+        </button>
+        )}
 
         {/* Downloads button */}
         {onToggleDownloads && (
