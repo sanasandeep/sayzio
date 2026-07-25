@@ -47,7 +47,7 @@ const TRANSLATE_LANGS: Array<{ code: string; label: string }> = [
 
 /** Nav entries with search keywords so the filter box can find sections. */
 const SECTIONS: Array<{ id: SectionId; icon: string; label: string; keywords: string }> = [
-  { id: 'general', icon: '⚙️', label: 'General', keywords: 'appearance theme dark light spell check translate language' },
+  { id: 'general', icon: '⚙️', label: 'General', keywords: 'appearance theme dark light spell check translate language import bookmarks history chrome edge brave firefox other browser' },
   { id: 'privacy', icon: '🛡️', label: 'Privacy & Security', keywords: 'tracker blocking do not track cookies clear browsing data delete safety check forget site dashboard privacy' },
   { id: 'sites', icon: '🌐', label: 'Site Settings', keywords: 'permissions camera microphone location notifications allow block sites' },
   { id: 'search', icon: '🔍', label: 'Search engine', keywords: 'google bing duckduckgo brave default search address bar' },
@@ -282,6 +282,121 @@ function GeneralSection() {
           {TRANSLATE_LANGS.map(l => <option key={l.code} value={l.code}>{l.label}</option>)}
         </select>
       </SettingRow>
+
+      <ImportBlock />
+    </div>
+  );
+}
+
+// ── Import bookmarks & history ────────────────────────────────────────────────
+
+interface DetectedImportBrowser { id: string; name: string; hasBookmarks: boolean; hasHistory: boolean }
+
+function ImportBlock() {
+  const [browsers, setBrowsers] = useState<DetectedImportBrowser[] | null>(null);
+  const [wantBookmarks, setWantBookmarks] = useState(true);
+  const [wantHistory, setWantHistory] = useState(true);
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    void window.zio.browserImport.detect().then(setBrowsers).catch(() => setBrowsers([]));
+  }, []);
+
+  const summarize = (r: { ok: boolean; bookmarksImported?: number; historyImported?: number; error?: string; canceled?: boolean }) => {
+    if (r.canceled) return null;
+    if (!r.ok) return r.error ?? 'Import failed.';
+    const parts: string[] = [];
+    parts.push(`${r.bookmarksImported ?? 0} bookmark${(r.bookmarksImported ?? 0) === 1 ? '' : 's'}`);
+    if ((r.historyImported ?? 0) > 0) parts.push(`${r.historyImported} history item${r.historyImported === 1 ? '' : 's'}`);
+    return `Done — imported ${parts.join(' and ')}.`;
+  };
+
+  const runImport = useCallback(async (id: string) => {
+    if (!wantBookmarks && !wantHistory) {
+      setMessage('Pick at least one thing to import.');
+      return;
+    }
+    setBusyId(id);
+    setMessage(null);
+    try {
+      const r = await window.zio.browserImport.run(id, { bookmarks: wantBookmarks, history: wantHistory });
+      setMessage(summarize(r));
+    } catch {
+      setMessage('Import failed.');
+    } finally {
+      setBusyId(null);
+    }
+  }, [wantBookmarks, wantHistory]);
+
+  const runHtmlImport = useCallback(async () => {
+    setBusyId('__html__');
+    setMessage(null);
+    try {
+      const r = await window.zio.browserImport.fromHtmlFile();
+      setMessage(summarize(r));
+    } catch {
+      setMessage('Import failed.');
+    } finally {
+      setBusyId(null);
+    }
+  }, []);
+
+  return (
+    <div style={cardStyle}>
+      <div style={cardTitleStyle}>Import bookmarks &amp; history</div>
+      <div style={mutedTextStyle}>
+        Bring your bookmarks and browsing history over from another browser on this computer.
+        Your other browser is never changed.
+      </div>
+
+      <div style={{ display: 'flex', gap: 16, margin: '10px 0 6px' }}>
+        <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, cursor: 'pointer' }}>
+          <input type="checkbox" checked={wantBookmarks} onChange={() => setWantBookmarks(v => !v)} />
+          Bookmarks
+        </label>
+        <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, cursor: 'pointer' }}>
+          <input type="checkbox" checked={wantHistory} onChange={() => setWantHistory(v => !v)} />
+          Browsing history
+        </label>
+      </div>
+
+      {browsers === null && <div style={mutedTextStyle}>Looking for other browsers…</div>}
+      {browsers !== null && browsers.length === 0 && (
+        <div style={mutedTextStyle}>No other browsers were found on this computer. You can still import a bookmarks file below.</div>
+      )}
+      {browsers !== null && browsers.map(b => (
+        <div key={b.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 0', gap: 12 }}>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontSize: 13, fontWeight: 500 }}>{b.name}</div>
+            <div style={{ ...mutedTextStyle, fontSize: 12 }}>
+              {[b.hasBookmarks ? 'bookmarks' : null, b.hasHistory ? 'history' : null].filter(Boolean).join(' + ')}
+            </div>
+          </div>
+          <button
+            style={{ ...smallBtnStyle, opacity: busyId ? 0.6 : 1 }}
+            disabled={busyId !== null}
+            onClick={() => void runImport(b.id)}
+          >
+            {busyId === b.id ? 'Importing…' : 'Import'}
+          </button>
+        </div>
+      ))}
+
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: 10, gap: 12, borderTop: '1px solid rgba(128,128,128,0.15)', marginTop: 6 }}>
+        <div style={{ ...mutedTextStyle, fontSize: 12 }}>
+          Or import a bookmarks HTML file exported from any browser.
+        </div>
+        <button
+          style={{ ...smallBtnStyle, opacity: busyId ? 0.6 : 1 }}
+          disabled={busyId !== null}
+          onClick={() => void runHtmlImport()}
+        >
+          {busyId === '__html__' ? 'Importing…' : 'Choose file…'}
+        </button>
+      </div>
+
+      {message && <div style={{ ...mutedTextStyle, marginTop: 8, fontSize: 12 }}>{message}</div>}
     </div>
   );
 }

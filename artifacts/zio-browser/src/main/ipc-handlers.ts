@@ -14,6 +14,7 @@ import type { TabManager } from './tab-manager';
 import type { TabMode } from '../shared/window-mode';
 import type { WindowModeManager } from './window-mode-manager';
 import { SyncRetryRunner } from './sync-retry';
+import { detectBrowsers, readBrowserData, parseBookmarksHtml } from './browser-import';
 import type { SyncEntityKind } from '../shared/sync-engine';
 import { isSyncDue, SYNC_INTERVALS } from '../shared/sync-engine';
 import {
@@ -31,6 +32,7 @@ import {
   deleteHistoryByHost,
   deleteHistoryEntry,
   addBookmark,
+  importHistoryEntries,
   removeBookmark,
   isBookmarked,
   getAllBookmarks,
@@ -605,6 +607,73 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
   ipcMain.handle('bookmarks:search', (event, q: string) => {
     if (senderIsPrivate(event)) return [];
     return searchBookmarks(q, 20, resolveProfileId(event));
+  });
+
+  // ── Import from other browsers ────────────────────────────────────────────
+  ipcMain.handle('import:detect', (event) => {
+    if (senderIsPrivate(event)) return [];
+    try {
+      return detectBrowsers().map(b => ({
+        id: b.id,
+        name: b.name,
+        hasBookmarks: b.hasBookmarks,
+        hasHistory: b.hasHistory,
+      }));
+    } catch {
+      return [];
+    }
+  });
+
+  ipcMain.handle('import:run', (event, browserId: string, want: { bookmarks?: boolean; history?: boolean }) => {
+    if (senderIsPrivate(event)) return { ok: false, error: 'Not available in private windows.' };
+    try {
+      const browser = detectBrowsers().find(b => b.id === browserId);
+      if (!browser) return { ok: false, error: 'That browser could not be found anymore.' };
+      const data = readBrowserData(browser, {
+        bookmarks: want?.bookmarks !== false && browser.hasBookmarks,
+        history: want?.history !== false && browser.hasHistory,
+      });
+      const pid = resolveProfileId(event);
+      let bookmarksImported = 0;
+      for (const b of data.bookmarks) {
+        try {
+          addBookmark(b.url, b.title, b.folder ? { folder: b.folder } : {}, pid);
+          bookmarksImported++;
+        } catch { /* skip bad rows */ }
+      }
+      const historyImported = data.history.length > 0 ? importHistoryEntries(data.history, pid) : 0;
+      return { ok: true, bookmarksImported, historyImported };
+    } catch (err) {
+      return { ok: false, error: err instanceof Error ? err.message : 'Import failed.' };
+    }
+  });
+
+  ipcMain.handle('import:html-file', async (event) => {
+    if (senderIsPrivate(event)) return { ok: false, error: 'Not available in private windows.' };
+    const win = BrowserWindow.fromWebContents(event.sender);
+    const result = await dialog.showOpenDialog(win ?? BrowserWindow.getAllWindows()[0], {
+      title: 'Choose a bookmarks HTML file',
+      filters: [{ name: 'Bookmarks HTML', extensions: ['html', 'htm'] }],
+      properties: ['openFile'],
+    });
+    if (result.canceled || result.filePaths.length === 0) return { ok: false, canceled: true };
+    try {
+      const stat = fs.statSync(result.filePaths[0]);
+      if (stat.size > 25 * 1024 * 1024) return { ok: false, error: 'That file is too large to be a bookmarks export.' };
+      const html = fs.readFileSync(result.filePaths[0], 'utf8');
+      const items = parseBookmarksHtml(html);
+      const pid = resolveProfileId(event);
+      let bookmarksImported = 0;
+      for (const b of items) {
+        try {
+          addBookmark(b.url, b.title, b.folder ? { folder: b.folder } : {}, pid);
+          bookmarksImported++;
+        } catch { /* skip bad rows */ }
+      }
+      return { ok: true, bookmarksImported, historyImported: 0 };
+    } catch (err) {
+      return { ok: false, error: err instanceof Error ? err.message : 'Could not read that file.' };
+    }
   });
 
   // ── Collections ──────────────────────────────────────────────────────────

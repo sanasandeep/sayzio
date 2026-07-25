@@ -104,6 +104,13 @@ const api = {
   },
 
   // ── Bookmarks ─────────────────────────────────────────────────────────────
+  browserImport: {
+    detect: () => ipcRenderer.invoke('import:detect') as Promise<Array<{ id: string; name: string; hasBookmarks: boolean; hasHistory: boolean }>>,
+    run: (browserId: string, want: { bookmarks?: boolean; history?: boolean }) =>
+      ipcRenderer.invoke('import:run', browserId, want) as Promise<{ ok: boolean; bookmarksImported?: number; historyImported?: number; error?: string; canceled?: boolean }>,
+    fromHtmlFile: () =>
+      ipcRenderer.invoke('import:html-file') as Promise<{ ok: boolean; bookmarksImported?: number; historyImported?: number; error?: string; canceled?: boolean }>,
+  },
   bookmarks: {
     add: (url: string, title: string, opts?: Record<string, string>) => ipcRenderer.invoke('bookmarks:add', url, title, opts),
     remove: (url: string) => ipcRenderer.invoke('bookmarks:remove', url),

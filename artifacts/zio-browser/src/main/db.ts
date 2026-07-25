@@ -284,6 +284,49 @@ export function recordVisit(url: string, title: string | null, faviconUrl?: stri
   return db.prepare('SELECT * FROM history WHERE id = ?').get(id) as HistoryEntry;
 }
 
+/**
+ * Bulk-import history entries from another browser. Preserves original
+ * last-visited timestamps and visit counts; merges with existing rows
+ * (adds visit counts, keeps the most recent last_visited).
+ */
+export function importHistoryEntries(
+  entries: Array<{ url: string; title: string | null; visitCount: number; lastVisitedIso: string }>,
+  profileId?: string,
+): number {
+  const db = getDb();
+  const pid = profileId ?? DEFAULT_PROFILE_ID;
+  const now = new Date().toISOString();
+  let imported = 0;
+  const findStmt = db.prepare('SELECT id, visit_count, last_visited FROM history WHERE profile_id = ? AND normalized_url = ? AND deleted = 0');
+  const updateStmt = db.prepare(`
+    UPDATE history
+    SET title = COALESCE(title, ?), visit_count = visit_count + ?,
+        last_visited = MAX(last_visited, ?), updated_at = ?
+    WHERE id = ?
+  `);
+  const insertStmt = db.prepare(`
+    INSERT INTO history(id, profile_id, url, normalized_url, title, favicon_url, visit_count, last_visited, created_at, updated_at, deleted)
+    VALUES(?, ?, ?, ?, ?, NULL, ?, ?, ?, ?, 0)
+  `);
+  const run = db.transaction(() => {
+    for (const e of entries) {
+      if (!e || typeof e.url !== 'string' || !/^https?:\/\//i.test(e.url)) continue;
+      const normalized = normalizeUrlForHistory(e.url);
+      const visitCount = Math.max(1, Math.floor(e.visitCount) || 1);
+      const lastVisited = e.lastVisitedIso || now;
+      const existing = findStmt.get(pid, normalized) as { id: string } | undefined;
+      if (existing) {
+        updateStmt.run(e.title, visitCount, lastVisited, now, existing.id);
+      } else {
+        insertStmt.run(generateId(), pid, e.url, normalized, e.title, visitCount, lastVisited, now, now);
+      }
+      imported++;
+    }
+  });
+  run();
+  return imported;
+}
+
 export function searchHistory(query: string, limit = 20, profileId?: string): HistoryEntry[] {
   const db = getDb();
   const pid = profileId ?? DEFAULT_PROFILE_ID;
