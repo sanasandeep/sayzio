@@ -121,12 +121,13 @@ class AiBiolinkBuilderController extends Controller
         }
 
         $data = $request->validate([
-            'links'   => ['nullable', 'array', 'max:25'],
-            'links.*' => ['string', 'max:2048'],
+            'links'       => ['nullable', 'array', 'max:25'],
+            'links.*'     => ['string', 'max:2048'],
+            'description' => ['nullable', 'string', 'max:4000'],
         ]);
 
         $preview = app(\App\Services\Biolink\BuilderImageSourcer::class)
-            ->preview($request->user(), array_values($data['links'] ?? []));
+            ->preview($request->user(), array_values($data['links'] ?? []), (string) ($data['description'] ?? ''));
 
         return $this->ok($preview);
     }

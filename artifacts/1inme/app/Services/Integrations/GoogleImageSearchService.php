@@ -12,8 +12,11 @@ use Illuminate\Support\Facades\Log;
  * Credentials (API key + Programmable Search Engine ID) are admin-managed
  * via PlatformServiceSettings with config/env fallback. When either piece
  * is missing the service reports disabled and callers hide the feature
- * gracefully (preview mode) — results are suggestions the user explicitly
- * picks from, never auto-placed.
+ * gracefully (preview mode). In the manual image-search UI results are
+ * suggestions the user explicitly picks from. The AI builder's automatic
+ * tier (BuilderImageSourcer::searchFromDescription) also consumes this
+ * service: candidates surface in the source-preview review step, and are
+ * used directly only when the creator submits without reviewing.
  */
 class GoogleImageSearchService
 {

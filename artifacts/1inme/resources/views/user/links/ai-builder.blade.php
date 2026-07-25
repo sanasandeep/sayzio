@@ -457,7 +457,7 @@ function aiBiolinkBuilder() {
                         'X-Requested-With': 'XMLHttpRequest',
                         'Accept': 'application/json',
                     },
-                    body: JSON.stringify({ links: this.cleanLinks }),
+                    body: JSON.stringify({ links: this.cleanLinks, description: this.description.trim() }),
                 });
                 const body = await res.json().catch(() => ({}));
                 if (!res.ok) {

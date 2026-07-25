@@ -155,7 +155,7 @@ export default function AiBuilderScreen() {
     if (previewing) return;
     setPreviewing(true);
     try {
-      const res = await previewAiBuilderImages(linkId, links);
+      const res = await previewAiBuilderImages(linkId, links, description.trim());
       setPreview(res);
       setRemovedExtracted([]);
       setSkippedSlots([]);

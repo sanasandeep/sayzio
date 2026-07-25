@@ -154,5 +154,6 @@
 - [PHP empty array → JS array in @js()](php-empty-array-js-object.md) — Alpine keyed maps seeded from PHP [] serialize as JS arrays; JSON.stringify drops string keys — cast (object).
 - [zbar QR verification render DPI](zbar-decode-render-dpi.md) — zbarimg fails on large rasters; verify print QRs at ~100dpi-per-piece renders; ImageMagick PDF page sizing broken, use Playwright pdf.
 - [Print booklet imposition pipeline](print-booklet-imposition.md) — saddle-stitch A3 booklet reuses generate.ts via export+direct-run guard; vector imposition = clipped 213mm halves trimming inner bleed at fold; multi-page pg.pdf needs sheet CSS injected (unstyled classes → giant QRs).
+- [AI builder auto web-photo tier](ai-builder-auto-web-photo-tier.md) — auto search only when preview never reviewed; must check capReached() before search (search() records, never blocks); test needs ≥200px PNG.
 - [Runtime config cache vs cleared admin setting](runtime-config-cache-vs-cleared-admin-setting.md) — nulling an admin credential mid-process leaves the boot-time config() copy; clear config() too before asserting unconfigured.
 - [Zio Browser chrome-overlay for dropdowns](zio-browser-chrome-overlay.md) — native views occlude renderer menus; use ref-counted setChromeOverlay (detach tabs+dashboard view), never raw tabs.hideAll.

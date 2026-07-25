@@ -8,6 +8,7 @@ use App\Services\AI\AiEngineSettings;
 use App\Services\AI\AiPlanAccess;
 use App\Services\AI\AiUsageCharger;
 use App\Services\AI\BrandAssetImageClient;
+use App\Services\Integrations\GoogleImageSearchService;
 use App\Services\OgMetadataService;
 use Illuminate\Support\Facades\Log;
 
@@ -22,7 +23,11 @@ use Illuminate\Support\Facades\Log;
  *      downloaded SSRF-safe, validated as real images, de-duplicated by
  *      content hash, and stored in the creator's vault (quota-counted,
  *      context `ai_builder`). Extraction is free.
- *   3. Generation — with no uploads and nothing extractable, an avatar
+ *   3. Web search — with no uploads and nothing extractable, and Google
+ *      image search configured, real photos matching the page brief are
+ *      searched on the public web, downloaded SSRF-safe, validated, and
+ *      stored in the vault. Free — no AI credits.
+ *   4. Generation — with no uploads and nothing extractable, an avatar
  *      and a cover are AI-generated (gpt-image-1 via
  *      {@see BrandAssetImageClient}), each charged up-front in coins via
  *      {@see AiUsageCharger} with an automatic refund if rendering or
@@ -47,6 +52,12 @@ class BuilderImageSourcer
     /** Minimum decoded pixel dimension for in-page content images. */
     public const MIN_CONTENT_DIMENSION = 200;
 
+    /** Cap on auto web-searched images fed to the model. */
+    public const MAX_SEARCHED = 3;
+
+    /** Minimum decoded pixel dimension for web-searched photos. */
+    public const MIN_SEARCH_DIMENSION = 200;
+
     /** What the generation fallback produces: slot => gpt-image-1 size. */
     public const GENERATED_SLOTS = [
         'avatar' => '1024x1024',
@@ -57,6 +68,7 @@ class BuilderImageSourcer
         protected OgMetadataService $og,
         protected BrandAssetImageClient $images,
         protected AiUsageCharger $charger,
+        protected GoogleImageSearchService $webSearch,
     ) {}
 
     /** Image generation is usable (engine on + OpenAI key stored). */
@@ -109,10 +121,17 @@ class BuilderImageSourcer
      *   generation: array{enabled:bool,cost_per_image:int,slots:list<string>}
      * }
      */
-    public function preview(User $user, array $links): array
+    public function preview(User $user, array $links, string $description = ''): array
     {
+        $extracted = $this->extractFromLinks($user, $links);
+        if ($extracted === []) {
+            // Nothing extractable — surface real web photos matching the
+            // brief as candidates so the creator can keep or drop them.
+            $extracted = $this->searchFromDescription($user, $description);
+        }
+
         return [
-            'extracted'  => $this->extractFromLinks($user, $links),
+            'extracted'  => $extracted,
             'generation' => [
                 'enabled'        => $this->generationEnabled(),
                 'cost_per_image' => $this->generationEnabled() ? $this->generationCoinCost($user) : 0,
@@ -144,6 +163,7 @@ class BuilderImageSourcer
             'images'    => array_values($uploadedImages),
             'uploaded'  => count($uploadedImages),
             'extracted' => [],
+            'searched'  => [],
             'generated' => [],
         ];
 
@@ -164,7 +184,20 @@ class BuilderImageSourcer
             return $out;
         }
 
-        // 3. Nothing supplied and nothing extractable (or kept) → generate.
+        // 3. Nothing supplied and nothing extractable → search the public
+        //    web for real photos matching the brief (free). Skipped when
+        //    the creator already reviewed candidates in the preview step —
+        //    their (possibly empty) kept list is authoritative.
+        if ($keptExtracted === null) {
+            $out['searched'] = $this->searchFromDescription($user, $description);
+            if ($out['searched'] !== []) {
+                $out['images'] = $out['searched'];
+
+                return $out;
+            }
+        }
+
+        // 4. Nothing supplied and nothing extractable (or kept) → generate.
         $out['generated'] = $this->generateFallback($user, $description, $relatedLinkId, $skipSlots);
         $out['images']    = array_values(array_map(static fn (array $g) => $g['url'], $out['generated']));
 
@@ -310,6 +343,92 @@ class BuilderImageSourcer
         }
 
         return $stored;
+    }
+
+    /**
+     * Search the public web (Google image search) for real photos that
+     * match the page brief — e.g. an actual person, brand, or venue named
+     * in the description — download SSRF-safe, validate, de-dupe, and
+     * store in the vault. Free; returns [] when the integration isn't
+     * configured or nothing usable comes back, so callers simply fall
+     * through to the next tier.
+     *
+     * @return list<string> relative vault URLs (`/f/{id}/{filename}`)
+     */
+    protected function searchFromDescription(User $user, string $description): array
+    {
+        $query = $this->searchQueryFor($description);
+        if ($query === '' || !$this->webSearch->enabled()) {
+            return [];
+        }
+
+        // Same per-user daily quota policy as the manual image-search
+        // endpoints — capped users silently fall through to the next tier.
+        if (\App\Services\Integrations\GoogleCseUsage::capReached((int) $user->id)) {
+            return [];
+        }
+
+        $results = $this->webSearch->search($query, 8, (int) $user->id);
+
+        $stored     = [];
+        $seenHashes = [];
+
+        foreach ($results as $result) {
+            if (count($stored) >= self::MAX_SEARCHED) {
+                break;
+            }
+
+            $img = $this->og->downloadImage($result['url']);
+            if ($img === null) {
+                continue;
+            }
+            if (($img['width'] ?? 0) < self::MIN_SEARCH_DIMENSION
+                || ($img['height'] ?? 0) < self::MIN_SEARCH_DIMENSION) {
+                continue;
+            }
+
+            $hash = md5($img['bytes']);
+            if (isset($seenHashes[$hash])) {
+                continue;
+            }
+            $seenHashes[$hash] = true;
+
+            try {
+                $file = UserFile::createFromBytes(
+                    $img['bytes'],
+                    'ai-builder-web-' . substr($hash, 0, 8) . '.' . $this->extensionFor($img['mime']),
+                    $img['mime'],
+                    $user,
+                    ['skip_scan' => true, 'context' => 'ai_builder'],
+                );
+            } catch (\Throwable $e) {
+                Log::info('AI builder web image store skipped: ' . $e->getMessage());
+                continue;
+            }
+
+            $stored[] = $file->url_path;
+        }
+
+        return $stored;
+    }
+
+    /**
+     * Distil the page brief into a short image-search query: first
+     * sentence/line, URLs stripped, capped in length. Blank briefs (or
+     * ones that are nothing but URLs) yield '' and skip the tier.
+     */
+    protected function searchQueryFor(string $description): string
+    {
+        $text = preg_replace('#https?://\S+#i', ' ', $description) ?? '';
+        $text = trim(preg_replace('/\s+/', ' ', $text) ?? '');
+        if ($text === '') {
+            return '';
+        }
+
+        // First sentence or line is the subject statement in practice.
+        $first = preg_split('/(?<=[.!?])\s+|\R/u', $text, 2)[0] ?? $text;
+
+        return mb_substr(trim($first), 0, 120);
     }
 
     /**
