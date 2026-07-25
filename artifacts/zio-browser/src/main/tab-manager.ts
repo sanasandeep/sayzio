@@ -358,7 +358,34 @@ export class TabManager {
       if (params.isEditable) {
         menuItems.push({ role: 'cut' }, { role: 'copy' }, { role: 'paste' }, { type: 'separator' });
       } else if (params.selectionText) {
-        menuItems.push({ role: 'copy' }, { type: 'separator' });
+        menuItems.push({ role: 'copy' });
+        const selText = params.selectionText.trim().replace(/\s+/g, ' ');
+        if (selText) {
+          const shortText = selText.length > 40 ? `${selText.slice(0, 40)}…` : selText;
+          menuItems.push({
+            label: `Search ${this.searchEngine.name} for "${shortText}"`,
+            click: () => {
+              const searchUrl = this.searchEngine.searchTemplate.replace(
+                '{query}',
+                encodeURIComponent(selText),
+              );
+              this.createTab(searchUrl);
+            },
+          });
+        }
+        menuItems.push({ type: 'separator' });
+      }
+
+      // ── Image actions ─────────────────────────────────────────────────────
+      if (params.mediaType === 'image' && params.srcURL) {
+        const imageUrl = params.srcURL;
+        menuItems.push(
+          { label: 'Open image in new tab', click: () => { this.createTab(imageUrl); } },
+          { label: 'Copy image', click: () => { if (isAlive(wc)) wc.copyImageAt(params.x, params.y); } },
+          { label: 'Copy image address', click: () => { clipboard.writeText(imageUrl); } },
+          { label: 'Save image as…', click: () => { if (isAlive(wc)) wc.downloadURL(imageUrl); } },
+          { type: 'separator' },
+        );
       }
 
       if (params.linkURL) {
@@ -1164,6 +1191,98 @@ export class TabManager {
       return image.toPNG();
     } catch {
       return null;
+    }
+  }
+
+  /**
+   * Reader mode: extract the main article content from the current page and
+   * load a clean, distraction-free rendering of it (as a data: URL, so the
+   * normal Back button returns to the original page).
+   */
+  async enterReaderMode(id: TabId): Promise<boolean> {
+    const tab = this.tabs.get(id);
+    if (!tab) return false;
+    const wc = tab.view.webContents;
+    if (!isAlive(wc)) return false;
+    const pageUrl = wc.getURL();
+    if (!pageUrl.startsWith('http://') && !pageUrl.startsWith('https://')) return false;
+
+    const extractJs = `(function(){
+      try {
+        var candidates = [];
+        var sels = ['article', 'main', '[role="main"]', '#content', '.post-content', '.article-body', '.entry-content', 'body'];
+        for (var i = 0; i < sels.length; i++) {
+          var els = document.querySelectorAll(sels[i]);
+          for (var j = 0; j < els.length; j++) candidates.push(els[j]);
+        }
+        var best = null, bestLen = 0;
+        for (var k = 0; k < candidates.length; k++) {
+          var len = (candidates[k].innerText || '').length;
+          if (len > bestLen) { bestLen = len; best = candidates[k]; }
+          if (candidates[k].tagName === 'ARTICLE' && len > 500) { best = candidates[k]; break; }
+        }
+        if (!best || bestLen < 200) return null;
+        var clone = best.cloneNode(true);
+        var strip = clone.querySelectorAll('script,style,noscript,iframe,form,button,input,select,textarea,nav,aside,footer,header,svg,video,audio,[role="navigation"],[role="banner"],[aria-hidden="true"]');
+        for (var s = strip.length - 1; s >= 0; s--) strip[s].remove();
+        var all = clone.querySelectorAll('*');
+        for (var a = 0; a < all.length; a++) {
+          var el = all[a];
+          var attrs = el.attributes;
+          for (var b = attrs.length - 1; b >= 0; b--) {
+            var name = attrs[b].name.toLowerCase();
+            if (name.indexOf('on') === 0 || name === 'style' || name === 'class' || name === 'id') el.removeAttribute(attrs[b].name);
+          }
+          if (el.tagName === 'A') {
+            var href = el.getAttribute('href') || '';
+            if (/^\\s*javascript:/i.test(href)) el.removeAttribute('href');
+            else { try { el.setAttribute('href', new URL(href, location.href).href); } catch (e) { el.removeAttribute('href'); } }
+          }
+          if (el.tagName === 'IMG') {
+            var src = el.getAttribute('src') || '';
+            try { el.setAttribute('src', new URL(src, location.href).href); } catch (e) { el.remove(); }
+          }
+        }
+        return { title: document.title || '', content: clone.innerHTML, host: location.hostname };
+      } catch (e) { return null; }
+    })()`;
+
+    let extracted: { title: string; content: string; host: string } | null = null;
+    try {
+      extracted = await wc.executeJavaScript(extractJs, true) as { title: string; content: string; host: string } | null;
+    } catch {
+      extracted = null;
+    }
+    if (!extracted || !extracted.content) return false;
+
+    const escapeHtml = (s: string): string =>
+      s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+    const html = `<!doctype html><html><head><meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src http: https: data:; style-src 'unsafe-inline'">
+<title>${escapeHtml(extracted.title)}</title>
+<style>
+  :root { color-scheme: light dark; }
+  body { margin: 0; background: #f7f5f0; color: #1c1b1a; font: 19px/1.7 Georgia, 'Times New Roman', serif; }
+  @media (prefers-color-scheme: dark) { body { background: #17171c; color: #e6e2da; } a { color: #8ab4ff; } .rm-meta { color: #9b97a8 !important; } }
+  .rm-wrap { max-width: 680px; margin: 0 auto; padding: 48px 24px 80px; }
+  .rm-meta { font: 13px/1.5 -apple-system, 'Segoe UI', sans-serif; color: #77716a; letter-spacing: .4px; text-transform: uppercase; margin-bottom: 8px; }
+  h1.rm-title { font-size: 34px; line-height: 1.25; margin: 0 0 28px; }
+  img { max-width: 100%; height: auto; border-radius: 6px; }
+  pre { overflow-x: auto; background: rgba(128,128,128,.12); padding: 12px; border-radius: 6px; font-size: 14px; }
+  blockquote { margin: 0; padding-left: 18px; border-left: 3px solid rgba(128,128,128,.4); }
+  a { color: #2f5cc4; }
+</style></head><body><div class="rm-wrap">
+<div class="rm-meta">Reader mode · ${escapeHtml(extracted.host)}</div>
+<h1 class="rm-title">${escapeHtml(extracted.title)}</h1>
+${extracted.content}
+</div></body></html>`;
+
+    try {
+      await wc.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(html)}`);
+      return true;
+    } catch {
+      return false;
     }
   }
 

@@ -6,7 +6,7 @@
  * importing better-sqlite3 (which requires native bindings).
  */
 
-export const SCHEMA_VERSION = 8;
+export const SCHEMA_VERSION = 9;
 
 export const CREATE_TABLES_SQL = `
 PRAGMA journal_mode = WAL;
@@ -187,6 +187,14 @@ CREATE TABLE IF NOT EXISTS reading_list (
 
 CREATE INDEX IF NOT EXISTS reading_list_url ON reading_list(normalized_url);
 CREATE INDEX IF NOT EXISTS reading_list_is_read ON reading_list(is_read);
+
+CREATE TABLE IF NOT EXISTS sessions (
+  id         TEXT PRIMARY KEY NOT NULL,
+  name       TEXT NOT NULL,
+  snapshot   TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);
 `;
 
 /**
@@ -222,6 +230,15 @@ export const MIGRATION_SQL: Record<number, string> = {
   `,
   8: `
     ALTER TABLE sync_queue ADD COLUMN profile_id TEXT;
+  `,
+  9: `
+    CREATE TABLE IF NOT EXISTS sessions (
+      id         TEXT PRIMARY KEY NOT NULL,
+      name       TEXT NOT NULL,
+      snapshot   TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
   `,
 };
 
@@ -268,6 +285,7 @@ export const PREFERENCE_KEYS = {
   SPELLCHECK_ENABLED: 'spellcheck_enabled',
   TRANSLATE_TARGET_LANG: 'translate_target_lang',
   EXTENSION_PATHS: 'extension_paths',
+  CLEAN_EXIT: 'clean_exit',
 } as const;
 
 export type PreferenceKey = typeof PREFERENCE_KEYS[keyof typeof PREFERENCE_KEYS];

@@ -697,6 +697,41 @@ export function clearAllSitePermissions(): void {
   db.prepare('DELETE FROM site_permissions').run();
 }
 
+// ── Named sessions ───────────────────────────────────────────────────────────
+
+export interface NamedSessionRow {
+  id: string;
+  name: string;
+  snapshot: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export function listNamedSessions(): NamedSessionRow[] {
+  const db = getDb();
+  return db.prepare('SELECT * FROM sessions ORDER BY updated_at DESC').all() as NamedSessionRow[];
+}
+
+export function getNamedSession(id: string): NamedSessionRow | null {
+  const db = getDb();
+  return (db.prepare('SELECT * FROM sessions WHERE id = ?').get(id) as NamedSessionRow | undefined) ?? null;
+}
+
+export function saveNamedSession(id: string, name: string, snapshot: string): void {
+  const db = getDb();
+  const now = new Date().toISOString();
+  db.prepare(`
+    INSERT INTO sessions(id, name, snapshot, created_at, updated_at)
+    VALUES(?, ?, ?, ?, ?)
+    ON CONFLICT(id) DO UPDATE SET name = excluded.name, snapshot = excluded.snapshot, updated_at = excluded.updated_at
+  `).run(id, name, snapshot, now, now);
+}
+
+export function deleteNamedSession(id: string): void {
+  const db = getDb();
+  db.prepare('DELETE FROM sessions WHERE id = ?').run(id);
+}
+
 // ── Reading list ─────────────────────────────────────────────────────────────
 
 export interface ReadingListEntry {

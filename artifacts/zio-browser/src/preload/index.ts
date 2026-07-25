@@ -285,6 +285,18 @@ const api = {
       ipcRenderer.invoke('permissions:respond', requestId, decision, remember, origin, permission),
   },
 
+  // ── Named sessions (save / restore sets of tabs) ─────────────────────────
+  sessions: {
+    /** List saved named sessions (id, name, tabCount, updated_at). */
+    list: () => ipcRenderer.invoke('sessions:list') as Promise<Array<{ id: string; name: string; tabCount: number; updated_at: string }>>,
+    /** Save the current window's open tabs under a name. */
+    save: (name: string) => ipcRenderer.invoke('sessions:save', name) as Promise<boolean>,
+    /** Reopen a saved session's tabs in this window. */
+    restore: (id: string) => ipcRenderer.invoke('sessions:restore', id) as Promise<boolean>,
+    /** Delete a saved session. */
+    remove: (id: string) => ipcRenderer.invoke('sessions:delete', id) as Promise<boolean>,
+  },
+
   // ── Audio policy (per-domain mute memory + global mute) ──────────────────
   audio: {
     /** List all hosts with a stored "muted" preference. */
@@ -343,6 +355,8 @@ const api = {
       'permission:request',
       // Tracker blocking count updates
       'tracker:blocked-count',
+      // Generic message toast (e.g. "Reader mode isn't available")
+      'toast:show',
     ]);
     if (!ALLOWED_CHANNELS.has(channel)) return;
     ipcRenderer.on(channel, (_, ...args) => listener(...args));

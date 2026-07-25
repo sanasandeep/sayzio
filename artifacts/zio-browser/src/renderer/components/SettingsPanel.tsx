@@ -9,7 +9,7 @@ interface Props {
   onClose: () => void;
 }
 
-type SettingsTab = 'general' | 'passwords' | 'extensions';
+type SettingsTab = 'general' | 'sessions' | 'passwords' | 'extensions';
 
 const TRANSLATE_LANGS: Array<{ code: string; label: string }> = [
   { code: 'en', label: 'English' },
@@ -65,7 +65,7 @@ export function SettingsPanel({ onClose }: Props) {
         borderBottom: '1px solid var(--color-border)',
         flexShrink: 0,
       }}>
-        {([['general', 'General'], ['passwords', 'Passwords'], ['extensions', 'Extensions']] as Array<[SettingsTab, string]>).map(([key, label]) => (
+        {([['general', 'General'], ['sessions', 'Sessions'], ['passwords', 'Passwords'], ['extensions', 'Extensions']] as Array<[SettingsTab, string]>).map(([key, label]) => (
           <button
             key={key}
             onClick={() => setTab(key)}
@@ -86,6 +86,7 @@ export function SettingsPanel({ onClose }: Props) {
       {/* Content */}
       <div style={{ flex: 1, overflowY: 'auto' }}>
         {tab === 'general' && <GeneralSection />}
+        {tab === 'sessions' && <SessionsSection />}
         {tab === 'passwords' && <PasswordsSection />}
         {tab === 'extensions' && <ExtensionsSection />}
       </div>
@@ -174,6 +175,155 @@ function GeneralSection() {
         >
           <Toggle checked={trackerEnabled} onChange={() => void toggleTracker()} />
         </SettingRow>
+      )}
+    </div>
+  );
+}
+
+// ── Sessions ──────────────────────────────────────────────────────────────────
+
+interface NamedSessionRow {
+  id: string;
+  name: string;
+  tabCount: number;
+  updated_at: string;
+}
+
+function SessionsSection() {
+  const [rows, setRows] = useState<NamedSessionRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [name, setName] = useState('');
+  const [note, setNote] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    try {
+      const list = await window.zio.sessions.list();
+      setRows(Array.isArray(list) ? list : []);
+    } catch {
+      setRows([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { void load(); }, [load]);
+
+  const saveCurrent = useCallback(async () => {
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    setNote(null);
+    try {
+      const ok = await window.zio.sessions.save(trimmed);
+      if (ok) {
+        setName('');
+        setNote('Session saved.');
+        void load();
+      } else {
+        setNote('Nothing to save — open some tabs first.');
+      }
+    } catch {
+      setNote('Could not save the session.');
+    }
+  }, [name, load]);
+
+  const restore = useCallback(async (id: string) => {
+    setNote(null);
+    try {
+      const ok = await window.zio.sessions.restore(id);
+      setNote(ok ? 'Tabs reopened.' : 'Could not restore that session.');
+    } catch {
+      setNote('Could not restore that session.');
+    }
+  }, []);
+
+  const remove = useCallback(async (id: string) => {
+    try {
+      await window.zio.sessions.remove(id);
+      setRows(prev => prev.filter(r => r.id !== id));
+    } catch { /* keep the row on failure */ }
+  }, []);
+
+  const btnStyle: React.CSSProperties = {
+    fontSize: 11,
+    fontWeight: 600,
+    padding: '3px 8px',
+    borderRadius: 6,
+    border: '1px solid var(--color-border)',
+    background: 'var(--color-bg-elevated)',
+    color: 'var(--color-text)',
+  };
+
+  return (
+    <div style={{ padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <div style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>
+        Save the tabs you have open now as a named session, then reopen them any time.
+      </div>
+
+      <div style={{ display: 'flex', gap: 6 }}>
+        <input
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          onKeyDown={(e) => { if (e.key === 'Enter') void saveCurrent(); }}
+          placeholder="Session name (e.g. Work, Research)"
+          style={{
+            flex: 1,
+            fontSize: 12,
+            padding: '6px 10px',
+            borderRadius: 8,
+            background: 'var(--color-bg-elevated)',
+            color: 'var(--color-text)',
+            border: '1px solid var(--color-border)',
+          }}
+        />
+        <button
+          onClick={() => void saveCurrent()}
+          disabled={!name.trim()}
+          style={{
+            ...btnStyle,
+            background: name.trim() ? 'var(--color-primary)' : 'var(--color-bg-elevated)',
+            color: name.trim() ? '#fff' : 'var(--color-text-muted)',
+          }}
+        >Save tabs</button>
+      </div>
+
+      {note && <div style={{ fontSize: 11, color: 'var(--color-text-muted)' }}>{note}</div>}
+
+      {loading ? (
+        <div style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>Loading…</div>
+      ) : rows.length === 0 ? (
+        <div style={{ fontSize: 12, color: 'var(--color-text-muted)' }}>No saved sessions yet.</div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {rows.map(row => (
+            <div
+              key={row.id}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                padding: '8px 10px',
+                borderRadius: 8,
+                border: '1px solid var(--color-border)',
+                background: 'var(--color-bg-elevated)',
+              }}
+            >
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 12, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {row.name}
+                </div>
+                <div style={{ fontSize: 11, color: 'var(--color-text-muted)' }}>
+                  {row.tabCount} {row.tabCount === 1 ? 'tab' : 'tabs'}
+                </div>
+              </div>
+              <button onClick={() => void restore(row.id)} style={btnStyle} title="Reopen these tabs">Open</button>
+              <button
+                onClick={() => void remove(row.id)}
+                style={{ ...btnStyle, color: 'var(--color-danger, #e5484d)' }}
+                title="Delete this session"
+              >✕</button>
+            </div>
+          ))}
+        </div>
       )}
     </div>
   );
@@ -323,6 +473,7 @@ interface ExtensionRow {
   version: string;
   path: string;
   builtin?: boolean;
+  missing?: boolean;
 }
 
 function ExtensionsSection() {
@@ -415,13 +566,25 @@ function ExtensionsSection() {
           padding: '8px 16px',
           borderBottom: '1px solid var(--color-border)',
         }}>
-          <span style={{ fontSize: 16, flexShrink: 0 }}>🧩</span>
+          <span style={{ fontSize: 16, flexShrink: 0, opacity: ext.missing ? 0.5 : 1 }}>🧩</span>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{
-              fontSize: 13, fontWeight: 600, color: 'var(--color-text)',
+              fontSize: 13, fontWeight: 600, color: ext.missing ? 'var(--color-text-muted)' : 'var(--color-text)',
               overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
             }}>
-              {ext.name} <span style={{ fontWeight: 400, color: 'var(--color-text-muted)' }}>v{ext.version}</span>
+              {ext.name}{!ext.missing && <span style={{ fontWeight: 400, color: 'var(--color-text-muted)' }}> v{ext.version}</span>}
+              {ext.missing && (
+                <span style={{
+                  marginLeft: 6,
+                  fontSize: 9,
+                  fontWeight: 700,
+                  padding: '1px 6px',
+                  borderRadius: 6,
+                  background: 'var(--color-danger, #e5484d)',
+                  color: '#fff',
+                  verticalAlign: 'middle',
+                }}>MISSING</span>
+              )}
               {ext.builtin && (
                 <span style={{
                   marginLeft: 6,
@@ -438,7 +601,7 @@ function ExtensionsSection() {
             <div style={{
               fontSize: 10, color: 'var(--color-text-muted)', marginTop: 1,
               overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-            }}>{ext.builtin ? 'Ships with Zio Browser' : ext.path}</div>
+            }}>{ext.builtin ? 'Ships with Zio Browser' : ext.missing ? `Folder not found: ${ext.path}` : ext.path}</div>
           </div>
           {!ext.builtin && (
             <button

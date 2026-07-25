@@ -9,6 +9,7 @@
 import { app, ipcMain, shell, dialog, clipboard, nativeTheme, BrowserWindow, session, nativeImage } from 'electron';
 import * as fs from 'fs';
 import * as path from 'path';
+import { randomUUID } from 'crypto';
 import type { TabManager } from './tab-manager';
 import type { TabMode } from '../shared/window-mode';
 import type { WindowModeManager } from './window-mode-manager';
@@ -63,6 +64,10 @@ import {
   setSitePermission,
   revokeSitePermission,
   clearAllSitePermissions,
+  listNamedSessions,
+  getNamedSession,
+  saveNamedSession,
+  deleteNamedSession,
   addToReadingList,
   isInReadingList,
   getReadingList,
@@ -182,6 +187,17 @@ function senderIsPrivate(event: Electron.IpcMainInvokeEvent): boolean {
 let _handlersRegistered = false;
 
 /**
+ * Callback invoked after auth:clear (logout). Set by main/index.ts to close
+ * every open window and open one fresh logged-out window. Registered via a
+ * setter to avoid a circular import between index.ts and this module.
+ */
+let _logoutHandler: (() => void) | null = null;
+
+export function setLogoutHandler(fn: () => void): void {
+  _logoutHandler = fn;
+}
+
+/**
  * Register all IPC handlers.  Must be called exactly once after the first
  * (normal) BrowserWindow has been created.  Private windows reuse the same
  * global handlers; per-window routing is done via event.sender.
@@ -220,7 +236,13 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
   // ── Auth ─────────────────────────────────────────────────────────────────
   ipcMain.handle('auth:store-token', (_, token: string) => { storeToken(token); return true; });
   ipcMain.handle('auth:get-token', () => retrieveToken());
-  ipcMain.handle('auth:clear', () => { clearToken(); clearUser(); clearSayzioLinksCache(); return true; });
+  ipcMain.handle('auth:clear', () => {
+    clearToken(); clearUser(); clearSayzioLinksCache();
+    // Logout closes every window and opens a single fresh (logged-out) one.
+    // Deferred so the renderer's invoke() resolves before its window closes.
+    if (_logoutHandler) setTimeout(() => _logoutHandler?.(), 50);
+    return true;
+  });
   ipcMain.handle('auth:store-user', (_, user: Record<string, unknown>) => { storeUser(user); return true; });
   ipcMain.handle('auth:get-user', () => retrieveUser());
 
@@ -1098,6 +1120,70 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
   ipcMain.handle('permissions:respond', (_, requestId: string, decision: 'allow' | 'block', remember: boolean, origin: string, permission: string) => {
     resolvePermissionRequest(requestId, decision, remember, origin, permission);
     return true;
+  });
+
+  // ── Named sessions (save / restore sets of tabs) ─────────────────────────
+  ipcMain.handle('sessions:list', (event) => {
+    if (senderIsPrivate(event)) return [];
+    try {
+      return listNamedSessions().map(row => {
+        let tabCount = 0;
+        try {
+          const snap = JSON.parse(row.snapshot) as { urls?: unknown };
+          if (Array.isArray(snap?.urls)) tabCount = snap.urls.length;
+        } catch { /* corrupt snapshot — show 0 tabs */ }
+        return { id: row.id, name: row.name, tabCount, updated_at: row.updated_at };
+      });
+    } catch {
+      return [];
+    }
+  });
+  ipcMain.handle('sessions:save', (event, name: string) => {
+    if (senderIsPrivate(event)) return false;
+    const tm = resolveTabManager(event);
+    if (!tm) return false;
+    const trimmed = (name ?? '').trim().slice(0, 80);
+    if (!trimmed) return false;
+    const snapshot = tm.getSessionSnapshot();
+    if (snapshot.urls.length === 0) return false;
+    try {
+      saveNamedSession(randomUUID(), trimmed, JSON.stringify(snapshot));
+      return true;
+    } catch {
+      return false;
+    }
+  });
+  ipcMain.handle('sessions:restore', (event, id: string) => {
+    if (senderIsPrivate(event)) return false;
+    const tm = resolveTabManager(event);
+    if (!tm) return false;
+    let row;
+    try {
+      row = getNamedSession(id);
+    } catch {
+      return false;
+    }
+    if (!row) return false;
+    try {
+      const snap = JSON.parse(row.snapshot) as { urls?: unknown; activeIndex?: unknown };
+      const urls = Array.isArray(snap?.urls)
+        ? snap.urls.filter((u): u is string => typeof u === 'string' && u.length > 0)
+        : [];
+      if (urls.length === 0) return false;
+      tm.restoreSessionTabs(urls, typeof snap?.activeIndex === 'number' ? snap.activeIndex : -1);
+      return true;
+    } catch {
+      return false;
+    }
+  });
+  ipcMain.handle('sessions:delete', (event, id: string) => {
+    if (senderIsPrivate(event)) return false;
+    try {
+      deleteNamedSession(id);
+      return true;
+    } catch {
+      return false;
+    }
   });
 
   // ── Tracker blocking ──────────────────────────────────────────────────────

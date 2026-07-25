@@ -18,7 +18,12 @@ export interface ExtensionInfo {
   path: string;
   /** True for the bundled Sayzio extension — always on, cannot be removed. */
   builtin?: boolean;
+  /** True when the stored extension folder no longer exists on disk. */
+  missing?: boolean;
 }
+
+/** Stored extension dirs that could not be found/loaded at startup. */
+let missingExtensionDirs: string[] = [];
 
 // ── Built-in Sayzio extension ─────────────────────────────────────────────────
 
@@ -101,35 +106,52 @@ export function isExtensionDir(dir: string): boolean {
 }
 
 /**
- * Load all persisted extensions at startup. Silently drops entries whose
- * directory no longer exists (and prunes them from the stored list).
+ * Load all persisted extensions at startup. Entries whose directory no longer
+ * exists are NOT silently dropped — they stay in the stored list and are
+ * surfaced in the extensions panel with a "missing" state so the user can see
+ * what happened and remove them explicitly.
  */
 export async function loadStoredExtensions(): Promise<void> {
   const stored = getStoredExtensionPaths();
+  missingExtensionDirs = [];
   if (stored.length === 0) return;
   const builtinDir = resolveBuiltinExtensionDir();
-  const kept: string[] = [];
   for (const dir of stored) {
-    if (!isExtensionDir(dir)) continue;
     // The bundled extension is loaded separately — never double-load it.
     if (builtinDir && path.resolve(dir) === path.resolve(builtinDir)) continue;
+    if (!isExtensionDir(dir)) {
+      missingExtensionDirs.push(dir);
+      continue;
+    }
     try {
       await session.defaultSession.loadExtension(dir);
-      kept.push(dir);
     } catch (err) {
       console.error(`Failed to load extension at ${dir}:`, err);
+      missingExtensionDirs.push(dir);
     }
   }
-  if (kept.length !== stored.length) storeExtensionPaths(kept);
 }
 
-/** List the currently loaded extensions in the default session. */
+/**
+ * List the currently loaded extensions in the default session, plus any
+ * stored extensions whose folder is missing (marked `missing: true`; their
+ * id is `missing:<path>` so removeExtension can forget them).
+ */
 export function listExtensions(): ExtensionInfo[] {
+  let loaded: ExtensionInfo[] = [];
   try {
-    return session.defaultSession.getAllExtensions().map(toInfo);
+    loaded = session.defaultSession.getAllExtensions().map(toInfo);
   } catch {
-    return [];
+    loaded = [];
   }
+  const missing: ExtensionInfo[] = missingExtensionDirs.map(dir => ({
+    id: `missing:${dir}`,
+    name: path.basename(dir) || dir,
+    version: '',
+    path: dir,
+    missing: true,
+  }));
+  return [...loaded, ...missing];
 }
 
 /**
@@ -154,6 +176,10 @@ export async function addExtensionFromDialog(
     const ext = await session.defaultSession.loadExtension(dir);
     const stored = getStoredExtensionPaths();
     if (!stored.includes(dir)) storeExtensionPaths([...stored, dir]);
+    // A previously "missing" path may have been restored — drop the stale flag.
+    missingExtensionDirs = missingExtensionDirs.filter(
+      d => path.resolve(d) !== path.resolve(dir),
+    );
     return { ok: true, extension: toInfo(ext) };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
@@ -164,6 +190,13 @@ export async function addExtensionFromDialog(
 /** Remove a loaded extension (by id) and forget its stored path. */
 export function removeExtension(id: string): boolean {
   if (builtinExtensionId && id === builtinExtensionId) return false;
+  // Missing entry — just forget the stored path.
+  if (id.startsWith('missing:')) {
+    const dir = id.slice('missing:'.length);
+    missingExtensionDirs = missingExtensionDirs.filter(d => d !== dir);
+    storeExtensionPaths(getStoredExtensionPaths().filter(p => p !== dir));
+    return true;
+  }
   try {
     const ext = session.defaultSession.getExtension(id);
     if (!ext) return false;

@@ -9,6 +9,7 @@ import { SplitLayout } from './components/SplitLayout';
 import { FindBar } from './components/FindBar';
 import { DownloadsPanel } from './components/DownloadsPanel';
 import { DownloadToast } from './components/DownloadToast';
+import { MessageToast } from './components/MessageToast';
 import { DeviceLab } from './components/DeviceLab';
 import { TabSearchPopover } from './components/TabSearchPopover';
 import { ClearDataDialog } from './components/ClearDataDialog';
@@ -586,6 +587,9 @@ export default function App() {
 
       {/* Download started toast — bottom-right, non-blocking */}
       <DownloadToast onOpenDownloads={openDownloadsPanel} />
+
+      {/* Generic message toast (main-process notices) — bottom-center */}
+      <MessageToast />
 
       {authModalOpen && !isPrivate && (
         <AuthModal onClose={() => setAuthModalOpen(false)} />

@@ -223,6 +223,8 @@ function HistorySection({
   const [entries, setEntries] = useState<HistoryEntry[]>([]);
   const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(false);
+  const [groupBySite, setGroupBySite] = useState(false);
+  const [expandedSites, setExpandedSites] = useState<Record<string, boolean>>({});
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const load = useCallback(async (q?: string) => {
@@ -263,6 +265,40 @@ function HistorySection({
     });
   };
 
+  // Group entries by hostname for the "By site" view.
+  const siteGroups: Array<{ site: string; items: HistoryEntry[] }> = [];
+  if (groupBySite) {
+    const map = new Map<string, HistoryEntry[]>();
+    for (const e of entries) {
+      let site = '';
+      try { site = new URL(e.url).hostname.replace(/^www\./, ''); } catch { site = '(other)'; }
+      if (!site) site = '(other)';
+      const list = map.get(site);
+      if (list) list.push(e); else map.set(site, [e]);
+    }
+    for (const [site, items] of map) siteGroups.push({ site, items });
+    siteGroups.sort((a, b) => b.items.length - a.items.length || a.site.localeCompare(b.site));
+  }
+
+  const entryRow = (e: HistoryEntry) => (
+    <div key={e.id} style={listRowStyle}>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: 12, color: 'var(--color-text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {e.title || e.url}
+        </div>
+        <div style={{ fontSize: 10, color: 'var(--color-text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginTop: 1 }}>
+          {e.url}
+        </div>
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2, flexShrink: 0 }}>
+        <span style={{ fontSize: 10, color: 'var(--color-text-muted)' }}>
+          {new Date(e.last_visited).toLocaleDateString()}
+        </span>
+        <button onClick={() => handleDelete(e.id)} style={deleteRowBtn} title="Remove from history">✕</button>
+      </div>
+    </div>
+  );
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
       <div style={{ padding: '8px 12px', display: 'flex', gap: 8, alignItems: 'center' }}>
@@ -272,6 +308,20 @@ function HistorySection({
           placeholder="Search history…"
           style={searchInputStyle}
         />
+        <button
+          onClick={() => setGroupBySite(g => !g)}
+          title={groupBySite ? 'Show as a flat list' : 'Group history by website'}
+          style={{
+            fontSize: 11,
+            fontWeight: 600,
+            padding: '4px 8px',
+            borderRadius: 6,
+            border: '1px solid var(--color-border)',
+            background: groupBySite ? 'var(--color-primary)' : 'var(--color-bg-elevated)',
+            color: groupBySite ? '#fff' : 'var(--color-text-muted)',
+            flexShrink: 0,
+          }}
+        >By site</button>
         <button
           onClick={handleClearAll}
           title="Clear all history"
@@ -284,24 +334,39 @@ function HistorySection({
         {!loading && entries.length === 0 && (
           <EmptyMsg>{query ? 'No results.' : 'No browsing history yet.'}</EmptyMsg>
         )}
-        {entries.map(e => (
-          <div key={e.id} style={listRowStyle}>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 12, color: 'var(--color-text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {e.title || e.url}
-              </div>
-              <div style={{ fontSize: 10, color: 'var(--color-text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginTop: 1 }}>
-                {e.url}
-              </div>
+        {!groupBySite && entries.map(entryRow)}
+        {groupBySite && siteGroups.map(group => {
+          const open = expandedSites[group.site] === true;
+          return (
+            <div key={group.site}>
+              <button
+                onClick={() => setExpandedSites(prev => ({ ...prev, [group.site]: !open }))}
+                style={{
+                  width: '100%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  padding: '7px 12px',
+                  background: 'transparent',
+                  border: 'none',
+                  borderBottom: '1px solid var(--color-border)',
+                  cursor: 'pointer',
+                  textAlign: 'left',
+                }}
+                title={open ? 'Collapse' : 'Show pages from this site'}
+              >
+                <span style={{ fontSize: 10, color: 'var(--color-text-muted)', width: 10 }}>{open ? '▾' : '▸'}</span>
+                <span style={{ flex: 1, fontSize: 12, fontWeight: 600, color: 'var(--color-text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {group.site}
+                </span>
+                <span style={{ fontSize: 10, color: 'var(--color-text-muted)', flexShrink: 0 }}>
+                  {group.items.length} {group.items.length === 1 ? 'page' : 'pages'}
+                </span>
+              </button>
+              {open && group.items.map(entryRow)}
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2, flexShrink: 0 }}>
-              <span style={{ fontSize: 10, color: 'var(--color-text-muted)' }}>
-                {new Date(e.last_visited).toLocaleDateString()}
-              </span>
-              <button onClick={() => handleDelete(e.id)} style={deleteRowBtn} title="Remove from history">✕</button>
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
