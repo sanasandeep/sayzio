@@ -10,6 +10,7 @@ import { app, ipcMain, shell, dialog, clipboard, nativeTheme, BrowserWindow, ses
 import * as fs from 'fs';
 import * as path from 'path';
 import type { TabManager } from './tab-manager';
+import type { TabMode } from '../shared/window-mode';
 import type { WindowModeManager } from './window-mode-manager';
 import { SyncRetryRunner } from './sync-retry';
 import type { SyncEntityKind } from '../shared/sync-engine';
@@ -243,6 +244,12 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
     return true;
   });
   ipcMain.handle('tabs:mute', (event, id: string, muted: boolean) => { resolveTabManager(event)?.muteTab(id, muted); return true; });
+  ipcMain.handle('tabs:set-mode', (event, id: string, mode: string) => {
+    // Private windows are browser-only: no Sayzio/Zio surfaces may be attached.
+    if (senderIsPrivate(event)) return false;
+    resolveTabManager(event)?.setTabMode(id, mode as TabMode);
+    return true;
+  });
   ipcMain.handle('tabs:get-state', (event, id: string) => resolveTabManager(event)?.getTabState(id) ?? null);
   ipcMain.handle('tabs:get-order', (event) => resolveTabManager(event)?.getTabOrder() ?? []);
   ipcMain.handle('tabs:get-active', (event) => resolveTabManager(event)?.getActiveTabId() ?? null);

@@ -50,6 +50,7 @@ const api = {
     find: (id: string, text: string, forward?: boolean, matchCase?: boolean) => ipcRenderer.invoke('tabs:find', id, text, forward, matchCase),
     findStop: (id: string) => ipcRenderer.invoke('tabs:find-stop', id),
     mute: (id: string, muted: boolean) => ipcRenderer.invoke('tabs:mute', id, muted),
+    setMode: (id: string, mode: string) => ipcRenderer.invoke('tabs:set-mode', id, mode),
     getState: (id: string) => ipcRenderer.invoke('tabs:get-state', id),
     getOrder: () => ipcRenderer.invoke('tabs:get-order'),
     getActive: () => ipcRenderer.invoke('tabs:get-active'),

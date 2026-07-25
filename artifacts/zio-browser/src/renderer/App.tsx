@@ -54,7 +54,7 @@ export default function App() {
   } | null>(null);
   const [siteSettingsOpen, setSiteSettingsOpen] = useState(false);
   const [pendingPermission, setPendingPermission] = useState<PendingPermission | null>(null);
-  const { tabs, tabOrder, activeTabId, initTabs, reopenClosedTab } = useTabStore();
+  const { tabs, tabOrder, activeTabId, initTabs, reopenClosedTab, setTabMode } = useTabStore();
   const { init: initAuth, user, token } = useAuthStore();
   const {
     mode,
@@ -414,8 +414,10 @@ export default function App() {
   //   - Docked Zio panel: drag-resizable right pane, tab views resized by main process
   //   - Overlay Zio panel: floating card over the page, tab views full-width
   // ── Browser mode (default; always used for private windows) ───────────────
-  const showDockedPanel = zioPanelOpen && zioPanelDocked && !isPrivate;
-  const showOverlayPanel = zioPanelOpen && !zioPanelDocked && !isPrivate;
+  // A tab in "Ask Zio + Website" split mode forces the docked Zio panel open.
+  const activeTabZioSplit = !isPrivate && (activeTab?.mode ?? 'web') === 'zio-split';
+  const showDockedPanel = (zioPanelOpen && zioPanelDocked && !isPrivate) || activeTabZioSplit;
+  const showOverlayPanel = zioPanelOpen && !zioPanelDocked && !isPrivate && !activeTabZioSplit;
 
   return (
     <div style={{
@@ -509,7 +511,14 @@ export default function App() {
             />
             <ZioPanel
               pageContext={activeTab ? { url: activeTab.url, title: activeTab.title } : null}
-              onClose={() => setZioPanelOpen(false)}
+              onClose={() => {
+                setZioPanelOpen(false);
+                // Closing the panel while the tab is in Ask Zio split mode
+                // returns the tab to plain website mode.
+                if (activeTabZioSplit && activeTabId) {
+                  void setTabMode(activeTabId, 'web');
+                }
+              }}
               presentation="docked"
               panelWidth={zioPanelWidth}
               onSetDocked={(d) => void setZioPanelDocked(d)}
