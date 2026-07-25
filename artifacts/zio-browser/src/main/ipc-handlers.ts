@@ -27,6 +27,8 @@ import {
   getRecentHistory,
   clearHistory,
   clearHistoryByRange,
+  countHistorySince,
+  deleteHistoryByHost,
   deleteHistoryEntry,
   addBookmark,
   removeBookmark,
@@ -44,6 +46,8 @@ import {
   searchDownloads,
   deleteDownload,
   clearAllDownloads,
+  countDownloadsSince,
+  clearDownloadsByRange,
   getSyncState,
   setSyncState,
   enqueueSyncPush,
@@ -86,7 +90,11 @@ import {
   isTrackerBlockingEnabled,
   getBlockedCount,
   resetBlockedCount,
+  getTrackerStats,
+  installTrackerHooks,
 } from './tracker-blocker';
+import { setDoNotTrack, setBlockThirdPartyCookies, installPrivacyHooks } from './privacy';
+import { SEARCH_ENGINES } from '../shared/omnibox';
 import { buildAutofillScript } from '../shared/form-autofill';
 import type { AutofillCard } from '../shared/form-autofill';
 import { storeToken, retrieveToken, clearToken, storeUser, retrieveUser, clearUser } from './auth-store';
@@ -174,12 +182,58 @@ function resolveModeManager(event: Electron.IpcMainInvokeEvent): WindowModeManag
   return modeManagerRegistry.get(win.id) ?? null;
 }
 
+/** Lower-bound ISO timestamp for a browsing-data range ('all' → null). */
+function rangeToSinceIso(range: string): string | null {
+  if (range === 'all') return null;
+  const msMap: Record<string, number> = {
+    '15min': 15 * 60 * 1000,
+    hour: 60 * 60 * 1000,
+    day: 24 * 60 * 60 * 1000,
+    week: 7 * 24 * 60 * 60 * 1000,
+    '4weeks': 28 * 24 * 60 * 60 * 1000,
+  };
+  const ms = msMap[range];
+  return ms ? new Date(Date.now() - ms).toISOString() : null;
+}
+
 /**
  * Return true when the IPC event was sent from a private/incognito window.
  */
 function senderIsPrivate(event: Electron.IpcMainInvokeEvent): boolean {
   const win = BrowserWindow.fromWebContents(event.sender);
   return win !== null && isPrivateWindow(win);
+}
+
+/**
+ * Every persistent session that may hold browsing data: the Electron default
+ * session plus each known profile's partition session. Tabs run in per-profile
+ * partitions, so clear/count/forget operations must cover all of them.
+ */
+function allDataSessions(): Electron.Session[] {
+  const sessions: Electron.Session[] = [session.defaultSession];
+  try {
+    for (const profile of listProfiles()) {
+      const sess = session.fromPartition(sessionPartitionForProfile(profile.id));
+      if (!sessions.includes(sess)) sessions.push(sess);
+    }
+  } catch { /* best-effort — default session is always covered */ }
+  return sessions;
+}
+
+/**
+ * Validate a "forget this site" target host. Rejects anything that is not a
+ * plausible registrable hostname (empty, single-label like "com", bare public
+ * suffixes like "co.uk") so suffix matching cannot wipe data across unrelated
+ * domains.
+ */
+function isValidForgetHost(target: string): boolean {
+  if (!/^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$/.test(target)) return false;
+  const publicSuffixes = new Set([
+    'co.uk', 'org.uk', 'gov.uk', 'ac.uk', 'me.uk', 'net.uk',
+    'com.au', 'net.au', 'org.au', 'co.nz', 'co.jp', 'co.in', 'co.kr', 'co.za',
+    'com.br', 'com.mx', 'com.ar', 'com.cn', 'com.tw', 'com.sg', 'com.hk',
+  ]);
+  return !publicSuffixes.has(target);
 }
 
 // ── Handler registration ─────────────────────────────────────────────────────
@@ -223,7 +277,21 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
 
   // ── Preferences ─────────────────────────────────────────────────────────
   ipcMain.handle('prefs:get', (_, key: PrefKey) => getPreference(key));
-  ipcMain.handle('prefs:set', (_, key: PrefKey, value: string) => { setPreference(key, value); return true; });
+  ipcMain.handle('prefs:set', (_, key: PrefKey, value: string) => {
+    setPreference(key, value);
+    // Apply side-effects for prefs that drive live main-process behaviour.
+    if (key === PREFERENCE_KEYS.SEARCH_ENGINE) {
+      const engine = SEARCH_ENGINES[value];
+      if (engine) {
+        for (const tm of tabManagerRegistry.values()) tm.setSearchEngine(engine);
+      }
+    } else if (key === PREFERENCE_KEYS.DO_NOT_TRACK) {
+      setDoNotTrack(value === '1');
+    } else if (key === PREFERENCE_KEYS.BLOCK_THIRD_PARTY_COOKIES) {
+      setBlockThirdPartyCookies(value === '1');
+    }
+    return true;
+  });
   ipcMain.handle('prefs:all', () => getAllPreferences());
 
   // ── Theme ────────────────────────────────────────────────────────────────
@@ -901,27 +969,26 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
   });
 
   // ── Clear browsing data (with range + type selection) ────────────────────
-  ipcMain.handle('browsing-data:clear', async (_, options: {
-    range: 'hour' | 'day' | 'week' | '4weeks' | 'all';
+  ipcMain.handle('browsing-data:clear', async (event, options: {
+    range: '15min' | 'hour' | 'day' | 'week' | '4weeks' | 'all';
     clearHistory: boolean;
     clearCookies: boolean;
     clearCache: boolean;
+    clearDownloads?: boolean;
+    clearPermissions?: boolean;
   }) => {
+    if (senderIsPrivate(event)) return { ok: false, deletedCount: 0 };
     try {
-      const { range, clearHistory: doHistory, clearCookies: doCookies, clearCache: doCache } = options ?? {};
+      const {
+        range,
+        clearHistory: doHistory,
+        clearCookies: doCookies,
+        clearCache: doCache,
+        clearDownloads: doDownloads,
+        clearPermissions: doPermissions,
+      } = options ?? {};
 
-      // Compute the lower-bound ISO timestamp for range-based clears.
-      const sinceIso: string | null = (() => {
-        if (range === 'all') return null;
-        const msMap: Record<string, number> = {
-          hour: 60 * 60 * 1000,
-          day: 24 * 60 * 60 * 1000,
-          week: 7 * 24 * 60 * 60 * 1000,
-          '4weeks': 28 * 24 * 60 * 60 * 1000,
-        };
-        const ms = msMap[range];
-        return ms ? new Date(Date.now() - ms).toISOString() : null;
-      })();
+      const sinceIso = rangeToSinceIso(range);
 
       let deletedCount = 0;
 
@@ -948,18 +1015,34 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
         }
       }
 
-      // 3. Cookies & site data via Electron session API.
+      // 3. Cookies & site data via Electron session API — across the default
+      // session AND every profile partition session (tabs run in partitions).
       if (doCookies) {
-        await session.defaultSession.clearStorageData({
-          storages: ['cookies', 'localstorage', 'indexdb', 'websql', 'serviceworkers'],
-        });
+        for (const sess of allDataSessions()) {
+          await sess.clearStorageData({
+            storages: ['cookies', 'localstorage', 'indexdb', 'websql', 'serviceworkers'],
+          }).catch(() => {});
+        }
       }
 
       // 4. Cache files.
       if (doCache) {
-        await session.defaultSession.clearStorageData({
-          storages: ['cachestorage', 'shadercache'],
-        });
+        for (const sess of allDataSessions()) {
+          await sess.clearStorageData({
+            storages: ['cachestorage', 'shadercache'],
+          }).catch(() => {});
+          await sess.clearCache().catch(() => {});
+        }
+      }
+
+      // 5. Download records (local list only; downloaded files stay on disk).
+      if (doDownloads) {
+        clearDownloadsByRange(sinceIso);
+      }
+
+      // 6. Site permissions (all — permissions have no timestamps to range on).
+      if (doPermissions) {
+        clearAllSitePermissions();
       }
 
       return { ok: true, deletedCount };
@@ -996,6 +1079,13 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
     if (win) windowProfileRegistry.set(win.id, profileId);
     setPreference('active_profile', profileId);
     resolveTabManager(event)?.setActiveProfilePartition(profileId);
+    // Make sure privacy + tracker-blocking webRequest hooks cover the
+    // newly activated profile session (idempotent per session).
+    try {
+      const sess = session.fromPartition(sessionPartitionForProfile(profileId));
+      installPrivacyHooks(sess);
+      installTrackerHooks(sess);
+    } catch { /* best-effort */ }
     win?.webContents.send('profile:changed', profileId);
     return { ok: true, profileId };
   });
@@ -1018,7 +1108,13 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
     const partition = sessionPartitionForProfile(profileId);
     // Accessing the session via fromPartition creates + registers it.
     const { session: electronSession } = require('electron') as typeof import('electron');
-    void electronSession.fromPartition(partition);
+    const sess = electronSession.fromPartition(partition);
+    // Cover the pre-warmed session with privacy + tracker hooks so protections
+    // apply from the very first request (idempotent per session).
+    try {
+      installPrivacyHooks(sess);
+      installTrackerHooks(sess);
+    } catch { /* best-effort */ }
     return partition;
   });
 
@@ -1210,5 +1306,142 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
   ipcMain.handle('tracker:reset-count', (_, tabId: string) => {
     resetBlockedCount(tabId);
     return true;
+  });
+
+  // ── Privacy Dashboard: weekly tracker stats ───────────────────────────────
+  ipcMain.handle('tracker:stats', (event) => {
+    if (senderIsPrivate(event)) return { weekTotal: 0, todayTotal: 0, byDay: [], topTrackers: [] };
+    try {
+      return getTrackerStats();
+    } catch {
+      return { weekTotal: 0, todayTotal: 0, byDay: [], topTrackers: [] };
+    }
+  });
+
+  // ── Browsing-data counts (for the Delete-browsing-data dialog) ───────────
+  ipcMain.handle('browsing-data:counts', async (event, range: string) => {
+    if (senderIsPrivate(event)) {
+      return { historyCount: 0, cookieCount: 0, cacheBytes: 0, downloadCount: 0, permissionCount: 0 };
+    }
+    const sinceIso = rangeToSinceIso(range);
+    let historyCount = 0;
+    let cookieCount = 0;
+    let cacheBytes = 0;
+    let downloadCount = 0;
+    let permissionCount = 0;
+    try { historyCount = countHistorySince(sinceIso); } catch { /* best-effort */ }
+    try { downloadCount = countDownloadsSince(sinceIso); } catch { /* best-effort */ }
+    try { permissionCount = getAllSitePermissions().length; } catch { /* best-effort */ }
+    for (const sess of allDataSessions()) {
+      try {
+        const cookies = await sess.cookies.get({});
+        cookieCount += cookies.length;
+      } catch { /* best-effort */ }
+      try { cacheBytes += await sess.getCacheSize(); } catch { /* best-effort */ }
+    }
+    return { historyCount, cookieCount, cacheBytes, downloadCount, permissionCount };
+  });
+
+  // ── Forget this site (one-click per-host wipe) ────────────────────────────
+  ipcMain.handle('site:forget', async (event, host: string) => {
+    if (senderIsPrivate(event)) return { ok: false, historyDeleted: 0 };
+    try {
+      const target = String(host ?? '').trim().toLowerCase().replace(/^www\./, '');
+      if (!isValidForgetHost(target)) return { ok: false, historyDeleted: 0 };
+
+      // 1. History (soft-delete + best-effort cloud tombstones on next sync).
+      const deleted = deleteHistoryByHost(target);
+
+      // 2. Cookies for the host and its subdomains, plus local storage /
+      // caches for the origin — across every persistent session.
+      for (const sess of allDataSessions()) {
+        try {
+          const cookies = await sess.cookies.get({});
+          for (const cookie of cookies) {
+            const domain = (cookie.domain ?? '').replace(/^\./, '').toLowerCase();
+            if (domain === target || domain.endsWith('.' + target)) {
+              const url = `${cookie.secure ? 'https' : 'http'}://${domain}${cookie.path ?? '/'}`;
+              await sess.cookies.remove(url, cookie.name).catch(() => {});
+            }
+          }
+        } catch { /* best-effort */ }
+
+        try {
+          await sess.clearStorageData({
+            origin: `https://${target}`,
+            storages: ['cookies', 'localstorage', 'indexdb', 'websql', 'serviceworkers', 'cachestorage'],
+          });
+          await sess.clearStorageData({
+            origin: `http://${target}`,
+            storages: ['cookies', 'localstorage', 'indexdb', 'websql', 'serviceworkers', 'cachestorage'],
+          });
+        } catch { /* best-effort */ }
+      }
+
+      // 4. Site permissions for matching origins.
+      let permissionsRemoved = 0;
+      try {
+        for (const row of getAllSitePermissions()) {
+          try {
+            const h = new URL(row.origin).hostname.toLowerCase();
+            if (h === target || h.endsWith('.' + target)) {
+              revokeSitePermission(row.origin, row.permission);
+              permissionsRemoved++;
+            }
+          } catch { /* skip unparsable origins */ }
+        }
+      } catch { /* best-effort */ }
+
+      // 5. Saved passwords for matching origins.
+      let passwordsRemoved = 0;
+      try {
+        for (const row of getAllSavedPasswords()) {
+          try {
+            const h = new URL(row.origin).hostname.toLowerCase();
+            if (h === target || h.endsWith('.' + target)) {
+              deletePassword(row.id);
+              passwordsRemoved++;
+            }
+          } catch { /* skip unparsable origins */ }
+        }
+      } catch { /* best-effort */ }
+
+      return { ok: true, historyDeleted: deleted.length, permissionsRemoved, passwordsRemoved };
+    } catch {
+      return { ok: false, historyDeleted: 0 };
+    }
+  });
+
+  // ── Safety Check ──────────────────────────────────────────────────────────
+  ipcMain.handle('safety:check', (event) => {
+    const result = {
+      passwords: { total: 0, weak: 0, reused: 0 },
+      permissions: { allowed: 0 },
+      trackerBlocking: false,
+      doNotTrack: false,
+    };
+    if (senderIsPrivate(event)) return result;
+    try {
+      const rows = getAllSavedPasswords();
+      result.passwords.total = rows.length;
+      const seen = new Map<string, number>();
+      for (const row of rows) {
+        try {
+          const plain = decryptPassword(row.password_enc);
+          if (plain === null) continue;
+          if (plain.length > 0 && plain.length < 8) result.passwords.weak++;
+          seen.set(plain, (seen.get(plain) ?? 0) + 1);
+        } catch { /* skip undecryptable rows */ }
+      }
+      for (const count of seen.values()) {
+        if (count > 1) result.passwords.reused += count;
+      }
+    } catch { /* best-effort */ }
+    try {
+      result.permissions.allowed = getAllSitePermissions().filter(r => r.decision === 'allow').length;
+    } catch { /* best-effort */ }
+    try { result.trackerBlocking = isTrackerBlockingEnabled(); } catch { /* best-effort */ }
+    try { result.doNotTrack = getPreference(PREFERENCE_KEYS.DO_NOT_TRACK) === '1'; } catch { /* best-effort */ }
+    return result;
   });
 }

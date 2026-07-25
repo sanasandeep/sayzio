@@ -22,7 +22,8 @@ import {
 import { setupDownloadManager } from './download-manager';
 import { getPrivateSession, registerPrivateWindow } from './private-session';
 import { setupPermissionHandlers } from './permission-handler';
-import { setupTrackerBlocking, resetBlockedCount } from './tracker-blocker';
+import { setupTrackerBlocking, resetBlockedCount, installTrackerHooks } from './tracker-blocker';
+import { setupPrivacyControls, installPrivacyHooks } from './privacy';
 import type { WindowMode } from '../shared/window-mode';
 import { ZIO_PANEL_DIVIDER_WIDTH } from '../shared/window-mode';
 import { setupAutoUpdater } from './auto-updater';
@@ -290,6 +291,21 @@ export function createWindow(): BrowserWindow {
     (wcId) => tabManager?.getTabIdByWebContentsId(wcId) ?? null,
   );
 
+  // Setup privacy controls (Do Not Track header, third-party cookie blocking)
+  setupPrivacyControls(
+    session.defaultSession,
+    (safeGetPreference(PREFERENCE_KEYS.DO_NOT_TRACK) ?? '0') === '1',
+    (safeGetPreference(PREFERENCE_KEYS.BLOCK_THIRD_PARTY_COOKIES) ?? '0') === '1',
+  );
+
+  // Tabs run in per-profile partition sessions (not the default session), so
+  // install the tracker + privacy hooks on the active profile session too.
+  {
+    const profileSession = session.fromPartition(sessionPartitionForProfile(savedProfileId));
+    installTrackerHooks(profileSession);
+    installPrivacyHooks(profileSession);
+  }
+
   win.once('ready-to-show', () => {
     clearTimeout(showFailsafe);
     closeSplash();
@@ -312,8 +328,14 @@ export function createWindow(): BrowserWindow {
         pinnedIds = tabManager?.initPinnedUrls(savedPinnedUrls) ?? [];
       }
 
+      // "On startup" preference: 'continue' (default) restores the previous
+      // session's tabs; 'newtab' always starts fresh (pinned tabs still load).
+      const startupMode = safeGetPreference(PREFERENCE_KEYS.STARTUP_MODE) ?? 'continue';
+
       // Restore the previous session's open tabs (in order, with active tab)
-      const savedSessionJson = safeGetPreference(PREFERENCE_KEYS.SESSION_TABS) ?? '';
+      const savedSessionJson = startupMode === 'newtab'
+        ? ''
+        : (safeGetPreference(PREFERENCE_KEYS.SESSION_TABS) ?? '');
       let sessionUrls: string[] = [];
       let sessionActiveIndex = -1;
       let sessionActivePinnedIndex = -1;

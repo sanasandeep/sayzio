@@ -335,6 +335,39 @@ export function clearHistoryByRange(sinceIso: string | null): HistoryEntry[] {
   return rows;
 }
 
+/** Count non-deleted history entries visited at or after `sinceIso` (all when null). */
+export function countHistorySince(sinceIso: string | null): number {
+  const db = getDb();
+  if (sinceIso) {
+    const row = db.prepare('SELECT COUNT(*) AS n FROM history WHERE deleted = 0 AND last_visited >= ?').get(sinceIso) as { n: number };
+    return row.n;
+  }
+  const row = db.prepare('SELECT COUNT(*) AS n FROM history WHERE deleted = 0').get() as { n: number };
+  return row.n;
+}
+
+/**
+ * Soft-delete every history entry whose URL belongs to `host` (exact host or
+ * any subdomain). Returns the deleted rows so callers can emit sync tombstones.
+ */
+export function deleteHistoryByHost(host: string): HistoryEntry[] {
+  const db = getDb();
+  const now = new Date().toISOString();
+  const all = db.prepare('SELECT * FROM history WHERE deleted = 0').all() as HistoryEntry[];
+  const matches = all.filter((row) => {
+    try {
+      const h = new URL(row.url).hostname.toLowerCase();
+      const target = host.toLowerCase();
+      return h === target || h.endsWith('.' + target);
+    } catch {
+      return false;
+    }
+  });
+  const stmt = db.prepare('UPDATE history SET deleted = 1, updated_at = ? WHERE id = ?');
+  for (const row of matches) stmt.run(now, row.id);
+  return matches;
+}
+
 export function deleteHistoryEntry(id: string): boolean {
   const db = getDb();
   const now = new Date().toISOString();
@@ -889,6 +922,28 @@ export function deleteDownload(id: string): void {
 export function clearAllDownloads(): void {
   const db = getDb();
   db.prepare("DELETE FROM downloads WHERE state IN ('completed', 'interrupted', 'cancelled')").run();
+}
+
+/** Count finished download records created at or after `sinceIso` (all when null). */
+export function countDownloadsSince(sinceIso: string | null): number {
+  const db = getDb();
+  if (sinceIso) {
+    const row = db.prepare("SELECT COUNT(*) AS n FROM downloads WHERE state IN ('completed', 'interrupted', 'cancelled') AND created_at >= ?").get(sinceIso) as { n: number };
+    return row.n;
+  }
+  const row = db.prepare("SELECT COUNT(*) AS n FROM downloads WHERE state IN ('completed', 'interrupted', 'cancelled')").get() as { n: number };
+  return row.n;
+}
+
+/** Delete finished download records created at or after `sinceIso` (all when null). Returns deleted count. */
+export function clearDownloadsByRange(sinceIso: string | null): number {
+  const db = getDb();
+  if (sinceIso) {
+    const res = db.prepare("DELETE FROM downloads WHERE state IN ('completed', 'interrupted', 'cancelled') AND created_at >= ?").run(sinceIso);
+    return res.changes ?? 0;
+  }
+  const res = db.prepare("DELETE FROM downloads WHERE state IN ('completed', 'interrupted', 'cancelled')").run();
+  return res.changes ?? 0;
 }
 
 // ── Saved passwords ──────────────────────────────────────────────────────────

@@ -4,6 +4,8 @@
  * Tracks per-tab blocked request counts and broadcasts updates to the renderer.
  */
 import type { Session, BrowserWindow } from 'electron';
+import { getPreference, setPreference, isDbInitialized } from './db';
+import { PREFERENCE_KEYS } from '../shared/db-schema';
 
 /**
  * Compact, bundled blocklist of well-known tracker and ad-network hostnames.
@@ -62,7 +64,108 @@ let _enabled = false;
 const _blockedCounts: Map<string, number> = new Map();
 let _mainWin: BrowserWindow | null = null;
 let _getTabId: (wcId: number) => string | null = () => null;
-let _handlerInstalled = false;
+const _installedSessions = new WeakSet<Session>();
+
+// ── Persistent weekly tracker stats ──────────────────────────────────────────
+// Shape stored in the TRACKER_STATS preference (JSON):
+//   { "2026-07-25": { "doubleclick.net": 12, ... }, ... }
+// Pruned to the last 7 days. Writes are buffered so a busy page does not
+// hammer SQLite — flush after 20 buffered events or 5 s, whichever first.
+type TrackerStatsMap = Record<string, Record<string, number>>;
+
+let _statsLoaded = false;
+let _stats: TrackerStatsMap = {};
+let _pendingEvents = 0;
+let _flushTimer: NodeJS.Timeout | null = null;
+
+function todayKey(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function pruneStats(stats: TrackerStatsMap): TrackerStatsMap {
+  const cutoff = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  const out: TrackerStatsMap = {};
+  for (const [day, hosts] of Object.entries(stats)) {
+    if (day >= cutoff) out[day] = hosts;
+  }
+  return out;
+}
+
+function loadStats(): void {
+  if (_statsLoaded) return;
+  _statsLoaded = true;
+  if (!isDbInitialized()) return;
+  try {
+    const raw = getPreference(PREFERENCE_KEYS.TRACKER_STATS);
+    if (raw) _stats = pruneStats(JSON.parse(raw) as TrackerStatsMap);
+  } catch {
+    _stats = {};
+  }
+}
+
+function flushStats(): void {
+  if (_flushTimer) { clearTimeout(_flushTimer); _flushTimer = null; }
+  if (_pendingEvents === 0) return;
+  _pendingEvents = 0;
+  if (!isDbInitialized()) return;
+  try {
+    _stats = pruneStats(_stats);
+    setPreference(PREFERENCE_KEYS.TRACKER_STATS, JSON.stringify(_stats));
+  } catch {
+    // Stats are best-effort; never let persistence break blocking.
+  }
+}
+
+function recordBlockedTracker(trackerHost: string): void {
+  loadStats();
+  const day = todayKey();
+  const dayMap = _stats[day] ?? (_stats[day] = {});
+  dayMap[trackerHost] = (dayMap[trackerHost] ?? 0) + 1;
+  _pendingEvents += 1;
+  if (_pendingEvents >= 20) {
+    flushStats();
+  } else if (!_flushTimer) {
+    _flushTimer = setTimeout(flushStats, 5000);
+    _flushTimer.unref?.();
+  }
+}
+
+/** Aggregated stats for the Privacy Dashboard (last 7 days). */
+export function getTrackerStats(): {
+  weekTotal: number;
+  todayTotal: number;
+  byDay: Array<{ day: string; count: number }>;
+  topTrackers: Array<{ host: string; count: number }>;
+} {
+  loadStats();
+  flushStats();
+  const stats = pruneStats(_stats);
+  const byDay: Array<{ day: string; count: number }> = [];
+  const hostTotals: Record<string, number> = {};
+  let weekTotal = 0;
+  // Emit the last 7 calendar days, oldest → newest, including zero days.
+  for (let i = 6; i >= 0; i--) {
+    const day = new Date(Date.now() - i * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+    const hosts = stats[day] ?? {};
+    let count = 0;
+    for (const [host, n] of Object.entries(hosts)) {
+      count += n;
+      hostTotals[host] = (hostTotals[host] ?? 0) + n;
+    }
+    weekTotal += count;
+    byDay.push({ day, count });
+  }
+  const topTrackers = Object.entries(hostTotals)
+    .map(([host, count]) => ({ host, count }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 8);
+  return {
+    weekTotal,
+    todayTotal: byDay[byDay.length - 1]?.count ?? 0,
+    byDay,
+    topTrackers,
+  };
+}
 
 /**
  * Call once at startup to wire up the webRequest handler.
@@ -78,9 +181,17 @@ export function setupTrackerBlocking(
   _mainWin = win;
   _getTabId = getTabIdForWcId;
   _enabled = initialEnabled;
+  installTrackerHooks(sess);
+}
 
-  if (_handlerInstalled) return;
-  _handlerInstalled = true;
+/**
+ * Idempotently install the blocking webRequest hook on a session. Call this
+ * for every session that carries tab traffic (default session + each profile
+ * partition) so tracker blocking applies everywhere.
+ */
+export function installTrackerHooks(sess: Session): void {
+  if (_installedSessions.has(sess)) return;
+  _installedSessions.add(sess);
 
   sess.webRequest.onBeforeRequest((details, callback) => {
     if (!_enabled) {
@@ -111,6 +222,12 @@ export function setupTrackerBlocking(
     }
 
     if (blocked) {
+      try {
+        const raw = new URL(details.url).hostname;
+        recordBlockedTracker(raw.startsWith('www.') ? raw.slice(4) : raw);
+      } catch {
+        // best-effort stats only
+      }
       const wcId = details.webContentsId;
       if (wcId !== undefined) {
         const tabId = _getTabId(wcId);

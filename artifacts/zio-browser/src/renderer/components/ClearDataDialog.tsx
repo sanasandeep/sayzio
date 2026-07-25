@@ -1,23 +1,42 @@
 /**
- * ClearDataDialog — modal dialog for "Clear browsing data".
+ * ClearDataDialog — modal dialog for "Delete browsing data".
  *
- * Time ranges: last hour / 24 h / 7 days / 4 weeks / all time.
- * Data types:  history, cookies & site data, cached files.
+ * Time ranges: last 15 min / hour / 24 h / 7 days / 4 weeks / all time.
+ * Data types:  history, cookies & site data, cached files, download history,
+ *              site permissions — each with a live count/size for the range.
  *
  * Clearing history also emits tombstones through the sync pipeline so the
  * wipe propagates to other devices (handled in the main process).
  */
 import { useState, useEffect, useCallback, useRef } from 'react';
 
-export type ClearRange = 'hour' | 'day' | 'week' | '4weeks' | 'all';
+export type ClearRange = '15min' | 'hour' | 'day' | 'week' | '4weeks' | 'all';
 
 const RANGES: { value: ClearRange; label: string }[] = [
+  { value: '15min',  label: 'Last 15 minutes' },
   { value: 'hour',   label: 'Last hour' },
   { value: 'day',    label: 'Last 24 hours' },
   { value: 'week',   label: 'Last 7 days' },
   { value: '4weeks', label: 'Last 4 weeks' },
   { value: 'all',    label: 'All time' },
 ];
+
+interface BrowsingDataCounts {
+  historyCount: number;
+  cookieCount: number;
+  cacheBytes: number;
+  downloadCount: number;
+  permissionCount: number;
+}
+
+function formatBytes(bytes: number): string {
+  if (!bytes || bytes <= 0) return '0 B';
+  const units = ['B', 'KB', 'MB', 'GB'];
+  let i = 0;
+  let v = bytes;
+  while (v >= 1024 && i < units.length - 1) { v /= 1024; i++; }
+  return `${v >= 10 || i === 0 ? Math.round(v) : v.toFixed(1)} ${units[i]}`;
+}
 
 interface Props {
   onClose: () => void;
@@ -31,13 +50,26 @@ export function ClearDataDialog({ onClose, onCleared }: Props) {
   const [clearHistory, setClearHistory] = useState(true);
   const [clearCookies, setClearCookies] = useState(true);
   const [clearCache, setClearCache] = useState(true);
+  const [clearDownloads, setClearDownloads] = useState(false);
+  const [clearPermissions, setClearPermissions] = useState(false);
+  const [counts, setCounts] = useState<BrowsingDataCounts | null>(null);
   const [phase, setPhase] = useState<Phase>('form');
   const [deletedCount, setDeletedCount] = useState(0);
   const overlayRef = useRef<HTMLDivElement>(null);
 
-  const nothingSelected = !clearHistory && !clearCookies && !clearCache;
+  const nothingSelected = !clearHistory && !clearCookies && !clearCache && !clearDownloads && !clearPermissions;
 
   const rangeLabel = RANGES.find(r => r.value === range)?.label ?? '';
+
+  // Per-type counts for the selected range.
+  useEffect(() => {
+    let cancelled = false;
+    setCounts(null);
+    void window.zio.browsingData.counts(range)
+      .then((c: BrowsingDataCounts) => { if (!cancelled) setCounts(c); })
+      .catch(() => { if (!cancelled) setCounts(null); });
+    return () => { cancelled = true; };
+  }, [range]);
 
   const handleConfirm = useCallback(() => {
     setPhase('confirm');
@@ -51,6 +83,8 @@ export function ClearDataDialog({ onClose, onCleared }: Props) {
         clearHistory,
         clearCookies,
         clearCache,
+        clearDownloads,
+        clearPermissions,
       }) as { ok: boolean; deletedCount: number };
       setDeletedCount(result.deletedCount ?? 0);
     } catch {
@@ -58,7 +92,7 @@ export function ClearDataDialog({ onClose, onCleared }: Props) {
     }
     setPhase('done');
     onCleared?.();
-  }, [range, clearHistory, clearCookies, clearCache, onCleared]);
+  }, [range, clearHistory, clearCookies, clearCache, clearDownloads, clearPermissions, onCleared]);
 
   const handleDone = useCallback(() => {
     onClose();
@@ -82,6 +116,24 @@ export function ClearDataDialog({ onClose, onCleared }: Props) {
   if (clearHistory) summaryLines.push('browsing history');
   if (clearCookies) summaryLines.push('cookies & site data');
   if (clearCache) summaryLines.push('cached files');
+  if (clearDownloads) summaryLines.push('download history');
+  if (clearPermissions) summaryLines.push('site permissions');
+
+  const historySub = counts
+    ? `${counts.historyCount} ${counts.historyCount === 1 ? 'entry' : 'entries'} in this range. Also removes synced cloud history.`
+    : 'Local visit log and sync cloud history for the selected period.';
+  const cookiesSub = counts
+    ? `${counts.cookieCount} cookie${counts.cookieCount === 1 ? '' : 's'}. Signs you out of most sites.`
+    : 'Signs you out of most sites.';
+  const cacheSub = counts
+    ? `About ${formatBytes(counts.cacheBytes)}. Sites may load slightly slower next visit.`
+    : 'Frees disk space; sites may load slightly slower next visit.';
+  const downloadsSub = counts
+    ? `${counts.downloadCount} ${counts.downloadCount === 1 ? 'item' : 'items'} in the list. Downloaded files stay on your computer.`
+    : 'Clears the download list. Downloaded files stay on your computer.';
+  const permissionsSub = counts
+    ? `${counts.permissionCount} saved choice${counts.permissionCount === 1 ? '' : 's'}. Sites will ask again.`
+    : 'Resets camera, location and other site choices. Sites will ask again.';
 
   return (
     <div
@@ -100,8 +152,9 @@ export function ClearDataDialog({ onClose, onCleared }: Props) {
     >
       <div
         style={{
-          width: 420,
+          width: 440,
           maxWidth: 'calc(100vw - 32px)',
+          maxHeight: 'calc(100vh - 48px)',
           background: 'var(--color-bg-elevated)',
           border: '1px solid var(--color-border)',
           borderRadius: 14,
@@ -118,9 +171,10 @@ export function ClearDataDialog({ onClose, onCleared }: Props) {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
+          flexShrink: 0,
         }}>
           <h2 style={{ fontSize: 15, fontWeight: 700, color: 'var(--color-text)', margin: 0 }}>
-            Clear browsing data
+            Delete browsing data
           </h2>
           {phase !== 'clearing' && (
             <button
@@ -144,59 +198,76 @@ export function ClearDataDialog({ onClose, onCleared }: Props) {
         </div>
 
         {/* Body */}
-        <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: 18 }}>
+        <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: 18, overflowY: 'auto' }}>
 
           {/* ── FORM phase ── */}
           {(phase === 'form') && (
             <>
-              {/* Time range */}
+              {/* Time range chips */}
               <div>
                 <label style={sectionLabel}>Time range</label>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 2, marginTop: 8 }}>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
                   {RANGES.map(r => (
-                    <label key={r.value} style={radioRow}>
-                      <input
-                        type="radio"
-                        name="range"
-                        value={r.value}
-                        checked={range === r.value}
-                        onChange={() => setRange(r.value)}
-                        style={{ accentColor: 'var(--color-primary)', marginRight: 10 }}
-                      />
-                      <span style={{ fontSize: 13, color: 'var(--color-text)' }}>{r.label}</span>
-                    </label>
+                    <button
+                      key={r.value}
+                      onClick={() => setRange(r.value)}
+                      style={{
+                        fontSize: 12,
+                        fontWeight: 600,
+                        padding: '5px 12px',
+                        borderRadius: 999,
+                        border: `1px solid ${range === r.value ? 'var(--color-primary)' : 'var(--color-border)'}`,
+                        background: range === r.value
+                          ? 'color-mix(in srgb, var(--color-primary) 15%, var(--color-bg))'
+                          : 'var(--color-bg)',
+                        color: range === r.value ? 'var(--color-primary)' : 'var(--color-text)',
+                        transition: 'all 0.12s',
+                      }}
+                    >{r.label}</button>
                   ))}
                 </div>
               </div>
 
               {/* Data types */}
               <div>
-                <label style={sectionLabel}>What to clear</label>
+                <label style={sectionLabel}>What to delete</label>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 8 }}>
                   <CheckRow
                     checked={clearHistory}
                     onChange={setClearHistory}
                     label="Browsing history"
-                    sub="Local visit log and sync cloud history for the selected period."
+                    sub={historySub}
                   />
                   <CheckRow
                     checked={clearCookies}
                     onChange={setClearCookies}
                     label="Cookies & site data"
-                    sub="Signs you out of most sites."
+                    sub={cookiesSub}
                   />
                   <CheckRow
                     checked={clearCache}
                     onChange={setClearCache}
                     label="Cached files"
-                    sub="Frees disk space; sites may load slightly slower next visit."
+                    sub={cacheSub}
+                  />
+                  <CheckRow
+                    checked={clearDownloads}
+                    onChange={setClearDownloads}
+                    label="Download history"
+                    sub={downloadsSub}
+                  />
+                  <CheckRow
+                    checked={clearPermissions}
+                    onChange={setClearPermissions}
+                    label="Site permissions"
+                    sub={permissionsSub}
                   />
                 </div>
               </div>
 
               {nothingSelected && (
                 <p style={{ fontSize: 12, color: 'var(--color-danger, #ef4444)', margin: 0 }}>
-                  Select at least one data type to clear.
+                  Select at least one data type to delete.
                 </p>
               )}
             </>
@@ -212,7 +283,7 @@ export function ClearDataDialog({ onClose, onCleared }: Props) {
                 padding: '14px 16px',
               }}>
                 <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text)', marginBottom: 8 }}>
-                  Confirm clearing
+                  Confirm deletion
                 </p>
                 <p style={{ fontSize: 12, color: 'var(--color-text-muted)', marginBottom: 0 }}>
                   This will permanently delete{' '}
@@ -231,7 +302,7 @@ export function ClearDataDialog({ onClose, onCleared }: Props) {
           {phase === 'clearing' && (
             <div style={{ textAlign: 'center', padding: '12px 0' }}>
               <div style={{ fontSize: 32, marginBottom: 12 }}>🗑</div>
-              <p style={{ fontSize: 13, color: 'var(--color-text-muted)', margin: 0 }}>Clearing data…</p>
+              <p style={{ fontSize: 13, color: 'var(--color-text-muted)', margin: 0 }}>Deleting data…</p>
             </div>
           )}
 
@@ -244,8 +315,8 @@ export function ClearDataDialog({ onClose, onCleared }: Props) {
               </p>
               <p style={{ fontSize: 12, color: 'var(--color-text-muted)', margin: 0 }}>
                 {summaryLines.length > 0
-                  ? `Cleared ${summaryLines.join(', ')}`
-                  : 'Browsing data cleared.'}
+                  ? `Deleted ${summaryLines.join(', ')}`
+                  : 'Browsing data deleted.'}
                 {clearHistory && deletedCount > 0
                   ? ` (${deletedCount} history item${deletedCount === 1 ? '' : 's'} removed)`
                   : ''}.
@@ -262,6 +333,7 @@ export function ClearDataDialog({ onClose, onCleared }: Props) {
             display: 'flex',
             gap: 8,
             justifyContent: 'flex-end',
+            flexShrink: 0,
           }}>
             {phase === 'done' ? (
               <button onClick={handleDone} style={primaryBtn}>
@@ -271,7 +343,7 @@ export function ClearDataDialog({ onClose, onCleared }: Props) {
               <>
                 <button onClick={() => setPhase('form')} style={secondaryBtn}>Back</button>
                 <button onClick={() => void handleClear()} style={dangerBtn}>
-                  Clear data
+                  Delete data
                 </button>
               </>
             ) : (
@@ -340,14 +412,6 @@ const sectionLabel: React.CSSProperties = {
   letterSpacing: '0.06em',
   textTransform: 'uppercase',
   color: 'var(--color-text-muted)',
-};
-
-const radioRow: React.CSSProperties = {
-  display: 'flex',
-  alignItems: 'center',
-  padding: '5px 8px',
-  borderRadius: 6,
-  cursor: 'pointer',
 };
 
 const baseBtn: React.CSSProperties = {

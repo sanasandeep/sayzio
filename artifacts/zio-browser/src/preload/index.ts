@@ -181,11 +181,43 @@ const api = {
   // ── Browsing data ─────────────────────────────────────────────────────────
   browsingData: {
     clear: (options: {
-      range: 'hour' | 'day' | 'week' | '4weeks' | 'all';
+      range: '15min' | 'hour' | 'day' | 'week' | '4weeks' | 'all';
       clearHistory: boolean;
       clearCookies: boolean;
       clearCache: boolean;
+      clearDownloads?: boolean;
+      clearPermissions?: boolean;
     }) => ipcRenderer.invoke('browsing-data:clear', options),
+    counts: (range: '15min' | 'hour' | 'day' | 'week' | '4weeks' | 'all') =>
+      ipcRenderer.invoke('browsing-data:counts', range) as Promise<{
+        historyCount: number;
+        cookieCount: number;
+        cacheBytes: number;
+        downloadCount: number;
+        permissionCount: number;
+      }>,
+  },
+
+  // ── Privacy & safety ──────────────────────────────────────────────────────
+  privacy: {
+    trackerStats: () => ipcRenderer.invoke('tracker:stats') as Promise<{
+      weekTotal: number;
+      todayTotal: number;
+      byDay: Array<{ day: string; count: number }>;
+      topTrackers: Array<{ host: string; count: number }>;
+    }>,
+    safetyCheck: () => ipcRenderer.invoke('safety:check') as Promise<{
+      passwords: { total: number; weak: number; reused: number };
+      permissions: { allowed: number };
+      trackerBlocking: boolean;
+      doNotTrack: boolean;
+    }>,
+    forgetSite: (host: string) => ipcRenderer.invoke('site:forget', host) as Promise<{
+      ok: boolean;
+      historyDeleted: number;
+      permissionsRemoved?: number;
+      passwordsRemoved?: number;
+    }>,
   },
 
   // ── Reading list ──────────────────────────────────────────────────────────

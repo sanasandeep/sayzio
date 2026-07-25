@@ -1,9 +1,9 @@
 /**
- * SettingsPanel — sidebar panel with browser settings.
- * Sections: General (spell check, translation language, tracker blocking),
- * Passwords (saved-password manager), Extensions (unpacked extension loader).
+ * SettingsPanel — Chrome-style settings panel with a searchable left nav.
+ * Sections: General, Privacy & Security, Site Settings, Search engine,
+ * On startup, Downloads, Sessions, Passwords, Extensions, Shortcuts.
  */
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { ClearDataDialog } from './ClearDataDialog';
 import { KEYBOARD_SHORTCUTS } from '../../shared/command-palette';
 
@@ -11,7 +11,17 @@ interface Props {
   onClose: () => void;
 }
 
-type SettingsTab = 'general' | 'sessions' | 'passwords' | 'extensions' | 'shortcuts';
+type SectionId =
+  | 'general'
+  | 'privacy'
+  | 'sites'
+  | 'search'
+  | 'startup'
+  | 'downloads'
+  | 'sessions'
+  | 'passwords'
+  | 'extensions'
+  | 'shortcuts';
 
 type ThemeMode = 'system' | 'dark' | 'light';
 
@@ -35,12 +45,45 @@ const TRANSLATE_LANGS: Array<{ code: string; label: string }> = [
   { code: 'ru', label: 'Russian' },
 ];
 
+/** Nav entries with search keywords so the filter box can find sections. */
+const SECTIONS: Array<{ id: SectionId; icon: string; label: string; keywords: string }> = [
+  { id: 'general', icon: '⚙️', label: 'General', keywords: 'appearance theme dark light spell check translate language' },
+  { id: 'privacy', icon: '🛡️', label: 'Privacy & Security', keywords: 'tracker blocking do not track cookies clear browsing data delete safety check forget site dashboard privacy' },
+  { id: 'sites', icon: '🌐', label: 'Site Settings', keywords: 'permissions camera microphone location notifications allow block sites' },
+  { id: 'search', icon: '🔍', label: 'Search engine', keywords: 'google bing duckduckgo brave default search address bar' },
+  { id: 'startup', icon: '🚀', label: 'On startup', keywords: 'startup launch continue restore tabs new tab open' },
+  { id: 'downloads', icon: '⬇️', label: 'Downloads', keywords: 'download folder location save files ask' },
+  { id: 'sessions', icon: '🗂️', label: 'Sessions', keywords: 'saved sessions tabs restore named workspace' },
+  { id: 'passwords', icon: '🔑', label: 'Passwords', keywords: 'saved passwords credentials sign in autofill' },
+  { id: 'extensions', icon: '🧩', label: 'Extensions', keywords: 'chrome extensions unpacked addons plugins' },
+  { id: 'shortcuts', icon: '⌨️', label: 'Shortcuts', keywords: 'keyboard shortcuts hotkeys command palette keys' },
+];
+
 export function SettingsPanel({ onClose }: Props) {
-  const [tab, setTab] = useState<SettingsTab>('general');
+  const [section, setSection] = useState<SectionId>('general');
+  const [query, setQuery] = useState('');
+
+  const visibleSections = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return SECTIONS;
+    return SECTIONS.filter(s =>
+      s.label.toLowerCase().includes(q) || s.keywords.includes(q),
+    );
+  }, [query]);
+
+  // If the current section is filtered out, jump to the first visible one.
+  useEffect(() => {
+    if (visibleSections.length > 0 && !visibleSections.some(s => s.id === section)) {
+      setSection(visibleSections[0].id);
+    }
+  }, [visibleSections, section]);
+
+  const active = SECTIONS.find(s => s.id === section);
 
   return (
     <div style={{
-      width: 340,
+      width: 640,
+      maxWidth: '100%',
       height: '100%',
       background: 'var(--color-bg-surface)',
       borderLeft: '1px solid var(--color-border)',
@@ -66,39 +109,90 @@ export function SettingsPanel({ onClose }: Props) {
         >✕</button>
       </div>
 
-      {/* Tabs */}
-      <div style={{
-        display: 'flex',
-        gap: 4,
-        padding: '8px 12px',
-        borderBottom: '1px solid var(--color-border)',
-        flexShrink: 0,
-      }}>
-        {([['general', 'General'], ['sessions', 'Sessions'], ['passwords', 'Passwords'], ['extensions', 'Extensions'], ['shortcuts', 'Shortcuts']] as Array<[SettingsTab, string]>).map(([key, label]) => (
-          <button
-            key={key}
-            onClick={() => setTab(key)}
-            style={{
-              fontSize: 12,
-              fontWeight: 600,
-              padding: '4px 10px',
-              borderRadius: 8,
-              background: tab === key ? 'var(--color-primary)' : 'var(--color-bg-elevated)',
-              color: tab === key ? '#fff' : 'var(--color-text-muted)',
-              border: '1px solid var(--color-border)',
-              transition: 'all 0.12s',
-            }}
-          >{label}</button>
-        ))}
-      </div>
+      {/* Body: left nav + content */}
+      <div style={{ flex: 1, display: 'flex', minHeight: 0 }}>
+        {/* Left nav */}
+        <div style={{
+          width: 168,
+          flexShrink: 0,
+          borderRight: '1px solid var(--color-border)',
+          display: 'flex',
+          flexDirection: 'column',
+          overflow: 'hidden',
+        }}>
+          <div style={{ padding: '10px 10px 6px' }}>
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search settings"
+              style={{
+                width: '100%',
+                fontSize: 12,
+                padding: '5px 8px',
+                borderRadius: 8,
+                background: 'var(--color-bg-elevated)',
+                color: 'var(--color-text)',
+                border: '1px solid var(--color-border)',
+                boxSizing: 'border-box',
+              }}
+            />
+          </div>
+          <div style={{ flex: 1, overflowY: 'auto', padding: '2px 6px 10px' }}>
+            {visibleSections.length === 0 && (
+              <div style={{ fontSize: 11, color: 'var(--color-text-muted)', padding: '8px 6px' }}>
+                No matching settings.
+              </div>
+            )}
+            {visibleSections.map(s => (
+              <button
+                key={s.id}
+                onClick={() => setSection(s.id)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  width: '100%',
+                  textAlign: 'left',
+                  fontSize: 12,
+                  fontWeight: section === s.id ? 700 : 500,
+                  padding: '7px 10px',
+                  borderRadius: 8,
+                  marginBottom: 2,
+                  background: section === s.id
+                    ? 'color-mix(in srgb, var(--color-primary) 14%, transparent)'
+                    : 'transparent',
+                  color: section === s.id ? 'var(--color-primary)' : 'var(--color-text)',
+                  border: 'none',
+                }}
+              >
+                <span style={{ fontSize: 13, width: 18, textAlign: 'center' }}>{s.icon}</span>
+                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
 
-      {/* Content */}
-      <div style={{ flex: 1, overflowY: 'auto' }}>
-        {tab === 'general' && <GeneralSection />}
-        {tab === 'sessions' && <SessionsSection />}
-        {tab === 'passwords' && <PasswordsSection />}
-        {tab === 'extensions' && <ExtensionsSection />}
-        {tab === 'shortcuts' && <ShortcutsSection />}
+        {/* Content */}
+        <div style={{ flex: 1, minWidth: 0, overflowY: 'auto' }}>
+          {active && (
+            <div style={{
+              padding: '12px 16px 4px',
+              fontSize: 13,
+              fontWeight: 700,
+              color: 'var(--color-text)',
+            }}>{active.label}</div>
+          )}
+          {section === 'general' && <GeneralSection />}
+          {section === 'privacy' && <PrivacySection />}
+          {section === 'sites' && <SiteSettingsSection />}
+          {section === 'search' && <SearchEngineSection />}
+          {section === 'startup' && <StartupSection />}
+          {section === 'downloads' && <DownloadsSection />}
+          {section === 'sessions' && <SessionsSection />}
+          {section === 'passwords' && <PasswordsSection />}
+          {section === 'extensions' && <ExtensionsSection />}
+          {section === 'shortcuts' && <ShortcutsSection />}
+        </div>
       </div>
     </div>
   );
@@ -110,16 +204,13 @@ function GeneralSection() {
   const [spellcheck, setSpellcheck] = useState<boolean | null>(null);
   const [spellcheckNote, setSpellcheckNote] = useState<string | null>(null);
   const [translateLang, setTranslateLang] = useState('en');
-  const [trackerEnabled, setTrackerEnabled] = useState<boolean | null>(null);
   const [themeMode, setThemeMode] = useState<ThemeMode>('system');
-  const [clearDialogOpen, setClearDialogOpen] = useState(false);
 
   useEffect(() => {
     void window.zio.spellcheck.getEnabled().then(setSpellcheck).catch(() => setSpellcheck(true));
     void window.zio.prefs.get('translate_target_lang')
       .then((v) => { if (typeof v === 'string' && v) setTranslateLang(v); })
       .catch(() => {});
-    void window.zio.tracker.isEnabled().then((v: boolean) => setTrackerEnabled(v)).catch(() => setTrackerEnabled(null));
     void window.zio.prefs.get('theme')
       .then((v) => { if (v === 'light' || v === 'dark' || v === 'system') setThemeMode(v); })
       .catch(() => {});
@@ -155,15 +246,8 @@ function GeneralSection() {
     try { await window.zio.prefs.set('translate_target_lang', code); } catch { /* non-fatal */ }
   }, []);
 
-  const toggleTracker = useCallback(async () => {
-    if (trackerEnabled === null) return;
-    const next = !trackerEnabled;
-    setTrackerEnabled(next);
-    try { await window.zio.tracker.setEnabled(next); } catch { setTrackerEnabled(!next); }
-  }, [trackerEnabled]);
-
   return (
-    <div style={{ padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 18 }}>
+    <div style={sectionBodyStyle}>
       <SettingRow
         title="Appearance"
         description="Choose a dark or light look, or follow your computer's setting."
@@ -171,15 +255,7 @@ function GeneralSection() {
         <select
           value={themeMode}
           onChange={(e) => void changeTheme(e.target.value as ThemeMode)}
-          style={{
-            fontSize: 12,
-            padding: '4px 8px',
-            borderRadius: 8,
-            background: 'var(--color-bg-elevated)',
-            color: 'var(--color-text)',
-            border: '1px solid var(--color-border)',
-            maxWidth: 160,
-          }}
+          style={selectStyle}
         >
           <option value="system">System</option>
           <option value="dark">Dark</option>
@@ -201,49 +277,496 @@ function GeneralSection() {
         <select
           value={translateLang}
           onChange={(e) => void changeLang(e.target.value)}
-          style={{
-            fontSize: 12,
-            padding: '4px 8px',
-            borderRadius: 8,
-            background: 'var(--color-bg-elevated)',
-            color: 'var(--color-text)',
-            border: '1px solid var(--color-border)',
-            maxWidth: 160,
-          }}
+          style={selectStyle}
         >
           {TRANSLATE_LANGS.map(l => <option key={l.code} value={l.code}>{l.label}</option>)}
         </select>
       </SettingRow>
+    </div>
+  );
+}
 
+// ── Privacy & Security ────────────────────────────────────────────────────────
+
+interface TrackerStats {
+  weekTotal: number;
+  todayTotal: number;
+  byDay: Array<{ day: string; count: number }>;
+  topTrackers: Array<{ host: string; count: number }>;
+}
+
+interface SafetyResult {
+  passwords: { total: number; weak: number; reused: number };
+  permissions: { allowed: number };
+  trackerBlocking: boolean;
+  doNotTrack: boolean;
+}
+
+function PrivacySection() {
+  const [trackerEnabled, setTrackerEnabled] = useState<boolean | null>(null);
+  const [dnt, setDnt] = useState<boolean | null>(null);
+  const [block3p, setBlock3p] = useState<boolean | null>(null);
+  const [clearDialogOpen, setClearDialogOpen] = useState(false);
+  const [stats, setStats] = useState<TrackerStats | null>(null);
+  const [safety, setSafety] = useState<SafetyResult | null>(null);
+  const [safetyRunning, setSafetyRunning] = useState(false);
+  const [forgetHost, setForgetHost] = useState('');
+  const [forgetNote, setForgetNote] = useState<string | null>(null);
+
+  useEffect(() => {
+    void window.zio.tracker.isEnabled().then((v: boolean) => setTrackerEnabled(v)).catch(() => setTrackerEnabled(null));
+    void window.zio.prefs.get('do_not_track').then((v) => setDnt(v === '1')).catch(() => setDnt(false));
+    void window.zio.prefs.get('block_third_party_cookies').then((v) => setBlock3p(v === '1')).catch(() => setBlock3p(false));
+    void window.zio.privacy.trackerStats().then(setStats).catch(() => setStats(null));
+  }, []);
+
+  const toggleTracker = useCallback(async () => {
+    if (trackerEnabled === null) return;
+    const next = !trackerEnabled;
+    setTrackerEnabled(next);
+    try { await window.zio.tracker.setEnabled(next); } catch { setTrackerEnabled(!next); }
+  }, [trackerEnabled]);
+
+  const toggleDnt = useCallback(async () => {
+    if (dnt === null) return;
+    const next = !dnt;
+    setDnt(next);
+    try { await window.zio.prefs.set('do_not_track', next ? '1' : '0'); } catch { setDnt(!next); }
+  }, [dnt]);
+
+  const toggleBlock3p = useCallback(async () => {
+    if (block3p === null) return;
+    const next = !block3p;
+    setBlock3p(next);
+    try { await window.zio.prefs.set('block_third_party_cookies', next ? '1' : '0'); } catch { setBlock3p(!next); }
+  }, [block3p]);
+
+  const runSafetyCheck = useCallback(async () => {
+    setSafetyRunning(true);
+    try {
+      setSafety(await window.zio.privacy.safetyCheck());
+    } catch {
+      setSafety(null);
+    } finally {
+      setSafetyRunning(false);
+    }
+  }, []);
+
+  const forgetSite = useCallback(async () => {
+    let host = forgetHost.trim().toLowerCase();
+    if (!host) return;
+    // Accept full URLs too.
+    try { if (host.includes('://')) host = new URL(host).hostname; } catch { /* keep as typed */ }
+    host = host.replace(/^www\./, '');
+    setForgetNote(null);
+    try {
+      const res = await window.zio.privacy.forgetSite(host);
+      if (res.ok) {
+        setForgetHost('');
+        setForgetNote(`Done — removed ${res.historyDeleted} history ${res.historyDeleted === 1 ? 'entry' : 'entries'}, cookies and site data for ${host}.`);
+      } else {
+        setForgetNote('Could not forget that site.');
+      }
+    } catch {
+      setForgetNote('Could not forget that site.');
+    }
+  }, [forgetHost]);
+
+  const maxDay = stats ? Math.max(1, ...stats.byDay.map(d => d.count)) : 1;
+
+  return (
+    <div style={sectionBodyStyle}>
       {trackerEnabled !== null && (
-        <SettingRow
-          title="Tracker blocking"
-          description="Block known trackers and ads while you browse."
-        >
+        <SettingRow title="Tracker blocking" description="Block known trackers and ads while you browse.">
           <Toggle checked={trackerEnabled} onChange={() => void toggleTracker()} />
         </SettingRow>
       )}
 
-      <SettingRow
-        title="Clear browsing data"
-        description="Delete history, cookies and cached files for a time range you pick."
-      >
-        <button
-          onClick={() => setClearDialogOpen(true)}
-          style={{
-            fontSize: 12,
-            fontWeight: 600,
-            padding: '5px 12px',
-            borderRadius: 8,
-            background: 'color-mix(in srgb, var(--color-danger, #ef4444) 12%, var(--color-bg-elevated))',
-            border: '1px solid color-mix(in srgb, var(--color-danger, #ef4444) 30%, transparent)',
-            color: 'var(--color-danger, #ef4444)',
-            whiteSpace: 'nowrap',
-          }}
-        >Clear…</button>
+      <SettingRow title="Send “Do Not Track”" description="Ask websites not to track you. Sites decide whether to honor it.">
+        <Toggle checked={dnt === true} disabled={dnt === null} onChange={() => void toggleDnt()} />
       </SettingRow>
 
+      <SettingRow title="Block third-party cookies" description="Stop sites you're not visiting from setting cookies. Some sign-in flows may break.">
+        <Toggle checked={block3p === true} disabled={block3p === null} onChange={() => void toggleBlock3p()} />
+      </SettingRow>
+
+      <SettingRow title="Delete browsing data" description="Delete history, cookies, cache, downloads and permissions for a time range you pick.">
+        <button onClick={() => setClearDialogOpen(true)} style={dangerBtnStyle}>Delete…</button>
+      </SettingRow>
+
+      {/* Privacy Dashboard */}
+      <div style={cardStyle}>
+        <div style={cardTitleStyle}>📊 Privacy Dashboard</div>
+        {stats === null ? (
+          <div style={mutedTextStyle}>No tracker activity recorded yet.</div>
+        ) : (
+          <>
+            <div style={{ display: 'flex', gap: 16, marginBottom: 10 }}>
+              <div>
+                <div style={{ fontSize: 18, fontWeight: 700 }}>{stats.weekTotal}</div>
+                <div style={mutedTextStyle}>blocked this week</div>
+              </div>
+              <div>
+                <div style={{ fontSize: 18, fontWeight: 700 }}>{stats.todayTotal}</div>
+                <div style={mutedTextStyle}>blocked today</div>
+              </div>
+            </div>
+            {stats.byDay.length > 0 && (
+              <div style={{ display: 'flex', alignItems: 'flex-end', gap: 4, height: 40, marginBottom: 10 }}>
+                {stats.byDay.map(d => (
+                  <div key={d.day} title={`${d.day}: ${d.count}`} style={{
+                    flex: 1,
+                    height: Math.max(2, Math.round((d.count / maxDay) * 40)),
+                    borderRadius: 3,
+                    background: 'var(--color-primary)',
+                    opacity: d.count === 0 ? 0.2 : 0.85,
+                  }} />
+                ))}
+              </div>
+            )}
+            {stats.topTrackers.length > 0 && (
+              <div>
+                <div style={{ ...mutedTextStyle, marginBottom: 4 }}>Most-blocked trackers</div>
+                {stats.topTrackers.slice(0, 5).map(t => (
+                  <div key={t.host} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, padding: '2px 0' }}>
+                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.host}</span>
+                    <span style={{ color: 'var(--color-text-muted)', flexShrink: 0, marginLeft: 8 }}>{t.count}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </>
+        )}
+      </div>
+
+      {/* Safety Check */}
+      <div style={cardStyle}>
+        <div style={cardTitleStyle}>✅ Safety Check</div>
+        <div style={{ ...mutedTextStyle, marginBottom: 8 }}>
+          Review your passwords, permissions and privacy protections in one go.
+        </div>
+        <button onClick={() => void runSafetyCheck()} disabled={safetyRunning} style={primaryBtnStyle}>
+          {safetyRunning ? 'Checking…' : 'Run Safety Check'}
+        </button>
+        {safety && (
+          <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <SafetyLine
+              ok={safety.passwords.weak === 0 && safety.passwords.reused === 0}
+              text={safety.passwords.total === 0
+                ? 'No saved passwords to check.'
+                : `${safety.passwords.total} saved passwords — ${safety.passwords.weak} weak, ${safety.passwords.reused} reused.`}
+            />
+            <SafetyLine
+              ok={true}
+              text={`${safety.permissions.allowed} site permission${safety.permissions.allowed === 1 ? '' : 's'} currently allowed.`}
+            />
+            <SafetyLine ok={safety.trackerBlocking} text={safety.trackerBlocking ? 'Tracker blocking is on.' : 'Tracker blocking is off — consider turning it on.'} />
+            <SafetyLine ok={safety.doNotTrack} text={safety.doNotTrack ? '“Do Not Track” is on.' : '“Do Not Track” is off.'} />
+          </div>
+        )}
+      </div>
+
+      {/* Forget this site */}
+      <div style={cardStyle}>
+        <div style={cardTitleStyle}>🧹 Forget this site</div>
+        <div style={{ ...mutedTextStyle, marginBottom: 8 }}>
+          Remove all history, cookies, site data, permissions and saved passwords for one website.
+        </div>
+        <div style={{ display: 'flex', gap: 6 }}>
+          <input
+            value={forgetHost}
+            onChange={(e) => setForgetHost(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter') void forgetSite(); }}
+            placeholder="example.com"
+            style={{
+              flex: 1,
+              fontSize: 12,
+              padding: '6px 10px',
+              borderRadius: 8,
+              background: 'var(--color-bg-elevated)',
+              color: 'var(--color-text)',
+              border: '1px solid var(--color-border)',
+            }}
+          />
+          <button onClick={() => void forgetSite()} disabled={!forgetHost.trim()} style={dangerBtnStyle}>Forget</button>
+        </div>
+        {forgetNote && <div style={{ ...mutedTextStyle, marginTop: 6 }}>{forgetNote}</div>}
+      </div>
+
       {clearDialogOpen && <ClearDataDialog onClose={() => setClearDialogOpen(false)} />}
+    </div>
+  );
+}
+
+function SafetyLine({ ok, text }: { ok: boolean; text: string }) {
+  return (
+    <div style={{ display: 'flex', gap: 6, fontSize: 12, alignItems: 'flex-start' }}>
+      <span>{ok ? '✅' : '⚠️'}</span>
+      <span style={{ color: 'var(--color-text)' }}>{text}</span>
+    </div>
+  );
+}
+
+// ── Site Settings (permissions) ───────────────────────────────────────────────
+
+interface PermissionRow {
+  origin: string;
+  permission: string;
+  decision: 'allow' | 'block';
+}
+
+const PERMISSION_LABELS: Record<string, string> = {
+  media: 'Camera & microphone',
+  geolocation: 'Location',
+  notifications: 'Notifications',
+  midi: 'MIDI devices',
+  pointerLock: 'Mouse lock',
+  fullscreen: 'Full screen',
+  clipboard: 'Clipboard',
+  'clipboard-read': 'Clipboard',
+  'clipboard-sanitized-write': 'Clipboard',
+};
+
+function SiteSettingsSection() {
+  const [rows, setRows] = useState<PermissionRow[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const load = useCallback(async () => {
+    try {
+      const list = (await window.zio.permissions.getAll()) as PermissionRow[];
+      setRows(Array.isArray(list) ? list : []);
+    } catch {
+      setRows([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { void load(); }, [load]);
+
+  const revoke = useCallback(async (origin: string, permission: string) => {
+    try {
+      await window.zio.permissions.revoke(origin, permission);
+      setRows(prev => prev.filter(r => !(r.origin === origin && r.permission === permission)));
+    } catch { /* keep row on failure */ }
+  }, []);
+
+  const clearAll = useCallback(async () => {
+    if (!window.confirm('Reset all site permissions? Sites will ask again next time.')) return;
+    try {
+      await window.zio.permissions.clearAll();
+      setRows([]);
+    } catch { /* non-fatal */ }
+  }, []);
+
+  return (
+    <div style={sectionBodyStyle}>
+      <div style={mutedTextStyle}>
+        Choices you've made when sites asked for camera, location, notifications and other permissions.
+      </div>
+
+      {loading ? (
+        <div style={mutedTextStyle}>Loading…</div>
+      ) : rows.length === 0 ? (
+        <div style={{ ...mutedTextStyle, padding: '16px 0', textAlign: 'center' }}>
+          <div style={{ fontSize: 24, marginBottom: 6 }}>🌐</div>
+          No saved site permissions yet.
+        </div>
+      ) : (
+        <>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {rows.map(r => (
+              <div key={`${r.origin}|${r.permission}`} style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                padding: '7px 10px',
+                borderRadius: 8,
+                border: '1px solid var(--color-border)',
+                background: 'var(--color-bg-elevated)',
+              }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 12, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {r.origin}
+                  </div>
+                  <div style={{ fontSize: 11, color: 'var(--color-text-muted)' }}>
+                    {PERMISSION_LABELS[r.permission] ?? r.permission} — {r.decision === 'allow' ? 'Allowed' : 'Blocked'}
+                  </div>
+                </div>
+                <span style={{ fontSize: 12 }}>{r.decision === 'allow' ? '✅' : '🚫'}</span>
+                <button onClick={() => void revoke(r.origin, r.permission)} style={smallBtnStyle} title="Remove — the site will ask again">✕</button>
+              </div>
+            ))}
+          </div>
+          <div>
+            <button onClick={() => void clearAll()} style={dangerBtnStyle}>Reset all permissions</button>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+// ── Search engine ─────────────────────────────────────────────────────────────
+
+const SEARCH_ENGINE_OPTIONS: Array<{ key: string; label: string }> = [
+  { key: 'google', label: 'Google' },
+  { key: 'bing', label: 'Bing' },
+  { key: 'duckduckgo', label: 'DuckDuckGo' },
+  { key: 'brave', label: 'Brave Search' },
+];
+
+function SearchEngineSection() {
+  const [engine, setEngine] = useState('google');
+
+  useEffect(() => {
+    void window.zio.prefs.get('search_engine')
+      .then((v) => { if (typeof v === 'string' && SEARCH_ENGINE_OPTIONS.some(o => o.key === v)) setEngine(v); })
+      .catch(() => {});
+  }, []);
+
+  const change = useCallback(async (key: string) => {
+    setEngine(key);
+    try { await window.zio.prefs.set('search_engine', key); } catch { /* non-fatal */ }
+  }, []);
+
+  return (
+    <div style={sectionBodyStyle}>
+      <div style={mutedTextStyle}>
+        The search engine used when you type a search into the address bar. Takes effect right away.
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+        {SEARCH_ENGINE_OPTIONS.map(o => (
+          <label key={o.key} style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 10,
+            padding: '9px 12px',
+            borderRadius: 8,
+            border: `1px solid ${engine === o.key ? 'var(--color-primary)' : 'var(--color-border)'}`,
+            background: engine === o.key
+              ? 'color-mix(in srgb, var(--color-primary) 10%, var(--color-bg-elevated))'
+              : 'var(--color-bg-elevated)',
+            cursor: 'pointer',
+          }}>
+            <input
+              type="radio"
+              name="search-engine"
+              checked={engine === o.key}
+              onChange={() => void change(o.key)}
+            />
+            <span style={{ fontSize: 12, fontWeight: 600 }}>{o.label}</span>
+          </label>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── On startup ────────────────────────────────────────────────────────────────
+
+function StartupSection() {
+  const [mode, setMode] = useState<'continue' | 'newtab'>('continue');
+
+  useEffect(() => {
+    void window.zio.prefs.get('startup_mode')
+      .then((v) => { if (v === 'newtab' || v === 'continue') setMode(v); })
+      .catch(() => {});
+  }, []);
+
+  const change = useCallback(async (next: 'continue' | 'newtab') => {
+    setMode(next);
+    try { await window.zio.prefs.set('startup_mode', next); } catch { /* non-fatal */ }
+  }, []);
+
+  const options: Array<{ key: 'continue' | 'newtab'; title: string; desc: string }> = [
+    { key: 'continue', title: 'Continue where you left off', desc: 'Reopen the tabs you had open last time.' },
+    { key: 'newtab', title: 'Open the New Tab page', desc: 'Start fresh each time. Pinned tabs still load.' },
+  ];
+
+  return (
+    <div style={sectionBodyStyle}>
+      <div style={mutedTextStyle}>What Zio Browser shows when you open it.</div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+        {options.map(o => (
+          <label key={o.key} style={{
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: 10,
+            padding: '10px 12px',
+            borderRadius: 8,
+            border: `1px solid ${mode === o.key ? 'var(--color-primary)' : 'var(--color-border)'}`,
+            background: mode === o.key
+              ? 'color-mix(in srgb, var(--color-primary) 10%, var(--color-bg-elevated))'
+              : 'var(--color-bg-elevated)',
+            cursor: 'pointer',
+          }}>
+            <input
+              type="radio"
+              name="startup-mode"
+              checked={mode === o.key}
+              onChange={() => void change(o.key)}
+              style={{ marginTop: 2 }}
+            />
+            <span>
+              <span style={{ display: 'block', fontSize: 12, fontWeight: 600 }}>{o.title}</span>
+              <span style={{ display: 'block', fontSize: 11, color: 'var(--color-text-muted)', marginTop: 2 }}>{o.desc}</span>
+            </span>
+          </label>
+        ))}
+      </div>
+      <div style={mutedTextStyle}>Changes apply the next time you open the browser.</div>
+    </div>
+  );
+}
+
+// ── Downloads ─────────────────────────────────────────────────────────────────
+
+function DownloadsSection() {
+  const [dir, setDir] = useState<string | null>(null);
+  const [defaultDir, setDefaultDir] = useState<string>('');
+  const [ask, setAsk] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    void window.zio.prefs.get('download_path').then((v) => { if (typeof v === 'string' && v) setDir(v); }).catch(() => {});
+    void window.zio.downloads.defaultDirectory().then((v: string) => setDefaultDir(v)).catch(() => {});
+    void window.zio.prefs.get('download_ask').then((v) => setAsk(v === '1')).catch(() => setAsk(false));
+  }, []);
+
+  const chooseFolder = useCallback(async () => {
+    try {
+      const picked = (await window.zio.downloads.chooseDirectory()) as string | null;
+      if (picked) {
+        setDir(picked);
+        await window.zio.prefs.set('download_path', picked);
+      }
+    } catch { /* non-fatal */ }
+  }, []);
+
+  const resetFolder = useCallback(async () => {
+    setDir(null);
+    try { await window.zio.prefs.set('download_path', ''); } catch { /* non-fatal */ }
+  }, []);
+
+  const toggleAsk = useCallback(async () => {
+    if (ask === null) return;
+    const next = !ask;
+    setAsk(next);
+    try { await window.zio.prefs.set('download_ask', next ? '1' : '0'); } catch { setAsk(!next); }
+  }, [ask]);
+
+  return (
+    <div style={sectionBodyStyle}>
+      <SettingRow title="Save files to" description={dir ?? defaultDir ?? 'Default downloads folder'}>
+        <div style={{ display: 'flex', gap: 6 }}>
+          <button onClick={() => void chooseFolder()} style={secondaryBtnStyle}>Change…</button>
+          {dir && <button onClick={() => void resetFolder()} style={secondaryBtnStyle} title="Use the default downloads folder">Reset</button>}
+        </div>
+      </SettingRow>
+
+      <SettingRow title="Ask where to save each file" description="Choose the location for every download instead of saving automatically.">
+        <Toggle checked={ask === true} disabled={ask === null} onChange={() => void toggleAsk()} />
+      </SettingRow>
     </div>
   );
 }
@@ -645,22 +1168,19 @@ function ExtensionsSection() {
             border: 'none',
             opacity: adding ? 0.6 : 1,
           }}
-        >{adding ? 'Choosing folder…' : '+ Load unpacked extension'}</button>
-        {error && (
-          <div style={{ marginTop: 8, fontSize: 12, color: 'var(--color-danger, #e5484d)', lineHeight: 1.4 }}>
-            {error}
-          </div>
-        )}
+        >{adding ? 'Choosing…' : 'Load unpacked extension…'}</button>
+        {error && <div style={{ marginTop: 8, fontSize: 12, color: 'var(--color-danger, #e5484d)' }}>{error}</div>}
       </div>
 
       {loading && (
-        <div style={{ padding: '8px 16px', color: 'var(--color-text-muted)', fontSize: 13 }}>Loading…</div>
+        <div style={{ padding: '16px', color: 'var(--color-text-muted)', fontSize: 13 }}>Loading…</div>
       )}
 
       {!loading && exts.length === 0 && (
         <div style={{ padding: '20px', textAlign: 'center', color: 'var(--color-text-muted)', fontSize: 13 }}>
           <div style={{ fontSize: 26, marginBottom: 8 }}>🧩</div>
-          No extensions installed yet.
+          <div style={{ fontWeight: 600, marginBottom: 4 }}>No extensions loaded</div>
+          <div style={{ lineHeight: 1.5 }}>Pick a folder containing an unpacked Chrome extension (with a manifest.json).</div>
         </div>
       )}
 
@@ -671,48 +1191,27 @@ function ExtensionsSection() {
           gap: 10,
           padding: '8px 16px',
           borderBottom: '1px solid var(--color-border)',
+          opacity: ext.missing ? 0.5 : 1,
         }}>
-          <span style={{ fontSize: 16, flexShrink: 0, opacity: ext.missing ? 0.5 : 1 }}>🧩</span>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{
-              fontSize: 13, fontWeight: 600, color: ext.missing ? 'var(--color-text-muted)' : 'var(--color-text)',
+              fontSize: 13, fontWeight: 600, color: 'var(--color-text)',
               overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
             }}>
-              {ext.name}{!ext.missing && <span style={{ fontWeight: 400, color: 'var(--color-text-muted)' }}> v{ext.version}</span>}
-              {ext.missing && (
-                <span style={{
-                  marginLeft: 6,
-                  fontSize: 9,
-                  fontWeight: 700,
-                  padding: '1px 6px',
-                  borderRadius: 6,
-                  background: 'var(--color-danger, #e5484d)',
-                  color: '#fff',
-                  verticalAlign: 'middle',
-                }}>MISSING</span>
-              )}
-              {ext.builtin && (
-                <span style={{
-                  marginLeft: 6,
-                  fontSize: 9,
-                  fontWeight: 700,
-                  padding: '1px 6px',
-                  borderRadius: 6,
-                  background: 'var(--color-primary)',
-                  color: '#fff',
-                  verticalAlign: 'middle',
-                }}>BUILT-IN</span>
-              )}
+              {ext.name}
+              <span style={{ fontWeight: 400, color: 'var(--color-text-muted)', marginLeft: 6, fontSize: 11 }}>v{ext.version}</span>
+              {ext.builtin && <span style={{ fontWeight: 600, color: 'var(--color-primary)', marginLeft: 6, fontSize: 10 }}>BUILT-IN</span>}
+              {ext.missing && <span style={{ fontWeight: 600, color: 'var(--color-danger, #e5484d)', marginLeft: 6, fontSize: 10 }}>MISSING</span>}
             </div>
             <div style={{
-              fontSize: 10, color: 'var(--color-text-muted)', marginTop: 1,
+              fontSize: 11, color: 'var(--color-text-muted)', marginTop: 1,
               overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-            }}>{ext.builtin ? 'Ships with Zio Browser' : ext.missing ? `Folder not found: ${ext.path}` : ext.path}</div>
+            }}>{ext.path}</div>
           </div>
           {!ext.builtin && (
             <button
               onClick={() => void handleRemove(ext.id)}
-              title="Remove extension"
+              title="Remove this extension"
               style={smallBtnStyle}
             >✕</button>
           )}
@@ -724,30 +1223,18 @@ function ExtensionsSection() {
 
 // ── Shared bits ───────────────────────────────────────────────────────────────
 
-const smallBtnStyle: React.CSSProperties = {
-  fontSize: 12,
-  padding: '2px 6px',
-  borderRadius: 4,
-  background: 'var(--color-bg)',
-  border: '1px solid var(--color-border)',
-  color: 'var(--color-text-muted)',
-  flexShrink: 0,
-};
-
 function SettingRow({ title, description, children }: {
   title: string;
   description: string;
   children: React.ReactNode;
 }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text)' }}>{title}</div>
-        <div style={{ fontSize: 11, color: 'var(--color-text-muted)', marginTop: 2, lineHeight: 1.45 }}>
-          {description}
-        </div>
+        <div style={{ fontSize: 11, color: 'var(--color-text-muted)', marginTop: 2, lineHeight: 1.5 }}>{description}</div>
       </div>
-      <div style={{ flexShrink: 0, paddingTop: 2 }}>{children}</div>
+      <div style={{ flexShrink: 0 }}>{children}</div>
     </div>
   );
 }
@@ -767,13 +1254,12 @@ function Toggle({ checked, disabled, onChange }: {
         width: 36,
         height: 20,
         borderRadius: 10,
-        background: checked ? 'var(--color-primary)' : 'var(--color-bg-elevated)',
         border: '1px solid var(--color-border)',
+        background: checked ? 'var(--color-primary)' : 'var(--color-bg-elevated)',
         position: 'relative',
-        cursor: disabled ? 'default' : 'pointer',
-        opacity: disabled ? 0.5 : 1,
         transition: 'background 0.15s',
-        padding: 0,
+        opacity: disabled ? 0.5 : 1,
+        flexShrink: 0,
       }}
     >
       <span style={{
@@ -785,8 +1271,84 @@ function Toggle({ checked, disabled, onChange }: {
         borderRadius: '50%',
         background: '#fff',
         transition: 'left 0.15s',
-        boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
+        boxShadow: '0 1px 2px rgba(0,0,0,0.3)',
       }} />
     </button>
   );
 }
+
+const sectionBodyStyle: React.CSSProperties = {
+  padding: '12px 16px',
+  display: 'flex',
+  flexDirection: 'column',
+  gap: 18,
+};
+
+const selectStyle: React.CSSProperties = {
+  fontSize: 12,
+  padding: '4px 8px',
+  borderRadius: 8,
+  background: 'var(--color-bg-elevated)',
+  color: 'var(--color-text)',
+  border: '1px solid var(--color-border)',
+  maxWidth: 160,
+};
+
+const cardStyle: React.CSSProperties = {
+  padding: '12px 14px',
+  borderRadius: 10,
+  border: '1px solid var(--color-border)',
+  background: 'var(--color-bg-elevated)',
+};
+
+const cardTitleStyle: React.CSSProperties = {
+  fontSize: 13,
+  fontWeight: 700,
+  marginBottom: 8,
+};
+
+const mutedTextStyle: React.CSSProperties = {
+  fontSize: 11,
+  color: 'var(--color-text-muted)',
+  lineHeight: 1.5,
+};
+
+const primaryBtnStyle: React.CSSProperties = {
+  fontSize: 12,
+  fontWeight: 600,
+  padding: '6px 14px',
+  borderRadius: 8,
+  background: 'var(--color-primary)',
+  color: '#fff',
+  border: 'none',
+};
+
+const secondaryBtnStyle: React.CSSProperties = {
+  fontSize: 12,
+  fontWeight: 600,
+  padding: '5px 12px',
+  borderRadius: 8,
+  border: '1px solid var(--color-border)',
+  background: 'var(--color-bg-elevated)',
+  color: 'var(--color-text)',
+  whiteSpace: 'nowrap',
+};
+
+const dangerBtnStyle: React.CSSProperties = {
+  fontSize: 12,
+  fontWeight: 600,
+  padding: '5px 12px',
+  borderRadius: 8,
+  background: 'color-mix(in srgb, var(--color-danger, #ef4444) 12%, var(--color-bg-elevated))',
+  border: '1px solid color-mix(in srgb, var(--color-danger, #ef4444) 30%, transparent)',
+  color: 'var(--color-danger, #ef4444)',
+  whiteSpace: 'nowrap',
+};
+
+const smallBtnStyle: React.CSSProperties = {
+  fontSize: 13,
+  color: 'var(--color-text-muted)',
+  padding: '4px 6px',
+  borderRadius: 6,
+  flexShrink: 0,
+};

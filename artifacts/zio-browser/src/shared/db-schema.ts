@@ -286,6 +286,10 @@ export const PREFERENCE_KEYS = {
   TRANSLATE_TARGET_LANG: 'translate_target_lang',
   EXTENSION_PATHS: 'extension_paths',
   CLEAN_EXIT: 'clean_exit',
+  STARTUP_MODE: 'startup_mode',
+  DO_NOT_TRACK: 'do_not_track',
+  BLOCK_THIRD_PARTY_COOKIES: 'block_third_party_cookies',
+  TRACKER_STATS: 'tracker_stats',
 } as const;
 
 export type PreferenceKey = typeof PREFERENCE_KEYS[keyof typeof PREFERENCE_KEYS];
