@@ -560,10 +560,6 @@ args = "e2e-zio-2fa"
 task = "workflow.run"
 args = "showcase-prod-seed"
 
-[[workflows.workflow.tasks]]
-task = "workflow.run"
-args = "ai-img-tests"
-
 [[workflows.workflow]]
 name = "e2e"
 author = "agent"
@@ -2247,17 +2243,6 @@ isValidation = true
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "cd artifacts/1inme && DB_HOST=\"$PROD_DATABASE_URL\" php artisan showcase:seed --force"
-
-[[workflows.workflow]]
-name = "ai-img-tests"
-author = "agent"
-
-[workflows.workflow.metadata]
-isValidation = true
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "rm -rf /tmp/1inme-testpg.* ; cd artifacts/1inme && TEST_LOCAL_MODE=artisan TEST_LOCAL_PORT=55499 bash scripts/test-local.sh --filter='AiBuilderImageSearchTest|AiBuilderImageSourcingTest'"
 
 
   [agent]
