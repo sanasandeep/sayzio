@@ -322,6 +322,7 @@ interface ExtensionRow {
   name: string;
   version: string;
   path: string;
+  builtin?: boolean;
 }
 
 function ExtensionsSection() {
@@ -419,17 +420,33 @@ function ExtensionsSection() {
             <div style={{
               fontSize: 13, fontWeight: 600, color: 'var(--color-text)',
               overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-            }}>{ext.name} <span style={{ fontWeight: 400, color: 'var(--color-text-muted)' }}>v{ext.version}</span></div>
+            }}>
+              {ext.name} <span style={{ fontWeight: 400, color: 'var(--color-text-muted)' }}>v{ext.version}</span>
+              {ext.builtin && (
+                <span style={{
+                  marginLeft: 6,
+                  fontSize: 9,
+                  fontWeight: 700,
+                  padding: '1px 6px',
+                  borderRadius: 6,
+                  background: 'var(--color-primary)',
+                  color: '#fff',
+                  verticalAlign: 'middle',
+                }}>BUILT-IN</span>
+              )}
+            </div>
             <div style={{
               fontSize: 10, color: 'var(--color-text-muted)', marginTop: 1,
               overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-            }}>{ext.path}</div>
+            }}>{ext.builtin ? 'Ships with Zio Browser' : ext.path}</div>
           </div>
-          <button
-            onClick={() => void handleRemove(ext.id)}
-            title="Remove extension"
-            style={smallBtnStyle}
-          >✕</button>
+          {!ext.builtin && (
+            <button
+              onClick={() => void handleRemove(ext.id)}
+              title="Remove extension"
+              style={smallBtnStyle}
+            >✕</button>
+          )}
         </div>
       ))}
     </div>

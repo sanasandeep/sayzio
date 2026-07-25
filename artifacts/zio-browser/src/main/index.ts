@@ -25,7 +25,7 @@ import { setupTrackerBlocking, resetBlockedCount } from './tracker-blocker';
 import type { WindowMode } from '../shared/window-mode';
 import { ZIO_PANEL_DIVIDER_WIDTH } from '../shared/window-mode';
 import { setupAutoUpdater } from './auto-updater';
-import { loadStoredExtensions } from './extension-manager';
+import { loadStoredExtensions, loadBuiltinExtension } from './extension-manager';
 import type { RecentlyClosedEntry } from './tab-manager';
 
 const isDev = process.env['NODE_ENV'] === 'development';
@@ -742,8 +742,14 @@ app.whenReady().then(() => {
   }
   // Load persisted unpacked extensions into the default session before the
   // first window opens (fail-soft — a broken extension never blocks startup).
-  void loadStoredExtensions().catch((err) => {
-    console.error('Failed to load stored extensions:', err);
+  // Built-in first (so it claims its id), then user extensions.
+  void loadBuiltinExtension()
+    .catch((err) => {
+      console.error('Failed to load built-in extension:', err);
+    })
+    .then(() => loadStoredExtensions())
+    .catch((err) => {
+      console.error('Failed to load stored extensions:', err);
   });
   try {
     mainWindow = createWindow();

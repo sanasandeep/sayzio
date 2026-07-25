@@ -55,6 +55,12 @@ const config = {
     'package.json',
   ],
 
+  // Bundled Sayzio extension (built from artifacts/1inme-extension, chrome
+  // target) — shipped next to the app and auto-loaded as a built-in extension.
+  extraResources: [
+    { from: 'build-resources/zio-extension', to: 'zio-extension' },
+  ],
+
   // Native modules (better-sqlite3) CANNOT be loaded from inside app.asar.
   // electron-builder's smartUnpack fails to detect them in this pnpm
   // workspace (symlinked node_modules), so v0.1.7 shipped better_sqlite3.node

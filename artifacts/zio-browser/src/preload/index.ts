@@ -171,7 +171,7 @@ const api = {
 
   // ── Extensions (unpacked) ─────────────────────────────────────────────────
   extensions: {
-    list: () => ipcRenderer.invoke('extensions:list') as Promise<Array<{ id: string; name: string; version: string; path: string }>>,
+    list: () => ipcRenderer.invoke('extensions:list') as Promise<Array<{ id: string; name: string; version: string; path: string; builtin?: boolean }>>,
     add: () => ipcRenderer.invoke('extensions:add') as Promise<
       { ok: true; extension: { id: string; name: string; version: string; path: string } } | { ok: false; error: string }
     >,

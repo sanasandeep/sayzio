@@ -5,7 +5,7 @@
  *
  * Private windows never get extensions (their isolated session is untouched).
  */
-import { session, dialog, BrowserWindow } from 'electron';
+import { app, session, dialog, BrowserWindow } from 'electron';
 import * as fs from 'fs';
 import * as path from 'path';
 import { getPreference, setPreference } from './db';
@@ -16,6 +16,42 @@ export interface ExtensionInfo {
   name: string;
   version: string;
   path: string;
+  /** True for the bundled Sayzio extension — always on, cannot be removed. */
+  builtin?: boolean;
+}
+
+// ── Built-in Sayzio extension ─────────────────────────────────────────────────
+
+let builtinExtensionId: string | null = null;
+
+/**
+ * Locate the bundled Sayzio extension directory.
+ * Packaged builds ship it via electron-builder extraResources; in dev it is
+ * read straight from build-resources/ in the repo.
+ */
+export function resolveBuiltinExtensionDir(): string | null {
+  const candidates = app.isPackaged
+    ? [path.join(process.resourcesPath, 'zio-extension')]
+    : [
+        path.join(app.getAppPath(), 'build-resources', 'zio-extension'),
+        path.join(__dirname, '..', '..', '..', 'build-resources', 'zio-extension'),
+      ];
+  for (const dir of candidates) {
+    if (isExtensionDir(dir)) return dir;
+  }
+  return null;
+}
+
+/** Load the bundled Sayzio extension into the default session (fail-soft). */
+export async function loadBuiltinExtension(): Promise<void> {
+  const dir = resolveBuiltinExtensionDir();
+  if (!dir) return;
+  try {
+    const ext = await session.defaultSession.loadExtension(dir);
+    builtinExtensionId = ext.id;
+  } catch (err) {
+    console.error('Failed to load built-in Sayzio extension:', err);
+  }
 }
 
 /** Read the persisted list of unpacked-extension directories. */
@@ -38,8 +74,21 @@ function storeExtensionPaths(paths: string[]): void {
   }
 }
 
+/** True when the extension is the bundled Sayzio one (id or path match). */
+function isBuiltin(ext: { id: string; path: string }): boolean {
+  if (builtinExtensionId && ext.id === builtinExtensionId) return true;
+  const dir = resolveBuiltinExtensionDir();
+  return dir !== null && path.resolve(ext.path) === path.resolve(dir);
+}
+
 function toInfo(ext: Electron.Extension): ExtensionInfo {
-  return { id: ext.id, name: ext.name, version: ext.version, path: ext.path };
+  return {
+    id: ext.id,
+    name: ext.name,
+    version: ext.version,
+    path: ext.path,
+    builtin: isBuiltin(ext),
+  };
 }
 
 /** Validate that a directory looks like an unpacked extension. */
@@ -58,9 +107,12 @@ export function isExtensionDir(dir: string): boolean {
 export async function loadStoredExtensions(): Promise<void> {
   const stored = getStoredExtensionPaths();
   if (stored.length === 0) return;
+  const builtinDir = resolveBuiltinExtensionDir();
   const kept: string[] = [];
   for (const dir of stored) {
     if (!isExtensionDir(dir)) continue;
+    // The bundled extension is loaded separately — never double-load it.
+    if (builtinDir && path.resolve(dir) === path.resolve(builtinDir)) continue;
     try {
       await session.defaultSession.loadExtension(dir);
       kept.push(dir);
@@ -111,6 +163,7 @@ export async function addExtensionFromDialog(
 
 /** Remove a loaded extension (by id) and forget its stored path. */
 export function removeExtension(id: string): boolean {
+  if (builtinExtensionId && id === builtinExtensionId) return false;
   try {
     const ext = session.defaultSession.getExtension(id);
     if (!ext) return false;
