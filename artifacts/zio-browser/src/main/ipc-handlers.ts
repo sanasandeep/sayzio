@@ -247,7 +247,8 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
   ipcMain.handle('tabs:set-mode', (event, id: string, mode: string) => {
     // Private windows are browser-only: no Sayzio/Zio surfaces may be attached.
     if (senderIsPrivate(event)) return false;
-    resolveTabManager(event)?.setTabMode(id, mode as TabMode);
+    // setTabMode normalizes any raw/legacy mode string itself.
+    resolveTabManager(event)?.setTabMode(id, mode);
     return true;
   });
   ipcMain.handle('tabs:get-state', (event, id: string) => resolveTabManager(event)?.getTabState(id) ?? null);

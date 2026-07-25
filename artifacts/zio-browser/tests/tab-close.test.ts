@@ -34,6 +34,7 @@ vi.mock('electron', async () => {
   class FakeWebContentsView {
     webContents = new FakeWebContents();
     setBounds(): void {}
+    setBackgroundColor(): void {}
   }
 
   const fakeSession = { fromPartition: () => ({}), defaultSession: {} };

@@ -488,8 +488,12 @@ export function ZioPanel({ pageContext, onClose, presentation = 'embedded', pane
     const w = panelWidth ? `${panelWidth}px` : 'var(--sidebar-width, 360px)';
 
     if (isDocked) {
+      // With an explicit panelWidth we hold that width; without one (tab in
+      // full "Ask Zio" mode) we grow to fill the whole content area.
       return {
-        width: w,
+        width: panelWidth ? w : undefined,
+        flex: panelWidth ? undefined : 1,
+        minWidth: 0,
         height: '100%',
         background: 'var(--color-bg-surface)',
         display: 'flex',

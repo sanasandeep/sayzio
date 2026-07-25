@@ -10,12 +10,19 @@ import { parseOmniboxInput, type SearchEngineConfig, DEFAULT_SEARCH_ENGINE } fro
 import { sessionPartitionForProfile, DEFAULT_PROFILE_ID } from '../shared/profile-store';
 import {
   type TabMode,
-  TAB_MODES,
+  type TabPane,
+  parseTabMode,
+  normalizeTabMode,
+  tabModeIncludes,
   SAYZIO_DASHBOARD_URL,
+  SAYZIO_HOME_URL,
   SAYZIO_BASE_HOST,
   TAB_SPLIT_RATIO,
   TAB_SPLIT_DIVIDER_WIDTH,
 } from '../shared/window-mode';
+
+/** Background color applied to all native views to avoid white/blank flashes. */
+const VIEW_BG_COLOR = '#101014';
 
 export interface TabState {
   id: string;
@@ -70,10 +77,12 @@ interface ManagedTab {
    * (null = no explicit choice; auto-mute policy may apply on navigation).
    */
   muteOverride: boolean | null;
-  /** Per-tab view mode (website / sayzio app / splits). */
+  /** Per-tab view mode (single pane or a two-pane split). */
   mode: TabMode;
-  /** Lazily created Sayzio webapp view for sayzio / sayzio-split modes. */
+  /** Lazily created Sayzio website view (pane: 'sayzio'). */
   sayzioView: WebContentsView | null;
+  /** Lazily created Sayzio dashboard view (pane: 'dashboard'). */
+  dashboardView: WebContentsView | null;
 }
 
 const MAX_RECENTLY_CLOSED = 10;
@@ -226,6 +235,9 @@ export class TabManager {
 
     const wc = view.webContents;
 
+    // Solid background so tab switches never flash white/transparent.
+    view.setBackgroundColor(VIEW_BG_COLOR);
+
     const [w, h] = this.win.getContentSize();
     view.setBounds({ x: 0, y: 72, width: w, height: h - 72 });
 
@@ -371,7 +383,7 @@ export class TabManager {
     });
 
     if (pinned) this.pinnedTabs.add(id);
-    const tab: ManagedTab = { id, view, pinned, favicon: null, muteOverride: null, mode: 'web', sayzioView: null };
+    const tab: ManagedTab = { id, view, pinned, favicon: null, muteOverride: null, mode: 'browser', sayzioView: null, dashboardView: null };
     this.tabs.set(id, tab);
     this.insertInOrder(id, pinned);
 
@@ -434,13 +446,15 @@ export class TabManager {
       // May already be removed
     }
 
-    if (tab.sayzioView) {
-      try { this.win.contentView.removeChildView(tab.sayzioView); } catch { }
-      if (!tab.sayzioView.webContents.isDestroyed()) {
-        tab.sayzioView.webContents.close();
+    for (const extra of [tab.sayzioView, tab.dashboardView]) {
+      if (!extra) continue;
+      try { this.win.contentView.removeChildView(extra); } catch { }
+      if (!extra.webContents.isDestroyed()) {
+        extra.webContents.close();
       }
-      tab.sayzioView = null;
     }
+    tab.sayzioView = null;
+    tab.dashboardView = null;
 
     this.pinnedTabs.delete(id);
     this.tabs.delete(id);
@@ -636,18 +650,23 @@ export class TabManager {
     const tab = this.tabs.get(id);
     if (!tab) return;
 
-    if (this.activeTabId && this.activeTabId !== id) {
-      const prev = this.tabs.get(this.activeTabId);
+    const prevId = this.activeTabId;
+
+    // Attach the new tab's views FIRST (they render on top), then detach the
+    // previous tab's views — avoids a blank flash between tabs.
+    this.activeTabId = id;
+    this.layoutActiveTab();
+
+    if (prevId && prevId !== id) {
+      const prev = this.tabs.get(prevId);
       if (prev) {
-        try { this.win.contentView.removeChildView(prev.view); } catch { }
-        if (prev.sayzioView) {
-          try { this.win.contentView.removeChildView(prev.sayzioView); } catch { }
+        for (const v of [prev.view, prev.sayzioView, prev.dashboardView]) {
+          if (!v) continue;
+          try { this.win.contentView.removeChildView(v); } catch { }
         }
       }
     }
 
-    this.activeTabId = id;
-    this.layoutActiveTab();
     tab.view.webContents.focus();
     this.onActiveTabChange?.(id);
   }
@@ -659,21 +678,32 @@ export class TabManager {
    * lazily when a Sayzio mode is first selected, and re-lays-out the active
    * tab so the change is visible immediately.
    */
-  setTabMode(id: TabId, mode: TabMode): void {
-    if (!TAB_MODES.includes(mode)) return;
+  setTabMode(id: TabId, rawMode: string): void {
+    const mode = normalizeTabMode(rawMode);
+    if (!mode) return;
     const tab = this.tabs.get(id);
     if (!tab || tab.mode === mode) return;
 
     tab.mode = mode;
 
-    if ((mode === 'sayzio' || mode === 'sayzio-split') && !tab.sayzioView) {
-      tab.sayzioView = this.createSayzioView();
+    // Lazily create the Sayzio views the new mode needs.
+    if (tabModeIncludes(mode, 'sayzio') && !tab.sayzioView) {
+      tab.sayzioView = this.createSayzioView(SAYZIO_HOME_URL);
+    }
+    if (tabModeIncludes(mode, 'dashboard') && !tab.dashboardView) {
+      tab.dashboardView = this.createSayzioView(SAYZIO_DASHBOARD_URL);
     }
 
     if (id === this.activeTabId) {
       this.layoutActiveTab();
-    } else if (tab.sayzioView && (mode === 'web' || mode === 'zio-split')) {
-      try { this.win.contentView.removeChildView(tab.sayzioView); } catch { }
+    } else {
+      // Detach views the (inactive) tab no longer shows.
+      if (tab.sayzioView && !tabModeIncludes(mode, 'sayzio')) {
+        try { this.win.contentView.removeChildView(tab.sayzioView); } catch { }
+      }
+      if (tab.dashboardView && !tabModeIncludes(mode, 'dashboard')) {
+        try { this.win.contentView.removeChildView(tab.dashboardView); } catch { }
+      }
     }
 
     this.onTabStateChange?.(id, { mode });
@@ -703,53 +733,66 @@ export class TabManager {
       try { this.win.contentView.removeChildView(v); } catch { }
     };
 
-    switch (tab.mode) {
-      case 'web': {
-        detach(tab.sayzioView);
-        tab.view.setBounds(area);
-        attach(tab.view);
-        break;
+    // Resolve the native view backing each pane ('zio' is renderer-drawn → null).
+    const viewFor = (pane: TabPane): WebContentsView | null => {
+      switch (pane) {
+        case 'browser': return tab.view;
+        case 'sayzio': return tab.sayzioView;
+        case 'dashboard': return tab.dashboardView;
+        case 'zio': return null;
       }
-      case 'sayzio': {
-        detach(tab.view);
-        if (tab.sayzioView) {
-          tab.sayzioView.setBounds(area);
-          attach(tab.sayzioView);
-        }
-        break;
-      }
-      case 'sayzio-split': {
-        const leftWidth = Math.max(0, Math.floor(area.width * TAB_SPLIT_RATIO) - Math.ceil(TAB_SPLIT_DIVIDER_WIDTH / 2));
-        const rightX = area.x + leftWidth + TAB_SPLIT_DIVIDER_WIDTH;
-        const rightWidth = Math.max(0, area.x + area.width - rightX);
-        if (tab.sayzioView) {
-          tab.sayzioView.setBounds({ x: area.x, y: area.y, width: leftWidth, height: area.height });
-          attach(tab.sayzioView);
-        }
-        tab.view.setBounds({ x: rightX, y: area.y, width: rightWidth, height: area.height });
-        attach(tab.view);
-        break;
-      }
-      case 'zio-split': {
-        detach(tab.sayzioView);
-        const reserve = Math.max(0, this.resolveZioPanelReserve?.() ?? 0);
-        tab.view.setBounds({
-          x: area.x,
-          y: area.y,
-          width: Math.max(0, area.width - reserve),
-          height: area.height,
+    };
+
+    const { left, right } = parseTabMode(tab.mode);
+    const leftView = viewFor(left);
+    const rightView = right ? viewFor(right) : null;
+
+    // Compute bounds for the native views this mode shows.
+    const placements: Array<{ view: WebContentsView; bounds: Electron.Rectangle }> = [];
+    if (right === 'zio') {
+      // Left pane native; renderer draws the Zio panel in the reserved strip.
+      const reserve = Math.max(0, this.resolveZioPanelReserve?.() ?? 0);
+      if (leftView) {
+        placements.push({
+          view: leftView,
+          bounds: { x: area.x, y: area.y, width: Math.max(0, area.width - reserve), height: area.height },
         });
-        attach(tab.view);
-        break;
       }
+    } else if (right) {
+      // Two native panes → 50/50 split with a divider.
+      const leftWidth = Math.max(0, Math.floor(area.width * TAB_SPLIT_RATIO) - Math.ceil(TAB_SPLIT_DIVIDER_WIDTH / 2));
+      const rightX = area.x + leftWidth + TAB_SPLIT_DIVIDER_WIDTH;
+      const rightWidth = Math.max(0, area.x + area.width - rightX);
+      if (leftView) {
+        placements.push({ view: leftView, bounds: { x: area.x, y: area.y, width: leftWidth, height: area.height } });
+      }
+      if (rightView) {
+        placements.push({ view: rightView, bounds: { x: rightX, y: area.y, width: rightWidth, height: area.height } });
+      }
+    } else if (leftView) {
+      // Single native pane fills the whole area. (mode 'zio' has no native
+      // view at all — the renderer's Zio panel fills the tab area.)
+      placements.push({ view: leftView, bounds: area });
+    }
+
+    // Attach/bound the views this mode shows FIRST (bounds before attach, so
+    // nothing flashes at a stale position), then detach the unused ones.
+    const shown = new Set(placements.map(p => p.view));
+    for (const { view, bounds } of placements) {
+      view.setBounds(bounds);
+      attach(view);
+    }
+    for (const v of [tab.view, tab.sayzioView, tab.dashboardView]) {
+      if (v && !shown.has(v)) detach(v);
     }
   }
 
   /**
-   * Create a WebContentsView hosting the Sayzio webapp for a single tab.
-   * External links open as new browser tabs, mirroring the dashboard view.
+   * Create a WebContentsView hosting a Sayzio surface (website or dashboard)
+   * for a single tab. Navigation is kept on the Sayzio host; external links
+   * open as new browser tabs.
    */
-  private createSayzioView(): WebContentsView {
+  private createSayzioView(startUrl: string): WebContentsView {
     const view = new WebContentsView({
       webPreferences: {
         nodeIntegration: false,
@@ -794,7 +837,8 @@ export class TabManager {
       return { action: 'deny' };
     });
 
-    void wc.loadURL(SAYZIO_DASHBOARD_URL);
+    view.setBackgroundColor(VIEW_BG_COLOR);
+    void wc.loadURL(startUrl);
     return view;
   }
 
@@ -903,9 +947,9 @@ export class TabManager {
     for (const [id, tab] of this.tabs) {
       tab.view.setBounds(bounds);
       if (id !== this.activeTabId) {
-        try { this.win.contentView.removeChildView(tab.view); } catch { }
-        if (tab.sayzioView) {
-          try { this.win.contentView.removeChildView(tab.sayzioView); } catch { }
+        for (const v of [tab.view, tab.sayzioView, tab.dashboardView]) {
+          if (!v) continue;
+          try { this.win.contentView.removeChildView(v); } catch { }
         }
       }
     }
@@ -923,9 +967,9 @@ export class TabManager {
    */
   hideAllTabs(): void {
     for (const [, tab] of this.tabs) {
-      try { this.win.contentView.removeChildView(tab.view); } catch { }
-      if (tab.sayzioView) {
-        try { this.win.contentView.removeChildView(tab.sayzioView); } catch { }
+      for (const v of [tab.view, tab.sayzioView, tab.dashboardView]) {
+        if (!v) continue;
+        try { this.win.contentView.removeChildView(v); } catch { }
       }
     }
   }

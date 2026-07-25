@@ -10,7 +10,7 @@ import { ShortenPopover } from './ShortenPopover';
 import { CreateLinkPopover } from './CreateLinkPopover';
 import { ModeSwitcher } from './ModeSwitcher';
 import { TabModeSwitcher } from './TabModeSwitcher';
-import type { TabMode } from '../../shared/window-mode';
+import { normalizeTabMode } from '../../shared/window-mode';
 import { ProfileSwitcher } from './ProfileSwitcher';
 import { useModeStore } from '../store/mode-store';
 import type { RecentlyClosedEntry } from '../../main/tab-manager';
@@ -1155,7 +1155,7 @@ export function ChromeBar({
         {/* Per-tab view mode switcher — not available in private windows */}
         {!isPrivate && activeTabId && (
           <TabModeSwitcher
-            currentMode={(activeTab?.mode as TabMode | undefined) ?? 'web'}
+            currentMode={normalizeTabMode(activeTab?.mode) ?? 'browser'}
             onSetMode={(m) => void setTabMode(activeTabId, m)}
           />
         )}

@@ -29,6 +29,9 @@ import {
   MIN_ZIO_PANEL_WIDTH,
   MAX_ZIO_PANEL_WIDTH,
   ZIO_PANEL_DIVIDER_WIDTH,
+  normalizeTabMode,
+  tabModeIncludes,
+  tabModeWithout,
 } from '../shared/window-mode';
 
 const FIRST_LAUNCH_KEY = 'zio_mode_picker_shown';
@@ -251,7 +254,11 @@ export default function App() {
   }, [paletteOpen]);
 
   const activeTab = activeTabId ? tabs[activeTabId] : null;
-  const showNewTab = !activeTab || activeTab.url === '' || activeTab.url === 'about:newtab';
+  const activeTabMode = normalizeTabMode(activeTab?.mode) ?? 'browser';
+  // Only show the New Tab page when the tab actually shows its browser pane.
+  const showNewTab =
+    (!activeTab || activeTab.url === '' || activeTab.url === 'about:newtab') &&
+    (!activeTab || tabModeIncludes(activeTabMode, 'browser'));
 
   const handleToggleZio = useCallback(() => {
     // Zio AI panel is disabled in private windows.
@@ -415,7 +422,9 @@ export default function App() {
   //   - Overlay Zio panel: floating card over the page, tab views full-width
   // ── Browser mode (default; always used for private windows) ───────────────
   // A tab in "Ask Zio + Website" split mode forces the docked Zio panel open.
-  const activeTabZioSplit = !isPrivate && (activeTab?.mode ?? 'web') === 'zio-split';
+  const activeTabZioSplit = !isPrivate && tabModeIncludes(activeTabMode, 'zio');
+  // A tab whose ONLY pane is Ask Zio: the panel fills the whole content area.
+  const activeTabZioFull = !isPrivate && activeTabMode === 'zio';
   const showDockedPanel = (zioPanelOpen && zioPanelDocked && !isPrivate) || activeTabZioSplit;
   const showOverlayPanel = zioPanelOpen && !zioPanelDocked && !isPrivate && !activeTabZioSplit;
 
@@ -471,9 +480,10 @@ export default function App() {
       {/* Content area */}
       <div ref={containerRef} style={{ flex: 1, display: 'flex', overflow: 'hidden', position: 'relative' }}>
 
-        {/* Web content / new tab page (left side when docked, full-width when overlay) */}
+        {/* Web content / new tab page (left side when docked, full-width when overlay).
+            When the tab shows ONLY Ask Zio, collapse this area so the panel fills. */}
         <div style={{
-          flex: 1,
+          flex: activeTabZioFull ? '0 0 0px' : 1,
           display: 'flex',
           overflow: 'hidden',
           position: 'relative',
@@ -513,14 +523,14 @@ export default function App() {
               pageContext={activeTab ? { url: activeTab.url, title: activeTab.title } : null}
               onClose={() => {
                 setZioPanelOpen(false);
-                // Closing the panel while the tab is in Ask Zio split mode
-                // returns the tab to plain website mode.
+                // Closing the panel while the tab includes the Ask Zio pane
+                // drops that pane (keeping whatever else the tab showed).
                 if (activeTabZioSplit && activeTabId) {
-                  void setTabMode(activeTabId, 'web');
+                  void setTabMode(activeTabId, tabModeWithout(activeTabMode, 'zio'));
                 }
               }}
               presentation="docked"
-              panelWidth={zioPanelWidth}
+              panelWidth={activeTabZioFull ? undefined : zioPanelWidth}
               onSetDocked={(d) => void setZioPanelDocked(d)}
             />
           </>

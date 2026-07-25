@@ -31,6 +31,7 @@ vi.mock('electron', async () => {
   }
 
   class FakeWebContentsView {
+    setBackgroundColor(): void {}
     webContents = new FakeWebContents();
     setBounds(): void {}
   }
