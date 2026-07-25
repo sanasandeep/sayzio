@@ -34,6 +34,8 @@ export class WindowModeManager {
   private zioPanelWidth: number;
   private zioPanelDocked: boolean;
   private dashboardView: WebContentsView | null = null;
+  /** Number of renderer dropdowns currently holding the chrome overlay open. */
+  private overlayCount = 0;
   private onModeChange?: (mode: WindowMode) => void;
 
   constructor(
@@ -261,6 +263,29 @@ export class WindowModeManager {
       this.dashboardView.webContents.close();
     }
     this.dashboardView = null;
+  }
+
+  /**
+   * Chrome-overlay mode: while a renderer dropdown/menu is open we detach all
+   * native views (tab views AND the dashboard view) because they sit above the
+   * renderer DOM and would swallow clicks on the menu. Closing the overlay
+   * re-applies the current mode, which reattaches and re-bounds everything.
+   */
+  setChromeOverlay(open: boolean): void {
+    if (open) {
+      this.overlayCount++;
+      this.tabManager.hideAllTabs();
+      if (this.dashboardView) {
+        try { this.win.contentView.removeChildView(this.dashboardView); } catch { }
+      }
+    } else {
+      this.overlayCount = Math.max(0, this.overlayCount - 1);
+      // Only restore views when the LAST open menu closes — several header
+      // menus can overlap during a menu-to-menu transition.
+      if (this.overlayCount === 0) {
+        this.setMode(this.mode);
+      }
+    }
   }
 
   getDashboardView(): WebContentsView | null {

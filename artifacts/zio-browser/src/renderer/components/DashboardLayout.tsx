@@ -12,7 +12,8 @@ import { useCallback } from 'react';
 import { ModeSwitcher } from './ModeSwitcher';
 import { AuthModal } from './AuthModal';
 import { DownloadsPanel } from './DownloadsPanel';
-import { useAuthStore } from '../store/auth-store';
+import { AccountButton } from './AccountButton';
+import { NewTabButton } from './NewTabButton';
 import { useDownloadStore } from '../store/download-store';
 import type { WindowMode } from '../../shared/window-mode';
 
@@ -27,7 +28,6 @@ interface Props {
 }
 
 export function DashboardLayout({ mode, onSetMode, authModalOpen, onOpenAuth, onCloseAuth }: Props) {
-  const { user } = useAuthStore();
   const {
     activeDownloadCount,
     panelOpen: downloadsPanelOpen,
@@ -108,41 +108,14 @@ export function DashboardLayout({ mode, onSetMode, authModalOpen, onOpenAuth, on
         </button>
 
         <div style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
+          <NewTabButton currentMode={mode} onSetMode={onSetMode} />
+        </div>
+
+        <div style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
           <ModeSwitcher currentMode={mode} onSetMode={onSetMode} />
         </div>
 
-        {user ? (
-          <div style={{
-            width: 26,
-            height: 26,
-            borderRadius: '50%',
-            background: 'var(--color-primary)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: 11,
-            fontWeight: 700,
-            color: '#fff',
-            cursor: 'pointer',
-            flexShrink: 0,
-            WebkitAppRegion: 'no-drag',
-          } as React.CSSProperties} title={user.name}>
-            {(user.name ?? 'U').charAt(0).toUpperCase()}
-          </div>
-        ) : (
-          <button
-            onClick={onOpenAuth}
-            style={{
-              padding: '3px 10px',
-              borderRadius: 10,
-              background: 'var(--color-bg-elevated)',
-              border: '1px solid var(--color-border)',
-              fontSize: 12,
-              whiteSpace: 'nowrap',
-              WebkitAppRegion: 'no-drag',
-            } as React.CSSProperties}
-          >Sign in</button>
-        )}
+        <AccountButton onOpenAuth={onOpenAuth} />
       </div>
 
       {/* The rest of the area is transparent — the dashboard WebContentsView
