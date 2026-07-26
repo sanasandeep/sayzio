@@ -20,6 +20,7 @@ import type { PendingPermission } from './components/PermissionPrompt';
 import { SiteSettingsPanel } from './components/SiteSettingsPanel';
 import { ReadingListPanel } from './components/ReadingListPanel';
 import { SettingsPanel } from './components/SettingsPanel';
+import { useChromeOverlay } from './hooks/use-chrome-overlay';
 import { useTabStore } from './store/tab-store';
 import { useAuthStore } from './store/auth-store';
 import { useModeStore } from './store/mode-store';
@@ -276,6 +277,32 @@ export default function App() {
     (!activeTab || activeTab.url === '' || activeTab.url === 'about:newtab') &&
     (!activeTab || tabModeIncludes(activeTabMode, 'browser'));
 
+  // ── Zio panel presentation flags (browser mode) ───────────────────────────
+  // A tab in "Ask Zio + Website" split mode forces the docked Zio panel open.
+  const activeTabZioSplit = !isPrivate && tabModeIncludes(activeTabMode, 'zio');
+  // A tab whose ONLY pane is Ask Zio: the panel fills the whole content area.
+  const activeTabZioFull = !isPrivate && activeTabMode === 'zio';
+  const showDockedPanel = (zioPanelOpen && zioPanelDocked && !isPrivate) || activeTabZioSplit;
+  const showOverlayPanel = zioPanelOpen && !zioPanelDocked && !isPrivate && !activeTabZioSplit;
+
+  // DOM panels rendered in the content area (settings, reading list, site
+  // settings, the floating Zio card) sit BELOW the native WebContentsViews,
+  // so they'd be invisible/unclickable over a loaded page. Hold the
+  // ref-counted chrome overlay while any of them is open.
+  useChromeOverlay(settingsOpen);
+  useChromeOverlay(readingListOpen);
+  useChromeOverlay(siteSettingsOpen);
+  useChromeOverlay(showOverlayPanel);
+
+  // Tell the main process when the DOCKED Zio panel is actually visible so it
+  // reserves the right-hand strip only then (a reserved strip with no panel
+  // rendered — or a panel with no reserved strip — looks broken and swallows
+  // clicks).
+  const dockedZioVisible = mode === 'browser' && showDockedPanel;
+  useEffect(() => {
+    void window.zio.window.setZioPanelVisible(dockedZioVisible);
+  }, [dockedZioVisible]);
+
   const handleToggleZio = useCallback(() => {
     // Zio AI panel is disabled in private windows.
     if (isPrivate) return;
@@ -437,12 +464,7 @@ export default function App() {
   //   - Docked Zio panel: drag-resizable right pane, tab views resized by main process
   //   - Overlay Zio panel: floating card over the page, tab views full-width
   // ── Browser mode (default; always used for private windows) ───────────────
-  // A tab in "Ask Zio + Website" split mode forces the docked Zio panel open.
-  const activeTabZioSplit = !isPrivate && tabModeIncludes(activeTabMode, 'zio');
-  // A tab whose ONLY pane is Ask Zio: the panel fills the whole content area.
-  const activeTabZioFull = !isPrivate && activeTabMode === 'zio';
-  const showDockedPanel = (zioPanelOpen && zioPanelDocked && !isPrivate) || activeTabZioSplit;
-  const showOverlayPanel = zioPanelOpen && !zioPanelDocked && !isPrivate && !activeTabZioSplit;
+  // Zio panel presentation flags are computed above the early returns.
 
   return (
     <div style={{

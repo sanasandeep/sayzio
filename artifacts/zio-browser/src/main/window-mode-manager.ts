@@ -33,6 +33,12 @@ export class WindowModeManager {
   private splitRatio: number;
   private zioPanelWidth: number;
   private zioPanelDocked: boolean;
+  /**
+   * Whether the renderer is CURRENTLY drawing the docked Zio panel. The
+   * docked preference alone must not reserve layout space — otherwise a
+   * closed panel leaves a dead right-hand strip.
+   */
+  private zioPanelVisible = false;
   private dashboardView: WebContentsView | null = null;
   /** Number of renderer dropdowns currently holding the chrome overlay open. */
   private overlayCount = 0;
@@ -44,7 +50,7 @@ export class WindowModeManager {
     initialMode: WindowMode = 'browser',
     initialSplitRatio: number = DEFAULT_SPLIT_RATIO,
     initialZioPanelWidth: number = DEFAULT_ZIO_PANEL_WIDTH,
-    initialZioPanelDocked = false,
+    initialZioPanelDocked = true,
   ) {
     this.win = win;
     this.tabManager = tabManager;
@@ -121,6 +127,18 @@ export class WindowModeManager {
     }
   }
 
+  getZioPanelVisible(): boolean {
+    return this.zioPanelVisible;
+  }
+
+  setZioPanelVisible(visible: boolean): void {
+    if (this.zioPanelVisible === visible) return;
+    this.zioPanelVisible = visible;
+    if (this.mode === 'browser') {
+      this.applyBounds();
+    }
+  }
+
   /**
    * Recompute and apply bounds for all views based on current mode and window size.
    * Called on resize and mode/ratio changes.
@@ -178,9 +196,10 @@ export class WindowModeManager {
   }
 
   private applyBrowserBounds(w: number, h: number): void {
-    // When the Zio panel is docked, it occupies the right side. The tabs fill
-    // the remaining left portion. Overlay mode leaves tabs full-width.
-    const reservedRight = this.zioPanelDocked
+    // When the Zio panel is docked AND actually visible, it occupies the
+    // right side. The tabs fill the remaining left portion. Overlay mode —
+    // and a docked-but-closed panel — leave tabs full-width.
+    const reservedRight = this.zioPanelDocked && this.zioPanelVisible
       ? this.zioPanelWidth + ZIO_PANEL_DIVIDER_WIDTH
       : 0;
     const tabWidth = Math.max(0, w - reservedRight);

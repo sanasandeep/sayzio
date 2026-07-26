@@ -12,6 +12,8 @@ import { ModeSwitcher } from './ModeSwitcher';
 import { TabModeSwitcher } from './TabModeSwitcher';
 import { normalizeTabMode } from '../../shared/window-mode';
 import { ProfileSwitcher } from './ProfileSwitcher';
+import { AccountButton } from './AccountButton';
+import zioIcon from '../assets/zio-icon.png';
 import { useModeStore } from '../store/mode-store';
 import type { RecentlyClosedEntry } from '../../main/tab-manager';
 import type { SyncQueueProfileCount } from '../../main/db';
@@ -941,6 +943,25 @@ export function ChromeBar({
           } as React.CSSProperties}
           title="Search tabs (Ctrl+Shift+A)"
         >🔍</button>
+
+        {/* Ask Zio — quick access at the end of the tab strip */}
+        <button
+          onClick={onToggleZio}
+          style={{
+            width: 24, height: 24, borderRadius: 5,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            WebkitAppRegion: 'no-drag',
+            flexShrink: 0,
+            padding: 0,
+          } as React.CSSProperties}
+          title="Ask Zio"
+        >
+          <img
+            src={zioIcon}
+            alt="Ask Zio"
+            style={{ width: 18, height: 18, borderRadius: 4, display: 'block' }}
+          />
+        </button>
       </div>
 
       {/* Address Bar Row */}
@@ -1382,6 +1403,10 @@ export function ChromeBar({
           isAuthenticated={!!user}
           onOpenAuth={onOpenAuth}
         />
+
+        {/* Account — avatar menu with Sign out when signed in (browser mode
+            otherwise has no visible logout affordance) */}
+        {user && <AccountButton onOpenAuth={onOpenAuth} compact />}
 
         {/* Settings button */}
         {onOpenSettings && (

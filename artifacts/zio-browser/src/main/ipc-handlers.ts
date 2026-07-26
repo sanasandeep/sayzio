@@ -576,12 +576,22 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
     return true;
   });
   ipcMain.handle('window:get-zio-panel-docked', () => {
+    // Default DOCKED: the side-by-side layout keeps the page visible, which
+    // is the least surprising first experience. Users who explicitly chose
+    // floating ('0') keep their choice.
     const stored = getPreference('zio_panel_docked');
-    return stored === '1';
+    return stored === null ? true : stored === '1';
   });
   ipcMain.handle('window:set-zio-panel-docked', (event, docked: boolean) => {
     setPreference('zio_panel_docked', docked ? '1' : '0');
     resolveModeManager(event)?.setZioPanelDocked(docked);
+    return true;
+  });
+  // Renderer tells us whether the docked Zio panel is actually rendered right
+  // now, so layout space is only reserved while it's on screen. Not a
+  // preference — pure per-window runtime state.
+  ipcMain.handle('window:set-zio-panel-visible', (event, visible: boolean) => {
+    resolveModeManager(event)?.setZioPanelVisible(visible === true);
     return true;
   });
 
