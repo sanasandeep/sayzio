@@ -17,6 +17,7 @@ import zioIcon from '../assets/zio-icon.png';
 import { useModeStore } from '../store/mode-store';
 import type { RecentlyClosedEntry } from '../../main/tab-manager';
 import { resolveFavicon } from '../../shared/favicon';
+import { FaviconImg } from './FaviconImg';
 import type { SyncQueueProfileCount } from '../../main/db';
 
 interface Props {
@@ -296,17 +297,11 @@ function StripMenu({ anchorRef, recentlyClosed, onClose, onReopenEntry, onMuteAl
             onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg-elevated)')}
             onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
           >
-            {resolveFavicon(entry.favicon, entry.url) ? (
-              <img
-                src={resolveFavicon(entry.favicon, entry.url) ?? undefined}
-                width={12} height={12}
-                style={{ borderRadius: 2, flexShrink: 0 }}
-                alt=""
-                onError={e => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }}
-              />
-            ) : (
-              <div style={{ width: 12, height: 12, borderRadius: 2, background: 'var(--color-border)', flexShrink: 0 }} />
-            )}
+            <FaviconImg
+              src={resolveFavicon(entry.favicon, entry.url)}
+              size={12}
+              fallback={<div style={{ width: 12, height: 12, borderRadius: 2, background: 'var(--color-border)', flexShrink: 0 }} />}
+            />
             <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 160 }}>
               {entry.title || entry.url}
             </span>

@@ -24,6 +24,7 @@ import type { TabRecord } from '../store/tab-store';
 import type { WindowMode } from '../../shared/window-mode';
 import { useFindStore } from '../store/find-store';
 import { resolveFavicon } from '../../shared/favicon';
+import { FaviconImg } from './FaviconImg';
 
 interface Props {
   onClose: () => void;
@@ -504,17 +505,11 @@ export function CommandPalette({
                           justifyContent: 'center',
                           opacity: 0.85,
                         }}>
-                          {item.favicon ? (
-                            <img
-                              src={item.favicon}
-                              width={16} height={16}
-                              style={{ borderRadius: 3 }}
-                              alt=""
-                              onError={e => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }}
-                            />
-                          ) : (
-                            item.icon ?? kindIcon(item.kind)
-                          )}
+                          <FaviconImg
+                            src={item.favicon}
+                            size={16}
+                            fallback={item.icon ?? kindIcon(item.kind)}
+                          />
                         </span>
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{
