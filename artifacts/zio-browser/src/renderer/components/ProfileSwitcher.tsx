@@ -200,7 +200,7 @@ export function ProfileSwitcher({ isAuthenticated, onOpenAuth }: Props) {
           <button
             onClick={() => {
               setOpen(false);
-              void createTab('https://1in.me/user/workspaces');
+              void createTab('https://sayzio.app/user/dashboard?create_workspace=1');
             }}
             style={{
               display: 'flex',

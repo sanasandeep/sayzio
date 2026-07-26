@@ -5,7 +5,7 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { ApiClient } from '../../shared/api-client';
 import type { ApiUser } from '../../shared/api-client';
 
-const API_BASE_URL = 'https://1in.me';
+const API_BASE_URL = 'https://sayzio.app';
 
 interface AuthState {
   user: ApiUser | null;

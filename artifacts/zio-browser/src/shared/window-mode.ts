@@ -181,9 +181,9 @@ export const MIN_SPLIT_RATIO = 0.20;
 export const MAX_SPLIT_RATIO = 0.60;
 export const SPLIT_DIVIDER_WIDTH = 4;
 
-export const SAYZIO_DASHBOARD_URL = 'https://1in.me/user/dashboard';
-export const SAYZIO_HOME_URL = 'https://1in.me';
-export const SAYZIO_BASE_HOST = '1in.me';
+export const SAYZIO_DASHBOARD_URL = 'https://sayzio.app/user/dashboard';
+export const SAYZIO_HOME_URL = 'https://sayzio.app';
+export const SAYZIO_BASE_HOST = 'sayzio.app';
 
 /** Zio panel width (px) in browser-mode docked presentation */
 export const DEFAULT_ZIO_PANEL_WIDTH = 360;

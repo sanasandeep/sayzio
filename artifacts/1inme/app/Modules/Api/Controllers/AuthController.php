@@ -173,6 +173,30 @@ class AuthController extends Controller
     }
 
     /**
+     * POST /auth/browser-session — Zio Browser web-session bridge.
+     *
+     * The desktop browser holds a Sanctum token but its embedded tabs use
+     * plain cookie sessions, so sayzio.app pages render logged-out. This
+     * endpoint mints a short-lived, single-use signed login URL
+     * (browser.session.login) the browser fetches inside the tab's cookie
+     * jar to establish a matching web session for the SAME user the token
+     * belongs to. Signature + expiry + one-time nonce guard the URL.
+     */
+    public function browserSession(Request $request)
+    {
+        $loginUrl = \Illuminate\Support\Facades\URL::temporarySignedRoute(
+            'browser.session.login',
+            now()->addMinutes(2),
+            [
+                'user'  => $request->user()->id,
+                'nonce' => \Illuminate\Support\Str::random(40),
+            ]
+        );
+
+        return $this->ok(['login_url' => $loginUrl, 'expires_in' => 120]);
+    }
+
+    /**
      * Send a 6-digit verification code to the signed-in user's email so a
      * mobile-first user who skipped verification at sign-up can verify it
      * now. Mirrors the web AuthController::sendEmailVerifyCode() — reuses the

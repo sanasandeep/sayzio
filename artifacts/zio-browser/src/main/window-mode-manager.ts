@@ -21,6 +21,7 @@ import {
   ZIO_PANEL_DIVIDER_WIDTH,
 } from '../shared/window-mode';
 import type { TabManager } from './tab-manager';
+import { seedSayzioDefaultSession } from './sayzio-session';
 
 export const CHROME_HEIGHT = 72;
 export const DASHBOARD_HEADER_HEIGHT = 44;
@@ -274,7 +275,12 @@ export class WindowModeManager {
       return { action: 'deny' };
     });
 
-    void wc.loadURL(SAYZIO_DASHBOARD_URL);
+    // Seed a Sayzio web session into the default session (the dashboard
+    // view's cookie jar) before loading, so it opens signed in when the
+    // browser holds a token. Best-effort — load the page regardless.
+    void seedSayzioDefaultSession().finally(() => {
+      if (!wc.isDestroyed()) void wc.loadURL(SAYZIO_DASHBOARD_URL);
+    });
   }
 
   private destroyDashboardView(): void {

@@ -113,6 +113,7 @@ import {
 import { isPrivateWindow } from './private-session';
 import { listExtensions, addExtensionFromDialog, removeExtension } from './extension-manager';
 import { profileFromWorkspace, sessionPartitionForProfile, DEFAULT_PROFILE_ID } from '../shared/profile-store';
+import { seedSayzioWebSession, resetSayzioSessionSeeds } from './sayzio-session';
 import type { BrowserProfile } from '../shared/profile-store';
 
 type PrefKey = typeof PREFERENCE_KEYS[keyof typeof PREFERENCE_KEYS];
@@ -312,10 +313,25 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
   });
 
   // ── Auth ─────────────────────────────────────────────────────────────────
-  ipcMain.handle('auth:store-token', (_, token: string) => { storeToken(token); return true; });
+  ipcMain.handle('auth:store-token', (event, token: string) => {
+    storeToken(token);
+    // Fresh token → forget old seed state, then establish a web session in
+    // the calling window's active profile partition so Sayzio tabs open
+    // signed in as the newly authenticated user.
+    resetSayzioSessionSeeds();
+    // Never seed from a private window: its tab manager still reports a
+    // persistent profile partition string, so seeding here would write a
+    // durable web session from a private-mode action.
+    if (!senderIsPrivate(event)) {
+      const partition = resolveTabManager(event)?.getActivePartition();
+      if (partition) void seedSayzioWebSession(partition);
+    }
+    return true;
+  });
   ipcMain.handle('auth:get-token', () => retrieveToken());
   ipcMain.handle('auth:clear', () => {
     clearToken(); clearUser(); clearSayzioLinksCache();
+    resetSayzioSessionSeeds();
     // Logout closes every window and opens a single fresh (logged-out) one.
     // Deferred so the renderer's invoke() resolves before its window closes.
     if (_logoutHandler) setTimeout(() => _logoutHandler?.(), 50);
@@ -1179,6 +1195,12 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
       installPrivacyHooks(sess);
       installTrackerHooks(sess);
     } catch { /* best-effort */ }
+    // Make sure the newly active profile's cookie jar carries a Sayzio web
+    // session (no-op if already seeded or no token is stored). Never from a
+    // private window — that would mutate a persistent cookie jar.
+    if (!senderIsPrivate(event)) {
+      void seedSayzioWebSession(sessionPartitionForProfile(profileId));
+    }
     win?.webContents.send('profile:changed', profileId);
     return { ok: true, profileId };
   });
@@ -1197,7 +1219,7 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
    * Pre-warm a session partition so cookies load before the user's first tab
    * in that profile. Returns the partition string so the renderer can confirm.
    */
-  ipcMain.handle('profiles:warm-session', (_, profileId: string) => {
+  ipcMain.handle('profiles:warm-session', (event, profileId: string) => {
     const partition = sessionPartitionForProfile(profileId);
     // Accessing the session via fromPartition creates + registers it.
     const { session: electronSession } = require('electron') as typeof import('electron');
@@ -1208,6 +1230,9 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
       installPrivacyHooks(sess);
       installTrackerHooks(sess);
     } catch { /* best-effort */ }
+    // Seed a Sayzio web session into the pre-warmed cookie jar — never from
+    // a private window (would mutate a persistent partition).
+    if (!senderIsPrivate(event)) void seedSayzioWebSession(partition);
     return partition;
   });
 
@@ -1240,7 +1265,7 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
     }
 
     const prefs = getAllPreferences();
-    const apiBase = prefs['sayzio_api_base_url'] ?? 'https://1in.me';
+    const apiBase = prefs['sayzio_api_base_url'] ?? 'https://sayzio.app';
     try {
       const resp = await fetch(`${apiBase}/api/v1/links?per_page=50`, {
         headers: {
@@ -1283,7 +1308,7 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
     const token = retrieveToken();
     if (!token) return [];
     const prefs = getAllPreferences();
-    const apiBase = prefs['sayzio_api_base_url'] ?? 'https://1in.me';
+    const apiBase = prefs['sayzio_api_base_url'] ?? 'https://sayzio.app';
     try {
       const resp = await fetch(`${apiBase}/api/v1/links?type=biolink&limit=50`, {
         headers: {

@@ -24,7 +24,7 @@ import { detectBrowserIntent, describeIntent } from '../../shared/browser-intent
 import type { BrowserIntent } from '../../shared/browser-intents';
 import { ProfileBadge } from './ProfileBadge';
 
-const BASE_URL = 'https://1in.me';
+const BASE_URL = 'https://sayzio.app';
 
 interface Props {
   pageContext: { url: string; title: string } | null;

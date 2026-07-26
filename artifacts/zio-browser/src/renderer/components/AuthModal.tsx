@@ -36,7 +36,7 @@ export function AuthModal({ onClose }: Props) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const baseUrl = 'https://1in.me';
+  const baseUrl = 'https://sayzio.app';
 
   const handlePasswordLogin = useCallback(async () => {
     if (!email.trim() || !password) return;

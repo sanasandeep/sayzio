@@ -18,7 +18,7 @@ import { ApiClient } from '../../shared/api-client';
 import type { ApiFile } from '../../shared/api-client';
 import { quickQrImageUrl, suggestAlias } from '../../shared/link-tools';
 
-const BASE_URL = 'https://1in.me';
+const BASE_URL = 'https://sayzio.app';
 
 export interface ScreenshotSheetProps {
   dataUrl: string;

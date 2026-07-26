@@ -111,7 +111,7 @@ async function syncWorkspacesImpl(token: string): Promise<void> {
   if (typeof window === 'undefined' || !window.zio) return;
   try {
     const prefs = await window.zio.prefs.all() as Record<string, string>;
-    const apiBase = prefs['sayzio_api_base_url'] ?? 'https://1in.me';
+    const apiBase = prefs['sayzio_api_base_url'] ?? 'https://sayzio.app';
     const resp = await fetch(`${apiBase}/api/v1/workspaces`, {
       headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
     });

@@ -22,6 +22,7 @@ export interface OwnLinkDetection {
  * Custom user domains are handled separately via the `extraHosts` parameter.
  */
 export const PLATFORM_DOMAINS = [
+  'sayzio.app',
   '1in.me',
   'sayzio.com',
   'www.sayzio.com',

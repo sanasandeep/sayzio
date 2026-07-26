@@ -87,7 +87,7 @@ const defaultFields = (): FieldState => ({
 
 type PopoverView = 'types' | 'form' | 'success';
 
-const BASE_URL = 'https://1in.me';
+const BASE_URL = 'https://sayzio.app';
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
