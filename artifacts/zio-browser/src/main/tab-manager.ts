@@ -142,6 +142,8 @@ export class TabManager {
   private resolveZioPanelReserve?: () => number;
   /** Last content-area bounds applied via resizeTabs (browser/split layouts). */
   private contentBounds: { x: number; y: number; width: number; height: number } | null = null;
+  /** True while a renderer chrome-overlay holds native views detached. */
+  private overlaySuppressed = false;
   /** Returns whether spell checking is currently enabled (preference-backed). */
   private resolveSpellcheckEnabled?: () => boolean;
   /** Returns the target language code for "Translate this page" (e.g. 'en'). */
@@ -840,6 +842,10 @@ export class TabManager {
    * within the last-known content bounds.
    */
   private layoutActiveTab(): void {
+    // While a renderer chrome-overlay (settings/menus) is held, native views
+    // must stay detached — re-attaching here would cover the DOM panel and
+    // silently swallow its clicks. The overlay release re-runs the layout.
+    if (this.overlaySuppressed) return;
     if (!this.activeTabId) return;
     const tab = this.tabs.get(this.activeTabId);
     if (!tab) return;
@@ -1137,6 +1143,15 @@ export class TabManager {
   /** Re-apply the active tab's per-mode layout (e.g. after the Zio panel resizes). */
   relayoutActiveTab(): void {
     this.layoutActiveTab();
+  }
+
+  /**
+   * Toggle chrome-overlay suppression. While true, layoutActiveTab is a no-op
+   * so tab/resize/panel events can never re-attach native views on top of an
+   * open renderer panel (settings, menus) and swallow its clicks.
+   */
+  setOverlaySuppressed(suppressed: boolean): void {
+    this.overlaySuppressed = suppressed;
   }
 
   /**

@@ -318,6 +318,29 @@ describe('TabManager closeOtherTabs / closeTabsToRight', () => {
   });
 });
 
+describe('TabManager chrome-overlay suppression', () => {
+  it('never re-attaches views while suppressed; re-attaches after release', () => {
+    const { tm, win } = makeManager();
+    const a = tm.createTab('https://a.test');
+    tm.activateTab(a);
+
+    // Simulate a renderer panel (settings/menu) holding the chrome overlay.
+    tm.setOverlaySuppressed(true);
+    tm.hideAllTabs();
+    win.contentView.addChildView.mockClear();
+
+    // Resize/tab/panel events must NOT re-attach native views over the panel.
+    tm.relayoutActiveTab();
+    tm.resizeTabs({ x: 0, y: 72, width: 1200, height: 728 });
+    expect(win.contentView.addChildView).not.toHaveBeenCalled();
+
+    // Releasing the overlay restores the layout (as setMode does on release).
+    tm.setOverlaySuppressed(false);
+    tm.relayoutActiveTab();
+    expect(win.contentView.addChildView).toHaveBeenCalled();
+  });
+});
+
 describe('TabManager pinned URL persistence helpers', () => {
   let tm: TabManager;
 
