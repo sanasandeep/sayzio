@@ -293,6 +293,10 @@ export class WindowModeManager {
   setChromeOverlay(open: boolean): void {
     if (open) {
       this.overlayCount++;
+      // Suppress tab layout while held — resize/tab/panel events would
+      // otherwise re-attach native views over the open DOM panel and
+      // swallow its clicks (settings tabs, menus).
+      this.tabManager.setOverlaySuppressed(true);
       this.tabManager.hideAllTabs();
       if (this.dashboardView) {
         try { this.win.contentView.removeChildView(this.dashboardView); } catch { }
@@ -302,6 +306,7 @@ export class WindowModeManager {
       // Only restore views when the LAST open menu closes — several header
       // menus can overlap during a menu-to-menu transition.
       if (this.overlayCount === 0) {
+        this.tabManager.setOverlaySuppressed(false);
         this.setMode(this.mode);
       }
     }
