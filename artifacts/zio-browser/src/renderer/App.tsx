@@ -162,32 +162,37 @@ export default function App() {
     return () => window.zio.off('permission:request', listener);
   }, []);
 
-  // While the mode picker is visible, detach all tab WebContentsViews.
-  // Native views sit ABOVE the renderer DOM, so a restored tab view would
-  // otherwise silently swallow clicks on the picker cards.
+  // While the mode picker is visible, detach ALL native views (tab views AND
+  // the dashboard view) via the ref-counted chrome overlay. Native views sit
+  // ABOVE the renderer DOM, so a lingering view would otherwise cover the
+  // picker cards and silently swallow clicks.
+  const modePickerWasOpen = useRef(false);
   useEffect(() => {
     if (showModePicker) {
-      void window.zio.tabs.hideAll();
+      modePickerWasOpen.current = true;
+      void window.zio.window.setChromeOverlay(true);
+    } else if (modePickerWasOpen.current) {
+      modePickerWasOpen.current = false;
+      void window.zio.window.setChromeOverlay(false);
     }
   }, [showModePicker]);
 
-  // While the auth modal is open, detach all tab WebContentsViews for the same
-  // reason: a native tab view sitting above the DOM would keep keyboard focus
-  // and swallow typing into the modal's inputs. When the modal closes, re-apply
-  // the current mode so the active tab view (and its bounds) are restored.
+  // While the auth modal is open, detach ALL native views (tab views AND the
+  // dashboard view) via the ref-counted chrome overlay. A native view sitting
+  // above the DOM would cover/clip the modal (in dashboard and split modes the
+  // dashboard view otherwise stays on top of it), keep keyboard focus, and
+  // swallow typing into the modal's inputs. Releasing the overlay re-applies
+  // the current mode in main, which reattaches and re-bounds everything.
   const authModalWasOpen = useRef(false);
   useEffect(() => {
     if (authModalOpen) {
       authModalWasOpen.current = true;
-      void window.zio.tabs.hideAll();
+      void window.zio.window.setChromeOverlay(true);
     } else if (authModalWasOpen.current) {
       authModalWasOpen.current = false;
-      if (!showModePicker) {
-        // setMode round-trips to main, which re-applies view bounds.
-        void setMode(mode);
-      }
+      void window.zio.window.setChromeOverlay(false);
     }
-  }, [authModalOpen, showModePicker, mode, setMode]);
+  }, [authModalOpen]);
 
   const handlePickMode = useCallback((picked: WindowMode) => {
     localStorage.setItem(FIRST_LAUNCH_KEY, '1');
