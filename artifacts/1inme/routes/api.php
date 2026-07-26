@@ -106,6 +106,11 @@ Route::prefix('v1')->group(function () {
     Route::get('/contacts/google/oauth/callback', [ContactController::class, 'googleOauthCallback'])
         ->middleware('throttle:30,1');
 
+    // "Is this site on Sayzio?" resolver (PUBLIC — Zio Browser indicator).
+    // Matches verified, active custom domains to a small public owner card.
+    Route::get('/resolve/site', [\App\Modules\Api\Controllers\SiteResolveController::class, 'site'])
+        ->middleware('throttle:60,1');
+
     // ── Public, visibility-aware (optional bearer token) ────────────
     Route::middleware('api.optional_auth')->group(function () {
         Route::get('/biolinks/{alias}',            [BiolinkController::class, 'show']);

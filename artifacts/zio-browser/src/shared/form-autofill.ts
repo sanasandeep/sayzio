@@ -27,6 +27,33 @@ export interface AutofillCard {
   website?: string;
 }
 
+/** Minimal profile shape needed to build an AutofillCard (matches ApiUserProfile). */
+export interface AutofillProfileSource {
+  name?: string | null;
+  given_name?: string | null;
+  family_name?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  organization?: string | null;
+  job_title?: string | null;
+  website?: string | null;
+}
+
+/** Build an AutofillCard from the signed-in user's Sayzio profile. */
+export function profileToAutofillCard(profile: AutofillProfileSource): AutofillCard {
+  const nameParts = (profile.name ?? '').trim().split(/\s+/);
+  return {
+    full_name: profile.name ?? undefined,
+    given_name: profile.given_name ?? (nameParts[0] ?? undefined),
+    family_name: profile.family_name ?? (nameParts.length > 1 ? nameParts.slice(1).join(' ') : undefined),
+    email: profile.email ?? undefined,
+    phone: profile.phone ?? undefined,
+    organization: profile.organization ?? undefined,
+    job_title: profile.job_title ?? undefined,
+    website: profile.website ?? undefined,
+  };
+}
+
 /** Detected semantic category of a form field. */
 export type FieldKind =
   | 'full_name'

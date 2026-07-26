@@ -156,3 +156,4 @@
 - [AI builder auto web-photo tier](ai-builder-auto-web-photo-tier.md) — auto search only when preview never reviewed; must check capReached() before search (search() records, never blocks); test needs ≥200px PNG.
 - [Runtime config cache vs cleared admin setting](runtime-config-cache-vs-cleared-admin-setting.md) — nulling an admin credential mid-process leaves the boot-time config() copy; clear config() too before asserting unconfigured.
 - [Zio Browser chrome-overlay for dropdowns](zio-browser-chrome-overlay.md) — native views occlude renderer menus; use ref-counted setChromeOverlay (detach tabs+dashboard view), never raw tabs.hideAll.
+- [Zio Browser site-resolve privacy gate](zio-browser-site-resolve-privacy.md) — any feature phoning home with browsing data (host/URL) must be isPrivate-off + signed-in/opt-in gated.

@@ -378,6 +378,11 @@ const api = {
       'find:open',
       // Link tools — context menu "Add to my biolink" trigger
       'biolink:add-page',
+      // Link tools — context menu "Shorten this page" / "QR code" triggers
+      'link:shorten-page',
+      'link:create-qr',
+      // Context menu "Fill form with my Sayzio card" trigger
+      'autofill:page',
       // Device Lab — context menu "Preview in Device Lab" trigger
       'device-lab:preview-url',
       'window:mode-changed',
