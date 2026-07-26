@@ -426,7 +426,7 @@ const baseBtn: React.CSSProperties = {
 
 const primaryBtn: React.CSSProperties = {
   ...baseBtn,
-  background: 'var(--color-primary)',
+  background: 'var(--gradient-primary)',
   color: '#fff',
   border: 'none',
 };

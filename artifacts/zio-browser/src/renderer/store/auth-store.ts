@@ -2,7 +2,10 @@
  * Auth state store for the renderer process.
  */
 import { useState, useCallback, useRef, useEffect } from 'react';
+import { ApiClient } from '../../shared/api-client';
 import type { ApiUser } from '../../shared/api-client';
+
+const API_BASE_URL = 'https://1in.me';
 
 interface AuthState {
   user: ApiUser | null;
@@ -11,6 +14,8 @@ interface AuthState {
   init: () => Promise<void>;
   setAuth: (user: ApiUser, token: string) => Promise<void>;
   clearAuth: () => Promise<void>;
+  /** Re-fetch the profile from the server to refresh a stale cached name/avatar. */
+  refreshUser: () => Promise<void>;
 }
 
 let userState: ApiUser | null = null;
@@ -71,6 +76,20 @@ export function useAuthStore(): AuthState {
     notifyAuth();
   }, []);
 
+  const refreshUser = useCallback(async (): Promise<void> => {
+    if (typeof window === 'undefined' || !window.zio || !tokenState) return;
+    try {
+      const client = new ApiClient({ baseUrl: API_BASE_URL, token: tokenState });
+      const { user } = await client.me();
+      if (!user) return;
+      userState = user;
+      await window.zio.auth.storeUser(user as unknown as Record<string, unknown>);
+      notifyAuth();
+    } catch {
+      // Offline or expired token — keep showing the cached identity.
+    }
+  }, []);
+
   return {
     user: userState,
     token: tokenState,
@@ -78,5 +97,6 @@ export function useAuthStore(): AuthState {
     init,
     setAuth,
     clearAuth,
+    refreshUser,
   };
 }

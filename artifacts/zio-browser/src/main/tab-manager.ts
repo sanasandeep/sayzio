@@ -83,6 +83,13 @@ interface ManagedTab {
   sayzioView: WebContentsView | null;
   /** Lazily created Sayzio dashboard view (pane: 'dashboard'). */
   dashboardView: WebContentsView | null;
+  /**
+   * True while the tab shows the renderer-drawn New Tab page (about:newtab).
+   * The native WebContentsView must stay DETACHED in that state — an attached
+   * (blank) view sits above the DOM and silently swallows every click on the
+   * quick links / recent buttons. Cleared on first real navigation.
+   */
+  isNewTabPage: boolean;
 }
 
 const MAX_RECENTLY_CLOSED = 10;
@@ -264,6 +271,12 @@ export class TabManager {
 
     // Wire up events
     wc.on('did-navigate', (_, navUrl) => {
+      // First real navigation ends the New Tab page state — attach the view.
+      const navigatedTab = this.tabs.get(id);
+      if (navigatedTab?.isNewTabPage && navUrl && navUrl !== 'about:blank' && navUrl !== 'about:newtab') {
+        navigatedTab.isNewTabPage = false;
+        if (this.activeTabId === id) this.layoutActiveTab();
+      }
       if (isAlive(wc)) {
         wc.stopFindInPage('clearSelection');
       }
@@ -502,12 +515,17 @@ export class TabManager {
     });
 
     if (pinned) this.pinnedTabs.add(id);
-    const tab: ManagedTab = { id, view, pinned, favicon: null, muteOverride: null, mode: 'browser', sayzioView: null, dashboardView: null };
+    const isNewTabPage = !url || url === 'about:newtab';
+    const tab: ManagedTab = { id, view, pinned, favicon: null, muteOverride: null, mode: 'browser', sayzioView: null, dashboardView: null, isNewTabPage };
     this.tabs.set(id, tab);
     this.insertInOrder(id, pinned);
 
     if (!background || !this.activeTabId) {
-      this.win.contentView.addChildView(view);
+      // New Tab pages are drawn by the renderer DOM — keep the (blank) native
+      // view detached so it can't cover the quick links / recent buttons.
+      if (!isNewTabPage) {
+        this.win.contentView.addChildView(view);
+      }
       if (this.activeTabId) {
         const prev = this.tabs.get(this.activeTabId);
         if (prev) this.win.contentView.removeChildView(prev.view);
@@ -786,7 +804,11 @@ export class TabManager {
       }
     }
 
-    tab.view.webContents.focus();
+    // Don't steal keyboard focus while the renderer draws the New Tab page —
+    // its search box needs the focus, and the native view is detached anyway.
+    if (!tab.isNewTabPage) {
+      tab.view.webContents.focus();
+    }
     this.onActiveTabChange?.(id);
   }
 
@@ -864,7 +886,8 @@ export class TabManager {
     // Resolve the native view backing each pane ('zio' is renderer-drawn → null).
     const viewFor = (pane: TabPane): WebContentsView | null => {
       switch (pane) {
-        case 'browser': return tab.view;
+        // New Tab page is renderer-drawn — no native view may cover it.
+        case 'browser': return tab.isNewTabPage ? null : tab.view;
         case 'sayzio': return tab.sayzioView;
         case 'dashboard': return tab.dashboardView;
         case 'zio': return null;
@@ -1029,6 +1052,12 @@ export class TabManager {
     const tab = this.tabs.get(id);
     if (!tab) return;
     const result = parseOmniboxInput(input, this.searchEngine);
+    // Leaving the New Tab page: re-attach the native view immediately so the
+    // page is visible as soon as it starts painting.
+    if (tab.isNewTabPage) {
+      tab.isNewTabPage = false;
+      if (this.activeTabId === id) this.layoutActiveTab();
+    }
     void tab.view.webContents.loadURL(result.navigateUrl);
   }
 
@@ -1152,6 +1181,28 @@ export class TabManager {
    */
   setOverlaySuppressed(suppressed: boolean): void {
     this.overlaySuppressed = suppressed;
+  }
+
+  /**
+   * Capture the currently visible active tab as a static backdrop snapshot.
+   * Used while a renderer chrome overlay (menu/dropdown) detaches native views
+   * so the page doesn't visually vanish behind the open menu.
+   */
+  async captureActiveBackdrop(): Promise<{ dataUrl: string; bounds: { x: number; y: number; width: number; height: number } } | null> {
+    if (!this.activeTabId) return null;
+    const tab = this.tabs.get(this.activeTabId);
+    if (!tab) return null;
+    const wc = tab.view.webContents;
+    if (wc.isDestroyed()) return null;
+    const bounds = tab.view.getBounds();
+    if (bounds.width <= 0 || bounds.height <= 0 || bounds.x <= -10000) return null;
+    try {
+      const image = await wc.capturePage();
+      if (image.isEmpty()) return null;
+      return { dataUrl: image.toDataURL(), bounds };
+    } catch {
+      return null;
+    }
   }
 
   /**

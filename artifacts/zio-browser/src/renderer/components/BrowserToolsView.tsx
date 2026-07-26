@@ -822,7 +822,7 @@ function DownloadsSection() {
                   <div style={{
                     height: '100%',
                     width: `${Math.round((d.received_bytes / d.total_bytes) * 100)}%`,
-                    background: 'var(--color-primary)',
+                    background: 'var(--gradient-primary)',
                   }} />
                 </div>
               )}

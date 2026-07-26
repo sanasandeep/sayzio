@@ -831,7 +831,7 @@ const inputStyle: React.CSSProperties = {
 const primaryBtn: React.CSSProperties = {
   padding: '6px 14px',
   borderRadius: 8,
-  background: 'var(--color-primary)',
+  background: 'var(--gradient-primary)',
   color: '#fff',
   fontSize: 12,
   fontWeight: 600,

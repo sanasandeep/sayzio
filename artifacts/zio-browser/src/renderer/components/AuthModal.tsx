@@ -325,7 +325,7 @@ const btnStyle: React.CSSProperties = {
   width: '100%',
   height: 44,
   borderRadius: 10,
-  background: 'var(--color-primary)',
+  background: 'var(--gradient-primary)',
   color: '#fff',
   fontSize: 14,
   fontWeight: 600,

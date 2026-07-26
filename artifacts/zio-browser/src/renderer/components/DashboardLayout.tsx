@@ -94,7 +94,7 @@ export function DashboardLayout({ mode, onSetMode, authModalOpen, onOpenAuth, on
               height: 14,
               padding: '0 3px',
               borderRadius: 7,
-              background: 'var(--color-primary)',
+              background: 'var(--gradient-primary)',
               color: '#fff',
               fontSize: 9,
               fontWeight: 700,

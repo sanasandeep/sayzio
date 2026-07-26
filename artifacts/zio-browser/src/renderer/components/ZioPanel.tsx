@@ -853,7 +853,7 @@ function PasswordOfferBanner({
             flex: 1,
             padding: '5px 10px',
             borderRadius: 8,
-            background: 'var(--color-primary)',
+            background: 'var(--gradient-primary)',
             color: '#fff',
             fontSize: 11,
             fontWeight: 600,
@@ -980,7 +980,7 @@ function ChatView({
             style={{
               padding: '8px 14px',
               borderRadius: 10,
-              background: 'var(--color-primary)',
+              background: 'var(--gradient-primary)',
               color: '#fff',
               fontSize: 13,
               fontWeight: 600,
@@ -1315,7 +1315,7 @@ function LinkEditForm({
           style={{
             padding: '8px 16px',
             borderRadius: 10,
-            background: 'var(--color-primary)',
+            background: 'var(--gradient-primary)',
             color: '#fff',
             fontSize: 13,
             fontWeight: 600,
@@ -1366,7 +1366,7 @@ function BarRow({ label, value, max }: { label: string; value: number; max: numb
         {label}
       </span>
       <div style={{ flex: 1, height: 6, borderRadius: 4, background: 'var(--color-border)', overflow: 'hidden' }}>
-        <div style={{ width: `${pct}%`, height: '100%', background: 'var(--color-primary)', borderRadius: 4 }} />
+        <div style={{ width: `${pct}%`, height: '100%', background: 'var(--gradient-primary)', borderRadius: 4 }} />
       </div>
       <span style={{ fontSize: 11, color: 'var(--color-text-muted)', width: 32, textAlign: 'right', flexShrink: 0 }}>
         {value.toLocaleString()}
@@ -1651,7 +1651,7 @@ function ContactEntryCard({
       ))}
       <div style={{ marginTop: 8 }}>
         {state.kind === 'idle' && (
-          <button onClick={onSave} style={{ padding: '5px 14px', borderRadius: 6, background: 'var(--color-primary)', color: '#fff', fontSize: 11, fontWeight: 600 }}>
+          <button onClick={onSave} style={{ padding: '5px 14px', borderRadius: 6, background: 'var(--gradient-primary)', color: '#fff', fontSize: 11, fontWeight: 600 }}>
             Save to Contacts
           </button>
         )}
@@ -1664,7 +1664,7 @@ function ContactEntryCard({
               {state.existingEmails.length > 0 && <span style={{ color: 'var(--color-text-muted)', display: 'block', marginTop: 2 }}>{state.existingEmails.slice(0, 2).join(', ')}</span>}
             </div>
             <div style={{ display: 'flex', gap: 6 }}>
-              <button onClick={() => onUpdate(state.existingId)} style={{ flex: 1, padding: '5px 8px', borderRadius: 6, background: 'var(--color-primary)', color: '#fff', fontSize: 11, fontWeight: 600 }}>Update</button>
+              <button onClick={() => onUpdate(state.existingId)} style={{ flex: 1, padding: '5px 8px', borderRadius: 6, background: 'var(--gradient-primary)', color: '#fff', fontSize: 11, fontWeight: 600 }}>Update</button>
               <button onClick={onSkip} style={{ flex: 1, padding: '5px 8px', borderRadius: 6, background: 'var(--color-bg)', border: '1px solid var(--color-border)', color: 'var(--color-text-muted)', fontSize: 11 }}>Skip</button>
             </div>
           </div>
@@ -1747,7 +1747,7 @@ function CollectionsView({ onSaveCurrent, currentUrl }: { onSaveCurrent: () => P
           <button
             onClick={() => void handleSave()}
             disabled={saving}
-            style={{ width: '100%', padding: '8px 12px', borderRadius: 8, background: 'var(--color-primary)', color: '#fff', fontSize: 12, fontWeight: 600, opacity: saving ? 0.6 : 1 }}
+            style={{ width: '100%', padding: '8px 12px', borderRadius: 8, background: 'var(--gradient-primary)', color: '#fff', fontSize: 12, fontWeight: 600, opacity: saving ? 0.6 : 1 }}
           >{saving ? 'Saving…' : saved ? '✓ Saved to collection' : '+ Save this page'}</button>
         </div>
       )}
@@ -1764,7 +1764,7 @@ function CollectionsView({ onSaveCurrent, currentUrl }: { onSaveCurrent: () => P
           <button
             onClick={() => void handleCreate()}
             disabled={!newName.trim() || creating}
-            style={{ padding: '0 12px', height: 32, borderRadius: 8, background: 'var(--color-primary)', color: '#fff', fontSize: 12, fontWeight: 600, opacity: !newName.trim() || creating ? 0.5 : 1 }}
+            style={{ padding: '0 12px', height: 32, borderRadius: 8, background: 'var(--gradient-primary)', color: '#fff', fontSize: 12, fontWeight: 600, opacity: !newName.trim() || creating ? 0.5 : 1 }}
           >Create</button>
         </div>
 

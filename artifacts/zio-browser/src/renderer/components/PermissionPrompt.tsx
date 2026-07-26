@@ -138,7 +138,7 @@ export function PermissionPrompt({ request, onDismiss }: Props) {
               padding: '8px 18px',
               borderRadius: 8,
               border: 'none',
-              background: 'var(--color-primary)',
+              background: 'var(--gradient-primary)',
               color: '#fff',
               fontSize: 13,
               fontWeight: 600,
