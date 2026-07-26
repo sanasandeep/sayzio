@@ -444,7 +444,7 @@ export function createPrivateWindow(startUrl?: string): BrowserWindow {
     // distinct — the renderer supplies the drag-region header row.
     titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'hidden',
     ...(process.platform !== 'darwin'
-      ? { titleBarOverlay: { color: '#0d0d1a', symbolColor: '#c9b3ff', height: 36 } }
+      ? { titleBarOverlay: { color: '#0d0d1a', symbolColor: '#93c5fd', height: 36 } }
       : {}),
     trafficLightPosition: { x: 12, y: 20 },
     show: false,

@@ -586,7 +586,7 @@ function PrivacySection() {
                     flex: 1,
                     height: Math.max(2, Math.round((d.count / maxDay) * 40)),
                     borderRadius: 3,
-                    background: 'var(--color-primary)',
+                    background: 'var(--gradient-primary)',
                     opacity: d.count === 0 ? 0.2 : 0.85,
                   }} />
                 ))}
@@ -1331,7 +1331,7 @@ function ExtensionsSection() {
             fontWeight: 600,
             padding: '6px 14px',
             borderRadius: 8,
-            background: 'var(--color-primary)',
+            background: 'var(--gradient-primary)',
             color: '#fff',
             border: 'none',
             opacity: adding ? 0.6 : 1,
@@ -1486,7 +1486,7 @@ const primaryBtnStyle: React.CSSProperties = {
   fontWeight: 600,
   padding: '6px 14px',
   borderRadius: 8,
-  background: 'var(--color-primary)',
+  background: 'var(--gradient-primary)',
   color: '#fff',
   border: 'none',
 };

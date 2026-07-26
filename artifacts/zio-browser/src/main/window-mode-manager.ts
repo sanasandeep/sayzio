@@ -42,6 +42,8 @@ export class WindowModeManager {
   private dashboardView: WebContentsView | null = null;
   /** Number of renderer dropdowns currently holding the chrome overlay open. */
   private overlayCount = 0;
+  /** Increments each overlay session so a stale async capture can't deliver. */
+  private overlayGeneration = 0;
   private onModeChange?: (mode: WindowMode) => void;
 
   constructor(
@@ -297,6 +299,12 @@ export class WindowModeManager {
       // otherwise re-attach native views over the open DOM panel and
       // swallow its clicks (settings tabs, menus).
       this.tabManager.setOverlaySuppressed(true);
+      if (this.overlayCount === 1) {
+        // First menu opened: snapshot the visible page BEFORE detaching so the
+        // renderer can show a static image instead of a blank hole.
+        this.overlayGeneration++;
+        void this.captureOverlayBackdrop(this.overlayGeneration);
+      }
       this.tabManager.hideAllTabs();
       if (this.dashboardView) {
         try { this.win.contentView.removeChildView(this.dashboardView); } catch { }
@@ -308,7 +316,47 @@ export class WindowModeManager {
       if (this.overlayCount === 0) {
         this.tabManager.setOverlaySuppressed(false);
         this.setMode(this.mode);
+        this.sendOverlayBackdrop(null);
       }
+    }
+  }
+
+  /**
+   * Snapshot the currently visible native view (active tab, or the dashboard
+   * view in dashboard mode) and push it to the renderer as a static backdrop.
+   */
+  private async captureOverlayBackdrop(generation: number): Promise<void> {
+    try {
+      let payload: { dataUrl: string; bounds: { x: number; y: number; width: number; height: number } } | null = null;
+      if (this.mode === 'dashboard' && this.dashboardView) {
+        const wc = this.dashboardView.webContents;
+        if (!wc.isDestroyed()) {
+          const bounds = this.dashboardView.getBounds();
+          if (bounds.width > 0 && bounds.height > 0) {
+            const image = await wc.capturePage();
+            if (!image.isEmpty()) payload = { dataUrl: image.toDataURL(), bounds };
+          }
+        }
+      } else {
+        payload = await this.tabManager.captureActiveBackdrop();
+      }
+      // Deliver only if this overlay session is still the active one — a menu
+      // close/reopen cycle would otherwise briefly show a stale snapshot.
+      if (this.overlayCount > 0 && generation === this.overlayGeneration) {
+        this.sendOverlayBackdrop(payload);
+      }
+    } catch {
+      // Snapshot is best-effort — worst case the area is blank as before.
+    }
+  }
+
+  private sendOverlayBackdrop(payload: { dataUrl: string; bounds: { x: number; y: number; width: number; height: number } } | null): void {
+    try {
+      if (!this.win.isDestroyed() && !this.win.webContents.isDestroyed()) {
+        this.win.webContents.send('chrome-overlay:backdrop', payload);
+      }
+    } catch {
+      // ignore
     }
   }
 

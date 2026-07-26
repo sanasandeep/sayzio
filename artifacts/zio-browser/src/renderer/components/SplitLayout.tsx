@@ -204,7 +204,6 @@ export function SplitLayout({
           onToggleZio={() => setLeftPane('zio')}
           onOpenAuth={onOpenAuth}
           onOpenTabSearch={() => { /* tab search is available in browser mode */ }}
-          showModeSwitcher={false}
           downloadsPanelOpen={downloadsPanelOpen}
           onToggleDownloads={toggleDownloadsPanel}
           activeDownloadCount={activeDownloadCount}

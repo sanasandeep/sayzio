@@ -99,7 +99,7 @@ export function ReadingListPanel({ onClose, onNavigate }: Props) {
               minWidth: 18,
               height: 18,
               borderRadius: 9,
-              background: 'var(--color-primary)',
+              background: 'var(--gradient-primary)',
               color: '#fff',
               fontSize: 11,
               fontWeight: 700,

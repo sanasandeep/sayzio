@@ -78,7 +78,7 @@ export function ModePicker({ defaultMode, onPick }: Props) {
                 display: 'inline-block',
                 padding: '2px 10px',
                 borderRadius: 20,
-                background: 'var(--color-primary)',
+                background: 'var(--gradient-primary)',
                 color: '#fff',
                 fontSize: 11,
                 fontWeight: 600,
@@ -93,7 +93,7 @@ export function ModePicker({ defaultMode, onPick }: Props) {
         style={{
           padding: '12px 48px',
           borderRadius: 12,
-          background: 'var(--color-primary)',
+          background: 'var(--gradient-primary)',
           color: '#fff',
           fontSize: 15,
           fontWeight: 700,

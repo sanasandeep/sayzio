@@ -62,7 +62,7 @@ export default function App() {
   const [siteSettingsOpen, setSiteSettingsOpen] = useState(false);
   const [pendingPermission, setPendingPermission] = useState<PendingPermission | null>(null);
   const { tabs, tabOrder, activeTabId, initTabs, reopenClosedTab, setTabMode } = useTabStore();
-  const { init: initAuth, user, token } = useAuthStore();
+  const { init: initAuth, user, token, refreshUser } = useAuthStore();
   const {
     mode,
     splitRatio,
@@ -131,6 +131,16 @@ export default function App() {
       console.error('App init failed — continuing with defaults:', err);
     });
   }, [initAuth, initTabs, initMode, initProfiles]);
+
+  // Once a token is available, re-fetch the profile so a name/avatar changed
+  // on the website replaces the stale cached copy.
+  const refreshedUserRef = useRef(false);
+  useEffect(() => {
+    if (token && !refreshedUserRef.current) {
+      refreshedUserRef.current = true;
+      void refreshUser();
+    }
+  }, [token, refreshUser]);
 
   // When auth changes (sign-in/out), refresh workspace profiles
   useEffect(() => {
@@ -388,6 +398,28 @@ export default function App() {
     return () => window.zio.off('device-lab:preview-url', onPreviewUrl);
   }, []);
 
+  // Static page snapshot shown while a chrome menu holds native views detached,
+  // so the page doesn't visually vanish behind an open dropdown.
+  const [overlayBackdrop, setOverlayBackdrop] = useState<{
+    dataUrl: string;
+    bounds: { x: number; y: number; width: number; height: number };
+  } | null>(null);
+  useEffect(() => {
+    const onBackdrop = (payload: unknown) => {
+      if (
+        payload &&
+        typeof payload === 'object' &&
+        typeof (payload as { dataUrl?: unknown }).dataUrl === 'string'
+      ) {
+        setOverlayBackdrop(payload as { dataUrl: string; bounds: { x: number; y: number; width: number; height: number } });
+      } else {
+        setOverlayBackdrop(null);
+      }
+    };
+    window.zio.on('chrome-overlay:backdrop', onBackdrop);
+    return () => window.zio.off('chrome-overlay:backdrop', onBackdrop);
+  }, []);
+
   const handleOpenTabSearch = useCallback(() => {
     setTabSearchOpen(true);
   }, []);
@@ -412,11 +444,32 @@ export default function App() {
     return <ModePicker defaultMode={mode} onPick={handlePickMode} />;
   }
 
+  // Static snapshot of the page shown while a chrome menu detaches native
+  // views — rendered in ALL window modes (browser, split, dashboard).
+  const overlayBackdropImg = overlayBackdrop ? (
+    <img
+      src={overlayBackdrop.dataUrl}
+      alt=""
+      aria-hidden="true"
+      style={{
+        position: 'fixed',
+        left: overlayBackdrop.bounds.x,
+        top: overlayBackdrop.bounds.y,
+        width: overlayBackdrop.bounds.width,
+        height: overlayBackdrop.bounds.height,
+        objectFit: 'cover',
+        zIndex: 0,
+        pointerEvents: 'none',
+      }}
+    />
+  ) : null;
+
   // ── Dashboard mode ────────────────────────────────────────────────────────
   // Private windows never show dashboard mode.
   if (mode === 'dashboard' && !isPrivate) {
     return (
       <>
+        {overlayBackdropImg}
         <DashboardLayout
           mode={mode}
           onSetMode={(m) => void setMode(m)}
@@ -439,6 +492,7 @@ export default function App() {
   if (mode === 'split' && !isPrivate) {
     return (
       <>
+        {overlayBackdropImg}
         <SplitLayout
           mode={mode}
           splitRatio={splitRatio}
@@ -487,12 +541,12 @@ export default function App() {
             // Leave room under the native titleBarOverlay window controls
             paddingRight: 150,
             background: '#0d0d1a',
-            borderBottom: '1px solid rgba(201, 179, 255, 0.15)',
+            borderBottom: '1px solid rgba(147, 197, 253, 0.15)',
             WebkitAppRegion: 'drag',
             userSelect: 'none',
           } as React.CSSProperties}
         >
-          <span style={{ fontSize: 12, fontWeight: 600, color: '#c9b3ff' }}>
+          <span style={{ fontSize: 12, fontWeight: 600, color: '#93c5fd' }}>
             🔒 Private – Zio Browser
           </span>
         </div>
@@ -502,7 +556,6 @@ export default function App() {
         onToggleZio={handleToggleZio}
         onOpenAuth={() => setAuthModalOpen(true)}
         onOpenTabSearch={handleOpenTabSearch}
-        showModeSwitcher={!isPrivate}
         downloadsPanelOpen={downloadsPanelOpen}
         onToggleDownloads={handleToggleDownloads}
         activeDownloadCount={activeDownloadCount}
@@ -518,6 +571,8 @@ export default function App() {
       />
 
       {/* Content area */}
+      {overlayBackdropImg}
+
       <div ref={containerRef} style={{ flex: 1, display: 'flex', overflow: 'hidden', position: 'relative' }}>
 
         {/* Web content / new tab page (left side when docked, full-width when overlay).

@@ -8,7 +8,6 @@ import { useTabStore } from '../store/tab-store';
 import { useAuthStore } from '../store/auth-store';
 import { ShortenPopover } from './ShortenPopover';
 import { CreateLinkPopover } from './CreateLinkPopover';
-import { ModeSwitcher } from './ModeSwitcher';
 import { TabModeSwitcher } from './TabModeSwitcher';
 import { normalizeTabMode } from '../../shared/window-mode';
 import { ProfileSwitcher } from './ProfileSwitcher';
@@ -23,8 +22,6 @@ interface Props {
   onToggleZio: () => void;
   onOpenAuth: () => void;
   onOpenTabSearch: () => void;
-  /** If false, hides the mode switcher (used in split mode right pane). */
-  showModeSwitcher?: boolean;
   downloadsPanelOpen?: boolean;
   onToggleDownloads?: () => void;
   activeDownloadCount?: number;
@@ -342,7 +339,6 @@ export function ChromeBar({
   onToggleZio,
   onOpenAuth,
   onOpenTabSearch,
-  showModeSwitcher = true,
   downloadsPanelOpen = false,
   onToggleDownloads,
   activeDownloadCount = 0,
@@ -710,9 +706,9 @@ export function ChromeBar({
             gap: 4,
             padding: '2px 10px',
             borderRadius: 12,
-            background: 'rgba(120,80,220,0.18)',
-            border: '1px solid rgba(140,100,240,0.45)',
-            color: '#c9b3ff',
+            background: 'rgba(37,99,235,0.18)',
+            border: '1px solid rgba(59,130,246,0.45)',
+            color: '#93c5fd',
             fontSize: 11,
             fontWeight: 600,
             whiteSpace: 'nowrap',
@@ -769,7 +765,7 @@ export function ChromeBar({
                 width: 5,
                 height: 5,
                 borderRadius: '50%',
-                background: 'var(--color-primary)',
+                background: 'var(--gradient-primary)',
               }} />
               {/* Audio indicator */}
               {tab?.isAudible && !tab.isMuted && (
@@ -944,7 +940,7 @@ export function ChromeBar({
           title="Search tabs (Ctrl+Shift+A)"
         >🔍</button>
 
-        {/* Ask Zio — quick access at the end of the tab strip */}
+        {/* Ask Zio — pinned to the far right of the tab strip */}
         <button
           onClick={onToggleZio}
           style={{
@@ -953,6 +949,7 @@ export function ChromeBar({
             WebkitAppRegion: 'no-drag',
             flexShrink: 0,
             padding: 0,
+            marginLeft: 'auto',
           } as React.CSSProperties}
           title="Ask Zio"
         >
@@ -962,6 +959,26 @@ export function ChromeBar({
             style={{ width: 18, height: 18, borderRadius: 4, display: 'block' }}
           />
         </button>
+
+        {/* Sayzio Dashboard — quick toggle next to the Zio icon */}
+        {!isPrivate && (
+          <button
+            onClick={() => setMode(mode === 'dashboard' ? 'browser' : 'dashboard')}
+            style={{
+              width: 24, height: 24, borderRadius: 5,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 13,
+              color: mode === 'dashboard' ? '#fff' : 'var(--color-text-muted)',
+              background: mode === 'dashboard' ? 'var(--color-primary)' : 'transparent',
+              WebkitAppRegion: 'no-drag',
+              flexShrink: 0,
+            } as React.CSSProperties}
+            title={mode === 'dashboard' ? 'Back to browsing' : 'Open Sayzio Dashboard'}
+          >▦</button>
+        )}
+
+        {/* Account — avatar menu at the right edge of the tab row */}
+        {user && <AccountButton onOpenAuth={onOpenAuth} compact />}
       </div>
 
       {/* Address Bar Row */}
@@ -1278,7 +1295,7 @@ export function ChromeBar({
               minWidth: 14,
               height: 14,
               borderRadius: 7,
-              background: 'var(--color-primary)',
+              background: 'var(--gradient-primary)',
               color: '#fff',
               fontSize: 9,
               fontWeight: 700,
@@ -1334,7 +1351,7 @@ export function ChromeBar({
                 minWidth: 16,
                 height: 16,
                 borderRadius: 8,
-                background: 'var(--color-primary)',
+                background: 'var(--gradient-primary)',
                 color: '#fff',
                 fontSize: 9,
                 fontWeight: 700,
@@ -1373,9 +1390,9 @@ export function ChromeBar({
             style={{
               padding: '4px 12px',
               borderRadius: 14,
-              background: 'rgba(120,80,220,0.08)',
-              color: 'rgba(200,180,255,0.35)',
-              border: '1px solid rgba(140,100,240,0.2)',
+              background: 'rgba(37,99,235,0.08)',
+              color: 'rgba(147,197,253,0.35)',
+              border: '1px solid rgba(59,130,246,0.2)',
               fontSize: 12,
               fontWeight: 600,
               whiteSpace: 'nowrap',
@@ -1393,20 +1410,11 @@ export function ChromeBar({
           />
         )}
 
-        {/* Mode switcher — shown in browser mode, hidden in split right-pane */}
-        {showModeSwitcher && (
-          <ModeSwitcher currentMode={mode} onSetMode={setMode} />
-        )}
-
         {/* Profile switcher — shows workspace profiles when signed in */}
         <ProfileSwitcher
           isAuthenticated={!!user}
           onOpenAuth={onOpenAuth}
         />
-
-        {/* Account — avatar menu with Sign out when signed in (browser mode
-            otherwise has no visible logout affordance) */}
-        {user && <AccountButton onOpenAuth={onOpenAuth} compact />}
 
         {/* Settings button */}
         {onOpenSettings && (

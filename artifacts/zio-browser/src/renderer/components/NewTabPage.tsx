@@ -61,10 +61,10 @@ function PrivateNewTabPage({ onNavigate }: Pick<Props, 'onNavigate'>) {
         marginBottom: 36,
       }}>
         <div style={{ fontSize: 40 }}>🔒</div>
-        <div style={{ fontSize: 20, fontWeight: 700, color: '#c9b3ff', letterSpacing: -0.5 }}>
+        <div style={{ fontSize: 20, fontWeight: 700, color: '#93c5fd', letterSpacing: -0.5 }}>
           You&apos;re browsing privately
         </div>
-        <div style={{ fontSize: 13, color: 'rgba(200,180,255,0.55)', textAlign: 'center', maxWidth: 440, lineHeight: 1.6 }}>
+        <div style={{ fontSize: 13, color: 'rgba(147,197,253,0.55)', textAlign: 'center', maxWidth: 440, lineHeight: 1.6 }}>
           Pages you visit won&apos;t appear in history and won&apos;t be synced.
           Downloads are not saved to the download list.
           Bookmarks and link tools still work normally.
@@ -82,16 +82,16 @@ function PrivateNewTabPage({ onNavigate }: Pick<Props, 'onNavigate'>) {
             width: '100%',
             height: 48,
             borderRadius: 24,
-            border: '2px solid rgba(140,100,240,0.4)',
-            background: 'rgba(30,20,50,0.8)',
-            color: '#e0d7ff',
+            border: '2px solid rgba(59,130,246,0.4)',
+            background: 'rgba(15,25,50,0.8)',
+            color: '#dbeafe',
             padding: '0 20px',
             fontSize: 15,
             outline: 'none',
             transition: 'border-color 0.15s',
           }}
-          onFocus={e => { e.target.style.borderColor = 'rgba(160,120,255,0.8)'; }}
-          onBlur={e => { e.target.style.borderColor = 'rgba(140,100,240,0.4)'; }}
+          onFocus={e => { e.target.style.borderColor = 'rgba(96,165,250,0.8)'; }}
+          onBlur={e => { e.target.style.borderColor = 'rgba(59,130,246,0.4)'; }}
         />
       </form>
     </div>

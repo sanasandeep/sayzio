@@ -368,7 +368,7 @@ export function DownloadsPanel({ onClose }: Props) {
           {activeDownloads.length > 0 && (
             <span style={{
               marginLeft: 8,
-              background: 'var(--color-primary)',
+              background: 'var(--gradient-primary)',
               color: '#fff',
               borderRadius: 10,
               padding: '1px 7px',

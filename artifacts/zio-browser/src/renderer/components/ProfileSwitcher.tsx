@@ -5,6 +5,7 @@
  */
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useProfileStore } from '../store/profile-store';
+import { useTabStore } from '../store/tab-store';
 import { useChromeOverlay } from '../hooks/use-chrome-overlay';
 import type { BrowserProfile } from '../../shared/profile-store';
 
@@ -16,6 +17,7 @@ interface Props {
 
 export function ProfileSwitcher({ isAuthenticated, onOpenAuth }: Props) {
   const { profiles, activeProfileId, switchProfile } = useProfileStore();
+  const { createTab } = useTabStore();
   const [open, setOpen] = useState(false);
   const [switching, setSwitching] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -194,6 +196,42 @@ export function ProfileSwitcher({ isAuthenticated, onOpenAuth }: Props) {
             );
           })}
 
+          {/* New Workspace — opens the Sayzio workspace creation page */}
+          <button
+            onClick={() => {
+              setOpen(false);
+              void createTab('https://1in.me/user/workspaces');
+            }}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10,
+              width: '100%',
+              padding: '9px 12px',
+              background: 'transparent',
+              borderBottom: '1px solid var(--color-border)',
+              cursor: 'pointer',
+              textAlign: 'left',
+              transition: 'background 0.1s',
+            }}
+            onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'var(--color-bg-elevated)'; }}
+            onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'transparent'; }}
+          >
+            <span style={{
+              width: 28,
+              height: 28,
+              borderRadius: '50%',
+              border: '1.5px dashed var(--color-primary)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: 15,
+              color: 'var(--color-primary)',
+              flexShrink: 0,
+            }}>+</span>
+            <div style={{ fontSize: 13, color: 'var(--color-text)' }}>New Workspace</div>
+          </button>
+
           <div style={{ padding: '6px 12px 8px', fontSize: 10, color: 'var(--color-text-muted)' }}>
             Each profile has separate history, bookmarks &amp; sessions.
           </div>
@@ -208,14 +246,14 @@ export function ProfileSwitcher({ isAuthenticated, onOpenAuth }: Props) {
  * has its own distinct avatar tint.
  */
 export function profileColor(profileId: string): string {
-  if (profileId === 'default') return '#6c63ff';
+  if (profileId === 'default') return '#2563eb';
   const PALETTE = [
     '#e05c97', '#3b82f6', '#10b981', '#f59e0b',
-    '#8b5cf6', '#ef4444', '#14b8a6', '#f97316',
+    '#0ea5e9', '#ef4444', '#14b8a6', '#f97316',
   ];
   let h = 0;
   for (let i = 0; i < profileId.length; i++) {
     h = (h * 31 + profileId.charCodeAt(i)) >>> 0;
   }
-  return PALETTE[h % PALETTE.length] ?? '#6c63ff';
+  return PALETTE[h % PALETTE.length] ?? '#2563eb';
 }

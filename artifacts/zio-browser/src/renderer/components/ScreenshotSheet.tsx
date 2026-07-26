@@ -318,7 +318,7 @@ function ShareLinkResult({ shortUrl, copied, onCopy }: {
           style={{
             padding: '5px 12px',
             borderRadius: 8,
-            background: 'var(--color-primary)',
+            background: 'var(--gradient-primary)',
             color: '#fff',
             fontSize: 12,
             fontWeight: 600,

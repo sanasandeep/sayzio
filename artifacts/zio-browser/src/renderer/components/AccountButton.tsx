@@ -71,6 +71,7 @@ export function AccountButton({ onOpenAuth, compact = false }: Props) {
 
   const size = compact ? 24 : 26;
   const initial = (user.name ?? user.email ?? 'U').charAt(0).toUpperCase();
+  const avatarUrl = user.avatar && /^https?:\/\//.test(user.avatar) ? user.avatar : null;
 
   return (
     <div ref={ref} style={{ position: 'relative', WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
@@ -92,9 +93,25 @@ export function AccountButton({ onOpenAuth, compact = false }: Props) {
           flexShrink: 0,
           border: open ? '2px solid var(--color-border)' : 'none',
           padding: 0,
+          overflow: 'hidden',
         }}
       >
-        {initial}
+        {avatarUrl ? (
+          <img
+            src={avatarUrl}
+            alt={user.name ?? 'Account'}
+            style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+            onError={(e) => {
+              // Broken avatar URL — fall back to the initial.
+              (e.currentTarget as HTMLImageElement).style.display = 'none';
+              const fallback = e.currentTarget.nextElementSibling as HTMLElement | null;
+              if (fallback) fallback.style.display = 'flex';
+            }}
+          />
+        ) : null}
+        <span style={{ display: avatarUrl ? 'none' : 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          {initial}
+        </span>
       </button>
 
       {open && (

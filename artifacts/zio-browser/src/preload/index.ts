@@ -390,6 +390,8 @@ const api = {
       'password:detected',
       // Profile events
       'profile:changed',
+      // Static page snapshot shown while a chrome menu holds native views detached
+      'chrome-overlay:backdrop',
       // Command palette — open from main process menu shortcut
       'palette:open',
       // Permission prompts
