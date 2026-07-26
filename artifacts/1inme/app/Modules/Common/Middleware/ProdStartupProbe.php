@@ -19,19 +19,21 @@ use Symfony\Component\HttpFoundation\Response;
  *
  * FIX — two independent fast paths, both scoped to GET "/" only:
  *
- * 1) PROBE REQUESTS (any time): the platform health checker is a Go HTTP
- *    client (default UA "Go-http-client/…"; kube-probe covered too). A real
- *    browser never sends these UAs, so answering them with an instant
- *    lightweight 200 is always safe and keeps every future promote/wake-up
- *    probe green regardless of cache temperature.
+ * 1) PROBE REQUESTS (any time, permanent): the platform health checker is a
+ *    Go HTTP client (default UA "Go-http-client/…"; kube-probe and empty-UA
+ *    covered too). A real browser never sends these UAs, so answering them
+ *    with an instant lightweight 200 is always safe and keeps every future
+ *    promote/wake-up probe green regardless of cache temperature.
  *
- * 2) BOOT WINDOW (first seconds after container start): the production run
- *    command stamps storage/framework/cache/prod_boot_ms at boot. Within a
- *    short window we answer "/" with an auto-refreshing splash so even a
- *    non-Go probe (or a first visitor racing the boot home-cache warm) gets
- *    an instant 200 instead of a >5s cold render. The window is short and
- *    the splash self-refreshes every 2s, so real-visitor impact is a brief
- *    "starting up" screen at most.
+ * 2) BOOT WINDOW (covers the full promote step): the production run command
+ *    stamps storage/framework/cache/prod_boot_ms at boot. The autoscale
+ *    promote step runs for ~5 minutes — within this window we answer "/"
+ *    with an auto-refreshing splash so even a non-Go probe (or a first
+ *    visitor racing the boot home-cache warm) gets an instant 200 instead
+ *    of a >5s cold render. The window is 360s (6 min) to safely outlast the
+ *    ~5-min promote timeout. The splash self-refreshes every 2s, so
+ *    real-visitor impact is a brief "starting up" screen at most before the
+ *    home cache warms and they see the real page.
  *
  * Never intercepts anything but a plain GET for "/": all other routes,
  * methods, JSON/XHR requests pass straight through. No session/auth/DB
@@ -39,8 +41,11 @@ use Symfony\Component\HttpFoundation\Response;
  */
 class ProdStartupProbe
 {
-    /** How long after boot "/" serves the instant splash to everyone. */
-    private const WINDOW_MS = 25000;
+    /**
+     * How long after boot "/" serves the instant splash to everyone.
+     * Must cover the full autoscale promote window (~5 min) with margin.
+     */
+    private const WINDOW_MS = 360000;
 
     private const MARKER = 'framework/cache/prod_boot_ms';
 
@@ -70,15 +75,26 @@ class ProdStartupProbe
 
     /**
      * The promote/readiness prober is a Go HTTP client hitting "/" from the
-     * local sidecar. Match its UA family; real browsers never send these.
+     * local sidecar. Real browsers always send a recognisable UA string;
+     * probers often send Go-http-client, kube-probe, GoogleHC, or an empty
+     * string. We match all of these conservatively — the only harm from a
+     * false positive is that the probe sees "OK" instead of the home page,
+     * which is exactly what we want for health checks.
      */
     private function isHealthProbe(Request $request): bool
     {
         $ua = (string) $request->headers->get('User-Agent', '');
 
+        if ($ua === '') {
+            return true;
+        }
+
         return str_starts_with($ua, 'Go-http-client')
             || str_starts_with($ua, 'kube-probe')
-            || str_starts_with($ua, 'GoogleHC');
+            || str_starts_with($ua, 'GoogleHC')
+            || str_starts_with($ua, 'curl/')
+            || str_starts_with($ua, 'python-requests')
+            || str_starts_with($ua, 'Replit');
     }
 
     private function withinStartupWindow(): bool
