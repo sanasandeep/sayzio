@@ -1,6 +1,6 @@
 {
   "name": "@workspace/zio-browser",
-  "version": "0.1.17",
+  "version": "0.1.18",
   "private": true,
   "description": "Zio Browser — AI-powered companion browser for Mac and Windows",
   "main": "dist/main/index.js",
@@ -12,6 +12,7 @@
     "build:renderer": "vite build",
     "build:main": "tsc -p tsconfig.main.json",
     "build:preload": "tsc -p tsconfig.preload.json",
+    "sync:zio-extension": "pnpm --filter @workspace/1inme-extension run build:chrome && rm -rf build-resources/zio-extension && cp -r ../1inme-extension/dist/chrome build-resources/zio-extension",
     "package": "pnpm run build && pnpm run build:preload && electron-builder --config electron-builder.config.cjs",
     "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.main.json --noEmit && tsc -p tsconfig.preload.json --noEmit",
     "pretest": "node scripts/ensure-better-sqlite3.cjs",

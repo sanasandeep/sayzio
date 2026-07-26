@@ -4,7 +4,7 @@
 import path from 'path';
 import { app, BrowserWindow, Menu, session, nativeTheme, dialog } from 'electron';
 import type { BaseWindow } from 'electron';
-import { initDb, getPreference, setPreference, getMuteAllTabs, isDomainMuted, setDomainMuted } from './db';
+import { initDb, getPreference, setPreference, getMuteAllTabs, isDomainMuted, setDomainMuted, pruneHistoryOlderThan } from './db';
 import { PREFERENCE_KEYS, type PreferenceKey } from '../shared/db-schema';
 import { hostForMutePolicy } from '../shared/mute-policy';
 import { sessionPartitionForProfile, DEFAULT_PROFILE_ID } from '../shared/profile-store';
@@ -17,14 +17,17 @@ import {
   registerWindowProfile,
   getTabManagerForWindow,
   getModeManagerForWindow,
+  setLogoutHandler,
 } from './ipc-handlers';
 import { setupDownloadManager } from './download-manager';
 import { getPrivateSession, registerPrivateWindow } from './private-session';
 import { setupPermissionHandlers } from './permission-handler';
-import { setupTrackerBlocking, resetBlockedCount } from './tracker-blocker';
+import { setupTrackerBlocking, resetBlockedCount, installTrackerHooks } from './tracker-blocker';
+import { setupPrivacyControls, installPrivacyHooks } from './privacy';
 import type { WindowMode } from '../shared/window-mode';
 import { ZIO_PANEL_DIVIDER_WIDTH } from '../shared/window-mode';
 import { setupAutoUpdater } from './auto-updater';
+import { loadStoredExtensions, loadBuiltinExtension } from './extension-manager';
 import type { RecentlyClosedEntry } from './tab-manager';
 
 const isDev = process.env['NODE_ENV'] === 'development';
@@ -150,7 +153,7 @@ function getRendererUrl(): string {
 
 // ── Normal window ─────────────────────────────────────────────────────────────
 
-function createWindow(): BrowserWindow {
+export function createWindow(): BrowserWindow {
   session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
     callback({ responseHeaders: { ...details.responseHeaders } });
   });
@@ -242,6 +245,10 @@ function createWindow(): BrowserWindow {
       modeManager && !modeManager.getZioPanelDocked()
         ? modeManager.getZioPanelWidth() + ZIO_PANEL_DIVIDER_WIDTH
         : 0,
+    resolveSpellcheckEnabled: () =>
+      (safeGetPreference(PREFERENCE_KEYS.SPELLCHECK_ENABLED) ?? '1') === '1',
+    resolveTranslateLang: () =>
+      safeGetPreference(PREFERENCE_KEYS.TRANSLATE_TARGET_LANG) ?? 'en',
   });
 
   const savedMode  = (safeGetPreference(PREFERENCE_KEYS.WINDOW_MODE) as WindowMode | null) ?? 'browser';
@@ -284,6 +291,21 @@ function createWindow(): BrowserWindow {
     (wcId) => tabManager?.getTabIdByWebContentsId(wcId) ?? null,
   );
 
+  // Setup privacy controls (Do Not Track header, third-party cookie blocking)
+  setupPrivacyControls(
+    session.defaultSession,
+    (safeGetPreference(PREFERENCE_KEYS.DO_NOT_TRACK) ?? '0') === '1',
+    (safeGetPreference(PREFERENCE_KEYS.BLOCK_THIRD_PARTY_COOKIES) ?? '0') === '1',
+  );
+
+  // Tabs run in per-profile partition sessions (not the default session), so
+  // install the tracker + privacy hooks on the active profile session too.
+  {
+    const profileSession = session.fromPartition(sessionPartitionForProfile(savedProfileId));
+    installTrackerHooks(profileSession);
+    installPrivacyHooks(profileSession);
+  }
+
   win.once('ready-to-show', () => {
     clearTimeout(showFailsafe);
     closeSplash();
@@ -306,8 +328,14 @@ function createWindow(): BrowserWindow {
         pinnedIds = tabManager?.initPinnedUrls(savedPinnedUrls) ?? [];
       }
 
+      // "On startup" preference: 'continue' (default) restores the previous
+      // session's tabs; 'newtab' always starts fresh (pinned tabs still load).
+      const startupMode = safeGetPreference(PREFERENCE_KEYS.STARTUP_MODE) ?? 'continue';
+
       // Restore the previous session's open tabs (in order, with active tab)
-      const savedSessionJson = safeGetPreference(PREFERENCE_KEYS.SESSION_TABS) ?? '';
+      const savedSessionJson = startupMode === 'newtab'
+        ? ''
+        : (safeGetPreference(PREFERENCE_KEYS.SESSION_TABS) ?? '');
       let sessionUrls: string[] = [];
       let sessionActiveIndex = -1;
       let sessionActivePinnedIndex = -1;
@@ -360,16 +388,26 @@ function createWindow(): BrowserWindow {
   });
 
   // Persist the open (non-pinned) tabs so the next launch can restore them
-  win.on('close', () => {
+  const persistSessionSnapshot = (): void => {
     try {
       const snapshot = tabManager.getSessionSnapshot();
       safeSetPreference(PREFERENCE_KEYS.SESSION_TABS, JSON.stringify(snapshot));
     } catch {
       // Never block window close on persistence errors
     }
-  });
+  };
+  win.on('close', persistSessionSnapshot);
+
+  // Crash-recovery auto-snapshot: the 'close' event never fires on a crash,
+  // so persist the open tabs every 30s while the window is alive. On the next
+  // launch an unclean-exit flag triggers the "Restore previous session?"
+  // prompt against this snapshot.
+  const autoSnapshotTimer = setInterval(() => {
+    if (!win.isDestroyed()) persistSessionSnapshot();
+  }, 30_000);
 
   win.on('closed', () => {
+    clearInterval(autoSnapshotTimer);
     modeManager.destroy();
     tabManager.destroyAll();
     if (win === mainWindow) mainWindow = null;
@@ -452,6 +490,10 @@ export function createPrivateWindow(startUrl?: string): BrowserWindow {
       }
     },
     // …but never persist new mute preferences (no onUserMuteChange).
+    resolveSpellcheckEnabled: () =>
+      (safeGetPreference(PREFERENCE_KEYS.SPELLCHECK_ENABLED) ?? '1') === '1',
+    resolveTranslateLang: () =>
+      safeGetPreference(PREFERENCE_KEYS.TRANSLATE_TARGET_LANG) ?? 'en',
   });
 
   // Private windows are browser-only — no dashboard or split pane.
@@ -537,6 +579,11 @@ function buildMenu(): void {
           },
         },
         {
+          label: 'New Window',
+          accelerator: 'CmdOrCtrl+N',
+          click: () => { createWindow(); },
+        },
+        {
           label: 'New Private Window',
           accelerator: 'CmdOrCtrl+Shift+N',
           click: () => { createPrivateWindow(); },
@@ -559,6 +606,19 @@ function buildMenu(): void {
             const browserWin = asBrowserWin(bw);
             if (!browserWin) return;
             getTabManagerForWindow(browserWin)?.reopenClosedTab();
+          },
+        },
+        { type: 'separator' },
+        {
+          label: 'Print…',
+          accelerator: 'CmdOrCtrl+P',
+          click: (_item, bw) => {
+            const browserWin = asBrowserWin(bw);
+            if (!browserWin) return;
+            const tm = getTabManagerForWindow(browserWin);
+            const id = tm?.getActiveTabId();
+            const wc = id ? tm?.getWebContents(id) : null;
+            if (wc && !wc.isDestroyed()) wc.print();
           },
         },
         { type: 'separator' },
@@ -663,6 +723,20 @@ function buildMenu(): void {
           if (id) tm?.reload(id, true);
         }},
         { type: 'separator' as const },
+        { label: 'Reader Mode', accelerator: 'CmdOrCtrl+Alt+R', click: (_item, bw) => {
+          const browserWin = asBrowserWin(bw);
+          if (!browserWin) return;
+          const tm = getTabManagerForWindow(browserWin);
+          const id = tm?.getActiveTabId();
+          if (id && tm) {
+            void tm.enterReaderMode(id).then((ok) => {
+              if (!ok && !browserWin.isDestroyed()) {
+                browserWin.webContents.send('toast:show', 'Reader mode isn’t available for this page.');
+              }
+            });
+          }
+        }},
+        { type: 'separator' as const },
         { label: 'Developer Tools', accelerator: 'F12', click: (_item, bw) => {
           const browserWin = asBrowserWin(bw);
           if (!browserWin) return;
@@ -726,12 +800,80 @@ app.whenReady().then(() => {
       reportStartupError('Local database unavailable', err);
     }
   }
+  // ── History auto-delete (retention sweep) ────────────────────────────────
+  // When the user picks an auto-delete window (e.g. 30 days), prune older
+  // history at startup and every 6 hours while the app runs. '0'/unset = keep
+  // forever. Never let a sweep failure interfere with startup.
+  const runHistoryRetentionSweep = () => {
+    try {
+      const days = parseInt(safeGetPreference(PREFERENCE_KEYS.HISTORY_DAYS_RETENTION) ?? '0', 10);
+      if (days > 0) pruneHistoryOlderThan(days);
+    } catch { /* sweep is best-effort */ }
+  };
+  runHistoryRetentionSweep();
+  setInterval(runHistoryRetentionSweep, 6 * 60 * 60 * 1000);
+
+  // ── Crash recovery ──────────────────────────────────────────────────────
+  // '0' means the previous run never reached before-quit — i.e. it crashed or
+  // was force-killed. Offer to restore (the periodic auto-snapshot keeps
+  // SESSION_TABS fresh even without a clean close). Declining starts fresh.
+  const previousExitUnclean = safeGetPreference(PREFERENCE_KEYS.CLEAN_EXIT) === '0';
+  safeSetPreference(PREFERENCE_KEYS.CLEAN_EXIT, '0');
+  if (previousExitUnclean) {
+    let hasSnapshot = false;
+    try {
+      const snap = JSON.parse(safeGetPreference(PREFERENCE_KEYS.SESSION_TABS) ?? '') as { urls?: unknown };
+      hasSnapshot = Array.isArray(snap?.urls) && snap.urls.length > 0;
+    } catch {
+      hasSnapshot = false;
+    }
+    if (hasSnapshot) {
+      const choice = dialog.showMessageBoxSync({
+        type: 'question',
+        title: 'Zio Browser',
+        message: "Zio Browser didn't close properly last time.",
+        detail: 'Do you want to restore the tabs you had open?',
+        buttons: ['Restore tabs', 'Start fresh'],
+        defaultId: 0,
+        cancelId: 1,
+      });
+      if (choice === 1) {
+        // Start fresh — drop the stale snapshot so the window opens a new tab.
+        safeSetPreference(PREFERENCE_KEYS.SESSION_TABS, '');
+      }
+    }
+  }
+
+  // Load persisted unpacked extensions into the default session before the
+  // first window opens (fail-soft — a broken extension never blocks startup).
+  // Built-in first (so it claims its id), then user extensions.
+  void loadBuiltinExtension()
+    .catch((err) => {
+      console.error('Failed to load built-in extension:', err);
+    })
+    .then(() => loadStoredExtensions())
+    .catch((err) => {
+      console.error('Failed to load stored extensions:', err);
+  });
   try {
     mainWindow = createWindow();
     setupAutoUpdater();
 
     // Register IPC handlers once — global, serves all windows.
     registerIpcHandlers(mainWindow);
+
+    // Logout: close every open window (normal + private) and open one fresh
+    // logged-out window so no signed-in state remains visible anywhere.
+    setLogoutHandler(() => {
+      // Open the fresh logged-out window FIRST so there is never a
+      // zero-window moment — otherwise 'window-all-closed' would quit
+      // the app on Windows/Linux before the new window appears.
+      const oldWindows = BrowserWindow.getAllWindows();
+      mainWindow = createWindow();
+      for (const win of oldWindows) {
+        if (!win.isDestroyed()) win.destroy();
+      }
+    });
 
     buildMenu();
   } catch (err) {
@@ -748,6 +890,11 @@ app.whenReady().then(() => {
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();
+});
+
+// Mark the exit as clean so the next launch skips the crash-recovery prompt.
+app.on('before-quit', () => {
+  safeSetPreference(PREFERENCE_KEYS.CLEAN_EXIT, '1');
 });
 
 // Security: Prevent new window creation from web content

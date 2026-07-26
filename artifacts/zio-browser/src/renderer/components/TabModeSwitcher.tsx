@@ -1,6 +1,7 @@
 /**
- * TabModeSwitcher — toolbar dropdown to pick the ACTIVE TAB's view mode:
- * Website / Sayzio Webapp / Sayzio + Website split / Ask Zio + Website split.
+ * TabModeSwitcher — toolbar dropdown to pick the ACTIVE TAB's view mode.
+ * A tab shows ONE of four primitives (Website / Dashboard / Sayzio / Ask Zio)
+ * or a split of any TWO — 10 configurations, grouped as singles then splits.
  * Uses the chrome-overlay pattern (native views sit above the DOM and would
  * swallow clicks on the dropdown).
  */
@@ -12,6 +13,9 @@ import {
   TAB_MODE_DESCRIPTIONS,
   TAB_MODE_ICONS,
 } from '../../shared/window-mode';
+
+const SINGLE_MODES = TAB_MODES.filter(m => !m.includes('+'));
+const SPLIT_MODES = TAB_MODES.filter(m => m.includes('+'));
 
 interface Props {
   currentMode: TabMode;
@@ -101,7 +105,8 @@ export function TabModeSwitcher({ currentMode, onSetMode }: Props) {
           borderRadius: 12,
           boxShadow: '0 8px 32px rgba(0,0,0,0.18)',
           zIndex: 1000,
-          overflow: 'hidden',
+          maxHeight: 'min(480px, calc(100vh - 120px))',
+          overflowY: 'auto',
         }}>
           <div style={{
             padding: '8px 14px 6px',
@@ -111,9 +116,52 @@ export function TabModeSwitcher({ currentMode, onSetMode }: Props) {
             textTransform: 'uppercase',
             color: 'var(--color-text-muted)',
             borderBottom: '1px solid var(--color-border)',
-          }}>Tab View Mode</div>
+          }}>Full View</div>
 
-          {TAB_MODES.map(mode => (
+          {SINGLE_MODES.map(mode => (
+            <button
+              key={mode}
+              onClick={() => pick(mode)}
+              style={{
+                width: '100%',
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: 10,
+                padding: '10px 14px',
+                background: currentMode === mode ? 'rgba(var(--color-primary-rgb, 99,102,241),0.1)' : 'transparent',
+                borderBottom: '1px solid var(--color-border)',
+                color: currentMode === mode ? 'var(--color-primary)' : 'var(--color-text)',
+                cursor: 'pointer',
+                textAlign: 'left',
+                transition: 'background 0.12s',
+              }}
+            >
+              <span style={{ fontSize: 16, flexShrink: 0 }}>{TAB_MODE_ICONS[mode]}</span>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 13, fontWeight: currentMode === mode ? 600 : 400 }}>
+                  {TAB_MODE_LABELS[mode]}
+                </div>
+                <div style={{ fontSize: 11, color: 'var(--color-text-muted)', marginTop: 2 }}>
+                  {TAB_MODE_DESCRIPTIONS[mode]}
+                </div>
+              </div>
+              {currentMode === mode && (
+                <span style={{ marginLeft: 'auto', fontSize: 14, color: 'var(--color-primary)', flexShrink: 0 }}>✓</span>
+              )}
+            </button>
+          ))}
+
+          <div style={{
+            padding: '8px 14px 6px',
+            fontSize: 10,
+            fontWeight: 700,
+            letterSpacing: 1,
+            textTransform: 'uppercase',
+            color: 'var(--color-text-muted)',
+            borderBottom: '1px solid var(--color-border)',
+          }}>Split View</div>
+
+          {SPLIT_MODES.map(mode => (
             <button
               key={mode}
               onClick={() => pick(mode)}

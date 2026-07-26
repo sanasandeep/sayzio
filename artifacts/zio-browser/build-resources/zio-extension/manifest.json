@@ -1,0 +1,64 @@
+{
+  "manifest_version": 3,
+  "name": "Zio Extension — Shorten & Bio-Link",
+  "short_name": "Zio Extension",
+  "version": "0.2.0",
+  "description": "One-click shorten the current tab through Sayzio and turn any page into a draft bio-link page.",
+  "action": {
+    "default_title": "Zio Extension",
+    "default_popup": "src/popup/index.html",
+    "default_icon": {
+      "16": "icons/icon-16.png",
+      "32": "icons/icon-32.png",
+      "48": "icons/icon-48.png",
+      "128": "icons/icon-128.png"
+    }
+  },
+  "icons": {
+    "16": "icons/icon-16.png",
+    "32": "icons/icon-32.png",
+    "48": "icons/icon-48.png",
+    "128": "icons/icon-128.png"
+  },
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "omnibox": {
+    "keyword": "szo"
+  },
+  "commands": {
+    "shorten-tab": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+S",
+        "mac": "Command+Shift+S"
+      },
+      "description": "Shorten the current tab URL with Sayzio"
+    },
+    "open-search": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+F",
+        "mac": "Command+Shift+F"
+      },
+      "description": "Open Sayzio universal search"
+    }
+  },
+  "permissions": ["activeTab", "storage", "contextMenus", "scripting", "notifications", "tabs", "alarms"],
+  "optional_host_permissions": ["http://*/*", "https://*/*"],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "content_scripts": [
+    {
+      "matches": ["https://sayzio.app/extension/handshake*", "https://1in.me/extension/handshake*"],
+      "js": ["content-handshake.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["icons/*.png"],
+      "matches": ["<all_urls>"]
+    }
+  ]
+}

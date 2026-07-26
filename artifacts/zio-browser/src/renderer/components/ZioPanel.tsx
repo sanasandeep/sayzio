@@ -13,7 +13,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { useAuthStore } from '../store/auth-store';
 import { ApiClient, ApiClientError } from '../../shared/api-client';
-import type { LinkAnalytics, AssistantPage, ApiContact, ApiUserProfile, ApiLink, UpdateLinkPayload } from '../../shared/api-client';
+import type { LinkAnalytics, AssistantPage, ApiContact, ApiUserProfile, ApiLink, UpdateLinkPayload, ApiFile } from '../../shared/api-client';
 import { trimPageContext } from '../../shared/context-extractor';
 import type { PageContext, TrimmedContext } from '../../shared/context-extractor';
 import { detectSayzioLink } from '../../shared/link-tools';
@@ -102,6 +102,13 @@ export function ZioPanel({ pageContext, onClose, presentation = 'embedded', pane
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const visitorTokenRef = useRef<string | null>(loadVisitorToken());
   const sessionOpenedRef = useRef(false);
+
+  // Drag & drop file uploads → Sayzio Files
+  const [isDragging, setIsDragging] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const dragDepthRef = useRef(0);
+  /** Files uploaded via drag & drop, referenced in the next chat message's context. */
+  const lastUploadsRef = useRef<ApiFile[]>([]);
 
   const getClient = useCallback((): ApiClient | null => {
     if (!token) return null;
@@ -289,6 +296,116 @@ export function ZioPanel({ pageContext, onClose, presentation = 'embedded', pane
     }
   }, []);
 
+  // ── Drag & drop file uploads ────────────────────────────────────────────────
+
+  const formatSize = (bytes: number): string => {
+    if (bytes >= 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+    if (bytes >= 1024) return `${Math.round(bytes / 1024)} KB`;
+    return `${bytes} B`;
+  };
+
+  const handleDroppedFiles = useCallback(async (files: File[]) => {
+    if (files.length === 0 || isUploading) return;
+
+    const client = getClient();
+    if (!client) {
+      setError('Sign in to upload files');
+      return;
+    }
+
+    setActiveTab('chat');
+    setIsUploading(true);
+    setError(null);
+
+    const names = files.map(f => f.name).join(', ');
+    setMessages(prev => [...prev, {
+      role: 'user',
+      content: `📎 Uploading ${files.length === 1 ? names : `${files.length} files (${names})`} to my Files…`,
+      timestamp: Date.now(),
+      isLocalAction: true,
+    }]);
+
+    const uploaded: ApiFile[] = [];
+    const failures: string[] = [];
+    let quotaHit = false;
+
+    try {
+    for (const file of files) {
+      try {
+        const rec = await client.uploadFile(file, file.name);
+        uploaded.push(rec);
+      } catch (err) {
+        if (err instanceof ApiClientError && (err.code === 'quota_exceeded' || err.status === 413)) {
+          quotaHit = true;
+          failures.push(`${file.name} — storage limit reached`);
+        } else {
+          failures.push(`${file.name} — ${err instanceof Error ? err.message : 'upload failed'}`);
+        }
+      }
+    }
+
+    if (uploaded.length > 0) {
+      lastUploadsRef.current = uploaded;
+    }
+
+    const lines: string[] = [];
+    if (uploaded.length > 0) {
+      lines.push(uploaded.length === 1
+        ? `Done! I saved **${uploaded[0]!.original_name || uploaded[0]!.filename}** (${formatSize(uploaded[0]!.size)}) to your Sayzio Files.`
+        : `Done! I saved ${uploaded.length} files to your Sayzio Files:`);
+      if (uploaded.length > 1) {
+        for (const f of uploaded) lines.push(`• ${f.original_name || f.filename} (${formatSize(f.size)})`);
+      }
+    }
+    if (failures.length > 0) {
+      lines.push(uploaded.length > 0 ? `\nSome files couldn't be uploaded:` : `I couldn't upload your file${files.length > 1 ? 's' : ''}:`);
+      for (const f of failures) lines.push(`• ${f}`);
+      if (quotaHit) {
+        lines.push(`\nYour file storage is full. You can free up space in your Files page, or upgrade your plan for more storage.`);
+      }
+    }
+    if (uploaded.length > 0) {
+      lines.push(`\nHow would you like to use ${uploaded.length === 1 ? 'it' : 'them'}? For example, I can add ${uploaded.length === 1 ? 'it' : 'one'} to your biolink, create a share link, or just keep ${uploaded.length === 1 ? 'it' : 'them'} in your Files.`);
+    }
+
+    setMessages(prev => [...prev, {
+      role: 'assistant',
+      content: lines.join('\n'),
+      timestamp: Date.now(),
+      isLocalAction: true,
+    }]);
+    } finally {
+      setIsUploading(false);
+    }
+  }, [getClient, isUploading]);
+
+  const dragHandlers = {
+    onDragEnter: (e: React.DragEvent) => {
+      if (!e.dataTransfer.types.includes('Files')) return;
+      e.preventDefault();
+      dragDepthRef.current += 1;
+      setIsDragging(true);
+    },
+    onDragOver: (e: React.DragEvent) => {
+      if (!e.dataTransfer.types.includes('Files')) return;
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'copy';
+    },
+    onDragLeave: (e: React.DragEvent) => {
+      if (!e.dataTransfer.types.includes('Files')) return;
+      dragDepthRef.current = Math.max(0, dragDepthRef.current - 1);
+      if (dragDepthRef.current === 0) setIsDragging(false);
+    },
+    onDrop: (e: React.DragEvent) => {
+      if (!e.dataTransfer.types.includes('Files')) return;
+      e.preventDefault();
+      dragDepthRef.current = 0;
+      setIsDragging(false);
+      const files = Array.from(e.dataTransfer.files);
+      void handleDroppedFiles(files);
+    },
+  };
+
   // ── Chat send ───────────────────────────────────────────────────────────────
 
   const sendMessage = useCallback(async () => {
@@ -319,9 +436,19 @@ export function ZioPanel({ pageContext, onClose, presentation = 'embedded', pane
     if (!client) { setError('Sign in to use Zio AI'); return; }
 
     const excerpt = trimmedCtx?.excerpt?.trim();
-    const outgoing = trimmedCtx && excerpt
+    let outgoing = trimmedCtx && excerpt
       ? `${text}\n\n[Current page: ${trimmedCtx.title} (${trimmedCtx.url})]\n[Page content excerpt]:\n${excerpt.slice(0, 2500)}`
       : text;
+
+    // Give the assistant context about files the user just dropped into the
+    // panel so it can act on "add it to my biolink" style follow-ups.
+    if (lastUploadsRef.current.length > 0) {
+      const filesCtx = lastUploadsRef.current
+        .map(f => `${f.original_name || f.filename} — ${f.url}`)
+        .join('\n');
+      outgoing += `\n\n[Recently uploaded files (already saved in the user's Sayzio Files)]:\n${filesCtx}`;
+      lastUploadsRef.current = [];
+    }
 
     const userMsg: Message = { role: 'user', content: text, timestamp: Date.now() };
     setMessages(prev => [...prev, userMsg]);
@@ -488,8 +615,12 @@ export function ZioPanel({ pageContext, onClose, presentation = 'embedded', pane
     const w = panelWidth ? `${panelWidth}px` : 'var(--sidebar-width, 360px)';
 
     if (isDocked) {
+      // With an explicit panelWidth we hold that width; without one (tab in
+      // full "Ask Zio" mode) we grow to fill the whole content area.
       return {
-        width: w,
+        width: panelWidth ? w : undefined,
+        flex: panelWidth ? undefined : 1,
+        minWidth: 0,
         height: '100%',
         background: 'var(--color-bg-surface)',
         display: 'flex',
@@ -516,7 +647,44 @@ export function ZioPanel({ pageContext, onClose, presentation = 'embedded', pane
   })();
 
   return (
-    <div style={containerStyle}>
+    <div
+      style={{ position: 'relative', ...containerStyle }}
+      {...dragHandlers}
+    >
+      {/* ── Drag & drop overlay ────────────────────────────────────────────── */}
+      {isDragging && (
+        <div style={{
+          position: 'absolute',
+          inset: 0,
+          zIndex: 100,
+          background: 'rgba(99, 102, 241, 0.12)',
+          border: '2px dashed var(--color-primary, #6366f1)',
+          borderRadius: 8,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 8,
+          pointerEvents: 'none',
+        }}>
+          <span style={{ fontSize: 32 }}>📎</span>
+          <span style={{ fontWeight: 600, fontSize: 14 }}>Drop files to upload to your Files</span>
+        </div>
+      )}
+      {isUploading && (
+        <div style={{
+          position: 'absolute',
+          top: 8,
+          right: 8,
+          zIndex: 100,
+          background: 'var(--color-bg-surface)',
+          border: '1px solid var(--color-border)',
+          borderRadius: 6,
+          padding: '4px 10px',
+          fontSize: 12,
+          color: 'var(--color-text-muted)',
+        }}>Uploading…</div>
+      )}
       {/* ── Header ─────────────────────────────────────────────────────────── */}
       <div style={{
         padding: '12px 16px',

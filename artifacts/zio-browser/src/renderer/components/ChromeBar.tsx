@@ -10,7 +10,7 @@ import { ShortenPopover } from './ShortenPopover';
 import { CreateLinkPopover } from './CreateLinkPopover';
 import { ModeSwitcher } from './ModeSwitcher';
 import { TabModeSwitcher } from './TabModeSwitcher';
-import type { TabMode } from '../../shared/window-mode';
+import { normalizeTabMode } from '../../shared/window-mode';
 import { ProfileSwitcher } from './ProfileSwitcher';
 import { useModeStore } from '../store/mode-store';
 import type { RecentlyClosedEntry } from '../../main/tab-manager';
@@ -38,9 +38,23 @@ interface Props {
   onOpenSiteSettings?: () => void;
   readingListOpen: boolean;
   onToggleReadingList: () => void;
+  /** Callback to open the browser settings panel. */
+  onOpenSettings?: () => void;
+  settingsOpen?: boolean;
 }
 
 const BASE_URL = 'https://1in.me';
+
+// ── Address bar suggestions ───────────────────────────────────────────────────
+
+interface OmniSuggestion {
+  url: string;
+  title: string;
+  kind: 'history' | 'bookmark' | 'search';
+}
+
+interface HistoryRow { url: string; title: string | null }
+interface BookmarkRow { url: string; title: string | null }
 
 // ── Tiny inline context menu ──────────────────────────────────────────────────
 
@@ -337,6 +351,8 @@ export function ChromeBar({
   onOpenSiteSettings,
   readingListOpen,
   onToggleReadingList,
+  onOpenSettings,
+  settingsOpen = false,
 }: Props) {
   const {
     tabs, tabOrder, activeTabId, recentlyClosed,
@@ -345,6 +361,7 @@ export function ChromeBar({
   } = useTabStore();
   const { user, token } = useAuthStore();
   const { mode, setMode } = useModeStore();
+  const activeTab = activeTabId ? tabs[activeTabId] : null;
   const [omniboxValue, setOmniboxValue] = useState('');
   const [omniboxFocused, setOmniboxFocused] = useState(false);
   const [shortenOpen, setShortenOpen] = useState(false);
@@ -359,10 +376,91 @@ export function ChromeBar({
   const dragTabIdRef = useRef<string | null>(null);
   const [savedInReadingList, setSavedInReadingList] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [isBookmarked, setIsBookmarked] = useState(false);
   const omniboxRef = useRef<HTMLInputElement>(null);
   const stripMenuBtnRef = useRef<HTMLButtonElement>(null);
 
-  const activeTab = activeTabId ? tabs[activeTabId] : null;
+  // ── Address bar suggestions ─────────────────────────────────────────────
+  const [suggestions, setSuggestions] = useState<OmniSuggestion[]>([]);
+  const [suggestionIndex, setSuggestionIndex] = useState(-1);
+  const suggestionsOpen = omniboxFocused && suggestions.length > 0;
+  const suggestQueryRef = useRef('');
+
+  // Keep the native web view from covering the dropdown while it is open
+  useEffect(() => {
+    void window.zio.window.setChromeOverlay(suggestionsOpen);
+    return () => { if (suggestionsOpen) void window.zio.window.setChromeOverlay(false); };
+  }, [suggestionsOpen]);
+
+  // Debounced history + bookmarks lookup while typing
+  useEffect(() => {
+    if (!omniboxFocused) { setSuggestions([]); setSuggestionIndex(-1); return; }
+    const q = omniboxValue.trim();
+    suggestQueryRef.current = q;
+    if (q.length < 2 || q === activeTab?.url) {
+      setSuggestions([]); setSuggestionIndex(-1);
+      return;
+    }
+    const timer = setTimeout(() => {
+      void Promise.all([
+        window.zio.history.search(q).catch(() => []),
+        window.zio.bookmarks.search(q).catch(() => []),
+      ]).then(([hist, bms]) => {
+        // Ignore stale responses
+        if (suggestQueryRef.current !== q) return;
+        const seen = new Set<string>();
+        const merged: OmniSuggestion[] = [];
+        for (const b of (bms as BookmarkRow[])) {
+          if (!b?.url || seen.has(b.url)) continue;
+          seen.add(b.url);
+          merged.push({ url: b.url, title: b.title || b.url, kind: 'bookmark' });
+          if (merged.length >= 4) break;
+        }
+        for (const h of (hist as HistoryRow[])) {
+          if (!h?.url || seen.has(h.url)) continue;
+          seen.add(h.url);
+          merged.push({ url: h.url, title: h.title || h.url, kind: 'history' });
+          if (merged.length >= 7) break;
+        }
+        // Always offer a "search the web" fallback row
+        merged.push({ url: q, title: `Search for "${q}"`, kind: 'search' });
+        setSuggestions(merged);
+        setSuggestionIndex(-1);
+      });
+    }, 120);
+    return () => clearTimeout(timer);
+  }, [omniboxValue, omniboxFocused, activeTab?.url]);
+
+  const acceptSuggestion = useCallback((s: OmniSuggestion) => {
+    if (!activeTabId) return;
+    void navigate(activeTabId, s.url);
+    setSuggestions([]);
+    setSuggestionIndex(-1);
+    omniboxRef.current?.blur();
+  }, [activeTabId, navigate]);
+
+  const handleOmniboxKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (!suggestionsOpen) {
+      if (e.key === 'Escape') omniboxRef.current?.blur();
+      return;
+    }
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setSuggestionIndex(prev => (prev + 1) % suggestions.length);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setSuggestionIndex(prev => (prev <= 0 ? suggestions.length - 1 : prev - 1));
+    } else if (e.key === 'Enter') {
+      if (suggestionIndex >= 0 && suggestions[suggestionIndex]) {
+        e.preventDefault();
+        acceptSuggestion(suggestions[suggestionIndex]);
+      }
+      // else fall through to the form submit
+    } else if (e.key === 'Escape') {
+      setSuggestions([]);
+      setSuggestionIndex(-1);
+    }
+  }, [suggestionsOpen, suggestions, suggestionIndex, acceptSuggestion]);
 
   // Track reading list state for the active page
   useEffect(() => {
@@ -386,6 +484,34 @@ export function ChromeBar({
     }).catch(() => { /* main not ready */ });
     return () => { cancelled = true; };
   }, [readingListOpen]);
+
+  // Track bookmark state for the active page
+  useEffect(() => {
+    const url = activeTab?.url;
+    if (!url || url === 'about:newtab' || url === '') {
+      setIsBookmarked(false);
+      return;
+    }
+    let cancelled = false;
+    void window.zio.bookmarks.isBookmarked(url).then((saved: boolean) => {
+      if (!cancelled) setIsBookmarked(saved);
+    }).catch(() => { /* main not ready */ });
+    return () => { cancelled = true; };
+  }, [activeTab?.url]);
+
+  const handleToggleBookmark = useCallback(async () => {
+    const url = activeTab?.url;
+    if (!url || url === 'about:newtab') return;
+    try {
+      if (isBookmarked) {
+        await window.zio.bookmarks.remove(url);
+        setIsBookmarked(false);
+      } else {
+        await window.zio.bookmarks.add(url, activeTab?.title ?? url);
+        setIsBookmarked(true);
+      }
+    } catch { /* non-fatal */ }
+  }, [activeTab?.url, activeTab?.title, isBookmarked]);
 
   const handleSaveToReadingList = useCallback(async () => {
     if (!activeTab?.url || activeTab.url === 'about:newtab') return;
@@ -836,13 +962,14 @@ export function ChromeBar({
         >⌂</button>
 
         {/* Omnibox */}
-        <form onSubmit={handleOmniboxSubmit} style={{ flex: 1 }}>
+        <form onSubmit={handleOmniboxSubmit} style={{ flex: 1, position: 'relative' }}>
           <input
             ref={omniboxRef}
             value={omniboxFocused ? omniboxValue : (activeTab?.url ?? '')}
             onChange={e => setOmniboxValue(e.target.value)}
             onFocus={(e) => { setOmniboxFocused(true); setOmniboxValue(e.target.value); e.target.select(); }}
             onBlur={() => setOmniboxFocused(false)}
+            onKeyDown={handleOmniboxKeyDown}
             placeholder="Search or enter URL"
             style={{
               width: '100%',
@@ -858,6 +985,62 @@ export function ChromeBar({
               transition: 'all 0.15s',
             }}
           />
+
+          {/* Suggestions dropdown */}
+          {suggestionsOpen && (
+            <div style={{
+              position: 'absolute',
+              top: 'calc(100% + 4px)',
+              left: 0,
+              right: 0,
+              background: 'var(--color-bg-surface)',
+              border: '1px solid var(--color-border)',
+              borderRadius: 10,
+              boxShadow: '0 10px 32px rgba(0,0,0,0.35)',
+              zIndex: 3000,
+              overflow: 'hidden',
+            }}>
+              {suggestions.map((s, i) => (
+                <div
+                  key={`${s.kind}:${s.url}`}
+                  // mousedown fires before the input's blur, so the click always lands
+                  onMouseDown={(e) => { e.preventDefault(); acceptSuggestion(s); }}
+                  onMouseEnter={() => setSuggestionIndex(i)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    padding: '7px 12px',
+                    cursor: 'pointer',
+                    background: i === suggestionIndex ? 'var(--color-bg-elevated)' : 'transparent',
+                    transition: 'background 0.08s',
+                  }}
+                >
+                  <span style={{ fontSize: 12, flexShrink: 0, opacity: 0.8 }}>
+                    {s.kind === 'bookmark' ? '★' : s.kind === 'history' ? '🕘' : '🔍'}
+                  </span>
+                  <span style={{
+                    fontSize: 12,
+                    color: 'var(--color-text)',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    flexShrink: 0,
+                    maxWidth: '45%',
+                  }}>{s.title}</span>
+                  {s.kind !== 'search' && (
+                    <span style={{
+                      fontSize: 11,
+                      color: 'var(--color-text-muted)',
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                    }}>{s.url}</span>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
         </form>
 
         {/* ── Link tool buttons ─────────────────────────────────────────────── */}
@@ -1073,8 +1256,21 @@ export function ChromeBar({
           )}
         </div>
 
-        {/* Bookmark button */}
-        <button style={{ fontSize: 16, padding: '2px 6px', opacity: 0.7 }} title="Bookmark">☆</button>
+        {/* Bookmark button (hidden in private windows — bookmarks are not saved there) */}
+        {!isPrivate && (
+        <button
+          onClick={() => void handleToggleBookmark()}
+          title={isBookmarked ? 'Remove bookmark' : 'Bookmark this page'}
+          style={{
+            fontSize: 16,
+            padding: '2px 6px',
+            color: isBookmarked ? 'var(--color-primary)' : 'var(--color-text-muted)',
+            transition: 'color 0.15s',
+          }}
+        >
+          {isBookmarked ? '★' : '☆'}
+        </button>
+        )}
 
         {/* Downloads button */}
         {onToggleDownloads && (
@@ -1155,7 +1351,7 @@ export function ChromeBar({
         {/* Per-tab view mode switcher — not available in private windows */}
         {!isPrivate && activeTabId && (
           <TabModeSwitcher
-            currentMode={(activeTab?.mode as TabMode | undefined) ?? 'web'}
+            currentMode={normalizeTabMode(activeTab?.mode) ?? 'browser'}
             onSetMode={(m) => void setTabMode(activeTabId, m)}
           />
         )}
@@ -1170,6 +1366,24 @@ export function ChromeBar({
           isAuthenticated={!!user}
           onOpenAuth={onOpenAuth}
         />
+
+        {/* Settings button */}
+        {onOpenSettings && (
+          <button
+            onClick={onOpenSettings}
+            title="Settings"
+            style={{
+              fontSize: 15,
+              padding: '2px 7px',
+              borderRadius: 8,
+              background: settingsOpen ? 'var(--color-primary)' : 'var(--color-bg-elevated)',
+              color: settingsOpen ? '#fff' : 'var(--color-text-muted)',
+              border: '1px solid var(--color-border)',
+              transition: 'all 0.12s',
+              flexShrink: 0,
+            }}
+          >⚙️</button>
+        )}
       </div>
 
       {/* Create link popover */}

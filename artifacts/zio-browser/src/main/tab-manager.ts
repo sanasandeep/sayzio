@@ -10,12 +10,19 @@ import { parseOmniboxInput, type SearchEngineConfig, DEFAULT_SEARCH_ENGINE } fro
 import { sessionPartitionForProfile, DEFAULT_PROFILE_ID } from '../shared/profile-store';
 import {
   type TabMode,
-  TAB_MODES,
+  type TabPane,
+  parseTabMode,
+  normalizeTabMode,
+  tabModeIncludes,
   SAYZIO_DASHBOARD_URL,
+  SAYZIO_HOME_URL,
   SAYZIO_BASE_HOST,
   TAB_SPLIT_RATIO,
   TAB_SPLIT_DIVIDER_WIDTH,
 } from '../shared/window-mode';
+
+/** Background color applied to all native views to avoid white/blank flashes. */
+const VIEW_BG_COLOR = '#101014';
 
 export interface TabState {
   id: string;
@@ -70,10 +77,12 @@ interface ManagedTab {
    * (null = no explicit choice; auto-mute policy may apply on navigation).
    */
   muteOverride: boolean | null;
-  /** Per-tab view mode (website / sayzio app / splits). */
+  /** Per-tab view mode (single pane or a two-pane split). */
   mode: TabMode;
-  /** Lazily created Sayzio webapp view for sayzio / sayzio-split modes. */
+  /** Lazily created Sayzio website view (pane: 'sayzio'). */
   sayzioView: WebContentsView | null;
+  /** Lazily created Sayzio dashboard view (pane: 'dashboard'). */
+  dashboardView: WebContentsView | null;
 }
 
 const MAX_RECENTLY_CLOSED = 10;
@@ -104,6 +113,11 @@ export class TabManager {
   private searchEngine: SearchEngineConfig = DEFAULT_SEARCH_ENGINE;
   /** Active session partition — changes when the user switches profiles. */
   private activePartition: string = sessionPartitionForProfile(DEFAULT_PROFILE_ID);
+  /**
+   * insertCSS keys for the "hide embedded site assistant" rule, per Sayzio
+   * view. Present ⇒ the hide CSS is currently inserted in that view.
+   */
+  private assistantHideCssKeys = new WeakMap<WebContentsView, string>();
   private onTabStateChange?: (tabId: TabId, state: Partial<TabState>) => void;
   private onTabCreated?: (tabId: TabId) => void;
   private onTabClosed?: (tabId: TabId) => void;
@@ -128,6 +142,10 @@ export class TabManager {
   private resolveZioPanelReserve?: () => number;
   /** Last content-area bounds applied via resizeTabs (browser/split layouts). */
   private contentBounds: { x: number; y: number; width: number; height: number } | null = null;
+  /** Returns whether spell checking is currently enabled (preference-backed). */
+  private resolveSpellcheckEnabled?: () => boolean;
+  /** Returns the target language code for "Translate this page" (e.g. 'en'). */
+  private resolveTranslateLang?: () => string;
 
   constructor(win: BrowserWindow, options: TabManagerOptions = {}) {
     this.win = win;
@@ -150,6 +168,8 @@ export class TabManager {
     resolveAutoMute?: (url: string) => boolean;
     onUserMuteChange?: (url: string, muted: boolean) => void;
     resolveZioPanelReserve?: () => number;
+    resolveSpellcheckEnabled?: () => boolean;
+    resolveTranslateLang?: () => string;
   }): void {
     this.onTabStateChange = cbs.onTabStateChange;
     this.onTabCreated = cbs.onTabCreated;
@@ -165,6 +185,8 @@ export class TabManager {
     this.resolveAutoMute = cbs.resolveAutoMute;
     this.onUserMuteChange = cbs.onUserMuteChange;
     this.resolveZioPanelReserve = cbs.resolveZioPanelReserve;
+    this.resolveSpellcheckEnabled = cbs.resolveSpellcheckEnabled;
+    this.resolveTranslateLang = cbs.resolveTranslateLang;
   }
 
   setSearchEngine(engine: SearchEngineConfig): void {
@@ -213,6 +235,12 @@ export class TabManager {
 
     const tabSession = session.fromPartition(this.activePartition);
 
+    // Apply the spell-check preference to this tab's session (idempotent).
+    try {
+      const ses = this.isPrivate ? this.tabSession : tabSession;
+      ses.setSpellCheckerEnabled(this.resolveSpellcheckEnabled?.() ?? true);
+    } catch { /* spellchecker unavailable on some platforms */ }
+
     const view = new WebContentsView({
       webPreferences: {
         nodeIntegration: false,
@@ -225,6 +253,9 @@ export class TabManager {
     });
 
     const wc = view.webContents;
+
+    // Solid background so tab switches never flash white/transparent.
+    view.setBackgroundColor(VIEW_BG_COLOR);
 
     const [w, h] = this.win.getContentSize();
     view.setBounds({ x: 0, y: 72, width: w, height: h - 72 });
@@ -302,10 +333,59 @@ export class TabManager {
 
       const menuItems: Electron.MenuItemConstructorOptions[] = [];
 
+      // ── Spell check — replacement suggestions + add-to-dictionary ─────────
+      if (params.misspelledWord) {
+        for (const suggestion of params.dictionarySuggestions.slice(0, 5)) {
+          menuItems.push({
+            label: suggestion,
+            click: () => { if (isAlive(wc)) wc.replaceMisspelling(suggestion); },
+          });
+        }
+        if (params.dictionarySuggestions.length === 0) {
+          menuItems.push({ label: 'No spelling suggestions', enabled: false });
+        }
+        menuItems.push(
+          {
+            label: `Add "${params.misspelledWord}" to dictionary`,
+            click: () => {
+              try { wc.session.addWordToSpellCheckerDictionary(params.misspelledWord); } catch { }
+            },
+          },
+          { type: 'separator' },
+        );
+      }
+
       if (params.isEditable) {
         menuItems.push({ role: 'cut' }, { role: 'copy' }, { role: 'paste' }, { type: 'separator' });
       } else if (params.selectionText) {
-        menuItems.push({ role: 'copy' }, { type: 'separator' });
+        menuItems.push({ role: 'copy' });
+        const selText = params.selectionText.trim().replace(/\s+/g, ' ');
+        if (selText) {
+          const shortText = selText.length > 40 ? `${selText.slice(0, 40)}…` : selText;
+          menuItems.push({
+            label: `Search ${this.searchEngine.name} for "${shortText}"`,
+            click: () => {
+              const searchUrl = this.searchEngine.searchTemplate.replace(
+                '{query}',
+                encodeURIComponent(selText),
+              );
+              this.createTab(searchUrl);
+            },
+          });
+        }
+        menuItems.push({ type: 'separator' });
+      }
+
+      // ── Image actions ─────────────────────────────────────────────────────
+      if (params.mediaType === 'image' && params.srcURL) {
+        const imageUrl = params.srcURL;
+        menuItems.push(
+          { label: 'Open image in new tab', click: () => { this.createTab(imageUrl); } },
+          { label: 'Copy image', click: () => { if (isAlive(wc)) wc.copyImageAt(params.x, params.y); } },
+          { label: 'Copy image address', click: () => { clipboard.writeText(imageUrl); } },
+          { label: 'Save image as…', click: () => { if (isAlive(wc)) wc.downloadURL(imageUrl); } },
+          { type: 'separator' },
+        );
       }
 
       if (params.linkURL) {
@@ -321,6 +401,55 @@ export class TabManager {
             },
           },
           { label: 'Copy link address', click: () => { clipboard.writeText(params.linkURL); } },
+          { type: 'separator' },
+        );
+      }
+
+      // ── Picture-in-Picture for videos ─────────────────────────────────────
+      if (params.mediaType === 'video') {
+        menuItems.push(
+          {
+            label: 'Picture in Picture',
+            click: () => {
+              if (!isAlive(wc)) return;
+              const js = `(function(){
+                try {
+                  if (document.pictureInPictureElement) {
+                    document.exitPictureInPicture().catch(function(){});
+                    return;
+                  }
+                  var el = document.elementFromPoint(${params.x}, ${params.y});
+                  var video = (el && el.tagName === 'VIDEO') ? el : null;
+                  if (!video) {
+                    var vids = Array.prototype.slice.call(document.querySelectorAll('video'));
+                    vids.sort(function(a,b){ return (b.clientWidth*b.clientHeight) - (a.clientWidth*a.clientHeight); });
+                    video = vids[0] || null;
+                  }
+                  if (video && video.requestPictureInPicture) {
+                    video.requestPictureInPicture().catch(function(){});
+                  }
+                } catch (e) { }
+              })()`;
+              void wc.executeJavaScript(js, true).catch(() => { });
+            },
+          },
+          { type: 'separator' },
+        );
+      }
+
+      // ── Translate this page ───────────────────────────────────────────────
+      if (pageUrl && (pageUrl.startsWith('http://') || pageUrl.startsWith('https://')) &&
+          !pageUrl.includes('translate.goog') && !pageUrl.startsWith('https://translate.google.com')) {
+        const lang = this.resolveTranslateLang?.() || 'en';
+        menuItems.push(
+          {
+            label: 'Translate this page',
+            click: () => {
+              if (!isAlive(wc)) return;
+              const translated = `https://translate.google.com/translate?sl=auto&tl=${encodeURIComponent(lang)}&u=${encodeURIComponent(pageUrl)}`;
+              void wc.loadURL(translated);
+            },
+          },
           { type: 'separator' },
         );
       }
@@ -371,7 +500,7 @@ export class TabManager {
     });
 
     if (pinned) this.pinnedTabs.add(id);
-    const tab: ManagedTab = { id, view, pinned, favicon: null, muteOverride: null, mode: 'web', sayzioView: null };
+    const tab: ManagedTab = { id, view, pinned, favicon: null, muteOverride: null, mode: 'browser', sayzioView: null, dashboardView: null };
     this.tabs.set(id, tab);
     this.insertInOrder(id, pinned);
 
@@ -434,13 +563,15 @@ export class TabManager {
       // May already be removed
     }
 
-    if (tab.sayzioView) {
-      try { this.win.contentView.removeChildView(tab.sayzioView); } catch { }
-      if (!tab.sayzioView.webContents.isDestroyed()) {
-        tab.sayzioView.webContents.close();
+    for (const extra of [tab.sayzioView, tab.dashboardView]) {
+      if (!extra) continue;
+      try { this.win.contentView.removeChildView(extra); } catch { }
+      if (!extra.webContents.isDestroyed()) {
+        extra.webContents.close();
       }
-      tab.sayzioView = null;
     }
+    tab.sayzioView = null;
+    tab.dashboardView = null;
 
     this.pinnedTabs.delete(id);
     this.tabs.delete(id);
@@ -636,18 +767,23 @@ export class TabManager {
     const tab = this.tabs.get(id);
     if (!tab) return;
 
-    if (this.activeTabId && this.activeTabId !== id) {
-      const prev = this.tabs.get(this.activeTabId);
+    const prevId = this.activeTabId;
+
+    // Attach the new tab's views FIRST (they render on top), then detach the
+    // previous tab's views — avoids a blank flash between tabs.
+    this.activeTabId = id;
+    this.layoutActiveTab();
+
+    if (prevId && prevId !== id) {
+      const prev = this.tabs.get(prevId);
       if (prev) {
-        try { this.win.contentView.removeChildView(prev.view); } catch { }
-        if (prev.sayzioView) {
-          try { this.win.contentView.removeChildView(prev.sayzioView); } catch { }
+        for (const v of [prev.view, prev.sayzioView, prev.dashboardView]) {
+          if (!v) continue;
+          try { this.win.contentView.removeChildView(v); } catch { }
         }
       }
     }
 
-    this.activeTabId = id;
-    this.layoutActiveTab();
     tab.view.webContents.focus();
     this.onActiveTabChange?.(id);
   }
@@ -659,21 +795,37 @@ export class TabManager {
    * lazily when a Sayzio mode is first selected, and re-lays-out the active
    * tab so the change is visible immediately.
    */
-  setTabMode(id: TabId, mode: TabMode): void {
-    if (!TAB_MODES.includes(mode)) return;
+  setTabMode(id: TabId, rawMode: string): void {
+    const mode = normalizeTabMode(rawMode);
+    if (!mode) return;
     const tab = this.tabs.get(id);
     if (!tab || tab.mode === mode) return;
 
     tab.mode = mode;
 
-    if ((mode === 'sayzio' || mode === 'sayzio-split') && !tab.sayzioView) {
-      tab.sayzioView = this.createSayzioView();
+    // Lazily create the Sayzio views the new mode needs.
+    const shouldHideAssistant = () => tabModeIncludes(tab.mode, 'zio');
+    if (tabModeIncludes(mode, 'sayzio') && !tab.sayzioView) {
+      tab.sayzioView = this.createSayzioView(SAYZIO_HOME_URL, shouldHideAssistant);
     }
+    if (tabModeIncludes(mode, 'dashboard') && !tab.dashboardView) {
+      tab.dashboardView = this.createSayzioView(SAYZIO_DASHBOARD_URL, shouldHideAssistant);
+    }
+
+    // Hide the embedded site chatbot inside Sayzio panes whenever this tab
+    // also shows the Ask Zio pane (two assistants at once is confusing).
+    this.updateSiteAssistantVisibility(tab);
 
     if (id === this.activeTabId) {
       this.layoutActiveTab();
-    } else if (tab.sayzioView && (mode === 'web' || mode === 'zio-split')) {
-      try { this.win.contentView.removeChildView(tab.sayzioView); } catch { }
+    } else {
+      // Detach views the (inactive) tab no longer shows.
+      if (tab.sayzioView && !tabModeIncludes(mode, 'sayzio')) {
+        try { this.win.contentView.removeChildView(tab.sayzioView); } catch { }
+      }
+      if (tab.dashboardView && !tabModeIncludes(mode, 'dashboard')) {
+        try { this.win.contentView.removeChildView(tab.dashboardView); } catch { }
+      }
     }
 
     this.onTabStateChange?.(id, { mode });
@@ -703,53 +855,103 @@ export class TabManager {
       try { this.win.contentView.removeChildView(v); } catch { }
     };
 
-    switch (tab.mode) {
-      case 'web': {
-        detach(tab.sayzioView);
-        tab.view.setBounds(area);
-        attach(tab.view);
-        break;
+    // Resolve the native view backing each pane ('zio' is renderer-drawn → null).
+    const viewFor = (pane: TabPane): WebContentsView | null => {
+      switch (pane) {
+        case 'browser': return tab.view;
+        case 'sayzio': return tab.sayzioView;
+        case 'dashboard': return tab.dashboardView;
+        case 'zio': return null;
       }
-      case 'sayzio': {
-        detach(tab.view);
-        if (tab.sayzioView) {
-          tab.sayzioView.setBounds(area);
-          attach(tab.sayzioView);
-        }
-        break;
-      }
-      case 'sayzio-split': {
-        const leftWidth = Math.max(0, Math.floor(area.width * TAB_SPLIT_RATIO) - Math.ceil(TAB_SPLIT_DIVIDER_WIDTH / 2));
-        const rightX = area.x + leftWidth + TAB_SPLIT_DIVIDER_WIDTH;
-        const rightWidth = Math.max(0, area.x + area.width - rightX);
-        if (tab.sayzioView) {
-          tab.sayzioView.setBounds({ x: area.x, y: area.y, width: leftWidth, height: area.height });
-          attach(tab.sayzioView);
-        }
-        tab.view.setBounds({ x: rightX, y: area.y, width: rightWidth, height: area.height });
-        attach(tab.view);
-        break;
-      }
-      case 'zio-split': {
-        detach(tab.sayzioView);
-        const reserve = Math.max(0, this.resolveZioPanelReserve?.() ?? 0);
-        tab.view.setBounds({
-          x: area.x,
-          y: area.y,
-          width: Math.max(0, area.width - reserve),
-          height: area.height,
+    };
+
+    const { left, right } = parseTabMode(tab.mode);
+    const leftView = viewFor(left);
+    const rightView = right ? viewFor(right) : null;
+
+    // Compute bounds for the native views this mode shows.
+    const placements: Array<{ view: WebContentsView; bounds: Electron.Rectangle }> = [];
+    if (right === 'zio') {
+      // Left pane native; renderer draws the Zio panel in the reserved strip.
+      const reserve = Math.max(0, this.resolveZioPanelReserve?.() ?? 0);
+      if (leftView) {
+        placements.push({
+          view: leftView,
+          bounds: { x: area.x, y: area.y, width: Math.max(0, area.width - reserve), height: area.height },
         });
-        attach(tab.view);
-        break;
       }
+    } else if (right) {
+      // Two native panes → 50/50 split with a divider.
+      const leftWidth = Math.max(0, Math.floor(area.width * TAB_SPLIT_RATIO) - Math.ceil(TAB_SPLIT_DIVIDER_WIDTH / 2));
+      const rightX = area.x + leftWidth + TAB_SPLIT_DIVIDER_WIDTH;
+      const rightWidth = Math.max(0, area.x + area.width - rightX);
+      if (leftView) {
+        placements.push({ view: leftView, bounds: { x: area.x, y: area.y, width: leftWidth, height: area.height } });
+      }
+      if (rightView) {
+        placements.push({ view: rightView, bounds: { x: rightX, y: area.y, width: rightWidth, height: area.height } });
+      }
+    } else if (leftView) {
+      // Single native pane fills the whole area. (mode 'zio' has no native
+      // view at all — the renderer's Zio panel fills the tab area.)
+      placements.push({ view: leftView, bounds: area });
+    }
+
+    // Attach/bound the views this mode shows FIRST (bounds before attach, so
+    // nothing flashes at a stale position), then detach the unused ones.
+    const shown = new Set(placements.map(p => p.view));
+    for (const { view, bounds } of placements) {
+      view.setBounds(bounds);
+      attach(view);
+    }
+    for (const v of [tab.view, tab.sayzioView, tab.dashboardView]) {
+      if (v && !shown.has(v)) detach(v);
     }
   }
 
   /**
-   * Create a WebContentsView hosting the Sayzio webapp for a single tab.
-   * External links open as new browser tabs, mirroring the dashboard view.
+   * Create a WebContentsView hosting a Sayzio surface (website or dashboard)
+   * for a single tab. Navigation is kept on the Sayzio host; external links
+   * open as new browser tabs.
    */
-  private createSayzioView(): WebContentsView {
+  /** CSS that hides the Sayzio in-page assistant widget. */
+  private static readonly HIDE_SITE_ASSISTANT_CSS = '#site-assistant-root{display:none!important}';
+
+  /**
+   * Insert/remove the "hide the in-page Zio Bot widget" CSS on this tab's
+   * Sayzio views so the embedded site chatbot doesn't double up with the
+   * Ask Zio pane when the tab mode includes 'zio'.
+   */
+  private updateSiteAssistantVisibility(tab: ManagedTab): void {
+    const hide = tabModeIncludes(tab.mode, 'zio');
+    for (const view of [tab.sayzioView, tab.dashboardView]) {
+      if (!view) continue;
+      const wc = view.webContents;
+      if (!isAlive(wc)) continue;
+      const existingKey = this.assistantHideCssKeys.get(view);
+      if (hide && !existingKey) {
+        // Mark synchronously to avoid double-insert races, then fix up async.
+        this.assistantHideCssKeys.set(view, 'pending');
+        wc.insertCSS(TabManager.HIDE_SITE_ASSISTANT_CSS)
+          .then((key) => {
+            if (this.assistantHideCssKeys.get(view) === 'pending') {
+              this.assistantHideCssKeys.set(view, key);
+            } else {
+              // Mode flipped back while inserting — undo.
+              wc.removeInsertedCSS(key).catch(() => { });
+            }
+          })
+          .catch(() => { this.assistantHideCssKeys.delete(view); });
+      } else if (!hide && existingKey) {
+        this.assistantHideCssKeys.delete(view);
+        if (existingKey !== 'pending') {
+          wc.removeInsertedCSS(existingKey).catch(() => { });
+        }
+      }
+    }
+  }
+
+  private createSayzioView(startUrl: string, shouldHideAssistant?: () => boolean): WebContentsView {
     const view = new WebContentsView({
       webPreferences: {
         nodeIntegration: false,
@@ -794,7 +996,26 @@ export class TabManager {
       return { action: 'deny' };
     });
 
-    void wc.loadURL(SAYZIO_DASHBOARD_URL);
+    // Inserted CSS does not survive navigation — re-apply the assistant-hide
+    // rule on every page load while the owning tab's mode includes 'zio'.
+    wc.on('dom-ready', () => {
+      this.assistantHideCssKeys.delete(view);
+      if (shouldHideAssistant?.()) {
+        this.assistantHideCssKeys.set(view, 'pending');
+        wc.insertCSS(TabManager.HIDE_SITE_ASSISTANT_CSS)
+          .then((key) => {
+            if (this.assistantHideCssKeys.get(view) === 'pending') {
+              this.assistantHideCssKeys.set(view, key);
+            } else {
+              wc.removeInsertedCSS(key).catch(() => { });
+            }
+          })
+          .catch(() => { this.assistantHideCssKeys.delete(view); });
+      }
+    });
+
+    view.setBackgroundColor(VIEW_BG_COLOR);
+    void wc.loadURL(startUrl);
     return view;
   }
 
@@ -903,9 +1124,9 @@ export class TabManager {
     for (const [id, tab] of this.tabs) {
       tab.view.setBounds(bounds);
       if (id !== this.activeTabId) {
-        try { this.win.contentView.removeChildView(tab.view); } catch { }
-        if (tab.sayzioView) {
-          try { this.win.contentView.removeChildView(tab.sayzioView); } catch { }
+        for (const v of [tab.view, tab.sayzioView, tab.dashboardView]) {
+          if (!v) continue;
+          try { this.win.contentView.removeChildView(v); } catch { }
         }
       }
     }
@@ -923,9 +1144,9 @@ export class TabManager {
    */
   hideAllTabs(): void {
     for (const [, tab] of this.tabs) {
-      try { this.win.contentView.removeChildView(tab.view); } catch { }
-      if (tab.sayzioView) {
-        try { this.win.contentView.removeChildView(tab.sayzioView); } catch { }
+      for (const v of [tab.view, tab.sayzioView, tab.dashboardView]) {
+        if (!v) continue;
+        try { this.win.contentView.removeChildView(v); } catch { }
       }
     }
   }
@@ -970,6 +1191,98 @@ export class TabManager {
       return image.toPNG();
     } catch {
       return null;
+    }
+  }
+
+  /**
+   * Reader mode: extract the main article content from the current page and
+   * load a clean, distraction-free rendering of it (as a data: URL, so the
+   * normal Back button returns to the original page).
+   */
+  async enterReaderMode(id: TabId): Promise<boolean> {
+    const tab = this.tabs.get(id);
+    if (!tab) return false;
+    const wc = tab.view.webContents;
+    if (!isAlive(wc)) return false;
+    const pageUrl = wc.getURL();
+    if (!pageUrl.startsWith('http://') && !pageUrl.startsWith('https://')) return false;
+
+    const extractJs = `(function(){
+      try {
+        var candidates = [];
+        var sels = ['article', 'main', '[role="main"]', '#content', '.post-content', '.article-body', '.entry-content', 'body'];
+        for (var i = 0; i < sels.length; i++) {
+          var els = document.querySelectorAll(sels[i]);
+          for (var j = 0; j < els.length; j++) candidates.push(els[j]);
+        }
+        var best = null, bestLen = 0;
+        for (var k = 0; k < candidates.length; k++) {
+          var len = (candidates[k].innerText || '').length;
+          if (len > bestLen) { bestLen = len; best = candidates[k]; }
+          if (candidates[k].tagName === 'ARTICLE' && len > 500) { best = candidates[k]; break; }
+        }
+        if (!best || bestLen < 200) return null;
+        var clone = best.cloneNode(true);
+        var strip = clone.querySelectorAll('script,style,noscript,iframe,form,button,input,select,textarea,nav,aside,footer,header,svg,video,audio,[role="navigation"],[role="banner"],[aria-hidden="true"]');
+        for (var s = strip.length - 1; s >= 0; s--) strip[s].remove();
+        var all = clone.querySelectorAll('*');
+        for (var a = 0; a < all.length; a++) {
+          var el = all[a];
+          var attrs = el.attributes;
+          for (var b = attrs.length - 1; b >= 0; b--) {
+            var name = attrs[b].name.toLowerCase();
+            if (name.indexOf('on') === 0 || name === 'style' || name === 'class' || name === 'id') el.removeAttribute(attrs[b].name);
+          }
+          if (el.tagName === 'A') {
+            var href = el.getAttribute('href') || '';
+            if (/^\\s*javascript:/i.test(href)) el.removeAttribute('href');
+            else { try { el.setAttribute('href', new URL(href, location.href).href); } catch (e) { el.removeAttribute('href'); } }
+          }
+          if (el.tagName === 'IMG') {
+            var src = el.getAttribute('src') || '';
+            try { el.setAttribute('src', new URL(src, location.href).href); } catch (e) { el.remove(); }
+          }
+        }
+        return { title: document.title || '', content: clone.innerHTML, host: location.hostname };
+      } catch (e) { return null; }
+    })()`;
+
+    let extracted: { title: string; content: string; host: string } | null = null;
+    try {
+      extracted = await wc.executeJavaScript(extractJs, true) as { title: string; content: string; host: string } | null;
+    } catch {
+      extracted = null;
+    }
+    if (!extracted || !extracted.content) return false;
+
+    const escapeHtml = (s: string): string =>
+      s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+    const html = `<!doctype html><html><head><meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src http: https: data:; style-src 'unsafe-inline'">
+<title>${escapeHtml(extracted.title)}</title>
+<style>
+  :root { color-scheme: light dark; }
+  body { margin: 0; background: #f7f5f0; color: #1c1b1a; font: 19px/1.7 Georgia, 'Times New Roman', serif; }
+  @media (prefers-color-scheme: dark) { body { background: #17171c; color: #e6e2da; } a { color: #8ab4ff; } .rm-meta { color: #9b97a8 !important; } }
+  .rm-wrap { max-width: 680px; margin: 0 auto; padding: 48px 24px 80px; }
+  .rm-meta { font: 13px/1.5 -apple-system, 'Segoe UI', sans-serif; color: #77716a; letter-spacing: .4px; text-transform: uppercase; margin-bottom: 8px; }
+  h1.rm-title { font-size: 34px; line-height: 1.25; margin: 0 0 28px; }
+  img { max-width: 100%; height: auto; border-radius: 6px; }
+  pre { overflow-x: auto; background: rgba(128,128,128,.12); padding: 12px; border-radius: 6px; font-size: 14px; }
+  blockquote { margin: 0; padding-left: 18px; border-left: 3px solid rgba(128,128,128,.4); }
+  a { color: #2f5cc4; }
+</style></head><body><div class="rm-wrap">
+<div class="rm-meta">Reader mode · ${escapeHtml(extracted.host)}</div>
+<h1 class="rm-title">${escapeHtml(extracted.title)}</h1>
+${extracted.content}
+</div></body></html>`;
+
+    try {
+      await wc.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(html)}`);
+      return true;
+    } catch {
+      return false;
     }
   }
 

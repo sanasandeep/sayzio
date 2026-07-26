@@ -61,6 +61,7 @@ class FakeWebContentsView {
   private bounds = { x: 0, y: 0, width: 0, height: 0 };
   setBounds(b: { x: number; y: number; width: number; height: number }): void { this.bounds = b; }
   getBounds() { return this.bounds; }
+  setBackgroundColor(): void {}
 }
 
 return { FakeWebContents, FakeWebContentsView };

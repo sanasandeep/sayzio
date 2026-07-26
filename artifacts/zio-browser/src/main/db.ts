@@ -284,6 +284,49 @@ export function recordVisit(url: string, title: string | null, faviconUrl?: stri
   return db.prepare('SELECT * FROM history WHERE id = ?').get(id) as HistoryEntry;
 }
 
+/**
+ * Bulk-import history entries from another browser. Preserves original
+ * last-visited timestamps and visit counts; merges with existing rows
+ * (adds visit counts, keeps the most recent last_visited).
+ */
+export function importHistoryEntries(
+  entries: Array<{ url: string; title: string | null; visitCount: number; lastVisitedIso: string }>,
+  profileId?: string,
+): number {
+  const db = getDb();
+  const pid = profileId ?? DEFAULT_PROFILE_ID;
+  const now = new Date().toISOString();
+  let imported = 0;
+  const findStmt = db.prepare('SELECT id, visit_count, last_visited FROM history WHERE profile_id = ? AND normalized_url = ? AND deleted = 0');
+  const updateStmt = db.prepare(`
+    UPDATE history
+    SET title = COALESCE(title, ?), visit_count = visit_count + ?,
+        last_visited = MAX(last_visited, ?), updated_at = ?
+    WHERE id = ?
+  `);
+  const insertStmt = db.prepare(`
+    INSERT INTO history(id, profile_id, url, normalized_url, title, favicon_url, visit_count, last_visited, created_at, updated_at, deleted)
+    VALUES(?, ?, ?, ?, ?, NULL, ?, ?, ?, ?, 0)
+  `);
+  const run = db.transaction(() => {
+    for (const e of entries) {
+      if (!e || typeof e.url !== 'string' || !/^https?:\/\//i.test(e.url)) continue;
+      const normalized = normalizeUrlForHistory(e.url);
+      const visitCount = Math.max(1, Math.floor(e.visitCount) || 1);
+      const lastVisited = e.lastVisitedIso || now;
+      const existing = findStmt.get(pid, normalized) as { id: string } | undefined;
+      if (existing) {
+        updateStmt.run(e.title, visitCount, lastVisited, now, existing.id);
+      } else {
+        insertStmt.run(generateId(), pid, e.url, normalized, e.title, visitCount, lastVisited, now, now);
+      }
+      imported++;
+    }
+  });
+  run();
+  return imported;
+}
+
 export function searchHistory(query: string, limit = 20, profileId?: string): HistoryEntry[] {
   const db = getDb();
   const pid = profileId ?? DEFAULT_PROFILE_ID;
@@ -333,6 +376,54 @@ export function clearHistoryByRange(sinceIso: string | null): HistoryEntry[] {
     }
   }
   return rows;
+}
+
+/**
+ * Soft-delete history entries whose last visit is older than `days` days.
+ * Used by the auto-delete retention sweep. Returns the number of entries removed.
+ */
+export function pruneHistoryOlderThan(days: number): number {
+  if (!Number.isFinite(days) || days <= 0) return 0;
+  const db = getDb();
+  const cutoff = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
+  const now = new Date().toISOString();
+  const res = db.prepare(
+    'UPDATE history SET deleted = 1, updated_at = ? WHERE deleted = 0 AND last_visited < ?',
+  ).run(now, cutoff);
+  return res.changes;
+}
+
+/** Count non-deleted history entries visited at or after `sinceIso` (all when null). */
+export function countHistorySince(sinceIso: string | null): number {
+  const db = getDb();
+  if (sinceIso) {
+    const row = db.prepare('SELECT COUNT(*) AS n FROM history WHERE deleted = 0 AND last_visited >= ?').get(sinceIso) as { n: number };
+    return row.n;
+  }
+  const row = db.prepare('SELECT COUNT(*) AS n FROM history WHERE deleted = 0').get() as { n: number };
+  return row.n;
+}
+
+/**
+ * Soft-delete every history entry whose URL belongs to `host` (exact host or
+ * any subdomain). Returns the deleted rows so callers can emit sync tombstones.
+ */
+export function deleteHistoryByHost(host: string): HistoryEntry[] {
+  const db = getDb();
+  const now = new Date().toISOString();
+  const all = db.prepare('SELECT * FROM history WHERE deleted = 0').all() as HistoryEntry[];
+  const matches = all.filter((row) => {
+    try {
+      const h = new URL(row.url).hostname.toLowerCase();
+      const target = host.toLowerCase();
+      return h === target || h.endsWith('.' + target);
+    } catch {
+      return false;
+    }
+  });
+  const stmt = db.prepare('UPDATE history SET deleted = 1, updated_at = ? WHERE id = ?');
+  for (const row of matches) stmt.run(now, row.id);
+  return matches;
 }
 
 export function deleteHistoryEntry(id: string): boolean {
@@ -697,6 +788,41 @@ export function clearAllSitePermissions(): void {
   db.prepare('DELETE FROM site_permissions').run();
 }
 
+// ── Named sessions ───────────────────────────────────────────────────────────
+
+export interface NamedSessionRow {
+  id: string;
+  name: string;
+  snapshot: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export function listNamedSessions(): NamedSessionRow[] {
+  const db = getDb();
+  return db.prepare('SELECT * FROM sessions ORDER BY updated_at DESC').all() as NamedSessionRow[];
+}
+
+export function getNamedSession(id: string): NamedSessionRow | null {
+  const db = getDb();
+  return (db.prepare('SELECT * FROM sessions WHERE id = ?').get(id) as NamedSessionRow | undefined) ?? null;
+}
+
+export function saveNamedSession(id: string, name: string, snapshot: string): void {
+  const db = getDb();
+  const now = new Date().toISOString();
+  db.prepare(`
+    INSERT INTO sessions(id, name, snapshot, created_at, updated_at)
+    VALUES(?, ?, ?, ?, ?)
+    ON CONFLICT(id) DO UPDATE SET name = excluded.name, snapshot = excluded.snapshot, updated_at = excluded.updated_at
+  `).run(id, name, snapshot, now, now);
+}
+
+export function deleteNamedSession(id: string): void {
+  const db = getDb();
+  db.prepare('DELETE FROM sessions WHERE id = ?').run(id);
+}
+
 // ── Reading list ─────────────────────────────────────────────────────────────
 
 export interface ReadingListEntry {
@@ -854,6 +980,28 @@ export function deleteDownload(id: string): void {
 export function clearAllDownloads(): void {
   const db = getDb();
   db.prepare("DELETE FROM downloads WHERE state IN ('completed', 'interrupted', 'cancelled')").run();
+}
+
+/** Count finished download records created at or after `sinceIso` (all when null). */
+export function countDownloadsSince(sinceIso: string | null): number {
+  const db = getDb();
+  if (sinceIso) {
+    const row = db.prepare("SELECT COUNT(*) AS n FROM downloads WHERE state IN ('completed', 'interrupted', 'cancelled') AND created_at >= ?").get(sinceIso) as { n: number };
+    return row.n;
+  }
+  const row = db.prepare("SELECT COUNT(*) AS n FROM downloads WHERE state IN ('completed', 'interrupted', 'cancelled')").get() as { n: number };
+  return row.n;
+}
+
+/** Delete finished download records created at or after `sinceIso` (all when null). Returns deleted count. */
+export function clearDownloadsByRange(sinceIso: string | null): number {
+  const db = getDb();
+  if (sinceIso) {
+    const res = db.prepare("DELETE FROM downloads WHERE state IN ('completed', 'interrupted', 'cancelled') AND created_at >= ?").run(sinceIso);
+    return res.changes ?? 0;
+  }
+  const res = db.prepare("DELETE FROM downloads WHERE state IN ('completed', 'interrupted', 'cancelled')").run();
+  return res.changes ?? 0;
 }
 
 // ── Saved passwords ──────────────────────────────────────────────────────────

@@ -9,6 +9,7 @@ import { SplitLayout } from './components/SplitLayout';
 import { FindBar } from './components/FindBar';
 import { DownloadsPanel } from './components/DownloadsPanel';
 import { DownloadToast } from './components/DownloadToast';
+import { MessageToast } from './components/MessageToast';
 import { DeviceLab } from './components/DeviceLab';
 import { TabSearchPopover } from './components/TabSearchPopover';
 import { ClearDataDialog } from './components/ClearDataDialog';
@@ -18,6 +19,7 @@ import { PermissionPrompt } from './components/PermissionPrompt';
 import type { PendingPermission } from './components/PermissionPrompt';
 import { SiteSettingsPanel } from './components/SiteSettingsPanel';
 import { ReadingListPanel } from './components/ReadingListPanel';
+import { SettingsPanel } from './components/SettingsPanel';
 import { useTabStore } from './store/tab-store';
 import { useAuthStore } from './store/auth-store';
 import { useModeStore } from './store/mode-store';
@@ -29,6 +31,9 @@ import {
   MIN_ZIO_PANEL_WIDTH,
   MAX_ZIO_PANEL_WIDTH,
   ZIO_PANEL_DIVIDER_WIDTH,
+  normalizeTabMode,
+  tabModeIncludes,
+  tabModeWithout,
 } from '../shared/window-mode';
 
 const FIRST_LAUNCH_KEY = 'zio_mode_picker_shown';
@@ -36,6 +41,7 @@ const FIRST_LAUNCH_KEY = 'zio_mode_picker_shown';
 export default function App() {
   const [zioPanelOpen, setZioPanelOpen] = useState(false);
   const [readingListOpen, setReadingListOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [showModePicker, setShowModePicker] = useState(false);
   const [isPrivate, setIsPrivate] = useState(false);
@@ -99,6 +105,14 @@ export default function App() {
       if (!shown && !isPriv) {
         setShowModePicker(true);
       }
+
+      // Restore the saved theme (dark / light / system)
+      try {
+        const savedTheme = await window.zio.prefs.get('theme');
+        const mode = savedTheme === 'light' || savedTheme === 'dark' ? savedTheme : 'system';
+        const resolved = await window.zio.theme.set(mode) as 'dark' | 'light';
+        document.documentElement.classList.toggle('light-mode', resolved === 'light');
+      } catch { /* keep default dark */ }
 
       // Restore the active profile from preferences
       const savedProfileId = await window.zio.prefs.get('active_profile') as string | null;
@@ -251,7 +265,11 @@ export default function App() {
   }, [paletteOpen]);
 
   const activeTab = activeTabId ? tabs[activeTabId] : null;
-  const showNewTab = !activeTab || activeTab.url === '' || activeTab.url === 'about:newtab';
+  const activeTabMode = normalizeTabMode(activeTab?.mode) ?? 'browser';
+  // Only show the New Tab page when the tab actually shows its browser pane.
+  const showNewTab =
+    (!activeTab || activeTab.url === '' || activeTab.url === 'about:newtab') &&
+    (!activeTab || tabModeIncludes(activeTabMode, 'browser'));
 
   const handleToggleZio = useCallback(() => {
     // Zio AI panel is disabled in private windows.
@@ -415,7 +433,9 @@ export default function App() {
   //   - Overlay Zio panel: floating card over the page, tab views full-width
   // ── Browser mode (default; always used for private windows) ───────────────
   // A tab in "Ask Zio + Website" split mode forces the docked Zio panel open.
-  const activeTabZioSplit = !isPrivate && (activeTab?.mode ?? 'web') === 'zio-split';
+  const activeTabZioSplit = !isPrivate && tabModeIncludes(activeTabMode, 'zio');
+  // A tab whose ONLY pane is Ask Zio: the panel fills the whole content area.
+  const activeTabZioFull = !isPrivate && activeTabMode === 'zio';
   const showDockedPanel = (zioPanelOpen && zioPanelDocked && !isPrivate) || activeTabZioSplit;
   const showOverlayPanel = zioPanelOpen && !zioPanelDocked && !isPrivate && !activeTabZioSplit;
 
@@ -466,14 +486,17 @@ export default function App() {
         onOpenSiteSettings={() => setSiteSettingsOpen(true)}
         readingListOpen={readingListOpen}
         onToggleReadingList={handleToggleReadingList}
+        onOpenSettings={() => setSettingsOpen(prev => !prev)}
+        settingsOpen={settingsOpen}
       />
 
       {/* Content area */}
       <div ref={containerRef} style={{ flex: 1, display: 'flex', overflow: 'hidden', position: 'relative' }}>
 
-        {/* Web content / new tab page (left side when docked, full-width when overlay) */}
+        {/* Web content / new tab page (left side when docked, full-width when overlay).
+            When the tab shows ONLY Ask Zio, collapse this area so the panel fills. */}
         <div style={{
-          flex: 1,
+          flex: activeTabZioFull ? '0 0 0px' : 1,
           display: 'flex',
           overflow: 'hidden',
           position: 'relative',
@@ -513,14 +536,14 @@ export default function App() {
               pageContext={activeTab ? { url: activeTab.url, title: activeTab.title } : null}
               onClose={() => {
                 setZioPanelOpen(false);
-                // Closing the panel while the tab is in Ask Zio split mode
-                // returns the tab to plain website mode.
+                // Closing the panel while the tab includes the Ask Zio pane
+                // drops that pane (keeping whatever else the tab showed).
                 if (activeTabZioSplit && activeTabId) {
-                  void setTabMode(activeTabId, 'web');
+                  void setTabMode(activeTabId, tabModeWithout(activeTabMode, 'zio'));
                 }
               }}
               presentation="docked"
-              panelWidth={zioPanelWidth}
+              panelWidth={activeTabZioFull ? undefined : zioPanelWidth}
               onSetDocked={(d) => void setZioPanelDocked(d)}
             />
           </>
@@ -535,6 +558,10 @@ export default function App() {
             panelWidth={zioPanelWidth}
             onSetDocked={(d) => void setZioPanelDocked(d)}
           />
+        )}
+
+        {settingsOpen && (
+          <SettingsPanel onClose={() => setSettingsOpen(false)} />
         )}
 
         {readingListOpen && (
@@ -568,6 +595,9 @@ export default function App() {
 
       {/* Download started toast — bottom-right, non-blocking */}
       <DownloadToast onOpenDownloads={openDownloadsPanel} />
+
+      {/* Generic message toast (main-process notices) — bottom-center */}
+      <MessageToast />
 
       {authModalOpen && !isPrivate && (
         <AuthModal onClose={() => setAuthModalOpen(false)} />

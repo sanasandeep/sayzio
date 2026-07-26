@@ -9,10 +9,12 @@
 import { app, ipcMain, shell, dialog, clipboard, nativeTheme, BrowserWindow, session, nativeImage } from 'electron';
 import * as fs from 'fs';
 import * as path from 'path';
+import { randomUUID } from 'crypto';
 import type { TabManager } from './tab-manager';
 import type { TabMode } from '../shared/window-mode';
 import type { WindowModeManager } from './window-mode-manager';
 import { SyncRetryRunner } from './sync-retry';
+import { detectBrowsers, readBrowserData, parseBookmarksHtml } from './browser-import';
 import type { SyncEntityKind } from '../shared/sync-engine';
 import { isSyncDue, SYNC_INTERVALS } from '../shared/sync-engine';
 import {
@@ -26,8 +28,12 @@ import {
   getRecentHistory,
   clearHistory,
   clearHistoryByRange,
+  pruneHistoryOlderThan,
+  countHistorySince,
+  deleteHistoryByHost,
   deleteHistoryEntry,
   addBookmark,
+  importHistoryEntries,
   removeBookmark,
   isBookmarked,
   getAllBookmarks,
@@ -43,6 +49,8 @@ import {
   searchDownloads,
   deleteDownload,
   clearAllDownloads,
+  countDownloadsSince,
+  clearDownloadsByRange,
   getSyncState,
   setSyncState,
   enqueueSyncPush,
@@ -63,6 +71,10 @@ import {
   setSitePermission,
   revokeSitePermission,
   clearAllSitePermissions,
+  listNamedSessions,
+  getNamedSession,
+  saveNamedSession,
+  deleteNamedSession,
   addToReadingList,
   isInReadingList,
   getReadingList,
@@ -81,7 +93,11 @@ import {
   isTrackerBlockingEnabled,
   getBlockedCount,
   resetBlockedCount,
+  getTrackerStats,
+  installTrackerHooks,
 } from './tracker-blocker';
+import { setDoNotTrack, setBlockThirdPartyCookies, installPrivacyHooks } from './privacy';
+import { SEARCH_ENGINES } from '../shared/omnibox';
 import { buildAutofillScript } from '../shared/form-autofill';
 import type { AutofillCard } from '../shared/form-autofill';
 import { storeToken, retrieveToken, clearToken, storeUser, retrieveUser, clearUser } from './auth-store';
@@ -95,6 +111,7 @@ import {
   MAX_ZIO_PANEL_WIDTH,
 } from '../shared/window-mode';
 import { isPrivateWindow } from './private-session';
+import { listExtensions, addExtensionFromDialog, removeExtension } from './extension-manager';
 import { profileFromWorkspace, sessionPartitionForProfile, DEFAULT_PROFILE_ID } from '../shared/profile-store';
 import type { BrowserProfile } from '../shared/profile-store';
 
@@ -168,6 +185,20 @@ function resolveModeManager(event: Electron.IpcMainInvokeEvent): WindowModeManag
   return modeManagerRegistry.get(win.id) ?? null;
 }
 
+/** Lower-bound ISO timestamp for a browsing-data range ('all' → null). */
+function rangeToSinceIso(range: string): string | null {
+  if (range === 'all') return null;
+  const msMap: Record<string, number> = {
+    '15min': 15 * 60 * 1000,
+    hour: 60 * 60 * 1000,
+    day: 24 * 60 * 60 * 1000,
+    week: 7 * 24 * 60 * 60 * 1000,
+    '4weeks': 28 * 24 * 60 * 60 * 1000,
+  };
+  const ms = msMap[range];
+  return ms ? new Date(Date.now() - ms).toISOString() : null;
+}
+
 /**
  * Return true when the IPC event was sent from a private/incognito window.
  */
@@ -176,9 +207,52 @@ function senderIsPrivate(event: Electron.IpcMainInvokeEvent): boolean {
   return win !== null && isPrivateWindow(win);
 }
 
+/**
+ * Every persistent session that may hold browsing data: the Electron default
+ * session plus each known profile's partition session. Tabs run in per-profile
+ * partitions, so clear/count/forget operations must cover all of them.
+ */
+function allDataSessions(): Electron.Session[] {
+  const sessions: Electron.Session[] = [session.defaultSession];
+  try {
+    for (const profile of listProfiles()) {
+      const sess = session.fromPartition(sessionPartitionForProfile(profile.id));
+      if (!sessions.includes(sess)) sessions.push(sess);
+    }
+  } catch { /* best-effort — default session is always covered */ }
+  return sessions;
+}
+
+/**
+ * Validate a "forget this site" target host. Rejects anything that is not a
+ * plausible registrable hostname (empty, single-label like "com", bare public
+ * suffixes like "co.uk") so suffix matching cannot wipe data across unrelated
+ * domains.
+ */
+function isValidForgetHost(target: string): boolean {
+  if (!/^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$/.test(target)) return false;
+  const publicSuffixes = new Set([
+    'co.uk', 'org.uk', 'gov.uk', 'ac.uk', 'me.uk', 'net.uk',
+    'com.au', 'net.au', 'org.au', 'co.nz', 'co.jp', 'co.in', 'co.kr', 'co.za',
+    'com.br', 'com.mx', 'com.ar', 'com.cn', 'com.tw', 'com.sg', 'com.hk',
+  ]);
+  return !publicSuffixes.has(target);
+}
+
 // ── Handler registration ─────────────────────────────────────────────────────
 
 let _handlersRegistered = false;
+
+/**
+ * Callback invoked after auth:clear (logout). Set by main/index.ts to close
+ * every open window and open one fresh logged-out window. Registered via a
+ * setter to avoid a circular import between index.ts and this module.
+ */
+let _logoutHandler: (() => void) | null = null;
+
+export function setLogoutHandler(fn: () => void): void {
+  _logoutHandler = fn;
+}
 
 /**
  * Register all IPC handlers.  Must be called exactly once after the first
@@ -206,7 +280,28 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
 
   // ── Preferences ─────────────────────────────────────────────────────────
   ipcMain.handle('prefs:get', (_, key: PrefKey) => getPreference(key));
-  ipcMain.handle('prefs:set', (_, key: PrefKey, value: string) => { setPreference(key, value); return true; });
+  ipcMain.handle('prefs:set', (_, key: PrefKey, value: string) => {
+    setPreference(key, value);
+    // Apply side-effects for prefs that drive live main-process behaviour.
+    if (key === PREFERENCE_KEYS.SEARCH_ENGINE) {
+      const engine = SEARCH_ENGINES[value];
+      if (engine) {
+        for (const tm of tabManagerRegistry.values()) tm.setSearchEngine(engine);
+      }
+    } else if (key === PREFERENCE_KEYS.DO_NOT_TRACK) {
+      setDoNotTrack(value === '1');
+    } else if (key === PREFERENCE_KEYS.BLOCK_THIRD_PARTY_COOKIES) {
+      setBlockThirdPartyCookies(value === '1');
+    } else if (key === PREFERENCE_KEYS.HISTORY_DAYS_RETENTION) {
+      // Apply the new retention window immediately (the periodic sweep in
+      // main/index.ts keeps it enforced afterwards).
+      const days = parseInt(value, 10);
+      if (days > 0) {
+        try { pruneHistoryOlderThan(days); } catch { /* best-effort */ }
+      }
+    }
+    return true;
+  });
   ipcMain.handle('prefs:all', () => getAllPreferences());
 
   // ── Theme ────────────────────────────────────────────────────────────────
@@ -219,7 +314,13 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
   // ── Auth ─────────────────────────────────────────────────────────────────
   ipcMain.handle('auth:store-token', (_, token: string) => { storeToken(token); return true; });
   ipcMain.handle('auth:get-token', () => retrieveToken());
-  ipcMain.handle('auth:clear', () => { clearToken(); clearUser(); clearSayzioLinksCache(); return true; });
+  ipcMain.handle('auth:clear', () => {
+    clearToken(); clearUser(); clearSayzioLinksCache();
+    // Logout closes every window and opens a single fresh (logged-out) one.
+    // Deferred so the renderer's invoke() resolves before its window closes.
+    if (_logoutHandler) setTimeout(() => _logoutHandler?.(), 50);
+    return true;
+  });
   ipcMain.handle('auth:store-user', (_, user: Record<string, unknown>) => { storeUser(user); return true; });
   ipcMain.handle('auth:get-user', () => retrieveUser());
 
@@ -247,7 +348,8 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
   ipcMain.handle('tabs:set-mode', (event, id: string, mode: string) => {
     // Private windows are browser-only: no Sayzio/Zio surfaces may be attached.
     if (senderIsPrivate(event)) return false;
-    resolveTabManager(event)?.setTabMode(id, mode as TabMode);
+    // setTabMode normalizes any raw/legacy mode string itself.
+    resolveTabManager(event)?.setTabMode(id, mode);
     return true;
   });
   ipcMain.handle('tabs:get-state', (event, id: string) => resolveTabManager(event)?.getTabState(id) ?? null);
@@ -281,6 +383,39 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
     // (never persisted from private windows).
     if (!senderIsPrivate(event)) setMuteAllTabs(target);
     return true;
+  });
+
+  // ── Spell check ───────────────────────────────────────────────────────────
+  ipcMain.handle('spellcheck:get-enabled', () => {
+    try {
+      return (getPreference(PREFERENCE_KEYS.SPELLCHECK_ENABLED) ?? '1') === '1';
+    } catch {
+      return true;
+    }
+  });
+  ipcMain.handle('spellcheck:set-enabled', (event, enabled: boolean) => {
+    if (senderIsPrivate(event)) return false;
+    try { setPreference(PREFERENCE_KEYS.SPELLCHECK_ENABLED, enabled ? '1' : '0'); } catch { }
+    // Apply immediately to the default session and the active profile session.
+    try { session.defaultSession.setSpellCheckerEnabled(enabled); } catch { }
+    try {
+      const tm = resolveTabManager(event);
+      if (tm) session.fromPartition(tm.getActivePartition()).setSpellCheckerEnabled(enabled);
+    } catch { }
+    return true;
+  });
+
+  // ── Extensions (unpacked) ────────────────────────────────────────────────
+  ipcMain.handle('extensions:list', () => listExtensions());
+  ipcMain.handle('extensions:add', async (event) => {
+    if (senderIsPrivate(event)) return { ok: false, error: 'Extensions are unavailable in private windows.' };
+    const win = BrowserWindow.fromWebContents(event.sender);
+    if (!win) return { ok: false, error: 'No window' };
+    return addExtensionFromDialog(win);
+  });
+  ipcMain.handle('extensions:remove', (event, id: string) => {
+    if (senderIsPrivate(event)) return false;
+    return removeExtension(id);
   });
 
   // ── Audio policy (per-domain mute memory + global mute) ──────────────────
@@ -420,6 +555,14 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
     return true;
   });
 
+  // ── Open a new normal window (from renderer) ─────────────────────────────
+  ipcMain.handle('window:open-new', () => {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { createWindow } = require('./index') as typeof import('./index');
+    createWindow();
+    return true;
+  });
+
   // ── Zio panel width / presentation (browser mode) ────────────────────────
   ipcMain.handle('window:get-zio-panel-width', () => {
     const stored = getPreference('zio_panel_width');
@@ -453,13 +596,99 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
   ipcMain.handle('history:delete', (_, id: string) => deleteHistoryEntry(id));
 
   // ── Bookmarks ────────────────────────────────────────────────────────────
-  ipcMain.handle('bookmarks:add', (event, url: string, title: string, opts?: Record<string, string>) =>
-    addBookmark(url, title, opts, resolveProfileId(event)),
-  );
-  ipcMain.handle('bookmarks:remove', (event, url: string) => removeBookmark(url, resolveProfileId(event)));
-  ipcMain.handle('bookmarks:is-bookmarked', (event, url: string) => isBookmarked(url, resolveProfileId(event)));
-  ipcMain.handle('bookmarks:all', (event, folder?: string) => getAllBookmarks(folder, resolveProfileId(event)));
-  ipcMain.handle('bookmarks:search', (event, q: string) => searchBookmarks(q, 20, resolveProfileId(event)));
+  ipcMain.handle('bookmarks:add', (event, url: string, title: string, opts?: Record<string, string>) => {
+    if (senderIsPrivate(event)) return null;
+    return addBookmark(url, title, opts, resolveProfileId(event));
+  });
+  ipcMain.handle('bookmarks:remove', (event, url: string) => {
+    if (senderIsPrivate(event)) return false;
+    return removeBookmark(url, resolveProfileId(event));
+  });
+  ipcMain.handle('bookmarks:is-bookmarked', (event, url: string) => {
+    if (senderIsPrivate(event)) return false;
+    return isBookmarked(url, resolveProfileId(event));
+  });
+  ipcMain.handle('bookmarks:all', (event, folder?: string) => {
+    if (senderIsPrivate(event)) return [];
+    return getAllBookmarks(folder, resolveProfileId(event));
+  });
+  ipcMain.handle('bookmarks:search', (event, q: string) => {
+    if (senderIsPrivate(event)) return [];
+    return searchBookmarks(q, 20, resolveProfileId(event));
+  });
+
+  // ── Import from other browsers ────────────────────────────────────────────
+  // User-configurable kill switch: when the "Allow importing" preference is
+  // off, every import channel refuses to detect or read anything.
+  const importFeatureEnabled = () => (getPreference(PREFERENCE_KEYS.IMPORT_ENABLED) ?? '1') !== '0';
+
+  ipcMain.handle('import:detect', (event) => {
+    if (senderIsPrivate(event) || !importFeatureEnabled()) return [];
+    try {
+      return detectBrowsers().map(b => ({
+        id: b.id,
+        name: b.name,
+        hasBookmarks: b.hasBookmarks,
+        hasHistory: b.hasHistory,
+      }));
+    } catch {
+      return [];
+    }
+  });
+
+  ipcMain.handle('import:run', (event, browserId: string, want: { bookmarks?: boolean; history?: boolean }) => {
+    if (senderIsPrivate(event)) return { ok: false, error: 'Not available in private windows.' };
+    if (!importFeatureEnabled()) return { ok: false, error: 'Importing is turned off in Settings.' };
+    try {
+      const browser = detectBrowsers().find(b => b.id === browserId);
+      if (!browser) return { ok: false, error: 'That browser could not be found anymore.' };
+      const data = readBrowserData(browser, {
+        bookmarks: want?.bookmarks !== false && browser.hasBookmarks,
+        history: want?.history !== false && browser.hasHistory,
+      });
+      const pid = resolveProfileId(event);
+      let bookmarksImported = 0;
+      for (const b of data.bookmarks) {
+        try {
+          addBookmark(b.url, b.title, b.folder ? { folder: b.folder } : {}, pid);
+          bookmarksImported++;
+        } catch { /* skip bad rows */ }
+      }
+      const historyImported = data.history.length > 0 ? importHistoryEntries(data.history, pid) : 0;
+      return { ok: true, bookmarksImported, historyImported };
+    } catch (err) {
+      return { ok: false, error: err instanceof Error ? err.message : 'Import failed.' };
+    }
+  });
+
+  ipcMain.handle('import:html-file', async (event) => {
+    if (senderIsPrivate(event)) return { ok: false, error: 'Not available in private windows.' };
+    if (!importFeatureEnabled()) return { ok: false, error: 'Importing is turned off in Settings.' };
+    const win = BrowserWindow.fromWebContents(event.sender);
+    const result = await dialog.showOpenDialog(win ?? BrowserWindow.getAllWindows()[0], {
+      title: 'Choose a bookmarks HTML file',
+      filters: [{ name: 'Bookmarks HTML', extensions: ['html', 'htm'] }],
+      properties: ['openFile'],
+    });
+    if (result.canceled || result.filePaths.length === 0) return { ok: false, canceled: true };
+    try {
+      const stat = fs.statSync(result.filePaths[0]);
+      if (stat.size > 25 * 1024 * 1024) return { ok: false, error: 'That file is too large to be a bookmarks export.' };
+      const html = fs.readFileSync(result.filePaths[0], 'utf8');
+      const items = parseBookmarksHtml(html);
+      const pid = resolveProfileId(event);
+      let bookmarksImported = 0;
+      for (const b of items) {
+        try {
+          addBookmark(b.url, b.title, b.folder ? { folder: b.folder } : {}, pid);
+          bookmarksImported++;
+        } catch { /* skip bad rows */ }
+      }
+      return { ok: true, bookmarksImported, historyImported: 0 };
+    } catch (err) {
+      return { ok: false, error: err instanceof Error ? err.message : 'Could not read that file.' };
+    }
+  });
 
   // ── Collections ──────────────────────────────────────────────────────────
   ipcMain.handle('collections:all', (event) => getAllCollections(resolveProfileId(event)));
@@ -823,27 +1052,26 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
   });
 
   // ── Clear browsing data (with range + type selection) ────────────────────
-  ipcMain.handle('browsing-data:clear', async (_, options: {
-    range: 'hour' | 'day' | 'week' | '4weeks' | 'all';
+  ipcMain.handle('browsing-data:clear', async (event, options: {
+    range: '15min' | 'hour' | 'day' | 'week' | '4weeks' | 'all';
     clearHistory: boolean;
     clearCookies: boolean;
     clearCache: boolean;
+    clearDownloads?: boolean;
+    clearPermissions?: boolean;
   }) => {
+    if (senderIsPrivate(event)) return { ok: false, deletedCount: 0 };
     try {
-      const { range, clearHistory: doHistory, clearCookies: doCookies, clearCache: doCache } = options ?? {};
+      const {
+        range,
+        clearHistory: doHistory,
+        clearCookies: doCookies,
+        clearCache: doCache,
+        clearDownloads: doDownloads,
+        clearPermissions: doPermissions,
+      } = options ?? {};
 
-      // Compute the lower-bound ISO timestamp for range-based clears.
-      const sinceIso: string | null = (() => {
-        if (range === 'all') return null;
-        const msMap: Record<string, number> = {
-          hour: 60 * 60 * 1000,
-          day: 24 * 60 * 60 * 1000,
-          week: 7 * 24 * 60 * 60 * 1000,
-          '4weeks': 28 * 24 * 60 * 60 * 1000,
-        };
-        const ms = msMap[range];
-        return ms ? new Date(Date.now() - ms).toISOString() : null;
-      })();
+      const sinceIso = rangeToSinceIso(range);
 
       let deletedCount = 0;
 
@@ -870,18 +1098,34 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
         }
       }
 
-      // 3. Cookies & site data via Electron session API.
+      // 3. Cookies & site data via Electron session API — across the default
+      // session AND every profile partition session (tabs run in partitions).
       if (doCookies) {
-        await session.defaultSession.clearStorageData({
-          storages: ['cookies', 'localstorage', 'indexdb', 'websql', 'serviceworkers'],
-        });
+        for (const sess of allDataSessions()) {
+          await sess.clearStorageData({
+            storages: ['cookies', 'localstorage', 'indexdb', 'websql', 'serviceworkers'],
+          }).catch(() => {});
+        }
       }
 
       // 4. Cache files.
       if (doCache) {
-        await session.defaultSession.clearStorageData({
-          storages: ['cachestorage', 'shadercache'],
-        });
+        for (const sess of allDataSessions()) {
+          await sess.clearStorageData({
+            storages: ['cachestorage', 'shadercache'],
+          }).catch(() => {});
+          await sess.clearCache().catch(() => {});
+        }
+      }
+
+      // 5. Download records (local list only; downloaded files stay on disk).
+      if (doDownloads) {
+        clearDownloadsByRange(sinceIso);
+      }
+
+      // 6. Site permissions (all — permissions have no timestamps to range on).
+      if (doPermissions) {
+        clearAllSitePermissions();
       }
 
       return { ok: true, deletedCount };
@@ -918,6 +1162,13 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
     if (win) windowProfileRegistry.set(win.id, profileId);
     setPreference('active_profile', profileId);
     resolveTabManager(event)?.setActiveProfilePartition(profileId);
+    // Make sure privacy + tracker-blocking webRequest hooks cover the
+    // newly activated profile session (idempotent per session).
+    try {
+      const sess = session.fromPartition(sessionPartitionForProfile(profileId));
+      installPrivacyHooks(sess);
+      installTrackerHooks(sess);
+    } catch { /* best-effort */ }
     win?.webContents.send('profile:changed', profileId);
     return { ok: true, profileId };
   });
@@ -940,7 +1191,13 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
     const partition = sessionPartitionForProfile(profileId);
     // Accessing the session via fromPartition creates + registers it.
     const { session: electronSession } = require('electron') as typeof import('electron');
-    void electronSession.fromPartition(partition);
+    const sess = electronSession.fromPartition(partition);
+    // Cover the pre-warmed session with privacy + tracker hooks so protections
+    // apply from the very first request (idempotent per session).
+    try {
+      installPrivacyHooks(sess);
+      installTrackerHooks(sess);
+    } catch { /* best-effort */ }
     return partition;
   });
 
@@ -1057,6 +1314,70 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
     return true;
   });
 
+  // ── Named sessions (save / restore sets of tabs) ─────────────────────────
+  ipcMain.handle('sessions:list', (event) => {
+    if (senderIsPrivate(event)) return [];
+    try {
+      return listNamedSessions().map(row => {
+        let tabCount = 0;
+        try {
+          const snap = JSON.parse(row.snapshot) as { urls?: unknown };
+          if (Array.isArray(snap?.urls)) tabCount = snap.urls.length;
+        } catch { /* corrupt snapshot — show 0 tabs */ }
+        return { id: row.id, name: row.name, tabCount, updated_at: row.updated_at };
+      });
+    } catch {
+      return [];
+    }
+  });
+  ipcMain.handle('sessions:save', (event, name: string) => {
+    if (senderIsPrivate(event)) return false;
+    const tm = resolveTabManager(event);
+    if (!tm) return false;
+    const trimmed = (name ?? '').trim().slice(0, 80);
+    if (!trimmed) return false;
+    const snapshot = tm.getSessionSnapshot();
+    if (snapshot.urls.length === 0) return false;
+    try {
+      saveNamedSession(randomUUID(), trimmed, JSON.stringify(snapshot));
+      return true;
+    } catch {
+      return false;
+    }
+  });
+  ipcMain.handle('sessions:restore', (event, id: string) => {
+    if (senderIsPrivate(event)) return false;
+    const tm = resolveTabManager(event);
+    if (!tm) return false;
+    let row;
+    try {
+      row = getNamedSession(id);
+    } catch {
+      return false;
+    }
+    if (!row) return false;
+    try {
+      const snap = JSON.parse(row.snapshot) as { urls?: unknown; activeIndex?: unknown };
+      const urls = Array.isArray(snap?.urls)
+        ? snap.urls.filter((u): u is string => typeof u === 'string' && u.length > 0)
+        : [];
+      if (urls.length === 0) return false;
+      tm.restoreSessionTabs(urls, typeof snap?.activeIndex === 'number' ? snap.activeIndex : -1);
+      return true;
+    } catch {
+      return false;
+    }
+  });
+  ipcMain.handle('sessions:delete', (event, id: string) => {
+    if (senderIsPrivate(event)) return false;
+    try {
+      deleteNamedSession(id);
+      return true;
+    } catch {
+      return false;
+    }
+  });
+
   // ── Tracker blocking ──────────────────────────────────────────────────────
   ipcMain.handle('tracker:is-enabled', () => isTrackerBlockingEnabled());
   ipcMain.handle('tracker:set-enabled', (_, enabled: boolean) => {
@@ -1068,5 +1389,142 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
   ipcMain.handle('tracker:reset-count', (_, tabId: string) => {
     resetBlockedCount(tabId);
     return true;
+  });
+
+  // ── Privacy Dashboard: weekly tracker stats ───────────────────────────────
+  ipcMain.handle('tracker:stats', (event) => {
+    if (senderIsPrivate(event)) return { weekTotal: 0, todayTotal: 0, byDay: [], topTrackers: [] };
+    try {
+      return getTrackerStats();
+    } catch {
+      return { weekTotal: 0, todayTotal: 0, byDay: [], topTrackers: [] };
+    }
+  });
+
+  // ── Browsing-data counts (for the Delete-browsing-data dialog) ───────────
+  ipcMain.handle('browsing-data:counts', async (event, range: string) => {
+    if (senderIsPrivate(event)) {
+      return { historyCount: 0, cookieCount: 0, cacheBytes: 0, downloadCount: 0, permissionCount: 0 };
+    }
+    const sinceIso = rangeToSinceIso(range);
+    let historyCount = 0;
+    let cookieCount = 0;
+    let cacheBytes = 0;
+    let downloadCount = 0;
+    let permissionCount = 0;
+    try { historyCount = countHistorySince(sinceIso); } catch { /* best-effort */ }
+    try { downloadCount = countDownloadsSince(sinceIso); } catch { /* best-effort */ }
+    try { permissionCount = getAllSitePermissions().length; } catch { /* best-effort */ }
+    for (const sess of allDataSessions()) {
+      try {
+        const cookies = await sess.cookies.get({});
+        cookieCount += cookies.length;
+      } catch { /* best-effort */ }
+      try { cacheBytes += await sess.getCacheSize(); } catch { /* best-effort */ }
+    }
+    return { historyCount, cookieCount, cacheBytes, downloadCount, permissionCount };
+  });
+
+  // ── Forget this site (one-click per-host wipe) ────────────────────────────
+  ipcMain.handle('site:forget', async (event, host: string) => {
+    if (senderIsPrivate(event)) return { ok: false, historyDeleted: 0 };
+    try {
+      const target = String(host ?? '').trim().toLowerCase().replace(/^www\./, '');
+      if (!isValidForgetHost(target)) return { ok: false, historyDeleted: 0 };
+
+      // 1. History (soft-delete + best-effort cloud tombstones on next sync).
+      const deleted = deleteHistoryByHost(target);
+
+      // 2. Cookies for the host and its subdomains, plus local storage /
+      // caches for the origin — across every persistent session.
+      for (const sess of allDataSessions()) {
+        try {
+          const cookies = await sess.cookies.get({});
+          for (const cookie of cookies) {
+            const domain = (cookie.domain ?? '').replace(/^\./, '').toLowerCase();
+            if (domain === target || domain.endsWith('.' + target)) {
+              const url = `${cookie.secure ? 'https' : 'http'}://${domain}${cookie.path ?? '/'}`;
+              await sess.cookies.remove(url, cookie.name).catch(() => {});
+            }
+          }
+        } catch { /* best-effort */ }
+
+        try {
+          await sess.clearStorageData({
+            origin: `https://${target}`,
+            storages: ['cookies', 'localstorage', 'indexdb', 'websql', 'serviceworkers', 'cachestorage'],
+          });
+          await sess.clearStorageData({
+            origin: `http://${target}`,
+            storages: ['cookies', 'localstorage', 'indexdb', 'websql', 'serviceworkers', 'cachestorage'],
+          });
+        } catch { /* best-effort */ }
+      }
+
+      // 4. Site permissions for matching origins.
+      let permissionsRemoved = 0;
+      try {
+        for (const row of getAllSitePermissions()) {
+          try {
+            const h = new URL(row.origin).hostname.toLowerCase();
+            if (h === target || h.endsWith('.' + target)) {
+              revokeSitePermission(row.origin, row.permission);
+              permissionsRemoved++;
+            }
+          } catch { /* skip unparsable origins */ }
+        }
+      } catch { /* best-effort */ }
+
+      // 5. Saved passwords for matching origins.
+      let passwordsRemoved = 0;
+      try {
+        for (const row of getAllSavedPasswords()) {
+          try {
+            const h = new URL(row.origin).hostname.toLowerCase();
+            if (h === target || h.endsWith('.' + target)) {
+              deletePassword(row.id);
+              passwordsRemoved++;
+            }
+          } catch { /* skip unparsable origins */ }
+        }
+      } catch { /* best-effort */ }
+
+      return { ok: true, historyDeleted: deleted.length, permissionsRemoved, passwordsRemoved };
+    } catch {
+      return { ok: false, historyDeleted: 0 };
+    }
+  });
+
+  // ── Safety Check ──────────────────────────────────────────────────────────
+  ipcMain.handle('safety:check', (event) => {
+    const result = {
+      passwords: { total: 0, weak: 0, reused: 0 },
+      permissions: { allowed: 0 },
+      trackerBlocking: false,
+      doNotTrack: false,
+    };
+    if (senderIsPrivate(event)) return result;
+    try {
+      const rows = getAllSavedPasswords();
+      result.passwords.total = rows.length;
+      const seen = new Map<string, number>();
+      for (const row of rows) {
+        try {
+          const plain = decryptPassword(row.password_enc);
+          if (plain === null) continue;
+          if (plain.length > 0 && plain.length < 8) result.passwords.weak++;
+          seen.set(plain, (seen.get(plain) ?? 0) + 1);
+        } catch { /* skip undecryptable rows */ }
+      }
+      for (const count of seen.values()) {
+        if (count > 1) result.passwords.reused += count;
+      }
+    } catch { /* best-effort */ }
+    try {
+      result.permissions.allowed = getAllSitePermissions().filter(r => r.decision === 'allow').length;
+    } catch { /* best-effort */ }
+    try { result.trackerBlocking = isTrackerBlockingEnabled(); } catch { /* best-effort */ }
+    try { result.doNotTrack = getPreference(PREFERENCE_KEYS.DO_NOT_TRACK) === '1'; } catch { /* best-effort */ }
+    return result;
   });
 }

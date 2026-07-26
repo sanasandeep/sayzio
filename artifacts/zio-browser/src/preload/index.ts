@@ -91,6 +91,7 @@ const api = {
     isPrivate: () => ipcRenderer.invoke('window:is-private') as Promise<boolean>,
     /** Ask the main process to open a new private window, optionally starting at a URL. */
     openPrivate: (url?: string) => ipcRenderer.invoke('window:open-private', url) as Promise<boolean>,
+    openNew: () => ipcRenderer.invoke('window:open-new') as Promise<boolean>,
   },
 
   // ── History ───────────────────────────────────────────────────────────────
@@ -103,6 +104,13 @@ const api = {
   },
 
   // ── Bookmarks ─────────────────────────────────────────────────────────────
+  browserImport: {
+    detect: () => ipcRenderer.invoke('import:detect') as Promise<Array<{ id: string; name: string; hasBookmarks: boolean; hasHistory: boolean }>>,
+    run: (browserId: string, want: { bookmarks?: boolean; history?: boolean }) =>
+      ipcRenderer.invoke('import:run', browserId, want) as Promise<{ ok: boolean; bookmarksImported?: number; historyImported?: number; error?: string; canceled?: boolean }>,
+    fromHtmlFile: () =>
+      ipcRenderer.invoke('import:html-file') as Promise<{ ok: boolean; bookmarksImported?: number; historyImported?: number; error?: string; canceled?: boolean }>,
+  },
   bookmarks: {
     add: (url: string, title: string, opts?: Record<string, string>) => ipcRenderer.invoke('bookmarks:add', url, title, opts),
     remove: (url: string) => ipcRenderer.invoke('bookmarks:remove', url),
@@ -162,14 +170,61 @@ const api = {
     deleteAll: () => ipcRenderer.invoke('passwords:delete-all'),
   },
 
+  // ── Spell check ───────────────────────────────────────────────────────────
+  spellcheck: {
+    getEnabled: () => ipcRenderer.invoke('spellcheck:get-enabled') as Promise<boolean>,
+    setEnabled: (enabled: boolean) => ipcRenderer.invoke('spellcheck:set-enabled', enabled) as Promise<boolean>,
+  },
+
+  // ── Extensions (unpacked) ─────────────────────────────────────────────────
+  extensions: {
+    list: () => ipcRenderer.invoke('extensions:list') as Promise<Array<{ id: string; name: string; version: string; path: string; builtin?: boolean }>>,
+    add: () => ipcRenderer.invoke('extensions:add') as Promise<
+      { ok: true; extension: { id: string; name: string; version: string; path: string } } | { ok: false; error: string }
+    >,
+    remove: (id: string) => ipcRenderer.invoke('extensions:remove', id) as Promise<boolean>,
+  },
+
   // ── Browsing data ─────────────────────────────────────────────────────────
   browsingData: {
     clear: (options: {
-      range: 'hour' | 'day' | 'week' | '4weeks' | 'all';
+      range: '15min' | 'hour' | 'day' | 'week' | '4weeks' | 'all';
       clearHistory: boolean;
       clearCookies: boolean;
       clearCache: boolean;
+      clearDownloads?: boolean;
+      clearPermissions?: boolean;
     }) => ipcRenderer.invoke('browsing-data:clear', options),
+    counts: (range: '15min' | 'hour' | 'day' | 'week' | '4weeks' | 'all') =>
+      ipcRenderer.invoke('browsing-data:counts', range) as Promise<{
+        historyCount: number;
+        cookieCount: number;
+        cacheBytes: number;
+        downloadCount: number;
+        permissionCount: number;
+      }>,
+  },
+
+  // ── Privacy & safety ──────────────────────────────────────────────────────
+  privacy: {
+    trackerStats: () => ipcRenderer.invoke('tracker:stats') as Promise<{
+      weekTotal: number;
+      todayTotal: number;
+      byDay: Array<{ day: string; count: number }>;
+      topTrackers: Array<{ host: string; count: number }>;
+    }>,
+    safetyCheck: () => ipcRenderer.invoke('safety:check') as Promise<{
+      passwords: { total: number; weak: number; reused: number };
+      permissions: { allowed: number };
+      trackerBlocking: boolean;
+      doNotTrack: boolean;
+    }>,
+    forgetSite: (host: string) => ipcRenderer.invoke('site:forget', host) as Promise<{
+      ok: boolean;
+      historyDeleted: number;
+      permissionsRemoved?: number;
+      passwordsRemoved?: number;
+    }>,
   },
 
   // ── Reading list ──────────────────────────────────────────────────────────
@@ -269,6 +324,18 @@ const api = {
       ipcRenderer.invoke('permissions:respond', requestId, decision, remember, origin, permission),
   },
 
+  // ── Named sessions (save / restore sets of tabs) ─────────────────────────
+  sessions: {
+    /** List saved named sessions (id, name, tabCount, updated_at). */
+    list: () => ipcRenderer.invoke('sessions:list') as Promise<Array<{ id: string; name: string; tabCount: number; updated_at: string }>>,
+    /** Save the current window's open tabs under a name. */
+    save: (name: string) => ipcRenderer.invoke('sessions:save', name) as Promise<boolean>,
+    /** Reopen a saved session's tabs in this window. */
+    restore: (id: string) => ipcRenderer.invoke('sessions:restore', id) as Promise<boolean>,
+    /** Delete a saved session. */
+    remove: (id: string) => ipcRenderer.invoke('sessions:delete', id) as Promise<boolean>,
+  },
+
   // ── Audio policy (per-domain mute memory + global mute) ──────────────────
   audio: {
     /** List all hosts with a stored "muted" preference. */
@@ -327,6 +394,8 @@ const api = {
       'permission:request',
       // Tracker blocking count updates
       'tracker:blocked-count',
+      // Generic message toast (e.g. "Reader mode isn't available")
+      'toast:show',
     ]);
     if (!ALLOWED_CHANNELS.has(channel)) return;
     ipcRenderer.on(channel, (_, ...args) => listener(...args));
