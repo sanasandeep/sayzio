@@ -438,3 +438,49 @@ describe('PINNED_TABS preference round-trip', () => {
     expect(tm2.getTabOrder().every(id => tm2.getTabState(id)!.pinned)).toBe(true);
   });
 });
+
+describe('Renderer-drawn internal pages (about:sayzio / about:zio)', () => {
+  let tm: TabManager;
+
+  beforeEach(() => {
+    ({ tm } = makeManager());
+  });
+
+  it('createTab with an internal URL reports canonical internal state', () => {
+    const id = tm.createTab('about:sayzio');
+    const state = tm.getTabState(id)!;
+    expect(state.url).toBe('about:sayzio');
+    expect(state.displayUrl).toBe('about:sayzio');
+    expect(state.title).toBe('About Sayzio');
+    expect(state.isLoading).toBe(false);
+    // The native webContents must never have loaded the internal URL.
+    const wc = tm.getWebContents(id) as unknown as FakeWebContents;
+    expect(wc.getURL()).toBe('');
+  });
+
+  it('navigating from a real page to an internal page overrides stale wc state', () => {
+    const id = tm.createTab('https://real.test');
+    setPage(tm, id, 'https://real.test/', 'Real Site');
+    tm.navigate(id, 'about:zio');
+    const state = tm.getTabState(id)!;
+    expect(state.url).toBe('about:zio');
+    expect(state.title).toBe('About Zio Browser');
+  });
+
+  it('navigating from an internal page back to a real URL clears internal state', () => {
+    const id = tm.createTab('about:zio');
+    tm.navigate(id, 'https://next.test');
+    const state = tm.getTabState(id)!;
+    expect(state.url).toBe('https://next.test');
+  });
+
+  it('closing a tab showing an internal page records the internal page, not the prior site', () => {
+    const id = tm.createTab('https://old.test');
+    setPage(tm, id, 'https://old.test/', 'Old Site');
+    tm.navigate(id, 'about:sayzio');
+    tm.closeTab(id);
+    const recent = tm.getRecentlyClosed();
+    expect(recent[0]?.url).toBe('about:sayzio');
+    expect(recent[0]?.title).toBe('About Sayzio');
+  });
+});
