@@ -565,3 +565,28 @@ export async function setPrimaryCallerIdProfile(
     body: JSON.stringify({ workspace_id: workspaceId ?? 0 }),
   });
 }
+
+// ── Desktop ⇄ phone call handoff (Zio Browser Dialer pane) ──────────────
+
+/** One incoming-call event mirrored to the desktop browser pane. */
+export type DialerCallEventInput = {
+  status: "ringing" | "answered" | "ended";
+  number: string;
+  caller_name?: string;
+  /** Epoch millis of the event on the phone. */
+  occurred_at_ms?: number;
+};
+
+/**
+ * Report an incoming phone call to the server so the Zio Browser Dialer
+ * pane can mirror it on desktop. Best-effort: callers should swallow
+ * failures (offline phones just skip the mirror).
+ */
+export async function reportCallEvent(
+  input: DialerCallEventInput,
+): Promise<void> {
+  await apiFetch(`/dialer/call-events`, {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}

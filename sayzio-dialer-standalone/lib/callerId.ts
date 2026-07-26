@@ -2,7 +2,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Platform } from "react-native";
 
 import { listContacts, logContactCalls, type Contact } from "@/lib/api/contacts";
-import { flagNumber, listFlaggedNumbers } from "@/lib/api/dialer";
+import { flagNumber, listFlaggedNumbers, reportCallEvent } from "@/lib/api/dialer";
 import { ZioTelephony } from "@/modules/zio-telephony";
 
 /**
@@ -236,6 +236,58 @@ export async function syncCallerDirectory(opts?: {
   }
 }
 
+// ── "Show calls in Zio Browser" desktop mirror toggle ──────────────────
+//
+// When enabled, incoming calls drained from the native queue are also
+// reported to POST /dialer/call-events so the Zio Browser Dialer pane can
+// show "your phone is ringing / rang" on desktop. Off by default,
+// best-effort and offline-tolerant: a failed report never blocks the
+// drain or re-queues events.
+
+const BROWSER_MIRROR_KEY = "zio_browser_call_mirror_v1";
+
+export async function getBrowserCallMirrorEnabled(): Promise<boolean> {
+  try {
+    return (await AsyncStorage.getItem(BROWSER_MIRROR_KEY)) === "1";
+  } catch {
+    return false;
+  }
+}
+
+export async function setBrowserCallMirrorEnabled(
+  enabled: boolean,
+): Promise<void> {
+  try {
+    await AsyncStorage.setItem(BROWSER_MIRROR_KEY, enabled ? "1" : "0");
+  } catch {
+    // Best-effort persistence.
+  }
+}
+
+/**
+ * Mirror drained incoming-call events to the desktop browser pane.
+ * Fire-and-forget per event; silently skips everything when the toggle
+ * is off or the device is offline.
+ */
+async function mirrorCallsToBrowser(
+  events: IdentifiedCallEvent[],
+): Promise<void> {
+  if (events.length === 0) return;
+  if (!(await getBrowserCallMirrorEnabled())) return;
+  for (const e of events) {
+    try {
+      await reportCallEvent({
+        status: "ringing",
+        number: e.n,
+        caller_name: e.name,
+        occurred_at_ms: e.ts,
+      });
+    } catch {
+      // Offline or server error — the mirror is best-effort, never retried.
+    }
+  }
+}
+
 // ── Incoming-call queue drain (CRM history + unknown callers) ──────────
 
 /** One queued event from the native call-screening service. */
@@ -378,6 +430,10 @@ export async function drainIdentifiedCalls(): Promise<number> {
     }
     if (events.length === 0) return 0;
     const drained = events.length;
+
+    // Mirror rings to the Zio Browser desktop pane (opt-in toggle).
+    // Fire-and-forget: must never block or fail the queue drain below.
+    void mirrorCallsToBrowser(events).catch(() => {});
 
     const { items } = await listContacts();
     const byKey = new Map<string, Contact>();

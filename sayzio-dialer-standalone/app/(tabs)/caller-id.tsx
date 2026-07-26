@@ -27,10 +27,12 @@ import {
   dismissUnknownCall,
   dismissUnknownCallsForNumber,
   flushPendingSpamReports,
+  getBrowserCallMirrorEnabled,
   getCallerIdStatus,
   getUnknownCalls,
   openOverlaySettings,
   requestCallScreeningRole,
+  setBrowserCallMirrorEnabled,
   setCallerIdEnabled,
   showTestAlert,
   syncCallerDirectory,
@@ -205,6 +207,64 @@ function LiveCallerIdCard() {
           )}
         </>
       ) : null}
+    </View>
+  );
+}
+
+/**
+ * "Show calls in Zio Browser" toggle — when on, incoming calls the
+ * caller-ID service sees are mirrored (best-effort) to the Zio Browser
+ * Dialer pane on desktop. Off by default; purely additive telemetry the
+ * user controls.
+ */
+function BrowserMirrorCard() {
+  const colors = useColors();
+  const [enabled, setEnabled] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    let mounted = true;
+    void getBrowserCallMirrorEnabled().then((v) => {
+      if (mounted) {
+        setEnabled(v);
+        setLoaded(true);
+      }
+    });
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const toggle = (next: boolean) => {
+    setEnabled(next);
+    void setBrowserCallMirrorEnabled(next);
+  };
+
+  return (
+    <View
+      style={[
+        styles.card,
+        { backgroundColor: colors.card, borderColor: colors.border },
+      ]}
+    >
+      <View style={styles.cardHeader}>
+        <View style={{ flex: 1, paddingRight: 12 }}>
+          <Text style={[styles.cardTitle, { color: colors.foreground }]}>
+            Show calls in Zio Browser
+          </Text>
+          <Text style={[styles.cardSub, { color: colors.mutedForeground }]}>
+            Mirror incoming calls to the Dialer pane in Zio Browser on your
+            computer, so you see who's calling without picking up your phone.
+            Works alongside live caller ID alerts.
+          </Text>
+        </View>
+        <Switch
+          value={enabled}
+          onValueChange={toggle}
+          disabled={!loaded}
+          trackColor={{ true: colors.primary }}
+        />
+      </View>
     </View>
   );
 }
@@ -514,6 +574,8 @@ export default function CallerIdScreen() {
         <CallerIdProfilesCard />
 
         <LiveCallerIdCard />
+
+        <BrowserMirrorCard />
 
         <RecentUnknownCallersCard />
 

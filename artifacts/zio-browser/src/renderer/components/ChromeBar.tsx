@@ -43,6 +43,10 @@ interface Props {
   onOpenSiteSettings?: () => void;
   readingListOpen: boolean;
   onToggleReadingList: () => void;
+  /** Whether the Dialer pane is open (button highlight state). */
+  dialerPanelOpen?: boolean;
+  /** Callback to toggle the Dialer pane (call handoff to the phone). */
+  onToggleDialer?: () => void;
   /** Callback to open the browser settings panel. */
   onOpenSettings?: () => void;
   settingsOpen?: boolean;
@@ -389,6 +393,8 @@ export function ChromeBar({
   onOpenSiteSettings,
   readingListOpen,
   onToggleReadingList,
+  dialerPanelOpen = false,
+  onToggleDialer,
   onOpenSettings,
   settingsOpen = false,
 }: Props) {
@@ -1396,6 +1402,23 @@ export function ChromeBar({
             </span>
           )}
         </button>
+
+        {/* Dialer pane — universal search + call handoff to the phone */}
+        {!isPrivate && onToggleDialer && (
+          <button
+            onClick={onToggleDialer}
+            title="Dialer — search & call on your phone"
+            style={{
+              fontSize: 16,
+              padding: '2px 6px',
+              flexShrink: 0,
+              color: dialerPanelOpen ? 'var(--color-primary)' : 'var(--color-text-muted)',
+              transition: 'color 0.15s',
+            }}
+          >
+            📞
+          </button>
+        )}
 
         {/* Reading list button + unread badge */}
         <div style={{ position: 'relative', flexShrink: 0 }}>
