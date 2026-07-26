@@ -5,6 +5,7 @@
  */
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useProfileStore } from '../store/profile-store';
+import { useChromeOverlay } from '../hooks/use-chrome-overlay';
 import type { BrowserProfile } from '../../shared/profile-store';
 
 interface Props {
@@ -18,6 +19,11 @@ export function ProfileSwitcher({ isAuthenticated, onOpenAuth }: Props) {
   const [open, setOpen] = useState(false);
   const [switching, setSwitching] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // The dropdown extends below the chrome bar into the region covered by
+  // native WebContentsViews — hold the chrome overlay while open so the menu
+  // is visible and clickable (same pattern as ModeSwitcher/AccountButton).
+  useChromeOverlay(open);
 
   // Close on outside click
   useEffect(() => {

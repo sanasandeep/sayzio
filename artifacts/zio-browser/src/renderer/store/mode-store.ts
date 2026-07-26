@@ -31,7 +31,9 @@ interface ModeStoreState {
 let modeState: WindowMode = 'browser';
 let splitRatioState: number = DEFAULT_SPLIT_RATIO;
 let zioPanelWidthState: number = DEFAULT_ZIO_PANEL_WIDTH;
-let zioPanelDockedState = false;
+// Default docked (side-by-side) — must match the main process default in
+// window:get-zio-panel-docked so first paint agrees with the stored value.
+let zioPanelDockedState = true;
 let isInitializedState = false;
 const listeners = new Set<() => void>();
 

@@ -87,6 +87,8 @@ const api = {
     setZioPanelWidth: (width: number) => ipcRenderer.invoke('window:set-zio-panel-width', width),
     getZioPanelDocked: () => ipcRenderer.invoke('window:get-zio-panel-docked'),
     setZioPanelDocked: (docked: boolean) => ipcRenderer.invoke('window:set-zio-panel-docked', docked),
+    /** Report whether the docked Zio panel is currently rendered (layout reserve). */
+    setZioPanelVisible: (visible: boolean) => ipcRenderer.invoke('window:set-zio-panel-visible', visible),
     /** Returns true when this renderer is running inside a private/incognito window. */
     isPrivate: () => ipcRenderer.invoke('window:is-private') as Promise<boolean>,
     /** Ask the main process to open a new private window, optionally starting at a URL. */

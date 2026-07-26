@@ -12,3 +12,5 @@ Native WebContentsViews (tab views AND the dashboard view) sit ABOVE the rendere
 - `setChromeOverlay(boolState)` in an effect body plus a conditional cleanup releases TWICE per close → steals the overlay from other open holders, reattaching views over their menus.
 
 **How to apply:** use the wasOpen/held-ref pattern (acquire on true edge, release once on false edge, release on unmount if held). Releasing after a pick is safe: main clamps count at 0 and setMode is idempotent. Never raw `tabs.hideAll`.
+
+**v0.1.21 additions:** shared `useChromeOverlay(active)` renderer hook implements the balance pattern once — use it, never hand-roll acquire/release. Docked Ask Zio panel: the browser-mode right-strip reserve is gated on `docked && visible`; renderer syncs visibility via `window:set-zio-panel-visible` IPC, and the docked default is TRUE in three lockstep places (ipc get handler, mode-store initial, WindowModeManager ctor default) — flip all or first-paint disagrees with stored state.
