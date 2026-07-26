@@ -11,6 +11,8 @@ export interface PaletteItem {
   title: string;
   subtitle?: string;
   icon?: string;
+  /** For URL items: favicon image URL (stored or domain-derived) */
+  favicon?: string | null;
   /** For tab items: the tab id to activate */
   tabId?: string;
   /** For URL items: the URL to navigate to */
