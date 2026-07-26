@@ -23,6 +23,7 @@ import {
 import type { TabRecord } from '../store/tab-store';
 import type { WindowMode } from '../../shared/window-mode';
 import { useFindStore } from '../store/find-store';
+import { resolveFavicon } from '../../shared/favicon';
 
 interface Props {
   onClose: () => void;
@@ -100,8 +101,8 @@ export function CommandPalette({
   const [query, setQuery] = useState('');
   const [view, setView] = useState<ViewState>('search');
   const [selectedIndex, setSelectedIndex] = useState(0);
-  const [bookmarks, setBookmarks] = useState<Array<{ url: string; title: string }>>([]);
-  const [history, setHistory] = useState<Array<{ url: string; title: string | null }>>([]);
+  const [bookmarks, setBookmarks] = useState<Array<{ url: string; title: string; favicon_url?: string | null }>>([]);
+  const [history, setHistory] = useState<Array<{ url: string; title: string | null; favicon_url?: string | null }>>([]);
   const [sayzioLinks, setSayzioLinks] = useState<CachedSayzioLink[]>([]);
 
   const inputRef = useRef<HTMLInputElement>(null);
@@ -112,13 +113,13 @@ export function CommandPalette({
   useEffect(() => {
     void window.zio.bookmarks.all().then((bms: unknown) => {
       if (Array.isArray(bms)) {
-        setBookmarks(bms as Array<{ url: string; title: string }>);
+        setBookmarks(bms as Array<{ url: string; title: string; favicon_url?: string | null }>);
       }
     }).catch(() => { /* ignore */ });
 
     void window.zio.history.recent().then((hist: unknown) => {
       if (Array.isArray(hist)) {
-        setHistory(hist as Array<{ url: string; title: string | null }>);
+        setHistory(hist as Array<{ url: string; title: string | null; favicon_url?: string | null }>);
       }
     }).catch(() => { /* ignore */ });
 
@@ -163,6 +164,7 @@ export function CommandPalette({
         title: t?.title || 'New Tab',
         subtitle: t?.url || '',
         icon: '🗂',
+        favicon: resolveFavicon(t?.favicon, t?.url),
         tabId: id,
         url: t?.url,
         score: 0,
@@ -175,6 +177,7 @@ export function CommandPalette({
     title: b.title || b.url,
     subtitle: b.url,
     url: b.url,
+    favicon: resolveFavicon(b.favicon_url, b.url),
     score: 0,
   }));
 
@@ -186,6 +189,7 @@ export function CommandPalette({
       title: h.title || h.url,
       subtitle: h.url,
       url: h.url,
+      favicon: resolveFavicon(h.favicon_url, h.url),
       score: 0,
     }));
 
@@ -495,10 +499,22 @@ export function CommandPalette({
                           fontSize: 15,
                           flexShrink: 0,
                           width: 22,
-                          textAlign: 'center',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
                           opacity: 0.85,
                         }}>
-                          {item.icon ?? kindIcon(item.kind)}
+                          {item.favicon ? (
+                            <img
+                              src={item.favicon}
+                              width={16} height={16}
+                              style={{ borderRadius: 3 }}
+                              alt=""
+                              onError={e => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }}
+                            />
+                          ) : (
+                            item.icon ?? kindIcon(item.kind)
+                          )}
                         </span>
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{

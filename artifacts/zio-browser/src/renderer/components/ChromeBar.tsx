@@ -16,6 +16,7 @@ import { AccountButton } from './AccountButton';
 import zioIcon from '../assets/zio-icon.png';
 import { useModeStore } from '../store/mode-store';
 import type { RecentlyClosedEntry } from '../../main/tab-manager';
+import { resolveFavicon } from '../../shared/favicon';
 import type { SyncQueueProfileCount } from '../../main/db';
 
 interface Props {
@@ -295,8 +296,14 @@ function StripMenu({ anchorRef, recentlyClosed, onClose, onReopenEntry, onMuteAl
             onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-bg-elevated)')}
             onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
           >
-            {entry.favicon ? (
-              <img src={entry.favicon} width={12} height={12} style={{ borderRadius: 2, flexShrink: 0 }} alt="" />
+            {resolveFavicon(entry.favicon, entry.url) ? (
+              <img
+                src={resolveFavicon(entry.favicon, entry.url) ?? undefined}
+                width={12} height={12}
+                style={{ borderRadius: 2, flexShrink: 0 }}
+                alt=""
+                onError={e => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }}
+              />
             ) : (
               <div style={{ width: 12, height: 12, borderRadius: 2, background: 'var(--color-border)', flexShrink: 0 }} />
             )}

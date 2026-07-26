@@ -6,6 +6,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { HistoryEntry } from '../../main/db';
 import { ProfileBadge } from './ProfileBadge';
+import { resolveFavicon } from '../../shared/favicon';
 
 interface Props {
   onNavigate: (url: string) => void;
@@ -254,8 +255,14 @@ export function NewTabPage({ onNavigate, isPrivate = false }: Props) {
                   overflow: 'hidden',
                 }}
               >
-                {entry.favicon_url ? (
-                  <img src={entry.favicon_url} width={16} height={16} style={{ borderRadius: 2, flexShrink: 0 }} alt="" />
+                {resolveFavicon(entry.favicon_url, entry.url) ? (
+                  <img
+                    src={resolveFavicon(entry.favicon_url, entry.url) ?? undefined}
+                    width={16} height={16}
+                    style={{ borderRadius: 2, flexShrink: 0 }}
+                    alt=""
+                    onError={e => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }}
+                  />
                 ) : (
                   <div style={{ width: 16, height: 16, borderRadius: 2, background: 'var(--color-border)', flexShrink: 0 }} />
                 )}
