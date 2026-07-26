@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { ChromeBar } from './components/ChromeBar';
 import { ZioPanel } from './components/ZioPanel';
 import { NewTabPage } from './components/NewTabPage';
+import { AboutPage } from './components/AboutPages';
 import { AuthModal } from './components/AuthModal';
 import { ModePicker } from './components/ModePicker';
 import { DashboardLayout } from './components/DashboardLayout';
@@ -286,6 +287,13 @@ export default function App() {
   const showNewTab =
     (!activeTab || activeTab.url === '' || activeTab.url === 'about:newtab') &&
     (!activeTab || tabModeIncludes(activeTabMode, 'browser'));
+  // Renderer-drawn internal About pages (native view stays detached, like New Tab).
+  const aboutPage: 'sayzio' | 'zio' | null =
+    activeTab && tabModeIncludes(activeTabMode, 'browser')
+      ? activeTab.url === 'about:sayzio' ? 'sayzio'
+        : activeTab.url === 'about:zio' ? 'zio'
+          : null
+      : null;
 
   // ── Zio panel presentation flags (browser mode) ───────────────────────────
   // A tab in "Ask Zio + Website" split mode forces the docked Zio panel open.
@@ -587,6 +595,18 @@ export default function App() {
             <div style={{ flex: 1, display: 'flex', alignItems: 'stretch' }}>
               <NewTabPage
                 isPrivate={isPrivate}
+                onNavigate={(url) => {
+                  if (activeTabId) {
+                    void window.zio.tabs.navigate(activeTabId, url);
+                  }
+                }}
+              />
+            </div>
+          )}
+          {aboutPage && (
+            <div style={{ flex: 1, display: 'flex', alignItems: 'stretch' }}>
+              <AboutPage
+                page={aboutPage}
                 onNavigate={(url) => {
                   if (activeTabId) {
                     void window.zio.tabs.navigate(activeTabId, url);

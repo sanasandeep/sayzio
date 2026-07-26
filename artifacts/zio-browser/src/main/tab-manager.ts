@@ -8,6 +8,7 @@
 import { BrowserWindow, WebContentsView, Menu, clipboard, session, type WebContents } from 'electron';
 import { parseOmniboxInput, type SearchEngineConfig, DEFAULT_SEARCH_ENGINE } from '../shared/omnibox';
 import { sessionPartitionForProfile, DEFAULT_PROFILE_ID } from '../shared/profile-store';
+import { isInternalPageUrl, internalPageTitle } from '../shared/internal-pages';
 import {
   type TabMode,
   type TabPane,
@@ -79,6 +80,12 @@ interface ManagedTab {
   muteOverride: boolean | null;
   /** Per-tab view mode (single pane or a two-pane split). */
   mode: TabMode;
+  /**
+   * Canonical URL of a renderer-drawn internal page (about:sayzio / about:zio)
+   * currently shown by this tab, or null. The native webContents never loads
+   * these, so state reads must prefer this over wc.getURL().
+   */
+  internalUrl: string | null;
   /** Lazily created Sayzio website view (pane: 'sayzio'). */
   sayzioView: WebContentsView | null;
   /** Lazily created Sayzio dashboard view (pane: 'dashboard'). */
@@ -285,6 +292,10 @@ export class TabManager {
       if (navigatedTab?.isNewTabPage && navUrl && navUrl !== 'about:blank' && navUrl !== 'about:newtab') {
         navigatedTab.isNewTabPage = false;
         if (this.activeTabId === id) this.layoutActiveTab();
+      }
+      // A real navigation ends any renderer-drawn internal page.
+      if (navigatedTab?.internalUrl && navUrl && navUrl !== 'about:blank') {
+        navigatedTab.internalUrl = null;
       }
       if (isAlive(wc)) {
         wc.stopFindInPage('clearSelection');
@@ -536,8 +547,9 @@ export class TabManager {
     });
 
     if (pinned) this.pinnedTabs.add(id);
-    const isNewTabPage = !url || url === 'about:newtab';
-    const tab: ManagedTab = { id, view, pinned, favicon: null, muteOverride: null, mode: 'browser', sayzioView: null, dashboardView: null, isNewTabPage };
+    const isInternal = isInternalPageUrl(url);
+    const isNewTabPage = !url || url === 'about:newtab' || isInternal;
+    const tab: ManagedTab = { id, view, pinned, favicon: null, muteOverride: null, mode: 'browser', sayzioView: null, dashboardView: null, isNewTabPage, internalUrl: isInternal && url ? url : null };
     this.tabs.set(id, tab);
     this.insertInOrder(id, pinned);
 
@@ -564,7 +576,11 @@ export class TabManager {
       wc.setAudioMuted(true);
       this.onTabStateChange?.(id, { isMuted: true });
     }
-    if (targetUrl !== 'about:newtab') {
+    if (isInternalPageUrl(url)) {
+      // Renderer-drawn internal page: never load in the native view; just
+      // publish the url/title so the renderer can draw it.
+      this.onTabStateChange?.(id, { url, title: internalPageTitle(url), isLoading: false });
+    } else if (targetUrl !== 'about:newtab') {
       void wc.loadURL(targetUrl);
     }
 
@@ -575,13 +591,17 @@ export class TabManager {
     const tab = this.tabs.get(id);
     if (!tab) return;
 
-    // Save to recently-closed stack (skip empty/new-tab pages)
+    // Save to recently-closed stack (skip empty/new-tab pages).
+    // A renderer-drawn internal page is what the user actually sees, so it
+    // wins over any stale wc.getURL() left from a prior real page.
     const wc = tab.view.webContents;
-    const url = isAlive(wc) ? wc.getURL() : '';
+    const url = tab.internalUrl ?? (isAlive(wc) ? wc.getURL() : '');
     if (url && url !== 'about:newtab' && url !== 'about:blank' && url !== '') {
       const entry: RecentlyClosedEntry = {
         url,
-        title: (isAlive(wc) ? wc.getTitle() : '') || url,
+        title: tab.internalUrl
+          ? internalPageTitle(tab.internalUrl)
+          : (isAlive(wc) ? wc.getTitle() : '') || url,
         favicon: tab.favicon,
       };
       this.recentlyClosed.unshift(entry);
@@ -1072,6 +1092,24 @@ export class TabManager {
   navigate(id: TabId, input: string): void {
     const tab = this.tabs.get(id);
     if (!tab) return;
+    // Renderer-drawn internal pages (about:sayzio / about:zio): never load in
+    // the native view — detach it and publish the url so the renderer draws it.
+    // Checked on the RAW input: the omnibox parser would otherwise treat a
+    // scheme without "//" (about:zio) as a search query.
+    const internalCandidate = input.trim();
+    if (isInternalPageUrl(internalCandidate)) {
+      const wc = tab.view.webContents;
+      if (isAlive(wc) && wc.isLoading()) wc.stop();
+      tab.isNewTabPage = true;
+      tab.internalUrl = internalCandidate;
+      if (this.activeTabId === id) this.layoutActiveTab();
+      this.onTabStateChange?.(id, {
+        url: internalCandidate,
+        title: internalPageTitle(internalCandidate),
+        isLoading: false,
+      });
+      return;
+    }
     const result = parseOmniboxInput(input, this.searchEngine);
     // Leaving the New Tab page: re-attach the native view immediately so the
     // page is visible as soon as it starts painting.
@@ -1079,6 +1117,7 @@ export class TabManager {
       tab.isNewTabPage = false;
       if (this.activeTabId === id) this.layoutActiveTab();
     }
+    tab.internalUrl = null;
     void tab.view.webContents.loadURL(result.navigateUrl);
   }
 
@@ -1145,14 +1184,15 @@ export class TabManager {
     const tab = this.tabs.get(id);
     if (!tab) return null;
     const wc = tab.view.webContents;
-    const url = wc.getURL();
+    // A renderer-drawn internal page is the canonical state, not wc.getURL().
+    const url = tab.internalUrl ?? wc.getURL();
     return {
       id,
       url,
       displayUrl: url,
-      title: wc.getTitle(),
+      title: tab.internalUrl ? internalPageTitle(tab.internalUrl) : wc.getTitle(),
       favicon: tab.favicon,
-      isLoading: wc.isLoading(),
+      isLoading: tab.internalUrl ? false : wc.isLoading(),
       canGoBack: wc.canGoBack(),
       canGoForward: wc.canGoForward(),
       isAudible: wc.isCurrentlyAudible(),

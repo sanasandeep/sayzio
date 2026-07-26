@@ -858,7 +858,9 @@ export function ChromeBar({
                 position: 'relative',
               } as React.CSSProperties}
             >
-              {tab?.favicon ? (
+              {tab?.isLoading ? (
+                <img src={zioIcon} width={14} height={14} className="zio-loading-icon" alt="" />
+              ) : tab?.favicon ? (
                 <img src={tab.favicon} width={14} height={14} style={{ borderRadius: 2, filter: isActive ? 'none' : 'grayscale(1)', opacity: isActive ? 1 : 0.75 }} alt="" />
               ) : (
                 <div style={{ width: 14, height: 14, borderRadius: 2, background: 'var(--color-border)' }} />
@@ -948,7 +950,9 @@ export function ChromeBar({
                 position: 'relative',
               } as React.CSSProperties}
             >
-              {tab?.favicon ? (
+              {tab?.isLoading ? (
+                <img src={zioIcon} width={14} height={14} className="zio-loading-icon" style={{ flexShrink: 0 }} alt="" />
+              ) : tab?.favicon ? (
                 <img src={tab.favicon} width={14} height={14} style={{ borderRadius: 2, flexShrink: 0, filter: isActive ? 'none' : 'grayscale(1)', opacity: isActive ? 1 : 0.75 }} alt="" />
               ) : (
                 <div style={{ width: 14, height: 14, borderRadius: 2, background: 'var(--color-border)', flexShrink: 0 }} />

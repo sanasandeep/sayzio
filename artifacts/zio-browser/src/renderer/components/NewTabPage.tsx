@@ -322,6 +322,21 @@ export function NewTabPage({ onNavigate, isPrivate = false }: Props) {
           >
             Learn more at sayzio.app →
           </button>
+          <div style={{ marginTop: 6, fontSize: 11.5 }}>
+            <button
+              onClick={() => onNavigate('about:sayzio')}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-muted)', padding: '4px 8px' }}
+            >
+              About Sayzio
+            </button>
+            <span style={{ color: 'var(--color-text-muted)', opacity: 0.5 }}>·</span>
+            <button
+              onClick={() => onNavigate('about:zio')}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-text-muted)', padding: '4px 8px' }}
+            >
+              About Zio Browser
+            </button>
+          </div>
         </div>
       </div>
     </div>
