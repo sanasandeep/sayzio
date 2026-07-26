@@ -294,14 +294,14 @@
       "source": "app/dialer.tsx",
       "relation": "adapted",
       "note": "standalone hosts the dialer as a tab; main app hosts it as a stack screen. Main copy adapts listContacts() to its opts-object signature; otherwise identical (Task #5399 port).",
-      "sourceSha256": "ee298c61006a11070c332dd70ef3a92c86a94982820080fb6d02155f9c72faa6"
+      "sourceSha256": "9a75a551a69507d4d58945b524ddc23e8ab64548b30bbad2499ba551bea9e6e3"
     },
     {
       "standalone": "app/dialer-profile.tsx",
       "source": "app/dialer-profile.tsx",
       "relation": "adapted",
       "note": "main app has no /contacts/new form, so its saveOrEdit falls back to the /contacts list; otherwise identical (Task #5399 port).",
-      "sourceSha256": "702d93a4d25c861652cf2c613bea91b401345fe2f9cf0ebef24aa7a85d3aa095"
+      "sourceSha256": "d7c0853c315be6c0035188831c4cd997a3822da0f0bcb0d61cfbf379ab3f90fa"
     },
     {
       "standalone": "lib/api/dialer.ts",
@@ -313,7 +313,7 @@
       "source": "lib/api/contacts.ts",
       "relation": "adapted",
       "note": "diverged API surfaces: main copy grew its own helpers (getContact/updateContactNotes/updateContactTags/duplicate + google-sync helpers, opts-object listContacts) while the standalone keeps the original CRUD/import surface. Manual-profile types + updateContactManualProfile now exist in both.",
-      "sourceSha256": "53dcd469b575830480f852999e0802f840f00e82f50fbe40d85763d71b59f884"
+      "sourceSha256": "594f844dbb24bae8ca2d2f6993fb8b573a06779516a0e655f12a5320ade2049a"
     },
     {
       "standalone": "components/ChannelActions.tsx",

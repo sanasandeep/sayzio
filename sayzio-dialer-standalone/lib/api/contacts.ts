@@ -42,6 +42,8 @@ export type Contact = {
   emails: ContactEmail[];
   phones: ContactPhone[];
   photo_url: string | null;
+  /** Owner-set grouping: brand (business) vs personal relationship. */
+  contact_type?: "personal" | "brand" | null;
   manual_profile?: ManualProfile;
   follow_up_at: string | null;
   follow_up_note: string | null;
@@ -58,12 +60,18 @@ export type ContactsUsage = {
   at_cap: boolean;
 };
 
-export async function listContacts(q?: string): Promise<{
+export async function listContacts(
+  q?: string,
+  contactType?: "personal" | "brand",
+): Promise<{
   items: Contact[];
   total: number;
   usage: ContactsUsage;
 }> {
-  const qs = q ? `?q=${encodeURIComponent(q)}` : "";
+  const p = new URLSearchParams();
+  if (q) p.set("q", q);
+  if (contactType) p.set("contact_type", contactType);
+  const qs = p.toString() ? `?${p.toString()}` : "";
   const res = await apiFetch<{
     data: { items: Contact[]; meta: { total: number }; usage: ContactsUsage };
   }>(`/contacts${qs}`);
@@ -111,6 +119,7 @@ export type ContactPayload = {
   notes?: string | null;
   emails?: ContactEmail[];
   phones?: ContactPhone[];
+  contact_type?: "personal" | "brand" | null;
 };
 
 export async function createContact(p: ContactPayload): Promise<Contact> {

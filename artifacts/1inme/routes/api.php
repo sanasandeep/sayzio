@@ -1459,6 +1459,12 @@ Route::prefix('v1')->group(function () {
         Route::delete('/dialer/history/{id}',       [DialerController::class, 'historyDestroy'])->whereNumber('id');
         Route::get   ('/dialer/channels',           [DialerController::class, 'channels']);
         Route::put   ('/dialer/channels',           [DialerController::class, 'updateChannels']);
+        // Sayzio connects — follow-based connections with Brand/Personal labels.
+        Route::get   ('/dialer/connections',        [DialerController::class, 'connections']);
+        Route::put   ('/dialer/connections/{userId}', [DialerController::class, 'setConnectionCategory'])->whereNumber('userId');
+        // Zio Dialer caller-ID profile picker.
+        Route::get   ('/dialer/caller-id-profiles', [DialerController::class, 'callerIdProfiles']);
+        Route::put   ('/dialer/caller-id-profiles/primary', [DialerController::class, 'selectCallerIdProfile']);
         // Contact privacy (Task #3497) — what strangers may see via caller-ID / search.
         Route::get   ('/me/contact-privacy',        [DialerController::class, 'contactPrivacy']);
         Route::put   ('/me/contact-privacy',        [DialerController::class, 'updateContactPrivacy']);

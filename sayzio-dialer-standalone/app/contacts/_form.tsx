@@ -74,6 +74,9 @@ export default function ContactForm({
     contact?.given_name ?? (mode === "create" ? initialName?.trim() || "" : ""),
   );
   const [family, setFamily] = useState(contact?.family_name ?? "");
+  const [contactType, setContactType] = useState<"personal" | "brand">(
+    contact?.contact_type === "brand" ? "brand" : "personal",
+  );
   const [org, setOrg] = useState(contact?.organization ?? "");
   const [job, setJob] = useState(contact?.job_title ?? "");
   const [notes, setNotes] = useState(contact?.notes ?? "");
@@ -94,6 +97,7 @@ export default function ContactForm({
     organization: org || null,
     job_title: job || null,
     notes: notes || null,
+    contact_type: contactType,
     emails: emails.filter((e) => e.value.trim()).map((e, i) => ({
       ...e,
       is_primary: i === 0,
@@ -213,6 +217,52 @@ export default function ContactForm({
         </View>
         <TextField label="Organization" value={org} onChangeText={setOrg} />
         <TextField label="Job title" value={job} onChangeText={setJob} />
+
+        <Text style={[styles.section, { color: colors.mutedForeground }]}>
+          Contact type
+        </Text>
+        <View style={{ flexDirection: "row", gap: 8 }}>
+          {(
+            [
+              { key: "personal", label: "Personal", icon: "user" },
+              { key: "brand", label: "Brand", icon: "briefcase" },
+            ] as const
+          ).map((t) => {
+            const on = contactType === t.key;
+            return (
+              <Pressable
+                key={t.key}
+                onPress={() => setContactType(t.key)}
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 6,
+                  paddingVertical: 8,
+                  paddingHorizontal: 14,
+                  borderRadius: 999,
+                  borderWidth: 1,
+                  borderColor: on ? colors.primary : colors.border,
+                  backgroundColor: on ? colors.primary + "14" : colors.card,
+                }}
+              >
+                <Feather
+                  name={t.icon}
+                  size={14}
+                  color={on ? colors.primary : colors.mutedForeground}
+                />
+                <Text
+                  style={{
+                    color: on ? colors.primary : colors.mutedForeground,
+                    fontFamily: "SpaceGrotesk_500Medium",
+                    fontSize: 13,
+                  }}
+                >
+                  {t.label}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
 
         <Text style={[styles.section, { color: colors.mutedForeground }]}>
           Emails
