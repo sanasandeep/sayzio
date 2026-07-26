@@ -9,6 +9,7 @@ use App\Modules\User\Models\Link;
 use App\Modules\User\Models\LinkedIdentifier;
 use App\Modules\User\Models\SocialAccountConnection;
 use App\Modules\User\Models\User;
+use App\Modules\User\Models\Workspace;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
 
@@ -156,6 +157,27 @@ class DialerIdentity
             'vcard_url' => self::vcardUrl($owner, $contact, $number),
         ];
 
+        // Per-workspace Caller ID: when the matched creator's presenting
+        // workspace is set to a Brand caller ID, show the brand
+        // name/logo/tagline instead of their personal identity. The
+        // receiver's own saved contact name always wins — so the brand
+        // override only replaces the biolink identity fields when the
+        // number is NOT already saved as a contact. The `caller_id` meta
+        // block is always attached so clients can badge brand calls.
+        $callerId = ['type' => 'personal'];
+        if ($matchedUser && $payload['biolink']) {
+            $callerId = self::callerIdFor($matchedUser);
+            if ($callerId['type'] === 'brand') {
+                if (!(bool) ($resolved['isSaved'] ?? ($contact !== null))) {
+                    $payload['biolink']['name'] = $callerId['name'];
+                    if (!empty($callerId['logo_url'])) {
+                        $payload['biolink']['avatar_url'] = $callerId['logo_url'];
+                    }
+                }
+            }
+        }
+        $payload['caller_id'] = $callerId;
+
         // Task #3497: strip the fields/channels this creator has hidden from
         // strangers. No-op for self-lookups and already-saved contacts.
         if ($matchedUser) {
@@ -168,6 +190,38 @@ class DialerIdentity
         }
 
         return $payload;
+    }
+
+    /**
+     * The matched creator's effective Caller ID, resolved from their
+     * PRESENTING workspace — the active workspace they last switched to
+     * (users.active_workspace_id, kept in sync by both web and mobile),
+     * falling back to their oldest owned workspace. Personal by default;
+     * Brand when that workspace's caller ID is configured as brand.
+     * Free feature — no plan gating.
+     *
+     * @return array{type:string,name?:string,logo_url?:?string,tagline?:?string}
+     */
+    public static function callerIdFor(User $matchedUser): array
+    {
+        try {
+            $ws = null;
+            $activeId = (int) ($matchedUser->active_workspace_id ?? 0);
+            if ($activeId > 0) {
+                $candidate = Workspace::find($activeId);
+                if ($candidate && $matchedUser->belongsToWorkspace($candidate)) {
+                    $ws = $candidate;
+                }
+            }
+            $ws = $ws ?? $matchedUser->ownedWorkspaces()->orderBy('id')->first();
+            if (!$ws) {
+                return ['type' => 'personal'];
+            }
+            return $ws->resolvedCallerId();
+        } catch (\Throwable) {
+            // Never let caller-ID branding break the identity lookup.
+            return ['type' => 'personal'];
+        }
     }
 
     /**

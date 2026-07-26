@@ -163,6 +163,37 @@ class WorkspaceController extends Controller
     }
 
     /**
+     * Owner-only: choose how this workspace presents on Sayzio caller ID —
+     * as the owner personally (default) or as the workspace's brand. Brand
+     * fields left blank auto-sync live from the owner's Brand Kit; filled
+     * fields act as manual overrides. Free feature — no plan gate.
+     */
+    public function updateCallerId(Request $request, Workspace $workspace)
+    {
+        $user = $request->user();
+        abort_unless((int) $workspace->owner_user_id === $user->id, 403);
+
+        $data = $request->validate([
+            'type'            => 'required|string|in:personal,brand',
+            'brand_name'      => 'nullable|string|max:120',
+            'brand_logo_url'  => 'nullable|string|max:2048|url',
+            'brand_tagline'   => 'nullable|string|max:160',
+            'brand_auto_sync' => 'nullable|boolean',
+        ]);
+
+        $workspace->setCallerIdConfig($data['type'], [
+            'name'      => $data['brand_name'] ?? null,
+            'logo_url'  => $data['brand_logo_url'] ?? null,
+            'tagline'   => $data['brand_tagline'] ?? null,
+            'auto_sync' => (bool) ($data['brand_auto_sync'] ?? true),
+        ]);
+
+        return back()->with('success', $data['type'] === 'brand'
+            ? 'Caller ID set to your brand. Calls from this workspace now show your brand identity.'
+            : 'Caller ID set to personal. Calls show your own name and photo.');
+    }
+
+    /**
      * Owner-only: delete a workspace they own. Owner cannot delete their
      * last workspace — they must always have at least one.
      */

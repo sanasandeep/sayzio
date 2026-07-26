@@ -136,6 +136,108 @@
         </form>
     </div>
 
+    {{-- ── Caller ID card ────────────────────────────────────────────────── --}}
+    @php
+        $cidCfg      = $workspace->callerIdConfig();
+        $cidResolved = $workspace->resolvedCallerId();
+        $brandKit    = \App\Modules\User\Models\BrandKit::defaultFor((int) $workspace->owner_user_id);
+    @endphp
+    <div class="rounded-xl border mb-6" style="border-color: var(--border-strong); background: var(--bg-card);"
+         x-data="{ cidType: '{{ $cidCfg['type'] }}', cidAutoSync: {{ $cidCfg['brand']['auto_sync'] ? 'true' : 'false' }} }">
+        <div class="px-6 py-4 border-b" style="border-color: var(--border-strong);">
+            <h2 class="text-base font-semibold" style="color: var(--text-primary);">Caller ID</h2>
+            <p class="text-xs opacity-60 mt-0.5">Choose how calls from this workspace appear to other Sayzio users. If they've saved you as a contact, their saved name always wins.</p>
+        </div>
+        <form method="POST" action="{{ route('user.workspaces.caller-id.update', $workspace) }}" class="px-6 py-5 flex flex-col gap-4">
+            @csrf
+            @method('PUT')
+
+            <label class="flex items-start gap-3 p-3 rounded-lg border cursor-pointer"
+                   :style="cidType === 'personal' ? 'border-color: var(--accent);' : 'border-color: var(--border-strong);'">
+                <input type="radio" name="type" value="personal" x-model="cidType" class="mt-1">
+                <span>
+                    <span class="block text-sm font-semibold" style="color: var(--text-primary);">Personal</span>
+                    <span class="block text-xs opacity-70">Show your own name, photo and biolink (default).</span>
+                </span>
+            </label>
+
+            <label class="flex items-start gap-3 p-3 rounded-lg border cursor-pointer"
+                   :style="cidType === 'brand' ? 'border-color: var(--accent);' : 'border-color: var(--border-strong);'">
+                <input type="radio" name="type" value="brand" x-model="cidType" class="mt-1">
+                <span>
+                    <span class="block text-sm font-semibold" style="color: var(--text-primary);">Brand</span>
+                    <span class="block text-xs opacity-70">Show this workspace's brand name, logo and tagline instead.</span>
+                </span>
+            </label>
+
+            <div x-show="cidType === 'brand'" x-cloak class="flex flex-col gap-4 pl-1">
+                <label class="flex items-center gap-2 text-sm" style="color: var(--text-primary);">
+                    <input type="hidden" name="brand_auto_sync" :value="cidAutoSync ? 1 : 0">
+                    <input type="checkbox" x-model="cidAutoSync">
+                    <span>Auto-sync from my Brand Kit
+                        @if($brandKit)
+                            <span class="opacity-60">(currently “{{ $brandKit->name }}”)</span>
+                        @else
+                            <span class="opacity-60">(no Brand Kit yet — fields below are used)</span>
+                        @endif
+                    </span>
+                </label>
+                <p class="text-xs opacity-60 -mt-2">With auto-sync on, blank fields below follow your Brand Kit automatically; anything you type here overrides it.</p>
+
+                <div class="flex flex-col gap-1">
+                    <label class="text-sm font-semibold" style="color: var(--text-primary);">Brand name</label>
+                    <input type="text" name="brand_name" maxlength="120"
+                           value="{{ old('brand_name', $cidCfg['brand']['name']) }}"
+                           placeholder="{{ $brandKit?->name ?: $workspace->name }}"
+                           class="w-full px-3 py-2 text-sm border rounded-lg"
+                           style="background: var(--bg-card); border-color: var(--border-strong); color: var(--text-primary);">
+                </div>
+                <div class="flex flex-col gap-1">
+                    <label class="text-sm font-semibold" style="color: var(--text-primary);">Logo URL</label>
+                    <input type="url" name="brand_logo_url" maxlength="2048"
+                           value="{{ old('brand_logo_url', $cidCfg['brand']['logo_url']) }}"
+                           placeholder="https://…"
+                           class="w-full px-3 py-2 text-sm border rounded-lg"
+                           style="background: var(--bg-card); border-color: var(--border-strong); color: var(--text-primary);">
+                </div>
+                <div class="flex flex-col gap-1">
+                    <label class="text-sm font-semibold" style="color: var(--text-primary);">Tagline</label>
+                    <input type="text" name="brand_tagline" maxlength="160"
+                           value="{{ old('brand_tagline', $cidCfg['brand']['tagline']) }}"
+                           placeholder="A short line shown under your brand name"
+                           class="w-full px-3 py-2 text-sm border rounded-lg"
+                           style="background: var(--bg-card); border-color: var(--border-strong); color: var(--text-primary);">
+                </div>
+
+                @if($cidResolved['type'] === 'brand')
+                    <div class="flex items-center gap-3 p-3 rounded-lg border" style="border-color: var(--border-strong);">
+                        @if(!empty($cidResolved['logo_url']))
+                            <img src="{{ $cidResolved['logo_url'] }}" alt="" class="w-10 h-10 rounded-lg object-cover flex-shrink-0">
+                        @else
+                            <div class="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0" style="background: var(--border-strong);">
+                                <i class="fas fa-building text-sm opacity-70"></i>
+                            </div>
+                        @endif
+                        <div class="min-w-0">
+                            <span class="block text-sm font-semibold truncate" style="color: var(--text-primary);">{{ $cidResolved['name'] }}</span>
+                            @if(!empty($cidResolved['tagline']))
+                                <span class="block text-xs opacity-60 truncate">{{ $cidResolved['tagline'] }}</span>
+                            @endif
+                        </div>
+                        <span class="ml-auto text-[10px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded-full flex-shrink-0" style="background: var(--border-strong); color: var(--text-primary);">Preview</span>
+                    </div>
+                @endif
+            </div>
+
+            <div class="pt-1">
+                <button type="submit"
+                        class="px-5 py-2 bg-primary-600 text-white rounded-lg text-sm font-semibold hover:bg-primary-700 transition-colors">
+                    Save caller ID
+                </button>
+            </div>
+        </form>
+    </div>
+
     {{-- ── Danger zone ───────────────────────────────────────────────────── --}}
     <div class="rounded-xl border" style="border-color: var(--border-strong); background: var(--bg-card);">
         <div class="px-6 py-4 border-b" style="border-color: var(--border-strong);">

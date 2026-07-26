@@ -566,6 +566,19 @@ export default function DialerProfileScreen() {
                 <ChannelActions number={number} size="sm" align="flex-start" />
               </View>
             )}
+            {profile?.caller_id?.type === "brand" &&
+              !!profile.caller_id.tagline && (
+                <Text
+                  style={{
+                    color: colors.mutedForeground,
+                    fontSize: 13,
+                    marginTop: 2,
+                  }}
+                  numberOfLines={1}
+                >
+                  {profile.caller_id.tagline}
+                </Text>
+              )}
             {!!profile?.contact?.organization && (
               <Text
                 style={{
@@ -582,6 +595,9 @@ export default function DialerProfileScreen() {
               {lookup?.is_blocked && <Badge text="BLOCKED" color="#9ca3af" />}
               {(lookup?.biolink || profile?.biolink) && (
                 <Badge text="Sayzio" color="#d76dff" />
+              )}
+              {profile?.caller_id?.type === "brand" && (
+                <Badge text="Brand" color="#3b82f6" />
               )}
             </View>
           </View>

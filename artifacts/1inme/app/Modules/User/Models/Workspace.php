@@ -206,6 +206,110 @@ class Workspace extends Model
     }
 
     /**
+     * Read the dialer Caller ID config out of the workspace's generic
+     * `settings` JSON column. Shape:
+     *   settings.caller_id = [
+     *     'type'  => 'personal'|'brand',
+     *     'brand' => ['name' => ?string, 'logo_url' => ?string,
+     *                 'tagline' => ?string, 'auto_sync' => bool],
+     *   ]
+     *
+     * Defaults to 'personal' (today's behavior: the owner's own
+     * name/photo/biolink present on caller ID). Free feature — no plan
+     * gating anywhere.
+     */
+    public function callerIdConfig(): array
+    {
+        $cfg   = (array) (($this->settings ?? [])['caller_id'] ?? []);
+        $brand = (array) ($cfg['brand'] ?? []);
+        $type  = ($cfg['type'] ?? 'personal') === 'brand' ? 'brand' : 'personal';
+
+        $str = function ($v) {
+            $v = is_string($v) ? trim($v) : '';
+            return $v !== '' ? $v : null;
+        };
+
+        return [
+            'type'  => $type,
+            'brand' => [
+                'name'      => $str($brand['name'] ?? null),
+                'logo_url'  => $str($brand['logo_url'] ?? null),
+                'tagline'   => $str($brand['tagline'] ?? null),
+                'auto_sync' => (bool) ($brand['auto_sync'] ?? true),
+            ],
+        ];
+    }
+
+    /**
+     * Persist the Caller ID config back to the JSON settings column. The
+     * caller is responsible for permission-checking (owner-only).
+     */
+    public function setCallerIdConfig(string $type, array $brand): void
+    {
+        $type = $type === 'brand' ? 'brand' : 'personal';
+        $str = function ($v) {
+            $v = is_string($v) ? trim($v) : '';
+            return $v !== '' ? $v : null;
+        };
+        $settings = (array) ($this->settings ?? []);
+        $settings['caller_id'] = [
+            'type'  => $type,
+            'brand' => [
+                'name'      => $str($brand['name'] ?? null),
+                'logo_url'  => $str($brand['logo_url'] ?? null),
+                'tagline'   => $str($brand['tagline'] ?? null),
+                'auto_sync' => (bool) ($brand['auto_sync'] ?? true),
+            ],
+        ];
+        $this->settings = $settings;
+        $this->save();
+    }
+
+    /**
+     * The effective Caller ID identity for this workspace, with Brand Kit
+     * auto-sync applied. When auto-sync is on, the brand name/logo/tagline
+     * are read LIVE from the owner's active Brand Kit at resolve time (so a
+     * Brand Kit refresh updates caller ID automatically); manual fields act
+     * as per-field overrides. Returns:
+     *   ['type' => 'personal'] — present as the owner personally, or
+     *   ['type' => 'brand', 'name' => ?, 'logo_url' => ?, 'tagline' => ?]
+     */
+    public function resolvedCallerId(): array
+    {
+        $cfg = $this->callerIdConfig();
+        if ($cfg['type'] !== 'brand') {
+            return ['type' => 'personal'];
+        }
+
+        $name    = $cfg['brand']['name'];
+        $logo    = $cfg['brand']['logo_url'];
+        $tagline = $cfg['brand']['tagline'];
+
+        if ($cfg['brand']['auto_sync']) {
+            $kit = BrandKit::defaultFor((int) $this->owner_user_id);
+            if ($kit) {
+                $name    = $name    ?? (trim((string) $kit->name) ?: null);
+                $logo    = $logo    ?? ($kit->logo() !== '' ? $kit->logo() : null);
+                $tagline = $tagline ?? ($kit->taglines()[0] ?? null);
+            }
+        }
+
+        // A brand caller ID with no name to show falls back to the
+        // workspace name so the toggle never presents an empty identity.
+        $name = $name ?? (trim((string) $this->name) ?: null);
+        if ($name === null) {
+            return ['type' => 'personal'];
+        }
+
+        return [
+            'type'     => 'brand',
+            'name'     => $name,
+            'logo_url' => $logo ? \App\Support\PublicStorageUrl::resolve($logo) : null,
+            'tagline'  => $tagline,
+        ];
+    }
+
+    /**
      * Can the given user approve / reject pending posts in this workspace?
      * Workspace owners and super-admins always can; otherwise the user must
      * be an active member whose role appears in the approver roles list.
