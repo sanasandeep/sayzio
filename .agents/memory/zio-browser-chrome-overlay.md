@@ -1,10 +1,14 @@
 ---
 name: Zio Browser chrome-overlay for dropdowns
-description: How renderer dropdown menus avoid being occluded by native WebContentsViews in the Electron browser
+description: How renderer dropdown menus avoid being occluded by native WebContentsViews, and the ref-count balance rules
 ---
 
 Native WebContentsViews (tab views AND the dashboard view) sit ABOVE the renderer DOM, so any chrome dropdown menu extending into their region gets its clicks swallowed. Hiding tabs alone is NOT enough in dashboard/split modes — the dashboard view must be detached too.
 
-**Rule:** dropdowns use the main-process chrome-overlay API (`window.zio.window.setChromeOverlay(open)`): open → detach all native views; close → re-apply current mode to restore. The main process ref-counts open/close calls (restore only at count 0) because multiple header menus can overlap during menu-to-menu transitions; any `setMode` implicitly restores views (used by "picked" paths that skip the close call). Components must release the overlay on unmount.
+**Rule:** dropdowns use the main-process chrome-overlay API (`setChromeOverlay(open)`): open → detach all native views; close → re-apply current mode to restore. Main ref-counts holds and restores only at count 0.
 
-**How to apply:** any new chrome dropdown/menu in Zio Browser must use this pattern (see ModeSwitcher/AccountButton/NewTabButton), never raw `tabs.hideAll`.
+**Balance rule (v0.1.20 lesson):** every acquire must be released EXACTLY once — no more, no less. Two failure modes caused "all buttons dead / dropdown buggy" bugs:
+- Skipping the release because a mode pick "already restores views" via setMode: setMode reattaches views but does NOT decrement the count → permanent leak → every later menu close fails to reattach views.
+- `setChromeOverlay(boolState)` in an effect body plus a conditional cleanup releases TWICE per close → steals the overlay from other open holders, reattaching views over their menus.
+
+**How to apply:** use the wasOpen/held-ref pattern (acquire on true edge, release once on false edge, release on unmount if held). Releasing after a pick is safe: main clamps count at 0 and setMode is idempotent. Never raw `tabs.hideAll`.
