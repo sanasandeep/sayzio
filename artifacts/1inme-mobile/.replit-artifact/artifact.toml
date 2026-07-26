@@ -18,9 +18,22 @@ localPort = 23680
 [services.development]
 run = "pnpm --filter @workspace/1inme-mobile run dev"
 
-[services.production]
-build = [ "pnpm", "--filter", "@workspace/1inme-mobile", "run", "build" ]
-run = [ "pnpm", "--filter", "@workspace/1inme-mobile", "run", "serve" ]
+[services.production.build]
+args = [ "pnpm", "--filter", "@workspace/1inme-mobile", "run", "build" ]
+
+[services.production.run]
+# Run node directly (not via pnpm) so the serve process starts in <100ms.
+# The pnpm workspace-resolution overhead (~1.5s) was causing the serve.js to
+# start after the Autoscale startup probe had already given up and failed the
+# deploy. Using node directly eliminates that delay (mirrors the api-server).
+args = [ "node", "artifacts/1inme-mobile/server/serve.js" ]
+
+[services.production.run.env]
+PORT = "23680"
+BASE_PATH = "/mobile/"
+
+[services.production.health.startup]
+path = "/mobile/"
 
 [services.env]
 PORT = "23680"

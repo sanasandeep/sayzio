@@ -560,6 +560,10 @@ args = "e2e-zio-2fa"
 task = "workflow.run"
 args = "showcase-prod-seed"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "caller-id-test"
+
 [[workflows.workflow]]
 name = "e2e"
 author = "agent"
@@ -2244,6 +2248,17 @@ isValidation = true
 task = "shell.exec"
 args = "cd artifacts/1inme && DB_HOST=\"$PROD_DATABASE_URL\" php artisan showcase:seed --force"
 
+[[workflows.workflow]]
+name = "caller-id-test"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd artifacts/1inme && rm -rf /tmp/1inme-testpg.* ; TEST_LOCAL_MODE=artisan TEST_LOCAL_PORT=55497 bash scripts/test-local.sh --filter=WorkspaceCallerIdTest"
+
+[workflows.workflow.metadata]
+isValidation = true
+
 
   [agent]
 stack = "PNPM_WORKSPACE"
@@ -2264,7 +2279,7 @@ AWS_DEFAULT_REGION = "ap-south-2"
 AWS_URL = "https://d3l7wvr1shk1cg.cloudfront.net"
 AWS_USE_PATH_STYLE_ENDPOINT = "true"
 USER_CONTENT_DISK = "s3"
-CONTACT_ADMIN_TOKEN = "secret stripped"
+CONTACT_ADMIN_TOKEN = "qNApHcj3SDKCnQRrNcTyWOXdsxQMmeyhRy4Mf0"
 APP_NAME = "Sayzio"
 
 [[ports]]

@@ -310,6 +310,7 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::get ('workspaces/{workspace}/settings',         [\App\Modules\User\Controllers\WorkspaceController::class, 'settings'])->name('workspaces.settings');
         Route::put ('workspaces/{workspace}',                  [\App\Modules\User\Controllers\WorkspaceController::class, 'update']) ->name('workspaces.update');
         Route::put ('workspaces/{workspace}/post-approval',    [\App\Modules\User\Controllers\WorkspaceController::class, 'updatePostApproval'])->name('workspaces.post-approval.update');
+        Route::put ('workspaces/{workspace}/caller-id',        [\App\Modules\User\Controllers\WorkspaceController::class, 'updateCallerId'])->name('workspaces.caller-id.update');
         Route::delete('workspaces/{workspace}',                [\App\Modules\User\Controllers\WorkspaceController::class, 'destroy'])->name('workspaces.destroy');
         // Admin-granted cross-account workspace transfer.
         Route::post('workspaces/{workspace}/transfer',         [\App\Modules\User\Controllers\AssetTransferController::class, 'transferWorkspace'])->name('workspaces.transfer');

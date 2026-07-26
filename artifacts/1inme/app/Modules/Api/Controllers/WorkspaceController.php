@@ -211,6 +211,66 @@ class WorkspaceController extends Controller
     }
 
     /**
+     * Owner-only: read this workspace's Caller ID config plus the effective
+     * (Brand-Kit-resolved) identity. Mirrors the web settings card.
+     */
+    public function callerId(Request $request, int $id)
+    {
+        $userId    = (int) $request->user()->id;
+        $workspace = Workspace::find($id);
+        if (!$workspace) return $this->notFound('Workspace not found');
+        if ((int) $workspace->owner_user_id !== $userId) {
+            return $this->forbidden('Only the workspace owner can view caller ID settings');
+        }
+
+        return $this->ok([
+            'item' => [
+                'config'   => $workspace->callerIdConfig(),
+                'resolved' => $workspace->resolvedCallerId(),
+            ],
+        ]);
+    }
+
+    /**
+     * Owner-only: update the workspace Caller ID (personal vs brand).
+     * Mirrors the web {@see \App\Modules\User\Controllers\WorkspaceController::updateCallerId()}
+     * — same validation and the same settings.caller_id persistence. Free
+     * feature — no plan gate.
+     */
+    public function updateCallerId(Request $request, int $id)
+    {
+        $userId    = (int) $request->user()->id;
+        $workspace = Workspace::find($id);
+        if (!$workspace) return $this->notFound('Workspace not found');
+        if ((int) $workspace->owner_user_id !== $userId) {
+            return $this->forbidden('Only the workspace owner can edit caller ID settings');
+        }
+
+        $data = $request->validate([
+            'type'            => 'required|string|in:personal,brand',
+            'brand_name'      => 'nullable|string|max:120',
+            'brand_logo_url'  => 'nullable|string|max:2048|url',
+            'brand_tagline'   => 'nullable|string|max:160',
+            'brand_auto_sync' => 'nullable|boolean',
+        ]);
+
+        $workspace->setCallerIdConfig($data['type'], [
+            'name'      => $data['brand_name'] ?? null,
+            'logo_url'  => $data['brand_logo_url'] ?? null,
+            'tagline'   => $data['brand_tagline'] ?? null,
+            'auto_sync' => (bool) ($data['brand_auto_sync'] ?? true),
+        ]);
+
+        $workspace = $workspace->fresh();
+        return $this->ok([
+            'item' => [
+                'config'   => $workspace->callerIdConfig(),
+                'resolved' => $workspace->resolvedCallerId(),
+            ],
+        ]);
+    }
+
+    /**
      * Owner-only: delete a workspace they own. Mirrors the web
      * {@see \App\Modules\User\Controllers\WorkspaceController::destroy()} —
      * the personal workspace can never be deleted, and an owner must always

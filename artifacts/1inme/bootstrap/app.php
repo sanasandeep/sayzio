@@ -23,6 +23,13 @@ return Application::configure(basePath: dirname(__DIR__))
         // instead of rejecting the heavy home render. No-op in production.
         $middleware->prepend(\App\Modules\Common\Middleware\DevStartupProbe::class);
 
+        // Production startup fast-path: the autoscale promote probe also polls
+        // the base path "/" (besides the configured "/up"), and a cold home
+        // render over the distant RDS exceeds its deadline, failing the
+        // publish. Answers probe UAs and the first seconds after boot with an
+        // instant 200. No-op in dev.
+        $middleware->prepend(\App\Modules\Common\Middleware\ProdStartupProbe::class);
+
         $middleware->trustProxies(at: '*');
         $middleware->redirectGuestsTo('/user/login');
         $middleware->validateCsrfTokens(except: [

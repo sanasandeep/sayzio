@@ -437,6 +437,19 @@ export type DialerProfileBiolink = {
   } | null;
 };
 
+/**
+ * How the matched creator presents on caller ID: personally (default) or as
+ * their presenting workspace's brand. When brand, the server has already
+ * swapped biolink.name/avatar_url to the brand identity for unsaved numbers;
+ * this block lets clients badge the call and show the tagline.
+ */
+export type DialerCallerId = {
+  type: "personal" | "brand";
+  name?: string;
+  logo_url?: string | null;
+  tagline?: string | null;
+};
+
 export type DialerManualProfile = {
   channels: DialerChannel[];
   socials: DialerSocial[];
@@ -452,6 +465,7 @@ export type DialerProfile = {
   channels: DialerChannel[];
   manual: DialerManualProfile;
   vcard_url: string;
+  caller_id?: DialerCallerId;
 };
 
 /**

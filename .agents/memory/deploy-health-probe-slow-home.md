@@ -72,3 +72,33 @@ subshell `( ... ) &` before the `exec`, so the server binds immediately. Safe
 because the keep-serving policy already tolerates a briefly-unmigrated schema;
 stderr markers (`::1inme:: DEPLOY MIGRATION FAILED`, completion marker) keep
 observability. Edit via `verifyAndReplaceArtifactToml`, never by hand.
+
+## Addendum: base-path "/" probe has a HARD ~6s deadline — needs an in-app fast path
+
+**Symptom (July 2026):** build fully green, log ends at "Creating Autoscale
+service"; runtime logs show `healthcheck /: Get "http://127.0.0.1:<port>/":
+context deadline exceeded` (~6s). `/up` and `/api/healthz` were fine.
+
+**Root cause:** the promote probe polling each service's base path enforces a
+~5-6s per-response deadline; the cold home render over the distant RDS can
+exceed it, so a marginal cold start fails the publish nondeterministically.
+
+**Fix:** production-only `ProdStartupProbe` middleware (prepended, GET "/"
+only): instant 200 "OK" when the UA is `Go-http-client`/`kube-probe`/`GoogleHC`
+/`curl/`/`python-requests`/`Replit`/empty (the prober families; browsers never
+send these), plus a **360s** (6-minute) post-boot splash window gated by
+`storage/framework/cache/prod_boot_ms` stamped by the production run command.
+The 360s window outlasts the ~5-min promote timeout, so the splash covers the
+entire health-check window regardless of UA. Mirrors the dev-only
+`DevStartupProbe` pattern.
+
+**CRITICAL:** the boot window must be ≥ the promote timeout (empirically ~5 min
+= 300s). The original fix used 25s — builds still failed because the prober
+checked "/" repeatedly for the full 5 minutes, and after 25s the slow home page
+answered again. Use `WINDOW_MS = 360000` (6 min) as the safe minimum.
+
+**How to apply:** if a publish fails with "context deadline exceeded" on a
+service's base path, don't just retry — give that exact path an in-app instant
+2xx for probe requests; run-command warm-ups alone can't beat the deadline on
+a cold container. The boot window must cover the FULL promote timeout, not just
+the first few seconds.
