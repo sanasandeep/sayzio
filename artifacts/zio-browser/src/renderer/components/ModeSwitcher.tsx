@@ -19,31 +19,29 @@ export function ModeSwitcher({ currentMode, onSetMode }: Props) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const wasOpen = useRef(false);
-  const picked = useRef(false);
 
   // The dropdown menu extends below the chrome bar, into the region covered by
   // native WebContentsViews (tab views and, in dashboard/split modes, the
   // dashboard view). Native views sit ABOVE the renderer DOM, so they would
   // swallow clicks on the menu items. Detach ALL native views while the menu
-  // is open; when it closes without a selection, restore them. (When a mode IS
-  // picked, onSetMode already round-trips and restores views.)
+  // is open and ALWAYS release exactly once when it closes — the overlay is
+  // ref-counted in main, so skipping the release (even when a mode pick
+  // already restored the views via setMode) permanently leaks the count and
+  // leaves every later menu close unable to reattach the views.
   useEffect(() => {
     if (open) {
       wasOpen.current = true;
-      picked.current = false;
       void window.zio.window.setChromeOverlay(true);
     } else if (wasOpen.current) {
       wasOpen.current = false;
-      if (!picked.current) {
-        void window.zio.window.setChromeOverlay(false);
-      }
+      void window.zio.window.setChromeOverlay(false);
     }
   }, [open]);
 
   // Release the overlay if this component unmounts while its menu is open
   // (e.g. a layout switch tears down the header).
   useEffect(() => () => {
-    if (wasOpen.current && !picked.current) {
+    if (wasOpen.current) {
       wasOpen.current = false;
       void window.zio.window.setChromeOverlay(false);
     }
@@ -111,7 +109,7 @@ export function ModeSwitcher({ currentMode, onSetMode }: Props) {
           {WINDOW_MODES.map(mode => (
             <button
               key={mode}
-              onClick={() => { picked.current = true; onSetMode(mode); setOpen(false); }}
+              onClick={() => { onSetMode(mode); setOpen(false); }}
               style={{
                 width: '100%',
                 display: 'flex',

@@ -33,24 +33,24 @@ export function NewTabButton({ currentMode, onSetMode }: Props) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const wasOpen = useRef(false);
-  const picked = useRef(false);
 
+  // Ref-counted chrome overlay: ALWAYS release exactly once when the menu
+  // closes, even when a mode was picked (setMode restores views but does NOT
+  // decrement the overlay count — skipping the release leaks the count and
+  // breaks every later menu close).
   useEffect(() => {
     if (open) {
       wasOpen.current = true;
-      picked.current = false;
       void window.zio.window.setChromeOverlay(true);
     } else if (wasOpen.current) {
       wasOpen.current = false;
-      if (!picked.current) {
-        void window.zio.window.setChromeOverlay(false);
-      }
+      void window.zio.window.setChromeOverlay(false);
     }
   }, [open]);
 
   // Release the overlay if this component unmounts while its menu is open.
   useEffect(() => () => {
-    if (wasOpen.current && !picked.current) {
+    if (wasOpen.current) {
       wasOpen.current = false;
       void window.zio.window.setChromeOverlay(false);
     }
@@ -68,7 +68,6 @@ export function NewTabButton({ currentMode, onSetMode }: Props) {
   }, [open]);
 
   const handlePick = (mode: WindowMode) => {
-    picked.current = true;
     setOpen(false);
     void (async () => {
       if (mode === 'browser' || mode === 'split') {

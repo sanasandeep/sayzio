@@ -386,11 +386,27 @@ export function ChromeBar({
   const suggestionsOpen = omniboxFocused && suggestions.length > 0;
   const suggestQueryRef = useRef('');
 
-  // Keep the native web view from covering the dropdown while it is open
+  // Keep the native web view from covering the dropdown while it is open.
+  // The overlay is ref-counted in main, so acquire/release must be balanced
+  // exactly 1:1 — the old `setChromeOverlay(suggestionsOpen)` form released
+  // once in the cleanup AND once in the next effect body (double release),
+  // which stole the overlay from other open menus.
+  const suggestionsHeldOverlay = useRef(false);
   useEffect(() => {
-    void window.zio.window.setChromeOverlay(suggestionsOpen);
-    return () => { if (suggestionsOpen) void window.zio.window.setChromeOverlay(false); };
+    if (suggestionsOpen && !suggestionsHeldOverlay.current) {
+      suggestionsHeldOverlay.current = true;
+      void window.zio.window.setChromeOverlay(true);
+    } else if (!suggestionsOpen && suggestionsHeldOverlay.current) {
+      suggestionsHeldOverlay.current = false;
+      void window.zio.window.setChromeOverlay(false);
+    }
   }, [suggestionsOpen]);
+  useEffect(() => () => {
+    if (suggestionsHeldOverlay.current) {
+      suggestionsHeldOverlay.current = false;
+      void window.zio.window.setChromeOverlay(false);
+    }
+  }, []);
 
   // Debounced history + bookmarks lookup while typing
   useEffect(() => {
