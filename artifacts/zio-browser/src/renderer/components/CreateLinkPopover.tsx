@@ -95,12 +95,14 @@ interface Props {
   pageUrl: string;
   pageTitle: string;
   baseUrl?: string;
+  /** Preselect a link type and jump straight to its form (e.g. 'qr'). */
+  initialType?: string;
   onClose: () => void;
   onOpenAuth: () => void;
   onNavigate?: (url: string) => void;
 }
 
-export function CreateLinkPopover({ pageUrl, pageTitle, baseUrl = BASE_URL, onClose, onOpenAuth, onNavigate }: Props) {
+export function CreateLinkPopover({ pageUrl, pageTitle, baseUrl = BASE_URL, initialType, onClose, onOpenAuth, onNavigate }: Props) {
   const { token } = useAuthStore();
   const popoverRef = useRef<HTMLDivElement>(null);
 
@@ -180,6 +182,17 @@ export function CreateLinkPopover({ pageUrl, pageTitle, baseUrl = BASE_URL, onCl
     setCreatedLink(null);
     setView('form');
   }, [pageUrl, pageTitle]);
+
+  // Jump straight to a specific type's form when opened from a context menu.
+  const initialTypeApplied = useRef(false);
+  useEffect(() => {
+    if (initialTypeApplied.current || !initialType) return;
+    const meta = LINK_TYPES.find(t => t.type === initialType && !t.webOnly);
+    if (meta) {
+      initialTypeApplied.current = true;
+      pickType(meta);
+    }
+  }, [initialType, pickType]);
 
   const buildPayload = useCallback(() => {
     if (!selectedType) return null;

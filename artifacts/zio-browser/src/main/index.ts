@@ -216,6 +216,9 @@ export function createWindow(): BrowserWindow {
       resetBlockedCount(tabId);
     },
     onAddToBiolink:    (url, title)   => sendToWin('biolink:add-page', url, title),
+    onShortenPage:     (url, title)   => sendToWin('link:shorten-page', url, title),
+    onCreateQr:        (url, title)   => sendToWin('link:create-qr', url, title),
+    onAutofillPage:    (tabId)        => sendToWin('autofill:page', tabId),
     onDeviceLabPreview: (url)         => sendToWin('device-lab:preview-url', url),
     onFindResult:      (result) => sendToWin('tab:find-result', result),
     onTabOrderChange: (order) => sendToWin('tab:order-changed', order),
@@ -482,6 +485,9 @@ export function createPrivateWindow(startUrl?: string): BrowserWindow {
     // Link tools (shorten/QR) still work in private mode — they require the
     // account credentials but the visited page itself is never recorded.
     onAddToBiolink: (url, title) => sendToWin('biolink:add-page', url, title),
+    onShortenPage: (url, title) => sendToWin('link:shorten-page', url, title),
+    onCreateQr: (url, title) => sendToWin('link:create-qr', url, title),
+    onAutofillPage: (tabId) => sendToWin('autofill:page', tabId),
     onDeviceLabPreview: (url) => sendToWin('device-lab:preview-url', url),
     onFindResult: (result) => sendToWin('tab:find-result', result),
     // Private windows still honor stored mute policy (read-only)…

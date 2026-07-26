@@ -19,6 +19,9 @@ import type { RecentlyClosedEntry } from '../../main/tab-manager';
 import { resolveFavicon } from '../../shared/favicon';
 import { FaviconImg } from './FaviconImg';
 import type { SyncQueueProfileCount } from '../../main/db';
+import { ApiClient } from '../../shared/api-client';
+import type { SiteResolveResult } from '../../shared/api-client';
+import { profileToAutofillCard } from '../../shared/form-autofill';
 
 interface Props {
   zioPanelOpen: boolean;
@@ -46,6 +49,40 @@ interface Props {
 }
 
 const BASE_URL = 'https://sayzio.app';
+
+// Per-host cache for the "On Sayzio" site resolver (session-lifetime).
+const siteResolveCache = new Map<string, SiteResolveResult>();
+
+/** Extract a lookup-worthy hostname from a tab URL, or null to skip. */
+function hostForSiteResolve(url: string | undefined | null): string | null {
+  if (!url || !/^https?:\/\//i.test(url)) return null;
+  try {
+    const host = new URL(url).hostname.toLowerCase().replace(/^www\./, '');
+    if (!host.includes('.')) return null;
+    // Sayzio's own hosts don't need a lookup.
+    if (host === 'sayzio.app' || host.endsWith('.sayzio.app')) return null;
+    return host;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Context-menu "Fill form with my Sayzio card": fetch the signed-in profile
+ * and run the autofill script on the target tab. Fire-and-forget — result
+ * feedback lives in the Zio panel's Contacts tab.
+ */
+async function runContextAutofill(tabId: string, token: string | null): Promise<void> {
+  if (!token) return;
+  try {
+    const client = new ApiClient({ baseUrl: BASE_URL, token });
+    const { user } = await client.getProfile();
+    const card = profileToAutofillCard(user);
+    await window.zio.tabs.autofillForm(tabId, card as Record<string, string | undefined>);
+  } catch {
+    // Silent — never break browsing over an autofill convenience action.
+  }
+}
 
 // ── Address bar suggestions ───────────────────────────────────────────────────
 
@@ -367,6 +404,9 @@ export function ChromeBar({
   const [omniboxFocused, setOmniboxFocused] = useState(false);
   const [shortenOpen, setShortenOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
+  // Context-menu link tools: override target URL/title and preselected type.
+  const [linkToolTarget, setLinkToolTarget] = useState<{ url: string; title: string } | null>(null);
+  const [createInitialType, setCreateInitialType] = useState<string | null>(null);
   // The popovers extend below the chrome bar into the web-content area, where
   // native WebContentsViews sit ABOVE the renderer DOM and would occlude them.
   // Hold the chrome overlay (detaches native views) while either is open.
@@ -603,9 +643,68 @@ export function ChromeBar({
   useEffect(() => {
     setShortenOpen(false);
     setCreateOpen(false);
+    setLinkToolTarget(null);
+    setCreateInitialType(null);
   }, [activeTabId]);
 
+  // Context-menu triggers from the main process: "Shorten…" / "QR code…" /
+  // "Fill form with my Sayzio card".
+  useEffect(() => {
+    const onShorten = (...args: unknown[]) => {
+      const [url, title] = args as [string, string];
+      if (!url) return;
+      setLinkToolTarget({ url, title: title ?? '' });
+      setCreateOpen(false);
+      setCreateInitialType(null);
+      setShortenOpen(true);
+    };
+    const onQr = (...args: unknown[]) => {
+      const [url, title] = args as [string, string];
+      if (!url) return;
+      setLinkToolTarget({ url, title: title ?? '' });
+      setShortenOpen(false);
+      setCreateInitialType('qr');
+      setCreateOpen(true);
+    };
+    const onAutofill = (...args: unknown[]) => {
+      const [tabId] = args as [string];
+      if (tabId) void runContextAutofill(tabId, token);
+    };
+    window.zio.on('link:shorten-page', onShorten);
+    window.zio.on('link:create-qr', onQr);
+    window.zio.on('autofill:page', onAutofill);
+    return () => {
+      window.zio.off('link:shorten-page', onShorten);
+      window.zio.off('link:create-qr', onQr);
+      window.zio.off('autofill:page', onAutofill);
+    };
+  }, [token]);
+
   const canShorten = !!(activeTab?.url && activeTab.url !== 'about:newtab' && activeTab.url !== '');
+
+  // "On Sayzio" site detection — debounced, per-host cached public lookup.
+  const [siteResolve, setSiteResolve] = useState<SiteResolveResult | null>(null);
+  useEffect(() => {
+    // Privacy: never in private windows, and only for signed-in users
+    // (who already have a first-party relationship with Sayzio).
+    if (isPrivate || !token) { setSiteResolve(null); return; }
+    const host = hostForSiteResolve(activeTab?.url);
+    if (!host) { setSiteResolve(null); return; }
+    const cached = siteResolveCache.get(host);
+    if (cached) { setSiteResolve(cached); return; }
+    setSiteResolve(null);
+    let cancelled = false;
+    const timer = setTimeout(() => {
+      const client = new ApiClient({ baseUrl: BASE_URL });
+      client.resolveSite(host)
+        .then((res) => {
+          siteResolveCache.set(host, res);
+          if (!cancelled) setSiteResolve(res);
+        })
+        .catch(() => { /* Silent — indicator only. */ });
+    }, 800);
+    return () => { cancelled = true; clearTimeout(timer); };
+  }, [activeTab?.url]);
 
   // Listen for custom events dispatched by the command palette
   useEffect(() => {
@@ -1021,6 +1120,26 @@ export function ChromeBar({
           style={{ fontSize: 14, padding: '2px 6px' }}
           title="Home"
         >⌂</button>
+
+        {/* "On Sayzio" chip — shown when the current site is a verified Sayzio custom domain */}
+        {siteResolve?.on_sayzio && (
+          <button
+            onClick={() => {
+              const handle = siteResolve.owner?.handle;
+              if (activeTabId && handle) void navigate(activeTabId, `${BASE_URL}/@${handle}`);
+            }}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 4,
+              fontSize: 11, fontWeight: 600,
+              padding: '2px 8px', borderRadius: 10,
+              color: '#fff', background: 'var(--color-primary)',
+              flexShrink: 0, whiteSpace: 'nowrap',
+            }}
+            title={siteResolve.owner?.name
+              ? `This site is on Sayzio — run by ${siteResolve.owner.name}. Click to view their profile.`
+              : 'This site is on Sayzio'}
+          >⚡ On Sayzio</button>
+        )}
 
         {/* Omnibox */}
         <form onSubmit={handleOmniboxSubmit} style={{ flex: 1, position: 'relative' }}>
@@ -1445,10 +1564,11 @@ export function ChromeBar({
       {/* Create link popover */}
       {createOpen && (
         <CreateLinkPopover
-          pageUrl={activeTab?.url ?? ''}
-          pageTitle={activeTab?.title ?? ''}
+          pageUrl={linkToolTarget?.url ?? activeTab?.url ?? ''}
+          pageTitle={linkToolTarget?.title ?? activeTab?.title ?? ''}
           baseUrl={BASE_URL}
-          onClose={() => setCreateOpen(false)}
+          initialType={createInitialType ?? undefined}
+          onClose={() => { setCreateOpen(false); setLinkToolTarget(null); setCreateInitialType(null); }}
           onOpenAuth={() => { setCreateOpen(false); onOpenAuth(); }}
           onNavigate={(url) => {
             if (activeTabId) {
@@ -1461,10 +1581,10 @@ export function ChromeBar({
       {/* Shorten / QR popover */}
       {shortenOpen && activeTab && (
         <ShortenPopover
-          pageUrl={activeTab.url}
-          pageTitle={activeTab.title ?? ''}
+          pageUrl={linkToolTarget?.url ?? activeTab.url}
+          pageTitle={linkToolTarget?.title ?? activeTab.title ?? ''}
           baseUrl={BASE_URL}
-          onClose={() => setShortenOpen(false)}
+          onClose={() => { setShortenOpen(false); setLinkToolTarget(null); }}
           onOpenAuth={() => { setShortenOpen(false); onOpenAuth(); }}
           onNavigate={(url) => {
             if (activeTabId) {

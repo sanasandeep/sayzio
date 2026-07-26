@@ -131,6 +131,9 @@ export class TabManager {
   private onActiveTabChange?: (tabId: TabId) => void;
   private onNavigate?: (tabId: TabId, url: string, title: string) => void;
   private onAddToBiolink?: (url: string, title: string) => void;
+  private onShortenPage?: (url: string, title: string) => void;
+  private onCreateQr?: (url: string, title: string) => void;
+  private onAutofillPage?: (tabId: TabId) => void;
   private onDeviceLabPreview?: (url: string) => void;
   private onFindResult?: (result: FindResult) => void;
   private readonly tabSession: Electron.Session;
@@ -169,6 +172,9 @@ export class TabManager {
     onActiveTabChange?: (tabId: TabId) => void;
     onNavigate?: (tabId: TabId, url: string, title: string) => void;
     onAddToBiolink?: (url: string, title: string) => void;
+    onShortenPage?: (url: string, title: string) => void;
+    onCreateQr?: (url: string, title: string) => void;
+    onAutofillPage?: (tabId: TabId) => void;
     onDeviceLabPreview?: (url: string) => void;
     onFindResult?: (result: FindResult) => void;
     onTabOrderChange?: (order: TabId[]) => void;
@@ -186,6 +192,9 @@ export class TabManager {
     this.onActiveTabChange = cbs.onActiveTabChange;
     this.onNavigate = cbs.onNavigate;
     this.onAddToBiolink = cbs.onAddToBiolink;
+    this.onShortenPage = cbs.onShortenPage;
+    this.onCreateQr = cbs.onCreateQr;
+    this.onAutofillPage = cbs.onAutofillPage;
     this.onDeviceLabPreview = cbs.onDeviceLabPreview;
     this.onFindResult = cbs.onFindResult;
     this.onTabOrderChange = cbs.onTabOrderChange;
@@ -472,8 +481,20 @@ export class TabManager {
       // ── Sayzio link tools (available in both normal and private windows) ──
       menuItems.push(
         {
+          label: params.linkURL ? 'Shorten this link with Sayzio…' : 'Shorten this page with Sayzio…',
+          click: () => { this.onShortenPage?.(targetUrl, pageTitle); },
+        },
+        {
+          label: params.linkURL ? 'QR code for this link…' : 'QR code for this page…',
+          click: () => { this.onCreateQr?.(targetUrl, pageTitle); },
+        },
+        {
           label: 'Add to my biolink…',
           click: () => { this.onAddToBiolink?.(targetUrl, pageTitle); },
+        },
+        {
+          label: 'Fill form with my Sayzio card',
+          click: () => { this.onAutofillPage?.(id); },
         },
         {
           label: 'Preview in Device Lab',

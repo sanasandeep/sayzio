@@ -18,7 +18,8 @@ import { trimPageContext } from '../../shared/context-extractor';
 import type { PageContext, TrimmedContext } from '../../shared/context-extractor';
 import { detectSayzioLink } from '../../shared/link-tools';
 import { AddToBiolinkModal } from './AddToBiolinkModal';
-import type { AutofillCard, AutofillResult } from '../../shared/form-autofill';
+import type { AutofillResult } from '../../shared/form-autofill';
+import { profileToAutofillCard } from '../../shared/form-autofill';
 import { BrowserToolsView } from './BrowserToolsView';
 import { detectBrowserIntent, describeIntent } from '../../shared/browser-intents';
 import type { BrowserIntent } from '../../shared/browser-intents';
@@ -408,11 +409,11 @@ export function ZioPanel({ pageContext, onClose, presentation = 'embedded', pane
 
   // ── Chat send ───────────────────────────────────────────────────────────────
 
-  const sendMessage = useCallback(async () => {
-    if (!input.trim() || isLoading) return;
+  const sendMessage = useCallback(async (overrideText?: string) => {
+    const text = (overrideText ?? input).trim();
+    if (!text || isLoading) return;
 
-    const text = input.trim();
-    setInput('');
+    if (!overrideText) setInput('');
 
     // Check for browser management intent before sending to backend
     const intent = detectBrowserIntent(text);
@@ -706,6 +707,18 @@ export function ZioPanel({ pageContext, onClose, presentation = 'embedded', pane
           )}
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+          {/* Summarize current page quick action */}
+          {token && trimmedCtx?.excerpt && (
+            <button
+              onClick={() => {
+                setActiveTab('chat');
+                void sendMessage('Summarize this page in a few short bullet points, then one line on why it matters.');
+              }}
+              disabled={isLoading}
+              title="Summarize this page with Zio"
+              style={headerSmallBtn}
+            >📝 Summarize</button>
+          )}
           {/* Add to biolink quick action */}
           {token && pageContext?.url && (
             <button
@@ -1418,20 +1431,6 @@ interface ContactEntry {
   emails: string[];
   phones: string[];
   key: string;
-}
-
-function profileToAutofillCard(profile: ApiUserProfile): AutofillCard {
-  const nameParts = (profile.name ?? '').trim().split(/\s+/);
-  return {
-    full_name: profile.name ?? undefined,
-    given_name: profile.given_name ?? (nameParts[0] ?? undefined),
-    family_name: profile.family_name ?? (nameParts.length > 1 ? nameParts.slice(1).join(' ') : undefined),
-    email: profile.email ?? undefined,
-    phone: profile.phone ?? undefined,
-    organization: profile.organization ?? undefined,
-    job_title: profile.job_title ?? undefined,
-    website: profile.website ?? undefined,
-  };
 }
 
 function ContactExtractorView({ url, trimmedCtx }: { url: string; title: string; trimmedCtx: TrimmedContext | null }) {

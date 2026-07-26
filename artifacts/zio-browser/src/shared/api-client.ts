@@ -32,6 +32,12 @@ export interface ApiUser {
 }
 
 /** Extended profile with fields useful for form autofill (returned by GET /profile). */
+/** Result of the public "is this site on Sayzio?" resolver. */
+export interface SiteResolveResult {
+  on_sayzio: boolean;
+  owner?: { name: string | null; handle: string | null; avatar: string | null } | null;
+}
+
 export interface ApiUserProfile extends ApiUser {
   phone: string | null;
   given_name?: string | null;
@@ -253,6 +259,11 @@ export class ApiClient {
 
   async getProfile(): Promise<{ user: ApiUserProfile }> {
     return this.get('/profile');
+  }
+
+  /** Public "is this site on Sayzio?" resolver — no auth required. */
+  async resolveSite(host: string): Promise<SiteResolveResult> {
+    return this.get(`/resolve/site?host=${encodeURIComponent(host)}`);
   }
 
   async createContact(data: ContactPayload): Promise<{ contact: ApiContact }> {
