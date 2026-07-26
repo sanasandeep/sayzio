@@ -388,6 +388,9 @@ Route::prefix('v1')->group(function () {
     Route::middleware(['auth:sanctum', \App\Modules\Api\Middleware\TouchSessionToken::class, \App\Modules\Api\Middleware\MeterApiUsage::class])->group(function () {
         Route::get('/auth/me',     [AuthController::class, 'me']);
         Route::post('/auth/logout',[AuthController::class, 'logout']);
+        // Zio Browser: exchange the Sanctum token for a one-time signed web
+        // login URL so embedded tabs get a matching cookie session.
+        Route::post('/auth/browser-session', [AuthController::class, 'browserSession'])->middleware('throttle:20,1');
 
         // Self-serve password management (Task #5619).
         Route::post('/me/password/change',   [\App\Modules\Api\Controllers\PasswordController::class, 'change'])->middleware('throttle:auth-credentials');

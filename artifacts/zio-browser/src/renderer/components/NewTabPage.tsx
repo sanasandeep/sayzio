@@ -143,7 +143,7 @@ export function NewTabPage({ onNavigate, isPrivate = false }: Props) {
   ];
 
   const QUICK_LINKS = [
-    { title: 'Sayzio', url: 'https://1in.me', icon: '⚡' },
+    { title: 'Sayzio', url: 'https://sayzio.app', icon: '⚡' },
     { title: 'Gmail', url: 'https://mail.google.com', icon: '📧' },
     { title: 'GitHub', url: 'https://github.com', icon: '🐙' },
     { title: 'LinkedIn', url: 'https://linkedin.com', icon: '💼' },

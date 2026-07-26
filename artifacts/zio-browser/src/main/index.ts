@@ -8,6 +8,7 @@ import { initDb, getPreference, setPreference, getMuteAllTabs, isDomainMuted, se
 import { PREFERENCE_KEYS, type PreferenceKey } from '../shared/db-schema';
 import { hostForMutePolicy } from '../shared/mute-policy';
 import { sessionPartitionForProfile, DEFAULT_PROFILE_ID } from '../shared/profile-store';
+import { seedSayzioWebSession } from './sayzio-session';
 import { TabManager } from './tab-manager';
 import { WindowModeManager, CHROME_HEIGHT } from './window-mode-manager';
 import {
@@ -191,6 +192,10 @@ export function createWindow(): BrowserWindow {
   const tabManager = new TabManager(win);
   tabManager.setActiveProfilePartition(savedProfileId);
   registerTabManager(win, tabManager);
+
+  // If the browser holds a Sanctum token, quietly establish a matching web
+  // session in this profile's cookie jar so sayzio.app tabs open signed in.
+  void seedSayzioWebSession(sessionPartitionForProfile(savedProfileId));
 
 
   // Guard against sends after the window is destroyed — tab teardown during

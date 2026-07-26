@@ -1,6 +1,6 @@
 {
   "name": "@workspace/zio-browser",
-  "version": "0.1.23",
+  "version": "0.1.24",
   "private": true,
   "description": "Zio Browser — AI-powered companion browser for Mac and Windows",
   "main": "dist/main/index.js",

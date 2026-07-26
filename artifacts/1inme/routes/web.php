@@ -68,6 +68,15 @@ Route::get('/dialer/vcard', [\App\Modules\User\Controllers\DialerVcardController
     ->middleware('signed')
     ->name('user.dialer.vcard');
 
+// ---- Zio Browser web-session bridge ----
+// One-time signed login URL minted by POST /api/v1/auth/browser-session so the
+// desktop browser (which authenticates via Sanctum token) can establish a
+// matching cookie web session inside its embedded tabs. Two-segment path keeps
+// it clear of the /{alias} catch-all.
+Route::get('/browser/session-login', [\App\Modules\Common\Controllers\BrowserSessionController::class, 'login'])
+    ->middleware(['signed', 'throttle:30,1'])
+    ->name('browser.session.login');
+
 // Public hosted "pay this invoice" link delivered by email. Both routes
 // are protected by Laravel signed-URL HMAC, so no session/auth needed.
 Route::get('/pay/invoice/{invoice}',  [\App\Modules\User\Controllers\ClientInvoiceController::class, 'payPage'])->name('client-invoice.pay');

@@ -7,7 +7,9 @@
 @endphp
 
 @if($currentWs)
-<div x-data="{ open:false, creating:false, name:'', icon:'users', color:'#10b981' }" class="px-3 py-2 border-b" style="border-color: var(--border-strong);">
+<div x-data="{ open:false, creating:false, name:'', icon:'users', color:'#10b981' }"
+     x-init="if (new URLSearchParams(window.location.search).get('create_workspace') === '1') { open = true; creating = {{ $canCreateWs ? 'true' : 'false' }}; $nextTick(() => $el.scrollIntoView({ block: 'nearest' })) }"
+     class="px-3 py-2 border-b" style="border-color: var(--border-strong);">
     <button type="button" @click="open = !open"
             class="w-full flex items-center justify-between gap-2 px-2 py-2 rounded-xl transition-colors hover:bg-black/5"
             style="color: var(--text-primary);"

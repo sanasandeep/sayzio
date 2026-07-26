@@ -11,6 +11,7 @@ import { CreateLinkPopover } from './CreateLinkPopover';
 import { TabModeSwitcher } from './TabModeSwitcher';
 import { normalizeTabMode } from '../../shared/window-mode';
 import { ProfileSwitcher } from './ProfileSwitcher';
+import { useChromeOverlay } from '../hooks/use-chrome-overlay';
 import { AccountButton } from './AccountButton';
 import zioIcon from '../assets/zio-icon.png';
 import { useModeStore } from '../store/mode-store';
@@ -42,7 +43,7 @@ interface Props {
   settingsOpen?: boolean;
 }
 
-const BASE_URL = 'https://1in.me';
+const BASE_URL = 'https://sayzio.app';
 
 // ── Address bar suggestions ───────────────────────────────────────────────────
 
@@ -364,6 +365,10 @@ export function ChromeBar({
   const [omniboxFocused, setOmniboxFocused] = useState(false);
   const [shortenOpen, setShortenOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
+  // The popovers extend below the chrome bar into the web-content area, where
+  // native WebContentsViews sit ABOVE the renderer DOM and would occlude them.
+  // Hold the chrome overlay (detaches native views) while either is open.
+  useChromeOverlay(shortenOpen || createOpen);
   const [pendingSyncCount, setPendingSyncCount] = useState(0);
   const [pendingSyncByProfile, setPendingSyncByProfile] = useState<SyncQueueProfileCount[]>([]);
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
@@ -753,7 +758,7 @@ export function ChromeBar({
               } as React.CSSProperties}
             >
               {tab?.favicon ? (
-                <img src={tab.favicon} width={14} height={14} style={{ borderRadius: 2 }} alt="" />
+                <img src={tab.favicon} width={14} height={14} style={{ borderRadius: 2, filter: isActive ? 'none' : 'grayscale(1)', opacity: isActive ? 1 : 0.75 }} alt="" />
               ) : (
                 <div style={{ width: 14, height: 14, borderRadius: 2, background: 'var(--color-border)' }} />
               )}
@@ -843,7 +848,7 @@ export function ChromeBar({
               } as React.CSSProperties}
             >
               {tab?.favicon ? (
-                <img src={tab.favicon} width={14} height={14} style={{ borderRadius: 2, flexShrink: 0 }} alt="" />
+                <img src={tab.favicon} width={14} height={14} style={{ borderRadius: 2, flexShrink: 0, filter: isActive ? 'none' : 'grayscale(1)', opacity: isActive ? 1 : 0.75 }} alt="" />
               ) : (
                 <div style={{ width: 14, height: 14, borderRadius: 2, background: 'var(--color-border)', flexShrink: 0 }} />
               )}
