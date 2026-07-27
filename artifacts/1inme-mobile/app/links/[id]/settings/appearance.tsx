@@ -3,6 +3,7 @@ import { Stack, useLocalSearchParams } from "expo-router";
 import { BgPresetPicker } from "@/components/BgPresetPicker";
 import { BgTemplatePicker } from "@/components/BgTemplatePicker";
 import { BiolinkBackgroundPreview } from "@/components/BiolinkBackgroundPreview";
+import { DesignLockGate } from "@/components/DesignLockGate";
 import { SettingsForm } from "@/components/SettingsForm";
 
 export default function AppearanceSettings() {
@@ -10,6 +11,7 @@ export default function AppearanceSettings() {
   return (
     <>
       <Stack.Screen options={{ headerShown: true, title: "Appearance" }} />
+      <DesignLockGate linkId={Number(id)}>
       <SettingsForm
         linkId={Number(id)}
         group="appearance"
@@ -34,6 +36,7 @@ export default function AppearanceSettings() {
           </>
         }
       />
+      </DesignLockGate>
     </>
   );
 }

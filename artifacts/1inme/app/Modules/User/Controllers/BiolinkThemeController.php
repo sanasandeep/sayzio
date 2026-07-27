@@ -27,6 +27,9 @@ class BiolinkThemeController extends Controller
     public function settingsIndex(Link $link)
     {
         $this->authorize($link);
+        if ($link->isDesignLocked()) {
+            return redirect()->route('user.links.settings.advanced', $link);
+        }
         [$themes, $schedules] = $this->loadFor($link);
         return view('user.links.settings.themes', [
             'link'       => $link,

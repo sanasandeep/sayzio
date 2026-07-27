@@ -1336,6 +1336,7 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::post('links/{link}/templates/apply-page', [\App\Modules\User\Controllers\LinkTemplateController::class, 'applyPage'])->middleware('workspace.can:links.edit')->name('links.templates.apply-page');
         Route::get('links/{link}/templates/cards', [\App\Modules\User\Controllers\LinkTemplateController::class, 'cardGallery'])->middleware('workspace.can:links.view')->name('links.templates.cards');
         Route::post('links/{link}/templates/apply-card', [\App\Modules\User\Controllers\LinkTemplateController::class, 'applyCard'])->middleware('workspace.can:links.edit')->name('links.templates.apply-card');
+        Route::post('links/{link}/templates/detach-design', [\App\Modules\User\Controllers\LinkTemplateController::class, 'detachDesign'])->middleware('workspace.can:links.edit')->name('links.templates.detach-design');
 
         // Standalone splash pages — reusable across multiple links. Read
         // under links.view, mutate under links.edit.

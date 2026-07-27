@@ -25,6 +25,13 @@ export type Link = {
   created_at: string | null;
   updated_at: string | null;
   settings?: Record<string, unknown> | null;
+  /** True while the page's styling is locked to an applied design template. */
+  design_locked?: boolean;
+  design_lock?: {
+    template_id: number | null;
+    template_name: string | null;
+    locked_at: string | null;
+  } | null;
 };
 
 export type LinksMeta = {

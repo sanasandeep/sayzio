@@ -286,7 +286,7 @@ class OnboardingController extends Controller
                 }
             }
 
-            $this->templates->applyPageToLink($link, $tpl->snapshot, /*replace*/ true);
+            $this->templates->applyPageToLink($link, $tpl->snapshot, /*replace*/ true, $tpl);
         } catch (\Throwable $e) {
             report($e);
 

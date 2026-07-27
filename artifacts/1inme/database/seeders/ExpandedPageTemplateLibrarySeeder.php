@@ -47,7 +47,22 @@ class ExpandedPageTemplateLibrarySeeder extends Seeder
      * alone. Redesign block contents/copy/themes freely; rename the
      * `key` only when you also intend to retire the old slug.
      */
-    public const SEED_VERSION = 4;
+    public const SEED_VERSION = 5;
+
+    /**
+     * Personas whose "Aurora Starter" blueprint ships as a design-locked
+     * designer template (~12 total). Applying one of these stamps the
+     * biolink design-locked: content stays editable but styling follows
+     * the template until the user detaches. Admins can flip the lock per
+     * template in the admin panel afterwards.
+     *
+     * @var array<int,string>
+     */
+    private const DESIGN_LOCKED_STARTER_PERSONAS = [
+        'creator', 'artist', 'musician', 'influencer', 'coach', 'business',
+        'developer', 'photographer', 'podcaster', 'fitness', 'restaurant',
+        'realestate',
+    ];
 
     /** Tolerance (seconds) for treating updated_at == created_at. */
     private const EDIT_DRIFT_TOLERANCE = 2;
@@ -735,6 +750,10 @@ class ExpandedPageTemplateLibrarySeeder extends Seeder
             'sort_order'           => 100 + $index,
             'recommended_personas' => [$personaSlug],
             'snapshot'             => $bp['snapshot'],
+            // Curated designer templates are seeded design-locked so the
+            // pages they create keep the designed look (detachable).
+            'design_locked'        => $bp['key'] === 'starter'
+                && in_array($personaSlug, self::DESIGN_LOCKED_STARTER_PERSONAS, true),
         ]);
     }
 

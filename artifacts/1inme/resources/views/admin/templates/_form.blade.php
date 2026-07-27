@@ -120,6 +120,17 @@
             </div>
             @if($kind === 'page')
                 @php
+                    $designLocked = old('design_locked', $isEdit ? (($tpl->design_locked ?? false) ? '1' : '0') : '0');
+                @endphp
+                <div class="md:col-span-2">
+                    <label class="inline-flex items-center gap-2 cursor-pointer">
+                        <input type="hidden" name="design_locked" value="0">
+                        <input type="checkbox" name="design_locked" value="1" {{ $designLocked == '1' ? 'checked' : '' }} class="rounded bg-white/5 border-white/20 text-blue-600 ak-input">
+                        <span class="text-sm text-white/70 ak-strong"><i class="fas fa-lock mr-1 text-amber-300 ak-amber"></i>Design locked</span>
+                    </label>
+                    <p class="text-[10px] text-white/30 mt-1 ak-note">Applying this template locks the page's design: users can edit content and add/remove blocks, but all styling surfaces (appearance, per-block styles, design variants, block theme, custom CSS/JS) are hidden and server-enforced until they detach from the template.</p>
+                </div>
+                @php
                     $selectedPersonas = old('recommended_personas', $isEdit ? ($tpl->recommended_personas ?? []) : []);
                     if (!is_array($selectedPersonas)) $selectedPersonas = [];
                     // Personas carried from the dashboard coverage warning are

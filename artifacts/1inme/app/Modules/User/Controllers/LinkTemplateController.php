@@ -134,10 +134,30 @@ class LinkTemplateController extends Controller
             return back()->with('error', 'Applying this template will replace your existing blocks. Confirm to proceed.');
         }
 
-        $this->templates->applyPageToLink($link, $tpl->snapshot, /*replace*/ true);
+        $this->templates->applyPageToLink($link, $tpl->snapshot, /*replace*/ true, $tpl);
 
         return redirect()->route('user.links.blocks.editor', $link)
             ->with('success', 'Template "' . $tpl->name . '" applied.');
+    }
+
+    /**
+     * "Detach from template" — clears the design-lock stamp so the page
+     * keeps its current look but the creator regains every styling surface
+     * (appearance, per-block styles, variants, block theme, custom CSS/JS).
+     */
+    public function detachDesign(Request $request, Link $link)
+    {
+        abort_if($link->user_id !== auth()->id() || !$link->isBiolinkFamily(), 403);
+
+        $settings = $link->settings ?? [];
+        unset($settings['biolink']['design_locked']);
+        $link->settings = $settings;
+        $link->save();
+
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json(['success' => true]);
+        }
+        return back()->with('success', 'Detached from template — full design controls are unlocked.');
     }
 
     public function applyCard(Request $request, Link $link)

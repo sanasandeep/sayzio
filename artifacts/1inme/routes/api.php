@@ -833,6 +833,9 @@ Route::prefix('v1')->group(function () {
         // block renderer before the user commits to replacing their page.
         Route::get ('/links/{id}/page-templates/{template}', [\App\Modules\Api\Controllers\PageTemplateController::class, 'show'])->whereNumber('id')->whereNumber('template');
         Route::post('/links/{id}/page-templates/apply',   [\App\Modules\Api\Controllers\PageTemplateController::class, 'apply'])->whereNumber('id');
+        // Detach a design-locked page from its template — unlocks all styling
+        // surfaces (mobile parity for the web "Detach from template" action).
+        Route::post('/links/{id}/page-templates/detach',  [\App\Modules\Api\Controllers\PageTemplateController::class, 'detach'])->whereNumber('id');
 
         // Biolink blocks (authoring)
         // Block-type palette catalog (mobile parity for the web editor

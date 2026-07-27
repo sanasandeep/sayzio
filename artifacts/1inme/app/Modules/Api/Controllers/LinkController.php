@@ -432,6 +432,30 @@ class LinkController extends Controller
             // `appearance.theme`) without clobbering the rest.
             $existing = (array) ($link->settings ?? []);
             $patch    = (array) ($data['settings'] ?? []);
+
+            // Design lock parity with the web page-settings save: while a
+            // page is design-locked, every styling key under settings.biolink
+            // (plus block_theme/layout and the lock stamp itself) is
+            // server-owned — strip them from the patch so content-level
+            // settings still merge but styling can't drift via the API.
+            if ($link->isDesignLocked()) {
+                if (is_array($patch['biolink'] ?? null)) {
+                    $lockedKeys = array_merge(
+                        \App\Modules\User\Controllers\BiolinkBlockController::DESIGN_LOCKED_PAGE_KEYS,
+                        ['block_theme', 'layout', 'background_image', 'slideshow_images', 'video_file', 'bg_fallback_image', 'favicon_url', 'design_locked']
+                    );
+                    foreach ($lockedKeys as $k) {
+                        unset($patch['biolink'][$k]);
+                    }
+                } elseif (array_key_exists('biolink', $patch) && !is_array($patch['biolink'])) {
+                    unset($patch['biolink']);
+                }
+            } elseif (is_array($patch['biolink'] ?? null)) {
+                // The lock stamp is only ever written server-side (template
+                // apply / detach) — never accept it from the client.
+                unset($patch['biolink']['design_locked']);
+            }
+
             $data['settings'] = array_replace_recursive($existing, $patch);
         }
 

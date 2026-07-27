@@ -198,7 +198,7 @@ class PageTemplateController extends Controller
             ], 409);
         }
 
-        $this->templates->applyPageToLink($link, $tpl->snapshot, /*replace*/ true);
+        $this->templates->applyPageToLink($link, $tpl->snapshot, /*replace*/ true, $tpl);
 
         // Return the full freshly-created block tree (parents first, then
         // their children by sort_order) so the mobile editor can swap its
@@ -212,6 +212,24 @@ class PageTemplateController extends Controller
                 'blocks' => $tree->map(fn ($b) => $this->serializeBlock($b))->all(),
             ],
         ]);
+    }
+
+    /**
+     * Detach a design-locked page from its template. Mirrors the web
+     * LinkTemplateController::detachDesign — removes the lock stamp so all
+     * styling surfaces unlock; the page keeps its current look.
+     */
+    public function detach(Request $request, int $id): JsonResponse
+    {
+        $link = Link::where('id', $id)->where('user_id', auth()->id())->firstOrFail();
+        abort_if(!$link->isBiolinkFamily(), 403);
+
+        $settings = $link->settings ?? [];
+        unset($settings['biolink']['design_locked']);
+        $link->settings = $settings;
+        $link->save();
+
+        return response()->json(['data' => ['detached' => true, 'design_locked' => false]]);
     }
 
     /**

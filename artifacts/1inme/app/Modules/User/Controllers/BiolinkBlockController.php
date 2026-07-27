@@ -120,12 +120,18 @@ class BiolinkBlockController extends Controller
 
     public function settings(Link $link)
     {
+        if ($link->isDesignLocked()) {
+            return redirect()->route('user.links.settings.advanced', $link);
+        }
         return redirect()->route('user.links.settings.appearance', $link);
     }
 
     public function settingsAppearance(Link $link)
     {
         abort_if($link->user_id !== workspace_owner_id() || !$link->isBiolinkFamily(), 403);
+        if ($link->isDesignLocked()) {
+            return redirect()->route('user.links.settings.advanced', $link);
+        }
         // Order templates as a "color grid": neutrals first (sorted by
         // lightness, brightest → darkest), then a rainbow sweep through
         // the colour wheel (red → orange → yellow → green → cyan → blue
@@ -236,12 +242,18 @@ class BiolinkBlockController extends Controller
     public function settingsLayout(Link $link)
     {
         abort_if($link->user_id !== workspace_owner_id() || !$link->isBiolinkFamily(), 403);
+        if ($link->isDesignLocked()) {
+            return redirect()->route('user.links.settings.advanced', $link);
+        }
         return view('user.links.settings.layout', compact('link'));
     }
 
     public function settingsBlockTheme(Link $link)
     {
         abort_if($link->user_id !== workspace_owner_id() || !$link->isBiolinkFamily(), 403);
+        if ($link->isDesignLocked()) {
+            return redirect()->route('user.links.settings.advanced', $link);
+        }
         return view('user.links.settings.block-theme', compact('link'));
     }
 
@@ -356,6 +368,19 @@ class BiolinkBlockController extends Controller
                 BiolinkBlock::STYLE_DEFAULTS,
                 BlockDefaults::styleForType($validated['type'])
             ));
+        }
+
+        // Design lock: new blocks on a locked page always inherit the
+        // template's styling for their type (falling back to defaults when
+        // the template had no styled block of this type). Any client-sent
+        // `_style` is ignored — styling is server-owned while locked.
+        if ($link->isDesignLocked()) {
+            $settings['_style'] = $this->sanitizeBlockStyle(array_merge(
+                BiolinkBlock::STYLE_DEFAULTS,
+                BlockDefaults::styleForType($validated['type']),
+                $link->designLockStyleFor($validated['type']) ?? []
+            ));
+            unset($settings['_style_custom_snapshot']);
         }
 
         // Snapshot the seeded *content* fields so update() can later tell
@@ -565,6 +590,13 @@ class BiolinkBlockController extends Controller
         $existingStyle = $block->settings['_style'] ?? [];
         $incomingStyle = $validated['style'] ?? [];
 
+        // Design lock: styling is read-only while the page is bound to a
+        // design-locked template — silently ignore any submitted style so
+        // content edits still save normally.
+        if ($link->isDesignLocked()) {
+            $incomingStyle = [];
+        }
+
         // Task #4025: an explicitly-submitted empty value is a "clear this
         // key" instruction (e.g. wiping the Background Color text field back
         // to Transparent). sanitizeBlockStyle() skips empty values, so
@@ -626,6 +658,7 @@ class BiolinkBlockController extends Controller
     public function applyVariantToAll(Request $request, Link $link, BiolinkBlock $block)
     {
         abort_if($link->user_id !== workspace_owner_id() || $block->link_id !== $link->id, 403);
+        if ($resp = $this->designLockedResponse($link)) return $resp;
 
         $validated = $request->validate([
             'variant' => 'required|string|max:60',
@@ -691,6 +724,7 @@ class BiolinkBlockController extends Controller
     public function applyVariant(Request $request, Link $link, BiolinkBlock $block)
     {
         abort_if($link->user_id !== workspace_owner_id() || $block->link_id !== $link->id, 403);
+        if ($resp = $this->designLockedResponse($link)) return $resp;
 
         $validated = $request->validate(['variant' => 'required|string|max:60']);
         $variant = BlockVariantCatalog::find($block->type, $validated['variant']);
@@ -734,6 +768,7 @@ class BiolinkBlockController extends Controller
     public function restoreCustomStyle(Link $link, BiolinkBlock $block)
     {
         abort_if($link->user_id !== workspace_owner_id() || $block->link_id !== $link->id, 403);
+        if ($resp = $this->designLockedResponse($link)) return $resp;
 
         $settings = $block->settings ?? [];
         $snapshot = $settings['_style_custom_snapshot'] ?? null;
@@ -760,6 +795,7 @@ class BiolinkBlockController extends Controller
     public function resetStyle(Request $request, Link $link, BiolinkBlock $block)
     {
         abort_if($link->user_id !== workspace_owner_id() || $block->link_id !== $link->id, 403);
+        if ($resp = $this->designLockedResponse($link)) return $resp;
 
         $applyToAll = (bool) $request->boolean('apply_to_all');
         $defaults = $this->sanitizeBlockStyle(BiolinkBlock::STYLE_DEFAULTS);
@@ -1025,6 +1061,36 @@ class BiolinkBlockController extends Controller
         return response()->json(['success' => true]);
     }
 
+    /**
+     * 403 JSON response for style-mutation endpoints when the page is bound
+     * to a design-locked template; null when styling edits are allowed.
+     */
+    private function designLockedResponse(Link $link)
+    {
+        if (!$link->isDesignLocked()) {
+            return null;
+        }
+        return response()->json([
+            'success' => false,
+            'error' => 'This page uses a design-locked template. Detach from the template to customize styling.',
+        ], 403);
+    }
+
+    /**
+     * Page-settings keys that are design surfaces and therefore stripped
+     * from saves while the link is design-locked. Content, SEO, sharing,
+     * privacy and behaviour keys stay editable.
+     */
+    public const DESIGN_LOCKED_PAGE_KEYS = [
+        'background_type', 'bg_preset_key', 'background_color', 'background_gradient',
+        'gradient_colors', 'gradient_angle', 'gradient_type', 'gradient_preset_id',
+        'slideshow_interval', 'video_url', 'bg_template_id', 'bg_attachment',
+        'bg_fallback_color', 'bg_blur', 'bg_overlay_color', 'bg_overlay_opacity',
+        'font_family', 'font_color', 'button_style', 'button_color', 'button_text_color',
+        'custom_branding_text', 'custom_branding_url', 'custom_branding_logo',
+        'custom_css', 'custom_js_head', 'custom_js_body',
+    ];
+
     public function updatePageSettings(Request $request, Link $link)
     {
         abort_if($link->user_id !== workspace_owner_id() || !$link->isBiolinkFamily(), 403);
@@ -1196,6 +1262,25 @@ class BiolinkBlockController extends Controller
         $videoFile = $request->file('video_file');
         $fallbackImageFile = $request->file('bg_fallback_image');
         unset($validated['block_theme'], $validated['layout'], $validated['meta'], $validated['og'], $validated['twitter'], $validated['favicons'], $validated['manifest'], $validated['share_button'], $validated['menu_bar'], $validated['auto_translate'], $validated['og_image_upload'], $validated['apple_touch_upload'], $validated['icon_512_upload'], $validated['slideshow_images'], $validated['video_file'], $validated['bg_fallback_image']);
+
+        // Design lock: strip every design surface from the save — background,
+        // typography, buttons, block theme, layout, custom branding/CSS/JS and
+        // design-related uploads. Non-design settings (SEO, sharing, privacy,
+        // visibility, etc.) continue to save normally.
+        if ($link->isDesignLocked()) {
+            foreach (self::DESIGN_LOCKED_PAGE_KEYS as $k) {
+                unset($validated[$k]);
+            }
+            $blockTheme = null;
+            $layoutInput = null;
+            $slideshowFiles = null;
+            $videoFile = null;
+            $fallbackImageFile = null;
+            $request->files->remove('background_image');
+            $request->files->remove('slideshow_images');
+            $request->files->remove('video_file');
+            $request->files->remove('bg_fallback_image');
+        }
 
         if ($link->is_verified) {
             unset($validated['biolink_title']);

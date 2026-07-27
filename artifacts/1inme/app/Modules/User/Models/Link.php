@@ -386,6 +386,35 @@ protected $fillable = [
             ->latestOfMany();
     }
 
+    /**
+     * Design lock — stamped by TemplateService::applyPageToLink when a
+     * design-locked page template is applied. While present, the editor
+     * hides styling surfaces and the server strips design keys from web
+     * and API writes. Content/block CRUD stays free. Cleared by the
+     * "Detach from template" action or by applying an unlocked template.
+     */
+    public function designLockInfo(): ?array
+    {
+        $info = ($this->settings ?? [])['biolink']['design_locked'] ?? null;
+        return is_array($info) ? $info : null;
+    }
+
+    public function isDesignLocked(): bool
+    {
+        return $this->designLockInfo() !== null;
+    }
+
+    /**
+     * The template's `_style` for a block type, used to seed new blocks
+     * created on a design-locked page. Null when the template had no
+     * styled block of that type.
+     */
+    public function designLockStyleFor(string $type): ?array
+    {
+        $style = ($this->designLockInfo() ?? [])['block_styles'][$type] ?? null;
+        return is_array($style) ? $style : null;
+    }
+
     public function isExpired(): bool
     {
         if ($this->expires_at && $this->expires_at->isPast()) return true;

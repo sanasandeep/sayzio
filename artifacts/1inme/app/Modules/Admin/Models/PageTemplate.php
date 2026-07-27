@@ -11,10 +11,12 @@ class PageTemplate extends Model
     protected $fillable = [
         'name', 'slug', 'category', 'description', 'thumbnail_url',
         'plan_tier', 'recommended_personas', 'is_active', 'sort_order', 'snapshot',
+        'design_locked',
     ];
 
     protected $casts = [
         'is_active' => 'boolean',
+        'design_locked' => 'boolean',
         'sort_order' => 'integer',
         'snapshot' => 'array',
         'recommended_personas' => 'array',

@@ -83,9 +83,17 @@ class TemplateService
         return $data;
     }
 
-    public function applyPageToLink(Link $link, array $snapshot, bool $replace = true): void
+    /**
+     * @param \App\Modules\Admin\Models\PageTemplate|null $template The page
+     *        template the snapshot came from, when applying a stored
+     *        template. Design-locked templates stamp the link with a
+     *        `settings.biolink.design_locked` marker (template identity +
+     *        a per-block-type `_style` map used to seed new blocks); an
+     *        unlocked template — or a raw snapshot — clears any prior stamp.
+     */
+    public function applyPageToLink(Link $link, array $snapshot, bool $replace = true, ?\App\Modules\Admin\Models\PageTemplate $template = null): void
     {
-        DB::transaction(function () use ($link, $snapshot, $replace) {
+        DB::transaction(function () use ($link, $snapshot, $replace, $template) {
             if ($replace) {
                 $link->biolinkBlocks()->delete();
             }
@@ -103,6 +111,22 @@ class TemplateService
                 }
             }
             $settings['biolink'] = array_merge($existingBiolink, $tplBiolink);
+
+            // Design lock: applying a locked template stamps the link so the
+            // editor hides styling surfaces and the server strips design keys;
+            // applying an unlocked template (or a raw snapshot) releases any
+            // previous lock — the new design replaces the locked one.
+            if ($template && $template->design_locked) {
+                $settings['biolink']['design_locked'] = [
+                    'template_id'   => $template->id,
+                    'template_name' => $template->name,
+                    'locked_at'     => now()->toIso8601String(),
+                    'block_styles'  => $this->snapshotBlockStyles($snapshot),
+                ];
+            } else {
+                unset($settings['biolink']['design_locked']);
+            }
+
             $link->settings = $settings;
             $link->save();
 
@@ -243,6 +267,34 @@ class TemplateService
 
         $allSink->push($block);
         return $block;
+    }
+
+    /**
+     * Per-block-type `_style` map derived from a page snapshot's blocks
+     * (first occurrence per type wins, children included). Stored inside
+     * the design-lock stamp so new blocks created on a locked page can be
+     * seeded with the template's styling for their type.
+     *
+     * @return array<string, array>
+     */
+    public function snapshotBlockStyles(array $snapshot): array
+    {
+        $map = [];
+        $walk = function (array $blocks) use (&$walk, &$map) {
+            foreach ($blocks as $b) {
+                if (!is_array($b)) continue;
+                $type = (string) ($b['type'] ?? '');
+                $style = $b['settings']['_style'] ?? null;
+                if ($type !== '' && is_array($style) && !isset($map[$type])) {
+                    $map[$type] = $style;
+                }
+                if (!empty($b['children']) && is_array($b['children'])) {
+                    $walk($b['children']);
+                }
+            }
+        };
+        $walk((array) ($snapshot['blocks'] ?? []));
+        return $map;
     }
 
     private function insertBlockTree(Link $link, array $b, ?int $parentId, int $sortOrder, bool $stripTabId): BiolinkBlock

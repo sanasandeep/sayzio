@@ -57,6 +57,7 @@ class TemplateController extends Controller
             'thumbnail_url' => 'nullable|url|max:500',
             'plan_tier' => 'nullable|string|max:50',
             'is_active' => 'nullable|boolean',
+            'design_locked' => 'nullable|boolean',
             'sort_order' => 'nullable|integer',
             'source_link_id' => 'nullable|integer|exists:links,id',
             'source_card_id' => 'nullable|integer|exists:biolink_blocks,id',
@@ -88,6 +89,7 @@ class TemplateController extends Controller
         ];
         if ($kind === 'page') {
             $payload['recommended_personas'] = $validated['recommended_personas'] ?? [];
+            $payload['design_locked'] = (bool) ($validated['design_locked'] ?? false);
         }
         $modelClass::create($payload);
 
@@ -122,6 +124,7 @@ class TemplateController extends Controller
             'thumbnail_url' => 'nullable|url|max:500',
             'plan_tier' => 'nullable|string|max:50',
             'is_active' => 'nullable|boolean',
+            'design_locked' => 'nullable|boolean',
             'sort_order' => 'nullable|integer',
             'source_link_id' => 'nullable|integer|exists:links,id',
             'source_card_id' => 'nullable|integer|exists:biolink_blocks,id',
@@ -154,6 +157,7 @@ class TemplateController extends Controller
         if ($kind === 'page') {
             // Unchecking every box must clear the tags, not no-op them.
             $fillPayload['recommended_personas'] = $validated['recommended_personas'] ?? [];
+            $fillPayload['design_locked'] = (bool) ($validated['design_locked'] ?? false);
         }
         $tpl->fill($fillPayload)->save();
 

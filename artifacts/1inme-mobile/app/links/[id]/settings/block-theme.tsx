@@ -1,5 +1,6 @@
 import { Stack, useLocalSearchParams } from "expo-router";
 
+import { DesignLockGate } from "@/components/DesignLockGate";
 import { SettingsForm } from "@/components/SettingsForm";
 
 export default function BlockThemeSettings() {
@@ -7,6 +8,7 @@ export default function BlockThemeSettings() {
   return (
     <>
       <Stack.Screen options={{ headerShown: true, title: "Block theme" }} />
+      <DesignLockGate linkId={Number(id)}>
       <SettingsForm
         linkId={Number(id)}
         group="block_theme"
@@ -30,6 +32,7 @@ export default function BlockThemeSettings() {
           { key: "shadow", label: "Drop shadow", kind: "switch" },
         ]}
       />
+      </DesignLockGate>
     </>
   );
 }

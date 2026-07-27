@@ -33,9 +33,21 @@
     ];
     $showText = !in_array($block->type, $noTextBlocks);
     $showStyle = !in_array($block->type, $noStyleBlocks);
+    // Design-locked pages: per-block styling (Designs/Text/Look/Layout) is
+    // owned by the template — hide the whole section and show a lock note.
+    $designLocked = method_exists($link, 'isDesignLocked') && $link->isDesignLocked();
 @endphp
 
-@if($showStyle)
+@if($designLocked && $showStyle)
+<div class="mt-4 pt-4" style="border-top: 1px solid var(--border-subtle);">
+    <div class="flex items-center gap-2 text-xs" style="color: var(--text-faint);">
+        <i class="fas fa-lock text-amber-400"></i>
+        <span>Block styling follows the template design. Detach from the template in Settings to customize.</span>
+    </div>
+</div>
+@endif
+
+@if($showStyle && !$designLocked)
 <div class="mt-4 pt-4" style="border-top: 1px solid var(--border-subtle);" data-style-root x-data="{ showStyle: false, activeStyleTab: 'designs' }">
     <button type="button" @click="showStyle = !showStyle"
             class="w-full flex items-center justify-between text-sm font-medium py-1" style="color: var(--text-muted);">

@@ -1,5 +1,6 @@
 import { Stack, useLocalSearchParams } from "expo-router";
 
+import { DesignLockGate } from "@/components/DesignLockGate";
 import { SettingsForm } from "@/components/SettingsForm";
 
 export default function LayoutSettings() {
@@ -7,6 +8,7 @@ export default function LayoutSettings() {
   return (
     <>
       <Stack.Screen options={{ headerShown: true, title: "Layout" }} />
+      <DesignLockGate linkId={Number(id)}>
       <SettingsForm
         linkId={Number(id)}
         group="layout"
@@ -30,6 +32,7 @@ export default function LayoutSettings() {
           { key: "show_name", label: "Show display name", kind: "switch" },
         ]}
       />
+      </DesignLockGate>
     </>
   );
 }
