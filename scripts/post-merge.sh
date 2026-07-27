@@ -39,16 +39,30 @@ run_guard() {
   if [ "$1" = "run" ]; then shift; fi
   local script="$1"
   local code=0
-  # `|| code=$?` keeps the failing command "tested" so `set -e` does not abort
-  # the function before we can inspect the exit status.
-  pnpm --filter @workspace/scripts run "$script" || code=$?
-  if [ "$code" -ge 128 ]; then
-    echo "post-merge: '$script' was killed by a signal (exit $code) — likely transient memory pressure under concurrent merges; retrying once..." >&2
-    code=0
-    pnpm --filter @workspace/scripts run "$script" || code=$?
+  local out
+  # Capture output (still echoed below) so we can distinguish a REAL guard
+  # violation from a transient runtime crash. `|| code=$?` keeps the failing
+  # command "tested" so `set -e` does not abort the function before we can
+  # inspect the exit status.
+  out=$(pnpm --filter @workspace/scripts run "$script" 2>&1) || code=$?
+  printf '%s\n' "$out"
+  if [ "$code" -ne 0 ]; then
+    # Two transient shapes are retryable:
+    #  - signal-level exits (>=128, e.g. SIGKILL under memory pressure)
+    #  - pnpm exit 1 wrapping a Node spawn failure (EAGAIN/ENOMEM: the kernel
+    #    briefly refused to fork while several merges ran concurrently). That
+    #    surfaces as "Error: spawn ... EAGAIN" in the output — NOT a guard
+    #    finding, which prints file:line violations instead.
+    if [ "$code" -ge 128 ] || printf '%s' "$out" | grep -qE 'Error: spawn .*(EAGAIN|ENOMEM)|errno: -11'; then
+      echo "post-merge: '$script' crashed transiently (exit $code) — likely fork/memory pressure under concurrent merges; retrying once after a short pause..." >&2
+      sleep 5
+      code=0
+      pnpm --filter @workspace/scripts run "$script" || code=$?
+    fi
   fi
-  # A genuine violation (exit 1) reaches here unretried; returning non-zero at
-  # the top-level call site trips `set -e` and fails the merge, as intended.
+  # A genuine violation (exit 1 with real findings) reaches here unretried;
+  # returning non-zero at the top-level call site trips `set -e` and fails the
+  # merge, as intended.
   return "$code"
 }
 
