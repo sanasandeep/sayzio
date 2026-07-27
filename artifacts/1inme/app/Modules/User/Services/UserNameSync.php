@@ -133,6 +133,25 @@ class UserNameSync
                 ->update(['name' => $name]);
         }
 
+        // Roadmap comments the user posted while signed in (viewer_user_id).
+        DB::table('roadmap_comments')
+            ->where('viewer_user_id', $id)
+            ->whereNotNull('author_name')->where('author_name', '<>', '')
+            ->where('author_name', '<>', $name)
+            ->update(['author_name' => $name]);
+
+        // Native reviews written by this user. The reviews table has no
+        // reviewer user link (reviews.user_id is the reviewed creator), so —
+        // like subscribers — the identity tie is the reviewer's email.
+        $reviewEmail = strtolower(trim((string) $user->email));
+        if ($reviewEmail !== '') {
+            DB::table('reviews')
+                ->whereRaw('lower(author_email) = ?', [$reviewEmail])
+                ->whereNotNull('author_name')->where('author_name', '<>', '')
+                ->where('author_name', '<>', $name)
+                ->update(['author_name' => $name]);
+        }
+
         // Contacts internally linked to this Sayzio user (manual profiles
         // bound via biolink_user_id). Google-synced contacts are owned by
         // the external provider and are never touched.

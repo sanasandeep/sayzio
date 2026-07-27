@@ -85,8 +85,40 @@ class DisplayNameSyncOnRenameTest extends TestCase
             'display_name'    => $fan->name,
             'biolink_user_id' => $fan->id,
         ]);
+        $roadmapComment = \App\Modules\User\Models\RoadmapComment::create([
+            'item_id'        => $this->makeRoadmapItem()->id,
+            'viewer_user_id' => $fan->id,
+            'author_name'    => $fan->name,
+            'body'           => 'roadmap thoughts',
+        ]);
+        $review = \App\Modules\User\Models\Review::create([
+            'user_id'      => $this->creator->id,
+            'link_id'      => $this->link->id,
+            'author_name'  => $fan->name,
+            'author_email' => strtoupper($fan->email), // case-insensitive match
+            'rating'       => 5,
+            'body'         => 'great creator',
+            'status'       => \App\Modules\User\Models\Review::STATUS_APPROVED,
+        ]);
 
-        return compact('comment', 'member', 'point', 'sub', 'linkedContact');
+        return compact('comment', 'member', 'point', 'sub', 'linkedContact', 'roadmapComment', 'review');
+    }
+
+    private function makeRoadmapItem(): \App\Modules\User\Models\RoadmapItem
+    {
+        return \App\Modules\User\Models\RoadmapItem::create([
+            'workspace_id' => $this->creator->ownedWorkspaces()->first()?->id
+                ?? \Illuminate\Support\Facades\DB::table('workspaces')->insertGetId([
+                    'owner_user_id' => $this->creator->id,
+                    'name'          => 'WS',
+                    'is_personal'   => true,
+                    'created_at'    => now(),
+                    'updated_at'    => now(),
+                ]),
+            'link_id'      => $this->link->id,
+            'block_id'     => $this->makeBlock()->id,
+            'title'        => 'Roadmap item',
+        ]);
     }
 
     private function makeBlock(): \App\Modules\User\Models\BiolinkBlock
@@ -114,6 +146,8 @@ class DisplayNameSyncOnRenameTest extends TestCase
         $this->assertSame('New Fan', $rows['point']->fresh()->display_name);
         $this->assertSame('New Fan', $rows['sub']->fresh()->name);
         $this->assertSame('New Fan', $rows['linkedContact']->fresh()->display_name);
+        $this->assertSame('New Fan', $rows['roadmapComment']->fresh()->author_name);
+        $this->assertSame('New Fan', $rows['review']->fresh()->author_name);
     }
 
     public function test_api_rename_propagates_and_skips_google_contacts_and_anonymous_rows(): void
@@ -149,6 +183,17 @@ class DisplayNameSyncOnRenameTest extends TestCase
             'subject_type'      => Link::class,
         ]);
 
+        // Anonymous native review (no author name) must stay anonymous.
+        $anonReview = \App\Modules\User\Models\Review::create([
+            'user_id'      => $this->creator->id,
+            'link_id'      => $this->link->id,
+            'author_name'  => null,
+            'author_email' => $fan->email,
+            'rating'       => 4,
+            'body'         => 'anon',
+            'status'       => \App\Modules\User\Models\Review::STATUS_APPROVED,
+        ]);
+
         $token = $fan->createToken('t')->plainTextToken;
         $resp = $this->withHeader('Authorization', 'Bearer ' . $token)
             ->patchJson('/api/v1/profile', ['name' => 'API Fan']);
@@ -159,8 +204,11 @@ class DisplayNameSyncOnRenameTest extends TestCase
         $this->assertSame('API Fan', $rows['point']->fresh()->display_name);
         $this->assertSame('API Fan', $rows['sub']->fresh()->name);
         $this->assertSame('API Fan', $rows['linkedContact']->fresh()->display_name);
+        $this->assertSame('API Fan', $rows['roadmapComment']->fresh()->author_name);
+        $this->assertSame('API Fan', $rows['review']->fresh()->author_name);
         $this->assertSame('Old Fan', $googleContact->fresh()->display_name);
         $this->assertNull($anonPoint->fresh()->display_name);
+        $this->assertNull($anonReview->fresh()->author_name);
     }
 
     public function test_rename_busts_creator_index_cache(): void
@@ -198,9 +246,27 @@ class DisplayNameSyncOnRenameTest extends TestCase
             'subscribed_at' => now(),
         ]);
 
+        $roadmapComment = \App\Modules\User\Models\RoadmapComment::create([
+            'item_id'        => $this->makeRoadmapItem()->id,
+            'viewer_user_id' => $fan->id,
+            'author_name'    => 'Stale Name',
+            'body'           => 'old roadmap comment',
+        ]);
+        $review = \App\Modules\User\Models\Review::create([
+            'user_id'      => $this->creator->id,
+            'link_id'      => $this->link->id,
+            'author_name'  => 'Stale Name',
+            'author_email' => strtoupper($fan->email),
+            'rating'       => 5,
+            'body'         => 'old review',
+            'status'       => \App\Modules\User\Models\Review::STATUS_APPROVED,
+        ]);
+
         $this->artisan('users:sync-display-names')->assertExitCode(0);
 
         $this->assertSame('Fresh Name', $comment->fresh()->author_name);
         $this->assertSame('Fresh Name', $sub->fresh()->name);
+        $this->assertSame('Fresh Name', $roadmapComment->fresh()->author_name);
+        $this->assertSame('Fresh Name', $review->fresh()->author_name);
     }
 }

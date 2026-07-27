@@ -105,6 +105,22 @@ class SyncDisplayNames extends Command
                    AND {$userOk} AND s.name IS NOT NULL AND s.name <> '' AND s.name <> u.name",
             ],
             [
+                'roadmap_comments', 'Roadmap comments',
+                "SELECT COUNT(*) AS n FROM roadmap_comments rc JOIN users u ON u.id = rc.viewer_user_id
+                 WHERE {$userOk} AND rc.author_name IS NOT NULL AND rc.author_name <> '' AND rc.author_name <> u.name",
+                "UPDATE roadmap_comments rc SET author_name = u.name FROM users u
+                 WHERE u.id = rc.viewer_user_id
+                   AND {$userOk} AND rc.author_name IS NOT NULL AND rc.author_name <> '' AND rc.author_name <> u.name",
+            ],
+            [
+                'reviews', 'Native reviews (matched by email)',
+                "SELECT COUNT(*) AS n FROM reviews r JOIN users u ON lower(u.email) = lower(r.author_email)
+                 WHERE {$userOk} AND r.author_name IS NOT NULL AND r.author_name <> '' AND r.author_name <> u.name",
+                "UPDATE reviews r SET author_name = u.name FROM users u
+                 WHERE lower(u.email) = lower(r.author_email)
+                   AND {$userOk} AND r.author_name IS NOT NULL AND r.author_name <> '' AND r.author_name <> u.name",
+            ],
+            [
                 'contacts', 'Internally-linked contacts',
                 "SELECT COUNT(*) AS n FROM contacts c JOIN users u ON u.id = c.biolink_user_id
                  WHERE c.google_contacts_account_id IS NULL
