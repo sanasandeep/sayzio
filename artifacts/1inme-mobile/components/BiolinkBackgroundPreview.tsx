@@ -4,7 +4,9 @@ import { LinearGradient } from "expo-linear-gradient";
 import { StyleSheet, Text, View } from "react-native";
 
 import { useColors } from "@/hooks/useColors";
+import { getBaseUrl } from "@/lib/api";
 import { getBgPresets } from "@/lib/api/bgPresets";
+import { getBgTemplates } from "@/lib/api/bgTemplates";
 import { getLink } from "@/lib/api/links";
 
 // Live preview of the biolink page background on the mobile Appearance
@@ -58,21 +60,38 @@ export function BiolinkBackgroundPreview({ linkId }: { linkId: number }) {
 
   const presetActive = biolink.background_type === "preset";
   const presetKey = presetActive ? str(biolink.bg_preset_key) : "";
+  const templateActive = biolink.background_type === "template";
+  const templateId =
+    templateActive && typeof biolink.bg_template_id === "number"
+      ? biolink.bg_template_id
+      : null;
 
-  // Catalog is needed to resolve the preset key into color stops; the
-  // query key/staleTime match the picker's so the cache is shared.
+  // Catalogs are needed to resolve the preset key / template id into color
+  // stops + swatch paths; the query keys/staleTimes match the pickers' so
+  // the caches are shared.
   const catalogQ = useQuery({
     queryKey: ["bg-presets"],
     queryFn: getBgPresets,
     staleTime: 60 * 60 * 1000,
     enabled: !!presetKey,
   });
+  const tplCatalogQ = useQuery({
+    queryKey: ["bg-templates"],
+    queryFn: getBgTemplates,
+    staleTime: 60 * 60 * 1000,
+    enabled: templateId !== null,
+  });
 
   const preset = presetKey
     ? catalogQ.data?.presets.find((p) => p.key === presetKey)
     : undefined;
+  const template =
+    templateId !== null
+      ? tplCatalogQ.data?.templates.find((t) => t.id === templateId)
+      : undefined;
 
-  const bgImage = !presetKey ? str(appearance.background_image) : "";
+  const bgImage =
+    !presetKey && templateId === null ? str(appearance.background_image) : "";
   const bgColor = str(appearance.background_color);
   const textColor = str(appearance.text_color) || "#ffffff";
 
@@ -102,15 +121,19 @@ export function BiolinkBackgroundPreview({ linkId }: { linkId: number }) {
     </View>
   );
 
-  const caption = preset
-    ? `Preset · ${preset.label}`
-    : presetKey
-      ? "Preset background"
-      : bgImage
-        ? "Background image"
-        : bgColor
-          ? "Custom color"
-          : "Default background";
+  const caption = template
+    ? `Template · ${template.name}`
+    : templateId !== null
+      ? "Template background"
+      : preset
+        ? `Preset · ${preset.label}`
+        : presetKey
+          ? "Preset background"
+          : bgImage
+            ? "Background image"
+            : bgColor
+              ? "Custom color"
+              : "Default background";
 
   return (
     <View style={{ gap: 8 }} testID="bg-preview">
@@ -123,7 +146,26 @@ export function BiolinkBackgroundPreview({ linkId }: { linkId: number }) {
           { borderColor: colors.border, borderRadius: colors.radius + 6 },
         ]}
       >
-        {preset || (!presetKey && !bgImage) ? (
+        {template ? (
+          // Template background: gradient approximation underneath as the
+          // instant paint; the pre-rendered PNG of the REAL texture covers
+          // it when the server advertises an up-to-date thumbnail.
+          <LinearGradient
+            colors={gradientStops(template.colors)}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.canvas}
+          >
+            {template.swatch ? (
+              <Image
+                source={{ uri: `${getBaseUrl()}${template.swatch}` }}
+                style={StyleSheet.absoluteFill}
+                contentFit="cover"
+              />
+            ) : null}
+            {mockContent}
+          </LinearGradient>
+        ) : preset || (!presetKey && templateId === null && !bgImage) ? (
           <LinearGradient
             colors={gradientStops(
               preset ? preset.colors : bgColor ? [bgColor] : ["#3d3654"],

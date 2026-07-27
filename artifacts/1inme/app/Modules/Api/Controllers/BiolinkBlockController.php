@@ -88,6 +88,17 @@ class BiolinkBlockController extends Controller
         return $this->ok(\App\Modules\User\Support\BgPresetCatalog::forApi());
     }
 
+    /**
+     * Background template catalog (mobile parity for the web Appearance
+     * "Templates" gallery). Admin-managed `bg_templates` rows with color
+     * stops parsed server-side plus md5-gated pre-rendered PNG swatches so
+     * mobile shows each template's REAL texture, not a gradient tint.
+     */
+    public function bgTemplates(Request $request)
+    {
+        return $this->ok(\App\Modules\User\Support\BgTemplateCatalog::forApi());
+    }
+
     public function store(Request $request, int $linkId)
     {
         $link = $this->ownedLink($request, $linkId);

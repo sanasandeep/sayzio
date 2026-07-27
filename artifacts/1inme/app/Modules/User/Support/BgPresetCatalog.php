@@ -86,6 +86,20 @@ class BgPresetCatalog
         return ['groups' => $groups, 'presets' => $presets];
     }
 
+    /**
+     * Color stops for a mobile LinearGradient swatch approximation of an
+     * arbitrary CSS background string: extracted in source order, then
+     * flattened against the base color so translucent overlay stops stay
+     * visibly tinted. Shared with BgTemplateCatalog so the DB-backed
+     * background templates get the same treatment as the static presets.
+     *
+     * @return list<string>
+     */
+    public static function swatchStops(string $css): array
+    {
+        return self::flattenForSwatch(self::extractColors($css));
+    }
+
     /** Public URL path prefix for the pre-rendered swatch thumbnails. */
     private const SWATCH_PUBLIC_PATH = '/img/bg-preset-swatches';
 

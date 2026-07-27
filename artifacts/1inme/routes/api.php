@@ -843,6 +843,9 @@ Route::prefix('v1')->group(function () {
         // Background preset catalog for the Appearance "Presets" picker
         // (mobile parity for the web preset gallery). Static, user-agnostic.
         Route::get   ('/bg-presets',                        [BiolinkBlockController::class, 'bgPresets']);
+        // Background template catalog for the Appearance "Templates" picker
+        // (mobile parity for the web template gallery). Admin-managed rows.
+        Route::get   ('/bg-templates',                      [BiolinkBlockController::class, 'bgTemplates']);
         // "Fetch details" OG-metadata extractor for the mobile block editor
         // (mirrors the web editor's links/{link}/blocks/og-meta endpoint).
         // Per-user rate limiting lives in the controller (shared key with
