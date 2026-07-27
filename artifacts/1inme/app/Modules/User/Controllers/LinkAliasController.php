@@ -80,6 +80,14 @@ class LinkAliasController extends Controller
         // matched case-insensitively so a case-variant of an existing alias is
         // rejected as taken (mirrors UniqueAliasCi + case-insensitive resolution).
         $lower = mb_strtolower($alias);
+        // Distinguish "already yours on this page" from "taken by someone
+        // else" — aliases serve on every platform domain at once, so users
+        // often re-type their own alias trying to 'add' it for another host.
+        $ownPrimary = mb_strtolower((string) $link->alias) === $lower;
+        $ownExtra   = LinkAlias::whereRaw('LOWER(alias) = ?', [$lower])->where('link_id', $link->id)->exists();
+        if ($ownPrimary || $ownExtra) {
+            return $this->respond($request, false, "'{$alias}' is already one of this page's aliases — it's live on every Sayzio domain automatically, so there's nothing to add.", 422);
+        }
         $takenInPrimary = Link::whereRaw('LOWER(alias) = ?', [$lower])->exists();
         $takenInExtras  = LinkAlias::whereRaw('LOWER(alias) = ?', [$lower])->exists();
         if ($takenInPrimary || $takenInExtras) {
