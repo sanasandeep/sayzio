@@ -2297,12 +2297,12 @@ isValidation = true
 name = "name-sync-tests"
 author = "agent"
 
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "cd artifacts/1inme && TEST_LOCAL_MODE=artisan bash scripts/test-local.sh --filter='ProfileNamePersonalWorkspaceSyncTest|AdminNameSyncOnProfileUpdateTest|VerifiedNameLockProfileUpdateTest'"
-
 [workflows.workflow.metadata]
 isValidation = true
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd artifacts/1inme && TEST_LOCAL_MODE=artisan bash scripts/test-local.sh --filter='ProfileNamePersonalWorkspaceSyncTest|AdminNameSyncOnProfileUpdateTest|VerifiedNameLockProfileUpdateTest|AdminRenameUserNameSyncTest'"
 
 
   [agent]
