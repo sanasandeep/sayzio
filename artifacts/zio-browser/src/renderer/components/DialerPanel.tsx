@@ -83,6 +83,8 @@ export function DialerPanel({ onClose, onNavigate }: Props) {
   const [searching, setSearching] = useState(false);
   const [callState, setCallState] = useState<{ number: string; status: 'sending' | 'sent' | 'error'; message?: string; noDevice?: boolean } | null>(null);
   const [events, setEvents] = useState<DialerCallEvent[]>([]);
+  // null = unknown (check pending/failed) — only `false` shows the proactive offer.
+  const [deviceLinked, setDeviceLinked] = useState<boolean | null>(null);
 
   const getClient = useCallback((): ApiClient | null => {
     if (!token) return null;
@@ -125,14 +127,33 @@ export function DialerPanel({ onClose, onNavigate }: Props) {
     try {
       await client.dialerRequestCall(number, name ?? undefined);
       setCallState({ number, status: 'sent' });
+      setDeviceLinked(true);
     } catch (err) {
       const noDevice = err instanceof ApiClientError && err.code === 'no_dialer_device';
+      if (noDevice) setDeviceLinked(false);
       const message = noDevice
         ? 'No phone linked — sign in to the Zio Dialer app on your phone first.'
         : 'Could not reach your phone. Try again.';
       setCallState({ number, status: 'error', message, noDevice });
     }
   }, [getClient]);
+
+  // ── Linked-device check on open (proactive app-download offer) ───────────
+  useEffect(() => {
+    if (!token) {
+      setDeviceLinked(null);
+      return;
+    }
+    let cancelled = false;
+    const client = getClient();
+    if (!client) return;
+    client.dialerHandoffStatus()
+      .then((res) => {
+        if (!cancelled) setDeviceLinked(res.device_linked);
+      })
+      .catch(() => { /* unknown — fall back to the post-failure offer */ });
+    return () => { cancelled = true; };
+  }, [token, getClient]);
 
   // ── Incoming-call mirror (short poll while the pane is open) ─────────────
   const cursorRef = useRef(0);
@@ -300,8 +321,10 @@ export function DialerPanel({ onClose, onNavigate }: Props) {
             </div>
           )}
 
-          {/* "No phone linked" dead end → offer the latest Zio Dialer APK */}
-          {callState?.status === 'error' && callState.noDevice && (
+          {/* No phone linked (proactive check on open, or a failed call
+              attempt) → offer the latest Zio Dialer APK before the user
+              wastes a call attempt. */}
+          {(deviceLinked === false || (callState?.status === 'error' && callState.noDevice)) && (
             <div style={{
               margin: '8px 12px 0', padding: '10px 11px', borderRadius: 8,
               border: '1px solid var(--color-border)',

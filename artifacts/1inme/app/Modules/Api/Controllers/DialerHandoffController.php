@@ -33,6 +33,18 @@ class DialerHandoffController extends Controller
     private const READ_WINDOW_MINUTES = 60;
 
     /**
+     * GET /dialer/handoff/status — lightweight linked-device check so the
+     * desktop pane can offer the Zio Dialer app download proactively
+     * instead of after a failed call attempt.
+     */
+    public function status(Request $request)
+    {
+        return $this->ok([
+            'device_linked' => DevicePushToken::where('user_id', $request->user()->id)->exists(),
+        ]);
+    }
+
+    /**
      * POST /dialer/handoff/call — push a click-to-call request to the
      * user's phone. 404s with a clear code when no phone is registered.
      */

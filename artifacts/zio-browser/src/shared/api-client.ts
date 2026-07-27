@@ -297,6 +297,15 @@ export class ApiClient {
   }
 
   /**
+   * Lightweight check: does this account have a linked Zio Dialer phone?
+   * Lets the Dialer pane offer the app download proactively instead of
+   * only after a failed call attempt.
+   */
+  async dialerHandoffStatus(): Promise<DialerHandoffStatus> {
+    return this.get('/dialer/handoff/status');
+  }
+
+  /**
    * Ask the linked Zio Dialer phone app to place a call (click-to-call
    * handoff). The server pushes a `dialer.call_request` notification to the
    * user's phone; throws ApiClientError code `no_dialer_device` (404) when
@@ -650,6 +659,10 @@ export interface DialerSearchResult {
     label: string;
     items: unknown[];
   }>;
+}
+
+export interface DialerHandoffStatus {
+  device_linked: boolean;
 }
 
 export interface DialerCallRequestResult {

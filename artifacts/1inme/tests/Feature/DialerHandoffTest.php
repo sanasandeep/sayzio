@@ -66,6 +66,26 @@ class DialerHandoffTest extends TestCase
             ->assertStatus(401);
     }
 
+    public function test_handoff_status_reports_device_linked(): void
+    {
+        $this->getJson('/api/v1/dialer/handoff/status')->assertStatus(401);
+
+        $user = $this->makeUser();
+        $token = $this->tokenFor($user);
+
+        $this->withToken($token)
+            ->getJson('/api/v1/dialer/handoff/status')
+            ->assertStatus(200)
+            ->assertJsonPath('data.device_linked', false);
+
+        $this->registerPhone($user);
+
+        $this->withToken($token)
+            ->getJson('/api/v1/dialer/handoff/status')
+            ->assertStatus(200)
+            ->assertJsonPath('data.device_linked', true);
+    }
+
     public function test_request_call_without_phone_returns_no_dialer_device(): void
     {
         $user = $this->makeUser();
