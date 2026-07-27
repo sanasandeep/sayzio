@@ -596,6 +596,10 @@ args = "e2e-bg-live-pair"
 task = "workflow.run"
 args = "bg-preset-swatches"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "persona-seed-refresh"
+
 [[workflows.workflow]]
 name = "e2e"
 author = "agent"
@@ -2375,6 +2379,17 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "pnpm --filter @workspace/scripts run check:bg-preset-swatches"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "persona-seed-refresh"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd artifacts/1inme && php artisan templates:refresh-persona-seed"
 
 [workflows.workflow.metadata]
 isValidation = true

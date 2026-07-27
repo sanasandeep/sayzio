@@ -38,13 +38,13 @@ class StarterPageTemplatesSeeder extends Seeder
     /**
      * Bump when the starter blueprints below are redesigned.
      *
-     * v5 (2026-06): Added 5 media-forward showcase pages (photo
-     * portfolio, music artist, content-creator embeds, knowledge hub,
-     * press/media kit) exercising image grids/sliders, social embeds,
-     * audio/music, documents and advanced UI (tabs/accordion/ticker/
-     * stats/reviews wall/testimonial carousel).
+     * v7 (2026-07): New template generation. Replaces the retired legacy
+     * starter set with 5 redesigned blueprints (personal hub, link-in-bio,
+     * restaurant, event, portfolio) — each with its own theme, profile
+     * layout, link design variant and a distinct block mix so the picker's
+     * category chips and "what's inside" chips look meaningfully different.
      */
-    public const SEED_VERSION = 6;
+    public const SEED_VERSION = 7;
 
     /** Tolerance (seconds) for treating updated_at == created_at. */
     private const EDIT_DRIFT_TOLERANCE = 2;
@@ -109,12 +109,179 @@ class StarterPageTemplatesSeeder extends Seeder
      */
     private function templates(): array
     {
-        // All legacy starter blueprints were retired (task: remove all
-        // seeded page templates). New blueprint designs will be added here
-        // later. Returning an empty list makes run() a no-op while keeping
-        // the seeder scaffolding (SEED_VERSION, auto-refresh, block
-        // helpers below) in place for the next template generation.
-        return [];
+        $kits = $this->variantKits();
+
+        return [
+            // 1 — Personal hub: warm gradient, glass profile, quick links.
+            [
+                'slug'                 => 'starter-personal-hub',
+                'name'                 => 'Personal Hub',
+                'category'             => 'personal',
+                'description'          => 'A friendly all-in-one personal page: profile, socials, your top links and a way to reach you.',
+                'recommended_personas' => ['other', 'student', 'freelancer'],
+                'snapshot'             => $this->snapshot([
+                    $this->profile('Your Name', 'A little about you — what you do, what you love, and where people can find you.', $this->face('starter-personal-face'), $kits['personal']),
+                    $this->socials(),
+                    $this->link('My latest project', 'https://example.com/project', 'fas fa-rocket', $kits['personal']),
+                    $this->link('Read my blog', 'https://example.com/blog', 'fas fa-pen-nib', $kits['personal']),
+                    $this->link('Book a call', 'https://example.com/call', 'fas fa-calendar', $kits['personal']),
+                    $this->divider(),
+                    $this->ctaButton('Say hello', 'mailto:you@example.com'),
+                ], [
+                    'background_type'    => 'gradient',
+                    'background_gradient' => 'linear-gradient(160deg, #1e293b 0%, #334155 55%, #3d6bff 130%)',
+                    'theme_color'        => '#3d6bff',
+                    'font_color'         => '#f8fafc',
+                    'button_color'       => '#3d6bff',
+                    'button_text_color'  => '#ffffff',
+                    'button_style'       => 'rounded',
+                ]),
+            ],
+
+            // 2 — Link-in-bio: bold sunset gradient, cover-hero profile, big links.
+            [
+                'slug'                 => 'starter-link-in-bio',
+                'name'                 => 'Creator Link-in-Bio',
+                'category'             => 'biolink',
+                'description'          => 'A bold creator page with a cover hero, big tappable links, a highlight reel and an email capture-style CTA.',
+                'recommended_personas' => ['creator', 'influencer', 'youtuber'],
+                'snapshot'             => $this->snapshot([
+                    $this->profile('Your Name', 'Creator. Storyteller. New drops every week — everything I make lives here.', $this->face('starter-linkbio-face'), $kits['linkbio'], $this->photo('creative,lifestyle', 1200, 480, 'starter-linkbio-cover')),
+                    $this->badge('NEW DROP', '#ec4899'),
+                    $this->linkBig('Watch my latest video', 'https://youtube.com/@yourhandle', 'fab fa-youtube', $kits['linkbio']),
+                    $this->linkBig('Shop the merch', 'https://example.com/shop', 'fas fa-bag-shopping', $kits['linkbio']),
+                    $this->linkBig('Join the newsletter', 'https://example.com/newsletter', 'fas fa-envelope-open-text', $kits['linkbio']),
+                    $this->imageSlider([
+                        $this->photo('creative,lifestyle', 900, 1200, 'starter-linkbio-s1'),
+                        $this->photo('creative,lifestyle', 900, 1200, 'starter-linkbio-s2'),
+                        $this->photo('creative,lifestyle', 900, 1200, 'starter-linkbio-s3'),
+                    ]),
+                    $this->socials(),
+                ], [
+                    'background_type'    => 'gradient',
+                    'background_gradient' => 'linear-gradient(135deg, #f97316 0%, #ec4899 50%, #8b5cf6 100%)',
+                    'theme_color'        => '#ec4899',
+                    'font_color'         => '#ffffff',
+                    'button_color'       => '#ffffff',
+                    'button_text_color'  => '#1f2937',
+                    'button_style'       => 'pill',
+                ]),
+            ],
+
+            // 3 — Restaurant: dark minimal profile, tabbed menu, prices, WhatsApp.
+            [
+                'slug'                 => 'starter-restaurant-menu',
+                'name'                 => 'Restaurant & Menu',
+                'category'             => 'restaurant',
+                'description'          => 'A moody restaurant page with a tabbed menu, signature-dish pricing, opening hours and one-tap WhatsApp reservations.',
+                'recommended_personas' => ['restaurant', 'cafe', 'chef'],
+                'snapshot'             => $this->snapshot([
+                    $this->profile('Your Restaurant', 'Seasonal plates, natural wine, and a room that feels like home. Walk-ins welcome.', $this->face('starter-restaurant-face'), $kits['restaurant'], $this->photo('restaurant-hero', 1200, 480, 'starter-restaurant-cover')),
+                    $this->ticker(['Open Tue–Sun · 12:00–23:00', 'Happy hour 17:00–19:00', 'Private dining available']),
+                    $this->tabs([
+                        ['label' => 'Starters', 'text' => 'Burrata & blood orange — 12. Crispy artichokes — 10. Sourdough & cultured butter — 6.'],
+                        ['label' => 'Mains',    'text' => 'Wood-fired sea bass — 28. Short rib agnolotti — 24. Charred cauliflower steak — 19.'],
+                        ['label' => 'Dessert',  'text' => 'Burnt basque cheesecake — 9. Olive-oil gelato — 7.'],
+                    ]),
+                    $this->listPricing([
+                        ['name' => 'Tasting menu (5 courses)', 'price' => '$65'],
+                        ['name' => 'Wine pairing',             'price' => '$35'],
+                        ['name' => 'Chef\'s counter seat',     'price' => '$80'],
+                    ]),
+                    $this->imageGrid([
+                        $this->photo('restaurant-1', 600, 600, 'starter-restaurant-g1'),
+                        $this->photo('restaurant-2', 600, 600, 'starter-restaurant-g2'),
+                        $this->photo('restaurant-3', 600, 600, 'starter-restaurant-g3'),
+                    ], 3),
+                    $this->review('Amelia R.', 5, 'Best table in town — the tasting menu is worth every penny.', $this->face('starter-restaurant-review')),
+                    $this->whatsapp('+15551234567', 'Reserve on WhatsApp', 'Hi! I\'d like to book a table.'),
+                    $this->link('See the full menu (PDF)', 'https://example.com/menu.pdf', 'fas fa-utensils', $kits['restaurant']),
+                ], [
+                    'background_type'   => 'color',
+                    'background_color'  => '#0a0a0a',
+                    'theme_color'       => '#f59e0b',
+                    'font_color'        => '#f5f5f5',
+                    'button_color'      => '#f59e0b',
+                    'button_text_color' => '#1a1a1a',
+                    'button_style'      => 'square',
+                ]),
+            ],
+
+            // 4 — Event: countdown, schedule timeline, FAQ, RSVP CTA.
+            [
+                'slug'                 => 'starter-event-page',
+                'name'                 => 'Event & RSVP',
+                'category'             => 'event',
+                'description'          => 'Everything one event needs: countdown to doors, the day\'s schedule, an FAQ and a big RSVP button.',
+                'recommended_personas' => ['event', 'community', 'church'],
+                'snapshot'             => $this->snapshot([
+                    $this->profile('The Big Night', 'One evening. Live music, great food, and people worth meeting. Save your seat below.', $this->face('starter-event-face'), $kits['event'], $this->photo('concert,event', 1200, 480, 'starter-event-cover')),
+                    $this->countdown('Doors open in', '+21 days'),
+                    $this->ctaButton('RSVP — it\'s free', 'https://example.com/rsvp', '#3d6bff'),
+                    $this->heading('Schedule'),
+                    $this->timeline([
+                        ['title' => 'Doors & welcome drinks', 'description' => 'Grab a badge and settle in.',            'date' => '6:00 PM'],
+                        ['title' => 'Live set',               'description' => 'An hour of music you\'ll talk about.',   'date' => '7:30 PM'],
+                        ['title' => 'Afterparty',             'description' => 'Lights down, volume up.',                'date' => '10:00 PM'],
+                    ]),
+                    $this->faq([
+                        ['question' => 'Where is it?',        'answer' => 'The Warehouse, 42 River St. Doors at 6 PM sharp.'],
+                        ['question' => 'Is there parking?',   'answer' => 'Street parking plus a paid lot next door.'],
+                        ['question' => 'Can I bring a +1?',   'answer' => 'Yes — just add them to your RSVP.'],
+                    ]),
+                    $this->link('Get directions', 'https://maps.google.com', 'fas fa-map-marker-alt', $kits['event']),
+                ], [
+                    'background_type'    => 'gradient',
+                    'background_gradient' => 'linear-gradient(180deg, #020617 0%, #1e1b4b 100%)',
+                    'theme_color'        => '#3d6bff',
+                    'font_color'         => '#e0e7ff',
+                    'button_color'       => '#3d6bff',
+                    'button_text_color'  => '#ffffff',
+                    'button_style'       => 'pill',
+                ]),
+            ],
+
+            // 5 — Portfolio: light editorial look, work grid, stats, social proof.
+            [
+                'slug'                 => 'starter-portfolio',
+                'name'                 => 'Portfolio & Work',
+                'category'             => 'portfolio',
+                'description'          => 'A clean portfolio with a work grid, at-a-glance stats, client praise and a hire-me link.',
+                'recommended_personas' => ['artist', 'photographer', 'developer'],
+                'snapshot'             => $this->snapshot([
+                    $this->profile('Your Name', 'Designer & maker. Selected work below — currently booking new projects.', $this->face('starter-portfolio-face'), $kits['portfolio']),
+                    $this->stats('At a glance', [
+                        ['value' => '9 yrs',  'label' => 'Experience'],
+                        ['value' => '120+',   'label' => 'Projects shipped'],
+                        ['value' => '40',     'label' => 'Happy clients'],
+                    ]),
+                    $this->heading('Selected work'),
+                    $this->imageGrid([
+                        $this->photo('art,print', 600, 600, 'starter-portfolio-g1'),
+                        $this->photo('art,print', 600, 600, 'starter-portfolio-g2'),
+                        $this->photo('art,print', 600, 600, 'starter-portfolio-g3'),
+                        $this->photo('art,print', 600, 600, 'starter-portfolio-g4'),
+                        $this->photo('art,print', 600, 600, 'starter-portfolio-g5'),
+                        $this->photo('art,print', 600, 600, 'starter-portfolio-g6'),
+                    ], 3),
+                    $this->testimonialCarousel([
+                        ['quote' => 'Sharp eye, fast turnaround, zero drama. We rebooked immediately.', 'name' => 'Jordan P.', 'title' => 'Brand Lead'],
+                        ['quote' => 'The work speaks for itself — our launch looked incredible.',       'name' => 'Sam K.',    'title' => 'Founder'],
+                    ]),
+                    $this->linkBig('View full portfolio', 'https://example.com/work', 'fas fa-images', $kits['portfolio']),
+                    $this->link('Download my CV', 'https://example.com/cv.pdf', 'fas fa-file-arrow-down', $kits['portfolio']),
+                    $this->ctaButton('Hire me', 'mailto:you@example.com', '#10b981'),
+                ], [
+                    'background_type'    => 'gradient',
+                    'background_gradient' => 'linear-gradient(180deg, #fdf6e3 0%, #fce7f3 100%)',
+                    'theme_color'        => '#0ea5e9',
+                    'font_color'         => '#1f2937',
+                    'button_color'       => '#0ea5e9',
+                    'button_text_color'  => '#ffffff',
+                    'button_style'       => 'rounded',
+                ]),
+            ],
+        ];
     }
 
     /* ──────────────────── snapshot + block helpers ──────────────────── */
