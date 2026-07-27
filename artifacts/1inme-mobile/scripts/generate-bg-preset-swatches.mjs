@@ -101,10 +101,10 @@ async function main() {
     </style></head><body><div id="sw"></div></body></html>`,
   );
 
-  const manifest = {};
-  let done = 0;
-  for (const key of keys) {
-    const css = catalog[key].css;
+  // Renders one preset and validates the screenshot bytes BEFORE anything
+  // touches disk: same rules the check:bg-preset-swatches guard enforces
+  // (real PNG signature, plausible size). Throws on a bad render.
+  async function renderPreset(key, css) {
     // Apply the raw preset CSS, then re-assert the swatch box size (setting
     // the style attribute wipes the id-rule-independent inline sizing).
     await page.evaluate(
@@ -119,10 +119,6 @@ async function main() {
     const el = page.locator("#sw");
     const png = await el.screenshot({ type: "png" });
 
-    // Validate the render BEFORE touching disk or the manifest: same rules
-    // the check:bg-preset-swatches guard enforces (real PNG signature,
-    // plausible size). A bad render aborts the whole run — the old PNG and
-    // manifest.json stay untouched.
     if (png.length < MIN_PNG_BYTES) {
       throw new Error(
         `render of preset "${key}" produced only ${png.length} bytes (< ${MIN_PNG_BYTES}) — refusing to save a broken thumbnail`,
@@ -132,6 +128,33 @@ async function main() {
       throw new Error(
         `render of preset "${key}" is not a valid PNG (bad signature) — refusing to save a broken thumbnail`,
       );
+    }
+    return png;
+  }
+
+  const manifest = {};
+  let done = 0;
+  for (const key of keys) {
+    const css = catalog[key].css;
+
+    // A single flaky Chromium screenshot shouldn't abort a 176-preset run:
+    // retry the render once, and if it still fails, abort with a message
+    // naming the preset and how far the run got. Old PNGs and manifest.json
+    // stay untouched either way.
+    let png;
+    try {
+      png = await renderPreset(key, css);
+    } catch (firstErr) {
+      log(
+        `render of preset "${key}" failed (${firstErr?.message || firstErr}) — retrying once…`,
+      );
+      try {
+        png = await renderPreset(key, css);
+      } catch (retryErr) {
+        throw new Error(
+          `preset "${key}" failed to render even after a retry (${done}/${keys.length} thumbnails had rendered successfully before the abort; manifest.json was NOT updated): ${retryErr?.message || retryErr}`,
+        );
+      }
     }
 
     // Write atomically (temp file + rename) so an interrupted write can never
