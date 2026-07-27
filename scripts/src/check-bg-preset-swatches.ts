@@ -19,7 +19,11 @@
  * ---------------------------------------------------------------------------
  *   1. Every preset key in BgPresetCatalog::all() has a manifest entry whose
  *      md5 matches md5 of the preset's live CSS (missing or stale ⇒ FAIL).
- *   2. Every preset has its rendered `{key}.png` on disk (missing ⇒ FAIL).
+ *   2. Every preset has its rendered `{key}.png` on disk, and the file is a
+ *      real PNG (valid 8-byte PNG signature) of plausible size (> 200 bytes)
+ *      — a zero-byte or truncated/corrupt file from an interrupted generator
+ *      run would otherwise pass and render as a blank/broken swatch (missing,
+ *      empty, corrupt ⇒ FAIL).
  *   3. Manifest entries for keys the catalog no longer contains are reported
  *      as removable leftovers (also FAIL, so the fix command cleans them up).
  *
@@ -71,14 +75,41 @@ export function loadCatalogCss(): Record<string, string> {
 
 export type SwatchProblem = { kind: string; key?: string; detail: string };
 
+/** 8-byte PNG file signature: \x89PNG\r\n\x1a\n */
+export const PNG_SIGNATURE = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+
+/** Anything smaller than this cannot be a real rendered swatch. */
+export const MIN_PNG_BYTES = 200;
+
+/** What the guard needs to know about a swatch PNG on disk. */
+export type PngInfo = {
+  /** Total file size in bytes. */
+  size: number;
+  /** First bytes of the file (at least 8) for signature validation. */
+  head: Buffer;
+};
+
+export function inspectPng(file: string): PngInfo | null {
+  if (!fs.existsSync(file)) return null;
+  const size = fs.statSync(file).size;
+  const fd = fs.openSync(file, "r");
+  try {
+    const head = Buffer.alloc(Math.min(size, PNG_SIGNATURE.length));
+    fs.readSync(fd, head, 0, head.length, 0);
+    return { size, head };
+  } finally {
+    fs.closeSync(fd);
+  }
+}
+
 /**
  * Pure comparison so the test suite can pin behavior without shelling out.
- * `pngExists` answers "does {key}.png exist in the swatch dir".
+ * `pngInfo` answers "what does {key}.png look like on disk" (null = missing).
  */
 export function checkSwatchFreshness(
   catalogCss: Record<string, string>,
   manifest: Record<string, string>,
-  pngExists: (key: string) => boolean,
+  pngInfo: (key: string) => PngInfo | null,
 ): SwatchProblem[] {
   const problems: SwatchProblem[] = [];
 
@@ -108,11 +139,27 @@ export function checkSwatchFreshness(
         detail: `preset "${key}" CSS changed since its thumbnail was rendered (manifest md5 ${have} != live ${want}) — mobile silently falls back to the gradient tint.`,
       });
     }
-    if (!pngExists(key)) {
+    const info = pngInfo(key);
+    if (info === null) {
       problems.push({
         kind: "missing-png",
         key,
         detail: `preset "${key}" is missing its rendered ${key}.png in ${SWATCH_DIR_REL}.`,
+      });
+    } else if (info.size < MIN_PNG_BYTES) {
+      problems.push({
+        kind: "empty-png",
+        key,
+        detail: `preset "${key}"'s ${key}.png is only ${info.size} bytes (< ${MIN_PNG_BYTES}) — an empty/truncated file from an interrupted generator run; it would render as a blank swatch on mobile.`,
+      });
+    } else if (
+      info.head.length < PNG_SIGNATURE.length ||
+      !info.head.subarray(0, PNG_SIGNATURE.length).equals(PNG_SIGNATURE)
+    ) {
+      problems.push({
+        kind: "corrupt-png",
+        key,
+        detail: `preset "${key}"'s ${key}.png does not start with a valid PNG signature — the file is corrupt and would render as a broken swatch on mobile.`,
       });
     }
   }
@@ -153,9 +200,9 @@ function main(): void {
 
   const manifest = loadManifest();
   const swatchDir = path.join(REPO_ROOT, SWATCH_DIR_REL);
-  const pngExists = (key: string) => fs.existsSync(path.join(swatchDir, `${key}.png`));
+  const pngInfo = (key: string) => inspectPng(path.join(swatchDir, `${key}.png`));
 
-  const problems = checkSwatchFreshness(catalogCss, manifest, pngExists);
+  const problems = checkSwatchFreshness(catalogCss, manifest, pngInfo);
 
   if (problems.length === 0) {
     console.log(
