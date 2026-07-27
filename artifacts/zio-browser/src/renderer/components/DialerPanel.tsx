@@ -20,8 +20,17 @@ import { useAuthStore } from '../store/auth-store';
 import { ApiClient, ApiClientError } from '../../shared/api-client';
 import type { DialerSearchResult, DialerCallEvent } from '../../shared/api-client';
 import { buildSessions, formatElapsed, sessionDuration } from '../lib/dialer-call-sessions';
+import { quickQrImageUrl } from '../../shared/link-tools';
 
 const BASE_URL = 'https://sayzio.app';
+
+/**
+ * Site-hosted APK delivery endpoint — always serves the newest uploaded
+ * Zio Dialer build (see AndroidApkPublicController on the Laravel side).
+ */
+const APK_DOWNLOAD_URL = `${BASE_URL}/android/download`;
+/** Human-friendly landing page (version, size, download button). */
+const APK_LANDING_URL = `${BASE_URL}/android`;
 
 /** Poll cadence for the incoming-call mirror while the pane is open. */
 const CALL_EVENTS_POLL_MS = 4000;
@@ -72,7 +81,7 @@ export function DialerPanel({ onClose, onNavigate }: Props) {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<DialerSearchResult | null>(null);
   const [searching, setSearching] = useState(false);
-  const [callState, setCallState] = useState<{ number: string; status: 'sending' | 'sent' | 'error'; message?: string } | null>(null);
+  const [callState, setCallState] = useState<{ number: string; status: 'sending' | 'sent' | 'error'; message?: string; noDevice?: boolean } | null>(null);
   const [events, setEvents] = useState<DialerCallEvent[]>([]);
 
   const getClient = useCallback((): ApiClient | null => {
@@ -117,10 +126,11 @@ export function DialerPanel({ onClose, onNavigate }: Props) {
       await client.dialerRequestCall(number, name ?? undefined);
       setCallState({ number, status: 'sent' });
     } catch (err) {
-      const message = err instanceof ApiClientError && err.code === 'no_dialer_device'
+      const noDevice = err instanceof ApiClientError && err.code === 'no_dialer_device';
+      const message = noDevice
         ? 'No phone linked — sign in to the Zio Dialer app on your phone first.'
         : 'Could not reach your phone. Try again.';
-      setCallState({ number, status: 'error', message });
+      setCallState({ number, status: 'error', message, noDevice });
     }
   }, [getClient]);
 
@@ -287,6 +297,39 @@ export function DialerPanel({ onClose, onNavigate }: Props) {
               {callState.status === 'sending' && `Sending ${callState.number} to your phone…`}
               {callState.status === 'sent' && `Sent to your phone — tap the notification to call ${callState.number}.`}
               {callState.status === 'error' && callState.message}
+            </div>
+          )}
+
+          {/* "No phone linked" dead end → offer the latest Zio Dialer APK */}
+          {callState?.status === 'error' && callState.noDevice && (
+            <div style={{
+              margin: '8px 12px 0', padding: '10px 11px', borderRadius: 8,
+              border: '1px solid var(--color-border)',
+              background: 'var(--color-bg)',
+              display: 'flex', gap: 10, alignItems: 'center',
+            }}>
+              <img
+                src={quickQrImageUrl(APK_DOWNLOAD_URL, 96)}
+                alt="QR code — download the Zio Dialer app"
+                width={96}
+                height={96}
+                style={{ borderRadius: 6, background: '#fff', flexShrink: 0 }}
+              />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 2 }}>
+                  Get the Zio Dialer app
+                </div>
+                <div style={{ ...subStyle, whiteSpace: 'normal', lineHeight: 1.4 }}>
+                  Scan the QR with your phone to download the latest APK, then sign in.
+                </div>
+                <button
+                  onClick={() => onNavigate(APK_LANDING_URL)}
+                  style={{ ...callBtnStyle, marginTop: 6 }}
+                  title={`Open the download page (${APK_LANDING_URL})`}
+                >
+                  ⬇️ Open download page
+                </button>
+              </div>
             </div>
           )}
 
