@@ -153,3 +153,4 @@
 - [Mobile bg-preset swatch thumbnails](bg-preset-swatch-thumbnails.md) — pre-rendered PNGs of the real CSS; regenerate on preset CSS change or forApi() md5 gate silently reverts to gradient fallback.
 - [Showcase account is a real user account](showcase-account-is-real-user.md) — showcase:seed WIPES sana@sayzio.app on prod; "saves not working" there usually = a reseed reverted her edits.
 - [Biolink bg Fixed/Scroll layer](biolink-bg-fixed-layer.md) — bg_attachment=fixed renders on a .bg-page-fixed viewport layer (iOS-safe), scroll stays on body; bg e2e specs assert layer vs body accordingly.
+- [DatabaseSeeder idempotency vs provisioning migrations](databaseseeder-idempotent-vs-migrations.md) — data migrations pre-create roles/admin on fresh migrate; DatabaseSeeder must firstOrCreate (create() dies 23505 on migrate+seed).

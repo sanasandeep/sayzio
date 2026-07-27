@@ -388,6 +388,11 @@ class WebTemplatePreviewLayoutTest extends TestCase
     public function test_web_page_picker_exposes_a_valid_preview_layout_for_every_active_page(): void
     {
         $this->seedTemplateLibrary();
+        // The page-template seeders were neutralized (legacy blueprints
+        // retired), so create no-thumbnail fixtures to keep the picker's
+        // blueprint guard exercised against real rows.
+        $this->makePageTemplate('fixture-heading', [$this->fullSpanBlock('heading')]);
+        $this->makePageTemplate('fixture-link', [$this->fullSpanBlock('link')]);
         $user = $this->makeUnlockedUser();
         $link = $this->makeBiolink($user);
         $this->actAsOwner($user);

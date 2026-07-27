@@ -130,8 +130,25 @@ class TemplatePreviewRendersTest extends TestCase
         $this->seedTemplateLibrary();
         $this->authenticatePreviewer();
 
+        // The page-template seeders were neutralized (legacy blueprints
+        // retired), so create a fixture row to keep the preview guard live.
+        PageTemplate::create([
+            'name'                 => 'Preview Fixture',
+            'slug'                 => 'preview-fixture-page',
+            'category'             => 'general',
+            'description'          => 'Fixture page template for preview coverage.',
+            'is_active'            => true,
+            'sort_order'           => 1,
+            'recommended_personas' => [],
+            'snapshot'             => ['blocks' => [
+                ['type' => 'heading', 'settings' => ['text' => 'Hello'], 'is_active' => true],
+                ['type' => 'paragraph', 'settings' => ['text' => 'World'], 'is_active' => true],
+                ['type' => 'link', 'settings' => ['name' => 'Visit', 'url' => 'https://example.com'], 'is_active' => true],
+            ]],
+        ]);
+
         $templates = PageTemplate::where('is_active', true)->get(['id', 'slug']);
-        $this->assertNotEmpty($templates, 'no active page templates were seeded to preview');
+        $this->assertNotEmpty($templates, 'no active page templates were available to preview');
 
         foreach ($templates as $tpl) {
             $this->assertPreviewsCleanly('page', $tpl->id, "page template '{$tpl->slug}'");

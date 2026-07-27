@@ -33,23 +33,23 @@ class DatabaseSeeder extends Seeder
         $this->call(SitePagesSeeder::class);
         $this->call(VerificationTickTypeSeeder::class);
 
-        $superAdminRole = Role::create([
+        // firstOrCreate: several data migrations (e.g. the primary
+        // super-admin provisioning migration) already create these roles on
+        // a fresh `migrate`, so plain create() would hit a unique violation.
+        $superAdminRole = Role::firstOrCreate(['slug' => 'super-admin'], [
             'name' => 'Super Admin',
-            'slug' => 'super-admin',
             'description' => 'Full access to all admin features',
             'guard' => 'admin',
         ]);
 
-        $staffRole = Role::create([
+        $staffRole = Role::firstOrCreate(['slug' => 'staff'], [
             'name' => 'Staff',
-            'slug' => 'staff',
             'description' => 'Limited admin access',
             'guard' => 'admin',
         ]);
 
-        $supportRole = Role::create([
+        $supportRole = Role::firstOrCreate(['slug' => 'support'], [
             'name' => 'Support',
-            'slug' => 'support',
             'description' => 'Customer support access',
             'guard' => 'admin',
         ]);
@@ -107,9 +107,8 @@ class DatabaseSeeder extends Seeder
 
         foreach ($permissionGroups as $group => $perms) {
             foreach ($perms as $perm) {
-                $p = Permission::create([
+                $p = Permission::firstOrCreate(['slug' => $perm['slug']], [
                     'name' => $perm['name'],
-                    'slug' => $perm['slug'],
                     'group' => $group,
                 ]);
                 $allPermIds[] = $p->id;
@@ -126,9 +125,8 @@ class DatabaseSeeder extends Seeder
         $staffRole->permissions()->sync($allPermIds);
         $supportRole->permissions()->sync($supportPermIds);
 
-        Admin::create([
+        Admin::firstOrCreate(['email' => 'sayzioapp@gmail.com'], [
             'name' => 'Admin',
-            'email' => 'sayzioapp@gmail.com',
             'password' => Hash::make('password'),
             'role_id' => $superAdminRole->id,
             'status' => 'active',
@@ -148,8 +146,8 @@ class DatabaseSeeder extends Seeder
         // selectable hosts in the link create/edit screens.
         $cnameTarget = parse_url(config('app.url'), PHP_URL_HOST) ?: '1in.me';
 
-        $shared = Domain::create([
-            'user_id' => null, 'domain' => 'short.1inme.io', 'type' => 'redirect',
+        $shared = Domain::firstOrCreate(['domain' => 'short.1inme.io'], [
+            'user_id' => null, 'type' => 'redirect',
             'is_active' => true, 'is_verified' => true, 'verified_at' => now(),
             'verification_token' => Str::random(32), 'cname_target' => $cnameTarget,
         ]);
@@ -184,15 +182,15 @@ class DatabaseSeeder extends Seeder
         $sayzioLink->plans()->detach();
         $sayzioLink->badges()->detach();
 
-        $proDomain = Domain::create([
-            'user_id' => null, 'domain' => 'pro.1inme.io', 'type' => 'redirect',
+        $proDomain = Domain::firstOrCreate(['domain' => 'pro.1inme.io'], [
+            'user_id' => null, 'type' => 'redirect',
             'is_active' => true, 'is_verified' => true, 'verified_at' => now(),
             'verification_token' => Str::random(32), 'cname_target' => $cnameTarget,
         ]);
         $proDomain->plans()->sync([$proPlan->id, $businessPlan->id]);
 
-        $bizDomain = Domain::create([
-            'user_id' => null, 'domain' => 'biz.1inme.io', 'type' => 'redirect',
+        $bizDomain = Domain::firstOrCreate(['domain' => 'biz.1inme.io'], [
+            'user_id' => null, 'type' => 'redirect',
             'is_active' => true, 'is_verified' => true, 'verified_at' => now(),
             'verification_token' => Str::random(32), 'cname_target' => $cnameTarget,
         ]);

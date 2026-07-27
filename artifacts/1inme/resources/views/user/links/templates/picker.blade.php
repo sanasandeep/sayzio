@@ -97,11 +97,13 @@
         $usedCats = $pageTemplates->pluck('category')->unique()->all();
     @endphp
 
+    @if(!$pageTemplates->isEmpty())
     <div class="flex items-center gap-3 mb-2">
         <div class="flex-1">
             <input type="text" x-model="search" placeholder="Search templates…" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-white/20">
         </div>
     </div>
+    @endif
 
     {{-- Live "Showing X of Y" counter sitting right under the search input.
          Shown whenever a filter is active (non-empty search or a category
@@ -122,6 +124,9 @@
         </p>
     @endif
 
+    {{-- Category filter chips: hidden entirely when there are no templates
+         so the empty state isn't preceded by a lonely "All" chip. --}}
+    @if(!$pageTemplates->isEmpty())
     <div class="flex items-center gap-1 mb-3 overflow-x-auto pb-2">
         @foreach($cats as $key => $label)
             @if($key === 'all' || in_array($key, $usedCats, true))
@@ -131,6 +136,7 @@
             @endif
         @endforeach
     </div>
+    @endif
 
     @if($pageTemplates->isEmpty())
         <div class="glass rounded-2xl border border-white/10 p-10 sm:p-14 text-center max-w-xl mx-auto">
