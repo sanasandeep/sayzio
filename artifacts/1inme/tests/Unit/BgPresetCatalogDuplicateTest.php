@@ -22,6 +22,69 @@ class BgPresetCatalogDuplicateTest extends TestCase
         return $css;
     }
 
+    /**
+     * Stricter normalization on top of normalizeCss(): canonicalizes color
+     * notation (hex shorthand/case, hex vs rgb()/rgba(), alpha-1 rgba) and
+     * numeric formatting of gradient stops (trailing zeros, "0.5" vs ".5"),
+     * so two presets that render identical swatches but were authored with
+     * different notation still compare equal.
+     */
+    private function canonicalizeCss(string $css): string
+    {
+        $css = $this->normalizeCss($css);
+
+        // Hex colors -> canonical rgb()/rgba().
+        $css = preg_replace_callback('/#([0-9a-f]{3,8})\b/', function (array $m): string {
+            $hex = $m[1];
+            $len = strlen($hex);
+            if ($len === 3 || $len === 4) {
+                $hex = implode('', array_map(fn ($c) => $c . $c, str_split($hex)));
+                $len *= 2;
+            }
+            if ($len !== 6 && $len !== 8) {
+                return $m[0];
+            }
+            $r = hexdec(substr($hex, 0, 2));
+            $g = hexdec(substr($hex, 2, 2));
+            $b = hexdec(substr($hex, 4, 2));
+            if ($len === 8) {
+                $a = $this->formatNumber(hexdec(substr($hex, 6, 2)) / 255);
+                if ($a !== '1') {
+                    return "rgba({$r},{$g},{$b},{$a})";
+                }
+            }
+            return "rgb({$r},{$g},{$b})";
+        }, $css) ?? $css;
+
+        // rgb()/rgba(): strip inner spaces, normalize numbers, drop alpha == 1.
+        $css = preg_replace_callback('/rgba?\(([^)]*)\)/', function (array $m): string {
+            $parts = array_map(
+                fn ($p) => $this->formatNumber((float) trim($p)),
+                explode(',', $m[1])
+            );
+            if (count($parts) === 4 && $parts[3] === '1') {
+                array_pop($parts);
+            }
+            $fn = count($parts) === 4 ? 'rgba' : 'rgb';
+            return $fn . '(' . implode(',', $parts) . ')';
+        }, $css) ?? $css;
+
+        // Numeric stop values: normalize trailing zeros ("0.00%" -> "0%").
+        $css = preg_replace_callback(
+            '/(?<![\w.])(\d+\.\d+|\.\d+)(%|px|deg)?/',
+            fn (array $m) => $this->formatNumber((float) $m[1]) . ($m[2] ?? ''),
+            $css
+        ) ?? $css;
+
+        return $css;
+    }
+
+    private function formatNumber(float $n): string
+    {
+        $s = rtrim(rtrim(number_format($n, 4, '.', ''), '0'), '.');
+        return $s === '' || $s === '-0' ? '0' : $s;
+    }
+
     public function test_no_two_presets_share_identical_normalized_css(): void
     {
         $seen = [];
@@ -41,6 +104,29 @@ class BgPresetCatalogDuplicateTest extends TestCase
             [],
             $duplicates,
             "Background presets with identical CSS found (users would see the same swatch twice):\n"
+                . implode("\n", $duplicates)
+        );
+    }
+
+    public function test_no_two_presets_share_visually_equivalent_css(): void
+    {
+        $seen = [];
+        $duplicates = [];
+
+        foreach (BgPresetCatalog::all() as $key => $preset) {
+            $canonical = $this->canonicalizeCss($preset['css']);
+
+            if (isset($seen[$canonical])) {
+                $duplicates[] = sprintf('"%s" duplicates "%s"', $key, $seen[$canonical]);
+            } else {
+                $seen[$canonical] = $key;
+            }
+        }
+
+        $this->assertSame(
+            [],
+            $duplicates,
+            "Background presets with visually equivalent CSS found (same swatch, different notation):\n"
                 . implode("\n", $duplicates)
         );
     }
