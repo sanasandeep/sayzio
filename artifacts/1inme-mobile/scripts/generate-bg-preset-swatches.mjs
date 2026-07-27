@@ -20,6 +20,15 @@
  * Usage:
  *   pnpm --filter @workspace/1inme-mobile run generate:bg-preset-swatches
  *
+ * Flags:
+ *   --keep-partial   Opt-in: if some presets persistently fail to render,
+ *                    still write the successful PNGs plus a manifest covering
+ *                    only them (BgPresetCatalog::forApi() degrades unlisted
+ *                    presets to the gradient fallback), list the failed keys,
+ *                    and exit non-zero. Default behavior without the flag is
+ *                    unchanged: abort on the first persistent failure and
+ *                    leave manifest.json untouched.
+ *
  * Re-run whenever presets are added or their CSS changes, and commit the
  * regenerated files.
  */
@@ -82,6 +91,7 @@ function loadCatalog() {
 }
 
 async function main() {
+  const keepPartial = process.argv.includes("--keep-partial");
   const catalog = loadCatalog();
   const keys = Object.keys(catalog);
   log(`rendering ${keys.length} preset swatches at ${W}x${H}@${SCALE}x…`);
@@ -133,14 +143,17 @@ async function main() {
   }
 
   const manifest = {};
+  const failed = [];
   let done = 0;
   for (const key of keys) {
     const css = catalog[key].css;
 
     // A single flaky Chromium screenshot shouldn't abort a 176-preset run:
-    // retry the render once, and if it still fails, abort with a message
-    // naming the preset and how far the run got. Old PNGs and manifest.json
-    // stay untouched either way.
+    // retry the render once. On a persistent failure the default is to abort
+    // with a message naming the preset and how far the run got (old PNGs and
+    // manifest.json stay untouched); with --keep-partial the failure is
+    // recorded and the run keeps going so one broken preset can't block
+    // refreshing the rest.
     let png;
     try {
       png = await renderPreset(key, css);
@@ -151,6 +164,13 @@ async function main() {
       try {
         png = await renderPreset(key, css);
       } catch (retryErr) {
+        if (keepPartial) {
+          log(
+            `render of preset "${key}" failed again (${retryErr?.message || retryErr}) — skipping it (--keep-partial)`,
+          );
+          failed.push(key);
+          continue;
+        }
         throw new Error(
           `preset "${key}" failed to render even after a retry (${done}/${keys.length} thumbnails had rendered successfully before the abort; manifest.json was NOT updated): ${retryErr?.message || retryErr}`,
         );
@@ -171,6 +191,13 @@ async function main() {
       !info.head.subarray(0, PNG_SIGNATURE.length).equals(PNG_SIGNATURE)
     ) {
       fs.rmSync(tmpPath, { force: true });
+      if (keepPartial) {
+        log(
+          `written file for preset "${key}" failed validation (${info ? `${info.size} bytes` : "missing"}) — skipping it (--keep-partial)`,
+        );
+        failed.push(key);
+        continue;
+      }
       throw new Error(
         `written file for preset "${key}" failed validation (${info ? `${info.size} bytes` : "missing"}) — refusing to update thumbnails`,
       );
@@ -181,16 +208,36 @@ async function main() {
     if (done % 25 === 0) log(`…${done}/${keys.length}`);
   }
 
+  if (keepPartial && done === 0) {
+    await browser.close();
+    throw new Error(
+      `every one of the ${keys.length} presets failed to render — manifest.json was NOT updated (failed keys: ${failed.join(", ")})`,
+    );
+  }
+
   fs.writeFileSync(
     path.join(OUT_DIR, "manifest.json"),
     JSON.stringify(manifest, null, 2) + "\n",
   );
   await browser.close();
 
-  const total = keys.reduce(
+  const total = Object.keys(manifest).reduce(
     (sum, k) => sum + fs.statSync(path.join(OUT_DIR, `${k}.png`)).size,
     0,
   );
+
+  if (failed.length > 0) {
+    log(
+      `PARTIAL — wrote ${done}/${keys.length} thumbnails + a partial manifest.json (${(total / 1024).toFixed(0)} KiB total) to ${path.relative(process.cwd(), OUT_DIR)}`,
+    );
+    log(
+      `the ${failed.length} preset(s) below failed to render and are NOT in the manifest — mobile degrades them to the gradient fallback:`,
+    );
+    for (const key of failed) log(`  - ${key}`);
+    process.exitCode = 1;
+    return;
+  }
+
   log(
     `PASS — wrote ${done} thumbnails + manifest.json (${(total / 1024).toFixed(0)} KiB total) to ${path.relative(process.cwd(), OUT_DIR)}`,
   );
