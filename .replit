@@ -568,6 +568,10 @@ args = "caller-id-test"
 task = "workflow.run"
 args = "dialer-restore-deps"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "eas-upload-size"
+
 [[workflows.workflow]]
 name = "e2e"
 author = "agent"
@@ -2270,6 +2274,17 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "cd sayzio-dialer-standalone && pnpm install --ignore-workspace --prefer-offline --no-frozen-lockfile 2>&1 | tail -20"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "eas-upload-size"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/scripts run check:eas-upload-size"
 
 [workflows.workflow.metadata]
 isValidation = true
