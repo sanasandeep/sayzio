@@ -66,7 +66,7 @@ class BgPresetCatalog
                 'group'  => $p['group'],
                 'label'  => $p['label'],
                 'css'    => $p['css'],
-                'colors' => self::extractColors($p['css']),
+                'colors' => self::flattenForSwatch(self::extractColors($p['css'])),
             ];
         }
 
@@ -98,6 +98,131 @@ class BgPresetCatalog
             $out[] = $norm;
         }
         return $out;
+    }
+
+    /**
+     * Minimum effective alpha used when compositing a translucent stop for
+     * the mobile swatch. Many pattern/abstract presets are built from very
+     * low-alpha overlay stops (0.01–0.10) layered over a solid base; on web
+     * the repeated layers add up to visible texture, but the mobile
+     * LinearGradient approximation uses each raw stop once, so they wash
+     * out to a near-flat fill. Boosting tiny alphas before flattening keeps
+     * the swatch visibly tinted, closer to the real background.
+     */
+    private const SWATCH_MIN_ALPHA = 0.25;
+
+    /**
+     * Pre-flatten translucent color stops against the preset's base color so
+     * the mobile swatch renders opaque, visibly tinted colors.
+     *
+     * The base is the last fully-opaque stop in source order (layered
+     * pattern presets end with their solid base layer; falls back to white).
+     * Opaque stops pass through untouched; translucent stops are composited
+     * over the base at max(alpha, SWATCH_MIN_ALPHA) and emitted as #rrggbb.
+     * Consecutive duplicates produced by the flattening are collapsed.
+     *
+     * @param list<string> $stops
+     * @return list<string>
+     */
+    private static function flattenForSwatch(array $stops): array
+    {
+        $base = [255, 255, 255];
+        foreach ($stops as $stop) {
+            $rgba = self::parseColor($stop);
+            if ($rgba !== null && $rgba[3] >= 0.999) {
+                $base = [$rgba[0], $rgba[1], $rgba[2]];
+            }
+        }
+
+        $out = [];
+        foreach ($stops as $stop) {
+            $rgba = self::parseColor($stop);
+            if ($rgba === null || $rgba[3] >= 0.999) {
+                $flat = $stop;
+            } else {
+                $a = max($rgba[3], self::SWATCH_MIN_ALPHA);
+                $flat = sprintf(
+                    '#%02x%02x%02x',
+                    (int) round($rgba[0] * $a + $base[0] * (1 - $a)),
+                    (int) round($rgba[1] * $a + $base[1] * (1 - $a)),
+                    (int) round($rgba[2] * $a + $base[2] * (1 - $a)),
+                );
+            }
+            if ($out !== [] && end($out) === $flat) {
+                continue;
+            }
+            $out[] = $flat;
+        }
+        return $out;
+    }
+
+    /**
+     * Parse a normalized (lowercase, whitespace-stripped) color stop into
+     * [r, g, b, alpha]. Handles #hex (3/4/6/8), rgb()/rgba() and
+     * hsl()/hsla(). Returns null for anything unrecognized.
+     *
+     * @return array{0: int, 1: int, 2: int, 3: float}|null
+     */
+    private static function parseColor(string $c): ?array
+    {
+        if (preg_match('/^#([0-9a-f]{3,8})$/', $c, $m)) {
+            $h = $m[1];
+            $len = strlen($h);
+            if ($len === 3 || $len === 4) {
+                $r = hexdec($h[0].$h[0]);
+                $g = hexdec($h[1].$h[1]);
+                $b = hexdec($h[2].$h[2]);
+                $a = $len === 4 ? hexdec($h[3].$h[3]) / 255 : 1.0;
+                return [$r, $g, $b, $a];
+            }
+            if ($len === 6 || $len === 8) {
+                $r = hexdec(substr($h, 0, 2));
+                $g = hexdec(substr($h, 2, 2));
+                $b = hexdec(substr($h, 4, 2));
+                $a = $len === 8 ? hexdec(substr($h, 6, 2)) / 255 : 1.0;
+                return [$r, $g, $b, $a];
+            }
+            return null;
+        }
+
+        if (preg_match('/^rgba?\(([\d.]+),([\d.]+),([\d.]+)(?:,([\d.]+))?\)$/', $c, $m)) {
+            return [
+                (int) round((float) $m[1]),
+                (int) round((float) $m[2]),
+                (int) round((float) $m[3]),
+                isset($m[4]) && $m[4] !== '' ? (float) $m[4] : 1.0,
+            ];
+        }
+
+        if (preg_match('/^hsla?\(([\d.]+),([\d.]+)%,([\d.]+)%(?:,([\d.]+))?\)$/', $c, $m)) {
+            [$r, $g, $b] = self::hslToRgb((float) $m[1], (float) $m[2] / 100, (float) $m[3] / 100);
+            return [$r, $g, $b, isset($m[4]) && $m[4] !== '' ? (float) $m[4] : 1.0];
+        }
+
+        return null;
+    }
+
+    /**
+     * @return array{0: int, 1: int, 2: int}
+     */
+    private static function hslToRgb(float $h, float $s, float $l): array
+    {
+        $h = fmod(fmod($h, 360) + 360, 360) / 360;
+        if ($s <= 0) {
+            $v = (int) round($l * 255);
+            return [$v, $v, $v];
+        }
+        $q = $l < 0.5 ? $l * (1 + $s) : $l + $s - $l * $s;
+        $p = 2 * $l - $q;
+        $f = static function (float $t) use ($p, $q): int {
+            if ($t < 0) $t += 1;
+            if ($t > 1) $t -= 1;
+            if ($t < 1 / 6) return (int) round(($p + ($q - $p) * 6 * $t) * 255);
+            if ($t < 1 / 2) return (int) round($q * 255);
+            if ($t < 2 / 3) return (int) round(($p + ($q - $p) * (2 / 3 - $t) * 6) * 255);
+            return (int) round($p * 255);
+        };
+        return [$f($h + 1 / 3), $f($h), $f($h - 1 / 3)];
     }
 
     /** @var array<string, array{group: string, label: string, css: string}> */
