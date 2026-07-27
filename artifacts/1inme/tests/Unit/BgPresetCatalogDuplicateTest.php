@@ -76,6 +76,49 @@ class BgPresetCatalogDuplicateTest extends TestCase
             $css
         ) ?? $css;
 
+        // Gradient directions: map "to <side>" keywords to their angle
+        // equivalents, and treat the default direction (180deg / to bottom)
+        // as equal to an omitted direction.
+        $directionAngles = [
+            'to top' => 0,
+            'to right' => 90,
+            'to bottom' => 180,
+            'to left' => 270,
+            'to top right' => 45,
+            'to right top' => 45,
+            'to bottom right' => 135,
+            'to right bottom' => 135,
+            'to bottom left' => 225,
+            'to left bottom' => 225,
+            'to top left' => 315,
+            'to left top' => 315,
+        ];
+        $css = preg_replace_callback(
+            '/linear-gradient\((?:(to [a-z ]+|-?\d+(?:\.\d+)?deg),)?/',
+            function (array $m) use ($directionAngles): string {
+                $dir = $m[1] ?? '';
+                if ($dir === '') {
+                    return 'linear-gradient(';
+                }
+                if (str_starts_with($dir, 'to ')) {
+                    $angle = $directionAngles[preg_replace('/\s+/', ' ', trim($dir))] ?? null;
+                    if ($angle === null) {
+                        return $m[0];
+                    }
+                } else {
+                    $angle = fmod((float) substr($dir, 0, -3), 360.0);
+                    if ($angle < 0) {
+                        $angle += 360.0;
+                    }
+                }
+                if ((float) $angle === 180.0) {
+                    return 'linear-gradient(';
+                }
+                return 'linear-gradient(' . $this->formatNumber((float) $angle) . 'deg,';
+            },
+            $css
+        ) ?? $css;
+
         return $css;
     }
 
