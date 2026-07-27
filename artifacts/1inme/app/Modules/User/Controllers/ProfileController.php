@@ -256,32 +256,12 @@ class ProfileController extends Controller
         $previousHandle = $user->handle;
         $user->update($validated);
 
-        // Keep the personal workspace name in sync with the profile name,
-        // but only while it still carries the auto-generated default (so a
-        // workspace the user deliberately renamed is never clobbered). The
-        // default is derived exactly as User::ensureDefaultWorkspace() does.
+        // Propagate the rename to every denormalized copy of the name
+        // (personal workspace + linked admin inline; comments, community
+        // rosters, fan points, subscriber entries, linked contacts and
+        // creator-surface caches via a queued job).
         if ($user->name !== $previousName) {
-            $personal = $user->ownedWorkspaces()->where('is_personal', true)->first();
-            if ($personal) {
-                $autoDefaults = [
-                    (($previousName ?: ('User ' . $user->id))) . "'s workspace",
-                    'User ' . $user->id . "'s workspace",
-                ];
-                if (in_array($personal->name, $autoDefaults, true)) {
-                    $personal->update([
-                        'name' => ($user->name ?: ('User ' . $user->id)) . "'s workspace",
-                    ]);
-                }
-            }
-
-            // Sync the linked admin account's name so the admin sidebar always
-            // shows the user's current display name. Only the name is synced —
-            // email and all other fields are explicitly out of scope. If the
-            // user has no linked admin account this is a no-op.
-            $linkedAdmin = \App\Modules\Common\Services\AdminUserBridge::resolveAdminForUser($user);
-            if ($linkedAdmin !== null) {
-                $linkedAdmin->update(['name' => $user->name]);
-            }
+            \App\Modules\User\Services\UserNameSync::handleRename($user, $previousName);
         }
 
         // Persist billing address + tax-id when the form sent any of

@@ -98,7 +98,17 @@ class ProfileController extends Controller
             unset($data['dmca_email']);
         }
 
+        $previousName = $user->getOriginal('name');
         $user->fill($data)->save();
+
+        // Propagate a rename to every denormalized copy of the display name
+        // (personal workspace, linked admin, comments/rosters/fan points/
+        // subscriber entries/linked contacts + creator-surface caches) —
+        // same sync as the web profile-update path.
+        if ((string) $user->name !== (string) $previousName) {
+            \App\Modules\User\Services\UserNameSync::handleRename($user, $previousName);
+        }
+
         return $this->ok(['user' => UserResource::toArray($user->fresh(), self: true)]);
     }
 }

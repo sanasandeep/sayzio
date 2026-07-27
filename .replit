@@ -572,6 +572,10 @@ args = "dialer-restore-deps"
 task = "workflow.run"
 args = "eas-upload-size"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "name-sync-tests"
+
 [[workflows.workflow]]
 name = "e2e"
 author = "agent"
@@ -2285,6 +2289,17 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "pnpm --filter @workspace/scripts run check:eas-upload-size"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "name-sync-tests"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd artifacts/1inme && TEST_LOCAL_MODE=artisan bash scripts/test-local.sh --filter='ProfileNamePersonalWorkspaceSyncTest|AdminNameSyncOnProfileUpdateTest|VerifiedNameLockProfileUpdateTest'"
 
 [workflows.workflow.metadata]
 isValidation = true
