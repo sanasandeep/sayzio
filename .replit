@@ -584,6 +584,14 @@ args = "e2e-settings-tabs-dedupe"
 task = "workflow.run"
 args = "e2e-mobile-bg-swatches"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-bg-attach"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-bg-live-pair"
+
 [[workflows.workflow]]
 name = "e2e"
 author = "agent"
@@ -2333,6 +2341,28 @@ args = "pnpm --filter @workspace/1inme-mobile run test:bg-preset-swatch-render-e
 
 [workflows.workflow.metadata]
 outputType = "console"
+
+[[workflows.workflow]]
+name = "e2e-bg-attach"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "bash artifacts/1inme/tests/Browser/run-validation.sh biolink-bg-attachment.spec.ts biolink-bg-preset-public-render.spec.ts biolink-bg-branches-public-render.spec.ts"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-bg-live-pair"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "bash artifacts/1inme/tests/Browser/run-validation.sh biolink-bg-preset-live-preview.spec.ts biolink-bg-template-live-preview.spec.ts"
+
+[workflows.workflow.metadata]
+isValidation = true
 
 
   [agent]

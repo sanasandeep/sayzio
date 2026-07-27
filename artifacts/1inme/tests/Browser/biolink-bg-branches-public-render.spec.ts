@@ -41,6 +41,10 @@ type Case = {
 };
 
 const CASES: Case[] = [
+  // The image/gradient cases pin bg_attachment=scroll so the background stays
+  // on the scrolling <body> (the default "fixed" now renders on a dedicated
+  // .bg-page-fixed layer — covered by biolink-bg-preset-public-render.spec.ts
+  // and biolink-bg-attachment.spec.ts).
   {
     key: "image",
     label: "image background (with fallback color)",
@@ -48,6 +52,7 @@ const CASES: Case[] = [
       background_type: "image",
       background_image: BG_IMAGE_URL,
       bg_fallback_color: BG_FALLBACK_COLOR,
+      bg_attachment: "scroll",
     },
   },
   {
@@ -56,6 +61,7 @@ const CASES: Case[] = [
     biolink: {
       background_type: "gradient",
       background_gradient: BG_GRADIENT,
+      bg_attachment: "scroll",
     },
   },
   {

@@ -158,6 +158,12 @@
                 $fontColor = $__bgLum < 0.18 ? '#ffffff' : '#212529';
             }
         }
+        // Fixed/Scroll background position. "Fixed" backgrounds are rendered on a
+        // dedicated position:fixed full-viewport layer behind the content instead
+        // of relying on `background-attachment: fixed`, which iOS/mobile Safari
+        // does not support. "Scroll" keeps the background on the scrolling body.
+        $bgFixed = ($bgAttachment !== 'scroll');
+        $hasPageBgLayer = $bgFixed && in_array($bgType, ['color', 'gradient', 'preset', 'image'], true);
         $bgBlur = (int)($bs['bg_blur'] ?? 0);
         $bgOverlayColor = $bs['bg_overlay_color'] ?? '#000000';
         $bgOverlayOpacity = (int)($bs['bg_overlay_opacity'] ?? 0);
@@ -286,31 +292,58 @@
             font-family: '{{ str_starts_with((string) $fontFamily, 'custom:') ? substr($fontFamily, 7) : $fontFamily }}', sans-serif;
             color: {{ $fontColor }};
             background-color: {{ $bgFallbackColor }};
-            @if($bgType === 'color')
-                background-color: {{ $bgColor }};
-            @elseif($bgType === 'gradient')
-                background: {{ $bgGradient }};
-            @elseif($bgType === 'preset' && $bgPresetCss)
-                {{-- Always terminate the inlined preset CSS: many catalog entries have no
-                     trailing semicolon, and without one the following declaration
-                     (min-height) glues onto the preset's last declaration, silently
-                     invalidating both in the browser. --}}
-                {!! rtrim($bgPresetCss, "; \t\n\r") !!};
-            @elseif($bgType === 'preset')
-                background-color: {{ $bgFallbackColor }};
-            @elseif($bgType === 'image' && $bgImage)
-                background: {{ $bgFallbackColor }} url('{{ $bgImage }}') center/cover no-repeat {{ $bgAttachment }};
-            @elseif($bgType === 'slideshow' || $bgType === 'video' || $bgType === 'template')
-                background-color: {{ $bgFallbackColor }};
-                @if($bgFallbackImage)
-                    background-image: url('{{ $bgFallbackImage }}');
-                    background-size: cover;
-                    background-position: center;
+            @if(!$hasPageBgLayer)
+                @if($bgType === 'color')
+                    background-color: {{ $bgColor }};
+                @elseif($bgType === 'gradient')
+                    background: {{ $bgGradient }};
+                @elseif($bgType === 'preset' && $bgPresetCss)
+                    {{-- Always terminate the inlined preset CSS: many catalog entries have no
+                         trailing semicolon, and without one the following declaration
+                         (min-height) glues onto the preset's last declaration, silently
+                         invalidating both in the browser. --}}
+                    {!! rtrim($bgPresetCss, "; \t\n\r") !!};
+                    {{-- User chose "Scroll": neutralize any attachment hardcoded in catalog CSS. --}}
+                    background-attachment: scroll !important;
+                @elseif($bgType === 'preset')
+                    background-color: {{ $bgFallbackColor }};
+                @elseif($bgType === 'image' && $bgImage)
+                    background: {{ $bgFallbackColor }} url('{{ $bgImage }}') center/cover no-repeat scroll;
+                @elseif($bgType === 'slideshow' || $bgType === 'video' || $bgType === 'template')
+                    background-color: {{ $bgFallbackColor }};
+                    @if($bgFallbackImage)
+                        background-image: url('{{ $bgFallbackImage }}');
+                        background-size: cover;
+                        background-position: center;
+                    @endif
                 @endif
             @endif
             min-height: 100vh;
             position: relative;
         }
+        @if($hasPageBgLayer)
+        {{-- Mobile-Safari-safe "Fixed" background: a fixed-position layer behind the
+             content instead of `background-attachment: fixed` on the body. --}}
+        .bg-page-fixed {
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            pointer-events: none;
+            @if($bgType === 'color')
+                background-color: {{ $bgColor }};
+            @elseif($bgType === 'gradient')
+                background: {{ $bgGradient }};
+            @elseif($bgType === 'preset' && $bgPresetCss)
+                {!! rtrim($bgPresetCss, "; \t\n\r") !!};
+            @elseif($bgType === 'preset')
+                background-color: {{ $bgFallbackColor }};
+            @elseif($bgType === 'image' && $bgImage)
+                background: {{ $bgFallbackColor }} url('{{ $bgImage }}') center/cover no-repeat;
+            @elseif($bgType === 'image')
+                background-color: {{ $bgFallbackColor }};
+            @endif
+        }
+        @endif
         @if($bgBlur > 0 || $bgOverlayOpacity > 0)
         body::after {
             content: '';
@@ -331,17 +364,21 @@
                 background: rgba({{ $r }},{{ $g }},{{ $b }},{{ $bgOverlayOpacity / 100 }});
             @endif
         }
+        @endif
+        @if($bgBlur > 0 || $bgOverlayOpacity > 0 || $hasPageBgLayer)
         body > *:not(.bg-layer):not(script):not(style) {
             position: relative;
             z-index: 1;
         }
         @endif
         @if($bgType === 'slideshow' && count($slideshowImages) > 0)
-        .bg-slideshow { position:fixed; inset:0; z-index:0; }
+        {{-- "Fixed": the slideshow layer pins to the viewport. "Scroll": it becomes an
+             absolutely-positioned layer covering the whole (relative) body so it moves
+             with the content. Both are mobile-Safari-safe (no background-attachment). --}}
+        .bg-slideshow { position:{{ $bgFixed ? 'fixed' : 'absolute' }}; inset:0; z-index:0; overflow:hidden; }
         .bg-slideshow img {
             position:absolute; inset:0; width:100%; height:100%; object-fit:cover;
             opacity:0; transition:opacity 1.5s ease-in-out;
-            @if($bgAttachment === 'fixed') position:fixed; @endif
         }
         .bg-slideshow img.active { opacity:1; }
         @endif
@@ -746,6 +783,15 @@
         }
         /* Keep the fixed bg-template layer behind everything else. */
         .bg-template.bg-layer { z-index: 0 !important; }
+        @if($bgTemplate && !$bgFixed)
+        /* User chose "Scroll": the template layer covers the whole (relative) body
+           and moves with the content instead of pinning to the viewport. Catalog
+           CSS hardcodes position:fixed / background-attachment:fixed, so override. */
+        .bg-template.bg-layer {
+            position: absolute !important;
+            background-attachment: scroll !important;
+        }
+        @endif
         @media (min-width: 768px) {
             .biolink-container { max-width: {{ $maxTablet }}px; }
         }
@@ -892,6 +938,10 @@
     </nav>
     @endif
 
+    @if($hasPageBgLayer)
+    <div class="bg-page-fixed bg-layer" aria-hidden="true"></div>
+    @endif
+
     @if($bgType === 'slideshow' && count($slideshowImages) > 0)
     <div class="bg-slideshow bg-layer">
         @foreach($slideshowImages as $si => $sImg)
@@ -914,7 +964,7 @@
     @endif
 
     @if($bgType === 'template' && $bgTemplate)
-    <div class="bg-template bg-layer bg-template-{{ $bgTemplate->slug }}" style="position:fixed;inset:0;z-index:0;overflow:hidden;"></div>
+    <div class="bg-template bg-layer bg-template-{{ $bgTemplate->slug }}" style="position:{{ $bgFixed ? 'fixed' : 'absolute' }};inset:0;z-index:0;overflow:hidden;"></div>
     @endif
 
     <div class="biolink-container">

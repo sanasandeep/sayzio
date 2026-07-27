@@ -181,11 +181,14 @@ test("clicking a background preset swatch updates the live phone preview without
         const frame = findPreviewFrame(page);
         if (!frame || !frame.url().includes("_draft=1")) return false;
         try {
-          return await frame.evaluate(
-            (marker) =>
-              getComputedStyle(document.body).backgroundImage.includes(marker),
-            PRESET_CSS_MARKER,
-          );
+          return await frame.evaluate((marker) => {
+            // Default bg_attachment is "fixed": the preset renders on the
+            // dedicated .bg-page-fixed layer. Fall back to <body> for the
+            // scroll mode / legacy path.
+            const layer = document.querySelector(".bg-page-fixed");
+            const el = layer ?? document.body;
+            return getComputedStyle(el).backgroundImage.includes(marker);
+          }, PRESET_CSS_MARKER);
         } catch {
           return false; // navigating
         }
