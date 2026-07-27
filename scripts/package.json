@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "hello": "tsx ./src/hello.ts",
+    "generate:version-snapshot": "tsx ./src/generate-version-snapshot.ts",
     "print:collateral": "tsx ./src/print-collateral/generate.ts",
     "check:brand-color": "tsx ./src/check-brand-color.ts",
     "check:brand-color-build": "tsx ./src/check-brand-color-build.ts",

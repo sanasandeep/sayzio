@@ -168,6 +168,37 @@ if [ -d artifacts/1inme ] && command -v php >/dev/null 2>&1; then
   cd - >/dev/null
 fi
 
+# ── Versions & Releases hub upkeep (best-effort, never fails the merge) ──────
+#
+# 1. Regenerate the committed version snapshot (declared versions for mobile /
+#    dialer / zio-browser / extension / api-server / marketing + docs
+#    timestamp) that the admin Versions & Releases page reads.
+# 2. Run the four parity guards NON-fatally and record each pass/fail into
+#    app_settings via `php artisan guards:record` so the page's Sync Status
+#    panel reflects the last real run. These are the same static scans CI
+#    runs; recording here never blocks the merge (the fatal guards above are
+#    a separate, deliberate gate). Detached to the background like the
+#    seeders: parity results are informational and must not widen the gating
+#    window.
+if [ -d artifacts/1inme ] && command -v php >/dev/null 2>&1; then
+  pnpm --filter @workspace/scripts run generate:version-snapshot \
+    || echo "post-merge: version snapshot generation failed (non-fatal)" >&2
+
+  nohup bash -c '
+    record_parity_guard() {
+      key="$1"; shift
+      if "$@" >/dev/null 2>&1; then status=pass; else status=fail; fi
+      (cd artifacts/1inme && php artisan guards:record "$key" "$status") || true
+    }
+    record_parity_guard dialer_sync      pnpm --filter @workspace/scripts run check:dialer-sync
+    record_parity_guard doc_constants    pnpm --filter @workspace/scripts run check:doc-constants
+    record_parity_guard api_server_paths pnpm --filter @workspace/scripts run check:api-server-paths
+    record_parity_guard docs_parity      bash -c "cd artifacts/1inme && composer check:mobile-docs-parity"
+    echo "[$(date)] parity-guard status recording finished"
+  ' >> artifacts/1inme/storage/logs/post-merge-recover.log 2>&1 < /dev/null &
+  disown $! 2>/dev/null || true
+fi
+
 # Provision the dedicated PHPUnit test database so RefreshDatabase feature tests
 # (e.g. tests/Feature/EmailOnlyLoginPolicyTest.php, which guards the email-only
 # login policy) can run in this environment without the manual `createdb` step
