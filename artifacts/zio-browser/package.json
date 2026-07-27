@@ -1,8 +1,8 @@
 {
   "name": "@workspace/zio-browser",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "private": true,
-  "description": "Zio Browser — AI-powered companion browser for Mac and Windows",
+  "description": "Zio Browser \u2014 AI-powered companion browser for Mac and Windows",
   "main": "dist/main/index.js",
   "scripts": {
     "dev": "concurrently \"pnpm run dev:renderer\" \"pnpm run dev:main\"",

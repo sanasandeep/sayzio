@@ -171,11 +171,12 @@
     },
     "extra": {
       "eas": {
-        "projectId": "c7081597-fcfe-4b80-bb8a-c2727a0678b8"
+        "projectId": "9a3ba75e-47cf-4ba2-a6be-4c134feaf7ce"
       },
       "router": {
         "origin": "https://sayzio.app/"
       }
-    }
+    },
+    "owner": "official1inmes-team"
   }
 }

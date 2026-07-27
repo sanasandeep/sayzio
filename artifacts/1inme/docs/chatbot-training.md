@@ -75,7 +75,7 @@ and even get paid through them.
 **Why people use it.** Instead of juggling a separate link shortener, bio-link
 tool, QR generator, form builder, email collector, and payment processor, Sayzio
 puts them all in one place with shared analytics under a single public handle
-(for example, `1in.me/@yourname`).
+(for example, `sayzio.app/@yourname`).
 
 **Who it's for.** Creators, small businesses, freelancers, restaurants, and
 anyone who wants a polished, trackable online presence.

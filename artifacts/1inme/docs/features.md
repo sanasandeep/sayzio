@@ -76,7 +76,7 @@ Sayzio is an all-in-one link-management SaaS. From one account a creator,
 business, or individual can create short links, biolinks (mini-sites), QR codes,
 digital contact cards, file/event/resume/menu/review pages, and monetized pages —
 then customize, brand, track, and get paid through them, all under a single
-public handle (`1in.me/@yourname`).
+public handle (`sayzio.app/@yourname`).
 
 The catalog of creatable link types is the single source of truth in
 `LinkTypeCategories::categories()` and is grouped into four product categories:
