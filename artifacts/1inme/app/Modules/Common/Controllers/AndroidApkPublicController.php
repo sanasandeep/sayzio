@@ -33,6 +33,33 @@ class AndroidApkPublicController extends Controller
         ]);
     }
 
+    /**
+     * Small public JSON descriptor of the current live APK release, consumed
+     * by clients like the Zio Browser dialer pane to show version/size next
+     * to the download QR. Returns 404 when no live release exists so callers
+     * can hide the offer instead of pointing users at a dead download.
+     */
+    public function info()
+    {
+        $release = AndroidApkRelease::live();
+
+        if (!$release) {
+            return response()->json([
+                'error' => ['message' => 'No APK is currently available.', 'code' => 'no_live_release'],
+            ], 404);
+        }
+
+        return response()->json([
+            'data' => [
+                'version_name'    => $release->version_name,
+                'build_number'    => $release->build_number,
+                'file_size_bytes' => (int) $release->file_size_bytes,
+                'size_human'      => $release->size_human,
+                'published_at'    => optional($release->created_at)->toIso8601String(),
+            ],
+        ], 200, ['Cache-Control' => 'public, max-age=300']);
+    }
+
     public function download(Request $request)
     {
         $release = AndroidApkRelease::live();

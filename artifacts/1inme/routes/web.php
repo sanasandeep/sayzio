@@ -372,6 +372,10 @@ Route::post('/custom-plan-request', [\App\Modules\Common\Controllers\CustomPlanR
 // disk) full range/resume support. On S3, redirects to a signed URL.
 Route::get('/android/download', [\App\Modules\Common\Controllers\AndroidApkPublicController::class, 'download'])
     ->name('android.download');
+// Public JSON descriptor of the live APK release (version/size). 404s when
+// no release is uploaded, so clients can hide their download offers.
+Route::get('/android/app.json', [\App\Modules\Common\Controllers\AndroidApkPublicController::class, 'info'])
+    ->name('android.info');
 
 // ---- Marketing XML sitemap + robots.txt (must precede the catch-all /{alias} routes) ----
 // URL list sourced from MarketingSeo so it stays in lockstep with per-page SEO meta.

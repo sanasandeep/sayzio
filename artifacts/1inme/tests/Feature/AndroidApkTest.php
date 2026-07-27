@@ -89,6 +89,38 @@ class AndroidApkTest extends TestCase
     }
 
     // -----------------------------------------------------------------------
+    // Public JSON info endpoint
+    // -----------------------------------------------------------------------
+
+    public function test_public_info_returns_404_when_no_live_release(): void
+    {
+        $this->getJson('/android/app.json')
+            ->assertNotFound()
+            ->assertJsonPath('error.code', 'no_live_release');
+    }
+
+    public function test_public_info_returns_version_and_size_for_live_release(): void
+    {
+        $this->fakeLocalDisk();
+
+        AndroidApkRelease::create([
+            'version_name'    => '1.2.3',
+            'build_number'    => '42',
+            'file_size_bytes' => 150 * 1024 * 1024,
+            'disk'            => 'public',
+            'path'            => 'apk/sayzio-test.apk',
+            'is_live'         => true,
+        ]);
+
+        $this->getJson('/android/app.json')
+            ->assertOk()
+            ->assertJsonPath('data.version_name', '1.2.3')
+            ->assertJsonPath('data.build_number', '42')
+            ->assertJsonPath('data.file_size_bytes', 150 * 1024 * 1024)
+            ->assertJsonPath('data.size_human', '150 MB');
+    }
+
+    // -----------------------------------------------------------------------
     // Public download
     // -----------------------------------------------------------------------
 

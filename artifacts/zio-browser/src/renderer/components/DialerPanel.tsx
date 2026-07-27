@@ -31,6 +31,15 @@ const BASE_URL = 'https://sayzio.app';
 const APK_DOWNLOAD_URL = `${BASE_URL}/android/download`;
 /** Human-friendly landing page (version, size, download button). */
 const APK_LANDING_URL = `${BASE_URL}/android`;
+/** Public JSON descriptor of the live APK release (404 = no release). */
+const APK_INFO_URL = `${BASE_URL}/android/app.json`;
+
+/** Live APK release info fetched from the public descriptor endpoint. */
+interface ApkInfo {
+  version_name: string | null;
+  build_number: string | number | null;
+  size_human: string | null;
+}
 
 /** Poll cadence for the incoming-call mirror while the pane is open. */
 const CALL_EVENTS_POLL_MS = 4000;
@@ -154,6 +163,35 @@ export function DialerPanel({ onClose, onNavigate }: Props) {
       .catch(() => { /* unknown — fall back to the post-failure offer */ });
     return () => { cancelled = true; };
   }, [token, getClient]);
+
+  // ── Live APK release info for the download offer ─────────────────────────
+  // Fetched lazily the first time the "no phone linked" offer appears
+  // (proactively via the linked-device check, or after a failed call):
+  // 'loading' while in flight, ApkInfo on success, 'unavailable' when the
+  // endpoint 404s (no APK uploaded) or the request fails.
+  const [apkInfo, setApkInfo] = useState<ApkInfo | 'loading' | 'unavailable' | null>(null);
+  const showApkOffer = deviceLinked === false || (callState?.status === 'error' && !!callState.noDevice);
+  useEffect(() => {
+    if (!showApkOffer || apkInfo !== null) return;
+    let cancelled = false;
+    setApkInfo('loading');
+    fetch(APK_INFO_URL)
+      .then(async (res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const body = await res.json();
+        const d = body?.data;
+        if (cancelled) return;
+        setApkInfo({
+          version_name: typeof d?.version_name === 'string' ? d.version_name : null,
+          build_number: d?.build_number ?? null,
+          size_human: typeof d?.size_human === 'string' ? d.size_human : null,
+        });
+      })
+      .catch(() => {
+        if (!cancelled) setApkInfo('unavailable');
+      });
+    return () => { cancelled = true; };
+  }, [showApkOffer, apkInfo]);
 
   // ── Incoming-call mirror (short poll while the pane is open) ─────────────
   const cursorRef = useRef(0);
@@ -324,34 +362,52 @@ export function DialerPanel({ onClose, onNavigate }: Props) {
           {/* No phone linked (proactive check on open, or a failed call
               attempt) → offer the latest Zio Dialer APK before the user
               wastes a call attempt. */}
-          {(deviceLinked === false || (callState?.status === 'error' && callState.noDevice)) && (
+          {showApkOffer && (
             <div style={{
               margin: '8px 12px 0', padding: '10px 11px', borderRadius: 8,
               border: '1px solid var(--color-border)',
               background: 'var(--color-bg)',
               display: 'flex', gap: 10, alignItems: 'center',
             }}>
-              <img
-                src={quickQrImageUrl(APK_DOWNLOAD_URL, 96)}
-                alt="QR code — download the Zio Dialer app"
-                width={96}
-                height={96}
-                style={{ borderRadius: 6, background: '#fff', flexShrink: 0 }}
-              />
+              {apkInfo !== 'unavailable' && (
+                <img
+                  src={quickQrImageUrl(APK_DOWNLOAD_URL, 96)}
+                  alt="QR code — download the Zio Dialer app"
+                  width={96}
+                  height={96}
+                  style={{ borderRadius: 6, background: '#fff', flexShrink: 0 }}
+                />
+              )}
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 2 }}>
                   Get the Zio Dialer app
                 </div>
-                <div style={{ ...subStyle, whiteSpace: 'normal', lineHeight: 1.4 }}>
-                  Scan the QR with your phone to download the latest APK, then sign in.
-                </div>
-                <button
-                  onClick={() => onNavigate(APK_LANDING_URL)}
-                  style={{ ...callBtnStyle, marginTop: 6 }}
-                  title={`Open the download page (${APK_LANDING_URL})`}
-                >
-                  ⬇️ Open download page
-                </button>
+                {apkInfo === 'unavailable' ? (
+                  <div style={{ ...subStyle, whiteSpace: 'normal', lineHeight: 1.4 }}>
+                    No Android build is available for download right now — check back soon.
+                  </div>
+                ) : (
+                  <>
+                    <div style={{ ...subStyle, whiteSpace: 'normal', lineHeight: 1.4 }}>
+                      Scan the QR with your phone to download the latest APK, then sign in.
+                    </div>
+                    {apkInfo !== null && apkInfo !== 'loading' && (apkInfo.version_name || apkInfo.size_human) && (
+                      <div style={{ ...subStyle, whiteSpace: 'normal', marginTop: 2 }}>
+                        {[
+                          apkInfo.version_name ? `Version ${apkInfo.version_name}` : null,
+                          apkInfo.size_human,
+                        ].filter(Boolean).join(' · ')}
+                      </div>
+                    )}
+                    <button
+                      onClick={() => onNavigate(APK_LANDING_URL)}
+                      style={{ ...callBtnStyle, marginTop: 6 }}
+                      title={`Open the download page (${APK_LANDING_URL})`}
+                    >
+                      ⬇️ Open download page
+                    </button>
+                  </>
+                )}
               </div>
             </div>
           )}
