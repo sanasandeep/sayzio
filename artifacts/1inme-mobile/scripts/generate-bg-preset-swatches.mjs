@@ -32,6 +32,15 @@ import { fileURLToPath } from "node:url";
 
 import { chromium } from "playwright";
 
+// Reuse the exact validation the bg-preset-swatches guard applies
+// (scripts/src/check-bg-preset-swatches.ts) so the generator can never write
+// a file the guard would reject. Node 24 strips the types natively.
+import {
+  inspectPng,
+  MIN_PNG_BYTES,
+  PNG_SIGNATURE,
+} from "../../../scripts/src/check-bg-preset-swatches.ts";
+
 const MOBILE_ROOT = path.resolve(fileURLToPath(import.meta.url), "..", "..");
 const LARAVEL_ROOT = path.resolve(MOBILE_ROOT, "..", "1inme");
 const CATALOG_PHP = path.join(
@@ -109,7 +118,41 @@ async function main() {
     );
     const el = page.locator("#sw");
     const png = await el.screenshot({ type: "png" });
-    fs.writeFileSync(path.join(OUT_DIR, `${key}.png`), png);
+
+    // Validate the render BEFORE touching disk or the manifest: same rules
+    // the check:bg-preset-swatches guard enforces (real PNG signature,
+    // plausible size). A bad render aborts the whole run — the old PNG and
+    // manifest.json stay untouched.
+    if (png.length < MIN_PNG_BYTES) {
+      throw new Error(
+        `render of preset "${key}" produced only ${png.length} bytes (< ${MIN_PNG_BYTES}) — refusing to save a broken thumbnail`,
+      );
+    }
+    if (!png.subarray(0, PNG_SIGNATURE.length).equals(PNG_SIGNATURE)) {
+      throw new Error(
+        `render of preset "${key}" is not a valid PNG (bad signature) — refusing to save a broken thumbnail`,
+      );
+    }
+
+    // Write atomically (temp file + rename) so an interrupted write can never
+    // leave a truncated {key}.png behind, then re-verify what landed on disk
+    // with the guard's own inspector before recording the manifest md5.
+    const finalPath = path.join(OUT_DIR, `${key}.png`);
+    const tmpPath = `${finalPath}.tmp`;
+    fs.writeFileSync(tmpPath, png);
+    const info = inspectPng(tmpPath);
+    if (
+      !info ||
+      info.size < MIN_PNG_BYTES ||
+      info.head.length < PNG_SIGNATURE.length ||
+      !info.head.subarray(0, PNG_SIGNATURE.length).equals(PNG_SIGNATURE)
+    ) {
+      fs.rmSync(tmpPath, { force: true });
+      throw new Error(
+        `written file for preset "${key}" failed validation (${info ? `${info.size} bytes` : "missing"}) — refusing to update thumbnails`,
+      );
+    }
+    fs.renameSync(tmpPath, finalPath);
     manifest[key] = createHash("md5").update(css).digest("hex");
     done++;
     if (done % 25 === 0) log(`…${done}/${keys.length}`);
