@@ -580,6 +580,10 @@ args = "name-sync-tests"
 task = "workflow.run"
 args = "e2e-settings-tabs-dedupe"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-mobile-bg-swatches"
+
 [[workflows.workflow]]
 name = "e2e"
 author = "agent"
@@ -2318,6 +2322,17 @@ isValidation = true
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "cd artifacts/1inme && bash tests/Browser/run-validation.sh settings-tabs-dedupe.spec.ts"
+
+[[workflows.workflow]]
+name = "e2e-mobile-bg-swatches"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/1inme-mobile run test:bg-preset-swatch-render-e2e"
+
+[workflows.workflow.metadata]
+outputType = "console"
 
 
   [agent]
