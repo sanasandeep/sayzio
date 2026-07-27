@@ -26,10 +26,10 @@ Where: {{ $ics->location }}
 Your check-in ticket:
 Code: {{ $ticket->code }}
 Show this at the door (or the QR code on your manage page):
-{{ route('redirect.event.ticket', ['alias' => $link->alias, 'code' => $ticket->code]) }}
+{{ \App\Modules\Common\Support\PlatformHosts::outboundUrl(route('redirect.event.ticket', ['alias' => $link->alias, 'code' => $ticket->code])) }}
 @endif
 
 Edit or cancel your RSVP any time:
-{{ $rsvp->manageUrl() }}
+{{ \App\Modules\Common\Support\PlatformHosts::outboundUrl($rsvp->manageUrl()) }}
 
 - Sent automatically by Sayzio

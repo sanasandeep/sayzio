@@ -138,4 +138,77 @@ class OutboundBrandUrlTest extends TestCase
 
         $this->assertSame('https://sayzio.app/user/billing', $method->invoke($lifecycle));
     }
+
+    // ── Rendered email bodies ────────────────────────────────────
+
+    private function legacyAppUrl(): void
+    {
+        config(['app.url' => 'https://1in.me']);
+        URL::forceRootUrl('https://1in.me');
+    }
+
+    private function makeUnsavedLink(): \App\Modules\User\Models\Link
+    {
+        $link = new \App\Modules\User\Models\Link();
+        $link->id       = 123;
+        $link->alias    = 'ev123';
+        $link->title    = 'Launch party';
+        $link->long_url = 'https://example.com';
+        $link->setRelation('icsData', null);
+
+        return $link;
+    }
+
+    public function test_domain_health_alert_email_body_has_no_legacy_host(): void
+    {
+        $this->legacyAppUrl();
+
+        $domain = new \App\Modules\User\Models\Domain(['domain' => 'links.example.com']);
+        $html = view('emails.domain-health-alert', [
+            'domain'  => $domain,
+            'type'    => 'custom_domain_drift',
+            'payload' => ['grace_hours' => 168, 'expected_cname' => 'cname.sayzio.app'],
+            'subject' => 'DNS drift detected',
+        ])->render();
+
+        $this->assertStringNotContainsString('1in.me', $html);
+        $this->assertStringContainsString('https://sayzio.app/', $html);
+    }
+
+    public function test_link_insurance_restored_email_body_has_no_legacy_host(): void
+    {
+        $this->legacyAppUrl();
+
+        // "link_restored" variant: the failover variant intentionally embeds
+        // absolute *signed* action URLs which must keep their generating host
+        // (rewriting would invalidate the signature), so it is excluded here.
+        $html = view('emails.link-insurance-alert', [
+            'link'     => $this->makeUnsavedLink(),
+            'type'     => 'link_restored',
+            'payload'  => ['restored_url' => 'https://example.com'],
+            'shortUrl' => 'https://sayzio.app/ev123',
+        ])->render();
+
+        $this->assertStringNotContainsString('1in.me', $html);
+        $this->assertStringContainsString('https://sayzio.app/user/links/123', $html);
+    }
+
+    public function test_event_rsvp_reminder_text_body_has_no_legacy_host(): void
+    {
+        $this->legacyAppUrl();
+
+        $link = $this->makeUnsavedLink();
+        $rsvp = new \App\Modules\User\Models\Rsvp(['name' => 'Sam', 'manage_token' => 'tok123']);
+        $rsvp->setRelation('link', $link);
+
+        $text = view('emails.event-rsvp-reminder-text', [
+            'rsvp'       => $rsvp,
+            'title'      => 'Launch party',
+            'occurrence' => now()->addDay(),
+            'link'       => $link,
+        ])->render();
+
+        $this->assertStringNotContainsString('1in.me', $text);
+        $this->assertStringContainsString('https://sayzio.app/ev123/rsvp/manage/tok123', $text);
+    }
 }

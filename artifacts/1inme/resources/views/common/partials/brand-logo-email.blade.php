@@ -19,7 +19,9 @@
     $__raw = trim((string) ($__brand['logo_light'] ?? ''));
     $__src = $__raw === ''
         ? ''
-        : (preg_match('#^https?://#i', $__raw) ? $__raw : url($__raw));
+        : \App\Modules\Common\Support\PlatformHosts::outboundUrl(
+            preg_match('#^https?://#i', $__raw) ? $__raw : url($__raw)
+        );
 @endphp
 @if($__src !== '')
 <img src="{{ $__src }}" alt="{{ $__alt }}" height="{{ $__height }}" style="height:{{ $__height }}px; width:auto; display:inline-block; border:0; outline:none; text-decoration:none;">

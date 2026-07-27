@@ -39,7 +39,7 @@ class NewsletterWelcomeMail
         $viewData = [
             'subject'        => $subject,
             'appName'        => config('app.name'),
-            'siteUrl'        => url('/'),
+            'siteUrl'        => AppModulesCommonSupportPlatformHosts::outboundUrl(url('/')),
             'unsubscribeUrl' => $unsubscribeUrl,
         ];
 

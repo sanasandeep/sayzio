@@ -46,7 +46,7 @@
             </div>
 
             <p style="margin:0 0 24px 0;">
-                <a href="{{ $payload['target_url'] ?? url('/') }}"
+                <a href="{{ \App\Modules\Common\Support\PlatformHosts::outboundUrl($payload['target_url'] ?? url('/')) }}"
                    style="display:inline-block; background-color:#2563eb; color:#ffffff; padding:12px 22px; border-radius:8px; text-decoration:none; font-size:14px; font-weight:600;">
                     Open domain settings
                 </a>

@@ -353,7 +353,7 @@ class BannedNameController extends Controller
             return back()->with('error', "That user's handle no longer matches '{$bannedName->name}'.");
         }
 
-        $profileUrl = route('user.profile.edit');
+        $profileUrl = AppModulesCommonSupportPlatformHosts::outboundUrl(route('user.profile.edit'));
 
         UserNotification::create([
             'user_id'    => $user->id,

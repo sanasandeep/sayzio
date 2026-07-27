@@ -403,7 +403,7 @@ class MonetizationCheckout
                 'event_name' => $tier->link?->title,
                 'tier_name'  => $tier->name,
                 'quantity'   => $ticket->quantity,
-                'ticket_url' => route('redirect.event.ticket', ['alias' => $tier->link?->alias, 'code' => $ticket->code]),
+                'ticket_url' => AppModulesCommonSupportPlatformHosts::outboundUrl(route('redirect.event.ticket', ['alias' => $tier->link?->alias, 'code' => $ticket->code])),
             ]);
         } catch (\Throwable $e) {
             Log::warning('ticketing.confirmation_email.failed', ['ticket' => $ticket->id, 'err' => $e->getMessage()]);

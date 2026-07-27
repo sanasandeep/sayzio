@@ -110,7 +110,7 @@ class StoreOrderService
             . number_format((float) $order->total, 2)
             . " on \"{$link->title}\".";
 
-        $ordersUrl = route('user.links.store.orders', $link);
+        $ordersUrl = AppModulesCommonSupportPlatformHosts::outboundUrl(route('user.links.store.orders', $link));
         $notification = null;
         try {
             $notification = $this->notifications->notify($owner, 'store.new_order', [
