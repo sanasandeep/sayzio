@@ -3,6 +3,26 @@
 @section('page-title', 'Versions & Releases')
 
 @section('content')
+<style>
+    .release-notes > * + * { margin-top: 0.5rem; }
+    .release-notes ul { list-style: disc; padding-left: 1.25rem; }
+    .release-notes ol { list-style: decimal; padding-left: 1.25rem; }
+    .release-notes li + li { margin-top: 0.2rem; }
+    .release-notes h3, .release-notes h4 { font-weight: 600; color: rgba(255,255,255,0.85); }
+    .release-notes h3 { font-size: 0.8rem; }
+    .release-notes h4 { font-size: 0.75rem; }
+    .release-notes a { color: rgb(147 197 253); text-decoration: underline; }
+    .release-notes a:hover { color: rgb(191 219 254); }
+    .release-notes code { font-family: ui-monospace, monospace; font-size: 0.7rem; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.1); border-radius: 0.25rem; padding: 0.05rem 0.3rem; }
+    .release-notes blockquote { border-left: 2px solid rgba(255,255,255,0.2); padding-left: 0.75rem; color: rgba(255,255,255,0.45); }
+    .release-notes strong { color: rgba(255,255,255,0.8); }
+    html.light-mode .release-notes h3, html.light-mode .release-notes h4,
+    html.light-mode .release-notes strong { color: rgba(15,23,42,0.85); }
+    html.light-mode .release-notes a { color: rgb(37 99 235); }
+    html.light-mode .release-notes a:hover { color: rgb(29 78 216); }
+    html.light-mode .release-notes code { background: rgba(15,23,42,0.06); border-color: rgba(15,23,42,0.12); }
+    html.light-mode .release-notes blockquote { border-left-color: rgba(15,23,42,0.2); color: rgba(15,23,42,0.55); }
+</style>
 <div class="max-w-5xl space-y-6" x-data="{ open: null, editing: null, adding: null }">
 
     {{-- Session flash --}}
@@ -150,7 +170,7 @@
                                     </div>
                                     @if($release->notes)
                                         <div class="px-4 pb-3 -mt-1" x-show="editing !== {{ $release->id }}">
-                                            <p class="text-xs text-white/55 whitespace-pre-wrap ak-muted">{{ $release->notes }}</p>
+                                            <div class="release-notes text-xs text-white/55 ak-muted">{!! \App\Services\SafeHtml::render($release->notes) !!}</div>
                                         </div>
                                     @endif
 

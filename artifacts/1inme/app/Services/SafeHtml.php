@@ -180,6 +180,13 @@ class SafeHtml
                 $closeList();
                 continue;
             }
+            if (preg_match('/^(#{1,6})\s+(.*)$/', $trim, $m)) {
+                $flushParagraph();
+                $closeList();
+                $tag = strlen($m[1]) <= 2 ? 'h3' : 'h4';
+                $out[] = '<' . $tag . '>' . self::inlineMarkdown(e($m[2])) . '</' . $tag . '>';
+                continue;
+            }
             if (preg_match('/^[-*]\s+(.*)$/', $trim, $m)) {
                 $flushParagraph();
                 if ($listType !== 'ul') {
