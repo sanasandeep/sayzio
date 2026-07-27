@@ -42,10 +42,10 @@ class SendDialerCallbackReminders extends Command
 
                     $who = $row->contact?->nameForDisplay() ?: ($row->number_e164 ?: 'a contact');
                     $message = "Time to call back {$who}";
-                    $url = route('user.dialer.profile', array_filter([
+                    $url = \App\Modules\Common\Support\PlatformHosts::outboundUrl(route('user.dialer.profile', array_filter([
                         'number'  => $row->number_e164,
                         'contact' => $row->contact_id,
-                    ]));
+                    ])));
 
                     $data = array_filter([
                         'message'     => $message,

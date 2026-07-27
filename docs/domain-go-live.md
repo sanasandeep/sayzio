@@ -48,6 +48,18 @@ Set in the live server / deployment `.env` (the dev `.env` deliberately stays on
 `http://localhost:5000` so the Replit preview iframe keeps working):
 
 - `APP_URL=https://sayzio.app`
+  - **Action required on the live server:** flip the production `.env` from
+    `APP_URL=https://1in.me` to `APP_URL=https://sayzio.app` (then
+    `php artisan config:clear` / restart). This is the config change that makes
+    *all* generated links brand-primary at the source.
+  - **Code safety net (does not depend on the flip):**
+    `PlatformHosts::outboundUrl()` normalises outbound links generated from
+    CLI/queue context — system emails, in-app/push notifications, scheduler /
+    queue / schema health alerts, billing reminders, event alerts, feature
+    launch notices, Zio Digest branding — rewriting any recognised non-primary
+    brand host (`1in.me`) to `https://sayzio.app`. Dev/preview hosts (Replit
+    dev domain, localhost) and custom user domains are never rewritten, and
+    inbound `1in.me` alias resolution is unaffected.
   - Drives generated links, short URLs, QR-code targets, email links, and
     OAuth/callback URLs. Everything that calls `url()` / `route()` /
     `config('app.url')` follows it — including the global-domain `cname_target`

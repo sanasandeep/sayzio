@@ -564,6 +564,18 @@ args = "showcase-prod-seed"
 task = "workflow.run"
 args = "caller-id-test"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "dialer-restore-deps"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "eas-upload-size"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "name-sync-tests"
+
 [[workflows.workflow]]
 name = "e2e"
 author = "agent"
@@ -2259,6 +2271,39 @@ args = "cd artifacts/1inme && rm -rf /tmp/1inme-testpg.* ; TEST_LOCAL_MODE=artis
 [workflows.workflow.metadata]
 isValidation = true
 
+[[workflows.workflow]]
+name = "dialer-restore-deps"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd sayzio-dialer-standalone && pnpm install --ignore-workspace --prefer-offline --no-frozen-lockfile 2>&1 | tail -20"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "eas-upload-size"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/scripts run check:eas-upload-size"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "name-sync-tests"
+author = "agent"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd artifacts/1inme && TEST_LOCAL_MODE=artisan bash scripts/test-local.sh --filter='ProfileNamePersonalWorkspaceSyncTest|AdminNameSyncOnProfileUpdateTest|VerifiedNameLockProfileUpdateTest|AdminRenameUserNameSyncTest'"
+
 
   [agent]
 stack = "PNPM_WORKSPACE"
@@ -2279,7 +2324,7 @@ AWS_DEFAULT_REGION = "ap-south-2"
 AWS_URL = "https://d3l7wvr1shk1cg.cloudfront.net"
 AWS_USE_PATH_STYLE_ENDPOINT = "true"
 USER_CONTENT_DISK = "s3"
-CONTACT_ADMIN_TOKEN = "qNApHcj3SDKCnQRrNcTyWOXdsxQMmeyhRy4Mf0"
+CONTACT_ADMIN_TOKEN = ""
 APP_NAME = "Sayzio"
 
 [[ports]]

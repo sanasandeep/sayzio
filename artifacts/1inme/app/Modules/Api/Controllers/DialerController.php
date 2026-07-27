@@ -595,4 +595,183 @@ class DialerController extends Controller
         $row->save();
         return $this->ok(['cleared' => true]);
     }
+
+    /**
+     * "Sayzio connects" — everyone the viewer is connected to on Sayzio
+     * (following and/or followed-by), merged into one list with the
+     * viewer's own Brand/Personal label. Follow rows carry a workspace
+     * global scope, so both direction queries drop it explicitly.
+     *
+     * GET /dialer/connections?category=personal|brand&q=
+     */
+    public function connections(Request $request)
+    {
+        $viewer = $request->user();
+
+        $followingIds = \App\Modules\User\Models\Follow::withoutGlobalScope('workspace')
+            ->where('follower_id', $viewer->id)->pluck('creator_id');
+        $followerIds = \App\Modules\User\Models\Follow::withoutGlobalScope('workspace')
+            ->where('creator_id', $viewer->id)->pluck('follower_id');
+
+        $ids = $followingIds->merge($followerIds)->unique()->reject(fn ($id) => (int) $id === (int) $viewer->id)->values();
+        if ($ids->isEmpty()) {
+            return $this->ok(['items' => [], 'total' => 0]);
+        }
+
+        $labels = \App\Modules\User\Models\DialerConnectionLabel::where('user_id', $viewer->id)
+            ->whereIn('other_user_id', $ids)->pluck('category', 'other_user_id');
+        $followingSet = $followingIds->flip();
+        $followerSet = $followerIds->flip();
+
+        $users = \App\Modules\User\Models\User::whereIn('id', $ids)->orderBy('name')->get();
+
+        $items = $users->map(function ($u) use ($labels, $followingSet, $followerSet) {
+            $isFollowing = $followingSet->has($u->id);
+            $isFollower = $followerSet->has($u->id);
+            return [
+                'user_id'    => $u->id,
+                'name'       => $u->name,
+                'handle'     => $u->handle,
+                'avatar_url' => $u->resolveAvatarUrl(),
+                'verified'   => $u->isVerified(),
+                'direction'  => $isFollowing && $isFollower ? 'mutual' : ($isFollowing ? 'following' : 'follower'),
+                'category'   => $labels[$u->id] ?? null,
+            ];
+        })->values();
+
+        // Optional filters applied server-side so mobile stays thin.
+        if (in_array($cat = (string) $request->query('category', ''), ['personal', 'brand'], true)) {
+            $items = $items->filter(fn ($i) => $i['category'] === $cat)->values();
+        }
+        if (($q = trim((string) $request->query('q', ''))) !== '') {
+            $needle = mb_strtolower($q);
+            $items = $items->filter(fn ($i) =>
+                str_contains(mb_strtolower((string) $i['name']), $needle)
+                || str_contains(mb_strtolower((string) ($i['handle'] ?? '')), $needle)
+            )->values();
+        }
+
+        return $this->ok(['items' => $items->all(), 'total' => $items->count()]);
+    }
+
+    /**
+     * Set (or clear) the viewer's Brand/Personal label for a connection.
+     *
+     * PUT /dialer/connections/{userId}  Body: {category: 'personal'|'brand'|null}
+     */
+    public function setConnectionCategory(Request $request, int $userId)
+    {
+        $viewer = $request->user();
+        $v = $request->validate(['category' => ['nullable', 'in:personal,brand']]);
+
+        $connected = \App\Modules\User\Models\Follow::withoutGlobalScope('workspace')
+            ->where(function ($w) use ($viewer, $userId) {
+                $w->where(fn ($q) => $q->where('follower_id', $viewer->id)->where('creator_id', $userId))
+                  ->orWhere(fn ($q) => $q->where('creator_id', $viewer->id)->where('follower_id', $userId));
+            })->exists();
+        if (!$connected) return $this->notFound('Connection not found');
+
+        $category = $v['category'] ?? null;
+        if ($category === null) {
+            \App\Modules\User\Models\DialerConnectionLabel::where('user_id', $viewer->id)
+                ->where('other_user_id', $userId)->delete();
+        } else {
+            \App\Modules\User\Models\DialerConnectionLabel::updateOrCreate(
+                ['user_id' => $viewer->id, 'other_user_id' => $userId],
+                ['category' => $category],
+            );
+        }
+
+        return $this->ok(['user_id' => $userId, 'category' => $category]);
+    }
+
+    /**
+     * Caller-ID profiles the signed-in user can present from the Zio
+     * Dialer: their Personal identity plus each owned workspace's resolved
+     * caller ID. Includes the selected primary and a shareable profile URL
+     * (QR/share/copy on the client).
+     *
+     * GET /dialer/caller-id-profiles
+     */
+    public function callerIdProfiles(Request $request)
+    {
+        $user = $request->user();
+
+        $selected = $user->settings['dialer_caller_id_workspace_id'] ?? null;
+        $shareUrl = url('/@' . $user->publicHandle());
+
+        $profiles = [[
+            'workspace_id' => null,
+            'type'         => 'personal',
+            'name'         => $user->name,
+            'logo_url'     => $user->resolveAvatarUrl(),
+            'tagline'      => $user->bio ?: null,
+            'is_primary'   => $selected !== null && (int) $selected === 0,
+        ]];
+
+        foreach ($user->ownedWorkspaces()->orderBy('id')->get() as $ws) {
+            $resolved = $ws->resolvedCallerId();
+            $profiles[] = [
+                'workspace_id' => $ws->id,
+                'type'         => $resolved['type'] ?? 'personal',
+                'name'         => $resolved['name'] ?? $ws->name,
+                'logo_url'     => $resolved['logo_url'] ?? null,
+                'tagline'      => $resolved['tagline'] ?? null,
+                'workspace_name' => $ws->name,
+                'is_primary'   => $selected !== null && (int) $selected === (int) $ws->id,
+            ];
+        }
+
+        // No explicit selection yet — mark the default fallback (active
+        // workspace, else oldest owned workspace, else personal) as primary
+        // so the picker reflects what callers currently see.
+        if ($selected === null) {
+            $effective = \App\Modules\User\Support\DialerIdentity::callerIdFor($user);
+            $marked = false;
+            foreach ($profiles as $i => $p) {
+                if ($p['workspace_id'] !== null && ($p['name'] ?? null) === ($effective['name'] ?? null) && ($p['type'] ?? null) === ($effective['type'] ?? null)) {
+                    $profiles[$i]['is_primary'] = true;
+                    $marked = true;
+                    break;
+                }
+            }
+            if (!$marked) $profiles[0]['is_primary'] = true;
+        }
+
+        return $this->ok([
+            'items'     => $profiles,
+            'share_url' => $shareUrl,
+            'handle'    => $user->publicHandle(),
+        ]);
+    }
+
+    /**
+     * Pick the primary caller-ID profile for the Zio Dialer. Body:
+     * {workspace_id: null|0 → Personal, or an owned workspace id}.
+     * Stored in users.settings and honored first by
+     * DialerIdentity::callerIdFor().
+     *
+     * PUT /dialer/caller-id-profiles/primary
+     */
+    public function selectCallerIdProfile(Request $request)
+    {
+        $user = $request->user();
+        $v = $request->validate(['workspace_id' => ['nullable', 'integer']]);
+
+        $wsId = (int) ($v['workspace_id'] ?? 0);
+        if ($wsId > 0) {
+            $owned = $user->ownedWorkspaces()->whereKey($wsId)->exists();
+            if (!$owned) return $this->notFound('Workspace not found');
+        }
+
+        $settings = is_array($user->settings) ? $user->settings : [];
+        $settings['dialer_caller_id_workspace_id'] = $wsId; // 0 = explicit Personal
+        $user->settings = $settings;
+        $user->save();
+
+        return $this->ok([
+            'workspace_id' => $wsId > 0 ? $wsId : null,
+            'caller_id'    => \App\Modules\User\Support\DialerIdentity::callerIdFor($user->fresh()),
+        ]);
+    }
 }

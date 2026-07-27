@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { ChromeBar } from './components/ChromeBar';
 import { ZioPanel } from './components/ZioPanel';
+import { DialerPanel } from './components/DialerPanel';
 import { NewTabPage } from './components/NewTabPage';
 import { AboutPage } from './components/AboutPages';
 import { AuthModal } from './components/AuthModal';
@@ -43,6 +44,7 @@ const FIRST_LAUNCH_KEY = 'zio_mode_picker_shown';
 export default function App() {
   const [zioPanelOpen, setZioPanelOpen] = useState(false);
   const [readingListOpen, setReadingListOpen] = useState(false);
+  const [dialerPanelOpen, setDialerPanelOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [showModePicker, setShowModePicker] = useState(false);
@@ -309,6 +311,7 @@ export default function App() {
   // ref-counted chrome overlay while any of them is open.
   useChromeOverlay(settingsOpen);
   useChromeOverlay(readingListOpen);
+  useChromeOverlay(dialerPanelOpen);
   useChromeOverlay(siteSettingsOpen);
   useChromeOverlay(showOverlayPanel);
 
@@ -353,7 +356,19 @@ export default function App() {
   const handleToggleReadingList = useCallback(() => {
     setReadingListOpen(prev => !prev);
     setZioPanelOpen(false);
+    setDialerPanelOpen(false);
   }, []);
+
+  const handleToggleDialer = useCallback(() => {
+    // The Dialer pane needs an account (search + phone handoff are per-user).
+    if (isPrivate) return;
+    if (!user) {
+      setAuthModalOpen(true);
+      return;
+    }
+    setDialerPanelOpen(prev => !prev);
+    setReadingListOpen(false);
+  }, [user, isPrivate]);
 
   // ── Zio panel divider drag (browser mode, docked) ─────────────────────────
   const handleDividerMouseDown = useCallback((e: React.MouseEvent) => {
@@ -574,6 +589,8 @@ export default function App() {
         onOpenSiteSettings={() => setSiteSettingsOpen(true)}
         readingListOpen={readingListOpen}
         onToggleReadingList={handleToggleReadingList}
+        dialerPanelOpen={dialerPanelOpen}
+        onToggleDialer={handleToggleDialer}
         onOpenSettings={() => setSettingsOpen(prev => !prev)}
         settingsOpen={settingsOpen}
       />
@@ -669,6 +686,17 @@ export default function App() {
         {readingListOpen && (
           <ReadingListPanel
             onClose={() => setReadingListOpen(false)}
+            onNavigate={(url) => {
+              if (activeTabId) {
+                void window.zio.tabs.navigate(activeTabId, url);
+              }
+            }}
+          />
+        )}
+
+        {dialerPanelOpen && !isPrivate && (
+          <DialerPanel
+            onClose={() => setDialerPanelOpen(false)}
             onNavigate={(url) => {
               if (activeTabId) {
                 void window.zio.tabs.navigate(activeTabId, url);

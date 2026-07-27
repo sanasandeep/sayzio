@@ -51,7 +51,7 @@ class CloudConnectionBrokenMail
             'providerLabel'  => $providerLabel,
             'accountLabel'   => $accountLabel,
             'reason'         => $reason ?: $connection->last_error,
-            'reconnectUrl'   => route('user.cloud-files.connections'),
+            'reconnectUrl'   => AppModulesCommonSupportPlatformHosts::outboundUrl(route('user.cloud-files.connections')),
         ];
 
         try {

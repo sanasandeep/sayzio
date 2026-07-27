@@ -533,7 +533,7 @@ class CreatorPostController extends Controller
             try {
                 \App\Modules\Common\Services\Emailer::send('posts.review_request', $recipient->email, [
                     'message' => $message,
-                    'url'     => route('user.posts.index'),
+                    'url'     => AppModulesCommonSupportPlatformHosts::outboundUrl(route('user.posts.index')),
                 ], ['user' => $recipient->id]);
                 UserNotification::where('user_id', $recipient->id)
                     ->where('type', 'post_review_request')
@@ -584,7 +584,7 @@ class CreatorPostController extends Controller
         try {
             \App\Modules\Common\Services\Emailer::send('posts.review_decision', $editor->email, [
                 'message' => $message,
-                'url'     => route('user.posts.index'),
+                'url'     => AppModulesCommonSupportPlatformHosts::outboundUrl(route('user.posts.index')),
             ], ['user' => $editor->id]);
             $notif->emailed_at = now();
             $notif->save();

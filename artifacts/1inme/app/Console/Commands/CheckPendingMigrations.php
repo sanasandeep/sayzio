@@ -164,9 +164,9 @@ class CheckPendingMigrations extends Command
     private function dashboardUrl(): string
     {
         try {
-            return route('admin.dashboard');
+            return \App\Modules\Common\Support\PlatformHosts::outboundUrl(route('admin.dashboard'));
         } catch (\Throwable $e) {
-            return url('/admin');
+            return \App\Modules\Common\Support\PlatformHosts::outboundUrl(url('/admin'));
         }
     }
 

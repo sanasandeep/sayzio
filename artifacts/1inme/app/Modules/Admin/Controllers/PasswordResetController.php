@@ -64,7 +64,7 @@ class PasswordResetController extends Controller
             ['token' => Hash::make($token), 'created_at' => now()]
         );
 
-        $resetUrl = route('admin.password.reset', ['token' => $token, 'email' => $admin->email]);
+        $resetUrl = AppModulesCommonSupportPlatformHosts::outboundUrl(route('admin.password.reset', ['token' => $token, 'email' => $admin->email]));
 
         try {
             Emailer::send('admin.password_reset', $admin->email, [
@@ -133,7 +133,7 @@ class PasswordResetController extends Controller
             ['token' => Hash::make($token), 'created_at' => now()]
         );
 
-        $resetUrl = route('admin.password.reset', ['token' => $token, 'email' => $admin->email]);
+        $resetUrl = AppModulesCommonSupportPlatformHosts::outboundUrl(route('admin.password.reset', ['token' => $token, 'email' => $admin->email]));
 
         try {
             Emailer::send('admin.password_reset', $admin->email, [

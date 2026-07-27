@@ -50,7 +50,7 @@ class SendDialerNoteReminders extends Command
                         'note_id' => $note->id,
                         'kind' => $note->kind ?: 'note',
                         'number' => $note->number_e164,
-                        'url' => route('user.dialer.notes'),
+                        'url' => \App\Modules\Common\Support\PlatformHosts::outboundUrl(route('user.dialer.notes')),
                     ], fn ($v) => $v !== null && $v !== '');
 
                     foreach ($recipients as $userId) {

@@ -80,6 +80,16 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::post('dismiss', [\App\Modules\Admin\Controllers\SystemUpdateController::class, 'dismiss'])->middleware(CheckPermission::class . ':settings.manage')->name('dismiss');
         });
 
+        // Versions & Releases hub: per-surface version status + admin-managed
+        // changelogs + parity-guard sync status (read-only; guards run at
+        // CI/post-merge time, never on demand from this page).
+        Route::prefix('versions')->name('versions.')->group(function () {
+            Route::get('/', [\App\Modules\Admin\Controllers\VersionsController::class, 'index'])->middleware(CheckPermission::class . ':settings.manage')->name('index');
+            Route::post('releases', [\App\Modules\Admin\Controllers\VersionsController::class, 'store'])->middleware(CheckPermission::class . ':settings.manage')->name('releases.store');
+            Route::put('releases/{release}', [\App\Modules\Admin\Controllers\VersionsController::class, 'update'])->middleware(CheckPermission::class . ':settings.manage')->name('releases.update');
+            Route::delete('releases/{release}', [\App\Modules\Admin\Controllers\VersionsController::class, 'destroy'])->middleware(CheckPermission::class . ':settings.manage')->name('releases.destroy');
+        });
+
         // Seamless switch from the back-office to the matching user dashboard.
         Route::post('switch-to-user', [\App\Modules\Common\Controllers\DashboardSwitchController::class, 'toUser'])->name('switch-to-user');
 

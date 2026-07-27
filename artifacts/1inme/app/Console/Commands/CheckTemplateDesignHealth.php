@@ -203,12 +203,12 @@ class CheckTemplateDesignHealth extends Command
     {
         foreach (['admin.templates.index', 'admin.templates', 'admin.dashboard'] as $name) {
             try {
-                return route($name);
+                return \App\Modules\Common\Support\PlatformHosts::outboundUrl(route($name));
             } catch (\Throwable $e) {
                 // try the next candidate
             }
         }
-        return url('/admin');
+        return \App\Modules\Common\Support\PlatformHosts::outboundUrl(url('/admin'));
     }
 
     /**

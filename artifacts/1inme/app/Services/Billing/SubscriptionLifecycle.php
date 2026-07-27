@@ -385,9 +385,9 @@ class SubscriptionLifecycle
     protected function billingManageUrl(): string
     {
         try {
-            return route('user.billing.show');
+            return \App\Modules\Common\Support\PlatformHosts::outboundUrl(route('user.billing.show'));
         } catch (\Throwable $e) {
-            return rtrim((string) config('app.url'), '/') . '/user/billing';
+            return \App\Modules\Common\Support\PlatformHosts::outboundUrl(rtrim((string) config('app.url'), '/') . '/user/billing');
         }
     }
 }

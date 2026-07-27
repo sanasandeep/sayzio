@@ -296,6 +296,34 @@ export class ApiClient {
     return this.get('/dialer/history');
   }
 
+  /**
+   * Lightweight check: does this account have a linked Zio Dialer phone?
+   * Lets the Dialer pane offer the app download proactively instead of
+   * only after a failed call attempt.
+   */
+  async dialerHandoffStatus(): Promise<DialerHandoffStatus> {
+    return this.get('/dialer/handoff/status');
+  }
+
+  /**
+   * Ask the linked Zio Dialer phone app to place a call (click-to-call
+   * handoff). The server pushes a `dialer.call_request` notification to the
+   * user's phone; throws ApiClientError code `no_dialer_device` (404) when
+   * no phone is linked.
+   */
+  async dialerRequestCall(number: string, name?: string | null): Promise<DialerCallRequestResult> {
+    return this.post('/dialer/handoff/call', {
+      number,
+      ...(name ? { name } : {}),
+    });
+  }
+
+  /** Short-poll recent incoming-call events mirrored from the phone. */
+  async dialerCallEvents(since?: number): Promise<DialerCallEventsResult> {
+    const qs = since && since > 0 ? `?since=${since}` : '';
+    return this.get(`/dialer/call-events${qs}`);
+  }
+
   // ── AI / assistant (Ask Zio) ──────────────────────────────────────────────
   // The /assistant/* endpoints mirror the web Ask Zio widget and return RAW
   // JSON payloads (ok/visitor_token/messages/...), NOT the {data} envelope
@@ -631,6 +659,28 @@ export interface DialerSearchResult {
     label: string;
     items: unknown[];
   }>;
+}
+
+export interface DialerHandoffStatus {
+  device_linked: boolean;
+}
+
+export interface DialerCallRequestResult {
+  requested: boolean;
+  sent: number;
+}
+
+export interface DialerCallEvent {
+  id: number;
+  status: 'ringing' | 'answered' | 'ended';
+  number: string;
+  caller_name: string | null;
+  occurred_at: string | null;
+}
+
+export interface DialerCallEventsResult {
+  events: DialerCallEvent[];
+  cursor: number;
 }
 
 // ── Assistant (Ask Zio) types ────────────────────────────────────────────────

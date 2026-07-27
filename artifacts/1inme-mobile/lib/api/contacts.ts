@@ -27,6 +27,8 @@ export type Contact = {
   emails: ContactEmail[];
   phones: ContactPhone[];
   photo_url: string | null;
+  /** Owner-set grouping: brand (business) vs personal relationship. */
+  contact_type?: "personal" | "brand" | null;
   follow_up_at: string | null;
   follow_up_note: string | null;
   follow_up_tz: string | null;
@@ -73,10 +75,12 @@ export async function listContacts(opts?: {
   q?: string;
   tag?: string;
   per_page?: number;
+  contact_type?: "personal" | "brand";
 }): Promise<Contact[]> {
   const params = new URLSearchParams();
   if (opts?.q?.trim()) params.set("q", opts.q.trim());
   if (opts?.tag?.trim()) params.set("tag", opts.tag.trim());
+  if (opts?.contact_type) params.set("contact_type", opts.contact_type);
   params.set("per_page", String(opts?.per_page ?? 100));
   const res = await apiFetch<{ data: { items: Contact[] } }>(
     `/contacts?${params.toString()}`,

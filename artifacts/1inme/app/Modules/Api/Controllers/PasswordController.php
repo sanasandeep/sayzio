@@ -133,7 +133,7 @@ class PasswordController extends Controller
             try {
                 Emailer::send('user.password_reset', $user->email, [
                     'name'      => $user->name ?: 'there',
-                    'reset_url' => route('user.password.reset', ['token' => $token, 'email' => $user->email]),
+                    'reset_url' => AppModulesCommonSupportPlatformHosts::outboundUrl(route('user.password.reset', ['token' => $token, 'email' => $user->email])),
                 ], ['throw_on_failure' => true]);
             } catch (EmailDeliveryException $e) {
                 // Stay existence-neutral even on delivery failure.

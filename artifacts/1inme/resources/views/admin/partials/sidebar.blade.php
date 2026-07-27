@@ -605,6 +605,14 @@
             <span class="sidebar-tooltip">Schema Repairs</span>
         </a>
 
+        <a href="{{ route('admin.versions.index') }}"
+           class="sidebar-link {{ request()->routeIs('admin.versions.*') ? 'active' : '' }}"
+           style="--nav-tint:#0ea5e9; --nav-tint-soft:rgba(14,165,233,0.12);">
+            <div class="nav-icon-wrap"><i class="fas fa-code-branch"></i></div>
+            <span class="nav-label">Versions &amp; Releases</span>
+            <span class="sidebar-tooltip">Versions &amp; Releases</span>
+        </a>
+
         <a href="{{ route('admin.branding.edit') }}"
            class="sidebar-link {{ request()->routeIs('admin.branding.*') ? 'active' : '' }}"
            style="--nav-tint:#06b6d4; --nav-tint-soft:rgba(6,182,212,0.12);">

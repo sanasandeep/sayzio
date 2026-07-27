@@ -124,19 +124,28 @@ describe('buildShortUrl', () => {
 });
 
 describe('quickQrImageUrl', () => {
-  it('returns a URL with the encoded data', () => {
+  it('returns a locally generated SVG data URL (no external service)', () => {
     const url = quickQrImageUrl('https://example.com/page?q=1&a=2');
-    expect(url).toContain('api.qrserver.com');
-    expect(url).toContain(encodeURIComponent('https://example.com/page?q=1&a=2'));
+    expect(url.startsWith('data:image/svg+xml;charset=utf-8,')).toBe(true);
+    expect(url).not.toContain('api.qrserver.com');
+    const svg = decodeURIComponent(url.slice('data:image/svg+xml;charset=utf-8,'.length));
+    expect(svg).toContain('<svg xmlns="http://www.w3.org/2000/svg"');
+    expect(svg).toContain('<path d="M');
   });
 
   it('includes the requested size', () => {
     const url = quickQrImageUrl('https://example.com', 300);
-    expect(url).toContain('300x300');
+    const svg = decodeURIComponent(url.slice('data:image/svg+xml;charset=utf-8,'.length));
+    expect(svg).toContain('width="300" height="300"');
   });
 
   it('defaults to 200x200', () => {
     const url = quickQrImageUrl('https://example.com');
-    expect(url).toContain('200x200');
+    const svg = decodeURIComponent(url.slice('data:image/svg+xml;charset=utf-8,'.length));
+    expect(svg).toContain('width="200" height="200"');
+  });
+
+  it('produces different QR content for different data', () => {
+    expect(quickQrImageUrl('https://example.com/a')).not.toBe(quickQrImageUrl('https://example.com/b'));
   });
 });

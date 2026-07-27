@@ -99,7 +99,7 @@ class EventTierCapacityAlerter
         $sold      = (int) $tier->sold_count;
         $capacity  = (int) $tier->capacity;
         $remaining = max(0, $capacity - $sold);
-        $manageUrl = route('user.links.ics.tickets', $tier->link_id);
+        $manageUrl = AppModulesCommonSupportPlatformHosts::outboundUrl(route('user.links.ics.tickets', $tier->link_id));
 
         $summary = $threshold === 'sold_out'
             ? sprintf('"%s" for %s is sold out (%d/%d).', $tier->name, $eventName, $sold, $capacity)

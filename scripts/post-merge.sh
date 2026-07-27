@@ -39,16 +39,30 @@ run_guard() {
   if [ "$1" = "run" ]; then shift; fi
   local script="$1"
   local code=0
-  # `|| code=$?` keeps the failing command "tested" so `set -e` does not abort
-  # the function before we can inspect the exit status.
-  pnpm --filter @workspace/scripts run "$script" || code=$?
-  if [ "$code" -ge 128 ]; then
-    echo "post-merge: '$script' was killed by a signal (exit $code) — likely transient memory pressure under concurrent merges; retrying once..." >&2
-    code=0
-    pnpm --filter @workspace/scripts run "$script" || code=$?
+  local out
+  # Capture output (still echoed below) so we can distinguish a REAL guard
+  # violation from a transient runtime crash. `|| code=$?` keeps the failing
+  # command "tested" so `set -e` does not abort the function before we can
+  # inspect the exit status.
+  out=$(pnpm --filter @workspace/scripts run "$script" 2>&1) || code=$?
+  printf '%s\n' "$out"
+  if [ "$code" -ne 0 ]; then
+    # Two transient shapes are retryable:
+    #  - signal-level exits (>=128, e.g. SIGKILL under memory pressure)
+    #  - pnpm exit 1 wrapping a Node spawn failure (EAGAIN/ENOMEM: the kernel
+    #    briefly refused to fork while several merges ran concurrently). That
+    #    surfaces as "Error: spawn ... EAGAIN" in the output — NOT a guard
+    #    finding, which prints file:line violations instead.
+    if [ "$code" -ge 128 ] || printf '%s' "$out" | grep -qE 'Error: spawn .*(EAGAIN|ENOMEM)|errno: -11'; then
+      echo "post-merge: '$script' crashed transiently (exit $code) — likely fork/memory pressure under concurrent merges; retrying once after a short pause..." >&2
+      sleep 5
+      code=0
+      pnpm --filter @workspace/scripts run "$script" || code=$?
+    fi
   fi
-  # A genuine violation (exit 1) reaches here unretried; returning non-zero at
-  # the top-level call site trips `set -e` and fails the merge, as intended.
+  # A genuine violation (exit 1 with real findings) reaches here unretried;
+  # returning non-zero at the top-level call site trips `set -e` and fails the
+  # merge, as intended.
   return "$code"
 }
 
@@ -152,6 +166,37 @@ if [ -d artifacts/1inme ] && command -v php >/dev/null 2>&1; then
   disown $! 2>/dev/null || true
 
   cd - >/dev/null
+fi
+
+# ── Versions & Releases hub upkeep (best-effort, never fails the merge) ──────
+#
+# 1. Regenerate the committed version snapshot (declared versions for mobile /
+#    dialer / zio-browser / extension / api-server / marketing + docs
+#    timestamp) that the admin Versions & Releases page reads.
+# 2. Run the four parity guards NON-fatally and record each pass/fail into
+#    app_settings via `php artisan guards:record` so the page's Sync Status
+#    panel reflects the last real run. These are the same static scans CI
+#    runs; recording here never blocks the merge (the fatal guards above are
+#    a separate, deliberate gate). Detached to the background like the
+#    seeders: parity results are informational and must not widen the gating
+#    window.
+if [ -d artifacts/1inme ] && command -v php >/dev/null 2>&1; then
+  pnpm --filter @workspace/scripts run generate:version-snapshot \
+    || echo "post-merge: version snapshot generation failed (non-fatal)" >&2
+
+  nohup bash -c '
+    record_parity_guard() {
+      key="$1"; shift
+      if "$@" >/dev/null 2>&1; then status=pass; else status=fail; fi
+      (cd artifacts/1inme && php artisan guards:record "$key" "$status") || true
+    }
+    record_parity_guard dialer_sync      pnpm --filter @workspace/scripts run check:dialer-sync
+    record_parity_guard doc_constants    pnpm --filter @workspace/scripts run check:doc-constants
+    record_parity_guard api_server_paths pnpm --filter @workspace/scripts run check:api-server-paths
+    record_parity_guard docs_parity      bash -c "cd artifacts/1inme && composer check:mobile-docs-parity"
+    echo "[$(date)] parity-guard status recording finished"
+  ' >> artifacts/1inme/storage/logs/post-merge-recover.log 2>&1 < /dev/null &
+  disown $! 2>/dev/null || true
 fi
 
 # Provision the dedicated PHPUnit test database so RefreshDatabase feature tests

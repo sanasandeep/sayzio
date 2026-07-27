@@ -53,6 +53,7 @@ export type DialerRecent = {
   outcome: string | null;
   note: string | null;
   tag: string | null;
+  photo_url?: string | null;
 };
 
 export type DialerFrequent = {
@@ -64,6 +65,7 @@ export type DialerFrequent = {
   calls: number;
   biolink: boolean;
   is_spam: boolean;
+  photo_url?: string | null;
 };
 
 export type DialerFavorite = {
@@ -76,6 +78,7 @@ export type DialerFavorite = {
   biolink: boolean;
   sort_order: number;
   speed_dial_digit: number | null;
+  photo_url?: string | null;
 };
 
 export type DialerHistory = {
@@ -443,6 +446,19 @@ export type DialerManualProfile = {
   location: DialerLocation | null;
 };
 
+/**
+ * How the matched creator presents on caller ID: personally (default) or as
+ * their presenting workspace's brand. When brand, the server has already
+ * swapped biolink.name/avatar_url to the brand identity for unsaved numbers;
+ * this block lets clients badge the call and show the tagline.
+ */
+export type DialerCallerId = {
+  type: "personal" | "brand";
+  name?: string;
+  logo_url?: string | null;
+  tagline?: string | null;
+};
+
 export type DialerProfile = {
   number: string;
   contact: DialerProfileContact | null;
@@ -451,6 +467,7 @@ export type DialerProfile = {
   locations: DialerLocation[];
   channels: DialerChannel[];
   manual: DialerManualProfile;
+  caller_id?: DialerCallerId;
   vcard_url: string;
 };
 
@@ -470,4 +487,106 @@ export async function dialerProfile(params: {
     `/dialer/profile?${qs.toString()}`,
   );
   return res.data;
+}
+
+/* ------------------------------------------------------------------ */
+/* Sayzio connects — follow-based connections with Brand/Personal     */
+/* labels the viewer manages for their own dialer organization.       */
+/* ------------------------------------------------------------------ */
+
+export type DialerConnectionCategory = "personal" | "brand";
+
+export type DialerConnection = {
+  user_id: number;
+  name: string | null;
+  handle: string | null;
+  avatar_url: string | null;
+  verified: boolean;
+  direction: "mutual" | "following" | "follower";
+  category: DialerConnectionCategory | null;
+};
+
+export async function listConnections(params?: {
+  category?: DialerConnectionCategory;
+  q?: string;
+}): Promise<{ items: DialerConnection[]; total: number }> {
+  const qs = new URLSearchParams();
+  if (params?.category) qs.set("category", params.category);
+  if (params?.q) qs.set("q", params.q);
+  const suffix = qs.toString() ? `?${qs.toString()}` : "";
+  const res = await apiFetch<{
+    data: { items: DialerConnection[]; total: number };
+  }>(`/dialer/connections${suffix}`);
+  return res.data;
+}
+
+export async function setConnectionCategory(
+  userId: number,
+  category: DialerConnectionCategory | null,
+): Promise<void> {
+  await apiFetch(`/dialer/connections/${userId}`, {
+    method: "PUT",
+    body: JSON.stringify({ category }),
+  });
+}
+
+/* ------------------------------------------------------------------ */
+/* Zio Dialer caller-ID profile picker — the identities (Personal +   */
+/* owned workspaces) the user can present when calling, plus a        */
+/* shareable public-profile URL for QR / share / copy.                */
+/* ------------------------------------------------------------------ */
+
+export type CallerIdProfile = {
+  workspace_id: number | null;
+  type: string;
+  name: string | null;
+  logo_url: string | null;
+  tagline: string | null;
+  workspace_name?: string;
+  is_primary: boolean;
+};
+
+export async function listCallerIdProfiles(): Promise<{
+  items: CallerIdProfile[];
+  share_url: string;
+  handle: string;
+}> {
+  const res = await apiFetch<{
+    data: { items: CallerIdProfile[]; share_url: string; handle: string };
+  }>(`/dialer/caller-id-profiles`);
+  return res.data;
+}
+
+export async function setPrimaryCallerIdProfile(
+  workspaceId: number | null,
+): Promise<void> {
+  await apiFetch(`/dialer/caller-id-profiles/primary`, {
+    method: "PUT",
+    body: JSON.stringify({ workspace_id: workspaceId ?? 0 }),
+  });
+}
+
+// ── Desktop ⇄ phone call handoff (Zio Browser Dialer pane) ──────────────
+
+/** One incoming-call event mirrored to the desktop browser pane. */
+export type DialerCallEventInput = {
+  status: "ringing" | "answered" | "ended";
+  number: string;
+  caller_name?: string;
+  /** Epoch millis of the event on the phone. */
+  occurred_at_ms?: number;
+};
+
+/**
+ * Report an incoming phone call to the server so the Zio Browser Dialer
+ * pane can mirror it on desktop. Best-effort: callers should swallow
+ * failures (offline phones just skip the mirror).
+ */
+export async function reportCallEvent(
+  input: DialerCallEventInput,
+): Promise<void> {
+  await apiFetch(`/dialer/call-events`, {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
 }

@@ -175,6 +175,20 @@ export function parseNoteId(
 }
 
 /**
+ * Extract the phone number from a Zio Browser click-to-call push payload,
+ * or null when the payload isn't a call request / carries no usable number.
+ */
+export function parseCallRequestNumber(
+  data: Record<string, unknown> | undefined,
+): string | null {
+  if (data?.type !== "dialer.call_request") return null;
+  const raw = data?.number;
+  if (typeof raw !== "string") return null;
+  const trimmed = raw.trim();
+  return trimmed !== "" ? trimmed : null;
+}
+
+/**
  * Decide what a tapped push should do, purely from its `data` payload.
  * Kept side-effect free (no markRead / navigation here) so the branch
  * logic that guards deep-linking + mark-read can be unit-tested in
@@ -193,7 +207,8 @@ export function decidePushAction(data: Record<string, unknown> | undefined): {
   navigation:
     | { kind: "open"; target: string }
     | { kind: "route"; path: string }
-    | { kind: "note"; noteId: number };
+    | { kind: "note"; noteId: number }
+    | { kind: "call"; number: string; name: string | null };
 } {
   const rawId = data?.notification_id;
   const id =
@@ -210,6 +225,17 @@ export function decidePushAction(data: Record<string, unknown> | undefined): {
   const noteId = parseNoteId(data);
   if (noteId !== null) {
     return { markReadId, navigation: { kind: "note", noteId } };
+  }
+
+  // Click-to-call handoff from the Zio Browser Dialer pane: deep-link the
+  // dialer keypad with the number pre-filled (the user confirms the call
+  // with the in-app call button — never auto-dialed from a push tap).
+  const callNumber = parseCallRequestNumber(data);
+  if (callNumber !== null) {
+    const name = typeof data?.name === "string" && data.name.trim() !== ""
+      ? data.name.trim()
+      : null;
+    return { markReadId, navigation: { kind: "call", number: callNumber, name } };
   }
 
   const target = typeof data?.url === "string" ? data.url : null;
@@ -262,6 +288,19 @@ export function addPushResponseListener(): Notifications.EventSubscription {
 
     if (navigation.kind === "open") {
       openPushTarget(navigation.target);
+      return;
+    }
+    if (navigation.kind === "call") {
+      // Land on the dialer with the requested number pre-filled; the user
+      // places the call from the keypad's call button.
+      router.push({
+        pathname: "/(tabs)/dialer",
+        params: {
+          prefill: navigation.number,
+          ...(navigation.name ? { name: navigation.name } : {}),
+          openedAt: String(Date.now()),
+        },
+      });
       return;
     }
     if (navigation.kind === "note") {

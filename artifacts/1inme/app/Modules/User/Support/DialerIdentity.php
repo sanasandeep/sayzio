@@ -205,6 +205,23 @@ class DialerIdentity
     public static function callerIdFor(User $matchedUser): array
     {
         try {
+            // An explicit dialer caller-ID choice (Zio Dialer profile picker)
+            // wins over the presenting-workspace fallback. 0 = explicit
+            // Personal; a workspace id must still be owned to be honored.
+            $selected = is_array($matchedUser->settings ?? null)
+                ? ($matchedUser->settings['dialer_caller_id_workspace_id'] ?? null)
+                : null;
+            if ($selected !== null) {
+                $selId = (int) $selected;
+                if ($selId === 0) {
+                    return ['type' => 'personal'];
+                }
+                $sel = Workspace::find($selId);
+                if ($sel && (int) $sel->owner_user_id === (int) $matchedUser->id) {
+                    return $sel->resolvedCallerId();
+                }
+            }
+
             $ws = null;
             $activeId = (int) ($matchedUser->active_workspace_id ?? 0);
             if ($activeId > 0) {

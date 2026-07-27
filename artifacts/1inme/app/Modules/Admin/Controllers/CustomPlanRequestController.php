@@ -251,7 +251,7 @@ class CustomPlanRequestController extends Controller
                 'plan_name' => $plan->name,
                 'price'     => $priceFormatted,
                 'cycle'     => $cycle,
-                'dashboard' => url('/user/dashboard'),
+                'dashboard' => AppModulesCommonSupportPlatformHosts::outboundUrl(url('/user/dashboard')),
             ]);
         } catch (\Throwable $e) {
             Log::warning('Custom plan approval email failed: ' . $e->getMessage());

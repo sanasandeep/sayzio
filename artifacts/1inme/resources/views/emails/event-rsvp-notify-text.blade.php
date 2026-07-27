@@ -27,4 +27,4 @@ Custom answers:
 @endif
 
 View the guest list:
-{{ url('/user/links/' . $link->id . '/rsvps') }}
+{{ \App\Modules\Common\Support\PlatformHosts::outboundUrl(url('/user/links/' . $link->id . '/rsvps')) }}

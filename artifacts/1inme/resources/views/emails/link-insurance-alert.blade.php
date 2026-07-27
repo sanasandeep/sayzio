@@ -51,7 +51,7 @@
             Promote next backup
         </a>
     @endif
-    <a href="{{ route('user.links.insurance.settings', $link->id) }}"
+    <a href="{{ \App\Modules\Common\Support\PlatformHosts::outboundUrl(route('user.links.insurance.settings', $link->id)) }}"
        style="display:inline-block; padding: 10px 16px; background: #2563eb; color: #fff; text-decoration: none; border-radius: 6px;">
         Manage Link Insurance
     </a>

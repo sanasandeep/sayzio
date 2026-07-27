@@ -411,24 +411,9 @@ export default function AuthLanding() {
         style={StyleSheet.absoluteFill}
       />
 
-      {/* Back-to-intro button — absolute so it doesn't affect the scroll layout */}
-      <Pressable
-        {...WEB_FOCUS_RING_PROPS}
-        onPress={() => router.push("/onboarding")}
-        hitSlop={12}
-        style={[
-          styles.backBtn,
-          { top: insets.top + 12, left: 16 },
-        ]}
-        accessibilityLabel="Back to intro"
-        accessibilityRole="button"
-      >
-        <Feather name="arrow-left" size={18} color={colors.mutedForeground} />
-        <Text style={[styles.backBtnLabel, { color: colors.mutedForeground }]}>
-          Intro
-        </Text>
-      </Pressable>
-
+      {/* NOTE: the standalone dialer has no intro/onboarding screens, so the
+          "Back to intro" button from the full mobile app is intentionally
+          omitted here — it navigated to a route that does not exist. */}
       <ScrollView
         contentContainerStyle={[
           styles.scroll,
@@ -682,19 +667,6 @@ export default function AuthLanding() {
 const styles = StyleSheet.create({
   root: { flex: 1 },
   scroll: { paddingHorizontal: 24, gap: 4 },
-  backBtn: {
-    position: "absolute",
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    zIndex: 10,
-    paddingVertical: 6,
-    paddingHorizontal: 2,
-  },
-  backBtnLabel: {
-    fontFamily: "SpaceGrotesk_500Medium",
-    fontSize: 13,
-  },
   h1: {
     fontFamily: "SpaceGrotesk_700Bold",
     fontSize: 24,

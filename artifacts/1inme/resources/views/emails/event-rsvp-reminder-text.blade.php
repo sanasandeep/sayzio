@@ -8,6 +8,6 @@ Where: {{ $link->icsData->location }}
 @endif
 
 Need to update your RSVP?
-{{ $rsvp->manageUrl() }}
+{{ \App\Modules\Common\Support\PlatformHosts::outboundUrl($rsvp->manageUrl()) }}
 
 - Sent automatically by Sayzio

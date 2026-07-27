@@ -47,14 +47,18 @@ const parseNoteIdJs = lift(
   "parseNoteId",
   /export function parseNoteId[\s\S]*?\)\s*:\s*number \| null\s*\{/m,
 );
+const parseCallJs = lift(
+  "parseCallRequestNumber",
+  /export function parseCallRequestNumber[\s\S]*?\)\s*:\s*string \| null\s*\{/m,
+);
 const decideJs = lift(
   "decidePushAction",
   /export function decidePushAction[\s\S]*?\}\s*\{/m,
 );
 
 // eslint-disable-next-line no-new-func
-const { parseNoteId, decidePushAction } = new Function(
-  `${parseNoteIdJs}\n${decideJs}\nreturn { parseNoteId, decidePushAction };`,
+const { parseNoteId, parseCallRequestNumber, decidePushAction } = new Function(
+  `${parseNoteIdJs}\n${parseCallJs}\n${decideJs}\nreturn { parseNoteId, parseCallRequestNumber, decidePushAction };`,
 )();
 
 // 1. A note-due payload routes into the Notes tab, never the web fallback —

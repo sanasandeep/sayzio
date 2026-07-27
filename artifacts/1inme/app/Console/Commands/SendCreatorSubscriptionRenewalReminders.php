@@ -124,9 +124,9 @@ class SendCreatorSubscriptionRenewalReminders extends Command
 
         // Manage / cancel page — the canonical fan-facing surface; the fan is
         // asked to sign in there via the existing viewer-OTP flow if needed.
-        $manageUrl = $creator->handle
+        $manageUrl = \App\Modules\Common\Support\PlatformHosts::outboundUrl($creator->handle
             ? route('creator-profile.subscription.manage', ['handle' => $creator->handle])
-            : url('/');
+            : url('/'));
 
         $delivered = false;
 

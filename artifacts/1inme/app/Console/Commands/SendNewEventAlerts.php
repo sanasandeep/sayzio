@@ -135,7 +135,7 @@ class SendNewEventAlerts extends Command
         $title = $event->title ?: optional($event->icsData)->event_name ?: 'New event';
         $when = optional($event->icsData)->start_date;
         $whenLabel = $when ? Carbon::parse($when)->format('M j, g:i A') : '';
-        $url = url('/' . $event->alias);
+        $url = \App\Modules\Common\Support\PlatformHosts::outboundUrl(url('/' . $event->alias));
 
         $notifier->notify($user, 'event.new_nearby', [
             'message'  => "New event near you: {$title}" . ($whenLabel ? " ({$whenLabel})" : ''),
@@ -162,7 +162,7 @@ class SendNewEventAlerts extends Command
             $title = $event->title ?: optional($event->icsData)->event_name ?: 'Event';
             $when = optional($event->icsData)->start_date;
             $whenLabel = $when ? Carbon::parse($when)->format('M j, g:i A') : '';
-            $url = url('/' . $event->alias);
+            $url = \App\Modules\Common\Support\PlatformHosts::outboundUrl(url('/' . $event->alias));
             return trim("{$title} — {$whenLabel}") . " ({$url})";
         })->values()->all();
 
@@ -171,7 +171,7 @@ class SendNewEventAlerts extends Command
                 ? ('New event near you: ' . $events->first()->title)
                 : (count($lines) . ' new events near you today'),
             'digest'  => $lines,
-            'url'     => route('events.index'),
+            'url'     => \App\Modules\Common\Support\PlatformHosts::outboundUrl(route('events.index')),
         ]);
 
         if ($notifier->prefersChannel($user->id, 'event.new_nearby', 'email') && $user->email) {

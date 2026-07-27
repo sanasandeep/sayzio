@@ -63,7 +63,7 @@ class SendGoogleContactsReauthReminders extends Command
     {
         $user         = $account->user;
         $accountEmail = $account->account_email ?: 'your Google account';
-        $reconnectUrl = route('user.contacts.index');
+        $reconnectUrl = \App\Modules\Common\Support\PlatformHosts::outboundUrl(route('user.contacts.index'));
         $subject      = 'Reminder: Google Contacts sync is still paused';
         $body         = "It's been a week since the connection to {$accountEmail} expired, and contact syncing is still paused."
             . " Reconnect your Google account to resume syncing: {$reconnectUrl}";

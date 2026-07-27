@@ -1459,6 +1459,12 @@ Route::prefix('v1')->group(function () {
         Route::delete('/dialer/history/{id}',       [DialerController::class, 'historyDestroy'])->whereNumber('id');
         Route::get   ('/dialer/channels',           [DialerController::class, 'channels']);
         Route::put   ('/dialer/channels',           [DialerController::class, 'updateChannels']);
+        // Sayzio connects — follow-based connections with Brand/Personal labels.
+        Route::get   ('/dialer/connections',        [DialerController::class, 'connections']);
+        Route::put   ('/dialer/connections/{userId}', [DialerController::class, 'setConnectionCategory'])->whereNumber('userId');
+        // Zio Dialer caller-ID profile picker.
+        Route::get   ('/dialer/caller-id-profiles', [DialerController::class, 'callerIdProfiles']);
+        Route::put   ('/dialer/caller-id-profiles/primary', [DialerController::class, 'selectCallerIdProfile']);
         // Contact privacy (Task #3497) — what strangers may see via caller-ID / search.
         Route::get   ('/me/contact-privacy',        [DialerController::class, 'contactPrivacy']);
         Route::put   ('/me/contact-privacy',        [DialerController::class, 'updateContactPrivacy']);
@@ -1483,6 +1489,11 @@ Route::prefix('v1')->group(function () {
         Route::patch ('/dialer/notes/{id}',         [\App\Modules\Api\Controllers\DialerNoteController::class, 'update'])->whereNumber('id');
         Route::delete('/dialer/notes/{id}',         [\App\Modules\Api\Controllers\DialerNoteController::class, 'destroy'])->whereNumber('id');
         Route::delete('/dialer/callback/{id}',      [DialerController::class, 'clearCallback'])->whereNumber('id');
+        // Desktop ⇄ phone call handoff (Zio Browser Dialer pane, task #5780).
+        Route::get   ('/dialer/handoff/status',     [\App\Modules\Api\Controllers\DialerHandoffController::class, 'status']);
+        Route::post  ('/dialer/handoff/call',       [\App\Modules\Api\Controllers\DialerHandoffController::class, 'requestCall'])->middleware('throttle:30,1');
+        Route::post  ('/dialer/call-events',        [\App\Modules\Api\Controllers\DialerHandoffController::class, 'reportCallEvent'])->middleware('throttle:60,1');
+        Route::get   ('/dialer/call-events',        [\App\Modules\Api\Controllers\DialerHandoffController::class, 'callEvents']);
 
         // ── Zio Browser cloud sync ──────────────────────────────────────────
         // Sync protocol: last-write-wins on item_updated_at.

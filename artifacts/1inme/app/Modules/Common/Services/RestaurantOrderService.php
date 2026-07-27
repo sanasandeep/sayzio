@@ -121,7 +121,7 @@ class RestaurantOrderService
             . number_format($estimated, 2)
             . " on \"{$link->title}\".";
 
-        $ordersUrl = route('user.links.restaurant.orders', $link);
+        $ordersUrl = AppModulesCommonSupportPlatformHosts::outboundUrl(route('user.links.restaurant.orders', $link));
         $notification = null;
         try {
             $notification = $this->notifications->notify($owner, 'restaurant.new_order', [

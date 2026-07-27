@@ -103,6 +103,11 @@ class ContactController extends Controller
             $q->whereJsonContains('tags', $tag);
         }
 
+        // Brand/Personal filter — `?contact_type=personal|brand`.
+        if (in_array($ct = $request->string('contact_type')->toString(), ['personal', 'brand'], true)) {
+            $q->where('contact_type', $ct);
+        }
+
         $page = $q->orderBy('display_name')
             ->paginate(min(200, max(1, (int) $request->input('per_page', 50))));
 
@@ -485,6 +490,7 @@ class ContactController extends Controller
                 'website'      => $data['website']      ?? null,
                 'socials'      => !empty($data['socials']) ? $data['socials'] : null,
                 'notes'        => $data['notes']        ?? null,
+                'contact_type' => in_array($data['contact_type'] ?? null, ['personal', 'brand'], true) ? $data['contact_type'] : 'personal',
                 'tags'         => !empty($data['tags']) ? $data['tags'] : null,
                 'sources'      => !empty($data['source_url']) ? [[
                     'url'  => $data['source_url'],
@@ -637,7 +643,7 @@ class ContactController extends Controller
         $contact = DB::transaction(function () use ($c, $data) {
             $c->fill(array_intersect_key($data, array_flip([
                 'display_name', 'given_name', 'family_name',
-                'organization', 'job_title', 'notes',
+                'organization', 'job_title', 'notes', 'contact_type',
             ])));
             // Mark dirty so the pull-side conflict guard doesn't clobber this
             // edit and the immediate push carries it, matching the web path.
@@ -835,6 +841,7 @@ class ContactController extends Controller
             'organization' => [$req, 'nullable', 'string', 'max:191'],
             'job_title'    => [$req, 'nullable', 'string', 'max:191'],
             'notes'        => [$req, 'nullable', 'string', 'max:2000'],
+            'contact_type' => [$req, 'nullable', 'in:personal,brand'],
             'emails'       => [$req, 'array'],
             'emails.*.value'   => ['required_with:emails.*', 'email', 'max:191'],
             'emails.*.label'   => ['nullable', 'string', 'max:50'],
@@ -901,6 +908,7 @@ class ContactController extends Controller
             'organization' => $c->organization,
             'job_title'    => $c->job_title,
             'notes'        => $c->notes,
+            'contact_type' => $c->contact_type,
             'tags'         => $c->tags ?? [],
             'emails'       => $c->emails->map(fn ($e) => [
                 'id' => $e->id, 'label' => $e->label, 'value' => $e->value, 'is_primary' => (bool) $e->is_primary,

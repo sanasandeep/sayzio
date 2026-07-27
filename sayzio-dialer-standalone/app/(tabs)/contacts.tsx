@@ -6,6 +6,7 @@ import {
   ActivityIndicator,
   Alert,
   FlatList,
+  Image,
   Pressable,
   RefreshControl,
   StyleSheet,
@@ -247,12 +248,23 @@ export default function ContactsScreen() {
                 <View
                   style={[
                     styles.avatar,
-                    { backgroundColor: colors.primary + "1c" },
+                    {
+                      backgroundColor: colors.primary + "1c",
+                      overflow: "hidden",
+                    },
                   ]}
                 >
-                  <Text style={{ color: colors.primary, fontFamily: "SpaceGrotesk_700Bold" }}>
-                    {(item.display_name || "?").slice(0, 1).toUpperCase()}
-                  </Text>
+                  {item.photo_url ? (
+                    <Image
+                      source={{ uri: item.photo_url }}
+                      style={{ width: "100%", height: "100%" }}
+                      resizeMode="cover"
+                    />
+                  ) : (
+                    <Text style={{ color: colors.primary, fontFamily: "SpaceGrotesk_700Bold" }}>
+                      {(item.display_name || "?").slice(0, 1).toUpperCase()}
+                    </Text>
+                  )}
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text

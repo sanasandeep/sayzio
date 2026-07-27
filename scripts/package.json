@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "hello": "tsx ./src/hello.ts",
+    "generate:version-snapshot": "tsx ./src/generate-version-snapshot.ts",
     "print:collateral": "tsx ./src/print-collateral/generate.ts",
     "check:brand-color": "tsx ./src/check-brand-color.ts",
     "check:brand-color-build": "tsx ./src/check-brand-color-build.ts",
@@ -38,6 +39,7 @@
     "check:claude-training-api-index": "tsx ./src/check-claude-training-api-index.ts",
     "check:api-server-paths": "tsx ./src/check-api-server-paths.ts",
     "check:em-dash": "tsx ./src/check-em-dash.ts",
+    "check:eas-upload-size": "tsx ./src/check-eas-upload-size.ts",
     "sync:branch-protection": "tsx ./src/sync-branch-protection.ts",
     "test": "vitest run",
     "typecheck": "tsc -p tsconfig.json --noEmit",

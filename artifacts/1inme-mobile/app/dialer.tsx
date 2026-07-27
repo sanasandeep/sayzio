@@ -17,6 +17,7 @@ import {
   ActivityIndicator,
   Alert,
   FlatList,
+  Image,
   Linking,
   Modal,
   PermissionsAndroid,
@@ -60,6 +61,10 @@ import {
   updateDialerChannels,
   assignSpeedDial,
   unassignSpeedDial,
+  type DialerConnection,
+  type DialerConnectionCategory,
+  listConnections,
+  setConnectionCategory,
 } from "@/lib/api/dialer";
 import { type Contact, listContacts } from "@/lib/api/contacts";
 import {
@@ -75,7 +80,7 @@ import {
   ZioTelephony,
 } from "@/modules/zio-telephony";
 
-type Tab = "keypad" | "recent" | "contacts";
+type Tab = "keypad" | "recent" | "sayzio" | "contacts";
 
 // Structural type for the subset of an expo-contacts contact we render —
 // expo-contacts changes its exported types between minors, so we avoid
@@ -190,6 +195,19 @@ export default function DialerScreen() {
 
   const [contactsQuery, setContactsQuery] = useState("");
   const [appContacts, setAppContacts] = useState<Contact[]>([]);
+  // Brand vs Personal contact filter (Contacts tab).
+  const [contactsTypeFilter, setContactsTypeFilter] = useState<
+    "all" | "personal" | "brand"
+  >("all");
+
+  // "Sayzio" tab — follow-based connections with owner-managed
+  // Brand/Personal categories.
+  const [connections, setConnections] = useState<DialerConnection[]>([]);
+  const [connectionsLoading, setConnectionsLoading] = useState(false);
+  const [connectionsQuery, setConnectionsQuery] = useState("");
+  const [connectionsFilter, setConnectionsFilter] = useState<
+    "all" | "personal" | "brand"
+  >("all");
   // Universal finder (keypad): grouped results across Contacts, People, My
   // links, Followed and Workspaces via the shared server contract. `keypadMode`
   // toggles the T9 digit grid ↔ an alphanumeric keyboard; both feed this.
@@ -325,9 +343,19 @@ export default function DialerScreen() {
   // Debounced contacts search (Contacts tab).
   useEffect(() => {
     if (tab !== "contacts") return;
-    const t = setTimeout(() => void refreshContacts(contactsQuery), 250);
+    const t = setTimeout(
+      () => void refreshContacts(contactsQuery, contactsTypeFilter),
+      250,
+    );
     return () => clearTimeout(t);
-  }, [tab, contactsQuery]);
+  }, [tab, contactsQuery, contactsTypeFilter]);
+
+  // Debounced Sayzio-connections search (Sayzio tab).
+  useEffect(() => {
+    if (tab !== "sayzio") return;
+    const t = setTimeout(() => void refreshConnections(), 250);
+    return () => clearTimeout(t);
+  }, [tab, connectionsQuery, connectionsFilter]);
 
   // Debounced universal finder as the user types on the keypad (either mode)
   // or flips a filter chip. T9 smart-dial is preserved server-side.
@@ -365,17 +393,51 @@ export default function DialerScreen() {
     }
   }, []);
 
-  const refreshContacts = useCallback(async (q: string) => {
-    setContactsLoading(true);
+  const refreshContacts = useCallback(
+    async (q: string, type: "all" | "personal" | "brand" = "all") => {
+      setContactsLoading(true);
+      try {
+        const res = await listContacts({
+          q: q.trim() ? q : undefined,
+          contact_type: type === "all" ? undefined : type,
+        });
+        setAppContacts(res.filter((c) => (c.phones?.length ?? 0) > 0));
+      } catch {
+        setAppContacts([]);
+      } finally {
+        setContactsLoading(false);
+      }
+    },
+    [],
+  );
+
+  const refreshConnections = useCallback(async () => {
+    setConnectionsLoading(true);
     try {
-      const res = await listContacts(q.trim() ? { q } : undefined);
-      setAppContacts(res.filter((c) => (c.phones?.length ?? 0) > 0));
+      const res = await listConnections({
+        q: connectionsQuery || undefined,
+        category: connectionsFilter === "all" ? undefined : connectionsFilter,
+      });
+      setConnections(res.items);
     } catch {
-      setAppContacts([]);
+      setConnections([]);
     } finally {
-      setContactsLoading(false);
+      setConnectionsLoading(false);
     }
-  }, []);
+  }, [connectionsQuery, connectionsFilter]);
+
+  // Optimistic Brand/Personal toggle for a connection row.
+  const changeConnectionCategory = useCallback(
+    (userId: number, category: DialerConnectionCategory | null) => {
+      setConnections((prev) =>
+        prev.map((c) => (c.user_id === userId ? { ...c, category } : c)),
+      );
+      void setConnectionCategory(userId, category).catch(() => {
+        void refreshConnections();
+      });
+    },
+    [refreshConnections],
+  );
 
   // Universal grouped finder — shared server contract (web/API/mobile). Fed
   // by both keypad modes + the verified / on-Sayzio filter chips.
@@ -637,7 +699,7 @@ export default function DialerScreen() {
 
       {/* Tab switcher */}
       <View style={[styles.tabs, { borderBottomColor: colors.border }]}>
-        {(["keypad", "recent", "contacts"] as Tab[]).map((t) => {
+        {(["keypad", "recent", "sayzio", "contacts"] as Tab[]).map((t) => {
           const active = t === tab;
           return (
             <Pressable
@@ -743,8 +805,16 @@ export default function DialerScreen() {
                         </Text>
                       </View>
                     )}
-                    <View style={[styles.bubbleAvatar, { backgroundColor: colors.primary }]}>
-                      <Text style={styles.bubbleInitials}>{f.initials}</Text>
+                    <View style={[styles.bubbleAvatar, { backgroundColor: colors.primary, overflow: "hidden" }]}>
+                      {f.photo_url ? (
+                        <Image
+                          source={{ uri: f.photo_url }}
+                          style={{ width: "100%", height: "100%" }}
+                          resizeMode="cover"
+                        />
+                      ) : (
+                        <Text style={styles.bubbleInitials}>{f.initials}</Text>
+                      )}
                     </View>
                     <Text
                       numberOfLines={1}
@@ -787,10 +857,21 @@ export default function DialerScreen() {
                     <View
                       style={[
                         styles.bubbleAvatar,
-                        { backgroundColor: fr.is_spam ? colors.destructive : colors.primary },
+                        {
+                          backgroundColor: fr.is_spam ? colors.destructive : colors.primary,
+                          overflow: "hidden",
+                        },
                       ]}
                     >
-                      <Text style={styles.bubbleInitials}>{fr.initials}</Text>
+                      {fr.photo_url && !fr.is_spam ? (
+                        <Image
+                          source={{ uri: fr.photo_url }}
+                          style={{ width: "100%", height: "100%" }}
+                          resizeMode="cover"
+                        />
+                      ) : (
+                        <Text style={styles.bubbleInitials}>{fr.initials}</Text>
+                      )}
                     </View>
                     <Text
                       numberOfLines={1}
@@ -1427,6 +1508,210 @@ export default function DialerScreen() {
         />
       )}
 
+      {tab === "sayzio" && (
+        <View style={{ flex: 1 }}>
+          <View style={[styles.searchWrap, { borderBottomColor: colors.border }]}>
+            <Feather
+              name="search"
+              size={16}
+              color={colors.mutedForeground}
+              style={{ marginRight: 8 }}
+            />
+            <TextInput
+              value={connectionsQuery}
+              onChangeText={setConnectionsQuery}
+              placeholder="Search Sayzio connects"
+              placeholderTextColor={colors.mutedForeground}
+              autoCapitalize="none"
+              autoCorrect={false}
+              style={{
+                flex: 1,
+                color: colors.foreground,
+                fontFamily: "SpaceGrotesk_500Medium",
+                paddingVertical: 8,
+              }}
+            />
+          </View>
+
+          {/* Category filter chips */}
+          <View style={[styles.filterRow, { paddingHorizontal: 16, paddingTop: 10 }]}>
+            {(
+              [
+                { key: "all", label: "All" },
+                { key: "personal", label: "Personal" },
+                { key: "brand", label: "Brand" },
+              ] as const
+            ).map((f) => {
+              const on = connectionsFilter === f.key;
+              return (
+                <Pressable
+                  key={f.key}
+                  onPress={() => setConnectionsFilter(f.key)}
+                  style={[
+                    styles.filterChip,
+                    {
+                      backgroundColor: on ? colors.primary : colors.card,
+                      borderColor: on ? colors.primary : colors.border,
+                    },
+                  ]}
+                >
+                  <Text
+                    style={{
+                      color: on ? "#fff" : colors.mutedForeground,
+                      fontSize: 11,
+                      fontFamily: "SpaceGrotesk_500Medium",
+                    }}
+                  >
+                    {f.label}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+
+          <FlatList
+            data={connections}
+            keyExtractor={(c) => `conn-${c.user_id}`}
+            contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}
+            ListHeaderComponent={
+              <View style={{ paddingHorizontal: 16, paddingTop: 12 }}>
+                <Text
+                  style={{
+                    color: colors.mutedForeground,
+                    fontFamily: "SpaceGrotesk_600SemiBold",
+                    fontSize: 12,
+                    letterSpacing: 0.5,
+                    textTransform: "uppercase",
+                  }}
+                >
+                  Sayzio connects
+                </Text>
+              </View>
+            }
+            ListEmptyComponent={
+              connectionsLoading ? (
+                <View style={styles.loading}>
+                  <ActivityIndicator color={colors.primary} />
+                </View>
+              ) : (
+                <View style={styles.empty}>
+                  <Feather name="users" size={28} color={colors.mutedForeground} />
+                  <Text
+                    style={{
+                      color: colors.mutedForeground,
+                      marginTop: 12,
+                      textAlign: "center",
+                      paddingHorizontal: 24,
+                      fontFamily: "SpaceGrotesk_500Medium",
+                    }}
+                  >
+                    {connectionsQuery || connectionsFilter !== "all"
+                      ? "No connections match."
+                      : "People you follow (and who follow you) on Sayzio show up here."}
+                  </Text>
+                </View>
+              )
+            }
+            renderItem={({ item }) => (
+              <View
+                style={[
+                  styles.row,
+                  { borderBottomColor: colors.border },
+                ]}
+              >
+                <View
+                  style={{
+                    width: 44,
+                    height: 44,
+                    borderRadius: 22,
+                    marginRight: 12,
+                    backgroundColor: colors.primary,
+                    alignItems: "center",
+                    justifyContent: "center",
+                    overflow: "hidden",
+                  }}
+                >
+                  {item.avatar_url ? (
+                    <Image
+                      source={{ uri: item.avatar_url }}
+                      style={{ width: "100%", height: "100%" }}
+                      resizeMode="cover"
+                    />
+                  ) : (
+                    <Text style={styles.bubbleInitials}>
+                      {(item.name || item.handle || "?")
+                        .trim()
+                        .charAt(0)
+                        .toUpperCase()}
+                    </Text>
+                  )}
+                </View>
+                <View style={{ flex: 1 }}>
+                  <View style={styles.rowTitleLine}>
+                    <Text
+                      style={{
+                        color: colors.foreground,
+                        fontFamily: "SpaceGrotesk_600SemiBold",
+                        fontSize: 16,
+                      }}
+                    >
+                      {item.name || (item.handle ? `@${item.handle}` : "Sayzio user")}
+                    </Text>
+                    {item.verified && (
+                      <Feather name="check-circle" size={13} color={colors.primary} />
+                    )}
+                    {item.direction === "mutual" && (
+                      <MiniTag text="MUTUAL" color="#16a34a" />
+                    )}
+                    {item.direction === "follower" && (
+                      <MiniTag text="FOLLOWS YOU" color="#3b82f6" />
+                    )}
+                  </View>
+                  {item.handle ? (
+                    <Text
+                      style={{ color: colors.mutedForeground, fontSize: 13, marginTop: 2 }}
+                    >
+                      @{item.handle}
+                    </Text>
+                  ) : null}
+                </View>
+                {/* Editable Personal/Brand category — tap again to clear. */}
+                <View style={{ flexDirection: "row", gap: 6 }}>
+                  {(["personal", "brand"] as const).map((cat) => {
+                    const on = item.category === cat;
+                    return (
+                      <Pressable
+                        key={cat}
+                        onPress={() =>
+                          changeConnectionCategory(item.user_id, on ? null : cat)
+                        }
+                        style={[
+                          styles.filterChip,
+                          {
+                            backgroundColor: on ? colors.primary : colors.card,
+                            borderColor: on ? colors.primary : colors.border,
+                          },
+                        ]}
+                      >
+                        <Text
+                          style={{
+                            color: on ? "#fff" : colors.mutedForeground,
+                            fontSize: 11,
+                            fontFamily: "SpaceGrotesk_500Medium",
+                          }}
+                        >
+                          {cat === "personal" ? "Personal" : "Brand"}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              </View>
+            )}
+          />
+        </View>
+      )}
+
       {tab === "contacts" && (
         <View style={{ flex: 1 }}>
           <View style={[styles.searchWrap, { borderBottomColor: colors.border }]}>
@@ -1450,6 +1735,42 @@ export default function DialerScreen() {
                 paddingVertical: 8,
               }}
             />
+          </View>
+
+          {/* Brand vs Personal filter chips */}
+          <View style={[styles.filterRow, { paddingHorizontal: 16, paddingTop: 10 }]}>
+            {(
+              [
+                { key: "all", label: "All" },
+                { key: "personal", label: "Personal" },
+                { key: "brand", label: "Brand" },
+              ] as const
+            ).map((f) => {
+              const on = contactsTypeFilter === f.key;
+              return (
+                <Pressable
+                  key={f.key}
+                  onPress={() => setContactsTypeFilter(f.key)}
+                  style={[
+                    styles.filterChip,
+                    {
+                      backgroundColor: on ? colors.primary : colors.card,
+                      borderColor: on ? colors.primary : colors.border,
+                    },
+                  ]}
+                >
+                  <Text
+                    style={{
+                      color: on ? "#fff" : colors.mutedForeground,
+                      fontSize: 11,
+                      fontFamily: "SpaceGrotesk_500Medium",
+                    }}
+                  >
+                    {f.label}
+                  </Text>
+                </Pressable>
+              );
+            })}
           </View>
 
           <FlatList
@@ -1509,16 +1830,48 @@ export default function DialerScreen() {
                     },
                   ]}
                 >
+                  <View
+                    style={{
+                      width: 44,
+                      height: 44,
+                      borderRadius: 22,
+                      marginRight: 12,
+                      backgroundColor: colors.primary,
+                      alignItems: "center",
+                      justifyContent: "center",
+                      overflow: "hidden",
+                    }}
+                  >
+                    {item.photo_url ? (
+                      <Image
+                        source={{ uri: item.photo_url }}
+                        style={{ width: "100%", height: "100%" }}
+                        resizeMode="cover"
+                      />
+                    ) : (
+                      <Text style={styles.bubbleInitials}>
+                        {(name || dialNumber || "?").trim().charAt(0).toUpperCase()}
+                      </Text>
+                    )}
+                  </View>
                   <View style={{ flex: 1 }}>
-                    <Text
-                      style={{
-                        color: colors.foreground,
-                        fontFamily: "SpaceGrotesk_600SemiBold",
-                        fontSize: 16,
-                      }}
-                    >
-                      {name || dialNumber}
-                    </Text>
+                    <View style={styles.rowTitleLine}>
+                      <Text
+                        style={{
+                          color: colors.foreground,
+                          fontFamily: "SpaceGrotesk_600SemiBold",
+                          fontSize: 16,
+                        }}
+                      >
+                        {name || dialNumber}
+                      </Text>
+                      {item.contact_type === "brand" && (
+                        <MiniTag text="BRAND" color="#f59e0b" />
+                      )}
+                      {item.contact_type === "personal" && (
+                        <MiniTag text="PERSONAL" color="#16a34a" />
+                      )}
+                    </View>
                     {dialNumber && (
                       <Text
                         style={{ color: colors.mutedForeground, fontSize: 13, marginTop: 2 }}

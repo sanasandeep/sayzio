@@ -1,17 +1,22 @@
 import Feather from "@expo/vector-icons/Feather";
+import * as Clipboard from "expo-clipboard";
 import { useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import {
+  ActivityIndicator,
   AppState,
+  Image,
   KeyboardAvoidingView,
   Platform,
   Pressable,
   ScrollView,
+  Share,
   StyleSheet,
   Switch,
   Text,
   View,
 } from "react-native";
+import QRCode from "react-native-qrcode-svg";
 
 import { Button } from "@/components/Button";
 import { ChannelActions } from "@/components/ChannelActions";
@@ -22,16 +27,23 @@ import {
   dismissUnknownCall,
   dismissUnknownCallsForNumber,
   flushPendingSpamReports,
+  getBrowserCallMirrorEnabled,
   getCallerIdStatus,
   getUnknownCalls,
   openOverlaySettings,
   requestCallScreeningRole,
+  setBrowserCallMirrorEnabled,
   setCallerIdEnabled,
   showTestAlert,
   syncCallerDirectory,
   type CallerIdStatus,
   type UnknownCall,
 } from "@/lib/callerId";
+import {
+  type CallerIdProfile,
+  listCallerIdProfiles,
+  setPrimaryCallerIdProfile,
+} from "@/lib/api/dialer";
 
 const E164 = /^\+[1-9]\d{6,14}$/;
 
@@ -199,6 +211,238 @@ function LiveCallerIdCard() {
   );
 }
 
+/**
+ * "Show calls in Zio Browser" toggle — when on, incoming calls the
+ * caller-ID service sees are mirrored (best-effort) to the Zio Browser
+ * Dialer pane on desktop. Off by default; purely additive telemetry the
+ * user controls.
+ */
+function BrowserMirrorCard() {
+  const colors = useColors();
+  const [enabled, setEnabled] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    let mounted = true;
+    void getBrowserCallMirrorEnabled().then((v) => {
+      if (mounted) {
+        setEnabled(v);
+        setLoaded(true);
+      }
+    });
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const toggle = (next: boolean) => {
+    setEnabled(next);
+    void setBrowserCallMirrorEnabled(next);
+  };
+
+  return (
+    <View
+      style={[
+        styles.card,
+        { backgroundColor: colors.card, borderColor: colors.border },
+      ]}
+    >
+      <View style={styles.cardHeader}>
+        <View style={{ flex: 1, paddingRight: 12 }}>
+          <Text style={[styles.cardTitle, { color: colors.foreground }]}>
+            Show calls in Zio Browser
+          </Text>
+          <Text style={[styles.cardSub, { color: colors.mutedForeground }]}>
+            Mirror incoming calls to the Dialer pane in Zio Browser on your
+            computer, so you see who's calling without picking up your phone.
+            Works alongside live caller ID alerts.
+          </Text>
+        </View>
+        <Switch
+          value={enabled}
+          onValueChange={toggle}
+          disabled={!loaded}
+          trackColor={{ true: colors.primary }}
+        />
+      </View>
+    </View>
+  );
+}
+
+/**
+ * "Call as" identity picker — the Sayzio profiles (Personal + owned
+ * workspaces/brands) the user can present as their outgoing caller ID,
+ * plus a QR code and share/copy actions for their public profile link
+ * so people they call can identify and follow them back.
+ */
+function CallerIdProfilesCard() {
+  const colors = useColors();
+  const [profiles, setProfiles] = useState<CallerIdProfile[]>([]);
+  const [shareUrl, setShareUrl] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  const refresh = useCallback(async () => {
+    try {
+      const res = await listCallerIdProfiles();
+      setProfiles(res.items);
+      setShareUrl(res.share_url);
+    } catch {
+      setProfiles([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void refresh();
+  }, [refresh]);
+
+  const pick = async (p: CallerIdProfile) => {
+    if (p.is_primary || saving) return;
+    setSaving(true);
+    // Optimistic: mark the picked profile primary immediately.
+    setProfiles((prev) =>
+      prev.map((x) => ({ ...x, is_primary: x.workspace_id === p.workspace_id })),
+    );
+    try {
+      await setPrimaryCallerIdProfile(p.workspace_id);
+    } catch {
+      void refresh();
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const copy = async () => {
+    if (!shareUrl) return;
+    await Clipboard.setStringAsync(shareUrl);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const shareLink = () => {
+    if (!shareUrl) return;
+    void Share.share({ message: shareUrl });
+  };
+
+  if (!loading && profiles.length === 0) return null;
+
+  return (
+    <View
+      style={[
+        styles.card,
+        { backgroundColor: colors.card, borderColor: colors.border },
+      ]}
+    >
+      <Text style={[styles.cardTitle, { color: colors.foreground }]}>
+        Your caller ID profile
+      </Text>
+      <Text style={[styles.cardSub, { color: colors.mutedForeground }]}>
+        Pick which Sayzio profile people see when you call them — your
+        personal profile or one of your brands.
+      </Text>
+
+      {loading ? (
+        <ActivityIndicator color={colors.primary} />
+      ) : (
+        profiles.map((p) => {
+          const key = p.workspace_id == null ? "personal" : `ws-${p.workspace_id}`;
+          return (
+            <Pressable
+              key={key}
+              onPress={() => void pick(p)}
+              style={[
+                styles.profileRow,
+                {
+                  borderColor: p.is_primary ? colors.primary : colors.border,
+                  backgroundColor: p.is_primary
+                    ? `${colors.primary}14`
+                    : "transparent",
+                },
+              ]}
+            >
+              <View
+                style={[
+                  styles.profileAvatar,
+                  { backgroundColor: colors.primary },
+                ]}
+              >
+                {p.logo_url ? (
+                  <Image
+                    source={{ uri: p.logo_url }}
+                    style={{ width: "100%", height: "100%" }}
+                    resizeMode="cover"
+                  />
+                ) : (
+                  <Feather
+                    name={p.workspace_id == null ? "user" : "briefcase"}
+                    size={16}
+                    color="#fff"
+                  />
+                )}
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.stepTitle, { color: colors.foreground }]}>
+                  {p.name || p.workspace_name || "Personal"}
+                </Text>
+                <Text style={[styles.stepBody, { color: colors.mutedForeground }]}>
+                  {p.workspace_id == null
+                    ? "Personal profile"
+                    : p.tagline || p.workspace_name || "Brand workspace"}
+                </Text>
+              </View>
+              <Feather
+                name={p.is_primary ? "check-circle" : "circle"}
+                size={18}
+                color={p.is_primary ? colors.primary : colors.mutedForeground}
+              />
+            </Pressable>
+          );
+        })
+      )}
+
+      {shareUrl ? (
+        <View style={{ alignItems: "center", gap: 10, marginTop: 4 }}>
+          <View style={styles.qrWrap}>
+            <QRCode value={shareUrl} size={140} backgroundColor="#ffffff" />
+          </View>
+          <Text
+            style={[styles.stepBody, { color: colors.mutedForeground }]}
+            numberOfLines={1}
+          >
+            {shareUrl}
+          </Text>
+          <View style={{ flexDirection: "row", gap: 18 }}>
+            <Pressable onPress={shareLink} style={styles.shareBtn}>
+              <Feather name="share-2" size={15} color={colors.primary} />
+              <Text style={[styles.stepAction, { color: colors.primary }]}>
+                Share link
+              </Text>
+            </Pressable>
+            <Pressable onPress={() => void copy()} style={styles.shareBtn}>
+              <Feather
+                name={copied ? "check" : "copy"}
+                size={15}
+                color={copied ? "#16a34a" : colors.primary}
+              />
+              <Text
+                style={[
+                  styles.stepAction,
+                  { color: copied ? "#16a34a" : colors.primary },
+                ]}
+              >
+                {copied ? "Copied" : "Copy link"}
+              </Text>
+            </Pressable>
+          </View>
+        </View>
+      ) : null}
+    </View>
+  );
+}
+
 function formatUnknownCallMoment(ts: number): string {
   const d = new Date(ts);
   if (Number.isNaN(d.getTime())) return "";
@@ -327,7 +571,11 @@ export default function CallerIdScreen() {
           add notes and set a follow-up.
         </Text>
 
+        <CallerIdProfilesCard />
+
         <LiveCallerIdCard />
+
+        <BrowserMirrorCard />
 
         <RecentUnknownCallersCard />
 
@@ -425,4 +673,27 @@ const styles = StyleSheet.create({
   },
   unknownAction: { paddingVertical: 4 },
   unknownDismiss: { padding: 4 },
+  profileRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+  },
+  profileAvatar: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: "center",
+    justifyContent: "center",
+    overflow: "hidden",
+  },
+  qrWrap: {
+    padding: 10,
+    borderRadius: 12,
+    backgroundColor: "#ffffff",
+  },
+  shareBtn: { flexDirection: "row", alignItems: "center", gap: 5, padding: 4 },
 });

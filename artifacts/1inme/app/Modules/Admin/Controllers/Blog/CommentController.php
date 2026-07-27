@@ -153,7 +153,7 @@ class CommentController extends Controller
                 }
             }
             if ($c->author_email) {
-                $url = $c->post ? route('site.blogs.show', $c->post->slug) . '#comment-' . $c->id : url('/');
+                $url = AppModulesCommonSupportPlatformHosts::outboundUrl($c->post ? route('site.blogs.show', $c->post->slug) . '#comment-' . $c->id : url('/'));
                 \App\Modules\Common\Services\Emailer::send('blog.comment_approved', $c->author_email, [
                     'name' => e($c->author_name ?: 'there'),
                     'url'  => e($url),
@@ -185,7 +185,7 @@ class CommentController extends Controller
                 }
             }
             if ($original->author_email) {
-                $url = $original->post ? route('site.blogs.show', $original->post->slug) . '#comment-' . $reply->id : url('/');
+                $url = AppModulesCommonSupportPlatformHosts::outboundUrl($original->post ? route('site.blogs.show', $original->post->slug) . '#comment-' . $reply->id : url('/'));
                 \App\Modules\Common\Services\Emailer::send('blog.comment_reply', $original->author_email, [
                     'name'         => e($original->author_name ?: 'there'),
                     'reply_author' => e($reply->author_name),

@@ -90,7 +90,7 @@ class SendServiceBookingReminders extends Command
                         'when'       => $when,
                         'lead_label' => $leadLabel,
                         'link_title' => $link?->title ?? 'your appointment',
-                        'status_url' => route('sb.public.booking.page', ['token' => $booking->public_token]),
+                        'status_url' => \App\Modules\Common\Support\PlatformHosts::outboundUrl(route('sb.public.booking.page', ['token' => $booking->public_token])),
                     ], [
                         'related'  => $booking,
                         'to_name'  => $booking->customer_name,

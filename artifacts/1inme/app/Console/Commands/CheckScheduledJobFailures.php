@@ -337,9 +337,9 @@ class CheckScheduledJobFailures extends Command
     private function panelUrl(): string
     {
         try {
-            return route('admin.cron-jobs.index');
+            return \App\Modules\Common\Support\PlatformHosts::outboundUrl(route('admin.cron-jobs.index'));
         } catch (\Throwable $e) {
-            return url('/admin/cron-jobs');
+            return \App\Modules\Common\Support\PlatformHosts::outboundUrl(url('/admin/cron-jobs'));
         }
     }
 

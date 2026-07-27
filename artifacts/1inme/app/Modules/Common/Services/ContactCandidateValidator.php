@@ -64,6 +64,14 @@ class ContactCandidateValidator
         $sourceUrl = $this->canonicalizeUrl($input['source_url'] ?? null, 'source_url');
         $out['source_url'] = $sourceUrl;
 
+        // Brand/Personal classification — only emit the key when the client
+        // sent a valid value, so partial updates never clobber an existing
+        // classification with null.
+        $ct = strtolower(trim((string) ($input['contact_type'] ?? '')));
+        if (in_array($ct, ['personal', 'brand'], true)) {
+            $out['contact_type'] = $ct;
+        }
+
         // Require at least one of name / email / phone — otherwise it's noise.
         $hasName  = $out['display_name'] || $out['given_name'] || $out['family_name'] || $out['organization'];
         $hasEmail = !empty($out['emails']);

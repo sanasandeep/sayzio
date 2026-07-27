@@ -592,7 +592,7 @@ class UserManagementController extends Controller
                 'app_name'  => config('app.name'),
                 'email'     => $user->email,
                 'password'  => $plainPassword,
-                'login_url' => route('user.login'),
+                'login_url' => AppModulesCommonSupportPlatformHosts::outboundUrl(route('user.login')),
             ], ['user' => $user]);
         } catch (\Throwable $e) {
             \Illuminate\Support\Facades\Log::info('Account credentials email skipped: ' . $e->getMessage());
@@ -638,7 +638,16 @@ class UserManagementController extends Controller
         }
 
         $previousPlanId = $user->plan_id;
+        $previousName = $user->name;
         $user->update($validated);
+
+        // Propagate an admin-initiated rename exactly like the self-service
+        // profile paths do: personal workspace + linked admin inline, then a
+        // queued fan-out over the denormalized name snapshots (comments,
+        // rosters, fan points, subscribers, linked contacts, caches).
+        if (array_key_exists('name', $validated) && $user->name !== $previousName) {
+            \App\Modules\User\Services\UserNameSync::handleRename($user, $previousName);
+        }
 
         // If the admin just moved this user onto a different paid plan, treat
         // it as a plan activation and run the referral reward engine. The
