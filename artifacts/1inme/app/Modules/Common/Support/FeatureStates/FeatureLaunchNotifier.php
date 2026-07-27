@@ -158,15 +158,15 @@ final class FeatureLaunchNotifier
         $landing = $def['landing'] ?? null;
         try {
             if (is_string($landing) && $landing !== '' && RouteFacade::has($landing)) {
-                return route($landing);
+                return \App\Modules\Common\Support\PlatformHosts::outboundUrl(route($landing));
             }
             if (RouteFacade::has('user.dashboard')) {
-                return route('user.dashboard');
+                return \App\Modules\Common\Support\PlatformHosts::outboundUrl(route('user.dashboard'));
             }
         } catch (\Throwable $e) {
             // fall through to config url
         }
 
-        return rtrim((string) config('app.url'), '/');
+        return \App\Modules\Common\Support\PlatformHosts::outboundUrl(rtrim((string) config('app.url'), '/'));
     }
 }

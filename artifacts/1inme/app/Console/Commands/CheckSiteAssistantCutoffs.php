@@ -120,7 +120,7 @@ class CheckSiteAssistantCutoffs extends Command
 
         $subject = "Site Assistant cut-off alert: {$abandonRate}% abandon rate (last 24h)";
         $body    = "Of {$total} cut-off / failed assistant streams in the last 24h, only {$retried} were retried — that's a {$abandonRate}% abandon rate, exceeding the {$threshold}% threshold. This usually points to an upstream regression. Open the Site Assistant analytics dashboard for context.";
-        $url     = route('admin.site-assistant.analytics');
+        $url     = \App\Modules\Common\Support\PlatformHosts::outboundUrl(route('admin.site-assistant.analytics'));
 
         $inAppDelivered = 0;
         foreach ($admins as $u) {
@@ -227,7 +227,7 @@ class CheckSiteAssistantCutoffs extends Command
 
         $subject = "Site Assistant cut-off recovered: {$abandonRate}% abandon rate (last 24h)";
         $body    = "Good news — the Site Assistant cut-off abandon rate is back down to {$abandonRate}% over the last 24h ({$total} cut-offs, {$retried} retried), below the {$threshold}% alerting threshold. No further action needed.";
-        $url     = route('admin.site-assistant.analytics');
+        $url     = \App\Modules\Common\Support\PlatformHosts::outboundUrl(route('admin.site-assistant.analytics'));
 
         $inAppDelivered = 0;
         foreach ($admins as $u) {

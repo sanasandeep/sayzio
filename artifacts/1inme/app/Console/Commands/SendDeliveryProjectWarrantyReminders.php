@@ -128,7 +128,7 @@ class SendDeliveryProjectWarrantyReminders extends Command
                 'message'     => $message,
                 'project_id'  => $project->id,
                 'expires_at'  => $expiryDate,
-                'url'         => route('user.delivery-projects.show', $project->id),
+                'url'         => \App\Modules\Common\Support\PlatformHosts::outboundUrl(route('user.delivery-projects.show', $project->id)),
             ],
             'created_at' => now(),
         ]);

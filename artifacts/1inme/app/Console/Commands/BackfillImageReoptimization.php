@@ -463,7 +463,7 @@ class BackfillImageReoptimization extends Command
                  . "Once the legacy vault is clean, runs should be no-ops, so a sustained shrink count usually means the upload-time compress_image pipeline regressed for one of these surfaces, or a new image surface was added without opting in.\n\n"
                  . "Per-context breakdown:\n" . $contextSummary . "\n\n"
                  . "Suspect upload paths: {$contextList}.";
-        $url     = route('admin.dashboard');
+        $url     = \App\Modules\Common\Support\PlatformHosts::outboundUrl(route('admin.dashboard'));
 
         $admins = User::query()->withPermission('user.ops_alerts.receive')->get();
 

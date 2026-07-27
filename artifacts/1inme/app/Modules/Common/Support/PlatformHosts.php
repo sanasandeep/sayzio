@@ -270,6 +270,48 @@ class PlatformHosts
         return request()->getScheme() . '://' . $primary . $uri;
     }
 
+    /**
+     * Normalise a generated absolute URL for outbound use (emails, in-app /
+     * push notifications, digests) — anything built from CLI/queue context
+     * where there is no request host to anchor on. Whenever the URL's host
+     * is a recognised *non-primary* brand domain (e.g. `1in.me` while
+     * `sayzio.app` is primary — typically because production APP_URL still
+     * points at the legacy domain), the host is rewritten to the primary
+     * brand domain and the scheme forced to https.
+     *
+     * Dev/preview hosts (Replit dev domain, localhost) and custom user
+     * domains are left untouched so local previews and per-user branding
+     * keep working. Relative URLs and unparseable strings pass through
+     * unchanged. This never affects inbound alias resolution — existing
+     * `1in.me` short links keep resolving; only *generated* links move to
+     * the primary brand host.
+     */
+    public static function outboundUrl(string $url): string
+    {
+        if ($url === '') return $url;
+
+        $primary = self::primaryBrandDomain();
+        if ($primary === null) return $url;
+
+        $host = self::normalize(parse_url($url, PHP_URL_HOST) ?: null);
+        if ($host === null || !self::isNonPrimaryBrandDomain($host)) {
+            return $url;
+        }
+
+        $parts = parse_url($url);
+        if (!is_array($parts)) return $url;
+
+        $rebuilt = 'https://' . $primary;
+        $rebuilt .= $parts['path'] ?? '';
+        if (isset($parts['query']) && $parts['query'] !== '') {
+            $rebuilt .= '?' . $parts['query'];
+        }
+        if (isset($parts['fragment']) && $parts['fragment'] !== '') {
+            $rebuilt .= '#' . $parts['fragment'];
+        }
+        return $rebuilt;
+    }
+
     private static function isLoopback(string $host): bool
     {
         return in_array($host, ['localhost', '127.0.0.1', '0.0.0.0', '::1'], true);

@@ -144,7 +144,7 @@ class SendStarterFreeWindowReminders extends Command
         // banner lives. notify() returns null when the user muted the in_app
         // channel for this type, so a non-null result means it was created.
         if ($prefs->notify($user, 'starter.free_window_renewal', array_merge(self::inAppCopy(), [
-            'url'      => route('user.dashboard'),
+            'url'      => \App\Modules\Common\Support\PlatformHosts::outboundUrl(route('user.dashboard')),
             'ends_at'  => $endsAt?->toIso8601String(),
         ])) !== null) {
             $delivered = true;

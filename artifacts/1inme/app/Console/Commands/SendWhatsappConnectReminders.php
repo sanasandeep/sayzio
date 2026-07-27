@@ -100,7 +100,7 @@ class SendWhatsappConnectReminders extends Command
                 // in_app channel for this type, so a non-null result means it
                 // was actually created — only then do we stamp the cooldown.
                 $delivered = $prefs->notify($user, 'whatsapp.connect_reminder', array_merge(self::inAppCopy(), [
-                    'url' => route('user.dashboard'),
+                    'url' => \App\Modules\Common\Support\PlatformHosts::outboundUrl(route('user.dashboard')),
                 ])) !== null;
 
                 if ($delivered) {

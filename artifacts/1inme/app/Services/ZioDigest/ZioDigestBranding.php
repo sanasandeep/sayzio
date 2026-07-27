@@ -63,10 +63,12 @@ class ZioDigestBranding
     {
         $url = self::logoUrl();
         if (preg_match('#^https?://#i', $url)) {
-            return $url;
+            return \App\Modules\Common\Support\PlatformHosts::outboundUrl($url);
         }
 
-        return rtrim((string) config('app.url'), '/') . '/' . ltrim($url, '/');
+        return \App\Modules\Common\Support\PlatformHosts::outboundUrl(
+            rtrim((string) config('app.url'), '/') . '/' . ltrim($url, '/')
+        );
     }
 
     /**

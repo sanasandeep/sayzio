@@ -63,7 +63,7 @@ class SendContactFollowUpReminders extends Command
         $who = $contact->nameForDisplay();
         $subject = "Follow-up reminder · {$who}";
         $message = "Time to follow up with {$who}" . ($contact->follow_up_note ? ': ' . $contact->follow_up_note : '.');
-        $contactUrl = route('user.contacts.show', $contact);
+        $contactUrl = \App\Modules\Common\Support\PlatformHosts::outboundUrl(route('user.contacts.show', $contact));
 
         $data = array_filter([
             'message'    => $message,
