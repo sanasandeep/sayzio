@@ -156,3 +156,4 @@
 - [Zio Browser chrome-overlay for dropdowns](zio-browser-chrome-overlay.md) — native views occlude renderer menus; use ref-counted setChromeOverlay (detach tabs+dashboard view), never raw tabs.hideAll.
 - [Zio Browser site-resolve privacy gate](zio-browser-site-resolve-privacy.md) — any feature phoning home with browsing data (host/URL) must be isPrivate-off + signed-in/opt-in gated.
 - [Zio Browser internal about pages](zio-browser-internal-about-pages.md) — renderer-drawn about:sayzio/about:zio need canonical internalUrl in tab manager; omnibox parses "about:x" (no //) as SEARCH, check raw input first.
+- [Showcase account is a real user account](showcase-account-is-real-user.md) — showcase:seed WIPES sana@sayzio.app on prod; "saves not working" there usually = a reseed reverted her edits.

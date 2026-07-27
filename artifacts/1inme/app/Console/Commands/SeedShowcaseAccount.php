@@ -36,6 +36,26 @@ class SeedShowcaseAccount extends Command
     {
         $analyticsOnly = (bool) $this->option('analytics-only');
 
+        // Safety latch: sana@sayzio.app is a REAL user account that doubles as
+        // the showcase target, and a full (non --analytics-only) reseed WIPES
+        // and rebuilds all of her links/content. An accidental mass workflow
+        // restart once re-ran the prod reseed and destroyed live edits, so a
+        // destructive run now requires the explicit SHOWCASE_SEED_CONFIRM=yes
+        // environment variable in addition to --force. Interactive runs still
+        // get the confirmation prompt instead; --analytics-only is additive
+        // and stays unrestricted.
+        if (! $analyticsOnly
+            && $this->option('force')
+            && getenv('SHOWCASE_SEED_CONFIRM') !== 'yes') {
+            $this->error(
+                'Refusing to wipe & rebuild the ' . ShowcaseAccountSeeder::EMAIL . ' showcase account. '
+                . 'This is a real user account; a forced reseed destroys her live edits. '
+                . 'To run intentionally: SHOWCASE_SEED_CONFIRM=yes php artisan showcase:seed --force'
+            );
+
+            return self::FAILURE;
+        }
+
         if (app()->environment('production') && ! $this->option('force')) {
             $what = $analyticsOnly
                 ? 'regenerate the backdated analytics for the ' . ShowcaseAccountSeeder::EMAIL . ' showcase account'
