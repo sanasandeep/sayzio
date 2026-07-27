@@ -19,6 +19,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuthStore } from '../store/auth-store';
 import { ApiClient, ApiClientError } from '../../shared/api-client';
 import type { DialerSearchResult, DialerCallEvent } from '../../shared/api-client';
+import { buildSessions, formatElapsed, sessionDuration } from '../lib/dialer-call-sessions';
 
 const BASE_URL = 'https://sayzio.app';
 
@@ -180,7 +181,32 @@ export function DialerPanel({ onClose, onNavigate }: Props) {
   }, [token, getClient]);
 
   const dialableQuery = queryLooksDialable(query) ? query.trim() : null;
-  const recentEvents = [...events].reverse();
+
+  // ── Live call status derived from the mirrored event stream ──────────────
+  const sessions = buildSessions(events);
+  // Active call: the most recent session whose latest status is `answered`
+  // (i.e. an answered event with no following ended event).
+  const lastSession = sessions.length > 0 ? sessions[sessions.length - 1] : null;
+  const activeCall = lastSession && lastSession.status === 'answered' ? lastSession : null;
+  const recentSessions = sessions
+    .filter(s => s !== activeCall)
+    .slice(-5)
+    .reverse();
+
+  // 1s tick while a call is active so the elapsed timer counts up.
+  const [nowMs, setNowMs] = useState(() => Date.now());
+  useEffect(() => {
+    if (!activeCall) return;
+    setNowMs(Date.now());
+    const t = setInterval(() => setNowMs(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, [activeCall?.key]);
+
+  let activeElapsed: string | null = null;
+  if (activeCall?.answeredAt) {
+    const started = new Date(activeCall.answeredAt).getTime();
+    if (!Number.isNaN(started)) activeElapsed = formatElapsed((nowMs - started) / 1000);
+  }
 
   return (
     <div style={{
@@ -225,6 +251,31 @@ export function DialerPanel({ onClose, onNavigate }: Props) {
               Tip: digits work like T9 — "742" finds "Sia".
             </div>
           </div>
+
+          {/* Active call banner — answered on the phone, not yet ended */}
+          {activeCall && (
+            <div style={{
+              margin: '8px 12px 0', padding: '9px 11px', borderRadius: 8,
+              background: 'rgba(60,160,90,0.14)',
+              border: '1px solid rgba(60,160,90,0.35)',
+              display: 'flex', alignItems: 'center', gap: 8,
+            }}>
+              <span style={{ fontSize: 15 }}>🟢</span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 13, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  On a call with {activeCall.caller_name || activeCall.number}
+                </div>
+                <div style={subStyle}>
+                  {activeCall.caller_name ? `${activeCall.number} · ` : ''}on your phone
+                </div>
+              </div>
+              {activeElapsed && (
+                <div style={{ fontSize: 13, fontWeight: 600, fontVariantNumeric: 'tabular-nums', flexShrink: 0 }}>
+                  {activeElapsed}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Call handoff status */}
           {callState && (
@@ -300,33 +351,45 @@ export function DialerPanel({ onClose, onNavigate }: Props) {
               <div style={{ fontSize: 12.5, color: 'var(--color-text-secondary)' }}>No matches.</div>
             )}
 
-            {/* Incoming calls mirrored from the phone */}
-            {recentEvents.length > 0 && (
+            {/* Recent calls mirrored from the phone */}
+            {recentSessions.length > 0 && (
               <div>
                 <div style={{
                   fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.4,
                   color: 'var(--color-text-secondary)', margin: '6px 0 6px',
                 }}>
-                  On your phone
+                  Recent calls
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                  {recentEvents.map(e => (
-                    <div key={e.id} style={rowStyle}>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={titleStyle}>{e.caller_name || e.number}</div>
-                        <div style={subStyle}>
-                          {STATUS_LABEL[e.status]}{e.caller_name ? ` · ${e.number}` : ''}
-                          {formatEventTime(e.occurred_at) ? ` · ${formatEventTime(e.occurred_at)}` : ''}
+                  {recentSessions.map(s => {
+                    const duration = sessionDuration(s);
+                    return (
+                      <div key={s.key} style={rowStyle}>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={titleStyle}>{s.caller_name || s.number}</div>
+                          <div style={subStyle}>
+                            {STATUS_LABEL[s.status]}
+                            {duration ? ` · ${duration}` : ''}
+                            {s.caller_name ? ` · ${s.number}` : ''}
+                            {formatEventTime(s.endedAt ?? s.startedAt) ? ` · ${formatEventTime(s.endedAt ?? s.startedAt)}` : ''}
+                          </div>
                         </div>
+                        {s.status === 'ringing' ? <span style={{ fontSize: 14 }}>🔔</span> : null}
+                        <button
+                          onClick={() => void handleCall(s.number, s.caller_name)}
+                          style={callBtnStyle}
+                          title={`Call ${s.number} on your phone`}
+                        >
+                          📱 Call
+                        </button>
                       </div>
-                      {e.status === 'ringing' ? <span style={{ fontSize: 14 }}>🔔</span> : null}
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             )}
 
-            {!results && !dialableQuery && recentEvents.length === 0 && !searching && (
+            {!results && !dialableQuery && !activeCall && recentSessions.length === 0 && !searching && (
               <div style={{ fontSize: 12.5, color: 'var(--color-text-secondary)', lineHeight: 1.5 }}>
                 Search anything — contacts, people on Sayzio, your links — then
                 hand the call to your phone with one click.
