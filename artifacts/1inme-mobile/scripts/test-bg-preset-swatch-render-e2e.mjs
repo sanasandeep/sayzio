@@ -14,11 +14,14 @@
  *
  *   1. Dumps the real catalog to JSON by evaluating BgPresetCatalog with
  *      plain `php` (the class has no framework dependencies).
- *   2. Boots the REAL Expo web app, mocks /bg-presets with that catalog,
- *      opens the Appearance screen and expands the Presets gallery.
- *   3. For EVERY preset in every group tab, screenshots the swatch's
- *      LinearGradient element and inspects its pixels (canvas decode in the
- *      page):
+ *   2. Boots the REAL Expo web app, mocks /bg-presets with that catalog and
+ *      serves the committed pre-rendered swatch PNGs
+ *      (artifacts/1inme/public/img/bg-preset-swatches) exactly like the
+ *      production server would, opens the Appearance screen and expands the
+ *      Presets gallery.
+ *   3. For EVERY preset in every group tab, screenshots the swatch element
+ *      (pre-rendered texture image over the gradient fallback) and inspects
+ *      its pixels (canvas decode in the page):
  *        - FAIL if the swatch is blank: (near-)transparent, or a uniform
  *          fill matching the page/card background (nothing painted).
  *        - FAIL if a preset that declares >= 2 distinct color stops renders
@@ -31,6 +34,7 @@
  */
 
 import { spawnSync } from "node:child_process";
+import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -130,6 +134,34 @@ const link = {
   is_active: true,
   settings: { biolink: { background_type: "color" } },
 };
+
+// Serve the committed pre-rendered swatch thumbnails from disk — in
+// production these are static files under the Laravel public/ dir; the
+// harness has no Laravel server, so fulfill them straight from the repo.
+const SWATCH_DIR = path.resolve(
+  MOBILE_ROOT,
+  "..",
+  "1inme",
+  "public",
+  "img",
+  "bg-preset-swatches",
+);
+
+async function mockSwatchImages(context) {
+  await context.route("**/img/bg-preset-swatches/*.png", async (route) => {
+    const name = path.basename(new URL(route.request().url()).pathname);
+    const file = path.join(SWATCH_DIR, name);
+    if (fs.existsSync(file)) {
+      await route.fulfill({
+        status: 200,
+        contentType: "image/png",
+        body: fs.readFileSync(file),
+      });
+    } else {
+      await route.fulfill({ status: 404, body: "not found" });
+    }
+  });
+}
 
 async function mockApi(context, catalog) {
   await context.route("**/api/**", async (route) => {
@@ -235,6 +267,7 @@ async function run(appUrl, catalog) {
     const context = await browser.newContext({ viewport: VIEWPORT });
     await seedSession(context);
     await mockApi(context, catalog);
+    await mockSwatchImages(context);
     const page = await context.newPage();
     page.setDefaultTimeout(STEP_TIMEOUT_MS);
 
@@ -281,6 +314,20 @@ async function run(appUrl, catalog) {
         .getByTestId(`bg-swatch-${groupPresets[0].key}`)
         .waitFor({ state: "visible" });
       log(`group "${group.label}": ${groupPresets.length} swatches…`);
+
+      // Presets with an up-to-date pre-rendered thumbnail render it over the
+      // gradient fallback; wait until every such <img> in this tab has
+      // actually decoded before screenshotting, or pixel checks race the
+      // network.
+      await page.waitForFunction(
+        () => {
+          const imgs = Array.from(
+            document.querySelectorAll('img[src*="/img/bg-preset-swatches/"]'),
+          );
+          return imgs.every((img) => img.complete && img.naturalWidth > 0);
+        },
+        { timeout: STEP_TIMEOUT_MS },
+      );
 
       for (const preset of groupPresets) {
         const swatch = page.getByTestId(`bg-swatch-${preset.key}`);

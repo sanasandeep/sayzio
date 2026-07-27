@@ -99,7 +99,8 @@
     "android": "expo run:android",
     "ios": "expo run:ios",
     "test:ai-builder-upload-fail": "node scripts/test-ai-builder-upload-fail.mjs",
-    "test:bg-preset-swatch-render-e2e": "node scripts/test-bg-preset-swatch-render-e2e.mjs"
+    "test:bg-preset-swatch-render-e2e": "node scripts/test-bg-preset-swatch-render-e2e.mjs",
+    "generate:bg-preset-swatches": "node scripts/generate-bg-preset-swatches.mjs"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
