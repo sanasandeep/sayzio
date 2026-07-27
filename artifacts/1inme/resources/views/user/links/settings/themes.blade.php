@@ -7,10 +7,9 @@
 @php($activeSettingsTab = 'themes')
 <div class="px-4 sm:px-6 lg:px-8 py-6 max-w-6xl mx-auto">
     @include('user.links.partials.editor-header')
+    @include('user.links.partials.settings-header', ['link' => $link, 'activeSettingsTab' => 'themes'])
 
     <div id="settings-tab-content">
-        @include('user.links.partials.settings-header', ['activeSettingsTab' => 'themes'])
-
         <div x-data="biolinkThemesPage({
             themes: {{ json_encode($themes->map(fn($t) => ['id'=>$t->id,'name'=>$t->name,'created_at'=>optional($t->created_at)->toIso8601String()])) }},
             schedules: {{ json_encode($schedules->map(fn($s) => [

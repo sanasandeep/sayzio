@@ -55,3 +55,8 @@ Also make the FINAL complete-profile submit `click({ noWaitAfter: true })` and
 let a sibling `waitForURL` own the navigation, or a plain `click()` blocks 30s on
 "waiting for scheduled navigations to finish" against the slow authenticated
 re-render.
+
+Additional gotchas (July 2026):
+- startValidationRun with a `workingDirectory` param is ignored — put `cd artifacts/1inme &&` inside the command itself (exit 127 otherwise).
+- If a blocking startValidationRun outlives the code_execution notebook, console output comes back EMPTY and the notebook silently dies; just re-call startValidationRun after a notebook restart (it returns the finished/new run) — do NOT restart_workflow the validation workflow (the tool's timeout SIGTERMs it mid-suite).
+- Budget e2e specs that visit several heavy editor pages in one test at ~600s: each sub-page cold render over the distant RDS is 10-40s, so seven sequential gotos blow a 180s test budget (surfaces as goto ERR_ABORTED at teardown).

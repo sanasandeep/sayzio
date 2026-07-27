@@ -576,6 +576,10 @@ args = "eas-upload-size"
 task = "workflow.run"
 args = "name-sync-tests"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-settings-tabs-dedupe"
+
 [[workflows.workflow]]
 name = "e2e"
 author = "agent"
@@ -2303,6 +2307,17 @@ isValidation = true
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "cd artifacts/1inme && TEST_LOCAL_MODE=artisan bash scripts/test-local.sh --filter='ProfileNamePersonalWorkspaceSyncTest|AdminNameSyncOnProfileUpdateTest|VerifiedNameLockProfileUpdateTest|AdminRenameUserNameSyncTest'"
+
+[[workflows.workflow]]
+name = "e2e-settings-tabs-dedupe"
+author = "agent"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd artifacts/1inme && bash tests/Browser/run-validation.sh settings-tabs-dedupe.spec.ts"
 
 
   [agent]

@@ -85,6 +85,13 @@
             var fresh = doc.getElementById('settings-tab-content');
             if (!fresh) { window.location.href = url; return; }
 
+            // Defensive: if a settings page ever renders the tab bar INSIDE
+            // the swap container, strip it so we never stack a second bar
+            // under the one already on the page.
+            fresh.querySelectorAll('.settings-tabs').forEach(function(bar) {
+                bar.parentNode.removeChild(bar);
+            });
+
             container.innerHTML = fresh.innerHTML;
 
             // <script> tags injected via innerHTML don't execute — re-create them.
