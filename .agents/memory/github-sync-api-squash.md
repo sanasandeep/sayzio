@@ -17,3 +17,9 @@ The sandbox blocks git fetch/merge/force-push/commit locally, and GitHub push pr
 **How to apply:** after each publish, the standing GitHub push will be non-fast-forward again (remote head is an API-made squash commit not in local history). Repeat: diff `--no-renames --name-status` against the remote head sha, upload blobs, chained trees, commit with remote head as parent. Env is resource-starved; run everything in resumable ≤110s chunks.
 
 Remote branch `backup-remote-main-20260718` preserves three EC2 "Deploy:" commits whose content was verified present locally.
+
+## Dirty-overlay trim bug (fixed July 2026)
+The diff script's `status --porcelain` parsing must NOT `trim()` the whole output before splitting lines — porcelain codes start with a space (` M path`), so trim eats the first line's leading space, shifting `slice(3)` by one char and silently dropping that dirty file from the sync. Split first, filter blank lines, keep leading spaces. Symptom: an uncommitted edit never shows in the "changed" list.
+
+## Blob cache staleness
+`blobs.json` caches path→uploaded-blob-sha across runs; always delete it before a new sync or changed files are silently skipped (stale sha reused).
