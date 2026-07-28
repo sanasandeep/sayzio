@@ -1,6 +1,7 @@
 import { Feather } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
 import { LinearGradient } from "expo-linear-gradient";
+import Svg, { Circle, Path } from "react-native-svg";
 import * as Linking from "expo-linking";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
@@ -1217,6 +1218,221 @@ export function BlockView({ block, alias, allBlocks, openEmbed }: { block: Bioli
     const url = pickStr(s, "url", "image", "image_url", "src", "thumbnail");
     if (!url) return null;
     const isAvatar = t === "avatar";
+
+    // Hero-photo decorations (web `_style._photo_*`, Task #5922): concentric
+    // arch frame, half-overlapping title banner, torn-edge collage + accents.
+    const phSt = (s._style && typeof s._style === "object" ? s._style : {}) as Record<
+      string,
+      unknown
+    >;
+    const phStr = (k: string): string => (typeof phSt[k] === "string" ? (phSt[k] as string) : "");
+    const phFrame = !isAvatar && phStr("_photo_frame") === "concentric_arch";
+    const phMask = !isAvatar ? phStr("_photo_mask") : "";
+    const phBanner = !isAvatar ? phStr("_photo_banner_text").trim() : "";
+    const phAccents = !isAvatar
+      ? phStr("_photo_accents")
+          .split(",")
+          .map((a) => a.trim())
+          .filter(Boolean)
+      : [];
+    const phDecorated = phFrame || phMask !== "" || phBanner !== "" || phAccents.length > 0;
+
+    if (phDecorated) {
+      const phFrameColor = phStr("_photo_frame_color") || "#57534e";
+      const phStrokesRaw = Number(phSt._photo_frame_strokes ?? 0);
+      const phStrokes = Math.max(2, Math.min(5, phStrokesRaw || 3));
+      const phGap = 9;
+      const phPad = phFrame ? phStrokes * phGap + 6 : 0;
+      const phBannerBg = phStr("_photo_banner_bg") || "#2a201c";
+      const phBannerColor = phStr("_photo_banner_text_color") || "#ffffff";
+      const phAccentColor = phStr("_photo_accent_color") || "#3f4e63";
+      const phArch = phFrame || phMask === "arch";
+      const phTorn = !phArch && phMask === "torn";
+      // Torn edges approximated with page-background zigzag overlays.
+      const tornBg = colors.background;
+      const tornZig = "M0 12 L10 2 L20 12 L30 3 L40 11 L50 2 L60 12 L70 4 L80 11 L90 2 L100 12 L100 0 L0 0 Z";
+      return (
+        <View
+          style={{
+            padding: phPad,
+            marginBottom: phBanner !== "" ? 40 : 4,
+            position: "relative",
+          }}
+        >
+          {phFrame
+            ? Array.from({ length: phStrokes }).map((_, i) => (
+                <View
+                  key={`fs-${i}`}
+                  pointerEvents="none"
+                  style={{
+                    position: "absolute",
+                    top: i * phGap,
+                    left: i * phGap,
+                    right: i * phGap,
+                    bottom: 0,
+                    borderWidth: 1.5,
+                    borderBottomWidth: 0,
+                    borderColor: phFrameColor,
+                    borderTopLeftRadius: 999,
+                    borderTopRightRadius: 999,
+                    opacity: 1 - i * 0.12,
+                  }}
+                />
+              ))
+            : null}
+          <View
+            style={{
+              overflow: "hidden",
+              borderTopLeftRadius: phArch ? 999 : 0,
+              borderTopRightRadius: phArch ? 999 : 0,
+            }}
+          >
+            <Image
+              source={{ uri: url }}
+              style={{ width: "100%", aspectRatio: phArch ? 3 / 4 : 4 / 5 }}
+              resizeMode="cover"
+            />
+            {phTorn ? (
+              <>
+                <Svg
+                  pointerEvents="none"
+                  viewBox="0 0 100 12"
+                  preserveAspectRatio="none"
+                  style={{ position: "absolute", top: 0, left: 0, right: 0, height: 12 }}
+                >
+                  <Path d={tornZig} fill={tornBg} />
+                </Svg>
+                <Svg
+                  pointerEvents="none"
+                  viewBox="0 0 100 12"
+                  preserveAspectRatio="none"
+                  style={{
+                    position: "absolute",
+                    bottom: 0,
+                    left: 0,
+                    right: 0,
+                    height: 12,
+                    transform: [{ scaleY: -1 }],
+                  }}
+                >
+                  <Path d={tornZig} fill={tornBg} />
+                </Svg>
+              </>
+            ) : null}
+          </View>
+          {phBanner !== "" ? (
+            <View
+              pointerEvents="none"
+              style={{
+                position: "absolute",
+                bottom: -18,
+                left: 16,
+                right: 16,
+                alignItems: "center",
+                zIndex: 10,
+              }}
+            >
+              <View
+                style={{
+                  backgroundColor: phBannerBg,
+                  paddingVertical: 11,
+                  paddingHorizontal: 26,
+                  maxWidth: "92%",
+                }}
+              >
+                <Text
+                  numberOfLines={1}
+                  style={{
+                    color: phBannerColor,
+                    fontFamily: "SpaceGrotesk_700Bold",
+                    fontSize: 14,
+                    letterSpacing: 2,
+                    textTransform: "uppercase",
+                    textAlign: "center",
+                  }}
+                >
+                  {phBanner}
+                </Text>
+              </View>
+            </View>
+          ) : null}
+          {phAccents.includes("starburst") ? (
+            <Svg
+              pointerEvents="none"
+              viewBox="0 0 100 100"
+              width={54}
+              height={54}
+              style={{ position: "absolute", left: -8, top: "42%", zIndex: 10 }}
+            >
+              <Path
+                d="M50 0 L56 33 L75 7 L63 38 L96 22 L67 44 L100 50 L67 56 L96 78 L63 62 L75 93 L56 67 L50 100 L44 67 L25 93 L37 62 L4 78 L33 56 L0 50 L33 44 L4 22 L37 38 L25 7 L44 33 Z"
+                fill={phAccentColor}
+              />
+            </Svg>
+          ) : null}
+          {phAccents.includes("dots") ? (
+            <Svg
+              pointerEvents="none"
+              viewBox="0 0 90 90"
+              width={76}
+              height={76}
+              style={{ position: "absolute", right: -6, top: -10, zIndex: 10 }}
+            >
+              {[
+                [78, 10, 6], [58, 18, 4.5], [76, 30, 4], [44, 10, 3.5], [62, 38, 3.2],
+                [82, 46, 3], [48, 28, 2.6], [70, 54, 2.4], [34, 20, 2.2], [56, 50, 2],
+                [84, 62, 2], [42, 42, 1.8], [66, 68, 1.6], [78, 76, 1.4],
+              ].map(([cx, cy, r], i) => (
+                <Circle key={`d-${i}`} cx={cx} cy={cy} r={r} fill={phAccentColor} />
+              ))}
+            </Svg>
+          ) : null}
+          {phAccents.includes("squiggle") ? (
+            <Svg
+              pointerEvents="none"
+              viewBox="0 0 120 40"
+              width={84}
+              height={28}
+              style={{ position: "absolute", left: -4, bottom: -8, zIndex: 10 }}
+            >
+              <Path
+                d="M5 30 Q20 5 35 25 T65 22 T95 24 T115 15"
+                fill="none"
+                stroke={phAccentColor}
+                strokeWidth={5}
+                strokeLinecap="round"
+              />
+            </Svg>
+          ) : null}
+          {phAccents.includes("ring") ? (
+            <Svg
+              pointerEvents="none"
+              viewBox="0 0 60 60"
+              width={46}
+              height={46}
+              style={{ position: "absolute", left: -10, top: -8, zIndex: 10 }}
+            >
+              <Circle cx={30} cy={30} r={24} fill="none" stroke={phAccentColor} strokeWidth={6} />
+            </Svg>
+          ) : null}
+          {phAccents.includes("blob") ? (
+            <Svg
+              pointerEvents="none"
+              viewBox="0 0 100 100"
+              width={58}
+              height={58}
+              style={{ position: "absolute", right: -10, bottom: -6, zIndex: 10 }}
+            >
+              <Path
+                d="M83 45 C90 62 78 84 58 88 C38 92 16 82 12 62 C8 42 22 20 44 14 C66 8 76 28 83 45 Z"
+                fill={phAccentColor}
+              />
+            </Svg>
+          ) : null}
+        </View>
+      );
+    }
+
     return (
       <Image
         source={{ uri: url }}
@@ -2436,6 +2652,107 @@ function ProfileCardView({
     );
   }
 
+  // ───────────── ARCH BAND ─────────────
+  // Task #5922: cover photo with a semi-circular arch band at its bottom
+  // edge; the circular avatar sits inside the arch. The band and avatar
+  // ring share ONE color/width — the block's border_color/border_width
+  // (mirrors the web `arch_band` blade branch).
+  if (layout === "arch_band") {
+    const abColor =
+      typeof pcStyle.border_color === "string" && pcStyle.border_color !== ""
+        ? pcStyle.border_color
+        : "#b98a5e";
+    const abWidthRaw = Number(pcStyle.border_width);
+    const abWidth = Math.max(2, Math.min(10, Number.isFinite(abWidthRaw) && abWidthRaw > 0 ? abWidthRaw : 6));
+    const abAv = 120; // avatar diameter
+    const abBand = 12 + abWidth * 3; // band thickness
+    const abOut = abAv + 2 * abBand; // arch outer diameter
+    return (
+      <View style={[surface, { backgroundColor: "#ffffff" }]}>
+        <View style={{ position: "relative" }}>
+          {hasCover ? (
+            <Image source={{ uri: cover }} style={{ height: 176, width: "100%" }} />
+          ) : (
+            <LinearGradient
+              colors={["#e7dccf", "#cdb9a0"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={{ height: 176, width: "100%" }}
+            />
+          )}
+          {/* Thin rule along the cover's bottom edge, same band color */}
+          <View
+            style={{
+              position: "absolute",
+              left: 0,
+              right: 0,
+              bottom: 0,
+              height: 3,
+              backgroundColor: abColor,
+            }}
+          />
+          {/* Filled semi-circular arch band, bottom-aligned with the cover */}
+          <View
+            style={{
+              position: "absolute",
+              bottom: 0,
+              alignSelf: "center",
+              width: abOut,
+              height: abOut / 2 + 10,
+              backgroundColor: abColor,
+              borderTopLeftRadius: abOut,
+              borderTopRightRadius: abOut,
+            }}
+          />
+        </View>
+        <View
+          style={{
+            paddingHorizontal: 20,
+            paddingBottom: 24,
+            paddingTop: abAv / 2 + 14,
+            alignItems: "center",
+          }}
+        >
+          <View style={{ position: "absolute", top: -(abAv / 2), alignSelf: "center" }}>
+            <ProfileAvatar
+              frame={pcFrame}
+              avatar={avatar}
+              initial={initial}
+              size={abAv}
+              border={{ borderWidth: abWidth, borderColor: abColor }}
+            />
+          </View>
+          {name ? (
+            <Text style={{ fontSize: 19, fontWeight: "700", color: "#1c1917" }}>
+              {name}
+              {verified ? <Feather name="check-circle" size={15} color={abColor} /> : null}
+            </Text>
+          ) : null}
+          {title ? (
+            <Text
+              style={{
+                marginTop: 4,
+                fontSize: 11,
+                fontWeight: "600",
+                letterSpacing: 3,
+                textTransform: "uppercase",
+                color: abColor,
+              }}
+            >
+              {title}
+            </Text>
+          ) : null}
+          {bio ? (
+            <Text style={{ fontSize: 13, marginTop: 12, color: "#57534e", textAlign: "center" }}>
+              {bio}
+            </Text>
+          ) : null}
+          <ProfileSocialsRow socials={socials} accent={abColor} onTap={onTap} chip="accent_outline" />
+        </View>
+      </View>
+    );
+  }
+
   // ───────────── OVERLAP HERO ─────────────
   // Tall cover with the white card pulled up over it; the avatar
   // straddles the card's top edge. The block surface stays transparent —
@@ -2451,7 +2768,7 @@ function ProfileCardView({
           />
         ) : (
           <LinearGradient
-            colors={["#3d6bff", "#8b5cf6"]}
+            colors={["#3d6bff", "#6ea8ff"]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={{ height: 176, width: "100%", borderRadius: 16 }}

@@ -458,6 +458,29 @@ class BiolinkBlock extends Model
         '_animation' => '',        // heading animation hint (shimmer, glitch, ...)
         '_gallery_layout' => '',   // gallery layout (grid_2, masonry, ...)
         '_social_set' => '',       // social icon style set (mono_line, glassy, ...)
+        // Hero-photo decorations for image blocks (Task #5922). All keys
+        // live in _style so curated variants can carry them and the
+        // Designs gallery can apply each look in one click.
+        // `_photo_mask` clips the photo itself (arch / torn) when the
+        // block's `_image_style.mask_shape` is unset — variant-friendly
+        // twin of the Image Styling mask picker.
+        '_photo_mask' => '',            // '', 'arch', 'torn'
+        // Concentric arch frame: thin arch outline strokes drawn around
+        // the (arch-masked) photo. Color defaults to a warm neutral at
+        // render time; strokes clamped 2..5.
+        '_photo_frame' => '',           // '', 'concentric_arch'
+        '_photo_frame_color' => '',
+        '_photo_frame_strokes' => '',
+        // Half-overlapping title banner: solid label box straddling the
+        // photo's bottom edge (half on the photo, half below).
+        '_photo_banner_text' => '',
+        '_photo_banner_bg' => '',
+        '_photo_banner_text_color' => '',
+        // Decorative accent shapes scattered around the photo (torn
+        // collage look). Comma-separated tokens from the allowlist:
+        // starburst, dots, squiggle, ring, blob.
+        '_photo_accents' => '',
+        '_photo_accent_color' => '',
         // Structural layout token for the profile_card family (Task #1740).
         // Set by the `profile_identity` curated designs; the public renderer
         // dispatches on it to reposition avatar/cover/text/socials. Empty =

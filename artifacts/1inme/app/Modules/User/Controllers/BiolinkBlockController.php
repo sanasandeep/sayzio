@@ -2176,7 +2176,14 @@ class BiolinkBlockController extends Controller
         // enum from the catalog — unknown keys are silently dropped so a
         // bad value can never break the public page.
         $enums['_avatar_frame'] = \App\Modules\User\Support\AvatarFrameCatalog::keys();
-        $colorKeys = ['text_color', 'bg_color', 'border_color', 'shadow_color', '_avatar_frame_color'];
+        // Hero-photo decorations for image blocks (Task #5922).
+        $enums['_photo_mask'] = ['arch', 'torn'];
+        $enums['_photo_frame'] = ['concentric_arch'];
+        $numericBounds['_photo_frame_strokes'] = [2, 5];
+        $colorKeys = [
+            'text_color', 'bg_color', 'border_color', 'shadow_color', '_avatar_frame_color',
+            '_photo_frame_color', '_photo_banner_bg', '_photo_banner_text_color', '_photo_accent_color',
+        ];
         $fontWeightKeys = ['font_weight'];
         $fontFamilyKeys = ['font_family'];
         $urlKeys = ['bg_image'];
@@ -2235,6 +2242,22 @@ class BiolinkBlockController extends Controller
             } elseif ($key === '_variant_version') {
                 $n = (int) $val;
                 if ($n >= 0 && $n < 100000) $result[$key] = $n;
+            } elseif ($key === '_photo_banner_text') {
+                // Plain-text banner label — strip tags, collapse whitespace,
+                // hard cap the length. Rendered through Blade's {{ }} so it
+                // is escaped again on output.
+                $safe = trim(preg_replace('/\s+/', ' ', strip_tags((string) $val)) ?? '');
+                if ($safe !== '') $result[$key] = mb_substr($safe, 0, 60);
+            } elseif ($key === '_photo_accents') {
+                // Comma-separated accent-shape tokens; unknown tokens are
+                // dropped, order preserved, duplicates removed.
+                $raw = is_array($val) ? implode(',', array_map('strval', $val)) : (string) $val;
+                $allowedAccents = ['starburst', 'dots', 'squiggle', 'ring', 'blob'];
+                $tokens = array_values(array_unique(array_intersect(
+                    array_filter(array_map('trim', explode(',', strtolower($raw)))),
+                    $allowedAccents
+                )));
+                if (!empty($tokens)) $result[$key] = implode(',', $tokens);
             } elseif (in_array($key, ['_animation', '_gallery_layout', '_social_set', '_profile_layout'], true)) {
                 // Opaque slug-shaped variant metadata hooks (Task #1041).
                 // The renderer is free to ignore unknown values; we only

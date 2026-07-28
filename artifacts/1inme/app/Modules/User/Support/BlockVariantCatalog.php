@@ -33,7 +33,7 @@ class BlockVariantCatalog
      * pipeline always writes the *current* VERSION so newly-applied or
      * re-applied variants stay in sync.
      */
-    public const VERSION = 13;
+    public const VERSION = 14;
 
     /**
      * Shape filters for link-style blocks. Orthogonal to theme TAGS:
@@ -2087,6 +2087,23 @@ class BlockVariantCatalog
                     'preview' => ['bg' => '#f4c531', 'text' => '#111827', 'radius' => 0],
                 ],
                 [
+                    // Task #5922: cover photo with a semi-circular arch band
+                    // at its bottom edge and the circular avatar inside it.
+                    // Band + avatar ring share the block's border color /
+                    // width (recolor once, both follow).
+                    'key' => 'identity_arch_band',
+                    'name' => 'Arch Band Portrait',
+                    'tags' => ['editorial', 'pro'],
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#ffffff',
+                        'text_color' => '#1c1917',
+                        'border_style' => 'none', 'border_width' => '6', 'border_color' => '#b98a5e',
+                        'border_radius' => '24', 'shadow_preset' => 'soft',
+                        'padding' => '0', '_profile_layout' => 'arch_band',
+                    ],
+                    'preview' => ['bg' => '#ffffff', 'text' => '#1c1917', 'radius' => 24, 'border' => '#b98a5e'],
+                ],
+                [
                     'key' => 'identity_gradient',
                     'name' => 'Gradient Identity Card',
                     'tags' => ['bold', 'playful'],
@@ -2513,6 +2530,54 @@ class BlockVariantCatalog
                         'padding' => '0',
                     ],
                     'preview' => ['bg' => 'transparent', 'text' => '#fff', 'radius' => 0],
+                ],
+                // ── Hero-photo decoration presets (Task #5922). Unlike the
+                //    chrome-only mask presets above, these carry the actual
+                //    decoration keys in _style (the image renderer reads
+                //    them), so applying the variant recreates the reference
+                //    look in one click. Colors/text stay editable in the
+                //    image form's "Photo decorations" section.
+                [
+                    'key' => 'arch_concentric',
+                    'name' => 'Concentric Arch',
+                    'tags' => ['editorial', 'minimal', 'pro'],
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => 'transparent',
+                        'border_style' => 'none', 'border_radius' => '0',
+                        'shadow_preset' => 'none', 'padding' => '0',
+                        '_photo_frame' => 'concentric_arch',
+                        '_photo_frame_color' => '#57534e',
+                        '_photo_frame_strokes' => '3',
+                    ],
+                    'preview' => ['bg' => 'transparent', 'text' => '#57534e', 'radius' => 999, 'border' => '#57534e'],
+                ],
+                [
+                    'key' => 'banner_overlap',
+                    'name' => 'Title Banner',
+                    'tags' => ['editorial', 'bold'],
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => 'transparent',
+                        'border_style' => 'none', 'border_radius' => '0',
+                        'shadow_preset' => 'soft', 'padding' => '0',
+                        '_photo_banner_text' => 'YOUR TITLE',
+                        '_photo_banner_bg' => '#2a201c',
+                        '_photo_banner_text_color' => '#ffffff',
+                    ],
+                    'preview' => ['bg' => '#2a201c', 'text' => '#ffffff', 'radius' => 0],
+                ],
+                [
+                    'key' => 'torn_collage',
+                    'name' => 'Torn Collage',
+                    'tags' => ['maximalist', 'playful', 'editorial'],
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => 'transparent',
+                        'border_style' => 'none', 'border_radius' => '0',
+                        'shadow_preset' => 'none', 'padding' => '0',
+                        '_photo_mask' => 'torn',
+                        '_photo_accents' => 'starburst,dots',
+                        '_photo_accent_color' => '#3f4e63',
+                    ],
+                    'preview' => ['bg' => 'transparent', 'text' => '#3f4e63', 'radius' => 0],
                 ],
                 [
                     'key' => 'film_strip',

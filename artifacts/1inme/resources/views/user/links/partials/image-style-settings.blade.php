@@ -11,7 +11,17 @@
         'star' => 'Star',
         'blob' => 'Blob',
         'arch' => 'Arch',
+        'heart' => 'Heart',
+        'torn' => 'Torn Edge',
     ];
+    // Hero-photo decorations (Task #5922) live in _style so curated
+    // variants can carry them; this form just exposes the same keys.
+    // Only the single-image block renders decorations.
+    $phShowDecor = isset($block) && $block->type === 'image';
+    $phSt = $s['_style'] ?? [];
+    $phSt = is_array($phSt) ? $phSt : [];
+    $phAccentsSel = array_filter(explode(',', (string) ($phSt['_photo_accents'] ?? '')));
+    $phAccentOptions = ['starburst' => 'Starburst', 'dots' => 'Dot cluster', 'squiggle' => 'Squiggle', 'ring' => 'Ring', 'blob' => 'Blob'];
     $imgBorderStyles = ['none' => 'None', 'solid' => 'Solid', 'dashed' => 'Dashed', 'dotted' => 'Dotted', 'double' => 'Double'];
     $imgShadowTypes = [
         'none' => 'None',
@@ -115,6 +125,73 @@
                 </div>
             </div>
         </div>
+
+        @if($phShowDecor)
+        <div class="pt-3" style="border-top: 1px solid var(--border-subtle);"
+             x-data="{ phAccents: @js(array_values($phAccentsSel)) }">
+            <p class="text-xs font-semibold mb-2" style="color: var(--text-muted);"><i class="fas fa-wand-magic-sparkles mr-1 text-blue-400"></i>Photo Decorations</p>
+
+            <div>
+                <label class="{{ $labelClass }}">Photo Shape (when no mask is set)</label>
+                <select name="style[_photo_mask]" class="{{ $selectClass }}">
+                    <option value="" {{ ($phSt['_photo_mask'] ?? '') === '' ? 'selected' : '' }} style="background: var(--bg-body); color: var(--text-primary);">None</option>
+                    <option value="arch" {{ ($phSt['_photo_mask'] ?? '') === 'arch' ? 'selected' : '' }} style="background: var(--bg-body); color: var(--text-primary);">Arch</option>
+                    <option value="torn" {{ ($phSt['_photo_mask'] ?? '') === 'torn' ? 'selected' : '' }} style="background: var(--bg-body); color: var(--text-primary);">Torn Paper</option>
+                </select>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3 mt-2">
+                <div>
+                    <label class="{{ $labelClass }}">Arch Outline Frame</label>
+                    <select name="style[_photo_frame]" class="{{ $selectClass }}">
+                        <option value="" {{ ($phSt['_photo_frame'] ?? '') === '' ? 'selected' : '' }} style="background: var(--bg-body); color: var(--text-primary);">None</option>
+                        <option value="concentric_arch" {{ ($phSt['_photo_frame'] ?? '') === 'concentric_arch' ? 'selected' : '' }} style="background: var(--bg-body); color: var(--text-primary);">Concentric Arch</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="{{ $labelClass }}">Frame Strokes (2–5)</label>
+                    <input type="number" name="style[_photo_frame_strokes]" value="{{ $phSt['_photo_frame_strokes'] ?? 3 }}" min="2" max="5" class="{{ $inputClass }}">
+                </div>
+            </div>
+            <div class="mt-2">
+                <label class="{{ $labelClass }}">Frame Color</label>
+                <input type="color" name="style[_photo_frame_color]" value="{{ $phSt['_photo_frame_color'] ?? '#57534e' }}" class="w-full h-9 rounded-lg cursor-pointer" style="border: 1px solid var(--border-glass); background: var(--bg-glass-input);">
+            </div>
+
+            <div class="mt-3">
+                <label class="{{ $labelClass }}">Title Banner Text</label>
+                <input type="text" name="style[_photo_banner_text]" value="{{ $phSt['_photo_banner_text'] ?? '' }}" maxlength="60" placeholder="FASHION BLOGGER" class="{{ $inputClass }}">
+                <p class="text-[10px] mt-1" style="color: var(--text-dimmed);">Shown as a band half-overlapping the photo's bottom edge. Leave empty to hide.</p>
+            </div>
+            <div class="grid grid-cols-2 gap-3 mt-2">
+                <div>
+                    <label class="{{ $labelClass }}">Banner Background</label>
+                    <input type="color" name="style[_photo_banner_bg]" value="{{ $phSt['_photo_banner_bg'] ?? '#2a201c' }}" class="w-full h-9 rounded-lg cursor-pointer" style="border: 1px solid var(--border-glass); background: var(--bg-glass-input);">
+                </div>
+                <div>
+                    <label class="{{ $labelClass }}">Banner Text Color</label>
+                    <input type="color" name="style[_photo_banner_text_color]" value="{{ $phSt['_photo_banner_text_color'] ?? '#ffffff' }}" class="w-full h-9 rounded-lg cursor-pointer" style="border: 1px solid var(--border-glass); background: var(--bg-glass-input);">
+                </div>
+            </div>
+
+            <div class="mt-3">
+                <label class="{{ $labelClass }}">Collage Accents</label>
+                <div class="grid grid-cols-2 gap-1.5 mt-1">
+                    @foreach($phAccentOptions as $accVal => $accLabel)
+                    <label class="flex items-center gap-2 text-xs cursor-pointer" style="color: var(--text-muted);">
+                        <input type="checkbox" value="{{ $accVal }}" x-model="phAccents" class="rounded">
+                        <span>{{ $accLabel }}</span>
+                    </label>
+                    @endforeach
+                </div>
+                <input type="hidden" name="style[_photo_accents]" :value="phAccents.join(',')" value="{{ implode(',', $phAccentsSel) }}">
+            </div>
+            <div class="mt-2">
+                <label class="{{ $labelClass }}">Accent Color</label>
+                <input type="color" name="style[_photo_accent_color]" value="{{ $phSt['_photo_accent_color'] ?? '#3f4e63' }}" class="w-full h-9 rounded-lg cursor-pointer" style="border: 1px solid var(--border-glass); background: var(--bg-glass-input);">
+            </div>
+        </div>
+        @endif
 
     </div>
 </div>

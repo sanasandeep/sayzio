@@ -215,6 +215,7 @@ const BUNDLES: Record<string, MobileVariant[]> = {
     { key: "identity_split",        name: "Split Card",             tags: ["minimal", "editorial"], preview: { bg: "#f8fafc", text: "#0f172a", radius: 18, border: "#e2e8f0" },           profileLayout: "split" },
     { key: "identity_floating",     name: "Floating Avatar",        tags: ["playful", "pro"],       preview: { bg: "#ffffff", text: "#0f172a", radius: 22, border: "#e5e7eb" },           profileLayout: "floating" },
     { key: "identity_overlap_hero", name: "Overlap Hero",           tags: ["bold", "pro"],          preview: { bg: "#ffffff", text: "#0f172a", radius: 24 },                              profileLayout: "overlap_hero" },
+    { key: "identity_arch_band",    name: "Arch Band Portrait",     tags: ["editorial", "pro"],     preview: { bg: "#ffffff", text: "#1c1917", radius: 24, border: "#b98a5e" },           profileLayout: "arch_band" },
     { key: "identity_gradient",     name: "Gradient Identity Card", tags: ["bold", "playful"],      preview: { bg: "linear-gradient(150deg,#7c3aed,#d946ef,#fb7185)", text: "#ffffff", radius: 22 }, profileLayout: "gradient" },
     { key: "identity_founder",      name: "Premium Founder Card",   tags: ["pro", "dark"],          preview: { bg: "#0a0a0c", text: "#d4af37", radius: 20, border: "#d4af37" },           profileLayout: "founder" },
     { key: "identity_minimal_dark", name: "Minimal Dark",           tags: ["minimal", "dark"],      preview: { bg: "#0b0b0f", text: "#ffffff", radius: 18, border: "#ffffff20" },         profileLayout: "minimal_dark" },
@@ -341,6 +342,10 @@ const TYPE_ONE_OFFS: Record<string, MobileVariant[]> = {
     { key: "mask_star",        name: "Mask · Star",      tags: ["playful", "bold"],               preview: { bg: "transparent", text: "#fbbf24", radius: 8 } },
     { key: "mask_heart",       name: "Mask · Heart",     tags: ["playful", "bold"],               preview: { bg: "transparent", text: "#ec4899", radius: 0 } },
     { key: "mask_torn",        name: "Mask · Torn Edge", tags: ["editorial", "maximalist"],       preview: { bg: "transparent", text: "#fff", radius: 0 } },
+    // Task #5922 hero-photo decoration presets (mirror of PHP catalog).
+    { key: "arch_concentric",  name: "Concentric Arch",  tags: ["editorial", "minimal", "pro"],   preview: { bg: "transparent", text: "#57534e", radius: 999, border: "#57534e" } },
+    { key: "banner_overlap",   name: "Title Banner",     tags: ["editorial", "bold"],             preview: { bg: "#2a201c", text: "#ffffff", radius: 0 } },
+    { key: "torn_collage",     name: "Torn Collage",     tags: ["maximalist", "playful", "editorial"], preview: { bg: "transparent", text: "#3f4e63", radius: 0 } },
     { key: "film_strip",       name: "Film Strip",       tags: ["retro", "editorial"],            preview: { bg: "#0a0a0a", text: "#fafaf9", radius: 4, border: "#0a0a0a" } },
   ],
   avatar: [

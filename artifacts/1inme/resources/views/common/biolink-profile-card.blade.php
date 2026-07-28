@@ -230,6 +230,43 @@
         </div>
     </div>
 
+{{-- ───────────────────────────── ARCH BAND ─────────────────────────── --}}
+{{-- Task #5922: wide cover photo whose bottom edge carries a semi-
+     circular arch band; the circular avatar sits inside the arch and
+     straddles the cover's bottom edge. The band and the avatar ring
+     share ONE color + width — the block's border_color / border_width
+     (so recoloring the border restyles both in lockstep). --}}
+@elseif($layout === 'arch_band')
+    @php
+        $abColor = ($blockStyle['border_color'] ?? '') !== '' ? $blockStyle['border_color'] : '#b98a5e';
+        $abWidth = max(2, min(10, (int) (($blockStyle['border_width'] ?? '') !== '' ? $blockStyle['border_width'] : 6)));
+        // Arch outer diameter = avatar + band thickness on each side. The
+        // band thickness scales with the shared border width.
+        $abAv   = 160;                       // avatar diameter px
+        $abBand = 14 + $abWidth * 4;         // band thickness px
+        $abOut  = $abAv + 2 * $abBand;       // arch outer diameter px
+    @endphp
+    <div class="mb-4 overflow-hidden rounded-2xl {{ $baseClass }}" style="{{ $cardStyle }}">
+        <div class="relative">
+            <div class="h-44 bg-cover bg-center" style="@if($cover)background-image:url('{{ $cover }}');@else background:linear-gradient(135deg,#e7dccf,#cdb9a0);@endif"></div>
+            {{-- Thin rule along the cover's bottom edge, same band color --}}
+            <div class="absolute left-0 right-0" style="bottom:0;height:3px;background:{{ $abColor }}" aria-hidden="true"></div>
+            {{-- Filled semi-circular arch band, bottom-aligned with the cover --}}
+            <div class="absolute left-1/2 -translate-x-1/2" aria-hidden="true"
+                 style="bottom:0;width:{{ $abOut }}px;height:{{ (int) ($abOut / 2) + 12 }}px;background:{{ $abColor }};border-radius:{{ $abOut }}px {{ $abOut }}px 0 0"></div>
+        </div>
+        <div class="relative px-5 pb-6 text-center" style="padding-top:{{ (int) ($abAv / 2) + 16 }}px">
+            <div class="absolute left-1/2 -translate-x-1/2" style="top:-{{ (int) ($abAv / 2) }}px">
+                {!! $pcFrameOpen !!}@if($avatar)<img src="{{ $avatar }}" class="rounded-full object-cover" style="width:{{ $abAv }}px;height:{{ $abAv }}px;border:{{ $abWidth }}px solid {{ $abColor }};background:#ffffff" alt="">
+                @else<div class="rounded-full flex items-center justify-center text-4xl font-bold" style="width:{{ $abAv }}px;height:{{ $abAv }}px;border:{{ $abWidth }}px solid {{ $abColor }};background:{{ $avatarBg }}">{{ $initial }}</div>@endif{!! $pcFrameClose !!}
+            </div>
+            @if($name)<p class="text-xl font-bold leading-tight">{{ $name }}@if($verified)<i class="fas fa-circle-check ml-1.5" style="color:{{ $abColor }}"></i>@endif</p>@endif
+            @if($title)<p class="mt-1 text-xs font-semibold uppercase" style="letter-spacing:.25em;color:{{ $abColor }}">{{ $title }}</p>@endif
+            @if($bio)<p class="text-sm mt-3" style="opacity:.72">{{ $bio }}</p>@endif
+            @include('common.biolink-profile-socials', ['psocials' => $psocials, 'socialIcons' => $socialIcons, 'accent' => $abColor, 'chip' => 'accent_outline'])
+        </div>
+    </div>
+
 {{-- ───────────────────────────── OVERLAP HERO ──────────────────────── --}}
 {{-- Tall cover with the white card pulled UP over it; the avatar
      straddles the card's top edge (half over the cover, half on the
@@ -238,7 +275,7 @@
 @elseif($layout === 'overlap_hero')
     <div class="mb-4" style="{{ $cardStyle }}">
         <div class="relative">
-            <div class="h-44 rounded-2xl bg-cover bg-center" style="@if($cover)background-image:url('{{ $cover }}');@else background:linear-gradient(135deg,#3d6bff,#8b5cf6);@endif"></div>
+            <div class="h-44 rounded-2xl bg-cover bg-center" style="@if($cover)background-image:url('{{ $cover }}');@else background:linear-gradient(135deg,#3d6bff,#6ea8ff);@endif"></div>
             <div class="relative mx-4 -mt-14 rounded-3xl px-5 pb-6 text-center" style="background:#ffffff;box-shadow:0 14px 34px rgba(15,23,42,0.16);padding-top:3.75rem">
                 <div class="absolute left-1/2 -translate-x-1/2" style="top:-3rem">
                     {!! $pcFrameOpen !!}@if($avatar)<img src="{{ $avatar }}" class="w-24 h-24 rounded-full object-cover" style="border:4px solid #ffffff;box-shadow:0 8px 22px rgba(0,0,0,0.22)" alt="">
