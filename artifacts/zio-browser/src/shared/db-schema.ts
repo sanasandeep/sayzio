@@ -291,6 +291,7 @@ export const PREFERENCE_KEYS = {
   BLOCK_THIRD_PARTY_COOKIES: 'block_third_party_cookies',
   TRACKER_STATS: 'tracker_stats',
   IMPORT_ENABLED: 'import_enabled',
+  PINNED_TOOLBAR_TOOLS: 'pinned_toolbar_tools',
 } as const;
 
 export type PreferenceKey = typeof PREFERENCE_KEYS[keyof typeof PREFERENCE_KEYS];
