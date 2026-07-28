@@ -165,6 +165,12 @@ class LinkResource
                 'count'     => $pixelFiresCount,
                 'providers' => $pixelFiresProviders,
             ],
+            'design_locked'   => $l->isDesignLocked(),
+            'design_lock'     => $l->isDesignLocked() ? [
+                'template_id'   => $l->designLockInfo()['template_id'] ?? null,
+                'template_name' => $l->designLockInfo()['template_name'] ?? null,
+                'locked_at'     => $l->designLockInfo()['locked_at'] ?? null,
+            ] : null,
             'is_smart'        => !empty($rules),
             'smart_rules_count' => count($rules),
             'settings'        => empty($settings) ? new \stdClass() : $settings,

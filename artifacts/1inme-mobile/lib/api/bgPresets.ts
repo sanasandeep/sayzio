@@ -15,6 +15,13 @@ export type BgPreset = {
   label: string;
   css: string;
   colors: string[];
+  /**
+   * Public path of the pre-rendered PNG thumbnail showing the preset's REAL
+   * CSS texture (stripes, dots, blend-mode abstracts), or null when the
+   * server has no up-to-date thumbnail — fall back to the `colors`
+   * LinearGradient approximation.
+   */
+  swatch?: string | null;
 };
 
 export type BgPresetCatalog = {

@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Feather } from "@expo/vector-icons";
+import { Image as ExpoImage } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { useMemo, useState } from "react";
 import {
@@ -13,6 +14,7 @@ import {
 import { TextField } from "@/components/TextField";
 import { useColors } from "@/hooks/useColors";
 import { WEB_FOCUS_RING_PROPS } from "@/hooks/useWebFocusRing";
+import { getBaseUrl } from "@/lib/api";
 import { getBgPresets, type BgPreset } from "@/lib/api/bgPresets";
 import { getLink, updateLink } from "@/lib/api/links";
 
@@ -240,12 +242,26 @@ export function BgPresetPicker({ linkId }: { linkId: number }) {
                       },
                     ]}
                   >
-                    <LinearGradient
-                      colors={swatchColors(p)}
-                      start={{ x: 0, y: 0 }}
-                      end={{ x: 1, y: 1 }}
-                      style={styles.swatch}
-                    >
+                    <View testID={`bg-swatch-${p.key}`} style={styles.swatch}>
+                      {/* Gradient approximation stays underneath as the
+                          instant paint + fallback; the pre-rendered PNG of
+                          the REAL CSS texture (stripes, dots, blend-mode
+                          abstracts) covers it once loaded. */}
+                      <LinearGradient
+                        colors={swatchColors(p)}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                        style={StyleSheet.absoluteFill}
+                      />
+                      {p.swatch ? (
+                        <ExpoImage
+                          source={{ uri: `${getBaseUrl()}${p.swatch}` }}
+                          style={StyleSheet.absoluteFill}
+                          contentFit="cover"
+                          transition={0}
+                          cachePolicy="memory-disk"
+                        />
+                      ) : null}
                       {saving ? (
                         <ActivityIndicator size="small" color="#ffffff" />
                       ) : on ? (
@@ -253,7 +269,7 @@ export function BgPresetPicker({ linkId }: { linkId: number }) {
                           <Feather name="check" size={12} color="#ffffff" />
                         </View>
                       ) : null}
-                    </LinearGradient>
+                    </View>
                     <Text
                       numberOfLines={1}
                       style={[

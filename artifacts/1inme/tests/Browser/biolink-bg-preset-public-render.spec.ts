@@ -149,19 +149,28 @@ for (const preset of PRESETS) {
       `expected a <style> block to contain the '${fx.key}' catalog CSS verbatim`,
     ).toBeGreaterThan(0);
 
-    // The preset CSS must live inside the `body { ... }` rule of that block.
+    // The default bg_attachment is "fixed", so the preset CSS now lives inside
+    // the `.bg-page-fixed { ... }` rule (a mobile-Safari-safe fixed layer
+    // behind the content) rather than the body rule.
     const styleWithCss = containing[0];
-    const bodyRuleIdx = styleWithCss.indexOf("body {");
-    expect(bodyRuleIdx).toBeGreaterThanOrEqual(0);
-    expect(styleWithCss.indexOf(fx.css)).toBeGreaterThan(bodyRuleIdx);
+    const layerRuleIdx = styleWithCss.indexOf(".bg-page-fixed {");
+    expect(layerRuleIdx).toBeGreaterThanOrEqual(0);
+    expect(styleWithCss.indexOf(fx.css)).toBeGreaterThan(layerRuleIdx);
 
     // 2) The browser must actually apply it: every preset in the catalog is
-    //    gradient-based, so the computed background-image on <body> must
-    //    contain at least one gradient (the dark fallback has none).
-    const bgImage = await page.evaluate(
-      () => getComputedStyle(document.body).backgroundImage,
-    );
+    //    gradient-based, so the computed background-image on the fixed layer
+    //    must contain at least one gradient (the dark fallback has none).
+    const bgImage = await page.evaluate(() => {
+      const layer = document.querySelector(".bg-page-fixed");
+      return layer ? getComputedStyle(layer).backgroundImage : "MISSING-LAYER";
+    });
     expect(bgImage).toMatch(/gradient\(/);
+    // The layer must be pinned to the viewport.
+    const layerPos = await page.evaluate(() => {
+      const layer = document.querySelector(".bg-page-fixed");
+      return layer ? getComputedStyle(layer).position : "MISSING-LAYER";
+    });
+    expect(layerPos).toBe("fixed");
 
     // 3) Sanity: the fallback-only branch (unknown key) sets background-color
     //    only; a preset page must not be sitting on the bare dark fallback

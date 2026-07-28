@@ -426,6 +426,11 @@ export function BlockSettingsEditor({
     enabled: Number.isFinite(id),
   });
 
+  // Design-locked pages follow their template's styling: the per-block
+  // Designs gallery is hidden (content editing stays fully available).
+  // Mirrors the web editor, which hides the Block Styling section.
+  const designLocked = !!linkQ.data?.design_locked;
+
   // Task #1094 — per-block scarcity. `maxClicks` 0/empty = unlimited.
   // `endDate` is a `YYYY-MM-DDTHH:mm` string (locale-naive, just like
   // the web editor's <input type="datetime-local">). The presentation
@@ -1028,7 +1033,29 @@ export function BlockSettingsEditor({
             filter chips (incl. Favorites), Surprise me, Apply to all of
             this type, and a Custom snapshot restore card when the block
             has handcrafted styling captured. Variant keys are identical
-            to the web catalog so picks roam across surfaces. */}
+            to the web catalog so picks roam across surfaces. Hidden
+            entirely while the page is design-locked to a template. */}
+        {designLocked ? (
+          <View
+            style={{
+              padding: 12,
+              borderRadius: 12,
+              borderWidth: 1,
+              borderColor: "rgba(245,158,11,0.4)",
+              backgroundColor: colors.card,
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 8,
+            }}
+            testID="block-design-locked-note"
+          >
+            <Text style={{ fontSize: 14 }}>🔒</Text>
+            <Text style={{ color: colors.mutedForeground, fontSize: 12, flex: 1 }}>
+              Styling follows this page's template design. Detach from the
+              template in page settings to unlock block designs.
+            </Text>
+          </View>
+        ) : (
         <View style={{ gap: 8 }}>
           <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
             <Text style={[styles.rowLabel, { color: colors.foreground }]}>Design</Text>
@@ -1183,6 +1210,7 @@ export function BlockSettingsEditor({
             </Pressable>
           ) : null}
         </View>
+        )}
 
         {isAnyList ? (
           <View style={{ gap: 12 }}>

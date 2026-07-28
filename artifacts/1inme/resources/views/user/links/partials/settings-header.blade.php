@@ -8,7 +8,31 @@
         'embed'    => ['icon' => 'fa-code', 'label' => 'Embed', 'route' => 'user.links.settings.embed'],
         'splash'   => ['icon' => 'fa-rocket', 'label' => 'Intro', 'route' => 'user.links.splash'],
     ];
+    // Design-locked pages hide every styling tab — only non-design
+    // settings surfaces remain until the creator detaches from the template.
+    $__designLocked = method_exists($link, 'isDesignLocked') && $link->isDesignLocked();
+    if ($__designLocked) {
+        unset($settingsTabs['appearance'], $settingsTabs['layout'], $settingsTabs['block-theme'], $settingsTabs['themes']);
+    }
 @endphp
+
+@if($__designLocked)
+@php $__lockInfo = $link->designLockInfo(); @endphp
+<div class="mb-4 px-4 py-3 rounded-xl text-sm flex flex-wrap items-center gap-3" style="background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.25); color: #f59e0b;">
+    <i class="fas fa-lock"></i>
+    <span class="font-medium">
+        Design locked by the "{{ $__lockInfo['template_name'] ?? 'template' }}" template.
+        <span class="opacity-80 font-normal">Content stays editable; styling follows the template.</span>
+    </span>
+    <form method="POST" action="{{ route('user.links.templates.detach-design', $link) }}" class="ml-auto"
+          onsubmit="return confirm('Detach from the template? The page keeps its current look, but future template design updates will no longer apply and all styling controls will be unlocked.');">
+        @csrf
+        <button type="submit" class="px-3 py-1.5 rounded-lg text-xs font-semibold" style="background: rgba(245,158,11,0.15); border: 1px solid rgba(245,158,11,0.35); color: #f59e0b;">
+            <i class="fas fa-unlink mr-1"></i> Detach from template
+        </button>
+    </form>
+</div>
+@endif
 
 @if(session('success'))
 <div class="mb-4 px-4 py-3 rounded-xl text-sm font-medium" style="background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.2); color: #10b981;">
@@ -84,6 +108,13 @@
             var doc = new DOMParser().parseFromString(html, 'text/html');
             var fresh = doc.getElementById('settings-tab-content');
             if (!fresh) { window.location.href = url; return; }
+
+            // Defensive: if a settings page ever renders the tab bar INSIDE
+            // the swap container, strip it so we never stack a second bar
+            // under the one already on the page.
+            fresh.querySelectorAll('.settings-tabs').forEach(function(bar) {
+                bar.parentNode.removeChild(bar);
+            });
 
             container.innerHTML = fresh.innerHTML;
 

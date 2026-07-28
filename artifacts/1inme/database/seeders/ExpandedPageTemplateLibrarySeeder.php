@@ -47,7 +47,22 @@ class ExpandedPageTemplateLibrarySeeder extends Seeder
      * alone. Redesign block contents/copy/themes freely; rename the
      * `key` only when you also intend to retire the old slug.
      */
-    public const SEED_VERSION = 4;
+    public const SEED_VERSION = 7;
+
+    /**
+     * Personas whose "Aurora Starter" blueprint ships as a design-locked
+     * designer template (~12 total). Applying one of these stamps the
+     * biolink design-locked: content stays editable but styling follows
+     * the template until the user detaches. Admins can flip the lock per
+     * template in the admin panel afterwards.
+     *
+     * @var array<int,string>
+     */
+    private const DESIGN_LOCKED_STARTER_PERSONAS = [
+        'creator', 'artist', 'musician', 'influencer', 'coach', 'business',
+        'developer', 'photographer', 'podcaster', 'fitness', 'restaurant',
+        'realestate',
+    ];
 
     /** Tolerance (seconds) for treating updated_at == created_at. */
     private const EDIT_DRIFT_TOLERANCE = 2;
@@ -105,278 +120,208 @@ class ExpandedPageTemplateLibrarySeeder extends Seeder
      */
     public function blueprintsFor(array $persona): array
     {
-        $label = $persona['label'];
-        $blurb = $persona['blurb'] ?? 'Welcome to my page.';
-        $slug = $persona['slug'];
+        $slug   = $persona['slug'];
+        $label  = $persona['label'] ?? ucfirst($slug);
+        $blurb  = $persona['blurb'] ?? 'Everything you do, in one place.';
+        $kw     = $this->personaKeyword($slug);
+        $kits   = $this->variantKits();
+        $themes = $this->themePresets();
+        // Rotate the theme bank so different personas lead with different
+        // looks (persona shelf #0 isn't always the same aurora page).
+        $offset = crc32($slug) % max(count($themes), 1);
+        $theme  = fn(int $i): array => $themes[($i + $offset) % count($themes)];
 
-        $thumb = fn(string $variant) => $this->photo($this->personaKeyword($slug), 600, 400, "tpl-{$slug}-{$variant}");
-        $img = function (string $key, int $n = 1, int $w = 600, int $h = 400) use ($slug) {
-            $seed = "{$slug}-{$key}-{$n}";
-            // People shots (profile avatar, review/testimonial faces) use a
-            // dedicated realistic-face placeholder so they always read as a
-            // real person rather than a random landscape.
-            if (in_array($key, ['avatar', 'rev', 't'], true)) {
-                return $this->face($seed, $w);
-            }
-            $keyword = match ($key) {
-                'prod'  => 'product,minimal',
-                'grid'  => $this->personaKeyword($slug) . ',portfolio',
-                default => $this->personaKeyword($slug),
-            };
-            return $this->photo($keyword, $w, $h, $seed);
-        };
-
-        $presets = $this->themePresets();
-        $pick = fn(int $i) => $presets[$i % count($presets)];
-        $kits = $this->variantKits();
-        $kit = fn(int $i) => $kits[$i % count($kits)];
+        $face  = $this->face('tpl-' . $slug . '-face');
+        $cover = $this->photo($kw, 1200, 480, 'tpl-' . $slug . '-cover');
+        $sq    = fn(string $seed): string => $this->photo($kw, 600, 600, 'tpl-' . $slug . '-' . $seed);
+        $tall  = fn(string $seed): string => $this->photo($kw, 900, 1200, 'tpl-' . $slug . '-' . $seed);
+        $thumb = fn(string $key): string => $this->thumbUrl('persona-' . $slug . '-' . Str::slug($key));
 
         return [
-            // 0 — Aurora glass: profile, intro, FAQ, featured links, review
+            // 0 — Starter: the flagship page (design-locked for key personas).
             [
-                'key' => 'starter',
-                'name' => "{$label} — Aurora Starter",
-                'description' => "Animated aurora background with a glass profile card, a warm intro, a quick FAQ, and your top links.",
-                'thumb' => $thumb('starter'),
-                'snapshot' => $this->snapshot([
-                    $this->profile($label, $blurb, $img('avatar', 1, 200, 200), $kit(0), $img('cover', 1, 1200, 480)),
-                    $this->badge('✦ Currently taking on new work', '#8b5cf6', '#ffffff'),
-                    $this->heading('Start here', 'h3'),
-                    $this->paragraph("Hi, I'm a {$label} and this is my corner of the internet. Everything I'm working on, sharing, and recommending lives right here."),
-                    $this->paragraph("New here? Skim the quick FAQ below, then pick a link to dive in. Questions are always welcome."),
-                    $this->faqV2([
-                        ['question' => 'Who are you?', 'answer' => "I'm a {$label}. {$blurb}", 'icon' => 'fa-user'],
-                        ['question' => 'What will I find here?', 'answer' => 'My latest work, the easiest ways to reach me, and the things I genuinely recommend.', 'icon' => 'fa-compass'],
-                        ['question' => 'How do we work together?', 'answer' => 'Tap a link below or send a note — I read and reply to everyone who reaches out.', 'icon' => 'fa-handshake'],
-                    ]),
-                    $this->heading('My links', 'h3'),
-                    $this->link('Visit my website', 'https://example.com', 'fa-globe', $kit(0)),
-                    $this->link('See my latest project', 'https://example.com', 'fa-bookmark', $kit(0)),
-                    $this->link('Download my press kit', 'https://example.com', 'fa-file-lines', $kit(0)),
-                    $this->review('Jordan K.', 5, "Their work speaks for itself — I was an instant fan and have been recommending them ever since.", $img('rev', 0, 80, 80)),
+                'key'         => 'starter',
+                'name'        => $label . ' Starter',
+                'description' => 'A polished all-rounder for ' . strtolower($label) . ' pages — profile, socials, top links and a mailing-list capture.',
+                'thumb'       => $thumb('starter'),
+                'snapshot'    => $this->snapshot([
+                    $this->profile($label, $blurb, $face, $kits[0], $cover),
                     $this->socials(),
-                ], $pick(0)),
-            ],
-            // 1 — Sunset gradient: cover-hero profile, countdown, big links, timeline
-            [
-                'key' => 'links-stack',
-                'name' => "{$label} — Featured Links",
-                'description' => "Bold sunset gradient with a cover-hero profile, a launch countdown, big featured buttons, and a milestone timeline.",
-                'thumb' => $thumb('links'),
-                'snapshot' => $this->snapshot([
-                    $this->profile($label, $blurb, $img('avatar', 2, 200, 200), $kit(1), $img('cover', 2, 1200, 480)),
-                    $this->countdown('Next drop in', '+21 days'),
-                    $this->oneTimeOffer('Early-bird access', 'Lock in the launch price before the countdown hits zero — limited spots at this rate.', '$29', '$49', 'https://example.com'),
-                    $this->heading('Latest from me', 'h3'),
-                    $this->linkBig("What I'm working on now", 'https://example.com', 'fa-rocket', $kit(1)),
-                    $this->linkBig('Read the latest update', 'https://example.com', 'fa-newspaper', $kit(1)),
-                    $this->linkBig('Join the waitlist', 'https://example.com', 'fa-bell', $kit(1)),
-                    $this->timeline([
-                        ['title' => 'Where it started', 'description' => 'Began sharing my work publicly and never looked back.', 'date' => '2023'],
-                        ['title' => 'A big milestone', 'description' => 'Hit a goal I once thought was years away.', 'date' => '2024'],
-                        ['title' => 'What I\'m building now', 'description' => 'The next chapter — follow along below.', 'date' => '2025'],
-                    ]),
-                    $this->ctaButton('👉 Get the goods', 'https://example.com', '#ec4899', '#ffffff'),
-                    $this->socials(),
-                ], $pick(1)),
-            ],
-            // 2 — Pastel paper: classic profile, about, review, CTA
-            [
-                'key' => 'about-cta',
-                'name' => "{$label} — About + CTA",
-                'description' => "Soft paper look with a classic profile card, a two-part about-me, a glowing review, and a focused call-to-action.",
-                'thumb' => $thumb('about'),
-                'snapshot' => $this->snapshot([
-                    $this->profile($label, $blurb, $img('avatar', 3, 200, 200), $kit(2), $img('cover', 3, 1200, 480)),
-                    $this->heading('About me', 'h3'),
-                    $this->paragraph("I'm a {$label}. {$blurb}"),
-                    $this->paragraph("I care about doing thoughtful work, communicating clearly, and leaving every project better than I found it. If that sounds like a fit, I'd love to hear from you."),
-                    $this->progress([
-                        ['label' => 'Replies within 24 hours', 'value' => 98, 'color' => '#0ea5e9'],
-                        ['label' => 'Projects delivered on time', 'value' => 95, 'color' => '#22c55e'],
-                        ['label' => '2026 calendar booked', 'value' => 70, 'color' => '#f59e0b'],
-                    ]),
+                    $this->link('My latest work', 'https://example.com/latest', 'fas fa-star', $kits[0]),
+                    $this->link('Work with me', 'https://example.com/work-with-me', 'fas fa-handshake', $kits[0]),
+                    $this->link('All my links', 'https://example.com/links', 'fas fa-link', $kits[0]),
                     $this->divider(),
-                    $this->review('Sam P.', 5, "Working with them was the highlight of our quarter — clear, calm, and genuinely great at what they do. Couldn't recommend more.", $img('rev', 1, 80, 80)),
-                    $this->ctaButton('Work with me', 'https://example.com', '#0ea5e9', '#ffffff'),
-                    $this->socials(),
-                ], $pick(2)),
-            ],
-            // 3 — Mono dark: badge profile, newsletter, poll, quiz
-            [
-                'key' => 'newsletter',
-                'name' => "{$label} — Newsletter",
-                'description' => "Sharp mono-dark layout with a badge profile that leads with email signup, a quick poll, and a fun quiz.",
-                'thumb' => $thumb('news'),
-                'snapshot' => $this->snapshot([
-                    $this->profile($label, $blurb, $img('avatar', 4, 200, 200), $kit(3), $img('cover', 4, 1200, 480)),
-                    $this->heading('Get updates from me', 'h3'),
-                    $this->paragraph('One short note when there is something genuinely new. No spam, no noise — and you can leave any time.'),
-                    $this->alert('Subscribers get every new piece a full day before it goes public.', 'success', 'fa-circle-check'),
+                    $this->heading('Stay in the loop'),
                     $this->emailCollector(),
-                    $this->poll('What should I cover next?', ['Behind the scenes', 'Tutorials', 'Q&A sessions', 'Case studies']),
-                    $this->quiz('How well do you know my work?', [
-                        ['question' => 'What do I help people with most?', 'options' => ['Strategy', 'Hands-on building', 'Both'], 'correct' => 2],
-                        ['question' => 'How often do I send updates?', 'options' => ['Daily', 'Only when it matters', 'Never'], 'correct' => 1],
-                    ]),
-                    $this->socials(),
-                ], $pick(3)),
+                ], $theme(0)),
             ],
-            // 4 — Editorial photo: magazine profile, gallery, testimonials, product
+
+            // 1 — Spotlight: bold hero, big links, a highlight reel + praise.
             [
-                'key' => 'gallery',
-                'name' => "{$label} — Gallery",
-                'description' => "Editorial photo background with a magazine profile, a six-shot portfolio grid, real testimonials, and a featured product.",
-                'thumb' => $thumb('gallery'),
-                'snapshot' => $this->snapshot([
-                    $this->profile($label, $blurb, $img('avatar', 5, 200, 200), $kit(4), $img('cover', 5, 1200, 480)),
-                    $this->heading('Selected work', 'h3'),
-                    $this->imageGrid([
-                        $img('grid', 1, 400, 400),
-                        $img('grid', 2, 400, 400),
-                        $img('grid', 3, 400, 400),
-                        $img('grid', 4, 400, 400),
-                        $img('grid', 5, 400, 400),
-                        $img('grid', 6, 400, 400),
-                    ], 3),
-                    $this->imageSlider([
-                        $img('grid', 7, 1000, 640),
-                        $img('grid', 8, 1000, 640),
-                        $img('grid', 9, 1000, 640),
-                    ]),
+                'key'         => 'spotlight',
+                'name'        => $label . ' Spotlight',
+                'description' => 'A bold, image-led page with big tappable links, a highlight slider and social proof.',
+                'thumb'       => $thumb('spotlight'),
+                'snapshot'    => $this->snapshot([
+                    $this->profile($label, $blurb, $face, $kits[1], $cover),
+                    $this->badge('FEATURED'),
+                    $this->linkBig('See the latest', 'https://example.com/latest', 'fas fa-fire', $kits[1]),
+                    $this->linkBig('Behind the scenes', 'https://example.com/bts', 'fas fa-camera', $kits[1]),
+                    $this->imageSlider([$tall('sp1'), $tall('sp2'), $tall('sp3')]),
                     $this->testimonials([
-                        ['name' => 'Dana M.', 'avatar' => $img('t', 4, 80, 80), 'rating' => 5, 'text' => "Every shot in the deck was exactly what we needed. A real eye."],
-                        ['name' => 'Leo T.',  'avatar' => $img('t', 5, 80, 80), 'rating' => 5, 'text' => "Turned a vague brief into something we were proud to ship."],
-                    ]),
-                    $this->product('Signature Print', 'A museum-quality print of one of my favourite pieces, ready to frame.', '$45', $img('prod', 1, 600, 600), 'https://example.com', 'New'),
-                    $this->ctaButton('Inquire about my work', 'https://example.com', '#f59e0b', '#0f172a'),
-                    $this->socials(),
-                ], $pick(4)),
-            ],
-            // 5 — Neon cyber: stats profile, services, pricing, product
-            [
-                'key' => 'services',
-                'name' => "{$label} — Services & Pricing",
-                'description' => "Neon-cyber backdrop with a stats profile, service cards, a pricing tier, and a productised offer.",
-                'thumb' => $thumb('services'),
-                'snapshot' => $this->snapshot([
-                    $this->profile($label, $blurb, $img('avatar', 6, 200, 200), $kit(5), $img('cover', 6, 1200, 480)),
-                    $this->heading('What I offer', 'h3'),
-                    $this->service('1:1 Consultation', 'fa-comments', 'from $120 / hr', 'A focused 60-minute working session — bring your toughest question and leave with a plan.', 'https://example.com'),
-                    $this->service('Starter Package', 'fa-bolt', '$450', "Get up and running fast. Includes setup, a guided walkthrough, and a follow-up check-in.", 'https://example.com'),
-                    $this->price('Pro Engagement', '$1,800', '/ project', [
-                        'Discovery + audit',
-                        'Hands-on implementation',
-                        'Two weeks of async support',
-                        'Wrap-up review call',
-                    ], 'https://example.com'),
-                    $this->listPricing([
-                        ['name' => 'Discovery call', 'price' => 'Free', 'included' => true],
-                        ['name' => 'Project roadmap', 'price' => 'Included', 'included' => true],
-                        ['name' => 'Async support', 'price' => 'Included', 'included' => true],
-                        ['name' => 'Rush turnaround', 'price' => '+$300', 'included' => false],
-                    ]),
-                    $this->product('Template Pack', 'Everything I use to deliver client work, packaged so you can run it yourself.', '$79', $img('prod', 2, 600, 600), 'https://example.com', 'Popular'),
-                    $this->ctaButton('Book a call', 'https://example.com', '#a855f7', '#ffffff'),
-                    $this->socials(),
-                ], $pick(5)),
-            ],
-            // 6 — Ocean: split profile, testimonials, review, FAQ
-            [
-                'key' => 'testimonials',
-                'name' => "{$label} — Social Proof",
-                'description' => "Calm ocean palette with a split profile, three testimonials, a featured review, and an objection-busting FAQ.",
-                'thumb' => $thumb('proof'),
-                'snapshot' => $this->snapshot([
-                    $this->profile($label, $blurb, $img('avatar', 7, 200, 200), $kit(6), $img('cover', 7, 1200, 480)),
-                    $this->badge('★ 5.0 average from 120+ clients', '#06b6d4', '#001018'),
-                    $this->heading('What people say', 'h3'),
-                    $this->testimonials([
-                        ['name' => 'Alex R.',    'avatar' => $img('t', 1, 80, 80), 'rating' => 5, 'text' => "Genuinely a delight to work with. Recommend without hesitation."],
-                        ['name' => 'Priya S.',   'avatar' => $img('t', 2, 80, 80), 'rating' => 5, 'text' => "Made a real difference for our team. Wish we'd started sooner."],
-                        ['name' => 'Marcus L.',  'avatar' => $img('t', 3, 80, 80), 'rating' => 4, 'text' => "Sharp eye, clear communication, on time. What more do you want?"],
-                    ]),
-                    $this->review('Nadia F.', 5, "Six months on, the work is still paying off. That's the real test, and it passed.", $img('rev', 2, 80, 80)),
-                    $this->faqV2([
-                        ['question' => 'How do you collect reviews?', 'answer' => 'Every review here comes straight from a real client after we wrap up a project together.', 'icon' => 'fa-star'],
-                        ['question' => 'Can I talk to a past client?', 'answer' => 'Absolutely — ask and I\'ll happily connect you with someone whose project is close to yours.', 'icon' => 'fa-comments'],
-                    ]),
-                    $this->ctaButton('See more reviews', 'https://example.com', '#06b6d4', '#001018'),
-                    $this->socials(),
-                ], $pick(6)),
-            ],
-            // 7 — Smoke fog: floating stats profile, contact form, vCard, QR, FAQ
-            [
-                'key' => 'contact',
-                'name' => "{$label} — Contact Hub",
-                'description' => "Moody smoke background with a floating profile, a contact form, a vCard download, a scan-me QR, and a short FAQ.",
-                'thumb' => $thumb('contact'),
-                'snapshot' => $this->snapshot([
-                    $this->profile($label, $blurb, $img('avatar', 8, 200, 200), $kit(7), $img('cover', 8, 1200, 480)),
-                    $this->heading('Get in touch', 'h3'),
-                    $this->paragraph('The fastest way to reach me is the form below. Prefer to save my details? Grab the vCard or scan the code.'),
-                    $this->contactForm('Send a message', 'Send'),
-                    $this->whatsapp('+10000000000', 'Message me on WhatsApp', "Hi! I found you through your page and wanted to get in touch."),
-                    $this->vcard('Your Name', $label, 'Your Company', '+10000000000', 'hi@example.com', 'https://example.com'),
-                    $this->qrCode('https://example.com', 220),
-                    $this->faq([
-                        ['question' => 'How soon will you reply?', 'answer' => 'Usually within one business day.'],
-                        ['question' => 'What should I include?', 'answer' => 'A sentence or two about what you need and your timeline is plenty to start.'],
+                        ['name' => 'Alex M.',  'text' => 'Exactly what I was looking for — professional and fast.'],
+                        ['name' => 'Riley T.', 'text' => 'One of the best around. Highly recommended.'],
                     ]),
                     $this->socials(),
-                ], $pick(7)),
+                ], $theme(1)),
             ],
-            // 8 — Prism light: feature image, video, timeline, donation
+
+            // 2 — Storefront: products, an offer and a coupon.
             [
-                'key' => 'feature',
-                'name' => "{$label} — Feature Story",
-                'description' => "Prism-light hero image and short video, a journey timeline, and a tip-jar donation block.",
-                'thumb' => $thumb('feature'),
-                'snapshot' => $this->snapshot([
-                    $this->image($img('hero', 1, 1200, 600)),
-                    $this->heading($label, 'h2'),
-                    $this->paragraph($blurb),
-                    $this->paragraph("Here's the story behind the work — where it came from, where it's going, and how you can be part of it."),
-                    $this->video('https://download.samplelib.com/mp4/sample-5s.mp4'),
-                    $this->timeline([
-                        ['title' => 'The spark', 'description' => 'A small idea that wouldn\'t leave me alone.', 'date' => '2022'],
-                        ['title' => 'Going all in', 'description' => 'Made it my full-time focus.', 'date' => '2024'],
-                        ['title' => 'Today', 'description' => 'Building in the open and grateful for the support.', 'date' => '2025'],
-                    ]),
+                'key'         => 'storefront',
+                'name'        => $label . ' Storefront',
+                'description' => 'Sell from your page: featured products, a limited-time offer and a coupon code.',
+                'thumb'       => $thumb('storefront'),
+                'snapshot'    => $this->snapshot([
+                    $this->profile($label, $blurb, $face, $kits[2]),
+                    $this->alert('Free shipping on orders over $50 this week.', 'info', 'fa-truck-fast'),
+                    $this->product('Signature item', 'The one everyone asks about.', '$39', $sq('p1'), 'https://example.com/shop/1', 'Best seller'),
+                    $this->product('New arrival', 'Fresh this season — limited run.', '$54', $sq('p2'), 'https://example.com/shop/2', 'New'),
+                    $this->oneTimeOffer('Bundle deal', 'Get both together and save.', '$79', '$93', 'https://example.com/shop/bundle'),
+                    $this->coupon('WELCOME10', '10% off your first order', '+30 days'),
+                    $this->ctaButton('Browse the full shop', 'https://example.com/shop'),
+                ], $theme(2)),
+            ],
+
+            // 3 — Booking: services, a price card and a contact form.
+            [
+                'key'         => 'booking',
+                'name'        => $label . ' Bookings',
+                'description' => 'Turn visits into clients: services with prices, a package card and an inquiry form.',
+                'thumb'       => $thumb('booking'),
+                'snapshot'    => $this->snapshot([
+                    $this->profile($label, $blurb, $face, $kits[3]),
+                    $this->heading('Services'),
+                    $this->service('Intro session', 'fa-comments', '$49', 'A quick first session to see if we\'re a fit.', 'https://example.com/book/intro'),
+                    $this->service('Full package', 'fa-gem', '$249', 'The complete experience, start to finish.', 'https://example.com/book/full'),
+                    $this->price('Monthly retainer', '$99', 'per month', ['Priority scheduling', 'Unlimited messages', 'Cancel anytime'], 'https://example.com/book/retainer'),
+                    $this->contactForm('Tell me what you need', 'Send inquiry'),
+                ], $theme(3)),
+            ],
+
+            // 4 — Gallery: editorial photo look, work grid and video.
+            [
+                'key'         => 'gallery',
+                'name'        => $label . ' Gallery',
+                'description' => 'A visual-first page: a photo grid, featured video and a portfolio link.',
+                'thumb'       => $thumb('gallery'),
+                'snapshot'    => $this->snapshot([
+                    $this->profile($label, $blurb, $face, $kits[4], $cover),
+                    $this->heading('Recent work'),
+                    $this->imageGrid([$sq('g1'), $sq('g2'), $sq('g3'), $sq('g4'), $sq('g5'), $sq('g6')], 3),
+                    $this->video('https://www.youtube.com/watch?v=dQw4w9WgXcQ'),
+                    $this->linkBig('View the full portfolio', 'https://example.com/portfolio', 'fas fa-images', $kits[4]),
+                    $this->socials(),
+                ], $theme(4)),
+            ],
+
+            // 5 — Launch: countdown, progress and early-access capture.
+            [
+                'key'         => 'launch',
+                'name'        => $label . ' Launch',
+                'description' => 'Build hype for what\'s next: countdown, launch progress, early-access signup and FAQ.',
+                'thumb'       => $thumb('launch'),
+                'snapshot'    => $this->snapshot([
+                    $this->profile($label, $blurb, $face, $kits[5]),
+                    $this->countdown('Something big drops in', '+14 days'),
                     $this->progress([
-                        ['label' => 'Monthly support goal', 'value' => 64, 'color' => '#10b981'],
+                        ['label' => 'Production', 'value' => 90],
+                        ['label' => 'Early access spots claimed', 'value' => 65],
                     ]),
-                    $this->donation('Support my work', 'Every tip helps me keep going — thank you for being here.', [5, 10, 25, 50], 'https://example.com'),
-                    $this->ctaButton('Learn more', 'https://example.com', '#10b981', '#ffffff'),
-                    $this->socials(),
-                ], $pick(8)),
-            ],
-            // 9 — Deep ocean: gradient badge profile, FAQ, coupon, product, card grid
-            [
-                'key' => 'faq-contact',
-                'name' => "{$label} — FAQ + Promo",
-                'description' => "Deep-ocean palette with a gradient badge profile, a real FAQ block, a launch coupon, a featured product, and a quick-link card grid.",
-                'thumb' => $thumb('faq'),
-                'snapshot' => $this->snapshot([
-                    $this->profile($label, $blurb, $img('avatar', 9, 200, 200), $kit(9), $img('cover', 9, 1200, 480)),
-                    $this->heading('Frequently asked', 'h3'),
+                    $this->heading('Get early access'),
+                    $this->emailCollector(),
                     $this->faqV2([
-                        ['question' => 'How do we start?', 'answer' => "Drop me a message and we'll set up a quick intro call to see if it's a fit.", 'icon' => 'fa-flag'],
-                        ['question' => 'How much does it cost?', 'answer' => 'It depends on scope, so I always share a clear range upfront — no surprises.', 'icon' => 'fa-tag'],
-                        ['question' => 'How fast can we start?', 'answer' => 'Usually within a week or two, depending on the current schedule.', 'icon' => 'fa-bolt'],
+                        ['question' => 'When does it launch?', 'answer' => 'Two weeks from now — subscribers hear first.'],
+                        ['question' => 'Will there be a discount?', 'answer' => 'Early-access members get launch-week pricing.'],
                     ]),
-                    $this->alert('Only two new project slots left this month — book early to claim one.', 'warning', 'fa-triangle-exclamation'),
-                    $this->coupon('WELCOME15', 'Save 15% on your first booking.', 'Dec 31, 2026'),
-                    $this->product('Quick-Start Session', 'A single focused session to unblock you — perfect if you just need a push in the right direction.', '$99', $img('prod', 3, 600, 600), 'https://example.com', 'Limited'),
-                    $this->cardGrid('Quick links', 2, [
-                        $this->link('Email me', 'mailto:hi@example.com', 'fa-envelope'),
-                        $this->link('Book a slot', 'https://example.com', 'fa-calendar'),
-                        $this->link('WhatsApp', 'https://wa.me/10000000000', 'fa-whatsapp'),
-                        $this->link('Press kit', 'https://example.com', 'fa-file-lines'),
+                ], $theme(5)),
+            ],
+
+            // 6 — Community: poll, milestones timeline and support options.
+            [
+                'key'         => 'community',
+                'name'        => $label . ' Community',
+                'description' => 'Bring people together: a live poll, your story so far and ways to support the work.',
+                'thumb'       => $thumb('community'),
+                'snapshot'    => $this->snapshot([
+                    $this->profile($label, $blurb, $face, $kits[6]),
+                    $this->poll('What should we do next?', ['More events', 'More content', 'A members-only space']),
+                    $this->heading('The story so far'),
+                    $this->timeline([
+                        ['title' => 'The beginning',  'description' => 'Started with an idea and a handful of supporters.', 'date' => '2023'],
+                        ['title' => 'Growing fast',    'description' => 'Hit our first big milestone together.',             'date' => '2024'],
+                        ['title' => 'Where we\'re going', 'description' => 'Bigger plans — and you\'re part of them.',       'date' => 'Now'],
                     ]),
-                    $this->ctaButton('Send me a message', 'https://example.com', '#3d6bff', '#ffffff'),
+                    $this->donation('Support the work', 'Every bit helps keep this going.', [5, 15, 50], 'https://example.com/support'),
+                    $this->link('Join the community', 'https://example.com/join', 'fas fa-people-group', $kits[6]),
+                ], $theme(6)),
+            ],
+
+            // 7 — Contact card: vCard, quick facts, QR and WhatsApp.
+            [
+                'key'         => 'contact-card',
+                'name'        => $label . ' Contact Card',
+                'description' => 'A digital business card: save-my-contact, quick facts, a scannable QR and one-tap chat.',
+                'thumb'       => $thumb('contact-card'),
+                'snapshot'    => $this->snapshot([
+                    $this->profile($label, $blurb, $face, $kits[7]),
+                    $this->vcard('Your Name', $label, 'Your Company', '+1 555 123 4567', 'you@example.com', 'https://example.com'),
+                    $this->list([
+                        'Based in Your City — available worldwide',
+                        'Replies within one business day',
+                        'Languages: English, Spanish',
+                    ]),
+                    $this->qrCode('https://example.com'),
+                    $this->whatsapp('+15551234567', 'Message me on WhatsApp'),
+                ], $theme(7)),
+            ],
+
+            // 8 — Reviews & offers: social proof heavy with a deal attached.
+            [
+                'key'         => 'reviews',
+                'name'        => $label . ' Reviews & Offers',
+                'description' => 'Lead with proof: star reviews and client praise, plus a coupon and pricing list.',
+                'thumb'       => $thumb('reviews'),
+                'snapshot'    => $this->snapshot([
+                    $this->profile($label, $blurb, $face, $kits[8]),
+                    $this->review('Jordan P.', 5, 'Absolutely fantastic — exceeded every expectation.', $this->face('tpl-' . $slug . '-r1')),
+                    $this->review('Casey L.', 5, 'Professional, friendly and worth every penny.', $this->face('tpl-' . $slug . '-r2')),
+                    $this->listPricing([
+                        ['name' => 'Standard',  'price' => '$29'],
+                        ['name' => 'Popular',   'price' => '$59'],
+                        ['name' => 'Premium',   'price' => '$99'],
+                    ]),
+                    $this->coupon('FIVESTAR', '15% off — reviews readers only', '+21 days'),
+                    $this->ctaButton('Book now', 'https://example.com/book'),
+                ], $theme(8)),
+            ],
+
+            // 9 — Minimal: quiet, focused link list with a single alert.
+            [
+                'key'         => 'minimal',
+                'name'        => $label . ' Minimal',
+                'description' => 'A quiet, distraction-free page: your profile and a clean set of links. Nothing else.',
+                'thumb'       => $thumb('minimal'),
+                'snapshot'    => $this->snapshot([
+                    $this->profile($label, $blurb, $face, $kits[9]),
+                    $this->alert('New here? Start with the first link below.', 'info', 'fa-circle-info'),
+                    $this->link('Start here', 'https://example.com/start', 'fas fa-arrow-right', $kits[9]),
+                    $this->link('About me', 'https://example.com/about', 'fas fa-user', $kits[9]),
+                    $this->link('My work', 'https://example.com/work', 'fas fa-briefcase', $kits[9]),
+                    $this->link('Get in touch', 'mailto:you@example.com', 'fas fa-envelope', $kits[9]),
+                    $this->divider(),
                     $this->socials(),
-                ], $pick(9)),
+                ], $theme(9)),
             ],
         ];
     }
@@ -735,6 +680,10 @@ class ExpandedPageTemplateLibrarySeeder extends Seeder
             'sort_order'           => 100 + $index,
             'recommended_personas' => [$personaSlug],
             'snapshot'             => $bp['snapshot'],
+            // Curated designer templates are seeded design-locked so the
+            // pages they create keep the designed look (detachable).
+            'design_locked'        => $bp['key'] === 'starter'
+                && in_array($personaSlug, self::DESIGN_LOCKED_STARTER_PERSONAS, true),
         ]);
     }
 
@@ -1094,6 +1043,18 @@ class ExpandedPageTemplateLibrarySeeder extends Seeder
             return asset('block-placeholders/cover.svg');
         }
         return asset('block-placeholders/image.svg');
+    }
+
+    /**
+     * Self-hosted, theme-aware SVG preview for a template card. Rendered
+     * live by PublicTemplateThumbController from the row's own snapshot,
+     * so every card reflects its actual theme + block layout. Stored
+     * root-relative (absolutized by PageTemplate's accessor) so rows are
+     * portable across hosts; ?v=SEED_VERSION re-renders on redesigns.
+     */
+    private function thumbUrl(string $templateSlug): string
+    {
+        return '/template-thumbs/' . $templateSlug . '.svg?v=' . self::SEED_VERSION;
     }
 
     /** Self-hosted avatar placeholder bundled with the app. */

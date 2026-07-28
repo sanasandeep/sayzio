@@ -109,6 +109,23 @@ if [ "$mst" -ne 0 ]; then
   echo "::1inme:: DEPLOY MIGRATION FAILED (exit=$mst) — database schema may be incomplete (missing tables/columns); some pages may 500. Investigate immediately. Pending migrations:" >&2
   php artisan migrate:status 2>&1 | grep -i pending >&2 || true
 fi
+# Template gallery convergence (mirrors the Replit deploy, Task #5853): run the
+# three idempotent template seeders after a CLEAN migrate so new/redesigned
+# starter + persona templates (SEED_VERSION bumps) reach production without a
+# manual artisan run. All three preserve admin-edited rows and are safe no-ops
+# on a converged DB. Skipped when migrations failed (never seed a half-applied
+# schema); best-effort — a seeder failure logs a marker but never fails deploy.
+if [ "$mst" -eq 0 ]; then
+  for s in StarterPageTemplatesSeeder PageTemplatePersonaSeeder ExpandedPageTemplateLibrarySeeder; do
+    if php artisan db:seed --class="Database\\Seeders\\$s" --force; then
+      echo "::1inme:: deploy template seeder $s completed" >&2
+    else
+      echo "::1inme:: deploy template seeder $s FAILED — template gallery may be missing new designs" >&2
+    fi
+  done
+else
+  echo "::1inme:: skipping deploy template seeders (migration step failed)" >&2
+fi
 set -e
 
 log "Caching config, routes, and views..."

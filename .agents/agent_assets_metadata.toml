@@ -1559,3 +1559,9 @@ id = "uVrEtwdY9Q0otl8SfXI7h"
 uri = "file://.local/print-out/booklet/README-booklet.md"
 type = "text"
 title = "Print spec (README)"
+
+[[outputs]]
+id = "FnD06TglF3sOd2rve2gOY"
+uri = "file://artifacts/1inme/public/branding/og-card.jpg"
+type = "image"
+title = "Sayzio Open Graph share image (1280×720)"

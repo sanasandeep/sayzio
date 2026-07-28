@@ -21,6 +21,7 @@ import {
   scheduleBiolinkTheme,
   updateBiolinkThemeSchedule,
 } from "@/lib/api/biolinkThemes";
+import { DesignLockGate } from "@/components/DesignLockGate";
 import { showAlert } from "@/lib/webAlert";
 
 function pad(n: number) {
@@ -216,6 +217,7 @@ export default function BiolinkThemesScreen() {
   return (
     <>
       <Stack.Screen options={{ headerShown: true, title: "Scheduled themes" }} />
+      <DesignLockGate linkId={linkId}>
       <ScrollView contentContainerStyle={styles.page}>
         {notice ? (
           <View style={styles.notice} testID="themes-notice">
@@ -373,6 +375,7 @@ export default function BiolinkThemesScreen() {
           )}
         </View>
       </ScrollView>
+      </DesignLockGate>
     </>
   );
 }

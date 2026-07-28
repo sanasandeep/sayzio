@@ -576,6 +576,42 @@ args = "eas-upload-size"
 task = "workflow.run"
 args = "name-sync-tests"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-settings-tabs-dedupe"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-mobile-bg-swatches"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-bg-attach"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-bg-live-pair"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "bg-preset-swatches"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "persona-seed-refresh"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-template-gallery"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "tpl-size-check"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "tpl-base-check"
+
 [[workflows.workflow]]
 name = "e2e"
 author = "agent"
@@ -2304,6 +2340,105 @@ isValidation = true
 task = "shell.exec"
 args = "cd artifacts/1inme && TEST_LOCAL_MODE=artisan bash scripts/test-local.sh --filter='ProfileNamePersonalWorkspaceSyncTest|AdminNameSyncOnProfileUpdateTest|VerifiedNameLockProfileUpdateTest|AdminRenameUserNameSyncTest'"
 
+[[workflows.workflow]]
+name = "e2e-settings-tabs-dedupe"
+author = "agent"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd artifacts/1inme && bash tests/Browser/run-validation.sh settings-tabs-dedupe.spec.ts"
+
+[[workflows.workflow]]
+name = "e2e-mobile-bg-swatches"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/1inme-mobile run test:bg-preset-swatch-render-e2e"
+
+[workflows.workflow.metadata]
+outputType = "console"
+
+[[workflows.workflow]]
+name = "e2e-bg-attach"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "bash artifacts/1inme/tests/Browser/run-validation.sh biolink-bg-attachment.spec.ts biolink-bg-preset-public-render.spec.ts biolink-bg-branches-public-render.spec.ts"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-bg-live-pair"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "bash artifacts/1inme/tests/Browser/run-validation.sh biolink-bg-preset-live-preview.spec.ts biolink-bg-template-live-preview.spec.ts"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "bg-preset-swatches"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm --filter @workspace/scripts run check:bg-preset-swatches"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "persona-seed-refresh"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd artifacts/1inme && php artisan templates:refresh-persona-seed"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-template-gallery"
+author = "agent"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "bash artifacts/1inme/tests/Browser/run-validation.sh template-gallery-visual.spec.ts"
+
+[[workflows.workflow]]
+name = "tpl-size-check"
+author = "agent"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "bash .local/tmp/sizecheck.sh"
+
+[[workflows.workflow]]
+name = "tpl-base-check"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "bash .local/tmp/basecheck.sh"
+
+[workflows.workflow.metadata]
+isValidation = true
+
 
   [agent]
 stack = "PNPM_WORKSPACE"
@@ -2324,12 +2459,13 @@ AWS_DEFAULT_REGION = "ap-south-2"
 AWS_URL = "https://d3l7wvr1shk1cg.cloudfront.net"
 AWS_USE_PATH_STYLE_ENDPOINT = "true"
 USER_CONTENT_DISK = "s3"
-CONTACT_ADMIN_TOKEN = "qNApHcj3SDKCnQRrNcTyWOXdsxQMmeyhRy4Mf0"
+CONTACT_ADMIN_TOKEN = "secret stripped"
 APP_NAME = "Sayzio"
 
 [[ports]]
 localPort = 5000
 externalPort = 5000
+exposeLocalhost = true
 
 [[ports]]
 localPort = 5050

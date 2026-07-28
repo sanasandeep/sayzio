@@ -104,3 +104,17 @@ export async function applyPageTemplate(
   );
   return res.data;
 }
+
+/**
+ * Detach a design-locked page from its template. The page keeps its
+ * current look, but all styling surfaces unlock (parity with the web
+ * "Detach from template" action).
+ */
+export async function detachPageTemplate(
+  linkId: number,
+): Promise<{ detached: boolean; design_locked: boolean }> {
+  const res = await apiFetch<{
+    data: { detached: boolean; design_locked: boolean };
+  }>(`/links/${linkId}/page-templates/detach`, { method: "POST" });
+  return res.data;
+}

@@ -18,6 +18,7 @@
     "check:undefined-css-var": "tsx ./src/check-undefined-css-var-fallback.ts",
     "check:home-preview-blocks": "tsx ./src/check-home-preview-blocks.ts",
     "check:form-template-keys": "tsx ./src/check-form-template-keys.ts",
+    "check:bg-preset-swatches": "tsx ./src/check-bg-preset-swatches.ts",
     "check:ci-passthrough-names": "tsx ./src/check-ci-passthrough-names.ts",
     "check:config-secrets": "tsx ./src/check-config-secrets.ts",
     "check:blade-comment-echo": "tsx ./src/check-blade-comment-echo.ts",

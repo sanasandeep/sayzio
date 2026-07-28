@@ -134,6 +134,31 @@ class MobileTemplatePreviewRendersTest extends TestCase
     }
 
     /**
+     * The page-template seeders were neutralized (legacy blueprints
+     * retired), so the page-side guards create their own fixture row to
+     * keep the serialize paths exercised against a real template.
+     */
+    private function makePageTemplateFixture(): PageTemplate
+    {
+        return PageTemplate::create([
+            'name'                 => 'Preview Fixture',
+            'slug'                 => 'preview-fixture-page',
+            'category'             => 'general',
+            'description'          => 'Fixture page template for mobile preview coverage.',
+            'thumbnail_url'        => null,
+            'plan_tier'            => null,
+            'is_active'            => true,
+            'sort_order'           => 1,
+            'recommended_personas' => [],
+            'snapshot'             => ['blocks' => [
+                ['type' => 'heading', 'settings' => ['text' => 'Hello'], 'is_active' => true],
+                ['type' => 'paragraph', 'settings' => ['text' => 'World'], 'is_active' => true],
+                ['type' => 'link', 'settings' => ['name' => 'Visit', 'url' => 'https://example.com'], 'is_active' => true],
+            ]],
+        ]);
+    }
+
+    /**
      * Recursively count the active blocks a page snapshot should flatten into
      * via buildPreviewLink: every block (default-active unless is_active is
      * explicitly false), recursing into a card's children — exactly the set
@@ -269,6 +294,7 @@ class MobileTemplatePreviewRendersTest extends TestCase
     public function test_every_active_page_template_lists_a_nonempty_content_summary(): void
     {
         $this->seedTemplateLibrary();
+        $this->makePageTemplateFixture();
         $user = $this->makeUnlockedUser();
         $link = $this->makeBiolink($user);
         $this->withToken($this->token($user));
@@ -335,6 +361,7 @@ class MobileTemplatePreviewRendersTest extends TestCase
     public function test_every_active_page_template_serializes_without_blank_blocks(): void
     {
         $this->seedTemplateLibrary();
+        $this->makePageTemplateFixture();
         $user = $this->makeUnlockedUser();
         $link = $this->makeBiolink($user);
         $this->withToken($this->token($user));
@@ -630,6 +657,7 @@ class MobileTemplatePreviewRendersTest extends TestCase
     public function test_every_active_page_template_has_a_valid_preview_layout(): void
     {
         $this->seedTemplateLibrary();
+        $this->makePageTemplateFixture();
         $user = $this->makeUnlockedUser();
         $link = $this->makeBiolink($user);
         $this->withToken($this->token($user));

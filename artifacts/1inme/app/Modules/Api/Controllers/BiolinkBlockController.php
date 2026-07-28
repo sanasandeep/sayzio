@@ -88,6 +88,17 @@ class BiolinkBlockController extends Controller
         return $this->ok(\App\Modules\User\Support\BgPresetCatalog::forApi());
     }
 
+    /**
+     * Background template catalog (mobile parity for the web Appearance
+     * "Templates" gallery). Admin-managed `bg_templates` rows with color
+     * stops parsed server-side plus md5-gated pre-rendered PNG swatches so
+     * mobile shows each template's REAL texture, not a gradient tint.
+     */
+    public function bgTemplates(Request $request)
+    {
+        return $this->ok(\App\Modules\User\Support\BgTemplateCatalog::forApi());
+    }
+
     public function store(Request $request, int $linkId)
     {
         $link = $this->ownedLink($request, $linkId);
@@ -101,13 +112,27 @@ class BiolinkBlockController extends Controller
             'settings'   => ['nullable', 'array'],
         ]);
         $sort = $data['sort_order'] ?? ((int) BiolinkBlock::where('link_id', $link->id)->max('sort_order') + 1);
+        $settings = $data['settings'] ?? [];
+
+        // Design lock parity with the web editor: on a locked page a new
+        // block's `_style` is always seeded server-side from the template's
+        // styling for its type — any client-sent style is ignored.
+        if ($link->isDesignLocked()) {
+            $settings['_style'] = array_merge(
+                BiolinkBlock::STYLE_DEFAULTS,
+                \App\Modules\User\Support\BlockDefaults::styleForType($data['type']),
+                $link->designLockStyleFor($data['type']) ?? []
+            );
+            unset($settings['_style_custom_snapshot']);
+        }
+
         $b = BiolinkBlock::create([
             'link_id'    => $link->id,
             'type'       => $data['type'],
             'sort_order' => $sort,
             'parent_id'  => $data['parent_id'] ?? null,
             'is_active'  => $data['is_active'] ?? true,
-            'settings'   => $data['settings'] ?? [],
+            'settings'   => $settings,
         ]);
         return $this->created(['block' => $this->transform($b)]);
     }
@@ -139,6 +164,24 @@ class BiolinkBlockController extends Controller
             $data['max_clicks'] = ($data['max_clicks'] === null || (int) $data['max_clicks'] <= 0)
                 ? null : (int) $data['max_clicks'];
         }
+
+        // Design lock parity: while locked, `_style` (and the pre-variant
+        // snapshot) are server-owned — force the stored values back over
+        // whatever the client sent so content edits save but styling can't drift.
+        if ($link->isDesignLocked() && array_key_exists('settings', $data) && is_array($data['settings'])) {
+            $existing = $b->settings ?? [];
+            if (array_key_exists('_style', $existing)) {
+                $data['settings']['_style'] = $existing['_style'];
+            } else {
+                unset($data['settings']['_style']);
+            }
+            if (array_key_exists('_style_custom_snapshot', $existing)) {
+                $data['settings']['_style_custom_snapshot'] = $existing['_style_custom_snapshot'];
+            } else {
+                unset($data['settings']['_style_custom_snapshot']);
+            }
+        }
+
         $b->fill($data)->save();
         return $this->ok(['block' => $this->transform($b->fresh())]);
     }
