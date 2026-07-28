@@ -95,7 +95,7 @@
             @if($phFrame)
                 {{-- Concentric arch outline strokes (open at the bottom). --}}
                 @for($i = 0; $i < $phStrokes; $i++)
-                    <div class="absolute pointer-events-none" aria-hidden="true"
+                    <div class="absolute pointer-events-none" aria-hidden="true" data-photo-frame-stroke
                          style="inset:{{ $i * $phGap }}px;bottom:0;border:1.5px solid {{ e($phFrameColor) }};border-bottom:none;border-radius:999px 999px 0 0;opacity:{{ 1 - $i * 0.12 }}"></div>
                 @endfor
             @endif
@@ -106,7 +106,7 @@
             </div>
             @if($phBanner !== '')
                 {{-- Half-overlapping title banner straddling the bottom edge. --}}
-                <div class="absolute z-10 text-center font-bold uppercase"
+                <div class="absolute z-10 text-center font-bold uppercase" data-photo-banner
                      style="left:50%;bottom:0;transform:translate(-50%,50%);background:{{ e($phBannerBg) }};color:{{ e($phBannerColor) }};padding:0.7rem 1.9rem;letter-spacing:0.14em;font-size:0.95rem;line-height:1.25;max-width:92%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
                     {{ $phBanner }}
                 </div>
@@ -140,7 +140,7 @@
                     }
                 @endphp
                 <img src="{{ $phStk['url'] }}" alt="" aria-hidden="true" loading="lazy"
-                     class="absolute pointer-events-none z-10"
+                     class="absolute pointer-events-none z-10" data-photo-sticker
                      style="{{ $phStickerAnchors[$phStk['pos']] }};width:{{ $phStk['size'] }}px;height:{{ $phStk['size'] }}px;object-fit:contain;transform:{{ $phStkT }}">
             @endforeach
         </div>

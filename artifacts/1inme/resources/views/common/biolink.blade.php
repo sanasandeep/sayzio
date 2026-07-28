@@ -2241,6 +2241,91 @@
                     'style.padding_left': function (el, v) { el.style.paddingLeft = v === '' ? '' : parseInt(v, 10) + 'px'; },
                     'style.padding_right': function (el, v) { el.style.paddingRight = v === '' ? '' : parseInt(v, 10) + 'px'; }
                 };
+                // Hero-photo decoration keys (Task #5944): patch the image
+                // block's [data-photo-hero] container in place. Structural
+                // keys (mask/frame/accents, last-sticker removal) have no
+                // handler and fall back to the safe reload path.
+                var PH_STICKER_ANCHORS = {
+                    top_left:     { left: '-10px', top: '-10px' },
+                    top_right:    { right: '-10px', top: '-10px' },
+                    bottom_left:  { left: '-10px', bottom: '-10px' },
+                    bottom_right: { right: '-10px', bottom: '-10px' },
+                    center_left:  { left: '-12px', top: '50%' },
+                    center_right: { right: '-12px', top: '50%' }
+                };
+                function phClamp(v, lo, hi, dflt) {
+                    var n = parseInt(v, 10);
+                    if (isNaN(n)) n = dflt;
+                    return Math.max(lo, Math.min(hi, n));
+                }
+                var LIVE_PHOTO_KEYS = {
+                    'style._photo_stickers': function (hero, v) {
+                        var list = [];
+                        if (String(v).trim() !== '') {
+                            try { list = JSON.parse(v); } catch (err) { return false; }
+                            if (!Array.isArray(list)) return false;
+                        }
+                        // Emptying the list may make the whole hero container
+                        // structurally unnecessary — let the reload handle it.
+                        if (!list.length) return false;
+                        var frag = document.createDocumentFragment();
+                        for (var i = 0; i < Math.min(list.length, 4); i++) {
+                            var s = list[i] || {};
+                            var url = typeof s.url === 'string' ? s.url : '';
+                            if (!url) return false;
+                            var pos = PH_STICKER_ANCHORS[s.pos] ? s.pos : 'top_right';
+                            var size = phClamp(s.size, 24, 160, 64);
+                            var rot = phClamp(s.rotate, -180, 180, 0);
+                            var dx = phClamp(s.dx, -80, 80, 0);
+                            var dy = phClamp(s.dy, -80, 80, 0);
+                            var img = document.createElement('img');
+                            img.src = url;
+                            img.alt = '';
+                            img.setAttribute('aria-hidden', 'true');
+                            img.loading = 'lazy';
+                            img.className = 'absolute pointer-events-none z-10';
+                            img.setAttribute('data-photo-sticker', '');
+                            var a = PH_STICKER_ANCHORS[pos];
+                            Object.keys(a).forEach(function (k) { img.style[k] = a[k]; });
+                            img.style.width = size + 'px';
+                            img.style.height = size + 'px';
+                            img.style.objectFit = 'contain';
+                            var t = 'translate(' + dx + 'px,' + dy + 'px)';
+                            if (pos === 'center_left' || pos === 'center_right') t = 'translateY(-50%) ' + t;
+                            if (rot !== 0) t += ' rotate(' + rot + 'deg)';
+                            img.style.transform = t;
+                            frag.appendChild(img);
+                        }
+                        hero.querySelectorAll('[data-photo-sticker]').forEach(function (el) { el.remove(); });
+                        hero.appendChild(frag);
+                        return true;
+                    },
+                    'style._photo_banner_text': function (hero, v) {
+                        var b = hero.querySelector('[data-photo-banner]');
+                        // Adding or removing the banner is structural — reload.
+                        if (!b || String(v).trim() === '') return false;
+                        b.textContent = v;
+                        return true;
+                    },
+                    'style._photo_banner_bg': function (hero, v) {
+                        var b = hero.querySelector('[data-photo-banner]');
+                        if (!b || !v) return false;
+                        b.style.background = v;
+                        return true;
+                    },
+                    'style._photo_banner_text_color': function (hero, v) {
+                        var b = hero.querySelector('[data-photo-banner]');
+                        if (!b || !v) return false;
+                        b.style.color = v;
+                        return true;
+                    },
+                    'style._photo_frame_color': function (hero, v) {
+                        var strokes = hero.querySelectorAll('[data-photo-frame-stroke]');
+                        if (!strokes.length || !v) return false;
+                        strokes.forEach(function (el) { el.style.borderColor = v; });
+                        return true;
+                    }
+                };
                 function styleTarget(root) {
                     // Styled blocks render a .block-styled wrapper; button-like
                     // blocks carry the inline style on the anchor itself. If
@@ -2250,6 +2335,13 @@
                         || root.querySelector('a.bio-btn[style]');
                 }
                 function applyLiveStyle(root, key, value) {
+                    var pfn = LIVE_PHOTO_KEYS[key];
+                    if (pfn) {
+                        // Decorations only exist inside an already-rendered
+                        // hero container; anything else needs a reload.
+                        var hero = root.querySelector('[data-photo-hero]');
+                        return hero ? pfn(hero, value) !== false : false;
+                    }
                     var fn = LIVE_STYLE_KEYS[key];
                     if (!fn) return false;
                     var el = styleTarget(root);
