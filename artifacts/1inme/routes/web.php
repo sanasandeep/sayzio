@@ -268,6 +268,13 @@ Route::get    ('/embed/link/{alias}/iframe',   [\App\Modules\Common\Controllers\
 Route::get    ('/embed/link/{alias}/embed.js', [\App\Modules\Common\Controllers\PublicEmbedController::class, 'js'])->name('public.embed.js')->where('alias', '[A-Za-z0-9._-]+');
 Route::options('/embed/link/{alias}/{any}',    [\App\Modules\Common\Controllers\PublicEmbedController::class, 'preflight'])->where('alias', '[A-Za-z0-9._-]+')->where('any', '.*');
 
+// Public Page Template preview thumbnails: theme-aware SVG cards rendered
+// straight from each template's stored snapshot. Two-segment `template-thumbs`
+// prefix keeps it clear of the single-segment /{alias} catch-all. Seeders point
+// `thumbnail_url` here with a ?v=SEED_VERSION cache-buster.
+Route::get('/template-thumbs/{slug}.svg', [\App\Modules\Common\Controllers\PublicTemplateThumbController::class, 'show'])
+    ->where('slug', '[a-z0-9-]+')->name('public.template-thumb');
+
 // Public shared AI Marketing Strategist report (Task #3281). Two-segment
 // `ai-report` prefix so it never collides with the single-segment /{alias}
 // catch-all. Read-only, token-gated, no auth.
