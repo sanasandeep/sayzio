@@ -481,6 +481,13 @@ class BiolinkBlock extends Model
         // starburst, dots, squiggle, ring, blob.
         '_photo_accents' => '',
         '_photo_accent_color' => '',
+        // Decorative shape accents behind heading blocks (Task #5938).
+        // Same shape vocabulary as `_photo_accents` (AccentShapeCatalog);
+        // placement anchors the primary shape, size scales the whole set.
+        '_heading_accents' => '',            // comma tokens: starburst,dots,...
+        '_heading_accent_color' => '',
+        '_heading_accent_placement' => '',   // behind_left|behind_right|top_left|top_right
+        '_heading_accent_size' => '',        // sm|md|lg
         // Structural layout token for the profile_card family (Task #1740).
         // Set by the `profile_identity` curated designs; the public renderer
         // dispatches on it to reposition avatar/cover/text/socials. Empty =

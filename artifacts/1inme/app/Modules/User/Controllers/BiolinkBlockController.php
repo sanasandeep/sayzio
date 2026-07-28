@@ -2180,9 +2180,14 @@ class BiolinkBlockController extends Controller
         $enums['_photo_mask'] = ['arch', 'torn'];
         $enums['_photo_frame'] = ['concentric_arch'];
         $numericBounds['_photo_frame_strokes'] = [2, 5];
+        // Heading shape accents (Task #5938) — strict enums; the shape
+        // token list shares the accent branch below with `_photo_accents`.
+        $enums['_heading_accent_placement'] = \App\Modules\User\Support\AccentShapeCatalog::HEADING_PLACEMENTS;
+        $enums['_heading_accent_size'] = \App\Modules\User\Support\AccentShapeCatalog::HEADING_SIZES;
         $colorKeys = [
             'text_color', 'bg_color', 'border_color', 'shadow_color', '_avatar_frame_color',
             '_photo_frame_color', '_photo_banner_bg', '_photo_banner_text_color', '_photo_accent_color',
+            '_heading_accent_color',
         ];
         $fontWeightKeys = ['font_weight'];
         $fontFamilyKeys = ['font_family'];
@@ -2248,15 +2253,12 @@ class BiolinkBlockController extends Controller
                 // is escaped again on output.
                 $safe = trim(preg_replace('/\s+/', ' ', strip_tags((string) $val)) ?? '');
                 if ($safe !== '') $result[$key] = mb_substr($safe, 0, 60);
-            } elseif ($key === '_photo_accents') {
+            } elseif (in_array($key, ['_photo_accents', '_heading_accents'], true)) {
                 // Comma-separated accent-shape tokens; unknown tokens are
-                // dropped, order preserved, duplicates removed.
+                // dropped, order preserved, duplicates removed. Allowlist
+                // comes from the shared AccentShapeCatalog.
                 $raw = is_array($val) ? implode(',', array_map('strval', $val)) : (string) $val;
-                $allowedAccents = ['starburst', 'dots', 'squiggle', 'ring', 'blob'];
-                $tokens = array_values(array_unique(array_intersect(
-                    array_filter(array_map('trim', explode(',', strtolower($raw)))),
-                    $allowedAccents
-                )));
+                $tokens = \App\Modules\User\Support\AccentShapeCatalog::parseTokens($raw);
                 if (!empty($tokens)) $result[$key] = implode(',', $tokens);
             } elseif (in_array($key, ['_animation', '_gallery_layout', '_social_set', '_profile_layout'], true)) {
                 // Opaque slug-shaped variant metadata hooks (Task #1041).

@@ -1186,8 +1186,125 @@ export function BlockView({ block, alias, allBlocks, openEmbed }: { block: Bioli
   ) {
     const text = pickStr(s, "text", "title", "heading");
     if (!text) return null;
+
+    // Decorative shape accents behind heading blocks (web
+    // `_style._heading_*`, Task #5938). Mirrors AccentShapeCatalog.
+    const haSt = (s._style && typeof s._style === "object" ? s._style : {}) as Record<
+      string,
+      unknown
+    >;
+    const haStr = (k: string): string => (typeof haSt[k] === "string" ? (haSt[k] as string) : "");
+    const haKnown = ["starburst", "dots", "squiggle", "ring", "blob"];
+    const haAccents =
+      t === "heading"
+        ? haStr("_heading_accents")
+            .split(",")
+            .map((a) => a.trim().toLowerCase())
+            .filter((a, i, arr) => a !== "" && haKnown.includes(a) && arr.indexOf(a) === i)
+        : [];
+
+    const headingEl = (
+      <Text style={[styles.heading, { color: blockTextColor(block, colors.foreground), zIndex: 1 }]}>{text}</Text>
+    );
+    if (haAccents.length === 0) return headingEl;
+
+    const haColor = haStr("_heading_accent_color") || "#ec4899";
+    const haPlacementRaw = haStr("_heading_accent_placement");
+    const haPlacement = ["behind_left", "behind_right", "top_left", "top_right"].includes(
+      haPlacementRaw
+    )
+      ? haPlacementRaw
+      : "behind_left";
+    const haScale = ({ sm: 0.7, md: 1.0, lg: 1.5 } as Record<string, number>)[
+      haStr("_heading_accent_size")
+    ] ?? 1.0;
+    // Base dims per shape (matches AccentShapeCatalog::SHAPES).
+    const haDims: Record<string, [string, number, number]> = {
+      starburst: ["0 0 100 100", 54, 54],
+      dots: ["0 0 90 90", 76, 76],
+      squiggle: ["0 0 120 40", 84, 28],
+      ring: ["0 0 60 60", 46, 46],
+      blob: ["0 0 100 100", 58, 58],
+    };
+    // Up to three anchor slots per placement (primary first), mirroring
+    // the web renderer with fixed-pixel offsets (RN has no % transforms).
+    const haSlots: Record<string, Array<Record<string, number>>> = {
+      behind_left: [
+        { left: -10, top: -8 },
+        { right: -10, top: -8 },
+        { left: 60, top: -16 },
+      ],
+      behind_right: [
+        { right: -10, top: -8 },
+        { left: -10, top: -8 },
+        { left: 60, top: -16 },
+      ],
+      top_left: [
+        { left: -12, top: -16 },
+        { right: -12, bottom: -10 },
+        { right: -12, top: -16 },
+      ],
+      top_right: [
+        { right: -12, top: -16 },
+        { left: -12, bottom: -10 },
+        { left: -12, top: -16 },
+      ],
+    };
+    const slots = haSlots[haPlacement];
+
     return (
-      <Text style={[styles.heading, { color: blockTextColor(block, colors.foreground) }]}>{text}</Text>
+      <View style={{ position: "relative" }}>
+        {haAccents.map((shape, idx) => {
+          const [viewBox, bw, bh] = haDims[shape];
+          const slotScale = haScale * (idx === 0 ? 1.0 : 0.72);
+          const w = Math.round(bw * slotScale);
+          const h = Math.round(bh * slotScale);
+          const pos = slots[idx % slots.length];
+          return (
+            <Svg
+              key={`ha-${shape}`}
+              pointerEvents="none"
+              viewBox={viewBox}
+              width={w}
+              height={h}
+              style={{ position: "absolute", zIndex: 0, ...pos }}
+            >
+              {shape === "starburst" ? (
+                <Path
+                  d="M50 0 L56 33 L75 7 L63 38 L96 22 L67 44 L100 50 L67 56 L96 78 L63 62 L75 93 L56 67 L50 100 L44 67 L25 93 L37 62 L4 78 L33 56 L0 50 L33 44 L4 22 L37 38 L25 7 L44 33 Z"
+                  fill={haColor}
+                />
+              ) : shape === "dots" ? (
+                <>
+                  {[
+                    [78, 10, 6], [58, 18, 4.5], [76, 30, 4], [44, 10, 3.5], [62, 38, 3.2],
+                    [82, 46, 3], [48, 28, 2.6], [70, 54, 2.4], [34, 20, 2.2], [56, 50, 2],
+                    [84, 62, 2], [42, 42, 1.8], [66, 68, 1.6], [78, 76, 1.4],
+                  ].map(([cx, cy, r], i) => (
+                    <Circle key={`had-${i}`} cx={cx} cy={cy} r={r} fill={haColor} />
+                  ))}
+                </>
+              ) : shape === "squiggle" ? (
+                <Path
+                  d="M5 30 Q20 5 35 25 T65 22 T95 24 T115 15"
+                  fill="none"
+                  stroke={haColor}
+                  strokeWidth={5}
+                  strokeLinecap="round"
+                />
+              ) : shape === "ring" ? (
+                <Circle cx={30} cy={30} r={24} fill="none" stroke={haColor} strokeWidth={6} />
+              ) : (
+                <Path
+                  d="M83 45 C90 62 78 84 58 88 C38 92 16 82 12 62 C8 42 22 20 44 14 C66 8 76 28 83 45 Z"
+                  fill={haColor}
+                />
+              )}
+            </Svg>
+          );
+        })}
+        {headingEl}
+      </View>
     );
   }
 

@@ -248,6 +248,18 @@ function linkBlockEditor(cfg) {
 @elseif($block->type === 'heading')
 @php
     $headingStyle = $s['style'] ?? 'plain';
+    // Decorative shape accents (Task #5938) — keys live in _style.
+    $haSt = $s['_style'] ?? [];
+    $haSt = is_array($haSt) ? $haSt : [];
+    $haSel = \App\Modules\User\Support\AccentShapeCatalog::parseTokens((string) ($haSt['_heading_accents'] ?? ''));
+    $haOptions = \App\Modules\User\Support\AccentShapeCatalog::LABELS;
+    $haPlacements = [
+        'behind_left'  => 'Behind — left',
+        'behind_right' => 'Behind — right',
+        'top_left'     => 'Top-left corner',
+        'top_right'    => 'Top-right corner',
+    ];
+    $haSizes = ['sm' => 'Small', 'md' => 'Medium', 'lg' => 'Large'];
 @endphp
 <div class="space-y-3" x-data="{ headingStyle: @js($headingStyle) }">
     <div><label class="{{ $labelClass }}">Text</label><input type="text" name="settings[text]" value="{{ $s['text'] ?? '' }}" class="{{ $inputClass }}"></div>
@@ -266,6 +278,46 @@ function linkBlockEditor(cfg) {
     <div class="grid grid-cols-2 gap-3">
         <div><label class="{{ $labelClass }}">Size</label><select name="settings[size]" class="{{ $selectClass }}"><option value="h1" {{ ($s['size'] ?? '') === 'h1' ? 'selected' : '' }} style="background: var(--bg-body); color: var(--text-primary);">H1</option><option value="h2" {{ ($s['size'] ?? '') === 'h2' ? 'selected' : '' }} style="background: var(--bg-body); color: var(--text-primary);">H2</option><option value="h3" {{ ($s['size'] ?? '') === 'h3' ? 'selected' : '' }} style="background: var(--bg-body); color: var(--text-primary);">H3</option></select></div>
         <div><label class="{{ $labelClass }}">Align</label><select name="settings[align]" class="{{ $selectClass }}"><option value="left" {{ ($s['align'] ?? '') === 'left' ? 'selected' : '' }} style="background: var(--bg-body); color: var(--text-primary);">Left</option><option value="center" {{ ($s['align'] ?? '') === 'center' ? 'selected' : '' }} style="background: var(--bg-body); color: var(--text-primary);">Center</option><option value="right" {{ ($s['align'] ?? '') === 'right' ? 'selected' : '' }} style="background: var(--bg-body); color: var(--text-primary);">Right</option></select></div>
+    </div>
+
+    <div class="pt-3" style="border-top: 1px solid var(--border-subtle);"
+         x-data="{ haAccents: @js(array_values($haSel)) }">
+        <p class="text-xs font-semibold mb-2" style="color: var(--text-muted);"><i class="fas fa-wand-magic-sparkles mr-1 text-blue-400"></i>Decorative Accents</p>
+        <div>
+            <label class="{{ $labelClass }}">Accent Shapes</label>
+            <div class="grid grid-cols-2 gap-1.5 mt-1">
+                @foreach($haOptions as $haVal => $haLabel)
+                <label class="flex items-center gap-2 text-xs cursor-pointer" style="color: var(--text-muted);">
+                    <input type="checkbox" value="{{ $haVal }}" x-model="haAccents" class="rounded">
+                    <span>{{ $haLabel }}</span>
+                </label>
+                @endforeach
+            </div>
+            <input type="hidden" name="style[_heading_accents]" :value="haAccents.join(',')" value="{{ implode(',', $haSel) }}">
+            <p class="text-[10px] mt-1" style="color: var(--text-dimmed);">Playful shapes layered behind the heading text.</p>
+        </div>
+        <div class="grid grid-cols-2 gap-3 mt-2" x-show="haAccents.length > 0" x-cloak>
+            <div>
+                <label class="{{ $labelClass }}">Placement</label>
+                <select name="style[_heading_accent_placement]" class="{{ $selectClass }}">
+                    @foreach($haPlacements as $hpVal => $hpLabel)
+                    <option value="{{ $hpVal }}" {{ ($haSt['_heading_accent_placement'] ?? 'behind_left') === $hpVal ? 'selected' : '' }} style="background: var(--bg-body); color: var(--text-primary);">{{ $hpLabel }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <div>
+                <label class="{{ $labelClass }}">Accent Size</label>
+                <select name="style[_heading_accent_size]" class="{{ $selectClass }}">
+                    @foreach($haSizes as $hzVal => $hzLabel)
+                    <option value="{{ $hzVal }}" {{ ($haSt['_heading_accent_size'] ?? 'md') === $hzVal ? 'selected' : '' }} style="background: var(--bg-body); color: var(--text-primary);">{{ $hzLabel }}</option>
+                    @endforeach
+                </select>
+            </div>
+        </div>
+        <div class="mt-2" x-show="haAccents.length > 0" x-cloak>
+            <label class="{{ $labelClass }}">Accent Color</label>
+            <input type="color" name="style[_heading_accent_color]" value="{{ $haSt['_heading_accent_color'] ?? '#ec4899' }}" class="w-full h-9 rounded-lg cursor-pointer" style="border: 1px solid var(--border-glass); background: var(--bg-glass-input);">
+        </div>
     </div>
 </div>
 

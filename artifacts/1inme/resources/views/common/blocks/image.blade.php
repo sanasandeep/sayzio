@@ -63,28 +63,23 @@
                     {{ $phBanner }}
                 </div>
             @endif
+            @php
+                // Per-shape collage positions (unchanged look); the SVGs
+                // themselves come from the shared AccentShapeCatalog.
+                $phAccentPos = [
+                    'starburst' => 'left:-8px;top:42%;transform:translateY(-50%)',
+                    'dots'      => 'right:-6px;top:-10px',
+                    'squiggle'  => 'left:-4px;bottom:-8px',
+                    'ring'      => 'left:-10px;top:-8px',
+                    'blob'      => 'right:-10px;bottom:-6px',
+                ];
+            @endphp
             @foreach($phAccents as $phAcc)
-                @if($phAcc === 'starburst')
-                    <svg class="absolute pointer-events-none z-10" aria-hidden="true" viewBox="0 0 100 100" width="54" height="54" style="left:-8px;top:42%;transform:translateY(-50%)" fill="{{ e($phAccentColor) }}">
-                        <path d="M50 0 L56 33 L75 7 L63 38 L96 22 L67 44 L100 50 L67 56 L96 78 L63 62 L75 93 L56 67 L50 100 L44 67 L25 93 L37 62 L4 78 L33 56 L0 50 L33 44 L4 22 L37 38 L25 7 L44 33 Z"/>
-                    </svg>
-                @elseif($phAcc === 'dots')
-                    <svg class="absolute pointer-events-none z-10" aria-hidden="true" viewBox="0 0 90 90" width="76" height="76" style="right:-6px;top:-10px" fill="{{ e($phAccentColor) }}">
-                        <circle cx="78" cy="10" r="6"/><circle cx="58" cy="18" r="4.5"/><circle cx="76" cy="30" r="4"/><circle cx="44" cy="10" r="3.5"/><circle cx="62" cy="38" r="3.2"/><circle cx="82" cy="46" r="3"/><circle cx="48" cy="28" r="2.6"/><circle cx="70" cy="54" r="2.4"/><circle cx="34" cy="20" r="2.2"/><circle cx="56" cy="50" r="2"/><circle cx="84" cy="62" r="2"/><circle cx="42" cy="42" r="1.8"/><circle cx="66" cy="68" r="1.6"/><circle cx="78" cy="76" r="1.4"/>
-                    </svg>
-                @elseif($phAcc === 'squiggle')
-                    <svg class="absolute pointer-events-none z-10" aria-hidden="true" viewBox="0 0 120 40" width="84" height="28" style="left:-4px;bottom:-8px" fill="none" stroke="{{ e($phAccentColor) }}" stroke-width="5" stroke-linecap="round">
-                        <path d="M5 30 Q20 5 35 25 T65 22 T95 24 T115 15"/>
-                    </svg>
-                @elseif($phAcc === 'ring')
-                    <svg class="absolute pointer-events-none z-10" aria-hidden="true" viewBox="0 0 60 60" width="46" height="46" style="left:-10px;top:-8px" fill="none" stroke="{{ e($phAccentColor) }}" stroke-width="6">
-                        <circle cx="30" cy="30" r="24"/>
-                    </svg>
-                @elseif($phAcc === 'blob')
-                    <svg class="absolute pointer-events-none z-10" aria-hidden="true" viewBox="0 0 100 100" width="58" height="58" style="right:-10px;bottom:-6px" fill="{{ e($phAccentColor) }}">
-                        <path d="M83 45 C90 62 78 84 58 88 C38 92 16 82 12 62 C8 42 22 20 44 14 C66 8 76 28 83 45 Z"/>
-                    </svg>
-                @endif
+                @include('common.partials.accent-shape', [
+                    'shape'    => $phAcc,
+                    'color'    => $phAccentColor,
+                    'posStyle' => $phAccentPos[$phAcc] ?? '',
+                ])
             @endforeach
         </div>
     @else
