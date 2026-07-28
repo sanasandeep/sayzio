@@ -129,6 +129,39 @@ class FilesApiTest extends TestCase
         $this->assertSame('image', $files[0]['type']);
     }
 
+    public function test_index_supports_name_search_and_pagination(): void
+    {
+        Storage::fake('user_files');
+        $user  = $this->makeUser();
+        $token = $this->token($user);
+
+        foreach (['holiday-banner.png', 'logo-dark.png', 'logo-light.png'] as $name) {
+            $this->withToken($token)->post('/api/v1/me/files/upload', [
+                'file' => UploadedFile::fake()->image($name),
+            ], ['Accept' => 'application/json'])->assertStatus(201);
+        }
+        $this->flushHeaders();
+
+        // Case-insensitive name search matches only the two logo files.
+        $res = $this->withToken($token)->getJson('/api/v1/me/files?type=image&q=LOGO');
+        $res->assertOk();
+        $names = collect($res->json('data.files'))->pluck('original_name')->sort()->values()->all();
+        $this->assertSame(['logo-dark.png', 'logo-light.png'], $names);
+
+        // SQL wildcard characters in q are treated literally, not as wildcards.
+        $res = $this->withToken($token)->getJson('/api/v1/me/files?q=' . urlencode('%'));
+        $res->assertOk();
+        $this->assertCount(0, $res->json('data.files'));
+
+        // per_page + page paginate the search results.
+        $res = $this->withToken($token)->getJson('/api/v1/me/files?q=logo&per_page=1&page=2');
+        $res->assertOk();
+        $this->assertCount(1, $res->json('data.files'));
+        $this->assertSame(2, $res->json('data.pagination.current_page'));
+        $this->assertSame(2, $res->json('data.pagination.last_page'));
+        $this->assertSame(2, $res->json('data.pagination.total'));
+    }
+
     public function test_endpoints_require_auth(): void
     {
         $this->getJson('/api/v1/me/files')->assertStatus(401);

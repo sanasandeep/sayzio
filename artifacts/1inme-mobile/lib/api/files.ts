@@ -21,6 +21,7 @@ export async function listVaultFiles(args?: {
   type?: "image" | "video" | "audio" | "document";
   page?: number;
   perPage?: number;
+  q?: string;
 }): Promise<{
   files: VaultFile[];
   pagination: { current_page: number; last_page: number; total: number };
@@ -29,6 +30,7 @@ export async function listVaultFiles(args?: {
   if (args?.type) params.set("type", args.type);
   if (args?.page) params.set("page", String(args.page));
   if (args?.perPage) params.set("per_page", String(args.perPage));
+  if (args?.q) params.set("q", args.q);
   const qs = params.toString();
   const res = await apiFetch<{
     data: {

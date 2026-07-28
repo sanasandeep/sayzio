@@ -18,6 +18,7 @@ import {
   StyleSheet,
   Switch,
   Text,
+  TextInput,
   View,
 } from "react-native";
 
@@ -717,6 +718,74 @@ export function BlockSettingsEditor({
     null,
   );
   const [stickerVaultLoading, setStickerVaultLoading] = useState(false);
+  // Vault picker pagination + name search (Task #5967). `page`/`lastPage`
+  // mirror the API's pagination envelope so "Load more" knows when to
+  // stop; `query` is debounced before refetching page 1.
+  const [stickerVaultPage, setStickerVaultPage] = useState(1);
+  const [stickerVaultLastPage, setStickerVaultLastPage] = useState(1);
+  const [stickerVaultLoadingMore, setStickerVaultLoadingMore] = useState(false);
+  const [stickerVaultQuery, setStickerVaultQuery] = useState("");
+
+  // Fetch a page of image vault files. `append` keeps earlier pages in the
+  // grid (load-more); a fresh search/open replaces the list. The API also
+  // filters by type, but the client re-filters defensively (matches #5956).
+  // Monotonic request id — stale-response guard so an older in-flight
+  // fetch that resolves late can't overwrite a newer query's results.
+  const stickerVaultReq = useRef(0);
+  const fetchStickerVaultPage = useCallback(
+    async (page: number, q: string, append: boolean) => {
+      const reqId = ++stickerVaultReq.current;
+      if (append) setStickerVaultLoadingMore(true);
+      else setStickerVaultLoading(true);
+      try {
+        const res = await listVaultFiles({
+          type: "image",
+          perPage: 60,
+          page,
+          q: q.trim() || undefined,
+        });
+        if (reqId !== stickerVaultReq.current) return;
+        const images = res.files.filter((f) => f.type === "image");
+        setStickerVaultFiles((prev) =>
+          append && prev ? [...prev, ...images] : images,
+        );
+        setStickerVaultPage(res.pagination.current_page);
+        setStickerVaultLastPage(res.pagination.last_page);
+      } catch {
+        if (reqId !== stickerVaultReq.current) return;
+        if (!append) {
+          setStickerVaultFiles([]);
+          setStickerVaultPage(1);
+          setStickerVaultLastPage(1);
+        }
+      } finally {
+        if (reqId === stickerVaultReq.current) {
+          if (append) setStickerVaultLoadingMore(false);
+          else setStickerVaultLoading(false);
+        }
+      }
+    },
+    [],
+  );
+
+  // Debounced name search — refetch page 1 whenever the query settles
+  // while the picker is open. Skips the initial "" run on open because
+  // openStickerVaultPicker already fetched page 1.
+  const stickerVaultQueryRan = useRef(false);
+  useEffect(() => {
+    if (!stickerPickerOpen) {
+      stickerVaultQueryRan.current = false;
+      return;
+    }
+    if (!stickerVaultQueryRan.current) {
+      stickerVaultQueryRan.current = true;
+      if (stickerVaultQuery === "") return;
+    }
+    const t = setTimeout(() => {
+      void fetchStickerVaultPage(1, stickerVaultQuery, false);
+    }, 350);
+    return () => clearTimeout(t);
+  }, [stickerVaultQuery, stickerPickerOpen, fetchStickerVaultPage]);
 
   // Append a vault file as a new sticker with the server defaults
   // (pos top_right, size 48); duplicates are allowed (matches web), the
@@ -789,16 +858,21 @@ export function BlockSettingsEditor({
   const openStickerVaultPicker = useCallback(async () => {
     setStickerPickerOpen((open) => !open);
     if (stickerVaultFiles !== null) return;
-    setStickerVaultLoading(true);
-    try {
-      const res = await listVaultFiles({ type: "image", perPage: 60 });
-      setStickerVaultFiles(res.files.filter((f) => f.type === "image"));
-    } catch {
-      setStickerVaultFiles([]);
-    } finally {
-      setStickerVaultLoading(false);
-    }
-  }, [stickerVaultFiles]);
+    await fetchStickerVaultPage(1, stickerVaultQuery, false);
+  }, [stickerVaultFiles, stickerVaultQuery, fetchStickerVaultPage]);
+
+  const loadMoreStickerVault = useCallback(() => {
+    if (stickerVaultLoadingMore || stickerVaultLoading) return;
+    if (stickerVaultPage >= stickerVaultLastPage) return;
+    void fetchStickerVaultPage(stickerVaultPage + 1, stickerVaultQuery, true);
+  }, [
+    stickerVaultLoadingMore,
+    stickerVaultLoading,
+    stickerVaultPage,
+    stickerVaultLastPage,
+    stickerVaultQuery,
+    fetchStickerVaultPage,
+  ]);
 
   const [mapPickerOpen, setMapPickerOpen] = useState(false);
   const [mapShowDirections, setMapShowDirections] = useState(true);
@@ -2352,6 +2426,24 @@ export function BlockSettingsEditor({
                       gap: 8,
                     }}
                   >
+                    <TextInput
+                      value={stickerVaultQuery}
+                      onChangeText={setStickerVaultQuery}
+                      placeholder="Search your files by name…"
+                      placeholderTextColor={colors.mutedForeground}
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                      style={{
+                        borderWidth: 1,
+                        borderColor: colors.border,
+                        borderRadius: 8,
+                        paddingHorizontal: 10,
+                        paddingVertical: 8,
+                        fontSize: 12,
+                        color: colors.foreground,
+                      }}
+                      accessibilityLabel="Search your files by name"
+                    />
                     {stickerVaultLoading ? (
                       <ActivityIndicator size="small" color={colors.primary} />
                     ) : stickerVaultFiles && stickerVaultFiles.length > 0 ? (
@@ -2391,10 +2483,56 @@ export function BlockSettingsEditor({
                       <Text
                         style={{ color: colors.mutedForeground, fontSize: 11 }}
                       >
-                        No images in your files yet — upload one from your
-                        device instead.
+                        {stickerVaultQuery.trim()
+                          ? "No images match that name."
+                          : "No images in your files yet — upload one from your device instead."}
                       </Text>
                     )}
+                    {!stickerVaultLoading &&
+                    stickerVaultFiles &&
+                    stickerVaultFiles.length > 0 &&
+                    stickerVaultPage < stickerVaultLastPage ? (
+                      <Pressable
+                        {...WEB_FOCUS_RING_PROPS}
+                        onPress={loadMoreStickerVault}
+                        disabled={stickerVaultLoadingMore}
+                        style={{
+                          flexDirection: "row",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          gap: 6,
+                          paddingVertical: 8,
+                          borderRadius: 8,
+                          borderWidth: 1,
+                          borderColor: colors.border,
+                          opacity: stickerVaultLoadingMore ? 0.6 : 1,
+                        }}
+                        accessibilityRole="button"
+                        accessibilityLabel="Load more files"
+                      >
+                        {stickerVaultLoadingMore ? (
+                          <ActivityIndicator
+                            size="small"
+                            color={colors.primary}
+                          />
+                        ) : (
+                          <Feather
+                            name="chevron-down"
+                            size={14}
+                            color={colors.primary}
+                          />
+                        )}
+                        <Text
+                          style={{
+                            color: colors.primary,
+                            fontSize: 12,
+                            fontWeight: "600",
+                          }}
+                        >
+                          {stickerVaultLoadingMore ? "Loading…" : "Load more"}
+                        </Text>
+                      </Pressable>
+                    ) : null}
                   </View>
                 ) : null}
               </View>

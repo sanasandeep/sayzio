@@ -22,16 +22,21 @@ class FilesController extends Controller
     /**
      * GET /me/files — the caller's vault files (system-generated files with
      * a `context` are excluded, matching the web vault UI). Optional
-     * `?type=image|video|audio|document` filter; paginated.
+     * `?type=image|video|audio|document` filter; optional `?q=` name
+     * search (case-insensitive, matches original_name); paginated.
      */
     public function index(Request $request)
     {
         $user = $request->user();
         $type = (string) $request->query('type', 'all');
+        $q = trim((string) $request->query('q', ''));
 
         $query = $user->files()->whereNull('context')->orderByDesc('created_at');
         if (in_array($type, ['image', 'video', 'audio', 'document'], true)) {
             $query->where('type', $type);
+        }
+        if ($q !== '') {
+            $query->where('original_name', 'ilike', '%' . addcslashes($q, '%_\\') . '%');
         }
 
         $files = $query->paginate(min(100, max(1, (int) $request->query('per_page', 48))));
