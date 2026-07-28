@@ -157,3 +157,4 @@
 - [Per-card DB queries in Blade loops](blade-per-card-db-query-loop.md) — one ->exists() inside a 400-card loop = minutes over distant RDS; hoist invariant queries; slow-POST clicks need noWaitAfter+waitForURL commit.
 - [Persona template top-up counts recommendations](persona-template-min-count-recommendations.md) — seeder tops up by recommended_personas across ALL templates, so starter recs leave personas one persona-* row short by design; run refresh via validation workflow (>2min).
 - [Template thumbnails: dynamic SVG + relative URLs](template-thumbnails-dynamic-svg.md) — thumbnail_url must be stored root-relative (url() bakes the seed host); PageTemplate accessor absolutizes; slug-seeded glow keeps same-theme cards distinct.
+- [Chunked card-gallery pattern](chunked-card-gallery-pattern.md) — huge Blade card grids: SSR first chunk + Alpine chunk streaming + light filter index; demo-login is sayzioapp@gmail.com not demo@1inme.com.

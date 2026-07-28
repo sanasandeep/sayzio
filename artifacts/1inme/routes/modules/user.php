@@ -1334,6 +1334,7 @@ Route::prefix('user')->name('user.')->group(function () {
         // require links.view; apply mutates the link so requires links.edit.
         Route::get('links/{link}/templates', [\App\Modules\User\Controllers\LinkTemplateController::class, 'picker'])->middleware('workspace.can:links.view')->name('links.templates.picker');
         Route::post('links/{link}/templates/apply-page', [\App\Modules\User\Controllers\LinkTemplateController::class, 'applyPage'])->middleware('workspace.can:links.edit')->name('links.templates.apply-page');
+        Route::get('links/{link}/templates/chunk', [\App\Modules\User\Controllers\LinkTemplateController::class, 'pickerChunk'])->middleware('workspace.can:links.view')->name('links.templates.chunk');
         Route::get('links/{link}/templates/cards', [\App\Modules\User\Controllers\LinkTemplateController::class, 'cardGallery'])->middleware('workspace.can:links.view')->name('links.templates.cards');
         Route::post('links/{link}/templates/apply-card', [\App\Modules\User\Controllers\LinkTemplateController::class, 'applyCard'])->middleware('workspace.can:links.edit')->name('links.templates.apply-card');
         Route::post('links/{link}/templates/detach-design', [\App\Modules\User\Controllers\LinkTemplateController::class, 'detachDesign'])->middleware('workspace.can:links.edit')->name('links.templates.detach-design');

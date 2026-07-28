@@ -604,6 +604,14 @@ args = "persona-seed-refresh"
 task = "workflow.run"
 args = "e2e-template-gallery"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "tpl-size-check"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "tpl-base-check"
+
 [[workflows.workflow]]
 name = "e2e"
 author = "agent"
@@ -2402,9 +2410,31 @@ isValidation = true
 name = "e2e-template-gallery"
 author = "agent"
 
+[workflows.workflow.metadata]
+isValidation = true
+
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "bash artifacts/1inme/tests/Browser/run-validation.sh template-gallery-visual.spec.ts"
+
+[[workflows.workflow]]
+name = "tpl-size-check"
+author = "agent"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "bash .local/tmp/sizecheck.sh"
+
+[[workflows.workflow]]
+name = "tpl-base-check"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "bash .local/tmp/basecheck.sh"
 
 [workflows.workflow.metadata]
 isValidation = true
@@ -2435,6 +2465,7 @@ APP_NAME = "Sayzio"
 [[ports]]
 localPort = 5000
 externalPort = 5000
+exposeLocalhost = true
 
 [[ports]]
 localPort = 5050

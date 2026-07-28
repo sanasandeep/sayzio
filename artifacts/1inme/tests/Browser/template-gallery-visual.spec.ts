@@ -246,6 +246,13 @@ test("picker grid renders chips, thumbnails and working search", async ({ page }
   const chipCount = await chipBar.locator("button").count();
   expect(chipCount, "should render several category chips").toBeGreaterThan(5);
 
+  // The picker now server-renders only the first chunk and streams the rest
+  // in the background; wait for the grid to report the full library loaded
+  // before counting cards.
+  await expect(page.locator("div.grid[data-all-loaded]")).toHaveCount(1, {
+    timeout: 120_000,
+  });
+
   // Cards: many render, each with a name and a thumbnail/blueprint area.
   const cards = page.locator("div.grid > div.glass");
   const cardCount = await cards.count();
