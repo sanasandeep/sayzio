@@ -2147,6 +2147,8 @@ function profileAccent(layout: string): string {
       return "#ffffff";
     case "glass":
       return "#c4b5fd";
+    case "paper_collage":
+      return "#5f6f52";
     case "minimal_dark":
     case "cover_hero":
       return "#7d9bff";
@@ -3543,6 +3545,205 @@ function ProfileCardView({
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginTop: 8 }}>
             <Text style={{ fontFamily: mono, fontSize: 13, color: termText, opacity: 0.6 }}>$</Text>
             <View style={{ width: 8, height: 16, backgroundColor: accent }} />
+          </View>
+        </View>
+      </View>
+    );
+  }
+
+  // ───────────── PAPER COLLAGE ─────────────
+  // Task #5929: scrapbook brand intro — offset sage grid-paper panel with a
+  // slightly-rotated white paper card (script-styled name + serif tagline)
+  // and a simple pressed-leaf accent built from rotated leaf-shaped Views
+  // (RN has no clip-path, so the torn edge is approximated with small
+  // uneven "torn scrap" strips along the card's top and bottom edges).
+  // Colours are intrinsic to the collage (paper is always light), matching
+  // the web renderer, so both app themes stay legible.
+  if (layout === "paper_collage") {
+    const serif = Platform.OS === "ios" ? "Georgia" : "serif";
+    const leaf = (
+      rotate: string,
+      top: number,
+      left: number,
+      w: number,
+      h: number,
+      color: string,
+    ) => (
+      <View
+        style={{
+          position: "absolute",
+          top,
+          left,
+          width: w,
+          height: h,
+          backgroundColor: color,
+          borderTopLeftRadius: w,
+          borderBottomRightRadius: w,
+          borderTopRightRadius: 3,
+          borderBottomLeftRadius: 3,
+          transform: [{ rotate }],
+        }}
+      />
+    );
+    // Uneven "torn" strips along the paper edges.
+    const tornStrip = (edge: "top" | "bottom") => (
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: edge === "top" ? "flex-end" : "flex-start",
+          height: 7,
+          overflow: "hidden",
+        }}
+      >
+        {[6, 4, 7, 3, 6, 5, 7, 4, 6, 3, 7, 5, 6, 4].map((h, i) => (
+          <View
+            key={i}
+            style={{
+              flex: 1,
+              height: h,
+              backgroundColor: "#fcfbf7",
+              transform: [{ rotate: i % 2 === 0 ? "1.5deg" : "-1.5deg" }],
+            }}
+          />
+        ))}
+      </View>
+    );
+    return (
+      <View
+        style={[
+          surface,
+          cardOverlay?.backgroundColor == null ? { backgroundColor: "#f0eee7" } : null,
+        ]}
+      >
+        <View style={{ minHeight: 220, paddingVertical: 26, paddingHorizontal: 14 }}>
+          {/* Offset grid-paper panel */}
+          <View
+            style={{
+              position: "absolute",
+              top: 14,
+              right: 14,
+              left: "21%",
+              bottom: 20,
+              backgroundColor: "#c6d0c3",
+              overflow: "hidden",
+            }}
+          >
+            {Array.from({ length: 12 }).map((_, i) => (
+              <View
+                key={`h${i}`}
+                style={{
+                  position: "absolute",
+                  top: i * 17,
+                  left: 0,
+                  right: 0,
+                  height: 1,
+                  backgroundColor: "rgba(255,255,255,0.55)",
+                }}
+              />
+            ))}
+            {Array.from({ length: 18 }).map((_, i) => (
+              <View
+                key={`v${i}`}
+                style={{
+                  position: "absolute",
+                  left: i * 17,
+                  top: 0,
+                  bottom: 0,
+                  width: 1,
+                  backgroundColor: "rgba(255,255,255,0.55)",
+                }}
+              />
+            ))}
+          </View>
+          {/* Pressed botanical sprig */}
+          <View style={{ position: "absolute", left: 6, top: 12, width: 96, height: 168 }}>
+            <View
+              style={{
+                position: "absolute",
+                left: 40,
+                top: 8,
+                width: 2.5,
+                height: 150,
+                borderRadius: 2,
+                backgroundColor: "#6d7f5e",
+                transform: [{ rotate: "14deg" }],
+              }}
+            />
+            {leaf("-35deg", 26, 6, 34, 18, "#93a37e")}
+            {leaf("-15deg", 58, 2, 38, 20, "#788a68")}
+            {leaf("20deg", 84, 44, 36, 18, "#7f9070")}
+            {leaf("-25deg", 104, 8, 34, 18, "#87977a")}
+            {leaf("30deg", 126, 40, 32, 16, "#9aa887")}
+            <View style={{ position: "absolute", left: 12, top: 0, width: 8, height: 8, borderRadius: 4, backgroundColor: "#b9b2a4" }} />
+            <View style={{ position: "absolute", left: 28, top: -4, width: 6, height: 6, borderRadius: 3, backgroundColor: "#c8c2b4" }} />
+          </View>
+          {/* Torn paper card */}
+          <View
+            style={{
+              marginTop: 18,
+              marginLeft: "14%",
+              marginRight: "5%",
+              transform: [{ rotate: "-1.2deg" }],
+              shadowColor: "#42402f",
+              shadowOpacity: 0.22,
+              shadowRadius: 12,
+              shadowOffset: { width: 0, height: 8 },
+              elevation: 6,
+            }}
+          >
+            {tornStrip("top")}
+            <View
+              style={{
+                backgroundColor: "#fcfbf7",
+                paddingHorizontal: 24,
+                paddingVertical: 30,
+                alignItems: "center",
+              }}
+            >
+              {name ? (
+                <Text
+                  style={{
+                    fontSize: 30,
+                    fontStyle: "italic",
+                    fontWeight: "600",
+                    color: "#5b4636",
+                    textAlign: "center",
+                    transform: [{ rotate: "-1.5deg" }],
+                  }}
+                >
+                  {name}
+                </Text>
+              ) : null}
+              {title ? (
+                <Text
+                  style={{
+                    marginTop: 10,
+                    fontSize: 13,
+                    lineHeight: 20,
+                    fontFamily: serif,
+                    color: "#57534e",
+                    textAlign: "center",
+                  }}
+                >
+                  {title}
+                </Text>
+              ) : null}
+              {bio ? (
+                <Text
+                  style={{
+                    marginTop: 6,
+                    fontSize: 12,
+                    lineHeight: 19,
+                    fontFamily: serif,
+                    color: "#78716c",
+                    textAlign: "center",
+                  }}
+                >
+                  {bio}
+                </Text>
+              ) : null}
+            </View>
+            {tornStrip("bottom")}
           </View>
         </View>
       </View>

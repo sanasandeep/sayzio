@@ -20,36 +20,6 @@ author = "agent"
 task = "workflow.run"
 args = "e2e-block-defaults"
 
-[[workflows.workflow.tasks]]
-task = "workflow.run"
-args = "tpl-lock-tests"
-
-[[workflows.workflow.tasks]]
-task = "workflow.run"
-args = "tpl-lint-dep"
-
-[[workflows.workflow]]
-name = "tpl-lock-tests"
-author = "agent"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "cd artifacts/1inme && rm -rf /tmp/1inme-testpg.* ; TEST_LOCAL_MODE=artisan TEST_LOCAL_PORT=55511 bash scripts/test-local.sh --filter='DesignLockedTemplateTest|TemplateDesignSessionTest'"
-
-[workflows.workflow.metadata]
-isValidation = true
-
-[[workflows.workflow]]
-name = "tpl-lint-dep"
-author = "agent"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "cd artifacts/1inme && composer lint:deprecations"
-
-[workflows.workflow.metadata]
-isValidation = true
-
 
   [agent]
 stack = "PNPM_WORKSPACE"

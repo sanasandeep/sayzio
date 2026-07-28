@@ -2264,6 +2264,27 @@ class BlockVariantCatalog
                     ],
                     'preview' => ['bg' => 'linear-gradient(90deg,#7c3aed 0,#7c3aed 14%,#ffffff 14%)', 'text' => '#0f172a', 'radius' => 16, 'border' => '#e5e7eb'],
                 ],
+                [
+                    // Task #5929: scrapbook brand-intro collage — a torn-edge
+                    // white paper card (script name + serif tagline) layered
+                    // over an offset muted-green grid-paper panel with a
+                    // pressed-botanical accent. The block surface paints the
+                    // soft off-white backdrop; the layout draws the collage
+                    // internally. `font_family` here makes the public-page
+                    // font collector load the script face from `_style`.
+                    'key' => 'identity_paper_collage',
+                    'name' => 'Paper Collage',
+                    'tags' => ['handwritten', 'editorial'],
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#f0eee7',
+                        'text_color' => '#57534e',
+                        'border_style' => 'none', 'border_radius' => '20',
+                        'shadow_preset' => 'soft',
+                        'font_family' => 'Dancing Script',
+                        'padding' => '0', '_profile_layout' => 'paper_collage',
+                    ],
+                    'preview' => ['bg' => '#f0eee7', 'text' => '#5f6f52', 'radius' => 20, 'serif' => true],
+                ],
             ],
         ];
     }

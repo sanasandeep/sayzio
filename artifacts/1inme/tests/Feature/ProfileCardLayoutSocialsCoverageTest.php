@@ -66,6 +66,7 @@ class ProfileCardLayoutSocialsCoverageTest extends TestCase
         'ticket_stub',
         'polaroid',
         'terminal',
+        'paper_collage',
         // Historical per-type fallback layouts (profile_card_v3 / v4).
         'stats',
         'badges',

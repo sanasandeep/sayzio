@@ -221,6 +221,7 @@ const BUNDLES: Record<string, MobileVariant[]> = {
     { key: "identity_minimal_dark", name: "Minimal Dark",           tags: ["minimal", "dark"],      preview: { bg: "#0b0b0f", text: "#ffffff", radius: 18, border: "#ffffff20" },         profileLayout: "minimal_dark" },
     { key: "identity_magazine",     name: "Magazine Layout",        tags: ["editorial", "pro"],     preview: { bg: "#ffffff", text: "#1c1917", radius: 14, border: "#e7e5e4", serif: true }, profileLayout: "magazine" },
     { key: "identity_social",       name: "Social Profile Style",   tags: ["minimal", "pro"],       preview: { bg: "#ffffff", text: "#3b82f6", radius: 18, border: "#e5e7eb" },           profileLayout: "social_profile" },
+    { key: "identity_paper_collage", name: "Paper Collage",         tags: ["handwritten", "editorial"], preview: { bg: "#f0eee7", text: "#5f6f52", radius: 20, serif: true },             profileLayout: "paper_collage" },
   ],
 };
 

@@ -65,6 +65,7 @@
         'minimal_dark', 'cover_hero' => '#90acff',
         'business_card', 'id_badge' => '#2563eb',
         'ticket_stub'              => '#b45309',
+        'paper_collage'            => '#5f6f52',
         'terminal'                 => '#4ade80',
         'polaroid', 'sidebar_accent' => '#3d6bff',
         default                    => '#3d6bff',
@@ -577,6 +578,44 @@
                 </div>
                 @if($bio)<p class="text-sm mt-3" style="opacity:.72">{{ $bio }}</p>@endif
                 @include('common.biolink-profile-socials', ['psocials' => $psocials, 'socialIcons' => $socialIcons, 'accent' => $accent, 'chip' => 'accent_outline', 'align' => 'left'])
+            </div>
+        </div>
+    </div>
+
+{{-- ───────────────────────────── PAPER COLLAGE ─────────────────────── --}}
+{{-- Task #5929: scrapbook brand intro — an offset muted-green grid-paper
+     panel, a torn-edge white paper card (clip-path polygon; the drop-shadow
+     lives on a wrapper so it follows the torn silhouette) with the brand
+     name in Dancing Script and the tagline in a system serif, plus a
+     pressed-botanical SVG sprig on the left. Colours are intrinsic to the
+     collage (paper is always light), so both page themes stay legible. --}}
+@elseif($layout === 'paper_collage')
+    <div class="mb-4 overflow-hidden rounded-2xl relative {{ $baseClass }}" style="{{ $cardStyle }}">
+        <div class="relative px-4 pt-7 pb-9" style="min-height:230px">
+            {{-- Offset grid-paper panel --}}
+            <div class="absolute" aria-hidden="true"
+                 style="top:0.9rem;right:1rem;left:21%;bottom:1.6rem;background-color:#c6d0c3;background-image:linear-gradient(rgba(255,255,255,0.55) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.55) 1px,transparent 1px);background-size:17px 17px;box-shadow:0 6px 18px rgba(72,80,62,0.16)"></div>
+            {{-- Pressed botanical sprig --}}
+            <svg class="absolute" viewBox="0 0 120 200" fill="none" aria-hidden="true"
+                 style="left:1%;top:4%;width:104px;height:172px;z-index:2;opacity:.9">
+                <path d="M74 192 C68 140 48 84 22 30" stroke="#6d7f5e" stroke-width="2.5" stroke-linecap="round"/>
+                <path d="M52 118 C40 112 28 112 18 120 C28 130 44 130 52 118 Z" fill="#87977a"/>
+                <path d="M60 92 C50 80 36 74 22 76 C26 92 44 100 60 92 Z" fill="#788a68"/>
+                <path d="M46 56 C40 44 30 36 18 34 C18 48 32 58 46 56 Z" fill="#93a37e"/>
+                <path d="M66 150 C58 142 46 140 36 144 C42 156 58 158 66 150 Z" fill="#9aa887"/>
+                <path d="M70 128 C78 118 90 114 102 118 C96 130 80 136 70 128 Z" fill="#7f9070"/>
+                <circle cx="24" cy="22" r="4" fill="#b9b2a4"/>
+                <circle cx="36" cy="14" r="3" fill="#c8c2b4"/>
+                <circle cx="14" cy="36" r="3" fill="#c8c2b4"/>
+            </svg>
+            {{-- Torn paper card --}}
+            <div class="relative" style="z-index:3;margin:1.4rem 5% 0 13%;filter:drop-shadow(0 10px 16px rgba(66,62,48,0.22))">
+                <div class="px-7 pt-9 pb-11 text-center"
+                     style="background:#fcfbf7;clip-path:polygon(2% 7%, 9% 2%, 21% 5%, 33% 1%, 46% 4%, 58% 0%, 71% 3%, 83% 1%, 94% 5%, 100% 12%, 98% 26%, 100% 41%, 97% 55%, 99% 68%, 96% 82%, 90% 93%, 79% 89%, 68% 98%, 55% 92%, 43% 100%, 30% 94%, 18% 99%, 8% 91%, 3% 95%, 0% 81%, 2% 64%, 0% 48%, 3% 32%, 1% 18%)">
+                    @if($name)<p class="text-4xl leading-tight" style="font-family:'Dancing Script','Brush Script MT',cursive;font-weight:600;color:#5b4636;transform:rotate(-2deg)">{{ $name }}</p>@endif
+                    @if($title)<p class="mt-3 text-sm" style="font-family:Georgia,'Times New Roman',serif;color:#57534e;line-height:1.55">{{ $title }}</p>@endif
+                    @if($bio)<p class="mt-2 text-xs" style="font-family:Georgia,'Times New Roman',serif;color:#78716c;line-height:1.6">{{ $bio }}</p>@endif
+                </div>
             </div>
         </div>
     </div>
