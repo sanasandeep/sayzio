@@ -81,7 +81,9 @@ class TemplateThumbnailRenderer
             }
             $type = (string) ($block['type'] ?? '');
             $settings = is_array($block['settings'] ?? null) ? $block['settings'] : [];
-            $row = self::row($type, $settings, $y, $ink, $inkDim, $card, $accent, $btnBg, $btnFg, $shape);
+            $row = $type === 'grid_auto'
+                ? self::gridAutoRow($block, $y, $card)
+                : self::row($type, $settings, $y, $ink, $inkDim, $card, $accent, $btnBg, $btnFg, $shape);
             if ($row === null) {
                 continue;
             }
@@ -176,6 +178,41 @@ class TemplateThumbnailRenderer
     }
 
     /* ─────────────────────────── block rows ─────────────────────────── */
+
+    /**
+     * Auto-grid container: draw its children as a grid of rounded tiles
+     * (3 per row, up to 6), each painted with the child's own card/tile
+     * background color when one is set (card `bg_color` or `_style`
+     * `bg_color`), falling back to the theme card tint.
+     *
+     * @param  array<string,mixed>  $block  Snapshot block (with children).
+     * @return array{0:string,1:int} [markup, consumed height]
+     */
+    private static function gridAutoRow(array $block, int $y, string $card): array
+    {
+        $x = self::PAD;
+        $w = self::W - self::PAD * 2;
+        $children = is_array($block['children'] ?? null) ? array_values($block['children']) : [];
+        $n = max(1, min(6, count($children)));
+        $cols = min(3, $n);
+        $gap = 14;
+        $tw = (int) (($w - ($cols - 1) * $gap) / $cols);
+        $th = 96;
+
+        $out = '';
+        for ($i = 0; $i < $n; $i++) {
+            $cs = is_array($children[$i]['settings'] ?? null) ? $children[$i]['settings'] : [];
+            $fill = self::color($cs['bg_color'] ?? ($cs['_style']['bg_color'] ?? null), $card);
+            $tx = $x + ($i % $cols) * ($tw + $gap);
+            $ty = $y + intdiv($i, $cols) * ($th + $gap);
+            $out .= '<rect x="' . $tx . '" y="' . $ty . '" width="' . $tw . '" height="' . $th . '" rx="16" fill="' . $fill . '"/>'
+                . '<rect x="' . ($tx + $tw / 2 - 44) . '" y="' . ($ty + 26) . '" width="88" height="12" rx="6" fill="rgba(255,255,255,0.85)"/>'
+                . '<rect x="' . ($tx + $tw / 2 - 60) . '" y="' . ($ty + 50) . '" width="120" height="8" rx="4" fill="rgba(255,255,255,0.55)"/>'
+                . '<rect x="' . ($tx + $tw / 2 - 50) . '" y="' . ($ty + 64) . '" width="100" height="8" rx="4" fill="rgba(255,255,255,0.55)"/>';
+        }
+        $rows = (int) ceil($n / $cols);
+        return [$out, $rows * $th + ($rows - 1) * $gap + 16];
+    }
 
     /**
      * Render one block's skeleton row starting at $y.

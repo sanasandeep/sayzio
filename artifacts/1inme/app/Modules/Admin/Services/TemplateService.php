@@ -75,7 +75,7 @@ class TemplateService
             'settings' => $b->settings ?? [],
             'is_active' => (bool) $b->is_active,
         ];
-        if ($includeChildren && $b->type === 'card') {
+        if ($includeChildren && $b->isContainer()) {
             $data['children'] = $b->children->map(function ($c) {
                 return $this->serializeBlock($c, false);
             })->all();
@@ -252,7 +252,7 @@ class TemplateService
 
         $children = collect();
         $activeChildren = collect();
-        if ($type === 'card' && !empty($b['children']) && is_array($b['children'])) {
+        if (BiolinkBlock::isContainerType($type) && !empty($b['children']) && is_array($b['children'])) {
             foreach (array_values($b['children']) as $i => $child) {
                 $childBlock = $this->buildPreviewBlock($link, $child, $block->id, $i, $nextId, $allSink, $position . ' → child #' . ($i + 1));
                 $children->push($childBlock);
@@ -320,7 +320,7 @@ class TemplateService
             'parent_id' => $parentId,
         ]);
 
-        if ($type === 'card' && !empty($b['children']) && is_array($b['children'])) {
+        if (BiolinkBlock::isContainerType($type) && !empty($b['children']) && is_array($b['children'])) {
             foreach (array_values($b['children']) as $i => $child) {
                 $this->insertBlockTree($link, $child, $block->id, $i, $stripTabId);
             }

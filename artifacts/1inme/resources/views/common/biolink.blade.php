@@ -225,7 +225,7 @@
             $stu = $bb->settings['_style'] ?? [];
             if (!empty($stu['font_family'])) $allFonts[] = (string) $stu['font_family'];
             foreach (($bb->children ?? []) as $cc) {
-                $cs = $cc->settings['style'] ?? [];
+                $cs = $cc->settings['_style'] ?? $cc->settings['style'] ?? [];
                 if (!empty($cs['font_family'])) $allFonts[] = (string) $cs['font_family'];
                 $csu = $cc->settings['_style'] ?? [];
                 if (!empty($csu['font_family'])) $allFonts[] = (string) $csu['font_family'];

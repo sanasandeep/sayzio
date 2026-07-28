@@ -57,8 +57,13 @@ class StarterPageTemplatesSeeder extends Seeder
      * (script name + spaced tagline + photo) sitting beside a 2×3 grid of
      * flat solid-colour link tiles on desktop, stacking vertically on
      * phones via the new grid_span_md / grid_row_span_md overrides.
+     *
+     * v13 (2026-07): Added "Pastel Tile Grid" — a cream apparel-brand page
+     * with a green serif brand title, orange socials and six pastel card
+     * tiles (heading + short blurb) in a responsive auto grid (3 columns
+     * on desktop, stacked on phones).
      */
-    public const SEED_VERSION = 12;
+    public const SEED_VERSION = 13;
 
     /** Tolerance (seconds) for treating updated_at == created_at. */
     private const EDIT_DRIFT_TOLERANCE = 2;
@@ -504,6 +509,114 @@ class StarterPageTemplatesSeeder extends Seeder
                     'max_width_desktop' => 960,
                     'block_gap'         => 8,
                 ]),
+            ],
+
+            // 11 — Pastel Tile Grid: cream apparel-brand page — centered
+            // green serif brand title, orange social icons, then six
+            // pastel info tiles (about, shop, sale, subscribe, contact,
+            // press) in a responsive auto-fit grid: 3 columns on desktop,
+            // stacked on phones — screenshot-inspired.
+            [
+                'slug'                 => 'starter-pastel-tiles',
+                'name'                 => 'Pastel Tile Grid',
+                'category'             => 'fashion',
+                'description'          => 'A soft apparel-brand page: cream background, green serif wordmark, orange socials and six pastel tiles for about, shop, sale, subscribe, contact and press.',
+                'recommended_personas' => ['fashion', 'business', 'creator'],
+                'snapshot'             => $this->snapshot([
+                    $this->pastelBrandTitle('Your Brand'),
+                    $this->socials(),
+                    $this->pastelTileGrid([
+                        $this->pastelTile('about us',     'Learn how we started and our commitment to sustainable, ethical fashion.',                      '#e8925a', '#fdf3e3'),
+                        $this->pastelTile('shop all',     'Explore all our pieces, available in-store and for pre-order.',                                 '#c5b3e6', '#4a3d6b'),
+                        $this->pastelTile('archive sale', 'Get up to 50% off select pieces from last season.',                                             '#b5cc8e', '#3f4d26'),
+                        $this->pastelTile('subscribe',    'Get exclusive deals and be the first to know about the latest drops and collaborations.',       '#c5b3e6', '#4a3d6b'),
+                        $this->pastelTile('contact us',   'Reach out to customer support for inquiries and order status.',                                 '#b5cc8e', '#3f4d26'),
+                        $this->pastelTile('press',        'See what the press is saying about us.',                                                        '#e8925a', '#fdf3e3'),
+                    ]),
+                ], [
+                    'background_type'   => 'color',
+                    'background_color'  => '#faf5ea',
+                    'theme_color'       => '#e8925a',
+                    'font_color'        => '#4a5238',
+                    'button_color'      => '#7ba05b',
+                    'button_text_color' => '#faf5ea',
+                    'button_style'      => 'rounded',
+                ]),
+            ],
+        ];
+    }
+
+    /* ────────────── Pastel Tile Grid helpers (template 11) ────────────── */
+
+    /**
+     * Centered green serif brand wordmark. A plain heading block with a
+     * baked `_style` (no catalog variant key) carrying the serif family
+     * and brand-green colour so the wordmark survives variant migrations.
+     */
+    private function pastelBrandTitle(string $text): array
+    {
+        return $this->block('heading', [
+            'text'   => $text,
+            'size'   => 'h1',
+            'align'  => 'center',
+            '_style' => $this->variantStyle('heading', '', [
+                'display_mode' => 'content',
+                'text_color'   => '#7ba05b',
+                'font_family'  => 'Playfair Display',
+                'padding'      => '0',
+            ]),
+        ]);
+    }
+
+    /**
+     * Responsive auto-fit grid container for the pastel tiles: with a
+     * 200px min tile width the page column fits 3 tiles per row on
+     * desktop (680px column), 2 on tablets and stacks to 1 on phones.
+     *
+     * @param array<int, array> $tiles serialized child blocks
+     */
+    private function pastelTileGrid(array $tiles): array
+    {
+        return [
+            'type'      => 'grid_auto',
+            'settings'  => ['min_width' => 200, 'gap' => 14],
+            'is_active' => true,
+            'children'  => $tiles,
+        ];
+    }
+
+    /**
+     * One pastel info tile: a `card` container painted with the pastel
+     * background holding a centered heading (tile colour) and a short
+     * description, mirroring the screenshot's tile grid.
+     */
+    private function pastelTile(string $title, string $description, string $bg, string $titleColor): array
+    {
+        return [
+            'type'     => 'card',
+            'settings' => [
+                'title'         => '',
+                'columns'       => 1,
+                'gap'           => 4,
+                'padding'       => 18,
+                'border_radius' => 18,
+                'bg_type'       => 'color',
+                'bg_color'      => $bg,
+                'border_width'  => 0,
+            ],
+            'is_active' => true,
+            'children'  => [
+                $this->block('heading', [
+                    'text'   => $title,
+                    'size'   => 'h3',
+                    'align'  => 'center',
+                    '_style' => $this->variantStyle('heading', '', [
+                        'display_mode' => 'content',
+                        'text_color'   => $titleColor,
+                        'padding'      => '0',
+                    ]),
+                ]),
+                $this->paragraph($description),
             ],
         ];
     }
