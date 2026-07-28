@@ -267,9 +267,9 @@
                         if (!stage) return;
                         this.pts[ev.pointerId] = { x: ev.clientX, y: ev.clientY };
                         try { stage.setPointerCapture(ev.pointerId); } catch (e) {}
-                        // Second finger on the same sticker → pinch-to-resize
-                        // instead of a second drag (touch parity for the
-                        // corner handle).
+                        /* Second finger on the same sticker → pinch-to-resize
+                           instead of a second drag (touch parity for the
+                           corner handle). */
                         if (this.drag && this.drag.i === i && Object.keys(this.pts).length >= 2) {
                             const stk = this.stickers[i];
                             this.pinch = { i: i, startDist: Math.max(1, this.pinchDist()), startSize: this.clampSize(stk.size) };
@@ -307,9 +307,9 @@
                         }
                         if (this.resize) {
                             const stk = this.stickers[this.resize.i];
-                            // Bottom-right handle: growing toward the corner
-                            // (down/right) enlarges; use the dominant axis so
-                            // diagonal drags feel 1:1.
+                            /* Bottom-right handle: growing toward the corner
+                               (down/right) enlarges; use the dominant axis so
+                               diagonal drags feel 1:1. */
                             const delta = Math.max(ev.clientX - this.resize.startX, ev.clientY - this.resize.startY);
                             stk.size = this.clampSize(this.resize.startSize + Math.round(delta));
                             return;
