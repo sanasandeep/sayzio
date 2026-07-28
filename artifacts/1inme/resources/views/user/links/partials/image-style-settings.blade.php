@@ -214,9 +214,9 @@
                     stageH: 0,
                     drag: null,
                     init() {
-                        // Keep the drag stage dimensions reactive so anchor
-                        // math re-runs when the drawer resizes or the block
-                        // image finishes loading (Task #5945).
+                        /* Keep the drag stage dimensions reactive so anchor
+                           math re-runs when the drawer resizes or the block
+                           image finishes loading. */
                         this.$nextTick(() => {
                             const stage = this.$refs.dragStage;
                             if (!stage || typeof ResizeObserver === 'undefined') return;
@@ -229,9 +229,9 @@
                             this.stageH = stage.clientHeight;
                         });
                     },
-                    // Mirrors the public renderer's anchor CSS: top-left px
-                    // coords of a sticker of size S at each preset, before
-                    // dx/dy are applied.
+                    /* Mirrors the public renderer's anchor CSS: top-left px
+                       coords of a sticker of size S at each preset, before
+                       dx/dy are applied. */
                     anchorBase(pos, S) {
                         const W = this.stageW, H = this.stageH;
                         switch (pos) {
@@ -240,7 +240,7 @@
                             case 'bottom_right': return { x: W - S + 10, y: H - S + 10 };
                             case 'center_left':  return { x: -12, y: H / 2 - S / 2 };
                             case 'center_right': return { x: W - S + 12, y: H / 2 - S / 2 };
-                            default:             return { x: W - S + 10, y: -10 }; // top_right
+                            default:             return { x: W - S + 10, y: -10 }; /* top_right */
                         }
                     },
                     previewStyle(stk) {
@@ -271,9 +271,9 @@
                         const S = Math.max(24, Math.min(160, parseInt(stk.size, 10) || 64));
                         const left = (ev.clientX - rect.left) - this.drag.offX;
                         const top = (ev.clientY - rect.top) - this.drag.offY;
-                        // Nearest anchor preset wins; dx/dy is the clamped
-                        // remainder relative to that anchor (server clamps
-                        // identically, so what you see is what persists).
+                        /* Nearest anchor preset wins; dx/dy is the clamped
+                           remainder relative to that anchor (server clamps
+                           identically, so what you see is what persists). */
                         let best = null;
                         for (const pos of ['top_left', 'top_right', 'bottom_left', 'bottom_right', 'center_left', 'center_right']) {
                             const b = this.anchorBase(pos, S);
