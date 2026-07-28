@@ -673,6 +673,160 @@ class TemplateController extends Controller
             ->header('Cache-Control', 'no-store, max-age=0');
     }
 
+    /**
+     * Visual design-editor bridge for page templates.
+     *
+     * Instead of a second, parallel editor inside the back-office, the
+     * template's snapshot is materialised onto a hidden draft biolink owned
+     * by the admin's bridged user account, and the admin is dropped into the
+     * REAL biolink editor (blocks palette, backgrounds, live preview — full
+     * parity by construction). A `_template_draft` marker in the draft's
+     * settings drives a banner in the editor with "Save to template" /
+     * "Discard" actions that capture the design back into the template row
+     * (same captureFromLink path as re-capture) and delete the draft.
+     */
+    public function designSession(Request $request, int $id)
+    {
+        $tpl = PageTemplate::findOrFail($id);
+
+        $user = $this->resolveDesignSessionUser();
+        if (! $user) {
+            return back()->with('error', 'The design editor needs a linked user account for your admin login. Link one under your admin profile first.');
+        }
+
+        // Reuse an existing draft for this template + user, if any.
+        $draft = $this->findDesignDraft($tpl->id, $user->id);
+
+        if (! $draft) {
+            $alias = $this->uniqueDraftAlias();
+            $draft = new Link([
+                'type'      => 'biolink',
+                'alias'     => $alias,
+                'title'     => 'Template draft: ' . $tpl->name,
+                'is_active' => true,
+                'settings'  => [],
+            ]);
+            $draft->user_id = $user->id;
+            $draft->save();
+
+            try {
+                $this->templates->applyPageToLink($draft, (array) ($tpl->snapshot ?? []), true, null);
+            } catch (\Throwable $e) {
+                $draft->biolinkBlocks()->delete();
+                $draft->delete();
+                return back()->with('error', 'Could not open the design editor: this template\'s snapshot failed to apply (' . $e->getMessage() . '). Use Design Fix first.');
+            }
+
+            $settings = $draft->settings ?? [];
+            $settings['_template_draft'] = [
+                'template_id'   => $tpl->id,
+                'template_name' => $tpl->name,
+                'started_at'    => now()->toIso8601String(),
+            ];
+            $draft->settings = $settings;
+            $draft->save();
+        }
+
+        return redirect()->route('user.links.blocks.editor', $draft);
+    }
+
+    /** Capture the draft's current design back into the template, then clean up. */
+    public function designSessionSave(Request $request, int $id)
+    {
+        $tpl = PageTemplate::findOrFail($id);
+        $user = $this->resolveDesignSessionUser();
+        $draft = $user ? $this->findDesignDraft($tpl->id, $user->id) : null;
+        if (! $draft) {
+            return redirect()->route('admin.templates.edit', ['kind' => 'page', 'id' => $tpl->id])
+                ->with('error', 'No open design session was found for this template.');
+        }
+
+        $captured = $this->templates->captureFromLink($draft);
+        // Never bake the session marker into the published snapshot.
+        unset($captured['biolink']['_template_draft']);
+
+        $issues = TemplateSnapshotValidator::issues($captured, 'page');
+        if (!empty($issues)) {
+            return redirect()->route('user.links.blocks.editor', $draft)
+                ->with('error', 'The design has problems that would degrade on the public page: ' . implode(' ', $issues));
+        }
+
+        $tpl->snapshot = $captured;
+        $tpl->save();
+
+        $draft->biolinkBlocks()->delete();
+        $draft->delete();
+
+        return redirect()->route('admin.templates.edit', ['kind' => 'page', 'id' => $tpl->id])
+            ->with('success', 'Design saved to template "' . $tpl->name . '". Users who apply it now get this design.');
+    }
+
+    /** Throw away the draft without touching the template. */
+    public function designSessionDiscard(Request $request, int $id)
+    {
+        $tpl = PageTemplate::findOrFail($id);
+        $user = $this->resolveDesignSessionUser();
+        if ($user && ($draft = $this->findDesignDraft($tpl->id, $user->id))) {
+            $draft->biolinkBlocks()->delete();
+            $draft->delete();
+        }
+
+        return redirect()->route('admin.templates.edit', ['kind' => 'page', 'id' => $tpl->id])
+            ->with('success', 'Design session discarded — the template is unchanged.');
+    }
+
+    /**
+     * The editor is a web-guard surface, so the draft must belong to the
+     * admin's bridged user. If the web session isn't logged in yet (admin
+     * came straight from the back-office), bridge it the same way the
+     * "Switch to user" button does.
+     */
+    private function resolveDesignSessionUser(): ?\App\Modules\User\Models\User
+    {
+        $admin = auth()->guard('admin')->user();
+        if (! $admin) return null;
+
+        $bridged = $admin->userAccount();
+        if (! $bridged) return null;
+
+        $web = auth()->guard('web')->user();
+        if (! $web || $web->id !== $bridged->id) {
+            // Never hijack an impersonation session.
+            if (session()->has('impersonate_user_id')) return null;
+            auth()->guard('web')->login($bridged);
+        }
+
+        return $bridged;
+    }
+
+    private function findDesignDraft(int $templateId, int $userId): ?Link
+    {
+        // Deterministic pick under concurrency: always the OLDEST draft wins;
+        // any duplicates created by a double-open race are cleaned up here so
+        // save/discard never act on an ambiguous stale row.
+        $drafts = Link::withoutGlobalScope('workspace')
+            ->where('user_id', $userId)
+            ->where('type', 'biolink')
+            ->where('settings->_template_draft->template_id', $templateId)
+            ->orderBy('id')
+            ->get();
+
+        foreach ($drafts->slice(1) as $extra) {
+            $extra->biolinkBlocks()->delete();
+            $extra->delete();
+        }
+
+        return $drafts->first();
+    }
+
+    private function uniqueDraftAlias(): string
+    {
+        do {
+            $alias = 'tpl-draft-' . Str::lower(Str::random(10));
+        } while (Link::withoutGlobalScope('workspace')->where('alias', $alias)->exists());
+        return $alias;
+    }
+
     private function resolve(string $kind, int $id)
     {
         if ($kind === 'card') return CardTemplate::findOrFail($id);

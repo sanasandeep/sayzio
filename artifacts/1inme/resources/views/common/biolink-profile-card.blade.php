@@ -172,6 +172,28 @@
         </div>
     </div>
 
+{{-- ───────────────────────────── OVERLAP HERO ──────────────────────── --}}
+{{-- Tall cover with the white card pulled UP over it; the avatar
+     straddles the card's top edge (half over the cover, half on the
+     card). The block surface itself stays transparent — the white card
+     is internal so the page background shows around it. --}}
+@elseif($layout === 'overlap_hero')
+    <div class="mb-4" style="{{ $cardStyle }}">
+        <div class="relative">
+            <div class="h-44 rounded-2xl bg-cover bg-center" style="@if($cover)background-image:url('{{ $cover }}');@else background:linear-gradient(135deg,#3d6bff,#8b5cf6);@endif"></div>
+            <div class="relative mx-4 -mt-14 rounded-3xl px-5 pb-6 text-center" style="background:#ffffff;box-shadow:0 14px 34px rgba(15,23,42,0.16);padding-top:3.75rem">
+                <div class="absolute left-1/2 -translate-x-1/2" style="top:-3rem">
+                    @if($avatar)<img src="{{ $avatar }}" class="w-24 h-24 rounded-full object-cover" style="border:4px solid #ffffff;box-shadow:0 8px 22px rgba(0,0,0,0.22)" alt="">
+                    @else<div class="w-24 h-24 rounded-full flex items-center justify-center text-2xl font-bold" style="border:4px solid #ffffff;background:{{ $avatarBg }};color:#0f172a">{{ $initial }}</div>@endif
+                </div>
+                @if($name)<p class="text-lg font-bold" style="color:#0f172a">{{ $name }}</p>@endif
+                @if($title)<p class="text-sm font-medium" style="color:{{ $accent }}">{{ $title }}</p>@endif
+                @if($bio)<p class="text-sm mt-3" style="color:#475569">{{ $bio }}</p>@endif
+                @include('common.biolink-profile-socials', ['psocials' => $psocials, 'socialIcons' => $socialIcons, 'accent' => $accent, 'chip' => 'accent_outline'])
+            </div>
+        </div>
+    </div>
+
 {{-- ───────────────────────────── GRADIENT IDENTITY ─────────────────── --}}
 @elseif($layout === 'gradient')
     <div class="mb-4 overflow-hidden rounded-2xl {{ $baseClass }}" style="{{ $cardStyle }}">

@@ -4,6 +4,47 @@
 @section('breadcrumb_parent_url', route('user.links.index'))
 
 @section('content')
+@php
+    $tplDraft = is_array($link->settings['_template_draft'] ?? null) ? $link->settings['_template_draft'] : null;
+@endphp
+@if($tplDraft && auth()->guard('admin')->check())
+    {{-- Template design session: this biolink is a temporary draft materialised
+         from a page template. Everything the admin edits here (blocks,
+         backgrounds, settings) is captured back into the template snapshot on
+         "Save to template". --}}
+    <div class="mb-5 rounded-2xl px-4 py-3 flex flex-wrap items-center gap-3"
+         style="background: rgba(61,107,255,0.10); border: 1px solid rgba(61,107,255,0.35);">
+        <div class="flex items-center gap-2.5 min-w-0 flex-1">
+            <i class="fas fa-swatchbook" style="color: var(--accent-light);"></i>
+            <div class="min-w-0">
+                <div class="text-sm font-semibold truncate" style="color: var(--text-main);">
+                    Editing template: {{ $tplDraft['template_name'] ?? 'Page template' }}
+                </div>
+                <div class="text-[11px]" style="color: var(--text-dim);">
+                    This is a draft page — changes only reach users after you save them to the template.
+                </div>
+            </div>
+        </div>
+        <div class="flex items-center gap-2">
+            <form method="POST" action="{{ route('admin.templates.design.session.save', ['id' => (int) ($tplDraft['template_id'] ?? 0)]) }}"
+                  onsubmit="return confirm('Save this design to the template? Users who apply the template will get this design.');">
+                @csrf
+                <button type="submit" class="px-3.5 py-2 rounded-xl text-xs font-bold text-white transition-all"
+                        style="background: linear-gradient(135deg, #3d6bff, #2f54d6);">
+                    <i class="fas fa-floppy-disk mr-1.5"></i>Save to template
+                </button>
+            </form>
+            <form method="POST" action="{{ route('admin.templates.design.session.discard', ['id' => (int) ($tplDraft['template_id'] ?? 0)]) }}"
+                  onsubmit="return confirm('Discard this design session? The template stays unchanged and this draft page is deleted.');">
+                @csrf
+                <button type="submit" class="px-3.5 py-2 rounded-xl text-xs font-semibold transition-all"
+                        style="background: var(--bg-card); border: 1px solid var(--border-glass); color: var(--text-dim);">
+                    <i class="fas fa-trash-can mr-1.5"></i>Discard
+                </button>
+            </form>
+        </div>
+    </div>
+@endif
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
 {{-- Shared "drop a pin to fill address + lat/lng" map picker, reused by the
      map_location block settings form (loaded here on the host page since the

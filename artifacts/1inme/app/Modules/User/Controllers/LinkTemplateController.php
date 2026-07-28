@@ -14,53 +14,127 @@ use Illuminate\Routing\Controller;
 
 class LinkTemplateController extends Controller
 {
+    /**
+     * Cards rendered server-side on the picker's first paint; the rest of
+     * the library streams in via pickerChunk() so the initial HTML stays
+     * small (~400 templates at once was ~5.3MB and a 20-30s render).
+     */
+    public const PICKER_CHUNK = 24;
+
+    /** Memoized Plan sort-order ranks (isLocked runs once per card). */
+    private $planRanks = null;
+
     public function __construct(
         private TemplateService $templates,
         private TemplateContentSummarizer $summarizer,
         private TemplatePreviewLayoutBuilder $previewLayout,
     ) {}
 
+    /**
+     * Lightweight ordered index of every active template — no snapshot
+     * column (snapshots dominate the payload) — sorted by the persona
+     * recommendation flag so recommended templates come first. Ordering is
+     * deterministic (recommended flag, then sort_order, then id) so the
+     * initial page and later chunks always agree on positions.
+     */
+    private function templateIndex(?string $persona)
+    {
+        $index = PageTemplate::active()
+            ->select(['id', 'name', 'slug', 'description', 'category', 'plan_tier', 'thumbnail_url', 'recommended_personas', 'sort_order'])
+            ->orderBy('sort_order')->orderBy('id')
+            ->get();
+        if ($persona) {
+            $index = $index->sortByDesc(function ($t) use ($persona) {
+                $tags = $t->recommended_personas ?? [];
+                return is_array($tags) && in_array($persona, $tags, true) ? 1 : 0;
+            })->values();
+        }
+        return $index;
+    }
+
+    /** Resolve the persona used for ordering (?persona= override wins). */
+    private function resolvePersona(Request $request): ?string
+    {
+        $personaParam = $request->query('persona');
+        $allowed = \App\Modules\User\Services\PersonaCatalog::slugs();
+        return (is_string($personaParam) && in_array($personaParam, $allowed, true))
+            ? $personaParam
+            : auth()->user()->persona;
+    }
+
+    /**
+     * Load the full rows (with snapshots) for a slice of the index and
+     * decorate each with the "what's inside" summary + mini blueprint.
+     */
+    private function decorateSlice($index, int $offset, int $limit)
+    {
+        $ids = $index->slice($offset, $limit)->pluck('id')->all();
+        if (empty($ids)) return collect();
+        $rows = PageTemplate::whereIn('id', $ids)->get()->keyBy('id');
+        return collect($ids)->map(fn($id) => $rows->get($id))->filter()->values()
+            ->each(function ($t) {
+                $blocks = is_array($t->snapshot['blocks'] ?? null) ? $t->snapshot['blocks'] : [];
+                $t->setAttribute('content_summary', $this->summarizer->summarizePageBlocks($blocks));
+                $t->setAttribute('preview_layout', $this->previewLayout->build($blocks));
+            });
+    }
+
     public function picker(Request $request, Link $link)
     {
         abort_if($link->user_id !== auth()->id() || !$link->isBiolinkFamily(), 403);
         $user = auth()->user();
         $userPlanSlug = $user->plan?->slug;
-        // Show all active templates so users can see what they could unlock,
-        // but lock the ones above their tier (badge + upgrade CTA).
-        $pageTemplates = PageTemplate::active()->get();
-        // Attach a UI-friendly "what's inside" summary to each template so
-        // the picker can show top-level cards/blocks (and the children
-        // inside each card) before the user applies and overwrites the link.
-        $pageTemplates->each(function ($t) {
-            $blocks = is_array($t->snapshot['blocks'] ?? null) ? $t->snapshot['blocks'] : [];
-            $t->setAttribute('content_summary', $this->summarizer->summarizePageBlocks($blocks));
-            // Tiny visual blueprint of the page's top-level blocks, using
-            // the same row/cell/grid_span helper the card gallery uses.
-            // Falls through to the existing thumbnail/icon in the view
-            // when a thumbnail_url is set or the snapshot has no blocks.
-            $t->setAttribute('preview_layout', $this->previewLayout->build($blocks));
-        });
         // Persona for ordering: explicit ?persona= override (validated) wins
         // over the user's saved persona so admins/links/share-flows can preview
         // the "best for X" set without changing the user's stored preference.
-        $personaParam = $request->query('persona');
-        $allowed = \App\Modules\User\Services\PersonaCatalog::slugs();
-        $persona = (is_string($personaParam) && in_array($personaParam, $allowed, true))
-            ? $personaParam
-            : $user->persona;
-        if ($persona) {
-            $pageTemplates = $pageTemplates->sortByDesc(function ($t) use ($persona) {
-                $tags = $t->recommended_personas ?? [];
-                return is_array($tags) && in_array($persona, $tags, true) ? 1 : 0;
-            })->values();
-        }
+        $persona = $this->resolvePersona($request);
+        // Show all active templates so users can see what they could unlock,
+        // but lock the ones above their tier (badge + upgrade CTA). Only the
+        // first chunk is rendered server-side; the rest streams in.
+        $pageTemplates = $this->templateIndex($persona);
+        $initialTemplates = $this->decorateSlice($pageTemplates, 0, self::PICKER_CHUNK);
         $hasRecommended = $persona && $pageTemplates->contains(function ($t) use ($persona) {
             $tags = $t->recommended_personas ?? [];
             return is_array($tags) && in_array($persona, $tags, true);
         });
         $personaLabel = \App\Modules\User\Services\PersonaCatalog::pluralLabelFor($persona);
         $lockedFn = fn(?string $required) => $this->isLocked($required, $userPlanSlug);
-        return view('user.links.templates.picker', compact('link', 'pageTemplates', 'userPlanSlug', 'lockedFn', 'persona', 'personaLabel', 'hasRecommended'));
+        $chunkSize = self::PICKER_CHUNK;
+        return view('user.links.templates.picker', compact('link', 'pageTemplates', 'initialTemplates', 'chunkSize', 'userPlanSlug', 'lockedFn', 'persona', 'personaLabel', 'hasRecommended'));
+    }
+
+    /**
+     * JSON endpoint streaming the next chunk of picker cards as rendered
+     * HTML. The client appends the HTML into the (Alpine-scoped) grid, so
+     * the cards keep the same x-show filter wiring as server-rendered ones.
+     */
+    public function pickerChunk(Request $request, Link $link)
+    {
+        abort_if($link->user_id !== auth()->id() || !$link->isBiolinkFamily(), 403);
+        $userPlanSlug = auth()->user()->plan?->slug;
+        $persona = $this->resolvePersona($request);
+        $offset = max(0, (int) $request->query('offset', 0));
+
+        $index = $this->templateIndex($persona);
+        $slice = $this->decorateSlice($index, $offset, self::PICKER_CHUNK);
+        $hasBlocks = $link->biolinkBlocks()->exists();
+
+        $html = '';
+        foreach ($slice as $tpl) {
+            $html .= view('user.links.templates._card', [
+                'tpl' => $tpl,
+                'link' => $link,
+                'locked' => $this->isLocked($tpl->plan_tier, $userPlanSlug),
+                'hasBlocks' => $hasBlocks,
+            ])->render();
+        }
+
+        $next = $offset + $slice->count();
+        return response()->json([
+            'html' => $html,
+            'next_offset' => $next < $index->count() ? $next : null,
+            'total' => $index->count(),
+        ]);
     }
 
     public function cardGallery(Request $request, Link $link)
@@ -208,7 +282,9 @@ class LinkTemplateController extends Controller
     public function isLocked(?string $required, ?string $userPlan): bool
     {
         if (empty($required)) return false;
-        $ranks = \App\Modules\Admin\Models\Plan::pluck('sort_order', 'slug');
+        // Memoized: this runs once per rendered card, and each pluck() was a
+        // round-trip to the (distant) database.
+        $ranks = $this->planRanks ??= \App\Modules\Admin\Models\Plan::pluck('sort_order', 'slug');
         $req = $ranks[$required] ?? PHP_INT_MAX;
         $cur = $userPlan ? ($ranks[$userPlan] ?? -1) : -1;
         return $cur < $req;

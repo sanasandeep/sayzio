@@ -44,7 +44,7 @@ class StarterPageTemplatesSeeder extends Seeder
      * layout, link design variant and a distinct block mix so the picker's
      * category chips and "what's inside" chips look meaningfully different.
      */
-    public const SEED_VERSION = 7;
+    public const SEED_VERSION = 9;
 
     /** Tolerance (seconds) for treating updated_at == created_at. */
     private const EDIT_DRIFT_TOLERANCE = 2;
@@ -62,7 +62,7 @@ class StarterPageTemplatesSeeder extends Seeder
                     'name'                 => $tpl['name'],
                     'category'             => $tpl['category'],
                     'description'          => $tpl['description'],
-                    'thumbnail_url'        => null,
+                    'thumbnail_url'        => $this->thumbUrl($tpl['slug']),
                     'plan_tier'            => null,
                     'is_active'            => true,
                     'sort_order'           => 10 + $i,
@@ -281,10 +281,55 @@ class StarterPageTemplatesSeeder extends Seeder
                     'button_style'       => 'rounded',
                 ]),
             ],
+
+            // 6 — Overlap hero: cream page, tall cover with the white
+            // profile card pulled up over it (avatar straddling the card
+            // edge) and dark pill links below — screenshot-inspired.
+            [
+                'slug'                 => 'starter-overlap-hero',
+                'name'                 => 'Overlap Hero',
+                'category'             => 'personal',
+                'description'          => 'A warm, editorial profile: a big cover photo with your card overlapping it, then bold pill links below.',
+                'recommended_personas' => ['creator', 'freelancer', 'artist'],
+                'snapshot'             => $this->snapshot([
+                    $this->profile(
+                        'Your Name',
+                        'Storyteller & content creator. Sharing my favourite work, projects and ways to connect below.',
+                        $this->face('starter-overlap-face'),
+                        $kits['overlap'],
+                        $this->photo('mountains,travel', 900, 600, 'starter-overlap-cover'),
+                        ['title' => 'Content Creator']
+                    ),
+                    $this->link('Watch my latest video', 'https://example.com/video', 'fas fa-play', $kits['overlap']),
+                    $this->link('Read the blog', 'https://example.com/blog', 'fas fa-pen-nib', $kits['overlap']),
+                    $this->link('Shop my favourites', 'https://example.com/shop', 'fas fa-bag-shopping', $kits['overlap']),
+                    $this->ctaButton('Work with me', 'mailto:you@example.com', '#1c1917'),
+                ], [
+                    'background_type'  => 'color',
+                    'background_color' => '#f3ede2',
+                    'theme_color'      => '#1c1917',
+                    'font_color'       => '#1c1917',
+                    'button_color'     => '#1c1917',
+                    'button_text_color' => '#ffffff',
+                    'button_style'     => 'pill',
+                ]),
+            ],
         ];
     }
 
     /* ──────────────────── snapshot + block helpers ──────────────────── */
+
+    /**
+     * Self-hosted, theme-aware SVG preview for a template card. Rendered
+     * live by PublicTemplateThumbController from the row's own snapshot,
+     * so every card reflects its actual theme + block layout. Stored
+     * root-relative (absolutized by PageTemplate's accessor) so rows are
+     * portable across hosts; ?v=SEED_VERSION re-renders on redesigns.
+     */
+    private function thumbUrl(string $templateSlug): string
+    {
+        return '/template-thumbs/' . $templateSlug . '.svg?v=' . self::SEED_VERSION;
+    }
 
     private function snapshot(array $blocks, array $biolink = []): array
     {
@@ -318,6 +363,7 @@ class StarterPageTemplatesSeeder extends Seeder
             'restaurant' => ['ptype' => 'profile_card_v4', 'pvar' => 'identity_minimal_dark', 'link' => 'corporate_row'],
             'event'      => ['ptype' => 'profile_card_v1', 'pvar' => 'identity_classic',      'link' => 'card_lifted'],
             'portfolio'  => ['ptype' => 'profile_card_v3', 'pvar' => 'identity_founder',      'link' => 'outline_pill'],
+            'overlap'    => ['ptype' => 'profile_card_v1', 'pvar' => 'identity_overlap_hero', 'link' => 'pill_solid'],
         ];
     }
 

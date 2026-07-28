@@ -600,6 +600,22 @@ args = "bg-preset-swatches"
 task = "workflow.run"
 args = "persona-seed-refresh"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-template-gallery"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "tpl-size-check"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "tpl-base-check"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "tpl-design-session"
+
 [[workflows.workflow]]
 name = "e2e"
 author = "agent"
@@ -2394,6 +2410,50 @@ args = "cd artifacts/1inme && php artisan templates:refresh-persona-seed"
 [workflows.workflow.metadata]
 isValidation = true
 
+[[workflows.workflow]]
+name = "e2e-template-gallery"
+author = "agent"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "bash artifacts/1inme/tests/Browser/run-validation.sh template-gallery-visual.spec.ts"
+
+[[workflows.workflow]]
+name = "tpl-size-check"
+author = "agent"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "bash .local/tmp/sizecheck.sh"
+
+[[workflows.workflow]]
+name = "tpl-base-check"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "bash .local/tmp/basecheck.sh"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "tpl-design-session"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd artifacts/1inme && TEST_LOCAL_MODE=artisan TEST_LOCAL_PORT=55501 bash scripts/test-local.sh --filter=TemplateDesignSessionTest"
+
+[workflows.workflow.metadata]
+isValidation = true
+
 
   [agent]
 stack = "PNPM_WORKSPACE"
@@ -2414,7 +2474,7 @@ AWS_DEFAULT_REGION = "ap-south-2"
 AWS_URL = "https://d3l7wvr1shk1cg.cloudfront.net"
 AWS_USE_PATH_STYLE_ENDPOINT = "true"
 USER_CONTENT_DISK = "s3"
-CONTACT_ADMIN_TOKEN = ""
+CONTACT_ADMIN_TOKEN = "qNApHcj3SDKCnQRrNcTyWOXdsxQMmeyhRy4Mf0"
 APP_NAME = "Sayzio"
 
 [[ports]]

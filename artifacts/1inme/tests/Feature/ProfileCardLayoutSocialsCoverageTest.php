@@ -46,6 +46,7 @@ class ProfileCardLayoutSocialsCoverageTest extends TestCase
         'social_profile',
         'business_card',
         'sidebar_accent',
+        'overlap_hero',
     ];
 
     /**

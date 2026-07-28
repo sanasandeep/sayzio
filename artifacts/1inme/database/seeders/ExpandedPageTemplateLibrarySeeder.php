@@ -47,7 +47,7 @@ class ExpandedPageTemplateLibrarySeeder extends Seeder
      * alone. Redesign block contents/copy/themes freely; rename the
      * `key` only when you also intend to retire the old slug.
      */
-    public const SEED_VERSION = 6;
+    public const SEED_VERSION = 7;
 
     /**
      * Personas whose "Aurora Starter" blueprint ships as a design-locked
@@ -135,7 +135,7 @@ class ExpandedPageTemplateLibrarySeeder extends Seeder
         $cover = $this->photo($kw, 1200, 480, 'tpl-' . $slug . '-cover');
         $sq    = fn(string $seed): string => $this->photo($kw, 600, 600, 'tpl-' . $slug . '-' . $seed);
         $tall  = fn(string $seed): string => $this->photo($kw, 900, 1200, 'tpl-' . $slug . '-' . $seed);
-        $thumb = fn(string $key): string => $this->photo($kw, 640, 800, 'tpl-thumb-' . $slug . '-' . $key);
+        $thumb = fn(string $key): string => $this->thumbUrl('persona-' . $slug . '-' . Str::slug($key));
 
         return [
             // 0 — Starter: the flagship page (design-locked for key personas).
@@ -1043,6 +1043,18 @@ class ExpandedPageTemplateLibrarySeeder extends Seeder
             return asset('block-placeholders/cover.svg');
         }
         return asset('block-placeholders/image.svg');
+    }
+
+    /**
+     * Self-hosted, theme-aware SVG preview for a template card. Rendered
+     * live by PublicTemplateThumbController from the row's own snapshot,
+     * so every card reflects its actual theme + block layout. Stored
+     * root-relative (absolutized by PageTemplate's accessor) so rows are
+     * portable across hosts; ?v=SEED_VERSION re-renders on redesigns.
+     */
+    private function thumbUrl(string $templateSlug): string
+    {
+        return '/template-thumbs/' . $templateSlug . '.svg?v=' . self::SEED_VERSION;
     }
 
     /** Self-hosted avatar placeholder bundled with the app. */
