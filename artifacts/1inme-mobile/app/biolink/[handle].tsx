@@ -1352,7 +1352,29 @@ export function BlockView({ block, alias, allBlocks, openEmbed }: { block: Bioli
           .map((a) => a.trim())
           .filter(Boolean)
       : [];
-    const phDecorated = phFrame || phMask !== "" || phBanner !== "" || phAccents.length > 0;
+    // Custom sticker overlays (Task #5939): sanitized `{file_id,url,pos,...}`
+    // entries persisted in _style. `url` is a server-derived relative
+    // `/f/{id}/{name}` path — absolutize against the API origin here.
+    type PhSticker = { url: string; pos: string; size: number; rotate: number; dx: number; dy: number };
+    const phStickers: PhSticker[] = !isAvatar && Array.isArray(phSt._photo_stickers)
+      ? (phSt._photo_stickers as unknown[])
+          .filter((e): e is Record<string, unknown> => !!e && typeof e === "object")
+          .map((e) => {
+            const raw = typeof e.url === "string" ? e.url : "";
+            return {
+              url: raw.startsWith("/") ? `${getBaseUrl()}${raw}` : raw,
+              pos: typeof e.pos === "string" ? e.pos : "top_right",
+              size: Math.max(24, Math.min(160, Number(e.size) || 64)),
+              rotate: Math.max(-180, Math.min(180, Number(e.rotate) || 0)),
+              dx: Math.max(-80, Math.min(80, Number(e.dx) || 0)),
+              dy: Math.max(-80, Math.min(80, Number(e.dy) || 0)),
+            };
+          })
+          .filter((e) => e.url !== "")
+          .slice(0, 4)
+      : [];
+    const phDecorated =
+      phFrame || phMask !== "" || phBanner !== "" || phAccents.length > 0 || phStickers.length > 0;
 
     if (phDecorated) {
       const phFrameColor = phStr("_photo_frame_color") || "#57534e";
@@ -1546,6 +1568,46 @@ export function BlockView({ block, alias, allBlocks, openEmbed }: { block: Bioli
               />
             </Svg>
           ) : null}
+          {phStickers.map((stk, i) => {
+            const anchor: Record<string, number | string> =
+              stk.pos === "top_left"
+                ? { left: -10, top: -10 }
+                : stk.pos === "bottom_left"
+                  ? { left: -10, bottom: -10 }
+                  : stk.pos === "bottom_right"
+                    ? { right: -10, bottom: -10 }
+                    : stk.pos === "center_left"
+                      ? { left: -12, top: "50%" }
+                      : stk.pos === "center_right"
+                        ? { right: -12, top: "50%" }
+                        : { right: -10, top: -10 };
+            const centered = stk.pos === "center_left" || stk.pos === "center_right";
+            return (
+              <View
+                key={`stk-${i}`}
+                pointerEvents="none"
+                style={{
+                  position: "absolute",
+                  zIndex: 11,
+                  width: stk.size,
+                  height: stk.size,
+                  ...anchor,
+                  transform: [
+                    ...(centered ? [{ translateY: -stk.size / 2 }] : []),
+                    { translateX: stk.dx },
+                    { translateY: stk.dy },
+                    { rotate: `${stk.rotate}deg` },
+                  ],
+                }}
+              >
+                <Image
+                  source={{ uri: stk.url }}
+                  resizeMode="contain"
+                  style={{ width: "100%", height: "100%" }}
+                />
+              </View>
+            );
+          })}
         </View>
       );
     }

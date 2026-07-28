@@ -488,11 +488,26 @@ class BiolinkBlock extends Model
         '_heading_accent_color' => '',
         '_heading_accent_placement' => '',   // behind_left|behind_right|top_left|top_right
         '_heading_accent_size' => '',        // sm|md|lg
+        // Custom sticker overlays (Task #5939): list of vault-owned sticker
+        // images layered over the photo like badges. Persisted as an array
+        // of {file_id, url, pos, size, rotate, dx, dy} entries — the
+        // sanitizer validates ownership (workspace owner's image files
+        // only) and re-derives `url` server-side; foreign/invalid file
+        // references fail closed. Capped at PHOTO_STICKER_MAX entries.
+        '_photo_stickers' => '',
         // Structural layout token for the profile_card family (Task #1740).
         // Set by the `profile_identity` curated designs; the public renderer
         // dispatches on it to reposition avatar/cover/text/socials. Empty =
         // fall back to the block-type's default layout (classic/cover/...).
         '_profile_layout' => '',   // classic_creator, glass, cover_hero, ...
+    ];
+
+    /** Max custom sticker overlays per image block (Task #5939). */
+    public const PHOTO_STICKER_MAX = 4;
+
+    /** Allowed anchor positions for photo sticker overlays. */
+    public const PHOTO_STICKER_POSITIONS = [
+        'top_left', 'top_right', 'bottom_left', 'bottom_right', 'center_left', 'center_right',
     ];
 
     public const BLOCK_TEMPLATES = [

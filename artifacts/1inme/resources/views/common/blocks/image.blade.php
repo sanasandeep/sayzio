@@ -18,7 +18,55 @@
         $phMask = $phHasImgMask ? '' : (string) ($phSt['_photo_mask'] ?? '');
         $phBanner = trim((string) ($phSt['_photo_banner_text'] ?? ''));
         $phAccents = array_filter(explode(',', (string) ($phSt['_photo_accents'] ?? '')));
-        $phDecorated = $phFrame || $phMask !== '' || $phBanner !== '' || !empty($phAccents);
+
+        // ── Custom sticker overlays (Task #5939) ────────────────────────
+        // Persisted entries were already ownership-checked by the
+        // sanitizer, but we re-verify at render time against the link
+        // owner and fail closed: any sticker whose file no longer exists,
+        // changed hands, or got flagged simply doesn't render.
+        $phStickers = [];
+        $phStickersRaw = is_array($phSt['_photo_stickers'] ?? null) ? $phSt['_photo_stickers'] : [];
+        if (!empty($phStickersRaw)) {
+            $phStickerIds = array_values(array_unique(array_filter(array_map(
+                fn ($e) => is_array($e) ? (int) ($e['file_id'] ?? 0) : 0,
+                $phStickersRaw
+            ))));
+            $phStickerFiles = $phStickerIds === [] ? collect() :
+                \App\Modules\User\Models\UserFile::whereIn('id', $phStickerIds)
+                    ->where('user_id', $link->user_id)
+                    ->where('type', 'image')
+                    ->where('scan_status', '!=', 'flagged')
+                    ->get()->keyBy('id');
+            foreach ($phStickersRaw as $phE) {
+                if (!is_array($phE)) continue;
+                $phF = $phStickerFiles->get((int) ($phE['file_id'] ?? 0));
+                if (!$phF) continue;
+                $phPos = (string) ($phE['pos'] ?? 'top_right');
+                if (!in_array($phPos, \App\Modules\User\Models\BiolinkBlock::PHOTO_STICKER_POSITIONS, true)) $phPos = 'top_right';
+                $phStickers[] = [
+                    'url'    => $phF->url_path,
+                    'pos'    => $phPos,
+                    'size'   => max(24, min(160, (int) ($phE['size'] ?? 64))),
+                    'rotate' => max(-180, min(180, (int) ($phE['rotate'] ?? 0))),
+                    'dx'     => max(-80, min(80, (int) ($phE['dx'] ?? 0))),
+                    'dy'     => max(-80, min(80, (int) ($phE['dy'] ?? 0))),
+                ];
+                if (count($phStickers) >= \App\Modules\User\Models\BiolinkBlock::PHOTO_STICKER_MAX) break;
+            }
+        }
+
+        // Anchor preset → CSS placement; dx/dy offsets + rotation ride on
+        // the transform so the anchor rule stays static per preset.
+        $phStickerAnchors = [
+            'top_left'     => 'left:-10px;top:-10px',
+            'top_right'    => 'right:-10px;top:-10px',
+            'bottom_left'  => 'left:-10px;bottom:-10px',
+            'bottom_right' => 'right:-10px;bottom:-10px',
+            'center_left'  => 'left:-12px;top:50%',
+            'center_right' => 'right:-12px;top:50%',
+        ];
+
+        $phDecorated = $phFrame || $phMask !== '' || $phBanner !== '' || !empty($phAccents) || !empty($phStickers);
 
         if ($phDecorated) {
             $phFrameColor = (string) ($phSt['_photo_frame_color'] ?? '') ?: '#57534e';
@@ -80,6 +128,20 @@
                     'color'    => $phAccentColor,
                     'posStyle' => $phAccentPos[$phAcc] ?? '',
                 ])
+            @endforeach
+            @foreach($phStickers as $phStk)
+                @php
+                    $phStkT = 'translate(' . $phStk['dx'] . 'px,' . $phStk['dy'] . 'px)';
+                    if (in_array($phStk['pos'], ['center_left', 'center_right'], true)) {
+                        $phStkT = 'translateY(-50%) ' . $phStkT;
+                    }
+                    if ($phStk['rotate'] !== 0) {
+                        $phStkT .= ' rotate(' . $phStk['rotate'] . 'deg)';
+                    }
+                @endphp
+                <img src="{{ $phStk['url'] }}" alt="" aria-hidden="true" loading="lazy"
+                     class="absolute pointer-events-none z-10"
+                     style="{{ $phStickerAnchors[$phStk['pos']] }};width:{{ $phStk['size'] }}px;height:{{ $phStk['size'] }}px;object-fit:contain;transform:{{ $phStkT }}">
             @endforeach
         </div>
     @else

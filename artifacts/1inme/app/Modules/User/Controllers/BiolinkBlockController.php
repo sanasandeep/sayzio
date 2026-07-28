@@ -2270,6 +2270,16 @@ class BiolinkBlockController extends Controller
                 $raw = is_array($val) ? implode(',', array_map('strval', $val)) : (string) $val;
                 $tokens = \App\Modules\User\Support\AccentShapeCatalog::parseTokens($raw);
                 if (!empty($tokens)) $result[$key] = implode(',', $tokens);
+            } elseif ($key === '_photo_stickers') {
+                // Custom sticker overlays (Task #5939). The editor submits a
+                // JSON string; templates/variants may carry a plain array.
+                // Every entry must reference an image file OWNED by the
+                // current workspace owner — foreign/missing/non-image refs
+                // fail closed (the entry is dropped, never an error). The
+                // public `url` is re-derived server-side from the file row
+                // so a tampered client URL can never be persisted.
+                $clean = $this->sanitizePhotoStickers($val);
+                if ($clean !== []) $result[$key] = $clean;
             } elseif (in_array($key, ['_animation', '_gallery_layout', '_social_set', '_profile_layout'], true)) {
                 // Opaque slug-shaped variant metadata hooks (Task #1041).
                 // The renderer is free to ignore unknown values; we only
@@ -2280,6 +2290,64 @@ class BiolinkBlockController extends Controller
             }
         }
         return $result;
+    }
+
+    /**
+     * Task #5939 — validate custom sticker overlay entries for image
+     * blocks. Accepts a JSON string (editor hidden input) or an array
+     * (templates/variants). Every surviving entry references an image
+     * file owned by the current workspace owner; anything else fails
+     * closed (dropped silently). The public `url` is always re-derived
+     * from the file row, never trusted from the client — the persisted
+     * `/f/{id}/{filename}` string is what authorizes anonymous serving
+     * via UserFile::isReferencedByPublicRecord().
+     */
+    private function sanitizePhotoStickers(mixed $raw): array
+    {
+        $list = is_array($raw) ? $raw : json_decode((string) $raw, true);
+        if (!is_array($list) || $list === []) return [];
+
+        $ownerId = (int) (workspace_owner_id() ?? 0);
+        if ($ownerId <= 0) return [];
+
+        $ids = [];
+        foreach ($list as $entry) {
+            if (is_array($entry) && (int) ($entry['file_id'] ?? 0) > 0) {
+                $ids[] = (int) $entry['file_id'];
+            }
+        }
+        if ($ids === []) return [];
+
+        $files = \App\Modules\User\Models\UserFile::whereIn('id', array_unique($ids))
+            ->where('user_id', $ownerId)
+            ->where('type', 'image')
+            ->where('scan_status', '!=', 'flagged')
+            ->get()
+            ->keyBy('id');
+
+        $clean = [];
+        foreach ($list as $entry) {
+            if (!is_array($entry)) continue;
+            $fileId = (int) ($entry['file_id'] ?? 0);
+            $file = $files->get($fileId);
+            if (!$file) continue; // foreign / missing / non-image / flagged → fail closed
+
+            $pos = (string) ($entry['pos'] ?? 'top_right');
+            if (!in_array($pos, BiolinkBlock::PHOTO_STICKER_POSITIONS, true)) $pos = 'top_right';
+
+            $clean[] = [
+                'file_id' => $fileId,
+                'url'     => $file->url_path,
+                'pos'     => $pos,
+                'size'    => max(24, min(160, (int) ($entry['size'] ?? 64))),
+                'rotate'  => max(-180, min(180, (int) ($entry['rotate'] ?? 0))),
+                'dx'      => max(-80, min(80, (int) ($entry['dx'] ?? 0))),
+                'dy'      => max(-80, min(80, (int) ($entry['dy'] ?? 0))),
+            ];
+            if (count($clean) >= BiolinkBlock::PHOTO_STICKER_MAX) break;
+        }
+
+        return $clean;
     }
 
     private function sanitizeImageStyle(array $input): array
