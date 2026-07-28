@@ -3,6 +3,7 @@ import {
   parsePinnedTools,
   serializePinnedTools,
   togglePinnedTool,
+  reorderPinnedTools,
   MAX_PINNED_TOOLS,
   PINNABLE_TOOLS,
   isPinnableTool,
@@ -65,6 +66,38 @@ describe('togglePinnedTool', () => {
 
   it('still allows unpinning when at the cap', () => {
     expect(togglePinnedTool(['dialer', 'screenshot'], 'screenshot')).toEqual(['dialer']);
+  });
+});
+
+describe('reorderPinnedTools', () => {
+  it('moves a tool to a new position', () => {
+    expect(reorderPinnedTools(['dialer', 'screenshot'], 'screenshot', 0))
+      .toEqual(['screenshot', 'dialer']);
+    expect(reorderPinnedTools(['dialer', 'screenshot'], 'dialer', 1))
+      .toEqual(['screenshot', 'dialer']);
+  });
+
+  it('returns the same reference when the tool is not pinned', () => {
+    const current: Parameters<typeof reorderPinnedTools>[0] = ['dialer'];
+    expect(reorderPinnedTools(current, 'screenshot', 0)).toBe(current);
+  });
+
+  it('returns the same reference when already at the target index', () => {
+    const current: Parameters<typeof reorderPinnedTools>[0] = ['dialer', 'screenshot'];
+    expect(reorderPinnedTools(current, 'dialer', 0)).toBe(current);
+  });
+
+  it('clamps out-of-range target indices', () => {
+    expect(reorderPinnedTools(['dialer', 'screenshot'], 'dialer', 99))
+      .toEqual(['screenshot', 'dialer']);
+    expect(reorderPinnedTools(['dialer', 'screenshot'], 'screenshot', -5))
+      .toEqual(['screenshot', 'dialer']);
+  });
+
+  it('round-trips through serialize/parse (order persists)', () => {
+    const reordered = reorderPinnedTools(['dialer', 'screenshot'], 'screenshot', 0);
+    expect(parsePinnedTools(serializePinnedTools(reordered)))
+      .toEqual(['screenshot', 'dialer']);
   });
 });
 

@@ -22,7 +22,7 @@ import { ApiClient } from '../../shared/api-client';
 import type { SiteResolveResult } from '../../shared/api-client';
 import { profileToAutofillCard } from '../../shared/form-autofill';
 import {
-  parsePinnedTools, serializePinnedTools, togglePinnedTool, isPinnableTool,
+  parsePinnedTools, serializePinnedTools, togglePinnedTool, reorderPinnedTools, isPinnableTool,
   PINNED_TOOLS_PREF_KEY, MAX_PINNED_TOOLS, PINNED_TOOLS_CHANGED_EVENT,
 } from '../../shared/toolbar-pins';
 import type { PinnableTool } from '../../shared/toolbar-pins';
@@ -471,6 +471,55 @@ export function ChromeBar({
       return next;
     });
   }, []);
+
+  // Drag-to-reorder for pinned tool buttons. The dragged tool id lives in a
+  // ref (dataTransfer is unreadable during dragover in Chromium) and the
+  // current hover target drives a subtle highlight.
+  const dragPinnedToolRef = useRef<PinnableTool | null>(null);
+  const [pinDropTarget, setPinDropTarget] = useState<PinnableTool | null>(null);
+  const handlePinnedToolDrop = useCallback((target: PinnableTool) => {
+    const dragged = dragPinnedToolRef.current;
+    dragPinnedToolRef.current = null;
+    setPinDropTarget(null);
+    if (!dragged || dragged === target) return;
+    setPinnedTools(prev => {
+      const next = reorderPinnedTools(prev, dragged, prev.indexOf(target));
+      if (next !== prev) {
+        void window.zio.prefs.set(PINNED_TOOLS_PREF_KEY, serializePinnedTools(next)).catch(() => {});
+      }
+      return next;
+    });
+  }, []);
+  const pinnedToolDragProps = useCallback((tool: PinnableTool) => ({
+    draggable: true,
+    onDragStart: (e: React.DragEvent) => {
+      dragPinnedToolRef.current = tool;
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', tool);
+    },
+    onDragOver: (e: React.DragEvent) => {
+      if (!dragPinnedToolRef.current || dragPinnedToolRef.current === tool) return;
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      setPinDropTarget(tool);
+    },
+    onDragLeave: () => {
+      setPinDropTarget(prev => (prev === tool ? null : prev));
+    },
+    onDrop: (e: React.DragEvent) => {
+      e.preventDefault();
+      handlePinnedToolDrop(tool);
+    },
+    onDragEnd: () => {
+      dragPinnedToolRef.current = null;
+      setPinDropTarget(null);
+    },
+  }), [handlePinnedToolDrop]);
+  const pinDropHighlight = useCallback((tool: PinnableTool): React.CSSProperties => (
+    pinDropTarget === tool
+      ? { outline: '2px solid var(--color-primary)', outlineOffset: -2 }
+      : {}
+  ), [pinDropTarget]);
 
   // ── Address bar suggestions ─────────────────────────────────────────────
   const [suggestions, setSuggestions] = useState<OmniSuggestion[]>([]);
@@ -1453,7 +1502,8 @@ export function ChromeBar({
                   }
                 }}
                 title={savedInReadingList ? 'Saved — open reading list' : 'Save to reading list'}
-                style={pinnedToolBtnStyle(readingListOpen)}
+                {...pinnedToolDragProps(tool)}
+                style={{ ...pinnedToolBtnStyle(readingListOpen), ...pinDropHighlight(tool) }}
               >
                 {savedInReadingList ? '🔖' : '📖'}
                 {unreadCount > 0 && (
@@ -1469,7 +1519,8 @@ export function ChromeBar({
                 key={tool}
                 onClick={onToggleDialer}
                 title="Dialer — search & call on your phone"
-                style={pinnedToolBtnStyle(dialerPanelOpen)}
+                {...pinnedToolDragProps(tool)}
+                style={{ ...pinnedToolBtnStyle(dialerPanelOpen), ...pinDropHighlight(tool) }}
               >📞</button>
             );
           }
@@ -1480,7 +1531,8 @@ export function ChromeBar({
                 key={tool}
                 onClick={onOpenDeviceLab}
                 title="Device Lab — phone / tablet / desktop preview"
-                style={pinnedToolBtnStyle(false)}
+                {...pinnedToolDragProps(tool)}
+                style={{ ...pinnedToolBtnStyle(false), ...pinDropHighlight(tool) }}
               >🔬</button>
             );
           }
@@ -1492,7 +1544,8 @@ export function ChromeBar({
                 onClick={() => onScreenshot(false)}
                 disabled={screenshotCapturing}
                 title="Screenshot — visible area"
-                style={{ ...pinnedToolBtnStyle(false), opacity: screenshotCapturing ? 0.5 : 1 }}
+                {...pinnedToolDragProps(tool)}
+                style={{ ...pinnedToolBtnStyle(false), opacity: screenshotCapturing ? 0.5 : 1, ...pinDropHighlight(tool) }}
               >{screenshotCapturing ? '⏳' : '📷'}</button>
             );
           }

@@ -71,3 +71,23 @@ export function togglePinnedTool(current: PinnableTool[], tool: PinnableTool): P
   if (current.length >= MAX_PINNED_TOOLS) return current;
   return [...current, tool];
 }
+
+/**
+ * Move a pinned tool to a new position in the list. Returns the same array
+ * reference when nothing changes (tool not pinned, or already at target).
+ * The target index is clamped to the valid range.
+ */
+export function reorderPinnedTools(
+  current: PinnableTool[],
+  tool: PinnableTool,
+  targetIndex: number,
+): PinnableTool[] {
+  const from = current.indexOf(tool);
+  if (from === -1) return current;
+  const to = Math.max(0, Math.min(current.length - 1, targetIndex));
+  if (to === from) return current;
+  const next = [...current];
+  next.splice(from, 1);
+  next.splice(to, 0, tool);
+  return next;
+}
