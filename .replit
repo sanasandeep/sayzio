@@ -600,6 +600,10 @@ args = "bg-preset-swatches"
 task = "workflow.run"
 args = "persona-seed-refresh"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-template-gallery"
+
 [[workflows.workflow]]
 name = "e2e"
 author = "agent"
@@ -2390,6 +2394,17 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "cd artifacts/1inme && php artisan templates:refresh-persona-seed"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-template-gallery"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "bash artifacts/1inme/tests/Browser/run-validation.sh template-gallery-visual.spec.ts"
 
 [workflows.workflow.metadata]
 isValidation = true

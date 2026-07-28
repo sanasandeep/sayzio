@@ -154,4 +154,5 @@
 - [Showcase account is a real user account](showcase-account-is-real-user.md) — showcase:seed WIPES sana@sayzio.app on prod; "saves not working" there usually = a reseed reverted her edits.
 - [Biolink bg Fixed/Scroll layer](biolink-bg-fixed-layer.md) — bg_attachment=fixed renders on a .bg-page-fixed viewport layer (iOS-safe), scroll stays on body; bg e2e specs assert layer vs body accordingly.
 - [DatabaseSeeder idempotency vs provisioning migrations](databaseseeder-idempotent-vs-migrations.md) — data migrations pre-create roles/admin on fresh migrate; DatabaseSeeder must firstOrCreate (create() dies 23505 on migrate+seed).
+- [Per-card DB queries in Blade loops](blade-per-card-db-query-loop.md) — one ->exists() inside a 400-card loop = minutes over distant RDS; hoist invariant queries; slow-POST clicks need noWaitAfter+waitForURL commit.
 - [Persona template top-up counts recommendations](persona-template-min-count-recommendations.md) — seeder tops up by recommended_personas across ALL templates, so starter recs leave personas one persona-* row short by design; run refresh via validation workflow (>2min).

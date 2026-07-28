@@ -95,6 +95,10 @@
     @php
         $cats = ['all' => 'All'] + \App\Modules\Admin\Models\PageTemplate::categories();
         $usedCats = $pageTemplates->pluck('category')->unique()->all();
+        // Computed ONCE for the whole page: with ~400 template cards, running
+        // this ->exists() inside the card loop meant 400 identical round-trips
+        // to the (distant) database and a page render measured in minutes.
+        $hasBlocks = $link->biolinkBlocks()->exists();
     @endphp
 
     @if(!$pageTemplates->isEmpty())
@@ -320,7 +324,6 @@
                                 <i class="fas fa-lock mr-1"></i>Upgrade to "{{ $tpl->plan_tier }}" to use
                             </a>
                         @else
-                            @php $hasBlocks = $link->biolinkBlocks()->exists(); @endphp
                             <div class="flex items-center gap-2">
                                 <button type="button"
                                         @click="openPreview('{{ route('user.onboarding.template.preview', ['id' => $tpl->id]) }}', @js($tpl->name))"
