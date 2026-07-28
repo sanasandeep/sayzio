@@ -176,6 +176,29 @@ html.light-mode footer.bg-\[\#161b26\] {
     background-color: #f9fafb !important;
 }
 
+/* ---- Public marketing footer (near-black #08020f) ----
+   The page-wide footer partial hardcodes bg-[#08020f]; give it the same
+   light treatment as the other footer above. Text/borders inside it are
+   mostly handled by the global remaps below; the extra rules cover the
+   hover-to-white links, the currency toggle's active pill and the
+   inactive-tab hover, which would otherwise stay light-on-light. */
+html.light-mode footer.bg-\[\#08020f\] {
+    background-color: #f9fafb !important;
+    border-color: rgba(15,23,42,0.12) !important;
+}
+html.light-mode footer.bg-\[\#08020f\] .hover\:text-white:hover {
+    color: #111827 !important;
+}
+html.light-mode footer.bg-\[\#08020f\] .hover\:text-gray-300:hover {
+    color: #111827 !important;
+}
+html.light-mode footer.bg-\[\#08020f\] .bg-white\/15 {
+    background-color: rgba(15,23,42,0.10) !important;
+}
+html.light-mode footer.bg-\[\#08020f\] .text-gray-700 {
+    color: #6b7280 !important;
+}
+
 /* ---- Floating glass navbar (public header) ---- */
 .mkt-navbar-bar {
     width: 92%;
