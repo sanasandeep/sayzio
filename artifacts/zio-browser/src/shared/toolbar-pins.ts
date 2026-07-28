@@ -91,3 +91,12 @@ export function reorderPinnedTools(
   next.splice(to, 0, tool);
   return next;
 }
+
+/**
+ * Move a pinned tool one step earlier (`-1`) or later (`+1`) in the list.
+ * Returns the list unchanged when the tool isn't pinned or the move would
+ * fall off either end.
+ */
+export function movePinnedTool(current: PinnableTool[], tool: PinnableTool, direction: -1 | 1): PinnableTool[] {
+  return reorderPinnedTools(current, tool, current.indexOf(tool) + direction);
+}

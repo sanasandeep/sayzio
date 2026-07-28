@@ -7,7 +7,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { ClearDataDialog } from './ClearDataDialog';
 import { KEYBOARD_SHORTCUTS } from '../../shared/command-palette';
 import {
-  parsePinnedTools, serializePinnedTools, togglePinnedTool, isPinnableTool,
+  parsePinnedTools, serializePinnedTools, togglePinnedTool, movePinnedTool, isPinnableTool,
   PINNABLE_TOOLS, PINNABLE_TOOL_INFO,
   PINNED_TOOLS_PREF_KEY, MAX_PINNED_TOOLS, PINNED_TOOLS_CHANGED_EVENT,
 } from '../../shared/toolbar-pins';
@@ -337,19 +337,36 @@ function ToolbarBlock() {
     });
   }, []);
 
+  const move = useCallback((tool: PinnableTool, direction: -1 | 1) => {
+    setPinned(prev => {
+      const next = movePinnedTool(prev, tool, direction);
+      if (next !== prev) {
+        void window.zio.prefs.set(PINNED_TOOLS_PREF_KEY, serializePinnedTools(next)).catch(() => {});
+        // Notify other surfaces (ChromeBar) after this handler returns.
+        setTimeout(() => {
+          window.dispatchEvent(new CustomEvent(PINNED_TOOLS_CHANGED_EVENT, { detail: next }));
+        }, 0);
+      }
+      return next;
+    });
+  }, []);
+
   return (
     <div style={cardStyle}>
       <div style={cardTitleStyle}>Toolbar</div>
       <div style={mutedTextStyle}>
         Pin up to {MAX_PINNED_TOOLS} tools from the “⋯” menu onto the toolbar for one-click access.
+        {pinned.length > 1 ? ' Use the arrows to change the order they appear on the toolbar.' : ''}
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 8 }}>
         {PINNABLE_TOOLS.map((tool) => {
           const info = PINNABLE_TOOL_INFO[tool];
-          const isPinned = pinned.includes(tool);
+          const pinIndex = pinned.indexOf(tool);
+          const isPinned = pinIndex !== -1;
           const disabled = !isPinned && capReached;
+          const showArrows = isPinned && pinned.length > 1;
           return (
-            <label
+            <div
               key={tool}
               title={disabled ? `Toolbar is full — unpin another tool first (max ${MAX_PINNED_TOOLS})` : undefined}
               style={{
@@ -358,20 +375,54 @@ function ToolbarBlock() {
                 gap: 10,
                 padding: '6px 8px',
                 borderRadius: 8,
-                cursor: disabled ? 'default' : 'pointer',
                 opacity: disabled ? 0.45 : 1,
               }}
             >
-              <input
-                type="checkbox"
-                checked={isPinned}
-                disabled={disabled}
-                onChange={() => toggle(tool)}
-              />
-              <span style={{ fontSize: 14, width: 20, textAlign: 'center' }}>{info.icon}</span>
-              <span style={{ fontSize: 12, fontWeight: 600 }}>{info.label}</span>
-              <span style={{ fontSize: 11, color: 'var(--color-text-muted)' }}>{info.description}</span>
-            </label>
+              <label
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 10,
+                  flex: 1,
+                  minWidth: 0,
+                  cursor: disabled ? 'default' : 'pointer',
+                }}
+              >
+                <input
+                  type="checkbox"
+                  checked={isPinned}
+                  disabled={disabled}
+                  onChange={() => toggle(tool)}
+                />
+                <span style={{ fontSize: 14, width: 20, textAlign: 'center' }}>{info.icon}</span>
+                <span style={{ fontSize: 12, fontWeight: 600 }}>{info.label}</span>
+                <span style={{ fontSize: 11, color: 'var(--color-text-muted)' }}>{info.description}</span>
+              </label>
+              {showArrows && (
+                <span style={{ display: 'flex', gap: 2, flexShrink: 0 }}>
+                  <button
+                    type="button"
+                    onClick={() => move(tool, -1)}
+                    disabled={pinIndex === 0}
+                    aria-label={`Move ${info.label} earlier on the toolbar`}
+                    title="Move earlier on the toolbar"
+                    style={pinReorderBtnStyle(pinIndex === 0)}
+                  >
+                    ↑
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => move(tool, 1)}
+                    disabled={pinIndex === pinned.length - 1}
+                    aria-label={`Move ${info.label} later on the toolbar`}
+                    title="Move later on the toolbar"
+                    style={pinReorderBtnStyle(pinIndex === pinned.length - 1)}
+                  >
+                    ↓
+                  </button>
+                </span>
+              )}
+            </div>
           );
         })}
       </div>
@@ -382,6 +433,26 @@ function ToolbarBlock() {
       )}
     </div>
   );
+}
+
+/** Small ↑/↓ button used to reorder pinned toolbar tools. */
+function pinReorderBtnStyle(disabled: boolean): React.CSSProperties {
+  return {
+    width: 22,
+    height: 22,
+    padding: 0,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontSize: 11,
+    lineHeight: 1,
+    borderRadius: 6,
+    border: '1px solid var(--color-border)',
+    background: 'transparent',
+    color: disabled ? 'var(--color-text-muted)' : 'var(--color-text)',
+    opacity: disabled ? 0.35 : 1,
+    cursor: disabled ? 'default' : 'pointer',
+  };
 }
 
 // ── Import bookmarks & history ────────────────────────────────────────────────

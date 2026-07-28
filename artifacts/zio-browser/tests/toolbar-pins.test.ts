@@ -4,6 +4,7 @@ import {
   serializePinnedTools,
   togglePinnedTool,
   reorderPinnedTools,
+  movePinnedTool,
   MAX_PINNED_TOOLS,
   PINNABLE_TOOLS,
   isPinnableTool,
@@ -98,6 +99,37 @@ describe('reorderPinnedTools', () => {
     const reordered = reorderPinnedTools(['dialer', 'screenshot'], 'screenshot', 0);
     expect(parsePinnedTools(serializePinnedTools(reordered)))
       .toEqual(['screenshot', 'dialer']);
+  });
+});
+
+describe('movePinnedTool', () => {
+  it('moves a tool up', () => {
+    expect(movePinnedTool(['dialer', 'screenshot'], 'screenshot', -1)).toEqual(['screenshot', 'dialer']);
+  });
+
+  it('moves a tool down', () => {
+    expect(movePinnedTool(['dialer', 'screenshot'], 'dialer', 1)).toEqual(['screenshot', 'dialer']);
+  });
+
+  it('is a no-op at the top edge', () => {
+    const current = ['dialer', 'screenshot'] as const;
+    expect(movePinnedTool([...current], 'dialer', -1)).toEqual([...current]);
+  });
+
+  it('is a no-op at the bottom edge', () => {
+    const current = ['dialer', 'screenshot'] as const;
+    expect(movePinnedTool([...current], 'screenshot', 1)).toEqual([...current]);
+  });
+
+  it('is a no-op when the tool is not pinned', () => {
+    const current = ['dialer', 'screenshot'] as const;
+    expect(movePinnedTool([...current], 'device_lab', -1)).toEqual([...current]);
+  });
+
+  it('does not mutate the input list', () => {
+    const current: Parameters<typeof movePinnedTool>[0] = ['dialer', 'screenshot'];
+    movePinnedTool(current, 'screenshot', -1);
+    expect(current).toEqual(['dialer', 'screenshot']);
   });
 });
 
