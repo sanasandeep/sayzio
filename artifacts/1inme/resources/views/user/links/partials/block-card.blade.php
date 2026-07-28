@@ -15,9 +15,14 @@
     $isLockedFixed = $isFixed && !$isTplDraft && $link->isDesignLocked();
 @endphp
 <div class="block-card-wrapper" data-block-id="{{ $block->id }}" style="grid-column: span {{ $curSpan }}">
+    {{-- Fixed template blocks form a contiguous prefix on a locked page, so
+         no insert affordance mid-prefix (the server clamps such inserts to
+         after the prefix anyway). --}}
+    @unless($isLockedFixed)
     <button type="button" class="insert-block-btn" onclick="openInsertGallery({{ $block->id }})" title="Insert block after this">
         <i class="fas fa-plus"></i>
     </button>
+    @endunless
     <div class="block-card {{ $block->isContainer() ? 'card-container-block' : '' }}" data-block-id="{{ $block->id }}" data-grid-span="{{ $curSpan }}" style="{{ $block->is_active ? '' : 'opacity:0.5;' }}">
         <div class="flex items-center gap-2 p-3">
             @if($isLockedFixed)

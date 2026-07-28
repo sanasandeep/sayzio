@@ -283,6 +283,25 @@ class TemplateService
                 $b->sort_order = $sort++;
                 $b->save();
             }
+
+            // Re-attach re-applies the template's design to EVERY block
+            // (root + children): styling is server-owned while locked, so
+            // any styles the user customized while detached are replaced by
+            // the template's per-type style (falling back to defaults when
+            // the template never styled this type) — mirroring how new
+            // blocks are seeded on a locked page.
+            $styleMap = (array) $stamp['block_styles'];
+            foreach ($link->biolinkBlocks()->get() as $b) {
+                $s = $b->settings ?? [];
+                $s['_style'] = array_merge(
+                    BiolinkBlock::STYLE_DEFAULTS,
+                    \App\Modules\User\Support\BlockDefaults::styleForType($b->type),
+                    (array) ($styleMap[$b->type] ?? [])
+                );
+                unset($s['_style_custom_snapshot']);
+                $b->settings = $s;
+                $b->save();
+            }
         });
     }
 

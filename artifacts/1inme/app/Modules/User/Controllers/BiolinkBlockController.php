@@ -316,6 +316,22 @@ class BiolinkBlockController extends Controller
 
         if ($insertAfterId) {
             $afterBlock = BiolinkBlock::where('id', $insertAfterId)->where('link_id', $link->id)->firstOrFail();
+
+            // Design lock: fixed template blocks form a contiguous prefix at
+            // the top of the page, so a root-level insert can never land
+            // inside it. Inserting "after" a fixed block that isn't the last
+            // fixed block is clamped to just after the whole fixed prefix.
+            if ($link->isDesignLocked() && $afterBlock->parent_id === null
+                && !empty(($afterBlock->settings ?? [])['_fixed'])) {
+                $lastFixed = $link->biolinkBlocks()->whereNull('parent_id')
+                    ->orderBy('sort_order')->get()
+                    ->filter(fn ($b) => !empty(($b->settings ?? [])['_fixed']))
+                    ->last();
+                if ($lastFixed && $lastFixed->id !== $afterBlock->id) {
+                    $afterBlock = $lastFixed;
+                }
+            }
+
             $parentId = $afterBlock->parent_id;
             $newSortOrder = $afterBlock->sort_order + 1;
 

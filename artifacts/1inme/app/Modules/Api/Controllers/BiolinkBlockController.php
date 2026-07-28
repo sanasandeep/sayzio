@@ -114,6 +114,19 @@ class BiolinkBlockController extends Controller
         $sort = $data['sort_order'] ?? ((int) BiolinkBlock::where('link_id', $link->id)->max('sort_order') + 1);
         $settings = $data['settings'] ?? [];
 
+        // Design lock: fixed template blocks form a contiguous prefix at the
+        // top of the page — a new root block can never be slotted into (or
+        // ahead of) it, so clamp the requested sort below the prefix.
+        if ($link->isDesignLocked() && ($data['parent_id'] ?? null) === null) {
+            $fixedCount = BiolinkBlock::where('link_id', $link->id)->whereNull('parent_id')
+                ->get(['id', 'settings'])
+                ->filter(fn ($fb) => !empty($fb->settings['_fixed']))
+                ->count();
+            if ($fixedCount > 0 && $sort < $fixedCount) {
+                $sort = $fixedCount;
+            }
+        }
+
         // Design lock parity with the web editor: on a locked page a new
         // block's `_style` is always seeded server-side from the template's
         // styling for its type — any client-sent style is ignored.

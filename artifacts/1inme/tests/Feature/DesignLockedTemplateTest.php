@@ -427,6 +427,87 @@ class DesignLockedTemplateTest extends TestCase
         $this->assertTrue($link->refresh()->isDesignLocked());
     }
 
+    public function test_web_insert_after_fixed_block_clamps_below_fixed_prefix(): void
+    {
+        $user = $this->makeUser();
+        $tpl  = $this->makeLockedTemplateWithExtras();
+        // Second pinned block so the prefix has a "middle" to protect.
+        $snap = $tpl->snapshot;
+        array_splice($snap['blocks'], 1, 0, [[
+            'type' => 'paragraph', 'settings' => ['text' => 'Pinned too', '_fixed' => true], 'is_active' => true,
+        ]]);
+        $tpl->update(['snapshot' => $snap]);
+        $link = $this->lockedExtrasLink($user, $tpl);
+        $ajax = ['X-Requested-With' => 'XMLHttpRequest'];
+
+        $firstFixed = $link->biolinkBlocks()->whereNull('parent_id')->orderBy('sort_order')->first();
+        $this->assertTrue(!empty($firstFixed->settings['_fixed']));
+
+        // Inserting "after" the FIRST fixed block must land after the whole
+        // fixed prefix, not between the two pinned blocks.
+        $this->post(route('user.links.blocks.store', $link), [
+            'type' => 'paragraph', 'settings' => ['text' => 'Wedge'],
+            'insert_after' => $firstFixed->id,
+        ], $ajax)->assertOk();
+
+        $roots = $link->refresh()->biolinkBlocks()->whereNull('parent_id')->orderBy('sort_order')->get();
+        $fixedIdx = $roots->filter(fn ($b) => !empty($b->settings['_fixed']))->keys()->all();
+        $this->assertSame([0, 1], $fixedIdx, 'Fixed blocks must remain a contiguous prefix.');
+        $this->assertSame('Wedge', $roots[2]->settings['text'] ?? null);
+    }
+
+    public function test_api_store_and_update_cannot_slot_block_into_fixed_prefix(): void
+    {
+        $user = $this->makeUser();
+        $tpl  = $this->makeLockedTemplateWithExtras();
+        $link = $this->lockedExtrasLink($user, $tpl);
+        $this->withToken($this->token($user));
+
+        // Create with sort_order=0 — must be clamped below the fixed prefix.
+        $resp = $this->postJson("/api/v1/links/{$link->id}/blocks", [
+            'type' => 'paragraph', 'sort_order' => 0, 'settings' => ['text' => 'Sneaky'],
+        ])->assertCreated();
+        $newId = (int) $resp->json('data.block.id');
+
+        $roots = $link->biolinkBlocks()->whereNull('parent_id')->orderBy('sort_order')->orderBy('id')->get();
+        $this->assertTrue(!empty($roots->first()->settings['_fixed']), 'Fixed block must stay first.');
+
+        // Update an existing non-fixed block to sort_order=0 — same clamp.
+        $this->patchJson("/api/v1/links/{$link->id}/blocks/{$newId}", ['sort_order' => 0])->assertOk();
+        $roots = $link->biolinkBlocks()->whereNull('parent_id')->orderBy('sort_order')->orderBy('id')->get();
+        $this->assertTrue(!empty($roots->first()->settings['_fixed']), 'Fixed block must stay first after update.');
+
+        // Reorder payload that omits the fixed ids entirely is rejected too.
+        $nonFixedIds = $roots->filter(fn ($b) => empty($b->settings['_fixed']))->pluck('id')->values()->all();
+        $this->postJson("/api/v1/links/{$link->id}/blocks/reorder", ['order' => $nonFixedIds])
+            ->assertStatus(422);
+    }
+
+    public function test_reattach_resets_user_styles_to_template_design(): void
+    {
+        $user = $this->makeUser();
+        $tpl  = $this->makeLockedTemplateWithExtras();
+        $link = $this->lockedExtrasLink($user, $tpl);
+        $ajax = ['X-Requested-With' => 'XMLHttpRequest'];
+
+        // Detach, then customize a block's style while unlocked.
+        $this->postJson(route('user.links.templates.detach-design', $link), [], $ajax)->assertOk();
+        $para = $link->biolinkBlocks()->where('type', 'paragraph')->firstOrFail();
+        $s = $para->settings;
+        $s['_style'] = array_merge($s['_style'] ?? [], ['background' => '#ff0000']);
+        $para->settings = $s;
+        $para->save();
+
+        // Re-apply the same template: the custom style must be replaced by
+        // the template's design (paragraph has no template style → defaults).
+        $this->post(route('user.links.templates.apply-page', $link), ['template_id' => $tpl->id])
+            ->assertRedirect();
+
+        $para->refresh();
+        $this->assertNotSame('#ff0000', ($para->settings['_style']['background'] ?? null),
+            'Re-attach must reset user-customized styles.');
+    }
+
     // ── seeder ───────────────────────────────────────────────────────
 
     public function test_seeder_marks_curated_starter_blueprints_design_locked(): void
