@@ -14,6 +14,7 @@
     "test:native-icon-fonts-e2e": "node scripts/test-native-icon-fonts-e2e.mjs",
     "test:citation-href": "node scripts/test-citation-href.mjs",
     "test:block-cache": "node scripts/test-block-cache.mjs",
+    "test:block-save-settings-merge": "node scripts/test-block-save-settings-merge.mjs",
     "test:blank-content-render": "node scripts/test-blank-content-render.mjs",
     "test:map-location": "node scripts/test-map-location-block.mjs",
     "test:event-host-map": "node scripts/test-event-host-map.mjs",

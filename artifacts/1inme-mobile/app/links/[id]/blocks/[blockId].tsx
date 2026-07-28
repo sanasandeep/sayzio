@@ -1044,12 +1044,26 @@ export function BlockSettingsEditor({
 
   const save = useMutation({
     mutationFn: () => {
-      // Field saves are content-only — variant changes flow through the
-      // dedicated apply path above so we never re-merge a stale _style
-      // here. We strip _style entirely from the values payload so the
-      // backend keeps whatever variant/snapshot is currently persisted.
-      const nextSettings: Record<string, unknown> = { ...values };
-      delete nextSettings._style;
+      // Field saves are content-only — the API PATCH replaces `settings`
+      // wholesale, so we start from the block's current settings and only
+      // overlay the keys this editor actually surfaces. This preserves
+      // object-shaped keys the mobile UI doesn't edit (e.g. `_image_style`
+      // mask/border/shadow config, `_style` for every block type, and the
+      // pre-variant `_style_custom_snapshot`) so a mobile content edit
+      // never silently wipes web-configured styling. Variant changes flow
+      // through the dedicated apply path above, so carrying the persisted
+      // `_style` forward here is a no-op for variants.
+      const prevSettings =
+        (block?.settings as Record<string, unknown> | undefined) ?? {};
+      const nextSettings: Record<string, unknown> = {
+        ...prevSettings,
+        ...values,
+      };
+      // A save from mobile is a real content edit: clear the seeded
+      // placeholder flag just like a fresh payload used to (before this
+      // merge, the flag was dropped implicitly by the wholesale replace).
+      delete nextSettings._placeholder;
+      delete nextSettings._placeholder_seed;
       // Merge per-block targeting back into `_visibility`. We preserve any
       // pre-existing keys (continents/cities/os/browsers/languages/time_slots)
       // that the mobile UI doesn't surface yet so saving from mobile never
