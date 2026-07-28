@@ -21,6 +21,11 @@ import type { SyncQueueProfileCount } from '../../main/db';
 import { ApiClient } from '../../shared/api-client';
 import type { SiteResolveResult } from '../../shared/api-client';
 import { profileToAutofillCard } from '../../shared/form-autofill';
+import {
+  parsePinnedTools, serializePinnedTools, togglePinnedTool,
+  PINNED_TOOLS_PREF_KEY, MAX_PINNED_TOOLS,
+} from '../../shared/toolbar-pins';
+import type { PinnableTool } from '../../shared/toolbar-pins';
 
 interface Props {
   zioPanelOpen: boolean;
@@ -430,6 +435,26 @@ export function ChromeBar({
   const [isBookmarked, setIsBookmarked] = useState(false);
   const omniboxRef = useRef<HTMLInputElement>(null);
   const stripMenuBtnRef = useRef<HTMLButtonElement>(null);
+
+  // ── Pinned toolbar tools (promoted from the "⋯" overflow menu) ──────────
+  const [pinnedTools, setPinnedTools] = useState<PinnableTool[]>([]);
+  useEffect(() => {
+    let cancelled = false;
+    void window.zio.prefs.get(PINNED_TOOLS_PREF_KEY).then((raw: string | null) => {
+      if (!cancelled) setPinnedTools(parsePinnedTools(raw));
+    }).catch(() => { /* main not ready — default to none pinned */ });
+    return () => { cancelled = true; };
+  }, []);
+
+  const handleTogglePin = useCallback((tool: PinnableTool) => {
+    setPinnedTools(prev => {
+      const next = togglePinnedTool(prev, tool);
+      if (next !== prev) {
+        void window.zio.prefs.set(PINNED_TOOLS_PREF_KEY, serializePinnedTools(next)).catch(() => {});
+      }
+      return next;
+    });
+  }, []);
 
   // ── Address bar suggestions ─────────────────────────────────────────────
   const [suggestions, setSuggestions] = useState<OmniSuggestion[]>([]);
@@ -1398,6 +1423,66 @@ export function ChromeBar({
           onOpenAuth={onOpenAuth}
         />
 
+        {/* Pinned tools — overflow items the user promoted onto the toolbar */}
+        {pinnedTools.map((tool) => {
+          if (tool === 'reading_list') {
+            return (
+              <button
+                key={tool}
+                onClick={() => {
+                  if (!activeTab?.url || activeTab.url === 'about:newtab' || activeTab.url === '') {
+                    onToggleReadingList();
+                  } else {
+                    void handleSaveToReadingList();
+                  }
+                }}
+                title={savedInReadingList ? 'Saved — open reading list' : 'Save to reading list'}
+                style={pinnedToolBtnStyle(readingListOpen)}
+              >
+                {savedInReadingList ? '🔖' : '📖'}
+                {unreadCount > 0 && (
+                  <span style={pinnedToolBadgeStyle}>{unreadCount > 99 ? '99+' : unreadCount}</span>
+                )}
+              </button>
+            );
+          }
+          if (tool === 'dialer') {
+            if (isPrivate || !onToggleDialer) return null;
+            return (
+              <button
+                key={tool}
+                onClick={onToggleDialer}
+                title="Dialer — search & call on your phone"
+                style={pinnedToolBtnStyle(dialerPanelOpen)}
+              >📞</button>
+            );
+          }
+          if (tool === 'device_lab') {
+            if (!onOpenDeviceLab) return null;
+            return (
+              <button
+                key={tool}
+                onClick={onOpenDeviceLab}
+                title="Device Lab — phone / tablet / desktop preview"
+                style={pinnedToolBtnStyle(false)}
+              >🔬</button>
+            );
+          }
+          if (tool === 'screenshot') {
+            if (!canShorten || isPrivate || !onScreenshot) return null;
+            return (
+              <button
+                key={tool}
+                onClick={() => onScreenshot(false)}
+                disabled={screenshotCapturing}
+                title="Screenshot — visible area"
+                style={{ ...pinnedToolBtnStyle(false), opacity: screenshotCapturing ? 0.5 : 1 }}
+              >{screenshotCapturing ? '⏳' : '📷'}</button>
+            );
+          }
+          return null;
+        })}
+
         {/* Settings button */}
         {onOpenSettings && (
           <button
@@ -1469,6 +1554,8 @@ export function ChromeBar({
           dialerAvailable={!isPrivate && !!onToggleDialer}
           dialerPanelOpen={dialerPanelOpen}
           onToggleDialer={onToggleDialer}
+          pinnedTools={pinnedTools}
+          onTogglePin={handleTogglePin}
           savedInReadingList={savedInReadingList}
           unreadCount={unreadCount}
           onReadingList={() => {
@@ -1567,6 +1654,10 @@ interface OverflowMenuProps {
   savedInReadingList: boolean;
   unreadCount: number;
   onReadingList: () => void;
+  /** Tools currently pinned onto the toolbar. */
+  pinnedTools: PinnableTool[];
+  /** Toggle a tool's pinned state (capped at MAX_PINNED_TOOLS). */
+  onTogglePin: (tool: PinnableTool) => void;
 }
 
 function OverflowMenu({
@@ -1575,8 +1666,36 @@ function OverflowMenu({
   onOpenDeviceLab,
   dialerAvailable, dialerPanelOpen, onToggleDialer,
   savedInReadingList, unreadCount, onReadingList,
+  pinnedTools, onTogglePin,
 }: OverflowMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null);
+  const pinCapReached = pinnedTools.length >= MAX_PINNED_TOOLS;
+
+  /** Pin/unpin toggle rendered as a sibling of each row's action button. */
+  const pinToggle = (tool: PinnableTool) => {
+    const pinned = pinnedTools.includes(tool);
+    const disabled = !pinned && pinCapReached;
+    return (
+      <button
+        onClick={(e) => { e.stopPropagation(); if (!disabled) onTogglePin(tool); }}
+        title={pinned
+          ? 'Unpin from toolbar'
+          : disabled
+            ? `Toolbar is full — unpin another tool first (max ${MAX_PINNED_TOOLS})`
+            : 'Pin to toolbar'}
+        style={{
+          flexShrink: 0,
+          padding: '4px 8px',
+          fontSize: 12,
+          borderRadius: 6,
+          cursor: disabled ? 'default' : 'pointer',
+          opacity: pinned ? 1 : disabled ? 0.25 : 0.55,
+          color: pinned ? 'var(--color-primary)' : 'var(--color-text-muted)',
+          transition: 'opacity 0.1s',
+        }}
+      >📌</button>
+    );
+  };
 
   const rect = anchorRef.current?.getBoundingClientRect();
   const left = rect ? Math.max(8, rect.right - 230) : undefined;
@@ -1615,59 +1734,72 @@ function OverflowMenu({
       }}
     >
       {/* Reading list */}
-      <button onClick={action(onReadingList)} style={menuItemStyle}>
-        <span>{savedInReadingList ? '🔖' : '📖'}</span>
-        <span>{savedInReadingList ? 'Saved — open reading list' : 'Save to reading list'}</span>
-        {unreadCount > 0 && (
-          <span style={{
-            marginLeft: 'auto',
-            minWidth: 16,
-            height: 16,
-            borderRadius: 8,
-            background: 'var(--gradient-primary)',
-            color: '#fff',
-            fontSize: 9,
-            fontWeight: 700,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '0 4px',
-          }}>
-            {unreadCount > 99 ? '99+' : unreadCount}
-          </span>
-        )}
-      </button>
+      <div style={menuRowStyle}>
+        <button onClick={action(onReadingList)} style={{ ...menuItemStyle, flex: 1 }}>
+          <span>{savedInReadingList ? '🔖' : '📖'}</span>
+          <span>{savedInReadingList ? 'Saved — open reading list' : 'Save to reading list'}</span>
+          {unreadCount > 0 && (
+            <span style={{
+              marginLeft: 'auto',
+              minWidth: 16,
+              height: 16,
+              borderRadius: 8,
+              background: 'var(--gradient-primary)',
+              color: '#fff',
+              fontSize: 9,
+              fontWeight: 700,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '0 4px',
+            }}>
+              {unreadCount > 99 ? '99+' : unreadCount}
+            </span>
+          )}
+        </button>
+        {pinToggle('reading_list')}
+      </div>
 
       {/* Dialer */}
       {dialerAvailable && onToggleDialer && (
-        <button onClick={action(onToggleDialer)} style={{
-          ...menuItemStyle,
-          color: dialerPanelOpen ? 'var(--color-primary)' : menuItemStyle.color,
-        }}>
-          <span>📞</span>
-          <span>Dialer — search &amp; call on your phone</span>
-        </button>
+        <div style={menuRowStyle}>
+          <button onClick={action(onToggleDialer)} style={{
+            ...menuItemStyle,
+            flex: 1,
+            color: dialerPanelOpen ? 'var(--color-primary)' : menuItemStyle.color,
+          }}>
+            <span>📞</span>
+            <span>Dialer — search &amp; call on your phone</span>
+          </button>
+          {pinToggle('dialer')}
+        </div>
       )}
 
       {/* Device Lab */}
       {onOpenDeviceLab && (
-        <button onClick={action(onOpenDeviceLab)} style={menuItemStyle}>
-          <span>🔬</span>
-          <span>Device Lab — phone / tablet / desktop preview</span>
-        </button>
+        <div style={menuRowStyle}>
+          <button onClick={action(onOpenDeviceLab)} style={{ ...menuItemStyle, flex: 1 }}>
+            <span>🔬</span>
+            <span>Device Lab — phone / tablet / desktop preview</span>
+          </button>
+          {pinToggle('device_lab')}
+        </div>
       )}
 
       {/* Screenshot */}
       {canScreenshot && onScreenshot && (
         <>
-          <button
-            onClick={action(() => onScreenshot(false))}
-            disabled={screenshotCapturing}
-            style={{ ...menuItemStyle, opacity: screenshotCapturing ? 0.5 : 1 }}
-          >
-            <span>{screenshotCapturing ? '⏳' : '📷'}</span>
-            <span>Screenshot — visible area</span>
-          </button>
+          <div style={menuRowStyle}>
+            <button
+              onClick={action(() => onScreenshot(false))}
+              disabled={screenshotCapturing}
+              style={{ ...menuItemStyle, flex: 1, opacity: screenshotCapturing ? 0.5 : 1 }}
+            >
+              <span>{screenshotCapturing ? '⏳' : '📷'}</span>
+              <span>Screenshot — visible area</span>
+            </button>
+            {pinToggle('screenshot')}
+          </div>
           <button
             onClick={action(() => onScreenshot(true))}
             disabled={screenshotCapturing}
@@ -1698,6 +1830,46 @@ function OverflowMenu({
     </div>
   );
 }
+
+/** Compact icon-button style shared by pinned toolbar tools. */
+function pinnedToolBtnStyle(active: boolean): React.CSSProperties {
+  return {
+    position: 'relative',
+    fontSize: 15,
+    padding: '2px 7px',
+    borderRadius: 8,
+    background: active ? 'var(--color-primary)' : 'var(--color-bg-elevated)',
+    color: active ? '#fff' : 'var(--color-text-muted)',
+    border: '1px solid var(--color-border)',
+    transition: 'all 0.12s',
+    flexShrink: 0,
+  };
+}
+
+const pinnedToolBadgeStyle: React.CSSProperties = {
+  position: 'absolute',
+  top: -5,
+  right: -5,
+  minWidth: 14,
+  height: 14,
+  borderRadius: 7,
+  background: 'var(--gradient-primary)',
+  color: '#fff',
+  fontSize: 9,
+  fontWeight: 700,
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  padding: '0 2px',
+  pointerEvents: 'none',
+};
+
+/** Row wrapper for overflow items that carry a pin toggle next to the action. */
+const menuRowStyle: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  width: '100%',
+};
 
 const menuItemStyle: React.CSSProperties = {
   display: 'flex',
