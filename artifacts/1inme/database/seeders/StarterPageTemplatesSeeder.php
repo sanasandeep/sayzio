@@ -63,7 +63,7 @@ class StarterPageTemplatesSeeder extends Seeder
      * tiles (heading + short blurb) in a responsive auto grid (3 columns
      * on desktop, stacked on phones).
      */
-    public const SEED_VERSION = 14;
+    public const SEED_VERSION = 15;
 
     /** Tolerance (seconds) for treating updated_at == created_at. */
     private const EDIT_DRIFT_TOLERANCE = 2;
@@ -607,7 +607,115 @@ class StarterPageTemplatesSeeder extends Seeder
                     'button_style'      => 'rounded',
                 ]),
             ],
+
+            // 13 — Purple Split: bold purple split layout modeled on the
+            // "Lillian Pratt" reference — oversized yellow-green display
+            // name (grid_span 7), italic serif tagline (5), portrait photo
+            // (5) beside a transparent card stacking six action-word link
+            // rows (7). All split blocks carry `stack_mobile` so the page
+            // collapses to a single column on phones.
+            [
+                'slug'                 => 'starter-purple-split',
+                'name'                 => 'Purple Split',
+                'category'             => 'biolink',
+                'description'          => 'A bold purple split layout — oversized display name, italic serif tagline, and a portrait photo beside a stack of action-word links. Stacks to one column on mobile.',
+                'recommended_personas' => ['musician', 'creator', 'artist'],
+                'snapshot'             => $this->snapshot([
+                    $this->block('heading', [
+                        'text'   => 'Your Name',
+                        'size'   => 'h1',
+                        'align'  => 'left',
+                        '_style' => $this->purpleSplitStyle(7, [
+                            'font_family' => 'Archivo Black',
+                            'font_size'   => '42',
+                            'text_color'  => '#e3f77e',
+                        ]),
+                    ]),
+                    $this->block('paragraph', [
+                        'text'   => "I'm a musician, producer, and goal-getter",
+                        'align'  => 'left',
+                        '_style' => $this->purpleSplitStyle(5, [
+                            'font_family' => 'Playfair Display',
+                            'font_style'  => 'italic',
+                            'font_weight' => '600',
+                            'font_size'   => '15',
+                            'text_color'  => '#2a1a45',
+                        ]),
+                    ]),
+                    $this->block('image', [
+                        'url'    => $this->photo('musician,portrait', 900, 1200, 'starter-purple-split-portrait'),
+                        'alt'    => 'Portrait photo',
+                        '_style' => $this->purpleSplitStyle(5),
+                    ]),
+                    // NOTE: `children` sits at the BLOCK level (sibling of
+                    // `settings`), not inside settings — the settings
+                    // sanitizer strips unknown keys, and insertBlockTree
+                    // reads $b['children'] from the block array.
+                    array_merge(
+                        $this->block('card', [
+                            'columns' => 1,
+                            'bg_type' => 'transparent',
+                            '_style'  => $this->purpleSplitStyle(7, [
+                                'bg_color'      => 'transparent',
+                                'border_style'  => 'none',
+                                'border_width'  => '0',
+                                'shadow_preset' => 'none',
+                                'padding'       => '0',
+                            ]),
+                        ]),
+                        ['children' => [
+                            $this->purpleSplitAction('Listen', 'Latest single: My Dream', 'https://example.com/listen'),
+                            $this->purpleSplitAction('Stream', 'Music on Spotify', 'https://open.spotify.com/artist/yourhandle'),
+                            $this->purpleSplitAction('Watch', 'Videos on Vimeo', 'https://vimeo.com/yourhandle'),
+                            $this->purpleSplitAction('Join', 'Live music sets on Twitch', 'https://twitch.tv/yourhandle'),
+                            $this->purpleSplitAction('Donate', 'To the causes I support', 'https://example.com/donate'),
+                            $this->purpleSplitAction('Shop', 'Merch and collectibles', 'https://example.com/shop'),
+                        ]],
+                    ),
+                ], [
+                    'background_type'   => 'color',
+                    'background_color'  => '#b28cf0',
+                    'theme_color'       => '#e3f77e',
+                    'font_color'        => '#ffffff',
+                    'button_color'      => '#e3f77e',
+                    'button_text_color' => '#2a1a45',
+                    'button_style'      => 'square',
+                    'layout'            => [
+                        'max_width_desktop' => 960,
+                        'max_width_tablet'  => 720,
+                    ],
+                ]),
+            ],
         ];
+    }
+
+    /* ────────────── Purple Split helpers (template 13) ────────────── */
+
+    /**
+     * Split-column style: a grid_span with the opt-in `stack_mobile` flag
+     * so the block collapses to a full-width row on phones.
+     */
+    private function purpleSplitStyle(int $span, array $extra = []): array
+    {
+        return array_merge(
+            BiolinkBlock::STYLE_DEFAULTS,
+            ['grid_span' => $span, 'stack_mobile' => '1'],
+            $extra,
+        );
+    }
+
+    /**
+     * One action-word link row (big word left, small description right)
+     * using the `action_word_row` catalog variant.
+     */
+    private function purpleSplitAction(string $word, string $desc, string $url): array
+    {
+        return $this->block('link', [
+            'text'        => $word,
+            'description' => $desc,
+            'url'         => $url,
+            '_style'      => $this->variantStyle('link', 'action_word_row'),
+        ]);
     }
 
     /* ────────────── Pastel Tile Grid helpers (template 11) ────────────── */

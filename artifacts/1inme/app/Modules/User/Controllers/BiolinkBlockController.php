@@ -1990,7 +1990,7 @@ class BiolinkBlockController extends Controller
             // ('plain_text' / 'image_cover') will ever be persisted —
             // which is exactly what we want.
             'link_layout' => [
-                'plain_text', 'image_cover',
+                'plain_text', 'image_cover', 'action_row',
                 'icon_left', 'icon_right', 'icon_both', 'icon_only',
                 'icon_circle_left', 'icon_circle_right', 'icon_box',
                 'image_left', 'image_right', 'image_top',
