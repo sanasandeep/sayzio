@@ -33,7 +33,7 @@ class BlockVariantCatalog
      * pipeline always writes the *current* VERSION so newly-applied or
      * re-applied variants stay in sync.
      */
-    public const VERSION = 9;
+    public const VERSION = 10;
 
     /**
      * Shape filters for link-style blocks. Orthogonal to theme TAGS:
@@ -1930,6 +1930,24 @@ class BlockVariantCatalog
                         'padding' => '0', '_profile_layout' => 'overlap_hero',
                     ],
                     'preview' => ['bg' => '#ffffff', 'text' => '#0f172a', 'radius' => 24],
+                ],
+                [
+                    // Task #5885: split-hero tile grid. A tall solid-colour
+                    // hero panel (script name, letter-spaced tagline, big
+                    // photo) designed to sit beside a grid of flat link
+                    // tiles on desktop. Square corners on purpose — the
+                    // reference look is edge-to-edge flat panels.
+                    'key' => 'identity_split_hero_panel',
+                    'name' => 'Split Hero Panel',
+                    'tags' => ['bold', 'editorial'],
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#f4c531',
+                        'text_color' => '#111827',
+                        'border_style' => 'none', 'border_radius' => '0',
+                        'shadow_preset' => 'none',
+                        'padding' => '0', '_profile_layout' => 'split_hero_panel',
+                    ],
+                    'preview' => ['bg' => '#f4c531', 'text' => '#111827', 'radius' => 0],
                 ],
                 [
                     'key' => 'identity_gradient',

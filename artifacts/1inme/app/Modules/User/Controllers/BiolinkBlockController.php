@@ -2013,6 +2013,8 @@ class BiolinkBlockController extends Controller
             'margin_right' => [-100, 200],
             'grid_span' => [1, 12],
             'stack_mobile' => [0, 1],
+            'grid_span_md' => [1, 12],
+            'grid_row_span_md' => [1, 6],
         ];
         $colorKeys = ['text_color', 'bg_color', 'border_color', 'shadow_color'];
         $fontWeightKeys = ['font_weight'];

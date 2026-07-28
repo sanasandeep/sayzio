@@ -212,6 +212,35 @@
         </div>
     </div>
 
+{{-- ───────────────────────────── SPLIT HERO PANEL ──────────────────── --}}
+{{-- Task #5885: tall solid-colour hero panel — script-style name up top,
+     a letter-spaced tagline, then the photo filling the rest of the
+     panel. Designed to sit beside a grid of flat link tiles on desktop
+     (the wrap stretches it to the tile rows' height via grid_row_span_md),
+     and to stack above them on phones. No bottom margin: the page grid's
+     gap owns the spacing so the panel lines up flush with the tiles. --}}
+@elseif($layout === 'split_hero_panel')
+    @once('split-hero-pacifico')
+        {{-- The script name uses Pacifico; the page-level font collector only
+             sees block-theme / page fonts, so this layout loads its own face
+             (body-level stylesheet links are valid HTML; @once dedupes). --}}
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pacifico&display=swap">
+    @endonce
+    <div class="overflow-hidden flex flex-col h-full {{ $baseClass }}" style="min-height:340px;{{ $cardStyle }}">
+        <div class="px-6 pt-8 pb-4 text-center">
+            @if($name)<p class="text-4xl leading-tight" style="font-family:'Pacifico','Brush Script MT',cursive;font-weight:400">{{ $name }}</p>@endif
+            @if($title)<p class="mt-3 text-[11px] font-bold uppercase" style="letter-spacing:0.35em;opacity:.85;font-family:ui-sans-serif,system-ui,sans-serif">{{ $title }}</p>@endif
+            @if($bio)<p class="text-sm mt-3" style="opacity:.75;font-family:ui-sans-serif,system-ui,sans-serif">{{ $bio }}</p>@endif
+        </div>
+        <div class="flex-1 min-h-0 px-6 pb-6 flex">
+            @if($avatar)
+                <img src="{{ $avatar }}" class="w-full h-full object-cover object-top" style="min-height:220px" alt="">
+            @else
+                <div class="w-full h-full flex items-center justify-center text-5xl font-bold" style="min-height:220px;background:rgba(0,0,0,0.08)">{{ $initial }}</div>
+            @endif
+        </div>
+    </div>
+
 {{-- ───────────────────────────── GRADIENT IDENTITY ─────────────────── --}}
 @elseif($layout === 'gradient')
     <div class="mb-4 overflow-hidden rounded-2xl {{ $baseClass }}" style="{{ $cardStyle }}">

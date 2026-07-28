@@ -52,8 +52,13 @@ class StarterPageTemplatesSeeder extends Seeder
      * photo background, a decorative display-font name heading, and six
      * chartreuse pill links in a two-column desktop grid (grid_span 6)
      * that stacks to one column on mobile.
+     *
+     * v12 (2026-07): Added "Split Hero Tiles" — a tall yellow hero panel
+     * (script name + spaced tagline + photo) sitting beside a 2×3 grid of
+     * flat solid-colour link tiles on desktop, stacking vertically on
+     * phones via the new grid_span_md / grid_row_span_md overrides.
      */
-    public const SEED_VERSION = 11;
+    public const SEED_VERSION = 12;
 
     /** Tolerance (seconds) for treating updated_at == created_at. */
     private const EDIT_DRIFT_TOLERANCE = 2;
@@ -454,10 +459,56 @@ class StarterPageTemplatesSeeder extends Seeder
                     'button_style'      => 'pill',
                 ]),
             ],
+
+            // 10 — Split Hero Tiles: tall yellow hero panel (script name,
+            // spaced tagline, big photo) beside a 2×3 grid of flat
+            // solid-colour link tiles on desktop; on phones everything
+            // stacks full-width with the hero first — screenshot-inspired.
+            [
+                'slug'                 => 'starter-split-hero-grid',
+                'name'                 => 'Split Hero Tiles',
+                'category'             => 'business',
+                'description'          => 'A bold split layout: a tall hero panel with your name and photo beside a colourful grid of flat link tiles. Stacks neatly on phones.',
+                'recommended_personas' => ['business', 'creator', 'freelancer'],
+                'snapshot'             => $this->snapshot([
+                    $this->profile(
+                        'Madison Lee',
+                        '',
+                        $this->photo('portrait,entrepreneur', 600, 800, 'starter-splithero-photo'),
+                        $kits['splitherogrid'],
+                        '',
+                        [
+                            'title'    => 'SHE-EO · ENTREPRENEUR',
+                            'verified' => false,
+                            'socials'  => [],
+                            '_style'   => $this->variantStyle('profile_card_v1', 'identity_split_hero_panel', [
+                                'grid_span_md'     => 4,
+                                'grid_row_span_md' => 3,
+                            ]),
+                        ]
+                    ),
+                    $this->heroTile('MY WEBSITE',   'https://example.com',            '#14b8a6'),
+                    $this->heroTile('THE PODCAST',  'https://example.com/podcast',    '#ec4899'),
+                    $this->heroTile('COURSES',      'https://example.com/courses',    '#8b5cf6'),
+                    $this->heroTile('BOOK A CALL',  'https://example.com/call',       '#f97316'),
+                    $this->heroTile('NEWSLETTER',   'https://example.com/newsletter', '#4f46e5'),
+                    $this->heroTile('SHOP MERCH',   'https://example.com/shop',       '#eab308'),
+                ], [
+                    'background_type'   => 'color',
+                    'background_color'  => '#111111',
+                    'theme_color'       => '#f4c531',
+                    'font_color'        => '#ffffff',
+                    'button_color'      => '#14b8a6',
+                    'button_text_color' => '#ffffff',
+                    'button_style'      => 'square',
+                    'max_width_desktop' => 960,
+                    'block_gap'         => 8,
+                ]),
+            ],
         ];
     }
 
-    /* ─────────────── Floral Editorial helpers (template 8) ─────────────── */
+    /* ─────────────── Floral Editorial helpers (template 9) ─────────────── */
 
     /**
      * Big decorative name heading: art-nouveau-flavoured display font
@@ -512,6 +563,35 @@ class StarterPageTemplatesSeeder extends Seeder
                 'grid_span'     => 6,
             ]),
         ]);
+    }
+
+    /* ───────────── Split Hero Tiles helpers (template 10) ───────────── */
+
+    /**
+     * Flat solid-colour tile: a full-width link block on phones that
+     * becomes a third-width tile on desktop (`grid_span_md` 4), so six
+     * of them wrap into a 2×3 grid beside the row-spanning hero panel.
+     * Baked style (no catalog variant key) — square corners, no shadow,
+     * bold white centred label, generous vertical padding.
+     */
+    private function heroTile(string $text, string $url, string $bg): array
+    {
+        $style = $this->variantStyle('link', '', [
+            'display_mode'   => 'card',
+            'bg_color'       => $bg,
+            'border_style'   => 'none',
+            'border_width'   => '0',
+            'border_color'   => 'transparent',
+            'border_radius'  => '0',
+            'shadow_preset'  => 'none',
+            'text_color'     => '#ffffff',
+            'padding_top'    => '44',
+            'padding_bottom' => '44',
+            'font_weight'    => '800',
+            'grid_span_md'   => 4,
+        ]);
+
+        return $this->block('link', ['text' => $text, 'url' => $url, '_style' => $style]);
     }
 
     /* ─────────────── Pink Boutique helpers (template 7) ─────────────── */
@@ -609,6 +689,7 @@ class StarterPageTemplatesSeeder extends Seeder
             'portfolio'  => ['ptype' => 'profile_card_v3', 'pvar' => 'identity_founder',      'link' => 'outline_pill'],
             'overlap'    => ['ptype' => 'profile_card_v1', 'pvar' => 'identity_overlap_hero', 'link' => 'pill_solid'],
             'splithero'  => ['ptype' => 'profile_card_v1', 'pvar' => 'identity_split_hero',   'link' => 'outline_pill'],
+            'splitherogrid' => ['ptype' => 'profile_card_v1', 'pvar' => 'identity_split_hero_panel', 'link' => 'pill_solid'],
         ];
     }
 
