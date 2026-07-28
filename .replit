@@ -616,6 +616,10 @@ args = "tpl-base-check"
 task = "workflow.run"
 args = "tpl-design-session"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "zio-toolbar-e2e"
+
 [[workflows.workflow]]
 name = "e2e"
 author = "agent"
@@ -2450,6 +2454,17 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "cd artifacts/1inme && TEST_LOCAL_MODE=artisan TEST_LOCAL_PORT=55501 bash scripts/test-local.sh --filter=TemplateDesignSessionTest"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "zio-toolbar-e2e"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd artifacts/zio-browser && xvfb-run -a node tests/e2e-toolbar/run.cjs"
 
 [workflows.workflow.metadata]
 isValidation = true
