@@ -27,7 +27,12 @@ only Sanctum tokens and web-session revocation is a silent no-op.
   `sessions` for the demo user first or the revoke loop blows the time budget.
 - Form-submit revokes need `click({ noWaitAfter: true })` + sibling
   waitForNavigation (slow authenticated re-render).
-- PRODUCTION GAP (July 2026): the Replit deployment run command does not
-  override SESSION_DRIVER, so prod inherits `file` — browser sessions invisible
-  and un-revocable on the published app (follow-up proposed). EC2 checklist
-  already prescribes `database`.
+- PRODUCTION FIX (July 28 2026): the deployment run prelude in
+  `.replit-artifact/artifact.toml` now exports `SESSION_DRIVER=database`
+  before boot. Root cause found the hard way: Autoscale serves from multiple
+  machines, file sessions are per-machine local disk, so editor AJAX saves
+  landing on the "other" machine failed CSRF/auth silently — "none of the
+  edit functionality works" on prod while page loads look fine. Symptom
+  fingerprint: blocks' `updated_at` frozen at creation despite active editing.
+  Note: first deploy after the switch logs everyone out (file sessions are
+  not migrated). Dev `.env` still pins `file` for perf.
