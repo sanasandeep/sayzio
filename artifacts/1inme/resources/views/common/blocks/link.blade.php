@@ -120,6 +120,38 @@
             <i class="fas fa-chevron-right opacity-50"></i>
             @if($_thumb)<img src="{{ $_thumb }}" class="w-14 h-14 object-cover flex-shrink-0" alt="">@elseif($_icon)<span class="w-14 h-14 flex items-center justify-center flex-shrink-0"><i class="{{ $_icon }} text-xl"></i></span>@endif
         </a>
+    @elseif($_lnkLayout === 'image_overhang_top')
+        {{-- Sticker-style card: the photo deliberately overhangs the top edge
+             of the colored panel; big bold uppercase title centered below.
+             The wrapper reserves headroom with padding-top so the protruding
+             image stays inside the block's own box (no ancestor clipping).
+             $btnInline goes FIRST so the layout-critical padding wins. --}}
+        <a href="{{ $_url }}" target="_blank" rel="noopener"
+           class="block w-full mb-3 relative transition-all duration-300 hover:-translate-y-1"
+           @if($_thumb) style="padding-top: 44px;" @endif>
+            <div class="bio-btn w-full text-center uppercase tracking-wide"
+                 style="{{ $btnInline ? rtrim($btnInline, '; ') . '; ' : '' }}padding: {{ $_thumb ? '132px 20px 30px' : '30px 20px' }}; font-weight: {{ $_st['font_weight'] ?? '800' }}; font-size: {{ intval($_st['font_size'] ?? 0) ?: 24 }}px; line-height: 1.15;">
+                @if($_icon)<i class="{{ $_icon }} mr-2"></i>@endif{{ $_txt }}
+            </div>
+            @if($_thumb)
+                <img src="{{ $_thumb }}" class="absolute top-0 left-1/2 -translate-x-1/2 w-4/5 h-40 object-cover rounded-xl shadow-lg" alt="">
+            @endif
+        </a>
+    @elseif($_lnkLayout === 'image_overhang_left')
+        {{-- Sticker-style banner: square photo thumbnail sticks out past the
+             left edge (and above/below) of the colored bar; big bold label.
+             Wrapper padding reserves the overhang room inside the block box. --}}
+        <a href="{{ $_url }}" target="_blank" rel="noopener"
+           class="block w-full mb-3 relative transition-all duration-300 hover:-translate-y-0.5"
+           @if($_thumb) style="padding: 10px 0 10px 22px;" @endif>
+            <div class="bio-btn w-full flex items-center uppercase tracking-wide"
+                 style="{{ $btnInline ? rtrim($btnInline, '; ') . '; ' : '' }}padding: 26px 22px 26px {{ $_thumb ? '100px' : '22px' }}; font-weight: {{ $_st['font_weight'] ?? '800' }}; font-size: {{ intval($_st['font_size'] ?? 0) ?: 20 }}px; line-height: 1.15;">
+                @if($_icon)<i class="{{ $_icon }} mr-2"></i>@endif<span class="flex-1 text-left">{{ $_txt }}</span>
+            </div>
+            @if($_thumb)
+                <img src="{{ $_thumb }}" class="absolute left-0 top-1/2 -translate-y-1/2 w-24 h-24 object-cover rounded-lg shadow-lg" alt="">
+            @endif
+        </a>
     @elseif($_lnkLayout === 'image_top')
         <a href="{{ $_url }}" target="_blank" rel="noopener"
            class="bio-btn block w-full mb-3 overflow-hidden transition-all duration-300"

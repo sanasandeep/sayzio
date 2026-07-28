@@ -1364,6 +1364,34 @@ class BlockVariantCatalog
                     ],
                     'preview' => ['bg' => 'linear-gradient(180deg,#7c3aed,#1a1a2e)', 'text' => '#ffffff', 'radius' => 16],
                 ],
+                // Sticker-style overhang layouts (photo protrudes past the
+                // colored panel edge — "NEW ARRIVALS" / "MARKETPLACE" refs).
+                [
+                    'key' => 'image_overhang_top',
+                    'name' => 'Overhang Top',
+                    'tags' => ['bold', 'playful', 'editorial'],
+                    'shape' => 'image_full',
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#d8b4e2',
+                        'border_style' => 'none', 'border_radius' => '6', 'shadow_preset' => 'none',
+                        'text_color' => '#171717', 'padding' => '0', 'font_weight' => '800',
+                        'link_layout' => 'image_overhang_top',
+                    ],
+                    'preview' => ['bg' => '#d8b4e2', 'text' => '#171717', 'radius' => 6],
+                ],
+                [
+                    'key' => 'image_overhang_left',
+                    'name' => 'Overhang Left',
+                    'tags' => ['bold', 'playful', 'editorial'],
+                    'shape' => 'image_full',
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#d8b4e2',
+                        'border_style' => 'none', 'border_radius' => '6', 'shadow_preset' => 'none',
+                        'text_color' => '#171717', 'padding' => '0', 'font_weight' => '800',
+                        'link_layout' => 'image_overhang_left',
+                    ],
+                    'preview' => ['bg' => '#d8b4e2', 'text' => '#171717', 'radius' => 6],
+                ],
                 [
                     'key' => 'image_icon_rounded',
                     'name' => 'Rounded Image Icon',

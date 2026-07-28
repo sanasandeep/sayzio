@@ -2129,6 +2129,7 @@ class BiolinkBlockController extends Controller
                 'icon_left', 'icon_right', 'icon_both', 'icon_only',
                 'icon_circle_left', 'icon_circle_right', 'icon_box',
                 'image_left', 'image_right', 'image_top',
+                'image_overhang_top', 'image_overhang_left',
                 'image_icon_rounded', 'image_icon_square', 'image_icon_circle',
             ],
         ];
