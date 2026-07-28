@@ -24,6 +24,10 @@ args = "e2e-block-defaults"
 task = "workflow.run"
 args = "heading-accents-test"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-image-sticker-drag-place"
+
 [[workflows.workflow]]
 name = "heading-accents-test"
 author = "agent"
@@ -31,6 +35,17 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "cd artifacts/1inme && TEST_LOCAL_MODE=artisan bash scripts/test-local.sh --filter=HeadingAccentDecorationsTest"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-image-sticker-drag-place"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "bash artifacts/1inme/tests/Browser/run-validation.sh image-sticker-drag-place.spec.ts"
 
 [workflows.workflow.metadata]
 isValidation = true
