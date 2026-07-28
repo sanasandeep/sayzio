@@ -7,10 +7,11 @@ import {
   useLocalSearchParams,
   useRouter,
 } from "expo-router";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Image,
+  PanResponder,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -223,6 +224,7 @@ import {
   type Block,
   type OgMeta,
 } from "@/lib/api/blocks";
+import { getBaseUrl } from "@/lib/api";
 import { variantsForType, findVariant } from "@/lib/blockVariants";
 import { canonicalBlockType } from "@/lib/blockTypeRegistry";
 import { showAlert } from "@/lib/webAlert";
@@ -262,6 +264,211 @@ function variantTagLabel(tag: string): string {
     .filter(Boolean)
     .map((p) => p.charAt(0).toUpperCase() + p.slice(1))
     .join(" ");
+}
+
+// ---------------------------------------------------------------------------
+// Photo stickers (image block) — drag-to-place positioning. Mirrors the web
+// editor's sticker stage in `image-style-settings.blade.php`: 6 anchor
+// presets + a clamped ±80px dx/dy fine offset from the nearest anchor.
+// Entries round-trip through the server's `sanitizePhotoStickers`, so we
+// always persist `{file_id, url, pos, size, rotate, dx, dy}` with `pos`
+// limited to the server's PHOTO_STICKER_POSITIONS set and numeric fields
+// clamped to the same bounds the sanitizer enforces (size 24–160, rotate
+// ±180, dx/dy ±80, max 4 stickers).
+type PhotoSticker = {
+  file_id: number;
+  url: string;
+  pos: string;
+  size: number;
+  rotate: number;
+  dx: number;
+  dy: number;
+};
+
+const PHOTO_STICKER_POSITIONS = [
+  "top_left",
+  "top_right",
+  "bottom_left",
+  "bottom_right",
+  "center_left",
+  "center_right",
+] as const;
+
+const PHOTO_STICKER_POSITION_LABELS: Record<string, string> = {
+  top_left: "Top left",
+  top_right: "Top right",
+  bottom_left: "Bottom left",
+  bottom_right: "Bottom right",
+  center_left: "Center left",
+  center_right: "Center right",
+};
+
+function clampNum(v: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, v));
+}
+
+function normalizePhotoStickers(raw: unknown): PhotoSticker[] {
+  if (!Array.isArray(raw)) return [];
+  const out: PhotoSticker[] = [];
+  for (const i of raw) {
+    const o = (i && typeof i === "object" ? i : {}) as Record<string, unknown>;
+    const fileId = Number(o.file_id);
+    if (!Number.isFinite(fileId) || fileId <= 0) continue;
+    const pos =
+      typeof o.pos === "string" &&
+      (PHOTO_STICKER_POSITIONS as readonly string[]).includes(o.pos)
+        ? o.pos
+        : "top_right";
+    out.push({
+      file_id: Math.round(fileId),
+      url: typeof o.url === "string" ? o.url : "",
+      pos,
+      size: clampNum(Math.round(Number(o.size) || 48), 24, 160),
+      rotate: clampNum(Math.round(Number(o.rotate) || 0), -180, 180),
+      dx: clampNum(Math.round(Number(o.dx) || 0), -80, 80),
+      dy: clampNum(Math.round(Number(o.dy) || 0), -80, 80),
+    });
+    if (out.length >= 4) break;
+  }
+  return out;
+}
+
+// Anchor base position (top-left px within the stage) for a sticker of
+// size S on a W×H stage — identical math to the web editor's anchorBase().
+function phAnchorBase(
+  pos: string,
+  S: number,
+  W: number,
+  H: number,
+): { x: number; y: number } {
+  switch (pos) {
+    case "top_left":
+      return { x: -10, y: -10 };
+    case "bottom_left":
+      return { x: -10, y: H - S + 10 };
+    case "bottom_right":
+      return { x: W - S + 10, y: H - S + 10 };
+    case "center_left":
+      return { x: -12, y: H / 2 - S / 2 };
+    case "center_right":
+      return { x: W - S + 12, y: H / 2 - S / 2 };
+    default:
+      // top_right
+      return { x: W - S + 10, y: -10 };
+  }
+}
+
+// Given a dragged top-left (left, top), pick the nearest anchor preset by
+// squared distance and express the remainder as a clamped dx/dy — the same
+// placement rule the web sticker stage applies on drag.
+function phNearestPlacement(
+  left: number,
+  top: number,
+  S: number,
+  W: number,
+  H: number,
+): { pos: string; dx: number; dy: number } {
+  let best: { pos: string; d: number; bx: number; by: number } | null = null;
+  for (const pos of PHOTO_STICKER_POSITIONS) {
+    const b = phAnchorBase(pos, S, W, H);
+    const d = (left - b.x) * (left - b.x) + (top - b.y) * (top - b.y);
+    if (!best || d < best.d) best = { pos, d, bx: b.x, by: b.y };
+  }
+  const b = best!;
+  return {
+    pos: b.pos,
+    dx: clampNum(Math.round(left - b.bx), -80, 80),
+    dy: clampNum(Math.round(top - b.by), -80, 80),
+  };
+}
+
+// Absolutize the relative `/f/…` delivery URLs the sanitizer re-derives so
+// <Image> can load them on device; absolute URLs pass through untouched.
+function photoStickerImageUri(url: string): string {
+  if (!url) return "";
+  if (/^https?:\/\//i.test(url)) return url;
+  return `${getBaseUrl()}${url.startsWith("/") ? "" : "/"}${url}`;
+}
+
+// One draggable sticker thumbnail on the stage. The PanResponder is
+// created once and reads the latest sticker/stage via refs so a re-render
+// mid-gesture (every move commits new dx/dy state) doesn't break the drag.
+function DraggableSticker({
+  sticker,
+  stageW,
+  stageH,
+  accentColor,
+  onPlace,
+}: {
+  sticker: PhotoSticker;
+  stageW: number;
+  stageH: number;
+  accentColor: string;
+  onPlace: (p: { pos: string; dx: number; dy: number }) => void;
+}) {
+  const stkRef = useRef(sticker);
+  stkRef.current = sticker;
+  const dimsRef = useRef({ W: stageW, H: stageH });
+  dimsRef.current = { W: stageW, H: stageH };
+  const onPlaceRef = useRef(onPlace);
+  onPlaceRef.current = onPlace;
+  const startRef = useRef({ x: 0, y: 0 });
+  const [dragging, setDragging] = useState(false);
+
+  const pan = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: () => true,
+      onPanResponderGrant: () => {
+        const { W, H } = dimsRef.current;
+        const s = stkRef.current;
+        const b = phAnchorBase(s.pos, s.size, W, H);
+        startRef.current = { x: b.x + s.dx, y: b.y + s.dy };
+        setDragging(true);
+      },
+      onPanResponderMove: (_evt, g) => {
+        const { W, H } = dimsRef.current;
+        const s = stkRef.current;
+        onPlaceRef.current(
+          phNearestPlacement(
+            startRef.current.x + g.dx,
+            startRef.current.y + g.dy,
+            s.size,
+            W,
+            H,
+          ),
+        );
+      },
+      onPanResponderRelease: () => setDragging(false),
+      onPanResponderTerminate: () => setDragging(false),
+    }),
+  ).current;
+
+  const base = phAnchorBase(sticker.pos, sticker.size, stageW, stageH);
+  return (
+    <View
+      {...pan.panHandlers}
+      style={{
+        position: "absolute",
+        left: base.x + sticker.dx,
+        top: base.y + sticker.dy,
+        width: sticker.size,
+        height: sticker.size,
+        zIndex: 20,
+        transform: [{ rotate: `${sticker.rotate}deg` }],
+        borderWidth: dragging ? 2 : 0,
+        borderColor: accentColor,
+        borderRadius: 6,
+      }}
+      accessibilityLabel="Drag to reposition sticker"
+    >
+      <Image
+        source={{ uri: photoStickerImageUri(sticker.url) }}
+        style={{ width: "100%", height: "100%" }}
+        resizeMode="contain"
+      />
+    </View>
+  );
 }
 
 // Inline preview for a pricing item's Thumbnail URL. Renders nothing
@@ -487,6 +694,13 @@ export function BlockSettingsEditor({
   // affordance needs its own modal-open flag — those get dedicated state,
   // mirroring the web `mapPinPicker` editor.
   const isMapLocation = block?.type === "map_location";
+  // Image block — photo stickers (drag-to-place). The sticker array lives
+  // in `_style._photo_stickers`; the drag stage needs the measured stage
+  // width plus the photo's aspect ratio to mirror the web stage's math.
+  const isImageBlock = block?.type === "image";
+  const [photoStickers, setPhotoStickers] = useState<PhotoSticker[]>([]);
+  const [stickerStageW, setStickerStageW] = useState(0);
+  const [stickerStageRatio, setStickerStageRatio] = useState(4 / 3);
   const [mapPickerOpen, setMapPickerOpen] = useState(false);
   const [mapShowDirections, setMapShowDirections] = useState(true);
   const [profileVerified, setProfileVerified] = useState<boolean>(false);
@@ -622,6 +836,12 @@ export function BlockSettingsEditor({
         typeof st._avatar_frame_color === "string" ? st._avatar_frame_color : "",
       );
     }
+    // Hydrate photo stickers for image blocks from `_style._photo_stickers`
+    // (added on web via upload/vault; repositionable here by drag).
+    if (block.type === "image") {
+      const st = (block.settings?._style as Record<string, unknown> | undefined) ?? {};
+      setPhotoStickers(normalizePhotoStickers(st._photo_stickers));
+    }
     // Hydrate the map-location boolean toggle. Mirrors the web default
     // (`$s['show_directions'] ?? true`) so blocks saved before this field
     // existed still show the "Directions" button by default.
@@ -630,6 +850,27 @@ export function BlockSettingsEditor({
       setMapShowDirections(!(sd === false || sd === 0 || sd === "0" || sd === "false"));
     }
   }, [block]);
+
+  // Measure the block photo's natural aspect ratio so the sticker stage
+  // matches the web editor's stage proportions (falls back to 4:3 while
+  // loading or when the URL can't be measured).
+  const stickerImageUri = isImageBlock
+    ? photoStickerImageUri((values.url ?? "").trim())
+    : "";
+  useEffect(() => {
+    if (!stickerImageUri) return;
+    let cancelled = false;
+    Image.getSize(
+      stickerImageUri,
+      (w, h) => {
+        if (!cancelled && w > 0 && h > 0) setStickerStageRatio(w / h);
+      },
+      () => {},
+    );
+    return () => {
+      cancelled = true;
+    };
+  }, [stickerImageUri]);
 
   // Hydrate favorites from AsyncStorage once we know the block's type
   // (favorites are scoped per-type to match the web editor's localStorage
@@ -928,6 +1169,30 @@ export function BlockSettingsEditor({
           .map((b) => ({ label: b.label.trim() }))
           .filter((b) => b.label !== "")
           .slice(0, 12);
+      }
+      // Image block: merge the drag-positioned photo stickers back into
+      // the block's current `_style` (the API replaces `settings` wholesale,
+      // so without this merge the whole _style — stickers included — would
+      // be wiped on every mobile save). Empty array drops the key; entries
+      // are already normalized to the server sanitizer's shape/bounds.
+      if (isImageBlock) {
+        const prevStyle =
+          (block?.settings?._style as Record<string, unknown> | undefined) ?? {};
+        const styleOut: Record<string, unknown> = { ...prevStyle };
+        if (photoStickers.length > 0) {
+          styleOut._photo_stickers = photoStickers.slice(0, 4).map((s) => ({
+            file_id: s.file_id,
+            url: s.url,
+            pos: s.pos,
+            size: clampNum(Math.round(s.size), 24, 160),
+            rotate: clampNum(Math.round(s.rotate), -180, 180),
+            dx: clampNum(Math.round(s.dx), -80, 80),
+            dy: clampNum(Math.round(s.dy), -80, 80),
+          }));
+        } else {
+          delete styleOut._photo_stickers;
+        }
+        if (Object.keys(styleOut).length > 0) nextSettings._style = styleOut;
       }
       // Map-location block: the boolean toggle round-trips through its own
       // state (the generic `values` map would otherwise stringify it).
@@ -1748,6 +2013,155 @@ export function BlockSettingsEditor({
                 trackColor={{ true: colors.primary }}
               />
             </View>
+          </View>
+        ) : null}
+
+        {isImageBlock && photoStickers.length > 0 ? (
+          <View style={{ gap: 12 }}>
+            <Text style={[styles.rowLabel, { color: colors.foreground }]}>
+              Photo stickers
+            </Text>
+            <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>
+              Drag a sticker to reposition it — it snaps to the nearest corner
+              or edge with a fine offset, exactly like the web editor.
+            </Text>
+            <View
+              onLayout={(e) => setStickerStageW(e.nativeEvent.layout.width)}
+              style={{
+                width: "100%",
+                aspectRatio: stickerStageRatio,
+                borderRadius: 12,
+                borderWidth: 1,
+                borderColor: colors.border,
+                backgroundColor: colors.muted,
+                overflow: "hidden",
+              }}
+            >
+              {stickerImageUri ? (
+                <Image
+                  source={{ uri: stickerImageUri }}
+                  style={{ width: "100%", height: "100%" }}
+                  resizeMode="cover"
+                />
+              ) : null}
+              {stickerStageW > 0
+                ? photoStickers.map((stk, idx) => (
+                    <DraggableSticker
+                      key={`${stk.file_id}-${idx}`}
+                      sticker={stk}
+                      stageW={stickerStageW}
+                      stageH={stickerStageW / stickerStageRatio}
+                      accentColor={colors.primary}
+                      onPlace={(p) =>
+                        setPhotoStickers((prev) =>
+                          prev.map((s, i) =>
+                            i === idx
+                              ? { ...s, pos: p.pos, dx: p.dx, dy: p.dy }
+                              : s,
+                          ),
+                        )
+                      }
+                    />
+                  ))
+                : null}
+            </View>
+            {photoStickers.map((stk, idx) => (
+              <View
+                key={`sticker-row-${stk.file_id}-${idx}`}
+                style={{
+                  gap: 8,
+                  padding: 10,
+                  borderRadius: 10,
+                  borderWidth: 1,
+                  borderColor: colors.border,
+                }}
+              >
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                  }}
+                >
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                    <Image
+                      source={{ uri: photoStickerImageUri(stk.url) }}
+                      style={{ width: 28, height: 28 }}
+                      resizeMode="contain"
+                    />
+                    <Text style={{ color: colors.foreground, fontSize: 12, fontWeight: "600" }}>
+                      {PHOTO_STICKER_POSITION_LABELS[stk.pos] ?? stk.pos}
+                      {stk.dx !== 0 || stk.dy !== 0
+                        ? `  (${stk.dx >= 0 ? "+" : ""}${stk.dx}, ${stk.dy >= 0 ? "+" : ""}${stk.dy})`
+                        : ""}
+                    </Text>
+                  </View>
+                  <Pressable
+                    {...WEB_FOCUS_RING_PROPS}
+                    onPress={() =>
+                      setPhotoStickers((prev) => prev.filter((_, i) => i !== idx))
+                    }
+                    hitSlop={8}
+                    style={{ flexDirection: "row", alignItems: "center", gap: 4 }}
+                  >
+                    <Feather name="trash-2" size={13} color={colors.destructive} />
+                    <Text style={{ color: colors.destructive, fontSize: 11, fontWeight: "600" }}>
+                      Remove
+                    </Text>
+                  </Pressable>
+                </View>
+                <View style={{ flexDirection: "row", gap: 10 }}>
+                  <View style={{ flex: 1 }}>
+                    <TextField
+                      label="Size (24–160)"
+                      value={String(stk.size)}
+                      onChangeText={(t) => {
+                        const n = parseInt(t.trim(), 10);
+                        setPhotoStickers((prev) =>
+                          prev.map((s, i) =>
+                            i === idx
+                              ? {
+                                  ...s,
+                                  size: Number.isFinite(n)
+                                    ? clampNum(n, 24, 160)
+                                    : 48,
+                                }
+                              : s,
+                          ),
+                        );
+                      }}
+                      keyboardType="numeric"
+                    />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <TextField
+                      label="Rotate (±180°)"
+                      value={String(stk.rotate)}
+                      onChangeText={(t) => {
+                        const n = parseInt(t.trim(), 10);
+                        setPhotoStickers((prev) =>
+                          prev.map((s, i) =>
+                            i === idx
+                              ? {
+                                  ...s,
+                                  rotate: Number.isFinite(n)
+                                    ? clampNum(n, -180, 180)
+                                    : 0,
+                                }
+                              : s,
+                          ),
+                        );
+                      }}
+                      keyboardType="numeric"
+                    />
+                  </View>
+                </View>
+              </View>
+            ))}
+            <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>
+              Add new stickers from the web editor (upload or pick from your
+              files); position, resize, rotate, or remove them here.
+            </Text>
           </View>
         ) : null}
 
