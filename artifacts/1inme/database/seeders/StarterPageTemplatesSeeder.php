@@ -43,8 +43,12 @@ class StarterPageTemplatesSeeder extends Seeder
      * restaurant, event, portfolio) — each with its own theme, profile
      * layout, link design variant and a distinct block mix so the picker's
      * category chips and "what's inside" chips look meaningfully different.
+     *
+     * v10 (2026-07): Added "Pink Boutique" — a boutique/seller page with a
+     * hero cover, chunky lavender tile buttons with square photo thumbs,
+     * and a two-column shop grid mixing image tiles and labeled buttons.
      */
-    public const SEED_VERSION = 9;
+    public const SEED_VERSION = 10;
 
     /** Tolerance (seconds) for treating updated_at == created_at. */
     private const EDIT_DRIFT_TOLERANCE = 2;
@@ -314,7 +318,85 @@ class StarterPageTemplatesSeeder extends Seeder
                     'button_style'     => 'pill',
                 ]),
             ],
+
+            // 7 — Pink Boutique: off-white page, big hero cover, chunky
+            // lavender-pink tile buttons with square photo thumbnails,
+            // then a two-column shop grid mixing image tiles and labeled
+            // buttons — screenshot-inspired boutique/seller layout.
+            [
+                'slug'                 => 'starter-pink-boutique',
+                'name'                 => 'Pink Boutique',
+                'category'             => 'fashion',
+                'description'          => 'A soft boutique storefront: hero photo, chunky lavender shop buttons with photo thumbnails, and a two-column grid of new arrivals, sale and gallery tiles.',
+                'recommended_personas' => ['fashion', 'business', 'creator'],
+                'snapshot'             => $this->snapshot([
+                    $this->boutiqueImage($this->photo('fashion,boutique', 1200, 480, 'starter-boutique-hero')),
+                    $this->boutiqueTile('SHOP', 'https://example.com/shop', $this->photo('fashion,shop', 600, 600, 'starter-boutique-shop')),
+                    $this->boutiqueTile('MARKETPLACE', 'https://example.com/marketplace', $this->photo('fashion,market', 600, 600, 'starter-boutique-market')),
+                    $this->boutiqueImage($this->photo('fashion,new', 600, 800, 'starter-boutique-g1'), 6),
+                    $this->boutiqueImage($this->photo('fashion,sale', 600, 800, 'starter-boutique-g2'), 6),
+                    $this->boutiqueTile('NEW ARRIVALS', 'https://example.com/new-arrivals', '', 6),
+                    $this->boutiqueTile('GALLERY', 'https://example.com/gallery', '', 6),
+                    $this->boutiqueImage($this->photo('fashion,style', 600, 800, 'starter-boutique-g3'), 6),
+                    $this->boutiqueTile('ON SALE', 'https://example.com/sale', '', 6),
+                ], [
+                    'background_type'   => 'color',
+                    'background_color'  => '#f2f0ee',
+                    'theme_color'       => '#ddb8e4',
+                    'font_color'        => '#241b26',
+                    'button_color'      => '#ddb8e4',
+                    'button_text_color' => '#241b26',
+                    'button_style'      => 'rounded',
+                ]),
+            ],
         ];
+    }
+
+    /* ─────────────── Pink Boutique helpers (template 7) ─────────────── */
+
+    /**
+     * Chunky lavender boutique tile: a link block with a baked style
+     * (no catalog variant key, so a future variant migration can never
+     * strip the colour overrides). With a `$thumb` it uses the
+     * `image_left` layout so the square photo sits flush on the left of
+     * the tile; without one it's a centred label button. `$span` places
+     * tiles on the public page's 12-col grid (6 = half width).
+     */
+    private function boutiqueTile(string $text, string $url, string $thumb = '', int $span = 12): array
+    {
+        $style = $this->variantStyle('link', '', [
+            'display_mode'  => 'card',
+            'bg_color'      => '#ddb8e4',
+            'border_style'  => 'none',
+            'border_width'  => '0',
+            'border_color'  => 'transparent',
+            'border_radius' => '14',
+            'shadow_preset' => 'none',
+            'text_color'    => '#241b26',
+            'padding'       => '22',
+            'font_weight'   => '700',
+            'link_layout'   => $thumb !== '' ? 'image_left' : '',
+        ]);
+        if ($span !== 12) {
+            $style['grid_span'] = $span;
+        }
+
+        $settings = ['text' => $text, 'url' => $url, '_style' => $style];
+        if ($thumb !== '') {
+            $settings['thumbnail'] = $thumb;
+        }
+
+        return $this->block('link', $settings);
+    }
+
+    /** Image tile with an optional half-width grid span. */
+    private function boutiqueImage(string $url, int $span = 12): array
+    {
+        $settings = ['url' => $url, 'alt' => ''];
+        if ($span !== 12) {
+            $settings['_style'] = ['grid_span' => $span];
+        }
+        return $this->block('image', $settings);
     }
 
     /* ──────────────────── snapshot + block helpers ──────────────────── */
