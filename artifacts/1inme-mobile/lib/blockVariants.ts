@@ -158,6 +158,8 @@ const BUNDLES: Record<string, MobileVariant[]> = {
     { key: "image_icon_rounded", name: "Rounded Image Icon",   tags: ["minimal", "pro"],      preview: { bg: "#ffffff", text: "#111827", radius: 14 } },
     { key: "image_icon_square",  name: "Square Image Icon",    tags: ["minimal", "corporate"],preview: { bg: "#ffffff", text: "#111827", radius: 8 } },
     { key: "image_icon_circle",  name: "Circular Image Icon",  tags: ["minimal", "playful"],  preview: { bg: "#ffffff", text: "#111827", radius: 999 } },
+    { key: "title_desc_row",     name: "Title + Description Row", tags: ["minimal", "pro", "editorial"], preview: { bg: "#ffffff", text: "#111827", radius: 14 } },
+    { key: "image_cover_square", name: "Square Image Cover",   tags: ["bold", "editorial", "maximalist"], preview: { bg: "linear-gradient(135deg,#3d6bff,#1a1a2e)", text: "#fff", radius: 20 } },
   ],
   heading_styles: [
     { key: "oversize_serif", name: "Oversize Serif", tags: ["editorial", "pro"],     preview: { bg: "transparent", text: "#fff", radius: 0 } },

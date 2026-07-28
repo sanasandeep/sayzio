@@ -754,7 +754,15 @@
             @elseif(\App\Modules\User\Models\BiolinkBlock::isContainerType($block->type))
                 @php
                     $cardChildren = $block->activeChildren()->get()->filter(fn($b) => $b->isVisible());
-                    $gap = intval($s['gap'] ?? 12);
+                    // Per-container item gap: when the container has its own
+                    // explicit gap (including 0), it wins and the children's
+                    // built-in bottom margins are neutralised so gap 0 renders
+                    // flush tiles. When unset, fall back to the page-wide
+                    // block gap so containers follow the page rhythm.
+                    $gapRaw = $s['gap'] ?? '';
+                    $hasOwnGap = $gapRaw !== '' && $gapRaw !== null;
+                    $pageGap = intval(($link->settings['layout']['block_gap'] ?? 12));
+                    $gap = $hasOwnGap ? max(0, min(100, intval($gapRaw))) : $pageGap;
                     $isCard = $block->type === 'card';
                     $isAutoGrid = $block->type === 'grid_auto';
 
@@ -810,11 +818,19 @@
                     <style>@media (max-width: 640px){ .grid-stack-mobile{ grid-template-columns: 1fr !important; } .grid-stack-mobile > div{ grid-column: 1 / -1 !important; } }</style>
                     @endonce
                 @endif
+                @if($hasOwnGap)
+                    @once('container-own-gap-css')
+                    {{-- With an explicit container gap the grid gap owns all
+                         spacing between items: zero out the child blocks' own
+                         bottom margins so gap 0 shows truly flush tiles. --}}
+                    <style>.container-own-gap > div > * { margin-bottom: 0 !important; } .container-own-gap > div > .block-styled > * { margin-bottom: 0 !important; }</style>
+                    @endonce
+                @endif
                 <div class="mb-4 {{ $isCard ? 'card-container-render' : 'grid-container-render' }}" style="{{ $containerStyle }}">
                     @if(!empty($s['title']))
                     <div class="mb-3 text-sm font-semibold" style="color: {{ $fontColor ?? '#fff' }}cc;">{{ $s['title'] }}</div>
                     @endif
-                    <div @if($stackMobile) class="grid-stack-mobile" @endif style="display:grid; grid-template-columns:{{ $gridTemplate }}; gap:{{ $gap }}px;">
+                    <div class="{{ trim(($stackMobile ? 'grid-stack-mobile ' : '') . ($hasOwnGap ? 'container-own-gap' : '')) }}" style="display:grid; grid-template-columns:{{ $gridTemplate }}; gap:{{ $gap }}px;">
                         @foreach($cardChildren as $childBlock)
                             @php
                                 $cs = $childBlock->settings ?? [];

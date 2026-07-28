@@ -1386,7 +1386,7 @@ if (typeof window.resetPollVotes !== 'function') {
                 @endforeach
             </select>
         </div>
-        <div><label class="{{ $labelClass }}">Gap (px)</label><input type="number" name="settings[gap]" value="{{ $s['gap'] ?? 12 }}" min="0" max="48" class="{{ $inputClass }}"></div>
+        <div><label class="{{ $labelClass }}">Gap between items (px)</label><input type="number" name="settings[gap]" value="{{ $s['gap'] ?? '' }}" min="0" max="48" placeholder="Page default" class="{{ $inputClass }}"></div>
     </div>
 
     <div class="grid grid-cols-2 gap-3">
@@ -1453,7 +1453,7 @@ if (typeof window.resetPollVotes !== 'function') {
                 @endforeach
             </select>
         </div>
-        <div><label class="{{ $labelClass }}">Gap (px)</label><input type="number" name="settings[gap]" value="{{ $s['gap'] ?? 12 }}" min="0" max="48" class="{{ $inputClass }}"></div>
+        <div><label class="{{ $labelClass }}">Gap between items (px)</label><input type="number" name="settings[gap]" value="{{ $s['gap'] ?? '' }}" min="0" max="48" placeholder="Page default" class="{{ $inputClass }}"></div>
     </div>
     <div><label class="{{ $labelClass }}">Padding (px)</label><input type="number" name="settings[padding]" value="{{ $s['padding'] ?? 0 }}" min="0" max="64" class="{{ $inputClass }}"></div>
     <label class="flex items-center gap-2 cursor-pointer">
@@ -1468,7 +1468,7 @@ if (typeof window.resetPollVotes !== 'function') {
     <div><label class="{{ $labelClass }}">Section Title (optional)</label><input type="text" name="settings[title]" value="{{ $s['title'] ?? '' }}" class="{{ $inputClass }}" placeholder="Optional section title"></div>
     <div class="grid grid-cols-2 gap-3">
         <div><label class="{{ $labelClass }}">Min Item Width (px)</label><input type="number" name="settings[min_width]" value="{{ $s['min_width'] ?? 140 }}" min="60" max="600" class="{{ $inputClass }}"></div>
-        <div><label class="{{ $labelClass }}">Gap (px)</label><input type="number" name="settings[gap]" value="{{ $s['gap'] ?? 12 }}" min="0" max="48" class="{{ $inputClass }}"></div>
+        <div><label class="{{ $labelClass }}">Gap between items (px)</label><input type="number" name="settings[gap]" value="{{ $s['gap'] ?? '' }}" min="0" max="48" placeholder="Page default" class="{{ $inputClass }}"></div>
     </div>
     <div><label class="{{ $labelClass }}">Padding (px)</label><input type="number" name="settings[padding]" value="{{ $s['padding'] ?? 0 }}" min="0" max="64" class="{{ $inputClass }}"></div>
 </div>

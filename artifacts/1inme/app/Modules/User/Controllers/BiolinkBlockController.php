@@ -1853,6 +1853,18 @@ class BiolinkBlockController extends Controller
             $settings['stack_mobile'] = (bool) ($settings['stack_mobile'] ?? false);
         }
 
+        // Container blocks: the per-container item gap is optional. An empty
+        // input means "follow the page-wide block gap" (drop the key); an
+        // explicit value — including 0 for flush tiles — is clamped.
+        if (in_array($type, BiolinkBlock::CONTAINER_TYPES, true)) {
+            $gapRaw = $settings['gap'] ?? '';
+            if ($gapRaw === '' || $gapRaw === null) {
+                unset($settings['gap']);
+            } else {
+                $settings['gap'] = max(0, min(100, (int) $gapRaw));
+            }
+        }
+
         // Product blocks (Task #1761): when native checkout is enabled we
         // need an authoritative numeric price + a constrained product type
         // and currency. The display `price` string is kept for rendering.
@@ -2131,6 +2143,7 @@ class BiolinkBlockController extends Controller
                 'image_left', 'image_right', 'image_top',
                 'image_overhang_top', 'image_overhang_left',
                 'image_icon_rounded', 'image_icon_square', 'image_icon_circle',
+                'title_desc_row', 'image_cover_square',
             ],
         ];
         $numericBounds = [

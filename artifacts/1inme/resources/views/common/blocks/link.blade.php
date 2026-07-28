@@ -73,6 +73,31 @@
                 </div>
             </div>
         </a>
+    @elseif($_lnkLayout === 'image_cover_square')
+        {{-- Square (1:1) image tile with the title centered over a subtle
+             dark overlay. Without a thumbnail it falls back to a flat
+             accent-colored square tile so the layout never breaks. --}}
+        <a href="{{ $_url }}" target="_blank" rel="noopener"
+           class="block w-full mb-3 rounded-2xl overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl relative"
+           style="aspect-ratio: 1/1; @if($_thumb)background-image: linear-gradient(rgba(0,0,0,0.32), rgba(0,0,0,0.32)), url('{{ $_thumb }}'); background-size: cover; background-position: center;@else background: linear-gradient(135deg, {{ $_accent }} 0%, {{ $_accent }}cc 100%);@endif{{ $btnInline ? ' ' . $btnInline : '' }}">
+            <div class="absolute inset-0 flex items-center justify-center p-4 text-center">
+                <div class="text-white font-bold drop-shadow-lg leading-snug">
+                    @if($_icon)<i class="{{ $_icon }} mr-2"></i>@endif{{ $_txt }}
+                </div>
+            </div>
+        </a>
+    @elseif($_lnkLayout === 'title_desc_row')
+        {{-- Two-column text row inside normal button chrome: bold title on
+             the left, lighter description on the right. Wraps to stacked
+             lines on narrow screens (flex-wrap). --}}
+        <a href="{{ $_url }}" target="_blank" rel="noopener"
+           class="bio-btn block w-full px-5 py-3.5 mb-3 transition-all duration-300 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-0.5 text-left"
+           @if($btnInline) style="{{ $btnInline }}" @endif>
+            <span class="font-bold">@if($_icon)<i class="{{ $_icon }} mr-1.5"></i>@endif{{ $_txt }}</span>
+            @if(!empty($s['description']))
+                <span class="text-sm font-normal opacity-75 min-w-0">{{ $s['description'] }}</span>
+            @endif
+        </a>
     @elseif($_lnkLayout === 'icon_left')
         <a href="{{ $_url }}" target="_blank" rel="noopener"
            class="bio-btn block w-full px-6 py-3.5 mb-3 font-medium transition-all duration-300 flex items-center justify-center gap-3"

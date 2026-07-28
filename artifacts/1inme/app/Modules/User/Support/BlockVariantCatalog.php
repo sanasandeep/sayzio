@@ -1454,6 +1454,36 @@ class BlockVariantCatalog
                     ],
                     'preview' => ['bg' => '#ffffff', 'text' => '#111827', 'radius' => 999],
                 ],
+                // Two-column text row: bold title left, lighter description
+                // right, normal bio-btn chrome (wraps on narrow screens).
+                [
+                    'key' => 'title_desc_row',
+                    'name' => 'Title + Description Row',
+                    'tags' => ['minimal', 'pro', 'editorial'],
+                    'shape' => 'card',
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#ffffff',
+                        'border_style' => 'none', 'border_radius' => '14', 'shadow_preset' => 'soft',
+                        'text_color' => '#111827', 'padding' => '0', 'font_weight' => '700',
+                        'link_layout' => 'title_desc_row',
+                    ],
+                    'preview' => ['bg' => '#ffffff', 'text' => '#111827', 'radius' => 14],
+                ],
+                // Square (1:1) photo tile with the title centered over a
+                // subtle dark overlay; accent-colored tile when no photo.
+                [
+                    'key' => 'image_cover_square',
+                    'name' => 'Square Image Cover',
+                    'tags' => ['bold', 'editorial', 'maximalist'],
+                    'shape' => 'image_full',
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#1a1a2e',
+                        'border_style' => 'none', 'border_radius' => '20', 'shadow_preset' => 'medium',
+                        'text_color' => '#ffffff', 'padding' => '0', 'font_weight' => '700',
+                        'link_layout' => 'image_cover_square',
+                    ],
+                    'preview' => ['bg' => 'linear-gradient(135deg,#3d6bff,#1a1a2e)', 'text' => '#ffffff', 'radius' => 20],
+                ],
             ],
 
             // Heading variants. Style keys only — animation cues live
