@@ -93,6 +93,11 @@ class TemplateDesignSessionTest extends TestCase
         $page->assertOk();
         $page->assertSee('Editing template: ' . $tpl->name);
         $page->assertSee('Save to template');
+
+        // GET also works (direct link / embedded iframe on the edit page).
+        $this->actingAs($admin, 'admin')
+            ->get(route('admin.templates.design.session', ['id' => $tpl->id]))
+            ->assertRedirect(route('user.links.blocks.editor', $draft));
     }
 
     public function test_save_captures_design_back_into_template_and_deletes_draft(): void

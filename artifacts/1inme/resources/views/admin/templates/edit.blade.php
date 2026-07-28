@@ -7,25 +7,38 @@
     <a href="{{ route('admin.templates.index', ['tab' => $kind]) }}" class="text-xs text-white/40 hover:text-white mb-4 inline-block ak-note"><i class="fas fa-arrow-left mr-1"></i>Back to templates</a>
 
     @if($kind === 'page')
-        {{-- Visual design editor: opens the template in the real biolink editor
-             (blocks, backgrounds, live preview) via a temporary draft page. --}}
-        <div class="mb-5 rounded-2xl px-4 py-3.5 flex flex-wrap items-center gap-3"
+        {{-- Visual design editor: loads the template in the real biolink editor
+             (blocks, backgrounds, live preview) via a temporary draft page,
+             embedded right here on the edit page. --}}
+        <div class="mb-5 rounded-2xl overflow-hidden" x-data="{ open: false }"
              style="background: rgba(61,107,255,0.08); border: 1px solid rgba(61,107,255,0.3);">
-            <div class="min-w-0 flex-1">
-                <div class="text-sm font-semibold ak-strong" style="color:#fff;">
-                    <i class="fas fa-wand-magic-sparkles mr-1.5" style="color:#90acff;"></i>Design editor
+            <div class="px-4 py-3.5 flex flex-wrap items-center gap-3">
+                <div class="min-w-0 flex-1">
+                    <div class="text-sm font-semibold text-white ak-strong">
+                        <i class="fas fa-wand-magic-sparkles mr-1.5 ak-blue" style="color:#90acff;"></i>Design editor
+                    </div>
+                    <div class="text-[11px] text-white/50 ak-note mt-0.5">
+                        Edit this template's background and blocks visually with a live preview — the same editor users get. Use "Save to template" inside the editor to publish the design to users.
+                    </div>
                 </div>
-                <div class="text-[11px] text-white/50 ak-note mt-0.5">
-                    Edit this template's background and blocks visually with a live preview — the same editor users get. Saving there updates the design users receive when they pick this template.
-                </div>
-            </div>
-            <form method="POST" action="{{ route('admin.templates.design.session', ['id' => $tpl->id]) }}">
-                @csrf
-                <button type="submit" class="px-4 py-2 rounded-xl text-xs font-bold text-white transition-all"
+                <a href="{{ route('admin.templates.design.session', ['id' => $tpl->id]) }}"
+                   class="px-3 py-2 rounded-xl text-xs font-semibold text-white/70 ak-muted transition-all"
+                   style="border: 1px solid rgba(61,107,255,0.35);">
+                    <i class="fas fa-up-right-from-square mr-1.5"></i>Full screen
+                </a>
+                <button type="button" @click="open = !open" class="px-4 py-2 rounded-xl text-xs font-bold text-white transition-all"
                         style="background: linear-gradient(135deg, #3d6bff, #2f54d6);">
-                    <i class="fas fa-pen-ruler mr-1.5"></i>Open design editor
+                    <i class="fas fa-pen-ruler mr-1.5"></i><span x-text="open ? 'Close editor' : 'Edit design here'"></span>
                 </button>
-            </form>
+            </div>
+            <template x-if="open">
+                <div style="border-top: 1px solid rgba(61,107,255,0.3);">
+                    <iframe src="{{ route('admin.templates.design.session', ['id' => $tpl->id]) }}"
+                            title="Template design editor"
+                            class="w-full block bg-transparent"
+                            style="height: min(78vh, 900px); border: 0;"></iframe>
+                </div>
+            </template>
         </div>
     @endif
 
