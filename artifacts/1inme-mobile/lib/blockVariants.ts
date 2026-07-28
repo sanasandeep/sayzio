@@ -130,6 +130,8 @@ const BUNDLES: Record<string, MobileVariant[]> = {
     { key: "image_cover_polaroid", name: "Cover · Polaroid",    tags: ["retro", "playful", "editorial"],   preview: { bg: "#ffffff", text: "#1f2937", radius: 6, border: "#ffffff" } },
     { key: "image_cover_neon",     name: "Cover · Neon Frame",  tags: ["neon", "bold", "maximalist"], preview: { bg: "#0b0420", text: "#a5f3fc", radius: 14, border: "#22d3ee" } },
     { key: "image_cover_arch",     name: "Cover · Arch",        tags: ["editorial", "pro", "minimal"],preview: { bg: "#1a1a2e", text: "#fff", radius: 40 } },
+    { key: "pill_double_rim",      name: "Double Rim Pill",     tags: ["editorial", "minimal", "retro"], preview: { bg: "#e4e8e1", text: "#2d2a26", radius: 999, border: "#9aa39b", serif: true } },
+    { key: "flat_banner",          name: "Flat Banner",         tags: ["minimal", "bold", "corporate"],  preview: { bg: "#e8763b", text: "#fdf4ec", radius: 0 } },
   ],
   // Mirror of the PHP `link_buttons` bundle (icon & image placement). The
   // mobile renderer doesn't honor the `link_layout` placement token yet,
@@ -161,6 +163,12 @@ const BUNDLES: Record<string, MobileVariant[]> = {
     { key: "image_icon_circle",  name: "Circular Image Icon",  tags: ["minimal", "playful"],  preview: { bg: "#ffffff", text: "#111827", radius: 999 } },
     { key: "title_desc_row",     name: "Title + Description Row", tags: ["minimal", "pro", "editorial"], preview: { bg: "#ffffff", text: "#111827", radius: 14 } },
     { key: "image_cover_square", name: "Square Image Cover",   tags: ["bold", "editorial", "maximalist"], preview: { bg: "linear-gradient(135deg,#3d6bff,#1a1a2e)", text: "#fff", radius: 20 } },
+    { key: "arrow_hex",          name: "Arrow Banner",         tags: ["bold", "corporate"],   preview: { bg: "#ffffff", text: "#1e1b4b", radius: 0 } },
+    { key: "numbered_editorial", name: "Numbered List",        tags: ["editorial", "minimal"],preview: { bg: "#1e40cf", text: "#dbe4ff", radius: 0 } },
+    { key: "side_accent_tab",    name: "Side Accent Tab",      tags: ["editorial", "pro", "corporate"], preview: { bg: "#35595a", text: "#fdf6ec", radius: 0, border: "#ddb387" } },
+    { key: "icon_top_stack",     name: "Icon Above Label",     tags: ["minimal", "pro"],      preview: { bg: "#12351f", text: "#fff", radius: 12 } },
+    { key: "offset_frame",       name: "Offset Frame",         tags: ["editorial", "minimal", "retro"], preview: { bg: "#a98a7d", text: "#f9f2ec", radius: 0, border: "#a98a7d", serif: true } },
+    { key: "torn_tape",          name: "Torn Tape",            tags: ["handwritten", "playful", "retro"], preview: { bg: "#a17c5b", text: "#fdf8f2", radius: 0, serif: true } },
   ],
   heading_styles: [
     { key: "oversize_serif", name: "Oversize Serif", tags: ["editorial", "pro"],     preview: { bg: "transparent", text: "#fff", radius: 0 } },

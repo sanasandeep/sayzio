@@ -33,7 +33,7 @@ class BlockVariantCatalog
      * pipeline always writes the *current* VERSION so newly-applied or
      * re-applied variants stay in sync.
      */
-    public const VERSION = 15;
+    public const VERSION = 16;
 
     /**
      * Shape filters for link-style blocks. Orthogonal to theme TAGS:
@@ -1146,6 +1146,44 @@ class BlockVariantCatalog
                     ],
                     'preview' => ['bg' => 'linear-gradient(135deg,#1a1a2e,#7c3aed)', 'text' => '#ffffff', 'radius' => 40],
                 ],
+
+                // ── Task #5961: pure-styling additions (no placement) ────
+                // Double-rim pill: pale sage pill with a thin rim plus a
+                // hard offset understroke — the "stacked pill" look from
+                // the grey-brushstroke reference.
+                [
+                    'key' => 'pill_double_rim',
+                    'name' => 'Double Rim Pill',
+                    'tags' => ['editorial', 'minimal', 'retro'],
+                    'shape' => 'pill',
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#e4e8e1',
+                        'border_style' => 'solid', 'border_width' => '1', 'border_color' => '#9aa39b',
+                        'border_radius' => '999', 'shadow_type' => 'hard',
+                        'shadow_color' => '#9aa39b', 'shadow_x' => 0, 'shadow_y' => 4, 'shadow_blur' => 0,
+                        'text_color' => '#2d2a26', 'padding' => '16',
+                        'font_family' => 'Lora', 'font_weight' => '500',
+                        'link_layout' => '',
+                    ],
+                    'preview' => ['bg' => '#e4e8e1', 'text' => '#2d2a26', 'radius' => 999, 'border' => '#9aa39b', 'shadow' => '0 4px 0 #9aa39b', 'serif' => true],
+                ],
+                // Flat banner: edge-to-edge flat color band, zero radius and
+                // zero chrome (the stacked orange rows reference) — the page
+                // background showing through the row gaps draws the hairline.
+                [
+                    'key' => 'flat_banner',
+                    'name' => 'Flat Banner',
+                    'tags' => ['minimal', 'bold', 'corporate'],
+                    'shape' => 'square',
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#e8763b',
+                        'border_style' => 'none', 'border_width' => '0',
+                        'border_radius' => '0', 'shadow_preset' => 'none',
+                        'text_color' => '#fdf4ec', 'padding' => '20', 'font_weight' => '400',
+                        'link_layout' => '',
+                    ],
+                    'preview' => ['bg' => '#e8763b', 'text' => '#fdf4ec', 'radius' => 0],
+                ],
             ],
 
             // ─── Button styles: icon & image placement ──────────────────
@@ -1503,6 +1541,112 @@ class BlockVariantCatalog
                         'link_layout' => 'image_cover_square',
                     ],
                     'preview' => ['bg' => 'linear-gradient(135deg,#3d6bff,#1a1a2e)', 'text' => '#ffffff', 'radius' => 20],
+                ],
+
+                // ── Task #5961: reference-driven placement styles ────────
+                // Arrow banner: hexagonal button with pointed left/right
+                // ends (navy/blue reference). Colors alternate naturally by
+                // the creator restyling individual blocks.
+                [
+                    'key' => 'arrow_hex',
+                    'name' => 'Arrow Banner',
+                    'tags' => ['bold', 'corporate'],
+                    'shape' => 'card',
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#ffffff',
+                        'border_style' => 'none', 'border_width' => '0',
+                        'border_radius' => '0', 'shadow_preset' => 'none',
+                        'text_color' => '#1e1b4b', 'padding' => '16', 'font_weight' => '800',
+                        'link_layout' => 'arrow_hex',
+                    ],
+                    'preview' => ['bg' => '#ffffff', 'text' => '#1e1b4b', 'radius' => 0],
+                ],
+                // Numbered editorial list: plain text link with a small
+                // right-aligned auto-incrementing index (01, 02, …) — the
+                // blue "About … 01" reference. Index is computed at render
+                // time from the block's position among numbered siblings.
+                [
+                    'key' => 'numbered_editorial',
+                    'name' => 'Numbered List',
+                    'tags' => ['editorial', 'minimal'],
+                    'shape' => 'plain_text',
+                    'style' => [
+                        'display_mode' => 'content', 'bg_color' => 'transparent',
+                        'border_style' => 'none', 'border_radius' => '0',
+                        'shadow_preset' => 'none', 'padding' => '8',
+                        'text_color' => '#ffffff', 'font_weight' => '600', 'font_size' => '28',
+                        'link_layout' => 'numbered_list',
+                    ],
+                    'preview' => ['bg' => '#1e40cf', 'text' => '#dbe4ff', 'radius' => 0],
+                ],
+                // Side accent tab: full-width bar with a right-aligned label
+                // plus a small contrasting tab on the outer edge (teal + tan
+                // reference). border_color doubles as the tab accent.
+                [
+                    'key' => 'side_accent_tab',
+                    'name' => 'Side Accent Tab',
+                    'tags' => ['editorial', 'pro', 'corporate'],
+                    'shape' => 'card',
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#35595a',
+                        'border_style' => 'none', 'border_width' => '0', 'border_color' => '#ddb387',
+                        'border_radius' => '0', 'shadow_preset' => 'none',
+                        'text_color' => '#fdf6ec', 'padding' => '18', 'font_weight' => '600',
+                        'link_layout' => 'side_accent_tab',
+                    ],
+                    'preview' => ['bg' => '#35595a', 'text' => '#fdf6ec', 'radius' => 0, 'border' => '#ddb387'],
+                ],
+                // Icon above label: chromeless stacked icon + small label,
+                // built for grid-span multi-column use (green Printers /
+                // Monitors reference). grid_span 4 = 3-up grid.
+                [
+                    'key' => 'icon_top_stack',
+                    'name' => 'Icon Above Label',
+                    'tags' => ['minimal', 'pro'],
+                    'shape' => 'card',
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => 'transparent',
+                        'border_style' => 'none', 'border_radius' => '12',
+                        'shadow_preset' => 'none',
+                        'text_color' => '#ffffff', 'padding' => '12', 'font_weight' => '500',
+                        'grid_span' => '4',
+                        'link_layout' => 'icon_top',
+                    ],
+                    'preview' => ['bg' => '#12351f', 'text' => '#ffffff', 'radius' => 12],
+                ],
+                // Offset frame: solid bar with a thin outline frame offset
+                // to the bottom-right (clay/cream reference).
+                [
+                    'key' => 'offset_frame',
+                    'name' => 'Offset Frame',
+                    'tags' => ['editorial', 'minimal', 'retro'],
+                    'shape' => 'square',
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#a98a7d',
+                        'border_style' => 'none', 'border_width' => '1', 'border_color' => '#a98a7d',
+                        'border_radius' => '0', 'shadow_preset' => 'none',
+                        'text_color' => '#f9f2ec', 'padding' => '18', 'font_weight' => '500',
+                        'font_family' => 'Playfair Display',
+                        'link_layout' => 'offset_frame',
+                    ],
+                    'preview' => ['bg' => '#a98a7d', 'text' => '#f9f2ec', 'radius' => 0, 'border' => '#a98a7d', 'serif' => true],
+                ],
+                // Torn tape: washi-tape strip with jagged torn left/right
+                // edges (brown "About me" reference).
+                [
+                    'key' => 'torn_tape',
+                    'name' => 'Torn Tape',
+                    'tags' => ['handwritten', 'playful', 'retro'],
+                    'shape' => 'square',
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#a17c5b',
+                        'border_style' => 'none', 'border_radius' => '0',
+                        'shadow_preset' => 'none',
+                        'text_color' => '#fdf8f2', 'padding' => '20', 'font_weight' => '400',
+                        'font_family' => 'Lora',
+                        'link_layout' => 'torn_tape',
+                    ],
+                    'preview' => ['bg' => '#a17c5b', 'text' => '#fdf8f2', 'radius' => 0, 'serif' => true],
                 ],
             ],
 
