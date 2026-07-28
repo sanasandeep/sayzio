@@ -33,7 +33,7 @@ class BlockVariantCatalog
      * pipeline always writes the *current* VERSION so newly-applied or
      * re-applied variants stay in sync.
      */
-    public const VERSION = 8;
+    public const VERSION = 9;
 
     /**
      * Shape filters for link-style blocks. Orthogonal to theme TAGS:
@@ -1895,6 +1895,24 @@ class BlockVariantCatalog
                         'padding' => '0', '_profile_layout' => 'floating',
                     ],
                     'preview' => ['bg' => '#ffffff', 'text' => '#0f172a', 'radius' => 22, 'border' => '#e5e7eb'],
+                ],
+                [
+                    // Task #5876: photo-first hero column for split desktop
+                    // layouts — big circular avatar + social icons only, on
+                    // a transparent surface so the page background (usually
+                    // a blurred photo) shows through. Name/tagline/links
+                    // live in sibling blocks in the page's other column.
+                    'key' => 'identity_split_hero',
+                    'name' => 'Split Hero',
+                    'tags' => ['bold', 'editorial'],
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => 'transparent',
+                        'text_color' => '#ffffff',
+                        'border_style' => 'none', 'border_radius' => '0',
+                        'shadow_preset' => 'none',
+                        'padding' => '0', '_profile_layout' => 'split_hero',
+                    ],
+                    'preview' => ['bg' => 'transparent', 'text' => '#ffffff', 'radius' => 0],
                 ],
                 [
                     // Screenshot-inspired (July 2026): tall cover with the

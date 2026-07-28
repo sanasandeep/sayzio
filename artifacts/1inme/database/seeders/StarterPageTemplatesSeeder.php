@@ -349,6 +349,73 @@ class StarterPageTemplatesSeeder extends Seeder
                     'button_style'      => 'rounded',
                 ]),
             ],
+
+            // 8 — Split hero: full-page blurred photo background. Desktop is
+            // a two-column split — big circular avatar + social icons on the
+            // left (identity_split_hero layout), name/tagline/outline-pill
+            // links stacked in a transparent card on the right. Both halves
+            // carry `stack_mobile` so phones collapse to a single column.
+            [
+                'slug'                 => 'starter-split-hero',
+                'name'                 => 'Split Hero',
+                'category'             => 'personal',
+                'description'          => 'A striking split layout over a blurred photo: your portrait and socials on one side, your name and bold outline links on the other.',
+                'recommended_personas' => ['creator', 'influencer', 'freelancer'],
+                'snapshot'             => $this->snapshot([
+                    $this->profile(
+                        'Your Name',
+                        '',
+                        $this->face('starter-splithero-face'),
+                        $kits['splithero'],
+                        '',
+                        [
+                            'title'   => '',
+                            'socials' => [
+                                ['name' => 'instagram', 'url' => 'https://instagram.com/yourhandle'],
+                                ['name' => 'facebook',  'url' => 'https://facebook.com/yourhandle'],
+                                ['name' => 'twitter',   'url' => 'https://x.com/yourhandle'],
+                            ],
+                            '_style'  => $this->variantStyle('profile_card_v1', 'identity_split_hero', [
+                                'grid_span'    => 5,
+                                'stack_mobile' => 1,
+                            ]),
+                        ]
+                    ),
+                    [
+                        'type'     => 'card',
+                        'is_active' => true,
+                        'settings' => [
+                            'columns'      => 1,
+                            'gap'          => 14,
+                            'padding'      => 8,
+                            'bg_type'      => 'transparent',
+                            'border_width' => 0,
+                            'shadow'       => 'none',
+                            '_style'       => array_merge(BiolinkBlock::STYLE_DEFAULTS, [
+                                'grid_span'    => 7,
+                                'stack_mobile' => 1,
+                            ]),
+                        ],
+                        'children' => [
+                            $this->heading('Your Name', 'h2'),
+                            $this->paragraph('BEAUTY AND FASHION'),
+                            $this->link('ABOUT ME',       'https://example.com/about',   '', $kits['splithero']),
+                            $this->link('LOOKBOOK',       'https://example.com/lookbook', '', $kits['splithero']),
+                            $this->link('COLLABORATIONS', 'https://example.com/collabs', '', $kits['splithero']),
+                            $this->link('WORK WITH ME',   'mailto:you@example.com',      '', $kits['splithero']),
+                        ],
+                    ],
+                ], [
+                    'background_type'  => 'image',
+                    'background_image' => $this->photo('lifestyle,portrait', 900, 600, 'starter-splithero-bg'),
+                    'bg_blur'          => 40,
+                    'theme_color'      => '#ffffff',
+                    'font_color'       => '#ffffff',
+                    'button_color'     => 'transparent',
+                    'button_text_color' => '#ffffff',
+                    'button_style'     => 'pill',
+                ]),
+            ],
         ];
     }
 
@@ -446,6 +513,7 @@ class StarterPageTemplatesSeeder extends Seeder
             'event'      => ['ptype' => 'profile_card_v1', 'pvar' => 'identity_classic',      'link' => 'card_lifted'],
             'portfolio'  => ['ptype' => 'profile_card_v3', 'pvar' => 'identity_founder',      'link' => 'outline_pill'],
             'overlap'    => ['ptype' => 'profile_card_v1', 'pvar' => 'identity_overlap_hero', 'link' => 'pill_solid'],
+            'splithero'  => ['ptype' => 'profile_card_v1', 'pvar' => 'identity_split_hero',   'link' => 'outline_pill'],
         ];
     }
 

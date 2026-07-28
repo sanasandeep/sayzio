@@ -802,6 +802,11 @@
             grid-column: span 12;
             min-width: 0;
         }
+        /* Task #5876: blocks styled with `stack_mobile` collapse to the
+           full row on phones so split desktop layouts stack vertically. */
+        @media (max-width: 767px) {
+            .biolink-block-wrap[data-stack-mobile="1"] { grid-column: span 12 !important; }
+        }
         /* Task #1041: heading animation hooks driven by data-anim. Each
            variant in BlockVariantCatalog::heading_styles emits one of
            these slugs; renderers stay generic. Reduced-motion users opt
@@ -1098,6 +1103,7 @@
                  @if($_animAttr) data-anim="{{ $_animAttr }}" @endif
                  @if($_galAttr) data-gallery-layout="{{ $_galAttr }}" @endif
                  @if($_socAttr) data-social-set="{{ $_socAttr }}" @endif
+                 @if(!empty($blockStyle['stack_mobile'])) data-stack-mobile="1" @endif
                  @if($_lim)
                      data-limits="1"
                      data-limit-state="{{ $_lim['state'] }}"

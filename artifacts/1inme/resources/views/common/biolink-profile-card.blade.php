@@ -84,8 +84,26 @@
     $avatarBg = 'rgba(61,107,255,0.20)';
 @endphp
 
+{{-- ───────────────────────────── SPLIT HERO ────────────────────────── --}}
+{{-- Task #5876: photo-first column for split desktop layouts — a large
+     circular avatar with the social-icon row beneath it, nothing else.
+     Name/title/links live in sibling blocks in the page's other column.
+     Transparent surface: the page background (usually a blurred photo)
+     shows through. --}}
+@if($layout === 'split_hero')
+    <div class="mb-4 {{ $baseClass }}" style="{{ $cardStyle }}">
+        <div class="px-2 py-4 flex flex-col items-center text-center">
+            @if($avatar)
+                <img src="{{ $avatar }}" class="rounded-full object-cover w-48 h-48 md:w-64 md:h-64" style="border:3px solid rgba(255,255,255,0.35);box-shadow:0 10px 34px rgba(0,0,0,0.30)" alt="{{ $name }}">
+            @else
+                <div class="rounded-full flex items-center justify-center text-5xl font-bold w-48 h-48 md:w-64 md:h-64" style="border:3px solid rgba(255,255,255,0.35);background:{{ $avatarBg }}">{{ $initial }}</div>
+            @endif
+            @include('common.biolink-profile-socials', ['psocials' => $psocials, 'socialIcons' => $socialIcons, 'accent' => '#ffffff', 'chip' => 'plain'])
+        </div>
+    </div>
+
 {{-- ───────────────────────────── CLASSIC CREATOR ───────────────────── --}}
-@if($layout === 'classic_creator')
+@elseif($layout === 'classic_creator')
     <div class="mb-4 overflow-hidden rounded-2xl {{ $baseClass }}" style="{{ $cardStyle }}">
         @if($cover)<div class="h-28 bg-cover bg-center" style="background-image:url('{{ $cover }}')"></div>@endif
         <div class="px-5 pb-6 text-center {{ $cover ? '-mt-12' : 'pt-6' }}">
