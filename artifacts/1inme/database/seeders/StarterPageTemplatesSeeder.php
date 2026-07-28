@@ -47,8 +47,13 @@ class StarterPageTemplatesSeeder extends Seeder
      * v10 (2026-07): Added "Pink Boutique" — a boutique/seller page with a
      * hero cover, chunky lavender tile buttons with square photo thumbs,
      * and a two-column shop grid mixing image tiles and labeled buttons.
+     *
+     * v11 (2026-07): Added "Floral Editorial" — a full-bleed botanical
+     * photo background, a decorative display-font name heading, and six
+     * chartreuse pill links in a two-column desktop grid (grid_span 6)
+     * that stacks to one column on mobile.
      */
-    public const SEED_VERSION = 10;
+    public const SEED_VERSION = 11;
 
     /** Tolerance (seconds) for treating updated_at == created_at. */
     private const EDIT_DRIFT_TOLERANCE = 2;
@@ -416,7 +421,97 @@ class StarterPageTemplatesSeeder extends Seeder
                     'button_style'     => 'pill',
                 ]),
             ],
+
+            // 9 — Floral Editorial: full-bleed botanical photo background,
+            // a big decorative display-font name heading, and six
+            // chartreuse pill links laid out two-per-row on desktop
+            // (grid_span 6) that stack to one column on mobile —
+            // screenshot-inspired floral link-in-bio.
+            [
+                'slug'                 => 'starter-floral-editorial',
+                'name'                 => 'Floral Editorial',
+                'category'             => 'biolink',
+                'description'          => 'A dreamy botanical link-in-bio: a full-page floral photo, your name in a decorative display font, and chartreuse pill buttons in a two-column grid.',
+                'recommended_personas' => ['creator', 'influencer', 'other'],
+                'snapshot'             => $this->snapshot([
+                    $this->floralHeading('Your Name'),
+                    $this->floralPill('ABOUT ME', 'https://example.com/about'),
+                    $this->floralPill('CONNECT WITH ME', 'https://example.com/contact'),
+                    $this->floralPill('MY WORK', 'https://example.com/work'),
+                    $this->floralPill('JOIN MY GIVEAWAY', 'https://example.com/giveaway'),
+                    $this->floralPill('COLLABS', 'https://example.com/collabs'),
+                    $this->floralPill('READ MY BLOG', 'https://example.com/blog'),
+                ], [
+                    'background_type'   => 'image',
+                    'background_image'  => asset('template-assets/floral-editorial-bg.png'),
+                    'bg_fallback_color' => '#57614a',
+                    'bg_overlay_color'  => '#2c3324',
+                    'bg_overlay_opacity' => 12,
+                    'theme_color'       => '#d9ed6f',
+                    'font_color'        => '#e9f3c4',
+                    'button_color'      => '#d9ed6f',
+                    'button_text_color' => '#242b14',
+                    'button_style'      => 'pill',
+                ]),
+            ],
         ];
+    }
+
+    /* ─────────────── Floral Editorial helpers (template 8) ─────────────── */
+
+    /**
+     * Big decorative name heading: art-nouveau-flavoured display font
+     * (Yeseva One, in FontCatalog's display set so the public page loads
+     * it) in light chartreuse, centered over the botanical photo.
+     */
+    private function floralHeading(string $text): array
+    {
+        return $this->block('heading', [
+            'text'   => $text,
+            'size'   => 'h1',
+            'align'  => 'center',
+            '_style' => array_merge(BiolinkBlock::STYLE_DEFAULTS, [
+                'display_mode'  => 'content',
+                'bg_color'      => 'transparent',
+                'border_style'  => 'none',
+                'shadow_preset' => 'none',
+                'font_family'   => 'Yeseva One',
+                'font_size'     => '44',
+                'text_color'    => '#d9ed6f',
+                'padding'       => '8',
+                'margin_top'    => '24',
+                'margin_bottom' => '16',
+            ]),
+        ]);
+    }
+
+    /**
+     * Chartreuse pill link: solid lime fill, fully rounded, dark
+     * uppercase label, half-width on the public page's 12-col grid
+     * (grid_span 6 → two columns on desktop, stacked on mobile).
+     * Baked style (no catalog variant key) so a future variant
+     * migration can never strip the colour overrides.
+     */
+    private function floralPill(string $text, string $url): array
+    {
+        return $this->block('link', [
+            'text'   => $text,
+            'url'    => $url,
+            '_style' => $this->variantStyle('link', '', [
+                'display_mode'  => 'card',
+                'bg_color'      => '#d9ed6f',
+                'border_style'  => 'none',
+                'border_width'  => '0',
+                'border_color'  => 'transparent',
+                'border_radius' => '999',
+                'shadow_preset' => 'soft',
+                'text_color'    => '#242b14',
+                'padding'       => '16',
+                'font_weight'   => '600',
+                'link_layout'   => '',
+                'grid_span'     => 6,
+            ]),
+        ]);
     }
 
     /* ─────────────── Pink Boutique helpers (template 7) ─────────────── */

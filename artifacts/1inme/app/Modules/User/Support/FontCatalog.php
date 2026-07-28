@@ -60,7 +60,7 @@ class FontCatalog
             'Permanent Marker', 'Russo One', 'Black Ops One', 'Special Elite',
             'Press Start 2P', 'Monoton', 'Bowlby One', 'Audiowide', 'Orbitron',
             'Rampart One', 'Unica One', 'Alfa Slab One', 'Staatliches',
-            'Archivo Black', 'Cinzel',
+            'Archivo Black', 'Cinzel', 'Yeseva One',
         ];
 
         $hand = [

@@ -217,11 +217,18 @@
         $allFonts = [(string) $fontFamily];
         $allFonts[] = (string) ($bs['block_theme']['font_family'] ?? '');
         foreach (($link->biolinkBlocks ?? collect()) as $bb) {
+            // Per-block styling is stored under `_style` (legacy blocks may
+            // still carry `style`); check both so baked template fonts —
+            // e.g. Floral Editorial's Yeseva One heading — actually load.
             $st = $bb->settings['style'] ?? [];
             if (!empty($st['font_family'])) $allFonts[] = (string) $st['font_family'];
+            $stu = $bb->settings['_style'] ?? [];
+            if (!empty($stu['font_family'])) $allFonts[] = (string) $stu['font_family'];
             foreach (($bb->children ?? []) as $cc) {
                 $cs = $cc->settings['style'] ?? [];
                 if (!empty($cs['font_family'])) $allFonts[] = (string) $cs['font_family'];
+                $csu = $cc->settings['_style'] ?? [];
+                if (!empty($csu['font_family'])) $allFonts[] = (string) $csu['font_family'];
             }
         }
         $allFonts = array_values(array_unique(array_filter($allFonts)));
