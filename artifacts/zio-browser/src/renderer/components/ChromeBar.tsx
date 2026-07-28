@@ -14,7 +14,6 @@ import { ProfileSwitcher } from './ProfileSwitcher';
 import { useChromeOverlay } from '../hooks/use-chrome-overlay';
 import { AccountButton } from './AccountButton';
 import zioIcon from '../assets/zio-icon.png';
-import { useModeStore } from '../store/mode-store';
 import type { RecentlyClosedEntry } from '../../main/tab-manager';
 import { resolveFavicon } from '../../shared/favicon';
 import { FaviconImg } from './FaviconImg';
@@ -404,7 +403,6 @@ export function ChromeBar({
     pinTab, duplicateTab, closeOtherTabs, closeTabsToRight, muteAllTabs, setTabMode, reopenFromRecent,
   } = useTabStore();
   const { user, token } = useAuthStore();
-  const { mode, setMode } = useModeStore();
   const activeTab = activeTabId ? tabs[activeTabId] : null;
   const [omniboxValue, setOmniboxValue] = useState('');
   const [omniboxFocused, setOmniboxFocused] = useState(false);
@@ -416,7 +414,9 @@ export function ChromeBar({
   // The popovers extend below the chrome bar into the web-content area, where
   // native WebContentsViews sit ABOVE the renderer DOM and would occlude them.
   // Hold the chrome overlay (detaches native views) while either is open.
-  useChromeOverlay(shortenOpen || createOpen);
+  const [overflowOpen, setOverflowOpen] = useState(false);
+  const overflowBtnRef = useRef<HTMLButtonElement>(null);
+  useChromeOverlay(shortenOpen || createOpen || overflowOpen);
   const [pendingSyncCount, setPendingSyncCount] = useState(0);
   const [pendingSyncByProfile, setPendingSyncByProfile] = useState<SyncQueueProfileCount[]>([]);
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
@@ -1043,58 +1043,12 @@ export function ChromeBar({
           title="Recently closed tabs & tab actions"
         >⋮</button>
 
-        {/* Tab search button */}
-        <button
-          onClick={onOpenTabSearch}
-          style={{
-            width: 24, height: 24, borderRadius: 5,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 11, color: 'var(--color-text-muted)',
-            WebkitAppRegion: 'no-drag',
-            flexShrink: 0,
-          } as React.CSSProperties}
-          title="Search tabs (Ctrl+Shift+A)"
-        >🔍</button>
-
-        {/* Ask Zio — pinned to the far right of the tab strip */}
-        <button
-          onClick={onToggleZio}
-          style={{
-            width: 24, height: 24, borderRadius: 5,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            WebkitAppRegion: 'no-drag',
-            flexShrink: 0,
-            padding: 0,
-            marginLeft: 'auto',
-          } as React.CSSProperties}
-          title="Ask Zio"
-        >
-          <img
-            src={zioIcon}
-            alt="Ask Zio"
-            style={{ width: 18, height: 18, borderRadius: 4, display: 'block' }}
-          />
-        </button>
-
-        {/* Sayzio Dashboard — quick toggle next to the Zio icon */}
-        {!isPrivate && (
-          <button
-            onClick={() => setMode(mode === 'dashboard' ? 'browser' : 'dashboard')}
-            style={{
-              width: 24, height: 24, borderRadius: 5,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 13,
-              color: mode === 'dashboard' ? '#fff' : 'var(--color-text-muted)',
-              background: mode === 'dashboard' ? 'var(--color-primary)' : 'transparent',
-              WebkitAppRegion: 'no-drag',
-              flexShrink: 0,
-            } as React.CSSProperties}
-            title={mode === 'dashboard' ? 'Back to browsing' : 'Open Sayzio Dashboard'}
-          >▦</button>
-        )}
-
         {/* Account — avatar menu at the right edge of the tab row */}
-        {user && <AccountButton onOpenAuth={onOpenAuth} compact />}
+        {user && (
+          <div style={{ marginLeft: 'auto', flexShrink: 0, display: 'flex', alignItems: 'center' }}>
+            <AccountButton onOpenAuth={onOpenAuth} compact />
+          </div>
+        )}
       </div>
 
       {/* Address Bar Row */}
@@ -1242,7 +1196,7 @@ export function ChromeBar({
             setShortenOpen(false);
             setCreateOpen(prev => !prev);
           }}
-          title="Create a link — short link, biolink, event, vCard, WiFi, and more"
+          title="Create — shorten this page, QR code, biolink, event, vCard, WiFi, and more"
           style={{
             fontSize: 12,
             padding: '3px 10px',
@@ -1256,71 +1210,6 @@ export function ChromeBar({
             cursor: 'pointer',
           }}
         >+ Create</button>
-
-
-        {/* Shorten + QR popover trigger */}
-        <button
-          onClick={() => {
-            if (!canShorten) return;
-            setCreateOpen(false);
-            setShortenOpen(prev => !prev);
-          }}
-          disabled={!canShorten}
-          title="Shorten this page / generate QR code"
-          style={{
-            fontSize: 13,
-            padding: '3px 8px',
-            borderRadius: 8,
-            background: shortenOpen ? 'var(--color-primary)' : 'var(--color-bg-elevated)',
-            color: shortenOpen ? '#fff' : 'var(--color-text)',
-            border: '1px solid var(--color-border)',
-            opacity: canShorten ? 1 : 0.35,
-            whiteSpace: 'nowrap',
-            transition: 'all 0.12s',
-          }}
-        >🔗</button>
-
-        {/* Device Lab button */}
-        <button
-          onClick={onOpenDeviceLab}
-          title="Device Lab — preview this biolink in phone / tablet / desktop"
-          style={{
-            fontSize: 13,
-            padding: '3px 8px',
-            borderRadius: 8,
-            background: 'var(--color-bg-elevated)',
-            color: 'var(--color-text)',
-            border: '1px solid var(--color-border)',
-            whiteSpace: 'nowrap',
-            transition: 'all 0.12s',
-            cursor: 'pointer',
-          }}
-        >🔬</button>
-
-        {/* New Private Window button */}
-        <button
-          onClick={() => { void window.zio.window.openPrivate(); }}
-          title="New Private Window (Ctrl+Shift+N)"
-          style={{
-            fontSize: 13,
-            padding: '3px 8px',
-            borderRadius: 8,
-            background: 'var(--color-bg-elevated)',
-            color: 'var(--color-text)',
-            border: '1px solid var(--color-border)',
-            whiteSpace: 'nowrap',
-            transition: 'all 0.12s',
-            cursor: 'pointer',
-          }}
-        >🕶️</button>
-
-        {/* Screenshot button — not shown on new tab or private windows */}
-        {canShorten && !isPrivate && onScreenshot && (
-          <ScreenshotButton
-            onCapture={onScreenshot}
-            capturing={screenshotCapturing}
-          />
-        )}
 
         {/* Sync pending indicator */}
         {pendingSyncCount > 0 && (
@@ -1402,66 +1291,6 @@ export function ChromeBar({
             </span>
           )}
         </button>
-
-        {/* Dialer pane — universal search + call handoff to the phone */}
-        {!isPrivate && onToggleDialer && (
-          <button
-            onClick={onToggleDialer}
-            title="Dialer — search & call on your phone"
-            style={{
-              fontSize: 16,
-              padding: '2px 6px',
-              flexShrink: 0,
-              color: dialerPanelOpen ? 'var(--color-primary)' : 'var(--color-text-muted)',
-              transition: 'color 0.15s',
-            }}
-          >
-            📞
-          </button>
-        )}
-
-        {/* Reading list button + unread badge */}
-        <div style={{ position: 'relative', flexShrink: 0 }}>
-          <button
-            onClick={() => {
-              if (!activeTab?.url || activeTab.url === 'about:newtab' || activeTab.url === '') {
-                onToggleReadingList();
-              } else {
-                void handleSaveToReadingList();
-              }
-            }}
-            title={savedInReadingList ? 'Saved — open reading list' : 'Save to reading list'}
-            style={{
-              fontSize: 16,
-              padding: '2px 6px',
-              color: savedInReadingList ? 'var(--color-primary)' : 'var(--color-text-muted)',
-              transition: 'color 0.15s',
-            }}
-          >
-            {savedInReadingList ? '🔖' : '📖'}
-          </button>
-          {unreadCount > 0 && (
-            <span style={{
-              position: 'absolute',
-              top: -2,
-              right: -2,
-              minWidth: 14,
-              height: 14,
-              borderRadius: 7,
-              background: 'var(--gradient-primary)',
-              color: '#fff',
-              fontSize: 9,
-              fontWeight: 700,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              padding: '0 2px',
-              pointerEvents: 'none',
-            }}>
-              {unreadCount > 99 ? '99+' : unreadCount}
-            </span>
-          )}
-        </div>
 
         {/* Bookmark button (hidden in private windows — bookmarks are not saved there) */}
         {!isPrivate && (
@@ -1586,7 +1415,71 @@ export function ChromeBar({
             }}
           >⚙️</button>
         )}
+
+        {/* Overflow "⋯" menu — low-frequency utilities */}
+        <div style={{ position: 'relative', flexShrink: 0 }}>
+          <button
+            ref={overflowBtnRef}
+            onClick={() => setOverflowOpen(v => !v)}
+            title="More tools"
+            style={{
+              fontSize: 15,
+              padding: '2px 7px',
+              borderRadius: 8,
+              background: overflowOpen ? 'var(--color-primary)' : 'var(--color-bg-elevated)',
+              color: overflowOpen ? '#fff' : 'var(--color-text-muted)',
+              border: '1px solid var(--color-border)',
+              transition: 'all 0.12s',
+            }}
+          >⋯</button>
+          {unreadCount > 0 && (
+            <span style={{
+              position: 'absolute',
+              top: -4,
+              right: -4,
+              minWidth: 14,
+              height: 14,
+              borderRadius: 7,
+              background: 'var(--gradient-primary)',
+              color: '#fff',
+              fontSize: 9,
+              fontWeight: 700,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '0 2px',
+              pointerEvents: 'none',
+            }}>
+              {unreadCount > 99 ? '99+' : unreadCount}
+            </span>
+          )}
+        </div>
       </div>
+
+      {/* Overflow menu dropdown */}
+      {overflowOpen && (
+        <OverflowMenu
+          anchorRef={overflowBtnRef}
+          onClose={() => setOverflowOpen(false)}
+          isPrivate={isPrivate}
+          canScreenshot={!!(canShorten && !isPrivate && onScreenshot)}
+          screenshotCapturing={screenshotCapturing}
+          onScreenshot={onScreenshot}
+          onOpenDeviceLab={onOpenDeviceLab}
+          dialerAvailable={!isPrivate && !!onToggleDialer}
+          dialerPanelOpen={dialerPanelOpen}
+          onToggleDialer={onToggleDialer}
+          savedInReadingList={savedInReadingList}
+          unreadCount={unreadCount}
+          onReadingList={() => {
+            if (!activeTab?.url || activeTab.url === 'about:newtab' || activeTab.url === '') {
+              onToggleReadingList();
+            } else {
+              void handleSaveToReadingList();
+            }
+          }}
+        />
+      )}
 
       {/* Create link popover */}
       {createOpen && (
@@ -1595,6 +1488,7 @@ export function ChromeBar({
           pageTitle={linkToolTarget?.title ?? activeTab?.title ?? ''}
           baseUrl={BASE_URL}
           initialType={createInitialType ?? undefined}
+          onShortenPage={canShorten ? () => { setCreateOpen(false); setCreateInitialType(null); setShortenOpen(true); } : undefined}
           onClose={() => { setCreateOpen(false); setLinkToolTarget(null); setCreateInitialType(null); }}
           onOpenAuth={() => { setCreateOpen(false); onOpenAuth(); }}
           onNavigate={(url) => {
@@ -1655,76 +1549,150 @@ export function ChromeBar({
   );
 }
 
-// ── Screenshot button ─────────────────────────────────────────────────────────
-// A small camera button with a right-click context menu offering
-// "Visible area" vs "Full page" modes.
+// ── Overflow "⋯" menu ─────────────────────────────────────────────────────────
+// Low-frequency utilities relocated off the toolbar: Device Lab, Private
+// Window, Screenshot, Dialer, and Reading List.
 
-interface ScreenshotButtonProps {
-  onCapture: (fullPage: boolean) => void;
-  capturing: boolean;
+interface OverflowMenuProps {
+  anchorRef: React.RefObject<HTMLButtonElement | null>;
+  onClose: () => void;
+  isPrivate: boolean;
+  canScreenshot: boolean;
+  screenshotCapturing: boolean;
+  onScreenshot?: (fullPage: boolean) => void;
+  onOpenDeviceLab?: () => void;
+  dialerAvailable: boolean;
+  dialerPanelOpen: boolean;
+  onToggleDialer?: () => void;
+  savedInReadingList: boolean;
+  unreadCount: number;
+  onReadingList: () => void;
 }
 
-function ScreenshotButton({ onCapture, capturing }: ScreenshotButtonProps) {
-  const [menuOpen, setMenuOpen] = useState(false);
+function OverflowMenu({
+  anchorRef, onClose, isPrivate,
+  canScreenshot, screenshotCapturing, onScreenshot,
+  onOpenDeviceLab,
+  dialerAvailable, dialerPanelOpen, onToggleDialer,
+  savedInReadingList, unreadCount, onReadingList,
+}: OverflowMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null);
 
-  // Close dropdown on outside click
+  const rect = anchorRef.current?.getBoundingClientRect();
+  const left = rect ? Math.max(8, rect.right - 230) : undefined;
+  const top = rect ? rect.bottom + 6 : undefined;
+
+  // Close on outside click
   useEffect(() => {
-    if (!menuOpen) return;
     const handler = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setMenuOpen(false);
+      if (menuRef.current && !menuRef.current.contains(e.target as Node) &&
+          !anchorRef.current?.contains(e.target as Node)) {
+        onClose();
       }
     };
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
-  }, [menuOpen]);
+  }, [onClose, anchorRef]);
+
+  const action = (fn: () => void) => () => { fn(); onClose(); };
 
   return (
-    <div ref={menuRef} style={{ position: 'relative', flexShrink: 0 }}>
-      <button
-        onClick={() => { if (!capturing) setMenuOpen(prev => !prev); }}
-        title="Screenshot — left-click for options"
-        style={{
-          fontSize: 15,
-          padding: '2px 7px',
-          borderRadius: 8,
-          background: menuOpen ? 'var(--color-primary)' : 'var(--color-bg-elevated)',
-          color: menuOpen ? '#fff' : 'var(--color-text-muted)',
-          border: '1px solid var(--color-border)',
-          opacity: capturing ? 0.5 : 1,
-          cursor: capturing ? 'default' : 'pointer',
-          transition: 'all 0.12s',
-        }}
-      >{capturing ? '⏳' : '📷'}</button>
+    <div
+      ref={menuRef}
+      style={{
+        position: 'fixed',
+        left,
+        top,
+        right: rect ? undefined : 12,
+        background: 'var(--color-bg-surface)',
+        border: '1px solid var(--color-border)',
+        borderRadius: 10,
+        boxShadow: '0 8px 28px rgba(0,0,0,0.3)',
+        minWidth: 230,
+        zIndex: 9999,
+        padding: '4px 0',
+        overflow: 'hidden',
+      }}
+    >
+      {/* Reading list */}
+      <button onClick={action(onReadingList)} style={menuItemStyle}>
+        <span>{savedInReadingList ? '🔖' : '📖'}</span>
+        <span>{savedInReadingList ? 'Saved — open reading list' : 'Save to reading list'}</span>
+        {unreadCount > 0 && (
+          <span style={{
+            marginLeft: 'auto',
+            minWidth: 16,
+            height: 16,
+            borderRadius: 8,
+            background: 'var(--gradient-primary)',
+            color: '#fff',
+            fontSize: 9,
+            fontWeight: 700,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '0 4px',
+          }}>
+            {unreadCount > 99 ? '99+' : unreadCount}
+          </span>
+        )}
+      </button>
 
-      {menuOpen && (
-        <div style={{
-          position: 'absolute',
-          top: 'calc(100% + 6px)',
-          right: 0,
-          background: 'var(--color-bg-surface)',
-          border: '1px solid var(--color-border)',
-          borderRadius: 10,
-          boxShadow: '0 8px 28px rgba(0,0,0,0.3)',
-          minWidth: 180,
-          zIndex: 2000,
-          overflow: 'hidden',
+      {/* Dialer */}
+      {dialerAvailable && onToggleDialer && (
+        <button onClick={action(onToggleDialer)} style={{
+          ...menuItemStyle,
+          color: dialerPanelOpen ? 'var(--color-primary)' : menuItemStyle.color,
         }}>
+          <span>📞</span>
+          <span>Dialer — search &amp; call on your phone</span>
+        </button>
+      )}
+
+      {/* Device Lab */}
+      {onOpenDeviceLab && (
+        <button onClick={action(onOpenDeviceLab)} style={menuItemStyle}>
+          <span>🔬</span>
+          <span>Device Lab — phone / tablet / desktop preview</span>
+        </button>
+      )}
+
+      {/* Screenshot */}
+      {canScreenshot && onScreenshot && (
+        <>
           <button
-            onClick={() => { setMenuOpen(false); onCapture(false); }}
-            style={menuItemStyle}
+            onClick={action(() => onScreenshot(false))}
+            disabled={screenshotCapturing}
+            style={{ ...menuItemStyle, opacity: screenshotCapturing ? 0.5 : 1 }}
           >
-            <span>🖥</span>
-            <span>Visible area</span>
+            <span>{screenshotCapturing ? '⏳' : '📷'}</span>
+            <span>Screenshot — visible area</span>
           </button>
           <button
-            onClick={() => { setMenuOpen(false); onCapture(true); }}
-            style={menuItemStyle}
+            onClick={action(() => onScreenshot(true))}
+            disabled={screenshotCapturing}
+            style={{ ...menuItemStyle, opacity: screenshotCapturing ? 0.5 : 1 }}
           >
-            <span>📄</span>
-            <span>Full page</span>
+            <span>{screenshotCapturing ? '⏳' : '📄'}</span>
+            <span>Screenshot — full page</span>
           </button>
+        </>
+      )}
+
+      <div style={{ borderTop: '1px solid var(--color-border)', margin: '4px 0' }} />
+
+      {/* New Private Window */}
+      <button
+        onClick={action(() => { void window.zio.window.openPrivate(); })}
+        style={menuItemStyle}
+      >
+        <span>🕶️</span>
+        <span>New Private Window</span>
+        <span style={{ marginLeft: 'auto', fontSize: 10, opacity: 0.6 }}>⌘⇧N</span>
+      </button>
+      {isPrivate && (
+        <div style={{ padding: '2px 14px 6px', fontSize: 10, color: 'var(--color-text-muted)' }}>
+          You're already in a private window
         </div>
       )}
     </div>

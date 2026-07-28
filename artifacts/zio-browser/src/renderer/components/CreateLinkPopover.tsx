@@ -97,12 +97,17 @@ interface Props {
   baseUrl?: string;
   /** Preselect a link type and jump straight to its form (e.g. 'qr'). */
   initialType?: string;
+  /**
+   * When set, shows a prominent "Shorten this page" first action in the type
+   * picker. The caller closes this popover and opens the shorten flow.
+   */
+  onShortenPage?: () => void;
   onClose: () => void;
   onOpenAuth: () => void;
   onNavigate?: (url: string) => void;
 }
 
-export function CreateLinkPopover({ pageUrl, pageTitle, baseUrl = BASE_URL, initialType, onClose, onOpenAuth, onNavigate }: Props) {
+export function CreateLinkPopover({ pageUrl, pageTitle, baseUrl = BASE_URL, initialType, onShortenPage, onClose, onOpenAuth, onNavigate }: Props) {
   const { token } = useAuthStore();
   const popoverRef = useRef<HTMLDivElement>(null);
 
@@ -363,6 +368,33 @@ export function CreateLinkPopover({ pageUrl, pageTitle, baseUrl = BASE_URL, init
           <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--color-text)' }}>Create a link</div>
           <div style={{ fontSize: 11, color: 'var(--color-text-muted)', marginTop: 2 }}>Choose a link type to get started</div>
         </div>
+        {onShortenPage && (
+          <div style={{ padding: '10px 12px 0' }}>
+            <button
+              onClick={onShortenPage}
+              title="Shorten this page / generate QR code"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                width: '100%',
+                padding: '9px 12px',
+                borderRadius: 10,
+                background: 'var(--gradient-primary)',
+                color: '#fff',
+                border: 'none',
+                cursor: 'pointer',
+                textAlign: 'left',
+              }}
+            >
+              <span style={{ fontSize: 16, lineHeight: 1 }}>🔗</span>
+              <span style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                <span style={{ fontSize: 12, fontWeight: 700 }}>Shorten this page</span>
+                <span style={{ fontSize: 10, opacity: 0.85 }}>Short link or QR code for the current page</span>
+              </span>
+            </button>
+          </div>
+        )}
         <div style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(3, 1fr)',
