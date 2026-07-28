@@ -22,22 +22,6 @@ class PageTemplate extends Model
         'recommended_personas' => 'array',
     ];
 
-    /**
-     * Seeders store root-relative thumbnail paths (e.g.
-     * `/template-thumbs/<slug>.svg?v=N`) so rows stay portable across
-     * hosts (dev vs production domain). Absolutize on read so every
-     * consumer — Blade cards, the REST API and the mobile app — gets a
-     * fully-qualified URL for the current host. Absolute URLs (admin
-     * uploads, legacy rows) pass through untouched.
-     */
-    public function getThumbnailUrlAttribute(?string $value): ?string
-    {
-        if ($value !== null && str_starts_with($value, '/')) {
-            return url($value);
-        }
-        return $value;
-    }
-
     public function scopeActive($query)
     {
         return $query->where('is_active', true)->orderBy('sort_order');

@@ -102,29 +102,3 @@ service's base path, don't just retry — give that exact path an in-app instant
 2xx for probe requests; run-command warm-ups alone can't beat the deadline on
 a cold container. The boot window must cover the FULL promote timeout, not just
 the first few seconds.
-
-## Addendum: container never starts during the promote window (platform-side)
-
-**Symptom (July 2026):** build fully green, log ends at "Creating Autoscale
-service" at T, build marked failed ~5 min later at T+5m — and the FIRST runtime
-log line appears seconds AFTER the failure timestamp. All in-app fixes
-(backgrounded migrate, ProdStartupProbe, /up) are already in place; once the
-container finally boots, everything is healthy (server binds in ~2s, /up 200s,
-migrations+seeders complete). Meanwhile prod keeps serving the previous build.
-
-**Root cause:** the image pull / Cloud Run cold start itself consumed the whole
-~5-min promote window ("Skipping container streaming artifacts (SOCI/ZTOC) for
-non-reserved-VM deployment" — no streaming pull on autoscale; the repl image is
-large). Nothing in the run command or app can fix this — the process hasn't
-started yet.
-
-**How to diagnose which variant you have:** compare the build's `timeUpdated`
-(failure moment, via `getDeploymentBuild`) with the first runtime log
-timestamp. Runtime logs BEFORE failure → in-app/probe problem (earlier
-addenda). Runtime logs only AT/AFTER failure → platform pull/cold-start ate the
-window: just retry the publish (layers are now cached, the second attempt
-usually schedules fast); long-term lever is shrinking the image.
-
-**Red herring:** early `healthcheck ... returned status 500` lines in the first
-~1s of runtime logs are just the proxy answering before services bound their
-ports — they are NOT the promote failure cause when they stop within a second.

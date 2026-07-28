@@ -44,7 +44,7 @@ class StarterPageTemplatesSeeder extends Seeder
      * layout, link design variant and a distinct block mix so the picker's
      * category chips and "what's inside" chips look meaningfully different.
      */
-    public const SEED_VERSION = 8;
+    public const SEED_VERSION = 7;
 
     /** Tolerance (seconds) for treating updated_at == created_at. */
     private const EDIT_DRIFT_TOLERANCE = 2;
@@ -62,7 +62,7 @@ class StarterPageTemplatesSeeder extends Seeder
                     'name'                 => $tpl['name'],
                     'category'             => $tpl['category'],
                     'description'          => $tpl['description'],
-                    'thumbnail_url'        => $this->thumbUrl($tpl['slug']),
+                    'thumbnail_url'        => null,
                     'plan_tier'            => null,
                     'is_active'            => true,
                     'sort_order'           => 10 + $i,
@@ -285,18 +285,6 @@ class StarterPageTemplatesSeeder extends Seeder
     }
 
     /* ──────────────────── snapshot + block helpers ──────────────────── */
-
-    /**
-     * Self-hosted, theme-aware SVG preview for a template card. Rendered
-     * live by PublicTemplateThumbController from the row's own snapshot,
-     * so every card reflects its actual theme + block layout. Stored
-     * root-relative (absolutized by PageTemplate's accessor) so rows are
-     * portable across hosts; ?v=SEED_VERSION re-renders on redesigns.
-     */
-    private function thumbUrl(string $templateSlug): string
-    {
-        return '/template-thumbs/' . $templateSlug . '.svg?v=' . self::SEED_VERSION;
-    }
 
     private function snapshot(array $blocks, array $biolink = []): array
     {

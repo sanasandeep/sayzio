@@ -1,0 +1,246 @@
+name: Sayzio Browser Build & Package
+
+# Build/package/release pipeline only — push-to-main and manual dispatch. It
+# deliberately does NOT trigger on pull_request: a workflow-level `paths:`
+# filter on a PR trigger means unrelated PRs never get a status, which
+# deadlocks the moment the check is marked required. The PR gate lives in
+# zio-browser-tests.yml, which uses the standard changes-detector +
+# passthrough scheme instead.
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'artifacts/zio-browser/**'
+  workflow_dispatch:
+    inputs:
+      release:
+        description: 'Create a GitHub Release'
+        type: boolean
+        default: false
+
+defaults:
+  run:
+    working-directory: artifacts/zio-browser
+
+jobs:
+  # ── Test & typecheck ────────────────────────────────────────────────────────
+  test:
+    name: Test & Typecheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Allow platform-native binaries
+        # The workspace blocks non-Linux native binaries (dev-env size
+        # optimization); CI runners need their own platform's binaries.
+        run: node artifacts/zio-browser/scripts/allow-native-binaries.cjs
+        working-directory: .
+
+      - name: Install dependencies
+        run: pnpm install --no-frozen-lockfile
+        working-directory: .
+
+      - name: Typecheck
+        run: pnpm run typecheck
+
+      - name: Run tests
+        run: pnpm run test
+
+  # ── macOS build ─────────────────────────────────────────────────────────────
+  build-mac:
+    name: Build macOS (x64 + arm64)
+    runs-on: macos-14
+    needs: test
+    if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'workflow_dispatch'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Allow platform-native binaries
+        # The workspace blocks non-Linux native binaries (dev-env size
+        # optimization); CI runners need their own platform's binaries.
+        run: node artifacts/zio-browser/scripts/allow-native-binaries.cjs
+        working-directory: .
+
+      - name: Install dependencies
+        run: pnpm install --no-frozen-lockfile
+        working-directory: .
+
+      - name: Build renderer
+        run: pnpm run build:renderer
+
+      - name: Build main process
+        run: pnpm run build:main && pnpm run build:preload
+
+      # Signing/notarization activates automatically when the secrets are set:
+      #   MAC_CERT_P12_BASE64 / MAC_CERT_PASSWORD  → codesign (Developer ID)
+      #   APPLE_ID / APPLE_APP_SPECIFIC_PASSWORD / APPLE_TEAM_ID → notarization
+      # Without them electron-builder produces unsigned installers.
+      - name: Package macOS
+        shell: bash
+        env:
+          IN_CSC_LINK: ${{ secrets.MAC_CERT_P12_BASE64 }}
+          IN_CSC_KEY_PASSWORD: ${{ secrets.MAC_CERT_PASSWORD }}
+          IN_APPLE_ID: ${{ secrets.APPLE_ID }}
+          IN_APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          IN_APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          # Only export signing/notarization vars when the secrets are set —
+          # empty values make electron-builder attempt (and fail) signing.
+          if [ -n "$IN_CSC_LINK" ]; then
+            export CSC_LINK="$IN_CSC_LINK" CSC_KEY_PASSWORD="$IN_CSC_KEY_PASSWORD"
+          fi
+          if [ -n "$IN_APPLE_ID" ]; then
+            export APPLE_ID="$IN_APPLE_ID" APPLE_APP_SPECIFIC_PASSWORD="$IN_APPLE_APP_SPECIFIC_PASSWORD" APPLE_TEAM_ID="$IN_APPLE_TEAM_ID"
+          fi
+          # Sequential per-arch packaging: the DMG target's dmgbuild helper
+          # hits a background.tiff ENOENT race when both arch builds run in a
+          # single invocation on GitHub macOS runners.
+          pnpm exec electron-builder --config electron-builder.config.cjs --mac --x64 --publish never
+          pnpm exec electron-builder --config electron-builder.config.cjs --mac --arm64 --publish never
+
+      - name: Upload macOS artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: sayzio-browser-mac
+          path: |
+            artifacts/zio-browser/release/*.dmg
+            artifacts/zio-browser/release/*.zip
+            artifacts/zio-browser/release/*.blockmap
+            artifacts/zio-browser/release/latest-mac.yml
+          if-no-files-found: error
+          retention-days: 14
+
+  # ── Windows build ────────────────────────────────────────────────────────────
+  build-windows:
+    name: Build Windows (x64)
+    runs-on: windows-latest
+    needs: test
+    if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'workflow_dispatch'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Allow platform-native binaries
+        # The workspace blocks non-Linux native binaries (dev-env size
+        # optimization); CI runners need their own platform's binaries.
+        run: node artifacts/zio-browser/scripts/allow-native-binaries.cjs
+        working-directory: .
+
+      - name: Install dependencies
+        run: pnpm install --no-frozen-lockfile
+        working-directory: .
+
+      - name: Build renderer
+        run: pnpm run build:renderer
+
+      - name: Build main process
+        run: pnpm run build:main && pnpm run build:preload
+
+      # Signing activates automatically when the secrets are set:
+      #   WIN_CERT_P12_BASE64 / WIN_CERT_PASSWORD → Authenticode signing
+      - name: Package Windows
+        shell: bash
+        env:
+          IN_WIN_CSC_LINK: ${{ secrets.WIN_CERT_P12_BASE64 }}
+          IN_WIN_CSC_KEY_PASSWORD: ${{ secrets.WIN_CERT_PASSWORD }}
+        run: |
+          # Only export signing vars when the secrets are set — empty values
+          # make electron-builder attempt (and fail) signing.
+          if [ -n "$IN_WIN_CSC_LINK" ]; then
+            export WIN_CSC_LINK="$IN_WIN_CSC_LINK" WIN_CSC_KEY_PASSWORD="$IN_WIN_CSC_KEY_PASSWORD"
+          fi
+          pnpm exec electron-builder --config electron-builder.config.cjs --publish never
+
+      - name: Upload Windows artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: sayzio-browser-windows
+          path: |
+            artifacts/zio-browser/release/*.exe
+            artifacts/zio-browser/release/*.blockmap
+            artifacts/zio-browser/release/latest.yml
+          if-no-files-found: error
+          retention-days: 14
+
+  # ── GitHub Release (auto-update feed) ────────────────────────────────────────
+  release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    needs: [build-mac, build-windows]
+    if: github.event_name == 'workflow_dispatch' && inputs.release
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download macOS artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: sayzio-browser-mac
+          path: release-assets
+
+      - name: Download Windows artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: sayzio-browser-windows
+          path: release-assets
+
+      - name: Get version
+        id: version
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+
+      # softprops/action-gh-release updates an existing tag's release in
+      # place, which would silently overwrite a version that installed apps
+      # already updated to. Fail fast if the tag or release already exists —
+      # bump the version in package.json before re-dispatching.
+      - name: Guard against overwriting an existing release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: zio-browser-v${{ steps.version.outputs.version }}
+        run: |
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "::error::Release for tag $TAG already exists. Bump the version in artifacts/zio-browser/package.json before releasing."
+            exit 1
+          fi
+          if git ls-remote --exit-code --tags origin "refs/tags/$TAG" >/dev/null 2>&1; then
+            echo "::error::Tag $TAG already exists on origin. Bump the version in artifacts/zio-browser/package.json before releasing."
+            exit 1
+          fi
+
+      # Published immediately (draft: false) — electron-updater ignores draft
+      # releases, so a draft is invisible to installed apps until someone
+      # manually publishes it.
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: zio-browser-v${{ steps.version.outputs.version }}
+          name: Sayzio Browser v${{ steps.version.outputs.version }}
+          draft: false
+          make_latest: true
+          generate_release_notes: true
+          files: release-assets/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
