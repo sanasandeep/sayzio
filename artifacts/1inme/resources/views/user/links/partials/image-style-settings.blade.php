@@ -210,6 +210,87 @@
                     vaultFiles: [],
                     vaultLoading: false,
                     error: '',
+                    stageW: 0,
+                    stageH: 0,
+                    drag: null,
+                    init() {
+                        // Keep the drag stage dimensions reactive so anchor
+                        // math re-runs when the drawer resizes or the block
+                        // image finishes loading (Task #5945).
+                        this.$nextTick(() => {
+                            const stage = this.$refs.dragStage;
+                            if (!stage || typeof ResizeObserver === 'undefined') return;
+                            const ro = new ResizeObserver(() => {
+                                this.stageW = stage.clientWidth;
+                                this.stageH = stage.clientHeight;
+                            });
+                            ro.observe(stage);
+                            this.stageW = stage.clientWidth;
+                            this.stageH = stage.clientHeight;
+                        });
+                    },
+                    // Mirrors the public renderer's anchor CSS: top-left px
+                    // coords of a sticker of size S at each preset, before
+                    // dx/dy are applied.
+                    anchorBase(pos, S) {
+                        const W = this.stageW, H = this.stageH;
+                        switch (pos) {
+                            case 'top_left':     return { x: -10, y: -10 };
+                            case 'bottom_left':  return { x: -10, y: H - S + 10 };
+                            case 'bottom_right': return { x: W - S + 10, y: H - S + 10 };
+                            case 'center_left':  return { x: -12, y: H / 2 - S / 2 };
+                            case 'center_right': return { x: W - S + 12, y: H / 2 - S / 2 };
+                            default:             return { x: W - S + 10, y: -10 }; // top_right
+                        }
+                    },
+                    previewStyle(stk) {
+                        const S = Math.max(24, Math.min(160, parseInt(stk.size, 10) || 64));
+                        const b = this.anchorBase(stk.pos, S);
+                        const dx = parseInt(stk.dx, 10) || 0, dy = parseInt(stk.dy, 10) || 0;
+                        return 'left:' + (b.x + dx) + 'px;top:' + (b.y + dy) + 'px;width:' + S + 'px;height:' + S + 'px;object-fit:contain;transform:rotate(' + (parseInt(stk.rotate, 10) || 0) + 'deg);';
+                    },
+                    startDrag(i, ev) {
+                        const stage = this.$refs.dragStage;
+                        if (!stage) return;
+                        const rect = stage.getBoundingClientRect();
+                        const stk = this.stickers[i];
+                        const S = Math.max(24, Math.min(160, parseInt(stk.size, 10) || 64));
+                        const b = this.anchorBase(stk.pos, S);
+                        this.drag = {
+                            i: i,
+                            offX: (ev.clientX - rect.left) - (b.x + (parseInt(stk.dx, 10) || 0)),
+                            offY: (ev.clientY - rect.top) - (b.y + (parseInt(stk.dy, 10) || 0)),
+                        };
+                        try { stage.setPointerCapture(ev.pointerId); } catch (e) {}
+                    },
+                    onDrag(ev) {
+                        if (!this.drag) return;
+                        const stage = this.$refs.dragStage;
+                        const rect = stage.getBoundingClientRect();
+                        const stk = this.stickers[this.drag.i];
+                        const S = Math.max(24, Math.min(160, parseInt(stk.size, 10) || 64));
+                        const left = (ev.clientX - rect.left) - this.drag.offX;
+                        const top = (ev.clientY - rect.top) - this.drag.offY;
+                        // Nearest anchor preset wins; dx/dy is the clamped
+                        // remainder relative to that anchor (server clamps
+                        // identically, so what you see is what persists).
+                        let best = null;
+                        for (const pos of ['top_left', 'top_right', 'bottom_left', 'bottom_right', 'center_left', 'center_right']) {
+                            const b = this.anchorBase(pos, S);
+                            const dx = left - b.x, dy = top - b.y;
+                            const d = dx * dx + dy * dy;
+                            if (!best || d < best.d) best = { pos: pos, dx: dx, dy: dy, d: d };
+                        }
+                        stk.pos = best.pos;
+                        stk.dx = Math.max(-80, Math.min(80, Math.round(best.dx)));
+                        stk.dy = Math.max(-80, Math.min(80, Math.round(best.dy)));
+                    },
+                    endDrag(ev) {
+                        if (!this.drag) return;
+                        this.drag = null;
+                        try { this.$refs.dragStage.releasePointerCapture(ev.pointerId); } catch (e) {}
+                        this.sync();
+                    },
                     sync() {
                         this.$nextTick(() => {
                             const el = this.$refs.stickersInput;
@@ -275,6 +356,29 @@
 
                 <input type="hidden" name="style[_photo_stickers]" x-ref="stickersInput"
                        value="{{ $phStickersSaved ? json_encode($phStickersSaved) : '' }}">
+
+                {{-- Drag-to-place stage (Task #5945): drag a sticker on the
+                     photo; the nearest anchor preset + clamped dx/dy are
+                     computed automatically and written to the hidden JSON. --}}
+                <div class="mb-3" x-show="stickers.length" x-cloak style="padding:12px;">
+                    <div x-ref="dragStage" class="relative select-none rounded-lg"
+                         style="touch-action:none; background: rgba(127,127,127,0.12);"
+                         @pointermove="onDrag($event)" @pointerup="endDrag($event)" @pointercancel="endDrag($event)">
+                        @if(!empty($s['url']))
+                            <img src="{{ $s['url'] }}" alt="" class="w-full block rounded-lg pointer-events-none" draggable="false">
+                        @else
+                            <div class="w-full rounded-lg" style="aspect-ratio: 4 / 3;"></div>
+                        @endif
+                        <template x-for="(stk, i) in stickers" :key="'drag' + i">
+                            <img :src="stk.url" alt="" draggable="false"
+                                 class="absolute z-10 rounded"
+                                 :class="drag && drag.i === i ? 'cursor-grabbing ring-2 ring-blue-400' : 'cursor-grab'"
+                                 :style="previewStyle(stk)"
+                                 @pointerdown.prevent="startDrag(i, $event)">
+                        </template>
+                    </div>
+                    <p class="text-[10px] mt-1" style="color: var(--text-dimmed);"><i class="fas fa-hand-pointer mr-1"></i>Drag a sticker to place it — position and offsets update automatically.</p>
+                </div>
 
                 <template x-for="(stk, i) in stickers" :key="i">
                     <div class="rounded-lg p-2 mb-2" style="border: 1px solid var(--border-subtle); background: var(--bg-glass-input);">
