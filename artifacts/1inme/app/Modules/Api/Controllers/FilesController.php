@@ -61,6 +61,17 @@ class FilesController extends Controller
 
         try {
             $userFile = UserFile::createFromUpload($request->file('file'), $user);
+        } catch (\App\Modules\User\Exceptions\StorageQuotaExceededException $e) {
+            // Storage quota is a plan limit, not bad input — return the
+            // standard plan-gate hint envelope (402 + recommended_plan in
+            // error.details) so clients can route to the upgrade screen.
+            return $this->planGate(
+                $e->getMessage(),
+                \App\Modules\User\Exceptions\StorageQuotaExceededException::FEATURE,
+                $user,
+                402,
+                'plan_limit_reached'
+            );
         } catch (\RuntimeException $e) {
             return $this->fail($e->getMessage(), 422, 'upload_failed');
         }

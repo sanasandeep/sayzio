@@ -234,6 +234,7 @@ import {
 import { variantsForType, findVariant } from "@/lib/blockVariants";
 import { canonicalBlockType } from "@/lib/blockTypeRegistry";
 import { showAlert } from "@/lib/webAlert";
+import { handlePlanLockedError } from "@/lib/upgradePrompt";
 
 // Quick-pick tints for the avatar-frame color row (Task #5910). "Auto"
 // (empty string) defers to the layout accent, mirroring the web editor.
@@ -770,6 +771,11 @@ export function BlockSettingsEditor({
       });
       appendSticker(file);
     } catch (e) {
+      // Storage-quota (and other plan-gated) rejections get the upgrade
+      // prompt with the recommended-plan hint instead of a raw error.
+      if (handlePlanLockedError(e, "Your storage is full on your current plan.")) {
+        return;
+      }
       const msg =
         e && typeof e === "object" && "message" in e
           ? String((e as { message: unknown }).message)

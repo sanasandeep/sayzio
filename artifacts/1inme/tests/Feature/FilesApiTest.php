@@ -75,6 +75,34 @@ class FilesApiTest extends TestCase
         $this->assertNotEmpty($res->json('error.message'));
     }
 
+    public function test_upload_over_storage_quota_returns_plan_gate_envelope(): void
+    {
+        Storage::fake('user_files');
+        $user = $this->makeUser();
+
+        // Fill the caller's storage to the plan cap so the next upload
+        // trips the quota check in UserFile::createFromUpload.
+        UserFile::create([
+            'user_id'       => $user->id,
+            'original_name' => 'huge.bin',
+            'filename'      => 'huge.bin',
+            'mime_type'     => 'application/octet-stream',
+            'size_bytes'    => $user->getStorageLimitBytes(),
+            'type'          => 'document',
+            'disk'          => 'user_files',
+            'path'          => $user->id . '/documents/huge.bin',
+        ]);
+
+        $res = $this->withToken($this->token($user))->post('/api/v1/me/files/upload', [
+            'file' => UploadedFile::fake()->image('sticker.png', 300, 300),
+        ], ['Accept' => 'application/json']);
+
+        $res->assertStatus(402);
+        $this->assertSame('plan_limit_reached', $res->json('error.code'));
+        $this->assertStringContainsString('quota', strtolower((string) $res->json('error.message')));
+        $this->assertSame('storage_limit_mb', $res->json('error.details.feature'));
+    }
+
     public function test_index_lists_only_own_files_with_type_filter(): void
     {
         Storage::fake('user_files');

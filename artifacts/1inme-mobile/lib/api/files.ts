@@ -86,7 +86,21 @@ export async function uploadVaultFile(args: {
         ? (body.message as string)
         : null) ||
       `Upload failed (${res.status})`;
-    throw { status: res.status, message };
+    // Carry code + details through so plan-gated rejections (402 storage
+    // quota with a recommended_plan hint) are recognizable by
+    // lib/upgradePrompt.ts's isPlanLockedError / upgradeHintFromError.
+    const code =
+      nested && typeof nested.code === "string"
+        ? (nested.code as string)
+        : undefined;
+    const details =
+      nested &&
+      typeof nested.details === "object" &&
+      nested.details !== null &&
+      !Array.isArray(nested.details)
+        ? (nested.details as Record<string, unknown>)
+        : undefined;
+    throw { status: res.status, message, code, details };
   }
   return (body as { data: { file: VaultFile } }).data.file;
 }

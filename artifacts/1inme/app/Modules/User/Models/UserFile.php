@@ -200,7 +200,9 @@ class UserFile extends Model
             if ($size > $remaining) {
                 $usedMb  = round(((int) $user->getStorageUsedBytes()) / 1048576, 1);
                 $limitMb = round(((int) $user->getStorageLimitBytes()) / 1048576);
-                throw new RuntimeException("Storage quota exceeded. Used {$usedMb}MB of {$limitMb}MB.");
+                throw new \App\Modules\User\Exceptions\StorageQuotaExceededException(
+                    "Storage quota exceeded. Used {$usedMb}MB of {$limitMb}MB."
+                );
             }
         }
 
@@ -499,7 +501,7 @@ class UserFile extends Model
         if (method_exists($user, 'getStorageRemainingBytes')) {
             $remaining = (int) $user->getStorageRemainingBytes();
             if ($size > $remaining) {
-                throw new RuntimeException('Storage quota exceeded.');
+                throw new \App\Modules\User\Exceptions\StorageQuotaExceededException('Storage quota exceeded.');
             }
         }
 
