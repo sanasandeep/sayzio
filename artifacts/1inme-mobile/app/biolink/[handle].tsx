@@ -3750,6 +3750,365 @@ function ProfileCardView({
     );
   }
 
+  // ───────────── BRAND RAIL ─────────────
+  // Task #5934: solid brand-color panel — brand name in an outlined
+  // ellipse top-right, a large offset rectangular portrait, and a
+  // vertical rail of social icons down the right edge. Mirrors the web
+  // `brand_rail` blade branch: bg_color paints the surface, text_color
+  // drives the outlines and copy.
+  if (layout === "brand_rail") {
+    const brInk =
+      typeof pcStyle.text_color === "string" && pcStyle.text_color !== ""
+        ? pcStyle.text_color
+        : "#f3efe6";
+    return (
+      <View
+        style={[
+          surface,
+          cardOverlay?.backgroundColor == null ? { backgroundColor: "#2f7f72" } : null,
+        ]}
+      >
+        <View style={{ paddingHorizontal: 20, paddingTop: 20, paddingBottom: 24 }}>
+          {name ? (
+            <View style={{ alignItems: "flex-end" }}>
+              <View
+                style={{
+                  borderWidth: 1.5,
+                  borderColor: brInk,
+                  borderRadius: 999,
+                  paddingVertical: 14,
+                  paddingHorizontal: 26,
+                  maxWidth: "78%",
+                }}
+              >
+                <Text
+                  style={{
+                    fontSize: 15,
+                    fontWeight: "600",
+                    color: brInk,
+                    textAlign: "center",
+                    letterSpacing: 0.3,
+                  }}
+                >
+                  {name}
+                </Text>
+              </View>
+            </View>
+          ) : null}
+          <View style={{ flexDirection: "row", gap: 16, marginTop: 16 }}>
+            <View style={{ flex: 1, marginRight: "4%" }}>
+              {avatar && isSafeUrl(avatar) ? (
+                <Image
+                  source={{ uri: avatar }}
+                  style={{ width: "100%", height: 250, borderRadius: 6 }}
+                />
+              ) : (
+                <View
+                  style={{
+                    width: "100%",
+                    height: 250,
+                    borderRadius: 6,
+                    alignItems: "center",
+                    justifyContent: "center",
+                    backgroundColor: "rgba(255,255,255,0.14)",
+                  }}
+                >
+                  <Text style={{ fontSize: 56, fontWeight: "700", color: brInk }}>{initial}</Text>
+                </View>
+              )}
+            </View>
+            {socials.length > 0 ? (
+              <View style={{ alignItems: "center", justifyContent: "center", gap: 12 }}>
+                {socials.map((soc, i) => (
+                  <Pressable
+                    key={i}
+                    onPress={() => (soc.url && isSafeUrl(soc.url) ? onTap(soc.url) : undefined)}
+                    style={{
+                      width: 36,
+                      height: 36,
+                      borderRadius: 18,
+                      alignItems: "center",
+                      justifyContent: "center",
+                      borderWidth: 1.5,
+                      borderColor: `${brInk}66`,
+                    }}
+                  >
+                    <Feather name={profileSocialIcon(soc.name)} size={16} color={brInk} />
+                  </Pressable>
+                ))}
+              </View>
+            ) : null}
+          </View>
+          {title ? (
+            <Text
+              style={{
+                marginTop: 16,
+                fontSize: 11,
+                fontWeight: "700",
+                letterSpacing: 3.5,
+                textTransform: "uppercase",
+                color: brInk,
+                opacity: 0.9,
+              }}
+            >
+              {title}
+            </Text>
+          ) : null}
+          {bio ? (
+            <Text style={{ fontSize: 13, marginTop: 8, color: brInk, opacity: 0.8 }}>{bio}</Text>
+          ) : null}
+        </View>
+      </View>
+    );
+  }
+
+  // ───────────── SPLIT PILL ─────────────
+  // Task #5934: large serif display name up top on a two-tone
+  // horizontally split background, stadium-pill portrait straddling the
+  // boundary. Top zone = bg_color (the surface), bottom zone =
+  // border_color (mirrors the web `split_pill` blade branch).
+  if (layout === "split_pill") {
+    const spBottom =
+      typeof pcStyle.border_color === "string" && pcStyle.border_color !== ""
+        ? pcStyle.border_color
+        : "#8a5a3b";
+    const spInk =
+      typeof pcStyle.text_color === "string" && pcStyle.text_color !== ""
+        ? pcStyle.text_color
+        : "#2f2a24";
+    const serif = Platform.OS === "ios" ? "Georgia" : "serif";
+    const pillH = 260;
+    const split = 130; // how much of the pill sits in the bottom zone
+    return (
+      <View
+        style={[
+          surface,
+          cardOverlay?.backgroundColor == null ? { backgroundColor: "#f3ede3" } : null,
+        ]}
+      >
+        <View style={{ paddingHorizontal: 24, paddingTop: 28, paddingBottom: 6 }}>
+          {name ? (
+            <Text
+              style={{
+                fontSize: 34,
+                fontFamily: serif,
+                fontWeight: "500",
+                letterSpacing: 2.5,
+                color: spInk,
+                textAlign: "center",
+              }}
+            >
+              {name}
+            </Text>
+          ) : null}
+        </View>
+        <View style={{ position: "relative" }}>
+          {/* Bottom color zone starts where the pill's midpoint sits */}
+          <View
+            style={{
+              position: "absolute",
+              left: 0,
+              right: 0,
+              bottom: 0,
+              top: pillH - split + 6,
+              backgroundColor: spBottom,
+            }}
+          />
+          {/* Decorative dots at the boundary */}
+          <View
+            style={{
+              position: "absolute",
+              right: "8%",
+              top: pillH - split + 26,
+              flexDirection: "row",
+              gap: 7,
+            }}
+          >
+            <View style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: "rgba(255,255,255,0.75)" }} />
+            <View style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: "rgba(255,255,255,0.55)" }} />
+            <View style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: "rgba(255,255,255,0.35)" }} />
+          </View>
+          <View style={{ alignItems: "center", paddingTop: 6 }}>
+            {avatar && isSafeUrl(avatar) ? (
+              <Image
+                source={{ uri: avatar }}
+                style={{ width: 180, height: pillH, borderRadius: pillH / 2 }}
+              />
+            ) : (
+              <View
+                style={{
+                  width: 180,
+                  height: pillH,
+                  borderRadius: pillH / 2,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  backgroundColor: PROFILE_AVATAR_BG,
+                }}
+              >
+                <Text style={{ fontSize: 56, fontWeight: "700", color: spInk }}>{initial}</Text>
+              </View>
+            )}
+          </View>
+          <View
+            style={{
+              backgroundColor: spBottom,
+              paddingHorizontal: 24,
+              paddingTop: 20,
+              paddingBottom: 30,
+              alignItems: "center",
+            }}
+          >
+            {title ? (
+              <Text
+                style={{
+                  fontSize: 11,
+                  fontWeight: "700",
+                  letterSpacing: 3.5,
+                  textTransform: "uppercase",
+                  color: "#ffffff",
+                  opacity: 0.92,
+                  textAlign: "center",
+                }}
+              >
+                {title}
+              </Text>
+            ) : null}
+            {bio ? (
+              <Text
+                style={{
+                  fontSize: 13,
+                  marginTop: 8,
+                  color: "#ffffff",
+                  opacity: 0.85,
+                  textAlign: "center",
+                }}
+              >
+                {bio}
+              </Text>
+            ) : null}
+          </View>
+        </View>
+      </View>
+    );
+  }
+
+  // ───────────── BADGE CARD ─────────────
+  // Task #5934: full-bleed cover photo behind everything, a small
+  // @handle pill badge up top, a tall light rounded card at the bottom
+  // whose top edge is straddled by a ringed circular avatar; script-feel
+  // name + divider + uppercase letter-spaced subtitle (mirrors the web
+  // `badge_card` blade branch — the light card is intrinsic).
+  if (layout === "badge_card") {
+    const bcHandle =
+      website !== ""
+        ? website.replace(/^https?:\/\/(www\.)?/, "").replace(/\/$/, "")
+        : name !== ""
+          ? "@" + name.toLowerCase().replace(/[^a-z0-9]+/g, "")
+          : "";
+    return (
+      <View style={surface}>
+        <View style={{ position: "relative", minHeight: 440 }}>
+          {hasCover ? (
+            <Image
+              source={{ uri: cover }}
+              style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, width: "100%", height: "100%" }}
+            />
+          ) : (
+            <LinearGradient
+              colors={["#a39a8b", "#7c7466", "#5f594e"]}
+              start={{ x: 0.2, y: 0 }}
+              end={{ x: 0.8, y: 1 }}
+              style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }}
+            />
+          )}
+          {bcHandle !== "" ? (
+            <View style={{ alignItems: "center", paddingTop: 20 }}>
+              <View
+                style={{
+                  backgroundColor: "rgba(252,251,247,0.92)",
+                  borderRadius: 999,
+                  paddingHorizontal: 16,
+                  paddingVertical: 6,
+                }}
+              >
+                <Text style={{ fontSize: 12, fontWeight: "600", color: "#3f3a33", letterSpacing: 0.8 }}>
+                  {bcHandle}
+                </Text>
+              </View>
+            </View>
+          ) : null}
+          <View style={{ marginTop: "auto", paddingHorizontal: 16, paddingBottom: 16, paddingTop: 170 }}>
+            <View
+              style={{
+                backgroundColor: "#fcfbf7",
+                borderRadius: 26,
+                paddingHorizontal: 20,
+                paddingBottom: 28,
+                paddingTop: 74,
+                alignItems: "center",
+              }}
+            >
+              <View style={{ position: "absolute", top: -62, alignSelf: "center" }}>
+                <ProfileAvatar
+                  frame={pcFrame}
+                  avatar={avatar}
+                  initial={initial}
+                  size={124}
+                  border={{ borderWidth: 5, borderColor: "#fcfbf7" }}
+                  textColor="#3f3a33"
+                />
+              </View>
+              {name ? (
+                <Text
+                  style={{
+                    fontSize: 30,
+                    fontStyle: "italic",
+                    fontWeight: "600",
+                    color: "#3f3a33",
+                    textAlign: "center",
+                  }}
+                >
+                  {name}
+                </Text>
+              ) : null}
+              {name && title ? (
+                <View
+                  style={{
+                    marginTop: 12,
+                    width: 150,
+                    maxWidth: "65%",
+                    height: 1,
+                    backgroundColor: "rgba(63,58,51,0.45)",
+                  }}
+                />
+              ) : null}
+              {title ? (
+                <Text
+                  style={{
+                    marginTop: 12,
+                    fontSize: 12,
+                    fontWeight: "600",
+                    letterSpacing: 3.5,
+                    textTransform: "uppercase",
+                    color: "#57534e",
+                    textAlign: "center",
+                  }}
+                >
+                  {title}
+                </Text>
+              ) : null}
+              {bio ? (
+                <Text style={{ fontSize: 13, marginTop: 12, color: "#78716c", textAlign: "center" }}>
+                  {bio}
+                </Text>
+              ) : null}
+            </View>
+          </View>
+        </View>
+      </View>
+    );
+  }
+
   // ───────────── LEGACY: STATS (v3 default) ─────────────
   if (layout === "stats") {
     return (

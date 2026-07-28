@@ -33,7 +33,7 @@ class BlockVariantCatalog
      * pipeline always writes the *current* VERSION so newly-applied or
      * re-applied variants stay in sync.
      */
-    public const VERSION = 14;
+    public const VERSION = 15;
 
     /**
      * Shape filters for link-style blocks. Orthogonal to theme TAGS:
@@ -2284,6 +2284,64 @@ class BlockVariantCatalog
                         'padding' => '0', '_profile_layout' => 'paper_collage',
                     ],
                     'preview' => ['bg' => '#f0eee7', 'text' => '#5f6f52', 'radius' => 20, 'serif' => true],
+                ],
+                [
+                    // Task #5934: solid brand-color panel — the brand name in
+                    // an outlined ellipse top-right, a large offset rectangular
+                    // portrait, and a vertical rail of social icons down the
+                    // right edge. The brand color is the block's bg_color so
+                    // recoloring the surface restyles the whole panel.
+                    'key' => 'identity_brand_rail',
+                    'name' => 'Brand Rail',
+                    'tags' => ['bold', 'editorial'],
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#2f7f72',
+                        'text_color' => '#f3efe6',
+                        'border_style' => 'none', 'border_radius' => '22',
+                        'shadow_preset' => 'soft',
+                        'padding' => '0', '_profile_layout' => 'brand_rail',
+                    ],
+                    'preview' => ['bg' => '#2f7f72', 'text' => '#f3efe6', 'radius' => 22],
+                ],
+                [
+                    // Task #5934: large serif display name up top over a
+                    // two-tone horizontally split background, with a stadium-
+                    // pill portrait straddling the color boundary. Top zone =
+                    // bg_color, bottom zone = border_color (arch_band
+                    // precedent: reuse the border color for the layout's
+                    // second accent so both are user-recolorable).
+                    'key' => 'identity_split_pill',
+                    'name' => 'Split Pill',
+                    'tags' => ['editorial', 'pro'],
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#f3ede3',
+                        'text_color' => '#2f2a24',
+                        'border_style' => 'none', 'border_width' => '0', 'border_color' => '#8a5a3b',
+                        'border_radius' => '22', 'shadow_preset' => 'soft',
+                        'font_family' => 'Playfair Display',
+                        'padding' => '0', '_profile_layout' => 'split_pill',
+                    ],
+                    'preview' => ['bg' => 'linear-gradient(180deg,#f3ede3 0,#f3ede3 55%,#8a5a3b 55%)', 'text' => '#2f2a24', 'radius' => 22, 'serif' => true],
+                ],
+                [
+                    // Task #5934: full-bleed cover photo behind everything, a
+                    // small @handle pill badge at the top, and a tall white
+                    // rounded card at the bottom with a ringed circular avatar
+                    // straddling the card's top edge; script name + divider +
+                    // uppercase letter-spaced subtitle. `font_family` makes the
+                    // font collector load the script face from `_style`.
+                    'key' => 'identity_badge_card',
+                    'name' => 'Badge Card',
+                    'tags' => ['pro', 'handwritten'],
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#8f8577',
+                        'text_color' => '#3f3a33',
+                        'border_style' => 'none', 'border_radius' => '22',
+                        'shadow_preset' => 'medium',
+                        'font_family' => 'Dancing Script',
+                        'padding' => '0', '_profile_layout' => 'badge_card',
+                    ],
+                    'preview' => ['bg' => '#8f8577', 'text' => '#fcfbf7', 'radius' => 22, 'serif' => true],
                 ],
             ],
         ];

@@ -48,6 +48,11 @@ class ProfileCardLayoutSocialsCoverageTest extends TestCase
         'sidebar_accent',
         'overlap_hero',
         'split_hero',
+        // Task #5922: accent-outline chips under the arch avatar (was
+        // missing from this list when the layout landed).
+        'arch_band',
+        // Task #5934: vertical social-icon rail down the right edge.
+        'brand_rail',
     ];
 
     /**
@@ -67,6 +72,9 @@ class ProfileCardLayoutSocialsCoverageTest extends TestCase
         'polaroid',
         'terminal',
         'paper_collage',
+        // Task #5934: photo-first designs with no socials row.
+        'split_pill',
+        'badge_card',
         // Historical per-type fallback layouts (profile_card_v3 / v4).
         'stats',
         'badges',

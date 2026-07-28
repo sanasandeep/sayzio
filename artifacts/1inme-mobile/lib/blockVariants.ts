@@ -222,6 +222,10 @@ const BUNDLES: Record<string, MobileVariant[]> = {
     { key: "identity_magazine",     name: "Magazine Layout",        tags: ["editorial", "pro"],     preview: { bg: "#ffffff", text: "#1c1917", radius: 14, border: "#e7e5e4", serif: true }, profileLayout: "magazine" },
     { key: "identity_social",       name: "Social Profile Style",   tags: ["minimal", "pro"],       preview: { bg: "#ffffff", text: "#3b82f6", radius: 18, border: "#e5e7eb" },           profileLayout: "social_profile" },
     { key: "identity_paper_collage", name: "Paper Collage",         tags: ["handwritten", "editorial"], preview: { bg: "#f0eee7", text: "#5f6f52", radius: 20, serif: true },             profileLayout: "paper_collage" },
+    // Task #5934: three reference-design layouts.
+    { key: "identity_brand_rail",   name: "Brand Rail",             tags: ["bold", "editorial"],    preview: { bg: "#2f7f72", text: "#f3efe6", radius: 22 },                              profileLayout: "brand_rail" },
+    { key: "identity_split_pill",   name: "Split Pill",             tags: ["editorial", "pro"],     preview: { bg: "linear-gradient(180deg,#f3ede3 0,#f3ede3 55%,#8a5a3b 55%)", text: "#2f2a24", radius: 22, serif: true }, profileLayout: "split_pill" },
+    { key: "identity_badge_card",   name: "Badge Card",             tags: ["pro", "handwritten"],   preview: { bg: "#8f8577", text: "#fcfbf7", radius: 22, serif: true },                 profileLayout: "badge_card" },
   ],
 };
 

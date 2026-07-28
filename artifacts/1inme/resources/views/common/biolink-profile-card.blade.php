@@ -620,6 +620,139 @@
         </div>
     </div>
 
+{{-- ───────────────────────────── BRAND RAIL ────────────────────────── --}}
+{{-- Task #5934: solid brand-color panel — brand name in an outlined
+     ellipse top-right, a large offset rectangular portrait, and a
+     vertical rail of social icons down the right edge. The brand color
+     is the block surface's bg_color; text_color drives the outlines and
+     copy so a recolor keeps everything legible. --}}
+@elseif($layout === 'brand_rail')
+    @php $brInk = ($blockStyle['text_color'] ?? '') !== '' ? $blockStyle['text_color'] : '#f3efe6'; @endphp
+    <div class="mb-4 overflow-hidden rounded-2xl {{ $baseClass }}" style="{{ $cardStyle }}">
+        <div class="relative px-5 pt-5 pb-6" style="color:{{ $brInk }}">
+            @if($name)
+                <div class="flex justify-end">
+                    <span class="inline-flex items-center justify-center text-center font-semibold"
+                          style="border:1.5px solid {{ $brInk }};border-radius:50%;padding:0.9rem 1.6rem;font-size:15px;line-height:1.25;max-width:75%;letter-spacing:.02em">{{ $name }}</span>
+                </div>
+            @endif
+            <div class="flex items-stretch gap-4 mt-4">
+                <div class="flex-1 min-w-0" style="margin-right:6%">
+                    @if($avatar)
+                        <img src="{{ $avatar }}" class="w-full object-cover" style="height:270px;border-radius:6px;box-shadow:0 12px 30px rgba(0,0,0,0.25)" alt="{{ $name }}">
+                    @else
+                        <div class="w-full flex items-center justify-center text-6xl font-bold" style="height:270px;border-radius:6px;background:rgba(255,255,255,0.14)">{{ $initial }}</div>
+                    @endif
+                </div>
+                @if(!empty($psocials))
+                    <div class="flex flex-col items-center justify-center gap-3 shrink-0">
+                        @foreach($psocials as $soc)
+                            @php
+                                $sn   = $soc['name'] ?? '';
+                                $def  = $socialIcons[$sn] ?? ['fas fa-link', $brInk];
+                                $href = $soc['url'] ?? '';
+                            @endphp
+                            <a href="{{ $href ?: '#' }}" @if($href) target="_blank" rel="noopener" @endif
+                               class="w-9 h-9 rounded-full flex items-center justify-center text-sm transition hover:scale-110"
+                               aria-label="{{ ucfirst($sn ?: 'link') }}"
+                               style="border:1.5px solid {{ $brInk }}66;color:{{ $brInk }}">
+                                <i class="{{ $def[0] }}"></i>
+                            </a>
+                        @endforeach
+                    </div>
+                @endif
+            </div>
+            @if($title)<p class="mt-4 text-[11px] font-bold uppercase" style="letter-spacing:.3em;opacity:.9">{{ $title }}</p>@endif
+            @if($bio)<p class="text-sm mt-2" style="opacity:.8">{{ $bio }}</p>@endif
+        </div>
+    </div>
+
+{{-- ───────────────────────────── SPLIT PILL ────────────────────────── --}}
+{{-- Task #5934: large serif display name up top on a two-tone
+     horizontally split background, with a stadium-pill portrait
+     straddling the color boundary. Top zone = the block's bg_color
+     (paints the surface), bottom zone = border_color (arch_band
+     precedent), so both zones are user-recolorable. --}}
+@elseif($layout === 'split_pill')
+    @once('split-pill-playfair')
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600&display=swap">
+    @endonce
+    @php
+        $spBottom = ($blockStyle['border_color'] ?? '') !== '' ? $blockStyle['border_color'] : '#8a5a3b';
+        $spPillH  = 300;   // pill portrait height px
+        $spSplit  = 150;   // how much of the pill sits in the bottom zone px
+    @endphp
+    <div class="mb-4 overflow-hidden rounded-2xl {{ $baseClass }}" style="{{ $cardStyle }}">
+        <div class="px-6 pt-8 pb-2 text-center">
+            @if($name)<p class="leading-tight" style="font-family:'Playfair Display',Georgia,serif;font-size:clamp(2rem,8vw,3rem);font-weight:500;letter-spacing:.08em">{{ $name }}</p>@endif
+        </div>
+        <div class="relative">
+            {{-- Decorative squiggle (left) + dots (right) at the boundary --}}
+            <svg class="absolute" viewBox="0 0 90 24" fill="none" aria-hidden="true" style="left:6%;top:{{ $spPillH - $spSplit - 34 }}px;width:74px;height:20px;opacity:.75">
+                <path d="M2 12 C10 2, 18 22, 26 12 S 42 2, 50 12 S 66 22, 74 12 S 86 6, 88 10" stroke="{{ $spBottom }}" stroke-width="2.5" stroke-linecap="round"/>
+            </svg>
+            <div class="absolute flex gap-2" aria-hidden="true" style="right:8%;top:{{ $spPillH - $spSplit + 22 }}px">
+                <span style="width:7px;height:7px;border-radius:999px;background:rgba(255,255,255,0.75)"></span>
+                <span style="width:7px;height:7px;border-radius:999px;background:rgba(255,255,255,0.55)"></span>
+                <span style="width:7px;height:7px;border-radius:999px;background:rgba(255,255,255,0.35)"></span>
+            </div>
+            {{-- Bottom color zone starts where the pill's midpoint sits --}}
+            <div class="absolute left-0 right-0 bottom-0" aria-hidden="true" style="top:{{ $spPillH - $spSplit }}px;background:{{ $spBottom }}"></div>
+            <div class="relative flex justify-center" style="padding-top:6px">
+                @if($avatar)
+                    <img src="{{ $avatar }}" class="object-cover" style="width:210px;height:{{ $spPillH }}px;border-radius:{{ (int) ($spPillH / 2) }}px;box-shadow:0 14px 34px rgba(0,0,0,0.22)" alt="{{ $name }}">
+                @else
+                    <div class="flex items-center justify-center text-6xl font-bold" style="width:210px;height:{{ $spPillH }}px;border-radius:{{ (int) ($spPillH / 2) }}px;background:{{ $avatarBg }}">{{ $initial }}</div>
+                @endif
+            </div>
+            <div class="relative px-6 pb-8 pt-5 text-center" style="background:{{ $spBottom }};color:#ffffff">
+                @if($title)<p class="text-[11px] font-bold uppercase" style="letter-spacing:.32em;opacity:.92">{{ $title }}</p>@endif
+                @if($bio)<p class="text-sm mt-2" style="opacity:.85">{{ $bio }}</p>@endif
+            </div>
+        </div>
+    </div>
+
+{{-- ───────────────────────────── BADGE CARD ────────────────────────── --}}
+{{-- Task #5934: full-bleed cover photo behind everything, a small
+     @handle pill badge up top, and a tall white rounded card at the
+     bottom whose top edge is straddled by a large ringed circular
+     avatar; script name + divider + uppercase letter-spaced subtitle.
+     The white card is intrinsic (always light) so both page themes
+     stay legible. --}}
+@elseif($layout === 'badge_card')
+    @once('badge-card-dancing-script')
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@600&display=swap">
+    @endonce
+    @php
+        // Pill badge text: the website host when set, else an @handle
+        // derived from the name.
+        $bcHandle = $website !== ''
+            ? preg_replace('#^https?://(www\.)?#', '', rtrim($website, '/'))
+            : ($name !== '' ? '@' . \Illuminate\Support\Str::slug($name, '') : '');
+    @endphp
+    <div class="mb-4 overflow-hidden rounded-2xl {{ $baseClass }}" style="{{ $cardStyle }}">
+        <div class="relative flex flex-col" style="min-height:460px;@if($cover)background-image:url('{{ $cover }}');background-size:cover;background-position:center;@else background:linear-gradient(165deg,#a39a8b,#7c7466 55%,#5f594e);@endif">
+            <div class="absolute inset-0" aria-hidden="true" style="background:linear-gradient(to bottom,rgba(0,0,0,0.18),rgba(0,0,0,0.02) 40%)"></div>
+            @if($bcHandle !== '')
+                <div class="relative flex justify-center pt-5">
+                    <span class="px-4 py-1.5 rounded-full text-xs font-semibold" style="background:rgba(252,251,247,0.92);color:#3f3a33;letter-spacing:.06em">{{ $bcHandle }}</span>
+                </div>
+            @endif
+            <div class="relative mt-auto px-4 pb-4" style="padding-top:170px">
+                <div class="relative rounded-3xl px-5 pb-7 text-center" style="background:#fcfbf7;box-shadow:0 16px 38px rgba(15,23,42,0.22);padding-top:4.6rem">
+                    <div class="absolute left-1/2 -translate-x-1/2" style="top:-3.9rem">
+                        {!! $pcFrameOpen !!}@if($avatar)<img src="{{ $avatar }}" class="rounded-full object-cover" style="width:8rem;height:8rem;border:5px solid #fcfbf7;box-shadow:0 0 0 2px rgba(63,58,51,0.35),0 10px 26px rgba(0,0,0,0.28)" alt="{{ $name }}">
+                        @else<div class="rounded-full flex items-center justify-center text-4xl font-bold" style="width:8rem;height:8rem;border:5px solid #fcfbf7;background:{{ $avatarBg }};color:#3f3a33;box-shadow:0 0 0 2px rgba(63,58,51,0.35),0 10px 26px rgba(0,0,0,0.28)">{{ $initial }}</div>@endif{!! $pcFrameClose !!}
+                    </div>
+                    @if($name)<p class="leading-tight" style="font-family:'Dancing Script','Brush Script MT',cursive;font-size:2.4rem;font-weight:600;color:#3f3a33">{{ $name }}</p>@endif
+                    @if($name && $title)<div class="mx-auto mt-3" style="width:170px;max-width:65%;height:1px;background:rgba(63,58,51,0.45)"></div>@endif
+                    @if($title)<p class="mt-3 text-xs font-semibold uppercase" style="letter-spacing:.32em;color:#57534e">{{ $title }}</p>@endif
+                    @if($bio)<p class="text-sm mt-3" style="color:#78716c">{{ $bio }}</p>@endif
+                </div>
+            </div>
+        </div>
+    </div>
+
 {{-- ───────────────────────────── LEGACY: STATS (v3 default) ────────── --}}
 @elseif($layout === 'stats')
     <div class="mb-4 overflow-hidden rounded-2xl {{ $baseClass }}" style="{{ $cardStyle }}">
