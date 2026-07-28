@@ -6,6 +6,12 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { ClearDataDialog } from './ClearDataDialog';
 import { KEYBOARD_SHORTCUTS } from '../../shared/command-palette';
+import {
+  parsePinnedTools, serializePinnedTools, togglePinnedTool, isPinnableTool,
+  PINNABLE_TOOLS, PINNABLE_TOOL_INFO,
+  PINNED_TOOLS_PREF_KEY, MAX_PINNED_TOOLS, PINNED_TOOLS_CHANGED_EVENT,
+} from '../../shared/toolbar-pins';
+import type { PinnableTool } from '../../shared/toolbar-pins';
 
 interface Props {
   onClose: () => void;
@@ -47,7 +53,7 @@ const TRANSLATE_LANGS: Array<{ code: string; label: string }> = [
 
 /** Nav entries with search keywords so the filter box can find sections. */
 const SECTIONS: Array<{ id: SectionId; icon: string; label: string; keywords: string }> = [
-  { id: 'general', icon: '⚙️', label: 'General', keywords: 'appearance theme dark light spell check translate language import bookmarks history chrome edge brave firefox other browser' },
+  { id: 'general', icon: '⚙️', label: 'General', keywords: 'appearance theme dark light spell check translate language import bookmarks history chrome edge brave firefox other browser toolbar pin pinned tools reading list dialer device lab screenshot' },
   { id: 'privacy', icon: '🛡️', label: 'Privacy & Security', keywords: 'tracker blocking do not track cookies clear browsing data delete safety check forget site dashboard privacy' },
   { id: 'sites', icon: '🌐', label: 'Site Settings', keywords: 'permissions camera microphone location notifications allow block sites' },
   { id: 'search', icon: '🔍', label: 'Search engine', keywords: 'google bing duckduckgo brave default search address bar' },
@@ -283,7 +289,97 @@ function GeneralSection() {
         </select>
       </SettingRow>
 
+      <ToolbarBlock />
+
       <ImportBlock />
+    </div>
+  );
+}
+
+// ── Pinned toolbar tools ──────────────────────────────────────────────────────
+
+function ToolbarBlock() {
+  const [pinned, setPinned] = useState<PinnableTool[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void window.zio.prefs.get(PINNED_TOOLS_PREF_KEY).then((raw: string | null) => {
+      if (!cancelled) setPinned(parsePinnedTools(raw));
+    }).catch(() => { /* default to none pinned */ });
+    return () => { cancelled = true; };
+  }, []);
+
+  // Stay in sync when pins are toggled from the "⋯" overflow menu.
+  useEffect(() => {
+    const onChanged = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (Array.isArray(detail)) {
+        setPinned(detail.filter(isPinnableTool).slice(0, MAX_PINNED_TOOLS));
+      }
+    };
+    window.addEventListener(PINNED_TOOLS_CHANGED_EVENT, onChanged);
+    return () => window.removeEventListener(PINNED_TOOLS_CHANGED_EVENT, onChanged);
+  }, []);
+
+  const capReached = pinned.length >= MAX_PINNED_TOOLS;
+
+  const toggle = useCallback((tool: PinnableTool) => {
+    setPinned(prev => {
+      const next = togglePinnedTool(prev, tool);
+      if (next !== prev) {
+        void window.zio.prefs.set(PINNED_TOOLS_PREF_KEY, serializePinnedTools(next)).catch(() => {});
+        // Notify other surfaces (ChromeBar) after this handler returns.
+        setTimeout(() => {
+          window.dispatchEvent(new CustomEvent(PINNED_TOOLS_CHANGED_EVENT, { detail: next }));
+        }, 0);
+      }
+      return next;
+    });
+  }, []);
+
+  return (
+    <div style={cardStyle}>
+      <div style={cardTitleStyle}>Toolbar</div>
+      <div style={mutedTextStyle}>
+        Pin up to {MAX_PINNED_TOOLS} tools from the “⋯” menu onto the toolbar for one-click access.
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 8 }}>
+        {PINNABLE_TOOLS.map((tool) => {
+          const info = PINNABLE_TOOL_INFO[tool];
+          const isPinned = pinned.includes(tool);
+          const disabled = !isPinned && capReached;
+          return (
+            <label
+              key={tool}
+              title={disabled ? `Toolbar is full — unpin another tool first (max ${MAX_PINNED_TOOLS})` : undefined}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 10,
+                padding: '6px 8px',
+                borderRadius: 8,
+                cursor: disabled ? 'default' : 'pointer',
+                opacity: disabled ? 0.45 : 1,
+              }}
+            >
+              <input
+                type="checkbox"
+                checked={isPinned}
+                disabled={disabled}
+                onChange={() => toggle(tool)}
+              />
+              <span style={{ fontSize: 14, width: 20, textAlign: 'center' }}>{info.icon}</span>
+              <span style={{ fontSize: 12, fontWeight: 600 }}>{info.label}</span>
+              <span style={{ fontSize: 11, color: 'var(--color-text-muted)' }}>{info.description}</span>
+            </label>
+          );
+        })}
+      </div>
+      {capReached && (
+        <div style={{ ...mutedTextStyle, marginTop: 6 }}>
+          Toolbar is full — unpin a tool to pin a different one.
+        </div>
+      )}
     </div>
   );
 }

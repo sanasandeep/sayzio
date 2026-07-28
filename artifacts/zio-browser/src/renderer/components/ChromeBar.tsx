@@ -22,8 +22,8 @@ import { ApiClient } from '../../shared/api-client';
 import type { SiteResolveResult } from '../../shared/api-client';
 import { profileToAutofillCard } from '../../shared/form-autofill';
 import {
-  parsePinnedTools, serializePinnedTools, togglePinnedTool,
-  PINNED_TOOLS_PREF_KEY, MAX_PINNED_TOOLS,
+  parsePinnedTools, serializePinnedTools, togglePinnedTool, isPinnableTool,
+  PINNED_TOOLS_PREF_KEY, MAX_PINNED_TOOLS, PINNED_TOOLS_CHANGED_EVENT,
 } from '../../shared/toolbar-pins';
 import type { PinnableTool } from '../../shared/toolbar-pins';
 
@@ -446,11 +446,27 @@ export function ChromeBar({
     return () => { cancelled = true; };
   }, []);
 
+  // Stay in sync when pins are changed elsewhere (e.g. the Settings panel).
+  useEffect(() => {
+    const onChanged = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (Array.isArray(detail)) {
+        setPinnedTools(detail.filter(isPinnableTool).slice(0, MAX_PINNED_TOOLS));
+      }
+    };
+    window.addEventListener(PINNED_TOOLS_CHANGED_EVENT, onChanged);
+    return () => window.removeEventListener(PINNED_TOOLS_CHANGED_EVENT, onChanged);
+  }, []);
+
   const handleTogglePin = useCallback((tool: PinnableTool) => {
     setPinnedTools(prev => {
       const next = togglePinnedTool(prev, tool);
       if (next !== prev) {
         void window.zio.prefs.set(PINNED_TOOLS_PREF_KEY, serializePinnedTools(next)).catch(() => {});
+        // Notify other surfaces (Settings panel) after this handler returns.
+        setTimeout(() => {
+          window.dispatchEvent(new CustomEvent(PINNED_TOOLS_CHANGED_EVENT, { detail: next }));
+        }, 0);
       }
       return next;
     });

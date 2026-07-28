@@ -15,6 +15,21 @@ export const PINNED_TOOLS_PREF_KEY = 'pinned_toolbar_tools';
 /** Maximum number of tools that may be pinned at once. */
 export const MAX_PINNED_TOOLS = 2;
 
+/**
+ * Renderer-local window event fired whenever the pinned list changes, so
+ * surfaces that manage pins (overflow menu, Settings panel) stay in sync
+ * without a restart. `detail` is the new PinnableTool[] list.
+ */
+export const PINNED_TOOLS_CHANGED_EVENT = 'zio:pinned-tools-changed';
+
+/** Display metadata shared by every surface that lists pinnable tools. */
+export const PINNABLE_TOOL_INFO: Record<PinnableTool, { label: string; icon: string; description: string }> = {
+  reading_list: { label: 'Reading list', icon: '📖', description: 'Save pages to read later' },
+  dialer: { label: 'Dialer', icon: '📞', description: 'Search & call on your phone' },
+  device_lab: { label: 'Device Lab', icon: '🔬', description: 'Phone / tablet / desktop preview' },
+  screenshot: { label: 'Screenshot', icon: '📷', description: 'Capture the visible area' },
+};
+
 export function isPinnableTool(v: unknown): v is PinnableTool {
   return typeof v === 'string' && (PINNABLE_TOOLS as readonly string[]).includes(v);
 }
