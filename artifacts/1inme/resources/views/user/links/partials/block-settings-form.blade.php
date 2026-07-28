@@ -1413,6 +1413,10 @@ if (typeof window.resetPollVotes !== 'function') {
         <div><label class="{{ $labelClass }}">Gap (px)</label><input type="number" name="settings[gap]" value="{{ $s['gap'] ?? 12 }}" min="0" max="48" class="{{ $inputClass }}"></div>
     </div>
     <div><label class="{{ $labelClass }}">Padding (px)</label><input type="number" name="settings[padding]" value="{{ $s['padding'] ?? 0 }}" min="0" max="64" class="{{ $inputClass }}"></div>
+    <label class="flex items-center gap-2 cursor-pointer">
+        <input type="checkbox" name="settings[stack_mobile]" value="1" {{ !empty($s['stack_mobile']) ? 'checked' : '' }} class="rounded border-white/20 bg-white/5">
+        <span class="{{ $labelClass }} !mb-0">Stack columns on mobile (single column under 640px)</span>
+    </label>
 </div>
 
 @elseif($block->type === 'grid_auto')
