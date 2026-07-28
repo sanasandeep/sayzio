@@ -62,8 +62,14 @@ class StarterPageTemplatesSeeder extends Seeder
      * with a green serif brand title, orange socials and six pastel card
      * tiles (heading + short blurb) in a responsive auto grid (3 columns
      * on desktop, stacked on phones).
+     *
+     * v16 (2026-07): Added "Pressed Botanicals" — an artisan/botanical
+     * scrapbook page showcasing the Paper Collage profile-card look
+     * (identity_paper_collage): torn-paper name card over grid paper
+     * with a pressed-sprig accent, plus handwritten-note links on a
+     * soft off-white botanical theme.
      */
-    public const SEED_VERSION = 15;
+    public const SEED_VERSION = 16;
 
     /** Tolerance (seconds) for treating updated_at == created_at. */
     private const EDIT_DRIFT_TOLERANCE = 2;
@@ -686,7 +692,66 @@ class StarterPageTemplatesSeeder extends Seeder
                     ],
                 ]),
             ],
+
+            // 14 — Pressed Botanicals: artisan/botanical scrapbook page
+            // built around the Paper Collage profile-card look
+            // (identity_paper_collage): a torn-paper name card layered
+            // over a grid-paper panel with a pressed-sprig accent, then
+            // handwritten-note links and a small square photo gallery on
+            // a soft off-white botanical theme.
+            [
+                'slug'                 => 'starter-pressed-botanicals',
+                'name'                 => 'Pressed Botanicals',
+                'category'             => 'personal',
+                'description'          => 'An artisan scrapbook page: a torn-paper collage name card with a pressed-botanical accent, handwritten-note links and a small photo gallery on a soft paper backdrop.',
+                'recommended_personas' => ['artist', 'creator', 'other'],
+                'snapshot'             => $this->snapshot([
+                    $this->profile(
+                        'Willow & Fern',
+                        'Small-batch botanical prints, pressed-flower keepsakes and slow-made paper goods from my garden studio.',
+                        '',
+                        $kits['papercollage'],
+                        '',
+                        [
+                            'title'    => 'Botanical artist · Paper maker',
+                            'verified' => false,
+                            'socials'  => [],
+                            'location' => '',
+                            'website'  => '',
+                            'cta_label' => '',
+                            'cta_url'   => '',
+                        ]
+                    ),
+                    $this->link('Shop pressed-flower prints', 'https://example.com/shop',      '', $kits['papercollage']),
+                    $this->link('Workshops & studio visits',  'https://example.com/workshops', '', $kits['papercollage']),
+                    $this->link('Commission a keepsake',      'https://example.com/commissions', '', $kits['papercollage']),
+                    $this->link('Read the studio journal',    'https://example.com/journal',   '', $kits['papercollage']),
+                    $this->botanicalTile('starter-botanical-g1'),
+                    $this->botanicalTile('starter-botanical-g2'),
+                    $this->botanicalTile('starter-botanical-g3'),
+                ], [
+                    'background_type'   => 'color',
+                    'background_color'  => '#efece3',
+                    'theme_color'       => '#5f6f52',
+                    'font_color'        => '#57534e',
+                    'button_color'      => '#fcfbf7',
+                    'button_text_color' => '#5b4636',
+                    'button_style'      => 'rounded',
+                ]),
+            ],
         ];
+    }
+
+    /* ─────────── Pressed Botanicals helpers (template 14) ─────────── */
+
+    /** One third-width square gallery tile for the botanical mini-gallery. */
+    private function botanicalTile(string $seed): array
+    {
+        return $this->block('image', [
+            'url'    => $this->photo('botanical,pressed-flowers', 600, 600, $seed),
+            'alt'    => '',
+            '_style' => array_merge(BiolinkBlock::STYLE_DEFAULTS, ['grid_span' => 4, 'border_radius' => 14]),
+        ]);
     }
 
     /* ────────────── Purple Split helpers (template 13) ────────────── */
@@ -1058,6 +1123,7 @@ class StarterPageTemplatesSeeder extends Seeder
             'overlap'    => ['ptype' => 'profile_card_v1', 'pvar' => 'identity_overlap_hero', 'link' => 'pill_solid'],
             'splithero'  => ['ptype' => 'profile_card_v1', 'pvar' => 'identity_split_hero',   'link' => 'outline_pill'],
             'splitherogrid' => ['ptype' => 'profile_card_v1', 'pvar' => 'identity_split_hero_panel', 'link' => 'pill_solid'],
+            'papercollage'  => ['ptype' => 'profile_card_v1', 'pvar' => 'identity_paper_collage',    'link' => 'handwritten_note'],
         ];
     }
 
