@@ -435,6 +435,13 @@ class BiolinkBlock extends Model
         // a future renderer migration tell "this block was styled by an
         // older catalog" without re-saving every block on the planet.
         '_variant_version' => 0,
+        // Decorative avatar frame for profile-card blocks (Task #5910).
+        // Empty = no frame. Valid keys come from AvatarFrameCatalog; the
+        // sanitizer strips anything else so unknown values never persist.
+        // `_avatar_frame_color` tints the frame; empty = the layout's
+        // accent color at render time.
+        '_avatar_frame' => '',
+        '_avatar_frame_color' => '',
         // Per-block layout switch for link-family blocks (link / link_big /
         // cta_button / featured_pin). Empty = existing button rendering.
         // 'plain_text'  = pure underlined inline link, no card chrome.

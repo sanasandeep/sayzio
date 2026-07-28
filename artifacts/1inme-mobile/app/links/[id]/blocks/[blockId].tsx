@@ -196,7 +196,14 @@ import {
   visibleListItems,
   visiblePricingItems,
 } from "@/components/BlockListPreview";
+import {
+  AvatarFrame,
+  AVATAR_FRAME_KEYS,
+  AVATAR_FRAME_LABELS,
+  isAvatarFrameKey,
+} from "@/components/AvatarFrame";
 import { Button } from "@/components/Button";
+
 import { DictationMic } from "@/components/DictationMic";
 import {
   IconPickerButton,
@@ -219,6 +226,19 @@ import {
 import { variantsForType, findVariant } from "@/lib/blockVariants";
 import { canonicalBlockType } from "@/lib/blockTypeRegistry";
 import { showAlert } from "@/lib/webAlert";
+
+// Quick-pick tints for the avatar-frame color row (Task #5910). "Auto"
+// (empty string) defers to the layout accent, mirroring the web editor.
+const AVATAR_FRAME_COLOR_PRESETS = [
+  "#7d9bff",
+  "#f59e0b",
+  "#ef4444",
+  "#10b981",
+  "#14b8a6",
+  "#ec4899",
+  "#f8fafc",
+  "#0f172a",
+];
 
 // Mirrors the catalog-version constant on the PHP side. Bumped whenever a
 // variant payload changes in a way clients should re-apply. Stored
@@ -471,6 +491,10 @@ export function BlockSettingsEditor({
   const [mapShowDirections, setMapShowDirections] = useState(true);
   const [profileVerified, setProfileVerified] = useState<boolean>(false);
   const [profileSocials, setProfileSocials] = useState<ProfileSocial[]>([]);
+  // Decorative avatar frame (Task #5910) — mirrors _style._avatar_frame
+  // (+ optional _avatar_frame_color tint). "" = none / auto accent.
+  const [avatarFrame, setAvatarFrame] = useState<string>("");
+  const [avatarFrameColor, setAvatarFrameColor] = useState<string>("");
   // Stats (`[{label,value}]`, "stats" layout) and badges (`[{label}]`,
   // "badges" layout) repeaters. Edited via bespoke sections below, gated
   // by the block's resolved profile layout so they only show where the
@@ -592,6 +616,11 @@ export function BlockSettingsEditor({
       setProfileSocials(normalizeProfileSocials(block.settings?.socials));
       setProfileStats(normalizeProfileStats(block.settings?.stats));
       setProfileBadges(normalizeProfileBadges(block.settings?.badges));
+      const st = (block.settings?._style as Record<string, unknown> | undefined) ?? {};
+      setAvatarFrame(isAvatarFrameKey(st._avatar_frame) ? st._avatar_frame : "");
+      setAvatarFrameColor(
+        typeof st._avatar_frame_color === "string" ? st._avatar_frame_color : "",
+      );
     }
     // Hydrate the map-location boolean toggle. Mirrors the web default
     // (`$s['show_directions'] ?? true`) so blocks saved before this field
@@ -871,6 +900,18 @@ export function BlockSettingsEditor({
         nextSettings.socials = profileSocials
           .map((s) => ({ name: s.name.trim(), url: s.url.trim() }))
           .filter((s) => s.name !== "" || s.url !== "");
+        // Avatar frame (Task #5910): merge the two frame keys into the
+        // block's current _style (the generic save otherwise strips
+        // _style so variants stay server-owned). Empty selections drop
+        // the keys, matching the web editor's clear-on-empty semantics.
+        const prevStyle =
+          (block?.settings?._style as Record<string, unknown> | undefined) ?? {};
+        const styleOut: Record<string, unknown> = { ...prevStyle };
+        if (avatarFrame) styleOut._avatar_frame = avatarFrame;
+        else delete styleOut._avatar_frame;
+        if (avatarFrameColor) styleOut._avatar_frame_color = avatarFrameColor;
+        else delete styleOut._avatar_frame_color;
+        nextSettings._style = styleOut;
       }
       // Stats + badges round-trip in the same shapes the web editor and the
       // public renderer expect: `[{label,value}]` and `[{label}]`. They ride
@@ -1803,6 +1844,144 @@ export function BlockSettingsEditor({
                 onValueChange={setProfileVerified}
                 trackColor={{ false: colors.border, true: colors.primary }}
               />
+            </View>
+
+            {/* Decorative avatar frame (Task #5910) — mirrors the web
+                editor's swatch picker. Renders behind circular avatars on
+                the public page; "None" clears it. */}
+            <View>
+              <Text style={{ color: colors.foreground, fontWeight: "600", fontSize: 13 }}>
+                Avatar frame
+              </Text>
+              <Text style={{ color: colors.mutedForeground, fontSize: 11, marginBottom: 8 }}>
+                A decorative shape drawn behind the avatar.
+              </Text>
+              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+                <Pressable
+                  {...WEB_FOCUS_RING_PROPS}
+                  onPress={() => setAvatarFrame("")}
+                  style={{
+                    alignItems: "center",
+                    borderWidth: 1,
+                    borderColor: avatarFrame === "" ? colors.primary : colors.border,
+                    backgroundColor: avatarFrame === "" ? colors.primary + "22" : "transparent",
+                    borderRadius: 10,
+                    paddingVertical: 8,
+                    paddingHorizontal: 10,
+                    width: 76,
+                  }}
+                >
+                  <View
+                    style={{
+                      width: 34,
+                      height: 34,
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    <View
+                      style={{
+                        width: 24,
+                        height: 24,
+                        borderRadius: 12,
+                        borderWidth: 1,
+                        borderStyle: "dashed",
+                        borderColor: colors.mutedForeground,
+                      }}
+                    />
+                  </View>
+                  <Text style={{ color: colors.foreground, fontSize: 10, marginTop: 4 }}>
+                    None
+                  </Text>
+                </Pressable>
+                {AVATAR_FRAME_KEYS.map((fk) => {
+                  const selected = avatarFrame === fk;
+                  return (
+                    <Pressable
+                      key={fk}
+                      {...WEB_FOCUS_RING_PROPS}
+                      onPress={() => setAvatarFrame(fk)}
+                      style={{
+                        alignItems: "center",
+                        borderWidth: 1,
+                        borderColor: selected ? colors.primary : colors.border,
+                        backgroundColor: selected ? colors.primary + "22" : "transparent",
+                        borderRadius: 10,
+                        paddingVertical: 8,
+                        paddingHorizontal: 10,
+                        width: 76,
+                      }}
+                    >
+                      <View
+                        style={{
+                          width: 34,
+                          height: 34,
+                          alignItems: "center",
+                          justifyContent: "center",
+                        }}
+                      >
+                        <View style={{ position: "absolute", width: 34, height: 34 }}>
+                          <AvatarFrame shape={fk} color={colors.primary} size={34} />
+                        </View>
+                        <View
+                          style={{
+                            width: 18,
+                            height: 18,
+                            borderRadius: 9,
+                            backgroundColor: colors.primary + "66",
+                          }}
+                        />
+                      </View>
+                      <Text
+                        style={{ color: colors.foreground, fontSize: 10, marginTop: 4 }}
+                        numberOfLines={1}
+                      >
+                        {AVATAR_FRAME_LABELS[fk]}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+              {avatarFrame !== "" ? (
+                <View style={{ marginTop: 10 }}>
+                  <Text style={{ color: colors.mutedForeground, fontSize: 11, marginBottom: 6 }}>
+                    Frame color — Auto uses the layout accent.
+                  </Text>
+                  <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+                    <Pressable
+                      {...WEB_FOCUS_RING_PROPS}
+                      onPress={() => setAvatarFrameColor("")}
+                      style={{
+                        borderWidth: 1,
+                        borderColor: avatarFrameColor === "" ? colors.primary : colors.border,
+                        borderRadius: 8,
+                        paddingVertical: 6,
+                        paddingHorizontal: 10,
+                      }}
+                    >
+                      <Text style={{ color: colors.foreground, fontSize: 11 }}>Auto</Text>
+                    </Pressable>
+                    {AVATAR_FRAME_COLOR_PRESETS.map((c) => {
+                      const sel = avatarFrameColor.toLowerCase() === c.toLowerCase();
+                      return (
+                        <Pressable
+                          key={c}
+                          {...WEB_FOCUS_RING_PROPS}
+                          onPress={() => setAvatarFrameColor(c)}
+                          style={{
+                            width: 30,
+                            height: 30,
+                            borderRadius: 15,
+                            backgroundColor: c,
+                            borderWidth: sel ? 3 : 1,
+                            borderColor: sel ? colors.primary : colors.border,
+                          }}
+                        />
+                      );
+                    })}
+                  </View>
+                </View>
+              ) : null}
             </View>
 
             <TextField

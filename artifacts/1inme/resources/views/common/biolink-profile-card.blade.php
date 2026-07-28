@@ -70,6 +70,23 @@
         default                    => '#3d6bff',
     };
 
+    // Decorative avatar frame (Task #5910). Key + optional tint live in
+    // _style; unknown keys make svg() return null so nothing renders.
+    // Default tint is the layout accent. The wrapper isolates its own
+    // stacking context and the frame sits at z-index:-1, so the avatar
+    // paints on top without touching any per-layout img markup.
+    $pcFrameKey   = $s['_style']['_avatar_frame'] ?? '';
+    $pcFrameColor = (string) ($s['_style']['_avatar_frame_color'] ?? '');
+    $pcFrameSvg   = \App\Modules\User\Support\AvatarFrameCatalog::svg(
+        is_string($pcFrameKey) ? $pcFrameKey : '',
+        $pcFrameColor !== '' ? $pcFrameColor : $accent
+    );
+    $pcFrameOpen  = $pcFrameSvg
+        ? '<span class="relative inline-flex shrink-0" style="isolation:isolate" data-avatar-frame="' . e($pcFrameKey) . '">'
+            . '<span class="absolute pointer-events-none" aria-hidden="true" style="inset:-18%;z-index:-1">' . $pcFrameSvg . '</span>'
+        : '';
+    $pcFrameClose = $pcFrameSvg ? '</span>' : '';
+
     // Surface style. When the design sets no background we keep the page's
     // translucent glass-block look (matches the pre-#1740 default).
     $pBg       = $blockStyle['bg_color'] ?? '';
@@ -93,11 +110,11 @@
 @if($layout === 'split_hero')
     <div class="mb-4 {{ $baseClass }}" style="{{ $cardStyle }}">
         <div class="px-2 py-4 flex flex-col items-center text-center">
-            @if($avatar)
+            {!! $pcFrameOpen !!}@if($avatar)
                 <img src="{{ $avatar }}" class="rounded-full object-cover w-48 h-48 md:w-64 md:h-64" style="border:3px solid rgba(255,255,255,0.35);box-shadow:0 10px 34px rgba(0,0,0,0.30)" alt="{{ $name }}">
             @else
                 <div class="rounded-full flex items-center justify-center text-5xl font-bold w-48 h-48 md:w-64 md:h-64" style="border:3px solid rgba(255,255,255,0.35);background:{{ $avatarBg }}">{{ $initial }}</div>
-            @endif
+            @endif{!! $pcFrameClose !!}
             @include('common.biolink-profile-socials', ['psocials' => $psocials, 'socialIcons' => $socialIcons, 'accent' => '#ffffff', 'chip' => 'plain'])
         </div>
     </div>
@@ -108,8 +125,8 @@
         @if($cover)<div class="h-28 bg-cover bg-center" style="background-image:url('{{ $cover }}')"></div>@endif
         <div class="px-5 pb-6 text-center {{ $cover ? '-mt-12' : 'pt-6' }}">
             <div class="flex justify-center">
-                @if($avatar)<img src="{{ $avatar }}" class="w-24 h-24 rounded-full object-cover" style="border:4px solid #ffffff;box-shadow:0 6px 18px rgba(0,0,0,0.18)" alt="">
-                @else<div class="w-24 h-24 rounded-full flex items-center justify-center text-2xl font-bold" style="border:4px solid #ffffff;background:{{ $avatarBg }}">{{ $initial }}</div>@endif
+                {!! $pcFrameOpen !!}@if($avatar)<img src="{{ $avatar }}" class="w-24 h-24 rounded-full object-cover" style="border:4px solid #ffffff;box-shadow:0 6px 18px rgba(0,0,0,0.18)" alt="">
+                @else<div class="w-24 h-24 rounded-full flex items-center justify-center text-2xl font-bold" style="border:4px solid #ffffff;background:{{ $avatarBg }}">{{ $initial }}</div>@endif{!! $pcFrameClose !!}
             </div>
             @if($name)<p class="mt-3 text-lg font-bold">{{ $name }}</p>@endif
             @if($title)<p class="text-sm font-medium" style="color:{{ $accent }}">{{ $title }}</p>@endif
@@ -126,8 +143,8 @@
         @endif
         <div class="relative px-5 py-7 text-center text-white">
             <div class="flex justify-center">
-                @if($avatar)<img src="{{ $avatar }}" class="w-20 h-20 rounded-full object-cover" style="border:3px solid rgba(255,255,255,0.55)" alt="">
-                @else<div class="w-20 h-20 rounded-full flex items-center justify-center text-xl font-bold" style="border:3px solid rgba(255,255,255,0.55);background:rgba(255,255,255,0.12)">{{ $initial }}</div>@endif
+                {!! $pcFrameOpen !!}@if($avatar)<img src="{{ $avatar }}" class="w-20 h-20 rounded-full object-cover" style="border:3px solid rgba(255,255,255,0.55)" alt="">
+                @else<div class="w-20 h-20 rounded-full flex items-center justify-center text-xl font-bold" style="border:3px solid rgba(255,255,255,0.55);background:rgba(255,255,255,0.12)">{{ $initial }}</div>@endif{!! $pcFrameClose !!}
             </div>
             @if($name)<p class="mt-3 text-lg font-bold">{{ $name }}</p>@endif
             @if($title)<p class="text-sm" style="color:{{ $accent }}">{{ $title }}</p>@endif
@@ -143,8 +160,8 @@
             <div class="absolute inset-0" style="background:linear-gradient(to top,rgba(0,0,0,0.88) 5%,rgba(0,0,0,0.15))"></div>
             <div class="absolute bottom-0 left-0 right-0 p-5 text-white">
                 <div class="flex items-end gap-3">
-                    @if($avatar)<img src="{{ $avatar }}" class="w-16 h-16 rounded-full object-cover shrink-0" style="border:3px solid rgba(255,255,255,0.85)" alt="">
-                    @else<div class="w-16 h-16 rounded-full flex items-center justify-center text-lg font-bold shrink-0" style="border:3px solid rgba(255,255,255,0.85);background:{{ $avatarBg }}">{{ $initial }}</div>@endif
+                    {!! $pcFrameOpen !!}@if($avatar)<img src="{{ $avatar }}" class="w-16 h-16 rounded-full object-cover shrink-0" style="border:3px solid rgba(255,255,255,0.85)" alt="">
+                    @else<div class="w-16 h-16 rounded-full flex items-center justify-center text-lg font-bold shrink-0" style="border:3px solid rgba(255,255,255,0.85);background:{{ $avatarBg }}">{{ $initial }}</div>@endif{!! $pcFrameClose !!}
                     <div class="min-w-0">
                         @if($name)<p class="text-lg font-bold leading-tight">{{ $name }}</p>@endif
                         @if($title)<p class="text-sm" style="color:{{ $accent }}">{{ $title }}</p>@endif
@@ -166,8 +183,8 @@
         <div class="relative flex flex-col items-center" style="min-height:420px;@if($cover)background-image:url('{{ $cover }}');background-size:cover;background-position:center;@else background:linear-gradient(160deg,#64748b,#334155 60%,#1e293b);@endif">
             <div class="absolute inset-0" style="background:linear-gradient(to top,rgba(0,0,0,0.82) 0%,rgba(0,0,0,0.35) 34%,rgba(0,0,0,0.05) 60%)"></div>
             <div class="relative flex justify-center w-full" style="margin-top:88px">
-                @if($avatar)<img src="{{ $avatar }}" class="w-32 h-32 rounded-full object-cover" style="border:4px solid rgba(255,255,255,0.85);box-shadow:0 8px 28px rgba(0,0,0,0.35)" alt="">
-                @else<div class="w-32 h-32 rounded-full flex items-center justify-center text-3xl font-bold text-white" style="border:4px solid rgba(255,255,255,0.85);background:{{ $avatarBg }};box-shadow:0 8px 28px rgba(0,0,0,0.35)">{{ $initial }}</div>@endif
+                {!! $pcFrameOpen !!}@if($avatar)<img src="{{ $avatar }}" class="w-32 h-32 rounded-full object-cover" style="border:4px solid rgba(255,255,255,0.85);box-shadow:0 8px 28px rgba(0,0,0,0.35)" alt="">
+                @else<div class="w-32 h-32 rounded-full flex items-center justify-center text-3xl font-bold text-white" style="border:4px solid rgba(255,255,255,0.85);background:{{ $avatarBg }};box-shadow:0 8px 28px rgba(0,0,0,0.35)">{{ $initial }}</div>@endif{!! $pcFrameClose !!}
             </div>
             <div class="relative w-full mt-auto px-6 pb-8 pt-10 text-center text-white">
                 @if($name)<p class="text-2xl font-bold leading-tight" style="letter-spacing:.04em">{{ $name }}</p>@endif
@@ -204,8 +221,8 @@
         @endif
         <div class="px-5 pb-6 -mt-12 text-center">
             <div class="flex justify-center">
-                @if($avatar)<img src="{{ $avatar }}" class="w-24 h-24 rounded-full object-cover" style="border:5px solid #ffffff;box-shadow:0 10px 25px rgba(0,0,0,0.25)" alt="">
-                @else<div class="w-24 h-24 rounded-full flex items-center justify-center text-2xl font-bold" style="border:5px solid #ffffff;background:{{ $avatarBg }};box-shadow:0 10px 25px rgba(0,0,0,0.25)">{{ $initial }}</div>@endif
+                {!! $pcFrameOpen !!}@if($avatar)<img src="{{ $avatar }}" class="w-24 h-24 rounded-full object-cover" style="border:5px solid #ffffff;box-shadow:0 10px 25px rgba(0,0,0,0.25)" alt="">
+                @else<div class="w-24 h-24 rounded-full flex items-center justify-center text-2xl font-bold" style="border:5px solid #ffffff;background:{{ $avatarBg }};box-shadow:0 10px 25px rgba(0,0,0,0.25)">{{ $initial }}</div>@endif{!! $pcFrameClose !!}
             </div>
             @if($name)<p class="mt-3 text-lg font-bold">{{ $name }}</p>@endif
             @if($title)<p class="text-sm font-medium" style="color:{{ $accent }}">{{ $title }}</p>@endif
@@ -224,8 +241,8 @@
             <div class="h-44 rounded-2xl bg-cover bg-center" style="@if($cover)background-image:url('{{ $cover }}');@else background:linear-gradient(135deg,#3d6bff,#8b5cf6);@endif"></div>
             <div class="relative mx-4 -mt-14 rounded-3xl px-5 pb-6 text-center" style="background:#ffffff;box-shadow:0 14px 34px rgba(15,23,42,0.16);padding-top:3.75rem">
                 <div class="absolute left-1/2 -translate-x-1/2" style="top:-3rem">
-                    @if($avatar)<img src="{{ $avatar }}" class="w-24 h-24 rounded-full object-cover" style="border:4px solid #ffffff;box-shadow:0 8px 22px rgba(0,0,0,0.22)" alt="">
-                    @else<div class="w-24 h-24 rounded-full flex items-center justify-center text-2xl font-bold" style="border:4px solid #ffffff;background:{{ $avatarBg }};color:#0f172a">{{ $initial }}</div>@endif
+                    {!! $pcFrameOpen !!}@if($avatar)<img src="{{ $avatar }}" class="w-24 h-24 rounded-full object-cover" style="border:4px solid #ffffff;box-shadow:0 8px 22px rgba(0,0,0,0.22)" alt="">
+                    @else<div class="w-24 h-24 rounded-full flex items-center justify-center text-2xl font-bold" style="border:4px solid #ffffff;background:{{ $avatarBg }};color:#0f172a">{{ $initial }}</div>@endif{!! $pcFrameClose !!}
                 </div>
                 @if($name)<p class="text-lg font-bold" style="color:#0f172a">{{ $name }}</p>@endif
                 @if($title)<p class="text-sm font-medium" style="color:{{ $accent }}">{{ $title }}</p>@endif
@@ -269,8 +286,8 @@
     <div class="mb-4 overflow-hidden rounded-2xl {{ $baseClass }}" style="{{ $cardStyle }}">
         <div class="px-5 py-7 text-center text-white">
             <div class="flex justify-center">
-                @if($avatar)<img src="{{ $avatar }}" class="w-20 h-20 rounded-full object-cover" style="border:3px solid rgba(255,255,255,0.65)" alt="">
-                @else<div class="w-20 h-20 rounded-full flex items-center justify-center text-xl font-bold" style="border:3px solid rgba(255,255,255,0.65);background:rgba(255,255,255,0.18)">{{ $initial }}</div>@endif
+                {!! $pcFrameOpen !!}@if($avatar)<img src="{{ $avatar }}" class="w-20 h-20 rounded-full object-cover" style="border:3px solid rgba(255,255,255,0.65)" alt="">
+                @else<div class="w-20 h-20 rounded-full flex items-center justify-center text-xl font-bold" style="border:3px solid rgba(255,255,255,0.65);background:rgba(255,255,255,0.18)">{{ $initial }}</div>@endif{!! $pcFrameClose !!}
             </div>
             @if($name)<p class="mt-3 text-lg font-bold">{{ $name }}</p>@endif
             @if($title)<p class="text-sm text-white/85">{{ $title }}</p>@endif
@@ -288,8 +305,8 @@
         @endif
         <div class="relative px-5 py-7 text-center text-white">
             <div class="flex justify-center">
-                @if($avatar)<img src="{{ $avatar }}" class="w-20 h-20 rounded-full object-cover" style="border:3px solid #d4af37;box-shadow:0 0 22px rgba(212,175,55,0.35)" alt="">
-                @else<div class="w-20 h-20 rounded-full flex items-center justify-center text-xl font-bold" style="border:3px solid #d4af37;background:rgba(212,175,55,0.12)">{{ $initial }}</div>@endif
+                {!! $pcFrameOpen !!}@if($avatar)<img src="{{ $avatar }}" class="w-20 h-20 rounded-full object-cover" style="border:3px solid #d4af37;box-shadow:0 0 22px rgba(212,175,55,0.35)" alt="">
+                @else<div class="w-20 h-20 rounded-full flex items-center justify-center text-xl font-bold" style="border:3px solid #d4af37;background:rgba(212,175,55,0.12)">{{ $initial }}</div>@endif{!! $pcFrameClose !!}
             </div>
             @if($name)
                 <p class="mt-3 text-lg font-bold" style="color:{{ $accent }}">
@@ -313,8 +330,8 @@
     <div class="mb-4 overflow-hidden rounded-2xl {{ $baseClass }}" style="{{ $cardStyle }}">
         <div class="px-5 py-8 text-center text-white">
             <div class="flex justify-center">
-                @if($avatar)<img src="{{ $avatar }}" class="w-20 h-20 rounded-full object-cover" style="border:1px solid rgba(255,255,255,0.25)" alt="">
-                @else<div class="w-20 h-20 rounded-full flex items-center justify-center text-xl font-bold" style="border:1px solid rgba(255,255,255,0.25);background:rgba(255,255,255,0.06)">{{ $initial }}</div>@endif
+                {!! $pcFrameOpen !!}@if($avatar)<img src="{{ $avatar }}" class="w-20 h-20 rounded-full object-cover" style="border:1px solid rgba(255,255,255,0.25)" alt="">
+                @else<div class="w-20 h-20 rounded-full flex items-center justify-center text-xl font-bold" style="border:1px solid rgba(255,255,255,0.25);background:rgba(255,255,255,0.06)">{{ $initial }}</div>@endif{!! $pcFrameClose !!}
             </div>
             @if($name)<p class="mt-4 text-xl font-bold tracking-tight">{{ $name }}</p>@endif
             @if($title)<p class="text-sm" style="color:{{ $accent }}">{{ $title }}</p>@endif
@@ -329,8 +346,8 @@
         @if($cover)<div class="h-32 bg-cover bg-center" style="background-image:url('{{ $cover }}')"></div>@endif
         <div class="p-5">
             <div class="flex items-center gap-3">
-                @if($avatar)<img src="{{ $avatar }}" class="w-14 h-14 rounded-full object-cover shrink-0" alt="">
-                @else<div class="w-14 h-14 rounded-full flex items-center justify-center text-lg font-bold shrink-0" style="background:{{ $avatarBg }}">{{ $initial }}</div>@endif
+                {!! $pcFrameOpen !!}@if($avatar)<img src="{{ $avatar }}" class="w-14 h-14 rounded-full object-cover shrink-0" alt="">
+                @else<div class="w-14 h-14 rounded-full flex items-center justify-center text-lg font-bold shrink-0" style="background:{{ $avatarBg }}">{{ $initial }}</div>@endif{!! $pcFrameClose !!}
                 <div class="min-w-0">
                     @if($title)<p class="text-[11px] uppercase tracking-[0.18em] font-semibold" style="color:{{ $accent }}">{{ $title }}</p>@endif
                     @if($name)<p class="text-xl font-bold leading-tight">{{ $name }}</p>@endif
@@ -350,8 +367,8 @@
         @endif
         <div class="px-5 pb-6 -mt-11 text-center">
             <div class="flex justify-center">
-                @if($avatar)<img src="{{ $avatar }}" class="w-22 h-22 rounded-full object-cover" style="width:5.5rem;height:5.5rem;border:4px solid #ffffff;box-shadow:0 4px 14px rgba(0,0,0,0.15)" alt="">
-                @else<div class="rounded-full flex items-center justify-center text-2xl font-bold" style="width:5.5rem;height:5.5rem;border:4px solid #ffffff;background:{{ $avatarBg }}">{{ $initial }}</div>@endif
+                {!! $pcFrameOpen !!}@if($avatar)<img src="{{ $avatar }}" class="w-22 h-22 rounded-full object-cover" style="width:5.5rem;height:5.5rem;border:4px solid #ffffff;box-shadow:0 4px 14px rgba(0,0,0,0.15)" alt="">
+                @else<div class="rounded-full flex items-center justify-center text-2xl font-bold" style="width:5.5rem;height:5.5rem;border:4px solid #ffffff;background:{{ $avatarBg }}">{{ $initial }}</div>@endif{!! $pcFrameClose !!}
             </div>
             @if($name)
                 <p class="mt-3 text-lg font-bold">
@@ -437,8 +454,8 @@
             <div class="flex-1 p-5 text-center">
                 <p class="text-[10px] font-bold uppercase tracking-[0.25em]" style="color:{{ $accent }};opacity:.85">Admit One</p>
                 <div class="flex justify-center mt-3">
-                    @if($avatar)<img src="{{ $avatar }}" class="w-16 h-16 rounded-full object-cover" style="border:2px solid {{ $accent }}" alt="">
-                    @else<div class="w-16 h-16 rounded-full flex items-center justify-center text-lg font-bold" style="border:2px solid {{ $accent }};background:{{ $avatarBg }};color:{{ $accent }}">{{ $initial }}</div>@endif
+                    {!! $pcFrameOpen !!}@if($avatar)<img src="{{ $avatar }}" class="w-16 h-16 rounded-full object-cover" style="border:2px solid {{ $accent }}" alt="">
+                    @else<div class="w-16 h-16 rounded-full flex items-center justify-center text-lg font-bold" style="border:2px solid {{ $accent }};background:{{ $avatarBg }};color:{{ $accent }}">{{ $initial }}</div>@endif{!! $pcFrameClose !!}
                 </div>
                 @if($name)<p class="mt-3 text-xl font-bold leading-tight">{{ $name }}</p>@endif
                 @if($bio)<p class="text-sm mt-2" style="opacity:.7">{{ $bio }}</p>@endif
@@ -513,8 +530,8 @@
             <div class="flex-1 p-5">
                 <div class="flex items-center gap-4">
                     <div class="shrink-0">
-                        @if($avatar)<img src="{{ $avatar }}" class="w-16 h-16 rounded-full object-cover" style="border:2px solid {{ $accent }}33" alt="">
-                        @else<div class="w-16 h-16 rounded-full flex items-center justify-center text-xl font-bold" style="border:2px solid {{ $accent }}33;background:{{ $avatarBg }};color:{{ $accent }}">{{ $initial }}</div>@endif
+                        {!! $pcFrameOpen !!}@if($avatar)<img src="{{ $avatar }}" class="w-16 h-16 rounded-full object-cover" style="border:2px solid {{ $accent }}33" alt="">
+                        @else<div class="w-16 h-16 rounded-full flex items-center justify-center text-xl font-bold" style="border:2px solid {{ $accent }}33;background:{{ $avatarBg }};color:{{ $accent }}">{{ $initial }}</div>@endif{!! $pcFrameClose !!}
                     </div>
                     <div class="min-w-0">
                         @if($name)<p class="text-lg font-bold leading-tight">{{ $name }}@if($verified)<i class="fas fa-circle-check ml-1" style="color:{{ $accent }}"></i>@endif</p>@endif
@@ -532,8 +549,8 @@
     <div class="mb-4 overflow-hidden rounded-2xl {{ $baseClass }}" style="{{ $cardStyle }}">
         <div class="p-5 text-center">
             <div class="flex justify-center">
-                @if($avatar)<img src="{{ $avatar }}" class="w-16 h-16 rounded-full object-cover" style="border:2px solid rgba(255,255,255,0.12)" alt="">
-                @else<div class="w-16 h-16 rounded-full flex items-center justify-center text-xl font-bold" style="border:2px solid rgba(255,255,255,0.12);background:{{ $avatarBg }}">{{ $initial }}</div>@endif
+                {!! $pcFrameOpen !!}@if($avatar)<img src="{{ $avatar }}" class="w-16 h-16 rounded-full object-cover" style="border:2px solid rgba(255,255,255,0.12)" alt="">
+                @else<div class="w-16 h-16 rounded-full flex items-center justify-center text-xl font-bold" style="border:2px solid rgba(255,255,255,0.12);background:{{ $avatarBg }}">{{ $initial }}</div>@endif{!! $pcFrameClose !!}
             </div>
             @if($name)<p class="mt-3 font-semibold">{{ $name }}</p>@endif
             @if($title)<p class="text-xs" style="color:{{ $accent }}">{{ $title }}</p>@endif
@@ -554,8 +571,8 @@
     <div class="mb-4 overflow-hidden rounded-2xl {{ $baseClass }}" style="{{ $cardStyle }}">
         <div class="p-5 text-center">
             <div class="flex justify-center">
-                @if($avatar)<img src="{{ $avatar }}" class="w-16 h-16 rounded-full object-cover" style="border:2px solid rgba(255,255,255,0.12)" alt="">
-                @else<div class="w-16 h-16 rounded-full flex items-center justify-center text-xl font-bold" style="border:2px solid rgba(255,255,255,0.12);background:{{ $avatarBg }}">{{ $initial }}</div>@endif
+                {!! $pcFrameOpen !!}@if($avatar)<img src="{{ $avatar }}" class="w-16 h-16 rounded-full object-cover" style="border:2px solid rgba(255,255,255,0.12)" alt="">
+                @else<div class="w-16 h-16 rounded-full flex items-center justify-center text-xl font-bold" style="border:2px solid rgba(255,255,255,0.12);background:{{ $avatarBg }}">{{ $initial }}</div>@endif{!! $pcFrameClose !!}
             </div>
             @if($name)<p class="mt-3 font-semibold">{{ $name }}</p>@endif
             @if($title)<p class="text-xs" style="color:{{ $accent }}">{{ $title }}</p>@endif

@@ -33,6 +33,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { AvatarFrame, isAvatarFrameKey, type AvatarFrameKey } from "@/components/AvatarFrame";
 import {
   ListBlockView,
   PricingBlockView,
@@ -1839,38 +1840,65 @@ function ProfileAvatar({
   size,
   border,
   textColor,
+  frame,
 }: {
   avatar: string;
   initial: string;
   size: number;
   border?: { borderWidth?: number; borderColor?: string; borderRadius?: number };
   textColor?: string;
+  // Decorative frame (Task #5910) rendered behind the avatar. Only applied
+  // to circular avatars — call sites that override borderRadius (square /
+  // rounded-rect looks) skip the frame automatically, mirroring the web
+  // renderer which only wraps rounded-full avatars.
+  frame?: { shape: AvatarFrameKey; color: string } | null;
 }) {
-  if (avatar && isSafeUrl(avatar)) {
-    return (
+  const core =
+    avatar && isSafeUrl(avatar) ? (
       <Image
         source={{ uri: avatar }}
         style={[{ width: size, height: size, borderRadius: size / 2 }, border]}
       />
+    ) : (
+      <View
+        style={[
+          {
+            width: size,
+            height: size,
+            borderRadius: size / 2,
+            alignItems: "center",
+            justifyContent: "center",
+            backgroundColor: PROFILE_AVATAR_BG,
+          },
+          border,
+        ]}
+      >
+        <Text style={{ fontSize: size * 0.4, fontWeight: "700", color: textColor ?? "#fff" }}>
+          {initial}
+        </Text>
+      </View>
     );
-  }
+
+  const circular = !border || border.borderRadius === undefined;
+  if (!frame || !circular) return core;
+
+  // Frame sits at ~1.36x the avatar (matches the web wrapper's -18% inset).
+  const frameSize = size * 1.36;
   return (
-    <View
-      style={[
-        {
-          width: size,
-          height: size,
-          borderRadius: size / 2,
-          alignItems: "center",
-          justifyContent: "center",
-          backgroundColor: PROFILE_AVATAR_BG,
-        },
-        border,
-      ]}
-    >
-      <Text style={{ fontSize: size * 0.4, fontWeight: "700", color: textColor ?? "#fff" }}>
-        {initial}
-      </Text>
+    <View style={{ width: size, height: size, alignItems: "center", justifyContent: "center" }}>
+      <View
+        pointerEvents="none"
+        style={{
+          position: "absolute",
+          left: (size - frameSize) / 2,
+          top: (size - frameSize) / 2,
+          width: frameSize,
+          height: frameSize,
+        }}
+      >
+        <AvatarFrame shape={frame.shape} color={frame.color} size={frameSize} />
+      </View>
+      {core}
     </View>
   );
 }
@@ -1958,6 +1986,20 @@ function ProfileCardView({
 
   const layout = profileLayout(block, s);
   const accent = profileAccent(layout);
+
+  // Decorative avatar frame (Task #5910) — key + optional tint live in
+  // _style, mirroring the web renderer. Unknown keys render no frame.
+  const pcStyle = (s._style && typeof s._style === "object" ? s._style : {}) as Record<
+    string,
+    unknown
+  >;
+  const pcFrameColor =
+    typeof pcStyle._avatar_frame_color === "string" && pcStyle._avatar_frame_color !== ""
+      ? pcStyle._avatar_frame_color
+      : accent;
+  const pcFrame = isAvatarFrameKey(pcStyle._avatar_frame)
+    ? { shape: pcStyle._avatar_frame, color: pcFrameColor }
+    : null;
   const initial = (name !== "" ? name : "U").charAt(0).toUpperCase();
   const hasCover = cover !== "" && isSafeUrl(cover);
 
@@ -1988,7 +2030,7 @@ function ProfileCardView({
             paddingTop: hasCover ? 0 : 24,
           }}
         >
-          <ProfileAvatar
+          <ProfileAvatar frame={pcFrame}
             avatar={avatar}
             initial={initial}
             size={96}
@@ -2038,7 +2080,7 @@ function ProfileCardView({
           style={StyleSheet.absoluteFillObject}
         />
         <View style={{ paddingHorizontal: 20, paddingVertical: 28, alignItems: "center" }}>
-          <ProfileAvatar
+          <ProfileAvatar frame={pcFrame}
             avatar={avatar}
             initial={initial}
             size={80}
@@ -2071,7 +2113,7 @@ function ProfileCardView({
         />
         <View style={{ padding: 20 }}>
           <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 12 }}>
-            <ProfileAvatar
+            <ProfileAvatar frame={pcFrame}
               avatar={avatar}
               initial={initial}
               size={64}
@@ -2113,7 +2155,7 @@ function ProfileCardView({
   if (layout === "split_hero") {
     return (
       <View style={{ marginBottom: 16, alignItems: "center", paddingVertical: 16 }}>
-        <ProfileAvatar
+        <ProfileAvatar frame={pcFrame}
           avatar={avatar}
           initial={initial}
           size={192}
@@ -2138,7 +2180,7 @@ function ProfileCardView({
           style={StyleSheet.absoluteFillObject}
         />
         <View style={{ marginTop: 88 }}>
-          <ProfileAvatar
+          <ProfileAvatar frame={pcFrame}
             avatar={avatar}
             initial={initial}
             size={128}
@@ -2222,7 +2264,7 @@ function ProfileCardView({
     return (
       <View style={surface}>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 20, padding: 20 }}>
-          <ProfileAvatar avatar={avatar} initial={initial} size={96} border={{ borderRadius: 16 }} />
+          <ProfileAvatar frame={pcFrame} avatar={avatar} initial={initial} size={96} border={{ borderRadius: 16 }} />
           <View style={{ flex: 1 }}>
             {name ? (
               <Text style={{ fontSize: 18, fontWeight: "700", color: themeText }}>{name}</Text>
@@ -2263,7 +2305,7 @@ function ProfileCardView({
             alignItems: "center",
           }}
         >
-          <ProfileAvatar
+          <ProfileAvatar frame={pcFrame}
             avatar={avatar}
             initial={initial}
             size={96}
@@ -2326,7 +2368,7 @@ function ProfileCardView({
           }}
         >
           <View style={{ position: "absolute", top: -48, alignSelf: "center" }}>
-            <ProfileAvatar
+            <ProfileAvatar frame={pcFrame}
               avatar={avatar}
               initial={initial}
               size={96}
@@ -2354,7 +2396,7 @@ function ProfileCardView({
   if (layout === "gradient") {
     const grad = (
       <View style={{ paddingHorizontal: 20, paddingVertical: 28, alignItems: "center" }}>
-        <ProfileAvatar
+        <ProfileAvatar frame={pcFrame}
           avatar={avatar}
           initial={initial}
           size={80}
@@ -2400,7 +2442,7 @@ function ProfileCardView({
   if (layout === "founder") {
     const inner = (
       <View style={{ paddingHorizontal: 20, paddingVertical: 28, alignItems: "center" }}>
-        <ProfileAvatar
+        <ProfileAvatar frame={pcFrame}
           avatar={avatar}
           initial={initial}
           size={80}
@@ -2462,7 +2504,7 @@ function ProfileCardView({
     return (
       <View style={[surface, cardOverlay?.backgroundColor == null ? { backgroundColor: "#0b0b0f" } : null]}>
         <View style={{ paddingHorizontal: 20, paddingVertical: 32, alignItems: "center" }}>
-          <ProfileAvatar
+          <ProfileAvatar frame={pcFrame}
             avatar={avatar}
             initial={initial}
             size={80}
@@ -2492,7 +2534,7 @@ function ProfileCardView({
         {hasCover ? <Image source={{ uri: cover }} style={{ height: 128, width: "100%" }} /> : null}
         <View style={{ padding: 20 }}>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-            <ProfileAvatar avatar={avatar} initial={initial} size={56} />
+            <ProfileAvatar frame={pcFrame} avatar={avatar} initial={initial} size={56} />
             <View style={{ flex: 1 }}>
               {title ? (
                 <Text
@@ -2538,7 +2580,7 @@ function ProfileCardView({
           />
         )}
         <View style={{ paddingHorizontal: 20, paddingBottom: 24, marginTop: -44, alignItems: "center" }}>
-          <ProfileAvatar
+          <ProfileAvatar frame={pcFrame}
             avatar={avatar}
             initial={initial}
             size={88}
@@ -2598,7 +2640,7 @@ function ProfileCardView({
     return (
       <View style={surface}>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 16, padding: 20 }}>
-          <ProfileAvatar avatar={avatar} initial={initial} size={80} border={{ borderRadius: 12 }} />
+          <ProfileAvatar frame={pcFrame} avatar={avatar} initial={initial} size={80} border={{ borderRadius: 12 }} />
           <View
             style={{
               flex: 1,
@@ -2679,7 +2721,7 @@ function ProfileCardView({
           />
           <View style={{ flex: 1, padding: 20 }}>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 16 }}>
-              <ProfileAvatar
+              <ProfileAvatar frame={pcFrame}
                 avatar={avatar}
                 initial={initial}
                 size={64}
@@ -2771,7 +2813,7 @@ function ProfileCardView({
             </Text>
           </View>
           <View style={{ paddingHorizontal: 20, paddingVertical: 20, alignItems: "center" }}>
-            <ProfileAvatar
+            <ProfileAvatar frame={pcFrame}
               avatar={avatar}
               initial={initial}
               size={80}
@@ -2854,7 +2896,7 @@ function ProfileCardView({
               Admit One
             </Text>
             <View style={{ marginTop: 12 }}>
-              <ProfileAvatar
+              <ProfileAvatar frame={pcFrame}
                 avatar={avatar}
                 initial={initial}
                 size={64}
@@ -3088,7 +3130,7 @@ function ProfileCardView({
     return (
       <View style={surface}>
         <View style={{ padding: 20, alignItems: "center" }}>
-          <ProfileAvatar
+          <ProfileAvatar frame={pcFrame}
             avatar={avatar}
             initial={initial}
             size={64}
@@ -3128,7 +3170,7 @@ function ProfileCardView({
   return (
     <View style={surface}>
       <View style={{ padding: 20, alignItems: "center" }}>
-        <ProfileAvatar
+        <ProfileAvatar frame={pcFrame}
           avatar={avatar}
           initial={initial}
           size={64}

@@ -1309,6 +1309,49 @@ if (typeof window.resetPollVotes !== 'function') {
         <p x-show="badges.length >= 12" class="text-xs text-white/30">Up to 12 badges.</p>
     </div>
     @endif
+
+    {{-- Decorative avatar frame (Task #5910) — inline-SVG shape rendered
+         behind the circular avatar on the public page. Stored in
+         _style._avatar_frame (+ optional _avatar_frame_color tint); the
+         controller merges submitted style[…] keys into _style and the
+         sanitizer strips unknown values. Empty submits clear the key. --}}
+    @php
+        $pcFrameSel      = $s['_style']['_avatar_frame'] ?? '';
+        $pcFrameColorSel = (string) ($s['_style']['_avatar_frame_color'] ?? '');
+    @endphp
+    <div>
+        <label class="{{ $labelClass }}">Avatar Frame</label>
+        <div class="grid grid-cols-4 gap-2">
+            <label class="cursor-pointer">
+                <input type="radio" name="style[_avatar_frame]" value="" @checked($pcFrameSel === '') class="peer sr-only">
+                <span class="flex flex-col items-center gap-1 rounded-lg border border-white/10 p-2 transition peer-checked:border-blue-500 peer-checked:bg-blue-500/10">
+                    <span class="inline-flex w-10 h-10 items-center justify-center">
+                        <span class="w-7 h-7 rounded-full" style="border:1px dashed rgba(255,255,255,0.3);background:rgba(255,255,255,0.06)"></span>
+                    </span>
+                    <span class="text-[10px] text-white/60">None</span>
+                </span>
+            </label>
+            @foreach(\App\Modules\User\Support\AvatarFrameCatalog::FRAMES as $pcFk => $pcFLabel)
+            <label class="cursor-pointer">
+                <input type="radio" name="style[_avatar_frame]" value="{{ $pcFk }}" @checked($pcFrameSel === $pcFk) class="peer sr-only">
+                <span class="flex flex-col items-center gap-1 rounded-lg border border-white/10 p-2 transition peer-checked:border-blue-500 peer-checked:bg-blue-500/10">
+                    <span class="relative inline-flex w-10 h-10 items-center justify-center" style="isolation:isolate">
+                        <span class="absolute pointer-events-none" aria-hidden="true" style="inset:4%;z-index:-1">{!! \App\Modules\User\Support\AvatarFrameCatalog::svg($pcFk, '#7d9bff') !!}</span>
+                        <span class="w-6 h-6 rounded-full" style="background:rgba(61,107,255,0.45)"></span>
+                    </span>
+                    <span class="text-[10px] text-white/60">{{ $pcFLabel }}</span>
+                </span>
+            </label>
+            @endforeach
+        </div>
+        <div class="mt-2 flex items-center gap-2" x-data='{ fc: {{ json_encode($pcFrameColorSel) }} }'>
+            <span class="text-xs text-white/40">Frame color</span>
+            <input type="hidden" name="style[_avatar_frame_color]" :value="fc">
+            <input type="color" :value="fc || '#3d6bff'" @input="fc = $event.target.value" class="h-8 w-10 rounded cursor-pointer border border-white/10 bg-transparent p-0.5">
+            <button type="button" x-show="fc !== ''" @click="fc = ''" class="text-xs text-blue-400 hover:text-blue-300">Reset to accent</button>
+            <span x-show="fc === ''" class="text-xs text-white/30">Auto — uses the design accent</span>
+        </div>
+    </div>
 </div>
 
 @elseif($block->type === 'qr_code')

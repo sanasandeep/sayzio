@@ -2158,7 +2158,11 @@ class BiolinkBlockController extends Controller
             'grid_span_md' => [1, 12],
             'grid_row_span_md' => [1, 6],
         ];
-        $colorKeys = ['text_color', 'bg_color', 'border_color', 'shadow_color'];
+        // Decorative avatar frame for profile cards (Task #5910). Strict
+        // enum from the catalog — unknown keys are silently dropped so a
+        // bad value can never break the public page.
+        $enums['_avatar_frame'] = \App\Modules\User\Support\AvatarFrameCatalog::keys();
+        $colorKeys = ['text_color', 'bg_color', 'border_color', 'shadow_color', '_avatar_frame_color'];
         $fontWeightKeys = ['font_weight'];
         $fontFamilyKeys = ['font_family'];
         $urlKeys = ['bg_image'];
