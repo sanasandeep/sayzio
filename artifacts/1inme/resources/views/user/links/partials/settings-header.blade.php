@@ -31,6 +31,58 @@
             <i class="fas fa-unlink mr-1"></i> Detach from template
         </button>
     </form>
+
+    @php
+        $__palettes = $link->designLockPalettes();
+        $__activePalette = $link->designLockPaletteKey();
+    @endphp
+    @if(!empty($__palettes))
+    <div class="w-full flex flex-wrap items-center gap-2 pt-1" id="tpl-palette-picker">
+        <span class="text-xs font-semibold opacity-80"><i class="fas fa-swatchbook mr-1"></i> Color palette:</span>
+        @foreach($__palettes as $__p)
+            @php
+                $__c = is_array($__p['colors'] ?? null) ? $__p['colors'] : [];
+                $__bg = ($__c['background_type'] ?? '') === 'gradient' && !empty($__c['gradient_colors'][0])
+                    ? 'linear-gradient(135deg, ' . e(implode(', ', array_slice((array) $__c['gradient_colors'], 0, 3))) . ')'
+                    : e($__c['background_color'] ?? '#111');
+                $__isActive = ($__p['key'] ?? '') === $__activePalette;
+            @endphp
+            <button type="button"
+                    class="tpl-palette-swatch inline-flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs font-semibold"
+                    data-palette-key="{{ $__p['key'] ?? '' }}"
+                    style="border: 1px solid rgba(245,158,11,{{ $__isActive ? '0.7' : '0.25' }}); background: rgba(245,158,11,{{ $__isActive ? '0.18' : '0.06' }}); color: #f59e0b;">
+                <span class="inline-block w-4 h-4 rounded-full border border-white/30" style="background: {{ $__bg }};"></span>
+                {{ $__p['name'] ?? $__p['key'] ?? 'Palette' }}
+                @if($__isActive)<i class="fas fa-check text-[10px]"></i>@endif
+            </button>
+        @endforeach
+    </div>
+    <script>
+    (function() {
+        var picker = document.getElementById('tpl-palette-picker');
+        if (!picker || picker.__bound) return;
+        picker.__bound = true;
+        picker.addEventListener('click', function(e) {
+            var btn = e.target.closest('.tpl-palette-swatch');
+            if (!btn || btn.disabled) return;
+            btn.disabled = true;
+            fetch(@json(route('user.links.templates.apply-palette', $link)), {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').getAttribute('content'),
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                },
+                credentials: 'same-origin',
+                body: JSON.stringify({ palette: btn.getAttribute('data-palette-key') })
+            }).then(function(r) { return r.json(); }).then(function(data) {
+                if (data.success) { window.location.reload(); }
+                else { btn.disabled = false; alert(data.error || 'Failed to apply palette'); }
+            }).catch(function() { btn.disabled = false; alert('Failed to apply palette'); });
+        });
+    })();
+    </script>
+    @endif
 </div>
 @endif
 

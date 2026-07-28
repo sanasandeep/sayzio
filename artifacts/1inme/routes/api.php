@@ -836,6 +836,9 @@ Route::prefix('v1')->group(function () {
         // Detach a design-locked page from its template — unlocks all styling
         // surfaces (mobile parity for the web "Detach from template" action).
         Route::post('/links/{id}/page-templates/detach',  [\App\Modules\Api\Controllers\PageTemplateController::class, 'detach'])->whereNumber('id');
+        // Switch a design-locked page between the template's admin-defined
+        // color palettes (mobile parity for the web palette picker).
+        Route::post('/links/{id}/page-templates/apply-palette', [\App\Modules\Api\Controllers\PageTemplateController::class, 'applyPalette'])->whereNumber('id');
 
         // Biolink blocks (authoring)
         // Block-type palette catalog (mobile parity for the web editor

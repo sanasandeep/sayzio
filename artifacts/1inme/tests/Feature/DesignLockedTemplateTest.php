@@ -282,6 +282,151 @@ class DesignLockedTemplateTest extends TestCase
         $this->assertFalse($link->refresh()->isDesignLocked());
     }
 
+    // ── palettes + fixed blocks + detach/re-attach ───────────────────
+
+    private function makeLockedTemplateWithExtras(): PageTemplate
+    {
+        return PageTemplate::create([
+            'slug'          => 'tpl-' . Str::random(8),
+            'name'          => 'Locked Extras',
+            'category'      => 'general',
+            'description'   => 'Test template.',
+            'is_active'     => true,
+            'sort_order'    => 0,
+            'design_locked' => true,
+            'recommended_personas' => [],
+            'color_palettes' => [
+                ['key' => 'midnight', 'name' => 'Midnight', 'colors' => ['background_color' => '#111111', 'font_color' => '#ffffff']],
+                ['key' => 'sunrise',  'name' => 'Sunrise',  'colors' => ['background_color' => '#fff7ed', 'font_color' => '#1f2937']],
+            ],
+            'snapshot' => [
+                'biolink' => ['background_type' => 'color', 'background_color' => '#111111'],
+                'blocks'  => [
+                    ['type' => 'heading', 'settings' => ['text' => 'Pinned', '_fixed' => true], 'is_active' => true],
+                    ['type' => 'paragraph', 'settings' => ['text' => 'Free copy'], 'is_active' => true],
+                ],
+                'meta' => [],
+            ],
+        ]);
+    }
+
+    private function lockedExtrasLink(User $user, PageTemplate $tpl): Link
+    {
+        $link = $this->makeLink($user);
+        $this->actingAs($user)
+            ->post(route('user.links.templates.apply-page', $link), ['template_id' => $tpl->id]);
+        return $link->refresh();
+    }
+
+    public function test_web_palette_apply_swaps_colors_and_records_selection(): void
+    {
+        $user = $this->makeUser();
+        $tpl  = $this->makeLockedTemplateWithExtras();
+        $link = $this->lockedExtrasLink($user, $tpl);
+
+        $this->postJson(route('user.links.templates.apply-palette', $link), ['palette' => 'sunrise'],
+            ['X-Requested-With' => 'XMLHttpRequest'])
+            ->assertOk()->assertJson(['success' => true, 'palette' => 'sunrise']);
+
+        $biolink = ($link->refresh()->settings ?? [])['biolink'] ?? [];
+        $this->assertSame('#fff7ed', $biolink['background_color'] ?? null);
+        $this->assertSame('sunrise', $biolink['design_locked']['palette'] ?? null);
+    }
+
+    public function test_web_palette_apply_rejects_unknown_key(): void
+    {
+        $user = $this->makeUser();
+        $tpl  = $this->makeLockedTemplateWithExtras();
+        $link = $this->lockedExtrasLink($user, $tpl);
+
+        $this->postJson(route('user.links.templates.apply-palette', $link), ['palette' => 'nope'],
+            ['X-Requested-With' => 'XMLHttpRequest'])
+            ->assertStatus(422);
+    }
+
+    public function test_api_palette_apply_parity(): void
+    {
+        $user = $this->makeUser();
+        $tpl  = $this->makeLockedTemplateWithExtras();
+        $link = $this->lockedExtrasLink($user, $tpl);
+
+        $this->withToken($this->token($user));
+        $this->postJson("/api/v1/links/{$link->id}/page-templates/apply-palette", ['palette' => 'sunrise'])
+            ->assertOk();
+        $this->assertSame('sunrise',
+            ($link->refresh()->settings['biolink']['design_locked']['palette'] ?? null));
+    }
+
+    public function test_fixed_block_cannot_be_deleted_or_moved_while_locked(): void
+    {
+        $user = $this->makeUser();
+        $tpl  = $this->makeLockedTemplateWithExtras();
+        $link = $this->lockedExtrasLink($user, $tpl);
+        $ajax = ['X-Requested-With' => 'XMLHttpRequest'];
+
+        $fixed = $link->biolinkBlocks()->where('type', 'heading')->firstOrFail();
+        $this->assertTrue(!empty($fixed->settings['_fixed']));
+
+        $this->deleteJson(route('user.links.blocks.destroy', [$link, $fixed]), [], $ajax)
+            ->assertStatus(403);
+        $this->assertNotNull($fixed->fresh());
+
+        $this->postJson(route('user.links.blocks.move', [$link, $fixed]), ['parent_id' => null], $ajax)
+            ->assertStatus(403);
+    }
+
+    public function test_detach_stamps_release_and_reapply_reattaches_keeping_user_blocks(): void
+    {
+        $user = $this->makeUser();
+        $tpl  = $this->makeLockedTemplateWithExtras();
+        $link = $this->lockedExtrasLink($user, $tpl);
+        $ajax = ['X-Requested-With' => 'XMLHttpRequest'];
+
+        // Add a user block, then detach.
+        $this->post(route('user.links.blocks.store', $link), [
+            'type' => 'paragraph', 'settings' => ['text' => 'Mine'],
+        ], $ajax)->assertOk();
+
+        $this->postJson(route('user.links.templates.detach-design', $link), [], $ajax)->assertOk();
+        $link->refresh();
+        $released = $link->settings['biolink']['design_lock_released'] ?? null;
+        $this->assertSame($tpl->id, (int) ($released['template_id'] ?? 0));
+
+        // Delete the fixed block while detached (allowed now).
+        $fixed = $link->biolinkBlocks()->where('type', 'heading')->firstOrFail();
+        $this->deleteJson(route('user.links.blocks.destroy', [$link, $fixed]), [], $ajax)->assertOk();
+
+        // Re-apply the same template: non-destructive re-attach.
+        $this->post(route('user.links.templates.apply-page', $link), ['template_id' => $tpl->id])
+            ->assertRedirect();
+
+        $link->refresh();
+        $this->assertTrue($link->isDesignLocked());
+        $this->assertNull($link->settings['biolink']['design_lock_released'] ?? null);
+
+        $roots = $link->biolinkBlocks()->whereNull('parent_id')->orderBy('sort_order')->get();
+        // Fixed heading recreated and pinned first.
+        $this->assertSame('heading', $roots->first()->type);
+        $this->assertTrue(!empty($roots->first()->settings['_fixed']));
+        // User's block survived.
+        $this->assertTrue($roots->contains(fn ($b) => ($b->settings['text'] ?? null) === 'Mine'));
+    }
+
+    public function test_api_reapply_after_detach_reattaches(): void
+    {
+        $user = $this->makeUser();
+        $tpl  = $this->makeLockedTemplateWithExtras();
+        $link = $this->lockedExtrasLink($user, $tpl);
+
+        $this->withToken($this->token($user));
+        $this->postJson("/api/v1/links/{$link->id}/page-templates/detach")->assertOk();
+
+        $resp = $this->postJson("/api/v1/links/{$link->id}/page-templates/apply", ['template_id' => $tpl->id]);
+        $resp->assertOk();
+        $this->assertTrue((bool) $resp->json('data.reattached'));
+        $this->assertTrue($link->refresh()->isDesignLocked());
+    }
+
     // ── seeder ───────────────────────────────────────────────────────
 
     public function test_seeder_marks_curated_starter_blueprints_design_locked(): void

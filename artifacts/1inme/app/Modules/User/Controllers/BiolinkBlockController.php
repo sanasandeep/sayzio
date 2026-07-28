@@ -552,6 +552,17 @@ class BiolinkBlockController extends Controller
         $settings = $validated['settings'] ?? $block->settings;
         $settings = $this->sanitizeSettings($block->type, $settings);
 
+        // `_fixed` is admin-owned (template design session). Outside a
+        // template draft the submitted value is ignored — carry it over from
+        // the stored settings so users can neither pin nor unpin blocks.
+        if (!is_array(($link->settings ?? [])['_template_draft'] ?? null)) {
+            if (!empty($block->settings['_fixed'])) {
+                $settings['_fixed'] = true;
+            } else {
+                unset($settings['_fixed']);
+            }
+        }
+
         // Clear the `_placeholder` flag only when the caller actually
         // edited a seeded field. Loose equality so nested arrays
         // compare element-wise.
@@ -863,6 +874,17 @@ class BiolinkBlockController extends Controller
         return response()->json(['html' => $html]);
     }
 
+    /**
+     * True when the template's fixed-position rules apply to this editor
+     * session: page is design-locked AND this isn't the admin design draft
+     * (the draft must stay fully editable so admins can curate the layout).
+     */
+    private function fixedRulesApply(Link $link): bool
+    {
+        return $link->isDesignLocked()
+            && !is_array(($link->settings ?? [])['_template_draft'] ?? null);
+    }
+
     public function destroy(Link $link, BiolinkBlock $block)
     {
         abort_if($link->user_id !== workspace_owner_id() || $block->link_id !== $link->id, 403);
@@ -871,6 +893,12 @@ class BiolinkBlockController extends Controller
                 return response()->json(['success' => false, 'message' => 'Verified blocks cannot be deleted.'], 403);
             }
             return redirect()->back()->with('error', 'Verified blocks cannot be deleted.');
+        }
+        if ($this->fixedRulesApply($link) && !empty($block->settings['_fixed'])) {
+            if (request()->ajax() || request()->wantsJson()) {
+                return response()->json(['success' => false, 'message' => 'This block is fixed by the template and cannot be removed. Detach from the template to unlock it.'], 403);
+            }
+            return redirect()->back()->with('error', 'This block is fixed by the template and cannot be removed.');
         }
         $this->recordBlockActivity('biolink.block.delete', $link, $block);
         $block->delete();
@@ -900,6 +928,15 @@ class BiolinkBlockController extends Controller
             ->merge($verified->pluck('parent_id')->filter())
             ->unique()
             ->all();
+
+        // Fixed-position template blocks survive "delete all" on
+        // design-locked pages, exactly like verified blocks.
+        if ($this->fixedRulesApply($link)) {
+            $fixedIds = $link->biolinkBlocks()->get(['id', 'settings'])
+                ->filter(fn ($b) => !empty($b->settings['_fixed']))
+                ->pluck('id');
+            $protectedIds = collect($protectedIds)->merge($fixedIds)->unique()->all();
+        }
 
         $deletable = $link->biolinkBlocks()
             ->when($protectedIds, fn ($q) => $q->whereNotIn('id', $protectedIds))
@@ -931,6 +968,31 @@ class BiolinkBlockController extends Controller
             'blocks.*' => 'integer|exists:biolink_blocks,id',
         ]);
 
+        // Fixed-position template blocks must keep their positions: they form
+        // a contiguous prefix in their original relative order, so any
+        // submitted order that moves them (or slots a user block between
+        // them) is rejected wholesale.
+        if ($this->fixedRulesApply($link)) {
+            $fixedIds = $link->biolinkBlocks()->whereNull('parent_id')->orderBy('sort_order')
+                ->get(['id', 'settings'])
+                ->filter(fn ($b) => !empty($b->settings['_fixed']))
+                ->pluck('id')->values()->all();
+            if ($fixedIds) {
+                // Require the fixed blocks as an exact prefix of the
+                // submitted order. Partial payloads that omit them would
+                // still renumber user blocks from 0 and slide them above
+                // the pinned blocks, so they're rejected too.
+                $submitted = array_map('intval', $validated['blocks']);
+                $submittedFixedPrefix = array_slice($submitted, 0, count($fixedIds));
+                if ($submittedFixedPrefix != $fixedIds) {
+                    return response()->json([
+                        'success' => false,
+                        'error' => 'Some blocks are fixed by the template and cannot be moved.',
+                    ], 422);
+                }
+            }
+        }
+
         foreach ($validated['blocks'] as $index => $blockId) {
             BiolinkBlock::where('id', $blockId)
                 ->where('link_id', $link->id)
@@ -943,6 +1005,10 @@ class BiolinkBlockController extends Controller
     public function moveBlock(Request $request, Link $link, BiolinkBlock $block)
     {
         abort_if($link->user_id !== workspace_owner_id() || $block->link_id !== $link->id, 403);
+
+        if ($this->fixedRulesApply($link) && !empty($block->settings['_fixed'])) {
+            return response()->json(['success' => false, 'error' => 'This block is fixed by the template and cannot be moved.'], 403);
+        }
 
         $validated = $request->validate([
             'parent_id' => 'nullable|integer|exists:biolink_blocks,id',
@@ -1026,6 +1092,48 @@ class BiolinkBlockController extends Controller
         }
 
         return redirect()->route('user.links.blocks.editor', $link)->with('success', 'Block visibility toggled.');
+    }
+
+    /**
+     * Admin design-session only: mark a top-level block as fixed-position
+     * (or unfix it). Fixed blocks form a contiguous prefix of the page, so
+     * the toggle cascades: fixing a block also fixes every top-level block
+     * above it; unfixing a block also unfixes every top-level block below
+     * it. Only available on template drafts — the flag is captured into the
+     * template snapshot and enforced on users' design-locked pages.
+     */
+    public function toggleFixed(Request $request, Link $link, BiolinkBlock $block)
+    {
+        abort_if($link->user_id !== workspace_owner_id() || $block->link_id !== $link->id, 403);
+        abort_unless(is_array(($link->settings ?? [])['_template_draft'] ?? null), 403, 'Fixed blocks can only be set inside a template design session.');
+        abort_if($block->parent_id !== null, 422, 'Only top-level blocks can be fixed.');
+
+        $fixed = filter_var($request->input('fixed'), FILTER_VALIDATE_BOOL);
+
+        $targets = $link->biolinkBlocks()
+            ->whereNull('parent_id')
+            ->when($fixed,
+                fn ($q) => $q->where('sort_order', '<=', $block->sort_order),
+                fn ($q) => $q->where('sort_order', '>=', $block->sort_order))
+            ->get();
+
+        $changedIds = [];
+        foreach ($targets as $t) {
+            $s = $t->settings ?? [];
+            $was = !empty($s['_fixed']);
+            if ($fixed) { $s['_fixed'] = true; } else { unset($s['_fixed']); }
+            if ($was !== $fixed) {
+                $t->settings = $s;
+                $t->save();
+                $changedIds[] = $t->id;
+            }
+        }
+
+        return response()->json([
+            'success' => true,
+            'fixed' => $fixed,
+            'changed_ids' => $changedIds,
+        ]);
     }
 
     /**
@@ -1902,6 +2010,17 @@ class BiolinkBlockController extends Controller
 
         if (isset($settings['_link']) && is_array($settings['_link'])) {
             $settings['_link'] = $this->sanitizeLinkSettings($settings['_link']);
+        }
+
+        // Fixed-position marker set by admins in the template design
+        // session. Normalize to a real boolean; drop when falsy so plain
+        // user blocks never carry the key.
+        if (array_key_exists('_fixed', $settings)) {
+            if (filter_var($settings['_fixed'], FILTER_VALIDATE_BOOL)) {
+                $settings['_fixed'] = true;
+            } else {
+                unset($settings['_fixed']);
+            }
         }
 
         if (isset($settings['_tab_id'])) {

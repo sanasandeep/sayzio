@@ -62,6 +62,7 @@ class TemplateController extends Controller
             'source_link_id' => 'nullable|integer|exists:links,id',
             'source_card_id' => 'nullable|integer|exists:biolink_blocks,id',
             'snapshot_json' => 'nullable|string',
+            'color_palettes_json' => 'nullable|string|max:20000',
             'recommended_personas' => 'nullable|array',
             'recommended_personas.*' => ['string', \Illuminate\Validation\Rule::in(\App\Modules\User\Services\PersonaCatalog::slugs())],
         ]);
@@ -90,6 +91,7 @@ class TemplateController extends Controller
         if ($kind === 'page') {
             $payload['recommended_personas'] = $validated['recommended_personas'] ?? [];
             $payload['design_locked'] = (bool) ($validated['design_locked'] ?? false);
+            $payload['color_palettes'] = $this->parsePalettes($validated['color_palettes_json'] ?? null);
         }
         $modelClass::create($payload);
 
@@ -130,6 +132,7 @@ class TemplateController extends Controller
             'source_card_id' => 'nullable|integer|exists:biolink_blocks,id',
             'recapture' => 'nullable|boolean',
             'snapshot_json' => 'nullable|string',
+            'color_palettes_json' => 'nullable|string|max:20000',
             'recommended_personas' => 'nullable|array',
             'recommended_personas.*' => ['string', \Illuminate\Validation\Rule::in(\App\Modules\User\Services\PersonaCatalog::slugs())],
         ]);
@@ -158,6 +161,7 @@ class TemplateController extends Controller
             // Unchecking every box must clear the tags, not no-op them.
             $fillPayload['recommended_personas'] = $validated['recommended_personas'] ?? [];
             $fillPayload['design_locked'] = (bool) ($validated['design_locked'] ?? false);
+            $fillPayload['color_palettes'] = $this->parsePalettes($validated['color_palettes_json'] ?? null);
         }
         $tpl->fill($fillPayload)->save();
 
@@ -166,6 +170,17 @@ class TemplateController extends Controller
 
         return redirect()->route('admin.templates.index', ['tab' => $kind])
             ->with('success', ucfirst($kind) . ' template updated.');
+    }
+
+    /**
+     * Decode + sanitize the palette-manager JSON into the stored palette
+     * list. Null when empty/invalid so the column stays null rather than [].
+     */
+    private function parsePalettes(?string $json): ?array
+    {
+        $decoded = json_decode(trim((string) $json), true);
+        $clean = PageTemplate::sanitizePalettes($decoded);
+        return empty($clean) ? null : $clean;
     }
 
     public function destroy(string $kind, int $id)

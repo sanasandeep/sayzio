@@ -182,6 +182,33 @@ class BiolinkBlockController extends Controller
             }
         }
 
+        // `_fixed` (template-pinned position) is admin-owned: always carry the
+        // stored value over whatever the client sent, and while the page is
+        // design-locked a fixed block's position fields are read-only too.
+        if (array_key_exists('settings', $data) && is_array($data['settings'])) {
+            if (!empty(($b->settings ?? [])['_fixed'])) {
+                $data['settings']['_fixed'] = true;
+            } else {
+                unset($data['settings']['_fixed']);
+            }
+        }
+        if ($link->isDesignLocked()) {
+            if (!empty(($b->settings ?? [])['_fixed'])) {
+                // Fixed block: position fields are read-only.
+                unset($data['sort_order'], $data['parent_id']);
+            } elseif (array_key_exists('sort_order', $data) && $b->parent_id === null && ($data['parent_id'] ?? $b->parent_id) === null) {
+                // Non-fixed root block: never allow it to slot into (or
+                // ahead of) the fixed prefix at the top of the page.
+                $fixedCount = BiolinkBlock::where('link_id', $link->id)->whereNull('parent_id')
+                    ->get(['id', 'settings'])
+                    ->filter(fn ($fb) => !empty($fb->settings['_fixed']))
+                    ->count();
+                if ($fixedCount > 0 && (int) $data['sort_order'] < $fixedCount) {
+                    $data['sort_order'] = $fixedCount;
+                }
+            }
+        }
+
         $b->fill($data)->save();
         return $this->ok(['block' => $this->transform($b->fresh())]);
     }
@@ -291,6 +318,9 @@ class BiolinkBlockController extends Controller
 
         $b = BiolinkBlock::where('link_id', $link->id)->find($id);
         if (!$b) return $this->notFound('Block not found');
+        if ($link->isDesignLocked() && !empty(($b->settings ?? [])['_fixed'])) {
+            return $this->fail('This block is fixed by the template and cannot be removed. Detach from the template to unlock it.', 403, 'design_locked_fixed_block');
+        }
         $b->delete();
         return $this->noContent();
     }
@@ -304,6 +334,28 @@ class BiolinkBlockController extends Controller
             'order'        => ['required', 'array', 'min:1'],
             'order.*'      => ['integer'],
         ]);
+
+        // Design-lock parity with the web editor: fixed template blocks form
+        // a contiguous prefix in their original relative order, so reject any
+        // order that moves them or slots user blocks between them.
+        if ($link->isDesignLocked()) {
+            $fixedIds = BiolinkBlock::where('link_id', $link->id)->whereNull('parent_id')
+                ->orderBy('sort_order')->get(['id', 'settings'])
+                ->filter(fn ($b) => !empty($b->settings['_fixed']))
+                ->pluck('id')->values()->all();
+            if ($fixedIds) {
+                // Require the fixed blocks as an exact prefix of the
+                // submitted order. Partial payloads that omit them would
+                // still renumber user blocks from 0 and slide them above
+                // the pinned blocks, so they're rejected too.
+                $submitted = array_map('intval', $data['order']);
+                $prefix = array_slice($submitted, 0, count($fixedIds));
+                if ($prefix != $fixedIds) {
+                    return $this->fail('Some blocks are fixed by the template and cannot be moved.', 422, 'design_locked_fixed_block');
+                }
+            }
+        }
+
         foreach ($data['order'] as $i => $blockId) {
             BiolinkBlock::where('link_id', $link->id)->where('id', $blockId)->update(['sort_order' => $i]);
         }

@@ -415,6 +415,23 @@ protected $fillable = [
         return is_array($style) ? $style : null;
     }
 
+    /**
+     * Admin-defined color palettes carried inside the design-lock stamp.
+     * Empty when the template defined none (palette picker hidden).
+     */
+    public function designLockPalettes(): array
+    {
+        $p = ($this->designLockInfo() ?? [])['palettes'] ?? null;
+        return is_array($p) ? $p : [];
+    }
+
+    /** Key of the currently selected palette (null = template base colors). */
+    public function designLockPaletteKey(): ?string
+    {
+        $k = ($this->designLockInfo() ?? [])['palette'] ?? null;
+        return is_string($k) && $k !== '' ? $k : null;
+    }
+
     public function isExpired(): bool
     {
         if ($this->expires_at && $this->expires_at->isPast()) return true;

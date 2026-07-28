@@ -1014,6 +1014,7 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::delete('links/{link}/blocks', [BiolinkBlockController::class, 'bulkDestroy'])->middleware('workspace.can:links.edit')->name('links.blocks.bulkDestroy');
         Route::post('links/{link}/blocks/reorder', [BiolinkBlockController::class, 'reorder'])->middleware('workspace.can:links.edit')->name('links.blocks.reorder');
         Route::post('links/{link}/blocks/{block}/toggle', [BiolinkBlockController::class, 'toggleActive'])->middleware('workspace.can:links.edit')->name('links.blocks.toggle');
+        Route::post('links/{link}/blocks/{block}/toggle-fixed', [BiolinkBlockController::class, 'toggleFixed'])->middleware('workspace.can:links.edit')->name('links.blocks.toggleFixed');
         Route::post('links/{link}/blocks/{block}/move', [BiolinkBlockController::class, 'moveBlock'])->middleware('workspace.can:links.edit')->name('links.blocks.move');
         Route::post('links/{link}/blocks/{block}/apply-variant-to-all', [BiolinkBlockController::class, 'applyVariantToAll'])->middleware('workspace.can:links.edit')->name('links.blocks.applyVariantToAll');
         Route::post('links/{link}/blocks/{block}/apply-variant', [BiolinkBlockController::class, 'applyVariant'])->middleware('workspace.can:links.edit')->name('links.blocks.applyVariant');
@@ -1338,6 +1339,7 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::get('links/{link}/templates/cards', [\App\Modules\User\Controllers\LinkTemplateController::class, 'cardGallery'])->middleware('workspace.can:links.view')->name('links.templates.cards');
         Route::post('links/{link}/templates/apply-card', [\App\Modules\User\Controllers\LinkTemplateController::class, 'applyCard'])->middleware('workspace.can:links.edit')->name('links.templates.apply-card');
         Route::post('links/{link}/templates/detach-design', [\App\Modules\User\Controllers\LinkTemplateController::class, 'detachDesign'])->middleware('workspace.can:links.edit')->name('links.templates.detach-design');
+        Route::post('links/{link}/templates/apply-palette', [\App\Modules\User\Controllers\LinkTemplateController::class, 'applyPalette'])->middleware('workspace.can:links.edit')->name('links.templates.apply-palette');
 
         // Standalone splash pages — reusable across multiple links. Read
         // under links.view, mutate under links.edit.

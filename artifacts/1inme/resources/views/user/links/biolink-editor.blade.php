@@ -1691,6 +1691,26 @@ function ajaxToggleBlock(btn, url, blockId) {
     }).catch(function() { btn.disabled = false; showToast('Failed to toggle', 'error'); });
 }
 
+// Template design session only: pin/unpin a block's position. The server
+// cascades (pin fixes all blocks above, unpin releases all below), so the
+// simplest faithful UI is a reload — multiple cards change at once.
+function ajaxToggleFixed(btn, url, blockId, fixed) {
+    btn.disabled = true;
+    fetch(url, {
+        method: 'POST',
+        headers: { 'X-CSRF-TOKEN': _csrfToken(), 'Accept': 'application/json', 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fixed: fixed })
+    }).then(function(r) { return r.json(); }).then(function(data) {
+        if (data.success) {
+            showToast(data.fixed ? 'Block pinned (blocks above pinned too)' : 'Block unpinned (blocks below unpinned too)', 'success');
+            window.location.reload();
+        } else {
+            btn.disabled = false;
+            showToast('Failed to update pin', 'error');
+        }
+    }).catch(function() { btn.disabled = false; showToast('Failed to update pin', 'error'); });
+}
+
 function ajaxDeleteBlock(btn, url, blockId) {
     window.themedConfirm({
         title: 'Delete this block?',
