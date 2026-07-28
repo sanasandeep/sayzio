@@ -1341,6 +1341,12 @@ class BiolinkBlockController extends Controller
             'menu_bar.overlay_bg' => ['nullable','string','max:20','regex:/^#[0-9a-fA-F]{3,8}$/'],
             'menu_bar.items' => 'nullable|string|max:5000',
 
+            // Free-floating page-level text overlays (Task #5954). The
+            // editor submits a JSON string; entries are validated field by
+            // field in sanitizeTextOverlays() and capped at
+            // PAGE_TEXT_OVERLAY_MAX.
+            'text_overlays' => 'nullable|string|max:8000',
+
             'auto_translate' => 'nullable|array',
             'auto_translate.enabled' => 'boolean',
             'auto_translate.position' => 'nullable|string|in:top-right,top-left,bottom-right,bottom-left',
@@ -1465,6 +1471,15 @@ class BiolinkBlockController extends Controller
         unset($validated['stickers_json']);
         if ($request->has('stickers_json') && !$link->isDesignLocked()) {
             $settings['biolink']['stickers'] = \App\Modules\User\Support\BiolinkStickers::sanitize($stickersJson ?? '[]');
+        }
+
+        // Page-level text overlays are a design surface: sanitize the JSON
+        // payload into a bounded array (never store the raw string) and
+        // respect the design lock like every other design key.
+        $textOverlaysInput = $validated['text_overlays'] ?? null;
+        unset($validated['text_overlays']);
+        if ($request->has('text_overlays') && !$link->isDesignLocked()) {
+            $settings['biolink']['text_overlays'] = $this->sanitizeTextOverlays($textOverlaysInput);
         }
 
         $settings['biolink'] = array_merge($settings['biolink'] ?? [], $validated);
@@ -2207,6 +2222,9 @@ class BiolinkBlockController extends Controller
         $enums['_photo_mask'] = ['arch', 'torn'];
         $enums['_photo_frame'] = ['concentric_arch'];
         $numericBounds['_photo_frame_strokes'] = [2, 5];
+        // Text-block tilt in degrees (Task #5954) — clamped so a tilted
+        // heading/paragraph can never rotate off the page.
+        $numericBounds['_tilt'] = [BiolinkBlock::TILT_MIN, BiolinkBlock::TILT_MAX];
         // Heading shape accents (Task #5938) — strict enums; the shape
         // token list shares the accent branch below with `_photo_accents`.
         $enums['_heading_accent_placement'] = \App\Modules\User\Support\AccentShapeCatalog::HEADING_PLACEMENTS;
@@ -2230,6 +2248,10 @@ class BiolinkBlockController extends Controller
                 if (in_array($val, $enums[$key], true)) $result[$key] = $val;
             } elseif (isset($numericBounds[$key])) {
                 if (is_numeric($val)) {
+                    // 0° tilt means "level" — the range input always submits
+                    // a value, so drop the default instead of stamping
+                    // `_tilt: 0` onto every heading/paragraph save.
+                    if ($key === '_tilt' && (float) $val === 0.0) continue;
                     $result[$key] = max($numericBounds[$key][0], min($numericBounds[$key][1], (float) $val));
                 }
             } elseif (in_array($key, $colorKeys, true)) {
@@ -2297,6 +2319,13 @@ class BiolinkBlockController extends Controller
                 // so a tampered client URL can never be persisted.
                 $clean = \App\Modules\User\Support\PhotoStickerSanitizer::sanitize($val);
                 if ($clean !== []) $result[$key] = $clean;
+            } elseif ($key === '_photo_text_stickers') {
+                // Text overlays on image blocks (Task #5954). JSON string
+                // from the editor or plain array from templates/variants;
+                // every field is validated + clamped, invalid entries are
+                // dropped silently.
+                $clean = $this->sanitizePhotoTextStickers($val);
+                if ($clean !== []) $result[$key] = $clean;
             } elseif (in_array($key, ['_animation', '_gallery_layout', '_social_set', '_profile_layout'], true)) {
                 // Opaque slug-shaped variant metadata hooks (Task #1041).
                 // The renderer is free to ignore unknown values; we only
@@ -2307,6 +2336,157 @@ class BiolinkBlockController extends Controller
             }
         }
         return $result;
+    }
+
+    /**
+     * Task #5939 — validate custom sticker overlay entries for image
+     * blocks. Accepts a JSON string (editor hidden input) or an array
+     * (templates/variants). Every surviving entry references an image
+     * file owned by the current workspace owner; anything else fails
+     * closed (dropped silently). The public `url` is always re-derived
+     * from the file row, never trusted from the client — the persisted
+     * `/f/{id}/{filename}` string is what authorizes anonymous serving
+     * via UserFile::isReferencedByPublicRecord().
+     */
+    private function sanitizePhotoStickers(mixed $raw): array
+    {
+        $list = is_array($raw) ? $raw : json_decode((string) $raw, true);
+        if (!is_array($list) || $list === []) return [];
+
+        $ownerId = (int) (workspace_owner_id() ?? 0);
+        if ($ownerId <= 0) return [];
+
+        $ids = [];
+        foreach ($list as $entry) {
+            if (is_array($entry) && (int) ($entry['file_id'] ?? 0) > 0) {
+                $ids[] = (int) $entry['file_id'];
+            }
+        }
+        if ($ids === []) return [];
+
+        $files = \App\Modules\User\Models\UserFile::whereIn('id', array_unique($ids))
+            ->where('user_id', $ownerId)
+            ->where('type', 'image')
+            ->where('scan_status', '!=', 'flagged')
+            ->get()
+            ->keyBy('id');
+
+        $clean = [];
+        foreach ($list as $entry) {
+            if (!is_array($entry)) continue;
+            $fileId = (int) ($entry['file_id'] ?? 0);
+            $file = $files->get($fileId);
+            if (!$file) continue; // foreign / missing / non-image / flagged → fail closed
+
+            $pos = (string) ($entry['pos'] ?? 'top_right');
+            if (!in_array($pos, BiolinkBlock::PHOTO_STICKER_POSITIONS, true)) $pos = 'top_right';
+
+            $clean[] = [
+                'file_id' => $fileId,
+                'url'     => $file->url_path,
+                'pos'     => $pos,
+                'size'    => max(24, min(160, (int) ($entry['size'] ?? 64))),
+                'rotate'  => max(-180, min(180, (int) ($entry['rotate'] ?? 0))),
+                'dx'      => max(-80, min(80, (int) ($entry['dx'] ?? 0))),
+                'dy'      => max(-80, min(80, (int) ($entry['dy'] ?? 0))),
+            ];
+            if (count($clean) >= BiolinkBlock::PHOTO_STICKER_MAX) break;
+        }
+
+        return $clean;
+    }
+
+    /**
+     * Task #5954 — validate text overlay entries for image blocks.
+     * Accepts a JSON string (editor hidden input) or an array
+     * (templates/variants). Text is plain-text only (tags stripped,
+     * length capped); fonts pass the same character allowlist as
+     * per-block `font_family`; colors must match the strict color
+     * regex; every numeric field is clamped. Invalid entries are
+     * dropped silently — the sanitizer never errors.
+     */
+    private function sanitizePhotoTextStickers(mixed $raw): array
+    {
+        $list = is_array($raw) ? $raw : json_decode((string) $raw, true);
+        if (!is_array($list) || $list === []) return [];
+
+        $clean = [];
+        foreach ($list as $entry) {
+            if (!is_array($entry)) continue;
+
+            $text = trim(preg_replace('/\s+/', ' ', strip_tags((string) ($entry['text'] ?? ''))) ?? '');
+            if ($text === '') continue; // text is the one required field
+            $text = mb_substr($text, 0, 80);
+
+            $font = '';
+            if (!empty($entry['font'])) {
+                // Same allowlist as font_family: letters/digits/spaces plus
+                // the "custom:" prefix delimiter — safe inside a CSS
+                // font-family declaration.
+                $font = trim((string) preg_replace('/[^a-zA-Z0-9 :_\-]/', '', substr((string) $entry['font'], 0, 80)));
+            }
+
+            $color = (string) ($entry['color'] ?? '');
+            if (!preg_match('/^#[0-9a-fA-F]{3,8}$/', $color)) $color = '#ffffff';
+
+            $pos = (string) ($entry['pos'] ?? 'top_right');
+            if (!in_array($pos, BiolinkBlock::PHOTO_STICKER_POSITIONS, true)) $pos = 'top_right';
+
+            $clean[] = [
+                'text'   => $text,
+                'font'   => $font,
+                'color'  => $color,
+                'pos'    => $pos,
+                'size'   => max(10, min(64, (int) ($entry['size'] ?? 20))),
+                'rotate' => max(-180, min(180, (int) ($entry['rotate'] ?? 0))),
+                'dx'     => max(-80, min(80, (int) ($entry['dx'] ?? 0))),
+                'dy'     => max(-80, min(80, (int) ($entry['dy'] ?? 0))),
+            ];
+            if (count($clean) >= BiolinkBlock::PHOTO_TEXT_STICKER_MAX) break;
+        }
+
+        return $clean;
+    }
+
+    /**
+     * Task #5954 — validate free-floating page-level text overlays.
+     * Position is percentage-based ({x,y} in 0..100 of the page column)
+     * so the same entry lands proportionally on any screen width.
+     */
+    private function sanitizeTextOverlays(mixed $raw): array
+    {
+        $list = is_array($raw) ? $raw : json_decode((string) $raw, true);
+        if (!is_array($list) || $list === []) return [];
+
+        $clean = [];
+        foreach ($list as $entry) {
+            if (!is_array($entry)) continue;
+
+            $text = trim(preg_replace('/\s+/', ' ', strip_tags((string) ($entry['text'] ?? ''))) ?? '');
+            if ($text === '') continue;
+            $text = mb_substr($text, 0, 120);
+
+            $font = '';
+            if (!empty($entry['font'])) {
+                $font = trim((string) preg_replace('/[^a-zA-Z0-9 :_\-]/', '', substr((string) $entry['font'], 0, 80)));
+            }
+
+            $color = (string) ($entry['color'] ?? '');
+            if (!preg_match('/^#[0-9a-fA-F]{3,8}$/', $color)) $color = '#ffffff';
+
+            $clean[] = [
+                'text'   => $text,
+                'font'   => $font,
+                'color'  => $color,
+                'size'   => max(10, min(72, (int) ($entry['size'] ?? 22))),
+                'x'      => max(0, min(100, round((float) ($entry['x'] ?? 50), 2))),
+                'y'      => max(0, min(100, round((float) ($entry['y'] ?? 10), 2))),
+                'rotate' => max(-180, min(180, (int) ($entry['rotate'] ?? 0))),
+            ];
+            if (count($clean) >= BiolinkBlock::PAGE_TEXT_OVERLAY_MAX) break;
+        }
+
+        return $clean;
     }
 
     private function sanitizeImageStyle(array $input): array

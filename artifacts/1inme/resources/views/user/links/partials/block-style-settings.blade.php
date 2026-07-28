@@ -475,6 +475,20 @@
                     <input type="text" name="style[text_color]" value="{{ $tcVal }}" placeholder="Inherit" class="{{ $inputClass }} flex-1" oninput="if (/^#[0-9a-fA-F]{6}$/.test(this.value)) this.previousElementSibling.value = this.value">
                 </div>
             </div>
+            @if(in_array($block->type, ['heading', 'paragraph'], true))
+            {{-- Tilt (Task #5954): rotate the whole text block up to ±30°
+                 for poster / scrapbook looks. 0 = level (nothing stored). --}}
+            <div x-data="{ tilt: {{ (float) ($st['_tilt'] ?? 0) }} }">
+                <label class="{{ $labelClass }}">Tilt <span class="opacity-60" x-text="(tilt > 0 ? '+' : '') + tilt + '°'"></span></label>
+                <div class="flex items-center gap-2">
+                    <input type="range" min="-30" max="30" step="1" name="style[_tilt]"
+                           x-model.number="tilt" class="flex-1 accent-blue-500">
+                    <button type="button" class="text-[10px] px-2 py-1 rounded-lg" style="border: 1px solid var(--border-glass); color: var(--text-muted);"
+                            @click="tilt = 0; $nextTick(() => { const r = $el.parentElement.querySelector('input[type=range]'); r.dispatchEvent(new Event('input', { bubbles: true })); })">Level</button>
+                </div>
+                <p class="text-[10px] mt-1" style="color: var(--text-dimmed);">Tilts the whole text block. Great with display fonts for a hand-placed poster feel.</p>
+            </div>
+            @endif
         </div>
         @endif
 

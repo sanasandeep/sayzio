@@ -95,6 +95,17 @@ export type BiolinkPayload = {
     mode?: "list" | "conversational" | "slides";
     /** Decorative page stickers (emoji/image overlays), server-sanitized. */
     stickers?: PageSticker[];
+    // Free-floating page-level text overlays (percent-positioned captions
+    // layered over the whole page). Sanitized server-side.
+    text_overlays?: {
+      text: string;
+      font: string;
+      color: string;
+      size: number;
+      x: number;
+      y: number;
+      rotate: number;
+    }[];
   };
   owner: {
     id: number | null;

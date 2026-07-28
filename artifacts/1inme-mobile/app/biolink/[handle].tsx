@@ -1264,10 +1264,21 @@ export function BlockView({ block, alias, allBlocks, openEmbed }: { block: Bioli
             .filter((a, i, arr) => a !== "" && haKnown.includes(a) && arr.indexOf(a) === i)
         : [];
 
+    // Text tilt (web `_style._tilt`, Task #5954): rotate the whole heading
+    // up to ±30° for poster / scrapbook looks.
+    const haTiltRaw = Number(haSt._tilt ?? 0);
+    const haTilt = Number.isFinite(haTiltRaw) ? Math.max(-30, Math.min(30, haTiltRaw)) : 0;
+    const tiltWrap = (el: React.ReactElement) =>
+      haTilt !== 0 ? (
+        <View style={{ transform: [{ rotate: `${haTilt}deg` }] }}>{el}</View>
+      ) : (
+        el
+      );
+
     const headingEl = (
       <Text style={[styles.heading, { color: blockTextColor(block, colors.foreground), zIndex: 1 }]}>{text}</Text>
     );
-    if (haAccents.length === 0) return headingEl;
+    if (haAccents.length === 0) return tiltWrap(headingEl);
 
     const haColor = haStr("_heading_accent_color") || "#ec4899";
     const haPlacementRaw = haStr("_heading_accent_placement");
@@ -1313,7 +1324,7 @@ export function BlockView({ block, alias, allBlocks, openEmbed }: { block: Bioli
     };
     const slots = haSlots[haPlacement];
 
-    return (
+    return tiltWrap(
       <View style={{ position: "relative" }}>
         {haAccents.map((shape, idx) => {
           const [viewBox, bw, bh] = haDims[shape];
@@ -1381,8 +1392,21 @@ export function BlockView({ block, alias, allBlocks, openEmbed }: { block: Bioli
       // paragraph_rich stores raw HTML; strip tags so we don't show markup.
       (pickStr(s, "html") ?? "").replace(/<[^>]+>/g, "").trim();
     if (!text) return null;
-    return (
+    // Text tilt (web `_style._tilt`, Task #5954), paragraph parity.
+    const pSt = (s._style && typeof s._style === "object" ? s._style : {}) as Record<
+      string,
+      unknown
+    >;
+    const pTiltRaw = Number(pSt._tilt ?? 0);
+    const pTilt =
+      t === "paragraph" && Number.isFinite(pTiltRaw) ? Math.max(-30, Math.min(30, pTiltRaw)) : 0;
+    const paragraphEl = (
       <Text style={[styles.body, { color: blockTextColor(block, colors.foreground) }]}>{text}</Text>
+    );
+    return pTilt !== 0 ? (
+      <View style={{ transform: [{ rotate: `${pTilt}deg` }] }}>{paragraphEl}</View>
+    ) : (
+      paragraphEl
     );
   }
 
@@ -1434,8 +1458,45 @@ export function BlockView({ block, alias, allBlocks, openEmbed }: { block: Bioli
           .filter((e) => e.url !== "")
           .slice(0, 4)
       : [];
+    // Text-on-photo overlays (web `_style._photo_text_stickers`, Task #5954):
+    // short captions anchored like stickers, draggable via dx/dy offsets.
+    type PhTextSticker = {
+      text: string;
+      font: string;
+      color: string;
+      size: number;
+      pos: string;
+      dx: number;
+      dy: number;
+      rotate: number;
+    };
+    const phTexts: PhTextSticker[] = !isAvatar && Array.isArray(phSt._photo_text_stickers)
+      ? (phSt._photo_text_stickers as unknown[])
+          .filter((e): e is Record<string, unknown> => !!e && typeof e === "object")
+          .map((e) => ({
+            text: typeof e.text === "string" ? e.text.trim() : "",
+            font:
+              typeof e.font === "string" ? e.font.replace(/^custom:/, "") : "",
+            color:
+              typeof e.color === "string" && /^#[0-9a-fA-F]{3,8}$/.test(e.color)
+                ? e.color
+                : "#ffffff",
+            size: Math.max(10, Math.min(64, Number(e.size) || 20)),
+            pos: typeof e.pos === "string" ? e.pos : "top_left",
+            dx: Math.max(-80, Math.min(80, Number(e.dx) || 0)),
+            dy: Math.max(-80, Math.min(80, Number(e.dy) || 0)),
+            rotate: Math.max(-180, Math.min(180, Number(e.rotate) || 0)),
+          }))
+          .filter((e) => e.text !== "")
+          .slice(0, 4)
+      : [];
     const phDecorated =
-      phFrame || phMask !== "" || phBanner !== "" || phAccents.length > 0 || phStickers.length > 0;
+      phFrame ||
+      phMask !== "" ||
+      phBanner !== "" ||
+      phAccents.length > 0 ||
+      phStickers.length > 0 ||
+      phTexts.length > 0;
 
     if (phDecorated) {
       const phFrameColor = phStr("_photo_frame_color") || "#57534e";
@@ -1666,6 +1727,51 @@ export function BlockView({ block, alias, allBlocks, openEmbed }: { block: Bioli
                   resizeMode="contain"
                   style={{ width: "100%", height: "100%" }}
                 />
+              </View>
+            );
+          })}
+          {phTexts.map((tk, i) => {
+            const anchor: Record<string, number | string> =
+              tk.pos === "top_left"
+                ? { left: -10, top: -10 }
+                : tk.pos === "bottom_left"
+                  ? { left: -10, bottom: -10 }
+                  : tk.pos === "bottom_right"
+                    ? { right: -10, bottom: -10 }
+                    : tk.pos === "center_left"
+                      ? { left: -12, top: "50%" }
+                      : tk.pos === "center_right"
+                        ? { right: -12, top: "50%" }
+                        : { right: -10, top: -10 };
+            const centered = tk.pos === "center_left" || tk.pos === "center_right";
+            return (
+              <View
+                key={`ptk-${i}`}
+                pointerEvents="none"
+                style={{
+                  position: "absolute",
+                  zIndex: 12,
+                  ...anchor,
+                  transform: [
+                    ...(centered ? [{ translateY: -(tk.size * 0.6) }] : []),
+                    { translateX: tk.dx },
+                    { translateY: tk.dy },
+                    { rotate: `${tk.rotate}deg` },
+                  ],
+                }}
+              >
+                <Text
+                  style={{
+                    color: tk.color,
+                    fontSize: tk.size,
+                    fontWeight: "700",
+                    textShadowColor: "rgba(0,0,0,0.45)",
+                    textShadowOffset: { width: 0, height: 1 },
+                    textShadowRadius: 6,
+                  }}
+                >
+                  {tk.text}
+                </Text>
               </View>
             );
           })}
@@ -5191,6 +5297,39 @@ export default function BiolinkViewer() {
               .map((b) => (
                 <BlockView key={b.id} block={b} alias={alias} allBlocks={q.data.blocks} openEmbed={openEmbed} />
               ))}
+            {/* Free-floating page text overlays (Task #5954). Percent x/y are
+                relative to the blocks column; pointerEvents none so they
+                never block taps on the blocks underneath. */}
+            {(q.data.biolink.text_overlays ?? []).map((ov, i) => (
+              <View
+                key={`pov-${i}`}
+                pointerEvents="none"
+                style={{
+                  position: "absolute",
+                  left: `${Math.max(0, Math.min(100, ov.x))}%`,
+                  top: `${Math.max(0, Math.min(100, ov.y))}%`,
+                  zIndex: 30,
+                  transform: [
+                    { translateX: "-50%" as unknown as number },
+                    { translateY: "-50%" as unknown as number },
+                    { rotate: `${Math.max(-180, Math.min(180, ov.rotate))}deg` },
+                  ],
+                }}
+              >
+                <Text
+                  style={{
+                    color: /^#[0-9a-fA-F]{3,8}$/.test(ov.color) ? ov.color : "#ffffff",
+                    fontSize: Math.max(10, Math.min(72, ov.size)),
+                    fontWeight: "700",
+                    textShadowColor: "rgba(0,0,0,0.45)",
+                    textShadowOffset: { width: 0, height: 1 },
+                    textShadowRadius: 6,
+                  }}
+                >
+                  {ov.text}
+                </Text>
+              </View>
+            ))}
           </View>
           <LinkTypePairings
             pairings={q.data.pairings}

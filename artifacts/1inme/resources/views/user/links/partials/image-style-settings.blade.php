@@ -25,6 +25,14 @@
     // _style already carry the server-derived url for thumbnails.
     $phStickersSaved = is_array($phSt['_photo_stickers'] ?? null) ? array_values($phSt['_photo_stickers']) : [];
     $phStickerMax = \App\Modules\User\Models\BiolinkBlock::PHOTO_STICKER_MAX;
+    // Text overlays on the photo (Task #5954) — same anchor + dx/dy drag
+    // model as image stickers, but the payload is caption text + font.
+    $phTextsSaved = is_array($phSt['_photo_text_stickers'] ?? null) ? array_values($phSt['_photo_text_stickers']) : [];
+    $phTextMax = \App\Modules\User\Models\BiolinkBlock::PHOTO_TEXT_STICKER_MAX;
+    $phTextFonts = array_values(array_map(
+        fn ($e) => $e['family'],
+        array_filter(\App\Modules\User\Support\FontCatalog::all(), fn ($e) => in_array($e['category'], ['display', 'handwriting'], true))
+    ));
     $phStickerPositions = [
         'top_left' => 'Top left', 'top_right' => 'Top right',
         'bottom_left' => 'Bottom left', 'bottom_right' => 'Bottom right',
@@ -502,6 +510,198 @@
                         </template>
                     </div>
                 </div>
+            </div>
+
+            {{-- ── Text overlays on the photo (Task #5954) ──────────────── --}}
+            <div class="mt-4 pt-3" style="border-top: 1px solid var(--border-subtle);"
+                 x-data="{
+                    texts: @js($phTextsSaved),
+                    max: {{ $phTextMax }},
+                    error: '',
+                    stageW: 0,
+                    stageH: 0,
+                    drag: null,
+                    init() {
+                        this.$nextTick(() => {
+                            const stage = this.$refs.textStage;
+                            if (!stage || typeof ResizeObserver === 'undefined') return;
+                            const ro = new ResizeObserver(() => {
+                                this.stageW = stage.clientWidth;
+                                this.stageH = stage.clientHeight;
+                            });
+                            ro.observe(stage);
+                            this.stageW = stage.clientWidth;
+                            this.stageH = stage.clientHeight;
+                        });
+                    },
+                    /* Top-left px coords for a text box of size w×h at each
+                       anchor preset — mirrors the public renderer's CSS. */
+                    anchorTextBase(pos, w, h) {
+                        const W = this.stageW, H = this.stageH;
+                        switch (pos) {
+                            case 'top_left':     return { x: -10, y: -10 };
+                            case 'bottom_left':  return { x: -10, y: H - h + 10 };
+                            case 'bottom_right': return { x: W - w + 10, y: H - h + 10 };
+                            case 'center_left':  return { x: -12, y: H / 2 - h / 2 };
+                            case 'center_right': return { x: W - w + 12, y: H / 2 - h / 2 };
+                            default:             return { x: W - w + 10, y: -10 }; /* top_right */
+                        }
+                    },
+                    /* Static preview uses the exact renderer CSS (anchor +
+                       transforms), so no element measurement is needed. */
+                    previewTextStyle(t) {
+                        const anchors = {
+                            top_left: 'left:-10px;top:-10px;', top_right: 'right:-10px;top:-10px;',
+                            bottom_left: 'left:-10px;bottom:-10px;', bottom_right: 'right:-10px;bottom:-10px;',
+                            center_left: 'left:-12px;top:50%;', center_right: 'right:-12px;top:50%;',
+                        };
+                        const pos = anchors[t.pos] ? t.pos : 'top_right';
+                        const size = Math.max(10, Math.min(64, parseInt(t.size, 10) || 20));
+                        const dx = Math.max(-80, Math.min(80, parseInt(t.dx, 10) || 0));
+                        const dy = Math.max(-80, Math.min(80, parseInt(t.dy, 10) || 0));
+                        const rot = Math.max(-180, Math.min(180, parseInt(t.rotate, 10) || 0));
+                        let tf = 'translate(' + dx + 'px,' + dy + 'px)';
+                        if (pos === 'center_left' || pos === 'center_right') tf = 'translateY(-50%) ' + tf;
+                        if (rot !== 0) tf += ' rotate(' + rot + 'deg)';
+                        let fam = String(t.font || '').replace(/[^a-zA-Z0-9 :_\-]/g, '');
+                        if (fam.indexOf('custom:') === 0) fam = fam.slice(7);
+                        const color = /^#[0-9a-fA-F]{3,8}$/.test(String(t.color || '')) ? t.color : '#ffffff';
+                        return anchors[pos]
+                            + (fam ? &quot;font-family:'&quot; + fam + &quot;';&quot; : '')
+                            + 'color:' + color + ';font-size:' + size + 'px;line-height:1.15;white-space:nowrap;'
+                            + 'text-shadow:0 1px 6px rgba(0,0,0,0.35);transform:' + tf + ';';
+                    },
+                    startTextDrag(i, ev) {
+                        const stage = this.$refs.textStage;
+                        if (!stage) return;
+                        const el = ev.target.closest('[data-text-drag]');
+                        if (!el) return;
+                        const r = el.getBoundingClientRect();
+                        this.drag = {
+                            i: i, w: r.width, h: r.height,
+                            offX: ev.clientX - r.left,
+                            offY: ev.clientY - r.top,
+                        };
+                        try { stage.setPointerCapture(ev.pointerId); } catch (e) {}
+                    },
+                    onTextDrag(ev) {
+                        if (!this.drag) return;
+                        const stage = this.$refs.textStage;
+                        const rect = stage.getBoundingClientRect();
+                        const t = this.texts[this.drag.i];
+                        const left = (ev.clientX - rect.left) - this.drag.offX;
+                        const top = (ev.clientY - rect.top) - this.drag.offY;
+                        let best = null;
+                        for (const pos of ['top_left', 'top_right', 'bottom_left', 'bottom_right', 'center_left', 'center_right']) {
+                            const b = this.anchorTextBase(pos, this.drag.w, this.drag.h);
+                            const dx = left - b.x, dy = top - b.y;
+                            const d = dx * dx + dy * dy;
+                            if (!best || d < best.d) best = { pos: pos, dx: dx, dy: dy, d: d };
+                        }
+                        t.pos = best.pos;
+                        t.dx = Math.max(-80, Math.min(80, Math.round(best.dx)));
+                        t.dy = Math.max(-80, Math.min(80, Math.round(best.dy)));
+                    },
+                    endTextDrag(ev) {
+                        if (!this.drag) return;
+                        this.drag = null;
+                        try { this.$refs.textStage.releasePointerCapture(ev.pointerId); } catch (e) {}
+                        this.syncTexts();
+                    },
+                    syncTexts() {
+                        this.$nextTick(() => {
+                            const el = this.$refs.textsInput;
+                            el.value = this.texts.length ? JSON.stringify(this.texts) : '';
+                            el.dispatchEvent(new Event('input', { bubbles: true }));
+                        });
+                    },
+                    addText() {
+                        if (this.texts.length >= this.max) { this.error = 'Text overlay limit reached ({{ $phTextMax }} max).'; return; }
+                        this.error = '';
+                        this.texts.push({ text: 'Your text', font: '', color: '#ffffff', pos: 'top_right', size: 20, rotate: -6, dx: 0, dy: 0 });
+                        this.syncTexts();
+                    },
+                    removeText(i) { this.texts.splice(i, 1); this.error = ''; this.syncTexts(); },
+                 }">
+                <p class="text-xs font-semibold mb-1" style="color: var(--text-muted);"><i class="fas fa-font mr-1 text-amber-400"></i>Text on Photo</p>
+                <p class="text-[10px] mb-2" style="color: var(--text-dimmed);">Layer up to {{ $phTextMax }} short captions over the photo — drag them anywhere, tilt them, pick a poster font.</p>
+
+                <input type="hidden" name="style[_photo_text_stickers]" x-ref="textsInput"
+                       value="{{ $phTextsSaved ? json_encode($phTextsSaved) : '' }}">
+
+                <div class="mb-3" x-show="texts.length" x-cloak style="padding:12px;">
+                    <div x-ref="textStage" class="relative select-none rounded-lg"
+                         style="touch-action:none; background: rgba(127,127,127,0.12);"
+                         @pointermove="onTextDrag($event)" @pointerup="endTextDrag($event)" @pointercancel="endTextDrag($event)">
+                        @if(!empty($s['url']))
+                            <img src="{{ $s['url'] }}" alt="" class="w-full block rounded-lg pointer-events-none" draggable="false">
+                        @else
+                            <div class="w-full rounded-lg" style="aspect-ratio: 4 / 3;"></div>
+                        @endif
+                        <template x-for="(t, i) in texts" :key="'tdrag' + i">
+                            <span data-text-drag class="absolute z-10 font-bold"
+                                  :class="drag && drag.i === i ? 'cursor-grabbing ring-2 ring-amber-400' : 'cursor-grab'"
+                                  :style="previewTextStyle(t)"
+                                  x-text="(t.text || '').trim() || 'Your text'"
+                                  @pointerdown.prevent="startTextDrag(i, $event)"></span>
+                        </template>
+                    </div>
+                    <p class="text-[10px] mt-1" style="color: var(--text-dimmed);"><i class="fas fa-hand-pointer mr-1"></i>Drag a caption to place it — position and offsets update automatically.</p>
+                </div>
+
+                <template x-for="(t, i) in texts" :key="'t' + i">
+                    <div class="rounded-lg p-2 mb-2" style="border: 1px solid var(--border-subtle); background: var(--bg-glass-input);">
+                        <div class="flex items-center gap-2 mb-2">
+                            <input type="text" maxlength="80" x-model="t.text" @input="syncTexts()" placeholder="Caption text" class="{{ $inputClass }} flex-1">
+                            <input type="color" :value="/^#[0-9a-fA-F]{6}$/.test(t.color || '') ? t.color : '#ffffff'"
+                                   @input="t.color = $event.target.value; syncTexts()"
+                                   class="w-9 h-9 rounded-lg cursor-pointer flex-shrink-0" style="border: 1px solid var(--border-glass); background: var(--bg-glass-input);">
+                            <button type="button" @click="removeText(i)" class="text-red-400 hover:text-red-300 px-1.5" title="Remove text"><i class="fas fa-trash-can text-xs"></i></button>
+                        </div>
+                        <div class="grid grid-cols-2 gap-1.5 mb-1.5">
+                            <div>
+                                <label class="text-[10px] block" style="color: var(--text-dimmed);">Font</label>
+                                <select x-model="t.font" @change="syncTexts()" class="{{ $selectClass }}">
+                                    <option value="" style="background: var(--bg-body); color: var(--text-primary);">Default</option>
+                                    @foreach($phTextFonts as $ftf)
+                                    <option value="{{ $ftf }}" style="background: var(--bg-body); color: var(--text-primary);">{{ $ftf }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div>
+                                <label class="text-[10px] block" style="color: var(--text-dimmed);">Anchor</label>
+                                <select x-model="t.pos" @change="syncTexts()" class="{{ $selectClass }}">
+                                    @foreach($phStickerPositions as $pVal => $pLabel)
+                                    <option value="{{ $pVal }}" style="background: var(--bg-body); color: var(--text-primary);">{{ $pLabel }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-4 gap-1.5">
+                            <div>
+                                <label class="text-[10px] block" style="color: var(--text-dimmed);">Size</label>
+                                <input type="number" min="10" max="64" x-model.number="t.size" @input="syncTexts()" class="{{ $inputClass }}">
+                            </div>
+                            <div>
+                                <label class="text-[10px] block" style="color: var(--text-dimmed);">Rotate°</label>
+                                <input type="number" min="-180" max="180" x-model.number="t.rotate" @input="syncTexts()" class="{{ $inputClass }}">
+                            </div>
+                            <div>
+                                <label class="text-[10px] block" style="color: var(--text-dimmed);">Offset X</label>
+                                <input type="number" min="-80" max="80" x-model.number="t.dx" @input="syncTexts()" class="{{ $inputClass }}">
+                            </div>
+                            <div>
+                                <label class="text-[10px] block" style="color: var(--text-dimmed);">Offset Y</label>
+                                <input type="number" min="-80" max="80" x-model.number="t.dy" @input="syncTexts()" class="{{ $inputClass }}">
+                            </div>
+                        </div>
+                    </div>
+                </template>
+
+                <button type="button" @click="addText()" x-show="texts.length < max" class="w-full text-center text-xs py-2 rounded-lg" style="border: 1px dashed var(--border-glass); color: var(--text-muted);">
+                    <i class="fas fa-plus mr-1"></i>Add text overlay
+                </button>
+                <p class="text-[10px] mt-1 text-red-400" x-show="error" x-text="error" x-cloak></p>
             </div>
         </div>
         @endif

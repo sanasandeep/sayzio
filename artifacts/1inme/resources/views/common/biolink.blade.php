@@ -263,12 +263,38 @@
             if (!empty($st['font_family'])) $allFonts[] = (string) $st['font_family'];
             $stu = $bb->settings['_style'] ?? [];
             if (!empty($stu['font_family'])) $allFonts[] = (string) $stu['font_family'];
+            // Photo text overlays (Task #5954) can carry their own fonts.
+            foreach ((is_array($stu['_photo_text_stickers'] ?? null) ? $stu['_photo_text_stickers'] : []) as $pts) {
+                if (is_array($pts) && !empty($pts['font'])) $allFonts[] = (string) $pts['font'];
+            }
             foreach (($bb->children ?? []) as $cc) {
                 $cs = $cc->settings['_style'] ?? $cc->settings['style'] ?? [];
                 if (!empty($cs['font_family'])) $allFonts[] = (string) $cs['font_family'];
                 $csu = $cc->settings['_style'] ?? [];
                 if (!empty($csu['font_family'])) $allFonts[] = (string) $csu['font_family'];
             }
+        }
+        // Page-level free-floating text overlays (Task #5954) can carry
+        // their own fonts too.
+        $pageTextOverlays = [];
+        foreach ((is_array($bs['text_overlays'] ?? null) ? $bs['text_overlays'] : []) as $pto) {
+            if (!is_array($pto)) continue;
+            $ptoText = trim((string) ($pto['text'] ?? ''));
+            if ($ptoText === '') continue;
+            $ptoColor = (string) ($pto['color'] ?? '');
+            if (!preg_match('/^#[0-9a-fA-F]{3,8}$/', $ptoColor)) $ptoColor = '#ffffff';
+            $ptoFontRaw = (string) preg_replace('/[^a-zA-Z0-9 :_\-]/', '', (string) ($pto['font'] ?? ''));
+            if ($ptoFontRaw !== '') $allFonts[] = $ptoFontRaw;
+            $pageTextOverlays[] = [
+                'text'   => mb_substr($ptoText, 0, 120),
+                'font'   => str_starts_with($ptoFontRaw, 'custom:') ? substr($ptoFontRaw, 7) : $ptoFontRaw,
+                'color'  => $ptoColor,
+                'size'   => max(10, min(72, (int) ($pto['size'] ?? 22))),
+                'x'      => max(0, min(100, (float) ($pto['x'] ?? 50))),
+                'y'      => max(0, min(100, (float) ($pto['y'] ?? 10))),
+                'rotate' => max(-180, min(180, (int) ($pto['rotate'] ?? 0))),
+            ];
+            if (count($pageTextOverlays) >= \App\Modules\User\Models\BiolinkBlock::PAGE_TEXT_OVERLAY_MAX) break;
         }
         $allFonts = array_values(array_unique(array_filter($allFonts)));
         // Split into Google vs custom. Custom tokens are "custom:<family>".
@@ -1132,6 +1158,19 @@
     @endif
 
     <div class="biolink-container">
+        @if(!empty($pageTextOverlays))
+            {{-- Free-floating page-level text overlays (Task #5954). Percent
+                 x/y coordinates against the content column so the same entry
+                 lands proportionally at every screen width. Pointer-events
+                 off — overlays are decorative and never block clicks. --}}
+            <div class="biolink-text-overlays" aria-hidden="true"
+                 style="position:absolute;inset:0;pointer-events:none;z-index:30;overflow:hidden;">
+                @foreach($pageTextOverlays as $pov)
+                    <span data-page-text-overlay class="font-bold"
+                          style="position:absolute;left:{{ $pov['x'] }}%;top:{{ $pov['y'] }}%;{{ $pov['font'] !== '' ? "font-family:'" . str_replace("'", '', $pov['font']) . "';" : '' }}color:{{ $pov['color'] }};font-size:{{ $pov['size'] }}px;line-height:1.15;white-space:nowrap;text-shadow:0 1px 6px rgba(0,0,0,0.35);transform:translate(-50%,-50%){{ $pov['rotate'] !== 0 ? ' rotate(' . $pov['rotate'] . 'deg)' : '' }};">{{ $pov['text'] }}</span>
+                @endforeach
+            </div>
+        @endif
         @php
             // When an A/B test is running, the renderer reads the assigned
             // variant snapshot (set on the link by RedirectController) instead
@@ -2311,6 +2350,18 @@
                     'style.padding_left': function (el, v) { el.style.paddingLeft = v === '' ? '' : parseInt(v, 10) + 'px'; },
                     'style.padding_right': function (el, v) { el.style.paddingRight = v === '' ? '' : parseInt(v, 10) + 'px'; }
                 };
+                // Text tilt (Task #5954): heading/paragraph partials always
+                // emit a [data-tilt-wrap] element, so live rotation works
+                // even before any other custom style exists.
+                function applyLiveTilt(root, v) {
+                    var w = root.querySelector('[data-tilt-wrap]');
+                    if (!w) return false;
+                    var deg = parseFloat(v);
+                    if (isNaN(deg)) deg = 0;
+                    deg = Math.max(-30, Math.min(30, deg));
+                    w.style.transform = deg === 0 ? '' : 'rotate(' + deg + 'deg)';
+                    return true;
+                }
                 // Hero-photo decoration keys (Task #5944): patch the image
                 // block's [data-photo-hero] container in place. Structural
                 // keys (mask/frame/accents, last-sticker removal) have no
@@ -2394,6 +2445,50 @@
                         if (!strokes.length || !v) return false;
                         strokes.forEach(function (el) { el.style.borderColor = v; });
                         return true;
+                    },
+                    'style._photo_text_stickers': function (hero, v) {
+                        var list = [];
+                        if (String(v).trim() !== '') {
+                            try { list = JSON.parse(v); } catch (err) { return false; }
+                            if (!Array.isArray(list)) return false;
+                        }
+                        // Emptying the list may make the whole hero container
+                        // structurally unnecessary — let the reload handle it.
+                        if (!list.length) return false;
+                        var frag = document.createDocumentFragment();
+                        for (var i = 0; i < Math.min(list.length, 4); i++) {
+                            var s = list[i] || {};
+                            var text = typeof s.text === 'string' ? s.text.trim() : '';
+                            if (!text) continue;
+                            var pos = PH_STICKER_ANCHORS[s.pos] ? s.pos : 'top_right';
+                            var size = phClamp(s.size, 10, 64, 20);
+                            var rot = phClamp(s.rotate, -180, 180, 0);
+                            var dx = phClamp(s.dx, -80, 80, 0);
+                            var dy = phClamp(s.dy, -80, 80, 0);
+                            var span = document.createElement('span');
+                            span.textContent = text.slice(0, 80);
+                            span.className = 'absolute pointer-events-none z-10 font-bold';
+                            span.setAttribute('data-photo-text-sticker', '');
+                            var a = PH_STICKER_ANCHORS[pos];
+                            Object.keys(a).forEach(function (k) { span.style[k] = a[k]; });
+                            if (typeof s.color === 'string' && /^#[0-9a-fA-F]{3,8}$/.test(s.color)) span.style.color = s.color;
+                            else span.style.color = '#ffffff';
+                            var fam = typeof s.font === 'string' ? s.font.replace(/[^a-zA-Z0-9 :_\-]/g, '') : '';
+                            if (fam.indexOf('custom:') === 0) fam = fam.slice(7);
+                            if (fam) span.style.fontFamily = "'" + fam + "'";
+                            span.style.fontSize = size + 'px';
+                            span.style.lineHeight = '1.15';
+                            span.style.whiteSpace = 'nowrap';
+                            span.style.textShadow = '0 1px 6px rgba(0,0,0,0.35)';
+                            var t = 'translate(' + dx + 'px,' + dy + 'px)';
+                            if (pos === 'center_left' || pos === 'center_right') t = 'translateY(-50%) ' + t;
+                            if (rot !== 0) t += ' rotate(' + rot + 'deg)';
+                            span.style.transform = t;
+                            frag.appendChild(span);
+                        }
+                        hero.querySelectorAll('[data-photo-text-sticker]').forEach(function (el) { el.remove(); });
+                        hero.appendChild(frag);
+                        return true;
                     }
                 };
                 function styleTarget(root) {
@@ -2405,6 +2500,7 @@
                         || root.querySelector('a.bio-btn[style]');
                 }
                 function applyLiveStyle(root, key, value) {
+                    if (key === 'style._tilt') return applyLiveTilt(root, value);
                     var pfn = LIVE_PHOTO_KEYS[key];
                     if (pfn) {
                         // Decorations only exist inside an already-rendered

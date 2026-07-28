@@ -495,6 +495,16 @@ class BiolinkBlock extends Model
         // only) and re-derives `url` server-side; foreign/invalid file
         // references fail closed. Capped at PHOTO_STICKER_MAX entries.
         '_photo_stickers' => '',
+        // Text overlays layered over the photo (Task #5954): draggable,
+        // rotatable text labels — array of {text, font, color, size, pos,
+        // dx, dy, rotate} entries validated by the sanitizer. Same anchor
+        // + dx/dy placement model as `_photo_stickers`. Capped at
+        // PHOTO_TEXT_STICKER_MAX entries.
+        '_photo_text_stickers' => '',
+        // Tilt/rotation for text blocks (heading / paragraph), in degrees.
+        // Sanitizer clamps to ±30 so a tilted headline can never rotate
+        // off the page. Empty/0 = level (no transform emitted).
+        '_tilt' => '',
         // Structural layout token for the profile_card family (Task #1740).
         // Set by the `profile_identity` curated designs; the public renderer
         // dispatches on it to reposition avatar/cover/text/socials. Empty =
@@ -504,6 +514,16 @@ class BiolinkBlock extends Model
 
     /** Max custom sticker overlays per image block (Task #5939). */
     public const PHOTO_STICKER_MAX = 4;
+
+    /** Max text overlays per image block (Task #5954). */
+    public const PHOTO_TEXT_STICKER_MAX = 4;
+
+    /** Max free-floating page-level text overlays (Task #5954). */
+    public const PAGE_TEXT_OVERLAY_MAX = 6;
+
+    /** Tilt bounds (degrees) for text-block rotation (Task #5954). */
+    public const TILT_MIN = -30;
+    public const TILT_MAX = 30;
 
     /** Allowed anchor positions for photo sticker overlays. */
     public const PHOTO_STICKER_POSITIONS = [

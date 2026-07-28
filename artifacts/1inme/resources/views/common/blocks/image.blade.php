@@ -55,6 +55,35 @@
             }
         }
 
+        // ── Text overlays (Task #5954) ──────────────────────────────────
+        // Sanitized {text,font,color,pos,size,rotate,dx,dy} entries in
+        // _style. Re-clamped at render time; text goes through {{ }} so
+        // it is escaped on output.
+        $phTexts = [];
+        $phTextsRaw = is_array($phSt['_photo_text_stickers'] ?? null) ? $phSt['_photo_text_stickers'] : [];
+        foreach ($phTextsRaw as $phTE) {
+            if (!is_array($phTE)) continue;
+            $phTTxt = trim((string) ($phTE['text'] ?? ''));
+            if ($phTTxt === '') continue;
+            $phTPos = (string) ($phTE['pos'] ?? 'top_right');
+            if (!in_array($phTPos, \App\Modules\User\Models\BiolinkBlock::PHOTO_STICKER_POSITIONS, true)) $phTPos = 'top_right';
+            $phTColor = (string) ($phTE['color'] ?? '');
+            if (!preg_match('/^#[0-9a-fA-F]{3,8}$/', $phTColor)) $phTColor = '#ffffff';
+            $phTFont = (string) preg_replace('/[^a-zA-Z0-9 :_\-]/', '', (string) ($phTE['font'] ?? ''));
+            if (str_starts_with($phTFont, 'custom:')) $phTFont = substr($phTFont, 7);
+            $phTexts[] = [
+                'text'   => mb_substr($phTTxt, 0, 80),
+                'font'   => $phTFont,
+                'color'  => $phTColor,
+                'pos'    => $phTPos,
+                'size'   => max(10, min(64, (int) ($phTE['size'] ?? 20))),
+                'rotate' => max(-180, min(180, (int) ($phTE['rotate'] ?? 0))),
+                'dx'     => max(-80, min(80, (int) ($phTE['dx'] ?? 0))),
+                'dy'     => max(-80, min(80, (int) ($phTE['dy'] ?? 0))),
+            ];
+            if (count($phTexts) >= \App\Modules\User\Models\BiolinkBlock::PHOTO_TEXT_STICKER_MAX) break;
+        }
+
         // Anchor preset → CSS placement; dx/dy offsets + rotation ride on
         // the transform so the anchor rule stays static per preset.
         $phStickerAnchors = [
@@ -66,7 +95,7 @@
             'center_right' => 'right:-12px;top:50%',
         ];
 
-        $phDecorated = $phFrame || $phMask !== '' || $phBanner !== '' || !empty($phAccents) || !empty($phStickers);
+        $phDecorated = $phFrame || $phMask !== '' || $phBanner !== '' || !empty($phAccents) || !empty($phStickers) || !empty($phTexts);
 
         if ($phDecorated) {
             $phFrameColor = (string) ($phSt['_photo_frame_color'] ?? '') ?: '#57534e';
@@ -142,6 +171,20 @@
                 <img src="{{ $phStk['url'] }}" alt="" aria-hidden="true" loading="lazy"
                      class="absolute pointer-events-none z-10" data-photo-sticker
                      style="{{ $phStickerAnchors[$phStk['pos']] }};width:{{ $phStk['size'] }}px;height:{{ $phStk['size'] }}px;object-fit:contain;transform:{{ $phStkT }}">
+            @endforeach
+            @foreach($phTexts as $phTx)
+                @php
+                    $phTxT = 'translate(' . $phTx['dx'] . 'px,' . $phTx['dy'] . 'px)';
+                    if (in_array($phTx['pos'], ['center_left', 'center_right'], true)) {
+                        $phTxT = 'translateY(-50%) ' . $phTxT;
+                    }
+                    if ($phTx['rotate'] !== 0) {
+                        $phTxT .= ' rotate(' . $phTx['rotate'] . 'deg)';
+                    }
+                    $phTxFont = $phTx['font'] !== '' ? "font-family:'" . str_replace("'", '', $phTx['font']) . "';" : '';
+                @endphp
+                <span class="absolute pointer-events-none z-10 font-bold" data-photo-text-sticker
+                      style="{{ $phStickerAnchors[$phTx['pos']] }};{{ $phTxFont }}color:{{ $phTx['color'] }};font-size:{{ $phTx['size'] }}px;line-height:1.15;white-space:nowrap;text-shadow:0 1px 6px rgba(0,0,0,0.35);transform:{{ $phTxT }}">{{ $phTx['text'] }}</span>
             @endforeach
         </div>
     @else
