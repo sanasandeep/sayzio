@@ -7,11 +7,9 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { ClearDataDialog } from './ClearDataDialog';
 import { KEYBOARD_SHORTCUTS } from '../../shared/command-palette';
 import {
-  parsePinnedTools, serializePinnedTools, togglePinnedTool, movePinnedTool, isPinnableTool,
-  PINNABLE_TOOLS, PINNABLE_TOOL_INFO,
-  PINNED_TOOLS_PREF_KEY, MAX_PINNED_TOOLS, PINNED_TOOLS_CHANGED_EVENT,
+  PINNABLE_TOOLS, PINNABLE_TOOL_INFO, MAX_PINNED_TOOLS,
 } from '../../shared/toolbar-pins';
-import type { PinnableTool } from '../../shared/toolbar-pins';
+import { usePinnedTools } from '../hooks/use-pinned-tools';
 
 interface Props {
   onClose: () => void;
@@ -298,58 +296,10 @@ function GeneralSection() {
 
 // ── Pinned toolbar tools ──────────────────────────────────────────────────────
 
-function ToolbarBlock() {
-  const [pinned, setPinned] = useState<PinnableTool[]>([]);
-
-  useEffect(() => {
-    let cancelled = false;
-    void window.zio.prefs.get(PINNED_TOOLS_PREF_KEY).then((raw: string | null) => {
-      if (!cancelled) setPinned(parsePinnedTools(raw));
-    }).catch(() => { /* default to none pinned */ });
-    return () => { cancelled = true; };
-  }, []);
-
-  // Stay in sync when pins are toggled from the "⋯" overflow menu.
-  useEffect(() => {
-    const onChanged = (e: Event) => {
-      const detail = (e as CustomEvent).detail;
-      if (Array.isArray(detail)) {
-        setPinned(detail.filter(isPinnableTool).slice(0, MAX_PINNED_TOOLS));
-      }
-    };
-    window.addEventListener(PINNED_TOOLS_CHANGED_EVENT, onChanged);
-    return () => window.removeEventListener(PINNED_TOOLS_CHANGED_EVENT, onChanged);
-  }, []);
-
-  const capReached = pinned.length >= MAX_PINNED_TOOLS;
-
-  const toggle = useCallback((tool: PinnableTool) => {
-    setPinned(prev => {
-      const next = togglePinnedTool(prev, tool);
-      if (next !== prev) {
-        void window.zio.prefs.set(PINNED_TOOLS_PREF_KEY, serializePinnedTools(next)).catch(() => {});
-        // Notify other surfaces (ChromeBar) after this handler returns.
-        setTimeout(() => {
-          window.dispatchEvent(new CustomEvent(PINNED_TOOLS_CHANGED_EVENT, { detail: next }));
-        }, 0);
-      }
-      return next;
-    });
-  }, []);
-
-  const move = useCallback((tool: PinnableTool, direction: -1 | 1) => {
-    setPinned(prev => {
-      const next = movePinnedTool(prev, tool, direction);
-      if (next !== prev) {
-        void window.zio.prefs.set(PINNED_TOOLS_PREF_KEY, serializePinnedTools(next)).catch(() => {});
-        // Notify other surfaces (ChromeBar) after this handler returns.
-        setTimeout(() => {
-          window.dispatchEvent(new CustomEvent(PINNED_TOOLS_CHANGED_EVENT, { detail: next }));
-        }, 0);
-      }
-      return next;
-    });
-  }, []);
+export function ToolbarBlock() {
+  // Shared hook keeps this surface in sync with the ChromeBar "⋯" overflow
+  // menu via the zio:pinned-tools-changed window event and enforces the cap.
+  const { pinned, capReached, togglePin: toggle, movePin: move } = usePinnedTools();
 
   return (
     <div style={cardStyle}>

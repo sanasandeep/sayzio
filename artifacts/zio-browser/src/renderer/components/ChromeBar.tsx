@@ -21,11 +21,9 @@ import type { SyncQueueProfileCount } from '../../main/db';
 import { ApiClient } from '../../shared/api-client';
 import type { SiteResolveResult } from '../../shared/api-client';
 import { profileToAutofillCard } from '../../shared/form-autofill';
-import {
-  parsePinnedTools, serializePinnedTools, togglePinnedTool, reorderPinnedTools, isPinnableTool,
-  PINNED_TOOLS_PREF_KEY, MAX_PINNED_TOOLS, PINNED_TOOLS_CHANGED_EVENT,
-} from '../../shared/toolbar-pins';
+import { MAX_PINNED_TOOLS } from '../../shared/toolbar-pins';
 import type { PinnableTool } from '../../shared/toolbar-pins';
+import { usePinnedTools } from '../hooks/use-pinned-tools';
 
 interface Props {
   zioPanelOpen: boolean;
@@ -437,40 +435,9 @@ export function ChromeBar({
   const stripMenuBtnRef = useRef<HTMLButtonElement>(null);
 
   // ── Pinned toolbar tools (promoted from the "⋯" overflow menu) ──────────
-  const [pinnedTools, setPinnedTools] = useState<PinnableTool[]>([]);
-  useEffect(() => {
-    let cancelled = false;
-    void window.zio.prefs.get(PINNED_TOOLS_PREF_KEY).then((raw: string | null) => {
-      if (!cancelled) setPinnedTools(parsePinnedTools(raw));
-    }).catch(() => { /* main not ready — default to none pinned */ });
-    return () => { cancelled = true; };
-  }, []);
-
-  // Stay in sync when pins are changed elsewhere (e.g. the Settings panel).
-  useEffect(() => {
-    const onChanged = (e: Event) => {
-      const detail = (e as CustomEvent).detail;
-      if (Array.isArray(detail)) {
-        setPinnedTools(detail.filter(isPinnableTool).slice(0, MAX_PINNED_TOOLS));
-      }
-    };
-    window.addEventListener(PINNED_TOOLS_CHANGED_EVENT, onChanged);
-    return () => window.removeEventListener(PINNED_TOOLS_CHANGED_EVENT, onChanged);
-  }, []);
-
-  const handleTogglePin = useCallback((tool: PinnableTool) => {
-    setPinnedTools(prev => {
-      const next = togglePinnedTool(prev, tool);
-      if (next !== prev) {
-        void window.zio.prefs.set(PINNED_TOOLS_PREF_KEY, serializePinnedTools(next)).catch(() => {});
-        // Notify other surfaces (Settings panel) after this handler returns.
-        setTimeout(() => {
-          window.dispatchEvent(new CustomEvent(PINNED_TOOLS_CHANGED_EVENT, { detail: next }));
-        }, 0);
-      }
-      return next;
-    });
-  }, []);
+  // Shared hook keeps this surface in sync with the Settings panel via the
+  // zio:pinned-tools-changed window event and enforces the pin cap.
+  const { pinned: pinnedTools, togglePin: handleTogglePin, reorderPin } = usePinnedTools();
 
   // Drag-to-reorder for pinned tool buttons. The dragged tool id lives in a
   // ref (dataTransfer is unreadable during dragover in Chromium) and the
@@ -482,14 +449,8 @@ export function ChromeBar({
     dragPinnedToolRef.current = null;
     setPinDropTarget(null);
     if (!dragged || dragged === target) return;
-    setPinnedTools(prev => {
-      const next = reorderPinnedTools(prev, dragged, prev.indexOf(target));
-      if (next !== prev) {
-        void window.zio.prefs.set(PINNED_TOOLS_PREF_KEY, serializePinnedTools(next)).catch(() => {});
-      }
-      return next;
-    });
-  }, []);
+    reorderPin(dragged, target);
+  }, [reorderPin]);
   const pinnedToolDragProps = useCallback((tool: PinnableTool) => ({
     draggable: true,
     onDragStart: (e: React.DragEvent) => {
