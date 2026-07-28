@@ -191,6 +191,57 @@
                 <img src="{{ $_thumb }}" class="absolute left-0 top-1/2 -translate-y-1/2 w-24 h-24 object-cover rounded-lg shadow-lg" alt="">
             @endif
         </a>
+    @elseif($_lnkLayout === 'taped_note')
+        {{-- Taped Notes: muted pastel paper card with a washi-tape strip
+             overhanging the top edge and a centered serif label (reference:
+             Bestsellers / Collections grid). Per-card paper tint rotates
+             through a pastel palette by sort order unless the block carries
+             its own bg_color/text_color override, so a set of cards gets
+             the subtle tint variation of the reference with zero config.
+             Designed for the 2-column grid (grid_span 6). Paper + ink
+             colors are explicit so the card reads the same on dark and
+             light page themes; the tape strip is translucent cream that
+             stays subtle over any paper tint. --}}
+        @php
+            $_tnPalette = [
+                ['#f7e9ed', '#6d4c3d'], // blush pink / warm brown ink
+                ['#a98a7d', '#f9f2ec'], // warm clay / cream ink
+                ['#bdb3aa', '#4a3d31'], // stone grey / dark brown ink
+                ['#f2e3e6', '#6d4c3d'], // pale rose / warm brown ink
+                ['#8d7466', '#f6ede5'], // deep mauve / cream ink
+                ['#cfc3b8', '#4a3d31'], // taupe / dark brown ink
+            ];
+            $_tnIdx = abs((int)($block->sort_order ?? $block->id ?? 0)) % count($_tnPalette);
+            [$_tnBgDefault, $_tnInkDefault] = $_tnPalette[$_tnIdx];
+            $_tnBgPick = $_st['bg_color'] ?? '';
+            $_tnBg  = ($_tnBgPick !== '' && $_tnBgPick !== 'transparent') ? $_tnBgPick : $_tnBgDefault;
+            $_tnInk = ($_st['text_color'] ?? '') !== '' ? $_st['text_color'] : $_tnInkDefault;
+            $_tnShadowMap = [
+                'none'   => 'none',
+                'soft'   => '0 8px 18px rgba(76,60,50,0.16), 0 2px 5px rgba(76,60,50,0.10)',
+                'medium' => '0 12px 26px rgba(76,60,50,0.24), 0 3px 8px rgba(76,60,50,0.14)',
+                'strong' => '0 18px 38px rgba(76,60,50,0.32), 0 5px 12px rgba(76,60,50,0.18)',
+            ];
+            $_tnShadow = $_tnShadowMap[$_st['shadow_preset'] ?? 'soft'] ?? $_tnShadowMap['soft'];
+            $_tnRadius = intval($_st['border_radius'] ?? 0) ?: 3;
+            $_tnBorder = (($_st['border_style'] ?? 'none') !== 'none' && intval($_st['border_width'] ?? 0) > 0)
+                ? (intval($_st['border_width']) . 'px ' . $_st['border_style'] . ' ' . (($_st['border_color'] ?? '') !== '' ? $_st['border_color'] : 'rgba(0,0,0,0.15)'))
+                : 'none';
+            $_tnFont = !empty($_st['font_family'])
+                ? "'" . str_replace("'", '', str_starts_with($_st['font_family'], 'custom:') ? substr($_st['font_family'], 7) : $_st['font_family']) . "', Georgia, serif"
+                : "'Playfair Display', Georgia, 'Times New Roman', serif";
+            $_tnTilt = $_tnIdx % 2 === 0 ? '-2.5deg' : '2deg';
+        @endphp
+        <a href="{{ $_url }}" target="_blank" rel="noopener"
+           class="block w-full mb-3 relative transition-transform duration-300 hover:-translate-y-1"
+           style="padding-top: 12px;">
+            <div class="w-full text-center"
+                 style="background: {{ $_tnBg }}; color: {{ $_tnInk }}; border-radius: {{ $_tnRadius }}px; border: {{ $_tnBorder }}; box-shadow: {{ $_tnShadow }}; padding: {{ intval($_st['padding'] ?? 0) ?: 34 }}px 16px; font-family: {{ $_tnFont }}; font-weight: {{ $_st['font_weight'] ?? '500' }}; font-size: {{ intval($_st['font_size'] ?? 0) ?: 16 }}px; letter-spacing: 0.02em; line-height: 1.3;">
+                @if($_icon)<i class="{{ $_icon }} mr-1.5 text-[0.85em] opacity-80"></i>@endif{{ $_txt }}
+            </div>
+            <span aria-hidden="true" class="absolute left-1/2 pointer-events-none"
+                  style="top: 0; width: 86px; height: 24px; transform: translateX(-50%) rotate({{ $_tnTilt }}); background: rgba(235,227,208,0.82); border-left: 1px dashed rgba(120,105,85,0.28); border-right: 1px dashed rgba(120,105,85,0.28); box-shadow: 0 1px 3px rgba(76,60,50,0.18);"></span>
+        </a>
     @elseif($_lnkLayout === 'image_top')
         <a href="{{ $_url }}" target="_blank" rel="noopener"
            class="bio-btn block w-full mb-3 overflow-hidden transition-all duration-300"

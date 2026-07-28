@@ -2144,6 +2144,7 @@ class BiolinkBlockController extends Controller
                 'image_overhang_top', 'image_overhang_left',
                 'image_icon_rounded', 'image_icon_square', 'image_icon_circle',
                 'title_desc_row', 'image_cover_square',
+                'taped_note',
             ],
         ];
         $numericBounds = [

@@ -1071,6 +1071,83 @@ export function BlockView({ block, alias, allBlocks, openEmbed }: { block: Bioli
         </Pressable>
       );
     }
+    // "Taped Notes" layout (web `_style.link_layout=taped_note`): muted
+    // pastel paper card with a washi-tape strip at the top and a centered
+    // serif label. Per-card paper tint rotates through the same pastel
+    // palette as the web renderer (keyed by sort_order) unless the block
+    // carries its own bg_color/text_color override. Paper + ink colors
+    // are explicit so the card reads identically in dark and light themes.
+    if (!featured && _linkLayout === "taped_note") {
+      const TN_PALETTE: [string, string][] = [
+        ["#f7e9ed", "#6d4c3d"],
+        ["#a98a7d", "#f9f2ec"],
+        ["#bdb3aa", "#4a3d31"],
+        ["#f2e3e6", "#6d4c3d"],
+        ["#8d7466", "#f6ede5"],
+        ["#cfc3b8", "#4a3d31"],
+      ];
+      const tnIdx = Math.abs(Math.trunc(block.sort_order ?? block.id ?? 0)) % TN_PALETTE.length;
+      const [tnBgDefault, tnInkDefault] = TN_PALETTE[tnIdx];
+      const tnBgPick = typeof _st?.["bg_color"] === "string" ? (_st["bg_color"] as string) : "";
+      const tnBg = tnBgPick !== "" && tnBgPick !== "transparent" ? tnBgPick : tnBgDefault;
+      const tnInkPick = typeof _st?.["text_color"] === "string" ? (_st["text_color"] as string) : "";
+      const tnInk = tnInkPick !== "" ? tnInkPick : tnInkDefault;
+      const tnTilt = tnIdx % 2 === 0 ? "-2.5deg" : "2deg";
+      return (
+        <Pressable onPress={() => handleTap(url)} style={{ width: "100%", paddingTop: 12, marginBottom: 4 }}>
+          <View
+            style={{
+              width: "100%",
+              backgroundColor: tnBg,
+              borderRadius: 3,
+              paddingVertical: 30,
+              paddingHorizontal: 16,
+              alignItems: "center",
+              shadowColor: "#4c3c32",
+              shadowOpacity: 0.16,
+              shadowRadius: 9,
+              shadowOffset: { width: 0, height: 4 },
+              elevation: 3,
+            }}
+          >
+            <Text
+              style={{
+                color: tnInk,
+                fontSize: 16,
+                fontWeight: "500",
+                textAlign: "center",
+                letterSpacing: 0.3,
+                fontFamily: Platform.select({ ios: "Georgia", android: "serif", default: "Georgia, 'Times New Roman', serif" }),
+              }}
+              numberOfLines={2}
+            >
+              {label}
+            </Text>
+          </View>
+          <View
+            pointerEvents="none"
+            style={{
+              position: "absolute",
+              top: 0,
+              left: "50%",
+              width: 86,
+              height: 24,
+              marginLeft: -43,
+              transform: [{ rotate: tnTilt }],
+              backgroundColor: "rgba(235,227,208,0.82)",
+              borderLeftWidth: 1,
+              borderRightWidth: 1,
+              borderLeftColor: "rgba(120,105,85,0.28)",
+              borderRightColor: "rgba(120,105,85,0.28)",
+              shadowColor: "#4c3c32",
+              shadowOpacity: 0.18,
+              shadowRadius: 2,
+              shadowOffset: { width: 0, height: 1 },
+            }}
+          />
+        </Pressable>
+      );
+    }
     if (featured) {
       return (
         <Pressable

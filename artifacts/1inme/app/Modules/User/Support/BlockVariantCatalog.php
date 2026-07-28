@@ -33,7 +33,7 @@ class BlockVariantCatalog
      * pipeline always writes the *current* VERSION so newly-applied or
      * re-applied variants stay in sync.
      */
-    public const VERSION = 12;
+    public const VERSION = 13;
 
     /**
      * Shape filters for link-style blocks. Orthogonal to theme TAGS:
@@ -1414,6 +1414,26 @@ class BlockVariantCatalog
                         'link_layout' => 'image_overhang_left',
                     ],
                     'preview' => ['bg' => '#d8b4e2', 'text' => '#171717', 'radius' => 6],
+                ],
+                // Taped Notes: pastel paper card with a washi-tape strip and
+                // centered serif label (Task #5926). bg_color / text_color
+                // are deliberately omitted so the renderer's per-card tint
+                // rotation kicks in; grid_span 6 makes a set of these cards
+                // fall into the reference's 2-column grid automatically.
+                [
+                    'key' => 'taped_notes',
+                    'name' => 'Taped Notes',
+                    'tags' => ['playful', 'editorial', 'retro'],
+                    'shape' => 'card',
+                    'style' => [
+                        'display_mode' => 'card',
+                        'border_style' => 'none', 'border_radius' => '3', 'shadow_preset' => 'soft',
+                        'padding' => '34', 'font_weight' => '500',
+                        'font_family' => 'Playfair Display',
+                        'grid_span' => '6',
+                        'link_layout' => 'taped_note',
+                    ],
+                    'preview' => ['bg' => '#f7e9ed', 'text' => '#6d4c3d', 'radius' => 3],
                 ],
                 [
                     'key' => 'image_icon_rounded',
