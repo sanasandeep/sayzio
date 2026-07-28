@@ -213,6 +213,9 @@
                     stageW: 0,
                     stageH: 0,
                     drag: null,
+                    resize: null,
+                    pinch: null,
+                    pts: {},
                     init() {
                         /* Keep the drag stage dimensions reactive so anchor
                            math re-runs when the drawer resizes or the block
@@ -243,32 +246,79 @@
                             default:             return { x: W - S + 10, y: -10 }; /* top_right */
                         }
                     },
+                    clampSize(v) { return Math.max(24, Math.min(160, parseInt(v, 10) || 64)); },
                     previewStyle(stk) {
-                        const S = Math.max(24, Math.min(160, parseInt(stk.size, 10) || 64));
+                        const S = this.clampSize(stk.size);
                         const b = this.anchorBase(stk.pos, S);
                         const dx = parseInt(stk.dx, 10) || 0, dy = parseInt(stk.dy, 10) || 0;
-                        return 'left:' + (b.x + dx) + 'px;top:' + (b.y + dy) + 'px;width:' + S + 'px;height:' + S + 'px;object-fit:contain;transform:rotate(' + (parseInt(stk.rotate, 10) || 0) + 'deg);';
+                        return 'left:' + (b.x + dx) + 'px;top:' + (b.y + dy) + 'px;width:' + S + 'px;height:' + S + 'px;';
+                    },
+                    active(i) {
+                        return (this.drag && this.drag.i === i) || (this.resize && this.resize.i === i) || (this.pinch && this.pinch.i === i);
+                    },
+                    pinchDist() {
+                        const ids = Object.keys(this.pts);
+                        if (ids.length < 2) return 0;
+                        const a = this.pts[ids[0]], b = this.pts[ids[1]];
+                        return Math.hypot(a.x - b.x, a.y - b.y);
                     },
                     startDrag(i, ev) {
                         const stage = this.$refs.dragStage;
                         if (!stage) return;
+                        this.pts[ev.pointerId] = { x: ev.clientX, y: ev.clientY };
+                        try { stage.setPointerCapture(ev.pointerId); } catch (e) {}
+                        // Second finger on the same sticker → pinch-to-resize
+                        // instead of a second drag (touch parity for the
+                        // corner handle).
+                        if (this.drag && this.drag.i === i && Object.keys(this.pts).length >= 2) {
+                            const stk = this.stickers[i];
+                            this.pinch = { i: i, startDist: Math.max(1, this.pinchDist()), startSize: this.clampSize(stk.size) };
+                            this.drag = null;
+                            return;
+                        }
                         const rect = stage.getBoundingClientRect();
                         const stk = this.stickers[i];
-                        const S = Math.max(24, Math.min(160, parseInt(stk.size, 10) || 64));
+                        const S = this.clampSize(stk.size);
                         const b = this.anchorBase(stk.pos, S);
                         this.drag = {
                             i: i,
                             offX: (ev.clientX - rect.left) - (b.x + (parseInt(stk.dx, 10) || 0)),
                             offY: (ev.clientY - rect.top) - (b.y + (parseInt(stk.dy, 10) || 0)),
                         };
+                    },
+                    startResize(i, ev) {
+                        const stage = this.$refs.dragStage;
+                        if (!stage) return;
+                        const stk = this.stickers[i];
+                        this.drag = null;
+                        this.pinch = null;
+                        this.resize = { i: i, startX: ev.clientX, startY: ev.clientY, startSize: this.clampSize(stk.size) };
                         try { stage.setPointerCapture(ev.pointerId); } catch (e) {}
                     },
                     onDrag(ev) {
+                        if (this.pts[ev.pointerId]) this.pts[ev.pointerId] = { x: ev.clientX, y: ev.clientY };
+                        if (this.pinch) {
+                            const d = this.pinchDist();
+                            if (d > 0) {
+                                const stk = this.stickers[this.pinch.i];
+                                stk.size = this.clampSize(Math.round(this.pinch.startSize * (d / this.pinch.startDist)));
+                            }
+                            return;
+                        }
+                        if (this.resize) {
+                            const stk = this.stickers[this.resize.i];
+                            // Bottom-right handle: growing toward the corner
+                            // (down/right) enlarges; use the dominant axis so
+                            // diagonal drags feel 1:1.
+                            const delta = Math.max(ev.clientX - this.resize.startX, ev.clientY - this.resize.startY);
+                            stk.size = this.clampSize(this.resize.startSize + Math.round(delta));
+                            return;
+                        }
                         if (!this.drag) return;
                         const stage = this.$refs.dragStage;
                         const rect = stage.getBoundingClientRect();
                         const stk = this.stickers[this.drag.i];
-                        const S = Math.max(24, Math.min(160, parseInt(stk.size, 10) || 64));
+                        const S = this.clampSize(stk.size);
                         const left = (ev.clientX - rect.left) - this.drag.offX;
                         const top = (ev.clientY - rect.top) - this.drag.offY;
                         /* Nearest anchor preset wins; dx/dy is the clamped
@@ -286,9 +336,15 @@
                         stk.dy = Math.max(-80, Math.min(80, Math.round(best.dy)));
                     },
                     endDrag(ev) {
+                        delete this.pts[ev.pointerId];
+                        try { this.$refs.dragStage.releasePointerCapture(ev.pointerId); } catch (e) {}
+                        if (this.pinch) {
+                            if (Object.keys(this.pts).length < 2) { this.pinch = null; this.sync(); }
+                            return;
+                        }
+                        if (this.resize) { this.resize = null; this.sync(); return; }
                         if (!this.drag) return;
                         this.drag = null;
-                        try { this.$refs.dragStage.releasePointerCapture(ev.pointerId); } catch (e) {}
                         this.sync();
                     },
                     sync() {
@@ -370,11 +426,22 @@
                             <div class="w-full rounded-lg" style="aspect-ratio: 4 / 3;"></div>
                         @endif
                         <template x-for="(stk, i) in stickers" :key="'drag' + i">
-                            <img :src="stk.url" alt="" draggable="false"
-                                 class="absolute z-10 rounded"
-                                 :class="drag && drag.i === i ? 'cursor-grabbing ring-2 ring-blue-400' : 'cursor-grab'"
+                            <div class="absolute z-10 group"
+                                 :class="drag && drag.i === i ? 'cursor-grabbing' : 'cursor-grab'"
                                  :style="previewStyle(stk)"
                                  @pointerdown.prevent="startDrag(i, $event)">
+                                <img :src="stk.url" alt="" draggable="false"
+                                     class="w-full h-full rounded pointer-events-none"
+                                     :class="active(i) ? 'ring-2 ring-blue-400' : ''"
+                                     :style="'object-fit:contain;transform:rotate(' + (parseInt(stk.rotate, 10) || 0) + 'deg);'">
+                                {{-- Corner resize handle (Task #5949): drag to
+                                     resize; shown on hover or while active. --}}
+                                <span class="absolute z-20 rounded-full opacity-0 group-hover:opacity-100"
+                                      style="right:-6px; bottom:-6px; width:14px; height:14px; background:#3b82f6; border:2px solid #fff; cursor:nwse-resize; touch-action:none; box-shadow:0 1px 3px rgba(0,0,0,0.4);"
+                                      :style="active(i) ? { opacity: 1 } : {}"
+                                      title="Drag to resize"
+                                      @pointerdown.prevent.stop="startResize(i, $event)"></span>
+                            </div>
                         </template>
                     </div>
                     <p class="text-[10px] mt-1" style="color: var(--text-dimmed);"><i class="fas fa-hand-pointer mr-1"></i>Drag a sticker to place it — position and offsets update automatically.</p>
