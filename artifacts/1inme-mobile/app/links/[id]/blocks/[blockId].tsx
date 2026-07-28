@@ -1,5 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Feather } from "@expo/vector-icons";
+import * as ImagePicker from "expo-image-picker";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Stack,
@@ -225,6 +226,11 @@ import {
   type OgMeta,
 } from "@/lib/api/blocks";
 import { getBaseUrl } from "@/lib/api";
+import {
+  listVaultFiles,
+  uploadVaultFile,
+  type VaultFile,
+} from "@/lib/api/files";
 import { variantsForType, findVariant } from "@/lib/blockVariants";
 import { canonicalBlockType } from "@/lib/blockTypeRegistry";
 import { showAlert } from "@/lib/webAlert";
@@ -701,6 +707,93 @@ export function BlockSettingsEditor({
   const [photoStickers, setPhotoStickers] = useState<PhotoSticker[]>([]);
   const [stickerStageW, setStickerStageW] = useState(0);
   const [stickerStageRatio, setStickerStageRatio] = useState(4 / 3);
+  // Add-sticker flow (Task #5956): upload from device via expo-image-picker
+  // or pick an existing image from the Sayzio Files vault. New entries get
+  // the server defaults (pos top_right, size 48) up to the 4-sticker cap.
+  const [stickerUploading, setStickerUploading] = useState(false);
+  const [stickerPickerOpen, setStickerPickerOpen] = useState(false);
+  const [stickerVaultFiles, setStickerVaultFiles] = useState<VaultFile[] | null>(
+    null,
+  );
+  const [stickerVaultLoading, setStickerVaultLoading] = useState(false);
+
+  // Append a vault file as a new sticker with the server defaults
+  // (pos top_right, size 48); duplicates are allowed (matches web), the
+  // 4-sticker cap is enforced here and re-checked server-side.
+  const appendSticker = useCallback((file: VaultFile) => {
+    if (file.type !== "image") {
+      showAlert(
+        "Images only",
+        "Stickers must be image files (PNG, WebP or SVG with transparency work best).",
+      );
+      return;
+    }
+    setPhotoStickers((prev) => {
+      if (prev.length >= 4) return prev;
+      return [
+        ...prev,
+        {
+          file_id: file.id,
+          url: file.url_path || file.url,
+          pos: "top_right",
+          size: 48,
+          rotate: 0,
+          dx: 0,
+          dy: 0,
+        },
+      ];
+    });
+    setStickerPickerOpen(false);
+  }, []);
+
+  const addStickerFromDevice = useCallback(async () => {
+    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!perm.granted) {
+      showAlert(
+        "Photos access needed",
+        "Allow access to your photo library in Settings to pick an image.",
+      );
+      return;
+    }
+    const res = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      quality: 0.9,
+    });
+    if (res.canceled || !res.assets?.[0]) return;
+    const asset = res.assets[0];
+    setStickerUploading(true);
+    try {
+      const file = await uploadVaultFile({
+        uri: asset.uri,
+        name: asset.fileName ?? undefined,
+        mime: asset.mimeType ?? undefined,
+      });
+      appendSticker(file);
+    } catch (e) {
+      const msg =
+        e && typeof e === "object" && "message" in e
+          ? String((e as { message: unknown }).message)
+          : "Upload failed.";
+      showAlert("Upload failed", msg);
+    } finally {
+      setStickerUploading(false);
+    }
+  }, [appendSticker]);
+
+  const openStickerVaultPicker = useCallback(async () => {
+    setStickerPickerOpen((open) => !open);
+    if (stickerVaultFiles !== null) return;
+    setStickerVaultLoading(true);
+    try {
+      const res = await listVaultFiles({ type: "image", perPage: 60 });
+      setStickerVaultFiles(res.files.filter((f) => f.type === "image"));
+    } catch {
+      setStickerVaultFiles([]);
+    } finally {
+      setStickerVaultLoading(false);
+    }
+  }, [stickerVaultFiles]);
+
   const [mapPickerOpen, setMapPickerOpen] = useState(false);
   const [mapShowDirections, setMapShowDirections] = useState(true);
   const [profileVerified, setProfileVerified] = useState<boolean>(false);
@@ -2030,15 +2123,17 @@ export function BlockSettingsEditor({
           </View>
         ) : null}
 
-        {isImageBlock && photoStickers.length > 0 ? (
+        {isImageBlock ? (
           <View style={{ gap: 12 }}>
             <Text style={[styles.rowLabel, { color: colors.foreground }]}>
               Photo stickers
             </Text>
             <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>
-              Drag a sticker to reposition it — it snaps to the nearest corner
-              or edge with a fine offset, exactly like the web editor.
+              {photoStickers.length > 0
+                ? "Drag a sticker to reposition it — it snaps to the nearest corner or edge with a fine offset, exactly like the web editor."
+                : "Layer up to 4 of your own sticker images (PNG or WebP with transparency work best) over the photo."}
             </Text>
+            {photoStickers.length > 0 ? (
             <View
               onLayout={(e) => setStickerStageW(e.nativeEvent.layout.width)}
               style={{
@@ -2079,6 +2174,7 @@ export function BlockSettingsEditor({
                   ))
                 : null}
             </View>
+            ) : null}
             {photoStickers.map((stk, idx) => (
               <View
                 key={`sticker-row-${stk.file_id}-${idx}`}
@@ -2172,10 +2268,135 @@ export function BlockSettingsEditor({
                 </View>
               </View>
             ))}
-            <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>
-              Add new stickers from the web editor (upload or pick from your
-              files); position, resize, rotate, or remove them here.
-            </Text>
+            {photoStickers.length < 4 ? (
+              <View style={{ gap: 8 }}>
+                <View style={{ flexDirection: "row", gap: 8 }}>
+                  <Pressable
+                    {...WEB_FOCUS_RING_PROPS}
+                    onPress={addStickerFromDevice}
+                    disabled={stickerUploading}
+                    style={{
+                      flex: 1,
+                      flexDirection: "row",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: 6,
+                      paddingVertical: 10,
+                      borderRadius: 10,
+                      borderWidth: 1,
+                      borderColor: colors.border,
+                      opacity: stickerUploading ? 0.6 : 1,
+                    }}
+                    accessibilityRole="button"
+                    accessibilityLabel="Add sticker from device"
+                  >
+                    {stickerUploading ? (
+                      <ActivityIndicator size="small" color={colors.primary} />
+                    ) : (
+                      <Feather name="upload" size={14} color={colors.primary} />
+                    )}
+                    <Text
+                      style={{
+                        color: colors.primary,
+                        fontSize: 12,
+                        fontWeight: "600",
+                      }}
+                    >
+                      {stickerUploading ? "Uploading…" : "Add sticker"}
+                    </Text>
+                  </Pressable>
+                  <Pressable
+                    {...WEB_FOCUS_RING_PROPS}
+                    onPress={openStickerVaultPicker}
+                    style={{
+                      flex: 1,
+                      flexDirection: "row",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: 6,
+                      paddingVertical: 10,
+                      borderRadius: 10,
+                      borderWidth: 1,
+                      borderColor: stickerPickerOpen
+                        ? colors.primary
+                        : colors.border,
+                    }}
+                    accessibilityRole="button"
+                    accessibilityLabel="Pick sticker from my files"
+                  >
+                    <Feather name="folder" size={14} color={colors.primary} />
+                    <Text
+                      style={{
+                        color: colors.primary,
+                        fontSize: 12,
+                        fontWeight: "600",
+                      }}
+                    >
+                      From my files
+                    </Text>
+                  </Pressable>
+                </View>
+                {stickerPickerOpen ? (
+                  <View
+                    style={{
+                      borderRadius: 10,
+                      borderWidth: 1,
+                      borderColor: colors.border,
+                      padding: 10,
+                      gap: 8,
+                    }}
+                  >
+                    {stickerVaultLoading ? (
+                      <ActivityIndicator size="small" color={colors.primary} />
+                    ) : stickerVaultFiles && stickerVaultFiles.length > 0 ? (
+                      <View
+                        style={{
+                          flexDirection: "row",
+                          flexWrap: "wrap",
+                          gap: 8,
+                        }}
+                      >
+                        {stickerVaultFiles.map((f) => (
+                          <Pressable
+                            key={`vault-file-${f.id}`}
+                            {...WEB_FOCUS_RING_PROPS}
+                            onPress={() => appendSticker(f)}
+                            style={{
+                              width: 56,
+                              height: 56,
+                              borderRadius: 8,
+                              borderWidth: 1,
+                              borderColor: colors.border,
+                              backgroundColor: colors.muted,
+                              overflow: "hidden",
+                            }}
+                            accessibilityRole="button"
+                            accessibilityLabel={`Use ${f.original_name} as sticker`}
+                          >
+                            <Image
+                              source={{ uri: photoStickerImageUri(f.url_path || f.url) }}
+                              style={{ width: "100%", height: "100%" }}
+                              resizeMode="contain"
+                            />
+                          </Pressable>
+                        ))}
+                      </View>
+                    ) : (
+                      <Text
+                        style={{ color: colors.mutedForeground, fontSize: 11 }}
+                      >
+                        No images in your files yet — upload one from your
+                        device instead.
+                      </Text>
+                    )}
+                  </View>
+                ) : null}
+              </View>
+            ) : (
+              <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>
+                Sticker limit reached (4 max) — remove one to add another.
+              </Text>
+            )}
           </View>
         ) : null}
 

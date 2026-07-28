@@ -1136,6 +1136,13 @@ Route::prefix('v1')->group(function () {
         // POST /me/links/health   — batch check alias active/expired status
         //   (popup link-health alerts).
         Route::post('/me/files/fetch-url', [\App\Modules\Api\Controllers\ExtensionApiController::class, 'fetchUrlAndSave'])->middleware('throttle:30,1');
+
+        // Sayzio Files vault (Task #5956 — mobile photo-sticker add flow).
+        // GET lists the caller's vault files (?type=image for pickers);
+        // POST uploads a new file through the shared createFromUpload
+        // pipeline (quota + mime allowlist + image compression).
+        Route::get ('/me/files',        [\App\Modules\Api\Controllers\FilesController::class, 'index']);
+        Route::post('/me/files/upload', [\App\Modules\Api\Controllers\FilesController::class, 'upload'])->middleware('throttle:30,1');
         Route::post('/me/links/health',    [\App\Modules\Api\Controllers\ExtensionApiController::class, 'checkLinksHealth'])->middleware('throttle:60,1');
 
         // Workspaces

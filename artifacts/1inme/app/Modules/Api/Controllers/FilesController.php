@@ -1,0 +1,97 @@
+<?php
+
+namespace App\Modules\Api\Controllers;
+
+use App\Http\Controllers\Controller;
+use App\Modules\Api\Controllers\Concerns\ApiResponses;
+use App\Modules\User\Models\UserFile;
+use Illuminate\Http\Request;
+
+/**
+ * Task #5956 — mobile parity for the Sayzio Files vault. The web editor
+ * uploads photo stickers via the session-authed `user.files.upload` AJAX
+ * route; the mobile app needs the same two primitives over Sanctum:
+ * list existing image files (vault picker) and upload a new one. Both
+ * return the serialized UserFile (id + url_path) that the block
+ * sanitizer's `sanitizePhotoStickers` ownership check accepts.
+ */
+class FilesController extends Controller
+{
+    use ApiResponses;
+
+    /**
+     * GET /me/files — the caller's vault files (system-generated files with
+     * a `context` are excluded, matching the web vault UI). Optional
+     * `?type=image|video|audio|document` filter; paginated.
+     */
+    public function index(Request $request)
+    {
+        $user = $request->user();
+        $type = (string) $request->query('type', 'all');
+
+        $query = $user->files()->whereNull('context')->orderByDesc('created_at');
+        if (in_array($type, ['image', 'video', 'audio', 'document'], true)) {
+            $query->where('type', $type);
+        }
+
+        $files = $query->paginate(min(100, max(1, (int) $request->query('per_page', 48))));
+
+        return $this->ok([
+            'files' => collect($files->items())->map(fn (UserFile $f) => $this->serializeFile($f))->all(),
+            'pagination' => [
+                'current_page' => $files->currentPage(),
+                'last_page'    => $files->lastPage(),
+                'total'        => $files->total(),
+            ],
+        ]);
+    }
+
+    /**
+     * POST /me/files/upload — multipart upload into the vault. Reuses the
+     * shared UserFile::createFromUpload pipeline (quota, mime/extension
+     * allowlist, image compression), so limits match the web dropzone.
+     */
+    public function upload(Request $request)
+    {
+        $request->validate([
+            'file' => ['required', 'file'],
+        ]);
+
+        $user = $request->user();
+
+        try {
+            $userFile = UserFile::createFromUpload($request->file('file'), $user);
+        } catch (\RuntimeException $e) {
+            return $this->fail($e->getMessage(), 422, 'upload_failed');
+        }
+
+        // The sanctum API path doesn't bind the active workspace, so the
+        // shared createFromUpload() lands the vault file with
+        // workspace_id = null. workspace_id isn't mass-assignable, so set
+        // it directly (mirrors BiolinkWizardController::uploadImage).
+        if ($userFile->workspace_id === null) {
+            $userFile->workspace_id = $this->activeWorkspaceId($user);
+            $userFile->save();
+        }
+
+        return $this->ok(['file' => $this->serializeFile($userFile)], 201);
+    }
+
+    /**
+     * Minimal client-facing shape — enough for pickers and the sticker
+     * flow without leaking storage paths or scan internals.
+     */
+    private function serializeFile(UserFile $file): array
+    {
+        return [
+            'id'            => (int) $file->id,
+            'type'          => (string) $file->type,
+            'original_name' => (string) $file->original_name,
+            'mime_type'     => (string) $file->mime_type,
+            'url'           => (string) $file->url,
+            'url_path'      => (string) $file->url_path,
+            'size_human'    => (string) $file->size_human,
+            'created_at'    => optional($file->created_at)->toIso8601String(),
+        ];
+    }
+}
