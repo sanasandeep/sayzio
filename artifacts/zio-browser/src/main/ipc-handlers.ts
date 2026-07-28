@@ -281,7 +281,10 @@ export function registerIpcHandlers(mainWindow: BrowserWindow): void {
 
   // ── Preferences ─────────────────────────────────────────────────────────
   ipcMain.handle('prefs:get', (_, key: PrefKey) => getPreference(key));
-  ipcMain.handle('prefs:set', (_, key: PrefKey, value: string) => {
+  ipcMain.handle('prefs:set', (event, key: PrefKey, value: string) => {
+    // Private windows must never mutate durable preferences (e.g. pinned
+    // toolbar tools) — they read shared prefs but leave no trace behind.
+    if (senderIsPrivate(event)) return false;
     setPreference(key, value);
     // Apply side-effects for prefs that drive live main-process behaviour.
     if (key === PREFERENCE_KEYS.SEARCH_ENGINE) {

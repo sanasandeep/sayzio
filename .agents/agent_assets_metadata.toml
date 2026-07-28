@@ -1098,6 +1098,12 @@ uri = "file://scripts/src/print-collateral/assets/photos/avatar-arjun.png"
 type = "image"
 title = "generated_image"
 
+[[generated]]
+id = "ouXtlXzdPGseYVLg1TBDa"
+uri = "file://artifacts/1inme/public/template-assets/floral-editorial-bg.png"
+type = "image"
+title = "floral editorial botanical background"
+
 [[outputs]]
 id = "e3t8rw5hE2-FfEtnuBmVI"
 uri = "file://attached_assets/stock_images/role_artist.jpg"

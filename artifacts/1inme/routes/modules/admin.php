@@ -177,7 +177,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::post('{kind}/bulk-toggle', [TemplateController::class, 'bulkToggle'])->middleware(CheckPermission::class . ':settings.manage')->name('bulk-toggle');
             Route::get('page/{id}/blueprint-diff', [TemplateController::class, 'blueprintDiff'])->middleware(CheckPermission::class . ':settings.manage')->name('blueprint.diff');
             Route::post('page/{id}/blueprint-reset', [TemplateController::class, 'resetBlueprint'])->middleware(CheckPermission::class . ':settings.manage')->name('blueprint.reset');
-            Route::post('page/{id}/design-session', [TemplateController::class, 'designSession'])->whereNumber('id')->middleware(CheckPermission::class . ':settings.manage')->name('design.session');
+            Route::match(['get', 'post'], 'page/{id}/design-session', [TemplateController::class, 'designSession'])->whereNumber('id')->middleware(CheckPermission::class . ':settings.manage')->name('design.session');
             Route::post('page/{id}/design-session/save', [TemplateController::class, 'designSessionSave'])->whereNumber('id')->middleware(CheckPermission::class . ':settings.manage')->name('design.session.save');
             Route::post('page/{id}/design-session/discard', [TemplateController::class, 'designSessionDiscard'])->whereNumber('id')->middleware(CheckPermission::class . ':settings.manage')->name('design.session.discard');
             Route::get('{kind}/{id}/design-fix', [TemplateController::class, 'designFix'])->middleware(CheckPermission::class . ':settings.manage')->name('design.fix');

@@ -43,8 +43,27 @@ class StarterPageTemplatesSeeder extends Seeder
      * restaurant, event, portfolio) — each with its own theme, profile
      * layout, link design variant and a distinct block mix so the picker's
      * category chips and "what's inside" chips look meaningfully different.
+     *
+     * v10 (2026-07): Added "Pink Boutique" — a boutique/seller page with a
+     * hero cover, chunky lavender tile buttons with square photo thumbs,
+     * and a two-column shop grid mixing image tiles and labeled buttons.
+     *
+     * v11 (2026-07): Added "Floral Editorial" — a full-bleed botanical
+     * photo background, a decorative display-font name heading, and six
+     * chartreuse pill links in a two-column desktop grid (grid_span 6)
+     * that stacks to one column on mobile.
+     *
+     * v12 (2026-07): Added "Split Hero Tiles" — a tall yellow hero panel
+     * (script name + spaced tagline + photo) sitting beside a 2×3 grid of
+     * flat solid-colour link tiles on desktop, stacking vertically on
+     * phones via the new grid_span_md / grid_row_span_md overrides.
+     *
+     * v13 (2026-07): Added "Pastel Tile Grid" — a cream apparel-brand page
+     * with a green serif brand title, orange socials and six pastel card
+     * tiles (heading + short blurb) in a responsive auto grid (3 columns
+     * on desktop, stacked on phones).
      */
-    public const SEED_VERSION = 9;
+    public const SEED_VERSION = 13;
 
     /** Tolerance (seconds) for treating updated_at == created_at. */
     private const EDIT_DRIFT_TOLERANCE = 2;
@@ -314,7 +333,425 @@ class StarterPageTemplatesSeeder extends Seeder
                     'button_style'     => 'pill',
                 ]),
             ],
+
+            // 7 — Pink Boutique: off-white page, big hero cover, chunky
+            // lavender-pink tile buttons with square photo thumbnails,
+            // then a two-column shop grid mixing image tiles and labeled
+            // buttons — screenshot-inspired boutique/seller layout.
+            [
+                'slug'                 => 'starter-pink-boutique',
+                'name'                 => 'Pink Boutique',
+                'category'             => 'fashion',
+                'description'          => 'A soft boutique storefront: hero photo, chunky lavender shop buttons with photo thumbnails, and a two-column grid of new arrivals, sale and gallery tiles.',
+                'recommended_personas' => ['fashion', 'business', 'creator'],
+                'snapshot'             => $this->snapshot([
+                    $this->boutiqueImage($this->photo('fashion,boutique', 1200, 480, 'starter-boutique-hero')),
+                    $this->boutiqueTile('SHOP', 'https://example.com/shop', $this->photo('fashion,shop', 600, 600, 'starter-boutique-shop')),
+                    $this->boutiqueTile('MARKETPLACE', 'https://example.com/marketplace', $this->photo('fashion,market', 600, 600, 'starter-boutique-market')),
+                    $this->boutiqueImage($this->photo('fashion,new', 600, 800, 'starter-boutique-g1'), 6),
+                    $this->boutiqueImage($this->photo('fashion,sale', 600, 800, 'starter-boutique-g2'), 6),
+                    $this->boutiqueTile('NEW ARRIVALS', 'https://example.com/new-arrivals', '', 6),
+                    $this->boutiqueTile('GALLERY', 'https://example.com/gallery', '', 6),
+                    $this->boutiqueImage($this->photo('fashion,style', 600, 800, 'starter-boutique-g3'), 6),
+                    $this->boutiqueTile('ON SALE', 'https://example.com/sale', '', 6),
+                ], [
+                    'background_type'   => 'color',
+                    'background_color'  => '#f2f0ee',
+                    'theme_color'       => '#ddb8e4',
+                    'font_color'        => '#241b26',
+                    'button_color'      => '#ddb8e4',
+                    'button_text_color' => '#241b26',
+                    'button_style'      => 'rounded',
+                ]),
+            ],
+
+            // 8 — Split hero: full-page blurred photo background. Desktop is
+            // a two-column split — big circular avatar + social icons on the
+            // left (identity_split_hero layout), name/tagline/outline-pill
+            // links stacked in a transparent card on the right. Both halves
+            // carry `stack_mobile` so phones collapse to a single column.
+            [
+                'slug'                 => 'starter-split-hero',
+                'name'                 => 'Split Hero',
+                'category'             => 'personal',
+                'description'          => 'A striking split layout over a blurred photo: your portrait and socials on one side, your name and bold outline links on the other.',
+                'recommended_personas' => ['creator', 'influencer', 'freelancer'],
+                'snapshot'             => $this->snapshot([
+                    $this->profile(
+                        'Your Name',
+                        '',
+                        $this->face('starter-splithero-face'),
+                        $kits['splithero'],
+                        '',
+                        [
+                            'title'   => '',
+                            'socials' => [
+                                ['name' => 'instagram', 'url' => 'https://instagram.com/yourhandle'],
+                                ['name' => 'facebook',  'url' => 'https://facebook.com/yourhandle'],
+                                ['name' => 'twitter',   'url' => 'https://x.com/yourhandle'],
+                            ],
+                            '_style'  => $this->variantStyle('profile_card_v1', 'identity_split_hero', [
+                                'grid_span'    => 5,
+                                'stack_mobile' => 1,
+                            ]),
+                        ]
+                    ),
+                    [
+                        'type'     => 'card',
+                        'is_active' => true,
+                        'settings' => [
+                            'columns'      => 1,
+                            'gap'          => 14,
+                            'padding'      => 8,
+                            'bg_type'      => 'transparent',
+                            'border_width' => 0,
+                            'shadow'       => 'none',
+                            '_style'       => array_merge(BiolinkBlock::STYLE_DEFAULTS, [
+                                'grid_span'    => 7,
+                                'stack_mobile' => 1,
+                            ]),
+                        ],
+                        'children' => [
+                            $this->heading('Your Name', 'h2'),
+                            $this->paragraph('BEAUTY AND FASHION'),
+                            $this->link('ABOUT ME',       'https://example.com/about',   '', $kits['splithero']),
+                            $this->link('LOOKBOOK',       'https://example.com/lookbook', '', $kits['splithero']),
+                            $this->link('COLLABORATIONS', 'https://example.com/collabs', '', $kits['splithero']),
+                            $this->link('WORK WITH ME',   'mailto:you@example.com',      '', $kits['splithero']),
+                        ],
+                    ],
+                ], [
+                    'background_type'  => 'image',
+                    'background_image' => $this->photo('lifestyle,portrait', 900, 600, 'starter-splithero-bg'),
+                    'bg_blur'          => 40,
+                    'theme_color'      => '#ffffff',
+                    'font_color'       => '#ffffff',
+                    'button_color'     => 'transparent',
+                    'button_text_color' => '#ffffff',
+                    'button_style'     => 'pill',
+                ]),
+            ],
+
+            // 9 — Floral Editorial: full-bleed botanical photo background,
+            // a big decorative display-font name heading, and six
+            // chartreuse pill links laid out two-per-row on desktop
+            // (grid_span 6) that stack to one column on mobile —
+            // screenshot-inspired floral link-in-bio.
+            [
+                'slug'                 => 'starter-floral-editorial',
+                'name'                 => 'Floral Editorial',
+                'category'             => 'biolink',
+                'description'          => 'A dreamy botanical link-in-bio: a full-page floral photo, your name in a decorative display font, and chartreuse pill buttons in a two-column grid.',
+                'recommended_personas' => ['creator', 'influencer', 'other'],
+                'snapshot'             => $this->snapshot([
+                    $this->floralHeading('Your Name'),
+                    $this->floralPill('ABOUT ME', 'https://example.com/about'),
+                    $this->floralPill('CONNECT WITH ME', 'https://example.com/contact'),
+                    $this->floralPill('MY WORK', 'https://example.com/work'),
+                    $this->floralPill('JOIN MY GIVEAWAY', 'https://example.com/giveaway'),
+                    $this->floralPill('COLLABS', 'https://example.com/collabs'),
+                    $this->floralPill('READ MY BLOG', 'https://example.com/blog'),
+                ], [
+                    'background_type'   => 'image',
+                    'background_image'  => asset('template-assets/floral-editorial-bg.png'),
+                    'bg_fallback_color' => '#57614a',
+                    'bg_overlay_color'  => '#2c3324',
+                    'bg_overlay_opacity' => 12,
+                    'theme_color'       => '#d9ed6f',
+                    'font_color'        => '#e9f3c4',
+                    'button_color'      => '#d9ed6f',
+                    'button_text_color' => '#242b14',
+                    'button_style'      => 'pill',
+                ]),
+            ],
+
+            // 10 — Split Hero Tiles: tall yellow hero panel (script name,
+            // spaced tagline, big photo) beside a 2×3 grid of flat
+            // solid-colour link tiles on desktop; on phones everything
+            // stacks full-width with the hero first — screenshot-inspired.
+            [
+                'slug'                 => 'starter-split-hero-grid',
+                'name'                 => 'Split Hero Tiles',
+                'category'             => 'business',
+                'description'          => 'A bold split layout: a tall hero panel with your name and photo beside a colourful grid of flat link tiles. Stacks neatly on phones.',
+                'recommended_personas' => ['business', 'creator', 'freelancer'],
+                'snapshot'             => $this->snapshot([
+                    $this->profile(
+                        'Madison Lee',
+                        '',
+                        $this->photo('portrait,entrepreneur', 600, 800, 'starter-splithero-photo'),
+                        $kits['splitherogrid'],
+                        '',
+                        [
+                            'title'    => 'SHE-EO · ENTREPRENEUR',
+                            'verified' => false,
+                            'socials'  => [],
+                            '_style'   => $this->variantStyle('profile_card_v1', 'identity_split_hero_panel', [
+                                'grid_span_md'     => 4,
+                                'grid_row_span_md' => 3,
+                            ]),
+                        ]
+                    ),
+                    $this->heroTile('MY WEBSITE',   'https://example.com',            '#14b8a6'),
+                    $this->heroTile('THE PODCAST',  'https://example.com/podcast',    '#ec4899'),
+                    $this->heroTile('COURSES',      'https://example.com/courses',    '#8b5cf6'),
+                    $this->heroTile('BOOK A CALL',  'https://example.com/call',       '#f97316'),
+                    $this->heroTile('NEWSLETTER',   'https://example.com/newsletter', '#4f46e5'),
+                    $this->heroTile('SHOP MERCH',   'https://example.com/shop',       '#eab308'),
+                ], [
+                    'background_type'   => 'color',
+                    'background_color'  => '#111111',
+                    'theme_color'       => '#f4c531',
+                    'font_color'        => '#ffffff',
+                    'button_color'      => '#14b8a6',
+                    'button_text_color' => '#ffffff',
+                    'button_style'      => 'square',
+                    'max_width_desktop' => 960,
+                    'block_gap'         => 8,
+                ]),
+            ],
+
+            // 11 — Pastel Tile Grid: cream apparel-brand page — centered
+            // green serif brand title, orange social icons, then six
+            // pastel info tiles (about, shop, sale, subscribe, contact,
+            // press) in a responsive auto-fit grid: 3 columns on desktop,
+            // stacked on phones — screenshot-inspired.
+            [
+                'slug'                 => 'starter-pastel-tiles',
+                'name'                 => 'Pastel Tile Grid',
+                'category'             => 'fashion',
+                'description'          => 'A soft apparel-brand page: cream background, green serif wordmark, orange socials and six pastel tiles for about, shop, sale, subscribe, contact and press.',
+                'recommended_personas' => ['fashion', 'business', 'creator'],
+                'snapshot'             => $this->snapshot([
+                    $this->pastelBrandTitle('Your Brand'),
+                    $this->socials(),
+                    $this->pastelTileGrid([
+                        $this->pastelTile('about us',     'Learn how we started and our commitment to sustainable, ethical fashion.',                      '#e8925a', '#fdf3e3'),
+                        $this->pastelTile('shop all',     'Explore all our pieces, available in-store and for pre-order.',                                 '#c5b3e6', '#4a3d6b'),
+                        $this->pastelTile('archive sale', 'Get up to 50% off select pieces from last season.',                                             '#b5cc8e', '#3f4d26'),
+                        $this->pastelTile('subscribe',    'Get exclusive deals and be the first to know about the latest drops and collaborations.',       '#c5b3e6', '#4a3d6b'),
+                        $this->pastelTile('contact us',   'Reach out to customer support for inquiries and order status.',                                 '#b5cc8e', '#3f4d26'),
+                        $this->pastelTile('press',        'See what the press is saying about us.',                                                        '#e8925a', '#fdf3e3'),
+                    ]),
+                ], [
+                    'background_type'   => 'color',
+                    'background_color'  => '#faf5ea',
+                    'theme_color'       => '#e8925a',
+                    'font_color'        => '#4a5238',
+                    'button_color'      => '#7ba05b',
+                    'button_text_color' => '#faf5ea',
+                    'button_style'      => 'rounded',
+                ]),
+            ],
         ];
+    }
+
+    /* ────────────── Pastel Tile Grid helpers (template 11) ────────────── */
+
+    /**
+     * Centered green serif brand wordmark. A plain heading block with a
+     * baked `_style` (no catalog variant key) carrying the serif family
+     * and brand-green colour so the wordmark survives variant migrations.
+     */
+    private function pastelBrandTitle(string $text): array
+    {
+        return $this->block('heading', [
+            'text'   => $text,
+            'size'   => 'h1',
+            'align'  => 'center',
+            '_style' => $this->variantStyle('heading', '', [
+                'display_mode' => 'content',
+                'text_color'   => '#7ba05b',
+                'font_family'  => 'Playfair Display',
+                'padding'      => '0',
+            ]),
+        ]);
+    }
+
+    /**
+     * Responsive auto-fit grid container for the pastel tiles: with a
+     * 200px min tile width the page column fits 3 tiles per row on
+     * desktop (680px column), 2 on tablets and stacks to 1 on phones.
+     *
+     * @param array<int, array> $tiles serialized child blocks
+     */
+    private function pastelTileGrid(array $tiles): array
+    {
+        return [
+            'type'      => 'grid_auto',
+            'settings'  => ['min_width' => 200, 'gap' => 14],
+            'is_active' => true,
+            'children'  => $tiles,
+        ];
+    }
+
+    /**
+     * One pastel info tile: a `card` container painted with the pastel
+     * background holding a centered heading (tile colour) and a short
+     * description, mirroring the screenshot's tile grid.
+     */
+    private function pastelTile(string $title, string $description, string $bg, string $titleColor): array
+    {
+        return [
+            'type'     => 'card',
+            'settings' => [
+                'title'         => '',
+                'columns'       => 1,
+                'gap'           => 4,
+                'padding'       => 18,
+                'border_radius' => 18,
+                'bg_type'       => 'color',
+                'bg_color'      => $bg,
+                'border_width'  => 0,
+            ],
+            'is_active' => true,
+            'children'  => [
+                $this->block('heading', [
+                    'text'   => $title,
+                    'size'   => 'h3',
+                    'align'  => 'center',
+                    '_style' => $this->variantStyle('heading', '', [
+                        'display_mode' => 'content',
+                        'text_color'   => $titleColor,
+                        'padding'      => '0',
+                    ]),
+                ]),
+                $this->paragraph($description),
+            ],
+        ];
+    }
+
+    /* ─────────────── Floral Editorial helpers (template 9) ─────────────── */
+
+    /**
+     * Big decorative name heading: art-nouveau-flavoured display font
+     * (Yeseva One, in FontCatalog's display set so the public page loads
+     * it) in light chartreuse, centered over the botanical photo.
+     */
+    private function floralHeading(string $text): array
+    {
+        return $this->block('heading', [
+            'text'   => $text,
+            'size'   => 'h1',
+            'align'  => 'center',
+            '_style' => array_merge(BiolinkBlock::STYLE_DEFAULTS, [
+                'display_mode'  => 'content',
+                'bg_color'      => 'transparent',
+                'border_style'  => 'none',
+                'shadow_preset' => 'none',
+                'font_family'   => 'Yeseva One',
+                'font_size'     => '44',
+                'text_color'    => '#d9ed6f',
+                'padding'       => '8',
+                'margin_top'    => '24',
+                'margin_bottom' => '16',
+            ]),
+        ]);
+    }
+
+    /**
+     * Chartreuse pill link: solid lime fill, fully rounded, dark
+     * uppercase label, half-width on the public page's 12-col grid
+     * (grid_span 6 → two columns on desktop, stacked on mobile).
+     * Baked style (no catalog variant key) so a future variant
+     * migration can never strip the colour overrides.
+     */
+    private function floralPill(string $text, string $url): array
+    {
+        return $this->block('link', [
+            'text'   => $text,
+            'url'    => $url,
+            '_style' => $this->variantStyle('link', '', [
+                'display_mode'  => 'card',
+                'bg_color'      => '#d9ed6f',
+                'border_style'  => 'none',
+                'border_width'  => '0',
+                'border_color'  => 'transparent',
+                'border_radius' => '999',
+                'shadow_preset' => 'soft',
+                'text_color'    => '#242b14',
+                'padding'       => '16',
+                'font_weight'   => '600',
+                'link_layout'   => '',
+                'grid_span'     => 6,
+            ]),
+        ]);
+    }
+
+    /* ───────────── Split Hero Tiles helpers (template 10) ───────────── */
+
+    /**
+     * Flat solid-colour tile: a full-width link block on phones that
+     * becomes a third-width tile on desktop (`grid_span_md` 4), so six
+     * of them wrap into a 2×3 grid beside the row-spanning hero panel.
+     * Baked style (no catalog variant key) — square corners, no shadow,
+     * bold white centred label, generous vertical padding.
+     */
+    private function heroTile(string $text, string $url, string $bg): array
+    {
+        $style = $this->variantStyle('link', '', [
+            'display_mode'   => 'card',
+            'bg_color'       => $bg,
+            'border_style'   => 'none',
+            'border_width'   => '0',
+            'border_color'   => 'transparent',
+            'border_radius'  => '0',
+            'shadow_preset'  => 'none',
+            'text_color'     => '#ffffff',
+            'padding_top'    => '44',
+            'padding_bottom' => '44',
+            'font_weight'    => '800',
+            'grid_span_md'   => 4,
+        ]);
+
+        return $this->block('link', ['text' => $text, 'url' => $url, '_style' => $style]);
+    }
+
+    /* ─────────────── Pink Boutique helpers (template 7) ─────────────── */
+
+    /**
+     * Chunky lavender boutique tile: a link block with a baked style
+     * (no catalog variant key, so a future variant migration can never
+     * strip the colour overrides). With a `$thumb` it uses the
+     * `image_left` layout so the square photo sits flush on the left of
+     * the tile; without one it's a centred label button. `$span` places
+     * tiles on the public page's 12-col grid (6 = half width).
+     */
+    private function boutiqueTile(string $text, string $url, string $thumb = '', int $span = 12): array
+    {
+        $style = $this->variantStyle('link', '', [
+            'display_mode'  => 'card',
+            'bg_color'      => '#ddb8e4',
+            'border_style'  => 'none',
+            'border_width'  => '0',
+            'border_color'  => 'transparent',
+            'border_radius' => '14',
+            'shadow_preset' => 'none',
+            'text_color'    => '#241b26',
+            'padding'       => '22',
+            'font_weight'   => '700',
+            'link_layout'   => $thumb !== '' ? 'image_left' : '',
+        ]);
+        if ($span !== 12) {
+            $style['grid_span'] = $span;
+        }
+
+        $settings = ['text' => $text, 'url' => $url, '_style' => $style];
+        if ($thumb !== '') {
+            $settings['thumbnail'] = $thumb;
+        }
+
+        return $this->block('link', $settings);
+    }
+
+    /** Image tile with an optional half-width grid span. */
+    private function boutiqueImage(string $url, int $span = 12): array
+    {
+        $settings = ['url' => $url, 'alt' => ''];
+        if ($span !== 12) {
+            $settings['_style'] = ['grid_span' => $span];
+        }
+        return $this->block('image', $settings);
     }
 
     /* ──────────────────── snapshot + block helpers ──────────────────── */
@@ -364,6 +801,8 @@ class StarterPageTemplatesSeeder extends Seeder
             'event'      => ['ptype' => 'profile_card_v1', 'pvar' => 'identity_classic',      'link' => 'card_lifted'],
             'portfolio'  => ['ptype' => 'profile_card_v3', 'pvar' => 'identity_founder',      'link' => 'outline_pill'],
             'overlap'    => ['ptype' => 'profile_card_v1', 'pvar' => 'identity_overlap_hero', 'link' => 'pill_solid'],
+            'splithero'  => ['ptype' => 'profile_card_v1', 'pvar' => 'identity_split_hero',   'link' => 'outline_pill'],
+            'splitherogrid' => ['ptype' => 'profile_card_v1', 'pvar' => 'identity_split_hero_panel', 'link' => 'pill_solid'],
         ];
     }
 

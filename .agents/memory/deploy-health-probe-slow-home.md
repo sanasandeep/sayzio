@@ -128,3 +128,9 @@ usually schedules fast); long-term lever is shrinking the image.
 **Red herring:** early `healthcheck ... returned status 500` lines in the first
 ~1s of runtime logs are just the proxy answering before services bound their
 ports — they are NOT the promote failure cause when they stop within a second.
+
+## Promote deadline vs Cloud Run cold start (July 2026)
+A publish can fail with NO code change: the promote step allows ~5 min from "Creating Autoscale service" to a healthy container. Compare failed vs prior successful build timestamps — if the container's first runtime logs appear ~5m+ after service creation, the image was scheduled/pulled too slowly and missed the window by seconds. Fix = just re-publish; the healthcheck 500s on `/` `/mobile/` in the last seconds are the sidecar answering before artifact ports are up, not app errors. ProdStartupProbe (probe-UA fast path + boot-window splash on "/") already covers the app-side slow-home case.
+
+## Image-size margin (July 2026, second failure same day)
+When TWO consecutive promotes miss the ~5-min window, don't just retry: the container image is huge (workspace ~12G; attached_assets screenshots alone were 1.4G) and non-reserved-VM deploys skip SOCI streaming, so pull time eats the whole window. Mitigations: prune attached_assets chat screenshots (keep named asset folders + newest few; nothing in code references attached_assets), or suggest Reserved VM (streams image + scheduler never sleeps).

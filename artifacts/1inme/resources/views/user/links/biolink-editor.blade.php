@@ -26,7 +26,7 @@
             </div>
         </div>
         <div class="flex items-center gap-2">
-            <form method="POST" action="{{ route('admin.templates.design.session.save', ['id' => (int) ($tplDraft['template_id'] ?? 0)]) }}"
+            <form method="POST" target="_top" action="{{ route('admin.templates.design.session.save', ['id' => (int) ($tplDraft['template_id'] ?? 0)]) }}"
                   onsubmit="return confirm('Save this design to the template? Users who apply the template will get this design.');">
                 @csrf
                 <button type="submit" class="px-3.5 py-2 rounded-xl text-xs font-bold text-white transition-all"
@@ -34,7 +34,7 @@
                     <i class="fas fa-floppy-disk mr-1.5"></i>Save to template
                 </button>
             </form>
-            <form method="POST" action="{{ route('admin.templates.design.session.discard', ['id' => (int) ($tplDraft['template_id'] ?? 0)]) }}"
+            <form method="POST" target="_top" action="{{ route('admin.templates.design.session.discard', ['id' => (int) ($tplDraft['template_id'] ?? 0)]) }}"
                   onsubmit="return confirm('Discard this design session? The template stays unchanged and this draft page is deleted.');">
                 @csrf
                 <button type="submit" class="px-3.5 py-2 rounded-xl text-xs font-semibold transition-all"

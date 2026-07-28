@@ -47,7 +47,12 @@ class TemplatePreviewLayoutBuilder
             $type = (string) ($item['type'] ?? '');
             if ($type === '') continue;
             $settings = is_array($item['settings'] ?? null) ? $item['settings'] : [];
-            $span = (int) ($settings['_style']['grid_span'] ?? 12);
+            // Prefer the desktop span when a block carries one (Task #5885
+            // split-hero templates): gallery thumbnails read as desktop
+            // blueprints, so a hero-beside-tiles layout should show its
+            // side-by-side arrangement rather than the stacked mobile order.
+            $span = (int) ($settings['_style']['grid_span_md']
+                ?? $settings['_style']['grid_span'] ?? 12);
             $span = max(1, min(12, $span));
             $cell = $this->cellFor($type) + ['span' => $span];
             // Wrap to a new row when the current row can't fit this cell.

@@ -217,11 +217,18 @@
         $allFonts = [(string) $fontFamily];
         $allFonts[] = (string) ($bs['block_theme']['font_family'] ?? '');
         foreach (($link->biolinkBlocks ?? collect()) as $bb) {
+            // Per-block styling is stored under `_style` (legacy blocks may
+            // still carry `style`); check both so baked template fonts —
+            // e.g. Floral Editorial's Yeseva One heading — actually load.
             $st = $bb->settings['style'] ?? [];
             if (!empty($st['font_family'])) $allFonts[] = (string) $st['font_family'];
+            $stu = $bb->settings['_style'] ?? [];
+            if (!empty($stu['font_family'])) $allFonts[] = (string) $stu['font_family'];
             foreach (($bb->children ?? []) as $cc) {
-                $cs = $cc->settings['style'] ?? [];
+                $cs = $cc->settings['_style'] ?? $cc->settings['style'] ?? [];
                 if (!empty($cs['font_family'])) $allFonts[] = (string) $cs['font_family'];
+                $csu = $cc->settings['_style'] ?? [];
+                if (!empty($csu['font_family'])) $allFonts[] = (string) $csu['font_family'];
             }
         }
         $allFonts = array_values(array_unique(array_filter($allFonts)));
@@ -802,6 +809,24 @@
             grid-column: span 12;
             min-width: 0;
         }
+        /* Task #5876: blocks styled with `stack_mobile` collapse to the
+           full row on phones so split desktop layouts stack vertically. */
+        @media (max-width: 767px) {
+            .biolink-block-wrap[data-stack-mobile="1"] { grid-column: span 12 !important; }
+        }
+        /* Desktop grid overrides (Task #5885 split-hero templates). A block
+           carrying `_style.grid_span_md` / `grid_row_span_md` emits
+           `--md-span` / `--md-row-span` vars on its wrap plus these marker
+           classes; on wide screens the media rules re-place it. `!important`
+           is required to beat the wrap's inline `grid-column: span N`. */
+        @media (min-width: 768px) {
+            .biolink-block-wrap.md-span { grid-column: span var(--md-span) !important; }
+            .biolink-block-wrap.md-row-span {
+                grid-row: span var(--md-row-span);
+                align-self: stretch;
+            }
+            .biolink-block-wrap.md-row-span > :first-child { height: 100%; }
+        }
         /* Task #1041: heading animation hooks driven by data-anim. Each
            variant in BlockVariantCatalog::heading_styles emits one of
            these slugs; renderers stay generic. Reduced-motion users opt
@@ -1077,6 +1102,11 @@
 
             @php
                 $gridSpan = intval($blockStyle['grid_span'] ?? 12) ?: 12;
+                // Desktop overrides — sanitizer bounds these to 1..12 / 1..6.
+                $mdSpan = intval($blockStyle['grid_span_md'] ?? 0);
+                $mdRowSpan = intval($blockStyle['grid_row_span_md'] ?? 0);
+                $wrapExtraClass = ($mdSpan ? ' md-span' : '') . ($mdRowSpan ? ' md-row-span' : '');
+                $wrapExtraStyle = ($mdSpan ? ";--md-span:{$mdSpan}" : '') . ($mdRowSpan ? ";--md-row-span:{$mdRowSpan}" : '');
                 // Task #1041: forward variant metadata hooks as data-attrs
                 // so CSS in <style> can drive heading animations, gallery
                 // layouts, and social icon style sets without per-block
@@ -1098,6 +1128,7 @@
                  @if($_animAttr) data-anim="{{ $_animAttr }}" @endif
                  @if($_galAttr) data-gallery-layout="{{ $_galAttr }}" @endif
                  @if($_socAttr) data-social-set="{{ $_socAttr }}" @endif
+                 @if(!empty($blockStyle['stack_mobile'])) data-stack-mobile="1" @endif
                  @if($_lim)
                      data-limits="1"
                      data-limit-state="{{ $_lim['state'] }}"
@@ -1111,7 +1142,7 @@
                      data-expired-label="{{ $_limCfg['expired_label'] ?? 'Sold out' }}"
                      data-expired-emoji="{{ $_limCfg['expired_emoji'] ?? '' }}"
                  @endif
-                 class="biolink-block-wrap" style="grid-column: span {{ $gridSpan }}">
+                 class="biolink-block-wrap{{ $wrapExtraClass }}" style="grid-column: span {{ $gridSpan }}{{ $wrapExtraStyle }}">
             @if($_lim && (!empty($_limCfg['show_countdown']) || !empty($_limCfg['show_remaining'])))
                 {{-- Badge container — populated/updated by the limits ticker
                      in JS below. Rendered server-side as well so the first

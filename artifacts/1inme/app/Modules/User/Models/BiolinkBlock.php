@@ -412,6 +412,19 @@ class BiolinkBlock extends Model
         'margin_left' => '',
         'margin_right' => '',
         'grid_span' => 12,
+        // Task #5876: when truthy, the public page collapses this block to
+        // the full 12-column width on phones (<768px) regardless of
+        // grid_span — lets split/side-by-side desktop layouts stack cleanly
+        // on mobile. Empty/0 = keep grid_span at every width (legacy).
+        'stack_mobile' => '',
+        // Desktop (≥768px) grid overrides. Empty = no override, the block
+        // keeps its `grid_span` at every width. When set, the public page
+        // emits `--md-span` / `--md-row-span` CSS vars on the block wrap
+        // and a media query re-places the block on wide screens — so a
+        // template can stack blocks full-width on phones but arrange them
+        // side-by-side (e.g. split-hero + tile grid) on desktop.
+        'grid_span_md' => '',
+        'grid_row_span_md' => '',
         '_template' => '',
         // Per-block design variant key from BlockVariantCatalog::forType().
         // Empty string = no curated variant chosen (treated as "Custom" in
