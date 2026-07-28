@@ -69,6 +69,10 @@ class LinkController extends Controller
     {
         $query = workspace_owner()->links();
 
+        // Admin template-design drafts are internal working copies opened via
+        // the back-office design editor; keep them out of My Links entirely.
+        $query->whereNull('settings->_template_draft');
+
         if ($search = $request->get('search')) {
             $query->where(function ($q) use ($search) {
                 $q->where('title', 'ilike', "%{$search}%")

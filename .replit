@@ -612,6 +612,10 @@ args = "tpl-size-check"
 task = "workflow.run"
 args = "tpl-base-check"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "tpl-design-session"
+
 [[workflows.workflow]]
 name = "e2e"
 author = "agent"
@@ -2435,6 +2439,17 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "bash .local/tmp/basecheck.sh"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "tpl-design-session"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd artifacts/1inme && TEST_LOCAL_MODE=artisan TEST_LOCAL_PORT=55501 bash scripts/test-local.sh --filter=TemplateDesignSessionTest"
 
 [workflows.workflow.metadata]
 isValidation = true

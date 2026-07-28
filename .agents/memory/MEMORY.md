@@ -151,4 +151,5 @@
 - [Showcase account is a real user account](showcase-account-is-real-user.md) — showcase:seed WIPES sana@sayzio.app on prod; "saves not working" there usually = a reseed reverted her edits.
 - [Biolink bg Fixed/Scroll layer](biolink-bg-fixed-layer.md) — bg_attachment=fixed renders on a .bg-page-fixed viewport layer (iOS-safe), scroll stays on body; bg e2e specs assert layer vs body accordingly.
 - [DatabaseSeeder idempotency vs provisioning migrations](databaseseeder-idempotent-vs-migrations.md) — data migrations pre-create roles/admin on fresh migrate; DatabaseSeeder must firstOrCreate (create() dies 23505 on migrate+seed).
+- [Template design session draft bridge](template-design-session-draft-bridge.md) — hidden draft biolinks need 3 guards: My Links exclusion, owner-gated public render (editor preview needs owner access), deterministic oldest-draft pick.
 - [Chunked card-gallery pattern](chunked-card-gallery-pattern.md) — huge Blade card grids: SSR first chunk + Alpine chunk streaming + light filter index; demo-login is sayzioapp@gmail.com not demo@1inme.com; hoist invariant per-card DB queries out of card loops ([loop](blade-per-card-db-query-loop.md)).

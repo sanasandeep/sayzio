@@ -119,6 +119,17 @@ class RedirectController extends Controller
             }
             return response()->view('common.short-link-not-found', ['alias' => $alias], 404);
         }
+        // Admin template-design drafts are internal working copies — never a
+        // public page. Only the owning (bridged admin) account may view them,
+        // which keeps the editor's live-preview iframe working while hiding
+        // unreleased template designs from everyone else.
+        if (is_array($link->settings['_template_draft'] ?? null)) {
+            $viewer = auth()->guard('web')->user();
+            if (! $viewer || (int) $viewer->id !== (int) $link->user_id) {
+                return response()->view('common.short-link-not-found', ['alias' => $alias], 404);
+            }
+        }
+
         $link->load('pixels');
         // Stash the alias the visitor actually used so views and tracking can
         // distinguish e.g. "/john" vs "/john-instagram" hits on the SAME page.
