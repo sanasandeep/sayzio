@@ -33,7 +33,7 @@ class BlockVariantCatalog
      * pipeline always writes the *current* VERSION so newly-applied or
      * re-applied variants stay in sync.
      */
-    public const VERSION = 7;
+    public const VERSION = 8;
 
     /**
      * Shape filters for link-style blocks. Orthogonal to theme TAGS:
@@ -1895,6 +1895,23 @@ class BlockVariantCatalog
                         'padding' => '0', '_profile_layout' => 'floating',
                     ],
                     'preview' => ['bg' => '#ffffff', 'text' => '#0f172a', 'radius' => 22, 'border' => '#e5e7eb'],
+                ],
+                [
+                    // Screenshot-inspired (July 2026): tall cover with the
+                    // white card pulled up over it and the avatar straddling
+                    // the card's top edge. The block surface is transparent —
+                    // the layout paints its own white card internally.
+                    'key' => 'identity_overlap_hero',
+                    'name' => 'Overlap Hero',
+                    'tags' => ['bold', 'pro'],
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => 'transparent',
+                        'text_color' => '#0f172a',
+                        'border_style' => 'none', 'border_radius' => '24',
+                        'shadow_preset' => 'none',
+                        'padding' => '0', '_profile_layout' => 'overlap_hero',
+                    ],
+                    'preview' => ['bg' => '#ffffff', 'text' => '#0f172a', 'radius' => 24],
                 ],
                 [
                     'key' => 'identity_gradient',

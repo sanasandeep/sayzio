@@ -206,6 +206,7 @@ const BUNDLES: Record<string, MobileVariant[]> = {
     { key: "identity_cover_hero",   name: "Cover Overlay Hero",     tags: ["bold", "editorial"],    preview: { bg: "#0b0b0f", text: "#ffffff", radius: 20 },                              profileLayout: "cover_hero" },
     { key: "identity_split",        name: "Split Card",             tags: ["minimal", "editorial"], preview: { bg: "#f8fafc", text: "#0f172a", radius: 18, border: "#e2e8f0" },           profileLayout: "split" },
     { key: "identity_floating",     name: "Floating Avatar",        tags: ["playful", "pro"],       preview: { bg: "#ffffff", text: "#0f172a", radius: 22, border: "#e5e7eb" },           profileLayout: "floating" },
+    { key: "identity_overlap_hero", name: "Overlap Hero",           tags: ["bold", "pro"],          preview: { bg: "#ffffff", text: "#0f172a", radius: 24 },                              profileLayout: "overlap_hero" },
     { key: "identity_gradient",     name: "Gradient Identity Card", tags: ["bold", "playful"],      preview: { bg: "linear-gradient(150deg,#7c3aed,#d946ef,#fb7185)", text: "#ffffff", radius: 22 }, profileLayout: "gradient" },
     { key: "identity_founder",      name: "Premium Founder Card",   tags: ["pro", "dark"],          preview: { bg: "#0a0a0c", text: "#d4af37", radius: 20, border: "#d4af37" },           profileLayout: "founder" },
     { key: "identity_minimal_dark", name: "Minimal Dark",           tags: ["minimal", "dark"],      preview: { bg: "#0b0b0f", text: "#ffffff", radius: 18, border: "#ffffff20" },         profileLayout: "minimal_dark" },

@@ -2175,6 +2175,69 @@ function ProfileCardView({
     );
   }
 
+  // ───────────── OVERLAP HERO ─────────────
+  // Tall cover with the white card pulled up over it; the avatar
+  // straddles the card's top edge. The block surface stays transparent —
+  // the layout paints its own white card internally (mirrors the web
+  // `overlap_hero` blade branch).
+  if (layout === "overlap_hero") {
+    return (
+      <View style={{ marginBottom: 16 }}>
+        {hasCover ? (
+          <Image
+            source={{ uri: cover }}
+            style={{ height: 176, width: "100%", borderRadius: 16 }}
+          />
+        ) : (
+          <LinearGradient
+            colors={["#3d6bff", "#8b5cf6"]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={{ height: 176, width: "100%", borderRadius: 16 }}
+          />
+        )}
+        <View
+          style={{
+            marginHorizontal: 16,
+            marginTop: -56,
+            backgroundColor: "#ffffff",
+            borderRadius: 24,
+            paddingHorizontal: 20,
+            paddingBottom: 24,
+            paddingTop: 60,
+            alignItems: "center",
+            shadowColor: "#0f172a",
+            shadowOpacity: 0.16,
+            shadowRadius: 17,
+            shadowOffset: { width: 0, height: 7 },
+            elevation: 6,
+          }}
+        >
+          <View style={{ position: "absolute", top: -48, alignSelf: "center" }}>
+            <ProfileAvatar
+              avatar={avatar}
+              initial={initial}
+              size={96}
+              border={{ borderWidth: 4, borderColor: "#fff" }}
+            />
+          </View>
+          {name ? (
+            <Text style={{ fontSize: 18, fontWeight: "700", color: "#0f172a" }}>{name}</Text>
+          ) : null}
+          {title ? (
+            <Text style={{ fontSize: 13, fontWeight: "600", color: accent }}>{title}</Text>
+          ) : null}
+          {bio ? (
+            <Text style={{ fontSize: 13, marginTop: 12, color: "#475569", textAlign: "center" }}>
+              {bio}
+            </Text>
+          ) : null}
+          <ProfileSocialsRow socials={socials} accent={accent} onTap={onTap} chip="accent_outline" />
+        </View>
+      </View>
+    );
+  }
+
   // ───────────── GRADIENT IDENTITY ─────────────
   if (layout === "gradient") {
     const grad = (
