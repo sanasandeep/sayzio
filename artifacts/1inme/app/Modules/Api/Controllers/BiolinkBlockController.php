@@ -139,6 +139,11 @@ class BiolinkBlockController extends Controller
             unset($settings['_style_custom_snapshot']);
         }
 
+        // Photo sticker overlays: same server-side sanitation as update()
+        // (and the web editor) so a create can't persist unclamped or
+        // foreign-file sticker entries either.
+        $settings = $this->sanitizeSettingsStickers($settings);
+
         $b = BiolinkBlock::create([
             'link_id'    => $link->id,
             'type'       => $data['type'],
@@ -220,6 +225,15 @@ class BiolinkBlockController extends Controller
                     $data['sort_order'] = $fixedCount;
                 }
             }
+        }
+
+        // Photo sticker overlays (Task #5957): the mobile editor merges
+        // `_style._photo_stickers` back into settings on save because this
+        // PATCH replaces settings wholesale. Run the SAME sanitizer the web
+        // editor uses so ownership checks + clamps (pos presets, size,
+        // rotate, dx/dy ±80, entry cap) can never be bypassed via the API.
+        if (array_key_exists('settings', $data) && is_array($data['settings'])) {
+            $data['settings'] = $this->sanitizeSettingsStickers($data['settings']);
         }
 
         $b->fill($data)->save();
@@ -373,6 +387,30 @@ class BiolinkBlockController extends Controller
             BiolinkBlock::where('link_id', $link->id)->where('id', $blockId)->update(['sort_order' => $i]);
         }
         return $this->ok(['reordered' => true]);
+    }
+
+    /**
+     * If the payload carries `_style._photo_stickers`, run it through the
+     * shared PhotoStickerSanitizer (ownership check, server-derived url,
+     * pos preset allowlist, size/rotate/dx/dy clamps, entry cap). All other
+     * `_style` keys are left untouched. An empty sanitized result removes
+     * the key entirely, matching the web editor's behaviour.
+     */
+    protected function sanitizeSettingsStickers(array $settings): array
+    {
+        if (!isset($settings['_style']) || !is_array($settings['_style'])) {
+            return $settings;
+        }
+        if (!array_key_exists('_photo_stickers', $settings['_style'])) {
+            return $settings;
+        }
+        $clean = \App\Modules\User\Support\PhotoStickerSanitizer::sanitize($settings['_style']['_photo_stickers']);
+        if ($clean === []) {
+            unset($settings['_style']['_photo_stickers']);
+        } else {
+            $settings['_style']['_photo_stickers'] = $clean;
+        }
+        return $settings;
     }
 
     protected function ownedLink(Request $request, int $id): ?Link
