@@ -32,6 +32,10 @@ args = "e2e-image-sticker-drag-place"
 task = "workflow.run"
 args = "e2e-photo-stickers"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "bg-preset-tests"
+
 [[workflows.workflow]]
 name = "heading-accents-test"
 author = "agent"
@@ -64,6 +68,17 @@ args = "bash artifacts/1inme/tests/Browser/run-validation.sh biolink-photo-stick
 
 [workflows.workflow.metadata]
 isValidation = true
+
+[[workflows.workflow]]
+name = "bg-preset-tests"
+author = "agent"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd artifacts/1inme && TEST_LOCAL_MODE=artisan bash scripts/test-local.sh --filter=BiolinkBgPresetSaveTest"
 
 
   [agent]

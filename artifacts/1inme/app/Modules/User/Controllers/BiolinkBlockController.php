@@ -1210,6 +1210,7 @@ class BiolinkBlockController extends Controller
         'gradient_colors', 'gradient_angle', 'gradient_type', 'gradient_preset_id',
         'slideshow_interval', 'video_url', 'bg_template_id', 'bg_attachment',
         'bg_fallback_color', 'bg_blur', 'bg_overlay_color', 'bg_overlay_opacity',
+        'bg_preset_opacity',
         'torn_paper_color',
         'font_family', 'font_color', 'button_style', 'button_color', 'button_text_color',
         'custom_branding_text', 'custom_branding_url', 'custom_branding_logo',
@@ -1261,6 +1262,9 @@ class BiolinkBlockController extends Controller
             'bg_blur' => 'nullable|integer|min:0|max:100',
             'bg_overlay_color' => ['nullable','string','max:20','regex:/^#[0-9a-fA-F]{3,8}$/'],
             'bg_overlay_opacity' => 'nullable|integer|min:0|max:100',
+            // Transparency of the page preset background itself (Task #5970),
+            // distinct from the overlay opacity above. 100 = fully opaque.
+            'bg_preset_opacity' => 'nullable|integer|min:0|max:100',
             'font_family' => 'nullable|string|max:100',
             'font_color' => ['nullable','string','max:20','regex:/^#[0-9a-fA-F]{3,8}$/'],
             'button_style' => 'nullable|string|in:rounded,pill,square,outline,shadow',
@@ -2213,6 +2217,8 @@ class BiolinkBlockController extends Controller
             'stack_mobile' => [0, 1],
             'grid_span_md' => [1, 12],
             'grid_row_span_md' => [1, 6],
+            // Block/card preset background transparency (Task #5970).
+            'bg_preset_opacity' => [0, 100],
         ];
         // Decorative avatar frame for profile cards (Task #5910). Strict
         // enum from the catalog — unknown keys are silently dropped so a
@@ -2280,6 +2286,19 @@ class BiolinkBlockController extends Controller
             } elseif (in_array($key, $urlKeys, true)) {
                 if (filter_var($val, FILTER_VALIDATE_URL) && preg_match('/^https?:\/\//', $val)) {
                     $result[$key] = substr($val, 0, 500);
+                }
+            } elseif ($key === 'bg_preset_key') {
+                // Catalog preset background for blocks & card containers
+                // (Task #5970). Only real, non-torn catalog keys persist —
+                // torn composites need full-page layers and are excluded at
+                // block level. Unknown keys are silently dropped so a bad
+                // value can never emit broken CSS on the public page.
+                $safe = preg_replace('/[^a-z0-9_]/', '', substr((string) $val, 0, 60));
+                if ($safe !== ''
+                    && \App\Modules\User\Support\BgPresetCatalog::findByKey($safe)
+                    && !\App\Modules\User\Support\BgPresetCatalog::isTorn($safe)
+                ) {
+                    $result[$key] = $safe;
                 }
             } elseif ($key === '_template') {
                 $validTemplates = array_keys(BiolinkBlock::BLOCK_TEMPLATES);

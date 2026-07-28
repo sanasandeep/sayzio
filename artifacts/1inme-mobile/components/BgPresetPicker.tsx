@@ -70,6 +70,11 @@ export function BgPresetPicker({ linkId }: { linkId: number }) {
     presetActive && typeof biolink.bg_preset_key === "string"
       ? biolink.bg_preset_key
       : "";
+  // Page-level preset transparency (Task #5970): 0–100, default 100.
+  const rawOpacity = Number(biolink.bg_preset_opacity);
+  const selectedOpacity = Number.isFinite(rawOpacity)
+    ? Math.max(0, Math.min(100, Math.round(rawOpacity)))
+    : 100;
 
   const save = useMutation({
     mutationFn: (key: string) =>
@@ -101,6 +106,32 @@ export function BgPresetPicker({ linkId }: { linkId: number }) {
     },
     onSettled: () => {
       setPendingKey(null);
+      qc.invalidateQueries({ queryKey: ["link", linkId] });
+    },
+  });
+
+  // Saves `bg_preset_opacity` (page-level preset transparency) with the
+  // same optimistic cache patch so the Appearance preview fades live.
+  const saveOpacity = useMutation({
+    mutationFn: (opacity: number) =>
+      updateLink(linkId, {
+        settings: { biolink: { bg_preset_opacity: opacity } },
+      }),
+    onMutate: (opacity: number) => {
+      qc.setQueryData(["link", linkId], (prev: unknown) => {
+        if (!isRecord(prev)) return prev;
+        const settings = isRecord(prev.settings) ? prev.settings : {};
+        const biolink = isRecord(settings.biolink) ? settings.biolink : {};
+        return {
+          ...prev,
+          settings: {
+            ...settings,
+            biolink: { ...biolink, bg_preset_opacity: opacity },
+          },
+        };
+      });
+    },
+    onSettled: () => {
       qc.invalidateQueries({ queryKey: ["link", linkId] });
     },
   });
@@ -286,6 +317,55 @@ export function BgPresetPicker({ linkId }: { linkId: number }) {
               })}
             </View>
           )}
+
+          {presetActive ? (
+            <View style={{ gap: 6 }} testID="bg-preset-opacity">
+              <Text
+                style={[styles.sectionLabel, { color: colors.mutedForeground }]}
+              >
+                Preset transparency · {selectedOpacity}%
+              </Text>
+              <View style={styles.chipRow}>
+                {[25, 50, 75, 90, 100].map((v) => {
+                  const on = selectedOpacity === v;
+                  return (
+                    <Pressable
+                      {...WEB_FOCUS_RING_PROPS}
+                      key={v}
+                      testID={`bg-preset-opacity-${v}`}
+                      disabled={saveOpacity.isPending}
+                      onPress={() => {
+                        if (!on) saveOpacity.mutate(v);
+                      }}
+                      style={[
+                        styles.chip,
+                        {
+                          backgroundColor: on ? colors.primary : colors.card,
+                          borderColor: on ? colors.primary : colors.border,
+                        },
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.chipText,
+                          {
+                            color: on
+                              ? colors.primaryForeground
+                              : colors.mutedForeground,
+                          },
+                        ]}
+                      >
+                        {v}%
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+              <Text style={[styles.empty, { color: colors.mutedForeground, textAlign: "left", paddingVertical: 0 }]}>
+                Lower values let the fallback color show through the preset.
+              </Text>
+            </View>
+          ) : null}
 
           {save.isError ? (
             <Text style={[styles.empty, { color: colors.destructive }]}>

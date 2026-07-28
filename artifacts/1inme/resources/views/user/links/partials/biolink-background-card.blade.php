@@ -258,6 +258,15 @@
             <p class="text-[10px] mt-1" style="color: var(--text-dimmed);">
                 Click a swatch to select it. Click again to deselect.
             </p>
+            {{-- Preset transparency (Task #5970): fades the preset layer itself
+                 (0 = invisible, 100 = fully opaque); page content is unaffected. --}}
+            <div x-data="{ presetOpacity: {{ max(0, min(100, (int) ($bs['bg_preset_opacity'] ?? 100))) }} }">
+                <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">
+                    Preset Transparency <span class="opacity-60" x-text="presetOpacity + '%'"></span>
+                </label>
+                <input type="range" name="bg_preset_opacity" min="0" max="100" step="5" x-model="presetOpacity" class="w-full">
+                <p class="text-[10px] mt-1" style="color: var(--text-dimmed);">Lower values fade the preset toward the fallback color behind it.</p>
+            </div>
         </div>
 
         {{-- TEMPLATE --}}

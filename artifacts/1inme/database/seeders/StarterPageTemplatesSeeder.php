@@ -74,7 +74,7 @@ class StarterPageTemplatesSeeder extends Seeder
      * a dusty-blue paper sheet with a jagged torn right edge over a
      * studio backdrop photo, minimal profile + clean rounded links.
      */
-    public const SEED_VERSION = 17;
+    public const SEED_VERSION = 18;
 
     /** Tolerance (seconds) for treating updated_at == created_at. */
     private const EDIT_DRIFT_TOLERANCE = 2;
@@ -152,14 +152,20 @@ class StarterPageTemplatesSeeder extends Seeder
                 'snapshot'             => $this->snapshot([
                     $this->profile('Your Name', 'A little about you — what you do, what you love, and where people can find you.', $this->face('starter-personal-face'), $kits['personal']),
                     $this->socials(),
-                    $this->link('My latest project', 'https://example.com/project', 'fas fa-rocket', $kits['personal']),
+                    // Block-level catalog preset showcase (Task #5970).
+                    $this->withPreset($this->link('My latest project', 'https://example.com/project', 'fas fa-rocket', $kits['personal']), 'abstract_fourtyfive', 80),
                     $this->link('Read my blog', 'https://example.com/blog', 'fas fa-pen-nib', $kits['personal']),
                     $this->link('Book a call', 'https://example.com/call', 'fas fa-calendar', $kits['personal']),
                     $this->divider(),
                     $this->ctaButton('Say hello', 'mailto:you@example.com'),
                 ], [
-                    'background_type'    => 'gradient',
-                    'background_gradient' => 'linear-gradient(160deg, #1e293b 0%, #334155 55%, #3d6bff 130%)',
+                    // Catalog preset background (Task #5970): deep blue-violet
+                    // radial from BgPresetCatalog, softened slightly via the
+                    // page-level preset transparency over the dark fallback.
+                    'background_type'    => 'preset',
+                    'bg_preset_key'      => 'abstract_fiftythree',
+                    'bg_preset_opacity'  => 90,
+                    'bg_fallback_color'  => '#0f172a',
                     'theme_color'        => '#3d6bff',
                     'font_color'         => '#f8fafc',
                     'button_color'       => '#3d6bff',
@@ -188,8 +194,9 @@ class StarterPageTemplatesSeeder extends Seeder
                     ]),
                     $this->socials(),
                 ], [
-                    'background_type'    => 'gradient',
-                    'background_gradient' => 'linear-gradient(135deg, #f97316 0%, #ec4899 50%, #8b5cf6 100%)',
+                    // Catalog preset background (Task #5970): warm sunset radial.
+                    'background_type'    => 'preset',
+                    'bg_preset_key'      => 'abstract_fiftyfour',
                     'theme_color'        => '#ec4899',
                     'font_color'         => '#ffffff',
                     'button_color'       => '#ffffff',
@@ -1152,6 +1159,22 @@ class StarterPageTemplatesSeeder extends Seeder
     private function block(string $type, array $settings): array
     {
         return ['type' => $type, 'settings' => $settings, 'is_active' => true];
+    }
+
+    /**
+     * Stamp a catalog preset background (Task #5970) onto an already-built
+     * block: merges `bg_preset_key`/`bg_preset_opacity` into its `_style`
+     * (seeding STYLE_DEFAULTS when the block had no style yet) so the
+     * public renderer paints the preset layer behind the block content.
+     */
+    private function withPreset(array $block, string $presetKey, int $opacity = 100): array
+    {
+        $style = $block['settings']['_style'] ?? BiolinkBlock::STYLE_DEFAULTS;
+        $block['settings']['_style'] = array_merge($style, [
+            'bg_preset_key'     => $presetKey,
+            'bg_preset_opacity' => max(0, min(100, $opacity)),
+        ]);
+        return $block;
     }
 
     /**

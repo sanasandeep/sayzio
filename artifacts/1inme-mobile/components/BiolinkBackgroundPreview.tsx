@@ -87,6 +87,14 @@ export function BiolinkBackgroundPreview({ linkId }: { linkId: number }) {
 
   const presetActive = biolink.background_type === "preset";
   const presetKey = presetActive ? str(biolink.bg_preset_key) : "";
+  // Page-level preset transparency (Task #5970): 0–100, default 100. The
+  // preset layer fades toward the page fallback color underneath it,
+  // mirroring the web renderer's translucent `.bg-page-fixed` layer.
+  const rawPresetOpacity = Number(biolink.bg_preset_opacity);
+  const presetOpacity = Number.isFinite(rawPresetOpacity)
+    ? Math.max(0, Math.min(100, Math.round(rawPresetOpacity)))
+    : 100;
+  const presetFallback = str(biolink.bg_fallback_color) || "#3d3654";
   const templateActive = biolink.background_type === "template";
   const templateId =
     templateActive && typeof biolink.bg_template_id === "number"
@@ -208,16 +216,35 @@ export function BiolinkBackgroundPreview({ linkId }: { linkId: number }) {
             ) : null}
             {mockContent}
           </LinearGradient>
-        ) : preset || (!presetKey && templateId === null && !bgImage) ? (
+        ) : preset ? (
+          // Preset background: the gradient approximation sits on its own
+          // layer whose opacity honours `bg_preset_opacity`, fading toward
+          // the fallback color beneath (matching the web page layer).
+          <View style={[styles.canvas, { backgroundColor: presetFallback }]}>
+            <View
+              style={[
+                StyleSheet.absoluteFill,
+                { opacity: presetOpacity / 100 },
+              ]}
+              pointerEvents="none"
+            >
+              <LinearGradient
+                colors={gradientStops(preset.colors)}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={StyleSheet.absoluteFill}
+              />
+              {preset.paper ? <TornPaperOverlay paper={preset.paper} /> : null}
+            </View>
+            {mockContent}
+          </View>
+        ) : !presetKey && templateId === null && !bgImage ? (
           <LinearGradient
-            colors={gradientStops(
-              preset ? preset.colors : bgColor ? [bgColor] : ["#3d3654"],
-            )}
+            colors={gradientStops(bgColor ? [bgColor] : ["#3d3654"])}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.canvas}
           >
-            {preset?.paper ? <TornPaperOverlay paper={preset.paper} /> : null}
             {mockContent}
           </LinearGradient>
         ) : bgImage ? (

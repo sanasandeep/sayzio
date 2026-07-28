@@ -50,6 +50,7 @@ import { ReviewsWall } from "@/components/ReviewsWall";
 import { useAuth } from "@/contexts/AuthContext";
 import { useColors } from "@/hooks/useColors";
 import { getBaseUrl } from "@/lib/api";
+import { getBgPresets } from "@/lib/api/bgPresets";
 import { buyProduct, checkoutCart } from "@/lib/api/store";
 import { variantOverlay } from "@/lib/blockVariants";
 import { canonicalBlockType } from "@/lib/blockTypeRegistry";
@@ -1029,7 +1030,62 @@ function NativeProductBlock({
   );
 }
 
-export function BlockView({ block, alias, allBlocks, openEmbed }: { block: BiolinkBlock; alias: string; allBlocks: BiolinkBlock[]; openEmbed: OpenEmbed }) {
+// Block-level catalog preset background (Task #5970). The web renderer
+// paints the preset's raw CSS on an absolutely-positioned layer behind the
+// block; RN can't render CSS strings, so we approximate with the preset's
+// `colors` LinearGradient (instant paint) covered by the pre-rendered PNG
+// swatch of the REAL texture when the server advertises one — the same
+// approximation the Appearance preset picker/preview already uses. The
+// layer honours `bg_preset_opacity` (0–100, default 100).
+export function BlockView(props: { block: BiolinkBlock; alias: string; allBlocks: BiolinkBlock[]; openEmbed: OpenEmbed }) {
+  const st = (props.block.settings?._style as Record<string, unknown> | undefined) ?? {};
+  const presetKey = typeof st.bg_preset_key === "string" ? st.bg_preset_key.trim() : "";
+  const rawOpacity = Number(st.bg_preset_opacity);
+  const presetOpacity = Number.isFinite(rawOpacity)
+    ? Math.max(0, Math.min(100, Math.round(rawOpacity)))
+    : 100;
+
+  // Hook is unconditional (React rules); it only fires when a preset key
+  // is present. Query key/staleTime match the pickers' so caches share.
+  const catalogQ = useQuery({
+    queryKey: ["bg-presets"],
+    queryFn: getBgPresets,
+    staleTime: 60 * 60 * 1000,
+    enabled: presetKey !== "",
+  });
+  const preset = presetKey
+    ? catalogQ.data?.presets.find((p) => p.key === presetKey && !p.paper)
+    : undefined;
+
+  const inner = <BlockViewInner {...props} />;
+  if (!preset) return inner;
+  const stops =
+    preset.colors.length >= 2
+      ? (preset.colors as [string, string, ...string[]])
+      : ([preset.colors[0] ?? "#3d3654", preset.colors[0] ?? "#3d3654"] as [string, string]);
+  return (
+    <View style={{ borderRadius: 14, overflow: "hidden" }}>
+      <View style={[StyleSheet.absoluteFill, { opacity: presetOpacity / 100 }]} pointerEvents="none">
+        <LinearGradient
+          colors={stops}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={StyleSheet.absoluteFill}
+        />
+        {preset.swatch ? (
+          <ImageBackground
+            source={{ uri: `${getBaseUrl()}${preset.swatch}` }}
+            style={StyleSheet.absoluteFill}
+            resizeMode="cover"
+          />
+        ) : null}
+      </View>
+      <View style={{ padding: presetOpacity > 0 ? 8 : 0 }}>{inner}</View>
+    </View>
+  );
+}
+
+function BlockViewInner({ block, alias, allBlocks, openEmbed }: { block: BiolinkBlock; alias: string; allBlocks: BiolinkBlock[]; openEmbed: OpenEmbed }) {
   const colors = useColors();
   const router = useRouter();
   const s = block.settings ?? {};

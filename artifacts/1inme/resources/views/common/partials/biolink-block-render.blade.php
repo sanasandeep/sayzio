@@ -812,6 +812,16 @@
                     // Plain grid only: optionally collapse to a single column
                     // on small screens (children stack in source order).
                     $stackMobile = !$isCard && !$isAutoGrid && !empty($s['stack_mobile']);
+                    // Catalog preset background for the container itself
+                    // (Task #5970) — read from the container's _style and
+                    // painted on a dedicated layer behind the children so
+                    // the transparency never fades the content.
+                    $containerPreset = \App\Modules\User\Models\BiolinkBlock::presetLayer(
+                        \App\Modules\User\Models\BiolinkBlock::getBlockStyle($s, $globalTheme)
+                    );
+                    if ($containerPreset) {
+                        $containerStyle .= 'position:relative;isolation:isolate;overflow:hidden;';
+                    }
                 @endphp
                 @if($stackMobile)
                     @once('grid-stack-mobile-css')
@@ -827,6 +837,10 @@
                     @endonce
                 @endif
                 <div class="mb-4 {{ $isCard ? 'card-container-render' : 'grid-container-render' }}" style="{{ $containerStyle }}">
+                    @if($containerPreset)
+                        {{-- Preset CSS resolves server-side from the catalog. --}}
+                        <div class="block-bg-preset" aria-hidden="true" style="position:absolute;inset:0;z-index:-1;pointer-events:none;{!! $containerPreset['css'] !!};background-attachment:scroll !important;opacity:{{ $containerPreset['opacity'] / 100 }};"></div>
+                    @endif
                     @if(!empty($s['title']))
                     <div class="mb-3 text-sm font-semibold" style="color: {{ $fontColor ?? '#fff' }}cc;">{{ $s['title'] }}</div>
                     @endif
@@ -844,11 +858,22 @@
                                 // auto-fit grids give every child a single cell.
                                 $childSpanRaw = intval($childStyle['grid_span'] ?? 12) ?: 12;
                                 $childSpan = $cols > 0 ? min(max(1, (int)round($childSpanRaw / 12 * $cols)), $cols) : 1;
+                                // Preset background layer for card/grid children
+                                // (Task #5970) — mirrors the top-level block wrap.
+                                $childPreset = \App\Modules\User\Models\BiolinkBlock::presetLayer($childStyle);
                             @endphp
                             <div style="grid-column: span {{ $childSpan }};">
-                            @if($childHasStyle && !$childSkipWrap)<div class="block-styled" style="{{ $childInline }}">@endif
+                            @if($childHasStyle && !$childSkipWrap)
+                                <div class="block-styled" style="{{ $childInline }}{{ $childPreset ? ';position:relative;isolation:isolate;overflow:hidden;' : '' }}">
+                                @if($childPreset)
+                                    <div class="block-bg-preset" aria-hidden="true" style="position:absolute;inset:0;z-index:-1;pointer-events:none;{!! $childPreset['css'] !!};background-attachment:scroll !important;opacity:{{ $childPreset['opacity'] / 100 }};"></div>
+                                @endif
+                            @elseif($childPreset)
+                                <div class="block-preset-wrap" style="position:relative;isolation:isolate;overflow:hidden;border-radius:{{ ($childStyle['border_radius'] ?? '') !== '' ? intval($childStyle['border_radius']) : 14 }}px;">
+                                    <div class="block-bg-preset" aria-hidden="true" style="position:absolute;inset:0;z-index:-1;pointer-events:none;{!! $childPreset['css'] !!};background-attachment:scroll !important;opacity:{{ $childPreset['opacity'] / 100 }};"></div>
+                            @endif
                                 @include('common.partials.biolink-block-render', ['block' => $childBlock, 's' => $cs, 'fontColor' => $fontColor ?? '#fff', 'btnInline' => $childBtnInline])
-                            @if($childHasStyle && !$childSkipWrap)</div>@endif
+                            @if(($childHasStyle && !$childSkipWrap) || $childPreset)</div>@endif
                             </div>
                         @endforeach
                     </div>

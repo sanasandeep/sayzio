@@ -232,6 +232,8 @@ import {
   uploadVaultFile,
   type VaultFile,
 } from "@/lib/api/files";
+import { getBgPresets } from "@/lib/api/bgPresets";
+import { LinearGradient } from "expo-linear-gradient";
 import { variantsForType, findVariant } from "@/lib/blockVariants";
 import { canonicalBlockType } from "@/lib/blockTypeRegistry";
 import { showAlert } from "@/lib/webAlert";
@@ -881,6 +883,21 @@ export function BlockSettingsEditor({
   // Decorative avatar frame (Task #5910) — mirrors _style._avatar_frame
   // (+ optional _avatar_frame_color tint). "" = none / auto accent.
   const [avatarFrame, setAvatarFrame] = useState<string>("");
+  // Block background preset (Task #5970): `_style.bg_preset_key` +
+  // `_style.bg_preset_opacity` (0–100). Available on every block type.
+  const [bgPresetKey, setBgPresetKey] = useState<string>("");
+  const [bgPresetOpacity, setBgPresetOpacity] = useState<number>(100);
+  const [bgPresetOpen, setBgPresetOpen] = useState(false);
+  const [bgPresetGroup, setBgPresetGroup] = useState<string>("all");
+  // Block background preset catalog — only fetched once the picker is
+  // opened (or a preset is already applied, so its swatch can render).
+  // Query key/staleTime match the Appearance pickers' so caches share.
+  const bgPresetCatalogQ = useQuery({
+    queryKey: ["bg-presets"],
+    queryFn: getBgPresets,
+    staleTime: 60 * 60 * 1000,
+    enabled: bgPresetOpen || bgPresetKey !== "",
+  });
   const [avatarFrameColor, setAvatarFrameColor] = useState<string>("");
   // Stats (`[{label,value}]`, "stats" layout) and badges (`[{label}]`,
   // "badges" layout) repeaters. Edited via bespoke sections below, gated
@@ -1021,6 +1038,15 @@ export function BlockSettingsEditor({
     if (block.type === "map_location") {
       const sd = block.settings?.show_directions;
       setMapShowDirections(!(sd === false || sd === 0 || sd === "0" || sd === "false"));
+    }
+    // Hydrate the block background preset (any block type).
+    {
+      const st = (block.settings?._style as Record<string, unknown> | undefined) ?? {};
+      setBgPresetKey(typeof st.bg_preset_key === "string" ? st.bg_preset_key : "");
+      const rawOp = Number(st.bg_preset_opacity);
+      setBgPresetOpacity(
+        Number.isFinite(rawOp) ? Math.max(0, Math.min(100, Math.round(rawOp))) : 100,
+      );
     }
   }, [block]);
 
@@ -1381,6 +1407,26 @@ export function BlockSettingsEditor({
         }
         if (Object.keys(styleOut).length > 0) nextSettings._style = styleOut;
       }
+      // Block background preset (Task #5970): merge the preset key +
+      // opacity into whatever `_style` has been assembled so far (profile
+      // avatar frame / image stickers may already have populated it).
+      // Empty key deletes both so clearing round-trips.
+      {
+        const baseStyle =
+          (nextSettings._style as Record<string, unknown> | undefined) ??
+          (block?.settings?._style as Record<string, unknown> | undefined) ??
+          {};
+        const styleOut: Record<string, unknown> = { ...baseStyle };
+        if (bgPresetKey) {
+          styleOut.bg_preset_key = bgPresetKey;
+          styleOut.bg_preset_opacity = clampNum(Math.round(bgPresetOpacity), 0, 100);
+        } else {
+          delete styleOut.bg_preset_key;
+          delete styleOut.bg_preset_opacity;
+        }
+        if (Object.keys(styleOut).length > 0) nextSettings._style = styleOut;
+        else delete nextSettings._style;
+      }
       // Map-location block: the boolean toggle round-trips through its own
       // state (the generic `values` map would otherwise stringify it).
       // address/lat/lng/label/zoom already ride along in `nextSettings`
@@ -1704,6 +1750,187 @@ export function BlockSettingsEditor({
           ) : null}
         </View>
         )}
+
+        {/* Block background preset (Task #5970) — mirrors the web editor's
+            Look-tab picker: catalog presets (torn-paper excluded server-side
+            via `paper`) painted behind THIS block with a 0–100 transparency.
+            Saved into `_style.bg_preset_key` / `_style.bg_preset_opacity`
+            on the normal save path. */}
+        <View style={{ gap: 8 }} testID="block-bg-preset-section">
+          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+            <Text style={[styles.rowLabel, { color: colors.foreground }]}>Background preset</Text>
+            <Pressable {...WEB_FOCUS_RING_PROPS}
+              testID="block-bg-preset-toggle"
+              onPress={() => setBgPresetOpen((v) => !v)}
+              style={{
+                paddingHorizontal: 10,
+                paddingVertical: 6,
+                borderRadius: 999,
+                borderWidth: 1,
+                borderColor: colors.border,
+                backgroundColor: colors.card,
+              }}
+            >
+              <Text style={{ color: colors.foreground, fontWeight: "600", fontSize: 11 }}>
+                {bgPresetOpen ? "Hide presets" : bgPresetKey ? "Change preset" : "Pick a preset"}
+              </Text>
+            </Pressable>
+          </View>
+
+          {bgPresetKey ? (() => {
+            const cur = (bgPresetCatalogQ.data?.presets ?? []).find(
+              (p) => p.key === bgPresetKey && !p.paper,
+            );
+            return (
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+                <View style={{ width: 44, height: 44, borderRadius: 10, overflow: "hidden", borderWidth: 1, borderColor: colors.border }}>
+                  {cur ? (
+                    <LinearGradient
+                      colors={
+                        cur.colors.length >= 2
+                          ? (cur.colors as [string, string, ...string[]])
+                          : ([cur.colors[0] ?? "#3d3654", cur.colors[0] ?? "#3d3654"] as [string, string])
+                      }
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 1 }}
+                      style={StyleSheet.absoluteFill}
+                    />
+                  ) : (
+                    <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.muted }]} />
+                  )}
+                  {cur?.swatch ? (
+                    <Image
+                      source={{ uri: `${getBaseUrl()}${cur.swatch}` }}
+                      style={StyleSheet.absoluteFill}
+                      resizeMode="cover"
+                    />
+                  ) : null}
+                </View>
+                <Text style={{ color: colors.mutedForeground, fontSize: 12, flex: 1 }} numberOfLines={1}>
+                  {cur?.label ?? bgPresetKey}
+                </Text>
+                <Pressable {...WEB_FOCUS_RING_PROPS}
+                  testID="block-bg-preset-clear"
+                  onPress={() => setBgPresetKey("")}
+                  style={{
+                    paddingHorizontal: 10,
+                    paddingVertical: 6,
+                    borderRadius: 999,
+                    borderWidth: 1,
+                    borderColor: colors.border,
+                  }}
+                >
+                  <Text style={{ color: colors.destructive, fontWeight: "600", fontSize: 11 }}>Remove</Text>
+                </Pressable>
+              </View>
+            );
+          })() : null}
+
+          {bgPresetKey ? (
+            <View style={{ gap: 6 }}>
+              <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>
+                Transparency · {bgPresetOpacity}%
+              </Text>
+              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+                {[25, 50, 75, 90, 100].map((v) => {
+                  const on = bgPresetOpacity === v;
+                  return (
+                    <Pressable {...WEB_FOCUS_RING_PROPS}
+                      key={v}
+                      testID={`block-bg-preset-opacity-${v}`}
+                      onPress={() => setBgPresetOpacity(v)}
+                      style={{
+                        paddingHorizontal: 10,
+                        paddingVertical: 6,
+                        borderRadius: 999,
+                        borderWidth: 1,
+                        borderColor: on ? colors.primary : colors.border,
+                        backgroundColor: on ? colors.primary : colors.card,
+                      }}
+                    >
+                      <Text style={{ color: on ? "#fff" : colors.mutedForeground, fontWeight: "600", fontSize: 11 }}>
+                        {v}%
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </View>
+          ) : null}
+
+          {bgPresetOpen ? (
+            bgPresetCatalogQ.isLoading ? (
+              <ActivityIndicator color={colors.primary} />
+            ) : (
+              <View style={{ gap: 8 }}>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
+                  {[{ key: "all", label: "All" }, ...(bgPresetCatalogQ.data?.groups ?? [])].map((g) => {
+                    const sel = bgPresetGroup === g.key;
+                    return (
+                      <Pressable {...WEB_FOCUS_RING_PROPS}
+                        key={g.key}
+                        onPress={() => setBgPresetGroup(g.key)}
+                        style={{
+                          paddingHorizontal: 10,
+                          paddingVertical: 5,
+                          borderRadius: 999,
+                          backgroundColor: sel ? colors.primary : colors.card,
+                          borderWidth: 1,
+                          borderColor: sel ? colors.primary : colors.border,
+                        }}
+                      >
+                        <Text style={{ color: sel ? "#fff" : colors.foreground, fontWeight: "600", fontSize: 11 }}>
+                          {g.label}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </ScrollView>
+                <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+                  {(bgPresetCatalogQ.data?.presets ?? [])
+                    .filter((p) => !p.paper)
+                    .filter((p) => bgPresetGroup === "all" || p.group === bgPresetGroup)
+                    .map((p) => {
+                      const sel = bgPresetKey === p.key;
+                      return (
+                        <Pressable {...WEB_FOCUS_RING_PROPS}
+                          key={p.key}
+                          testID={`block-bg-preset-${p.key}`}
+                          onPress={() => setBgPresetKey(sel ? "" : p.key)}
+                          style={{
+                            width: 56,
+                            height: 56,
+                            borderRadius: 12,
+                            overflow: "hidden",
+                            borderWidth: sel ? 3 : 1,
+                            borderColor: sel ? colors.primary : colors.border,
+                          }}
+                        >
+                          <LinearGradient
+                            colors={
+                              p.colors.length >= 2
+                                ? (p.colors as [string, string, ...string[]])
+                                : ([p.colors[0] ?? "#3d3654", p.colors[0] ?? "#3d3654"] as [string, string])
+                            }
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 1 }}
+                            style={StyleSheet.absoluteFill}
+                          />
+                          {p.swatch ? (
+                            <Image
+                              source={{ uri: `${getBaseUrl()}${p.swatch}` }}
+                              style={StyleSheet.absoluteFill}
+                              resizeMode="cover"
+                            />
+                          ) : null}
+                        </Pressable>
+                      );
+                    })}
+                </View>
+              </View>
+            )
+          ) : null}
+        </View>
 
         {isAnyList ? (
           <View style={{ gap: 12 }}>

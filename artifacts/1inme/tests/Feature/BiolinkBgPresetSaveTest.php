@@ -53,14 +53,14 @@ class BiolinkBgPresetSaveTest extends TestCase
 
     // ===== Catalog unit =====
 
-    public function test_catalog_returns_157_presets(): void
+    public function test_catalog_returns_179_presets(): void
     {
         $all = BgPresetCatalog::all();
-        $this->assertCount(157, $all,
-            'BgPresetCatalog should contain exactly 157 presets (41 gradients + 100 abstract + 16 patterns)');
+        $this->assertCount(179, $all,
+            'BgPresetCatalog should contain exactly 179 presets (60 gradients + 100 abstract + 16 patterns + 3 torn)');
     }
 
-    public function test_catalog_has_three_groups(): void
+    public function test_catalog_has_expected_groups(): void
     {
         $all = BgPresetCatalog::all();
         $byGroup = [];
@@ -70,9 +70,11 @@ class BiolinkBgPresetSaveTest extends TestCase
         $this->assertArrayHasKey('gradients', $byGroup);
         $this->assertArrayHasKey('abstract',  $byGroup);
         $this->assertArrayHasKey('patterns',  $byGroup);
-        $this->assertSame(41,  $byGroup['gradients'], 'Expected 41 gradient presets');
+        $this->assertArrayHasKey('torn',      $byGroup);
+        $this->assertSame(60,  $byGroup['gradients'], 'Expected 60 gradient presets');
         $this->assertSame(100, $byGroup['abstract'],  'Expected 100 abstract presets');
         $this->assertSame(16,  $byGroup['patterns'],  'Expected 16 pattern presets');
+        $this->assertSame(3,   $byGroup['torn'],      'Expected 3 torn presets');
     }
 
     public function test_findByKey_returns_entry_for_known_key(): void
@@ -218,5 +220,154 @@ class BiolinkBgPresetSaveTest extends TestCase
         $bio = $link->settings['biolink'] ?? [];
         $this->assertSame('color',   $bio['background_type']  ?? null);
         $this->assertSame('#112233', $bio['background_color'] ?? null);
+    }
+
+    // ===== Page-level preset transparency (Task #5970) =====
+
+    public function test_page_settings_persists_preset_opacity(): void
+    {
+        $u    = $this->user();
+        $link = $this->biolink($u);
+
+        $this->actingAs($u)->post('/user/links/' . $link->id . '/page-settings', [
+            'background_type'   => 'preset',
+            'bg_preset_key'     => 'gradient_zero',
+            'bg_preset_opacity' => 65,
+        ])->assertSessionMissing('error');
+
+        $bio = $link->fresh()->settings['biolink'] ?? [];
+        $this->assertSame('gradient_zero', $bio['bg_preset_key'] ?? null);
+        $this->assertEquals(65, $bio['bg_preset_opacity'] ?? null);
+    }
+
+    public function test_page_settings_accepts_zero_preset_opacity(): void
+    {
+        $u    = $this->user();
+        $link = $this->biolink($u);
+
+        $this->actingAs($u)->post('/user/links/' . $link->id . '/page-settings', [
+            'background_type'   => 'preset',
+            'bg_preset_key'     => 'gradient_zero',
+            'bg_preset_opacity' => 0,
+        ])->assertSessionMissing('error');
+
+        $bio = $link->fresh()->settings['biolink'] ?? [];
+        $this->assertEquals(0, $bio['bg_preset_opacity'] ?? null);
+    }
+
+    public function test_page_settings_rejects_out_of_range_preset_opacity(): void
+    {
+        $u    = $this->user();
+        $link = $this->biolink($u);
+
+        $resp = $this->actingAs($u)->from('/x')->post('/user/links/' . $link->id . '/page-settings', [
+            'background_type'   => 'preset',
+            'bg_preset_key'     => 'gradient_zero',
+            'bg_preset_opacity' => 150,
+        ]);
+        $resp->assertSessionHasErrors('bg_preset_opacity');
+    }
+
+    // ===== Block-level preset backgrounds (Task #5970) =====
+
+    private function makeBlock(User $u, Link $link, string $type = 'heading'): \App\Modules\User\Models\BiolinkBlock
+    {
+        $resp = $this->actingAs($u)
+            ->withHeaders(['X-Requested-With' => 'XMLHttpRequest'])
+            ->post("/user/links/{$link->id}/blocks", ['type' => $type]);
+        $resp->assertOk();
+
+        return \App\Modules\User\Models\BiolinkBlock::where('link_id', $link->id)
+            ->latest('id')->firstOrFail();
+    }
+
+    private function saveBlockStyle(User $u, Link $link, $block, array $style)
+    {
+        return $this->actingAs($u)
+            ->withHeaders(['X-Requested-With' => 'XMLHttpRequest'])
+            ->put("/user/links/{$link->id}/blocks/{$block->id}", ['style' => $style]);
+    }
+
+    public function test_block_persists_valid_preset_key_and_opacity(): void
+    {
+        $u     = $this->user();
+        $link  = $this->biolink($u);
+        $block = $this->makeBlock($u, $link);
+
+        $this->saveBlockStyle($u, $link, $block, [
+            'bg_preset_key'     => 'abstract_one',
+            'bg_preset_opacity' => 40,
+        ])->assertOk();
+
+        $style = $block->fresh()->settings['_style'] ?? [];
+        $this->assertSame('abstract_one', $style['bg_preset_key'] ?? null);
+        $this->assertEquals(40, $style['bg_preset_opacity'] ?? null);
+    }
+
+    public function test_block_rejects_torn_preset_key(): void
+    {
+        $u     = $this->user();
+        $link  = $this->biolink($u);
+        $block = $this->makeBlock($u, $link);
+
+        $this->assertTrue(BgPresetCatalog::isTorn('torn_cream'));
+
+        $this->saveBlockStyle($u, $link, $block, [
+            'bg_preset_key' => 'torn_cream',
+        ])->assertOk();
+
+        $style = $block->fresh()->settings['_style'] ?? [];
+        $this->assertArrayNotHasKey('bg_preset_key', $style,
+            'Torn presets need full-page layers and must be dropped at block level');
+    }
+
+    public function test_block_drops_unknown_preset_key(): void
+    {
+        $u     = $this->user();
+        $link  = $this->biolink($u);
+        $block = $this->makeBlock($u, $link);
+
+        $this->saveBlockStyle($u, $link, $block, [
+            'bg_preset_key' => 'not_a_real_preset_key',
+        ])->assertOk();
+
+        $style = $block->fresh()->settings['_style'] ?? [];
+        $this->assertArrayNotHasKey('bg_preset_key', $style);
+    }
+
+    public function test_block_clamps_preset_opacity_to_bounds(): void
+    {
+        $u     = $this->user();
+        $link  = $this->biolink($u);
+        $block = $this->makeBlock($u, $link);
+
+        $this->saveBlockStyle($u, $link, $block, [
+            'bg_preset_key'     => 'gradient_zero',
+            'bg_preset_opacity' => 400,
+        ])->assertOk();
+
+        $style = $block->fresh()->settings['_style'] ?? [];
+        $this->assertEquals(100, $style['bg_preset_opacity'] ?? null);
+    }
+
+    public function test_block_clearing_preset_key_removes_it(): void
+    {
+        $u     = $this->user();
+        $link  = $this->biolink($u);
+        $block = $this->makeBlock($u, $link);
+
+        $this->saveBlockStyle($u, $link, $block, [
+            'bg_preset_key' => 'gradient_zero',
+        ])->assertOk();
+        $this->assertSame('gradient_zero',
+            $block->fresh()->settings['_style']['bg_preset_key'] ?? null);
+
+        // Empty string = the picker's hidden input after "Remove".
+        $this->saveBlockStyle($u, $link, $block, [
+            'bg_preset_key' => '',
+        ])->assertOk();
+
+        $style = $block->fresh()->settings['_style'] ?? [];
+        $this->assertArrayNotHasKey('bg_preset_key', $style);
     }
 }

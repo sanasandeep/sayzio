@@ -528,6 +528,67 @@
             </div>
             <input type="hidden" name="style[bg_opacity]" value="{{ $st['bg_opacity'] ?? 100 }}">
 
+            {{-- Preset Background (Task #5970): catalog preset painted on a
+                 layer behind the block content. Torn composites are excluded
+                 at block level — they need full-page layers. --}}
+            @php
+                $blkPresets = collect(\App\Modules\User\Support\BgPresetCatalog::all())
+                    ->filter(fn($p) => ($p['group'] ?? '') !== 'torn');
+                $blkPresetGroups = array_filter(
+                    \App\Modules\User\Support\BgPresetCatalog::GROUPS,
+                    fn($k) => $k !== 'torn',
+                    ARRAY_FILTER_USE_KEY
+                );
+            @endphp
+            <div x-data="{ bpGroup: 'gradients', bpSearch: '', bpKey: @js($st['bg_preset_key'] ?? ''), bpOpen: {{ !empty($st['bg_preset_key']) ? 'true' : 'false' }}, bpOpacity: {{ max(0, min(100, (int) (is_numeric($st['bg_preset_opacity'] ?? null) ? $st['bg_preset_opacity'] : 100))) }} }">
+                <div class="flex items-center justify-between gap-2">
+                    <label class="{{ $labelClass }}">Preset Background</label>
+                    <button type="button" @click="bpOpen = !bpOpen" class="text-[10px] font-semibold px-2 py-1 rounded-lg transition-all" style="color: var(--text-faint); background: var(--bg-glass-input); border: 1px solid var(--border-glass);">
+                        <span x-text="bpKey ? 'Change' : (bpOpen ? 'Hide' : 'Browse')"></span>
+                    </button>
+                </div>
+                {{-- Hidden input carries the selection; :value emits no events so
+                     the swatch click $dispatches a synthetic change for the live
+                     preview push (same pattern as the page-level picker). --}}
+                <input type="hidden" name="style[bg_preset_key]" :value="bpKey">
+                <div x-show="bpOpen" x-cloak class="space-y-2 mt-2">
+                    <div class="flex items-center gap-1.5 overflow-x-auto pb-1 -mx-1 px-1">
+                        @foreach($blkPresetGroups as $bpgKey => $bpgLabel)
+                        <button type="button" @click="bpGroup = '{{ $bpgKey }}'"
+                                class="text-[10px] font-semibold px-2 py-0.5 rounded-full whitespace-nowrap transition-all"
+                                :style="bpGroup === '{{ $bpgKey }}' ? 'background: rgba(61,107,255,0.25); color:#bccfff; border:1px solid rgba(61,107,255,0.5)' : 'background: var(--bg-glass-input); color: var(--text-muted); border:1px solid var(--border-glass)'">
+                            {{ $bpgLabel }}
+                        </button>
+                        @endforeach
+                        <input type="text" x-model="bpSearch" placeholder="Search…"
+                               class="text-[10px] px-2 py-0.5 rounded-md flex-1 min-w-[70px]"
+                               style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-primary);">
+                    </div>
+                    <div class="grid grid-cols-6 gap-1 max-h-[220px] overflow-y-auto pr-1">
+                        @foreach($blkPresets as $bpId => $bp)
+                        <button type="button"
+                                x-show="(bpGroup === '{{ $bp['group'] }}') && (!bpSearch || '{{ strtolower($bp['label']) }}'.includes(bpSearch.toLowerCase()))"
+                                @click="bpKey = bpKey === '{{ $bpId }}' ? '' : '{{ $bpId }}'; $nextTick(() => $dispatch('change'))"
+                                :class="bpKey === '{{ $bpId }}' ? 'ring-2 ring-blue-400' : ''"
+                                class="rounded-md overflow-hidden relative transition-all hover:scale-[1.08] hover:z-10"
+                                style="{{ $bp['css'] }}; width:100%; aspect-ratio:1/1; border:1px solid var(--border-glass); background-size: cover; background-position: center;"
+                                title="{{ $bp['label'] }}">
+                            <div x-show="bpKey === '{{ $bpId }}'"
+                                 class="absolute top-0.5 right-0.5 w-3 h-3 rounded-full flex items-center justify-center"
+                                 style="background: rgba(61,107,255,0.95); color:#fff;">
+                                <i class="fas fa-check" style="font-size:5px;"></i>
+                            </div>
+                        </button>
+                        @endforeach
+                    </div>
+                    <div x-show="bpKey">
+                        <label class="{{ $labelClass }}">Preset Transparency <span class="opacity-60" x-text="bpOpacity + '%'"></span></label>
+                        <input type="range" name="style[bg_preset_opacity]" min="0" max="100" step="5" x-model="bpOpacity" class="w-full">
+                    </div>
+                    <p class="text-[9px]" style="color: var(--text-dimmed);">Click a swatch to select, click again to remove. The preset paints behind the block's content.</p>
+                </div>
+            </div>
+
             {{-- Glass preset (simplified). Advanced glass blur/opacity sliders
                  still appear under "More options" for back-compat. --}}
             <div>

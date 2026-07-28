@@ -186,10 +186,16 @@
         // of relying on `background-attachment: fixed`, which iOS/mobile Safari
         // does not support. "Scroll" keeps the background on the scrolling body.
         $bgFixed = ($bgAttachment !== 'scroll');
+        // Preset background transparency (Task #5970): 0–100, 100 = opaque.
+        // A translucent preset can't be painted on the body itself (opacity
+        // would fade the whole page), so it always renders on the dedicated
+        // background layer — position:fixed for "Fixed", absolute for "Scroll".
+        $bgPresetOpacity = max(0, min(100, (int) ($bs['bg_preset_opacity'] ?? 100)));
+        $presetTranslucent = ($bgType === 'preset' && $bgPresetCss && $bgPresetOpacity < 100);
         // Torn composites always render on their own dedicated layers
         // (backdrop + clipped paper), so they never use the generic
         // .bg-page-fixed layer nor an inline body background.
-        $hasPageBgLayer = !$tornActive && $bgFixed && in_array($bgType, ['color', 'gradient', 'preset', 'image'], true);
+        $hasPageBgLayer = !$tornActive && ($bgFixed || $presetTranslucent) && in_array($bgType, ['color', 'gradient', 'preset', 'image'], true);
         $bgBlur = (int)($bs['bg_blur'] ?? 0);
         $bgOverlayColor = $bs['bg_overlay_color'] ?? '#000000';
         $bgOverlayOpacity = (int)($bs['bg_overlay_opacity'] ?? 0);
@@ -397,10 +403,16 @@
         {{-- Mobile-Safari-safe "Fixed" background: a fixed-position layer behind the
              content instead of `background-attachment: fixed` on the body. --}}
         .bg-page-fixed {
-            position: fixed;
+            {{-- Translucent presets on "Scroll" still use this layer (opacity
+                 can't be applied to the body background itself); absolute
+                 positioning keeps the layer scrolling with the page. --}}
+            position: {{ $bgFixed ? 'fixed' : 'absolute' }};
             inset: 0;
             z-index: 0;
             pointer-events: none;
+            @if($presetTranslucent)
+                opacity: {{ $bgPresetOpacity / 100 }};
+            @endif
             @if($bgType === 'color')
                 background-color: {{ $bgColor }};
             @elseif($bgType === 'gradient')
@@ -1276,6 +1288,13 @@
                     || str_starts_with($block->type, 'profile_card')
                     || $isBtnLike;
                 $btnInline = ($isBtnLike && $hasCustomStyle) ? $blockInline : '';
+                // Catalog preset background layer (Task #5970): painted on an
+                // absolutely-positioned layer behind the block content at the
+                // chosen transparency. Card containers draw their own layer
+                // inside the container branch of the render partial.
+                $presetLayer = \App\Modules\User\Models\BiolinkBlock::isContainerType($block->type)
+                    ? null
+                    : \App\Modules\User\Models\BiolinkBlock::presetLayer($blockStyle);
             @endphp
 
             @php
@@ -1329,14 +1348,28 @@
                      style="background: rgba(244,63,94,0.14); color: rgba(254,205,211,0.95); border: 1px solid rgba(244,63,94,0.25);"
                      data-badge-for="{{ $block->id }}"></div>
             @endif
-            @if($hasCustomStyle && !$skipWrap)<div class="mb-3 block-styled" style="{{ $blockInline }}">@endif
+            @if($hasCustomStyle && !$skipWrap)
+                <div class="mb-3 block-styled" style="{{ $blockInline }}{{ $presetLayer ? ';position:relative;isolation:isolate;overflow:hidden;' : '' }}">
+                @if($presetLayer)
+                    {{-- Preset CSS resolves server-side from the catalog (never
+                         client input); rtrimmed + re-terminated so a missing
+                         trailing semicolon can't glue onto the next declaration. --}}
+                    <div class="block-bg-preset" aria-hidden="true" style="position:absolute;inset:0;z-index:-1;pointer-events:none;{!! $presetLayer['css'] !!};background-attachment:scroll !important;opacity:{{ $presetLayer['opacity'] / 100 }};"></div>
+                @endif
+            @elseif($presetLayer)
+                {{-- skipWrap/button-like blocks with a preset still need a
+                     positioning context for the layer; blockInline stays on
+                     the inner element (btnInline) to avoid double-applying. --}}
+                <div class="mb-3 block-preset-wrap" style="position:relative;isolation:isolate;overflow:hidden;border-radius:{{ ($blockStyle['border_radius'] ?? '') !== '' ? intval($blockStyle['border_radius']) : 14 }}px;">
+                    <div class="block-bg-preset" aria-hidden="true" style="position:absolute;inset:0;z-index:-1;pointer-events:none;{!! $presetLayer['css'] !!};background-attachment:scroll !important;opacity:{{ $presetLayer['opacity'] / 100 }};"></div>
+            @endif
 
                 {{-- Task #2042 — single source of truth: every top-level block
                      renders through the unified dispatch partial, exactly like
                      card/grid children do. No inline @if/@elseif chain here. --}}
                 @include('common.partials.biolink-block-render', ['link' => $link, 'block' => $block, 's' => $s, 'fontColor' => $fontColor ?? '#ffffff', 'btnInline' => $btnInline])
 
-            @if($hasCustomStyle && !$skipWrap)</div>@endif
+            @if(($hasCustomStyle && !$skipWrap) || $presetLayer)</div>@endif
             </div>
         @empty
             <div class="text-center py-12">

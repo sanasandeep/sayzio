@@ -505,6 +505,14 @@ class BiolinkBlock extends Model
         // Sanitizer clamps to ±30 so a tilted headline can never rotate
         // off the page. Empty/0 = level (no transform emitted).
         '_tilt' => '',
+        // Catalog preset background for individual blocks & card containers
+        // (Task #5970). `bg_preset_key` references BgPresetCatalog (torn
+        // composites excluded at block level — they need full-page layers);
+        // the public renderer paints the preset on a dedicated layer behind
+        // the block content at `bg_preset_opacity` (0–100, empty = 100).
+        // Only the key is stored; CSS always resolves server-side.
+        'bg_preset_key' => '',
+        'bg_preset_opacity' => '',
         // Structural layout token for the profile_card family (Task #1740).
         // Set by the `profile_identity` curated designs; the public renderer
         // dispatches on it to reposition avatar/cover/text/socials. Empty =
@@ -710,6 +718,28 @@ class BiolinkBlock extends Model
         }
 
         return $style;
+    }
+
+    /**
+     * Resolve the catalog preset background layer for a block/card style
+     * (Task #5970). Returns ['css' => <rtrimmed preset CSS>, 'opacity' =>
+     * 0..100] when the style names a valid, non-torn catalog preset, or
+     * null otherwise (unknown/torn keys fail closed — no broken CSS).
+     */
+    public static function presetLayer(array $style): ?array
+    {
+        $key = (string) ($style['bg_preset_key'] ?? '');
+        if ($key === '' || \App\Modules\User\Support\BgPresetCatalog::isTorn($key)) {
+            return null;
+        }
+        $css = \App\Modules\User\Support\BgPresetCatalog::css($key);
+        if (!$css) {
+            return null;
+        }
+        $op = $style['bg_preset_opacity'] ?? '';
+        $op = is_numeric($op) ? (int) max(0, min(100, (float) $op)) : 100;
+
+        return ['css' => rtrim($css, "; \t\n\r"), 'opacity' => $op];
     }
 
     public static function buildInlineStyle(array $style): string
