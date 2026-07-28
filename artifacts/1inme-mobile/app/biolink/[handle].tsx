@@ -2105,6 +2105,118 @@ function ProfileCardView({
     );
   }
 
+  // ───────────── SPLIT HERO ─────────────
+  // Task #5885 (parity backfill): photo-first column — a large ringed
+  // circular avatar with the social-icon row beneath it, nothing else.
+  // Name/title live in sibling blocks; transparent surface so the page
+  // background shows through (mirrors the web blade branch).
+  if (layout === "split_hero") {
+    return (
+      <View style={{ marginBottom: 16, alignItems: "center", paddingVertical: 16 }}>
+        <ProfileAvatar
+          avatar={avatar}
+          initial={initial}
+          size={192}
+          border={{ borderWidth: 3, borderColor: "rgba(255,255,255,0.35)" }}
+        />
+        <ProfileSocialsRow socials={socials} accent="#ffffff" onTap={onTap} />
+      </View>
+    );
+  }
+
+  // ───────────── PORTRAIT POSTER ─────────────
+  // Task #5906: full-bleed portrait cover filling the card, a large ringed
+  // circular avatar centered on the photo, and name + thin divider +
+  // letter-spaced uppercase title over a bottom dark gradient. Gradient
+  // background when there's no cover (mirrors the web blade branch).
+  if (layout === "portrait_poster") {
+    const inner = (
+      <View style={{ minHeight: 420, alignItems: "center" }}>
+        <LinearGradient
+          colors={["rgba(0,0,0,0.05)", "rgba(0,0,0,0.35)", "rgba(0,0,0,0.82)"]}
+          locations={[0.4, 0.66, 1]}
+          style={StyleSheet.absoluteFillObject}
+        />
+        <View style={{ marginTop: 88 }}>
+          <ProfileAvatar
+            avatar={avatar}
+            initial={initial}
+            size={128}
+            border={{ borderWidth: 4, borderColor: "rgba(255,255,255,0.85)" }}
+          />
+        </View>
+        <View
+          style={{
+            marginTop: "auto",
+            width: "100%",
+            paddingHorizontal: 24,
+            paddingBottom: 32,
+            paddingTop: 40,
+            alignItems: "center",
+          }}
+        >
+          {name ? (
+            <Text
+              style={{ fontSize: 22, fontWeight: "700", color: "#fff", letterSpacing: 1, textAlign: "center" }}
+            >
+              {name}
+            </Text>
+          ) : null}
+          {name && title ? (
+            <View
+              style={{
+                marginTop: 12,
+                width: 200,
+                maxWidth: "70%",
+                height: 1,
+                backgroundColor: "rgba(255,255,255,0.75)",
+              }}
+            />
+          ) : null}
+          {title ? (
+            <Text
+              style={{
+                marginTop: 12,
+                fontSize: 12,
+                fontWeight: "600",
+                color: "#fff",
+                letterSpacing: 4,
+                textTransform: "uppercase",
+                textAlign: "center",
+              }}
+            >
+              {title}
+            </Text>
+          ) : null}
+          {bio ? (
+            <Text
+              style={{ fontSize: 13, marginTop: 12, color: "rgba(255,255,255,0.8)", textAlign: "center" }}
+            >
+              {bio}
+            </Text>
+          ) : null}
+        </View>
+      </View>
+    );
+    return (
+      <View style={surface}>
+        {hasCover ? (
+          <ImageBackground source={{ uri: cover }} style={{ width: "100%" }}>
+            {inner}
+          </ImageBackground>
+        ) : (
+          <LinearGradient
+            colors={["#64748b", "#334155", "#1e293b"]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 0.4, y: 1 }}
+          >
+            {inner}
+          </LinearGradient>
+        )}
+      </View>
+    );
+  }
+
   // ───────────── SPLIT CARD ─────────────
   if (layout === "split") {
     return (

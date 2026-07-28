@@ -33,7 +33,7 @@ class BlockVariantCatalog
      * pipeline always writes the *current* VERSION so newly-applied or
      * re-applied variants stay in sync.
      */
-    public const VERSION = 10;
+    public const VERSION = 11;
 
     /**
      * Shape filters for link-style blocks. Orthogonal to theme TAGS:
@@ -1947,6 +1947,25 @@ class BlockVariantCatalog
                         'padding' => '0', '_profile_layout' => 'overlap_hero',
                     ],
                     'preview' => ['bg' => '#ffffff', 'text' => '#0f172a', 'radius' => 24],
+                ],
+                [
+                    // Task #5906: full-bleed portrait cover filling the
+                    // card, a big ringed circular avatar centered on the
+                    // photo, and name + thin divider + letter-spaced
+                    // uppercase title overlaid near the bottom over a dark
+                    // gradient. Transparent surface — the layout paints the
+                    // photo (or its gradient fallback) itself.
+                    'key' => 'identity_portrait_poster',
+                    'name' => 'Portrait Poster',
+                    'tags' => ['bold', 'editorial'],
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => 'transparent',
+                        'text_color' => '#ffffff',
+                        'border_style' => 'none', 'border_radius' => '20',
+                        'shadow_preset' => 'none',
+                        'padding' => '0', '_profile_layout' => 'portrait_poster',
+                    ],
+                    'preview' => ['bg' => '#334155', 'text' => '#ffffff', 'radius' => 20],
                 ],
                 [
                     // Task #5885: split-hero tile grid. A tall solid-colour

@@ -155,6 +155,29 @@
         </div>
     </div>
 
+{{-- ───────────────────────────── PORTRAIT POSTER ───────────────────── --}}
+{{-- Task #5906: full-bleed portrait cover filling the card, a large
+     ringed circular avatar centered mid-photo, and the name + thin
+     divider + letter-spaced uppercase title overlaid near the bottom
+     over a dark gradient. Gradient background when no cover; initial
+     avatar when no avatar. --}}
+@elseif($layout === 'portrait_poster')
+    <div class="mb-4 overflow-hidden rounded-2xl {{ $baseClass }}" style="{{ $cardStyle }}">
+        <div class="relative flex flex-col items-center" style="min-height:420px;@if($cover)background-image:url('{{ $cover }}');background-size:cover;background-position:center;@else background:linear-gradient(160deg,#64748b,#334155 60%,#1e293b);@endif">
+            <div class="absolute inset-0" style="background:linear-gradient(to top,rgba(0,0,0,0.82) 0%,rgba(0,0,0,0.35) 34%,rgba(0,0,0,0.05) 60%)"></div>
+            <div class="relative flex justify-center w-full" style="margin-top:88px">
+                @if($avatar)<img src="{{ $avatar }}" class="w-32 h-32 rounded-full object-cover" style="border:4px solid rgba(255,255,255,0.85);box-shadow:0 8px 28px rgba(0,0,0,0.35)" alt="">
+                @else<div class="w-32 h-32 rounded-full flex items-center justify-center text-3xl font-bold text-white" style="border:4px solid rgba(255,255,255,0.85);background:{{ $avatarBg }};box-shadow:0 8px 28px rgba(0,0,0,0.35)">{{ $initial }}</div>@endif
+            </div>
+            <div class="relative w-full mt-auto px-6 pb-8 pt-10 text-center text-white">
+                @if($name)<p class="text-2xl font-bold leading-tight" style="letter-spacing:.04em">{{ $name }}</p>@endif
+                @if($name && $title)<div class="mx-auto mt-3" style="width:200px;max-width:70%;height:1px;background:rgba(255,255,255,0.75)"></div>@endif
+                @if($title)<p class="mt-3 text-xs font-semibold uppercase" style="letter-spacing:.35em">{{ $title }}</p>@endif
+                @if($bio)<p class="text-sm mt-3 text-white/80">{{ $bio }}</p>@endif
+            </div>
+        </div>
+    </div>
+
 {{-- ───────────────────────────── SPLIT CARD ────────────────────────── --}}
 @elseif($layout === 'split')
     <div class="mb-4 overflow-hidden rounded-2xl {{ $baseClass }}" style="{{ $cardStyle }}">

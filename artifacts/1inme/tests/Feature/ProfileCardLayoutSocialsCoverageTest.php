@@ -47,6 +47,7 @@ class ProfileCardLayoutSocialsCoverageTest extends TestCase
         'business_card',
         'sidebar_accent',
         'overlap_hero',
+        'split_hero',
     ];
 
     /**
@@ -55,7 +56,9 @@ class ProfileCardLayoutSocialsCoverageTest extends TestCase
     private const LAYOUTS_WITHOUT_SOCIALS = [
         'classic_creator',
         'cover_hero',
+        'portrait_poster',
         'split',
+        'split_hero_panel',
         'floating',
         'founder',
         'magazine',
