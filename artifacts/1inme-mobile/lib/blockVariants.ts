@@ -122,6 +122,7 @@ const BUNDLES: Record<string, MobileVariant[]> = {
     { key: "tab_underline",        name: "Tab Underline",       tags: ["minimal", "editorial"],       preview: { bg: "transparent", text: "#fff", radius: 0, border: "#a78bfa" } },
     { key: "card_lifted",          name: "Lifted Card",         tags: ["three_d", "pro"],             preview: { bg: "#ffffff", text: "#111827", radius: 14 } },
     { key: "action_word_row",      name: "Action Word Row",     tags: ["bold", "editorial", "minimal"], preview: { bg: "transparent", text: "#e3f77e", radius: 0 } },
+    { key: "text_divider_list",    name: "Text List / Divider", tags: ["minimal", "editorial"],       preview: { bg: "transparent", text: "#fff", radius: 0, border: "#ffffff40" } },
     { key: "card_arch",            name: "Arch Card",           tags: ["playful", "editorial"],       preview: { bg: "#fafaf9", text: "#1c1917", radius: 32, border: "#e7e5e4" } },
     { key: "square_neumorphic",    name: "Soft Neumorphic",     tags: ["minimal", "three_d"],         preview: { bg: "#1a1a2e", text: "#cbd5e1", radius: 20 } },
     { key: "pill_glass_dark",      name: "Dark Glass Pill",     tags: ["glass", "dark", "pro"],       preview: { bg: "rgba(0,0,0,0.4)", text: "#fff", radius: 999, border: "#ffffff22" } },

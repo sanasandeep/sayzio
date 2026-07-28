@@ -34,6 +34,20 @@
            style="color: {{ $block->settings['_style']['text_color'] ?? '#90acff' }};">
             @if(!empty($s['icon']))<i class="{{ fa_icon_class($s['icon']) }} mr-1.5"></i>@endif{{ $s['text'] ?? 'Link' }}
         </a>
+    @elseif($_lnkLayout === 'text_divider')
+        {{-- Minimal text list row: left-aligned plain text with a thin
+             hairline divider below it (classic "text list" link-in-bio
+             look). Every row carries its own bottom hairline so
+             consecutive rows stack into a clean list with no doubled
+             lines; the divider derives from the row's own text color
+             (via currentColor) so it stays legible on both dark and
+             light page themes. No bio-btn chrome. --}}
+        @php $_tdColor = ($_st['text_color'] ?? '') !== '' ? $_st['text_color'] : ($fontColor ?? '#ffffff'); @endphp
+        <a href="{{ $_url }}" target="_blank" rel="noopener"
+           class="block w-full py-3.5 text-left transition-opacity duration-200 hover:opacity-70"
+           style="color: {{ $_tdColor }}; border-bottom: 1px solid color-mix(in srgb, currentColor 25%, transparent); font-weight: {{ $_st['font_weight'] ?? '500' }}; font-size: {{ intval($_st['font_size'] ?? 0) ?: 15 }}px;@if(!empty($_st['font_family'])) font-family: '{{ str_replace("'", '', str_starts_with($_st['font_family'], 'custom:') ? substr($_st['font_family'], 7) : $_st['font_family']) }}', sans-serif;@endif">
+            @if($_icon)<i class="{{ $_icon }} mr-2 text-[0.85em] opacity-80"></i>@endif{{ $_txt }}
+        </a>
     @elseif($_lnkLayout === 'action_row')
         {{-- Bold action-word row: big uppercase accent word on the left,
              smaller uppercase description beside it (Lillian-Pratt style).

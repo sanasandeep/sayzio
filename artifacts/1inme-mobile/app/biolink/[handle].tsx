@@ -1041,6 +1041,36 @@ export function BlockView({ block, alias, allBlocks, openEmbed }: { block: Bioli
     const accent = pickStr(s, "accent_color") ?? colors.primary;
     const desc = pickStr(s, "description");
     const thumb = pickStr(s, "thumbnail");
+    // "Text list / divider" layout (web `_style.link_layout=text_divider`):
+    // plain left-aligned text row with a thin hairline divider below it —
+    // no button chrome. Divider derives from the row's text color so it
+    // stays legible on both dark and light page themes.
+    const _st = (s?.["_style"] ?? null) as Record<string, unknown> | null;
+    const _linkLayout = typeof _st?.["link_layout"] === "string" ? (_st["link_layout"] as string) : "";
+    if (!featured && _linkLayout === "text_divider") {
+      const _tdColor =
+        (typeof _st?.["text_color"] === "string" && (_st["text_color"] as string) !== ""
+          ? (_st["text_color"] as string)
+          : null) ?? blockTextColor(block, colors.foreground);
+      return (
+        <Pressable
+          onPress={() => handleTap(url)}
+          style={{
+            width: "100%",
+            paddingVertical: 14,
+            borderBottomWidth: StyleSheet.hairlineWidth,
+            borderBottomColor: _tdColor + "40",
+          }}
+        >
+          <Text
+            style={{ color: _tdColor, fontSize: 15, fontWeight: "500", textAlign: "left" }}
+            numberOfLines={2}
+          >
+            {label}
+          </Text>
+        </Pressable>
+      );
+    }
     if (featured) {
       return (
         <Pressable

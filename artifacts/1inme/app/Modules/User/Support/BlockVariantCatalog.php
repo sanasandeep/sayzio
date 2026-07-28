@@ -33,7 +33,7 @@ class BlockVariantCatalog
      * pipeline always writes the *current* VERSION so newly-applied or
      * re-applied variants stay in sync.
      */
-    public const VERSION = 11;
+    public const VERSION = 12;
 
     /**
      * Shape filters for link-style blocks. Orthogonal to theme TAGS:
@@ -1002,6 +1002,29 @@ class BlockVariantCatalog
                         'link_layout' => 'action_row',
                     ],
                     'preview' => ['bg' => 'transparent', 'text' => '#e3f77e', 'radius' => 0],
+                ],
+                // Minimal text list — plain left-aligned text row with a
+                // thin hairline divider below it (classic "text list"
+                // link-in-bio look). Renderer reads
+                // `link_layout=text_divider` and draws the divider itself
+                // (currentColor-derived, theme-aware), so consecutive rows
+                // stack into a clean list without doubled lines.
+                // text_color is intentionally '' so the row inherits the
+                // page font color and stays legible on light AND dark
+                // page themes.
+                [
+                    'key' => 'text_divider_list',
+                    'name' => 'Text List / Divider',
+                    'tags' => ['minimal', 'editorial'],
+                    'shape' => 'plain_text',
+                    'style' => [
+                        'display_mode' => 'content', 'bg_color' => 'transparent',
+                        'border_style' => 'none', 'border_width' => '0', 'border_color' => 'transparent',
+                        'border_radius' => '0', 'shadow_preset' => 'none',
+                        'text_color' => '', 'padding' => '0', 'font_weight' => '500',
+                        'link_layout' => 'text_divider',
+                    ],
+                    'preview' => ['bg' => 'transparent', 'text' => '#ffffff', 'radius' => 0, 'border' => '#ffffff40'],
                 ],
                 [
                     'key' => 'card_lifted',
