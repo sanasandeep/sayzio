@@ -232,6 +232,19 @@
             'medium' => ['fab fa-medium', '#ffffff'],
             'behance' => ['fab fa-behance', '#1769FF'],
         ];
+
+        // Page stickers — decorative emoji/image overlays. The draft-preview
+        // path merges the RAW form input into $bs, so an unsaved edit arrives
+        // as the `stickers_json` string; a persisted page carries the already
+        // sanitized `stickers` array. Either way we re-run the sanitizer so
+        // nothing unbounded ever reaches the markup.
+        $pageStickers = \App\Modules\User\Support\BiolinkStickers::sanitize(
+            array_key_exists('stickers_json', $bs) && is_string($bs['stickers_json'])
+                ? $bs['stickers_json']
+                : ($bs['stickers'] ?? [])
+        );
+        $backStickers  = array_values(array_filter($pageStickers, fn ($s) => $s['layer'] === 'back'));
+        $frontStickers = array_values(array_filter($pageStickers, fn ($s) => $s['layer'] === 'front'));
     @endphp
     @php
         // Collect every font referenced by this biolink: page font, block-
@@ -440,6 +453,39 @@
             background-color: {{ $tornPaper }};
             clip-path: {{ $tornClipPath }};
             -webkit-clip-path: {{ $tornClipPath }};
+        }
+        @endif
+        @if(count($pageStickers))
+        {{-- Page stickers: purely decorative fixed-viewport layers. Both carry
+             the .bg-layer class so the generic content z-index rule above skips
+             them; pointer-events:none guarantees they never block taps. The
+             "back" layer sits with the background (z 0), the "front" layer
+             floats above content (z 2) but below the share FAB/menus. --}}
+        .page-stickers {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            overflow: hidden;
+        }
+        .page-stickers-back { z-index: 0; }
+        .page-stickers-front { z-index: 2; }
+        .page-sticker {
+            position: absolute;
+            transform: translate(-50%, -50%) rotate(var(--st-rot, 0deg));
+            line-height: 1;
+            user-select: none;
+        }
+        .page-sticker-emoji {
+            font-size: var(--st-size, 36px);
+            {{-- Emoji glyphs render fine in both dark & light themes; a soft
+                 shadow keeps outline-style emoji visible on any background. --}}
+            filter: drop-shadow(0 2px 6px rgba(0,0,0,0.25));
+        }
+        .page-sticker-image img {
+            width: var(--st-size, 64px);
+            height: auto;
+            display: block;
+            filter: drop-shadow(0 2px 6px rgba(0,0,0,0.25));
         }
         @endif
         @if($bgType === 'slideshow' && count($slideshowImages) > 0)
@@ -1059,6 +1105,30 @@
 
     @if($bgType === 'template' && $bgTemplate)
     <div class="bg-template bg-layer bg-template-{{ $bgTemplate->slug }}" style="position:{{ $bgFixed ? 'fixed' : 'absolute' }};inset:0;z-index:0;overflow:hidden;"></div>
+    @endif
+
+    {{-- Page stickers — decorative emoji/image overlays (BiolinkStickers).
+         Rendered as two fixed pointer-events-none layers: "back" with the
+         background (z 0), "front" above content (z 2). Percent positioning
+         keeps placement proportional across phone/desktop widths. --}}
+    @if(count($backStickers) || count($frontStickers))
+        @foreach(['back' => $backStickers, 'front' => $frontStickers] as $stLayer => $stList)
+            @if(count($stList))
+            <div class="page-stickers page-stickers-{{ $stLayer }} bg-layer" aria-hidden="true">
+                @foreach($stList as $st)
+                    @if($st['kind'] === 'image')
+                        <div class="page-sticker page-sticker-image"
+                             style="left:{{ $st['x'] }}%;top:{{ $st['y'] }}%;--st-rot:{{ $st['rotation'] }}deg;--st-size:{{ round(64 * $st['scale']) }}px;">
+                            <img src="{{ $st['value'] }}" alt="" loading="lazy" draggable="false">
+                        </div>
+                    @else
+                        <div class="page-sticker page-sticker-emoji"
+                             style="left:{{ $st['x'] }}%;top:{{ $st['y'] }}%;--st-rot:{{ $st['rotation'] }}deg;--st-size:{{ round(36 * $st['scale']) }}px;">{{ $st['value'] }}</div>
+                    @endif
+                @endforeach
+            </div>
+            @endif
+        @endforeach
     @endif
 
     <div class="biolink-container">

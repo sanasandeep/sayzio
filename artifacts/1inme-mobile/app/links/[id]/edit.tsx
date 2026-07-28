@@ -614,6 +614,13 @@ export default function EditLinkScreen() {
               }
             />
             <ActionTile
+              icon="smile"
+              label="Stickers"
+              onPress={() =>
+                router.push(`/links/${id}/settings/stickers` as any)
+              }
+            />
+            <ActionTile
               icon="settings"
               label="Advanced"
               onPress={() =>

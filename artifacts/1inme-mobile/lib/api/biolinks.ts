@@ -61,6 +61,20 @@ export type SlidesPayload = {
   slides: Slide[];
 };
 
+// Decorative page sticker (emoji or small image) rendered as a
+// pointer-events-none overlay on the public biolink page. Positions are
+// viewport percentages; scale multiplies the base size (36px emoji / 64px
+// image on web, mirrored on mobile).
+export type PageSticker = {
+  kind: "emoji" | "image";
+  value: string;
+  x: number;
+  y: number;
+  rotation: number;
+  scale: number;
+  layer: "front" | "back";
+};
+
 export type BiolinkAbTestInfo = {
   experiment_id: number;
   // 'a' = frozen original layout, 'b' = the layout the creator is editing.
@@ -79,6 +93,8 @@ export type BiolinkPayload = {
     seo_description: string | null;
     seo_image: string | null;
     mode?: "list" | "conversational" | "slides";
+    /** Decorative page stickers (emoji/image overlays), server-sanitized. */
+    stickers?: PageSticker[];
   };
   owner: {
     id: number | null;

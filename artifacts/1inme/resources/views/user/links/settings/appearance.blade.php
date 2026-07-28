@@ -97,6 +97,7 @@
 
                     @include('user.links.partials.biolink-background-card', ['link' => $link, 'bgTemplates' => $bgTemplates])
 
+                    @include('user.links.partials.page-stickers-card', ['link' => $link, 'bs' => $bs])
 
                 </div>
 

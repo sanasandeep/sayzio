@@ -1214,6 +1214,7 @@ class BiolinkBlockController extends Controller
         'font_family', 'font_color', 'button_style', 'button_color', 'button_text_color',
         'custom_branding_text', 'custom_branding_url', 'custom_branding_logo',
         'custom_css', 'custom_js_head', 'custom_js_body',
+        'stickers',
     ];
 
     public function updatePageSettings(Request $request, Link $link)
@@ -1371,6 +1372,11 @@ class BiolinkBlockController extends Controller
             'privacy.consent_banner_text'        => 'nullable|string|max:500',
             'privacy.consent_accept_label'       => 'nullable|string|max:40',
             'privacy.consent_decline_label'      => 'nullable|string|max:40',
+
+            // Page stickers — JSON array of decorative emoji/image items,
+            // serialized by the editor into a hidden input. Decoded and
+            // bounded server-side by BiolinkStickers::sanitize().
+            'stickers_json' => 'nullable|string|max:20000',
         ]);
 
         $user = auth()->user();
@@ -1450,6 +1456,15 @@ class BiolinkBlockController extends Controller
                 'enabled'  => !empty($autoUtmInput['enabled']),
                 'defaults' => $cleanDefaults,
             ];
+        }
+
+        // Page stickers: decode + bound the JSON payload and REPLACE the
+        // whole list (never merge) so deletions/reorders stick. Stickers are
+        // a design surface, so design-locked pages skip the write entirely.
+        $stickersJson = $validated['stickers_json'] ?? null;
+        unset($validated['stickers_json']);
+        if ($request->has('stickers_json') && !$link->isDesignLocked()) {
+            $settings['biolink']['stickers'] = \App\Modules\User\Support\BiolinkStickers::sanitize($stickersJson ?? '[]');
         }
 
         $settings['biolink'] = array_merge($settings['biolink'] ?? [], $validated);

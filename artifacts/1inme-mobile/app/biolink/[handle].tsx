@@ -170,6 +170,67 @@ function publicBiolinkUrl(alias: string): string {
   return `${base}/${alias}`;
 }
 
+// Decorative page stickers (emoji/image overlays) — mirrors the web
+// renderer: percent positioning on a full-screen pointer-events-none layer,
+// "back" behind the content, "front" above it. Base sizes match web
+// (36px emoji / 64px image, multiplied by scale).
+function StickerOverlay({
+  stickers,
+  layer,
+}: {
+  stickers?: import("@/lib/api/biolinks").PageSticker[];
+  layer: "front" | "back";
+}) {
+  const list = (stickers ?? []).filter((s) => s.layer === layer);
+  if (!list.length) return null;
+  const host = getBaseUrl().replace(/\/?api\/?$/, "").replace(/\/+$/, "");
+  return (
+    <View pointerEvents="none" style={StyleSheet.absoluteFillObject}>
+      {list.map((s, i) => {
+        const wrap = {
+          position: "absolute" as const,
+          left: `${s.x}%` as const,
+          top: `${s.y}%` as const,
+          transform: [{ rotate: `${s.rotation}deg` }],
+        };
+        if (s.kind === "image") {
+          const size = Math.round(64 * s.scale);
+          const uri = s.value.startsWith("/") ? `${host}${s.value}` : s.value;
+          return (
+            <View key={i} style={wrap}>
+              <Image
+                source={{ uri }}
+                style={{
+                  width: size,
+                  height: size,
+                  marginLeft: -size / 2,
+                  marginTop: -size / 2,
+                }}
+                resizeMode="contain"
+              />
+            </View>
+          );
+        }
+        const fontSize = Math.round(36 * s.scale);
+        return (
+          <View key={i} style={wrap}>
+            <Text
+              style={{
+                fontSize,
+                lineHeight: fontSize * 1.2,
+                marginLeft: -fontSize / 2,
+                marginTop: -fontSize / 2,
+              }}
+            >
+              {s.value}
+            </Text>
+          </View>
+        );
+      })}
+    </View>
+  );
+}
+
 function pickStr(s: Record<string, unknown> | null, ...keys: string[]): string | null {
   if (!s) return null;
   for (const k of keys) {
@@ -5062,6 +5123,10 @@ export default function BiolinkViewer() {
       ) : null}
 
       {q.data && (q.data.biolink.mode !== "slides" || !q.data.slides) && (
+        <StickerOverlay stickers={q.data.biolink.stickers} layer="back" />
+      )}
+
+      {q.data && (q.data.biolink.mode !== "slides" || !q.data.slides) && (
         <ScrollView contentContainerStyle={styles.content}>
           {q.data.owner.avatar ? (
             <Image
@@ -5133,6 +5198,10 @@ export default function BiolinkViewer() {
             fontColor={colors.foreground}
           />
         </ScrollView>
+      )}
+
+      {q.data && (q.data.biolink.mode !== "slides" || !q.data.slides) && (
+        <StickerOverlay stickers={q.data.biolink.stickers} layer="front" />
       )}
 
       <EmbedModal

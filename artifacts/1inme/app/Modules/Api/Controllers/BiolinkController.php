@@ -155,6 +155,10 @@ class BiolinkController extends Controller
                 'seo_description' => $link->seo_description,
                 'seo_image'  => $link->seo_image,
                 'mode'       => $mode,
+                // Decorative page stickers (emoji/image overlays). Re-run the
+                // sanitizer at read time so legacy/hand-edited rows can never
+                // leak unbounded values to clients.
+                'stickers'   => \App\Modules\User\Support\BiolinkStickers::sanitize($link->settings['biolink']['stickers'] ?? []),
             ],
             'owner' => [
                 'id'              => $owner?->id,

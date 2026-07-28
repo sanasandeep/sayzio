@@ -457,6 +457,16 @@ class LinkController extends Controller
             }
 
             $data['settings'] = array_replace_recursive($existing, $patch);
+
+            // Page stickers: array_replace_recursive merges numeric-key lists
+            // element-wise (a shorter patched list would keep stale trailing
+            // items), so when the patch carries biolink.stickers we REPLACE
+            // the whole sanitized list after the merge. Design-locked pages
+            // never reach here for this key (stripped above).
+            if (is_array($patch['biolink'] ?? null) && array_key_exists('stickers', $patch['biolink'])) {
+                $data['settings']['biolink']['stickers'] =
+                    \App\Modules\User\Support\BiolinkStickers::sanitize($patch['biolink']['stickers']);
+            }
         }
 
         $link->fill($data)->save();
