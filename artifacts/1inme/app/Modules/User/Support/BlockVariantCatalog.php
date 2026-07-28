@@ -986,6 +986,23 @@ class BlockVariantCatalog
                     ],
                     'preview' => ['bg' => 'transparent', 'text' => '#ffffff', 'radius' => 0, 'border' => '#a78bfa'],
                 ],
+                // Bold action-word row — big uppercase accent word +
+                // smaller inline description (Lillian-Pratt split-layout
+                // style). Renderer reads `link_layout=action_row`.
+                [
+                    'key' => 'action_word_row',
+                    'name' => 'Action Word Row',
+                    'tags' => ['bold', 'editorial', 'minimal'],
+                    'shape' => 'plain_text',
+                    'style' => [
+                        'display_mode' => 'content', 'bg_color' => 'transparent',
+                        'border_style' => 'none', 'border_width' => '0', 'border_color' => 'transparent',
+                        'border_radius' => '0', 'shadow_preset' => 'none',
+                        'text_color' => '#e3f77e', 'padding' => '4', 'font_weight' => '800',
+                        'link_layout' => 'action_row',
+                    ],
+                    'preview' => ['bg' => 'transparent', 'text' => '#e3f77e', 'radius' => 0],
+                ],
                 [
                     'key' => 'card_lifted',
                     'name' => 'Lifted Card',

@@ -59,3 +59,18 @@ and `StarterPageTemplatesSeeder` (starter-* slugs).
   `php artisan db:seed --class=...ExpandedPageTemplateLibrarySeeder --force` until it
   exits 0 (already-refreshed rows are skipped). Production (co-located DB) converges
   in one pass.
+
+## Card children live at the BLOCK level, not in settings
+- In snapshots, a card's `children` array must be a sibling of `settings`
+  (`['type'=>'card','settings'=>[...],'children'=>[...]]`). Putting `children`
+  inside settings silently vanishes: the settings sanitizer strips unknown keys,
+  and `TemplateService::insertBlockTree` / preview both read `$b['children']`
+  from the block array. Symptom: template applies fine but the card renders empty.
+- **How to apply:** mirror `cardGrid()` — build the card via `block()` then set
+  `$card['children'] = ...` at the top level.
+
+## Public-page font collector reads `_style`
+- `biolink.blade.php` collects per-block `font_family` for the combined Google
+  Fonts request from `settings['_style']` (with legacy `'style'` fallback). If a
+  seeded block's display font isn't in the css2 href, check that collector — the
+  font must appear there or the page falls back silently.

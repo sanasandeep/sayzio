@@ -34,6 +34,20 @@
            style="color: {{ $block->settings['_style']['text_color'] ?? '#90acff' }};">
             @if(!empty($s['icon']))<i class="{{ fa_icon_class($s['icon']) }} mr-1.5"></i>@endif{{ $s['text'] ?? 'Link' }}
         </a>
+    @elseif($_lnkLayout === 'action_row')
+        {{-- Bold action-word row: big uppercase accent word on the left,
+             smaller uppercase description beside it (Lillian-Pratt style).
+             Transparent — no bio-btn chrome. Accent = text_color. --}}
+        <a href="{{ $_url }}" target="_blank" rel="noopener"
+           class="block w-full mb-4 transition-opacity duration-200 hover:opacity-75 flex items-baseline gap-x-4 gap-y-1 flex-wrap text-left">
+            <span class="uppercase leading-none tracking-wide min-w-[6.5rem]"
+                  style="color: {{ ($_st['text_color'] ?? '') !== '' ? $_st['text_color'] : '#e3f77e' }}; font-weight: {{ $_st['font_weight'] ?? '800' }}; font-size: {{ intval($_st['font_size'] ?? 0) ?: 22 }}px;@if(!empty($_st['font_family'])) font-family: '{{ str_replace("'", '', str_starts_with($_st['font_family'], 'custom:') ? substr($_st['font_family'], 7) : $_st['font_family']) }}', sans-serif;@endif">
+                @if($_icon)<i class="{{ $_icon }} mr-1.5 text-[0.8em]"></i>@endif{{ $_txt }}
+            </span>
+            @if(!empty($s['description']))
+                <span class="text-[11px] uppercase tracking-[0.14em] opacity-90" style="color: {{ $fontColor ?? '#ffffff' }};">{{ $s['description'] }}</span>
+            @endif
+        </a>
     @elseif($_lnkLayout === 'image_cover' && !empty($s['thumbnail']))
         <a href="{{ $s['url'] ?? '#' }}" target="_blank" rel="noopener"
            class="block w-full mb-3 rounded-2xl overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl relative"

@@ -199,7 +199,10 @@ class WebTemplatePreviewLayoutTest extends TestCase
                 continue;
             }
             $settings = is_array($item['settings'] ?? null) ? $item['settings'] : [];
-            $span = (int) ($settings['_style']['grid_span'] ?? 12);
+            // Mirror build(): the desktop span (grid_span_md) wins when a
+            // block carries one, since thumbnails read as desktop blueprints.
+            $span = (int) ($settings['_style']['grid_span_md']
+                ?? $settings['_style']['grid_span'] ?? 12);
             $span = max(1, min(12, $span));
             $cell = ['shape' => (string) $builder->cellFor($type)['shape'], 'span' => $span];
             if ($used + $span > 12 && $current) {
@@ -412,8 +415,21 @@ class WebTemplatePreviewLayoutTest extends TestCase
             . "expected {$activeCount} active template(s), got " . count($pageTemplates)
         );
 
+        // The picker only decorates (content_summary + preview_layout) the
+        // first server-rendered chunk; the rest streams in via the JSON chunk
+        // endpoint. Assert against the decorated collection.
+        $initialTemplates = $resp->viewData('initialTemplates');
+        $this->assertNotNull($initialTemplates, 'page picker exposed no initialTemplates view data');
+        $expectedInitial = min($activeCount, \App\Modules\User\Controllers\LinkTemplateController::PICKER_CHUNK);
+        $this->assertSame(
+            $expectedInitial,
+            count($initialTemplates),
+            'page picker initial chunk count drifted: '
+            . "expected {$expectedInitial}, got " . count($initialTemplates)
+        );
+
         $checked = 0;
-        foreach ($pageTemplates as $tpl) {
+        foreach ($initialTemplates as $tpl) {
             $label = "page template '{$tpl->slug}'";
 
             $layout = $tpl->preview_layout;

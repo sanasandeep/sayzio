@@ -801,12 +801,20 @@
                         $containerStyle = 'padding:' . $pad . 'px;';
                         $gridTemplate = 'repeat(' . $cols . ', 1fr)';
                     }
+                    // Plain grid only: optionally collapse to a single column
+                    // on small screens (children stack in source order).
+                    $stackMobile = !$isCard && !$isAutoGrid && !empty($s['stack_mobile']);
                 @endphp
+                @if($stackMobile)
+                    @once('grid-stack-mobile-css')
+                    <style>@media (max-width: 640px){ .grid-stack-mobile{ grid-template-columns: 1fr !important; } .grid-stack-mobile > div{ grid-column: 1 / -1 !important; } }</style>
+                    @endonce
+                @endif
                 <div class="mb-4 {{ $isCard ? 'card-container-render' : 'grid-container-render' }}" style="{{ $containerStyle }}">
                     @if(!empty($s['title']))
                     <div class="mb-3 text-sm font-semibold" style="color: {{ $fontColor ?? '#fff' }}cc;">{{ $s['title'] }}</div>
                     @endif
-                    <div style="display:grid; grid-template-columns:{{ $gridTemplate }}; gap:{{ $gap }}px;">
+                    <div @if($stackMobile) class="grid-stack-mobile" @endif style="display:grid; grid-template-columns:{{ $gridTemplate }}; gap:{{ $gap }}px;">
                         @foreach($cardChildren as $childBlock)
                             @php
                                 $cs = $childBlock->settings ?? [];

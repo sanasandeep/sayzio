@@ -63,7 +63,7 @@ class StarterPageTemplatesSeeder extends Seeder
      * tiles (heading + short blurb) in a responsive auto grid (3 columns
      * on desktop, stacked on phones).
      */
-    public const SEED_VERSION = 13;
+    public const SEED_VERSION = 15;
 
     /** Tolerance (seconds) for treating updated_at == created_at. */
     private const EDIT_DRIFT_TOLERANCE = 2;
@@ -543,7 +543,179 @@ class StarterPageTemplatesSeeder extends Seeder
                     'button_style'      => 'rounded',
                 ]),
             ],
+
+            // 12 — Astrid: warm off-white editorial two-column layout.
+            // Desktop: lowercase name + big rounded photo on the left;
+            // socials, three tinted info rows and a labeled 3-tile gallery
+            // on the right. Mobile: the grid's `stack_mobile` flag
+            // collapses it to a single column (left column first).
+            [
+                'slug'                 => 'starter-astrid',
+                'name'                 => 'Astrid Two-Column',
+                'category'             => 'biolink',
+                'description'          => 'A warm editorial two-column page: your name and a big photo on the left, socials, tinted highlight rows and a labeled mini-gallery on the right. Stacks neatly on mobile.',
+                'recommended_personas' => ['creator', 'artist', 'influencer'],
+                'snapshot'             => $this->snapshot([
+                    $this->container('grid', [
+                        'columns'      => 2,
+                        'gap'          => 32,
+                        'padding'      => 0,
+                        'stack_mobile' => true,
+                    ], [
+                        // Left column — lowercase heading, big rounded photo, caption.
+                        $this->container('card', $this->plainColumn(), [
+                            $this->astridBlock('heading', ['text' => 'astrid sanchez', 'size' => 'h1', 'align' => 'left']),
+                            $this->astridBlock('image', [
+                                'url' => $this->photo('lifestyle,portrait', 900, 900, 'starter-astrid-photo'),
+                                'alt' => 'all about me',
+                                '_style' => array_merge(BiolinkBlock::STYLE_DEFAULTS, ['grid_span' => 12, 'border_radius' => 28]),
+                            ]),
+                            $this->astridBlock('paragraph', ['text' => 'all about me ↓', 'align' => 'center']),
+                        ]),
+                        // Right column — socials, three tinted rows, labeled gallery.
+                        $this->container('card', $this->plainColumn(), [
+                            $this->astridBlock('socials', [
+                                'platforms' => [
+                                    ['name' => 'instagram', 'url' => 'https://instagram.com/yourhandle', 'display' => 'icon'],
+                                    ['name' => 'facebook',  'url' => 'https://facebook.com/yourhandle',  'display' => 'icon'],
+                                    ['name' => 'twitter',   'url' => 'https://x.com/yourhandle',         'display' => 'icon'],
+                                    ['name' => 'email',     'url' => 'https://example.com/contact',      'display' => 'icon'],
+                                ],
+                                'size'  => 'md',
+                                'style' => 'rounded',
+                            ]),
+                            $this->astridRow('Art live stream', 'Catch me on Twitch every Saturday as I make art live', '#f7f3ec'),
+                            $this->astridRow('Tutorials', 'Videos to guide and to inspire you create', '#e3d3b9'),
+                            $this->astridRow('Top picks + recos', 'Materials I stand by and would love for you to try', '#c08a3e'),
+                            $this->container('grid', ['columns' => 3, 'gap' => 14, 'padding' => 0], [
+                                $this->astridTile('starter-astrid-g1'),
+                                $this->astridTile('starter-astrid-g2'),
+                                $this->astridTile('starter-astrid-g3'),
+                                $this->astridLabel('art'),
+                                $this->astridLabel('inspo'),
+                                $this->astridLabel('fashion'),
+                            ]),
+                        ]),
+                    ]),
+                ], [
+                    'background_type'   => 'color',
+                    'background_color'  => '#eceae6',
+                    'theme_color'       => '#c08a3e',
+                    'font_color'        => '#1f2937',
+                    'button_color'      => '#c08a3e',
+                    'button_text_color' => '#ffffff',
+                    'button_style'      => 'rounded',
+                ]),
+            ],
+
+            // 13 — Purple Split: bold purple split layout modeled on the
+            // "Lillian Pratt" reference — oversized yellow-green display
+            // name (grid_span 7), italic serif tagline (5), portrait photo
+            // (5) beside a transparent card stacking six action-word link
+            // rows (7). All split blocks carry `stack_mobile` so the page
+            // collapses to a single column on phones.
+            [
+                'slug'                 => 'starter-purple-split',
+                'name'                 => 'Purple Split',
+                'category'             => 'biolink',
+                'description'          => 'A bold purple split layout — oversized display name, italic serif tagline, and a portrait photo beside a stack of action-word links. Stacks to one column on mobile.',
+                'recommended_personas' => ['musician', 'creator', 'artist'],
+                'snapshot'             => $this->snapshot([
+                    $this->block('heading', [
+                        'text'   => 'Your Name',
+                        'size'   => 'h1',
+                        'align'  => 'left',
+                        '_style' => $this->purpleSplitStyle(7, [
+                            'font_family' => 'Archivo Black',
+                            'font_size'   => '42',
+                            'text_color'  => '#e3f77e',
+                        ]),
+                    ]),
+                    $this->block('paragraph', [
+                        'text'   => "I'm a musician, producer, and goal-getter",
+                        'align'  => 'left',
+                        '_style' => $this->purpleSplitStyle(5, [
+                            'font_family' => 'Playfair Display',
+                            'font_style'  => 'italic',
+                            'font_weight' => '600',
+                            'font_size'   => '15',
+                            'text_color'  => '#2a1a45',
+                        ]),
+                    ]),
+                    $this->block('image', [
+                        'url'    => $this->photo('musician,portrait', 900, 1200, 'starter-purple-split-portrait'),
+                        'alt'    => 'Portrait photo',
+                        '_style' => $this->purpleSplitStyle(5),
+                    ]),
+                    // NOTE: `children` sits at the BLOCK level (sibling of
+                    // `settings`), not inside settings — the settings
+                    // sanitizer strips unknown keys, and insertBlockTree
+                    // reads $b['children'] from the block array.
+                    array_merge(
+                        $this->block('card', [
+                            'columns' => 1,
+                            'bg_type' => 'transparent',
+                            '_style'  => $this->purpleSplitStyle(7, [
+                                'bg_color'      => 'transparent',
+                                'border_style'  => 'none',
+                                'border_width'  => '0',
+                                'shadow_preset' => 'none',
+                                'padding'       => '0',
+                            ]),
+                        ]),
+                        ['children' => [
+                            $this->purpleSplitAction('Listen', 'Latest single: My Dream', 'https://example.com/listen'),
+                            $this->purpleSplitAction('Stream', 'Music on Spotify', 'https://open.spotify.com/artist/yourhandle'),
+                            $this->purpleSplitAction('Watch', 'Videos on Vimeo', 'https://vimeo.com/yourhandle'),
+                            $this->purpleSplitAction('Join', 'Live music sets on Twitch', 'https://twitch.tv/yourhandle'),
+                            $this->purpleSplitAction('Donate', 'To the causes I support', 'https://example.com/donate'),
+                            $this->purpleSplitAction('Shop', 'Merch and collectibles', 'https://example.com/shop'),
+                        ]],
+                    ),
+                ], [
+                    'background_type'   => 'color',
+                    'background_color'  => '#b28cf0',
+                    'theme_color'       => '#e3f77e',
+                    'font_color'        => '#ffffff',
+                    'button_color'      => '#e3f77e',
+                    'button_text_color' => '#2a1a45',
+                    'button_style'      => 'square',
+                    'layout'            => [
+                        'max_width_desktop' => 960,
+                        'max_width_tablet'  => 720,
+                    ],
+                ]),
+            ],
         ];
+    }
+
+    /* ────────────── Purple Split helpers (template 13) ────────────── */
+
+    /**
+     * Split-column style: a grid_span with the opt-in `stack_mobile` flag
+     * so the block collapses to a full-width row on phones.
+     */
+    private function purpleSplitStyle(int $span, array $extra = []): array
+    {
+        return array_merge(
+            BiolinkBlock::STYLE_DEFAULTS,
+            ['grid_span' => $span, 'stack_mobile' => '1'],
+            $extra,
+        );
+    }
+
+    /**
+     * One action-word link row (big word left, small description right)
+     * using the `action_word_row` catalog variant.
+     */
+    private function purpleSplitAction(string $word, string $desc, string $url): array
+    {
+        return $this->block('link', [
+            'text'        => $word,
+            'description' => $desc,
+            'url'         => $url,
+            '_style'      => $this->variantStyle('link', 'action_word_row'),
+        ]);
     }
 
     /* ────────────── Pastel Tile Grid helpers (template 11) ────────────── */
@@ -755,6 +927,89 @@ class StarterPageTemplatesSeeder extends Seeder
     }
 
     /* ──────────────────── snapshot + block helpers ──────────────────── */
+
+    /**
+     * Container block (card / grid / grid_auto) with nested children.
+     * TemplateService::insertBlockTree recurses into any container type,
+     * so nested container trees seed correctly.
+     */
+    private function container(string $type, array $settings, array $children): array
+    {
+        $block = $this->block($type, $settings);
+        $block['children'] = array_values($children);
+        return $block;
+    }
+
+    /** Chrome-less card settings used as a plain column inside the Astrid grid. */
+    private function plainColumn(): array
+    {
+        return [
+            'columns'      => 1,
+            'gap'          => 12,
+            'padding'      => 0,
+            'border_radius' => 0,
+            'bg_type'      => 'transparent',
+            'border_width' => 0,
+            'shadow'       => 'none',
+            // Half-width span so each column card occupies one cell of the
+            // parent 2-column grid instead of stretching full width.
+            '_style'       => array_merge(BiolinkBlock::STYLE_DEFAULTS, ['grid_span' => 6]),
+        ];
+    }
+
+    /**
+     * Astrid child block: baked `_style` with a full-width grid span so the
+     * block occupies its whole column cell.
+     */
+    private function astridBlock(string $type, array $settings): array
+    {
+        if (!isset($settings['_style'])) {
+            $settings['_style'] = array_merge(BiolinkBlock::STYLE_DEFAULTS, ['grid_span' => 12]);
+        }
+        return $this->block($type, $settings);
+    }
+
+    /**
+     * One tinted Astrid info row: a chrome-styled 2-column card with the
+     * bold title on the left and the description on the right.
+     */
+    private function astridRow(string $title, string $description, string $bgColor): array
+    {
+        $half = array_merge(BiolinkBlock::STYLE_DEFAULTS, ['grid_span' => 6]);
+        return $this->container('card', [
+            'columns'       => 2,
+            'gap'           => 12,
+            'padding'       => 18,
+            'border_radius' => 18,
+            'bg_type'       => 'color',
+            'bg_color'      => $bgColor,
+            'border_width'  => 0,
+            'shadow'        => 'none',
+        ], [
+            $this->block('heading', ['text' => $title, 'size' => 'h3', 'align' => 'left', '_style' => $half]),
+            $this->block('paragraph', ['text' => $description, 'align' => 'left', '_style' => $half]),
+        ]);
+    }
+
+    /** One square gallery tile for the Astrid mini-gallery grid. */
+    private function astridTile(string $seed): array
+    {
+        return $this->block('image', [
+            'url'    => $this->photo('art,inspo', 600, 600, $seed),
+            'alt'    => '',
+            '_style' => array_merge(BiolinkBlock::STYLE_DEFAULTS, ['grid_span' => 4, 'border_radius' => 12]),
+        ]);
+    }
+
+    /** One centered lowercase caption under a gallery tile. */
+    private function astridLabel(string $text): array
+    {
+        return $this->block('paragraph', [
+            'text'   => $text,
+            'align'  => 'center',
+            '_style' => array_merge(BiolinkBlock::STYLE_DEFAULTS, ['grid_span' => 4]),
+        ]);
+    }
 
     /**
      * Self-hosted, theme-aware SVG preview for a template card. Rendered

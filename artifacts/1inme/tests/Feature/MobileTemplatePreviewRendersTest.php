@@ -161,8 +161,10 @@ class MobileTemplatePreviewRendersTest extends TestCase
     /**
      * Recursively count the active blocks a page snapshot should flatten into
      * via buildPreviewLink: every block (default-active unless is_active is
-     * explicitly false), recursing into a card's children — exactly the set
-     * the show endpoint emits after filtering on is_active.
+     * explicitly false), recursing into the children of ANY container type
+     * (card, grid_auto, grid, …) exactly like buildPreviewBlock does via
+     * BiolinkBlock::isContainerType() — the set the show endpoint emits
+     * after filtering on is_active.
      */
     private function countActivePreviewBlocks(array $blocks): int
     {
@@ -175,7 +177,8 @@ class MobileTemplatePreviewRendersTest extends TestCase
             if ($active) {
                 $n++;
             }
-            if (($b['type'] ?? null) === 'card' && !empty($b['children']) && is_array($b['children'])) {
+            if (\App\Modules\User\Models\BiolinkBlock::isContainerType($b['type'] ?? null)
+                && !empty($b['children']) && is_array($b['children'])) {
                 $n += $this->countActivePreviewBlocks($b['children']);
             }
         }
@@ -480,7 +483,10 @@ class MobileTemplatePreviewRendersTest extends TestCase
                 continue;
             }
             $settings = is_array($item['settings'] ?? null) ? $item['settings'] : [];
-            $span = (int) ($settings['_style']['grid_span'] ?? 12);
+            // Mirror build(): the desktop span (grid_span_md) wins when a
+            // block carries one, since thumbnails read as desktop blueprints.
+            $span = (int) ($settings['_style']['grid_span_md']
+                ?? $settings['_style']['grid_span'] ?? 12);
             $span = max(1, min(12, $span));
             $cell = ['shape' => (string) $builder->cellFor($type)['shape'], 'span' => $span];
             if ($used + $span > 12 && $current) {

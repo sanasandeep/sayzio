@@ -1723,6 +1723,12 @@ class BiolinkBlockController extends Controller
             }
         }
 
+        // Plain grid containers: normalize the optional mobile-stacking
+        // flag to a real boolean (checkbox submits "1" or is absent).
+        if ($type === 'grid') {
+            $settings['stack_mobile'] = (bool) ($settings['stack_mobile'] ?? false);
+        }
+
         // Product blocks (Task #1761): when native checkout is enabled we
         // need an authoritative numeric price + a constrained product type
         // and currency. The display `price` string is kept for rendering.
@@ -1984,7 +1990,7 @@ class BiolinkBlockController extends Controller
             // ('plain_text' / 'image_cover') will ever be persisted —
             // which is exactly what we want.
             'link_layout' => [
-                'plain_text', 'image_cover',
+                'plain_text', 'image_cover', 'action_row',
                 'icon_left', 'icon_right', 'icon_both', 'icon_only',
                 'icon_circle_left', 'icon_circle_right', 'icon_box',
                 'image_left', 'image_right', 'image_top',
