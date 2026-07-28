@@ -23,3 +23,6 @@ The diff script's `status --porcelain` parsing must NOT `trim()` the whole outpu
 
 ## Blob cache staleness
 `blobs.json` caches path→uploaded-blob-sha across runs; always delete it before a new sync or changed files are silently skipped (stale sha reused).
+
+## Blob-sha diff (July 2026 refinement)
+The remote squash tree may match NO local commit's tree (earlier sanitization drift). Robust diff: `GET /git/trees/<remote_tree>?recursive=1` vs `git ls-tree -r HEAD`, compare per-path {sha,mode}; upload mismatches, delete remote-only paths, chained trees with base_tree=remote tree, commit parent=remote head. Verify pushed tree sha == `git rev-parse HEAD^{tree}` (exact match proves content parity). Whole sync ran in one <110s pass when the delta is small (~30 files).
