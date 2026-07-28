@@ -115,9 +115,32 @@
         $bgFallbackImage = $bs['bg_fallback_image'] ?? '';
         // Preset CSS background: resolved server-side from the catalog by key.
         $bgPresetCss = null;
+        // Torn-paper composite: a backdrop layer (photo or preset gradient)
+        // behind a solid paper sheet whose right edge is a jagged torn
+        // diagonal. Active either as its own background_type ('torn' with a
+        // user backdrop photo + paper color) or via a torn-group preset.
+        $tornActive = false;
+        $tornPaper = '#cfe0e6';
+        $tornBackdropCss = null;   // full CSS declaration(s) for the backdrop layer
+        $tornBackdropImage = '';   // user-uploaded backdrop photo URL
         if ($bgType === 'preset' && !empty($bs['bg_preset_key'])) {
-            $bgPresetCss = \App\Modules\User\Support\BgPresetCatalog::css((string) $bs['bg_preset_key']);
+            $presetKey = (string) $bs['bg_preset_key'];
+            if (\App\Modules\User\Support\BgPresetCatalog::isTorn($presetKey)) {
+                $tornActive = true;
+                $tornPaper = \App\Modules\User\Support\BgPresetCatalog::tornPaper($presetKey) ?? $tornPaper;
+                $tornBackdropCss = \App\Modules\User\Support\BgPresetCatalog::tornBackdrop($presetKey);
+            } else {
+                $bgPresetCss = \App\Modules\User\Support\BgPresetCatalog::css($presetKey);
+            }
+        } elseif ($bgType === 'torn') {
+            $tornActive = true;
+            $tornPaper = is_string($bs['torn_paper_color'] ?? null) && $bs['torn_paper_color'] !== '' ? $bs['torn_paper_color'] : $tornPaper;
+            $tornBackdropImage = is_string($bs['torn_image'] ?? null) ? $bs['torn_image'] : '';
         }
+        // Jagged torn edge: paper occupies most of the page; the backdrop
+        // peeks out beyond a diagonal tear running from ~72% (top) to ~62%
+        // (bottom) of the viewport width, with irregular jags.
+        $tornClipPath = 'polygon(0% 0%, 72% 0%, 70.4% 4%, 72.8% 8%, 70% 13%, 71.6% 18%, 68.8% 23%, 71% 28%, 68.2% 33%, 70.2% 38%, 67.6% 43%, 69.4% 48%, 66.8% 53%, 68.6% 58%, 66% 63%, 67.8% 68%, 65.2% 73%, 66.8% 78%, 64.4% 83%, 65.8% 88%, 63.6% 93%, 64.8% 97%, 62% 100%, 0% 100%)';
 
         // Contrast safeguard: when no explicit background_type has been saved the
         // page falls back to the dark default gradient (#0a0612 / $bgFallbackColor).
@@ -163,7 +186,10 @@
         // of relying on `background-attachment: fixed`, which iOS/mobile Safari
         // does not support. "Scroll" keeps the background on the scrolling body.
         $bgFixed = ($bgAttachment !== 'scroll');
-        $hasPageBgLayer = $bgFixed && in_array($bgType, ['color', 'gradient', 'preset', 'image'], true);
+        // Torn composites always render on their own dedicated layers
+        // (backdrop + clipped paper), so they never use the generic
+        // .bg-page-fixed layer nor an inline body background.
+        $hasPageBgLayer = !$tornActive && $bgFixed && in_array($bgType, ['color', 'gradient', 'preset', 'image'], true);
         $bgBlur = (int)($bs['bg_blur'] ?? 0);
         $bgOverlayColor = $bs['bg_overlay_color'] ?? '#000000';
         $bgOverlayOpacity = (int)($bs['bg_overlay_opacity'] ?? 0);
@@ -299,7 +325,7 @@
             font-family: '{{ str_starts_with((string) $fontFamily, 'custom:') ? substr($fontFamily, 7) : $fontFamily }}', sans-serif;
             color: {{ $fontColor }};
             background-color: {{ $bgFallbackColor }};
-            @if(!$hasPageBgLayer)
+            @if(!$hasPageBgLayer && !$tornActive)
                 @if($bgType === 'color')
                     background-color: {{ $bgColor }};
                 @elseif($bgType === 'gradient')
@@ -372,10 +398,48 @@
             @endif
         }
         @endif
-        @if($bgBlur > 0 || $bgOverlayOpacity > 0 || $hasPageBgLayer)
+        @if($bgBlur > 0 || $bgOverlayOpacity > 0 || $hasPageBgLayer || $tornActive)
         body > *:not(.bg-layer):not(script):not(style) {
             position: relative;
             z-index: 1;
+        }
+        @endif
+        @if($tornActive)
+        {{-- Torn-paper composite: full backdrop layer (photo or preset
+             gradient) with a solid paper sheet clipped by a jagged torn
+             diagonal on top. "Fixed" pins both layers to the viewport
+             (mobile-Safari-safe, no background-attachment); "Scroll" makes
+             them absolutely-positioned over the whole (relative) body so
+             they move with the content. --}}
+        .bg-torn-backdrop {
+            position: {{ $bgFixed ? 'fixed' : 'absolute' }};
+            inset: 0;
+            z-index: 0;
+            pointer-events: none;
+            @if($tornBackdropImage)
+                background: {{ $bgFallbackColor }} url('{{ $tornBackdropImage }}') center/cover no-repeat;
+            @elseif($tornBackdropCss)
+                {!! rtrim($tornBackdropCss, "; \t\n\r") !!};
+            @else
+                background-color: {{ $bgFallbackColor }};
+            @endif
+        }
+        .bg-torn-paper {
+            position: {{ $bgFixed ? 'fixed' : 'absolute' }};
+            inset: 0;
+            z-index: 0;
+            pointer-events: none;
+            {{-- drop-shadow on the wrapper follows the clip-path silhouette
+                 of the inner sheet (box-shadow would hug the clipped box). --}}
+            filter: drop-shadow(4px 0 10px rgba(0,0,0,0.28));
+        }
+        .bg-torn-paper::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background-color: {{ $tornPaper }};
+            clip-path: {{ $tornClipPath }};
+            -webkit-clip-path: {{ $tornClipPath }};
         }
         @endif
         @if($bgType === 'slideshow' && count($slideshowImages) > 0)
@@ -965,6 +1029,11 @@
 
     @if($hasPageBgLayer)
     <div class="bg-page-fixed bg-layer" aria-hidden="true"></div>
+    @endif
+
+    @if($tornActive)
+    <div class="bg-torn-backdrop bg-layer" aria-hidden="true"></div>
+    <div class="bg-torn-paper bg-layer" aria-hidden="true"></div>
     @endif
 
     @if($bgType === 'slideshow' && count($slideshowImages) > 0)

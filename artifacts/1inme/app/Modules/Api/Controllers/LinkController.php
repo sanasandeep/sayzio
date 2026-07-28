@@ -442,7 +442,7 @@ class LinkController extends Controller
                 if (is_array($patch['biolink'] ?? null)) {
                     $lockedKeys = array_merge(
                         \App\Modules\User\Controllers\BiolinkBlockController::DESIGN_LOCKED_PAGE_KEYS,
-                        ['block_theme', 'layout', 'background_image', 'slideshow_images', 'video_file', 'bg_fallback_image', 'favicon_url', 'design_locked']
+                        ['block_theme', 'layout', 'background_image', 'torn_image', 'slideshow_images', 'video_file', 'bg_fallback_image', 'favicon_url', 'design_locked']
                     );
                     foreach ($lockedKeys as $k) {
                         unset($patch['biolink'][$k]);

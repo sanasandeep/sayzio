@@ -114,17 +114,52 @@ async function main() {
   // Renders one preset and validates the screenshot bytes BEFORE anything
   // touches disk: same rules the check:bg-preset-swatches guard enforces
   // (real PNG signature, plausible size). Throws on a bad render.
-  async function renderPreset(key, css) {
+  //
+  // Torn-paper presets (those with a `paper` color) render the REAL
+  // composite — the `backdrop` CSS with a solid paper sheet clipped to a
+  // jagged torn right edge — instead of the flat `css` approximation, so
+  // the swatch shows the actual torn look. The manifest hash stays keyed
+  // to `css` (the gate forApi() checks), so keep `css` in lockstep when
+  // editing a torn preset's backdrop/paper.
+  async function renderPreset(key, preset) {
+    const css = typeof preset === "string" ? preset : preset.css;
+    const paper = typeof preset === "object" ? preset.paper : undefined;
+    const backdrop =
+      typeof preset === "object" ? preset.backdrop : undefined;
     // Apply the raw preset CSS, then re-assert the swatch box size (setting
     // the style attribute wipes the id-rule-independent inline sizing).
     await page.evaluate(
-      ({ style, w, h }) => {
+      ({ style, w, h, paper }) => {
         const el = document.getElementById("sw");
         el.setAttribute("style", style);
         el.style.width = `${w}px`;
         el.style.height = `${h}px`;
+        el.style.position = "relative";
+        el.style.overflow = "hidden";
+        let sheet = document.getElementById("sw-paper");
+        if (paper) {
+          if (!sheet) {
+            sheet = document.createElement("div");
+            sheet.id = "sw-paper";
+            el.appendChild(sheet);
+          } else if (sheet.parentElement !== el) {
+            el.appendChild(sheet);
+          }
+          sheet.setAttribute(
+            "style",
+            `position:absolute;inset:0;background:${paper};` +
+              "clip-path:polygon(0 0,72% 0,68% 8%,73% 16%,67% 24%,72% 32%,66% 40%,71% 48%,65% 56%,70% 64%,64% 72%,69% 80%,63% 88%,67% 94%,62% 100%,0 100%);",
+          );
+        } else if (sheet) {
+          sheet.remove();
+        }
       },
-      { style: css, w: W, h: H },
+      {
+        style: paper && backdrop ? backdrop : css,
+        w: W,
+        h: H,
+        paper: paper || null,
+      },
     );
     const el = page.locator("#sw");
     const png = await el.screenshot({ type: "png" });
@@ -146,7 +181,8 @@ async function main() {
   const failed = [];
   let done = 0;
   for (const key of keys) {
-    const css = catalog[key].css;
+    const preset = catalog[key];
+    const css = preset.css;
 
     // A single flaky Chromium screenshot shouldn't abort a 176-preset run:
     // retry the render once. On a persistent failure the default is to abort
@@ -156,13 +192,13 @@ async function main() {
     // refreshing the rest.
     let png;
     try {
-      png = await renderPreset(key, css);
+      png = await renderPreset(key, preset);
     } catch (firstErr) {
       log(
         `render of preset "${key}" failed (${firstErr?.message || firstErr}) — retrying once…`,
       );
       try {
-        png = await renderPreset(key, css);
+        png = await renderPreset(key, preset);
       } catch (retryErr) {
         if (keepPartial) {
           log(

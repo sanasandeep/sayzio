@@ -1210,6 +1210,7 @@ class BiolinkBlockController extends Controller
         'gradient_colors', 'gradient_angle', 'gradient_type', 'gradient_preset_id',
         'slideshow_interval', 'video_url', 'bg_template_id', 'bg_attachment',
         'bg_fallback_color', 'bg_blur', 'bg_overlay_color', 'bg_overlay_opacity',
+        'torn_paper_color',
         'font_family', 'font_color', 'button_style', 'button_color', 'button_text_color',
         'custom_branding_text', 'custom_branding_url', 'custom_branding_logo',
         'custom_css', 'custom_js_head', 'custom_js_body',
@@ -1222,7 +1223,7 @@ class BiolinkBlockController extends Controller
         $validated = $request->validate([
             'biolink_title' => 'nullable|string|max:100',
             'biolink_description' => 'nullable|string|max:500',
-            'background_type' => 'nullable|string|in:color,gradient,image,slideshow,video,template,preset',
+            'background_type' => 'nullable|string|in:color,gradient,image,slideshow,video,template,preset,torn',
             // CSS background preset key from BgPresetCatalog. Only stored when
             // background_type === 'preset'; the public renderer resolves CSS from the
             // catalog server-side, so raw CSS is never accepted from the client.
@@ -1236,6 +1237,10 @@ class BiolinkBlockController extends Controller
             'background_color' => ['nullable','string','max:20','regex:/^#[0-9a-fA-F]{3,8}$/'],
             'background_gradient' => 'nullable|string|max:500',
             'background_image' => \App\Services\UploadPolicy::rule('link.background_image', $request->user()),
+            // Torn-paper composite: backdrop photo visible beyond the jagged
+            // torn edge of a solid paper sheet.
+            'torn_image' => \App\Services\UploadPolicy::rule('link.background_image', $request->user()),
+            'torn_paper_color' => ['nullable','string','max:20','regex:/^#[0-9a-fA-F]{3,8}$/'],
             'gradient_colors' => 'nullable|string|max:2000',
             'gradient_angle' => 'nullable|integer|min:0|max:360',
             'gradient_type' => 'nullable|string|in:linear,radial,conic',
@@ -1385,7 +1390,7 @@ class BiolinkBlockController extends Controller
         $slideshowFiles = $request->file('slideshow_images');
         $videoFile = $request->file('video_file');
         $fallbackImageFile = $request->file('bg_fallback_image');
-        unset($validated['block_theme'], $validated['layout'], $validated['meta'], $validated['og'], $validated['twitter'], $validated['favicons'], $validated['manifest'], $validated['share_button'], $validated['menu_bar'], $validated['auto_translate'], $validated['og_image_upload'], $validated['apple_touch_upload'], $validated['icon_512_upload'], $validated['slideshow_images'], $validated['video_file'], $validated['bg_fallback_image']);
+        unset($validated['block_theme'], $validated['layout'], $validated['meta'], $validated['og'], $validated['twitter'], $validated['favicons'], $validated['manifest'], $validated['share_button'], $validated['menu_bar'], $validated['auto_translate'], $validated['og_image_upload'], $validated['apple_touch_upload'], $validated['icon_512_upload'], $validated['slideshow_images'], $validated['video_file'], $validated['bg_fallback_image'], $validated['torn_image']);
 
         // Design lock: strip every design surface from the save — background,
         // typography, buttons, block theme, layout, custom branding/CSS/JS and
@@ -1401,6 +1406,7 @@ class BiolinkBlockController extends Controller
             $videoFile = null;
             $fallbackImageFile = null;
             $request->files->remove('background_image');
+            $request->files->remove('torn_image');
             $request->files->remove('slideshow_images');
             $request->files->remove('video_file');
             $request->files->remove('bg_fallback_image');
@@ -1609,6 +1615,10 @@ class BiolinkBlockController extends Controller
 
         if ($request->hasFile('background_image')) {
             $settings['biolink']['background_image'] = $vault($request->file('background_image'), ['max_width' => 1920, 'max_height' => 1920]);
+        }
+
+        if ($request->hasFile('torn_image')) {
+            $settings['biolink']['torn_image'] = $vault($request->file('torn_image'), ['max_width' => 1920, 'max_height' => 1920]);
         }
 
         if (!empty($validated['gradient_colors'])) {

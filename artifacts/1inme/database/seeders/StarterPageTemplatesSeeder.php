@@ -68,8 +68,13 @@ class StarterPageTemplatesSeeder extends Seeder
      * (identity_paper_collage): torn-paper name card over grid paper
      * with a pressed-sprig accent, plus handwritten-note links on a
      * soft off-white botanical theme.
+     *
+     * v17 (2026-07): Added "Torn Paper Studio" — the first template built
+     * on the new torn-paper page background (`background_type: torn`):
+     * a dusty-blue paper sheet with a jagged torn right edge over a
+     * studio backdrop photo, minimal profile + clean rounded links.
      */
-    public const SEED_VERSION = 16;
+    public const SEED_VERSION = 17;
 
     /** Tolerance (seconds) for treating updated_at == created_at. */
     private const EDIT_DRIFT_TOLERANCE = 2;
@@ -736,6 +741,50 @@ class StarterPageTemplatesSeeder extends Seeder
                     'font_color'        => '#57534e',
                     'button_color'      => '#fcfbf7',
                     'button_text_color' => '#5b4636',
+                    'button_style'      => 'rounded',
+                ]),
+            ],
+
+            // 15 — Torn Paper Studio: showcases the torn-paper page
+            // background — a dusty-blue paper sheet with a jagged torn
+            // right edge over a studio backdrop photo peeking out beyond
+            // the tear.
+            [
+                'slug'                 => 'starter-torn-paper-studio',
+                'name'                 => 'Torn Paper Studio',
+                'category'             => 'personal',
+                'description'          => 'A torn-paper page: a dusty-blue paper sheet with a jagged torn edge over a moody studio photo, with a minimal profile and clean rounded links.',
+                'recommended_personas' => ['artist', 'creator', 'other'],
+                'snapshot'             => $this->snapshot([
+                    $this->profile(
+                        'Mara Voss',
+                        'Analog photographer & zine maker. Everything here is shot on film and printed by hand.',
+                        $this->photo('portrait,analog', 400, 400, 'starter-torn-avatar'),
+                        $kits['personal'],
+                        '',
+                        [
+                            'title'    => 'Photographer · Zine maker',
+                            'verified' => false,
+                            'location' => '',
+                            'website'  => '',
+                            'cta_label' => '',
+                            'cta_url'   => '',
+                        ]
+                    ),
+                    $this->link('Buy the latest zine',      'https://example.com/zine',    '', $kits['personal']),
+                    $this->link('Print shop',               'https://example.com/prints',  '', $kits['personal']),
+                    $this->link('Darkroom workshop dates',  'https://example.com/workshops', '', $kits['personal']),
+                    $this->link('Say hello',                'https://example.com/contact', '', $kits['personal']),
+                ], [
+                    'background_type'   => 'torn',
+                    'torn_image'        => $this->photo('film,studio,moody', 1600, 2000, 'starter-torn-backdrop'),
+                    'torn_paper_color'  => '#cfe0e6',
+                    'bg_fallback_color' => '#46626f',
+                    'bg_attachment'     => 'fixed',
+                    'theme_color'       => '#35525f',
+                    'font_color'        => '#2b3a41',
+                    'button_color'      => '#ffffff',
+                    'button_text_color' => '#2b3a41',
                     'button_style'      => 'rounded',
                 ]),
             ],

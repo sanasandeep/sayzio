@@ -30,6 +30,7 @@
     $bgOverlayColor    = $bs['bg_overlay_color']    ?? '#000000';
     $bgOverlayOpacity  = $bs['bg_overlay_opacity']  ?? 0;
     $bgPresetKey       = $bs['bg_preset_key']       ?? '';
+    $tornPaperColor    = $bs['torn_paper_color']    ?? '#cfe0e6';
     $bgPresets         = BgPresetCatalog::all();
     $bgPresetGroups    = BgPresetCatalog::GROUPS;
 
@@ -191,6 +192,27 @@
                 'previewKind' => 'file',
                 'compact'     => true,
             ])
+        </div>
+
+        {{-- TORN PAPER --}}
+        <div x-show="bgType === 'torn'" x-transition class="space-y-3">
+            @include('user.partials.dropzone-input', [
+                'name'        => 'torn_image',
+                'label'       => 'Backdrop Photo',
+                'policy'      => \App\Services\UploadPolicy::for('link.background_image', auth()->user()),
+                'currentUrl'  => $bs['torn_image'] ?? null,
+                'currentName' => !empty($bs['torn_image']) ? 'Saved backdrop photo' : null,
+                'hint'        => 'Peeks out beyond the torn edge of the paper',
+                'compact'     => true,
+            ])
+            <div>
+                <label class="block text-xs font-medium mb-1.5" style="color: var(--text-muted);">Paper Color</label>
+                <div class="flex items-center gap-2">
+                    <input type="color" name="torn_paper_color" value="{{ $tornPaperColor }}" class="w-10 h-10 rounded-lg cursor-pointer flex-shrink-0" style="border: 1px solid var(--border-subtle);">
+                    <span class="text-xs font-mono" style="color: var(--text-faint);">{{ $tornPaperColor }}</span>
+                </div>
+                <p class="text-[10px] mt-1" style="color: var(--text-dimmed);">A solid paper sheet with a jagged torn right edge sits over the backdrop photo. If no photo is uploaded, the fallback color shows beyond the tear.</p>
+            </div>
         </div>
 
         {{-- PRESET --}}
@@ -378,7 +400,8 @@ function bgSettings() {
             { key: 'image',     label: 'Image',       icon: 'fa-image',   preview: 'rgba(99,102,241,0.15)' },
             { key: 'slideshow', label: 'Slideshow',   icon: 'fa-images',  preview: 'rgba(236,72,153,0.15)' },
             { key: 'video',     label: 'Video',       icon: 'fa-film',    preview: 'rgba(61,107,255,0.15)' },
-            { key: 'template',  label: 'Template',    icon: 'fa-magic',   preview: 'linear-gradient(135deg, #0f0c29, #302b63)' }
+            { key: 'template',  label: 'Template',    icon: 'fa-magic',   preview: 'linear-gradient(135deg, #0f0c29, #302b63)' },
+            { key: 'torn',      label: 'Torn Paper',  icon: 'fa-scroll',  preview: 'linear-gradient(115deg, #cfe0e6 0%, #cfe0e6 60%, #5d7d8e 60%)' }
         ],
         init() {
             if (!this.gradientStops || this.gradientStops.length < 2) {
