@@ -93,7 +93,7 @@ class MarketingStrategistTest extends TestCase
     {
         return User::factory()->create([
             'role' => 'user',
-            'plan_id' => $plan->id,
+            'plan_id' => ($plan ?? $this->plan())->id,
         ])->fresh();
     }
 

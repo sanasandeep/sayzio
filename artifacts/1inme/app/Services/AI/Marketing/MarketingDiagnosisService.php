@@ -29,7 +29,7 @@ class MarketingDiagnosisService
     public const WINDOW_DAYS = 30;
 
     /** Goal metrics we can baseline / re-measure deterministically. */
-    public const METRICS = ['clicks', 'reach', 'engagement', 'sessions'];
+    public const METRICS = ['clicks', 'reach', 'engagement', 'sessions', 'views', 'subscribers', 'followers', 'orders', 'revenue'];
 
     /**
      * Full diagnosis payload used by the scorecard, forecast and the AI
