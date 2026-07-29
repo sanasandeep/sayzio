@@ -40,6 +40,17 @@ class AdminAssetImport extends Model
         return in_array($this->status, ['pending', 'downloading', 'processing'], true);
     }
 
+    /**
+     * A run stopped by an admin rather than a genuine failure — either a
+     * dedicated 'cancelled' status or a legacy 'failed' row whose error
+     * records the admin cancellation.
+     */
+    public function isCancelled(): bool
+    {
+        return $this->status === 'cancelled'
+            || ($this->status === 'failed' && preg_match('/cancelled by (an )?admin/i', (string) $this->error) === 1);
+    }
+
     /** Record a skipped entry (bounded detail list + counter). */
     public function noteSkipped(string $path, string $reason): void
     {

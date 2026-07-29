@@ -116,11 +116,20 @@ class ProcessAdminAssetZipImportJob implements ShouldQueue
                 'completed_at' => now(),
             ])->save();
         } catch (\Throwable $e) {
-            $import->forceFill([
-                'status'       => 'failed',
-                'error'        => Str::limit($e->getMessage(), 500),
-                'completed_at' => now(),
-            ])->save();
+            // Don't clobber an admin cancellation that landed mid-run: a
+            // cancelled row stays 'cancelled' (the abort is not a failure).
+            if (($import->fresh()->status ?? null) === 'cancelled') {
+                $import->refresh();
+                if ($import->completed_at === null) {
+                    $import->forceFill(['completed_at' => now()])->save();
+                }
+            } else {
+                $import->forceFill([
+                    'status'       => 'failed',
+                    'error'        => Str::limit($e->getMessage(), 500),
+                    'completed_at' => now(),
+                ])->save();
+            }
         } finally {
             // Always clean up the archive temp files, success or failure.
             if ($downloadedTmp && is_file($downloadedTmp)) {

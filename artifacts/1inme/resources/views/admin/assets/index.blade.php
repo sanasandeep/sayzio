@@ -203,16 +203,20 @@
                 <template x-if="!activeImport && lastImport">
                     <div>
                         <div class="flex items-start gap-3">
-                            <i class="mt-0.5" :class="lastImport.status === 'completed' ? 'fas fa-check-circle text-emerald-400 ak-green' : 'fas fa-triangle-exclamation text-red-400 ak-red'"></i>
+                            <i class="mt-0.5" :class="lastImport.status === 'completed' ? 'fas fa-check-circle text-emerald-400 ak-green' : (isCancelled(lastImport) ? 'fas fa-ban text-slate-400 ak-muted' : 'fas fa-triangle-exclamation text-red-400 ak-red')"></i>
                             <div class="min-w-0 flex-1">
                                 <p class="text-sm font-semibold" style="color: var(--text-primary);"
-                                   x-text="lastImport.status === 'completed' ? 'Zip import finished' : 'Zip import failed'"></p>
+                                   x-text="lastImport.status === 'completed' ? 'Zip import finished' : (isCancelled(lastImport) ? 'Import cancelled' : 'Zip import failed')"></p>
                                 <p class="text-xs truncate" style="color: var(--text-faint);" x-text="lastImport.source || ''"></p>
                                 <template x-if="lastImport.status === 'completed'">
                                     <p class="text-xs mt-1" style="color: var(--text-secondary);"
                                        x-text="lastImport.imported_count + ' imported · ' + lastImport.overwritten_count + ' overwritten · ' + lastImport.skipped_count + ' skipped of ' + lastImport.total_entries + ' entries'"></p>
                                 </template>
-                                <template x-if="lastImport.error">
+                                <template x-if="isCancelled(lastImport)">
+                                    <p class="text-xs mt-1" style="color: var(--text-secondary);"
+                                       x-text="'This import was stopped by an admin — ' + ((lastImport.imported_count + lastImport.overwritten_count) === 1 ? '1 file' : (lastImport.imported_count + lastImport.overwritten_count) + ' files') + ' already imported ' + ((lastImport.imported_count + lastImport.overwritten_count) === 1 ? 'was' : 'were') + ' kept (' + lastImport.imported_count + ' new · ' + lastImport.overwritten_count + ' overwritten · ' + lastImport.skipped_count + ' skipped).'"></p>
+                                </template>
+                                <template x-if="lastImport.error && !isCancelled(lastImport)">
                                     <p class="text-xs mt-1 text-red-400 ak-red" x-text="lastImport.error"></p>
                                 </template>
                                 <template x-if="(lastImport.skipped || []).length">
@@ -610,6 +614,14 @@ function adminAssetVault() {
             } finally {
                 this.importSubmitting = false;
             }
+        },
+
+        // A cancelled run is either a dedicated 'cancelled' status or a
+        // 'failed' row whose error records an admin cancellation.
+        isCancelled(i) {
+            if (!i) return false;
+            return i.status === 'cancelled'
+                || (i.status === 'failed' && /cancelled by (an )?admin/i.test(i.error || ''));
         },
 
         scheduleImportPoll(ms) {
