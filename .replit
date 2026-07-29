@@ -64,6 +64,10 @@ args = "e2e-gallery-pickers"
 task = "workflow.run"
 args = "e2e-admin-tpl-live"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-admin-tpl-edit-preview"
+
 [[workflows.workflow]]
 name = "heading-accents-test"
 author = "agent"
@@ -181,6 +185,17 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "VALIDATION_PORT=55512 bash artifacts/1inme/tests/Browser/run-validation.sh admin-templates-live-previews.spec.ts"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-admin-tpl-edit-preview"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "bash artifacts/1inme/tests/Browser/run-validation.sh admin-template-edit-live-preview.spec.ts"
 
 [workflows.workflow.metadata]
 isValidation = true
