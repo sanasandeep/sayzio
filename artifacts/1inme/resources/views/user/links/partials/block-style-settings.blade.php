@@ -631,9 +631,29 @@
             <input type="hidden" name="style[glass_opacity]" value="{{ $st['glass_opacity'] ?? 15 }}">
 
             {{-- Border Radius --}}
-            <div>
-                <label class="{{ $labelClass }}">Corner Radius (px)</label>
+            @php
+                $advCorners = ($st['border_radius_tl'] ?? '') !== '' || ($st['border_radius_tr'] ?? '') !== ''
+                    || ($st['border_radius_bl'] ?? '') !== '' || ($st['border_radius_br'] ?? '') !== '';
+            @endphp
+            <div x-data="{ showCorners: {{ $advCorners ? 'true' : 'false' }} }">
+                <div class="flex items-center justify-between gap-2">
+                    <label class="{{ $labelClass }}">Corner Radius (px)</label>
+                    <button type="button" @click="showCorners = !showCorners" class="text-[10px] font-semibold px-2 py-1 rounded-lg transition-all" style="color: var(--text-faint); background: var(--bg-glass-input); border: 1px solid var(--border-glass);">
+                        <i class="fas text-[7px] mr-1" :class="showCorners ? 'fa-chevron-up' : 'fa-chevron-down'"></i>Advanced
+                    </button>
+                </div>
                 <input type="number" name="style[border_radius]" value="{{ $st['border_radius'] ?? '' }}" placeholder="12" min="0" max="999" class="{{ $inputClass }}">
+                <div x-show="showCorners" x-cloak x-transition class="mt-1 p-2 rounded-xl" style="background: var(--bg-glass-input); border: 1px dashed var(--border-glass);">
+                    <div class="grid grid-cols-4 gap-1">
+                        @foreach(['tl' => 'T-L', 'tr' => 'T-R', 'bl' => 'B-L', 'br' => 'B-R'] as $ck => $cl)
+                        <div>
+                            <label class="text-[8px] font-bold" style="color: var(--text-dimmed);">{{ $cl }}</label>
+                            <input type="number" name="style[border_radius_{{ $ck }}]" value="{{ $st['border_radius_' . $ck] ?? '' }}" placeholder="-" min="0" max="999" class="{{ $inputClass }} text-[11px]">
+                        </div>
+                        @endforeach
+                    </div>
+                    <p class="text-[9px] mt-1" style="color: var(--text-dimmed);">Blank corners use the radius above.</p>
+                </div>
             </div>
 
             {{-- Advanced toggle --}}
@@ -673,6 +693,49 @@
                              stamped into _style on unrelated saves (Task #4025). --}}
                         <input type="hidden" name="style[border_color]" value="{{ $bcVal }}">
                         <input type="color" value="{{ $bcPicker }}" class="w-full h-9 rounded-lg cursor-pointer" style="border: 1px solid var(--border-glass); background: var(--bg-glass-input);" oninput="this.previousElementSibling.value = this.value">
+                    </div>
+                </div>
+                {{-- Per-side borders (Task #6038): each side's style/width/color
+                     overrides the shorthand above field-by-field; blank = use
+                     the shorthand value. --}}
+                @php
+                    $advSides = false;
+                    foreach (['top', 'right', 'bottom', 'left'] as $side) {
+                        if (($st["border_{$side}_style"] ?? '') !== '' || ($st["border_{$side}_width"] ?? '') !== '' || ($st["border_{$side}_color"] ?? '') !== '') {
+                            $advSides = true;
+                            break;
+                        }
+                    }
+                @endphp
+                <div x-data="{ showSides: {{ $advSides ? 'true' : 'false' }} }">
+                    <button type="button" @click="showSides = !showSides" class="flex items-center gap-2 text-[11px] font-semibold w-full py-1" style="color: var(--text-muted);">
+                        <i class="fas fa-border-style text-[8px]" style="color: #90acff;"></i> Per-side borders
+                        <i class="fas text-[7px] ml-auto" :class="showSides ? 'fa-chevron-up' : 'fa-chevron-down'" style="color: var(--text-faint);"></i>
+                    </button>
+                    <div x-show="showSides" x-cloak x-transition class="mt-1 p-2 rounded-xl space-y-1.5" style="background: var(--bg-glass-input); border: 1px dashed var(--border-glass);">
+                        @foreach(['top' => 'Top', 'right' => 'Right', 'bottom' => 'Bottom', 'left' => 'Left'] as $side => $sideLabel)
+                        @php
+                            $ssVal = $st["border_{$side}_style"] ?? '';
+                            $swVal = $st["border_{$side}_width"] ?? '';
+                            $scv   = $st["border_{$side}_color"] ?? '';
+                            $scp   = preg_match('/^#[0-9a-fA-F]{6}$/', (string) $scv) ? $scv : '#ffffff';
+                        @endphp
+                        <div class="grid grid-cols-[36px_1fr_56px_36px] gap-1 items-center">
+                            <span class="text-[9px] font-bold" style="color: var(--text-dimmed);">{{ $sideLabel }}</span>
+                            <select name="style[border_{{ $side }}_style]" class="{{ $inputClass }} text-[11px]">
+                                <option value="" {{ $ssVal === '' ? 'selected' : '' }}>Default</option>
+                                @foreach($borderStyles as $bsVal => $bsLabel)
+                                <option value="{{ $bsVal }}" {{ $ssVal === $bsVal ? 'selected' : '' }}>{{ $bsLabel }}</option>
+                                @endforeach
+                            </select>
+                            <input type="number" name="style[border_{{ $side }}_width]" value="{{ $swVal }}" placeholder="-" min="0" max="10" class="{{ $inputClass }} text-[11px]">
+                            <div>
+                                <input type="hidden" name="style[border_{{ $side }}_color]" value="{{ $scv }}">
+                                <input type="color" value="{{ $scp }}" class="w-full h-8 rounded-lg cursor-pointer" style="border: 1px solid var(--border-glass); background: var(--bg-glass-input);" oninput="this.previousElementSibling.value = this.value">
+                            </div>
+                        </div>
+                        @endforeach
+                        <p class="text-[9px]" style="color: var(--text-dimmed);">Blank fields use the border settings above. Pick "None" to remove one side.</p>
                     </div>
                 </div>
                 {{-- Shadow fine-tuning --}}

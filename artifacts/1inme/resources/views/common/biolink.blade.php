@@ -2377,6 +2377,12 @@
                     'style.border_width': function (el, v) { el.style.borderWidth = v === '' ? '' : parseInt(v, 10) + 'px'; },
                     'style.border_style': function (el, v) { el.style.borderStyle = v; },
                     'style.border_color': function (el, v) { el.style.borderColor = v; },
+                    // Advanced borders (Task #6038): per-corner radius +
+                    // per-side style/width/color patch the wrapper live.
+                    'style.border_radius_tl': function (el, v) { el.style.borderTopLeftRadius = v === '' ? '' : parseInt(v, 10) + 'px'; },
+                    'style.border_radius_tr': function (el, v) { el.style.borderTopRightRadius = v === '' ? '' : parseInt(v, 10) + 'px'; },
+                    'style.border_radius_bl': function (el, v) { el.style.borderBottomLeftRadius = v === '' ? '' : parseInt(v, 10) + 'px'; },
+                    'style.border_radius_br': function (el, v) { el.style.borderBottomRightRadius = v === '' ? '' : parseInt(v, 10) + 'px'; },
                     'style.padding': function (el, v) { el.style.padding = v === '' ? '' : parseInt(v, 10) + 'px'; },
                     'style.padding_top': function (el, v) { el.style.paddingTop = v === '' ? '' : parseInt(v, 10) + 'px'; },
                     'style.padding_bottom': function (el, v) { el.style.paddingBottom = v === '' ? '' : parseInt(v, 10) + 'px'; },

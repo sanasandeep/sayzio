@@ -2295,6 +2295,12 @@ class BiolinkBlockController extends Controller
         $enums = [
             'font_style' => ['normal', 'italic'],
             'border_style' => ['none', 'solid', 'dashed', 'dotted', 'double', 'groove', 'ridge'],
+            // Per-side border styles (Task #6038) — same vocabulary as the
+            // shorthand; empty = fall back to the shorthand at render time.
+            'border_top_style' => ['none', 'solid', 'dashed', 'dotted', 'double', 'groove', 'ridge'],
+            'border_right_style' => ['none', 'solid', 'dashed', 'dotted', 'double', 'groove', 'ridge'],
+            'border_bottom_style' => ['none', 'solid', 'dashed', 'dotted', 'double', 'groove', 'ridge'],
+            'border_left_style' => ['none', 'solid', 'dashed', 'dotted', 'double', 'groove', 'ridge'],
             'shadow_type' => ['none', 'soft', 'hard', 'neon', 'glow', 'neumorphic', 'inset'],
             'shadow_preset' => ['none', 'soft', 'medium', 'strong'],
             'glass_preset' => ['off', 'light', 'heavy'],
@@ -2323,6 +2329,15 @@ class BiolinkBlockController extends Controller
             'bg_opacity' => [0, 100],
             'border_width' => [0, 10],
             'border_radius' => [0, 999],
+            // Advanced borders (Task #6038): per-corner radius + per-side widths.
+            'border_radius_tl' => [0, 999],
+            'border_radius_tr' => [0, 999],
+            'border_radius_bl' => [0, 999],
+            'border_radius_br' => [0, 999],
+            'border_top_width' => [0, 10],
+            'border_right_width' => [0, 10],
+            'border_bottom_width' => [0, 10],
+            'border_left_width' => [0, 10],
             'shadow_x' => [-50, 50],
             'shadow_y' => [-50, 50],
             'shadow_blur' => [0, 100],
@@ -2362,6 +2377,7 @@ class BiolinkBlockController extends Controller
         $enums['_heading_accent_size'] = \App\Modules\User\Support\AccentShapeCatalog::HEADING_SIZES;
         $colorKeys = [
             'text_color', 'bg_color', 'border_color', 'shadow_color', '_avatar_frame_color',
+            'border_top_color', 'border_right_color', 'border_bottom_color', 'border_left_color',
             '_photo_frame_color', '_photo_banner_bg', '_photo_banner_text_color', '_photo_accent_color',
             '_heading_accent_color',
         ];

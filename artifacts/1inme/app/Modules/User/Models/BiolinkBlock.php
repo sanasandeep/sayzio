@@ -386,6 +386,26 @@ class BiolinkBlock extends Model
         'border_radius' => '',
         'border_width' => '',
         'border_style' => 'none',
+        // Advanced borders (Task #6038): per-corner radius + per-side
+        // style/width/color. Empty = fall back to the shorthand value
+        // field-by-field at render time, so the simple controls keep
+        // working and advanced values only override what they set.
+        'border_radius_tl' => '',
+        'border_radius_tr' => '',
+        'border_radius_bl' => '',
+        'border_radius_br' => '',
+        'border_top_style' => '',
+        'border_top_width' => '',
+        'border_top_color' => '',
+        'border_right_style' => '',
+        'border_right_width' => '',
+        'border_right_color' => '',
+        'border_bottom_style' => '',
+        'border_bottom_width' => '',
+        'border_bottom_color' => '',
+        'border_left_style' => '',
+        'border_left_width' => '',
+        'border_left_color' => '',
         'shadow_type' => 'none',
         'shadow_color' => '#00000040',
         'shadow_x' => 0,
@@ -801,8 +821,50 @@ class BiolinkBlock extends Model
             } elseif (($style['bg_color'] ?? '') === 'transparent') {
                 $css[] = "background:transparent";
             }
-            if (!empty($style['border_radius'])) $css[] = "border-radius:{$style['border_radius']}px";
-            if (($style['border_style'] ?? 'none') !== 'none' && !empty($style['border_width'])) {
+            // Border radius: per-corner values (Task #6038) override the
+            // shorthand field-by-field; blank corners fall back to it.
+            $cornerMap = [
+                'border_radius_tl' => 'border-top-left-radius',
+                'border_radius_tr' => 'border-top-right-radius',
+                'border_radius_bl' => 'border-bottom-left-radius',
+                'border_radius_br' => 'border-bottom-right-radius',
+            ];
+            $hasCorner = false;
+            foreach ($cornerMap as $k => $prop) {
+                if (($style[$k] ?? '') !== '') { $hasCorner = true; break; }
+            }
+            if ($hasCorner) {
+                foreach ($cornerMap as $k => $prop) {
+                    $v = ($style[$k] ?? '') !== '' ? $style[$k] : ($style['border_radius'] ?? '');
+                    if ($v !== '') $css[] = "{$prop}:{$v}px";
+                }
+            } elseif (!empty($style['border_radius'])) {
+                $css[] = "border-radius:{$style['border_radius']}px";
+            }
+
+            // Border: per-side style/width/color (Task #6038) override the
+            // shorthand field-by-field; sides with no resolved visible
+            // border emit border-<side>:none so a shorthand border can be
+            // selectively switched off per side.
+            $sides = ['top', 'right', 'bottom', 'left'];
+            $hasSide = false;
+            foreach ($sides as $side) {
+                if (($style["border_{$side}_style"] ?? '') !== ''
+                    || ($style["border_{$side}_width"] ?? '') !== ''
+                    || ($style["border_{$side}_color"] ?? '') !== '') { $hasSide = true; break; }
+            }
+            if ($hasSide) {
+                foreach ($sides as $side) {
+                    $s = ($style["border_{$side}_style"] ?? '') !== '' ? $style["border_{$side}_style"] : ($style['border_style'] ?? 'none');
+                    $w = ($style["border_{$side}_width"] ?? '') !== '' ? $style["border_{$side}_width"] : ($style['border_width'] ?? '');
+                    $c = ($style["border_{$side}_color"] ?? '') !== '' ? $style["border_{$side}_color"] : ($style['border_color'] ?? '');
+                    if ($s !== 'none' && $s !== '' && $w !== '' && (float) $w > 0) {
+                        $css[] = "border-{$side}:{$w}px {$s} {$c}";
+                    } else {
+                        $css[] = "border-{$side}:none";
+                    }
+                }
+            } elseif (($style['border_style'] ?? 'none') !== 'none' && !empty($style['border_width'])) {
                 $css[] = "border:{$style['border_width']}px {$style['border_style']} {$style['border_color']}";
             }
             if (($style['effect'] ?? 'none') === 'glass') {
