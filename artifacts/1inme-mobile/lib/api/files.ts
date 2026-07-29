@@ -107,6 +107,90 @@ export async function uploadVaultFile(args: {
   return (body as { data: { file: VaultFile } }).data.file;
 }
 
+// Task #6016 — import a remote image (curated stock asset) into the
+// user's vault so vault-only consumers (photo stickers, whose server
+// sanitizer requires an owned file_id) can use it. Native downloads the
+// file to cache first (RN FormData needs a local uri); web fetches the
+// blob and appends it directly.
+export async function importVaultFileFromUrl(args: {
+  url: string;
+  name?: string;
+  mime?: string;
+}): Promise<VaultFile> {
+  const cleanName =
+    args.name || args.url.split("?")[0].split("/").pop() || "stock-image";
+  const mime = args.mime || guessImageMime(args.url) || "image/png";
+
+  const { Platform } = await import("react-native");
+  if (Platform.OS === "web") {
+    const r = await fetch(args.url);
+    if (!r.ok) throw { status: r.status, message: "Could not load that image." };
+    const blob = await r.blob();
+    const fd = new FormData();
+    fd.append(
+      "file",
+      new File([blob], cleanName, { type: blob.type || mime }),
+    );
+    return postVaultUpload(fd);
+  }
+
+  const FileSystem = await import("expo-file-system/legacy");
+  const target = `${FileSystem.cacheDirectory}stock-${Date.now()}-${cleanName}`;
+  const dl = await FileSystem.downloadAsync(args.url, target);
+  if (dl.status !== 200) {
+    throw { status: dl.status, message: "Could not load that image." };
+  }
+  try {
+    return await uploadVaultFile({ uri: dl.uri, name: cleanName, mime });
+  } finally {
+    void FileSystem.deleteAsync(dl.uri, { idempotent: true }).catch(() => {});
+  }
+}
+
+async function postVaultUpload(fd: FormData): Promise<VaultFile> {
+  const token = await getToken();
+  const headers: Record<string, string> = {
+    Accept: "application/json",
+    "User-Agent": MOBILE_USER_AGENT,
+    "X-1INME-Client": MOBILE_USER_AGENT,
+  };
+  if (token) headers.Authorization = `Bearer ${token}`;
+  const res = await fetch(`${getBaseUrl()}/api/v1/me/files/upload`, {
+    method: "POST",
+    body: fd as unknown as BodyInit,
+    headers,
+  });
+  const text = await res.text();
+  const body = text ? safeJson(text) : null;
+  if (!res.ok) {
+    const nested =
+      body && typeof body.error === "object" && body.error !== null
+        ? (body.error as Record<string, unknown>)
+        : null;
+    const message =
+      (nested && typeof nested.message === "string"
+        ? (nested.message as string)
+        : null) ||
+      (body && typeof body.message === "string"
+        ? (body.message as string)
+        : null) ||
+      `Upload failed (${res.status})`;
+    const code =
+      nested && typeof nested.code === "string"
+        ? (nested.code as string)
+        : undefined;
+    const details =
+      nested &&
+      typeof nested.details === "object" &&
+      nested.details !== null &&
+      !Array.isArray(nested.details)
+        ? (nested.details as Record<string, unknown>)
+        : undefined;
+    throw { status: res.status, message, code, details };
+  }
+  return (body as { data: { file: VaultFile } }).data.file;
+}
+
 function guessImageMime(uri: string): string | null {
   const ext = uri.split("?")[0].split(".").pop()?.toLowerCase();
   switch (ext) {

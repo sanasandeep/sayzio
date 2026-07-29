@@ -224,6 +224,7 @@ import {
   IconPickerModal,
 } from "@/components/IconPickerModal";
 import { MapPickerModal, type PickedPoint } from "@/components/MapPickerModal";
+import { StockImageGalleryPicker } from "@/components/StockImageGalleryPicker";
 import { TextField } from "@/components/TextField";
 import { setVoiceSurface } from "@/components/VoiceAssistant";
 import { useColors } from "@/hooks/useColors";
@@ -239,6 +240,7 @@ import {
 } from "@/lib/api/blocks";
 import { getBaseUrl } from "@/lib/api";
 import {
+  importVaultFileFromUrl,
   listVaultFiles,
   uploadVaultFile,
   type VaultFile,
@@ -719,6 +721,18 @@ export function BlockSettingsEditor({
   // in `_style._photo_stickers`; the drag stage needs the measured stage
   // width plus the photo's aspect ratio to mirror the web stage's math.
   const isImageBlock = block?.type === "image";
+  // Gallery/grid image blocks (Task #6016) — their `images` array
+  // ([{url, alt}]) is edited via a bespoke repeater below, with rows
+  // fillable from the curated stock gallery.
+  const isGalleryBlock = ["image_grid", "image_slider", "image_slider_v2"].includes(
+    block?.type ?? "",
+  );
+  const [galleryImages, setGalleryImages] = useState<
+    { url: string; alt: string }[]
+  >([]);
+  // Importing a curated stock image into the vault before appending it
+  // as a sticker (stickers must reference an owned vault file).
+  const [stockStickerBusy, setStockStickerBusy] = useState(false);
   const [photoStickers, setPhotoStickers] = useState<PhotoSticker[]>([]);
   const [stickerStageW, setStickerStageW] = useState(0);
   const [stickerStageRatio, setStickerStageRatio] = useState(4 / 3);
@@ -867,6 +881,32 @@ export function BlockSettingsEditor({
       setStickerUploading(false);
     }
   }, [appendSticker]);
+
+  // Curated stock sticker (Task #6016): stickers must reference an owned
+  // vault file (the server sanitizer fails closed on foreign URLs), so a
+  // stock pick first imports the asset into the vault, then appends it.
+  const addStickerFromStock = useCallback(
+    async (url: string) => {
+      if (stockStickerBusy) return;
+      setStockStickerBusy(true);
+      try {
+        const file = await importVaultFileFromUrl({ url });
+        appendSticker(file);
+      } catch (e) {
+        if (handlePlanLockedError(e, "Your storage is full on your current plan.")) {
+          return;
+        }
+        const msg =
+          e && typeof e === "object" && "message" in e
+            ? String((e as { message: unknown }).message)
+            : "Could not add that sticker.";
+        showAlert("Could not add sticker", msg);
+      } finally {
+        setStockStickerBusy(false);
+      }
+    },
+    [appendSticker, stockStickerBusy],
+  );
 
   const openStickerVaultPicker = useCallback(async () => {
     setStickerPickerOpen((open) => !open);
@@ -1078,6 +1118,22 @@ export function BlockSettingsEditor({
     if (block.type === "image") {
       const st = (block.settings?._style as Record<string, unknown> | undefined) ?? {};
       setPhotoStickers(normalizePhotoStickers(st._photo_stickers));
+    }
+    // Hydrate the gallery/grid images repeater ([{url, alt}]). Entries
+    // may be plain strings on very old blocks — normalize both shapes.
+    if (["image_grid", "image_slider", "image_slider_v2"].includes(block.type)) {
+      const raw = block.settings?.images;
+      const rows = Array.isArray(raw)
+        ? raw.map((i) => {
+            if (typeof i === "string") return { url: i, alt: "" };
+            const o = (i && typeof i === "object" ? i : {}) as Record<string, unknown>;
+            return {
+              url: typeof o.url === "string" ? o.url : "",
+              alt: typeof o.alt === "string" ? o.alt : "",
+            };
+          })
+        : [];
+      setGalleryImages(rows);
     }
     // Hydrate the map-location boolean toggle. Mirrors the web default
     // (`$s['show_directions'] ?? true`) so blocks saved before this field
@@ -1429,6 +1485,13 @@ export function BlockSettingsEditor({
           .map((b) => ({ label: b.label.trim() }))
           .filter((b) => b.label !== "")
           .slice(0, 12);
+      }
+      // Gallery/grid blocks: persist the images repeater ([{url, alt}]),
+      // dropping rows without a URL so tap-and-leave never saves blanks.
+      if (isGalleryBlock) {
+        nextSettings.images = galleryImages
+          .map((i) => ({ url: i.url.trim(), alt: i.alt.trim() }))
+          .filter((i) => i.url !== "");
       }
       // Image block: merge the drag-positioned photo stickers back into
       // the block's current `_style` (the API replaces `settings` wholesale,
@@ -2517,6 +2580,16 @@ export function BlockSettingsEditor({
         ) : null}
 
         {isImageBlock ? (
+          <StockImageGalleryPicker
+            label="Stock images"
+            hint="Use a curated photo or hand-drawn graphic"
+            selectedUrl={linkUrl.trim()}
+            onSelect={(url) => setLinkUrl(url)}
+            testIDPrefix="image-stock-gallery"
+          />
+        ) : null}
+
+        {isImageBlock ? (
           <View style={{ gap: 12 }}>
             <Text style={[styles.rowLabel, { color: colors.foreground }]}>
               Photo stickers
@@ -2848,12 +2921,145 @@ export function BlockSettingsEditor({
                     ) : null}
                   </View>
                 ) : null}
+                <StockImageGalleryPicker
+                  label={stockStickerBusy ? "Adding sticker…" : "Stock stickers"}
+                  hint="Pick a curated hand-drawn graphic"
+                  folders={[{ folder: "hand-drawn", label: "Hand-drawn" }]}
+                  busy={stockStickerBusy}
+                  onSelect={(url) => void addStickerFromStock(url)}
+                  testIDPrefix="sticker-stock-gallery"
+                />
               </View>
             ) : (
               <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>
                 Sticker limit reached (4 max) — remove one to add another.
               </Text>
             )}
+          </View>
+        ) : null}
+
+        {isGalleryBlock ? (
+          <View style={{ gap: 12 }}>
+            <Text style={[styles.rowLabel, { color: colors.foreground }]}>
+              Images
+            </Text>
+            <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>
+              Add image URLs or pick from the curated stock gallery below.
+              Rows without a URL are dropped on save.
+            </Text>
+            {galleryImages.map((img, idx) => (
+              <View
+                key={`gallery-img-${idx}`}
+                style={{
+                  gap: 8,
+                  padding: 10,
+                  borderWidth: 1,
+                  borderColor: colors.border,
+                  borderRadius: colors.radius,
+                }}
+              >
+                <View
+                  style={{ flexDirection: "row", alignItems: "center", gap: 8 }}
+                >
+                  {img.url.trim() ? (
+                    <Image
+                      source={{ uri: img.url.trim() }}
+                      style={{
+                        width: 44,
+                        height: 44,
+                        borderRadius: 8,
+                        backgroundColor: colors.muted,
+                      }}
+                      resizeMode="cover"
+                    />
+                  ) : (
+                    <View
+                      style={{
+                        width: 44,
+                        height: 44,
+                        borderRadius: 8,
+                        backgroundColor: colors.muted,
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                    >
+                      <Feather
+                        name="image"
+                        size={16}
+                        color={colors.mutedForeground}
+                      />
+                    </View>
+                  )}
+                  <Text
+                    style={{
+                      flex: 1,
+                      color: colors.mutedForeground,
+                      fontSize: 11,
+                    }}
+                    numberOfLines={1}
+                  >
+                    {img.url.trim() || "No image yet"}
+                  </Text>
+                  <Pressable
+                    {...WEB_FOCUS_RING_PROPS}
+                    onPress={() =>
+                      setGalleryImages((prev) =>
+                        prev.filter((_, i) => i !== idx),
+                      )
+                    }
+                    accessibilityRole="button"
+                    accessibilityLabel={`Remove image ${idx + 1}`}
+                    style={{ padding: 6 }}
+                  >
+                    <Feather name="trash-2" size={15} color={colors.destructive} />
+                  </Pressable>
+                </View>
+                <TextField
+                  label="Image URL"
+                  value={img.url}
+                  onChangeText={(t) =>
+                    setGalleryImages((prev) =>
+                      prev.map((r, i) => (i === idx ? { ...r, url: t } : r)),
+                    )
+                  }
+                  keyboardType="url"
+                  autoCapitalize="none"
+                />
+                <TextField
+                  label="Alt text"
+                  value={img.alt}
+                  onChangeText={(t) =>
+                    setGalleryImages((prev) =>
+                      prev.map((r, i) => (i === idx ? { ...r, alt: t } : r)),
+                    )
+                  }
+                />
+              </View>
+            ))}
+            <Button
+              label="Add image"
+              variant="ghost"
+              onPress={() =>
+                setGalleryImages((prev) => [...prev, { url: "", alt: "" }])
+              }
+            />
+            <StockImageGalleryPicker
+              label="Stock images"
+              hint="Tap a curated image to add it to this gallery"
+              onSelect={(url, asset) =>
+                setGalleryImages((prev) => {
+                  // Fill the first empty row if one exists, else append.
+                  const emptyIdx = prev.findIndex((r) => r.url.trim() === "");
+                  if (emptyIdx !== -1) {
+                    return prev.map((r, i) =>
+                      i === emptyIdx ? { ...r, url } : r,
+                    );
+                  }
+                  return [...prev, { url, alt: asset.label || "" }];
+                })
+              }
+              testIDPrefix="gallery-stock-gallery"
+            />
           </View>
         ) : null}
 

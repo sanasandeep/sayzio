@@ -145,6 +145,27 @@ export const BLOCK_KINDS: BlockKind[] = [
     blurb: "An address or pinned coordinate with a map preview.",
     fields: [],
   },
+  // Gallery/grid image blocks (Task #6016) — their `images` array is
+  // edited via a bespoke repeater UI (with the curated stock gallery
+  // picker) in the block edit screen, so `fields` stays empty.
+  {
+    type: "image_grid",
+    label: "Image grid",
+    blurb: "A grid of images, laid out in columns.",
+    fields: [],
+  },
+  {
+    type: "image_slider",
+    label: "Image slider",
+    blurb: "A swipeable carousel of images.",
+    fields: [],
+  },
+  {
+    type: "image_slider_v2",
+    label: "Image slider",
+    blurb: "A swipeable carousel of images.",
+    fields: [],
+  },
   {
     type: "tip_jar",
     label: "Tip Jar",
