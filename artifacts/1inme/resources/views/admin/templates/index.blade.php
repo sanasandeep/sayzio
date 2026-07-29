@@ -8,7 +8,7 @@
     $coverSlugs = collect($coverPersonas)->pluck('slug')->all();
     $coverParam = !empty($coverSlugs) ? implode(',', $coverSlugs) : null;
 @endphp
-<div x-data="{ search: '', category: 'all', persona: 'all', customized: 'all', outdated: 'all', active: 'all', coverPersonas: @js($coverSlugs), selected: [], preview: { open: false, url: '', name: '' }, previewDevice: 'phone', previewWidths: { phone: 420, tablet: 768, desktop: 1100 }, openPreview(url, name) { this.previewDevice = 'phone'; this.preview = { open: true, url: url, name: name }; }, closePreview() { this.preview = { open: false, url: '', name: '' }; }, toggleAllVisible(ids) { var allSel = ids.every(i => this.selected.includes(i)); this.selected = allSel ? this.selected.filter(i => !ids.includes(i)) : Array.from(new Set(this.selected.concat(ids))); } }"
+<div x-data="{ search: '', category: 'all', persona: 'all', customized: 'all', outdated: 'all', active: 'all', coverPersonas: @js($coverSlugs), selected: [], liveMode: localStorage.getItem('adminTplLivePreviews') === '1', toggleLive() { this.liveMode = !this.liveMode; localStorage.setItem('adminTplLivePreviews', this.liveMode ? '1' : '0'); }, preview: { open: false, url: '', name: '' }, previewDevice: 'phone', previewWidths: { phone: 420, tablet: 768, desktop: 1100 }, openPreview(url, name) { this.previewDevice = 'phone'; this.preview = { open: true, url: url, name: name }; }, closePreview() { this.preview = { open: false, url: '', name: '' }; }, toggleAllVisible(ids) { var allSel = ids.every(i => this.selected.includes(i)); this.selected = allSel ? this.selected.filter(i => !ids.includes(i)) : Array.from(new Set(this.selected.concat(ids))); } }"
      @keydown.escape.window="closePreview()">
 <div class="flex items-center justify-between mb-6">
     <p class="text-sm text-white/40 ak-note">Curate full-page presets and reusable card-block presets.</p>
@@ -88,6 +88,14 @@
     $hiddenCount = $rows->count() - $activeCount;
 @endphp
 <div class="flex items-center gap-2 mb-4 flex-wrap">
+    <div class="flex items-center gap-1 p-1 rounded-xl bg-white/5 border border-white/5 w-max">
+        <button type="button" @click="toggleLive()"
+                :class="liveMode ? 'bg-blue-600 text-white' : 'text-white/50 hover:text-white ak-muted'"
+                class="px-3 py-1.5 text-xs font-semibold rounded-lg transition"
+                title="Render every card as a real live preview of the template (instead of the static thumbnail) so you can see how they all actually look at once.">
+            <i class="fas fa-bolt mr-1 text-[10px]"></i>Live previews
+        </button>
+    </div>
     <div class="flex items-center gap-1 p-1 rounded-xl bg-white/5 border border-white/5 w-max">
         <button type="button" @click="active = 'all'"
                 :class="active === 'all' ? 'bg-blue-600 text-white' : 'text-white/50 hover:text-white ak-muted'"
@@ -219,14 +227,35 @@
                 <input type="checkbox" :value="{{ $tpl->id }}" x-model="selected"
                        class="w-4 h-4 rounded border-white/30 bg-black/30 text-blue-500 focus:ring-blue-500 cursor-pointer">
             </label>
-            <div class="group relative aspect-[4/3] rounded-xl mb-3 flex items-center justify-center overflow-hidden" style="background: linear-gradient(135deg, rgba(61,107,255,0.12), rgba(92,131,255,0.04));">
-                @if($tpl->thumbnail_url)
-                    <img src="{{ $tpl->thumbnail_url }}" alt="{{ $tpl->name }}" class="w-full h-full object-cover">
-                @else
-                    <img src="{{ asset('template-placeholders/page.svg') }}" alt="{{ $tpl->name }} preview" class="w-full h-full object-cover">
-                @endif
+            <div class="group relative rounded-xl mb-3 flex items-center justify-center overflow-hidden"
+                 :class="liveMode ? 'aspect-[3/4]' : 'aspect-[4/3]'"
+                 style="background: linear-gradient(135deg, rgba(61,107,255,0.12), rgba(92,131,255,0.04));">
+                <template x-if="!liveMode">
+                    <img src="{{ $tpl->thumbnail_url ?: asset('template-placeholders/page.svg') }}" alt="{{ $tpl->name }} preview" class="w-full h-full object-cover" loading="lazy">
+                </template>
+                {{-- Live mode: real scaled-down render via the preview route. The
+                     ResizeObserver keeps the scale correct when a filter reveals a card
+                     that mounted hidden (clientWidth 0 at init); no explicit disconnect
+                     needed — when x-if tears the node down the observer is GC'd. --}}
+                <template x-if="liveMode">
+                    <div class="absolute inset-0"
+                         x-data="{ s: 1, h: 560, ro: null, calc() { var w = $el.clientWidth; if (w > 0) { this.s = w / 420; this.h = Math.ceil($el.clientHeight / this.s); } } }"
+                         x-init="calc(); ro = new ResizeObserver(() => calc()); ro.observe($el)">
+                        <iframe src="{{ route('admin.templates.preview', ['kind' => $tab, 'id' => $tpl->id]) }}"
+                                title="{{ $tpl->name }} live preview"
+                                loading="lazy"
+                                scrolling="no"
+                                tabindex="-1"
+                                class="absolute top-0 left-0 border-0 pointer-events-none select-none bg-white"
+                                :style="'width: 420px; height: ' + h + 'px; transform: scale(' + s + '); transform-origin: top left;'"></iframe>
+                        <button type="button"
+                                @click="openPreview('{{ route('admin.templates.preview', ['kind' => $tab, 'id' => $tpl->id]) }}', @js($tpl->name))"
+                                class="absolute inset-0 w-full h-full cursor-zoom-in"
+                                title="Open full live preview"></button>
+                    </div>
+                </template>
 
-                <div class="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition flex items-end justify-end p-2 gap-1.5 opacity-0 group-hover:opacity-100">
+                <div class="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition flex items-end justify-end p-2 gap-1.5 opacity-0 group-hover:opacity-100 pointer-events-none [&>form]:pointer-events-auto">
                     <form action="{{ route('admin.templates.thumbnail.upload', ['kind' => $tab, 'id' => $tpl->id]) }}"
                           method="POST"
                           enctype="multipart/form-data"

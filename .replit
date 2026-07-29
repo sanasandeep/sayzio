@@ -56,6 +56,18 @@ args = "zipimport-tests"
 task = "workflow.run"
 args = "stock-image-real-api-e2e"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-gallery-pickers"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-admin-tpl-live"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-admin-tpl-edit-preview"
+
 [[workflows.workflow]]
 name = "heading-accents-test"
 author = "agent"
@@ -155,6 +167,39 @@ args = "cd /home/runner/workspace/artifacts/1inme-mobile && node scripts/test-st
 [workflows.workflow.metadata]
 isValidation = true
 
+[[workflows.workflow]]
+name = "e2e-gallery-pickers"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "bash artifacts/1inme/tests/Browser/run-validation.sh biolink-bg-gallery-pick.spec.ts avatar-gallery-pick.spec.ts"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-admin-tpl-live"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "VALIDATION_PORT=55512 bash artifacts/1inme/tests/Browser/run-validation.sh admin-templates-live-previews.spec.ts"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-admin-tpl-edit-preview"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "bash artifacts/1inme/tests/Browser/run-validation.sh admin-template-edit-live-preview.spec.ts"
+
+[workflows.workflow.metadata]
+isValidation = true
+
 
   [agent]
 stack = "PNPM_WORKSPACE"
@@ -175,7 +220,7 @@ AWS_DEFAULT_REGION = "ap-south-2"
 AWS_URL = "https://d3l7wvr1shk1cg.cloudfront.net"
 AWS_USE_PATH_STYLE_ENDPOINT = "true"
 USER_CONTENT_DISK = "s3"
-CONTACT_ADMIN_TOKEN = "secret stripped"
+CONTACT_ADMIN_TOKEN = ""
 APP_NAME = "Sayzio"
 
 [[ports]]

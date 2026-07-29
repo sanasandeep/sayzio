@@ -140,6 +140,7 @@
                 'currentUrl'  => $bs['background_image'] ?? null,
                 'currentName' => !empty($bs['background_image']) ? 'Saved background image' : null,
                 'compact'     => true,
+                'browseType'  => 'image',
             ])
 
             {{-- Curated background gallery (Task #6015) — platform-provided
