@@ -97,6 +97,162 @@
 
                     @include('user.links.partials.biolink-background-card', ['link' => $link, 'bgTemplates' => $bgTemplates])
 
+                    @include('user.links.partials.page-stickers-card', ['link' => $link, 'bs' => $bs])
+                    {{-- ── Floating text overlays (Task #5954) ─────────────────
+                         Free-placed captions layered over the whole page.
+                         Percent x/y so they land proportionally on every
+                         screen. Design-locked pages keep their baked design:
+                         the server ignores this field when locked. --}}
+                    @php
+                        $pageOverlaysSaved = [];
+                        $bsOv = $link->settings['biolink']['text_overlays'] ?? null;
+                        if (is_array($bsOv)) $pageOverlaysSaved = array_values($bsOv);
+                        $pageOverlayMax = \App\Modules\User\Models\BiolinkBlock::PAGE_TEXT_OVERLAY_MAX;
+                        $pageOverlayFonts = array_values(array_map(
+                            fn ($e) => $e['family'],
+                            array_filter(\App\Modules\User\Support\FontCatalog::all(), fn ($e) => in_array($e['category'], ['display', 'handwriting'], true))
+                        ));
+                        $pageDesignLocked = $link->isDesignLocked();
+                    @endphp
+                    <div class="card-premium p-6">
+                        <div class="flex items-center gap-3 mb-1">
+                            <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background: rgba(245,158,11,0.1);"><i class="fas fa-font text-amber-400 text-xs"></i></div>
+                            <h3 class="text-sm font-bold" style="color: var(--text-primary);">Floating Text</h3>
+                        </div>
+                        <p class="text-[11px] mb-4" style="color: var(--text-faint);">Layer up to {{ $pageOverlayMax }} short captions anywhere over your page — drag to place, tilt for a scrapbook feel.</p>
+
+                        @if($pageDesignLocked)
+                            <p class="text-xs rounded-lg p-3" style="background: rgba(245,158,11,0.08); color: var(--text-muted); border: 1px solid rgba(245,158,11,0.25);">
+                                <i class="fas fa-lock mr-1 text-amber-400"></i>This page uses a design-locked template, so floating text is managed by the template and can't be edited here.
+                            </p>
+                        @else
+                        <div x-data="{
+                                overlays: @js($pageOverlaysSaved),
+                                max: {{ $pageOverlayMax }},
+                                error: '',
+                                drag: null,
+                                syncOverlays() {
+                                    this.$nextTick(() => {
+                                        const el = this.$refs.overlaysInput;
+                                        el.value = this.overlays.length ? JSON.stringify(this.overlays) : '';
+                                        el.dispatchEvent(new Event('input', { bubbles: true }));
+                                    });
+                                },
+                                addOverlay() {
+                                    if (this.overlays.length >= this.max) { this.error = 'Floating text limit reached ({{ $pageOverlayMax }} max).'; return; }
+                                    this.error = '';
+                                    this.overlays.push({ text: 'Your text', font: '', color: '#ffffff', size: 22, x: 50, y: 12, rotate: -6 });
+                                    this.syncOverlays();
+                                },
+                                removeOverlay(i) { this.overlays.splice(i, 1); this.error = ''; this.syncOverlays(); },
+                                overlayStyle(o) {
+                                    const x = Math.max(0, Math.min(100, parseFloat(o.x) || 0));
+                                    const y = Math.max(0, Math.min(100, parseFloat(o.y) || 0));
+                                    const size = Math.max(10, Math.min(72, parseInt(o.size, 10) || 22));
+                                    const rot = Math.max(-180, Math.min(180, parseInt(o.rotate, 10) || 0));
+                                    let fam = String(o.font || '').replace(/[^a-zA-Z0-9 :_\-]/g, '');
+                                    if (fam.indexOf('custom:') === 0) fam = fam.slice(7);
+                                    const color = /^#[0-9a-fA-F]{3,8}$/.test(String(o.color || '')) ? o.color : '#ffffff';
+                                    return 'left:' + x + '%;top:' + y + '%;'
+                                        + (fam ? &quot;font-family:'&quot; + fam + &quot;';&quot; : '')
+                                        + 'color:' + color + ';font-size:' + Math.round(size * 0.6) + 'px;line-height:1.15;white-space:nowrap;'
+                                        + 'text-shadow:0 1px 6px rgba(0,0,0,0.45);'
+                                        + 'transform:translate(-50%,-50%)' + (rot !== 0 ? ' rotate(' + rot + 'deg)' : '') + ';';
+                                },
+                                startOverlayDrag(i, ev) {
+                                    const stage = this.$refs.overlayStage;
+                                    if (!stage) return;
+                                    this.drag = { i: i };
+                                    try { stage.setPointerCapture(ev.pointerId); } catch (e) {}
+                                },
+                                onOverlayDrag(ev) {
+                                    if (!this.drag) return;
+                                    const stage = this.$refs.overlayStage;
+                                    const rect = stage.getBoundingClientRect();
+                                    const o = this.overlays[this.drag.i];
+                                    o.x = Math.round(Math.max(0, Math.min(100, ((ev.clientX - rect.left) / rect.width) * 100)) * 100) / 100;
+                                    o.y = Math.round(Math.max(0, Math.min(100, ((ev.clientY - rect.top) / rect.height) * 100)) * 100) / 100;
+                                },
+                                endOverlayDrag(ev) {
+                                    if (!this.drag) return;
+                                    this.drag = null;
+                                    try { this.$refs.overlayStage.releasePointerCapture(ev.pointerId); } catch (e) {}
+                                    this.syncOverlays();
+                                },
+                             }">
+                            <input type="hidden" name="text_overlays" x-ref="overlaysInput"
+                                   value="{{ $pageOverlaysSaved ? json_encode($pageOverlaysSaved) : '' }}">
+
+                            {{-- Drag stage: a tall page-shaped canvas; positions
+                                 are stored as percentages of the content column. --}}
+                            <div class="mb-3" x-show="overlays.length" x-cloak>
+                                <div x-ref="overlayStage" class="relative select-none rounded-xl mx-auto"
+                                     style="touch-action:none; max-width: 260px; aspect-ratio: 9 / 16; background: linear-gradient(180deg, rgba(127,127,127,0.18), rgba(127,127,127,0.08)); border: 1px solid var(--border-subtle);"
+                                     @pointermove="onOverlayDrag($event)" @pointerup="endOverlayDrag($event)" @pointercancel="endOverlayDrag($event)">
+                                    <div class="absolute inset-x-6 top-5 space-y-2 pointer-events-none" aria-hidden="true">
+                                        <div class="mx-auto rounded-full" style="width: 36px; height: 36px; background: rgba(127,127,127,0.35);"></div>
+                                        <div class="rounded" style="height: 8px; background: rgba(127,127,127,0.3);"></div>
+                                        <div class="rounded" style="height: 24px; background: rgba(127,127,127,0.22);"></div>
+                                        <div class="rounded" style="height: 24px; background: rgba(127,127,127,0.22);"></div>
+                                        <div class="rounded" style="height: 24px; background: rgba(127,127,127,0.22);"></div>
+                                    </div>
+                                    <template x-for="(o, i) in overlays" :key="'ov' + i">
+                                        <span class="absolute z-10 font-bold"
+                                              :class="drag && drag.i === i ? 'cursor-grabbing ring-2 ring-amber-400' : 'cursor-grab'"
+                                              :style="overlayStyle(o)"
+                                              x-text="(o.text || '').trim() || 'Your text'"
+                                              @pointerdown.prevent="startOverlayDrag(i, $event)"></span>
+                                    </template>
+                                </div>
+                                <p class="text-[10px] mt-1 text-center" style="color: var(--text-dimmed);"><i class="fas fa-hand-pointer mr-1"></i>Drag a caption anywhere on the mini page preview.</p>
+                            </div>
+
+                            <template x-for="(o, i) in overlays" :key="'ovr' + i">
+                                <div class="rounded-lg p-2 mb-2" style="border: 1px solid var(--border-subtle); background: var(--bg-glass-input);">
+                                    <div class="flex items-center gap-2 mb-2">
+                                        <input type="text" maxlength="120" x-model="o.text" @input="syncOverlays()" placeholder="Caption text" class="theme-input flex-1 text-xs py-1.5">
+                                        <input type="color" :value="/^#[0-9a-fA-F]{6}$/.test(o.color || '') ? o.color : '#ffffff'"
+                                               @input="o.color = $event.target.value; syncOverlays()"
+                                               class="w-9 h-9 rounded-lg cursor-pointer flex-shrink-0" style="border: 1px solid var(--border-subtle);">
+                                        <button type="button" @click="removeOverlay(i)" class="text-red-400 hover:text-red-300 px-1.5" title="Remove"><i class="fas fa-trash-can text-xs"></i></button>
+                                    </div>
+                                    <div class="grid grid-cols-2 sm:grid-cols-5 gap-1.5">
+                                        <div class="col-span-2 sm:col-span-1">
+                                            <label class="text-[10px] block" style="color: var(--text-dimmed);">Font</label>
+                                            <select x-model="o.font" @change="syncOverlays()" class="theme-input w-full text-xs py-1.5">
+                                                <option value="">Default</option>
+                                                @foreach($pageOverlayFonts as $povF)
+                                                <option value="{{ $povF }}">{{ $povF }}</option>
+                                                @endforeach
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label class="text-[10px] block" style="color: var(--text-dimmed);">Size</label>
+                                            <input type="number" min="10" max="72" x-model.number="o.size" @input="syncOverlays()" class="theme-input w-full text-xs py-1.5">
+                                        </div>
+                                        <div>
+                                            <label class="text-[10px] block" style="color: var(--text-dimmed);">Rotate°</label>
+                                            <input type="number" min="-180" max="180" x-model.number="o.rotate" @input="syncOverlays()" class="theme-input w-full text-xs py-1.5">
+                                        </div>
+                                        <div>
+                                            <label class="text-[10px] block" style="color: var(--text-dimmed);">X %</label>
+                                            <input type="number" min="0" max="100" step="0.5" x-model.number="o.x" @input="syncOverlays()" class="theme-input w-full text-xs py-1.5">
+                                        </div>
+                                        <div>
+                                            <label class="text-[10px] block" style="color: var(--text-dimmed);">Y %</label>
+                                            <input type="number" min="0" max="100" step="0.5" x-model.number="o.y" @input="syncOverlays()" class="theme-input w-full text-xs py-1.5">
+                                        </div>
+                                    </div>
+                                </div>
+                            </template>
+
+                            <button type="button" @click="addOverlay()" x-show="overlays.length < max" class="w-full text-center text-xs py-2 rounded-lg" style="border: 1px dashed var(--border-subtle); color: var(--text-muted);">
+                                <i class="fas fa-plus mr-1"></i>Add floating text
+                            </button>
+                            <p class="text-[10px] mt-1 text-red-400" x-show="error" x-text="error" x-cloak></p>
+                        </div>
+                        @endif
+                    </div>
 
                 </div>
 

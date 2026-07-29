@@ -62,8 +62,19 @@ class StarterPageTemplatesSeeder extends Seeder
      * with a green serif brand title, orange socials and six pastel card
      * tiles (heading + short blurb) in a responsive auto grid (3 columns
      * on desktop, stacked on phones).
+     *
+     * v16 (2026-07): Added "Pressed Botanicals" — an artisan/botanical
+     * scrapbook page showcasing the Paper Collage profile-card look
+     * (identity_paper_collage): torn-paper name card over grid paper
+     * with a pressed-sprig accent, plus handwritten-note links on a
+     * soft off-white botanical theme.
+     *
+     * v17 (2026-07): Added "Torn Paper Studio" — the first template built
+     * on the new torn-paper page background (`background_type: torn`):
+     * a dusty-blue paper sheet with a jagged torn right edge over a
+     * studio backdrop photo, minimal profile + clean rounded links.
      */
-    public const SEED_VERSION = 15;
+    public const SEED_VERSION = 18;
 
     /** Tolerance (seconds) for treating updated_at == created_at. */
     private const EDIT_DRIFT_TOLERANCE = 2;
@@ -141,14 +152,20 @@ class StarterPageTemplatesSeeder extends Seeder
                 'snapshot'             => $this->snapshot([
                     $this->profile('Your Name', 'A little about you — what you do, what you love, and where people can find you.', $this->face('starter-personal-face'), $kits['personal']),
                     $this->socials(),
-                    $this->link('My latest project', 'https://example.com/project', 'fas fa-rocket', $kits['personal']),
+                    // Block-level catalog preset showcase (Task #5970).
+                    $this->withPreset($this->link('My latest project', 'https://example.com/project', 'fas fa-rocket', $kits['personal']), 'abstract_fourtyfive', 80),
                     $this->link('Read my blog', 'https://example.com/blog', 'fas fa-pen-nib', $kits['personal']),
                     $this->link('Book a call', 'https://example.com/call', 'fas fa-calendar', $kits['personal']),
                     $this->divider(),
                     $this->ctaButton('Say hello', 'mailto:you@example.com'),
                 ], [
-                    'background_type'    => 'gradient',
-                    'background_gradient' => 'linear-gradient(160deg, #1e293b 0%, #334155 55%, #3d6bff 130%)',
+                    // Catalog preset background (Task #5970): deep blue-violet
+                    // radial from BgPresetCatalog, softened slightly via the
+                    // page-level preset transparency over the dark fallback.
+                    'background_type'    => 'preset',
+                    'bg_preset_key'      => 'abstract_fiftythree',
+                    'bg_preset_opacity'  => 90,
+                    'bg_fallback_color'  => '#0f172a',
                     'theme_color'        => '#3d6bff',
                     'font_color'         => '#f8fafc',
                     'button_color'       => '#3d6bff',
@@ -177,8 +194,9 @@ class StarterPageTemplatesSeeder extends Seeder
                     ]),
                     $this->socials(),
                 ], [
-                    'background_type'    => 'gradient',
-                    'background_gradient' => 'linear-gradient(135deg, #f97316 0%, #ec4899 50%, #8b5cf6 100%)',
+                    // Catalog preset background (Task #5970): warm sunset radial.
+                    'background_type'    => 'preset',
+                    'bg_preset_key'      => 'abstract_fiftyfour',
                     'theme_color'        => '#ec4899',
                     'font_color'         => '#ffffff',
                     'button_color'       => '#ffffff',
@@ -686,7 +704,110 @@ class StarterPageTemplatesSeeder extends Seeder
                     ],
                 ]),
             ],
+
+            // 14 — Pressed Botanicals: artisan/botanical scrapbook page
+            // built around the Paper Collage profile-card look
+            // (identity_paper_collage): a torn-paper name card layered
+            // over a grid-paper panel with a pressed-sprig accent, then
+            // handwritten-note links and a small square photo gallery on
+            // a soft off-white botanical theme.
+            [
+                'slug'                 => 'starter-pressed-botanicals',
+                'name'                 => 'Pressed Botanicals',
+                'category'             => 'personal',
+                'description'          => 'An artisan scrapbook page: a torn-paper collage name card with a pressed-botanical accent, handwritten-note links and a small photo gallery on a soft paper backdrop.',
+                'recommended_personas' => ['artist', 'creator', 'other'],
+                'snapshot'             => $this->snapshot([
+                    $this->profile(
+                        'Willow & Fern',
+                        'Small-batch botanical prints, pressed-flower keepsakes and slow-made paper goods from my garden studio.',
+                        '',
+                        $kits['papercollage'],
+                        '',
+                        [
+                            'title'    => 'Botanical artist · Paper maker',
+                            'verified' => false,
+                            'socials'  => [],
+                            'location' => '',
+                            'website'  => '',
+                            'cta_label' => '',
+                            'cta_url'   => '',
+                        ]
+                    ),
+                    $this->link('Shop pressed-flower prints', 'https://example.com/shop',      '', $kits['papercollage']),
+                    $this->link('Workshops & studio visits',  'https://example.com/workshops', '', $kits['papercollage']),
+                    $this->link('Commission a keepsake',      'https://example.com/commissions', '', $kits['papercollage']),
+                    $this->link('Read the studio journal',    'https://example.com/journal',   '', $kits['papercollage']),
+                    $this->botanicalTile('starter-botanical-g1'),
+                    $this->botanicalTile('starter-botanical-g2'),
+                    $this->botanicalTile('starter-botanical-g3'),
+                ], [
+                    'background_type'   => 'color',
+                    'background_color'  => '#efece3',
+                    'theme_color'       => '#5f6f52',
+                    'font_color'        => '#57534e',
+                    'button_color'      => '#fcfbf7',
+                    'button_text_color' => '#5b4636',
+                    'button_style'      => 'rounded',
+                ]),
+            ],
+
+            // 15 — Torn Paper Studio: showcases the torn-paper page
+            // background — a dusty-blue paper sheet with a jagged torn
+            // right edge over a studio backdrop photo peeking out beyond
+            // the tear.
+            [
+                'slug'                 => 'starter-torn-paper-studio',
+                'name'                 => 'Torn Paper Studio',
+                'category'             => 'personal',
+                'description'          => 'A torn-paper page: a dusty-blue paper sheet with a jagged torn edge over a moody studio photo, with a minimal profile and clean rounded links.',
+                'recommended_personas' => ['artist', 'creator', 'other'],
+                'snapshot'             => $this->snapshot([
+                    $this->profile(
+                        'Mara Voss',
+                        'Analog photographer & zine maker. Everything here is shot on film and printed by hand.',
+                        $this->photo('portrait,analog', 400, 400, 'starter-torn-avatar'),
+                        $kits['personal'],
+                        '',
+                        [
+                            'title'    => 'Photographer · Zine maker',
+                            'verified' => false,
+                            'location' => '',
+                            'website'  => '',
+                            'cta_label' => '',
+                            'cta_url'   => '',
+                        ]
+                    ),
+                    $this->link('Buy the latest zine',      'https://example.com/zine',    '', $kits['personal']),
+                    $this->link('Print shop',               'https://example.com/prints',  '', $kits['personal']),
+                    $this->link('Darkroom workshop dates',  'https://example.com/workshops', '', $kits['personal']),
+                    $this->link('Say hello',                'https://example.com/contact', '', $kits['personal']),
+                ], [
+                    'background_type'   => 'torn',
+                    'torn_image'        => $this->photo('film,studio,moody', 1600, 2000, 'starter-torn-backdrop'),
+                    'torn_paper_color'  => '#cfe0e6',
+                    'bg_fallback_color' => '#46626f',
+                    'bg_attachment'     => 'fixed',
+                    'theme_color'       => '#35525f',
+                    'font_color'        => '#2b3a41',
+                    'button_color'      => '#ffffff',
+                    'button_text_color' => '#2b3a41',
+                    'button_style'      => 'rounded',
+                ]),
+            ],
         ];
+    }
+
+    /* ─────────── Pressed Botanicals helpers (template 14) ─────────── */
+
+    /** One third-width square gallery tile for the botanical mini-gallery. */
+    private function botanicalTile(string $seed): array
+    {
+        return $this->block('image', [
+            'url'    => $this->photo('botanical,pressed-flowers', 600, 600, $seed),
+            'alt'    => '',
+            '_style' => array_merge(BiolinkBlock::STYLE_DEFAULTS, ['grid_span' => 4, 'border_radius' => 14]),
+        ]);
     }
 
     /* ────────────── Purple Split helpers (template 13) ────────────── */
@@ -1041,6 +1162,22 @@ class StarterPageTemplatesSeeder extends Seeder
     }
 
     /**
+     * Stamp a catalog preset background (Task #5970) onto an already-built
+     * block: merges `bg_preset_key`/`bg_preset_opacity` into its `_style`
+     * (seeding STYLE_DEFAULTS when the block had no style yet) so the
+     * public renderer paints the preset layer behind the block content.
+     */
+    private function withPreset(array $block, string $presetKey, int $opacity = 100): array
+    {
+        $style = $block['settings']['_style'] ?? BiolinkBlock::STYLE_DEFAULTS;
+        $block['settings']['_style'] = array_merge($style, [
+            'bg_preset_key'     => $presetKey,
+            'bg_preset_opacity' => max(0, min(100, $opacity)),
+        ]);
+        return $block;
+    }
+
+    /**
      * Per-template "variant kit": the profile block type + identity
      * variant (which carries the `_profile_layout`) plus the link design
      * variant key. Keyed by template slug-fragment for readability.
@@ -1058,6 +1195,7 @@ class StarterPageTemplatesSeeder extends Seeder
             'overlap'    => ['ptype' => 'profile_card_v1', 'pvar' => 'identity_overlap_hero', 'link' => 'pill_solid'],
             'splithero'  => ['ptype' => 'profile_card_v1', 'pvar' => 'identity_split_hero',   'link' => 'outline_pill'],
             'splitherogrid' => ['ptype' => 'profile_card_v1', 'pvar' => 'identity_split_hero_panel', 'link' => 'pill_solid'],
+            'papercollage'  => ['ptype' => 'profile_card_v1', 'pvar' => 'identity_paper_collage',    'link' => 'handwritten_note'],
         ];
     }
 

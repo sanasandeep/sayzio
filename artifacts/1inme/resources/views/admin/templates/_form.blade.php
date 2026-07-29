@@ -131,6 +131,88 @@
                     <p class="text-[10px] text-white/30 mt-1 ak-note">Applying this template locks the page's design: users can edit content and add/remove blocks, but all styling surfaces (appearance, per-block styles, design variants, block theme, custom CSS/JS) are hidden and server-enforced until they detach from the template.</p>
                 </div>
                 @php
+                    $palettesInitial = old('color_palettes_json');
+                    if ($palettesInitial === null) {
+                        $palettesInitial = json_encode($isEdit ? $tpl->palettes() : [], JSON_UNESCAPED_UNICODE);
+                    }
+                @endphp
+                {{-- Color palettes (design-locked pages): admin-curated color sets users can switch between without breaking the design. --}}
+                <div class="md:col-span-2" x-data="tplPaletteManager(@js($palettesInitial))">
+                    <input type="hidden" name="color_palettes_json" :value="JSON.stringify(serialize())">
+                    <div class="flex items-center justify-between mb-1.5">
+                        <label class="block text-xs font-medium text-white/60 ak-muted"><i class="fas fa-palette mr-1 text-blue-300 ak-blue"></i>Color palettes (for design-locked pages)</label>
+                        <button type="button" @click="add()" x-show="rows.length < 12" class="text-xs px-2.5 py-1 rounded-lg border border-white/15 bg-white/5 text-white/70 hover:border-white/30 ak-strong"><i class="fas fa-plus mr-1"></i>Add palette</button>
+                    </div>
+                    <p class="text-[11px] text-white/30 mb-2 ak-note">Users on a design-locked page can switch between these palettes (page background + text/button colors). The first palette is applied by default. Leave empty to offer no color choices. Max 12.</p>
+                    <template x-for="(row, i) in rows" :key="row._uid">
+                        <div class="rounded-xl border border-white/10 bg-white/5 p-3 mb-2">
+                            <div class="flex items-center gap-2 mb-2">
+                                <input type="text" x-model="row.name" maxlength="60" placeholder="Palette name" class="flex-1 text-xs rounded-lg bg-white/5 border border-white/15 px-2.5 py-1.5 text-white/80 ak-input">
+                                <span class="text-[10px] text-white/30 ak-note" x-show="i === 0">Default</span>
+                                <button type="button" @click="rows.splice(i, 1)" class="text-xs text-red-300 hover:text-red-200 px-2" title="Remove palette"><i class="fas fa-trash"></i></button>
+                            </div>
+                            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                                <label class="block">
+                                    <span class="block text-[10px] text-white/40 mb-0.5 ak-note">Background</span>
+                                    <select x-model="row.background_type" class="w-full text-xs rounded-lg bg-white/5 border border-white/15 px-2 py-1.5 text-white/80 ak-input">
+                                        <option value="color">Solid color</option>
+                                        <option value="gradient">Gradient</option>
+                                    </select>
+                                </label>
+                                <label class="block" x-show="row.background_type !== 'gradient'">
+                                    <span class="block text-[10px] text-white/40 mb-0.5 ak-note">Background color</span>
+                                    <input type="color" x-model="row.background_color" class="w-full h-8 rounded-lg bg-white/5 border border-white/15 ak-input">
+                                </label>
+                                <label class="block col-span-2" x-show="row.background_type === 'gradient'">
+                                    <span class="block text-[10px] text-white/40 mb-0.5 ak-note">Gradient colors (comma-separated hex)</span>
+                                    <input type="text" x-model="row.gradient_colors" placeholder="#0f172a, #4338ca" class="w-full text-xs rounded-lg bg-white/5 border border-white/15 px-2.5 py-1.5 text-white/80 ak-input">
+                                </label>
+                                <label class="block">
+                                    <span class="block text-[10px] text-white/40 mb-0.5 ak-note">Text color</span>
+                                    <input type="color" x-model="row.font_color" class="w-full h-8 rounded-lg bg-white/5 border border-white/15 ak-input">
+                                </label>
+                                <label class="block">
+                                    <span class="block text-[10px] text-white/40 mb-0.5 ak-note">Button color</span>
+                                    <input type="color" x-model="row.button_color" class="w-full h-8 rounded-lg bg-white/5 border border-white/15 ak-input">
+                                </label>
+                                <label class="block">
+                                    <span class="block text-[10px] text-white/40 mb-0.5 ak-note">Button text</span>
+                                    <input type="color" x-model="row.button_text_color" class="w-full h-8 rounded-lg bg-white/5 border border-white/15 ak-input">
+                                </label>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+                <script>
+                    function tplPaletteManager(initialJson) {
+                        let initial = [];
+                        try { initial = JSON.parse(initialJson || '[]') || []; } catch (e) { initial = []; }
+                        let uid = 0;
+                        const toRow = (p) => ({
+                            _uid: ++uid,
+                            key: (p && p.key) || '',
+                            name: (p && p.name) || '',
+                            background_type: (p && p.colors && p.colors.background_type) || 'color',
+                            background_color: (p && p.colors && p.colors.background_color) || '#0f172a',
+                            gradient_colors: (p && p.colors && p.colors.gradient_colors) || '',
+                            font_color: (p && p.colors && p.colors.font_color) || '#ffffff',
+                            button_color: (p && p.colors && p.colors.button_color) || '#2563eb',
+                            button_text_color: (p && p.colors && p.colors.button_text_color) || '#ffffff',
+                        });
+                        return {
+                            rows: (Array.isArray(initial) ? initial : []).map(toRow),
+                            add() { if (this.rows.length < 12) this.rows.push(toRow(null)); },
+                            serialize() {
+                                return this.rows.map((r) => {
+                                    const colors = { background_type: r.background_type, font_color: r.font_color, button_color: r.button_color, button_text_color: r.button_text_color };
+                                    if (r.background_type === 'gradient') { colors.gradient_colors = r.gradient_colors; } else { colors.background_color = r.background_color; }
+                                    return { key: r.key, name: r.name, colors: colors };
+                                });
+                            },
+                        };
+                    }
+                </script>
+                @php
                     $selectedPersonas = old('recommended_personas', $isEdit ? ($tpl->recommended_personas ?? []) : []);
                     if (!is_array($selectedPersonas)) $selectedPersonas = [];
                     // Personas carried from the dashboard coverage warning are

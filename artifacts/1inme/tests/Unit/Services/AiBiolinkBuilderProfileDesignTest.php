@@ -46,8 +46,11 @@ class AiBiolinkBuilderProfileDesignTest extends TestCase
     {
         $designs = AiBiolinkBuilderService::profileDesigns();
 
-        // Exactly the 10 ready-made identity looks, keyed by variant key.
-        $this->assertCount(10, $designs);
+        // Every ready-made identity look, keyed by variant key. Task #1745
+        // grew the original 10 to 16, and later tasks (#5929 Paper Collage)
+        // keep extending the bundle, so assert the floor + naming convention
+        // here and exact parity against the live bundle below.
+        $this->assertGreaterThanOrEqual(21, count($designs));
         foreach (array_keys($designs) as $key) {
             $this->assertStringStartsWith('identity_', $key, "Unexpected design key: {$key}");
         }
@@ -66,7 +69,7 @@ class AiBiolinkBuilderProfileDesignTest extends TestCase
         }
 
         $this->assertSame($expected, $designs);
-        $this->assertCount(10, $expected, 'profile_identity bundle must carry 10 layout-bearing variants');
+        $this->assertContains('Paper Collage', $designs, 'Task #5929 Paper Collage design must be pickable by the AI builder');
     }
 
     public function test_build_block_applies_chosen_profile_design_style_and_variant_stamps(): void

@@ -11,7 +11,7 @@ class PageTemplate extends Model
     protected $fillable = [
         'name', 'slug', 'category', 'description', 'thumbnail_url',
         'plan_tier', 'recommended_personas', 'is_active', 'sort_order', 'snapshot',
-        'design_locked',
+        'design_locked', 'color_palettes',
     ];
 
     protected $casts = [
@@ -20,7 +20,89 @@ class PageTemplate extends Model
         'sort_order' => 'integer',
         'snapshot' => 'array',
         'recommended_personas' => 'array',
+        'color_palettes' => 'array',
     ];
+
+    /**
+     * Biolink-settings keys a template color palette may carry. A strict
+     * subset of BiolinkThemeResolver::THEMABLE_KEYS — palettes are pure
+     * color swaps (incl. the page background), never fonts/layout/media.
+     */
+    public const PALETTE_COLOR_KEYS = [
+        'background_type', 'background_color',
+        'gradient_colors', 'gradient_angle', 'gradient_type',
+        'font_color', 'button_color', 'button_text_color',
+        'bg_overlay_color', 'bg_overlay_opacity',
+    ];
+
+    public const MAX_PALETTES = 12;
+
+    /**
+     * Sanitize an admin-submitted palette list into the canonical stored
+     * shape: [{key, name, colors:{...}}, ...]. Unknown color keys are
+     * dropped, color values must be #hex, enums/ints are constrained,
+     * empty palettes are discarded, keys are unique slugs.
+     *
+     * @param mixed $raw
+     * @return array<int, array{key:string,name:string,colors:array<string,mixed>}>
+     */
+    public static function sanitizePalettes($raw): array
+    {
+        if (!is_array($raw)) return [];
+        $out = [];
+        $seen = [];
+        foreach (array_values($raw) as $i => $p) {
+            if (!is_array($p)) continue;
+            $name = trim((string) ($p['name'] ?? ''));
+            $colors = [];
+            $rawColors = is_array($p['colors'] ?? null) ? $p['colors'] : [];
+            foreach (self::PALETTE_COLOR_KEYS as $k) {
+                if (!array_key_exists($k, $rawColors)) continue;
+                $v = $rawColors[$k];
+                if ($v === null || $v === '') continue;
+                switch ($k) {
+                    case 'background_type':
+                        if (in_array($v, ['color', 'gradient'], true)) $colors[$k] = $v;
+                        break;
+                    case 'gradient_colors':
+                        $v = (string) $v;
+                        if (mb_strlen($v) <= 2000) $colors[$k] = $v;
+                        break;
+                    case 'gradient_type':
+                        if (in_array($v, ['linear', 'radial', 'conic'], true)) $colors[$k] = $v;
+                        break;
+                    case 'gradient_angle':
+                        $colors[$k] = max(0, min(360, (int) $v));
+                        break;
+                    case 'bg_overlay_opacity':
+                        $colors[$k] = max(0, min(100, (int) $v));
+                        break;
+                    default: // *_color keys
+                        if (is_string($v) && preg_match('/^#[0-9a-fA-F]{3,8}$/', $v)) $colors[$k] = $v;
+                        break;
+                }
+            }
+            if (empty($colors)) continue;
+            if ($name === '') $name = 'Palette ' . ($i + 1);
+            $name = mb_substr($name, 0, 60);
+            $key = Str::slug(trim((string) ($p['key'] ?? '')) ?: $name) ?: 'palette-' . ($i + 1);
+            $base = $key; $n = 2;
+            while (isset($seen[$key])) { $key = $base . '-' . $n++; }
+            $seen[$key] = true;
+            $out[] = ['key' => $key, 'name' => $name, 'colors' => $colors];
+            if (count($out) >= self::MAX_PALETTES) break;
+        }
+        return $out;
+    }
+
+    /**
+     * Sanitized palettes for this template (defensive re-sanitize on read —
+     * rows may have been hand-edited). First palette is the default.
+     */
+    public function palettes(): array
+    {
+        return self::sanitizePalettes($this->color_palettes);
+    }
 
     /**
      * Seeders store root-relative thumbnail paths (e.g.

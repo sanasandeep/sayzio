@@ -188,6 +188,14 @@
             <span class="sidebar-tooltip">Asset Vault</span>
         </a>
 
+        <a href="{{ route('admin.platform-gallery.index') }}"
+           class="sidebar-link {{ request()->routeIs('admin.platform-gallery.*') ? 'active' : '' }}"
+           style="--nav-tint:#14b8a6; --nav-tint-soft:rgba(20,184,166,0.12);">
+            <div class="nav-icon-wrap"><i class="fas fa-images"></i></div>
+            <span class="nav-label">Gallery Images</span>
+            <span class="sidebar-tooltip">Curated Gallery Images</span>
+        </a>
+
         <a href="{{ route('admin.site-pages.index') }}"
            class="sidebar-link {{ request()->routeIs('admin.site-pages.*') ? 'active' : '' }}"
            style="--nav-tint:#22c55e; --nav-tint-soft:rgba(34,197,94,0.12);">

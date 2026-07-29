@@ -14,6 +14,7 @@ import {
   View,
 } from "react-native";
 
+import { AvatarGalleryPicker } from "@/components/AvatarGalleryPicker";
 import { Button } from "@/components/Button";
 import { EmptyState } from "@/components/EmptyState";
 import { TextField } from "@/components/TextField";
@@ -26,6 +27,7 @@ import {
   type FeaturedLinksStyle,
 } from "@/lib/api/creatorProfile";
 import { listLinks, type Link } from "@/lib/api/links";
+import { updateProfile } from "@/lib/api/profile";
 import { showAlert } from "@/lib/webAlert";
 
 // Same style catalog as the server's featured_links_style validation
@@ -183,6 +185,21 @@ export default function CreatorSettingsScreen() {
     },
   });
 
+  // Task #6015 — creator-avatar gallery pick saves immediately through
+  // the profile endpoint (creator_avatar override), independent of the
+  // main creator-profile save.
+  const avatarM = useMutation({
+    mutationFn: (url: string) => updateProfile({ creator_avatar: url }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["creator-profile-settings"] });
+      qc.invalidateQueries({ queryKey: ["creator-profile"] });
+      qc.invalidateQueries({ queryKey: ["profile"] });
+    },
+    onError: (e: any) => {
+      showAlert("Could not save", e?.message ?? "Unknown error");
+    },
+  });
+
   if (q.isLoading) {
     return (
       <View style={[styles.center, { backgroundColor: colors.background }]}>
@@ -233,6 +250,13 @@ export default function CreatorSettingsScreen() {
             /@handle.
           </Text>
         ) : null}
+
+        {/* Task #6015 — curated avatar gallery (every plan). */}
+        <Text style={[styles.section, { color: colors.foreground }]}>Profile avatar</Text>
+        <AvatarGalleryPicker
+          saving={avatarM.isPending}
+          onSelect={(url) => avatarM.mutate(url)}
+        />
 
         {/* Theme color */}
         <Text style={[styles.section, { color: colors.foreground }]}>Theme color</Text>

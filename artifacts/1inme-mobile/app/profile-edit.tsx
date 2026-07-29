@@ -11,6 +11,7 @@ import {
   View,
 } from "react-native";
 
+import { AvatarGalleryPicker } from "@/components/AvatarGalleryPicker";
 import { Button } from "@/components/Button";
 import { useAuth } from "@/contexts/AuthContext";
 import { PhoneField } from "@/components/PhoneField";
@@ -254,6 +255,20 @@ export default function ProfileEdit() {
     },
   });
 
+  // Task #6015 — avatar-gallery pick saves immediately (independent of
+  // the main form) so the choice can't be lost behind "Save changes".
+  const avatarM = useMutation({
+    mutationFn: (url: string) => updateProfile({ avatar: url }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["profile"] });
+      qc.invalidateQueries({ queryKey: ["auth-me"] });
+      void refresh();
+    },
+    onError: (e: any) => {
+      showAlert("Could not save", e?.message ?? "Unknown error");
+    },
+  });
+
   const set = <K extends keyof ProfilePayload>(k: K, v: ProfilePayload[K]) => {
     setForm((f) => ({ ...f, [k]: v }));
     if (errors[k as string]) {
@@ -289,6 +304,14 @@ export default function ProfileEdit() {
           style={{ minHeight: 100, paddingVertical: 12, textAlignVertical: "top" }}
           error={errors.bio}
         />
+        {/* Task #6015 — curated avatar gallery (every plan). Saves the
+            picked asset URL immediately through the profile endpoint. */}
+        <AvatarGalleryPicker
+          selectedUrl={q.data?.avatar_url ?? q.data?.avatar}
+          saving={avatarM.isPending}
+          onSelect={(url) => avatarM.mutate(url)}
+        />
+
         <PhoneField
           label="Phone"
           value={form.phone ?? ""}

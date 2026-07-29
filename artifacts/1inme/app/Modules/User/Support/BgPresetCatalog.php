@@ -16,6 +16,7 @@ class BgPresetCatalog
         'gradients' => 'Gradients',
         'abstract'  => 'Abstract',
         'patterns'  => 'Patterns',
+        'torn'      => 'Torn paper',
     ];
 
     /**
@@ -39,6 +40,30 @@ class BgPresetCatalog
     {
         $p = self::$presets[$key] ?? null;
         return $p ? $p['css'] : null;
+    }
+
+    /**
+     * Torn-paper presets: a backdrop photo/gradient layer behind a solid
+     * "paper" sheet whose right edge is a jagged torn diagonal. The public
+     * renderer composites these as two layers (backdrop + clip-path paper)
+     * instead of inlining the flat `css` approximation, which only exists so
+     * the swatch/colors pipeline keeps working unchanged.
+     */
+    public static function isTorn(string $key): bool
+    {
+        return (self::$presets[$key]['group'] ?? null) === 'torn';
+    }
+
+    /** Solid paper-sheet color for a torn preset, or null. */
+    public static function tornPaper(string $key): ?string
+    {
+        return self::$presets[$key]['paper'] ?? null;
+    }
+
+    /** Backdrop CSS (the layer visible beyond the tear) for a torn preset, or null. */
+    public static function tornBackdrop(string $key): ?string
+    {
+        return self::$presets[$key]['backdrop'] ?? null;
     }
 
     /**
@@ -80,6 +105,9 @@ class BgPresetCatalog
                 'swatch' => ($manifest[$key] ?? null) === md5($p['css'])
                     ? self::SWATCH_PUBLIC_PATH.'/'.$key.'.png'
                     : null,
+                // Torn presets: solid paper color the mobile client overlays
+                // (with a zig-zag torn edge) on top of the gradient backdrop.
+                'paper'  => $p['paper'] ?? null,
             ];
         }
 
@@ -462,5 +490,14 @@ class BgPresetCatalog
         'abs_back_14' => ['group' => 'patterns', 'label' => 'Pattern 14', 'css' => 'background-image: repeating-linear-gradient(45deg, rgba(0,0,0,0.06) 0px, rgba(0,0,0,0.06) 19px,transparent 19px, transparent 38px,rgba(0,0,0,0.06) 38px, rgba(0,0,0,0.06) 57px,rgba(0,0,0,0.25) 57px, rgba(0,0,0,0.25) 76px,rgba(0,0,0,0.12) 76px, rgba(0,0,0,0.12) 95px,rgba(0,0,0,0.03) 95px, rgba(0,0,0,0.03) 114px,rgba(0,0,0,0.26) 114px, rgba(0,0,0,0.26) 133px,rgba(0,0,0,0.23) 133px, rgba(0,0,0,0.23) 152px,transparent 152px, transparent 171px,rgba(0,0,0,0.25) 171px, rgba(0,0,0,0.25) 190px,transparent 190px, transparent 209px,rgba(0,0,0,0.03) 209px, rgba(0,0,0,0.03) 228px,rgba(0,0,0,0.23) 228px, rgba(0,0,0,0.23) 247px,rgba(0,0,0,0.03) 247px, rgba(0,0,0,0.03) 266px),repeating-linear-gradient(135deg, transparent 0px, transparent 3px,rgba(0,0,0,0.09) 3px, rgba(0,0,0,0.09) 6px,rgba(0,0,0,0.03) 6px, rgba(0,0,0,0.03) 9px,rgba(0,0,0,0.09) 9px, rgba(0,0,0,0.09) 12px,rgba(0,0,0,0.09) 12px, rgba(0,0,0,0.09) 15px,rgba(0,0,0,0.06) 15px, rgba(0,0,0,0.06) 18px,rgba(0,0,0,0.01) 18px, rgba(0,0,0,0.01) 21px,rgba(0,0,0,0.02) 21px, rgba(0,0,0,0.02) 24px,transparent 24px, transparent 27px,rgba(0,0,0,0.02) 27px, rgba(0,0,0,0.02) 30px,transparent 30px, transparent 33px,rgba(0,0,0,0.02) 33px, rgba(0,0,0,0.02) 36px,rgba(0,0,0,0.06) 36px, rgba(0,0,0,0.06) 39px,rgba(0,0,0,0.07) 39px, rgba(0,0,0,0.07) 42px,rgba(0,0,0,0.1) 42px, rgba(0,0,0,0.1) 45px,rgba(0,0,0,0.01) 45px, rgba(0,0,0,0.01) 48px,rgba(0,0,0,0.01) 48px, rgba(0,0,0,0.01) 51px,rgba(0,0,0,0.1) 51px, rgba(0,0,0,0.1) 54px),repeating-linear-gradient(90deg, rgba(0,0,0,0.11) 0px, rgba(0,0,0,0.11) 19px,transparent 19px, transparent 38px,rgba(0,0,0,0.16) 38px, rgba(0,0,0,0.16) 57px,rgba(0,0,0,0.17) 57px, rgba(0,0,0,0.17) 76px,rgba(0,0,0,0.29) 76px, rgba(0,0,0,0.29) 95px,rgba(0,0,0,0.26) 95px, rgba(0,0,0,0.26) 114px,rgba(0,0,0,0.28) 114px, rgba(0,0,0,0.28) 133px,rgba(0,0,0,0.22) 133px, rgba(0,0,0,0.22) 152px,transparent 152px, transparent 171px,rgba(0,0,0,0.19) 171px, rgba(0,0,0,0.19) 190px,transparent 190px, transparent 209px,rgba(0,0,0,0.29) 209px, rgba(0,0,0,0.29) 228px,rgba(0,0,0,0.29) 228px, rgba(0,0,0,0.29) 247px),repeating-linear-gradient(0deg, rgba(0,0,0,0.29) 0px, rgba(0,0,0,0.29) 19px,transparent 19px, transparent 38px,rgba(0,0,0,0.2) 38px, rgba(0,0,0,0.2) 57px,rgba(0,0,0,0.03) 57px, rgba(0,0,0,0.03) 76px,rgba(0,0,0,0.26) 76px, rgba(0,0,0,0.26) 95px,rgba(0,0,0,0.06) 95px, rgba(0,0,0,0.06) 114px,rgba(0,0,0,0.29) 114px, rgba(0,0,0,0.29) 133px,rgba(0,0,0,0.19) 133px, rgba(0,0,0,0.19) 152px,transparent 152px, transparent 171px,rgba(0,0,0,0.11) 171px, rgba(0,0,0,0.11) 190px,transparent 190px, transparent 209px,rgba(0,0,0,0.1) 209px, rgba(0,0,0,0.1) 228px,rgba(0,0,0,0.04) 228px, rgba(0,0,0,0.04) 247px),linear-gradient(0deg, rgb(162, 223, 27),rgb(6, 172, 66))'],
         'abs_back_15' => ['group' => 'patterns', 'label' => 'Pattern 15', 'css' => 'background-image: repeating-linear-gradient(45deg, rgba(0,0,0,0.3) 0px, rgba(0,0,0,0.3) 16px,transparent 16px, transparent 32px,rgba(0,0,0,0.08) 32px, rgba(0,0,0,0.08) 48px,rgba(0,0,0,0.14) 48px, rgba(0,0,0,0.14) 64px,rgba(0,0,0,0.05) 64px, rgba(0,0,0,0.05) 80px,transparent 80px, transparent 96px,rgba(0,0,0,0.21) 96px, rgba(0,0,0,0.21) 112px,rgba(0,0,0,0.18) 112px, rgba(0,0,0,0.18) 128px,rgba(0,0,0,0.21) 128px, rgba(0,0,0,0.21) 144px,rgba(0,0,0,0.29) 144px, rgba(0,0,0,0.29) 160px,rgba(0,0,0,0.08) 160px, rgba(0,0,0,0.08) 176px,rgba(0,0,0,0.3) 176px, rgba(0,0,0,0.3) 192px,rgba(0,0,0,0.23) 192px, rgba(0,0,0,0.23) 208px),repeating-linear-gradient(135deg, transparent 0px, transparent 3px,rgba(0,0,0,0.1) 3px, rgba(0,0,0,0.1) 6px,rgba(0,0,0,0.03) 6px, rgba(0,0,0,0.03) 9px,rgba(0,0,0,0.09) 9px, rgba(0,0,0,0.09) 12px,rgba(0,0,0,0.08) 12px, rgba(0,0,0,0.08) 15px,rgba(0,0,0,0.1) 15px, rgba(0,0,0,0.1) 18px,rgba(0,0,0,0.1) 18px, rgba(0,0,0,0.1) 21px,rgba(0,0,0,0.04) 21px, rgba(0,0,0,0.04) 24px,transparent 24px, transparent 27px,rgba(0,0,0,0.03) 27px, rgba(0,0,0,0.03) 30px,rgba(0,0,0,0.03) 30px, rgba(0,0,0,0.03) 33px,rgba(0,0,0,0.01) 33px, rgba(0,0,0,0.01) 36px,rgba(0,0,0,0.1) 36px, rgba(0,0,0,0.1) 39px,rgba(0,0,0,0.06) 39px, rgba(0,0,0,0.06) 42px,transparent 42px, transparent 45px,rgba(0,0,0,0.03) 45px, rgba(0,0,0,0.03) 48px,rgba(0,0,0,0.05) 48px, rgba(0,0,0,0.05) 51px,rgba(0,0,0,0.03) 51px, rgba(0,0,0,0.03) 54px),repeating-linear-gradient(90deg, rgba(0,0,0,0.18) 0px, rgba(0,0,0,0.18) 14px,transparent 14px, transparent 28px,rgba(0,0,0,0.3) 28px, rgba(0,0,0,0.3) 42px,rgba(0,0,0,0.25) 42px, rgba(0,0,0,0.25) 56px,rgba(0,0,0,0.07) 56px, rgba(0,0,0,0.07) 70px,rgba(0,0,0,0.23) 70px, rgba(0,0,0,0.23) 84px,rgba(0,0,0,0.02) 84px, rgba(0,0,0,0.02) 98px,rgba(0,0,0,0.04) 98px, rgba(0,0,0,0.04) 112px,rgba(0,0,0,0.07) 112px, rgba(0,0,0,0.07) 126px,rgba(0,0,0,0.21) 126px, rgba(0,0,0,0.21) 140px,rgba(0,0,0,0.15) 140px, rgba(0,0,0,0.15) 154px,transparent 154px, transparent 168px,rgba(0,0,0,0.12) 168px, rgba(0,0,0,0.12) 182px,rgba(0,0,0,0.13) 182px, rgba(0,0,0,0.13) 196px,rgba(0,0,0,0.27) 196px, rgba(0,0,0,0.27) 210px),repeating-linear-gradient(0deg, rgba(0,0,0,0.17) 0px, rgba(0,0,0,0.17) 14px,rgba(0,0,0,0.26) 14px, rgba(0,0,0,0.26) 28px,rgba(0,0,0,0.06) 28px, rgba(0,0,0,0.06) 42px,rgba(0,0,0,0.14) 42px, rgba(0,0,0,0.14) 56px,transparent 56px, transparent 70px,rgba(0,0,0,0.22) 70px, rgba(0,0,0,0.22) 84px,rgba(0,0,0,0.1) 84px, rgba(0,0,0,0.1) 98px,transparent 98px, transparent 112px,rgba(0,0,0,0.15) 112px, rgba(0,0,0,0.15) 126px,transparent 126px, transparent 140px,rgba(0,0,0,0.03) 140px, rgba(0,0,0,0.03) 154px,rgba(0,0,0,0.03) 154px, rgba(0,0,0,0.03) 168px,rgba(0,0,0,0.06) 168px, rgba(0,0,0,0.06) 182px,rgba(0,0,0,0.17) 182px, rgba(0,0,0,0.17) 196px,rgba(0,0,0,0.2) 196px, rgba(0,0,0,0.2) 210px),linear-gradient(135deg, rgb(252, 16, 76),rgb(244, 3, 176))'],
         'abs_back_16' => ['group' => 'patterns', 'label' => 'Pattern 16', 'css' => 'background-image: repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.11) 0px, rgba(0, 0, 0, 0.11) 12px, rgba(1, 1, 1, 0.16) 12px, rgba(1, 1, 1, 0.16) 24px, rgba(0, 0, 0, 0.14) 24px, rgba(0, 0, 0, 0.14) 36px, rgba(0, 0, 0, 0.23) 36px, rgba(0, 0, 0, 0.23) 48px, rgba(0, 0, 0, 0.12) 48px, rgba(0, 0, 0, 0.12) 60px, rgba(1, 1, 1, 0.07) 60px, rgba(1, 1, 1, 0.07) 72px, rgba(0, 0, 0, 0.21) 72px, rgba(0, 0, 0, 0.21) 84px, rgba(0, 0, 0, 0.24) 84px, rgba(0, 0, 0, 0.24) 96px, rgba(1, 1, 1, 0.23) 96px, rgba(1, 1, 1, 0.23) 108px, rgba(1, 1, 1, 0.07) 108px, rgba(1, 1, 1, 0.07) 120px, rgba(0, 0, 0, 0.01) 120px, rgba(0, 0, 0, 0.01) 132px, rgba(1, 1, 1, 0.22) 132px, rgba(1, 1, 1, 0.22) 144px, rgba(1, 1, 1, 0.24) 144px, rgba(1, 1, 1, 0.24) 156px, rgba(0, 0, 0, 0) 156px, rgba(0, 0, 0, 0) 168px, rgba(0, 0, 0, 0.12) 168px, rgba(0, 0, 0, 0.12) 180px), repeating-linear-gradient(90deg, rgba(1, 1, 1, 0.01) 0px, rgba(1, 1, 1, 0.01) 12px, rgba(1, 1, 1, 0.15) 12px, rgba(1, 1, 1, 0.15) 24px, rgba(0, 0, 0, 0.09) 24px, rgba(0, 0, 0, 0.09) 36px, rgba(0, 0, 0, 0.02) 36px, rgba(0, 0, 0, 0.02) 48px, rgba(0, 0, 0, 0.1) 48px, rgba(0, 0, 0, 0.1) 60px, rgba(1, 1, 1, 0.07) 60px, rgba(1, 1, 1, 0.07) 72px, rgba(1, 1, 1, 0.15) 72px, rgba(1, 1, 1, 0.15) 84px, rgba(0, 0, 0, 0.18) 84px, rgba(0, 0, 0, 0.18) 96px, rgba(1, 1, 1, 0.15) 96px, rgba(1, 1, 1, 0.15) 108px, rgba(1, 1, 1, 0.09) 108px, rgba(1, 1, 1, 0.09) 120px, rgba(1, 1, 1, 0.07) 120px, rgba(1, 1, 1, 0.07) 132px, rgba(1, 1, 1, 0.05) 132px, rgba(1, 1, 1, 0.05) 144px, rgba(0, 0, 0, 0.1) 144px, rgba(0, 0, 0, 0.1) 156px, rgba(1, 1, 1, 0.18) 156px, rgba(1, 1, 1, 0.18) 168px), repeating-linear-gradient(45deg, rgba(0, 0, 0, 0.24) 0px, rgba(0, 0, 0, 0.24) 16px, rgba(1, 1, 1, 0.06) 16px, rgba(1, 1, 1, 0.06) 32px, rgba(0, 0, 0, 0.16) 32px, rgba(0, 0, 0, 0.16) 48px, rgba(1, 1, 1, 0) 48px, rgba(1, 1, 1, 0) 64px, rgba(1, 1, 1, 0.12) 64px, rgba(1, 1, 1, 0.12) 80px, rgba(1, 1, 1, 0.22) 80px, rgba(1, 1, 1, 0.22) 96px, rgba(0, 0, 0, 0.24) 96px, rgba(0, 0, 0, 0.24) 112px, rgba(0, 0, 0, 0.25) 112px, rgba(0, 0, 0, 0.25) 128px, rgba(1, 1, 1, 0.12) 128px, rgba(1, 1, 1, 0.12) 144px, rgba(0, 0, 0, 0.18) 144px, rgba(0, 0, 0, 0.18) 160px, rgba(1, 1, 1, 0.03) 160px, rgba(1, 1, 1, 0.03) 176px, rgba(1, 1, 1, 0.1) 176px, rgba(1, 1, 1, 0.1) 192px), repeating-linear-gradient(135deg, rgba(1, 1, 1, 0.18) 0px, rgba(1, 1, 1, 0.18) 3px, rgba(0, 0, 0, 0.09) 3px, rgba(0, 0, 0, 0.09) 6px, rgba(0, 0, 0, 0.08) 6px, rgba(0, 0, 0, 0.08) 9px, rgba(1, 1, 1, 0.05) 9px, rgba(1, 1, 1, 0.05) 12px, rgba(0, 0, 0, 0.01) 12px, rgba(0, 0, 0, 0.01) 15px, rgba(1, 1, 1, 0.12) 15px, rgba(1, 1, 1, 0.12) 18px, rgba(0, 0, 0, 0.05) 18px, rgba(0, 0, 0, 0.05) 21px, rgba(1, 1, 1, 0.16) 21px, rgba(1, 1, 1, 0.16) 24px, rgba(1, 1, 1, 0.07) 24px, rgba(1, 1, 1, 0.07) 27px, rgba(1, 1, 1, 0.23) 27px, rgba(1, 1, 1, 0.23) 30px, rgba(0, 0, 0, 0.2) 30px, rgba(0, 0, 0, 0.2) 33px, rgba(0, 0, 0, 0.18) 33px, rgba(0, 0, 0, 0.18) 36px, rgba(1, 1, 1, 0.12) 36px, rgba(1, 1, 1, 0.12) 39px, rgba(1, 1, 1, 0.13) 39px, rgba(1, 1, 1, 0.13) 42px, rgba(1, 1, 1, 0.2) 42px, rgba(1, 1, 1, 0.2) 45px, rgba(1, 1, 1, 0.18) 45px, rgba(1, 1, 1, 0.18) 48px, rgba(0, 0, 0, 0.2) 48px, rgba(0, 0, 0, 0.2) 51px, rgba(1, 1, 1, 0) 51px, rgba(1, 1, 1, 0) 54px, rgba(0, 0, 0, 0.03) 54px, rgba(0, 0, 0, 0.03) 57px, rgba(1, 1, 1, 0.06) 57px, rgba(1, 1, 1, 0.06) 60px, rgba(1, 1, 1, 0) 60px, rgba(1, 1, 1, 0) 63px, rgba(0, 0, 0, 0.1) 63px, rgba(0, 0, 0, 0.1) 66px, rgba(1, 1, 1, 0.19) 66px, rgba(1, 1, 1, 0.19) 69px), linear-gradient(90deg, rgb(239, 53, 115), rgb(79, 2, 93))'],
+        // ── Torn paper ──────────────────────────────────────────────────
+        // Composite presets: a gradient backdrop peeks out beyond the jagged
+        // torn right edge of a solid paper sheet. `css` is a flat diagonal
+        // approximation used ONLY for the swatch/colors pipeline; the public
+        // renderer uses `paper` + `backdrop` to build the real two-layer
+        // clip-path composite.
+        'torn_dusty_blue' => ['group' => 'torn', 'label' => 'Torn Dusty Blue', 'paper' => '#cfe0e6', 'backdrop' => 'background-image: linear-gradient(150deg, #8aa6b4 0%, #5d7d8e 55%, #46626f 100%)', 'css' => 'background-image: linear-gradient(115deg, #cfe0e6 0%, #cfe0e6 62%, #f6fafc 62%, #f6fafc 64%, #6f8d9c 64%, #5d7d8e 100%)'],
+        'torn_cream' => ['group' => 'torn', 'label' => 'Torn Cream', 'paper' => '#f3ead8', 'backdrop' => 'background-image: linear-gradient(150deg, #b3987a 0%, #8c6f50 55%, #6e563c 100%)', 'css' => 'background-image: linear-gradient(115deg, #f3ead8 0%, #f3ead8 62%, #fffdf6 62%, #fffdf6 64%, #a58868 64%, #8c6f50 100%)'],
+        'torn_dark' => ['group' => 'torn', 'label' => 'Torn Dark', 'paper' => '#23262b', 'backdrop' => 'background-image: linear-gradient(150deg, #5b6472 0%, #3b4350 55%, #2e3440 100%)', 'css' => 'background-image: linear-gradient(115deg, #23262b 0%, #23262b 62%, #4a515c 62%, #4a515c 64%, #4a5462 64%, #3b4350 100%)'],
     ];
 }

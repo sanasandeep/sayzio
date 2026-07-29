@@ -22,6 +22,12 @@ export type BgPreset = {
    * LinearGradient approximation.
    */
   swatch?: string | null;
+  /**
+   * Torn-paper presets only: solid paper-sheet color the client overlays
+   * (with a zig-zag torn right edge) on top of the gradient backdrop
+   * approximated from `colors`. Null for regular presets.
+   */
+  paper?: string | null;
 };
 
 export type BgPresetCatalog = {

@@ -219,9 +219,14 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::prefix('assets')->name('assets.')->group(function () {
             Route::get('/', [AdminAssetController::class, 'index'])->middleware(CheckPermission::class . ':settings.manage')->name('index');
             Route::post('/', [AdminAssetController::class, 'upload'])->middleware(CheckPermission::class . ':settings.manage')->name('upload');
+            Route::post('import-zip', [AdminAssetController::class, 'importZip'])->middleware(CheckPermission::class . ':settings.manage')->name('import-zip');
+            Route::get('imports', [AdminAssetController::class, 'imports'])->middleware(CheckPermission::class . ':settings.manage')->name('imports');
+            Route::post('imports/{import}/cancel', [AdminAssetController::class, 'cancelImport'])->middleware(CheckPermission::class . ':settings.manage')->name('imports.cancel');
+            Route::post('imports/{import}/retry', [AdminAssetController::class, 'retryImport'])->whereNumber('import')->middleware(CheckPermission::class . ':settings.manage')->name('imports.retry');
             Route::get('folders', [AdminAssetController::class, 'listFolders'])->middleware(CheckPermission::class . ':settings.manage')->name('folders.index');
             Route::post('folders', [AdminAssetController::class, 'createFolder'])->middleware(CheckPermission::class . ':settings.manage')->name('folders.store');
             Route::delete('folders/{folder}', [AdminAssetController::class, 'destroyFolder'])->middleware(CheckPermission::class . ':settings.manage')->name('folders.destroy');
+            Route::post('bulk-update', [AdminAssetController::class, 'bulkUpdate'])->middleware(CheckPermission::class . ':settings.manage')->name('bulk-update');
             Route::put('{asset}', [AdminAssetController::class, 'update'])->middleware(CheckPermission::class . ':settings.manage')->name('update');
             Route::post('{asset}/move', [AdminAssetController::class, 'move'])->middleware(CheckPermission::class . ':settings.manage')->name('move');
             Route::delete('{asset}', [AdminAssetController::class, 'destroy'])->middleware(CheckPermission::class . ':settings.manage')->name('destroy');
@@ -276,6 +281,13 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::post('{bannedName}/acknowledge', [BannedNameController::class, 'acknowledge'])->middleware(CheckPermission::class . ':settings.manage')->name('acknowledge');
             Route::post('{bannedName}/unacknowledge', [BannedNameController::class, 'unacknowledge'])->middleware(CheckPermission::class . ':settings.manage')->name('unacknowledge');
             Route::post('{bannedName}/toggle-force-rename', [BannedNameController::class, 'toggleForceRename'])->middleware(CheckPermission::class . ':settings.manage')->name('toggle-force-rename');
+        });
+
+        Route::prefix('platform-gallery')->name('platform-gallery.')->middleware(CheckPermission::class . ':settings.manage')->group(function () {
+            Route::get   ('/',                 [\App\Modules\Admin\Controllers\PlatformGalleryController::class, 'index'])->name('index');
+            Route::post  ('{folder}/upload',   [\App\Modules\Admin\Controllers\PlatformGalleryController::class, 'upload'])->name('upload');
+            Route::post  ('{folder}/rename',   [\App\Modules\Admin\Controllers\PlatformGalleryController::class, 'rename'])->name('rename');
+            Route::delete('{folder}',          [\App\Modules\Admin\Controllers\PlatformGalleryController::class, 'destroy'])->name('destroy');
         });
 
         Route::prefix('bg-templates')->name('bg-templates.')->group(function () {

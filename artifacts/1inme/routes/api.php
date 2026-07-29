@@ -836,6 +836,9 @@ Route::prefix('v1')->group(function () {
         // Detach a design-locked page from its template — unlocks all styling
         // surfaces (mobile parity for the web "Detach from template" action).
         Route::post('/links/{id}/page-templates/detach',  [\App\Modules\Api\Controllers\PageTemplateController::class, 'detach'])->whereNumber('id');
+        // Switch a design-locked page between the template's admin-defined
+        // color palettes (mobile parity for the web palette picker).
+        Route::post('/links/{id}/page-templates/apply-palette', [\App\Modules\Api\Controllers\PageTemplateController::class, 'applyPalette'])->whereNumber('id');
 
         // Biolink blocks (authoring)
         // Block-type palette catalog (mobile parity for the web editor
@@ -849,6 +852,10 @@ Route::prefix('v1')->group(function () {
         // Background template catalog for the Appearance "Templates" picker
         // (mobile parity for the web template gallery). Admin-managed rows.
         Route::get   ('/bg-templates',                      [BiolinkBlockController::class, 'bgTemplates']);
+        // Platform-provided asset galleries (curated S3 folders: biolink
+        // backgrounds, stock images, avatar galleries). Mobile parity for
+        // the web pickers — every plan, no gating.
+        Route::get   ('/platform-assets/{folder}',          [\App\Modules\Api\Controllers\PlatformAssetController::class, 'index']);
         // "Fetch details" OG-metadata extractor for the mobile block editor
         // (mirrors the web editor's links/{link}/blocks/og-meta endpoint).
         // Per-user rate limiting lives in the controller (shared key with
@@ -1133,6 +1140,18 @@ Route::prefix('v1')->group(function () {
         // POST /me/links/health   — batch check alias active/expired status
         //   (popup link-health alerts).
         Route::post('/me/files/fetch-url', [\App\Modules\Api\Controllers\ExtensionApiController::class, 'fetchUrlAndSave'])->middleware('throttle:30,1');
+
+        // Sayzio Files vault (Task #5956 — mobile photo-sticker add flow).
+        // GET lists the caller's vault files (?type=image for pickers);
+        // POST uploads a new file through the shared createFromUpload
+        // pipeline (quota + mime allowlist + image compression).
+        Route::get ('/me/files',        [\App\Modules\Api\Controllers\FilesController::class, 'index']);
+        Route::post('/me/files/upload', [\App\Modules\Api\Controllers\FilesController::class, 'upload'])->middleware('throttle:30,1');
+        // Task #6028 — server-side import of a curated platform asset
+        // (key allow-listed to assets/<folder>/ prefixes); needed because
+        // the asset CDN has no CORS headers, so Expo WEB can't fetch the
+        // blob in-browser to re-upload it.
+        Route::post('/me/files/import-platform-asset', [\App\Modules\Api\Controllers\FilesController::class, 'importPlatformAsset'])->middleware('throttle:30,1');
         Route::post('/me/links/health',    [\App\Modules\Api\Controllers\ExtensionApiController::class, 'checkLinksHealth'])->middleware('throttle:60,1');
 
         // Workspaces

@@ -199,6 +199,11 @@ class ProfileController extends Controller
             'handle' => ['nullable', 'string', 'max:60', 'regex:/^[a-z0-9_-]+$/i', Rule::unique('users')->ignore($user->id), new \App\Modules\Admin\Rules\NotBannedName()],
             'bio' => 'nullable|string|max:500',
             'avatar' => 'nullable|image|max:2048',
+            // Platform avatar-gallery pick (Task #6015): S3 object key from
+            // one of the curated avatar folders (people-avatars,
+            // stock-avatars, hand-drawn). Validated by prefix + safe
+            // filename; resolved to the public CDN URL below. Every plan.
+            'avatar_asset' => 'nullable|string|max:300',
             'persona' => ['nullable', 'string', \Illuminate\Validation\Rule::in(\App\Modules\User\Services\PersonaCatalog::slugs())],
             'country' => ['nullable', 'string', 'size:2', 'regex:/^[A-Za-z]{2}$/'],
         ]);
@@ -210,8 +215,18 @@ class ProfileController extends Controller
             unset($validated['name']);
         }
 
+        $avatarAssetKey = \App\Modules\User\Support\PlatformAssetCatalog::folderForKey(
+            $validated['avatar_asset'] ?? null,
+            \App\Modules\User\Support\PlatformAssetCatalog::AVATAR_FOLDERS
+        ) !== null ? $validated['avatar_asset'] : null;
+        unset($validated['avatar_asset']);
+
         if ($request->hasFile('avatar') && !$user->isNameAvatarLocked()) {
             $validated['avatar'] = '/storage/' . $request->file('avatar')->store('avatars', 'public');
+        } elseif ($avatarAssetKey && !$user->isNameAvatarLocked()) {
+            // Platform avatar-gallery pick — store the absolute public URL
+            // (guard-safe: PublicStorageUrl passes absolute URLs through).
+            $validated['avatar'] = \App\Modules\User\Support\PlatformAssetCatalog::urlForKey($avatarAssetKey);
         } else {
             // Verified users have their profile photo locked too — ignore
             // any uploaded avatar so a direct POST cannot swap the photo.

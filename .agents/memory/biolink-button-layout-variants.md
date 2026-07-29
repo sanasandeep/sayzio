@@ -27,3 +27,9 @@ payload (gradient `bg_color`, `border_*`, `effect`) — only icon/image
 
 **How to apply:** when a task says "add button styles / block styles" to biolinks,
 touch all four. Forgetting #2 is the classic silent failure (saves, never renders).
+
+**Auto-numbering layouts (numbered_list):** compute the index at render time by
+scanning the page's `$blocks` collection (in scope inside the block partial via
+Blade's include-shares-parent-vars) for siblings with the same `link_layout`,
+counting up to the current block id; guard `isset($blocks)` and fall back to 1
+for standalone/editor single-block renders. No DB query, no static counters.

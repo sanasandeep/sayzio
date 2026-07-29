@@ -89,6 +89,11 @@ return [
         'cadence'     => ['hourlyAt', 45],
     ],
     [
+        'key'         => 'assets:check-stale-imports',
+        'description' => 'Auto-fail Asset Vault zip imports whose worker died mid-run (no progress past the stale window) and alert ops admins so the import can be re-run.',
+        'cadence'     => ['hourlyAt', 30],
+    ],
+    [
         'key'         => 'bg-templates:check-library',
         'description' => 'Alert ops admins when the biolink background template library goes empty or drops below its expected floor, and all-clear once restored.',
         'cadence'     => ['hourlyAt', 50],

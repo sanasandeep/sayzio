@@ -34,6 +34,20 @@
            style="color: {{ $block->settings['_style']['text_color'] ?? '#90acff' }};">
             @if(!empty($s['icon']))<i class="{{ fa_icon_class($s['icon']) }} mr-1.5"></i>@endif{{ $s['text'] ?? 'Link' }}
         </a>
+    @elseif($_lnkLayout === 'text_divider')
+        {{-- Minimal text list row: left-aligned plain text with a thin
+             hairline divider below it (classic "text list" link-in-bio
+             look). Every row carries its own bottom hairline so
+             consecutive rows stack into a clean list with no doubled
+             lines; the divider derives from the row's own text color
+             (via currentColor) so it stays legible on both dark and
+             light page themes. No bio-btn chrome. --}}
+        @php $_tdColor = ($_st['text_color'] ?? '') !== '' ? $_st['text_color'] : ($fontColor ?? '#ffffff'); @endphp
+        <a href="{{ $_url }}" target="_blank" rel="noopener"
+           class="block w-full py-3.5 text-left transition-opacity duration-200 hover:opacity-70"
+           style="color: {{ $_tdColor }}; border-bottom: 1px solid color-mix(in srgb, currentColor 25%, transparent); font-weight: {{ $_st['font_weight'] ?? '500' }}; font-size: {{ intval($_st['font_size'] ?? 0) ?: 15 }}px;@if(!empty($_st['font_family'])) font-family: '{{ str_replace("'", '', str_starts_with($_st['font_family'], 'custom:') ? substr($_st['font_family'], 7) : $_st['font_family']) }}', sans-serif;@endif">
+            @if($_icon)<i class="{{ $_icon }} mr-2 text-[0.85em] opacity-80"></i>@endif{{ $_txt }}
+        </a>
     @elseif($_lnkLayout === 'action_row')
         {{-- Bold action-word row: big uppercase accent word on the left,
              smaller uppercase description beside it (Lillian-Pratt style).
@@ -58,6 +72,31 @@
                     <span>{{ $s['text'] ?? 'Link' }}</span>
                 </div>
             </div>
+        </a>
+    @elseif($_lnkLayout === 'image_cover_square')
+        {{-- Square (1:1) image tile with the title centered over a subtle
+             dark overlay. Without a thumbnail it falls back to a flat
+             accent-colored square tile so the layout never breaks. --}}
+        <a href="{{ $_url }}" target="_blank" rel="noopener"
+           class="block w-full mb-3 rounded-2xl overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl relative"
+           style="aspect-ratio: 1/1; @if($_thumb)background-image: linear-gradient(rgba(0,0,0,0.32), rgba(0,0,0,0.32)), url('{{ $_thumb }}'); background-size: cover; background-position: center;@else background: linear-gradient(135deg, {{ $_accent }} 0%, {{ $_accent }}cc 100%);@endif{{ $btnInline ? ' ' . $btnInline : '' }}">
+            <div class="absolute inset-0 flex items-center justify-center p-4 text-center">
+                <div class="text-white font-bold drop-shadow-lg leading-snug">
+                    @if($_icon)<i class="{{ $_icon }} mr-2"></i>@endif{{ $_txt }}
+                </div>
+            </div>
+        </a>
+    @elseif($_lnkLayout === 'title_desc_row')
+        {{-- Two-column text row inside normal button chrome: bold title on
+             the left, lighter description on the right. Wraps to stacked
+             lines on narrow screens (flex-wrap). --}}
+        <a href="{{ $_url }}" target="_blank" rel="noopener"
+           class="bio-btn block w-full px-5 py-3.5 mb-3 transition-all duration-300 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-0.5 text-left"
+           @if($btnInline) style="{{ $btnInline }}" @endif>
+            <span class="font-bold">@if($_icon)<i class="{{ $_icon }} mr-1.5"></i>@endif{{ $_txt }}</span>
+            @if(!empty($s['description']))
+                <span class="text-sm font-normal opacity-75 min-w-0">{{ $s['description'] }}</span>
+            @endif
         </a>
     @elseif($_lnkLayout === 'icon_left')
         <a href="{{ $_url }}" target="_blank" rel="noopener"
@@ -120,6 +159,89 @@
             <i class="fas fa-chevron-right opacity-50"></i>
             @if($_thumb)<img src="{{ $_thumb }}" class="w-14 h-14 object-cover flex-shrink-0" alt="">@elseif($_icon)<span class="w-14 h-14 flex items-center justify-center flex-shrink-0"><i class="{{ $_icon }} text-xl"></i></span>@endif
         </a>
+    @elseif($_lnkLayout === 'image_overhang_top')
+        {{-- Sticker-style card: the photo deliberately overhangs the top edge
+             of the colored panel; big bold uppercase title centered below.
+             The wrapper reserves headroom with padding-top so the protruding
+             image stays inside the block's own box (no ancestor clipping).
+             $btnInline goes FIRST so the layout-critical padding wins. --}}
+        <a href="{{ $_url }}" target="_blank" rel="noopener"
+           class="block w-full mb-3 relative transition-all duration-300 hover:-translate-y-1"
+           @if($_thumb) style="padding-top: 44px;" @endif>
+            <div class="bio-btn w-full text-center uppercase tracking-wide"
+                 style="{{ $btnInline ? rtrim($btnInline, '; ') . '; ' : '' }}padding: {{ $_thumb ? '132px 20px 30px' : '30px 20px' }}; font-weight: {{ $_st['font_weight'] ?? '800' }}; font-size: {{ intval($_st['font_size'] ?? 0) ?: 24 }}px; line-height: 1.15;">
+                @if($_icon)<i class="{{ $_icon }} mr-2"></i>@endif{{ $_txt }}
+            </div>
+            @if($_thumb)
+                <img src="{{ $_thumb }}" class="absolute top-0 left-1/2 -translate-x-1/2 w-4/5 h-40 object-cover rounded-xl shadow-lg" alt="">
+            @endif
+        </a>
+    @elseif($_lnkLayout === 'image_overhang_left')
+        {{-- Sticker-style banner: square photo thumbnail sticks out past the
+             left edge (and above/below) of the colored bar; big bold label.
+             Wrapper padding reserves the overhang room inside the block box. --}}
+        <a href="{{ $_url }}" target="_blank" rel="noopener"
+           class="block w-full mb-3 relative transition-all duration-300 hover:-translate-y-0.5"
+           @if($_thumb) style="padding: 10px 0 10px 22px;" @endif>
+            <div class="bio-btn w-full flex items-center uppercase tracking-wide"
+                 style="{{ $btnInline ? rtrim($btnInline, '; ') . '; ' : '' }}padding: 26px 22px 26px {{ $_thumb ? '100px' : '22px' }}; font-weight: {{ $_st['font_weight'] ?? '800' }}; font-size: {{ intval($_st['font_size'] ?? 0) ?: 20 }}px; line-height: 1.15;">
+                @if($_icon)<i class="{{ $_icon }} mr-2"></i>@endif<span class="flex-1 text-left">{{ $_txt }}</span>
+            </div>
+            @if($_thumb)
+                <img src="{{ $_thumb }}" class="absolute left-0 top-1/2 -translate-y-1/2 w-24 h-24 object-cover rounded-lg shadow-lg" alt="">
+            @endif
+        </a>
+    @elseif($_lnkLayout === 'taped_note')
+        {{-- Taped Notes: muted pastel paper card with a washi-tape strip
+             overhanging the top edge and a centered serif label (reference:
+             Bestsellers / Collections grid). Per-card paper tint rotates
+             through a pastel palette by sort order unless the block carries
+             its own bg_color/text_color override, so a set of cards gets
+             the subtle tint variation of the reference with zero config.
+             Designed for the 2-column grid (grid_span 6). Paper + ink
+             colors are explicit so the card reads the same on dark and
+             light page themes; the tape strip is translucent cream that
+             stays subtle over any paper tint. --}}
+        @php
+            $_tnPalette = [
+                ['#f7e9ed', '#6d4c3d'], // blush pink / warm brown ink
+                ['#a98a7d', '#f9f2ec'], // warm clay / cream ink
+                ['#bdb3aa', '#4a3d31'], // stone grey / dark brown ink
+                ['#f2e3e6', '#6d4c3d'], // pale rose / warm brown ink
+                ['#8d7466', '#f6ede5'], // deep mauve / cream ink
+                ['#cfc3b8', '#4a3d31'], // taupe / dark brown ink
+            ];
+            $_tnIdx = abs((int)($block->sort_order ?? $block->id ?? 0)) % count($_tnPalette);
+            [$_tnBgDefault, $_tnInkDefault] = $_tnPalette[$_tnIdx];
+            $_tnBgPick = $_st['bg_color'] ?? '';
+            $_tnBg  = ($_tnBgPick !== '' && $_tnBgPick !== 'transparent') ? $_tnBgPick : $_tnBgDefault;
+            $_tnInk = ($_st['text_color'] ?? '') !== '' ? $_st['text_color'] : $_tnInkDefault;
+            $_tnShadowMap = [
+                'none'   => 'none',
+                'soft'   => '0 8px 18px rgba(76,60,50,0.16), 0 2px 5px rgba(76,60,50,0.10)',
+                'medium' => '0 12px 26px rgba(76,60,50,0.24), 0 3px 8px rgba(76,60,50,0.14)',
+                'strong' => '0 18px 38px rgba(76,60,50,0.32), 0 5px 12px rgba(76,60,50,0.18)',
+            ];
+            $_tnShadow = $_tnShadowMap[$_st['shadow_preset'] ?? 'soft'] ?? $_tnShadowMap['soft'];
+            $_tnRadius = intval($_st['border_radius'] ?? 0) ?: 3;
+            $_tnBorder = (($_st['border_style'] ?? 'none') !== 'none' && intval($_st['border_width'] ?? 0) > 0)
+                ? (intval($_st['border_width']) . 'px ' . $_st['border_style'] . ' ' . (($_st['border_color'] ?? '') !== '' ? $_st['border_color'] : 'rgba(0,0,0,0.15)'))
+                : 'none';
+            $_tnFont = !empty($_st['font_family'])
+                ? "'" . str_replace("'", '', str_starts_with($_st['font_family'], 'custom:') ? substr($_st['font_family'], 7) : $_st['font_family']) . "', Georgia, serif"
+                : "'Playfair Display', Georgia, 'Times New Roman', serif";
+            $_tnTilt = $_tnIdx % 2 === 0 ? '-2.5deg' : '2deg';
+        @endphp
+        <a href="{{ $_url }}" target="_blank" rel="noopener"
+           class="block w-full mb-3 relative transition-transform duration-300 hover:-translate-y-1"
+           style="padding-top: 12px;">
+            <div class="w-full text-center"
+                 style="background: {{ $_tnBg }}; color: {{ $_tnInk }}; border-radius: {{ $_tnRadius }}px; border: {{ $_tnBorder }}; box-shadow: {{ $_tnShadow }}; padding: {{ intval($_st['padding'] ?? 0) ?: 34 }}px 16px; font-family: {{ $_tnFont }}; font-weight: {{ $_st['font_weight'] ?? '500' }}; font-size: {{ intval($_st['font_size'] ?? 0) ?: 16 }}px; letter-spacing: 0.02em; line-height: 1.3;">
+                @if($_icon)<i class="{{ $_icon }} mr-1.5 text-[0.85em] opacity-80"></i>@endif{{ $_txt }}
+            </div>
+            <span aria-hidden="true" class="absolute left-1/2 pointer-events-none"
+                  style="top: 0; width: 86px; height: 24px; transform: translateX(-50%) rotate({{ $_tnTilt }}); background: rgba(235,227,208,0.82); border-left: 1px dashed rgba(120,105,85,0.28); border-right: 1px dashed rgba(120,105,85,0.28); box-shadow: 0 1px 3px rgba(76,60,50,0.18);"></span>
+        </a>
     @elseif($_lnkLayout === 'image_top')
         <a href="{{ $_url }}" target="_blank" rel="noopener"
            class="bio-btn block w-full mb-3 overflow-hidden transition-all duration-300"
@@ -135,6 +257,121 @@
             @if($_thumb)<img src="{{ $_thumb }}" class="w-9 h-9 object-cover flex-shrink-0 {{ $_imgR }}" alt="">@elseif($_icon)<span class="w-9 h-9 flex items-center justify-center flex-shrink-0 {{ $_imgR }}" style="background: {{ $_accent }};"><i class="{{ $_icon }} text-white text-sm"></i></span>@endif
             <span class="flex-1 text-left">{{ $_txt }}</span>
             <i class="fas fa-chevron-right opacity-40"></i>
+        </a>
+    @elseif($_lnkLayout === 'arrow_hex')
+        {{-- Arrow banner: hexagonal button with pointed left and right ends
+             (navy/blue reference). The clip-path lives on the inner bio-btn
+             panel so per-block colors/gradients apply normally; box shadows
+             are intentionally clipped away by the shape. --}}
+        <a href="{{ $_url }}" target="_blank" rel="noopener"
+           class="block w-full mb-3 transition-all duration-300 hover:-translate-y-0.5">
+            <div class="bio-btn w-full px-10 py-3.5 text-center font-bold uppercase tracking-wide flex items-center justify-center gap-2"
+                 style="{{ $btnInline ? rtrim($btnInline, '; ') . '; ' : '' }}clip-path: polygon(26px 0%, calc(100% - 26px) 0%, 100% 50%, calc(100% - 26px) 100%, 26px 100%, 0% 50%); border-radius: 0;">
+                @if($_icon)<i class="{{ $_icon }} text-[0.85em]"></i>@endif<span>{{ $_txt }}</span>
+            </div>
+        </a>
+    @elseif($_lnkLayout === 'numbered_list')
+        {{-- Numbered editorial list: big left-aligned text link with a small
+             right-aligned index (01, 02, …). The index auto-increments per
+             numbered link block on the page: we count numbered siblings in
+             the page's $blocks collection up to this block. Falls back to
+             the block's position-independent count of 1 when rendered
+             standalone (editor single-block previews). --}}
+        @php
+            $_nlIdx = 1;
+            if (isset($blocks) && $blocks instanceof \Illuminate\Support\Collection) {
+                $_nlPos = 0;
+                foreach ($blocks as $_nlB) {
+                    if (($_nlB->settings['_style']['link_layout'] ?? '') === 'numbered_list') {
+                        $_nlPos++;
+                        if ($_nlB->id === $block->id) { $_nlIdx = $_nlPos; break; }
+                    }
+                }
+            }
+            $_nlColor = ($_st['text_color'] ?? '') !== '' ? $_st['text_color'] : ($fontColor ?? '#ffffff');
+        @endphp
+        <a href="{{ $_url }}" target="_blank" rel="noopener"
+           class="w-full mb-2 py-1.5 flex items-center justify-between gap-6 text-left transition-opacity duration-200 hover:opacity-70"
+           style="color: {{ $_nlColor }};">
+            <span class="leading-tight" style="font-weight: {{ $_st['font_weight'] ?? '600' }}; font-size: {{ intval($_st['font_size'] ?? 0) ?: 28 }}px;@if(!empty($_st['font_family'])) font-family: '{{ str_replace("'", '', str_starts_with($_st['font_family'], 'custom:') ? substr($_st['font_family'], 7) : $_st['font_family']) }}', sans-serif;@endif">
+                @if($_icon)<i class="{{ $_icon }} mr-2 text-[0.7em] opacity-80"></i>@endif{{ $_txt }}
+            </span>
+            <span class="text-[11px] font-medium tracking-[0.18em] opacity-75 shrink-0">{{ str_pad((string) $_nlIdx, 2, '0', STR_PAD_LEFT) }}</span>
+        </a>
+    @elseif($_lnkLayout === 'side_accent_tab')
+        {{-- Side accent tab: full-width bar with a right-aligned label and a
+             small contrasting tab hugging the outer right edge (teal + tan
+             reference). The bar uses bg/text colors; the tab uses the
+             block's border_color as its accent. --}}
+        @php
+            $_satBg = (($_st['bg_color'] ?? '') !== '' && ($_st['bg_color'] ?? '') !== 'transparent') ? $_st['bg_color'] : '#35595a';
+            $_satInk = ($_st['text_color'] ?? '') !== '' ? $_st['text_color'] : '#fdf6ec';
+            $_satAccent = ($_st['border_color'] ?? '') !== '' && ($_st['border_color'] ?? '') !== 'transparent' ? $_st['border_color'] : '#ddb387';
+            $_satRadius = intval($_st['border_radius'] ?? 0);
+        @endphp
+        <a href="{{ $_url }}" target="_blank" rel="noopener"
+           class="w-full mb-3 flex items-stretch gap-2.5 transition-all duration-300 hover:-translate-y-0.5">
+            <span class="flex-1 flex items-center justify-end px-5 py-4 min-w-0"
+                  style="background: {{ $_satBg }}; color: {{ $_satInk }}; border-radius: {{ $_satRadius }}px; font-weight: {{ $_st['font_weight'] ?? '600' }}; font-size: {{ intval($_st['font_size'] ?? 0) ?: 16 }}px;@if(!empty($_st['font_family'])) font-family: '{{ str_replace("'", '', str_starts_with($_st['font_family'], 'custom:') ? substr($_st['font_family'], 7) : $_st['font_family']) }}', sans-serif;@endif">
+                @if($_icon)<i class="{{ $_icon }} mr-2 text-[0.85em] opacity-80"></i>@endif<span class="truncate">{{ $_txt }}</span>
+            </span>
+            <span aria-hidden="true" class="shrink-0" style="width: 26px; background: {{ $_satAccent }}; border-radius: {{ $_satRadius }}px;"></span>
+        </a>
+    @elseif($_lnkLayout === 'icon_top')
+        {{-- Icon above label: chromeless stacked icon + small label, built
+             for grid-span multi-column use (green Printers/Monitors
+             reference). Uses bio-btn chrome so an optional bg/border still
+             applies; the seeded style keeps it transparent by default. --}}
+        <a href="{{ $_url }}" target="_blank" rel="noopener"
+           class="bio-btn block w-full h-full px-3 py-5 mb-3 text-center transition-all duration-300 hover:opacity-80"
+           @if($btnInline) style="{{ $btnInline }}" @endif>
+            @if($_thumb)
+                <img src="{{ $_thumb }}" class="w-12 h-12 mx-auto mb-2.5 object-cover rounded-lg" alt="">
+            @else
+                <i class="{{ $_icon ?: 'fas fa-link' }} block mx-auto mb-2.5 text-3xl"></i>
+            @endif
+            <span class="block text-sm leading-snug">{{ $_txt }}</span>
+        </a>
+    @elseif($_lnkLayout === 'offset_frame')
+        {{-- Offset frame: solid bar with a thin outline frame offset toward
+             the bottom-right (clay/cream reference). Frame color = the
+             block's border_color, falling back to the bar color. --}}
+        @php
+            $_ofBg = (($_st['bg_color'] ?? '') !== '' && ($_st['bg_color'] ?? '') !== 'transparent') ? $_st['bg_color'] : '#a98a7d';
+            $_ofInk = ($_st['text_color'] ?? '') !== '' ? $_st['text_color'] : '#f9f2ec';
+            $_ofFrame = ($_st['border_color'] ?? '') !== '' && ($_st['border_color'] ?? '') !== 'transparent' ? $_st['border_color'] : $_ofBg;
+            $_ofRadius = intval($_st['border_radius'] ?? 0);
+            $_ofFont = !empty($_st['font_family'])
+                ? "'" . str_replace("'", '', str_starts_with($_st['font_family'], 'custom:') ? substr($_st['font_family'], 7) : $_st['font_family']) . "', Georgia, serif"
+                : "'Playfair Display', Georgia, serif";
+        @endphp
+        <a href="{{ $_url }}" target="_blank" rel="noopener"
+           class="block w-full mb-3 relative transition-all duration-300 hover:-translate-y-0.5"
+           style="padding: 0 10px 10px 0;">
+            <span aria-hidden="true" class="absolute pointer-events-none"
+                  style="top: 10px; left: 10px; right: 0; bottom: 0; border: 1px solid {{ $_ofFrame }}; border-radius: {{ $_ofRadius }}px;"></span>
+            <span class="relative block w-full text-center"
+                  style="background: {{ $_ofBg }}; color: {{ $_ofInk }}; border-radius: {{ $_ofRadius }}px; padding: {{ intval($_st['padding'] ?? 0) ?: 18 }}px 16px; font-family: {{ $_ofFont }}; font-weight: {{ $_st['font_weight'] ?? '500' }}; font-size: {{ intval($_st['font_size'] ?? 0) ?: 18 }}px; letter-spacing: 0.03em;">
+                @if($_icon)<i class="{{ $_icon }} mr-1.5 text-[0.85em] opacity-80"></i>@endif{{ $_txt }}
+            </span>
+        </a>
+    @elseif($_lnkLayout === 'torn_tape')
+        {{-- Torn tape: washi-tape strip with jagged torn left and right
+             edges (brown "About me" reference). The zigzag is a fixed
+             clip-path polygon; colors come from the block style. --}}
+        @php
+            $_ttBg = (($_st['bg_color'] ?? '') !== '' && ($_st['bg_color'] ?? '') !== 'transparent') ? $_st['bg_color'] : '#a17c5b';
+            $_ttInk = ($_st['text_color'] ?? '') !== '' ? $_st['text_color'] : '#fdf8f2';
+            $_ttFont = !empty($_st['font_family'])
+                ? "'" . str_replace("'", '', str_starts_with($_st['font_family'], 'custom:') ? substr($_st['font_family'], 7) : $_st['font_family']) . "', Georgia, serif"
+                : "'Lora', Georgia, serif";
+        @endphp
+        <a href="{{ $_url }}" target="_blank" rel="noopener"
+           class="block w-full mb-3 transition-all duration-300 hover:-translate-y-0.5">
+            <span class="block w-full text-center"
+                  style="background: {{ $_ttBg }}; color: {{ $_ttInk }}; padding: {{ intval($_st['padding'] ?? 0) ?: 20 }}px 28px; font-family: {{ $_ttFont }}; font-weight: {{ $_st['font_weight'] ?? '400' }}; font-size: {{ intval($_st['font_size'] ?? 0) ?: 20 }}px; letter-spacing: 0.02em; clip-path: polygon(1.2% 0%, 98.6% 0%, 100% 9%, 98.9% 18%, 99.8% 30%, 98.7% 42%, 100% 55%, 99% 66%, 99.9% 78%, 98.8% 90%, 99.6% 100%, 1.5% 100%, 0.2% 91%, 1.4% 80%, 0.4% 68%, 1.3% 56%, 0.3% 45%, 1.5% 33%, 0.5% 22%, 1.6% 10%);">
+                @if($_icon)<i class="{{ $_icon }} mr-1.5 text-[0.85em] opacity-80"></i>@endif{{ $_txt }}
+            </span>
         </a>
     @else
         <a href="{{ $s['url'] ?? '#' }}" target="_blank" rel="noopener"

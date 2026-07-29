@@ -155,6 +155,27 @@ class BiolinkController extends Controller
                 'seo_description' => $link->seo_description,
                 'seo_image'  => $link->seo_image,
                 'mode'       => $mode,
+                // Decorative page stickers (emoji/image overlays). Re-run the
+                // sanitizer at read time so legacy/hand-edited rows can never
+                // leak unbounded values to clients.
+                'stickers'   => \App\Modules\User\Support\BiolinkStickers::sanitize($link->settings['biolink']['stickers'] ?? []),
+                // Free-floating page-level text overlays (Task #5954). Already
+                // sanitized on write; re-shaped defensively so the mobile
+                // renderer can trust every field.
+                'text_overlays' => collect($link->settings['biolink']['text_overlays'] ?? [])
+                    ->filter(fn ($o) => is_array($o) && trim((string) ($o['text'] ?? '')) !== '')
+                    ->take(\App\Modules\User\Models\BiolinkBlock::PAGE_TEXT_OVERLAY_MAX)
+                    ->map(fn ($o) => [
+                        'text'   => mb_substr(trim((string) $o['text']), 0, 120),
+                        'font'   => (string) ($o['font'] ?? ''),
+                        'color'  => (string) ($o['color'] ?? '#ffffff'),
+                        'size'   => (int) ($o['size'] ?? 22),
+                        'x'      => (float) ($o['x'] ?? 50),
+                        'y'      => (float) ($o['y'] ?? 50),
+                        'rotate' => (float) ($o['rotate'] ?? 0),
+                    ])
+                    ->values()
+                    ->all(),
             ],
             'owner' => [
                 'id'              => $owner?->id,

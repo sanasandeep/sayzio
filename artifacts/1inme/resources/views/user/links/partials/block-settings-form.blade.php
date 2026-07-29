@@ -248,6 +248,18 @@ function linkBlockEditor(cfg) {
 @elseif($block->type === 'heading')
 @php
     $headingStyle = $s['style'] ?? 'plain';
+    // Decorative shape accents (Task #5938) — keys live in _style.
+    $haSt = $s['_style'] ?? [];
+    $haSt = is_array($haSt) ? $haSt : [];
+    $haSel = \App\Modules\User\Support\AccentShapeCatalog::parseTokens((string) ($haSt['_heading_accents'] ?? ''));
+    $haOptions = \App\Modules\User\Support\AccentShapeCatalog::LABELS;
+    $haPlacements = [
+        'behind_left'  => 'Behind — left',
+        'behind_right' => 'Behind — right',
+        'top_left'     => 'Top-left corner',
+        'top_right'    => 'Top-right corner',
+    ];
+    $haSizes = ['sm' => 'Small', 'md' => 'Medium', 'lg' => 'Large'];
 @endphp
 <div class="space-y-3" x-data="{ headingStyle: @js($headingStyle) }">
     <div><label class="{{ $labelClass }}">Text</label><input type="text" name="settings[text]" value="{{ $s['text'] ?? '' }}" class="{{ $inputClass }}"></div>
@@ -266,6 +278,46 @@ function linkBlockEditor(cfg) {
     <div class="grid grid-cols-2 gap-3">
         <div><label class="{{ $labelClass }}">Size</label><select name="settings[size]" class="{{ $selectClass }}"><option value="h1" {{ ($s['size'] ?? '') === 'h1' ? 'selected' : '' }} style="background: var(--bg-body); color: var(--text-primary);">H1</option><option value="h2" {{ ($s['size'] ?? '') === 'h2' ? 'selected' : '' }} style="background: var(--bg-body); color: var(--text-primary);">H2</option><option value="h3" {{ ($s['size'] ?? '') === 'h3' ? 'selected' : '' }} style="background: var(--bg-body); color: var(--text-primary);">H3</option></select></div>
         <div><label class="{{ $labelClass }}">Align</label><select name="settings[align]" class="{{ $selectClass }}"><option value="left" {{ ($s['align'] ?? '') === 'left' ? 'selected' : '' }} style="background: var(--bg-body); color: var(--text-primary);">Left</option><option value="center" {{ ($s['align'] ?? '') === 'center' ? 'selected' : '' }} style="background: var(--bg-body); color: var(--text-primary);">Center</option><option value="right" {{ ($s['align'] ?? '') === 'right' ? 'selected' : '' }} style="background: var(--bg-body); color: var(--text-primary);">Right</option></select></div>
+    </div>
+
+    <div class="pt-3" style="border-top: 1px solid var(--border-subtle);"
+         x-data="{ haAccents: @js(array_values($haSel)) }">
+        <p class="text-xs font-semibold mb-2" style="color: var(--text-muted);"><i class="fas fa-wand-magic-sparkles mr-1 text-blue-400"></i>Decorative Accents</p>
+        <div>
+            <label class="{{ $labelClass }}">Accent Shapes</label>
+            <div class="grid grid-cols-2 gap-1.5 mt-1">
+                @foreach($haOptions as $haVal => $haLabel)
+                <label class="flex items-center gap-2 text-xs cursor-pointer" style="color: var(--text-muted);">
+                    <input type="checkbox" value="{{ $haVal }}" x-model="haAccents" class="rounded">
+                    <span>{{ $haLabel }}</span>
+                </label>
+                @endforeach
+            </div>
+            <input type="hidden" name="style[_heading_accents]" :value="haAccents.join(',')" value="{{ implode(',', $haSel) }}">
+            <p class="text-[10px] mt-1" style="color: var(--text-dimmed);">Playful shapes layered behind the heading text.</p>
+        </div>
+        <div class="grid grid-cols-2 gap-3 mt-2" x-show="haAccents.length > 0" x-cloak>
+            <div>
+                <label class="{{ $labelClass }}">Placement</label>
+                <select name="style[_heading_accent_placement]" class="{{ $selectClass }}">
+                    @foreach($haPlacements as $hpVal => $hpLabel)
+                    <option value="{{ $hpVal }}" {{ ($haSt['_heading_accent_placement'] ?? 'behind_left') === $hpVal ? 'selected' : '' }} style="background: var(--bg-body); color: var(--text-primary);">{{ $hpLabel }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <div>
+                <label class="{{ $labelClass }}">Accent Size</label>
+                <select name="style[_heading_accent_size]" class="{{ $selectClass }}">
+                    @foreach($haSizes as $hzVal => $hzLabel)
+                    <option value="{{ $hzVal }}" {{ ($haSt['_heading_accent_size'] ?? 'md') === $hzVal ? 'selected' : '' }} style="background: var(--bg-body); color: var(--text-primary);">{{ $hzLabel }}</option>
+                    @endforeach
+                </select>
+            </div>
+        </div>
+        <div class="mt-2" x-show="haAccents.length > 0" x-cloak>
+            <label class="{{ $labelClass }}">Accent Color</label>
+            <input type="color" name="style[_heading_accent_color]" value="{{ $haSt['_heading_accent_color'] ?? '#ec4899' }}" class="w-full h-9 rounded-lg cursor-pointer" style="border: 1px solid var(--border-glass); background: var(--bg-glass-input);">
+        </div>
     </div>
 </div>
 
@@ -1309,6 +1361,49 @@ if (typeof window.resetPollVotes !== 'function') {
         <p x-show="badges.length >= 12" class="text-xs text-white/30">Up to 12 badges.</p>
     </div>
     @endif
+
+    {{-- Decorative avatar frame (Task #5910) — inline-SVG shape rendered
+         behind the circular avatar on the public page. Stored in
+         _style._avatar_frame (+ optional _avatar_frame_color tint); the
+         controller merges submitted style[…] keys into _style and the
+         sanitizer strips unknown values. Empty submits clear the key. --}}
+    @php
+        $pcFrameSel      = $s['_style']['_avatar_frame'] ?? '';
+        $pcFrameColorSel = (string) ($s['_style']['_avatar_frame_color'] ?? '');
+    @endphp
+    <div>
+        <label class="{{ $labelClass }}">Avatar Frame</label>
+        <div class="grid grid-cols-4 gap-2">
+            <label class="cursor-pointer">
+                <input type="radio" name="style[_avatar_frame]" value="" @checked($pcFrameSel === '') class="peer sr-only">
+                <span class="flex flex-col items-center gap-1 rounded-lg border border-white/10 p-2 transition peer-checked:border-blue-500 peer-checked:bg-blue-500/10">
+                    <span class="inline-flex w-10 h-10 items-center justify-center">
+                        <span class="w-7 h-7 rounded-full" style="border:1px dashed rgba(255,255,255,0.3);background:rgba(255,255,255,0.06)"></span>
+                    </span>
+                    <span class="text-[10px] text-white/60">None</span>
+                </span>
+            </label>
+            @foreach(\App\Modules\User\Support\AvatarFrameCatalog::FRAMES as $pcFk => $pcFLabel)
+            <label class="cursor-pointer">
+                <input type="radio" name="style[_avatar_frame]" value="{{ $pcFk }}" @checked($pcFrameSel === $pcFk) class="peer sr-only">
+                <span class="flex flex-col items-center gap-1 rounded-lg border border-white/10 p-2 transition peer-checked:border-blue-500 peer-checked:bg-blue-500/10">
+                    <span class="relative inline-flex w-10 h-10 items-center justify-center" style="isolation:isolate">
+                        <span class="absolute pointer-events-none" aria-hidden="true" style="inset:4%;z-index:-1">{!! \App\Modules\User\Support\AvatarFrameCatalog::svg($pcFk, '#7d9bff') !!}</span>
+                        <span class="w-6 h-6 rounded-full" style="background:rgba(61,107,255,0.45)"></span>
+                    </span>
+                    <span class="text-[10px] text-white/60">{{ $pcFLabel }}</span>
+                </span>
+            </label>
+            @endforeach
+        </div>
+        <div class="mt-2 flex items-center gap-2" x-data='{ fc: {{ json_encode($pcFrameColorSel) }} }'>
+            <span class="text-xs text-white/40">Frame color</span>
+            <input type="hidden" name="style[_avatar_frame_color]" :value="fc">
+            <input type="color" :value="fc || '#3d6bff'" @input="fc = $event.target.value" class="h-8 w-10 rounded cursor-pointer border border-white/10 bg-transparent p-0.5">
+            <button type="button" x-show="fc !== ''" @click="fc = ''" class="text-xs text-blue-400 hover:text-blue-300">Reset to accent</button>
+            <span x-show="fc === ''" class="text-xs text-white/30">Auto — uses the design accent</span>
+        </div>
+    </div>
 </div>
 
 @elseif($block->type === 'qr_code')
@@ -1343,7 +1438,7 @@ if (typeof window.resetPollVotes !== 'function') {
                 @endforeach
             </select>
         </div>
-        <div><label class="{{ $labelClass }}">Gap (px)</label><input type="number" name="settings[gap]" value="{{ $s['gap'] ?? 12 }}" min="0" max="48" class="{{ $inputClass }}"></div>
+        <div><label class="{{ $labelClass }}">Gap between items (px)</label><input type="number" name="settings[gap]" value="{{ $s['gap'] ?? '' }}" min="0" max="48" placeholder="Page default" class="{{ $inputClass }}"></div>
     </div>
 
     <div class="grid grid-cols-2 gap-3">
@@ -1410,7 +1505,7 @@ if (typeof window.resetPollVotes !== 'function') {
                 @endforeach
             </select>
         </div>
-        <div><label class="{{ $labelClass }}">Gap (px)</label><input type="number" name="settings[gap]" value="{{ $s['gap'] ?? 12 }}" min="0" max="48" class="{{ $inputClass }}"></div>
+        <div><label class="{{ $labelClass }}">Gap between items (px)</label><input type="number" name="settings[gap]" value="{{ $s['gap'] ?? '' }}" min="0" max="48" placeholder="Page default" class="{{ $inputClass }}"></div>
     </div>
     <div><label class="{{ $labelClass }}">Padding (px)</label><input type="number" name="settings[padding]" value="{{ $s['padding'] ?? 0 }}" min="0" max="64" class="{{ $inputClass }}"></div>
     <label class="flex items-center gap-2 cursor-pointer">
@@ -1425,7 +1520,7 @@ if (typeof window.resetPollVotes !== 'function') {
     <div><label class="{{ $labelClass }}">Section Title (optional)</label><input type="text" name="settings[title]" value="{{ $s['title'] ?? '' }}" class="{{ $inputClass }}" placeholder="Optional section title"></div>
     <div class="grid grid-cols-2 gap-3">
         <div><label class="{{ $labelClass }}">Min Item Width (px)</label><input type="number" name="settings[min_width]" value="{{ $s['min_width'] ?? 140 }}" min="60" max="600" class="{{ $inputClass }}"></div>
-        <div><label class="{{ $labelClass }}">Gap (px)</label><input type="number" name="settings[gap]" value="{{ $s['gap'] ?? 12 }}" min="0" max="48" class="{{ $inputClass }}"></div>
+        <div><label class="{{ $labelClass }}">Gap between items (px)</label><input type="number" name="settings[gap]" value="{{ $s['gap'] ?? '' }}" min="0" max="48" placeholder="Page default" class="{{ $inputClass }}"></div>
     </div>
     <div><label class="{{ $labelClass }}">Padding (px)</label><input type="number" name="settings[padding]" value="{{ $s['padding'] ?? 0 }}" min="0" max="64" class="{{ $inputClass }}"></div>
 </div>

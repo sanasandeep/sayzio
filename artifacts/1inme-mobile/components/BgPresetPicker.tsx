@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import Slider from "@react-native-community/slider";
 import { Feather } from "@expo/vector-icons";
 import { Image as ExpoImage } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
@@ -45,6 +46,9 @@ export function BgPresetPicker({ linkId }: { linkId: number }) {
   const [group, setGroup] = useState("gradients");
   const [search, setSearch] = useState("");
   const [pendingKey, setPendingKey] = useState<string | null>(null);
+  // Live value while the transparency slider is being dragged; null when
+  // idle so the label tracks the saved/cached opacity.
+  const [dragOpacity, setDragOpacity] = useState<number | null>(null);
 
   const linkQ = useQuery({
     queryKey: ["link", linkId],
@@ -70,6 +74,11 @@ export function BgPresetPicker({ linkId }: { linkId: number }) {
     presetActive && typeof biolink.bg_preset_key === "string"
       ? biolink.bg_preset_key
       : "";
+  // Page-level preset transparency (Task #5970): 0–100, default 100.
+  const rawOpacity = Number(biolink.bg_preset_opacity);
+  const selectedOpacity = Number.isFinite(rawOpacity)
+    ? Math.max(0, Math.min(100, Math.round(rawOpacity)))
+    : 100;
 
   const save = useMutation({
     mutationFn: (key: string) =>
@@ -101,6 +110,32 @@ export function BgPresetPicker({ linkId }: { linkId: number }) {
     },
     onSettled: () => {
       setPendingKey(null);
+      qc.invalidateQueries({ queryKey: ["link", linkId] });
+    },
+  });
+
+  // Saves `bg_preset_opacity` (page-level preset transparency) with the
+  // same optimistic cache patch so the Appearance preview fades live.
+  const saveOpacity = useMutation({
+    mutationFn: (opacity: number) =>
+      updateLink(linkId, {
+        settings: { biolink: { bg_preset_opacity: opacity } },
+      }),
+    onMutate: (opacity: number) => {
+      qc.setQueryData(["link", linkId], (prev: unknown) => {
+        if (!isRecord(prev)) return prev;
+        const settings = isRecord(prev.settings) ? prev.settings : {};
+        const biolink = isRecord(settings.biolink) ? settings.biolink : {};
+        return {
+          ...prev,
+          settings: {
+            ...settings,
+            biolink: { ...biolink, bg_preset_opacity: opacity },
+          },
+        };
+      });
+    },
+    onSettled: () => {
       qc.invalidateQueries({ queryKey: ["link", linkId] });
     },
   });
@@ -286,6 +321,37 @@ export function BgPresetPicker({ linkId }: { linkId: number }) {
               })}
             </View>
           )}
+
+          {presetActive ? (
+            <View style={{ gap: 6 }} testID="bg-preset-opacity">
+              <Text
+                style={[styles.sectionLabel, { color: colors.mutedForeground }]}
+              >
+                Preset transparency · {dragOpacity ?? selectedOpacity}%
+              </Text>
+              <Slider
+                testID="bg-preset-opacity-slider"
+                style={{ width: "100%", height: 32 }}
+                minimumValue={0}
+                maximumValue={100}
+                step={1}
+                value={selectedOpacity}
+                disabled={saveOpacity.isPending}
+                minimumTrackTintColor={colors.primary}
+                maximumTrackTintColor={colors.border}
+                thumbTintColor={colors.primary}
+                onValueChange={(v) => setDragOpacity(Math.round(v))}
+                onSlidingComplete={(v) => {
+                  const next = Math.max(0, Math.min(100, Math.round(v)));
+                  setDragOpacity(null);
+                  if (next !== selectedOpacity) saveOpacity.mutate(next);
+                }}
+              />
+              <Text style={[styles.empty, { color: colors.mutedForeground, textAlign: "left", paddingVertical: 0 }]}>
+                Lower values let the fallback color show through the preset.
+              </Text>
+            </View>
+          ) : null}
 
           {save.isError ? (
             <Text style={[styles.empty, { color: colors.destructive }]}>

@@ -754,7 +754,15 @@
             @elseif(\App\Modules\User\Models\BiolinkBlock::isContainerType($block->type))
                 @php
                     $cardChildren = $block->activeChildren()->get()->filter(fn($b) => $b->isVisible());
-                    $gap = intval($s['gap'] ?? 12);
+                    // Per-container item gap: when the container has its own
+                    // explicit gap (including 0), it wins and the children's
+                    // built-in bottom margins are neutralised so gap 0 renders
+                    // flush tiles. When unset, fall back to the page-wide
+                    // block gap so containers follow the page rhythm.
+                    $gapRaw = $s['gap'] ?? '';
+                    $hasOwnGap = $gapRaw !== '' && $gapRaw !== null;
+                    $pageGap = intval(($link->settings['layout']['block_gap'] ?? 12));
+                    $gap = $hasOwnGap ? max(0, min(100, intval($gapRaw))) : $pageGap;
                     $isCard = $block->type === 'card';
                     $isAutoGrid = $block->type === 'grid_auto';
 
@@ -804,17 +812,39 @@
                     // Plain grid only: optionally collapse to a single column
                     // on small screens (children stack in source order).
                     $stackMobile = !$isCard && !$isAutoGrid && !empty($s['stack_mobile']);
+                    // Catalog preset background for the container itself
+                    // (Task #5970) — read from the container's _style and
+                    // painted on a dedicated layer behind the children so
+                    // the transparency never fades the content.
+                    $containerPreset = \App\Modules\User\Models\BiolinkBlock::presetLayer(
+                        \App\Modules\User\Models\BiolinkBlock::getBlockStyle($s, $globalTheme)
+                    );
+                    if ($containerPreset) {
+                        $containerStyle .= 'position:relative;isolation:isolate;overflow:hidden;';
+                    }
                 @endphp
                 @if($stackMobile)
                     @once('grid-stack-mobile-css')
                     <style>@media (max-width: 640px){ .grid-stack-mobile{ grid-template-columns: 1fr !important; } .grid-stack-mobile > div{ grid-column: 1 / -1 !important; } }</style>
                     @endonce
                 @endif
+                @if($hasOwnGap)
+                    @once('container-own-gap-css')
+                    {{-- With an explicit container gap the grid gap owns all
+                         spacing between items: zero out the child blocks' own
+                         bottom margins so gap 0 shows truly flush tiles. --}}
+                    <style>.container-own-gap > div > * { margin-bottom: 0 !important; } .container-own-gap > div > .block-styled > * { margin-bottom: 0 !important; }</style>
+                    @endonce
+                @endif
                 <div class="mb-4 {{ $isCard ? 'card-container-render' : 'grid-container-render' }}" style="{{ $containerStyle }}">
+                    @if($containerPreset)
+                        {{-- Preset CSS resolves server-side from the catalog. --}}
+                        <div class="block-bg-preset" aria-hidden="true" style="position:absolute;inset:0;z-index:-1;pointer-events:none;{!! $containerPreset['css'] !!};background-attachment:scroll !important;opacity:{{ $containerPreset['opacity'] / 100 }};"></div>
+                    @endif
                     @if(!empty($s['title']))
                     <div class="mb-3 text-sm font-semibold" style="color: {{ $fontColor ?? '#fff' }}cc;">{{ $s['title'] }}</div>
                     @endif
-                    <div @if($stackMobile) class="grid-stack-mobile" @endif style="display:grid; grid-template-columns:{{ $gridTemplate }}; gap:{{ $gap }}px;">
+                    <div class="{{ trim(($stackMobile ? 'grid-stack-mobile ' : '') . ($hasOwnGap ? 'container-own-gap' : '')) }}" style="display:grid; grid-template-columns:{{ $gridTemplate }}; gap:{{ $gap }}px;">
                         @foreach($cardChildren as $childBlock)
                             @php
                                 $cs = $childBlock->settings ?? [];
@@ -828,11 +858,22 @@
                                 // auto-fit grids give every child a single cell.
                                 $childSpanRaw = intval($childStyle['grid_span'] ?? 12) ?: 12;
                                 $childSpan = $cols > 0 ? min(max(1, (int)round($childSpanRaw / 12 * $cols)), $cols) : 1;
+                                // Preset background layer for card/grid children
+                                // (Task #5970) — mirrors the top-level block wrap.
+                                $childPreset = \App\Modules\User\Models\BiolinkBlock::presetLayer($childStyle);
                             @endphp
                             <div style="grid-column: span {{ $childSpan }};">
-                            @if($childHasStyle && !$childSkipWrap)<div class="block-styled" style="{{ $childInline }}">@endif
+                            @if($childHasStyle && !$childSkipWrap)
+                                <div class="block-styled" style="{{ $childInline }}{{ $childPreset ? ';position:relative;isolation:isolate;overflow:hidden;' : '' }}">
+                                @if($childPreset)
+                                    <div class="block-bg-preset" aria-hidden="true" style="position:absolute;inset:0;z-index:-1;pointer-events:none;{!! $childPreset['css'] !!};background-attachment:scroll !important;opacity:{{ $childPreset['opacity'] / 100 }};"></div>
+                                @endif
+                            @elseif($childPreset)
+                                <div class="block-preset-wrap" style="position:relative;isolation:isolate;overflow:hidden;border-radius:{{ ($childStyle['border_radius'] ?? '') !== '' ? intval($childStyle['border_radius']) : 14 }}px;">
+                                    <div class="block-bg-preset" aria-hidden="true" style="position:absolute;inset:0;z-index:-1;pointer-events:none;{!! $childPreset['css'] !!};background-attachment:scroll !important;opacity:{{ $childPreset['opacity'] / 100 }};"></div>
+                            @endif
                                 @include('common.partials.biolink-block-render', ['block' => $childBlock, 's' => $cs, 'fontColor' => $fontColor ?? '#fff', 'btnInline' => $childBtnInline])
-                            @if($childHasStyle && !$childSkipWrap)</div>@endif
+                            @if(($childHasStyle && !$childSkipWrap) || $childPreset)</div>@endif
                             </div>
                         @endforeach
                     </div>

@@ -1,6 +1,7 @@
 import { Feather } from "@expo/vector-icons";
 import { useQuery } from "@tanstack/react-query";
 import { LinearGradient } from "expo-linear-gradient";
+import Svg, { Circle, Path } from "react-native-svg";
 import * as Linking from "expo-linking";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
@@ -33,6 +34,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { AvatarFrame, isAvatarFrameKey, type AvatarFrameKey } from "@/components/AvatarFrame";
 import {
   ListBlockView,
   PricingBlockView,
@@ -48,6 +50,7 @@ import { ReviewsWall } from "@/components/ReviewsWall";
 import { useAuth } from "@/contexts/AuthContext";
 import { useColors } from "@/hooks/useColors";
 import { getBaseUrl } from "@/lib/api";
+import { getBgPresets } from "@/lib/api/bgPresets";
 import { buyProduct, checkoutCart } from "@/lib/api/store";
 import { variantOverlay } from "@/lib/blockVariants";
 import { canonicalBlockType } from "@/lib/blockTypeRegistry";
@@ -166,6 +169,67 @@ function publicBiolinkUrl(alias: string): string {
   // /<alias> resolves to the public biolink page.
   const base = getBaseUrl().replace(/\/?api\/?$/, "").replace(/\/+$/, "");
   return `${base}/${alias}`;
+}
+
+// Decorative page stickers (emoji/image overlays) — mirrors the web
+// renderer: percent positioning on a full-screen pointer-events-none layer,
+// "back" behind the content, "front" above it. Base sizes match web
+// (36px emoji / 64px image, multiplied by scale).
+function StickerOverlay({
+  stickers,
+  layer,
+}: {
+  stickers?: import("@/lib/api/biolinks").PageSticker[];
+  layer: "front" | "back";
+}) {
+  const list = (stickers ?? []).filter((s) => s.layer === layer);
+  if (!list.length) return null;
+  const host = getBaseUrl().replace(/\/?api\/?$/, "").replace(/\/+$/, "");
+  return (
+    <View pointerEvents="none" style={StyleSheet.absoluteFillObject}>
+      {list.map((s, i) => {
+        const wrap = {
+          position: "absolute" as const,
+          left: `${s.x}%` as const,
+          top: `${s.y}%` as const,
+          transform: [{ rotate: `${s.rotation}deg` }],
+        };
+        if (s.kind === "image") {
+          const size = Math.round(64 * s.scale);
+          const uri = s.value.startsWith("/") ? `${host}${s.value}` : s.value;
+          return (
+            <View key={i} style={wrap}>
+              <Image
+                source={{ uri }}
+                style={{
+                  width: size,
+                  height: size,
+                  marginLeft: -size / 2,
+                  marginTop: -size / 2,
+                }}
+                resizeMode="contain"
+              />
+            </View>
+          );
+        }
+        const fontSize = Math.round(36 * s.scale);
+        return (
+          <View key={i} style={wrap}>
+            <Text
+              style={{
+                fontSize,
+                lineHeight: fontSize * 1.2,
+                marginLeft: -fontSize / 2,
+                marginTop: -fontSize / 2,
+              }}
+            >
+              {s.value}
+            </Text>
+          </View>
+        );
+      })}
+    </View>
+  );
 }
 
 function pickStr(s: Record<string, unknown> | null, ...keys: string[]): string | null {
@@ -966,7 +1030,62 @@ function NativeProductBlock({
   );
 }
 
-export function BlockView({ block, alias, allBlocks, openEmbed }: { block: BiolinkBlock; alias: string; allBlocks: BiolinkBlock[]; openEmbed: OpenEmbed }) {
+// Block-level catalog preset background (Task #5970). The web renderer
+// paints the preset's raw CSS on an absolutely-positioned layer behind the
+// block; RN can't render CSS strings, so we approximate with the preset's
+// `colors` LinearGradient (instant paint) covered by the pre-rendered PNG
+// swatch of the REAL texture when the server advertises one — the same
+// approximation the Appearance preset picker/preview already uses. The
+// layer honours `bg_preset_opacity` (0–100, default 100).
+export function BlockView(props: { block: BiolinkBlock; alias: string; allBlocks: BiolinkBlock[]; openEmbed: OpenEmbed }) {
+  const st = (props.block.settings?._style as Record<string, unknown> | undefined) ?? {};
+  const presetKey = typeof st.bg_preset_key === "string" ? st.bg_preset_key.trim() : "";
+  const rawOpacity = Number(st.bg_preset_opacity);
+  const presetOpacity = Number.isFinite(rawOpacity)
+    ? Math.max(0, Math.min(100, Math.round(rawOpacity)))
+    : 100;
+
+  // Hook is unconditional (React rules); it only fires when a preset key
+  // is present. Query key/staleTime match the pickers' so caches share.
+  const catalogQ = useQuery({
+    queryKey: ["bg-presets"],
+    queryFn: getBgPresets,
+    staleTime: 60 * 60 * 1000,
+    enabled: presetKey !== "",
+  });
+  const preset = presetKey
+    ? catalogQ.data?.presets.find((p) => p.key === presetKey && !p.paper)
+    : undefined;
+
+  const inner = <BlockViewInner {...props} />;
+  if (!preset) return inner;
+  const stops =
+    preset.colors.length >= 2
+      ? (preset.colors as [string, string, ...string[]])
+      : ([preset.colors[0] ?? "#3d3654", preset.colors[0] ?? "#3d3654"] as [string, string]);
+  return (
+    <View style={{ borderRadius: 14, overflow: "hidden" }}>
+      <View style={[StyleSheet.absoluteFill, { opacity: presetOpacity / 100 }]} pointerEvents="none">
+        <LinearGradient
+          colors={stops}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={StyleSheet.absoluteFill}
+        />
+        {preset.swatch ? (
+          <ImageBackground
+            source={{ uri: `${getBaseUrl()}${preset.swatch}` }}
+            style={StyleSheet.absoluteFill}
+            resizeMode="cover"
+          />
+        ) : null}
+      </View>
+      <View style={{ padding: presetOpacity > 0 ? 8 : 0 }}>{inner}</View>
+    </View>
+  );
+}
+
+function BlockViewInner({ block, alias, allBlocks, openEmbed }: { block: BiolinkBlock; alias: string; allBlocks: BiolinkBlock[]; openEmbed: OpenEmbed }) {
   const colors = useColors();
   const router = useRouter();
   const s = block.settings ?? {};
@@ -1040,6 +1159,113 @@ export function BlockView({ block, alias, allBlocks, openEmbed }: { block: Bioli
     const accent = pickStr(s, "accent_color") ?? colors.primary;
     const desc = pickStr(s, "description");
     const thumb = pickStr(s, "thumbnail");
+    // "Text list / divider" layout (web `_style.link_layout=text_divider`):
+    // plain left-aligned text row with a thin hairline divider below it —
+    // no button chrome. Divider derives from the row's text color so it
+    // stays legible on both dark and light page themes.
+    const _st = (s?.["_style"] ?? null) as Record<string, unknown> | null;
+    const _linkLayout = typeof _st?.["link_layout"] === "string" ? (_st["link_layout"] as string) : "";
+    if (!featured && _linkLayout === "text_divider") {
+      const _tdColor =
+        (typeof _st?.["text_color"] === "string" && (_st["text_color"] as string) !== ""
+          ? (_st["text_color"] as string)
+          : null) ?? blockTextColor(block, colors.foreground);
+      return (
+        <Pressable
+          onPress={() => handleTap(url)}
+          style={{
+            width: "100%",
+            paddingVertical: 14,
+            borderBottomWidth: StyleSheet.hairlineWidth,
+            borderBottomColor: _tdColor + "40",
+          }}
+        >
+          <Text
+            style={{ color: _tdColor, fontSize: 15, fontWeight: "500", textAlign: "left" }}
+            numberOfLines={2}
+          >
+            {label}
+          </Text>
+        </Pressable>
+      );
+    }
+    // "Taped Notes" layout (web `_style.link_layout=taped_note`): muted
+    // pastel paper card with a washi-tape strip at the top and a centered
+    // serif label. Per-card paper tint rotates through the same pastel
+    // palette as the web renderer (keyed by sort_order) unless the block
+    // carries its own bg_color/text_color override. Paper + ink colors
+    // are explicit so the card reads identically in dark and light themes.
+    if (!featured && _linkLayout === "taped_note") {
+      const TN_PALETTE: [string, string][] = [
+        ["#f7e9ed", "#6d4c3d"],
+        ["#a98a7d", "#f9f2ec"],
+        ["#bdb3aa", "#4a3d31"],
+        ["#f2e3e6", "#6d4c3d"],
+        ["#8d7466", "#f6ede5"],
+        ["#cfc3b8", "#4a3d31"],
+      ];
+      const tnIdx = Math.abs(Math.trunc(block.sort_order ?? block.id ?? 0)) % TN_PALETTE.length;
+      const [tnBgDefault, tnInkDefault] = TN_PALETTE[tnIdx];
+      const tnBgPick = typeof _st?.["bg_color"] === "string" ? (_st["bg_color"] as string) : "";
+      const tnBg = tnBgPick !== "" && tnBgPick !== "transparent" ? tnBgPick : tnBgDefault;
+      const tnInkPick = typeof _st?.["text_color"] === "string" ? (_st["text_color"] as string) : "";
+      const tnInk = tnInkPick !== "" ? tnInkPick : tnInkDefault;
+      const tnTilt = tnIdx % 2 === 0 ? "-2.5deg" : "2deg";
+      return (
+        <Pressable onPress={() => handleTap(url)} style={{ width: "100%", paddingTop: 12, marginBottom: 4 }}>
+          <View
+            style={{
+              width: "100%",
+              backgroundColor: tnBg,
+              borderRadius: 3,
+              paddingVertical: 30,
+              paddingHorizontal: 16,
+              alignItems: "center",
+              shadowColor: "#4c3c32",
+              shadowOpacity: 0.16,
+              shadowRadius: 9,
+              shadowOffset: { width: 0, height: 4 },
+              elevation: 3,
+            }}
+          >
+            <Text
+              style={{
+                color: tnInk,
+                fontSize: 16,
+                fontWeight: "500",
+                textAlign: "center",
+                letterSpacing: 0.3,
+                fontFamily: Platform.select({ ios: "Georgia", android: "serif", default: "Georgia, 'Times New Roman', serif" }),
+              }}
+              numberOfLines={2}
+            >
+              {label}
+            </Text>
+          </View>
+          <View
+            pointerEvents="none"
+            style={{
+              position: "absolute",
+              top: 0,
+              left: "50%",
+              width: 86,
+              height: 24,
+              marginLeft: -43,
+              transform: [{ rotate: tnTilt }],
+              backgroundColor: "rgba(235,227,208,0.82)",
+              borderLeftWidth: 1,
+              borderRightWidth: 1,
+              borderLeftColor: "rgba(120,105,85,0.28)",
+              borderRightColor: "rgba(120,105,85,0.28)",
+              shadowColor: "#4c3c32",
+              shadowOpacity: 0.18,
+              shadowRadius: 2,
+              shadowOffset: { width: 0, height: 1 },
+            }}
+          />
+        </Pressable>
+      );
+    }
     if (featured) {
       return (
         <Pressable
@@ -1077,8 +1303,136 @@ export function BlockView({ block, alias, allBlocks, openEmbed }: { block: Bioli
   ) {
     const text = pickStr(s, "text", "title", "heading");
     if (!text) return null;
-    return (
-      <Text style={[styles.heading, { color: blockTextColor(block, colors.foreground) }]}>{text}</Text>
+
+    // Decorative shape accents behind heading blocks (web
+    // `_style._heading_*`, Task #5938). Mirrors AccentShapeCatalog.
+    const haSt = (s._style && typeof s._style === "object" ? s._style : {}) as Record<
+      string,
+      unknown
+    >;
+    const haStr = (k: string): string => (typeof haSt[k] === "string" ? (haSt[k] as string) : "");
+    const haKnown = ["starburst", "dots", "squiggle", "ring", "blob"];
+    const haAccents =
+      t === "heading"
+        ? haStr("_heading_accents")
+            .split(",")
+            .map((a) => a.trim().toLowerCase())
+            .filter((a, i, arr) => a !== "" && haKnown.includes(a) && arr.indexOf(a) === i)
+        : [];
+
+    // Text tilt (web `_style._tilt`, Task #5954): rotate the whole heading
+    // up to ±30° for poster / scrapbook looks.
+    const haTiltRaw = Number(haSt._tilt ?? 0);
+    const haTilt = Number.isFinite(haTiltRaw) ? Math.max(-30, Math.min(30, haTiltRaw)) : 0;
+    const tiltWrap = (el: React.ReactElement) =>
+      haTilt !== 0 ? (
+        <View style={{ transform: [{ rotate: `${haTilt}deg` }] }}>{el}</View>
+      ) : (
+        el
+      );
+
+    const headingEl = (
+      <Text style={[styles.heading, { color: blockTextColor(block, colors.foreground), zIndex: 1 }]}>{text}</Text>
+    );
+    if (haAccents.length === 0) return tiltWrap(headingEl);
+
+    const haColor = haStr("_heading_accent_color") || "#ec4899";
+    const haPlacementRaw = haStr("_heading_accent_placement");
+    const haPlacement = ["behind_left", "behind_right", "top_left", "top_right"].includes(
+      haPlacementRaw
+    )
+      ? haPlacementRaw
+      : "behind_left";
+    const haScale = ({ sm: 0.7, md: 1.0, lg: 1.5 } as Record<string, number>)[
+      haStr("_heading_accent_size")
+    ] ?? 1.0;
+    // Base dims per shape (matches AccentShapeCatalog::SHAPES).
+    const haDims: Record<string, [string, number, number]> = {
+      starburst: ["0 0 100 100", 54, 54],
+      dots: ["0 0 90 90", 76, 76],
+      squiggle: ["0 0 120 40", 84, 28],
+      ring: ["0 0 60 60", 46, 46],
+      blob: ["0 0 100 100", 58, 58],
+    };
+    // Up to three anchor slots per placement (primary first), mirroring
+    // the web renderer with fixed-pixel offsets (RN has no % transforms).
+    const haSlots: Record<string, Array<Record<string, number>>> = {
+      behind_left: [
+        { left: -10, top: -8 },
+        { right: -10, top: -8 },
+        { left: 60, top: -16 },
+      ],
+      behind_right: [
+        { right: -10, top: -8 },
+        { left: -10, top: -8 },
+        { left: 60, top: -16 },
+      ],
+      top_left: [
+        { left: -12, top: -16 },
+        { right: -12, bottom: -10 },
+        { right: -12, top: -16 },
+      ],
+      top_right: [
+        { right: -12, top: -16 },
+        { left: -12, bottom: -10 },
+        { left: -12, top: -16 },
+      ],
+    };
+    const slots = haSlots[haPlacement];
+
+    return tiltWrap(
+      <View style={{ position: "relative" }}>
+        {haAccents.map((shape, idx) => {
+          const [viewBox, bw, bh] = haDims[shape];
+          const slotScale = haScale * (idx === 0 ? 1.0 : 0.72);
+          const w = Math.round(bw * slotScale);
+          const h = Math.round(bh * slotScale);
+          const pos = slots[idx % slots.length];
+          return (
+            <Svg
+              key={`ha-${shape}`}
+              pointerEvents="none"
+              viewBox={viewBox}
+              width={w}
+              height={h}
+              style={{ position: "absolute", zIndex: 0, ...pos }}
+            >
+              {shape === "starburst" ? (
+                <Path
+                  d="M50 0 L56 33 L75 7 L63 38 L96 22 L67 44 L100 50 L67 56 L96 78 L63 62 L75 93 L56 67 L50 100 L44 67 L25 93 L37 62 L4 78 L33 56 L0 50 L33 44 L4 22 L37 38 L25 7 L44 33 Z"
+                  fill={haColor}
+                />
+              ) : shape === "dots" ? (
+                <>
+                  {[
+                    [78, 10, 6], [58, 18, 4.5], [76, 30, 4], [44, 10, 3.5], [62, 38, 3.2],
+                    [82, 46, 3], [48, 28, 2.6], [70, 54, 2.4], [34, 20, 2.2], [56, 50, 2],
+                    [84, 62, 2], [42, 42, 1.8], [66, 68, 1.6], [78, 76, 1.4],
+                  ].map(([cx, cy, r], i) => (
+                    <Circle key={`had-${i}`} cx={cx} cy={cy} r={r} fill={haColor} />
+                  ))}
+                </>
+              ) : shape === "squiggle" ? (
+                <Path
+                  d="M5 30 Q20 5 35 25 T65 22 T95 24 T115 15"
+                  fill="none"
+                  stroke={haColor}
+                  strokeWidth={5}
+                  strokeLinecap="round"
+                />
+              ) : shape === "ring" ? (
+                <Circle cx={30} cy={30} r={24} fill="none" stroke={haColor} strokeWidth={6} />
+              ) : (
+                <Path
+                  d="M83 45 C90 62 78 84 58 88 C38 92 16 82 12 62 C8 42 22 20 44 14 C66 8 76 28 83 45 Z"
+                  fill={haColor}
+                />
+              )}
+            </Svg>
+          );
+        })}
+        {headingEl}
+      </View>
     );
   }
 
@@ -1094,8 +1448,21 @@ export function BlockView({ block, alias, allBlocks, openEmbed }: { block: Bioli
       // paragraph_rich stores raw HTML; strip tags so we don't show markup.
       (pickStr(s, "html") ?? "").replace(/<[^>]+>/g, "").trim();
     if (!text) return null;
-    return (
+    // Text tilt (web `_style._tilt`, Task #5954), paragraph parity.
+    const pSt = (s._style && typeof s._style === "object" ? s._style : {}) as Record<
+      string,
+      unknown
+    >;
+    const pTiltRaw = Number(pSt._tilt ?? 0);
+    const pTilt =
+      t === "paragraph" && Number.isFinite(pTiltRaw) ? Math.max(-30, Math.min(30, pTiltRaw)) : 0;
+    const paragraphEl = (
       <Text style={[styles.body, { color: blockTextColor(block, colors.foreground) }]}>{text}</Text>
+    );
+    return pTilt !== 0 ? (
+      <View style={{ transform: [{ rotate: `${pTilt}deg` }] }}>{paragraphEl}</View>
+    ) : (
+      paragraphEl
     );
   }
 
@@ -1109,6 +1476,365 @@ export function BlockView({ block, alias, allBlocks, openEmbed }: { block: Bioli
     const url = pickStr(s, "url", "image", "image_url", "src", "thumbnail");
     if (!url) return null;
     const isAvatar = t === "avatar";
+
+    // Hero-photo decorations (web `_style._photo_*`, Task #5922): concentric
+    // arch frame, half-overlapping title banner, torn-edge collage + accents.
+    const phSt = (s._style && typeof s._style === "object" ? s._style : {}) as Record<
+      string,
+      unknown
+    >;
+    const phStr = (k: string): string => (typeof phSt[k] === "string" ? (phSt[k] as string) : "");
+    const phFrame = !isAvatar && phStr("_photo_frame") === "concentric_arch";
+    const phMask = !isAvatar ? phStr("_photo_mask") : "";
+    const phBanner = !isAvatar ? phStr("_photo_banner_text").trim() : "";
+    const phAccents = !isAvatar
+      ? phStr("_photo_accents")
+          .split(",")
+          .map((a) => a.trim())
+          .filter(Boolean)
+      : [];
+    // Custom sticker overlays (Task #5939): sanitized `{file_id,url,pos,...}`
+    // entries persisted in _style. `url` is a server-derived relative
+    // `/f/{id}/{name}` path — absolutize against the API origin here.
+    type PhSticker = { url: string; pos: string; size: number; rotate: number; dx: number; dy: number };
+    const phStickers: PhSticker[] = !isAvatar && Array.isArray(phSt._photo_stickers)
+      ? (phSt._photo_stickers as unknown[])
+          .filter((e): e is Record<string, unknown> => !!e && typeof e === "object")
+          .map((e) => {
+            const raw = typeof e.url === "string" ? e.url : "";
+            return {
+              url: raw.startsWith("/") ? `${getBaseUrl()}${raw}` : raw,
+              pos: typeof e.pos === "string" ? e.pos : "top_right",
+              size: Math.max(24, Math.min(160, Number(e.size) || 64)),
+              rotate: Math.max(-180, Math.min(180, Number(e.rotate) || 0)),
+              dx: Math.max(-80, Math.min(80, Number(e.dx) || 0)),
+              dy: Math.max(-80, Math.min(80, Number(e.dy) || 0)),
+            };
+          })
+          .filter((e) => e.url !== "")
+          .slice(0, 4)
+      : [];
+    // Text-on-photo overlays (web `_style._photo_text_stickers`, Task #5954):
+    // short captions anchored like stickers, draggable via dx/dy offsets.
+    type PhTextSticker = {
+      text: string;
+      font: string;
+      color: string;
+      size: number;
+      pos: string;
+      dx: number;
+      dy: number;
+      rotate: number;
+    };
+    const phTexts: PhTextSticker[] = !isAvatar && Array.isArray(phSt._photo_text_stickers)
+      ? (phSt._photo_text_stickers as unknown[])
+          .filter((e): e is Record<string, unknown> => !!e && typeof e === "object")
+          .map((e) => ({
+            text: typeof e.text === "string" ? e.text.trim() : "",
+            font:
+              typeof e.font === "string" ? e.font.replace(/^custom:/, "") : "",
+            color:
+              typeof e.color === "string" && /^#[0-9a-fA-F]{3,8}$/.test(e.color)
+                ? e.color
+                : "#ffffff",
+            size: Math.max(10, Math.min(64, Number(e.size) || 20)),
+            pos: typeof e.pos === "string" ? e.pos : "top_left",
+            dx: Math.max(-80, Math.min(80, Number(e.dx) || 0)),
+            dy: Math.max(-80, Math.min(80, Number(e.dy) || 0)),
+            rotate: Math.max(-180, Math.min(180, Number(e.rotate) || 0)),
+          }))
+          .filter((e) => e.text !== "")
+          .slice(0, 4)
+      : [];
+    const phDecorated =
+      phFrame ||
+      phMask !== "" ||
+      phBanner !== "" ||
+      phAccents.length > 0 ||
+      phStickers.length > 0 ||
+      phTexts.length > 0;
+
+    if (phDecorated) {
+      const phFrameColor = phStr("_photo_frame_color") || "#57534e";
+      const phStrokesRaw = Number(phSt._photo_frame_strokes ?? 0);
+      const phStrokes = Math.max(2, Math.min(5, phStrokesRaw || 3));
+      const phGap = 9;
+      const phPad = phFrame ? phStrokes * phGap + 6 : 0;
+      const phBannerBg = phStr("_photo_banner_bg") || "#2a201c";
+      const phBannerColor = phStr("_photo_banner_text_color") || "#ffffff";
+      const phAccentColor = phStr("_photo_accent_color") || "#3f4e63";
+      const phArch = phFrame || phMask === "arch";
+      const phTorn = !phArch && phMask === "torn";
+      // Torn edges approximated with page-background zigzag overlays.
+      const tornBg = colors.background;
+      const tornZig = "M0 12 L10 2 L20 12 L30 3 L40 11 L50 2 L60 12 L70 4 L80 11 L90 2 L100 12 L100 0 L0 0 Z";
+      return (
+        <View
+          style={{
+            padding: phPad,
+            marginBottom: phBanner !== "" ? 40 : 4,
+            position: "relative",
+          }}
+        >
+          {phFrame
+            ? Array.from({ length: phStrokes }).map((_, i) => (
+                <View
+                  key={`fs-${i}`}
+                  pointerEvents="none"
+                  style={{
+                    position: "absolute",
+                    top: i * phGap,
+                    left: i * phGap,
+                    right: i * phGap,
+                    bottom: 0,
+                    borderWidth: 1.5,
+                    borderBottomWidth: 0,
+                    borderColor: phFrameColor,
+                    borderTopLeftRadius: 999,
+                    borderTopRightRadius: 999,
+                    opacity: 1 - i * 0.12,
+                  }}
+                />
+              ))
+            : null}
+          <View
+            style={{
+              overflow: "hidden",
+              borderTopLeftRadius: phArch ? 999 : 0,
+              borderTopRightRadius: phArch ? 999 : 0,
+            }}
+          >
+            <Image
+              source={{ uri: url }}
+              style={{ width: "100%", aspectRatio: phArch ? 3 / 4 : 4 / 5 }}
+              resizeMode="cover"
+            />
+            {phTorn ? (
+              <>
+                <Svg
+                  pointerEvents="none"
+                  viewBox="0 0 100 12"
+                  preserveAspectRatio="none"
+                  style={{ position: "absolute", top: 0, left: 0, right: 0, height: 12 }}
+                >
+                  <Path d={tornZig} fill={tornBg} />
+                </Svg>
+                <Svg
+                  pointerEvents="none"
+                  viewBox="0 0 100 12"
+                  preserveAspectRatio="none"
+                  style={{
+                    position: "absolute",
+                    bottom: 0,
+                    left: 0,
+                    right: 0,
+                    height: 12,
+                    transform: [{ scaleY: -1 }],
+                  }}
+                >
+                  <Path d={tornZig} fill={tornBg} />
+                </Svg>
+              </>
+            ) : null}
+          </View>
+          {phBanner !== "" ? (
+            <View
+              pointerEvents="none"
+              style={{
+                position: "absolute",
+                bottom: -18,
+                left: 16,
+                right: 16,
+                alignItems: "center",
+                zIndex: 10,
+              }}
+            >
+              <View
+                style={{
+                  backgroundColor: phBannerBg,
+                  paddingVertical: 11,
+                  paddingHorizontal: 26,
+                  maxWidth: "92%",
+                }}
+              >
+                <Text
+                  numberOfLines={1}
+                  style={{
+                    color: phBannerColor,
+                    fontFamily: "SpaceGrotesk_700Bold",
+                    fontSize: 14,
+                    letterSpacing: 2,
+                    textTransform: "uppercase",
+                    textAlign: "center",
+                  }}
+                >
+                  {phBanner}
+                </Text>
+              </View>
+            </View>
+          ) : null}
+          {phAccents.includes("starburst") ? (
+            <Svg
+              pointerEvents="none"
+              viewBox="0 0 100 100"
+              width={54}
+              height={54}
+              style={{ position: "absolute", left: -8, top: "42%", zIndex: 10 }}
+            >
+              <Path
+                d="M50 0 L56 33 L75 7 L63 38 L96 22 L67 44 L100 50 L67 56 L96 78 L63 62 L75 93 L56 67 L50 100 L44 67 L25 93 L37 62 L4 78 L33 56 L0 50 L33 44 L4 22 L37 38 L25 7 L44 33 Z"
+                fill={phAccentColor}
+              />
+            </Svg>
+          ) : null}
+          {phAccents.includes("dots") ? (
+            <Svg
+              pointerEvents="none"
+              viewBox="0 0 90 90"
+              width={76}
+              height={76}
+              style={{ position: "absolute", right: -6, top: -10, zIndex: 10 }}
+            >
+              {[
+                [78, 10, 6], [58, 18, 4.5], [76, 30, 4], [44, 10, 3.5], [62, 38, 3.2],
+                [82, 46, 3], [48, 28, 2.6], [70, 54, 2.4], [34, 20, 2.2], [56, 50, 2],
+                [84, 62, 2], [42, 42, 1.8], [66, 68, 1.6], [78, 76, 1.4],
+              ].map(([cx, cy, r], i) => (
+                <Circle key={`d-${i}`} cx={cx} cy={cy} r={r} fill={phAccentColor} />
+              ))}
+            </Svg>
+          ) : null}
+          {phAccents.includes("squiggle") ? (
+            <Svg
+              pointerEvents="none"
+              viewBox="0 0 120 40"
+              width={84}
+              height={28}
+              style={{ position: "absolute", left: -4, bottom: -8, zIndex: 10 }}
+            >
+              <Path
+                d="M5 30 Q20 5 35 25 T65 22 T95 24 T115 15"
+                fill="none"
+                stroke={phAccentColor}
+                strokeWidth={5}
+                strokeLinecap="round"
+              />
+            </Svg>
+          ) : null}
+          {phAccents.includes("ring") ? (
+            <Svg
+              pointerEvents="none"
+              viewBox="0 0 60 60"
+              width={46}
+              height={46}
+              style={{ position: "absolute", left: -10, top: -8, zIndex: 10 }}
+            >
+              <Circle cx={30} cy={30} r={24} fill="none" stroke={phAccentColor} strokeWidth={6} />
+            </Svg>
+          ) : null}
+          {phAccents.includes("blob") ? (
+            <Svg
+              pointerEvents="none"
+              viewBox="0 0 100 100"
+              width={58}
+              height={58}
+              style={{ position: "absolute", right: -10, bottom: -6, zIndex: 10 }}
+            >
+              <Path
+                d="M83 45 C90 62 78 84 58 88 C38 92 16 82 12 62 C8 42 22 20 44 14 C66 8 76 28 83 45 Z"
+                fill={phAccentColor}
+              />
+            </Svg>
+          ) : null}
+          {phStickers.map((stk, i) => {
+            const anchor: Record<string, number | string> =
+              stk.pos === "top_left"
+                ? { left: -10, top: -10 }
+                : stk.pos === "bottom_left"
+                  ? { left: -10, bottom: -10 }
+                  : stk.pos === "bottom_right"
+                    ? { right: -10, bottom: -10 }
+                    : stk.pos === "center_left"
+                      ? { left: -12, top: "50%" }
+                      : stk.pos === "center_right"
+                        ? { right: -12, top: "50%" }
+                        : { right: -10, top: -10 };
+            const centered = stk.pos === "center_left" || stk.pos === "center_right";
+            return (
+              <View
+                key={`stk-${i}`}
+                pointerEvents="none"
+                style={{
+                  position: "absolute",
+                  zIndex: 11,
+                  width: stk.size,
+                  height: stk.size,
+                  ...anchor,
+                  transform: [
+                    ...(centered ? [{ translateY: -stk.size / 2 }] : []),
+                    { translateX: stk.dx },
+                    { translateY: stk.dy },
+                    { rotate: `${stk.rotate}deg` },
+                  ],
+                }}
+              >
+                <Image
+                  source={{ uri: stk.url }}
+                  resizeMode="contain"
+                  style={{ width: "100%", height: "100%" }}
+                />
+              </View>
+            );
+          })}
+          {phTexts.map((tk, i) => {
+            const anchor: Record<string, number | string> =
+              tk.pos === "top_left"
+                ? { left: -10, top: -10 }
+                : tk.pos === "bottom_left"
+                  ? { left: -10, bottom: -10 }
+                  : tk.pos === "bottom_right"
+                    ? { right: -10, bottom: -10 }
+                    : tk.pos === "center_left"
+                      ? { left: -12, top: "50%" }
+                      : tk.pos === "center_right"
+                        ? { right: -12, top: "50%" }
+                        : { right: -10, top: -10 };
+            const centered = tk.pos === "center_left" || tk.pos === "center_right";
+            return (
+              <View
+                key={`ptk-${i}`}
+                pointerEvents="none"
+                style={{
+                  position: "absolute",
+                  zIndex: 12,
+                  ...anchor,
+                  transform: [
+                    ...(centered ? [{ translateY: -(tk.size * 0.6) }] : []),
+                    { translateX: tk.dx },
+                    { translateY: tk.dy },
+                    { rotate: `${tk.rotate}deg` },
+                  ],
+                }}
+              >
+                <Text
+                  style={{
+                    color: tk.color,
+                    fontSize: tk.size,
+                    fontWeight: "700",
+                    textShadowColor: "rgba(0,0,0,0.45)",
+                    textShadowOffset: { width: 0, height: 1 },
+                    textShadowRadius: 6,
+                  }}
+                >
+                  {tk.text}
+                </Text>
+              </View>
+            );
+          })}
+        </View>
+      );
+    }
+
     return (
       <Image
         source={{ uri: url }}
@@ -1823,6 +2549,8 @@ function profileAccent(layout: string): string {
       return "#ffffff";
     case "glass":
       return "#c4b5fd";
+    case "paper_collage":
+      return "#5f6f52";
     case "minimal_dark":
     case "cover_hero":
       return "#7d9bff";
@@ -1839,38 +2567,65 @@ function ProfileAvatar({
   size,
   border,
   textColor,
+  frame,
 }: {
   avatar: string;
   initial: string;
   size: number;
   border?: { borderWidth?: number; borderColor?: string; borderRadius?: number };
   textColor?: string;
+  // Decorative frame (Task #5910) rendered behind the avatar. Only applied
+  // to circular avatars — call sites that override borderRadius (square /
+  // rounded-rect looks) skip the frame automatically, mirroring the web
+  // renderer which only wraps rounded-full avatars.
+  frame?: { shape: AvatarFrameKey; color: string } | null;
 }) {
-  if (avatar && isSafeUrl(avatar)) {
-    return (
+  const core =
+    avatar && isSafeUrl(avatar) ? (
       <Image
         source={{ uri: avatar }}
         style={[{ width: size, height: size, borderRadius: size / 2 }, border]}
       />
+    ) : (
+      <View
+        style={[
+          {
+            width: size,
+            height: size,
+            borderRadius: size / 2,
+            alignItems: "center",
+            justifyContent: "center",
+            backgroundColor: PROFILE_AVATAR_BG,
+          },
+          border,
+        ]}
+      >
+        <Text style={{ fontSize: size * 0.4, fontWeight: "700", color: textColor ?? "#fff" }}>
+          {initial}
+        </Text>
+      </View>
     );
-  }
+
+  const circular = !border || border.borderRadius === undefined;
+  if (!frame || !circular) return core;
+
+  // Frame sits at ~1.36x the avatar (matches the web wrapper's -18% inset).
+  const frameSize = size * 1.36;
   return (
-    <View
-      style={[
-        {
-          width: size,
-          height: size,
-          borderRadius: size / 2,
-          alignItems: "center",
-          justifyContent: "center",
-          backgroundColor: PROFILE_AVATAR_BG,
-        },
-        border,
-      ]}
-    >
-      <Text style={{ fontSize: size * 0.4, fontWeight: "700", color: textColor ?? "#fff" }}>
-        {initial}
-      </Text>
+    <View style={{ width: size, height: size, alignItems: "center", justifyContent: "center" }}>
+      <View
+        pointerEvents="none"
+        style={{
+          position: "absolute",
+          left: (size - frameSize) / 2,
+          top: (size - frameSize) / 2,
+          width: frameSize,
+          height: frameSize,
+        }}
+      >
+        <AvatarFrame shape={frame.shape} color={frame.color} size={frameSize} />
+      </View>
+      {core}
     </View>
   );
 }
@@ -1958,6 +2713,20 @@ function ProfileCardView({
 
   const layout = profileLayout(block, s);
   const accent = profileAccent(layout);
+
+  // Decorative avatar frame (Task #5910) — key + optional tint live in
+  // _style, mirroring the web renderer. Unknown keys render no frame.
+  const pcStyle = (s._style && typeof s._style === "object" ? s._style : {}) as Record<
+    string,
+    unknown
+  >;
+  const pcFrameColor =
+    typeof pcStyle._avatar_frame_color === "string" && pcStyle._avatar_frame_color !== ""
+      ? pcStyle._avatar_frame_color
+      : accent;
+  const pcFrame = isAvatarFrameKey(pcStyle._avatar_frame)
+    ? { shape: pcStyle._avatar_frame, color: pcFrameColor }
+    : null;
   const initial = (name !== "" ? name : "U").charAt(0).toUpperCase();
   const hasCover = cover !== "" && isSafeUrl(cover);
 
@@ -1988,7 +2757,7 @@ function ProfileCardView({
             paddingTop: hasCover ? 0 : 24,
           }}
         >
-          <ProfileAvatar
+          <ProfileAvatar frame={pcFrame}
             avatar={avatar}
             initial={initial}
             size={96}
@@ -2038,7 +2807,7 @@ function ProfileCardView({
           style={StyleSheet.absoluteFillObject}
         />
         <View style={{ paddingHorizontal: 20, paddingVertical: 28, alignItems: "center" }}>
-          <ProfileAvatar
+          <ProfileAvatar frame={pcFrame}
             avatar={avatar}
             initial={initial}
             size={80}
@@ -2071,7 +2840,7 @@ function ProfileCardView({
         />
         <View style={{ padding: 20 }}>
           <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 12 }}>
-            <ProfileAvatar
+            <ProfileAvatar frame={pcFrame}
               avatar={avatar}
               initial={initial}
               size={64}
@@ -2105,12 +2874,124 @@ function ProfileCardView({
     );
   }
 
+  // ───────────── SPLIT HERO ─────────────
+  // Task #5885 (parity backfill): photo-first column — a large ringed
+  // circular avatar with the social-icon row beneath it, nothing else.
+  // Name/title live in sibling blocks; transparent surface so the page
+  // background shows through (mirrors the web blade branch).
+  if (layout === "split_hero") {
+    return (
+      <View style={{ marginBottom: 16, alignItems: "center", paddingVertical: 16 }}>
+        <ProfileAvatar frame={pcFrame}
+          avatar={avatar}
+          initial={initial}
+          size={192}
+          border={{ borderWidth: 3, borderColor: "rgba(255,255,255,0.35)" }}
+        />
+        <ProfileSocialsRow socials={socials} accent="#ffffff" onTap={onTap} />
+      </View>
+    );
+  }
+
+  // ───────────── PORTRAIT POSTER ─────────────
+  // Task #5906: full-bleed portrait cover filling the card, a large ringed
+  // circular avatar centered on the photo, and name + thin divider +
+  // letter-spaced uppercase title over a bottom dark gradient. Gradient
+  // background when there's no cover (mirrors the web blade branch).
+  if (layout === "portrait_poster") {
+    const inner = (
+      <View style={{ minHeight: 420, alignItems: "center" }}>
+        <LinearGradient
+          colors={["rgba(0,0,0,0.05)", "rgba(0,0,0,0.35)", "rgba(0,0,0,0.82)"]}
+          locations={[0.4, 0.66, 1]}
+          style={StyleSheet.absoluteFillObject}
+        />
+        <View style={{ marginTop: 88 }}>
+          <ProfileAvatar frame={pcFrame}
+            avatar={avatar}
+            initial={initial}
+            size={128}
+            border={{ borderWidth: 4, borderColor: "rgba(255,255,255,0.85)" }}
+          />
+        </View>
+        <View
+          style={{
+            marginTop: "auto",
+            width: "100%",
+            paddingHorizontal: 24,
+            paddingBottom: 32,
+            paddingTop: 40,
+            alignItems: "center",
+          }}
+        >
+          {name ? (
+            <Text
+              style={{ fontSize: 22, fontWeight: "700", color: "#fff", letterSpacing: 1, textAlign: "center" }}
+            >
+              {name}
+            </Text>
+          ) : null}
+          {name && title ? (
+            <View
+              style={{
+                marginTop: 12,
+                width: 200,
+                maxWidth: "70%",
+                height: 1,
+                backgroundColor: "rgba(255,255,255,0.75)",
+              }}
+            />
+          ) : null}
+          {title ? (
+            <Text
+              style={{
+                marginTop: 12,
+                fontSize: 12,
+                fontWeight: "600",
+                color: "#fff",
+                letterSpacing: 4,
+                textTransform: "uppercase",
+                textAlign: "center",
+              }}
+            >
+              {title}
+            </Text>
+          ) : null}
+          {bio ? (
+            <Text
+              style={{ fontSize: 13, marginTop: 12, color: "rgba(255,255,255,0.8)", textAlign: "center" }}
+            >
+              {bio}
+            </Text>
+          ) : null}
+        </View>
+      </View>
+    );
+    return (
+      <View style={surface}>
+        {hasCover ? (
+          <ImageBackground source={{ uri: cover }} style={{ width: "100%" }}>
+            {inner}
+          </ImageBackground>
+        ) : (
+          <LinearGradient
+            colors={["#64748b", "#334155", "#1e293b"]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 0.4, y: 1 }}
+          >
+            {inner}
+          </LinearGradient>
+        )}
+      </View>
+    );
+  }
+
   // ───────────── SPLIT CARD ─────────────
   if (layout === "split") {
     return (
       <View style={surface}>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 20, padding: 20 }}>
-          <ProfileAvatar avatar={avatar} initial={initial} size={96} border={{ borderRadius: 16 }} />
+          <ProfileAvatar frame={pcFrame} avatar={avatar} initial={initial} size={96} border={{ borderRadius: 16 }} />
           <View style={{ flex: 1 }}>
             {name ? (
               <Text style={{ fontSize: 18, fontWeight: "700", color: themeText }}>{name}</Text>
@@ -2151,7 +3032,7 @@ function ProfileCardView({
             alignItems: "center",
           }}
         >
-          <ProfileAvatar
+          <ProfileAvatar frame={pcFrame}
             avatar={avatar}
             initial={initial}
             size={96}
@@ -2175,6 +3056,107 @@ function ProfileCardView({
     );
   }
 
+  // ───────────── ARCH BAND ─────────────
+  // Task #5922: cover photo with a semi-circular arch band at its bottom
+  // edge; the circular avatar sits inside the arch. The band and avatar
+  // ring share ONE color/width — the block's border_color/border_width
+  // (mirrors the web `arch_band` blade branch).
+  if (layout === "arch_band") {
+    const abColor =
+      typeof pcStyle.border_color === "string" && pcStyle.border_color !== ""
+        ? pcStyle.border_color
+        : "#b98a5e";
+    const abWidthRaw = Number(pcStyle.border_width);
+    const abWidth = Math.max(2, Math.min(10, Number.isFinite(abWidthRaw) && abWidthRaw > 0 ? abWidthRaw : 6));
+    const abAv = 120; // avatar diameter
+    const abBand = 12 + abWidth * 3; // band thickness
+    const abOut = abAv + 2 * abBand; // arch outer diameter
+    return (
+      <View style={[surface, { backgroundColor: "#ffffff" }]}>
+        <View style={{ position: "relative" }}>
+          {hasCover ? (
+            <Image source={{ uri: cover }} style={{ height: 176, width: "100%" }} />
+          ) : (
+            <LinearGradient
+              colors={["#e7dccf", "#cdb9a0"]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={{ height: 176, width: "100%" }}
+            />
+          )}
+          {/* Thin rule along the cover's bottom edge, same band color */}
+          <View
+            style={{
+              position: "absolute",
+              left: 0,
+              right: 0,
+              bottom: 0,
+              height: 3,
+              backgroundColor: abColor,
+            }}
+          />
+          {/* Filled semi-circular arch band, bottom-aligned with the cover */}
+          <View
+            style={{
+              position: "absolute",
+              bottom: 0,
+              alignSelf: "center",
+              width: abOut,
+              height: abOut / 2 + 10,
+              backgroundColor: abColor,
+              borderTopLeftRadius: abOut,
+              borderTopRightRadius: abOut,
+            }}
+          />
+        </View>
+        <View
+          style={{
+            paddingHorizontal: 20,
+            paddingBottom: 24,
+            paddingTop: abAv / 2 + 14,
+            alignItems: "center",
+          }}
+        >
+          <View style={{ position: "absolute", top: -(abAv / 2), alignSelf: "center" }}>
+            <ProfileAvatar
+              frame={pcFrame}
+              avatar={avatar}
+              initial={initial}
+              size={abAv}
+              border={{ borderWidth: abWidth, borderColor: abColor }}
+            />
+          </View>
+          {name ? (
+            <Text style={{ fontSize: 19, fontWeight: "700", color: "#1c1917" }}>
+              {name}
+              {verified ? <Feather name="check-circle" size={15} color={abColor} /> : null}
+            </Text>
+          ) : null}
+          {title ? (
+            <Text
+              style={{
+                marginTop: 4,
+                fontSize: 11,
+                fontWeight: "600",
+                letterSpacing: 3,
+                textTransform: "uppercase",
+                color: abColor,
+              }}
+            >
+              {title}
+            </Text>
+          ) : null}
+          {bio ? (
+            <Text style={{ fontSize: 13, marginTop: 12, color: "#57534e", textAlign: "center" }}>
+              {bio}
+            </Text>
+          ) : null}
+          <ProfileSocialsRow socials={socials} accent={abColor} onTap={onTap} chip="accent_outline" />
+        </View>
+      </View>
+    );
+  }
+
   // ───────────── OVERLAP HERO ─────────────
   // Tall cover with the white card pulled up over it; the avatar
   // straddles the card's top edge. The block surface stays transparent —
@@ -2190,7 +3172,7 @@ function ProfileCardView({
           />
         ) : (
           <LinearGradient
-            colors={["#3d6bff", "#8b5cf6"]}
+            colors={["#3d6bff", "#6ea8ff"]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={{ height: 176, width: "100%", borderRadius: 16 }}
@@ -2214,7 +3196,7 @@ function ProfileCardView({
           }}
         >
           <View style={{ position: "absolute", top: -48, alignSelf: "center" }}>
-            <ProfileAvatar
+            <ProfileAvatar frame={pcFrame}
               avatar={avatar}
               initial={initial}
               size={96}
@@ -2242,7 +3224,7 @@ function ProfileCardView({
   if (layout === "gradient") {
     const grad = (
       <View style={{ paddingHorizontal: 20, paddingVertical: 28, alignItems: "center" }}>
-        <ProfileAvatar
+        <ProfileAvatar frame={pcFrame}
           avatar={avatar}
           initial={initial}
           size={80}
@@ -2288,7 +3270,7 @@ function ProfileCardView({
   if (layout === "founder") {
     const inner = (
       <View style={{ paddingHorizontal: 20, paddingVertical: 28, alignItems: "center" }}>
-        <ProfileAvatar
+        <ProfileAvatar frame={pcFrame}
           avatar={avatar}
           initial={initial}
           size={80}
@@ -2350,7 +3332,7 @@ function ProfileCardView({
     return (
       <View style={[surface, cardOverlay?.backgroundColor == null ? { backgroundColor: "#0b0b0f" } : null]}>
         <View style={{ paddingHorizontal: 20, paddingVertical: 32, alignItems: "center" }}>
-          <ProfileAvatar
+          <ProfileAvatar frame={pcFrame}
             avatar={avatar}
             initial={initial}
             size={80}
@@ -2380,7 +3362,7 @@ function ProfileCardView({
         {hasCover ? <Image source={{ uri: cover }} style={{ height: 128, width: "100%" }} /> : null}
         <View style={{ padding: 20 }}>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-            <ProfileAvatar avatar={avatar} initial={initial} size={56} />
+            <ProfileAvatar frame={pcFrame} avatar={avatar} initial={initial} size={56} />
             <View style={{ flex: 1 }}>
               {title ? (
                 <Text
@@ -2426,7 +3408,7 @@ function ProfileCardView({
           />
         )}
         <View style={{ paddingHorizontal: 20, paddingBottom: 24, marginTop: -44, alignItems: "center" }}>
-          <ProfileAvatar
+          <ProfileAvatar frame={pcFrame}
             avatar={avatar}
             initial={initial}
             size={88}
@@ -2486,7 +3468,7 @@ function ProfileCardView({
     return (
       <View style={surface}>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 16, padding: 20 }}>
-          <ProfileAvatar avatar={avatar} initial={initial} size={80} border={{ borderRadius: 12 }} />
+          <ProfileAvatar frame={pcFrame} avatar={avatar} initial={initial} size={80} border={{ borderRadius: 12 }} />
           <View
             style={{
               flex: 1,
@@ -2567,7 +3549,7 @@ function ProfileCardView({
           />
           <View style={{ flex: 1, padding: 20 }}>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 16 }}>
-              <ProfileAvatar
+              <ProfileAvatar frame={pcFrame}
                 avatar={avatar}
                 initial={initial}
                 size={64}
@@ -2659,7 +3641,7 @@ function ProfileCardView({
             </Text>
           </View>
           <View style={{ paddingHorizontal: 20, paddingVertical: 20, alignItems: "center" }}>
-            <ProfileAvatar
+            <ProfileAvatar frame={pcFrame}
               avatar={avatar}
               initial={initial}
               size={80}
@@ -2742,7 +3724,7 @@ function ProfileCardView({
               Admit One
             </Text>
             <View style={{ marginTop: 12 }}>
-              <ProfileAvatar
+              <ProfileAvatar frame={pcFrame}
                 avatar={avatar}
                 initial={initial}
                 size={64}
@@ -2971,12 +3953,570 @@ function ProfileCardView({
     );
   }
 
+  // ───────────── PAPER COLLAGE ─────────────
+  // Task #5929: scrapbook brand intro — offset sage grid-paper panel with a
+  // slightly-rotated white paper card (script-styled name + serif tagline)
+  // and a simple pressed-leaf accent built from rotated leaf-shaped Views
+  // (RN has no clip-path, so the torn edge is approximated with small
+  // uneven "torn scrap" strips along the card's top and bottom edges).
+  // Colours are intrinsic to the collage (paper is always light), matching
+  // the web renderer, so both app themes stay legible.
+  if (layout === "paper_collage") {
+    const serif = Platform.OS === "ios" ? "Georgia" : "serif";
+    const leaf = (
+      rotate: string,
+      top: number,
+      left: number,
+      w: number,
+      h: number,
+      color: string,
+    ) => (
+      <View
+        style={{
+          position: "absolute",
+          top,
+          left,
+          width: w,
+          height: h,
+          backgroundColor: color,
+          borderTopLeftRadius: w,
+          borderBottomRightRadius: w,
+          borderTopRightRadius: 3,
+          borderBottomLeftRadius: 3,
+          transform: [{ rotate }],
+        }}
+      />
+    );
+    // Uneven "torn" strips along the paper edges.
+    const tornStrip = (edge: "top" | "bottom") => (
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: edge === "top" ? "flex-end" : "flex-start",
+          height: 7,
+          overflow: "hidden",
+        }}
+      >
+        {[6, 4, 7, 3, 6, 5, 7, 4, 6, 3, 7, 5, 6, 4].map((h, i) => (
+          <View
+            key={i}
+            style={{
+              flex: 1,
+              height: h,
+              backgroundColor: "#fcfbf7",
+              transform: [{ rotate: i % 2 === 0 ? "1.5deg" : "-1.5deg" }],
+            }}
+          />
+        ))}
+      </View>
+    );
+    return (
+      <View
+        style={[
+          surface,
+          cardOverlay?.backgroundColor == null ? { backgroundColor: "#f0eee7" } : null,
+        ]}
+      >
+        <View style={{ minHeight: 220, paddingVertical: 26, paddingHorizontal: 14 }}>
+          {/* Offset grid-paper panel */}
+          <View
+            style={{
+              position: "absolute",
+              top: 14,
+              right: 14,
+              left: "21%",
+              bottom: 20,
+              backgroundColor: "#c6d0c3",
+              overflow: "hidden",
+            }}
+          >
+            {Array.from({ length: 12 }).map((_, i) => (
+              <View
+                key={`h${i}`}
+                style={{
+                  position: "absolute",
+                  top: i * 17,
+                  left: 0,
+                  right: 0,
+                  height: 1,
+                  backgroundColor: "rgba(255,255,255,0.55)",
+                }}
+              />
+            ))}
+            {Array.from({ length: 18 }).map((_, i) => (
+              <View
+                key={`v${i}`}
+                style={{
+                  position: "absolute",
+                  left: i * 17,
+                  top: 0,
+                  bottom: 0,
+                  width: 1,
+                  backgroundColor: "rgba(255,255,255,0.55)",
+                }}
+              />
+            ))}
+          </View>
+          {/* Pressed botanical sprig */}
+          <View style={{ position: "absolute", left: 6, top: 12, width: 96, height: 168 }}>
+            <View
+              style={{
+                position: "absolute",
+                left: 40,
+                top: 8,
+                width: 2.5,
+                height: 150,
+                borderRadius: 2,
+                backgroundColor: "#6d7f5e",
+                transform: [{ rotate: "14deg" }],
+              }}
+            />
+            {leaf("-35deg", 26, 6, 34, 18, "#93a37e")}
+            {leaf("-15deg", 58, 2, 38, 20, "#788a68")}
+            {leaf("20deg", 84, 44, 36, 18, "#7f9070")}
+            {leaf("-25deg", 104, 8, 34, 18, "#87977a")}
+            {leaf("30deg", 126, 40, 32, 16, "#9aa887")}
+            <View style={{ position: "absolute", left: 12, top: 0, width: 8, height: 8, borderRadius: 4, backgroundColor: "#b9b2a4" }} />
+            <View style={{ position: "absolute", left: 28, top: -4, width: 6, height: 6, borderRadius: 3, backgroundColor: "#c8c2b4" }} />
+          </View>
+          {/* Torn paper card */}
+          <View
+            style={{
+              marginTop: 18,
+              marginLeft: "14%",
+              marginRight: "5%",
+              transform: [{ rotate: "-1.2deg" }],
+              shadowColor: "#42402f",
+              shadowOpacity: 0.22,
+              shadowRadius: 12,
+              shadowOffset: { width: 0, height: 8 },
+              elevation: 6,
+            }}
+          >
+            {tornStrip("top")}
+            <View
+              style={{
+                backgroundColor: "#fcfbf7",
+                paddingHorizontal: 24,
+                paddingVertical: 30,
+                alignItems: "center",
+              }}
+            >
+              {name ? (
+                <Text
+                  style={{
+                    fontSize: 30,
+                    fontStyle: "italic",
+                    fontWeight: "600",
+                    color: "#5b4636",
+                    textAlign: "center",
+                    transform: [{ rotate: "-1.5deg" }],
+                  }}
+                >
+                  {name}
+                </Text>
+              ) : null}
+              {title ? (
+                <Text
+                  style={{
+                    marginTop: 10,
+                    fontSize: 13,
+                    lineHeight: 20,
+                    fontFamily: serif,
+                    color: "#57534e",
+                    textAlign: "center",
+                  }}
+                >
+                  {title}
+                </Text>
+              ) : null}
+              {bio ? (
+                <Text
+                  style={{
+                    marginTop: 6,
+                    fontSize: 12,
+                    lineHeight: 19,
+                    fontFamily: serif,
+                    color: "#78716c",
+                    textAlign: "center",
+                  }}
+                >
+                  {bio}
+                </Text>
+              ) : null}
+            </View>
+            {tornStrip("bottom")}
+          </View>
+        </View>
+      </View>
+    );
+  }
+
+  // ───────────── BRAND RAIL ─────────────
+  // Task #5934: solid brand-color panel — brand name in an outlined
+  // ellipse top-right, a large offset rectangular portrait, and a
+  // vertical rail of social icons down the right edge. Mirrors the web
+  // `brand_rail` blade branch: bg_color paints the surface, text_color
+  // drives the outlines and copy.
+  if (layout === "brand_rail") {
+    const brInk =
+      typeof pcStyle.text_color === "string" && pcStyle.text_color !== ""
+        ? pcStyle.text_color
+        : "#f3efe6";
+    return (
+      <View
+        style={[
+          surface,
+          cardOverlay?.backgroundColor == null ? { backgroundColor: "#2f7f72" } : null,
+        ]}
+      >
+        <View style={{ paddingHorizontal: 20, paddingTop: 20, paddingBottom: 24 }}>
+          {name ? (
+            <View style={{ alignItems: "flex-end" }}>
+              <View
+                style={{
+                  borderWidth: 1.5,
+                  borderColor: brInk,
+                  borderRadius: 999,
+                  paddingVertical: 14,
+                  paddingHorizontal: 26,
+                  maxWidth: "78%",
+                }}
+              >
+                <Text
+                  style={{
+                    fontSize: 15,
+                    fontWeight: "600",
+                    color: brInk,
+                    textAlign: "center",
+                    letterSpacing: 0.3,
+                  }}
+                >
+                  {name}
+                </Text>
+              </View>
+            </View>
+          ) : null}
+          <View style={{ flexDirection: "row", gap: 16, marginTop: 16 }}>
+            <View style={{ flex: 1, marginRight: "4%" }}>
+              {avatar && isSafeUrl(avatar) ? (
+                <Image
+                  source={{ uri: avatar }}
+                  style={{ width: "100%", height: 250, borderRadius: 6 }}
+                />
+              ) : (
+                <View
+                  style={{
+                    width: "100%",
+                    height: 250,
+                    borderRadius: 6,
+                    alignItems: "center",
+                    justifyContent: "center",
+                    backgroundColor: "rgba(255,255,255,0.14)",
+                  }}
+                >
+                  <Text style={{ fontSize: 56, fontWeight: "700", color: brInk }}>{initial}</Text>
+                </View>
+              )}
+            </View>
+            {socials.length > 0 ? (
+              <View style={{ alignItems: "center", justifyContent: "center", gap: 12 }}>
+                {socials.map((soc, i) => (
+                  <Pressable
+                    key={i}
+                    onPress={() => (soc.url && isSafeUrl(soc.url) ? onTap(soc.url) : undefined)}
+                    style={{
+                      width: 36,
+                      height: 36,
+                      borderRadius: 18,
+                      alignItems: "center",
+                      justifyContent: "center",
+                      borderWidth: 1.5,
+                      borderColor: `${brInk}66`,
+                    }}
+                  >
+                    <Feather name={profileSocialIcon(soc.name)} size={16} color={brInk} />
+                  </Pressable>
+                ))}
+              </View>
+            ) : null}
+          </View>
+          {title ? (
+            <Text
+              style={{
+                marginTop: 16,
+                fontSize: 11,
+                fontWeight: "700",
+                letterSpacing: 3.5,
+                textTransform: "uppercase",
+                color: brInk,
+                opacity: 0.9,
+              }}
+            >
+              {title}
+            </Text>
+          ) : null}
+          {bio ? (
+            <Text style={{ fontSize: 13, marginTop: 8, color: brInk, opacity: 0.8 }}>{bio}</Text>
+          ) : null}
+        </View>
+      </View>
+    );
+  }
+
+  // ───────────── SPLIT PILL ─────────────
+  // Task #5934: large serif display name up top on a two-tone
+  // horizontally split background, stadium-pill portrait straddling the
+  // boundary. Top zone = bg_color (the surface), bottom zone =
+  // border_color (mirrors the web `split_pill` blade branch).
+  if (layout === "split_pill") {
+    const spBottom =
+      typeof pcStyle.border_color === "string" && pcStyle.border_color !== ""
+        ? pcStyle.border_color
+        : "#8a5a3b";
+    const spInk =
+      typeof pcStyle.text_color === "string" && pcStyle.text_color !== ""
+        ? pcStyle.text_color
+        : "#2f2a24";
+    const serif = Platform.OS === "ios" ? "Georgia" : "serif";
+    const pillH = 260;
+    const split = 130; // how much of the pill sits in the bottom zone
+    return (
+      <View
+        style={[
+          surface,
+          cardOverlay?.backgroundColor == null ? { backgroundColor: "#f3ede3" } : null,
+        ]}
+      >
+        <View style={{ paddingHorizontal: 24, paddingTop: 28, paddingBottom: 6 }}>
+          {name ? (
+            <Text
+              style={{
+                fontSize: 34,
+                fontFamily: serif,
+                fontWeight: "500",
+                letterSpacing: 2.5,
+                color: spInk,
+                textAlign: "center",
+              }}
+            >
+              {name}
+            </Text>
+          ) : null}
+        </View>
+        <View style={{ position: "relative" }}>
+          {/* Bottom color zone starts where the pill's midpoint sits */}
+          <View
+            style={{
+              position: "absolute",
+              left: 0,
+              right: 0,
+              bottom: 0,
+              top: pillH - split + 6,
+              backgroundColor: spBottom,
+            }}
+          />
+          {/* Decorative dots at the boundary */}
+          <View
+            style={{
+              position: "absolute",
+              right: "8%",
+              top: pillH - split + 26,
+              flexDirection: "row",
+              gap: 7,
+            }}
+          >
+            <View style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: "rgba(255,255,255,0.75)" }} />
+            <View style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: "rgba(255,255,255,0.55)" }} />
+            <View style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: "rgba(255,255,255,0.35)" }} />
+          </View>
+          <View style={{ alignItems: "center", paddingTop: 6 }}>
+            {avatar && isSafeUrl(avatar) ? (
+              <Image
+                source={{ uri: avatar }}
+                style={{ width: 180, height: pillH, borderRadius: pillH / 2 }}
+              />
+            ) : (
+              <View
+                style={{
+                  width: 180,
+                  height: pillH,
+                  borderRadius: pillH / 2,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  backgroundColor: PROFILE_AVATAR_BG,
+                }}
+              >
+                <Text style={{ fontSize: 56, fontWeight: "700", color: spInk }}>{initial}</Text>
+              </View>
+            )}
+          </View>
+          <View
+            style={{
+              backgroundColor: spBottom,
+              paddingHorizontal: 24,
+              paddingTop: 20,
+              paddingBottom: 30,
+              alignItems: "center",
+            }}
+          >
+            {title ? (
+              <Text
+                style={{
+                  fontSize: 11,
+                  fontWeight: "700",
+                  letterSpacing: 3.5,
+                  textTransform: "uppercase",
+                  color: "#ffffff",
+                  opacity: 0.92,
+                  textAlign: "center",
+                }}
+              >
+                {title}
+              </Text>
+            ) : null}
+            {bio ? (
+              <Text
+                style={{
+                  fontSize: 13,
+                  marginTop: 8,
+                  color: "#ffffff",
+                  opacity: 0.85,
+                  textAlign: "center",
+                }}
+              >
+                {bio}
+              </Text>
+            ) : null}
+          </View>
+        </View>
+      </View>
+    );
+  }
+
+  // ───────────── BADGE CARD ─────────────
+  // Task #5934: full-bleed cover photo behind everything, a small
+  // @handle pill badge up top, a tall light rounded card at the bottom
+  // whose top edge is straddled by a ringed circular avatar; script-feel
+  // name + divider + uppercase letter-spaced subtitle (mirrors the web
+  // `badge_card` blade branch — the light card is intrinsic).
+  if (layout === "badge_card") {
+    const bcHandle =
+      website !== ""
+        ? website.replace(/^https?:\/\/(www\.)?/, "").replace(/\/$/, "")
+        : name !== ""
+          ? "@" + name.toLowerCase().replace(/[^a-z0-9]+/g, "")
+          : "";
+    return (
+      <View style={surface}>
+        <View style={{ position: "relative", minHeight: 440 }}>
+          {hasCover ? (
+            <Image
+              source={{ uri: cover }}
+              style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, width: "100%", height: "100%" }}
+            />
+          ) : (
+            <LinearGradient
+              colors={["#a39a8b", "#7c7466", "#5f594e"]}
+              start={{ x: 0.2, y: 0 }}
+              end={{ x: 0.8, y: 1 }}
+              style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }}
+            />
+          )}
+          {bcHandle !== "" ? (
+            <View style={{ alignItems: "center", paddingTop: 20 }}>
+              <View
+                style={{
+                  backgroundColor: "rgba(252,251,247,0.92)",
+                  borderRadius: 999,
+                  paddingHorizontal: 16,
+                  paddingVertical: 6,
+                }}
+              >
+                <Text style={{ fontSize: 12, fontWeight: "600", color: "#3f3a33", letterSpacing: 0.8 }}>
+                  {bcHandle}
+                </Text>
+              </View>
+            </View>
+          ) : null}
+          <View style={{ marginTop: "auto", paddingHorizontal: 16, paddingBottom: 16, paddingTop: 170 }}>
+            <View
+              style={{
+                backgroundColor: "#fcfbf7",
+                borderRadius: 26,
+                paddingHorizontal: 20,
+                paddingBottom: 28,
+                paddingTop: 74,
+                alignItems: "center",
+              }}
+            >
+              <View style={{ position: "absolute", top: -62, alignSelf: "center" }}>
+                <ProfileAvatar
+                  frame={pcFrame}
+                  avatar={avatar}
+                  initial={initial}
+                  size={124}
+                  border={{ borderWidth: 5, borderColor: "#fcfbf7" }}
+                  textColor="#3f3a33"
+                />
+              </View>
+              {name ? (
+                <Text
+                  style={{
+                    fontSize: 30,
+                    fontStyle: "italic",
+                    fontWeight: "600",
+                    color: "#3f3a33",
+                    textAlign: "center",
+                  }}
+                >
+                  {name}
+                </Text>
+              ) : null}
+              {name && title ? (
+                <View
+                  style={{
+                    marginTop: 12,
+                    width: 150,
+                    maxWidth: "65%",
+                    height: 1,
+                    backgroundColor: "rgba(63,58,51,0.45)",
+                  }}
+                />
+              ) : null}
+              {title ? (
+                <Text
+                  style={{
+                    marginTop: 12,
+                    fontSize: 12,
+                    fontWeight: "600",
+                    letterSpacing: 3.5,
+                    textTransform: "uppercase",
+                    color: "#57534e",
+                    textAlign: "center",
+                  }}
+                >
+                  {title}
+                </Text>
+              ) : null}
+              {bio ? (
+                <Text style={{ fontSize: 13, marginTop: 12, color: "#78716c", textAlign: "center" }}>
+                  {bio}
+                </Text>
+              ) : null}
+            </View>
+          </View>
+        </View>
+      </View>
+    );
+  }
+
   // ───────────── LEGACY: STATS (v3 default) ─────────────
   if (layout === "stats") {
     return (
       <View style={surface}>
         <View style={{ padding: 20, alignItems: "center" }}>
-          <ProfileAvatar
+          <ProfileAvatar frame={pcFrame}
             avatar={avatar}
             initial={initial}
             size={64}
@@ -3016,7 +4556,7 @@ function ProfileCardView({
   return (
     <View style={surface}>
       <View style={{ padding: 20, alignItems: "center" }}>
-        <ProfileAvatar
+        <ProfileAvatar frame={pcFrame}
           avatar={avatar}
           initial={initial}
           size={64}
@@ -3745,6 +5285,10 @@ export default function BiolinkViewer() {
       ) : null}
 
       {q.data && (q.data.biolink.mode !== "slides" || !q.data.slides) && (
+        <StickerOverlay stickers={q.data.biolink.stickers} layer="back" />
+      )}
+
+      {q.data && (q.data.biolink.mode !== "slides" || !q.data.slides) && (
         <ScrollView contentContainerStyle={styles.content}>
           {q.data.owner.avatar ? (
             <Image
@@ -3809,6 +5353,39 @@ export default function BiolinkViewer() {
               .map((b) => (
                 <BlockView key={b.id} block={b} alias={alias} allBlocks={q.data.blocks} openEmbed={openEmbed} />
               ))}
+            {/* Free-floating page text overlays (Task #5954). Percent x/y are
+                relative to the blocks column; pointerEvents none so they
+                never block taps on the blocks underneath. */}
+            {(q.data.biolink.text_overlays ?? []).map((ov, i) => (
+              <View
+                key={`pov-${i}`}
+                pointerEvents="none"
+                style={{
+                  position: "absolute",
+                  left: `${Math.max(0, Math.min(100, ov.x))}%`,
+                  top: `${Math.max(0, Math.min(100, ov.y))}%`,
+                  zIndex: 30,
+                  transform: [
+                    { translateX: "-50%" as unknown as number },
+                    { translateY: "-50%" as unknown as number },
+                    { rotate: `${Math.max(-180, Math.min(180, ov.rotate))}deg` },
+                  ],
+                }}
+              >
+                <Text
+                  style={{
+                    color: /^#[0-9a-fA-F]{3,8}$/.test(ov.color) ? ov.color : "#ffffff",
+                    fontSize: Math.max(10, Math.min(72, ov.size)),
+                    fontWeight: "700",
+                    textShadowColor: "rgba(0,0,0,0.45)",
+                    textShadowOffset: { width: 0, height: 1 },
+                    textShadowRadius: 6,
+                  }}
+                >
+                  {ov.text}
+                </Text>
+              </View>
+            ))}
           </View>
           <LinkTypePairings
             pairings={q.data.pairings}
@@ -3816,6 +5393,10 @@ export default function BiolinkViewer() {
             fontColor={colors.foreground}
           />
         </ScrollView>
+      )}
+
+      {q.data && (q.data.biolink.mode !== "slides" || !q.data.slides) && (
+        <StickerOverlay stickers={q.data.biolink.stickers} layer="front" />
       )}
 
       <EmbedModal

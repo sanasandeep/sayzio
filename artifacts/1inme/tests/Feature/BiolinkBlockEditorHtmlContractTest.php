@@ -197,6 +197,7 @@ class BiolinkBlockEditorHtmlContractTest extends TestCase
             'icon_circle_left', 'icon_circle_right', 'icon_box',
             'image_left', 'image_right', 'image_top',
             'image_icon_rounded', 'image_icon_square', 'image_icon_circle',
+            'text_divider', 'taped_note',
         ];
 
         foreach ($layouts as $layout) {

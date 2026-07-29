@@ -435,6 +435,13 @@ class BiolinkBlock extends Model
         // a future renderer migration tell "this block was styled by an
         // older catalog" without re-saving every block on the planet.
         '_variant_version' => 0,
+        // Decorative avatar frame for profile-card blocks (Task #5910).
+        // Empty = no frame. Valid keys come from AvatarFrameCatalog; the
+        // sanitizer strips anything else so unknown values never persist.
+        // `_avatar_frame_color` tints the frame; empty = the layout's
+        // accent color at render time.
+        '_avatar_frame' => '',
+        '_avatar_frame_color' => '',
         // Per-block layout switch for link-family blocks (link / link_big /
         // cta_button / featured_pin). Empty = existing button rendering.
         // 'plain_text'  = pure underlined inline link, no card chrome.
@@ -451,11 +458,84 @@ class BiolinkBlock extends Model
         '_animation' => '',        // heading animation hint (shimmer, glitch, ...)
         '_gallery_layout' => '',   // gallery layout (grid_2, masonry, ...)
         '_social_set' => '',       // social icon style set (mono_line, glassy, ...)
+        // Hero-photo decorations for image blocks (Task #5922). All keys
+        // live in _style so curated variants can carry them and the
+        // Designs gallery can apply each look in one click.
+        // `_photo_mask` clips the photo itself (arch / torn) when the
+        // block's `_image_style.mask_shape` is unset — variant-friendly
+        // twin of the Image Styling mask picker.
+        '_photo_mask' => '',            // '', 'arch', 'torn'
+        // Concentric arch frame: thin arch outline strokes drawn around
+        // the (arch-masked) photo. Color defaults to a warm neutral at
+        // render time; strokes clamped 2..5.
+        '_photo_frame' => '',           // '', 'concentric_arch'
+        '_photo_frame_color' => '',
+        '_photo_frame_strokes' => '',
+        // Half-overlapping title banner: solid label box straddling the
+        // photo's bottom edge (half on the photo, half below).
+        '_photo_banner_text' => '',
+        '_photo_banner_bg' => '',
+        '_photo_banner_text_color' => '',
+        // Decorative accent shapes scattered around the photo (torn
+        // collage look). Comma-separated tokens from the allowlist:
+        // starburst, dots, squiggle, ring, blob.
+        '_photo_accents' => '',
+        '_photo_accent_color' => '',
+        // Decorative shape accents behind heading blocks (Task #5938).
+        // Same shape vocabulary as `_photo_accents` (AccentShapeCatalog);
+        // placement anchors the primary shape, size scales the whole set.
+        '_heading_accents' => '',            // comma tokens: starburst,dots,...
+        '_heading_accent_color' => '',
+        '_heading_accent_placement' => '',   // behind_left|behind_right|top_left|top_right
+        '_heading_accent_size' => '',        // sm|md|lg
+        // Custom sticker overlays (Task #5939): list of vault-owned sticker
+        // images layered over the photo like badges. Persisted as an array
+        // of {file_id, url, pos, size, rotate, dx, dy} entries — the
+        // sanitizer validates ownership (workspace owner's image files
+        // only) and re-derives `url` server-side; foreign/invalid file
+        // references fail closed. Capped at PHOTO_STICKER_MAX entries.
+        '_photo_stickers' => '',
+        // Text overlays layered over the photo (Task #5954): draggable,
+        // rotatable text labels — array of {text, font, color, size, pos,
+        // dx, dy, rotate} entries validated by the sanitizer. Same anchor
+        // + dx/dy placement model as `_photo_stickers`. Capped at
+        // PHOTO_TEXT_STICKER_MAX entries.
+        '_photo_text_stickers' => '',
+        // Tilt/rotation for text blocks (heading / paragraph), in degrees.
+        // Sanitizer clamps to ±30 so a tilted headline can never rotate
+        // off the page. Empty/0 = level (no transform emitted).
+        '_tilt' => '',
+        // Catalog preset background for individual blocks & card containers
+        // (Task #5970). `bg_preset_key` references BgPresetCatalog (torn
+        // composites excluded at block level — they need full-page layers);
+        // the public renderer paints the preset on a dedicated layer behind
+        // the block content at `bg_preset_opacity` (0–100, empty = 100).
+        // Only the key is stored; CSS always resolves server-side.
+        'bg_preset_key' => '',
+        'bg_preset_opacity' => '',
         // Structural layout token for the profile_card family (Task #1740).
         // Set by the `profile_identity` curated designs; the public renderer
         // dispatches on it to reposition avatar/cover/text/socials. Empty =
         // fall back to the block-type's default layout (classic/cover/...).
         '_profile_layout' => '',   // classic_creator, glass, cover_hero, ...
+    ];
+
+    /** Max custom sticker overlays per image block (Task #5939). */
+    public const PHOTO_STICKER_MAX = 4;
+
+    /** Max text overlays per image block (Task #5954). */
+    public const PHOTO_TEXT_STICKER_MAX = 4;
+
+    /** Max free-floating page-level text overlays (Task #5954). */
+    public const PAGE_TEXT_OVERLAY_MAX = 6;
+
+    /** Tilt bounds (degrees) for text-block rotation (Task #5954). */
+    public const TILT_MIN = -30;
+    public const TILT_MAX = 30;
+
+    /** Allowed anchor positions for photo sticker overlays. */
+    public const PHOTO_STICKER_POSITIONS = [
+        'top_left', 'top_right', 'bottom_left', 'bottom_right', 'center_left', 'center_right',
     ];
 
     public const BLOCK_TEMPLATES = [
@@ -638,6 +718,28 @@ class BiolinkBlock extends Model
         }
 
         return $style;
+    }
+
+    /**
+     * Resolve the catalog preset background layer for a block/card style
+     * (Task #5970). Returns ['css' => <rtrimmed preset CSS>, 'opacity' =>
+     * 0..100] when the style names a valid, non-torn catalog preset, or
+     * null otherwise (unknown/torn keys fail closed — no broken CSS).
+     */
+    public static function presetLayer(array $style): ?array
+    {
+        $key = (string) ($style['bg_preset_key'] ?? '');
+        if ($key === '' || \App\Modules\User\Support\BgPresetCatalog::isTorn($key)) {
+            return null;
+        }
+        $css = \App\Modules\User\Support\BgPresetCatalog::css($key);
+        if (!$css) {
+            return null;
+        }
+        $op = $style['bg_preset_opacity'] ?? '';
+        $op = is_numeric($op) ? (int) max(0, min(100, (float) $op)) : 100;
+
+        return ['css' => rtrim($css, "; \t\n\r"), 'opacity' => $op];
     }
 
     public static function buildInlineStyle(array $style): string

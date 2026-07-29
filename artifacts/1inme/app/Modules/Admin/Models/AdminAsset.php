@@ -12,16 +12,66 @@ class AdminAsset extends Model
 {
     protected $fillable = [
         'admin_id', 'original_name', 'filename', 'mime_type',
-        'size_bytes', 'type', 'disk', 'path', 'folder',
+        'size_bytes', 'type', 'width', 'height', 'disk', 'path', 'folder',
         'label', 'description', 'is_public',
     ];
 
     protected $casts = [
         'is_public' => 'boolean',
         'size_bytes' => 'integer',
+        'width' => 'integer',
+        'height' => 'integer',
     ];
 
-    protected $appends = ['url', 'url_path', 'size_human'];
+    protected $appends = ['url', 'url_path', 'size_human', 'dimensions'];
+
+    /**
+     * Read pixel dimensions from an image file on local disk.
+     * Rasters go through getimagesize; SVGs fall back to parsing the
+     * width/height attributes or the viewBox. Returns [null, null] when
+     * the dimensions cannot be determined.
+     *
+     * @return array{0: int|null, 1: int|null}
+     */
+    public static function probeImageDimensions(string $path, ?string $ext = null): array
+    {
+        try {
+            $ext = strtolower((string) ($ext ?? pathinfo($path, PATHINFO_EXTENSION)));
+            if ($ext === 'svg') {
+                $head = (string) @file_get_contents($path, false, null, 0, 8192);
+                if ($head === '' || !preg_match('/<svg\b[^>]*>/is', $head, $tag)) {
+                    return [null, null];
+                }
+                $svg = $tag[0];
+                $w = preg_match('/\bwidth\s*=\s*["\']?([0-9.]+)(?:px)?["\']?/i', $svg, $m) ? (float) $m[1] : null;
+                $h = preg_match('/\bheight\s*=\s*["\']?([0-9.]+)(?:px)?["\']?/i', $svg, $m) ? (float) $m[1] : null;
+                if (($w === null || $h === null)
+                    && preg_match('/\bviewBox\s*=\s*["\']\s*[0-9.+-]+[\s,]+[0-9.+-]+[\s,]+([0-9.]+)[\s,]+([0-9.]+)/i', $svg, $m)) {
+                    $w = $w ?? (float) $m[1];
+                    $h = $h ?? (float) $m[2];
+                }
+                return [
+                    $w !== null && $w > 0 ? (int) round($w) : null,
+                    $h !== null && $h > 0 ? (int) round($h) : null,
+                ];
+            }
+            $info = @getimagesize($path);
+            if (is_array($info) && (int) $info[0] > 0 && (int) $info[1] > 0) {
+                return [(int) $info[0], (int) $info[1]];
+            }
+        } catch (\Throwable $e) {
+            // fall through
+        }
+        return [null, null];
+    }
+
+    public function getDimensionsAttribute(): ?string
+    {
+        if (!$this->width || !$this->height) {
+            return null;
+        }
+        return $this->width . '×' . $this->height;
+    }
 
     /**
      * Detect a coarse file family from the mime so the UI can group / filter.
@@ -215,7 +265,12 @@ class AdminAsset extends Model
         $filename = (string) Str::uuid() . '.' . $ext;
 
         $processed = self::maybeCompressImage($file, $type, $mime, $options);
+        $width = null;
+        $height = null;
         if ($processed !== null) {
+            if ($type === 'image') {
+                [$width, $height] = self::probeImageDimensions($processed, $ext);
+            }
             $stream = fopen($processed, 'rb');
             Storage::disk($disk)->put($base . '/' . $filename, $stream);
             if (is_resource($stream)) {
@@ -225,6 +280,9 @@ class AdminAsset extends Model
             @unlink($processed);
             $storedPath = $base . '/' . $filename;
         } else {
+            if ($type === 'image' && ($src = $file->getRealPath())) {
+                [$width, $height] = self::probeImageDimensions($src, $ext);
+            }
             $storedPath = $file->storeAs($base, $filename, $disk);
         }
 
@@ -235,6 +293,8 @@ class AdminAsset extends Model
             'mime_type'     => $mime,
             'size_bytes'    => $size,
             'type'          => $type,
+            'width'         => $width,
+            'height'        => $height,
             'disk'          => $disk,
             'path'          => $storedPath,
             'folder'        => $folderSegment ?: null,

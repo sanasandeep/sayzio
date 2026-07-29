@@ -117,15 +117,32 @@ class TemplateService
             // applying an unlocked template (or a raw snapshot) releases any
             // previous lock — the new design replaces the locked one.
             if ($template && $template->design_locked) {
-                $settings['biolink']['design_locked'] = [
+                $stamp = [
                     'template_id'   => $template->id,
                     'template_name' => $template->name,
                     'locked_at'     => now()->toIso8601String(),
                     'block_styles'  => $this->snapshotBlockStyles($snapshot),
                 ];
+                // Admin-defined color palettes travel inside the stamp so
+                // the editor's palette picker works without re-reading the
+                // template row (and survives template edits/deletion). The
+                // first palette is the template default and is applied to
+                // the page immediately.
+                $palettes = $template->palettes();
+                if (!empty($palettes)) {
+                    $stamp['palettes'] = $palettes;
+                    $stamp['palette']  = $palettes[0]['key'];
+                    $settings['biolink'] = array_merge($settings['biolink'], $palettes[0]['colors']);
+                }
+                $settings['biolink']['design_locked'] = $stamp;
             } else {
                 unset($settings['biolink']['design_locked']);
             }
+            // Any fresh (replace) apply supersedes a previous detach: the
+            // release stamp only makes sense while the detached design is
+            // still on the page, so clear it to keep the lifecycle
+            // deterministic (re-attach goes through reattachPageToLink).
+            unset($settings['biolink']['design_lock_released']);
 
             $link->settings = $settings;
             $link->save();
@@ -134,6 +151,156 @@ class TemplateService
             $baseSort = $replace ? 0 : ((int) ($link->biolinkBlocks()->whereNull('parent_id')->max('sort_order') ?? -1) + 1);
             foreach ($blocks as $i => $b) {
                 $this->insertBlockTree($link, $b, null, $baseSort + $i, /*stripTabId*/ false);
+            }
+        });
+    }
+
+    /**
+     * Switch a design-locked page to one of the palettes stored in its
+     * design-lock stamp. Applies the palette's color keys onto the biolink
+     * settings and records the selection. Returns false when the key does
+     * not exist in the stamp (no changes made).
+     */
+    public function applyPaletteToLink(Link $link, string $paletteKey): bool
+    {
+        $info = $link->designLockInfo();
+        if (!$info) return false;
+        $palette = collect($info['palettes'] ?? [])
+            ->first(fn ($p) => is_array($p) && ($p['key'] ?? null) === $paletteKey);
+        if (!$palette || !is_array($palette['colors'] ?? null)) return false;
+
+        $settings = $link->settings ?? [];
+        $settings['biolink'] = array_merge((array) ($settings['biolink'] ?? []), $palette['colors']);
+        $settings['biolink']['design_locked']['palette'] = $paletteKey;
+        $link->settings = $settings;
+        $link->save();
+        return true;
+    }
+
+    /**
+     * Re-attach a previously detached page to the same design-locked
+     * template WITHOUT replacing the creator's blocks. Recreates any fixed
+     * template blocks that were deleted while detached, re-pins the fixed
+     * blocks as a contiguous prefix in template order, and reflows the
+     * user's own blocks after them (preserving their relative order). The
+     * design-lock stamp is rebuilt from the template's current snapshot;
+     * the palette selected before detaching is restored when it still
+     * exists on the template.
+     */
+    public function reattachPageToLink(Link $link, \App\Modules\Admin\Models\PageTemplate $template): void
+    {
+        DB::transaction(function () use ($link, $template) {
+            $snapshot = $template->snapshot;
+            $settings = $link->settings ?? [];
+            $released = (array) ($settings['biolink']['design_lock_released'] ?? []);
+
+            // Merge the template's design settings back onto the page,
+            // preserving the same link-specific identity keys as a fresh
+            // apply.
+            $existingBiolink = (array) ($settings['biolink'] ?? []);
+            $tplBiolink = (array) ($snapshot['biolink'] ?? []);
+            $preserveKeys = ['favicon_url', 'custom_branding_text', 'custom_branding_url', 'custom_branding_logo', 'menu_bar'];
+            foreach ($preserveKeys as $k) {
+                if (array_key_exists($k, $existingBiolink) && !array_key_exists($k, $tplBiolink)) {
+                    $tplBiolink[$k] = $existingBiolink[$k];
+                }
+            }
+            $settings['biolink'] = array_merge($existingBiolink, $tplBiolink);
+
+            // Rebuild the design-lock stamp from the template's CURRENT
+            // snapshot (it may have been edited since the original attach).
+            $stamp = [
+                'template_id'   => $template->id,
+                'template_name' => $template->name,
+                'locked_at'     => now()->toIso8601String(),
+                'block_styles'  => $this->snapshotBlockStyles($snapshot),
+            ];
+            $palettes = $template->palettes();
+            if (!empty($palettes)) {
+                $stamp['palettes'] = $palettes;
+                $wanted = (string) ($released['palette'] ?? '');
+                $restore = collect($palettes)->first(fn ($p) => ($p['key'] ?? null) === $wanted) ?: $palettes[0];
+                $stamp['palette'] = $restore['key'];
+                $settings['biolink'] = array_merge($settings['biolink'], (array) ($restore['colors'] ?? []));
+            }
+            $settings['biolink']['design_locked'] = $stamp;
+            unset($settings['biolink']['design_lock_released']);
+            $link->settings = $settings;
+            $link->save();
+
+            // Fixed template blocks, in template order.
+            $fixedSnapshot = array_values(array_filter(
+                (array) ($snapshot['blocks'] ?? []),
+                fn ($b) => is_array($b) && !empty(((array) ($b['settings'] ?? []))['_fixed'] ?? null)
+            ));
+
+            $existing = $link->biolinkBlocks()
+                ->whereNull('parent_id')
+                ->orderBy('sort_order')
+                ->get();
+
+            // Match each fixed snapshot block to a surviving block of the
+            // same type that still carries `_fixed`; consume matches in
+            // order so duplicates pair one-to-one. Missing ones get
+            // recreated from the snapshot.
+            $pool = $existing->filter(fn ($b) => !empty(($b->settings ?? [])['_fixed']))->values()->all();
+            $prefix = [];
+            foreach ($fixedSnapshot as $snap) {
+                $matchIdx = null;
+                foreach ($pool as $idx => $candidate) {
+                    if ($candidate !== null && $candidate->type === ($snap['type'] ?? null)) {
+                        $matchIdx = $idx;
+                        break;
+                    }
+                }
+                if ($matchIdx !== null) {
+                    $prefix[] = $pool[$matchIdx];
+                    $pool[$matchIdx] = null;
+                } else {
+                    // Recreate the missing fixed block from the snapshot
+                    // (sort order fixed up below).
+                    $prefix[] = $this->insertBlockTree($link, $snap, null, 0, /*stripTabId*/ false);
+                }
+            }
+            // Any leftover `_fixed` blocks no longer present in the template
+            // snapshot lose their pin and reflow with the user's blocks.
+            $leftoverFixed = array_values(array_filter($pool));
+            foreach ($leftoverFixed as $b) {
+                $s = $b->settings ?? [];
+                unset($s['_fixed']);
+                $b->settings = $s;
+            }
+
+            $prefixIds = array_map(fn ($b) => $b->id, $prefix);
+            $rest = $existing->filter(fn ($b) => !in_array($b->id, $prefixIds, true))->values();
+
+            $sort = 0;
+            foreach ($prefix as $b) {
+                $b->sort_order = $sort++;
+                $b->save();
+            }
+            foreach ($rest as $b) {
+                $b->sort_order = $sort++;
+                $b->save();
+            }
+
+            // Re-attach re-applies the template's design to EVERY block
+            // (root + children): styling is server-owned while locked, so
+            // any styles the user customized while detached are replaced by
+            // the template's per-type style (falling back to defaults when
+            // the template never styled this type) — mirroring how new
+            // blocks are seeded on a locked page.
+            $styleMap = (array) $stamp['block_styles'];
+            foreach ($link->biolinkBlocks()->get() as $b) {
+                $s = $b->settings ?? [];
+                $s['_style'] = array_merge(
+                    BiolinkBlock::STYLE_DEFAULTS,
+                    \App\Modules\User\Support\BlockDefaults::styleForType($b->type),
+                    (array) ($styleMap[$b->type] ?? [])
+                );
+                unset($s['_style_custom_snapshot']);
+                $b->settings = $s;
+                $b->save();
             }
         });
     }

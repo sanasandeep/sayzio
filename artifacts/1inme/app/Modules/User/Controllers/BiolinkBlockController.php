@@ -316,6 +316,22 @@ class BiolinkBlockController extends Controller
 
         if ($insertAfterId) {
             $afterBlock = BiolinkBlock::where('id', $insertAfterId)->where('link_id', $link->id)->firstOrFail();
+
+            // Design lock: fixed template blocks form a contiguous prefix at
+            // the top of the page, so a root-level insert can never land
+            // inside it. Inserting "after" a fixed block that isn't the last
+            // fixed block is clamped to just after the whole fixed prefix.
+            if ($link->isDesignLocked() && $afterBlock->parent_id === null
+                && !empty(($afterBlock->settings ?? [])['_fixed'])) {
+                $lastFixed = $link->biolinkBlocks()->whereNull('parent_id')
+                    ->orderBy('sort_order')->get()
+                    ->filter(fn ($b) => !empty(($b->settings ?? [])['_fixed']))
+                    ->last();
+                if ($lastFixed && $lastFixed->id !== $afterBlock->id) {
+                    $afterBlock = $lastFixed;
+                }
+            }
+
             $parentId = $afterBlock->parent_id;
             $newSortOrder = $afterBlock->sort_order + 1;
 
@@ -551,6 +567,17 @@ class BiolinkBlockController extends Controller
 
         $settings = $validated['settings'] ?? $block->settings;
         $settings = $this->sanitizeSettings($block->type, $settings);
+
+        // `_fixed` is admin-owned (template design session). Outside a
+        // template draft the submitted value is ignored — carry it over from
+        // the stored settings so users can neither pin nor unpin blocks.
+        if (!is_array(($link->settings ?? [])['_template_draft'] ?? null)) {
+            if (!empty($block->settings['_fixed'])) {
+                $settings['_fixed'] = true;
+            } else {
+                unset($settings['_fixed']);
+            }
+        }
 
         // Clear the `_placeholder` flag only when the caller actually
         // edited a seeded field. Loose equality so nested arrays
@@ -863,6 +890,17 @@ class BiolinkBlockController extends Controller
         return response()->json(['html' => $html]);
     }
 
+    /**
+     * True when the template's fixed-position rules apply to this editor
+     * session: page is design-locked AND this isn't the admin design draft
+     * (the draft must stay fully editable so admins can curate the layout).
+     */
+    private function fixedRulesApply(Link $link): bool
+    {
+        return $link->isDesignLocked()
+            && !is_array(($link->settings ?? [])['_template_draft'] ?? null);
+    }
+
     public function destroy(Link $link, BiolinkBlock $block)
     {
         abort_if($link->user_id !== workspace_owner_id() || $block->link_id !== $link->id, 403);
@@ -871,6 +909,12 @@ class BiolinkBlockController extends Controller
                 return response()->json(['success' => false, 'message' => 'Verified blocks cannot be deleted.'], 403);
             }
             return redirect()->back()->with('error', 'Verified blocks cannot be deleted.');
+        }
+        if ($this->fixedRulesApply($link) && !empty($block->settings['_fixed'])) {
+            if (request()->ajax() || request()->wantsJson()) {
+                return response()->json(['success' => false, 'message' => 'This block is fixed by the template and cannot be removed. Detach from the template to unlock it.'], 403);
+            }
+            return redirect()->back()->with('error', 'This block is fixed by the template and cannot be removed.');
         }
         $this->recordBlockActivity('biolink.block.delete', $link, $block);
         $block->delete();
@@ -900,6 +944,15 @@ class BiolinkBlockController extends Controller
             ->merge($verified->pluck('parent_id')->filter())
             ->unique()
             ->all();
+
+        // Fixed-position template blocks survive "delete all" on
+        // design-locked pages, exactly like verified blocks.
+        if ($this->fixedRulesApply($link)) {
+            $fixedIds = $link->biolinkBlocks()->get(['id', 'settings'])
+                ->filter(fn ($b) => !empty($b->settings['_fixed']))
+                ->pluck('id');
+            $protectedIds = collect($protectedIds)->merge($fixedIds)->unique()->all();
+        }
 
         $deletable = $link->biolinkBlocks()
             ->when($protectedIds, fn ($q) => $q->whereNotIn('id', $protectedIds))
@@ -931,6 +984,31 @@ class BiolinkBlockController extends Controller
             'blocks.*' => 'integer|exists:biolink_blocks,id',
         ]);
 
+        // Fixed-position template blocks must keep their positions: they form
+        // a contiguous prefix in their original relative order, so any
+        // submitted order that moves them (or slots a user block between
+        // them) is rejected wholesale.
+        if ($this->fixedRulesApply($link)) {
+            $fixedIds = $link->biolinkBlocks()->whereNull('parent_id')->orderBy('sort_order')
+                ->get(['id', 'settings'])
+                ->filter(fn ($b) => !empty($b->settings['_fixed']))
+                ->pluck('id')->values()->all();
+            if ($fixedIds) {
+                // Require the fixed blocks as an exact prefix of the
+                // submitted order. Partial payloads that omit them would
+                // still renumber user blocks from 0 and slide them above
+                // the pinned blocks, so they're rejected too.
+                $submitted = array_map('intval', $validated['blocks']);
+                $submittedFixedPrefix = array_slice($submitted, 0, count($fixedIds));
+                if ($submittedFixedPrefix != $fixedIds) {
+                    return response()->json([
+                        'success' => false,
+                        'error' => 'Some blocks are fixed by the template and cannot be moved.',
+                    ], 422);
+                }
+            }
+        }
+
         foreach ($validated['blocks'] as $index => $blockId) {
             BiolinkBlock::where('id', $blockId)
                 ->where('link_id', $link->id)
@@ -943,6 +1021,10 @@ class BiolinkBlockController extends Controller
     public function moveBlock(Request $request, Link $link, BiolinkBlock $block)
     {
         abort_if($link->user_id !== workspace_owner_id() || $block->link_id !== $link->id, 403);
+
+        if ($this->fixedRulesApply($link) && !empty($block->settings['_fixed'])) {
+            return response()->json(['success' => false, 'error' => 'This block is fixed by the template and cannot be moved.'], 403);
+        }
 
         $validated = $request->validate([
             'parent_id' => 'nullable|integer|exists:biolink_blocks,id',
@@ -1029,6 +1111,48 @@ class BiolinkBlockController extends Controller
     }
 
     /**
+     * Admin design-session only: mark a top-level block as fixed-position
+     * (or unfix it). Fixed blocks form a contiguous prefix of the page, so
+     * the toggle cascades: fixing a block also fixes every top-level block
+     * above it; unfixing a block also unfixes every top-level block below
+     * it. Only available on template drafts — the flag is captured into the
+     * template snapshot and enforced on users' design-locked pages.
+     */
+    public function toggleFixed(Request $request, Link $link, BiolinkBlock $block)
+    {
+        abort_if($link->user_id !== workspace_owner_id() || $block->link_id !== $link->id, 403);
+        abort_unless(is_array(($link->settings ?? [])['_template_draft'] ?? null), 403, 'Fixed blocks can only be set inside a template design session.');
+        abort_if($block->parent_id !== null, 422, 'Only top-level blocks can be fixed.');
+
+        $fixed = filter_var($request->input('fixed'), FILTER_VALIDATE_BOOL);
+
+        $targets = $link->biolinkBlocks()
+            ->whereNull('parent_id')
+            ->when($fixed,
+                fn ($q) => $q->where('sort_order', '<=', $block->sort_order),
+                fn ($q) => $q->where('sort_order', '>=', $block->sort_order))
+            ->get();
+
+        $changedIds = [];
+        foreach ($targets as $t) {
+            $s = $t->settings ?? [];
+            $was = !empty($s['_fixed']);
+            if ($fixed) { $s['_fixed'] = true; } else { unset($s['_fixed']); }
+            if ($was !== $fixed) {
+                $t->settings = $s;
+                $t->save();
+                $changedIds[] = $t->id;
+            }
+        }
+
+        return response()->json([
+            'success' => true,
+            'fixed' => $fixed,
+            'changed_ids' => $changedIds,
+        ]);
+    }
+
+    /**
      * Cache an in-progress page-settings form snapshot so the device-preview
      * iframe can render the unsaved edits without the owner having to click
      * "Save Settings" first. The cached overrides are scoped to the link and
@@ -1086,9 +1210,12 @@ class BiolinkBlockController extends Controller
         'gradient_colors', 'gradient_angle', 'gradient_type', 'gradient_preset_id',
         'slideshow_interval', 'video_url', 'bg_template_id', 'bg_attachment',
         'bg_fallback_color', 'bg_blur', 'bg_overlay_color', 'bg_overlay_opacity',
+        'bg_preset_opacity',
+        'torn_paper_color',
         'font_family', 'font_color', 'button_style', 'button_color', 'button_text_color',
         'custom_branding_text', 'custom_branding_url', 'custom_branding_logo',
         'custom_css', 'custom_js_head', 'custom_js_body',
+        'stickers',
     ];
 
     public function updatePageSettings(Request $request, Link $link)
@@ -1098,7 +1225,7 @@ class BiolinkBlockController extends Controller
         $validated = $request->validate([
             'biolink_title' => 'nullable|string|max:100',
             'biolink_description' => 'nullable|string|max:500',
-            'background_type' => 'nullable|string|in:color,gradient,image,slideshow,video,template,preset',
+            'background_type' => 'nullable|string|in:color,gradient,image,slideshow,video,template,preset,torn',
             // CSS background preset key from BgPresetCatalog. Only stored when
             // background_type === 'preset'; the public renderer resolves CSS from the
             // catalog server-side, so raw CSS is never accepted from the client.
@@ -1112,6 +1239,21 @@ class BiolinkBlockController extends Controller
             'background_color' => ['nullable','string','max:20','regex:/^#[0-9a-fA-F]{3,8}$/'],
             'background_gradient' => 'nullable|string|max:500',
             'background_image' => \App\Services\UploadPolicy::rule('link.background_image', $request->user()),
+            // Platform gallery pick (Task #6015): S3 object key from the
+            // curated `assets/biolink-backgrounds/` folder. Validated by
+            // prefix + safe filename (no S3 round-trip); resolved to the
+            // public CDN URL below. Available on every plan.
+            'background_image_asset' => ['nullable', 'string', 'max:300',
+                function ($attribute, $value, $fail) {
+                    if ($value && !\App\Modules\User\Support\PlatformAssetCatalog::isValidKey('biolink-backgrounds', $value)) {
+                        $fail('The selected gallery background is not valid.');
+                    }
+                }
+            ],
+            // Torn-paper composite: backdrop photo visible beyond the jagged
+            // torn edge of a solid paper sheet.
+            'torn_image' => \App\Services\UploadPolicy::rule('link.background_image', $request->user()),
+            'torn_paper_color' => ['nullable','string','max:20','regex:/^#[0-9a-fA-F]{3,8}$/'],
             'gradient_colors' => 'nullable|string|max:2000',
             'gradient_angle' => 'nullable|integer|min:0|max:360',
             'gradient_type' => 'nullable|string|in:linear,radial,conic',
@@ -1131,6 +1273,9 @@ class BiolinkBlockController extends Controller
             'bg_blur' => 'nullable|integer|min:0|max:100',
             'bg_overlay_color' => ['nullable','string','max:20','regex:/^#[0-9a-fA-F]{3,8}$/'],
             'bg_overlay_opacity' => 'nullable|integer|min:0|max:100',
+            // Transparency of the page preset background itself (Task #5970),
+            // distinct from the overlay opacity above. 100 = fully opaque.
+            'bg_preset_opacity' => 'nullable|integer|min:0|max:100',
             'font_family' => 'nullable|string|max:100',
             'font_color' => ['nullable','string','max:20','regex:/^#[0-9a-fA-F]{3,8}$/'],
             'button_style' => 'nullable|string|in:rounded,pill,square,outline,shadow',
@@ -1211,6 +1356,12 @@ class BiolinkBlockController extends Controller
             'menu_bar.overlay_bg' => ['nullable','string','max:20','regex:/^#[0-9a-fA-F]{3,8}$/'],
             'menu_bar.items' => 'nullable|string|max:5000',
 
+            // Free-floating page-level text overlays (Task #5954). The
+            // editor submits a JSON string; entries are validated field by
+            // field in sanitizeTextOverlays() and capped at
+            // PAGE_TEXT_OVERLAY_MAX.
+            'text_overlays' => 'nullable|string|max:8000',
+
             'auto_translate' => 'nullable|array',
             'auto_translate.enabled' => 'boolean',
             'auto_translate.position' => 'nullable|string|in:top-right,top-left,bottom-right,bottom-left',
@@ -1242,6 +1393,11 @@ class BiolinkBlockController extends Controller
             'privacy.consent_banner_text'        => 'nullable|string|max:500',
             'privacy.consent_accept_label'       => 'nullable|string|max:40',
             'privacy.consent_decline_label'      => 'nullable|string|max:40',
+
+            // Page stickers — JSON array of decorative emoji/image items,
+            // serialized by the editor into a hidden input. Decoded and
+            // bounded server-side by BiolinkStickers::sanitize().
+            'stickers_json' => 'nullable|string|max:20000',
         ]);
 
         $user = auth()->user();
@@ -1261,7 +1417,7 @@ class BiolinkBlockController extends Controller
         $slideshowFiles = $request->file('slideshow_images');
         $videoFile = $request->file('video_file');
         $fallbackImageFile = $request->file('bg_fallback_image');
-        unset($validated['block_theme'], $validated['layout'], $validated['meta'], $validated['og'], $validated['twitter'], $validated['favicons'], $validated['manifest'], $validated['share_button'], $validated['menu_bar'], $validated['auto_translate'], $validated['og_image_upload'], $validated['apple_touch_upload'], $validated['icon_512_upload'], $validated['slideshow_images'], $validated['video_file'], $validated['bg_fallback_image']);
+        unset($validated['block_theme'], $validated['layout'], $validated['meta'], $validated['og'], $validated['twitter'], $validated['favicons'], $validated['manifest'], $validated['share_button'], $validated['menu_bar'], $validated['auto_translate'], $validated['og_image_upload'], $validated['apple_touch_upload'], $validated['icon_512_upload'], $validated['slideshow_images'], $validated['video_file'], $validated['bg_fallback_image'], $validated['torn_image']);
 
         // Design lock: strip every design surface from the save — background,
         // typography, buttons, block theme, layout, custom branding/CSS/JS and
@@ -1277,6 +1433,8 @@ class BiolinkBlockController extends Controller
             $videoFile = null;
             $fallbackImageFile = null;
             $request->files->remove('background_image');
+            unset($validated['background_image_asset']);
+            $request->files->remove('torn_image');
             $request->files->remove('slideshow_images');
             $request->files->remove('video_file');
             $request->files->remove('bg_fallback_image');
@@ -1320,6 +1478,24 @@ class BiolinkBlockController extends Controller
                 'enabled'  => !empty($autoUtmInput['enabled']),
                 'defaults' => $cleanDefaults,
             ];
+        }
+
+        // Page stickers: decode + bound the JSON payload and REPLACE the
+        // whole list (never merge) so deletions/reorders stick. Stickers are
+        // a design surface, so design-locked pages skip the write entirely.
+        $stickersJson = $validated['stickers_json'] ?? null;
+        unset($validated['stickers_json']);
+        if ($request->has('stickers_json') && !$link->isDesignLocked()) {
+            $settings['biolink']['stickers'] = \App\Modules\User\Support\BiolinkStickers::sanitize($stickersJson ?? '[]');
+        }
+
+        // Page-level text overlays are a design surface: sanitize the JSON
+        // payload into a bounded array (never store the raw string) and
+        // respect the design lock like every other design key.
+        $textOverlaysInput = $validated['text_overlays'] ?? null;
+        unset($validated['text_overlays']);
+        if ($request->has('text_overlays') && !$link->isDesignLocked()) {
+            $settings['biolink']['text_overlays'] = $this->sanitizeTextOverlays($textOverlaysInput);
         }
 
         $settings['biolink'] = array_merge($settings['biolink'] ?? [], $validated);
@@ -1485,6 +1661,16 @@ class BiolinkBlockController extends Controller
 
         if ($request->hasFile('background_image')) {
             $settings['biolink']['background_image'] = $vault($request->file('background_image'), ['max_width' => 1920, 'max_height' => 1920]);
+        } elseif (!empty($validated['background_image_asset'])) {
+            // Platform gallery pick — store the public CDN URL directly.
+            // No copy into the user's vault: platform assets never count
+            // against user storage.
+            $settings['biolink']['background_image'] = \App\Modules\User\Support\PlatformAssetCatalog::urlForKey($validated['background_image_asset']);
+        }
+        unset($validated['background_image_asset']);
+
+        if ($request->hasFile('torn_image')) {
+            $settings['biolink']['torn_image'] = $vault($request->file('torn_image'), ['max_width' => 1920, 'max_height' => 1920]);
         }
 
         if (!empty($validated['gradient_colors'])) {
@@ -1729,6 +1915,18 @@ class BiolinkBlockController extends Controller
             $settings['stack_mobile'] = (bool) ($settings['stack_mobile'] ?? false);
         }
 
+        // Container blocks: the per-container item gap is optional. An empty
+        // input means "follow the page-wide block gap" (drop the key); an
+        // explicit value — including 0 for flush tiles — is clamped.
+        if (in_array($type, BiolinkBlock::CONTAINER_TYPES, true)) {
+            $gapRaw = $settings['gap'] ?? '';
+            if ($gapRaw === '' || $gapRaw === null) {
+                unset($settings['gap']);
+            } else {
+                $settings['gap'] = max(0, min(100, (int) $gapRaw));
+            }
+        }
+
         // Product blocks (Task #1761): when native checkout is enabled we
         // need an authoritative numeric price + a constrained product type
         // and currency. The display `price` string is kept for rendering.
@@ -1904,6 +2102,17 @@ class BiolinkBlockController extends Controller
             $settings['_link'] = $this->sanitizeLinkSettings($settings['_link']);
         }
 
+        // Fixed-position marker set by admins in the template design
+        // session. Normalize to a real boolean; drop when falsy so plain
+        // user blocks never carry the key.
+        if (array_key_exists('_fixed', $settings)) {
+            if (filter_var($settings['_fixed'], FILTER_VALIDATE_BOOL)) {
+                $settings['_fixed'] = true;
+            } else {
+                unset($settings['_fixed']);
+            }
+        }
+
         if (isset($settings['_tab_id'])) {
             $tid = trim((string)$settings['_tab_id']);
             $settings['_tab_id'] = preg_match('/^[a-z0-9\-]{1,50}$/i', $tid) ? $tid : '';
@@ -1990,11 +2199,16 @@ class BiolinkBlockController extends Controller
             // ('plain_text' / 'image_cover') will ever be persisted —
             // which is exactly what we want.
             'link_layout' => [
-                'plain_text', 'image_cover', 'action_row',
+                'plain_text', 'image_cover', 'action_row', 'text_divider',
                 'icon_left', 'icon_right', 'icon_both', 'icon_only',
                 'icon_circle_left', 'icon_circle_right', 'icon_box',
                 'image_left', 'image_right', 'image_top',
+                'image_overhang_top', 'image_overhang_left',
                 'image_icon_rounded', 'image_icon_square', 'image_icon_circle',
+                'title_desc_row', 'image_cover_square',
+                'taped_note',
+                'arrow_hex', 'numbered_list', 'side_accent_tab',
+                'icon_top', 'offset_frame', 'torn_tape',
             ],
         ];
         $numericBounds = [
@@ -2021,8 +2235,29 @@ class BiolinkBlockController extends Controller
             'stack_mobile' => [0, 1],
             'grid_span_md' => [1, 12],
             'grid_row_span_md' => [1, 6],
+            // Block/card preset background transparency (Task #5970).
+            'bg_preset_opacity' => [0, 100],
         ];
-        $colorKeys = ['text_color', 'bg_color', 'border_color', 'shadow_color'];
+        // Decorative avatar frame for profile cards (Task #5910). Strict
+        // enum from the catalog — unknown keys are silently dropped so a
+        // bad value can never break the public page.
+        $enums['_avatar_frame'] = \App\Modules\User\Support\AvatarFrameCatalog::keys();
+        // Hero-photo decorations for image blocks (Task #5922).
+        $enums['_photo_mask'] = ['arch', 'torn'];
+        $enums['_photo_frame'] = ['concentric_arch'];
+        $numericBounds['_photo_frame_strokes'] = [2, 5];
+        // Text-block tilt in degrees (Task #5954) — clamped so a tilted
+        // heading/paragraph can never rotate off the page.
+        $numericBounds['_tilt'] = [BiolinkBlock::TILT_MIN, BiolinkBlock::TILT_MAX];
+        // Heading shape accents (Task #5938) — strict enums; the shape
+        // token list shares the accent branch below with `_photo_accents`.
+        $enums['_heading_accent_placement'] = \App\Modules\User\Support\AccentShapeCatalog::HEADING_PLACEMENTS;
+        $enums['_heading_accent_size'] = \App\Modules\User\Support\AccentShapeCatalog::HEADING_SIZES;
+        $colorKeys = [
+            'text_color', 'bg_color', 'border_color', 'shadow_color', '_avatar_frame_color',
+            '_photo_frame_color', '_photo_banner_bg', '_photo_banner_text_color', '_photo_accent_color',
+            '_heading_accent_color',
+        ];
         $fontWeightKeys = ['font_weight'];
         $fontFamilyKeys = ['font_family'];
         $urlKeys = ['bg_image'];
@@ -2037,6 +2272,10 @@ class BiolinkBlockController extends Controller
                 if (in_array($val, $enums[$key], true)) $result[$key] = $val;
             } elseif (isset($numericBounds[$key])) {
                 if (is_numeric($val)) {
+                    // 0° tilt means "level" — the range input always submits
+                    // a value, so drop the default instead of stamping
+                    // `_tilt: 0` onto every heading/paragraph save.
+                    if ($key === '_tilt' && (float) $val === 0.0) continue;
                     $result[$key] = max($numericBounds[$key][0], min($numericBounds[$key][1], (float) $val));
                 }
             } elseif (in_array($key, $colorKeys, true)) {
@@ -2066,6 +2305,19 @@ class BiolinkBlockController extends Controller
                 if (filter_var($val, FILTER_VALIDATE_URL) && preg_match('/^https?:\/\//', $val)) {
                     $result[$key] = substr($val, 0, 500);
                 }
+            } elseif ($key === 'bg_preset_key') {
+                // Catalog preset background for blocks & card containers
+                // (Task #5970). Only real, non-torn catalog keys persist —
+                // torn composites need full-page layers and are excluded at
+                // block level. Unknown keys are silently dropped so a bad
+                // value can never emit broken CSS on the public page.
+                $safe = preg_replace('/[^a-z0-9_]/', '', substr((string) $val, 0, 60));
+                if ($safe !== ''
+                    && \App\Modules\User\Support\BgPresetCatalog::findByKey($safe)
+                    && !\App\Modules\User\Support\BgPresetCatalog::isTorn($safe)
+                ) {
+                    $result[$key] = $safe;
+                }
             } elseif ($key === '_template') {
                 $validTemplates = array_keys(BiolinkBlock::BLOCK_TEMPLATES);
                 if (in_array($val, $validTemplates, true)) {
@@ -2081,6 +2333,36 @@ class BiolinkBlockController extends Controller
             } elseif ($key === '_variant_version') {
                 $n = (int) $val;
                 if ($n >= 0 && $n < 100000) $result[$key] = $n;
+            } elseif ($key === '_photo_banner_text') {
+                // Plain-text banner label — strip tags, collapse whitespace,
+                // hard cap the length. Rendered through Blade's {{ }} so it
+                // is escaped again on output.
+                $safe = trim(preg_replace('/\s+/', ' ', strip_tags((string) $val)) ?? '');
+                if ($safe !== '') $result[$key] = mb_substr($safe, 0, 60);
+            } elseif (in_array($key, ['_photo_accents', '_heading_accents'], true)) {
+                // Comma-separated accent-shape tokens; unknown tokens are
+                // dropped, order preserved, duplicates removed. Allowlist
+                // comes from the shared AccentShapeCatalog.
+                $raw = is_array($val) ? implode(',', array_map('strval', $val)) : (string) $val;
+                $tokens = \App\Modules\User\Support\AccentShapeCatalog::parseTokens($raw);
+                if (!empty($tokens)) $result[$key] = implode(',', $tokens);
+            } elseif ($key === '_photo_stickers') {
+                // Custom sticker overlays (Task #5939). The editor submits a
+                // JSON string; templates/variants may carry a plain array.
+                // Every entry must reference an image file OWNED by the
+                // current workspace owner — foreign/missing/non-image refs
+                // fail closed (the entry is dropped, never an error). The
+                // public `url` is re-derived server-side from the file row
+                // so a tampered client URL can never be persisted.
+                $clean = \App\Modules\User\Support\PhotoStickerSanitizer::sanitize($val);
+                if ($clean !== []) $result[$key] = $clean;
+            } elseif ($key === '_photo_text_stickers') {
+                // Text overlays on image blocks (Task #5954). JSON string
+                // from the editor or plain array from templates/variants;
+                // every field is validated + clamped, invalid entries are
+                // dropped silently.
+                $clean = $this->sanitizePhotoTextStickers($val);
+                if ($clean !== []) $result[$key] = $clean;
             } elseif (in_array($key, ['_animation', '_gallery_layout', '_social_set', '_profile_layout'], true)) {
                 // Opaque slug-shaped variant metadata hooks (Task #1041).
                 // The renderer is free to ignore unknown values; we only
@@ -2091,6 +2373,157 @@ class BiolinkBlockController extends Controller
             }
         }
         return $result;
+    }
+
+    /**
+     * Task #5939 — validate custom sticker overlay entries for image
+     * blocks. Accepts a JSON string (editor hidden input) or an array
+     * (templates/variants). Every surviving entry references an image
+     * file owned by the current workspace owner; anything else fails
+     * closed (dropped silently). The public `url` is always re-derived
+     * from the file row, never trusted from the client — the persisted
+     * `/f/{id}/{filename}` string is what authorizes anonymous serving
+     * via UserFile::isReferencedByPublicRecord().
+     */
+    private function sanitizePhotoStickers(mixed $raw): array
+    {
+        $list = is_array($raw) ? $raw : json_decode((string) $raw, true);
+        if (!is_array($list) || $list === []) return [];
+
+        $ownerId = (int) (workspace_owner_id() ?? 0);
+        if ($ownerId <= 0) return [];
+
+        $ids = [];
+        foreach ($list as $entry) {
+            if (is_array($entry) && (int) ($entry['file_id'] ?? 0) > 0) {
+                $ids[] = (int) $entry['file_id'];
+            }
+        }
+        if ($ids === []) return [];
+
+        $files = \App\Modules\User\Models\UserFile::whereIn('id', array_unique($ids))
+            ->where('user_id', $ownerId)
+            ->where('type', 'image')
+            ->where('scan_status', '!=', 'flagged')
+            ->get()
+            ->keyBy('id');
+
+        $clean = [];
+        foreach ($list as $entry) {
+            if (!is_array($entry)) continue;
+            $fileId = (int) ($entry['file_id'] ?? 0);
+            $file = $files->get($fileId);
+            if (!$file) continue; // foreign / missing / non-image / flagged → fail closed
+
+            $pos = (string) ($entry['pos'] ?? 'top_right');
+            if (!in_array($pos, BiolinkBlock::PHOTO_STICKER_POSITIONS, true)) $pos = 'top_right';
+
+            $clean[] = [
+                'file_id' => $fileId,
+                'url'     => $file->url_path,
+                'pos'     => $pos,
+                'size'    => max(24, min(160, (int) ($entry['size'] ?? 64))),
+                'rotate'  => max(-180, min(180, (int) ($entry['rotate'] ?? 0))),
+                'dx'      => max(-80, min(80, (int) ($entry['dx'] ?? 0))),
+                'dy'      => max(-80, min(80, (int) ($entry['dy'] ?? 0))),
+            ];
+            if (count($clean) >= BiolinkBlock::PHOTO_STICKER_MAX) break;
+        }
+
+        return $clean;
+    }
+
+    /**
+     * Task #5954 — validate text overlay entries for image blocks.
+     * Accepts a JSON string (editor hidden input) or an array
+     * (templates/variants). Text is plain-text only (tags stripped,
+     * length capped); fonts pass the same character allowlist as
+     * per-block `font_family`; colors must match the strict color
+     * regex; every numeric field is clamped. Invalid entries are
+     * dropped silently — the sanitizer never errors.
+     */
+    private function sanitizePhotoTextStickers(mixed $raw): array
+    {
+        $list = is_array($raw) ? $raw : json_decode((string) $raw, true);
+        if (!is_array($list) || $list === []) return [];
+
+        $clean = [];
+        foreach ($list as $entry) {
+            if (!is_array($entry)) continue;
+
+            $text = trim(preg_replace('/\s+/', ' ', strip_tags((string) ($entry['text'] ?? ''))) ?? '');
+            if ($text === '') continue; // text is the one required field
+            $text = mb_substr($text, 0, 80);
+
+            $font = '';
+            if (!empty($entry['font'])) {
+                // Same allowlist as font_family: letters/digits/spaces plus
+                // the "custom:" prefix delimiter — safe inside a CSS
+                // font-family declaration.
+                $font = trim((string) preg_replace('/[^a-zA-Z0-9 :_\-]/', '', substr((string) $entry['font'], 0, 80)));
+            }
+
+            $color = (string) ($entry['color'] ?? '');
+            if (!preg_match('/^#[0-9a-fA-F]{3,8}$/', $color)) $color = '#ffffff';
+
+            $pos = (string) ($entry['pos'] ?? 'top_right');
+            if (!in_array($pos, BiolinkBlock::PHOTO_STICKER_POSITIONS, true)) $pos = 'top_right';
+
+            $clean[] = [
+                'text'   => $text,
+                'font'   => $font,
+                'color'  => $color,
+                'pos'    => $pos,
+                'size'   => max(10, min(64, (int) ($entry['size'] ?? 20))),
+                'rotate' => max(-180, min(180, (int) ($entry['rotate'] ?? 0))),
+                'dx'     => max(-80, min(80, (int) ($entry['dx'] ?? 0))),
+                'dy'     => max(-80, min(80, (int) ($entry['dy'] ?? 0))),
+            ];
+            if (count($clean) >= BiolinkBlock::PHOTO_TEXT_STICKER_MAX) break;
+        }
+
+        return $clean;
+    }
+
+    /**
+     * Task #5954 — validate free-floating page-level text overlays.
+     * Position is percentage-based ({x,y} in 0..100 of the page column)
+     * so the same entry lands proportionally on any screen width.
+     */
+    private function sanitizeTextOverlays(mixed $raw): array
+    {
+        $list = is_array($raw) ? $raw : json_decode((string) $raw, true);
+        if (!is_array($list) || $list === []) return [];
+
+        $clean = [];
+        foreach ($list as $entry) {
+            if (!is_array($entry)) continue;
+
+            $text = trim(preg_replace('/\s+/', ' ', strip_tags((string) ($entry['text'] ?? ''))) ?? '');
+            if ($text === '') continue;
+            $text = mb_substr($text, 0, 120);
+
+            $font = '';
+            if (!empty($entry['font'])) {
+                $font = trim((string) preg_replace('/[^a-zA-Z0-9 :_\-]/', '', substr((string) $entry['font'], 0, 80)));
+            }
+
+            $color = (string) ($entry['color'] ?? '');
+            if (!preg_match('/^#[0-9a-fA-F]{3,8}$/', $color)) $color = '#ffffff';
+
+            $clean[] = [
+                'text'   => $text,
+                'font'   => $font,
+                'color'  => $color,
+                'size'   => max(10, min(72, (int) ($entry['size'] ?? 22))),
+                'x'      => max(0, min(100, round((float) ($entry['x'] ?? 50), 2))),
+                'y'      => max(0, min(100, round((float) ($entry['y'] ?? 10), 2))),
+                'rotate' => max(-180, min(180, (int) ($entry['rotate'] ?? 0))),
+            ];
+            if (count($clean) >= BiolinkBlock::PAGE_TEXT_OVERLAY_MAX) break;
+        }
+
+        return $clean;
     }
 
     private function sanitizeImageStyle(array $input): array

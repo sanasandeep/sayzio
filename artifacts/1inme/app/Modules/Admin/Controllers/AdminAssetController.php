@@ -3,8 +3,10 @@
 namespace App\Modules\Admin\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Jobs\ProcessAdminAssetZipImportJob;
 use App\Modules\Admin\Models\AdminAsset;
 use App\Modules\Admin\Models\AdminAssetFolder;
+use App\Modules\Admin\Models\AdminAssetImport;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -114,6 +116,48 @@ class AdminAssetController extends Controller
         return response()->json(['success' => true, 'asset' => $asset->fresh()]);
     }
 
+    /**
+     * Bulk edit label / description / folder on a set of assets. Each field
+     * is only touched when its matching apply_* flag is set, so admins can
+     * e.g. re-folder a selection without wiping labels.
+     */
+    public function bulkUpdate(Request $request)
+    {
+        $request->validate([
+            'ids'               => 'required|array|min:1|max:500',
+            'ids.*'             => 'integer',
+            'apply_label'       => 'nullable|boolean',
+            'apply_description' => 'nullable|boolean',
+            'apply_folder'      => 'nullable|boolean',
+            'label'             => 'nullable|string|max:200',
+            'description'       => 'nullable|string|max:2000',
+            'folder'            => 'nullable|string|max:140',
+        ]);
+
+        $attrs = [];
+        if ($request->boolean('apply_label')) {
+            $attrs['label'] = trim((string) $request->input('label')) ?: null;
+        }
+        if ($request->boolean('apply_description')) {
+            $attrs['description'] = trim((string) $request->input('description')) ?: null;
+        }
+        if ($request->boolean('apply_folder')) {
+            $attrs['folder'] = $this->resolveFolderSlug($request->input('folder'));
+        }
+
+        if ($attrs === []) {
+            return response()->json(['success' => false, 'error' => 'Pick at least one field to apply.'], 422);
+        }
+
+        $updated = AdminAsset::whereIn('id', $request->input('ids'))->update($attrs);
+
+        return response()->json([
+            'success' => true,
+            'updated' => $updated,
+            'folders' => $this->folderList(),
+        ]);
+    }
+
     public function move(Request $request, AdminAsset $asset)
     {
         $request->validate([
@@ -127,6 +171,157 @@ class AdminAssetController extends Controller
     {
         $asset->deleteFile();
         return response()->json(['success' => true, 'storage' => $this->storageInfo(), 'folders' => $this->folderList()]);
+    }
+
+    /* ============ Zip import ============ */
+
+    /**
+     * Kick off a background zip import: either a direct zip upload (small
+     * archives, bounded by PHP upload limits) or a URL / s3://bucket/key
+     * location for the large-file path. Only one import may run at a time.
+     */
+    public function importZip(Request $request)
+    {
+        $request->validate([
+            'file'       => 'nullable|file',
+            'source_url' => 'nullable|string|max:2000',
+            'mode'       => 'nullable|in:skip,overwrite',
+        ]);
+
+        $file = $request->file('file');
+        $url  = trim((string) $request->input('source_url', ''));
+
+        if (!$file && $url === '') {
+            return response()->json(['success' => false, 'error' => 'Upload a zip file or provide a URL / S3 location.'], 422);
+        }
+
+        // Reap imports whose worker died mid-run (deploy restart, OOM) so a
+        // stuck "processing" row can never lock out imports forever.
+        AdminAssetImport::failStale();
+
+        if (AdminAssetImport::query()->whereIn('status', ['pending', 'downloading', 'processing'])->exists()) {
+            return response()->json(['success' => false, 'error' => 'Another import is already running. Wait for it to finish first.'], 422);
+        }
+
+        $adminId = optional($request->user('admin') ?: $request->user())->id;
+        $mode    = $request->input('mode', 'skip');
+
+        if ($file) {
+            $ext  = strtolower($file->getClientOriginalExtension());
+            $mime = (string) $file->getMimeType();
+            if ($ext !== 'zip' && !in_array($mime, ['application/zip', 'application/x-zip-compressed'], true)) {
+                return response()->json(['success' => false, 'error' => 'The uploaded file must be a .zip archive.'], 422);
+            }
+            if ((int) $file->getSize() > ProcessAdminAssetZipImportJob::MAX_ZIP_BYTES) {
+                return response()->json(['success' => false, 'error' => 'Archive exceeds the 4 GB import limit.'], 422);
+            }
+
+            $dir = storage_path('app/asset-imports');
+            if (!is_dir($dir)) @mkdir($dir, 0775, true);
+            $tmpName = 'import-' . Str::random(16) . '.zip';
+            $file->move($dir, $tmpName);
+
+            $import = AdminAssetImport::create([
+                'admin_id'    => $adminId,
+                'status'      => 'pending',
+                'source_type' => 'upload',
+                'source'      => $file->getClientOriginalName(),
+                'mode'        => $mode,
+                'zip_path'    => $dir . '/' . $tmpName,
+            ]);
+        } else {
+            if (!str_starts_with($url, 's3://') && !preg_match('#^https?://#i', $url)) {
+                return response()->json(['success' => false, 'error' => 'Provide an http(s) URL or an s3://bucket/key location.'], 422);
+            }
+            $import = AdminAssetImport::create([
+                'admin_id'    => $adminId,
+                'status'      => 'pending',
+                'source_type' => 'url',
+                'source'      => $url,
+                'mode'        => $mode,
+            ]);
+        }
+
+        ProcessAdminAssetZipImportJob::dispatch($import->id);
+
+        return response()->json(['success' => true, 'import' => $import]);
+    }
+
+    /**
+     * Retry a failed zip import. Only URL / S3-sourced imports can be
+     * retried — the uploaded temp zip is always cleaned up when a run ends,
+     * so upload-sourced failures require a fresh upload. Because storage
+     * paths are deterministic (sha1 of the entry's archive path), a retry
+     * is idempotent: already-imported entries are skipped or overwritten
+     * per the original mode, so the run effectively resumes where it stopped.
+     */
+    public function retryImport(Request $request, AdminAssetImport $import)
+    {
+        if ($import->status !== 'failed') {
+            return response()->json(['success' => false, 'error' => 'Only failed imports can be retried.'], 422);
+        }
+        if ($import->source_type !== 'url') {
+            return response()->json(['success' => false, 'error' => 'The uploaded zip file was removed after the run, so this import cannot be retried. Please re-upload the archive.'], 422);
+        }
+        if (AdminAssetImport::query()->whereIn('status', ['pending', 'downloading', 'processing'])->exists()) {
+            return response()->json(['success' => false, 'error' => 'Another import is already running. Wait for it to finish first.'], 422);
+        }
+
+        $retry = AdminAssetImport::create([
+            'admin_id'    => optional($request->user('admin') ?: $request->user())->id ?? $import->admin_id,
+            'status'      => 'pending',
+            'source_type' => $import->source_type,
+            'source'      => $import->source,
+            'mode'        => $import->mode,
+        ]);
+
+        ProcessAdminAssetZipImportJob::dispatch($retry->id);
+
+        return response()->json(['success' => true, 'import' => $retry]);
+    }
+
+    /** Poll endpoint: the active import (if any) plus the latest finished ones. */
+    public function imports()
+    {
+        AdminAssetImport::failStale();
+
+        $imports = AdminAssetImport::query()
+            ->orderByDesc('id')
+            ->limit(5)
+            ->get()
+            ->makeHidden(['zip_path']);
+
+        return response()->json([
+            'success' => true,
+            'imports' => $imports,
+            'active'  => $imports->first(fn ($i) => $i->isActive()) !== null,
+        ]);
+    }
+
+    /**
+     * Admin escape hatch: cancel an active import so it stops blocking new
+     * imports. Marks the row failed; a still-running job checks the status
+     * before each entry via fresh reads, but even a truly dead job is
+     * unblocked immediately.
+     */
+    public function cancelImport(AdminAssetImport $import)
+    {
+        if (!$import->isActive()) {
+            return response()->json(['success' => false, 'error' => 'This import is not running.'], 422);
+        }
+
+        $import->forceFill([
+            'status'       => 'failed',
+            'error'        => 'Cancelled by an administrator.',
+            'completed_at' => now(),
+        ])->save();
+
+        if ($import->zip_path && is_file($import->zip_path)) {
+            @unlink($import->zip_path);
+            $import->forceFill(['zip_path' => null])->save();
+        }
+
+        return response()->json(['success' => true, 'import' => $import->fresh()->makeHidden(['zip_path'])]);
     }
 
     /* ============ Folder management ============ */

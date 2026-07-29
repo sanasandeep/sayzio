@@ -20,6 +20,141 @@ author = "agent"
 task = "workflow.run"
 args = "e2e-block-defaults"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "heading-accents-test"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-image-sticker-drag-place"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-photo-stickers"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "bg-preset-tests"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "block-bg-live-preview-e2e"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "blk-bgop-e2e"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-blk-bgsw"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "zipimport-tests"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "stock-image-real-api-e2e"
+
+[[workflows.workflow]]
+name = "heading-accents-test"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd artifacts/1inme && TEST_LOCAL_MODE=artisan bash scripts/test-local.sh --filter=HeadingAccentDecorationsTest"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-image-sticker-drag-place"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "bash artifacts/1inme/tests/Browser/run-validation.sh image-sticker-drag-place.spec.ts"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-photo-stickers"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "bash artifacts/1inme/tests/Browser/run-validation.sh biolink-photo-stickers.spec.ts"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "bg-preset-tests"
+author = "agent"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd artifacts/1inme && TEST_LOCAL_MODE=artisan bash scripts/test-local.sh --filter=BiolinkBgPresetSaveTest"
+
+[[workflows.workflow]]
+name = "block-bg-live-preview-e2e"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd artifacts/1inme-mobile && APP_URL=\"https://$REPLIT_EXPO_DEV_DOMAIN\" node scripts/test-block-bg-opacity-live-preview-e2e.mjs"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "blk-bgop-e2e"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd artifacts/1inme && bash tests/Browser/run-validation.sh biolink-block-bg-preset-opacity-live.spec.ts"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-blk-bgsw"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "bash artifacts/1inme/tests/Browser/run-validation.sh biolink-block-bg-preset-swatch-live.spec.ts"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "zipimport-tests"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd artifacts/1inme && TEST_LOCAL_MODE=artisan bash scripts/test-local.sh --filter=AdminAssetZipImportTest"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "stock-image-real-api-e2e"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd /home/runner/workspace/artifacts/1inme-mobile && node scripts/test-stock-image-real-api-e2e.mjs"
+
+[workflows.workflow.metadata]
+isValidation = true
+
 
   [agent]
 stack = "PNPM_WORKSPACE"
@@ -40,7 +175,7 @@ AWS_DEFAULT_REGION = "ap-south-2"
 AWS_URL = "https://d3l7wvr1shk1cg.cloudfront.net"
 AWS_USE_PATH_STYLE_ENDPOINT = "true"
 USER_CONTENT_DISK = "s3"
-CONTACT_ADMIN_TOKEN = "secret stripped"
+CONTACT_ADMIN_TOKEN = ""
 APP_NAME = "Sayzio"
 
 [[ports]]

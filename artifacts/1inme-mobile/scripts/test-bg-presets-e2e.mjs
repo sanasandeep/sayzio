@@ -14,6 +14,9 @@
  *   4. Tapping a swatch PATCHes /links/{id} with
  *      settings.biolink.background_type='preset' + bg_preset_key, and the
  *      swatch shows as selected after the link query refetches.
+ *   5. Dragging the transparency slider (raw mouse down/move/up on the
+ *      RN-web element) PATCHes settings.biolink.bg_preset_opacity with the
+ *      dragged value, and the "Preset transparency · N%" label reflects it.
  *
  * Every /api/** call is intercepted against an in-memory link + catalog so
  * nothing reaches a real backend. Like the sibling harnesses it boots its own
@@ -222,8 +225,72 @@ async function run(appUrl) {
       .waitFor({ state: "visible" });
     log("background preview updated to the selected preset");
 
+    // 6. With a preset active, the transparency control renders as a smooth
+    //    0–100 slider (not fixed step chips).
+    await page.getByTestId("bg-preset-opacity").waitFor({ state: "visible" });
+    await page
+      .getByTestId("bg-preset-opacity-slider")
+      .waitFor({ state: "visible" });
+    log("transparency slider renders once a preset is active");
+
+    // 7. Dragging the slider saves the chosen transparency. The slider
+    //    starts at 100 (no bg_preset_opacity on the link yet); drag the
+    //    thumb from the right edge to ~40% and assert the PATCH payload
+    //    carries settings.biolink.bg_preset_opacity with the same value
+    //    the label shows.
+    const slider = page.getByTestId("bg-preset-opacity-slider");
+    const box = await slider.boundingBox();
+    if (!box) fail("could not measure the transparency slider");
+    const y = box.y + box.height / 2;
+    const startX = box.x + box.width - 2; // thumb sits at 100%
+    const targetX = box.x + box.width * 0.4;
+    const patchCountBefore = patchBodies.length;
+    await page.mouse.move(startX, y);
+    await page.mouse.down();
+    // Several intermediate moves so RN-web's responder system tracks the drag.
+    for (let i = 1; i <= 6; i++) {
+      await page.mouse.move(startX + ((targetX - startX) * i) / 6, y);
+      await new Promise((r) => setTimeout(r, 30));
+    }
+    await page.mouse.up();
+
+    const dragDeadline = Date.now() + STEP_TIMEOUT_MS;
+    let opacityPatch = null;
+    while (Date.now() < dragDeadline) {
+      opacityPatch = patchBodies
+        .slice(patchCountBefore)
+        .find(
+          (b) => typeof b?.settings?.biolink?.bg_preset_opacity === "number",
+        );
+      if (opacityPatch) break;
+      await new Promise((r) => setTimeout(r, 100));
+    }
+    if (!opacityPatch) {
+      fail("dragging the transparency slider never PATCHed bg_preset_opacity");
+    }
+    const savedOpacity = opacityPatch.settings.biolink.bg_preset_opacity;
+    if (
+      !Number.isInteger(savedOpacity) ||
+      savedOpacity >= 95 ||
+      savedOpacity < 5
+    ) {
+      fail(
+        `bg_preset_opacity PATCH carried an implausible dragged value: ${savedOpacity}`,
+      );
+    }
+    log(`drag PATCHed bg_preset_opacity=${savedOpacity}`);
+
+    // The label reflects the saved value once the link cache updates.
+    await page
+      .getByTestId("bg-preset-opacity")
+      .getByText(new RegExp(`Preset transparency · ${savedOpacity}%`))
+      .waitFor({ state: "visible" });
+    log("transparency label reflects the dragged value");
+
     await context.close();
-    log("PASS — Presets gallery browses, searches by name and saves.");
+    log(
+      "PASS — Presets gallery browses, searches by name, saves, and the transparency slider persists drags.",
+    );
   } finally {
     await browser.close();
   }

@@ -1691,6 +1691,26 @@ function ajaxToggleBlock(btn, url, blockId) {
     }).catch(function() { btn.disabled = false; showToast('Failed to toggle', 'error'); });
 }
 
+// Template design session only: pin/unpin a block's position. The server
+// cascades (pin fixes all blocks above, unpin releases all below), so the
+// simplest faithful UI is a reload — multiple cards change at once.
+function ajaxToggleFixed(btn, url, blockId, fixed) {
+    btn.disabled = true;
+    fetch(url, {
+        method: 'POST',
+        headers: { 'X-CSRF-TOKEN': _csrfToken(), 'Accept': 'application/json', 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fixed: fixed })
+    }).then(function(r) { return r.json(); }).then(function(data) {
+        if (data.success) {
+            showToast(data.fixed ? 'Block pinned (blocks above pinned too)' : 'Block unpinned (blocks below unpinned too)', 'success');
+            window.location.reload();
+        } else {
+            btn.disabled = false;
+            showToast('Failed to update pin', 'error');
+        }
+    }).catch(function() { btn.disabled = false; showToast('Failed to update pin', 'error'); });
+}
+
 function ajaxDeleteBlock(btn, url, blockId) {
     window.themedConfirm({
         title: 'Delete this block?',
@@ -1849,6 +1869,24 @@ function focusBlockPalette() {
         if (search) { try { search.focus({ preventScroll: true }); } catch (e) {} }
     }
 }
+
+// Bring the live device preview into view after a background-preset swatch
+// click in the block drawer's Look tab (Task #5989, mirrors the mobile
+// editor's Task #5987 behavior). With a long preset grid the creator may
+// have scrolled the sticky preview out of its travel range (or be on a
+// width where the preview column sits elsewhere in the stacked layout), so
+// the change would land off-screen. block:'nearest' makes this a no-op when
+// the preview is already visible. Skips entirely when the preview column is
+// hidden (sub-900px layouts render no preview at all).
+window.scrollLivePreviewIntoView = function() {
+    var el = document.querySelector('#editorPreviewCol .device-preview-root') || document.getElementById('editorPreviewCol');
+    if (!el || !el.offsetParent) return; // hidden (display:none) or absent
+    var rm = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    // Defer a frame so the preview has repainted with the new preset first.
+    setTimeout(function() {
+        try { el.scrollIntoView({ behavior: rm ? 'auto' : 'smooth', block: 'nearest' }); } catch (e) { try { el.scrollIntoView(); } catch (e2) {} }
+    }, 50);
+};
 
 function ajaxSaveBlock(e, form) {
     e.preventDefault();

@@ -33,7 +33,7 @@ class BlockVariantCatalog
      * pipeline always writes the *current* VERSION so newly-applied or
      * re-applied variants stay in sync.
      */
-    public const VERSION = 10;
+    public const VERSION = 16;
 
     /**
      * Shape filters for link-style blocks. Orthogonal to theme TAGS:
@@ -1003,6 +1003,29 @@ class BlockVariantCatalog
                     ],
                     'preview' => ['bg' => 'transparent', 'text' => '#e3f77e', 'radius' => 0],
                 ],
+                // Minimal text list — plain left-aligned text row with a
+                // thin hairline divider below it (classic "text list"
+                // link-in-bio look). Renderer reads
+                // `link_layout=text_divider` and draws the divider itself
+                // (currentColor-derived, theme-aware), so consecutive rows
+                // stack into a clean list without doubled lines.
+                // text_color is intentionally '' so the row inherits the
+                // page font color and stays legible on light AND dark
+                // page themes.
+                [
+                    'key' => 'text_divider_list',
+                    'name' => 'Text List / Divider',
+                    'tags' => ['minimal', 'editorial'],
+                    'shape' => 'plain_text',
+                    'style' => [
+                        'display_mode' => 'content', 'bg_color' => 'transparent',
+                        'border_style' => 'none', 'border_width' => '0', 'border_color' => 'transparent',
+                        'border_radius' => '0', 'shadow_preset' => 'none',
+                        'text_color' => '', 'padding' => '0', 'font_weight' => '500',
+                        'link_layout' => 'text_divider',
+                    ],
+                    'preview' => ['bg' => 'transparent', 'text' => '#ffffff', 'radius' => 0, 'border' => '#ffffff40'],
+                ],
                 [
                     'key' => 'card_lifted',
                     'name' => 'Lifted Card',
@@ -1122,6 +1145,44 @@ class BlockVariantCatalog
                         'link_layout' => 'image_cover',
                     ],
                     'preview' => ['bg' => 'linear-gradient(135deg,#1a1a2e,#7c3aed)', 'text' => '#ffffff', 'radius' => 40],
+                ],
+
+                // ── Task #5961: pure-styling additions (no placement) ────
+                // Double-rim pill: pale sage pill with a thin rim plus a
+                // hard offset understroke — the "stacked pill" look from
+                // the grey-brushstroke reference.
+                [
+                    'key' => 'pill_double_rim',
+                    'name' => 'Double Rim Pill',
+                    'tags' => ['editorial', 'minimal', 'retro'],
+                    'shape' => 'pill',
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#e4e8e1',
+                        'border_style' => 'solid', 'border_width' => '1', 'border_color' => '#9aa39b',
+                        'border_radius' => '999', 'shadow_type' => 'hard',
+                        'shadow_color' => '#9aa39b', 'shadow_x' => 0, 'shadow_y' => 4, 'shadow_blur' => 0,
+                        'text_color' => '#2d2a26', 'padding' => '16',
+                        'font_family' => 'Lora', 'font_weight' => '500',
+                        'link_layout' => '',
+                    ],
+                    'preview' => ['bg' => '#e4e8e1', 'text' => '#2d2a26', 'radius' => 999, 'border' => '#9aa39b', 'shadow' => '0 4px 0 #9aa39b', 'serif' => true],
+                ],
+                // Flat banner: edge-to-edge flat color band, zero radius and
+                // zero chrome (the stacked orange rows reference) — the page
+                // background showing through the row gaps draws the hairline.
+                [
+                    'key' => 'flat_banner',
+                    'name' => 'Flat Banner',
+                    'tags' => ['minimal', 'bold', 'corporate'],
+                    'shape' => 'square',
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#e8763b',
+                        'border_style' => 'none', 'border_width' => '0',
+                        'border_radius' => '0', 'shadow_preset' => 'none',
+                        'text_color' => '#fdf4ec', 'padding' => '20', 'font_weight' => '400',
+                        'link_layout' => '',
+                    ],
+                    'preview' => ['bg' => '#e8763b', 'text' => '#fdf4ec', 'radius' => 0],
                 ],
             ],
 
@@ -1364,6 +1425,54 @@ class BlockVariantCatalog
                     ],
                     'preview' => ['bg' => 'linear-gradient(180deg,#7c3aed,#1a1a2e)', 'text' => '#ffffff', 'radius' => 16],
                 ],
+                // Sticker-style overhang layouts (photo protrudes past the
+                // colored panel edge — "NEW ARRIVALS" / "MARKETPLACE" refs).
+                [
+                    'key' => 'image_overhang_top',
+                    'name' => 'Overhang Top',
+                    'tags' => ['bold', 'playful', 'editorial'],
+                    'shape' => 'image_full',
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#d8b4e2',
+                        'border_style' => 'none', 'border_radius' => '6', 'shadow_preset' => 'none',
+                        'text_color' => '#171717', 'padding' => '0', 'font_weight' => '800',
+                        'link_layout' => 'image_overhang_top',
+                    ],
+                    'preview' => ['bg' => '#d8b4e2', 'text' => '#171717', 'radius' => 6],
+                ],
+                [
+                    'key' => 'image_overhang_left',
+                    'name' => 'Overhang Left',
+                    'tags' => ['bold', 'playful', 'editorial'],
+                    'shape' => 'image_full',
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#d8b4e2',
+                        'border_style' => 'none', 'border_radius' => '6', 'shadow_preset' => 'none',
+                        'text_color' => '#171717', 'padding' => '0', 'font_weight' => '800',
+                        'link_layout' => 'image_overhang_left',
+                    ],
+                    'preview' => ['bg' => '#d8b4e2', 'text' => '#171717', 'radius' => 6],
+                ],
+                // Taped Notes: pastel paper card with a washi-tape strip and
+                // centered serif label (Task #5926). bg_color / text_color
+                // are deliberately omitted so the renderer's per-card tint
+                // rotation kicks in; grid_span 6 makes a set of these cards
+                // fall into the reference's 2-column grid automatically.
+                [
+                    'key' => 'taped_notes',
+                    'name' => 'Taped Notes',
+                    'tags' => ['playful', 'editorial', 'retro'],
+                    'shape' => 'card',
+                    'style' => [
+                        'display_mode' => 'card',
+                        'border_style' => 'none', 'border_radius' => '3', 'shadow_preset' => 'soft',
+                        'padding' => '34', 'font_weight' => '500',
+                        'font_family' => 'Playfair Display',
+                        'grid_span' => '6',
+                        'link_layout' => 'taped_note',
+                    ],
+                    'preview' => ['bg' => '#f7e9ed', 'text' => '#6d4c3d', 'radius' => 3],
+                ],
                 [
                     'key' => 'image_icon_rounded',
                     'name' => 'Rounded Image Icon',
@@ -1402,6 +1511,142 @@ class BlockVariantCatalog
                         'link_layout' => 'image_icon_circle',
                     ],
                     'preview' => ['bg' => '#ffffff', 'text' => '#111827', 'radius' => 999],
+                ],
+                // Two-column text row: bold title left, lighter description
+                // right, normal bio-btn chrome (wraps on narrow screens).
+                [
+                    'key' => 'title_desc_row',
+                    'name' => 'Title + Description Row',
+                    'tags' => ['minimal', 'pro', 'editorial'],
+                    'shape' => 'card',
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#ffffff',
+                        'border_style' => 'none', 'border_radius' => '14', 'shadow_preset' => 'soft',
+                        'text_color' => '#111827', 'padding' => '0', 'font_weight' => '700',
+                        'link_layout' => 'title_desc_row',
+                    ],
+                    'preview' => ['bg' => '#ffffff', 'text' => '#111827', 'radius' => 14],
+                ],
+                // Square (1:1) photo tile with the title centered over a
+                // subtle dark overlay; accent-colored tile when no photo.
+                [
+                    'key' => 'image_cover_square',
+                    'name' => 'Square Image Cover',
+                    'tags' => ['bold', 'editorial', 'maximalist'],
+                    'shape' => 'image_full',
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#1a1a2e',
+                        'border_style' => 'none', 'border_radius' => '20', 'shadow_preset' => 'medium',
+                        'text_color' => '#ffffff', 'padding' => '0', 'font_weight' => '700',
+                        'link_layout' => 'image_cover_square',
+                    ],
+                    'preview' => ['bg' => 'linear-gradient(135deg,#3d6bff,#1a1a2e)', 'text' => '#ffffff', 'radius' => 20],
+                ],
+
+                // ── Task #5961: reference-driven placement styles ────────
+                // Arrow banner: hexagonal button with pointed left/right
+                // ends (navy/blue reference). Colors alternate naturally by
+                // the creator restyling individual blocks.
+                [
+                    'key' => 'arrow_hex',
+                    'name' => 'Arrow Banner',
+                    'tags' => ['bold', 'corporate'],
+                    'shape' => 'card',
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#ffffff',
+                        'border_style' => 'none', 'border_width' => '0',
+                        'border_radius' => '0', 'shadow_preset' => 'none',
+                        'text_color' => '#1e1b4b', 'padding' => '16', 'font_weight' => '800',
+                        'link_layout' => 'arrow_hex',
+                    ],
+                    'preview' => ['bg' => '#ffffff', 'text' => '#1e1b4b', 'radius' => 0],
+                ],
+                // Numbered editorial list: plain text link with a small
+                // right-aligned auto-incrementing index (01, 02, …) — the
+                // blue "About … 01" reference. Index is computed at render
+                // time from the block's position among numbered siblings.
+                [
+                    'key' => 'numbered_editorial',
+                    'name' => 'Numbered List',
+                    'tags' => ['editorial', 'minimal'],
+                    'shape' => 'plain_text',
+                    'style' => [
+                        'display_mode' => 'content', 'bg_color' => 'transparent',
+                        'border_style' => 'none', 'border_radius' => '0',
+                        'shadow_preset' => 'none', 'padding' => '8',
+                        'text_color' => '#ffffff', 'font_weight' => '600', 'font_size' => '28',
+                        'link_layout' => 'numbered_list',
+                    ],
+                    'preview' => ['bg' => '#1e40cf', 'text' => '#dbe4ff', 'radius' => 0],
+                ],
+                // Side accent tab: full-width bar with a right-aligned label
+                // plus a small contrasting tab on the outer edge (teal + tan
+                // reference). border_color doubles as the tab accent.
+                [
+                    'key' => 'side_accent_tab',
+                    'name' => 'Side Accent Tab',
+                    'tags' => ['editorial', 'pro', 'corporate'],
+                    'shape' => 'card',
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#35595a',
+                        'border_style' => 'none', 'border_width' => '0', 'border_color' => '#ddb387',
+                        'border_radius' => '0', 'shadow_preset' => 'none',
+                        'text_color' => '#fdf6ec', 'padding' => '18', 'font_weight' => '600',
+                        'link_layout' => 'side_accent_tab',
+                    ],
+                    'preview' => ['bg' => '#35595a', 'text' => '#fdf6ec', 'radius' => 0, 'border' => '#ddb387'],
+                ],
+                // Icon above label: chromeless stacked icon + small label,
+                // built for grid-span multi-column use (green Printers /
+                // Monitors reference). grid_span 4 = 3-up grid.
+                [
+                    'key' => 'icon_top_stack',
+                    'name' => 'Icon Above Label',
+                    'tags' => ['minimal', 'pro'],
+                    'shape' => 'card',
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => 'transparent',
+                        'border_style' => 'none', 'border_radius' => '12',
+                        'shadow_preset' => 'none',
+                        'text_color' => '#ffffff', 'padding' => '12', 'font_weight' => '500',
+                        'grid_span' => '4',
+                        'link_layout' => 'icon_top',
+                    ],
+                    'preview' => ['bg' => '#12351f', 'text' => '#ffffff', 'radius' => 12],
+                ],
+                // Offset frame: solid bar with a thin outline frame offset
+                // to the bottom-right (clay/cream reference).
+                [
+                    'key' => 'offset_frame',
+                    'name' => 'Offset Frame',
+                    'tags' => ['editorial', 'minimal', 'retro'],
+                    'shape' => 'square',
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#a98a7d',
+                        'border_style' => 'none', 'border_width' => '1', 'border_color' => '#a98a7d',
+                        'border_radius' => '0', 'shadow_preset' => 'none',
+                        'text_color' => '#f9f2ec', 'padding' => '18', 'font_weight' => '500',
+                        'font_family' => 'Playfair Display',
+                        'link_layout' => 'offset_frame',
+                    ],
+                    'preview' => ['bg' => '#a98a7d', 'text' => '#f9f2ec', 'radius' => 0, 'border' => '#a98a7d', 'serif' => true],
+                ],
+                // Torn tape: washi-tape strip with jagged torn left/right
+                // edges (brown "About me" reference).
+                [
+                    'key' => 'torn_tape',
+                    'name' => 'Torn Tape',
+                    'tags' => ['handwritten', 'playful', 'retro'],
+                    'shape' => 'square',
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#a17c5b',
+                        'border_style' => 'none', 'border_radius' => '0',
+                        'shadow_preset' => 'none',
+                        'text_color' => '#fdf8f2', 'padding' => '20', 'font_weight' => '400',
+                        'font_family' => 'Lora',
+                        'link_layout' => 'torn_tape',
+                    ],
+                    'preview' => ['bg' => '#a17c5b', 'text' => '#fdf8f2', 'radius' => 0, 'serif' => true],
                 ],
             ],
 
@@ -1949,6 +2194,25 @@ class BlockVariantCatalog
                     'preview' => ['bg' => '#ffffff', 'text' => '#0f172a', 'radius' => 24],
                 ],
                 [
+                    // Task #5906: full-bleed portrait cover filling the
+                    // card, a big ringed circular avatar centered on the
+                    // photo, and name + thin divider + letter-spaced
+                    // uppercase title overlaid near the bottom over a dark
+                    // gradient. Transparent surface — the layout paints the
+                    // photo (or its gradient fallback) itself.
+                    'key' => 'identity_portrait_poster',
+                    'name' => 'Portrait Poster',
+                    'tags' => ['bold', 'editorial'],
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => 'transparent',
+                        'text_color' => '#ffffff',
+                        'border_style' => 'none', 'border_radius' => '20',
+                        'shadow_preset' => 'none',
+                        'padding' => '0', '_profile_layout' => 'portrait_poster',
+                    ],
+                    'preview' => ['bg' => '#334155', 'text' => '#ffffff', 'radius' => 20],
+                ],
+                [
                     // Task #5885: split-hero tile grid. A tall solid-colour
                     // hero panel (script name, letter-spaced tagline, big
                     // photo) designed to sit beside a grid of flat link
@@ -1965,6 +2229,23 @@ class BlockVariantCatalog
                         'padding' => '0', '_profile_layout' => 'split_hero_panel',
                     ],
                     'preview' => ['bg' => '#f4c531', 'text' => '#111827', 'radius' => 0],
+                ],
+                [
+                    // Task #5922: cover photo with a semi-circular arch band
+                    // at its bottom edge and the circular avatar inside it.
+                    // Band + avatar ring share the block's border color /
+                    // width (recolor once, both follow).
+                    'key' => 'identity_arch_band',
+                    'name' => 'Arch Band Portrait',
+                    'tags' => ['editorial', 'pro'],
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#ffffff',
+                        'text_color' => '#1c1917',
+                        'border_style' => 'none', 'border_width' => '6', 'border_color' => '#b98a5e',
+                        'border_radius' => '24', 'shadow_preset' => 'soft',
+                        'padding' => '0', '_profile_layout' => 'arch_band',
+                    ],
+                    'preview' => ['bg' => '#ffffff', 'text' => '#1c1917', 'radius' => 24, 'border' => '#b98a5e'],
                 ],
                 [
                     'key' => 'identity_gradient',
@@ -2126,6 +2407,85 @@ class BlockVariantCatalog
                         'padding' => '0', '_profile_layout' => 'sidebar_accent',
                     ],
                     'preview' => ['bg' => 'linear-gradient(90deg,#7c3aed 0,#7c3aed 14%,#ffffff 14%)', 'text' => '#0f172a', 'radius' => 16, 'border' => '#e5e7eb'],
+                ],
+                [
+                    // Task #5929: scrapbook brand-intro collage — a torn-edge
+                    // white paper card (script name + serif tagline) layered
+                    // over an offset muted-green grid-paper panel with a
+                    // pressed-botanical accent. The block surface paints the
+                    // soft off-white backdrop; the layout draws the collage
+                    // internally. `font_family` here makes the public-page
+                    // font collector load the script face from `_style`.
+                    'key' => 'identity_paper_collage',
+                    'name' => 'Paper Collage',
+                    'tags' => ['handwritten', 'editorial'],
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#f0eee7',
+                        'text_color' => '#57534e',
+                        'border_style' => 'none', 'border_radius' => '20',
+                        'shadow_preset' => 'soft',
+                        'font_family' => 'Dancing Script',
+                        'padding' => '0', '_profile_layout' => 'paper_collage',
+                    ],
+                    'preview' => ['bg' => '#f0eee7', 'text' => '#5f6f52', 'radius' => 20, 'serif' => true],
+                ],
+                [
+                    // Task #5934: solid brand-color panel — the brand name in
+                    // an outlined ellipse top-right, a large offset rectangular
+                    // portrait, and a vertical rail of social icons down the
+                    // right edge. The brand color is the block's bg_color so
+                    // recoloring the surface restyles the whole panel.
+                    'key' => 'identity_brand_rail',
+                    'name' => 'Brand Rail',
+                    'tags' => ['bold', 'editorial'],
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#2f7f72',
+                        'text_color' => '#f3efe6',
+                        'border_style' => 'none', 'border_radius' => '22',
+                        'shadow_preset' => 'soft',
+                        'padding' => '0', '_profile_layout' => 'brand_rail',
+                    ],
+                    'preview' => ['bg' => '#2f7f72', 'text' => '#f3efe6', 'radius' => 22],
+                ],
+                [
+                    // Task #5934: large serif display name up top over a
+                    // two-tone horizontally split background, with a stadium-
+                    // pill portrait straddling the color boundary. Top zone =
+                    // bg_color, bottom zone = border_color (arch_band
+                    // precedent: reuse the border color for the layout's
+                    // second accent so both are user-recolorable).
+                    'key' => 'identity_split_pill',
+                    'name' => 'Split Pill',
+                    'tags' => ['editorial', 'pro'],
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#f3ede3',
+                        'text_color' => '#2f2a24',
+                        'border_style' => 'none', 'border_width' => '0', 'border_color' => '#8a5a3b',
+                        'border_radius' => '22', 'shadow_preset' => 'soft',
+                        'font_family' => 'Playfair Display',
+                        'padding' => '0', '_profile_layout' => 'split_pill',
+                    ],
+                    'preview' => ['bg' => 'linear-gradient(180deg,#f3ede3 0,#f3ede3 55%,#8a5a3b 55%)', 'text' => '#2f2a24', 'radius' => 22, 'serif' => true],
+                ],
+                [
+                    // Task #5934: full-bleed cover photo behind everything, a
+                    // small @handle pill badge at the top, and a tall white
+                    // rounded card at the bottom with a ringed circular avatar
+                    // straddling the card's top edge; script name + divider +
+                    // uppercase letter-spaced subtitle. `font_family` makes the
+                    // font collector load the script face from `_style`.
+                    'key' => 'identity_badge_card',
+                    'name' => 'Badge Card',
+                    'tags' => ['pro', 'handwritten'],
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => '#8f8577',
+                        'text_color' => '#3f3a33',
+                        'border_style' => 'none', 'border_radius' => '22',
+                        'shadow_preset' => 'medium',
+                        'font_family' => 'Dancing Script',
+                        'padding' => '0', '_profile_layout' => 'badge_card',
+                    ],
+                    'preview' => ['bg' => '#8f8577', 'text' => '#fcfbf7', 'radius' => 22, 'serif' => true],
                 ],
             ],
         ];
@@ -2393,6 +2753,54 @@ class BlockVariantCatalog
                         'padding' => '0',
                     ],
                     'preview' => ['bg' => 'transparent', 'text' => '#fff', 'radius' => 0],
+                ],
+                // ── Hero-photo decoration presets (Task #5922). Unlike the
+                //    chrome-only mask presets above, these carry the actual
+                //    decoration keys in _style (the image renderer reads
+                //    them), so applying the variant recreates the reference
+                //    look in one click. Colors/text stay editable in the
+                //    image form's "Photo decorations" section.
+                [
+                    'key' => 'arch_concentric',
+                    'name' => 'Concentric Arch',
+                    'tags' => ['editorial', 'minimal', 'pro'],
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => 'transparent',
+                        'border_style' => 'none', 'border_radius' => '0',
+                        'shadow_preset' => 'none', 'padding' => '0',
+                        '_photo_frame' => 'concentric_arch',
+                        '_photo_frame_color' => '#57534e',
+                        '_photo_frame_strokes' => '3',
+                    ],
+                    'preview' => ['bg' => 'transparent', 'text' => '#57534e', 'radius' => 999, 'border' => '#57534e'],
+                ],
+                [
+                    'key' => 'banner_overlap',
+                    'name' => 'Title Banner',
+                    'tags' => ['editorial', 'bold'],
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => 'transparent',
+                        'border_style' => 'none', 'border_radius' => '0',
+                        'shadow_preset' => 'soft', 'padding' => '0',
+                        '_photo_banner_text' => 'YOUR TITLE',
+                        '_photo_banner_bg' => '#2a201c',
+                        '_photo_banner_text_color' => '#ffffff',
+                    ],
+                    'preview' => ['bg' => '#2a201c', 'text' => '#ffffff', 'radius' => 0],
+                ],
+                [
+                    'key' => 'torn_collage',
+                    'name' => 'Torn Collage',
+                    'tags' => ['maximalist', 'playful', 'editorial'],
+                    'style' => [
+                        'display_mode' => 'card', 'bg_color' => 'transparent',
+                        'border_style' => 'none', 'border_radius' => '0',
+                        'shadow_preset' => 'none', 'padding' => '0',
+                        '_photo_mask' => 'torn',
+                        '_photo_accents' => 'starburst,dots',
+                        '_photo_accent_color' => '#3f4e63',
+                    ],
+                    'preview' => ['bg' => 'transparent', 'text' => '#3f4e63', 'radius' => 0],
                 ],
                 [
                     'key' => 'film_strip',

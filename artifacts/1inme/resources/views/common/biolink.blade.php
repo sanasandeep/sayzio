@@ -115,9 +115,32 @@
         $bgFallbackImage = $bs['bg_fallback_image'] ?? '';
         // Preset CSS background: resolved server-side from the catalog by key.
         $bgPresetCss = null;
+        // Torn-paper composite: a backdrop layer (photo or preset gradient)
+        // behind a solid paper sheet whose right edge is a jagged torn
+        // diagonal. Active either as its own background_type ('torn' with a
+        // user backdrop photo + paper color) or via a torn-group preset.
+        $tornActive = false;
+        $tornPaper = '#cfe0e6';
+        $tornBackdropCss = null;   // full CSS declaration(s) for the backdrop layer
+        $tornBackdropImage = '';   // user-uploaded backdrop photo URL
         if ($bgType === 'preset' && !empty($bs['bg_preset_key'])) {
-            $bgPresetCss = \App\Modules\User\Support\BgPresetCatalog::css((string) $bs['bg_preset_key']);
+            $presetKey = (string) $bs['bg_preset_key'];
+            if (\App\Modules\User\Support\BgPresetCatalog::isTorn($presetKey)) {
+                $tornActive = true;
+                $tornPaper = \App\Modules\User\Support\BgPresetCatalog::tornPaper($presetKey) ?? $tornPaper;
+                $tornBackdropCss = \App\Modules\User\Support\BgPresetCatalog::tornBackdrop($presetKey);
+            } else {
+                $bgPresetCss = \App\Modules\User\Support\BgPresetCatalog::css($presetKey);
+            }
+        } elseif ($bgType === 'torn') {
+            $tornActive = true;
+            $tornPaper = is_string($bs['torn_paper_color'] ?? null) && $bs['torn_paper_color'] !== '' ? $bs['torn_paper_color'] : $tornPaper;
+            $tornBackdropImage = is_string($bs['torn_image'] ?? null) ? $bs['torn_image'] : '';
         }
+        // Jagged torn edge: paper occupies most of the page; the backdrop
+        // peeks out beyond a diagonal tear running from ~72% (top) to ~62%
+        // (bottom) of the viewport width, with irregular jags.
+        $tornClipPath = 'polygon(0% 0%, 72% 0%, 70.4% 4%, 72.8% 8%, 70% 13%, 71.6% 18%, 68.8% 23%, 71% 28%, 68.2% 33%, 70.2% 38%, 67.6% 43%, 69.4% 48%, 66.8% 53%, 68.6% 58%, 66% 63%, 67.8% 68%, 65.2% 73%, 66.8% 78%, 64.4% 83%, 65.8% 88%, 63.6% 93%, 64.8% 97%, 62% 100%, 0% 100%)';
 
         // Contrast safeguard: when no explicit background_type has been saved the
         // page falls back to the dark default gradient (#0a0612 / $bgFallbackColor).
@@ -163,7 +186,16 @@
         // of relying on `background-attachment: fixed`, which iOS/mobile Safari
         // does not support. "Scroll" keeps the background on the scrolling body.
         $bgFixed = ($bgAttachment !== 'scroll');
-        $hasPageBgLayer = $bgFixed && in_array($bgType, ['color', 'gradient', 'preset', 'image'], true);
+        // Preset background transparency (Task #5970): 0–100, 100 = opaque.
+        // A translucent preset can't be painted on the body itself (opacity
+        // would fade the whole page), so it always renders on the dedicated
+        // background layer — position:fixed for "Fixed", absolute for "Scroll".
+        $bgPresetOpacity = max(0, min(100, (int) ($bs['bg_preset_opacity'] ?? 100)));
+        $presetTranslucent = ($bgType === 'preset' && $bgPresetCss && $bgPresetOpacity < 100);
+        // Torn composites always render on their own dedicated layers
+        // (backdrop + clipped paper), so they never use the generic
+        // .bg-page-fixed layer nor an inline body background.
+        $hasPageBgLayer = !$tornActive && ($bgFixed || $presetTranslucent) && in_array($bgType, ['color', 'gradient', 'preset', 'image'], true);
         $bgBlur = (int)($bs['bg_blur'] ?? 0);
         $bgOverlayColor = $bs['bg_overlay_color'] ?? '#000000';
         $bgOverlayOpacity = (int)($bs['bg_overlay_opacity'] ?? 0);
@@ -206,6 +238,19 @@
             'medium' => ['fab fa-medium', '#ffffff'],
             'behance' => ['fab fa-behance', '#1769FF'],
         ];
+
+        // Page stickers — decorative emoji/image overlays. The draft-preview
+        // path merges the RAW form input into $bs, so an unsaved edit arrives
+        // as the `stickers_json` string; a persisted page carries the already
+        // sanitized `stickers` array. Either way we re-run the sanitizer so
+        // nothing unbounded ever reaches the markup.
+        $pageStickers = \App\Modules\User\Support\BiolinkStickers::sanitize(
+            array_key_exists('stickers_json', $bs) && is_string($bs['stickers_json'])
+                ? $bs['stickers_json']
+                : ($bs['stickers'] ?? [])
+        );
+        $backStickers  = array_values(array_filter($pageStickers, fn ($s) => $s['layer'] === 'back'));
+        $frontStickers = array_values(array_filter($pageStickers, fn ($s) => $s['layer'] === 'front'));
     @endphp
     @php
         // Collect every font referenced by this biolink: page font, block-
@@ -224,12 +269,38 @@
             if (!empty($st['font_family'])) $allFonts[] = (string) $st['font_family'];
             $stu = $bb->settings['_style'] ?? [];
             if (!empty($stu['font_family'])) $allFonts[] = (string) $stu['font_family'];
+            // Photo text overlays (Task #5954) can carry their own fonts.
+            foreach ((is_array($stu['_photo_text_stickers'] ?? null) ? $stu['_photo_text_stickers'] : []) as $pts) {
+                if (is_array($pts) && !empty($pts['font'])) $allFonts[] = (string) $pts['font'];
+            }
             foreach (($bb->children ?? []) as $cc) {
                 $cs = $cc->settings['_style'] ?? $cc->settings['style'] ?? [];
                 if (!empty($cs['font_family'])) $allFonts[] = (string) $cs['font_family'];
                 $csu = $cc->settings['_style'] ?? [];
                 if (!empty($csu['font_family'])) $allFonts[] = (string) $csu['font_family'];
             }
+        }
+        // Page-level free-floating text overlays (Task #5954) can carry
+        // their own fonts too.
+        $pageTextOverlays = [];
+        foreach ((is_array($bs['text_overlays'] ?? null) ? $bs['text_overlays'] : []) as $pto) {
+            if (!is_array($pto)) continue;
+            $ptoText = trim((string) ($pto['text'] ?? ''));
+            if ($ptoText === '') continue;
+            $ptoColor = (string) ($pto['color'] ?? '');
+            if (!preg_match('/^#[0-9a-fA-F]{3,8}$/', $ptoColor)) $ptoColor = '#ffffff';
+            $ptoFontRaw = (string) preg_replace('/[^a-zA-Z0-9 :_\-]/', '', (string) ($pto['font'] ?? ''));
+            if ($ptoFontRaw !== '') $allFonts[] = $ptoFontRaw;
+            $pageTextOverlays[] = [
+                'text'   => mb_substr($ptoText, 0, 120),
+                'font'   => str_starts_with($ptoFontRaw, 'custom:') ? substr($ptoFontRaw, 7) : $ptoFontRaw,
+                'color'  => $ptoColor,
+                'size'   => max(10, min(72, (int) ($pto['size'] ?? 22))),
+                'x'      => max(0, min(100, (float) ($pto['x'] ?? 50))),
+                'y'      => max(0, min(100, (float) ($pto['y'] ?? 10))),
+                'rotate' => max(-180, min(180, (int) ($pto['rotate'] ?? 0))),
+            ];
+            if (count($pageTextOverlays) >= \App\Modules\User\Models\BiolinkBlock::PAGE_TEXT_OVERLAY_MAX) break;
         }
         $allFonts = array_values(array_unique(array_filter($allFonts)));
         // Split into Google vs custom. Custom tokens are "custom:<family>".
@@ -299,7 +370,7 @@
             font-family: '{{ str_starts_with((string) $fontFamily, 'custom:') ? substr($fontFamily, 7) : $fontFamily }}', sans-serif;
             color: {{ $fontColor }};
             background-color: {{ $bgFallbackColor }};
-            @if(!$hasPageBgLayer)
+            @if(!$hasPageBgLayer && !$tornActive)
                 @if($bgType === 'color')
                     background-color: {{ $bgColor }};
                 @elseif($bgType === 'gradient')
@@ -332,10 +403,16 @@
         {{-- Mobile-Safari-safe "Fixed" background: a fixed-position layer behind the
              content instead of `background-attachment: fixed` on the body. --}}
         .bg-page-fixed {
-            position: fixed;
+            {{-- Translucent presets on "Scroll" still use this layer (opacity
+                 can't be applied to the body background itself); absolute
+                 positioning keeps the layer scrolling with the page. --}}
+            position: {{ $bgFixed ? 'fixed' : 'absolute' }};
             inset: 0;
             z-index: 0;
             pointer-events: none;
+            @if($presetTranslucent)
+                opacity: {{ $bgPresetOpacity / 100 }};
+            @endif
             @if($bgType === 'color')
                 background-color: {{ $bgColor }};
             @elseif($bgType === 'gradient')
@@ -372,10 +449,81 @@
             @endif
         }
         @endif
-        @if($bgBlur > 0 || $bgOverlayOpacity > 0 || $hasPageBgLayer)
+        @if($bgBlur > 0 || $bgOverlayOpacity > 0 || $hasPageBgLayer || $tornActive)
         body > *:not(.bg-layer):not(script):not(style) {
             position: relative;
             z-index: 1;
+        }
+        @endif
+        @if($tornActive)
+        {{-- Torn-paper composite: full backdrop layer (photo or preset
+             gradient) with a solid paper sheet clipped by a jagged torn
+             diagonal on top. "Fixed" pins both layers to the viewport
+             (mobile-Safari-safe, no background-attachment); "Scroll" makes
+             them absolutely-positioned over the whole (relative) body so
+             they move with the content. --}}
+        .bg-torn-backdrop {
+            position: {{ $bgFixed ? 'fixed' : 'absolute' }};
+            inset: 0;
+            z-index: 0;
+            pointer-events: none;
+            @if($tornBackdropImage)
+                background: {{ $bgFallbackColor }} url('{{ $tornBackdropImage }}') center/cover no-repeat;
+            @elseif($tornBackdropCss)
+                {!! rtrim($tornBackdropCss, "; \t\n\r") !!};
+            @else
+                background-color: {{ $bgFallbackColor }};
+            @endif
+        }
+        .bg-torn-paper {
+            position: {{ $bgFixed ? 'fixed' : 'absolute' }};
+            inset: 0;
+            z-index: 0;
+            pointer-events: none;
+            {{-- drop-shadow on the wrapper follows the clip-path silhouette
+                 of the inner sheet (box-shadow would hug the clipped box). --}}
+            filter: drop-shadow(4px 0 10px rgba(0,0,0,0.28));
+        }
+        .bg-torn-paper::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background-color: {{ $tornPaper }};
+            clip-path: {{ $tornClipPath }};
+            -webkit-clip-path: {{ $tornClipPath }};
+        }
+        @endif
+        @if(count($pageStickers))
+        {{-- Page stickers: purely decorative fixed-viewport layers. Both carry
+             the .bg-layer class so the generic content z-index rule above skips
+             them; pointer-events:none guarantees they never block taps. The
+             "back" layer sits with the background (z 0), the "front" layer
+             floats above content (z 2) but below the share FAB/menus. --}}
+        .page-stickers {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            overflow: hidden;
+        }
+        .page-stickers-back { z-index: 0; }
+        .page-stickers-front { z-index: 2; }
+        .page-sticker {
+            position: absolute;
+            transform: translate(-50%, -50%) rotate(var(--st-rot, 0deg));
+            line-height: 1;
+            user-select: none;
+        }
+        .page-sticker-emoji {
+            font-size: var(--st-size, 36px);
+            {{-- Emoji glyphs render fine in both dark & light themes; a soft
+                 shadow keeps outline-style emoji visible on any background. --}}
+            filter: drop-shadow(0 2px 6px rgba(0,0,0,0.25));
+        }
+        .page-sticker-image img {
+            width: var(--st-size, 64px);
+            height: auto;
+            display: block;
+            filter: drop-shadow(0 2px 6px rgba(0,0,0,0.25));
         }
         @endif
         @if($bgType === 'slideshow' && count($slideshowImages) > 0)
@@ -967,6 +1115,11 @@
     <div class="bg-page-fixed bg-layer" aria-hidden="true"></div>
     @endif
 
+    @if($tornActive)
+    <div class="bg-torn-backdrop bg-layer" aria-hidden="true"></div>
+    <div class="bg-torn-paper bg-layer" aria-hidden="true"></div>
+    @endif
+
     @if($bgType === 'slideshow' && count($slideshowImages) > 0)
     <div class="bg-slideshow bg-layer">
         @foreach($slideshowImages as $si => $sImg)
@@ -992,7 +1145,44 @@
     <div class="bg-template bg-layer bg-template-{{ $bgTemplate->slug }}" style="position:{{ $bgFixed ? 'fixed' : 'absolute' }};inset:0;z-index:0;overflow:hidden;"></div>
     @endif
 
+    {{-- Page stickers — decorative emoji/image overlays (BiolinkStickers).
+         Rendered as two fixed pointer-events-none layers: "back" with the
+         background (z 0), "front" above content (z 2). Percent positioning
+         keeps placement proportional across phone/desktop widths. --}}
+    @if(count($backStickers) || count($frontStickers))
+        @foreach(['back' => $backStickers, 'front' => $frontStickers] as $stLayer => $stList)
+            @if(count($stList))
+            <div class="page-stickers page-stickers-{{ $stLayer }} bg-layer" aria-hidden="true">
+                @foreach($stList as $st)
+                    @if($st['kind'] === 'image')
+                        <div class="page-sticker page-sticker-image"
+                             style="left:{{ $st['x'] }}%;top:{{ $st['y'] }}%;--st-rot:{{ $st['rotation'] }}deg;--st-size:{{ round(64 * $st['scale']) }}px;">
+                            <img src="{{ $st['value'] }}" alt="" loading="lazy" draggable="false">
+                        </div>
+                    @else
+                        <div class="page-sticker page-sticker-emoji"
+                             style="left:{{ $st['x'] }}%;top:{{ $st['y'] }}%;--st-rot:{{ $st['rotation'] }}deg;--st-size:{{ round(36 * $st['scale']) }}px;">{{ $st['value'] }}</div>
+                    @endif
+                @endforeach
+            </div>
+            @endif
+        @endforeach
+    @endif
+
     <div class="biolink-container">
+        @if(!empty($pageTextOverlays))
+            {{-- Free-floating page-level text overlays (Task #5954). Percent
+                 x/y coordinates against the content column so the same entry
+                 lands proportionally at every screen width. Pointer-events
+                 off — overlays are decorative and never block clicks. --}}
+            <div class="biolink-text-overlays" aria-hidden="true"
+                 style="position:absolute;inset:0;pointer-events:none;z-index:30;overflow:hidden;">
+                @foreach($pageTextOverlays as $pov)
+                    <span data-page-text-overlay class="font-bold"
+                          style="position:absolute;left:{{ $pov['x'] }}%;top:{{ $pov['y'] }}%;{{ $pov['font'] !== '' ? "font-family:'" . str_replace("'", '', $pov['font']) . "';" : '' }}color:{{ $pov['color'] }};font-size:{{ $pov['size'] }}px;line-height:1.15;white-space:nowrap;text-shadow:0 1px 6px rgba(0,0,0,0.35);transform:translate(-50%,-50%){{ $pov['rotate'] !== 0 ? ' rotate(' . $pov['rotate'] . 'deg)' : '' }};">{{ $pov['text'] }}</span>
+                @endforeach
+            </div>
+        @endif
         @php
             // When an A/B test is running, the renderer reads the assigned
             // variant snapshot (set on the link by RedirectController) instead
@@ -1098,6 +1288,13 @@
                     || str_starts_with($block->type, 'profile_card')
                     || $isBtnLike;
                 $btnInline = ($isBtnLike && $hasCustomStyle) ? $blockInline : '';
+                // Catalog preset background layer (Task #5970): painted on an
+                // absolutely-positioned layer behind the block content at the
+                // chosen transparency. Card containers draw their own layer
+                // inside the container branch of the render partial.
+                $presetLayer = \App\Modules\User\Models\BiolinkBlock::isContainerType($block->type)
+                    ? null
+                    : \App\Modules\User\Models\BiolinkBlock::presetLayer($blockStyle);
             @endphp
 
             @php
@@ -1151,14 +1348,28 @@
                      style="background: rgba(244,63,94,0.14); color: rgba(254,205,211,0.95); border: 1px solid rgba(244,63,94,0.25);"
                      data-badge-for="{{ $block->id }}"></div>
             @endif
-            @if($hasCustomStyle && !$skipWrap)<div class="mb-3 block-styled" style="{{ $blockInline }}">@endif
+            @if($hasCustomStyle && !$skipWrap)
+                <div class="mb-3 block-styled" style="{{ $blockInline }}{{ $presetLayer ? ';position:relative;isolation:isolate;overflow:hidden;' : '' }}">
+                @if($presetLayer)
+                    {{-- Preset CSS resolves server-side from the catalog (never
+                         client input); rtrimmed + re-terminated so a missing
+                         trailing semicolon can't glue onto the next declaration. --}}
+                    <div class="block-bg-preset" aria-hidden="true" style="position:absolute;inset:0;z-index:-1;pointer-events:none;{!! $presetLayer['css'] !!};background-attachment:scroll !important;opacity:{{ $presetLayer['opacity'] / 100 }};"></div>
+                @endif
+            @elseif($presetLayer)
+                {{-- skipWrap/button-like blocks with a preset still need a
+                     positioning context for the layer; blockInline stays on
+                     the inner element (btnInline) to avoid double-applying. --}}
+                <div class="mb-3 block-preset-wrap" style="position:relative;isolation:isolate;overflow:hidden;border-radius:{{ ($blockStyle['border_radius'] ?? '') !== '' ? intval($blockStyle['border_radius']) : 14 }}px;">
+                    <div class="block-bg-preset" aria-hidden="true" style="position:absolute;inset:0;z-index:-1;pointer-events:none;{!! $presetLayer['css'] !!};background-attachment:scroll !important;opacity:{{ $presetLayer['opacity'] / 100 }};"></div>
+            @endif
 
                 {{-- Task #2042 — single source of truth: every top-level block
                      renders through the unified dispatch partial, exactly like
                      card/grid children do. No inline @if/@elseif chain here. --}}
                 @include('common.partials.biolink-block-render', ['link' => $link, 'block' => $block, 's' => $s, 'fontColor' => $fontColor ?? '#ffffff', 'btnInline' => $btnInline])
 
-            @if($hasCustomStyle && !$skipWrap)</div>@endif
+            @if(($hasCustomStyle && !$skipWrap) || $presetLayer)</div>@endif
             </div>
         @empty
             <div class="text-center py-12">
@@ -2172,6 +2383,147 @@
                     'style.padding_left': function (el, v) { el.style.paddingLeft = v === '' ? '' : parseInt(v, 10) + 'px'; },
                     'style.padding_right': function (el, v) { el.style.paddingRight = v === '' ? '' : parseInt(v, 10) + 'px'; }
                 };
+                // Text tilt (Task #5954): heading/paragraph partials always
+                // emit a [data-tilt-wrap] element, so live rotation works
+                // even before any other custom style exists.
+                function applyLiveTilt(root, v) {
+                    var w = root.querySelector('[data-tilt-wrap]');
+                    if (!w) return false;
+                    var deg = parseFloat(v);
+                    if (isNaN(deg)) deg = 0;
+                    deg = Math.max(-30, Math.min(30, deg));
+                    w.style.transform = deg === 0 ? '' : 'rotate(' + deg + 'deg)';
+                    return true;
+                }
+                // Hero-photo decoration keys (Task #5944): patch the image
+                // block's [data-photo-hero] container in place. Structural
+                // keys (mask/frame/accents, last-sticker removal) have no
+                // handler and fall back to the safe reload path.
+                var PH_STICKER_ANCHORS = {
+                    top_left:     { left: '-10px', top: '-10px' },
+                    top_right:    { right: '-10px', top: '-10px' },
+                    bottom_left:  { left: '-10px', bottom: '-10px' },
+                    bottom_right: { right: '-10px', bottom: '-10px' },
+                    center_left:  { left: '-12px', top: '50%' },
+                    center_right: { right: '-12px', top: '50%' }
+                };
+                function phClamp(v, lo, hi, dflt) {
+                    var n = parseInt(v, 10);
+                    if (isNaN(n)) n = dflt;
+                    return Math.max(lo, Math.min(hi, n));
+                }
+                var LIVE_PHOTO_KEYS = {
+                    'style._photo_stickers': function (hero, v) {
+                        var list = [];
+                        if (String(v).trim() !== '') {
+                            try { list = JSON.parse(v); } catch (err) { return false; }
+                            if (!Array.isArray(list)) return false;
+                        }
+                        // Emptying the list may make the whole hero container
+                        // structurally unnecessary — let the reload handle it.
+                        if (!list.length) return false;
+                        var frag = document.createDocumentFragment();
+                        for (var i = 0; i < Math.min(list.length, 4); i++) {
+                            var s = list[i] || {};
+                            var url = typeof s.url === 'string' ? s.url : '';
+                            if (!url) return false;
+                            var pos = PH_STICKER_ANCHORS[s.pos] ? s.pos : 'top_right';
+                            var size = phClamp(s.size, 24, 160, 64);
+                            var rot = phClamp(s.rotate, -180, 180, 0);
+                            var dx = phClamp(s.dx, -80, 80, 0);
+                            var dy = phClamp(s.dy, -80, 80, 0);
+                            var img = document.createElement('img');
+                            img.src = url;
+                            img.alt = '';
+                            img.setAttribute('aria-hidden', 'true');
+                            img.loading = 'lazy';
+                            img.className = 'absolute pointer-events-none z-10';
+                            img.setAttribute('data-photo-sticker', '');
+                            var a = PH_STICKER_ANCHORS[pos];
+                            Object.keys(a).forEach(function (k) { img.style[k] = a[k]; });
+                            img.style.width = size + 'px';
+                            img.style.height = size + 'px';
+                            img.style.objectFit = 'contain';
+                            var t = 'translate(' + dx + 'px,' + dy + 'px)';
+                            if (pos === 'center_left' || pos === 'center_right') t = 'translateY(-50%) ' + t;
+                            if (rot !== 0) t += ' rotate(' + rot + 'deg)';
+                            img.style.transform = t;
+                            frag.appendChild(img);
+                        }
+                        hero.querySelectorAll('[data-photo-sticker]').forEach(function (el) { el.remove(); });
+                        hero.appendChild(frag);
+                        return true;
+                    },
+                    'style._photo_banner_text': function (hero, v) {
+                        var b = hero.querySelector('[data-photo-banner]');
+                        // Adding or removing the banner is structural — reload.
+                        if (!b || String(v).trim() === '') return false;
+                        b.textContent = v;
+                        return true;
+                    },
+                    'style._photo_banner_bg': function (hero, v) {
+                        var b = hero.querySelector('[data-photo-banner]');
+                        if (!b || !v) return false;
+                        b.style.background = v;
+                        return true;
+                    },
+                    'style._photo_banner_text_color': function (hero, v) {
+                        var b = hero.querySelector('[data-photo-banner]');
+                        if (!b || !v) return false;
+                        b.style.color = v;
+                        return true;
+                    },
+                    'style._photo_frame_color': function (hero, v) {
+                        var strokes = hero.querySelectorAll('[data-photo-frame-stroke]');
+                        if (!strokes.length || !v) return false;
+                        strokes.forEach(function (el) { el.style.borderColor = v; });
+                        return true;
+                    },
+                    'style._photo_text_stickers': function (hero, v) {
+                        var list = [];
+                        if (String(v).trim() !== '') {
+                            try { list = JSON.parse(v); } catch (err) { return false; }
+                            if (!Array.isArray(list)) return false;
+                        }
+                        // Emptying the list may make the whole hero container
+                        // structurally unnecessary — let the reload handle it.
+                        if (!list.length) return false;
+                        var frag = document.createDocumentFragment();
+                        for (var i = 0; i < Math.min(list.length, 4); i++) {
+                            var s = list[i] || {};
+                            var text = typeof s.text === 'string' ? s.text.trim() : '';
+                            if (!text) continue;
+                            var pos = PH_STICKER_ANCHORS[s.pos] ? s.pos : 'top_right';
+                            var size = phClamp(s.size, 10, 64, 20);
+                            var rot = phClamp(s.rotate, -180, 180, 0);
+                            var dx = phClamp(s.dx, -80, 80, 0);
+                            var dy = phClamp(s.dy, -80, 80, 0);
+                            var span = document.createElement('span');
+                            span.textContent = text.slice(0, 80);
+                            span.className = 'absolute pointer-events-none z-10 font-bold';
+                            span.setAttribute('data-photo-text-sticker', '');
+                            var a = PH_STICKER_ANCHORS[pos];
+                            Object.keys(a).forEach(function (k) { span.style[k] = a[k]; });
+                            if (typeof s.color === 'string' && /^#[0-9a-fA-F]{3,8}$/.test(s.color)) span.style.color = s.color;
+                            else span.style.color = '#ffffff';
+                            var fam = typeof s.font === 'string' ? s.font.replace(/[^a-zA-Z0-9 :_\-]/g, '') : '';
+                            if (fam.indexOf('custom:') === 0) fam = fam.slice(7);
+                            if (fam) span.style.fontFamily = "'" + fam + "'";
+                            span.style.fontSize = size + 'px';
+                            span.style.lineHeight = '1.15';
+                            span.style.whiteSpace = 'nowrap';
+                            span.style.textShadow = '0 1px 6px rgba(0,0,0,0.35)';
+                            var t = 'translate(' + dx + 'px,' + dy + 'px)';
+                            if (pos === 'center_left' || pos === 'center_right') t = 'translateY(-50%) ' + t;
+                            if (rot !== 0) t += ' rotate(' + rot + 'deg)';
+                            span.style.transform = t;
+                            frag.appendChild(span);
+                        }
+                        hero.querySelectorAll('[data-photo-text-sticker]').forEach(function (el) { el.remove(); });
+                        hero.appendChild(frag);
+                        return true;
+                    }
+                };
                 function styleTarget(root) {
                     // Styled blocks render a .block-styled wrapper; button-like
                     // blocks carry the inline style on the anchor itself. If
@@ -2180,7 +2532,100 @@
                     return root.querySelector('.block-styled')
                         || root.querySelector('a.bio-btn[style]');
                 }
-                function applyLiveStyle(root, key, value) {
+                // Block-level catalog preset CSS, keyed by preset key (torn
+                // composites are excluded from the block picker, so they are
+                // excluded here too). Resolved server-side from the catalog —
+                // never from client input; the live channel only ever sends
+                // the KEY, which is looked up in this trusted map.
+                var BG_PRESET_CSS = @json(collect(\App\Modules\User\Support\BgPresetCatalog::all())->filter(fn($p) => ($p['group'] ?? '') !== 'torn')->map(fn($p) => rtrim($p['css'], "; \t\n\r"))->toArray());
+                function bgPresetLayerCss(css, op) {
+                    return 'position:absolute;inset:0;z-index:-1;pointer-events:none;' + css +
+                        ';background-attachment:scroll !important;opacity:' + (op / 100) + ';';
+                }
+                function applyLiveStyle(root, key, value, fields) {
+                    if (key === 'style._tilt') return applyLiveTilt(root, value);
+                    // Preset background transparency (Task #5988): fade the
+                    // block's preset layer live while dragging the slider.
+                    // querySelector picks the block's OWN layer first (a
+                    // container renders its layer before its children's).
+                    // No layer yet (preset just picked) = structural — reload.
+                    if (key === 'style.bg_preset_opacity') {
+                        var layer = root.querySelector('.block-bg-preset');
+                        if (!layer) return false;
+                        var op = parseInt(value, 10);
+                        if (isNaN(op)) op = 100;
+                        layer.style.opacity = String(Math.max(0, Math.min(100, op)) / 100);
+                        return true;
+                    }
+                    // Preset swatch pick/change/remove (Task #5990): create or
+                    // rewrite the block's preset layer in place so the swatch
+                    // click shows instantly without a preview reload.
+                    if (key === 'style.bg_preset_key') {
+                        var pLayer = root.querySelector('.block-bg-preset');
+                        if (String(value) === '') {
+                            // Preset removed (swatch clicked again). Drop the
+                            // layer for instant feedback; the dedicated
+                            // .block-preset-wrap (skipWrap/button-like blocks)
+                            // is structural, so that case still reloads.
+                            if (!pLayer) return true;
+                            var pParent = pLayer.parentElement;
+                            pLayer.remove();
+                            if (pParent && pParent.getAttribute('data-live-preset-host') === '1') {
+                                // We added the host positioning styles live —
+                                // revert them so the DOM matches a fresh
+                                // server render with no preset.
+                                pParent.style.removeProperty('position');
+                                pParent.style.removeProperty('isolation');
+                                pParent.style.removeProperty('overflow');
+                                pParent.removeAttribute('data-live-preset-host');
+                                return true;
+                            }
+                            // Server-rendered layer: the host keeps inline
+                            // position/isolation/overflow from the Blade
+                            // template — reload so the preview matches a
+                            // fresh no-preset render (layer already gone,
+                            // so the swap is visually seamless).
+                            return false;
+                        }
+                        var pCss = BG_PRESET_CSS[String(value)];
+                        if (!pCss) return false; // unknown key — safe reload
+                        var pOp = 100;
+                        if (fields && fields['style[bg_preset_opacity]'] !== undefined) {
+                            var pn = parseInt(fields['style[bg_preset_opacity]'], 10);
+                            if (!isNaN(pn)) pOp = Math.max(0, Math.min(100, pn));
+                        }
+                        if (pLayer) {
+                            pLayer.style.cssText = bgPresetLayerCss(pCss, pOp);
+                            return true;
+                        }
+                        // No layer yet — create it inside the block's own
+                        // positioning host. Containers paint on their render
+                        // wrapper; styled blocks on .block-styled. Button-like
+                        // blocks without a styled wrapper need the dedicated
+                        // .block-preset-wrap (structural) — reload for those.
+                        var pType = root.getAttribute('data-block-type') || '';
+                        var pHost = (pType === 'card' || pType === 'grid' || pType === 'grid_auto')
+                            ? root.querySelector('.card-container-render, .grid-container-render')
+                            : root.querySelector('.block-styled');
+                        if (!pHost) return false;
+                        pHost.style.position = 'relative';
+                        pHost.style.isolation = 'isolate';
+                        pHost.style.overflow = 'hidden';
+                        pHost.setAttribute('data-live-preset-host', '1');
+                        pLayer = document.createElement('div');
+                        pLayer.className = 'block-bg-preset';
+                        pLayer.setAttribute('aria-hidden', 'true');
+                        pLayer.style.cssText = bgPresetLayerCss(pCss, pOp);
+                        pHost.insertBefore(pLayer, pHost.firstChild);
+                        return true;
+                    }
+                    var pfn = LIVE_PHOTO_KEYS[key];
+                    if (pfn) {
+                        // Decorations only exist inside an already-rendered
+                        // hero container; anything else needs a reload.
+                        var hero = root.querySelector('[data-photo-hero]');
+                        return hero ? pfn(hero, value) !== false : false;
+                    }
                     var fn = LIVE_STYLE_KEYS[key];
                     if (!fn) return false;
                     var el = styleTarget(root);
@@ -2204,7 +2649,7 @@
                             var value = d.fields[name] !== undefined ? d.fields[name] : '';
                             var ok = false;
                             if (key.indexOf('style.') === 0) {
-                                ok = applyLiveStyle(root, key, value);
+                                ok = applyLiveStyle(root, key, value, d.fields);
                             } else if (handlers[key]) {
                                 ok = handlers[key](root, value, [], d.fields) !== false;
                             } else {

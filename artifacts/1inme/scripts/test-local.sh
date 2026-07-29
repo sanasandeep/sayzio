@@ -31,7 +31,8 @@
 # Env knobs:
 #   TEST_LOCAL_MODE=sharded|artisan   default: sharded
 #   TEST_LOCAL_SHARDS=<n>             default: 4 (only in sharded mode)
-#   TEST_LOCAL_PORT=<port>            default: 55432
+#   TEST_LOCAL_PORT=<port>            default: a random free port (so
+#                                     concurrent runs never collide)
 #   TEST_LOCAL_KEEP=1                 keep the cluster running after the run
 #                                     (prints connection info; you clean up)
 #
@@ -39,7 +40,18 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."   # artifacts/1inme
 
-PGPORT="${TEST_LOCAL_PORT:-55432}"
+# Pick a random free port unless one is pinned, so two test-local runs
+# (e.g. concurrent validation checks) never fight over the same cluster port.
+pick_free_port() {
+    python3 - <<'PY'
+import socket
+s = socket.socket()
+s.bind(("127.0.0.1", 0))
+print(s.getsockname()[1])
+s.close()
+PY
+}
+PGPORT="${TEST_LOCAL_PORT:-$(pick_free_port)}"
 PGDATA="$(mktemp -d "/tmp/1inme-testpg.XXXXXX")"
 PGLOG="${PGDATA}.log"
 MODE="${TEST_LOCAL_MODE:-sharded}"

@@ -1,5 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import Slider from "@react-native-community/slider";
 import { Feather } from "@expo/vector-icons";
+import * as ImagePicker from "expo-image-picker";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Stack,
@@ -7,15 +9,17 @@ import {
   useLocalSearchParams,
   useRouter,
 } from "expo-router";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Image,
+  PanResponder,
   Pressable,
   ScrollView,
   StyleSheet,
   Switch,
   Text,
+  TextInput,
   View,
 } from "react-native";
 
@@ -196,13 +200,31 @@ import {
   visibleListItems,
   visiblePricingItems,
 } from "@/components/BlockListPreview";
+import {
+  AvatarFrame,
+  AVATAR_FRAME_KEYS,
+  AVATAR_FRAME_LABELS,
+  isAvatarFrameKey,
+} from "@/components/AvatarFrame";
+import { BlockView, StoreCartProvider } from "@/app/biolink/[handle]";
 import { Button } from "@/components/Button";
+
+// Live block-background preview (Task #5984). The bg-preset section renders
+// the block through the same native renderer the design preview uses
+// (`BlockView`), read-only, so dragging the transparency slider fades the
+// preset layer in real time. Taps are inert (pointerEvents off) and the
+// synthetic alias resolves to nothing server-side, so the preview never
+// pollutes a real biolink's stats.
+const BLOCK_PREVIEW_ALIAS = "__block_preview__";
+const NOOP_BLOCK_PREVIEW_EMBED = () => {};
+
 import { DictationMic } from "@/components/DictationMic";
 import {
   IconPickerButton,
   IconPickerModal,
 } from "@/components/IconPickerModal";
 import { MapPickerModal, type PickedPoint } from "@/components/MapPickerModal";
+import { StockImageGalleryPicker } from "@/components/StockImageGalleryPicker";
 import { TextField } from "@/components/TextField";
 import { setVoiceSurface } from "@/components/VoiceAssistant";
 import { useColors } from "@/hooks/useColors";
@@ -216,9 +238,32 @@ import {
   type Block,
   type OgMeta,
 } from "@/lib/api/blocks";
+import { getBaseUrl } from "@/lib/api";
+import {
+  importPlatformAsset,
+  listVaultFiles,
+  uploadVaultFile,
+  type VaultFile,
+} from "@/lib/api/files";
+import { getBgPresets } from "@/lib/api/bgPresets";
+import { LinearGradient } from "expo-linear-gradient";
 import { variantsForType, findVariant } from "@/lib/blockVariants";
 import { canonicalBlockType } from "@/lib/blockTypeRegistry";
 import { showAlert } from "@/lib/webAlert";
+import { handlePlanLockedError } from "@/lib/upgradePrompt";
+
+// Quick-pick tints for the avatar-frame color row (Task #5910). "Auto"
+// (empty string) defers to the layout accent, mirroring the web editor.
+const AVATAR_FRAME_COLOR_PRESETS = [
+  "#7d9bff",
+  "#f59e0b",
+  "#ef4444",
+  "#10b981",
+  "#14b8a6",
+  "#ec4899",
+  "#f8fafc",
+  "#0f172a",
+];
 
 // Mirrors the catalog-version constant on the PHP side. Bumped whenever a
 // variant payload changes in a way clients should re-apply. Stored
@@ -242,6 +287,211 @@ function variantTagLabel(tag: string): string {
     .filter(Boolean)
     .map((p) => p.charAt(0).toUpperCase() + p.slice(1))
     .join(" ");
+}
+
+// ---------------------------------------------------------------------------
+// Photo stickers (image block) — drag-to-place positioning. Mirrors the web
+// editor's sticker stage in `image-style-settings.blade.php`: 6 anchor
+// presets + a clamped ±80px dx/dy fine offset from the nearest anchor.
+// Entries round-trip through the server's `sanitizePhotoStickers`, so we
+// always persist `{file_id, url, pos, size, rotate, dx, dy}` with `pos`
+// limited to the server's PHOTO_STICKER_POSITIONS set and numeric fields
+// clamped to the same bounds the sanitizer enforces (size 24–160, rotate
+// ±180, dx/dy ±80, max 4 stickers).
+type PhotoSticker = {
+  file_id: number;
+  url: string;
+  pos: string;
+  size: number;
+  rotate: number;
+  dx: number;
+  dy: number;
+};
+
+const PHOTO_STICKER_POSITIONS = [
+  "top_left",
+  "top_right",
+  "bottom_left",
+  "bottom_right",
+  "center_left",
+  "center_right",
+] as const;
+
+const PHOTO_STICKER_POSITION_LABELS: Record<string, string> = {
+  top_left: "Top left",
+  top_right: "Top right",
+  bottom_left: "Bottom left",
+  bottom_right: "Bottom right",
+  center_left: "Center left",
+  center_right: "Center right",
+};
+
+function clampNum(v: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, v));
+}
+
+function normalizePhotoStickers(raw: unknown): PhotoSticker[] {
+  if (!Array.isArray(raw)) return [];
+  const out: PhotoSticker[] = [];
+  for (const i of raw) {
+    const o = (i && typeof i === "object" ? i : {}) as Record<string, unknown>;
+    const fileId = Number(o.file_id);
+    if (!Number.isFinite(fileId) || fileId <= 0) continue;
+    const pos =
+      typeof o.pos === "string" &&
+      (PHOTO_STICKER_POSITIONS as readonly string[]).includes(o.pos)
+        ? o.pos
+        : "top_right";
+    out.push({
+      file_id: Math.round(fileId),
+      url: typeof o.url === "string" ? o.url : "",
+      pos,
+      size: clampNum(Math.round(Number(o.size) || 48), 24, 160),
+      rotate: clampNum(Math.round(Number(o.rotate) || 0), -180, 180),
+      dx: clampNum(Math.round(Number(o.dx) || 0), -80, 80),
+      dy: clampNum(Math.round(Number(o.dy) || 0), -80, 80),
+    });
+    if (out.length >= 4) break;
+  }
+  return out;
+}
+
+// Anchor base position (top-left px within the stage) for a sticker of
+// size S on a W×H stage — identical math to the web editor's anchorBase().
+function phAnchorBase(
+  pos: string,
+  S: number,
+  W: number,
+  H: number,
+): { x: number; y: number } {
+  switch (pos) {
+    case "top_left":
+      return { x: -10, y: -10 };
+    case "bottom_left":
+      return { x: -10, y: H - S + 10 };
+    case "bottom_right":
+      return { x: W - S + 10, y: H - S + 10 };
+    case "center_left":
+      return { x: -12, y: H / 2 - S / 2 };
+    case "center_right":
+      return { x: W - S + 12, y: H / 2 - S / 2 };
+    default:
+      // top_right
+      return { x: W - S + 10, y: -10 };
+  }
+}
+
+// Given a dragged top-left (left, top), pick the nearest anchor preset by
+// squared distance and express the remainder as a clamped dx/dy — the same
+// placement rule the web sticker stage applies on drag.
+function phNearestPlacement(
+  left: number,
+  top: number,
+  S: number,
+  W: number,
+  H: number,
+): { pos: string; dx: number; dy: number } {
+  let best: { pos: string; d: number; bx: number; by: number } | null = null;
+  for (const pos of PHOTO_STICKER_POSITIONS) {
+    const b = phAnchorBase(pos, S, W, H);
+    const d = (left - b.x) * (left - b.x) + (top - b.y) * (top - b.y);
+    if (!best || d < best.d) best = { pos, d, bx: b.x, by: b.y };
+  }
+  const b = best!;
+  return {
+    pos: b.pos,
+    dx: clampNum(Math.round(left - b.bx), -80, 80),
+    dy: clampNum(Math.round(top - b.by), -80, 80),
+  };
+}
+
+// Absolutize the relative `/f/…` delivery URLs the sanitizer re-derives so
+// <Image> can load them on device; absolute URLs pass through untouched.
+function photoStickerImageUri(url: string): string {
+  if (!url) return "";
+  if (/^https?:\/\//i.test(url)) return url;
+  return `${getBaseUrl()}${url.startsWith("/") ? "" : "/"}${url}`;
+}
+
+// One draggable sticker thumbnail on the stage. The PanResponder is
+// created once and reads the latest sticker/stage via refs so a re-render
+// mid-gesture (every move commits new dx/dy state) doesn't break the drag.
+function DraggableSticker({
+  sticker,
+  stageW,
+  stageH,
+  accentColor,
+  onPlace,
+}: {
+  sticker: PhotoSticker;
+  stageW: number;
+  stageH: number;
+  accentColor: string;
+  onPlace: (p: { pos: string; dx: number; dy: number }) => void;
+}) {
+  const stkRef = useRef(sticker);
+  stkRef.current = sticker;
+  const dimsRef = useRef({ W: stageW, H: stageH });
+  dimsRef.current = { W: stageW, H: stageH };
+  const onPlaceRef = useRef(onPlace);
+  onPlaceRef.current = onPlace;
+  const startRef = useRef({ x: 0, y: 0 });
+  const [dragging, setDragging] = useState(false);
+
+  const pan = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: () => true,
+      onPanResponderGrant: () => {
+        const { W, H } = dimsRef.current;
+        const s = stkRef.current;
+        const b = phAnchorBase(s.pos, s.size, W, H);
+        startRef.current = { x: b.x + s.dx, y: b.y + s.dy };
+        setDragging(true);
+      },
+      onPanResponderMove: (_evt, g) => {
+        const { W, H } = dimsRef.current;
+        const s = stkRef.current;
+        onPlaceRef.current(
+          phNearestPlacement(
+            startRef.current.x + g.dx,
+            startRef.current.y + g.dy,
+            s.size,
+            W,
+            H,
+          ),
+        );
+      },
+      onPanResponderRelease: () => setDragging(false),
+      onPanResponderTerminate: () => setDragging(false),
+    }),
+  ).current;
+
+  const base = phAnchorBase(sticker.pos, sticker.size, stageW, stageH);
+  return (
+    <View
+      {...pan.panHandlers}
+      style={{
+        position: "absolute",
+        left: base.x + sticker.dx,
+        top: base.y + sticker.dy,
+        width: sticker.size,
+        height: sticker.size,
+        zIndex: 20,
+        transform: [{ rotate: `${sticker.rotate}deg` }],
+        borderWidth: dragging ? 2 : 0,
+        borderColor: accentColor,
+        borderRadius: 6,
+      }}
+      accessibilityLabel="Drag to reposition sticker"
+    >
+      <Image
+        source={{ uri: photoStickerImageUri(sticker.url) }}
+        style={{ width: "100%", height: "100%" }}
+        resizeMode="contain"
+      />
+    </View>
+  );
 }
 
 // Inline preview for a pricing item's Thumbnail URL. Renders nothing
@@ -467,10 +717,277 @@ export function BlockSettingsEditor({
   // affordance needs its own modal-open flag — those get dedicated state,
   // mirroring the web `mapPinPicker` editor.
   const isMapLocation = block?.type === "map_location";
+  // Image block — photo stickers (drag-to-place). The sticker array lives
+  // in `_style._photo_stickers`; the drag stage needs the measured stage
+  // width plus the photo's aspect ratio to mirror the web stage's math.
+  const isImageBlock = block?.type === "image";
+  // Gallery/grid image blocks (Task #6016) — their `images` array
+  // ([{url, alt}]) is edited via a bespoke repeater below, with rows
+  // fillable from the curated stock gallery.
+  const isGalleryBlock = ["image_grid", "image_slider", "image_slider_v2"].includes(
+    block?.type ?? "",
+  );
+  const [galleryImages, setGalleryImages] = useState<
+    { url: string; alt: string }[]
+  >([]);
+  // Importing a curated stock image into the vault before appending it
+  // as a sticker (stickers must reference an owned vault file).
+  const [stockStickerBusy, setStockStickerBusy] = useState(false);
+  const [photoStickers, setPhotoStickers] = useState<PhotoSticker[]>([]);
+  const [stickerStageW, setStickerStageW] = useState(0);
+  const [stickerStageRatio, setStickerStageRatio] = useState(4 / 3);
+  // Add-sticker flow (Task #5956): upload from device via expo-image-picker
+  // or pick an existing image from the Sayzio Files vault. New entries get
+  // the server defaults (pos top_right, size 48) up to the 4-sticker cap.
+  const [stickerUploading, setStickerUploading] = useState(false);
+  const [stickerPickerOpen, setStickerPickerOpen] = useState(false);
+  const [stickerVaultFiles, setStickerVaultFiles] = useState<VaultFile[] | null>(
+    null,
+  );
+  const [stickerVaultLoading, setStickerVaultLoading] = useState(false);
+  // Vault picker pagination + name search (Task #5967). `page`/`lastPage`
+  // mirror the API's pagination envelope so "Load more" knows when to
+  // stop; `query` is debounced before refetching page 1.
+  const [stickerVaultPage, setStickerVaultPage] = useState(1);
+  const [stickerVaultLastPage, setStickerVaultLastPage] = useState(1);
+  const [stickerVaultLoadingMore, setStickerVaultLoadingMore] = useState(false);
+  const [stickerVaultQuery, setStickerVaultQuery] = useState("");
+
+  // Fetch a page of image vault files. `append` keeps earlier pages in the
+  // grid (load-more); a fresh search/open replaces the list. The API also
+  // filters by type, but the client re-filters defensively (matches #5956).
+  // Monotonic request id — stale-response guard so an older in-flight
+  // fetch that resolves late can't overwrite a newer query's results.
+  const stickerVaultReq = useRef(0);
+  const fetchStickerVaultPage = useCallback(
+    async (page: number, q: string, append: boolean) => {
+      const reqId = ++stickerVaultReq.current;
+      if (append) setStickerVaultLoadingMore(true);
+      else setStickerVaultLoading(true);
+      try {
+        const res = await listVaultFiles({
+          type: "image",
+          perPage: 60,
+          page,
+          q: q.trim() || undefined,
+        });
+        if (reqId !== stickerVaultReq.current) return;
+        const images = res.files.filter((f) => f.type === "image");
+        setStickerVaultFiles((prev) =>
+          append && prev ? [...prev, ...images] : images,
+        );
+        setStickerVaultPage(res.pagination.current_page);
+        setStickerVaultLastPage(res.pagination.last_page);
+      } catch {
+        if (reqId !== stickerVaultReq.current) return;
+        if (!append) {
+          setStickerVaultFiles([]);
+          setStickerVaultPage(1);
+          setStickerVaultLastPage(1);
+        }
+      } finally {
+        if (reqId === stickerVaultReq.current) {
+          if (append) setStickerVaultLoadingMore(false);
+          else setStickerVaultLoading(false);
+        }
+      }
+    },
+    [],
+  );
+
+  // Debounced name search — refetch page 1 whenever the query settles
+  // while the picker is open. Skips the initial "" run on open because
+  // openStickerVaultPicker already fetched page 1.
+  const stickerVaultQueryRan = useRef(false);
+  useEffect(() => {
+    if (!stickerPickerOpen) {
+      stickerVaultQueryRan.current = false;
+      return;
+    }
+    if (!stickerVaultQueryRan.current) {
+      stickerVaultQueryRan.current = true;
+      if (stickerVaultQuery === "") return;
+    }
+    const t = setTimeout(() => {
+      void fetchStickerVaultPage(1, stickerVaultQuery, false);
+    }, 350);
+    return () => clearTimeout(t);
+  }, [stickerVaultQuery, stickerPickerOpen, fetchStickerVaultPage]);
+
+  // Append a vault file as a new sticker with the server defaults
+  // (pos top_right, size 48); duplicates are allowed (matches web), the
+  // 4-sticker cap is enforced here and re-checked server-side.
+  const appendSticker = useCallback((file: VaultFile) => {
+    if (file.type !== "image") {
+      showAlert(
+        "Images only",
+        "Stickers must be image files (PNG, WebP or SVG with transparency work best).",
+      );
+      return;
+    }
+    setPhotoStickers((prev) => {
+      if (prev.length >= 4) return prev;
+      return [
+        ...prev,
+        {
+          file_id: file.id,
+          url: file.url_path || file.url,
+          pos: "top_right",
+          size: 48,
+          rotate: 0,
+          dx: 0,
+          dy: 0,
+        },
+      ];
+    });
+    setStickerPickerOpen(false);
+  }, []);
+
+  const addStickerFromDevice = useCallback(async () => {
+    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!perm.granted) {
+      showAlert(
+        "Photos access needed",
+        "Allow access to your photo library in Settings to pick an image.",
+      );
+      return;
+    }
+    const res = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      quality: 0.9,
+    });
+    if (res.canceled || !res.assets?.[0]) return;
+    const asset = res.assets[0];
+    setStickerUploading(true);
+    try {
+      const file = await uploadVaultFile({
+        uri: asset.uri,
+        name: asset.fileName ?? undefined,
+        mime: asset.mimeType ?? undefined,
+      });
+      appendSticker(file);
+    } catch (e) {
+      // Storage-quota (and other plan-gated) rejections get the upgrade
+      // prompt with the recommended-plan hint instead of a raw error.
+      if (handlePlanLockedError(e, "Your storage is full on your current plan.")) {
+        return;
+      }
+      const msg =
+        e && typeof e === "object" && "message" in e
+          ? String((e as { message: unknown }).message)
+          : "Upload failed.";
+      showAlert("Upload failed", msg);
+    } finally {
+      setStickerUploading(false);
+    }
+  }, [appendSticker]);
+
+  // Curated stock sticker (Task #6016): stickers must reference an owned
+  // vault file (the server sanitizer fails closed on foreign URLs), so a
+  // stock pick first imports the asset into the vault, then appends it.
+  // Task #6028: import happens SERVER-side by asset key (the asset CDN
+  // has no CORS headers, so the web build can't fetch the blob itself).
+  const addStickerFromStock = useCallback(
+    async (assetKey: string) => {
+      if (stockStickerBusy) return;
+      setStockStickerBusy(true);
+      try {
+        const file = await importPlatformAsset({ key: assetKey });
+        appendSticker(file);
+      } catch (e) {
+        if (handlePlanLockedError(e, "Your storage is full on your current plan.")) {
+          return;
+        }
+        const msg =
+          e && typeof e === "object" && "message" in e
+            ? String((e as { message: unknown }).message)
+            : "Could not add that sticker.";
+        showAlert("Could not add sticker", msg);
+      } finally {
+        setStockStickerBusy(false);
+      }
+    },
+    [appendSticker, stockStickerBusy],
+  );
+
+  const openStickerVaultPicker = useCallback(async () => {
+    setStickerPickerOpen((open) => !open);
+    if (stickerVaultFiles !== null) return;
+    await fetchStickerVaultPage(1, stickerVaultQuery, false);
+  }, [stickerVaultFiles, stickerVaultQuery, fetchStickerVaultPage]);
+
+  const loadMoreStickerVault = useCallback(() => {
+    if (stickerVaultLoadingMore || stickerVaultLoading) return;
+    if (stickerVaultPage >= stickerVaultLastPage) return;
+    void fetchStickerVaultPage(stickerVaultPage + 1, stickerVaultQuery, true);
+  }, [
+    stickerVaultLoadingMore,
+    stickerVaultLoading,
+    stickerVaultPage,
+    stickerVaultLastPage,
+    stickerVaultQuery,
+    fetchStickerVaultPage,
+  ]);
+
   const [mapPickerOpen, setMapPickerOpen] = useState(false);
   const [mapShowDirections, setMapShowDirections] = useState(true);
   const [profileVerified, setProfileVerified] = useState<boolean>(false);
   const [profileSocials, setProfileSocials] = useState<ProfileSocial[]>([]);
+  // Decorative avatar frame (Task #5910) — mirrors _style._avatar_frame
+  // (+ optional _avatar_frame_color tint). "" = none / auto accent.
+  const [avatarFrame, setAvatarFrame] = useState<string>("");
+  // Block background preset (Task #5970): `_style.bg_preset_key` +
+  // `_style.bg_preset_opacity` (0–100). Available on every block type.
+  const [bgPresetKey, setBgPresetKey] = useState<string>("");
+  const [bgPresetOpacity, setBgPresetOpacity] = useState<number>(100);
+  const [bgPresetOpen, setBgPresetOpen] = useState(false);
+  const [bgPresetGroup, setBgPresetGroup] = useState<string>("all");
+  // Task #5987 — when a preset swatch is tapped in the grid, the live
+  // preview (which sits above the grid) may be scrolled off-screen.
+  // These refs let us bring it back into view: on web via the DOM's
+  // scrollIntoView; on native screen-mode via measureLayout against the
+  // editor ScrollView. Inline mode on native is best-effort (no parent
+  // scroll handle), which is fine — web is the primary editor surface.
+  const bgPresetPreviewRef = useRef<View | null>(null);
+  const editorScrollRef = useRef<ScrollView | null>(null);
+  const scrollBgPresetPreviewIntoView = useCallback(() => {
+    // Defer a frame so the preview has (re)rendered with the new preset
+    // before we measure/scroll to it.
+    requestAnimationFrame(() => {
+      const node = bgPresetPreviewRef.current as
+        | (View & { scrollIntoView?: (opts?: unknown) => void })
+        | null;
+      if (!node) return;
+      if (typeof node.scrollIntoView === "function") {
+        // react-native-web: the ref is a DOM element.
+        node.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        return;
+      }
+      const scroller = editorScrollRef.current;
+      if (!scroller) return;
+      try {
+        node.measureLayout(
+          scroller.getInnerViewNode(),
+          (_x: number, y: number) => {
+            scroller.scrollTo({ y: Math.max(0, y - 12), animated: true });
+          },
+          () => {},
+        );
+      } catch {
+        // Best-effort — never let a measurement failure break selection.
+      }
+    });
+  }, []);
+  // Block background preset catalog — only fetched once the picker is
+  // opened (or a preset is already applied, so its swatch can render).
+  // Query key/staleTime match the Appearance pickers' so caches share.
+  const bgPresetCatalogQ = useQuery({
+    queryKey: ["bg-presets"],
+    queryFn: getBgPresets,
+    staleTime: 60 * 60 * 1000,
+    enabled: bgPresetOpen || bgPresetKey !== "",
+  });
+  const [avatarFrameColor, setAvatarFrameColor] = useState<string>("");
   // Stats (`[{label,value}]`, "stats" layout) and badges (`[{label}]`,
   // "badges" layout) repeaters. Edited via bespoke sections below, gated
   // by the block's resolved profile layout so they only show where the
@@ -592,6 +1109,33 @@ export function BlockSettingsEditor({
       setProfileSocials(normalizeProfileSocials(block.settings?.socials));
       setProfileStats(normalizeProfileStats(block.settings?.stats));
       setProfileBadges(normalizeProfileBadges(block.settings?.badges));
+      const st = (block.settings?._style as Record<string, unknown> | undefined) ?? {};
+      setAvatarFrame(isAvatarFrameKey(st._avatar_frame) ? st._avatar_frame : "");
+      setAvatarFrameColor(
+        typeof st._avatar_frame_color === "string" ? st._avatar_frame_color : "",
+      );
+    }
+    // Hydrate photo stickers for image blocks from `_style._photo_stickers`
+    // (added on web via upload/vault; repositionable here by drag).
+    if (block.type === "image") {
+      const st = (block.settings?._style as Record<string, unknown> | undefined) ?? {};
+      setPhotoStickers(normalizePhotoStickers(st._photo_stickers));
+    }
+    // Hydrate the gallery/grid images repeater ([{url, alt}]). Entries
+    // may be plain strings on very old blocks — normalize both shapes.
+    if (["image_grid", "image_slider", "image_slider_v2"].includes(block.type)) {
+      const raw = block.settings?.images;
+      const rows = Array.isArray(raw)
+        ? raw.map((i) => {
+            if (typeof i === "string") return { url: i, alt: "" };
+            const o = (i && typeof i === "object" ? i : {}) as Record<string, unknown>;
+            return {
+              url: typeof o.url === "string" ? o.url : "",
+              alt: typeof o.alt === "string" ? o.alt : "",
+            };
+          })
+        : [];
+      setGalleryImages(rows);
     }
     // Hydrate the map-location boolean toggle. Mirrors the web default
     // (`$s['show_directions'] ?? true`) so blocks saved before this field
@@ -600,7 +1144,37 @@ export function BlockSettingsEditor({
       const sd = block.settings?.show_directions;
       setMapShowDirections(!(sd === false || sd === 0 || sd === "0" || sd === "false"));
     }
+    // Hydrate the block background preset (any block type).
+    {
+      const st = (block.settings?._style as Record<string, unknown> | undefined) ?? {};
+      setBgPresetKey(typeof st.bg_preset_key === "string" ? st.bg_preset_key : "");
+      const rawOp = Number(st.bg_preset_opacity);
+      setBgPresetOpacity(
+        Number.isFinite(rawOp) ? Math.max(0, Math.min(100, Math.round(rawOp))) : 100,
+      );
+    }
   }, [block]);
+
+  // Measure the block photo's natural aspect ratio so the sticker stage
+  // matches the web editor's stage proportions (falls back to 4:3 while
+  // loading or when the URL can't be measured).
+  const stickerImageUri = isImageBlock
+    ? photoStickerImageUri((values.url ?? "").trim())
+    : "";
+  useEffect(() => {
+    if (!stickerImageUri) return;
+    let cancelled = false;
+    Image.getSize(
+      stickerImageUri,
+      (w, h) => {
+        if (!cancelled && w > 0 && h > 0) setStickerStageRatio(w / h);
+      },
+      () => {},
+    );
+    return () => {
+      cancelled = true;
+    };
+  }, [stickerImageUri]);
 
   // Hydrate favorites from AsyncStorage once we know the block's type
   // (favorites are scoped per-type to match the web editor's localStorage
@@ -774,12 +1348,26 @@ export function BlockSettingsEditor({
 
   const save = useMutation({
     mutationFn: () => {
-      // Field saves are content-only — variant changes flow through the
-      // dedicated apply path above so we never re-merge a stale _style
-      // here. We strip _style entirely from the values payload so the
-      // backend keeps whatever variant/snapshot is currently persisted.
-      const nextSettings: Record<string, unknown> = { ...values };
-      delete nextSettings._style;
+      // Field saves are content-only — the API PATCH replaces `settings`
+      // wholesale, so we start from the block's current settings and only
+      // overlay the keys this editor actually surfaces. This preserves
+      // object-shaped keys the mobile UI doesn't edit (e.g. `_image_style`
+      // mask/border/shadow config, `_style` for every block type, and the
+      // pre-variant `_style_custom_snapshot`) so a mobile content edit
+      // never silently wipes web-configured styling. Variant changes flow
+      // through the dedicated apply path above, so carrying the persisted
+      // `_style` forward here is a no-op for variants.
+      const prevSettings =
+        (block?.settings as Record<string, unknown> | undefined) ?? {};
+      const nextSettings: Record<string, unknown> = {
+        ...prevSettings,
+        ...values,
+      };
+      // A save from mobile is a real content edit: clear the seeded
+      // placeholder flag just like a fresh payload used to (before this
+      // merge, the flag was dropped implicitly by the wholesale replace).
+      delete nextSettings._placeholder;
+      delete nextSettings._placeholder_seed;
       // Merge per-block targeting back into `_visibility`. We preserve any
       // pre-existing keys (continents/cities/os/browsers/languages/time_slots)
       // that the mobile UI doesn't surface yet so saving from mobile never
@@ -871,6 +1459,18 @@ export function BlockSettingsEditor({
         nextSettings.socials = profileSocials
           .map((s) => ({ name: s.name.trim(), url: s.url.trim() }))
           .filter((s) => s.name !== "" || s.url !== "");
+        // Avatar frame (Task #5910): merge the two frame keys into the
+        // block's current _style (the generic save otherwise strips
+        // _style so variants stay server-owned). Empty selections drop
+        // the keys, matching the web editor's clear-on-empty semantics.
+        const prevStyle =
+          (block?.settings?._style as Record<string, unknown> | undefined) ?? {};
+        const styleOut: Record<string, unknown> = { ...prevStyle };
+        if (avatarFrame) styleOut._avatar_frame = avatarFrame;
+        else delete styleOut._avatar_frame;
+        if (avatarFrameColor) styleOut._avatar_frame_color = avatarFrameColor;
+        else delete styleOut._avatar_frame_color;
+        nextSettings._style = styleOut;
       }
       // Stats + badges round-trip in the same shapes the web editor and the
       // public renderer expect: `[{label,value}]` and `[{label}]`. They ride
@@ -887,6 +1487,57 @@ export function BlockSettingsEditor({
           .map((b) => ({ label: b.label.trim() }))
           .filter((b) => b.label !== "")
           .slice(0, 12);
+      }
+      // Gallery/grid blocks: persist the images repeater ([{url, alt}]),
+      // dropping rows without a URL so tap-and-leave never saves blanks.
+      if (isGalleryBlock) {
+        nextSettings.images = galleryImages
+          .map((i) => ({ url: i.url.trim(), alt: i.alt.trim() }))
+          .filter((i) => i.url !== "");
+      }
+      // Image block: merge the drag-positioned photo stickers back into
+      // the block's current `_style` (the API replaces `settings` wholesale,
+      // so without this merge the whole _style — stickers included — would
+      // be wiped on every mobile save). Empty array drops the key; entries
+      // are already normalized to the server sanitizer's shape/bounds.
+      if (isImageBlock) {
+        const prevStyle =
+          (block?.settings?._style as Record<string, unknown> | undefined) ?? {};
+        const styleOut: Record<string, unknown> = { ...prevStyle };
+        if (photoStickers.length > 0) {
+          styleOut._photo_stickers = photoStickers.slice(0, 4).map((s) => ({
+            file_id: s.file_id,
+            url: s.url,
+            pos: s.pos,
+            size: clampNum(Math.round(s.size), 24, 160),
+            rotate: clampNum(Math.round(s.rotate), -180, 180),
+            dx: clampNum(Math.round(s.dx), -80, 80),
+            dy: clampNum(Math.round(s.dy), -80, 80),
+          }));
+        } else {
+          delete styleOut._photo_stickers;
+        }
+        if (Object.keys(styleOut).length > 0) nextSettings._style = styleOut;
+      }
+      // Block background preset (Task #5970): merge the preset key +
+      // opacity into whatever `_style` has been assembled so far (profile
+      // avatar frame / image stickers may already have populated it).
+      // Empty key deletes both so clearing round-trips.
+      {
+        const baseStyle =
+          (nextSettings._style as Record<string, unknown> | undefined) ??
+          (block?.settings?._style as Record<string, unknown> | undefined) ??
+          {};
+        const styleOut: Record<string, unknown> = { ...baseStyle };
+        if (bgPresetKey) {
+          styleOut.bg_preset_key = bgPresetKey;
+          styleOut.bg_preset_opacity = clampNum(Math.round(bgPresetOpacity), 0, 100);
+        } else {
+          delete styleOut.bg_preset_key;
+          delete styleOut.bg_preset_opacity;
+        }
+        if (Object.keys(styleOut).length > 0) nextSettings._style = styleOut;
+        else delete nextSettings._style;
       }
       // Map-location block: the boolean toggle round-trips through its own
       // state (the generic `values` map would otherwise stringify it).
@@ -1212,6 +1863,226 @@ export function BlockSettingsEditor({
         </View>
         )}
 
+        {/* Block background preset (Task #5970) — mirrors the web editor's
+            Look-tab picker: catalog presets (torn-paper excluded server-side
+            via `paper`) painted behind THIS block with a 0–100 transparency.
+            Saved into `_style.bg_preset_key` / `_style.bg_preset_opacity`
+            on the normal save path. */}
+        <View style={{ gap: 8 }} testID="block-bg-preset-section">
+          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+            <Text style={[styles.rowLabel, { color: colors.foreground }]}>Background preset</Text>
+            <Pressable {...WEB_FOCUS_RING_PROPS}
+              testID="block-bg-preset-toggle"
+              onPress={() => setBgPresetOpen((v) => !v)}
+              style={{
+                paddingHorizontal: 10,
+                paddingVertical: 6,
+                borderRadius: 999,
+                borderWidth: 1,
+                borderColor: colors.border,
+                backgroundColor: colors.card,
+              }}
+            >
+              <Text style={{ color: colors.foreground, fontWeight: "600", fontSize: 11 }}>
+                {bgPresetOpen ? "Hide presets" : bgPresetKey ? "Change preset" : "Pick a preset"}
+              </Text>
+            </Pressable>
+          </View>
+
+          {bgPresetKey ? (() => {
+            const cur = (bgPresetCatalogQ.data?.presets ?? []).find(
+              (p) => p.key === bgPresetKey && !p.paper,
+            );
+            return (
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+                <View style={{ width: 44, height: 44, borderRadius: 10, overflow: "hidden", borderWidth: 1, borderColor: colors.border }}>
+                  {cur ? (
+                    <LinearGradient
+                      colors={
+                        cur.colors.length >= 2
+                          ? (cur.colors as [string, string, ...string[]])
+                          : ([cur.colors[0] ?? "#3d3654", cur.colors[0] ?? "#3d3654"] as [string, string])
+                      }
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 1 }}
+                      style={StyleSheet.absoluteFill}
+                    />
+                  ) : (
+                    <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.muted }]} />
+                  )}
+                  {cur?.swatch ? (
+                    <Image
+                      source={{ uri: `${getBaseUrl()}${cur.swatch}` }}
+                      style={StyleSheet.absoluteFill}
+                      resizeMode="cover"
+                    />
+                  ) : null}
+                </View>
+                <Text style={{ color: colors.mutedForeground, fontSize: 12, flex: 1 }} numberOfLines={1}>
+                  {cur?.label ?? bgPresetKey}
+                </Text>
+                <Pressable {...WEB_FOCUS_RING_PROPS}
+                  testID="block-bg-preset-clear"
+                  onPress={() => setBgPresetKey("")}
+                  style={{
+                    paddingHorizontal: 10,
+                    paddingVertical: 6,
+                    borderRadius: 999,
+                    borderWidth: 1,
+                    borderColor: colors.border,
+                  }}
+                >
+                  <Text style={{ color: colors.destructive, fontWeight: "600", fontSize: 11 }}>Remove</Text>
+                </Pressable>
+              </View>
+            );
+          })() : null}
+
+          {bgPresetKey ? (
+            <View style={{ gap: 6 }}>
+              <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>
+                Transparency · {bgPresetOpacity}%
+              </Text>
+              <Slider
+                testID="block-bg-preset-opacity-slider"
+                style={{ width: "100%", height: 32 }}
+                minimumValue={0}
+                maximumValue={100}
+                step={1}
+                value={bgPresetOpacity}
+                minimumTrackTintColor={colors.primary}
+                maximumTrackTintColor={colors.border}
+                thumbTintColor={colors.primary}
+                onValueChange={(v) => setBgPresetOpacity(Math.round(v))}
+              />
+            </View>
+          ) : null}
+
+          {/* Live preview (Task #5984) — the block rendered through the same
+              native renderer the public page uses, with the in-progress
+              preset key + dragged opacity patched into `_style`. Because it
+              reads the slider state directly, the background fades in real
+              time while dragging; the saved value still lands in
+              `_style.bg_preset_opacity` via the normal save path. */}
+          {bgPresetKey && block ? (
+            <View style={{ gap: 6 }}>
+              <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>
+                Live preview
+              </Text>
+              <View
+                ref={bgPresetPreviewRef}
+                testID="block-bg-preset-live-preview"
+                pointerEvents="none"
+                style={{
+                  padding: 12,
+                  borderRadius: 12,
+                  borderWidth: 1,
+                  borderStyle: "dashed",
+                  borderColor: colors.border,
+                }}
+              >
+                <StoreCartProvider alias={BLOCK_PREVIEW_ALIAS}>
+                  <BlockView
+                    block={{
+                      ...block,
+                      settings: {
+                        ...(block.settings ?? {}),
+                        _style: {
+                          ...((block.settings?._style as Record<string, unknown> | undefined) ?? {}),
+                          bg_preset_key: bgPresetKey,
+                          bg_preset_opacity: clampNum(Math.round(bgPresetOpacity), 0, 100),
+                        },
+                      },
+                    }}
+                    alias={BLOCK_PREVIEW_ALIAS}
+                    allBlocks={q.data ?? []}
+                    openEmbed={NOOP_BLOCK_PREVIEW_EMBED}
+                  />
+                </StoreCartProvider>
+              </View>
+            </View>
+          ) : null}
+
+          {bgPresetOpen ? (
+            bgPresetCatalogQ.isLoading ? (
+              <ActivityIndicator color={colors.primary} />
+            ) : (
+              <View style={{ gap: 8 }}>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
+                  {[{ key: "all", label: "All" }, ...(bgPresetCatalogQ.data?.groups ?? [])].map((g) => {
+                    const sel = bgPresetGroup === g.key;
+                    return (
+                      <Pressable {...WEB_FOCUS_RING_PROPS}
+                        key={g.key}
+                        onPress={() => setBgPresetGroup(g.key)}
+                        style={{
+                          paddingHorizontal: 10,
+                          paddingVertical: 5,
+                          borderRadius: 999,
+                          backgroundColor: sel ? colors.primary : colors.card,
+                          borderWidth: 1,
+                          borderColor: sel ? colors.primary : colors.border,
+                        }}
+                      >
+                        <Text style={{ color: sel ? "#fff" : colors.foreground, fontWeight: "600", fontSize: 11 }}>
+                          {g.label}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </ScrollView>
+                <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+                  {(bgPresetCatalogQ.data?.presets ?? [])
+                    .filter((p) => !p.paper)
+                    .filter((p) => bgPresetGroup === "all" || p.group === bgPresetGroup)
+                    .map((p) => {
+                      const sel = bgPresetKey === p.key;
+                      return (
+                        <Pressable {...WEB_FOCUS_RING_PROPS}
+                          key={p.key}
+                          testID={`block-bg-preset-${p.key}`}
+                          onPress={() => {
+                            setBgPresetKey(sel ? "" : p.key);
+                            // Task #5987 — make the change immediately
+                            // visible: bring the live preview back into
+                            // view when picking (not clearing) a preset.
+                            if (!sel) scrollBgPresetPreviewIntoView();
+                          }}
+                          style={{
+                            width: 56,
+                            height: 56,
+                            borderRadius: 12,
+                            overflow: "hidden",
+                            borderWidth: sel ? 3 : 1,
+                            borderColor: sel ? colors.primary : colors.border,
+                          }}
+                        >
+                          <LinearGradient
+                            colors={
+                              p.colors.length >= 2
+                                ? (p.colors as [string, string, ...string[]])
+                                : ([p.colors[0] ?? "#3d3654", p.colors[0] ?? "#3d3654"] as [string, string])
+                            }
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 1 }}
+                            style={StyleSheet.absoluteFill}
+                          />
+                          {p.swatch ? (
+                            <Image
+                              source={{ uri: `${getBaseUrl()}${p.swatch}` }}
+                              style={StyleSheet.absoluteFill}
+                              resizeMode="cover"
+                            />
+                          ) : null}
+                        </Pressable>
+                      );
+                    })}
+                </View>
+              </View>
+            )
+          ) : null}
+        </View>
+
         {isAnyList ? (
           <View style={{ gap: 12 }}>
             {/* Live preview — reflects the current style + items + icons
@@ -1377,6 +2248,59 @@ export function BlockSettingsEditor({
                           }
                         />
                       </View>
+                      <Pressable
+                        {...WEB_FOCUS_RING_PROPS}
+                        disabled={idx === 0}
+                        onPress={() =>
+                          setListItems((prev) => {
+                            if (idx <= 0) return prev;
+                            const next = [...prev];
+                            [next[idx - 1], next[idx]] = [next[idx], next[idx - 1]];
+                            return next;
+                          })
+                        }
+                        accessibilityRole="button"
+                        accessibilityLabel={`Move item ${idx + 1} up`}
+                        hitSlop={8}
+                        style={{ padding: 4, opacity: idx === 0 ? 0.3 : 1 }}
+                        testID={`list-item-up-${idx}`}
+                      >
+                        <Feather
+                          name="arrow-up"
+                          size={15}
+                          color={idx === 0 ? colors.mutedForeground : colors.primary}
+                        />
+                      </Pressable>
+                      <Pressable
+                        {...WEB_FOCUS_RING_PROPS}
+                        disabled={idx === listItems.length - 1}
+                        onPress={() =>
+                          setListItems((prev) => {
+                            if (idx >= prev.length - 1) return prev;
+                            const next = [...prev];
+                            [next[idx], next[idx + 1]] = [next[idx + 1], next[idx]];
+                            return next;
+                          })
+                        }
+                        accessibilityRole="button"
+                        accessibilityLabel={`Move item ${idx + 1} down`}
+                        hitSlop={8}
+                        style={{
+                          padding: 4,
+                          opacity: idx === listItems.length - 1 ? 0.3 : 1,
+                        }}
+                        testID={`list-item-down-${idx}`}
+                      >
+                        <Feather
+                          name="arrow-down"
+                          size={15}
+                          color={
+                            idx === listItems.length - 1
+                              ? colors.mutedForeground
+                              : colors.primary
+                          }
+                        />
+                      </Pressable>
                       <Pressable {...WEB_FOCUS_RING_PROPS}
                         onPress={() =>
                           setListItems((prev) => prev.filter((_, i) => i !== idx))
@@ -1578,25 +2502,84 @@ export function BlockSettingsEditor({
                         trackColor={{ true: colors.primary, false: colors.border }}
                       />
                     </View>
-                    <Pressable {...WEB_FOCUS_RING_PROPS}
-                      onPress={() =>
-                        setPricingItems((prev) => prev.filter((_, i) => i !== idx))
-                      }
+                    <View
                       style={{
-                        alignSelf: "flex-end",
-                        paddingHorizontal: 10,
-                        paddingVertical: 6,
-                        borderRadius: 8,
                         flexDirection: "row",
                         alignItems: "center",
-                        gap: 6,
+                        justifyContent: "flex-end",
+                        gap: 4,
                       }}
                     >
-                      <Feather name="trash-2" size={14} color={colors.destructive} />
-                      <Text style={{ color: colors.destructive, fontSize: 12, fontWeight: "600" }}>
-                        Remove
-                      </Text>
-                    </Pressable>
+                      <Pressable
+                        {...WEB_FOCUS_RING_PROPS}
+                        disabled={idx === 0}
+                        onPress={() =>
+                          setPricingItems((prev) => {
+                            if (idx <= 0) return prev;
+                            const next = [...prev];
+                            [next[idx - 1], next[idx]] = [next[idx], next[idx - 1]];
+                            return next;
+                          })
+                        }
+                        accessibilityRole="button"
+                        accessibilityLabel={`Move row ${idx + 1} up`}
+                        style={{ padding: 6, opacity: idx === 0 ? 0.3 : 1 }}
+                        testID={`pricing-item-up-${idx}`}
+                      >
+                        <Feather
+                          name="arrow-up"
+                          size={15}
+                          color={idx === 0 ? colors.mutedForeground : colors.primary}
+                        />
+                      </Pressable>
+                      <Pressable
+                        {...WEB_FOCUS_RING_PROPS}
+                        disabled={idx === pricingItems.length - 1}
+                        onPress={() =>
+                          setPricingItems((prev) => {
+                            if (idx >= prev.length - 1) return prev;
+                            const next = [...prev];
+                            [next[idx], next[idx + 1]] = [next[idx + 1], next[idx]];
+                            return next;
+                          })
+                        }
+                        accessibilityRole="button"
+                        accessibilityLabel={`Move row ${idx + 1} down`}
+                        style={{
+                          padding: 6,
+                          opacity: idx === pricingItems.length - 1 ? 0.3 : 1,
+                        }}
+                        testID={`pricing-item-down-${idx}`}
+                      >
+                        <Feather
+                          name="arrow-down"
+                          size={15}
+                          color={
+                            idx === pricingItems.length - 1
+                              ? colors.mutedForeground
+                              : colors.primary
+                          }
+                        />
+                      </Pressable>
+                      <Pressable {...WEB_FOCUS_RING_PROPS}
+                        onPress={() =>
+                          setPricingItems((prev) => prev.filter((_, i) => i !== idx))
+                        }
+                        style={{
+                          paddingHorizontal: 10,
+                          paddingVertical: 6,
+                          borderRadius: 8,
+                          flexDirection: "row",
+                          alignItems: "center",
+                          gap: 6,
+                        }}
+                      >
+                        <Feather name="trash-2" size={14} color={colors.destructive} />
+                        <Text style={{ color: colors.destructive, fontSize: 12, fontWeight: "600" }}>
+                          Remove
+                        </Text>
+                      </Pressable>
+                    </View>
                   </View>
                 ))}
 
@@ -1710,6 +2693,541 @@ export function BlockSettingsEditor({
           </View>
         ) : null}
 
+        {isImageBlock ? (
+          <StockImageGalleryPicker
+            label="Stock images"
+            hint="Use a curated photo or hand-drawn graphic"
+            selectedUrl={linkUrl.trim()}
+            onSelect={(url) => setLinkUrl(url)}
+            testIDPrefix="image-stock-gallery"
+          />
+        ) : null}
+
+        {isImageBlock ? (
+          <View style={{ gap: 12 }}>
+            <Text style={[styles.rowLabel, { color: colors.foreground }]}>
+              Photo stickers
+            </Text>
+            <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>
+              {photoStickers.length > 0
+                ? "Drag a sticker to reposition it — it snaps to the nearest corner or edge with a fine offset, exactly like the web editor."
+                : "Layer up to 4 of your own sticker images (PNG or WebP with transparency work best) over the photo."}
+            </Text>
+            {photoStickers.length > 0 ? (
+            <View
+              onLayout={(e) => setStickerStageW(e.nativeEvent.layout.width)}
+              style={{
+                width: "100%",
+                aspectRatio: stickerStageRatio,
+                borderRadius: 12,
+                borderWidth: 1,
+                borderColor: colors.border,
+                backgroundColor: colors.muted,
+                overflow: "hidden",
+              }}
+            >
+              {stickerImageUri ? (
+                <Image
+                  source={{ uri: stickerImageUri }}
+                  style={{ width: "100%", height: "100%" }}
+                  resizeMode="cover"
+                />
+              ) : null}
+              {stickerStageW > 0
+                ? photoStickers.map((stk, idx) => (
+                    <DraggableSticker
+                      key={`${stk.file_id}-${idx}`}
+                      sticker={stk}
+                      stageW={stickerStageW}
+                      stageH={stickerStageW / stickerStageRatio}
+                      accentColor={colors.primary}
+                      onPlace={(p) =>
+                        setPhotoStickers((prev) =>
+                          prev.map((s, i) =>
+                            i === idx
+                              ? { ...s, pos: p.pos, dx: p.dx, dy: p.dy }
+                              : s,
+                          ),
+                        )
+                      }
+                    />
+                  ))
+                : null}
+            </View>
+            ) : null}
+            {photoStickers.map((stk, idx) => (
+              <View
+                key={`sticker-row-${stk.file_id}-${idx}`}
+                style={{
+                  gap: 8,
+                  padding: 10,
+                  borderRadius: 10,
+                  borderWidth: 1,
+                  borderColor: colors.border,
+                }}
+              >
+                <View
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                  }}
+                >
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                    <Image
+                      source={{ uri: photoStickerImageUri(stk.url) }}
+                      style={{ width: 28, height: 28 }}
+                      resizeMode="contain"
+                    />
+                    <Text style={{ color: colors.foreground, fontSize: 12, fontWeight: "600" }}>
+                      {PHOTO_STICKER_POSITION_LABELS[stk.pos] ?? stk.pos}
+                      {stk.dx !== 0 || stk.dy !== 0
+                        ? `  (${stk.dx >= 0 ? "+" : ""}${stk.dx}, ${stk.dy >= 0 ? "+" : ""}${stk.dy})`
+                        : ""}
+                    </Text>
+                  </View>
+                  <Pressable
+                    {...WEB_FOCUS_RING_PROPS}
+                    onPress={() =>
+                      setPhotoStickers((prev) => prev.filter((_, i) => i !== idx))
+                    }
+                    hitSlop={8}
+                    style={{ flexDirection: "row", alignItems: "center", gap: 4 }}
+                  >
+                    <Feather name="trash-2" size={13} color={colors.destructive} />
+                    <Text style={{ color: colors.destructive, fontSize: 11, fontWeight: "600" }}>
+                      Remove
+                    </Text>
+                  </Pressable>
+                </View>
+                <View style={{ flexDirection: "row", gap: 10 }}>
+                  <View style={{ flex: 1 }}>
+                    <TextField
+                      label="Size (24–160)"
+                      value={String(stk.size)}
+                      onChangeText={(t) => {
+                        const n = parseInt(t.trim(), 10);
+                        setPhotoStickers((prev) =>
+                          prev.map((s, i) =>
+                            i === idx
+                              ? {
+                                  ...s,
+                                  size: Number.isFinite(n)
+                                    ? clampNum(n, 24, 160)
+                                    : 48,
+                                }
+                              : s,
+                          ),
+                        );
+                      }}
+                      keyboardType="numeric"
+                    />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <TextField
+                      label="Rotate (±180°)"
+                      value={String(stk.rotate)}
+                      onChangeText={(t) => {
+                        const n = parseInt(t.trim(), 10);
+                        setPhotoStickers((prev) =>
+                          prev.map((s, i) =>
+                            i === idx
+                              ? {
+                                  ...s,
+                                  rotate: Number.isFinite(n)
+                                    ? clampNum(n, -180, 180)
+                                    : 0,
+                                }
+                              : s,
+                          ),
+                        );
+                      }}
+                      keyboardType="numeric"
+                    />
+                  </View>
+                </View>
+              </View>
+            ))}
+            {photoStickers.length < 4 ? (
+              <View style={{ gap: 8 }}>
+                <View style={{ flexDirection: "row", gap: 8 }}>
+                  <Pressable
+                    {...WEB_FOCUS_RING_PROPS}
+                    onPress={addStickerFromDevice}
+                    disabled={stickerUploading}
+                    style={{
+                      flex: 1,
+                      flexDirection: "row",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: 6,
+                      paddingVertical: 10,
+                      borderRadius: 10,
+                      borderWidth: 1,
+                      borderColor: colors.border,
+                      opacity: stickerUploading ? 0.6 : 1,
+                    }}
+                    accessibilityRole="button"
+                    accessibilityLabel="Add sticker from device"
+                  >
+                    {stickerUploading ? (
+                      <ActivityIndicator size="small" color={colors.primary} />
+                    ) : (
+                      <Feather name="upload" size={14} color={colors.primary} />
+                    )}
+                    <Text
+                      style={{
+                        color: colors.primary,
+                        fontSize: 12,
+                        fontWeight: "600",
+                      }}
+                    >
+                      {stickerUploading ? "Uploading…" : "Add sticker"}
+                    </Text>
+                  </Pressable>
+                  <Pressable
+                    {...WEB_FOCUS_RING_PROPS}
+                    onPress={openStickerVaultPicker}
+                    style={{
+                      flex: 1,
+                      flexDirection: "row",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: 6,
+                      paddingVertical: 10,
+                      borderRadius: 10,
+                      borderWidth: 1,
+                      borderColor: stickerPickerOpen
+                        ? colors.primary
+                        : colors.border,
+                    }}
+                    accessibilityRole="button"
+                    accessibilityLabel="Pick sticker from my files"
+                  >
+                    <Feather name="folder" size={14} color={colors.primary} />
+                    <Text
+                      style={{
+                        color: colors.primary,
+                        fontSize: 12,
+                        fontWeight: "600",
+                      }}
+                    >
+                      From my files
+                    </Text>
+                  </Pressable>
+                </View>
+                {stickerPickerOpen ? (
+                  <View
+                    style={{
+                      borderRadius: 10,
+                      borderWidth: 1,
+                      borderColor: colors.border,
+                      padding: 10,
+                      gap: 8,
+                    }}
+                  >
+                    <TextInput
+                      value={stickerVaultQuery}
+                      onChangeText={setStickerVaultQuery}
+                      placeholder="Search your files by name…"
+                      placeholderTextColor={colors.mutedForeground}
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                      style={{
+                        borderWidth: 1,
+                        borderColor: colors.border,
+                        borderRadius: 8,
+                        paddingHorizontal: 10,
+                        paddingVertical: 8,
+                        fontSize: 12,
+                        color: colors.foreground,
+                      }}
+                      accessibilityLabel="Search your files by name"
+                    />
+                    {stickerVaultLoading ? (
+                      <ActivityIndicator size="small" color={colors.primary} />
+                    ) : stickerVaultFiles && stickerVaultFiles.length > 0 ? (
+                      <View
+                        style={{
+                          flexDirection: "row",
+                          flexWrap: "wrap",
+                          gap: 8,
+                        }}
+                      >
+                        {stickerVaultFiles.map((f) => (
+                          <Pressable
+                            key={`vault-file-${f.id}`}
+                            {...WEB_FOCUS_RING_PROPS}
+                            onPress={() => appendSticker(f)}
+                            style={{
+                              width: 56,
+                              height: 56,
+                              borderRadius: 8,
+                              borderWidth: 1,
+                              borderColor: colors.border,
+                              backgroundColor: colors.muted,
+                              overflow: "hidden",
+                            }}
+                            accessibilityRole="button"
+                            accessibilityLabel={`Use ${f.original_name} as sticker`}
+                          >
+                            <Image
+                              source={{ uri: photoStickerImageUri(f.url_path || f.url) }}
+                              style={{ width: "100%", height: "100%" }}
+                              resizeMode="contain"
+                            />
+                          </Pressable>
+                        ))}
+                      </View>
+                    ) : (
+                      <Text
+                        style={{ color: colors.mutedForeground, fontSize: 11 }}
+                      >
+                        {stickerVaultQuery.trim()
+                          ? "No images match that name."
+                          : "No images in your files yet — upload one from your device instead."}
+                      </Text>
+                    )}
+                    {!stickerVaultLoading &&
+                    stickerVaultFiles &&
+                    stickerVaultFiles.length > 0 &&
+                    stickerVaultPage < stickerVaultLastPage ? (
+                      <Pressable
+                        {...WEB_FOCUS_RING_PROPS}
+                        onPress={loadMoreStickerVault}
+                        disabled={stickerVaultLoadingMore}
+                        style={{
+                          flexDirection: "row",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          gap: 6,
+                          paddingVertical: 8,
+                          borderRadius: 8,
+                          borderWidth: 1,
+                          borderColor: colors.border,
+                          opacity: stickerVaultLoadingMore ? 0.6 : 1,
+                        }}
+                        accessibilityRole="button"
+                        accessibilityLabel="Load more files"
+                      >
+                        {stickerVaultLoadingMore ? (
+                          <ActivityIndicator
+                            size="small"
+                            color={colors.primary}
+                          />
+                        ) : (
+                          <Feather
+                            name="chevron-down"
+                            size={14}
+                            color={colors.primary}
+                          />
+                        )}
+                        <Text
+                          style={{
+                            color: colors.primary,
+                            fontSize: 12,
+                            fontWeight: "600",
+                          }}
+                        >
+                          {stickerVaultLoadingMore ? "Loading…" : "Load more"}
+                        </Text>
+                      </Pressable>
+                    ) : null}
+                  </View>
+                ) : null}
+                <StockImageGalleryPicker
+                  label={stockStickerBusy ? "Adding sticker…" : "Stock stickers"}
+                  hint="Pick a curated hand-drawn graphic"
+                  folders={[{ folder: "hand-drawn", label: "Hand-drawn" }]}
+                  busy={stockStickerBusy}
+                  onSelect={(_url, asset) => void addStickerFromStock(asset.key)}
+                  testIDPrefix="sticker-stock-gallery"
+                />
+              </View>
+            ) : (
+              <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>
+                Sticker limit reached (4 max) — remove one to add another.
+              </Text>
+            )}
+          </View>
+        ) : null}
+
+        {isGalleryBlock ? (
+          <View style={{ gap: 12 }}>
+            <Text style={[styles.rowLabel, { color: colors.foreground }]}>
+              Images
+            </Text>
+            <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>
+              Add image URLs or pick from the curated stock gallery below.
+              Rows without a URL are dropped on save.
+            </Text>
+            {galleryImages.map((img, idx) => (
+              <View
+                key={`gallery-img-${idx}`}
+                style={{
+                  gap: 8,
+                  padding: 10,
+                  borderWidth: 1,
+                  borderColor: colors.border,
+                  borderRadius: colors.radius,
+                }}
+              >
+                <View
+                  style={{ flexDirection: "row", alignItems: "center", gap: 8 }}
+                >
+                  {img.url.trim() ? (
+                    <Image
+                      source={{ uri: img.url.trim() }}
+                      style={{
+                        width: 44,
+                        height: 44,
+                        borderRadius: 8,
+                        backgroundColor: colors.muted,
+                      }}
+                      resizeMode="cover"
+                    />
+                  ) : (
+                    <View
+                      style={{
+                        width: 44,
+                        height: 44,
+                        borderRadius: 8,
+                        backgroundColor: colors.muted,
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                    >
+                      <Feather
+                        name="image"
+                        size={16}
+                        color={colors.mutedForeground}
+                      />
+                    </View>
+                  )}
+                  <Text
+                    style={{
+                      flex: 1,
+                      color: colors.mutedForeground,
+                      fontSize: 11,
+                    }}
+                    numberOfLines={1}
+                  >
+                    {img.url.trim() || "No image yet"}
+                  </Text>
+                  <Pressable
+                    {...WEB_FOCUS_RING_PROPS}
+                    disabled={idx === 0}
+                    onPress={() =>
+                      setGalleryImages((prev) => {
+                        if (idx <= 0) return prev;
+                        const next = [...prev];
+                        [next[idx - 1], next[idx]] = [next[idx], next[idx - 1]];
+                        return next;
+                      })
+                    }
+                    accessibilityRole="button"
+                    accessibilityLabel={`Move image ${idx + 1} up`}
+                    style={{ padding: 6, opacity: idx === 0 ? 0.3 : 1 }}
+                    testID={`gallery-img-up-${idx}`}
+                  >
+                    <Feather
+                      name="arrow-up"
+                      size={15}
+                      color={idx === 0 ? colors.mutedForeground : colors.primary}
+                    />
+                  </Pressable>
+                  <Pressable
+                    {...WEB_FOCUS_RING_PROPS}
+                    disabled={idx === galleryImages.length - 1}
+                    onPress={() =>
+                      setGalleryImages((prev) => {
+                        if (idx >= prev.length - 1) return prev;
+                        const next = [...prev];
+                        [next[idx], next[idx + 1]] = [next[idx + 1], next[idx]];
+                        return next;
+                      })
+                    }
+                    accessibilityRole="button"
+                    accessibilityLabel={`Move image ${idx + 1} down`}
+                    style={{
+                      padding: 6,
+                      opacity: idx === galleryImages.length - 1 ? 0.3 : 1,
+                    }}
+                    testID={`gallery-img-down-${idx}`}
+                  >
+                    <Feather
+                      name="arrow-down"
+                      size={15}
+                      color={
+                        idx === galleryImages.length - 1
+                          ? colors.mutedForeground
+                          : colors.primary
+                      }
+                    />
+                  </Pressable>
+                  <Pressable
+                    {...WEB_FOCUS_RING_PROPS}
+                    onPress={() =>
+                      setGalleryImages((prev) =>
+                        prev.filter((_, i) => i !== idx),
+                      )
+                    }
+                    accessibilityRole="button"
+                    accessibilityLabel={`Remove image ${idx + 1}`}
+                    style={{ padding: 6 }}
+                  >
+                    <Feather name="trash-2" size={15} color={colors.destructive} />
+                  </Pressable>
+                </View>
+                <TextField
+                  label="Image URL"
+                  value={img.url}
+                  onChangeText={(t) =>
+                    setGalleryImages((prev) =>
+                      prev.map((r, i) => (i === idx ? { ...r, url: t } : r)),
+                    )
+                  }
+                  keyboardType="url"
+                  autoCapitalize="none"
+                />
+                <TextField
+                  label="Alt text"
+                  value={img.alt}
+                  onChangeText={(t) =>
+                    setGalleryImages((prev) =>
+                      prev.map((r, i) => (i === idx ? { ...r, alt: t } : r)),
+                    )
+                  }
+                />
+              </View>
+            ))}
+            <Button
+              label="Add image"
+              variant="ghost"
+              onPress={() =>
+                setGalleryImages((prev) => [...prev, { url: "", alt: "" }])
+              }
+            />
+            <StockImageGalleryPicker
+              label="Stock images"
+              hint="Tap a curated image to add it to this gallery"
+              onSelect={(url, asset) =>
+                setGalleryImages((prev) => {
+                  // Fill the first empty row if one exists, else append.
+                  const emptyIdx = prev.findIndex((r) => r.url.trim() === "");
+                  if (emptyIdx !== -1) {
+                    return prev.map((r, i) =>
+                      i === emptyIdx ? { ...r, url } : r,
+                    );
+                  }
+                  return [...prev, { url, alt: asset.label || "" }];
+                })
+              }
+              testIDPrefix="gallery-stock-gallery"
+            />
+          </View>
+        ) : null}
+
         {isProfileCard ? (
           <View style={{ gap: 12 }}>
             <Text style={[styles.rowLabel, { color: colors.foreground }]}>
@@ -1805,6 +3323,144 @@ export function BlockSettingsEditor({
               />
             </View>
 
+            {/* Decorative avatar frame (Task #5910) — mirrors the web
+                editor's swatch picker. Renders behind circular avatars on
+                the public page; "None" clears it. */}
+            <View>
+              <Text style={{ color: colors.foreground, fontWeight: "600", fontSize: 13 }}>
+                Avatar frame
+              </Text>
+              <Text style={{ color: colors.mutedForeground, fontSize: 11, marginBottom: 8 }}>
+                A decorative shape drawn behind the avatar.
+              </Text>
+              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+                <Pressable
+                  {...WEB_FOCUS_RING_PROPS}
+                  onPress={() => setAvatarFrame("")}
+                  style={{
+                    alignItems: "center",
+                    borderWidth: 1,
+                    borderColor: avatarFrame === "" ? colors.primary : colors.border,
+                    backgroundColor: avatarFrame === "" ? colors.primary + "22" : "transparent",
+                    borderRadius: 10,
+                    paddingVertical: 8,
+                    paddingHorizontal: 10,
+                    width: 76,
+                  }}
+                >
+                  <View
+                    style={{
+                      width: 34,
+                      height: 34,
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    <View
+                      style={{
+                        width: 24,
+                        height: 24,
+                        borderRadius: 12,
+                        borderWidth: 1,
+                        borderStyle: "dashed",
+                        borderColor: colors.mutedForeground,
+                      }}
+                    />
+                  </View>
+                  <Text style={{ color: colors.foreground, fontSize: 10, marginTop: 4 }}>
+                    None
+                  </Text>
+                </Pressable>
+                {AVATAR_FRAME_KEYS.map((fk) => {
+                  const selected = avatarFrame === fk;
+                  return (
+                    <Pressable
+                      key={fk}
+                      {...WEB_FOCUS_RING_PROPS}
+                      onPress={() => setAvatarFrame(fk)}
+                      style={{
+                        alignItems: "center",
+                        borderWidth: 1,
+                        borderColor: selected ? colors.primary : colors.border,
+                        backgroundColor: selected ? colors.primary + "22" : "transparent",
+                        borderRadius: 10,
+                        paddingVertical: 8,
+                        paddingHorizontal: 10,
+                        width: 76,
+                      }}
+                    >
+                      <View
+                        style={{
+                          width: 34,
+                          height: 34,
+                          alignItems: "center",
+                          justifyContent: "center",
+                        }}
+                      >
+                        <View style={{ position: "absolute", width: 34, height: 34 }}>
+                          <AvatarFrame shape={fk} color={colors.primary} size={34} />
+                        </View>
+                        <View
+                          style={{
+                            width: 18,
+                            height: 18,
+                            borderRadius: 9,
+                            backgroundColor: colors.primary + "66",
+                          }}
+                        />
+                      </View>
+                      <Text
+                        style={{ color: colors.foreground, fontSize: 10, marginTop: 4 }}
+                        numberOfLines={1}
+                      >
+                        {AVATAR_FRAME_LABELS[fk]}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+              {avatarFrame !== "" ? (
+                <View style={{ marginTop: 10 }}>
+                  <Text style={{ color: colors.mutedForeground, fontSize: 11, marginBottom: 6 }}>
+                    Frame color — Auto uses the layout accent.
+                  </Text>
+                  <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+                    <Pressable
+                      {...WEB_FOCUS_RING_PROPS}
+                      onPress={() => setAvatarFrameColor("")}
+                      style={{
+                        borderWidth: 1,
+                        borderColor: avatarFrameColor === "" ? colors.primary : colors.border,
+                        borderRadius: 8,
+                        paddingVertical: 6,
+                        paddingHorizontal: 10,
+                      }}
+                    >
+                      <Text style={{ color: colors.foreground, fontSize: 11 }}>Auto</Text>
+                    </Pressable>
+                    {AVATAR_FRAME_COLOR_PRESETS.map((c) => {
+                      const sel = avatarFrameColor.toLowerCase() === c.toLowerCase();
+                      return (
+                        <Pressable
+                          key={c}
+                          {...WEB_FOCUS_RING_PROPS}
+                          onPress={() => setAvatarFrameColor(c)}
+                          style={{
+                            width: 30,
+                            height: 30,
+                            borderRadius: 15,
+                            backgroundColor: c,
+                            borderWidth: sel ? 3 : 1,
+                            borderColor: sel ? colors.primary : colors.border,
+                          }}
+                        />
+                      );
+                    })}
+                  </View>
+                </View>
+              ) : null}
+            </View>
+
             <TextField
               label="Location"
               value={values.location ?? ""}
@@ -1885,6 +3541,64 @@ export function BlockSettingsEditor({
                         autoCapitalize="none"
                       />
                     </View>
+                    <Pressable
+                      {...WEB_FOCUS_RING_PROPS}
+                      disabled={idx === 0}
+                      onPress={() =>
+                        setProfileSocials((prev) => {
+                          if (idx <= 0) return prev;
+                          const next = [...prev];
+                          [next[idx - 1], next[idx]] = [next[idx], next[idx - 1]];
+                          return next;
+                        })
+                      }
+                      accessibilityRole="button"
+                      accessibilityLabel={`Move social link ${idx + 1} up`}
+                      hitSlop={8}
+                      style={{
+                        padding: 6,
+                        marginTop: 18,
+                        opacity: idx === 0 ? 0.3 : 1,
+                      }}
+                      testID={`profile-social-up-${idx}`}
+                    >
+                      <Feather
+                        name="arrow-up"
+                        size={16}
+                        color={idx === 0 ? colors.mutedForeground : colors.primary}
+                      />
+                    </Pressable>
+                    <Pressable
+                      {...WEB_FOCUS_RING_PROPS}
+                      disabled={idx === profileSocials.length - 1}
+                      onPress={() =>
+                        setProfileSocials((prev) => {
+                          if (idx >= prev.length - 1) return prev;
+                          const next = [...prev];
+                          [next[idx], next[idx + 1]] = [next[idx + 1], next[idx]];
+                          return next;
+                        })
+                      }
+                      accessibilityRole="button"
+                      accessibilityLabel={`Move social link ${idx + 1} down`}
+                      hitSlop={8}
+                      style={{
+                        padding: 6,
+                        marginTop: 18,
+                        opacity: idx === profileSocials.length - 1 ? 0.3 : 1,
+                      }}
+                      testID={`profile-social-down-${idx}`}
+                    >
+                      <Feather
+                        name="arrow-down"
+                        size={16}
+                        color={
+                          idx === profileSocials.length - 1
+                            ? colors.mutedForeground
+                            : colors.primary
+                        }
+                      />
+                    </Pressable>
                     <Pressable {...WEB_FOCUS_RING_PROPS}
                       onPress={() =>
                         setProfileSocials((p) => p.filter((_, i) => i !== idx))
@@ -2947,7 +4661,7 @@ export function BlockSettingsEditor({
         // nested ScrollView would break scrolling — render a plain View.
         <View style={styles.bodyInline}>{body}</View>
       ) : (
-        <ScrollView contentContainerStyle={styles.body}>{body}</ScrollView>
+        <ScrollView ref={editorScrollRef} contentContainerStyle={styles.body}>{body}</ScrollView>
       )}
 
       <IconPickerModal

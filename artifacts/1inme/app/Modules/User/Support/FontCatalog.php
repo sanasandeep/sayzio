@@ -61,6 +61,12 @@ class FontCatalog
             'Press Start 2P', 'Monoton', 'Bowlby One', 'Audiowide', 'Orbitron',
             'Rampart One', 'Unica One', 'Alfa Slab One', 'Staatliches',
             'Archivo Black', 'Cinzel', 'Yeseva One',
+            // Distressed / poster display faces (Task #5954) — grungy,
+            // stamped and letterpress looks for tilted headings and photo
+            // text overlays.
+            'Rubik Dirt', 'Rubik Wet Paint', 'Rubik Glitch', 'Bungee Shade',
+            'Creepster', 'Nosifer', 'Frijole', 'Rye', 'Ultra', 'Shrikhand',
+            'Rock Salt', 'Eater', 'Sancreek',
         ];
 
         $hand = [

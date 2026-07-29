@@ -6,18 +6,36 @@
     $typeInfo = $blockTypes[$block->type] ?? ['label' => ucfirst($block->type), 'icon' => 'fa-cube'];
     $catColor = $catColors[$typeInfo['category'] ?? 'basic'] ?? '#5c83ff';
     $curSpan = intval($s['_style']['grid_span'] ?? 12) ?: 12;
+    // Fixed-position blocks: set by admins in the template design session
+    // (pin toggle), enforced against users on design-locked pages (no drag,
+    // no delete). $isTplDraft = admin design session; $isLockedFixed = a
+    // user editing a design-locked page with this block pinned.
+    $isTplDraft = is_array(($link->settings ?? [])['_template_draft'] ?? null);
+    $isFixed = !empty($s['_fixed']);
+    $isLockedFixed = $isFixed && !$isTplDraft && $link->isDesignLocked();
 @endphp
 <div class="block-card-wrapper" data-block-id="{{ $block->id }}" style="grid-column: span {{ $curSpan }}">
+    {{-- Fixed template blocks form a contiguous prefix on a locked page, so
+         no insert affordance mid-prefix (the server clamps such inserts to
+         after the prefix anyway). --}}
+    @unless($isLockedFixed)
     <button type="button" class="insert-block-btn" onclick="openInsertGallery({{ $block->id }})" title="Insert block after this">
         <i class="fas fa-plus"></i>
     </button>
+    @endunless
     <div class="block-card {{ $block->isContainer() ? 'card-container-block' : '' }}" data-block-id="{{ $block->id }}" data-grid-span="{{ $curSpan }}" style="{{ $block->is_active ? '' : 'opacity:0.5;' }}">
         <div class="flex items-center gap-2 p-3">
+            @if($isLockedFixed)
+            <div class="flex-shrink-0 w-5 flex items-center justify-center" title="Fixed by the template — this block can't be moved or removed">
+                <i class="fas fa-thumbtack text-[11px]" style="color: var(--text-faint);"></i>
+            </div>
+            @else
             <div class="drag-handle handle">
                 <div class="flex gap-[3px]"><span class="dot"></span><span class="dot"></span></div>
                 <div class="flex gap-[3px]"><span class="dot"></span><span class="dot"></span></div>
                 <div class="flex gap-[3px]"><span class="dot"></span><span class="dot"></span></div>
             </div>
+            @endif
 
             <div class="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style="background: {{ $catColor }}12; border: 1px solid {{ $catColor }}25;">
                 <i class="fas {{ $typeInfo['icon'] }} text-sm" style="color: {{ $catColor }};"></i>
@@ -28,6 +46,9 @@
                     <span class="text-sm font-semibold" style="color: var(--text-primary);">{{ $typeInfo['label'] }}</span>
                     @if(!$block->is_active)
                     <span class="editor-pill-badge editor-pill-badge--hidden text-[9px] px-2 py-0.5 rounded-full">HIDDEN</span>
+                    @endif
+                    @if($isFixed && ($isTplDraft || $isLockedFixed))
+                    <span class="editor-pill-badge text-[9px] px-2 py-0.5 rounded-full" data-fixed-badge="{{ $block->id }}" style="background: rgba(251,191,36,0.12); color: #fbbf24; border: 1px solid rgba(251,191,36,0.25);"><i class="fas fa-thumbtack mr-0.5"></i>FIXED</span>
                     @endif
                     <span class="grid-span-badge editor-pill-badge editor-pill-badge--span text-[10px] px-2 py-0.5 rounded-md" style="{{ $curSpan >= 12 ? 'display:none;' : '' }}" data-span-badge="{{ $block->id }}">{{ $curSpan }}/12</span>
                 </div>
@@ -69,9 +90,18 @@
                 <button class="block-action-btn toggle-btn" title="{{ $block->is_active ? 'Hide' : 'Show' }}" onclick="ajaxToggleBlock(this, '{{ route('user.links.blocks.toggle', [$link, $block]) }}', {{ $block->id }})">
                     <i class="fas {{ $block->is_active ? 'fa-eye' : 'fa-eye-slash' }}"></i>
                 </button>
+                @if($isTplDraft && $block->parent_id === null)
+                <button class="block-action-btn fixed-toggle-btn {{ $isFixed ? 'active' : '' }}" title="{{ $isFixed ? 'Unpin (also unpins blocks below)' : 'Pin position (also pins blocks above)' }}"
+                        style="{{ $isFixed ? 'color:#fbbf24;' : '' }}"
+                        onclick="ajaxToggleFixed(this, '{{ route('user.links.blocks.toggleFixed', [$link, $block]) }}', {{ $block->id }}, {{ $isFixed ? 'false' : 'true' }})">
+                    <i class="fas fa-thumbtack"></i>
+                </button>
+                @endif
+                @if(!$isLockedFixed)
                 <button class="block-action-btn delete-btn" title="Delete" onclick="ajaxDeleteBlock(this, '{{ route('user.links.blocks.destroy', [$link, $block]) }}', {{ $block->id }})">
                     <i class="fas fa-trash"></i>
                 </button>
+                @endif
             </div>
         </div>
 

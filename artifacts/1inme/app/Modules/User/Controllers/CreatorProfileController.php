@@ -153,8 +153,20 @@ class CreatorProfileController extends Controller
         // avatar identity locked — ignore upload/remove server-side so a
         // direct POST cannot bypass the lock (same rule as ProfileController).
         if (!$user->isNameAvatarLocked()) {
+            $creatorAvatarAsset = $request?->input('creator_avatar_asset');
+            $creatorAvatarAssetValid = is_string($creatorAvatarAsset)
+                && \App\Modules\User\Support\PlatformAssetCatalog::folderForKey(
+                    $creatorAvatarAsset,
+                    \App\Modules\User\Support\PlatformAssetCatalog::AVATAR_FOLDERS
+                ) !== null;
+
             if ($request && $request->hasFile('creator_avatar')) {
                 $user->creator_avatar = '/storage/' . $request->file('creator_avatar')->store('avatars', 'public');
+            } elseif ($creatorAvatarAssetValid) {
+                // Platform avatar-gallery pick (Task #6015) — store the
+                // absolute public CDN URL (PublicStorageUrl passes absolute
+                // URLs through untouched, so all render paths stay safe).
+                $user->creator_avatar = \App\Modules\User\Support\PlatformAssetCatalog::urlForKey($creatorAvatarAsset);
             } elseif ($request && $request->boolean('creator_avatar_remove')) {
                 $user->creator_avatar = null;
             }
@@ -220,6 +232,9 @@ class CreatorProfileController extends Controller
             'location'            => 'nullable|string|max:120',
             'bio'                 => 'nullable|string|max:2000',
             'creator_avatar'      => 'nullable|image|max:2048',
+            // Platform avatar-gallery pick (Task #6015) — S3 object key,
+            // validated in saveCoreProfileFields via PlatformAssetCatalog.
+            'creator_avatar_asset' => 'nullable|string|max:300',
             'creator_avatar_remove' => 'nullable|in:0,1',
             'cover_image'         => 'nullable|image|max:5120',
             'cover_image_url'     => 'nullable|string|max:1024',

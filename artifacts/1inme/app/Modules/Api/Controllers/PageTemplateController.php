@@ -184,6 +184,23 @@ class PageTemplateController extends Controller
             ], 403);
         }
 
+        // Re-attach: if this page was previously detached from THIS
+        // design-locked template, re-pin fixed blocks + reflow the user's
+        // own blocks instead of replacing everything (mirrors web applyPage).
+        $released = (array) (($link->settings['biolink']['design_lock_released'] ?? []));
+        if ($tpl->design_locked && (int) ($released['template_id'] ?? 0) === $tpl->id) {
+            $this->templates->reattachPageToLink($link, $tpl);
+            $tree = BiolinkBlock::where('link_id', $link->id)
+                ->orderByRaw('(parent_id is not null) asc, sort_order asc')
+                ->get();
+            return response()->json([
+                'data' => [
+                    'reattached' => true,
+                    'blocks'     => $tree->map(fn ($b) => $this->serializeBlock($b))->all(),
+                ],
+            ]);
+        }
+
         // Applying a page template replaces the link's existing blocks. Guard
         // against accidental data loss: if the link already has blocks, the
         // client must opt in by passing confirm_overwrite (mirrors the web
@@ -215,6 +232,34 @@ class PageTemplateController extends Controller
     }
 
     /**
+     * Switch the page to one of the template's admin-defined color palettes.
+     * Mirrors the web LinkTemplateController::applyPalette.
+     */
+    public function applyPalette(Request $request, int $id): JsonResponse
+    {
+        $link = Link::where('id', $id)->where('user_id', auth()->id())->firstOrFail();
+        abort_if(!$link->isBiolinkFamily(), 403);
+
+        $validated = $request->validate([
+            'palette' => 'required|string|max:60',
+        ]);
+
+        if (!$link->isDesignLocked()) {
+            return response()->json([
+                'error' => ['code' => 'not_design_locked', 'message' => 'This page is not attached to a design-locked template.'],
+            ], 422);
+        }
+
+        if (!$this->templates->applyPaletteToLink($link, $validated['palette'])) {
+            return response()->json([
+                'error' => ['code' => 'unknown_palette', 'message' => 'Unknown palette for this template.'],
+            ], 422);
+        }
+
+        return response()->json(['data' => ['palette' => $validated['palette']]]);
+    }
+
+    /**
      * Detach a design-locked page from its template. Mirrors the web
      * LinkTemplateController::detachDesign — removes the lock stamp so all
      * styling surfaces unlock; the page keeps its current look.
@@ -225,6 +270,17 @@ class PageTemplateController extends Controller
         abort_if(!$link->isBiolinkFamily(), 403);
 
         $settings = $link->settings ?? [];
+        // Remember which template (and palette) the page was detached from so
+        // re-applying the SAME template later re-attaches non-destructively
+        // instead of wiping the creator's blocks (mirrors web detachDesign).
+        $stamp = (array) ($settings['biolink']['design_locked'] ?? []);
+        if (!empty($stamp['template_id'])) {
+            $settings['biolink']['design_lock_released'] = [
+                'template_id' => (int) $stamp['template_id'],
+                'palette'     => $stamp['palette'] ?? null,
+                'released_at' => now()->toIso8601String(),
+            ];
+        }
         unset($settings['biolink']['design_locked']);
         $link->settings = $settings;
         $link->save();

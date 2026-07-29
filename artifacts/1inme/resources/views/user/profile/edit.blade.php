@@ -379,6 +379,7 @@
                         'previewKind' => 'image',
                         'compact'     => true,
                     ])
+                    @include('user.partials.avatar-gallery-picker', ['inputName' => 'avatar_asset'])
                 </div>
 
                 {{-- Public Profile — the actual editor (handle, bio, tagline,
