@@ -145,6 +145,7 @@
 - [Playwright PDF layout vs viewport](playwright-pdf-viewport-fit.md) — measurements feeding pg.pdf() need viewport = physical page px; verify print QRs at ~100dpi renders ([zbar](zbar-decode-render-dpi.md)); booklet imposition detail in [print-booklet-imposition.md](print-booklet-imposition.md).
 - [AI builder auto web-photo tier](ai-builder-auto-web-photo-tier.md) — auto search only when preview never reviewed; must check capReached() before search (search() records, never blocks); test needs ≥200px PNG.
 - [Runtime config cache vs cleared admin setting](runtime-config-cache-vs-cleared-admin-setting.md) — nulling an admin credential mid-process leaves the boot-time config() copy; clear config() too before asserting unconfigured.
+- [Real-API expo-web e2e harness](mobile-real-api-expo-harness.md) — boot own php -S Laravel + tinker-seeded Sanctum token + throwaway Expo w/ baked API base; CDN needs a CORS header shim; SKIP exits 0 so grep the log for PASS.
 - [Mobile bg-preset swatch thumbnails](bg-preset-swatch-thumbnails.md) — pre-rendered PNGs of the real CSS; regenerate on preset CSS change or forApi() md5 gate silently reverts to gradient fallback.
 - [Showcase account is a real user account](showcase-account-is-real-user.md) — showcase:seed WIPES sana@sayzio.app on prod; "saves not working" there usually = a reseed reverted her edits.
 - [Biolink bg Fixed/Scroll layer](biolink-bg-fixed-layer.md) — bg_attachment=fixed renders on a .bg-page-fixed viewport layer (iOS-safe), scroll stays on body; bg e2e specs assert layer vs body accordingly.

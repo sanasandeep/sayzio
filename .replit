@@ -52,6 +52,10 @@ args = "e2e-blk-bgsw"
 task = "workflow.run"
 args = "zipimport-tests"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "stock-image-real-api-e2e"
+
 [[workflows.workflow]]
 name = "heading-accents-test"
 author = "agent"
@@ -136,6 +140,17 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "cd artifacts/1inme && TEST_LOCAL_MODE=artisan bash scripts/test-local.sh --filter=AdminAssetZipImportTest"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "stock-image-real-api-e2e"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd /home/runner/workspace/artifacts/1inme-mobile && node scripts/test-stock-image-real-api-e2e.mjs"
 
 [workflows.workflow.metadata]
 isValidation = true
