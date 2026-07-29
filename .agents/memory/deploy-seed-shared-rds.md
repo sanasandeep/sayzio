@@ -19,6 +19,6 @@ description: How to run a slow, heavy seeder against the 1inme app when dev and 
 
 **Known limitation — the shared-DB "consumption trap":** a migration is once-only per DB. If any NON-production `migrate` hits the shared RDS first, `up()` no-ops (env guard) but Laravel still records it Ran → the prod deploy then SKIPS it and the seed never runs. Mitigation: the dev serve workflow never runs `migrate`; only post-merge or a manual `migrate` would. So keep the migration Pending — don't run `migrate` in dev, and Republish before any task-agent merge. If it ever gets consumed, ship a fresh follow-up migration.
 
-**Seeder facts that make this safe:** seeders are in composer MAIN `autoload` (psr-4 `Database\Seeders\`), so present under `composer install --no-dev`. DemoContentSeeder is idempotent (wipePreviousDemoContent → rebuild) and uses `demo@1inme.com` via `firstOrCreate` (won't overwrite an existing account's password, so a re-seed won't reset a secured demo password).
+**Seeder facts that make this safe:** seeders are in composer MAIN `autoload` (psr-4 `Database\Seeders\`), so present under `composer install --no-dev`. DemoContentSeeder is idempotent (wipePreviousDemoContent → rebuild) and uses `the legacy 1inme demo address (see demo-login config)` via `firstOrCreate` (won't overwrite an existing account's password, so a re-seed won't reset a secured demo password).
 
 **Verify without consuming:** `php -l` the file and `php artisan migrate:status | tail` (read-only) to confirm it shows Pending. Never `php artisan migrate` in dev to "test" it.

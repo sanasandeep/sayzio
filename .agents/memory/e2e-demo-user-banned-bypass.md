@@ -3,7 +3,7 @@ name: e2e demo user bypasses banned names
 description: Why 1inme browser e2e specs can't assert the "banned alias" availability state via demo-login.
 ---
 
-The shared `demo@1inme.com` account that every 1inme browser e2e spec logs in
+The shared `the legacy 1inme demo address (see demo-login config)` account that every 1inme browser e2e spec logs in
 as (via the rate-limited demo-login route) is provisioned with the `user-admin`
 role, which holds `user.banned_names.bypass`.
 
@@ -33,8 +33,8 @@ test DB, so the role-sync trick works there.
 ## Demo-login account vs spec seed email mismatch (July 2026)
 
 `demoLogin` (web `/user/demo-login` + API OTP demo path) now signs in
-**sazioapp@gmail.com**, while most browser e2e specs still seed fixtures under
-**demo@1inme.com**. Specs that only need "any logged-in user" (voice panel,
+**the Gmail demo-login account (see demo-login config)**, while most browser e2e specs still seed fixtures under
+**the legacy 1inme demo address (see demo-login config)**. Specs that only need "any logged-in user" (voice panel,
 nav/menus) still pass; any spec that opens a *seeded* resource as its owner
 (biolink block editor etc.) hits the controller's
 `$link->user_id !== workspace_owner_id()` guard and 403s deterministically
@@ -48,7 +48,7 @@ The generic "No access" (Error 403) page renders instead of the seeded surface,
 so ANY `.section-card`/`.block-card` the spec asserts is simply absent — the
 failure looks like "the feature stopped rendering" but is really ownership.
 Confirmed fix for the two Audience-Insights specs (audience-prompt-flow,
-audience-estimate-stale): swap the seed email to sazioapp@gmail.com. NOTE the
-still-hardcoded `demo@1inme.com` seeds remain in other specs (biolink editor
+audience-estimate-stale): swap the seed email to the Gmail demo-login account (see demo-login config). NOTE the
+still-hardcoded `the legacy 1inme demo address (see demo-login config)` seeds remain in other specs (biolink editor
 family, links-stats, dashboards, dialer, events, header, onboarding, voice) —
 same latent 403 for any that open a seeded owner-scoped resource.

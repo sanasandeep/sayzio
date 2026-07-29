@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Modules\Admin\Models\PageTemplate;
 use App\Modules\User\Models\BiolinkBlock;
 use App\Modules\User\Support\BlockVariantCatalog;
+use App\Modules\User\Support\PlatformAssetCatalog;
 use Illuminate\Database\Seeder;
 
 /**
@@ -74,7 +75,7 @@ class StarterPageTemplatesSeeder extends Seeder
      * a dusty-blue paper sheet with a jagged torn right edge over a
      * studio backdrop photo, minimal profile + clean rounded links.
      */
-    public const SEED_VERSION = 18;
+    public const SEED_VERSION = 19;
 
     /** Tolerance (seconds) for treating updated_at == created_at. */
     private const EDIT_DRIFT_TOLERANCE = 2;
@@ -586,7 +587,10 @@ class StarterPageTemplatesSeeder extends Seeder
                             $this->astridBlock('image', [
                                 'url' => $this->photo('lifestyle,portrait', 900, 900, 'starter-astrid-photo'),
                                 'alt' => 'all about me',
-                                '_style' => array_merge(BiolinkBlock::STYLE_DEFAULTS, ['grid_span' => 12, 'border_radius' => 28]),
+                                '_style' => array_merge(BiolinkBlock::STYLE_DEFAULTS, [
+                                    'grid_span'   => 12,
+                                    '_photo_mask' => 'arch',
+                                ]),
                             ]),
                             $this->astridBlock('paragraph', ['text' => 'all about me ↓', 'align' => 'center']),
                         ]),
@@ -663,7 +667,10 @@ class StarterPageTemplatesSeeder extends Seeder
                     $this->block('image', [
                         'url'    => $this->photo('musician,portrait', 900, 1200, 'starter-purple-split-portrait'),
                         'alt'    => 'Portrait photo',
-                        '_style' => $this->purpleSplitStyle(5),
+                        '_style' => $this->purpleSplitStyle(5, [
+                            '_photo_mask'    => 'arch',
+                            '_photo_accents' => 'starburst,dots',
+                        ]),
                     ]),
                     // NOTE: `children` sits at the BLOCK level (sibling of
                     // `settings`), not inside settings — the settings
@@ -806,7 +813,10 @@ class StarterPageTemplatesSeeder extends Seeder
         return $this->block('image', [
             'url'    => $this->photo('botanical,pressed-flowers', 600, 600, $seed),
             'alt'    => '',
-            '_style' => array_merge(BiolinkBlock::STYLE_DEFAULTS, ['grid_span' => 4, 'border_radius' => 14]),
+            '_style' => array_merge(BiolinkBlock::STYLE_DEFAULTS, [
+                'grid_span'   => 4,
+                '_photo_mask' => 'torn',
+            ]),
         ]);
     }
 
@@ -1430,14 +1440,89 @@ class StarterPageTemplatesSeeder extends Seeder
     }
 
     /**
-     * Self-hosted placeholder image bundled with the app
-     * (public/block-placeholders/*.svg). External photo CDNs (loremflickr)
-     * can rate-limit, change, or disappear — which would make seeded template
-     * previews look broken over time. Picked by aspect ratio so square slots
-     * get the square art and wide banners get the cover art.
+     * Curated platform-asset picks for every starter-image slot, keyed by
+     * the (unique) seed slug each call site passes. Values are S3 object
+     * keys relative to the PlatformAssetCatalog `assets/` root, resolved
+     * to CDN URLs via `PlatformAssetCatalog::urlForKey()`. Seeds missing
+     * from the map fall back to the bundled placeholder SVGs so a new
+     * call site can never break seeding.
+     */
+    private const ASSET_MAP = [
+        // 1 — Personal Hub
+        'starter-personal-face'         => 'people-avatars/man-glasses-yellow-shirt-smiling.jpg',
+        // 2 — Creator Link-in-Bio
+        'starter-linkbio-face'          => 'people-avatars/woman-red-hair-city-backlit-portrait.jpg',
+        'starter-linkbio-cover'         => 'grid-images/man-sunglasses-neon-sign.jpg',
+        'starter-linkbio-s1'            => 'grid-images/photographer-studio-shoot-poses.jpg',
+        'starter-linkbio-s2'            => 'grid-images/woman-vintage-camera-outdoor-shoot.jpg',
+        'starter-linkbio-s3'            => 'grid-images/skateboarder-jump-trick-sunset.jpg',
+        // 3 — Restaurant & Menu
+        'starter-restaurant-face'       => 'people-avatars/woman-apron-short-hair-kitchen.jpg',
+        'starter-restaurant-cover'      => 'biolink-backgrounds/wood-herringbone-texture.jpg',
+        'starter-restaurant-g1'         => 'grid-images/couple-eating-outdoors-tree.jpg',
+        'starter-restaurant-g2'         => 'grid-images/vintage-oil-lamp-wooden-door.jpg',
+        'starter-restaurant-g3'         => 'grid-images/flowers-vase-sheer-curtain-figurine.jpg',
+        'starter-restaurant-review'     => 'people-avatars/woman-coffee-cafe-portrait.jpg',
+        // 4 — Event & RSVP
+        'starter-event-face'            => 'people-avatars/woman-striped-shirt-city-night.jpg',
+        'starter-event-cover'           => 'grid-images/woman-sitting-outdoor-event-crowd.jpg',
+        // 5 — Portfolio & Work
+        'starter-portfolio-face'        => 'people-avatars/man-beard-glasses-thoughtful-portrait.jpg',
+        'starter-portfolio-g1'          => 'grid-images/artist-painting-canvas-window.jpg',
+        'starter-portfolio-g2'          => 'grid-images/charcoal-drawing-hands-sketching.jpg',
+        'starter-portfolio-g3'          => 'grid-images/pantone-color-swatches-vintage-photos.jpg',
+        'starter-portfolio-g4'          => 'grid-images/hand-drawing-eye-sketch.jpg',
+        'starter-portfolio-g5'          => 'grid-images/woman-painting-sculpture-busts.jpg',
+        'starter-portfolio-g6'          => 'grid-images/colorful-project-booklets-shelf.jpg',
+        // 6 — Overlap Hero
+        'starter-overlap-face'          => 'people-avatars/man-cap-jacket-mountain-smiling.jpg',
+        'starter-overlap-cover'         => 'grid-images/man-filming-camera-beach.jpg',
+        // 7 — Pink Boutique
+        'starter-boutique-hero'         => 'grid-images/women-selfie-shopping-bags-street.jpg',
+        'starter-boutique-shop'         => 'grid-images/white-roses-gift-box.jpg',
+        'starter-boutique-market'       => 'grid-images/perfume-bottle-blurred-flowers.jpg',
+        'starter-boutique-g1'           => 'grid-images/bw-studio-photoshoot-woman-posing.jpg',
+        'starter-boutique-g2'           => 'grid-images/women-sitting-steps-phones.jpg',
+        'starter-boutique-g3'           => 'grid-images/two-women-grass-selfie.jpg',
+        // 8 — Split Hero
+        'starter-splithero-face'        => 'people-avatars/woman-blonde-white-outfit-studio.jpg',
+        'starter-splithero-bg'          => 'biolink-backgrounds/blurred-pink-flowers-motion.jpg',
+        // 10 — Split Hero Tiles
+        'starter-splithero-photo'       => 'people-avatars/woman-blazer-office-window-portrait.jpg',
+        // 12 — Astrid Two-Column
+        'starter-astrid-photo'          => 'grid-images/woman-painting-easel-sunset-field.jpg',
+        'starter-astrid-g1'             => 'grid-images/man-painting-mural-brick-wall.jpg',
+        'starter-astrid-g2'             => 'grid-images/notebook-quote-tea-glasses.jpg',
+        'starter-astrid-g3'             => 'grid-images/woman-sitting-trashcan-urban-wall.jpg',
+        // 13 — Purple Split
+        'starter-purple-split-portrait' => 'people-avatars/man-curly-hair-purple-lighting.jpg',
+        // 14 — Pressed Botanicals
+        'starter-botanical-g1'          => 'grid-images/laptop-flowers-coffee-flatlay.jpg',
+        'starter-botanical-g2'          => 'grid-images/camera-flower-map-flatlay.jpg',
+        'starter-botanical-g3'          => 'grid-images/wedding-stage-decor-flowers.jpg',
+        // 15 — Torn Paper Studio
+        'starter-torn-avatar'           => 'people-avatars/bw-man-camera-photographer-portrait.jpg',
+        'starter-torn-backdrop'         => 'grid-images/aerial-photographer-studio-shoot.jpg',
+    ];
+
+    /** CDN URL for a curated platform asset, or null when unmapped. */
+    private function mappedAsset(string $seed): ?string
+    {
+        $rel = self::ASSET_MAP[$seed] ?? null;
+        return $rel === null ? null : PlatformAssetCatalog::urlForKey('assets/' . $rel);
+    }
+
+    /**
+     * Real platform photography for starter templates: each seed slug maps
+     * to a curated S3 platform asset (served via CDN). Unmapped seeds fall
+     * back to the self-hosted placeholder SVGs bundled with the app
+     * (public/block-placeholders/*.svg), picked by aspect ratio.
      */
     private function photo(string $keywords, int $w, int $h, string $seed): string
     {
+        if (($url = $this->mappedAsset($seed)) !== null) {
+            return $url;
+        }
         if ($w === $h) {
             return asset('block-placeholders/image-square.svg');
         }
@@ -1447,10 +1532,10 @@ class StarterPageTemplatesSeeder extends Seeder
         return asset('block-placeholders/image.svg');
     }
 
-    /** Self-hosted avatar placeholder bundled with the app. */
+    /** Curated platform avatar, falling back to the bundled placeholder. */
     private function face(string $seed, int $size = 200): string
     {
-        return asset('block-placeholders/avatar.svg');
+        return $this->mappedAsset($seed) ?? asset('block-placeholders/avatar.svg');
     }
 
     /* ──────────────────── newer block helpers ──────────────────── */
