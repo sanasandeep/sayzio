@@ -56,6 +56,10 @@ args = "zipimport-tests"
 task = "workflow.run"
 args = "stock-image-real-api-e2e"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-gallery-pickers"
+
 [[workflows.workflow]]
 name = "heading-accents-test"
 author = "agent"
@@ -151,6 +155,17 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "cd /home/runner/workspace/artifacts/1inme-mobile && node scripts/test-stock-image-real-api-e2e.mjs"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-gallery-pickers"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "bash artifacts/1inme/tests/Browser/run-validation.sh biolink-bg-gallery-pick.spec.ts avatar-gallery-pick.spec.ts"
 
 [workflows.workflow.metadata]
 isValidation = true

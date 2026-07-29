@@ -157,3 +157,4 @@
 - [Design-locked templates](design-locked-templates.md) — fixed-block prefix must be enforced in EVERY position-mutation sink (update/reorder/move, web+API); replace-applies clear the detach release stamp.
 - [Biolink per-block fonts load from _style](biolink-block-font-style-key.md) — the public-page font collector must read settings[_style] (canonical), not just legacy style; otherwise baked template fonts silently fall back to sans.
 - [Image-block hero decorations (_photo_*)](image-block-photo-decorations.md) — decorations live in _style._photo_* so variants carry them; mobile [handle].tsx must consume them (web renderer alone fails parity review); check upstream VERSION before assuming your bump landed.
+- [Dropzone browseType & Alpine x-for locators](dropzone-browsetype-accept.md) — extension-style accepts + plan overrides can hide Stock tab (pass explicit browseType); getByRole misses x-for buttons, use :text-is CSS.

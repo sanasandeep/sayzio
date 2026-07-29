@@ -58,13 +58,18 @@
     $allowAlternateSources = $allowAlternateSources ?? true;
     $inputName   = $multiple ? rtrim($name, '[]') . '[]' : $name;
 
-    // Vault browse type filter — derived from accept patterns.
-    $browseType = 'all';
-    if (is_string($accept)) {
+    // Vault browse type filter — derived from accept patterns. Callers can
+    // pass an explicit 'browseType' — plan upload-limit overrides can blank
+    // the extension list (accept ''), which would otherwise hide the
+    // image-only tabs (e.g. Stock) on clearly image-typed dropzones.
+    $browseType = $browseType ?? 'all';
+    if ($browseType === 'all' && is_string($accept)) {
         $a = strtolower($accept);
-        if (str_contains($a, 'image')) $browseType = 'image';
-        elseif (str_contains($a, 'video')) $browseType = 'video';
-        elseif (str_contains($a, 'audio')) $browseType = 'audio';
+        // Policy-driven accepts are extension lists (".jpg,.png,…"), so match
+        // both MIME-style ("image/*") and extension-style accept strings.
+        if (str_contains($a, 'image') || preg_match('/\.(jpe?g|png|webp|gif|svg|avif|ico)\b/', $a)) $browseType = 'image';
+        elseif (str_contains($a, 'video') || preg_match('/\.(mp4|webm|mov|m4v)\b/', $a)) $browseType = 'video';
+        elseif (str_contains($a, 'audio') || preg_match('/\.(mp3|wav|ogg|m4a|aac|flac)\b/', $a)) $browseType = 'audio';
         elseif (str_contains($a, 'pdf') || str_contains($a, 'doc') || str_contains($a, 'xls') || str_contains($a, 'ppt')) $browseType = 'document';
     }
 @endphp
