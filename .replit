@@ -40,6 +40,10 @@ args = "bg-preset-tests"
 task = "workflow.run"
 args = "block-bg-live-preview-e2e"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "blk-bgop-e2e"
+
 [[workflows.workflow]]
 name = "heading-accents-test"
 author = "agent"
@@ -91,6 +95,17 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "cd artifacts/1inme-mobile && APP_URL=\"https://$REPLIT_EXPO_DEV_DOMAIN\" node scripts/test-block-bg-opacity-live-preview-e2e.mjs"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "blk-bgop-e2e"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd artifacts/1inme && bash tests/Browser/run-validation.sh biolink-block-bg-preset-opacity-live.spec.ts"
 
 [workflows.workflow.metadata]
 isValidation = true

@@ -2534,6 +2534,19 @@
                 }
                 function applyLiveStyle(root, key, value) {
                     if (key === 'style._tilt') return applyLiveTilt(root, value);
+                    // Preset background transparency (Task #5988): fade the
+                    // block's preset layer live while dragging the slider.
+                    // querySelector picks the block's OWN layer first (a
+                    // container renders its layer before its children's).
+                    // No layer yet (preset just picked) = structural — reload.
+                    if (key === 'style.bg_preset_opacity') {
+                        var layer = root.querySelector('.block-bg-preset');
+                        if (!layer) return false;
+                        var op = parseInt(value, 10);
+                        if (isNaN(op)) op = 100;
+                        layer.style.opacity = String(Math.max(0, Math.min(100, op)) / 100);
+                        return true;
+                    }
                     var pfn = LIVE_PHOTO_KEYS[key];
                     if (pfn) {
                         // Decorations only exist inside an already-rendered
