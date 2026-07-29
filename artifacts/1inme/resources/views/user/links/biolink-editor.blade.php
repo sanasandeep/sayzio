@@ -1870,6 +1870,24 @@ function focusBlockPalette() {
     }
 }
 
+// Bring the live device preview into view after a background-preset swatch
+// click in the block drawer's Look tab (Task #5989, mirrors the mobile
+// editor's Task #5987 behavior). With a long preset grid the creator may
+// have scrolled the sticky preview out of its travel range (or be on a
+// width where the preview column sits elsewhere in the stacked layout), so
+// the change would land off-screen. block:'nearest' makes this a no-op when
+// the preview is already visible. Skips entirely when the preview column is
+// hidden (sub-900px layouts render no preview at all).
+window.scrollLivePreviewIntoView = function() {
+    var el = document.querySelector('#editorPreviewCol .device-preview-root') || document.getElementById('editorPreviewCol');
+    if (!el || !el.offsetParent) return; // hidden (display:none) or absent
+    var rm = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    // Defer a frame so the preview has repainted with the new preset first.
+    setTimeout(function() {
+        try { el.scrollIntoView({ behavior: rm ? 'auto' : 'smooth', block: 'nearest' }); } catch (e) { try { el.scrollIntoView(); } catch (e2) {} }
+    }, 50);
+};
+
 function ajaxSaveBlock(e, form) {
     e.preventDefault();
     var btn = form.querySelector('button[type="submit"]');

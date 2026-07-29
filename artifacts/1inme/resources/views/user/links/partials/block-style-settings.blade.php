@@ -570,7 +570,7 @@
                         @foreach($blkPresets as $bpId => $bp)
                         <button type="button"
                                 x-show="(bpGroup === '{{ $bp['group'] }}') && (!bpSearch || '{{ strtolower($bp['label']) }}'.includes(bpSearch.toLowerCase()))"
-                                @click="bpKey = bpKey === '{{ $bpId }}' ? '' : '{{ $bpId }}'; $nextTick(() => $refs.bpInput.dispatchEvent(new Event('change', { bubbles: true })))"
+                                @click="bpKey = bpKey === '{{ $bpId }}' ? '' : '{{ $bpId }}'; $nextTick(() => $refs.bpInput.dispatchEvent(new Event('change', { bubbles: true }))); window.scrollLivePreviewIntoView && window.scrollLivePreviewIntoView()"
                                 :class="bpKey === '{{ $bpId }}' ? 'ring-2 ring-blue-400' : ''"
                                 class="rounded-md overflow-hidden relative transition-all hover:scale-[1.08] hover:z-10"
                                 style="{{ $bp['css'] }}; width:100%; aspect-ratio:1/1; border:1px solid var(--border-glass); background-size: cover; background-position: center;"
