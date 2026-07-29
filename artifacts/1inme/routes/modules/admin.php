@@ -283,6 +283,13 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::post('{bannedName}/toggle-force-rename', [BannedNameController::class, 'toggleForceRename'])->middleware(CheckPermission::class . ':settings.manage')->name('toggle-force-rename');
         });
 
+        Route::prefix('platform-gallery')->name('platform-gallery.')->middleware(CheckPermission::class . ':settings.manage')->group(function () {
+            Route::get   ('/',                 [\App\Modules\Admin\Controllers\PlatformGalleryController::class, 'index'])->name('index');
+            Route::post  ('{folder}/upload',   [\App\Modules\Admin\Controllers\PlatformGalleryController::class, 'upload'])->name('upload');
+            Route::post  ('{folder}/rename',   [\App\Modules\Admin\Controllers\PlatformGalleryController::class, 'rename'])->name('rename');
+            Route::delete('{folder}',          [\App\Modules\Admin\Controllers\PlatformGalleryController::class, 'destroy'])->name('destroy');
+        });
+
         Route::prefix('bg-templates')->name('bg-templates.')->group(function () {
             Route::get   ('/',                 [BgTemplateController::class, 'index'])  ->middleware(CheckPermission::class . ':settings.manage')->name('index');
             Route::get   ('create',            [BgTemplateController::class, 'create']) ->middleware(CheckPermission::class . ':settings.manage')->name('create');

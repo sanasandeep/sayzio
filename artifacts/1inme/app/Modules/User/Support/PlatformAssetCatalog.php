@@ -72,6 +72,40 @@ class PlatformAssetCatalog
     }
 
     /**
+     * Drop the cached listing for a folder so the next list() call hits
+     * S3 fresh. Called by the admin gallery manager after any mutation
+     * (upload/rename/delete) so pickers refresh immediately instead of
+     * waiting out the TTL.
+     */
+    public static function bustCache(string $folder): void
+    {
+        if (self::isFolder($folder)) {
+            Cache::forget("platform_assets:{$folder}");
+        }
+    }
+
+    /** Human-friendly display name for a folder slug. */
+    public static function folderLabel(string $folder): string
+    {
+        return Str::title(str_replace('-', ' ', $folder));
+    }
+
+    /**
+     * Whether a bare filename (no path) is acceptable for storage in a
+     * curated folder: plain image name, allowed extension, no traversal.
+     */
+    public static function isValidFilename(?string $name): bool
+    {
+        if ($name === null || $name === '' || str_contains($name, '/') || str_contains($name, '..')) {
+            return false;
+        }
+        $ext = strtolower(pathinfo($name, PATHINFO_EXTENSION));
+
+        return in_array($ext, self::EXTENSIONS, true)
+            && preg_match('/^[A-Za-z0-9 _().,&\'!\[\]-]+\.[A-Za-z0-9]+$/u', $name) === 1;
+    }
+
+    /**
      * Whether an S3 object key is a plausible member of the given folder
      * (used to validate save-path input without an S3 round-trip: the
      * folder prefix must match and the filename must be a plain image
