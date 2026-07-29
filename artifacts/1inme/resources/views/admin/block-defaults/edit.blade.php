@@ -221,9 +221,9 @@
         if (content !== '') {
             try { JSON.parse(content); } catch (e) { this.jsonInvalid = true; return; }
         }
-        // Sequence token: rapid edits fire overlapping requests whose
-        // responses can land out of order; only the latest may write the
-        // preview frame or a stale render clobbers the fresh one.
+        /* Sequence token: rapid edits fire overlapping requests whose
+           responses can land out of order; only the latest may write the
+           preview frame or a stale render clobbers the fresh one. */
         const seq = ++this.previewSeq;
         this.previewLoading = true;
         try {
@@ -239,7 +239,7 @@
                 body,
             });
             const html = res.ok ? await res.text() : null;
-            if (seq !== this.previewSeq) return; // stale response — drop it
+            if (seq !== this.previewSeq) return; /* stale response — drop it */
             if (res.ok) {
                 this.$refs.previewFrame.srcdoc = html;
             } else if (res.status === 422) {
