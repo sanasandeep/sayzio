@@ -206,10 +206,14 @@ $gal = BiolinkBlock::create([
   'link_id' => $bio->id, 'type' => 'image_grid', 'sort_order' => 1, 'is_active' => true,
   'settings' => ['columns' => 3, 'gap' => 2, 'images' => []],
 ]);
+$sld = BiolinkBlock::create([
+  'link_id' => $bio->id, 'type' => 'image_slider', 'sort_order' => 2, 'is_active' => true,
+  'settings' => ['images' => []],
+]);
 $token = $u->createToken('e2e-stock-pick')->plainTextToken;
 echo 'SEED_JSON:' . json_encode([
   'userId' => $u->id, 'linkId' => $bio->id, 'blockId' => $blk->id,
-  'galleryBlockId' => $gal->id, 'token' => $token,
+  'galleryBlockId' => $gal->id, 'sliderBlockId' => $sld->id, 'token' => $token,
 ]) . "\\n";
 `;
   const out = runTinker(php);
@@ -406,89 +410,106 @@ async function run(appUrl, apiBase, seed) {
     }
     log("Save block: real PATCH accepted (stock URL + owned sticker persisted)");
 
-    // 5. Gallery block (image_grid): its own stock picker appends the
-    // picked URL to the gallery rows, and Save persists settings.images.
-    const galleryEditorUrl = `${appUrl}/links/${seed.linkId}/blocks/${seed.galleryBlockId}`;
-    log("opening the gallery block editor against the real API…");
-    const galleryAssetsPromise = page.waitForResponse(
-      (r) =>
-        r.url().includes("/api/v1/platform-assets/grid-images") &&
-        r.status() === 200,
-      { timeout: NAV_TIMEOUT_MS },
-    );
-    await page.goto(galleryEditorUrl, {
-      waitUntil: "domcontentloaded",
-      timeout: NAV_TIMEOUT_MS,
-    });
-    const galleryStockToggle = page.getByTestId("gallery-stock-gallery-toggle");
-    await galleryStockToggle.waitFor({ state: "visible" });
-    await galleryStockToggle.scrollIntoViewIfNeeded();
-    await galleryStockToggle.click();
-    const galleryAssetsRes = await galleryAssetsPromise;
-    const galleryAssets = (await galleryAssetsRes.json())?.data?.assets ?? [];
-    if (galleryAssets.length === 0) {
-      skip("platform-assets/grid-images returned an empty catalog (S3 unavailable)");
-    }
-    // Prefer a DIFFERENT asset from the image-block pick so the public-page
-    // assertion can't pass on the image block's URL alone.
-    const galleryPick =
-      galleryAssets.find((a) => a.url !== pickedPhoto.url) ?? galleryAssets[0];
-    log(`gallery picker: picking "${galleryPick.label}"`);
-    await page
-      .getByTestId("gallery-stock-gallery-grid")
-      .waitFor({ state: "visible" });
-    await page
-      .getByTestId("gallery-stock-gallery-grid")
-      .getByLabel(galleryPick.label, { exact: true })
-      .first()
-      .click();
-    // The pick fills/appends a gallery row whose URL field takes the asset URL.
-    await page
-      .locator(`input[value="${galleryPick.url}"]`)
-      .first()
-      .waitFor({ state: "visible" });
-    log("picking a stock photo appended a gallery row with the asset URL");
+    // Shared leg for the gallery-family editors (image_grid + the two
+    // slider variants): they all use the same "gallery-stock-gallery"
+    // picker; picking appends a row and Save persists settings.images.
+    async function pickStockIntoGalleryFamilyBlock(blockId, label, avoidUrls) {
+      const editorUrl2 = `${appUrl}/links/${seed.linkId}/blocks/${blockId}`;
+      log(`opening the ${label} block editor against the real API…`);
+      const assetsPromise = page.waitForResponse(
+        (r) =>
+          r.url().includes("/api/v1/platform-assets/grid-images") &&
+          r.status() === 200,
+        { timeout: NAV_TIMEOUT_MS },
+      );
+      await page.goto(editorUrl2, {
+        waitUntil: "domcontentloaded",
+        timeout: NAV_TIMEOUT_MS,
+      });
+      const toggle = page.getByTestId("gallery-stock-gallery-toggle");
+      await toggle.waitFor({ state: "visible" });
+      await toggle.scrollIntoViewIfNeeded();
+      await toggle.click();
+      const assetsRes = await assetsPromise;
+      const assets = (await assetsRes.json())?.data?.assets ?? [];
+      if (assets.length === 0) {
+        skip("platform-assets/grid-images returned an empty catalog (S3 unavailable)");
+      }
+      // Prefer an asset DIFFERENT from earlier picks so the public-page
+      // assertion can't pass on another block's URL alone.
+      const pick =
+        assets.find((a) => !avoidUrls.includes(a.url)) ?? assets[0];
+      log(`${label} picker: picking "${pick.label}"`);
+      await page
+        .getByTestId("gallery-stock-gallery-grid")
+        .waitFor({ state: "visible" });
+      await page
+        .getByTestId("gallery-stock-gallery-grid")
+        .getByLabel(pick.label, { exact: true })
+        .first()
+        .click();
+      // The pick fills/appends a row whose URL field takes the asset URL.
+      await page
+        .locator(`input[value="${pick.url}"]`)
+        .first()
+        .waitFor({ state: "visible" });
+      log(`picking a stock photo appended a ${label} row with the asset URL`);
 
-    const galleryPatchPromise = page.waitForResponse(
-      (r) =>
-        r
-          .url()
-          .includes(
-            `/api/v1/links/${seed.linkId}/blocks/${seed.galleryBlockId}`,
-          ) && r.request().method() === "PATCH",
+      const patchPromise2 = page.waitForResponse(
+        (r) =>
+          r.url().includes(`/api/v1/links/${seed.linkId}/blocks/${blockId}`) &&
+          r.request().method() === "PATCH",
+      );
+      await page.getByText("Save block", { exact: true }).click();
+      const patchRes2 = await patchPromise2;
+      if (patchRes2.status() !== 200) {
+        fail(
+          `${label} block PATCH returned ${patchRes2.status()}: ${await patchRes2.text().catch(() => "")}`,
+        );
+      }
+      const patchReq2 = JSON.parse(patchRes2.request().postData() || "{}");
+      const sentImages = patchReq2?.settings?.images;
+      if (
+        !Array.isArray(sentImages) ||
+        !sentImages.some((i) => (typeof i === "string" ? i : i?.url) === pick.url)
+      ) {
+        fail(
+          `${label} PATCH settings.images did not carry the picked URL: ${JSON.stringify(sentImages)}`,
+        );
+      }
+      const savedBlock2 = (await patchRes2.json())?.data?.block;
+      const savedImages = savedBlock2?.settings?.images;
+      if (
+        !Array.isArray(savedImages) ||
+        !savedImages.some(
+          (i) => (typeof i === "string" ? i : i?.url) === pick.url,
+        )
+      ) {
+        fail(
+          `server-saved ${label} block did not keep the picked image: ${JSON.stringify(savedImages)}`,
+        );
+      }
+      log(
+        `${label} Save block: real PATCH accepted (picked stock URL persisted in settings.images)`,
+      );
+      return pick;
+    }
+
+    // 5. Gallery block (image_grid): its own stock picker.
+    const galleryPick = await pickStockIntoGalleryFamilyBlock(
+      seed.galleryBlockId,
+      "gallery",
+      [pickedPhoto.url],
     );
-    await page.getByText("Save block", { exact: true }).click();
-    const galleryPatchRes = await galleryPatchPromise;
-    if (galleryPatchRes.status() !== 200) {
-      fail(
-        `gallery block PATCH returned ${galleryPatchRes.status()}: ${await galleryPatchRes.text().catch(() => "")}`,
-      );
-    }
-    const galleryPatchReq = JSON.parse(
-      galleryPatchRes.request().postData() || "{}",
+
+    // 5b. Slider block (image_slider): same mobile picker, but a DIFFERENT
+    // public Blade renderer branch (Alpine x-data slider) — prove it too
+    // (Task #6029).
+    const sliderPick = await pickStockIntoGalleryFamilyBlock(
+      seed.sliderBlockId,
+      "slider",
+      [pickedPhoto.url, galleryPick.url],
     );
-    const sentImages = galleryPatchReq?.settings?.images;
-    if (
-      !Array.isArray(sentImages) ||
-      !sentImages.some((i) => (typeof i === "string" ? i : i?.url) === galleryPick.url)
-    ) {
-      fail(
-        `gallery PATCH settings.images did not carry the picked URL: ${JSON.stringify(sentImages)}`,
-      );
-    }
-    const savedGalleryBlock = (await galleryPatchRes.json())?.data?.block;
-    const savedImages = savedGalleryBlock?.settings?.images;
-    if (
-      !Array.isArray(savedImages) ||
-      !savedImages.some(
-        (i) => (typeof i === "string" ? i : i?.url) === galleryPick.url,
-      )
-    ) {
-      fail(
-        `server-saved gallery block did not keep the picked image: ${JSON.stringify(savedImages)}`,
-      );
-    }
-    log("gallery Save block: real PATCH accepted (picked stock URL persisted in settings.images)");
 
     await context.close();
 
@@ -526,8 +547,20 @@ async function run(appUrl, apiBase, seed) {
         `public page does not render the gallery block's picked stock URL ${galleryPick.url}`,
       );
     }
+    // The slider renderer embeds its images as json_encode'd Alpine x-data,
+    // so the URL appears JSON-escaped (https:\/\/...) in the HTML — accept
+    // either form.
+    const sliderUrlEscaped = sliderPick.url.replaceAll("/", "\\/");
+    if (
+      !publicHtml.includes(sliderPick.url) &&
+      !publicHtml.includes(sliderUrlEscaped)
+    ) {
+      fail(
+        `public page does not render the slider block's picked stock URL ${sliderPick.url}`,
+      );
+    }
     log(
-      "public page renders the stock image, the imported sticker AND the gallery stock pick",
+      "public page renders the stock image, the imported sticker, the gallery pick AND the slider pick",
     );
 
     // 6. Vault ownership: the imported file is listed under the account.
