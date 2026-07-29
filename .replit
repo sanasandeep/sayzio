@@ -84,6 +84,10 @@ args = "editor-inline-regress"
 task = "workflow.run"
 args = "blk-contrast-e2e"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-default-colors-contrast"
+
 [[workflows.workflow]]
 name = "heading-accents-test"
 author = "agent"
@@ -256,6 +260,17 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "cd artifacts/1inme && VALIDATION_PORT=5063 bash tests/Browser/run-validation.sh block-style-contrast-warning.spec.ts"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-default-colors-contrast"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "VALIDATION_PORT=5064 bash artifacts/1inme/tests/Browser/run-validation.sh default-colors-contrast-warning.spec.ts"
 
 [workflows.workflow.metadata]
 isValidation = true
