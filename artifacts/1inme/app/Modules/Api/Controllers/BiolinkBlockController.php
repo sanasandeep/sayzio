@@ -127,6 +127,19 @@ class BiolinkBlockController extends Controller
             }
         }
 
+        // Seed `_style` only when the caller didn't supply one — web-editor
+        // parity (Task #6042): template "Default colors" layer on top of the
+        // platform defaults so blocks added from mobile look on-theme too.
+        // Empty defaults = inherit; per-block edits (a client-sent _style)
+        // still win.
+        if (!isset($settings['_style']) || !is_array($settings['_style']) || $settings['_style'] === []) {
+            $settings['_style'] = array_merge(
+                BiolinkBlock::STYLE_DEFAULTS,
+                \App\Modules\User\Support\BlockDefaults::styleForType($data['type']),
+                \App\Modules\User\Support\TemplateDefaultColors::styleFor($link, $data['type'])
+            );
+        }
+
         // Design lock parity with the web editor: on a locked page a new
         // block's `_style` is always seeded server-side from the template's
         // styling for its type — any client-sent style is ignored.
@@ -134,6 +147,7 @@ class BiolinkBlockController extends Controller
             $settings['_style'] = array_merge(
                 BiolinkBlock::STYLE_DEFAULTS,
                 \App\Modules\User\Support\BlockDefaults::styleForType($data['type']),
+                \App\Modules\User\Support\TemplateDefaultColors::styleFor($link, $data['type']),
                 $link->designLockStyleFor($data['type']) ?? []
             );
             unset($settings['_style_custom_snapshot']);

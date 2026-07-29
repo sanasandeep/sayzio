@@ -2242,15 +2242,7 @@ class BiolinkBlockController extends Controller
      * of a template draft (and carried into pages created from the
      * template via the snapshot). Only these keys are recognised.
      */
-    public const TEMPLATE_DEFAULT_COLOR_KEYS = [
-        'text_color', 'bg_color', 'border_color', 'accent_color', 'accent_text_color',
-    ];
-
-    /**
-     * Button-like block types where the accent pair (accent background +
-     * text-on-accent) replaces the general text/background defaults.
-     */
-    private const TEMPLATE_ACCENT_BLOCK_TYPES = ['link', 'link_big', 'cta_button'];
+    public const TEMPLATE_DEFAULT_COLOR_KEYS = \App\Modules\User\Support\TemplateDefaultColors::KEYS;
 
     /**
      * Read the link's template default colors, keeping only known keys with
@@ -2259,16 +2251,7 @@ class BiolinkBlockController extends Controller
      */
     private function templateDefaultColors(Link $link): array
     {
-        $raw = $link->settings['biolink']['template_default_colors'] ?? null;
-        if (!is_array($raw)) return [];
-        $clean = [];
-        foreach (self::TEMPLATE_DEFAULT_COLOR_KEYS as $k) {
-            $v = $raw[$k] ?? null;
-            if (is_string($v) && preg_match('/^#[0-9a-fA-F]{3,8}$/', $v)) {
-                $clean[$k] = $v;
-            }
-        }
-        return $clean;
+        return \App\Modules\User\Support\TemplateDefaultColors::colorsFor($link);
     }
 
     /**
@@ -2277,17 +2260,7 @@ class BiolinkBlockController extends Controller
      */
     private function templateDefaultColorStyleFor(Link $link, string $type): array
     {
-        $colors = $this->templateDefaultColors($link);
-        if ($colors === []) return [];
-        $style = [];
-        foreach (['text_color', 'bg_color', 'border_color'] as $k) {
-            if (isset($colors[$k])) $style[$k] = $colors[$k];
-        }
-        if (in_array($type, self::TEMPLATE_ACCENT_BLOCK_TYPES, true)) {
-            if (isset($colors['accent_color'])) $style['bg_color'] = $colors['accent_color'];
-            if (isset($colors['accent_text_color'])) $style['text_color'] = $colors['accent_text_color'];
-        }
-        return $style;
+        return \App\Modules\User\Support\TemplateDefaultColors::styleFor($link, $type);
     }
 
     private function sanitizeBlockStyle(array $input): array

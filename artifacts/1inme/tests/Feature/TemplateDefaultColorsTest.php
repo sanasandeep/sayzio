@@ -251,6 +251,90 @@ class TemplateDefaultColorsTest extends TestCase
         $this->assertSame('#ff0055', $btn->settings['_style']['bg_color']);
     }
 
+    /**
+     * Task #6042 — the mobile REST API block-create path seeds the same
+     * template default colors as the web editor when the caller supplies
+     * no `_style`; a client-sent `_style` still wins.
+     */
+    public function test_api_block_create_seeds_default_colors(): void
+    {
+        [$admin, $user] = $this->makeBridgedAdmin();
+        $page = Link::create([
+            'user_id' => $user->id,
+            'type'    => 'biolink',
+            'alias'   => 'tdc-api-' . uniqid(),
+            'url'     => '',
+        ]);
+        $settings = $page->settings ?? [];
+        $settings['biolink']['template_default_colors'] = [
+            'text_color'        => '#111111',
+            'bg_color'          => '#eeeeee',
+            'border_color'      => '#222222',
+            'accent_color'      => '#ff0055',
+            'accent_text_color' => '#fafafa',
+        ];
+        $page->settings = $settings;
+        $page->save();
+
+        $token = $user->createToken('test')->plainTextToken;
+
+        // A plain block gets text/bg/border seeded.
+        $this->withToken($token)
+            ->postJson("/api/v1/links/{$page->id}/blocks", ['type' => 'paragraph'])
+            ->assertCreated();
+        $para = $page->biolinkBlocks()->where('type', 'paragraph')->orderByDesc('id')->first();
+        $this->assertSame('#111111', $para->settings['_style']['text_color']);
+        $this->assertSame('#eeeeee', $para->settings['_style']['bg_color']);
+        $this->assertSame('#222222', $para->settings['_style']['border_color']);
+
+        // A button-like block gets the accent pair instead.
+        $this->withToken($token)
+            ->postJson("/api/v1/links/{$page->id}/blocks", ['type' => 'link'])
+            ->assertCreated();
+        $btn = $page->biolinkBlocks()->where('type', 'link')->orderByDesc('id')->first();
+        $this->assertSame('#ff0055', $btn->settings['_style']['bg_color']);
+        $this->assertSame('#fafafa', $btn->settings['_style']['text_color']);
+
+        // A client-sent _style wins over the template defaults.
+        $this->withToken($token)
+            ->postJson("/api/v1/links/{$page->id}/blocks", [
+                'type'     => 'paragraph',
+                'settings' => ['text' => 'custom', '_style' => ['text_color' => '#00ff00']],
+            ])
+            ->assertCreated();
+        $custom = \App\Modules\User\Models\BiolinkBlock::where('link_id', $page->id)
+            ->where('type', 'paragraph')->orderByDesc('id')->first();
+        $this->assertSame('custom', $custom->settings['text'] ?? null);
+        $this->assertSame('#00ff00', $custom->settings['_style']['text_color']);
+        $this->assertArrayNotHasKey('bg_color', $custom->settings['_style']);
+    }
+
+    /**
+     * Task #6042 — no template defaults set: the API seeds the platform
+     * default `_style` (inherit-from-theme colors), matching web.
+     */
+    public function test_api_block_create_without_defaults_seeds_platform_style(): void
+    {
+        [$admin, $user] = $this->makeBridgedAdmin();
+        $page = Link::create([
+            'user_id' => $user->id,
+            'type'    => 'biolink',
+            'alias'   => 'tdc-api-plain-' . uniqid(),
+            'url'     => '',
+        ]);
+        $token = $user->createToken('test')->plainTextToken;
+
+        $this->withToken($token)
+            ->postJson("/api/v1/links/{$page->id}/blocks", ['type' => 'paragraph'])
+            ->assertCreated();
+        $para = $page->biolinkBlocks()->where('type', 'paragraph')->orderByDesc('id')->first();
+        $style = $para->settings['_style'] ?? null;
+        $this->assertIsArray($style);
+        // Colors stay empty (= inherit from theme).
+        $this->assertSame('', $style['text_color'] ?? '');
+        $this->assertSame('', $style['bg_color'] ?? '');
+    }
+
     public function test_invalid_hex_rejected_and_garbage_read_side_ignored(): void
     {
         [$admin, $user] = $this->makeBridgedAdmin();
