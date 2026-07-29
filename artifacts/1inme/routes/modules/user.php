@@ -1659,6 +1659,13 @@ Route::prefix('user')->name('user.')->group(function () {
             Route::post('reoptimize-notice/dismiss', [UserFileController::class, 'dismissReoptimizeNotice'])->middleware('workspace.can:links.view')->name('reoptimize-notice.dismiss');
         });
 
+        // Platform-provided asset galleries (curated backgrounds, stock
+        // images, avatar galleries) — owner-managed S3 folders listed live.
+        // Available on EVERY plan: no plan/feature gate and no workspace
+        // permission beyond being logged in (assets are platform-owned and
+        // public; picking one never touches another user's data).
+        Route::get('platform-assets/{folder}', [\App\Modules\User\Controllers\PlatformAssetController::class, 'index'])->name('platform-assets.index');
+
         // Inbox: parent gate is `inbox.view` (members without view can't reach
         // anything here). Each mutating endpoint adds an action-specific gate
         // — viewers cannot reply/edit/delete; reply role cannot edit/delete;

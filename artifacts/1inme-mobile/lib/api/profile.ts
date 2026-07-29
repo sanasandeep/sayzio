@@ -56,6 +56,7 @@ export type ProfilePayload = Partial<{
   bio: string | null;
   handle: string | null;
   avatar: string | null;
+  creator_avatar: string | null;
   phone: string | null;
   timezone: string | null;
   language: string | null;

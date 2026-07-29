@@ -852,6 +852,10 @@ Route::prefix('v1')->group(function () {
         // Background template catalog for the Appearance "Templates" picker
         // (mobile parity for the web template gallery). Admin-managed rows.
         Route::get   ('/bg-templates',                      [BiolinkBlockController::class, 'bgTemplates']);
+        // Platform-provided asset galleries (curated S3 folders: biolink
+        // backgrounds, stock images, avatar galleries). Mobile parity for
+        // the web pickers — every plan, no gating.
+        Route::get   ('/platform-assets/{folder}',          [\App\Modules\Api\Controllers\PlatformAssetController::class, 'index']);
         // "Fetch details" OG-metadata extractor for the mobile block editor
         // (mirrors the web editor's links/{link}/blocks/og-meta endpoint).
         // Per-user rate limiting lives in the controller (shared key with

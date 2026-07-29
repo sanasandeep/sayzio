@@ -141,6 +141,88 @@
                 'currentName' => !empty($bs['background_image']) ? 'Saved background image' : null,
                 'compact'     => true,
             ])
+
+            {{-- Curated background gallery (Task #6015) — platform-provided
+                 photos listed live from S3, available on every plan. Picking
+                 one submits its S3 key via the hidden input; the server
+                 resolves + stores the public CDN URL (an uploaded file, if
+                 any, still wins server-side). --}}
+            <div x-data="{
+                    galOpen: false,
+                    galLoading: false,
+                    galFailed: false,
+                    galAssets: [],
+                    galSearch: '',
+                    galLimit: 36,
+                    galSelected: '',
+                    async galLoad() {
+                        this.galOpen = !this.galOpen;
+                        if (!this.galOpen || this.galAssets.length || this.galLoading) return;
+                        this.galLoading = true; this.galFailed = false;
+                        try {
+                            const r = await fetch('{{ route('user.platform-assets.index', 'biolink-backgrounds') }}', { headers: { 'Accept': 'application/json' } });
+                            const j = await r.json();
+                            this.galAssets = (j && j.success && Array.isArray(j.assets)) ? j.assets : [];
+                            this.galFailed = !r.ok;
+                        } catch (e) { this.galFailed = true; }
+                        this.galLoading = false;
+                    },
+                    galVisible() {
+                        const q = this.galSearch.trim().toLowerCase();
+                        const all = q ? this.galAssets.filter(a => a.label.toLowerCase().includes(q)) : this.galAssets;
+                        return all.slice(0, this.galLimit);
+                    },
+                    galCount() {
+                        const q = this.galSearch.trim().toLowerCase();
+                        return q ? this.galAssets.filter(a => a.label.toLowerCase().includes(q)).length : this.galAssets.length;
+                    }
+                }" class="space-y-2">
+                <input type="hidden" name="background_image_asset" :value="galSelected">
+                <button type="button" @click="galLoad()"
+                        class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all"
+                        style="background: var(--bg-glass-input); border: 1px solid var(--border-glass);">
+                    <span class="text-xs font-semibold" style="color: var(--text-primary);">
+                        <i class="fas fa-images text-blue-400 text-[10px] mr-1.5"></i> Or choose from our gallery
+                    </span>
+                    <i class="fas text-[10px]" :class="galOpen ? 'fa-chevron-up' : 'fa-chevron-down'" style="color: var(--text-faint);"></i>
+                </button>
+                <div x-show="galOpen" x-transition class="space-y-2" style="display: none;">
+                    <template x-if="galLoading"><p class="text-[11px] text-center py-3" style="color: var(--text-dimmed);">Loading gallery…</p></template>
+                    <template x-if="!galLoading && galFailed"><p class="text-[11px] text-center py-3" style="color: var(--text-dimmed);">Couldn't load the gallery right now. Try again in a minute.</p></template>
+                    <template x-if="!galLoading && !galFailed && galAssets.length === 0"><p class="text-[11px] text-center py-3" style="color: var(--text-dimmed);">No gallery backgrounds available yet.</p></template>
+                    <template x-if="galAssets.length > 0">
+                        <div class="space-y-2">
+                            <input type="text" x-model="galSearch" placeholder="Search backgrounds…"
+                                   class="text-[11px] px-2.5 py-1.5 rounded-md w-full"
+                                   style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-primary);">
+                            <div class="grid grid-cols-4 sm:grid-cols-6 gap-1.5 max-h-[380px] overflow-y-auto pr-1">
+                                <template x-for="a in galVisible()" :key="a.key">
+                                    <button type="button"
+                                            @click="galSelected = galSelected === a.key ? '' : a.key; $nextTick(() => $dispatch('change'))"
+                                            :class="galSelected === a.key ? 'ring-2 ring-blue-400' : ''"
+                                            class="rounded-md overflow-hidden relative transition-all hover:scale-[1.05] hover:z-10"
+                                            style="aspect-ratio: 9/14; border: 1px solid var(--border-glass);"
+                                            :title="a.label">
+                                        <img :src="a.url" :alt="a.label" loading="lazy" class="absolute inset-0 w-full h-full object-cover">
+                                        <div x-show="galSelected === a.key"
+                                             class="absolute top-0.5 right-0.5 w-3.5 h-3.5 rounded-full flex items-center justify-center"
+                                             style="background: rgba(61,107,255,0.95); color:#fff;">
+                                            <i class="fas fa-check" style="font-size:6px;"></i>
+                                        </div>
+                                    </button>
+                                </template>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <p class="text-[10px]" style="color: var(--text-dimmed);">Click to select, click again to deselect. Save to apply.</p>
+                                <button type="button" x-show="galCount() > galLimit" @click="galLimit += 36"
+                                        class="text-[10px] font-semibold px-2 py-1 rounded-md" style="color:#90acff; border: 1px dashed rgba(61,107,255,0.3);">
+                                    Show more
+                                </button>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </div>
         </div>
 
         {{-- SLIDESHOW --}}

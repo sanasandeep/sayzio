@@ -176,6 +176,7 @@
                                 <input type="checkbox" name="creator_avatar_remove" value="1"> Remove custom avatar (use account profile photo)
                             </label>
                         @endif
+                        @include('user.partials.avatar-gallery-picker', ['inputName' => 'creator_avatar_asset'])
                     @endif
                 </div>
                 <div>

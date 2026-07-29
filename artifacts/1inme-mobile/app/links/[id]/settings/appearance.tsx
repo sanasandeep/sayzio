@@ -1,5 +1,6 @@
 import { Stack, useLocalSearchParams } from "expo-router";
 
+import { BgImageGalleryPicker } from "@/components/BgImageGalleryPicker";
 import { BgPresetPicker } from "@/components/BgPresetPicker";
 import { BgTemplatePicker } from "@/components/BgTemplatePicker";
 import { BiolinkBackgroundPreview } from "@/components/BiolinkBackgroundPreview";
@@ -31,6 +32,7 @@ export default function AppearanceSettings() {
         extra={
           <>
             <BiolinkBackgroundPreview linkId={Number(id)} />
+            <BgImageGalleryPicker linkId={Number(id)} />
             <BgPresetPicker linkId={Number(id)} />
             <BgTemplatePicker linkId={Number(id)} />
           </>

@@ -91,6 +91,13 @@
                 :class="mode === 'vault' ? 'bg-blue-500/20 text-blue-300 ring-1 ring-blue-500/30' : 'text-white/40 hover:text-white/60'">
             <i class="fas fa-folder-open mr-1"></i>My Files
         </button>
+        @if($browseType === 'image')
+        <button type="button" @click="mode = 'stock'; if (stockAssets.length === 0) loadStock()"
+                class="text-[10px] px-2 py-0.5 rounded-md transition-all font-medium"
+                :class="mode === 'stock' ? 'bg-blue-500/20 text-blue-300 ring-1 ring-blue-500/30' : 'text-white/40 hover:text-white/60'">
+            <i class="fas fa-images mr-1"></i>Stock
+        </button>
+        @endif
     </div>
     @endif
 
@@ -238,6 +245,50 @@
             </div>
         </div>
     </div>
+
+    {{-- Stock mode (Task #6015) — curated platform image galleries
+         (grid-images + hand-drawn) listed live from S3, every plan. A pick
+         is fetched as a Blob and injected into the underlying file input,
+         exactly like a vault pick, so consumers keep working unchanged. --}}
+    @if($browseType === 'image')
+    <div x-show="mode === 'stock'" x-cloak>
+        <div class="rounded-xl overflow-hidden" style="background: var(--bg-glass, rgba(255,255,255,0.04)); border: 1px solid var(--border-glass, rgba(255,255,255,0.10));">
+            <div class="p-2 flex items-center gap-2" style="border-bottom: 1px solid var(--border-subtle, rgba(255,255,255,0.06));">
+                <button type="button" @click="stockTab = 'grid-images'"
+                        class="text-[10px] px-2 py-1 rounded-md font-medium transition-all"
+                        :class="stockTab === 'grid-images' ? 'bg-blue-500/20 text-blue-300 ring-1 ring-blue-500/30' : 'text-white/40 hover:text-white/60'">Photos</button>
+                <button type="button" @click="stockTab = 'hand-drawn'"
+                        class="text-[10px] px-2 py-1 rounded-md font-medium transition-all"
+                        :class="stockTab === 'hand-drawn' ? 'bg-blue-500/20 text-blue-300 ring-1 ring-blue-500/30' : 'text-white/40 hover:text-white/60'">Hand-drawn</button>
+                <input type="text" x-model="stockSearch" placeholder="Search…"
+                       class="flex-1 text-xs px-2.5 py-1.5 rounded-lg outline-none min-w-0"
+                       style="background: var(--bg-glass-input, rgba(0,0,0,0.20)); color: var(--text-primary, #fff); border: 1px solid var(--border-glass, rgba(255,255,255,0.10));">
+            </div>
+            <div class="max-h-48 overflow-y-auto p-2">
+                <template x-if="stockLoading">
+                    <div class="py-6 text-center"><i class="fas fa-spinner fa-spin text-blue-400/60"></i></div>
+                </template>
+                <template x-if="!stockLoading && filteredStock.length === 0">
+                    <div class="py-6 text-center text-xs text-white/30">No stock images available right now</div>
+                </template>
+                <div class="grid grid-cols-4 gap-1.5">
+                    <template x-for="a in visibleStock" :key="a.key">
+                        <button type="button" @click="pickStock(a)"
+                                :disabled="stockPicking"
+                                class="rounded-lg overflow-hidden text-left transition-all hover:ring-2 hover:ring-blue-500/50 relative"
+                                style="background: var(--bg-glass-input, rgba(0,0,0,0.20));"
+                                :title="a.label">
+                            <img :src="a.url" loading="lazy" class="w-full aspect-square object-cover" :alt="a.label">
+                        </button>
+                    </template>
+                </div>
+                <template x-if="!stockLoading && filteredStock.length > stockLimit">
+                    <button type="button" @click="stockLimit += 32" class="w-full text-[10px] text-blue-400 hover:text-blue-300 py-2 text-center">Load more…</button>
+                </template>
+            </div>
+        </div>
+    </div>
+    @endif
     @endif
 
     <template x-if="error">
@@ -271,6 +322,59 @@ function dropzoneInput_{{ $dzId }}() {
         vaultHasMore: false,
         vaultPicking: false,
         vaultType: @js($browseType),
+
+        stockAssets: [],
+        stockLoading: false,
+        stockSearch: '',
+        stockTab: 'grid-images',
+        stockLimit: 32,
+        stockPicking: false,
+
+        get filteredStock() {
+            let list = this.stockAssets.filter((a) => a.folder === this.stockTab);
+            if (this.stockSearch) {
+                const s = this.stockSearch.toLowerCase();
+                list = list.filter((a) => (a.label || '').toLowerCase().includes(s));
+            }
+            return list;
+        },
+
+        get visibleStock() {
+            return this.filteredStock.slice(0, this.stockLimit);
+        },
+
+        async loadStock() {
+            this.stockLoading = true;
+            try {
+                const folders = ['grid-images', 'hand-drawn'];
+                const results = await Promise.all(folders.map(async (folder) => {
+                    const r = await fetch('{{ route("user.platform-assets.index", "__F__") }}'.replace('__F__', folder), { headers: { 'Accept': 'application/json' } });
+                    const data = await r.json();
+                    return (data.assets || []).map((a) => ({ ...a, folder }));
+                }));
+                this.stockAssets = results.flat();
+            } catch (e) {
+                this.stockAssets = [];
+            }
+            this.stockLoading = false;
+        },
+
+        async pickStock(a) {
+            if (this.stockPicking) return;
+            this.stockPicking = true;
+            this.error = '';
+            try {
+                // Same blob-injection path as a vault pick: the curated
+                // image becomes the submitted file, so every consumer of
+                // this input keeps working unchanged.
+                await this.injectVaultFile({ url: a.url, original_name: a.name, mime_type: '' }, 'from Stock');
+                this.mode = 'upload';
+            } catch (e) {
+                this.error = 'Could not load that image.';
+            } finally {
+                this.stockPicking = false;
+            }
+        },
 
         get filteredVault() {
             if (!this.vaultSearch) return this.vaultFiles;
