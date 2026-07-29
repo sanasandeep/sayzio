@@ -3002,6 +3002,57 @@ export function BlockSettingsEditor({
                   </Text>
                   <Pressable
                     {...WEB_FOCUS_RING_PROPS}
+                    disabled={idx === 0}
+                    onPress={() =>
+                      setGalleryImages((prev) => {
+                        if (idx <= 0) return prev;
+                        const next = [...prev];
+                        [next[idx - 1], next[idx]] = [next[idx], next[idx - 1]];
+                        return next;
+                      })
+                    }
+                    accessibilityRole="button"
+                    accessibilityLabel={`Move image ${idx + 1} up`}
+                    style={{ padding: 6, opacity: idx === 0 ? 0.3 : 1 }}
+                    testID={`gallery-img-up-${idx}`}
+                  >
+                    <Feather
+                      name="arrow-up"
+                      size={15}
+                      color={idx === 0 ? colors.mutedForeground : colors.primary}
+                    />
+                  </Pressable>
+                  <Pressable
+                    {...WEB_FOCUS_RING_PROPS}
+                    disabled={idx === galleryImages.length - 1}
+                    onPress={() =>
+                      setGalleryImages((prev) => {
+                        if (idx >= prev.length - 1) return prev;
+                        const next = [...prev];
+                        [next[idx], next[idx + 1]] = [next[idx + 1], next[idx]];
+                        return next;
+                      })
+                    }
+                    accessibilityRole="button"
+                    accessibilityLabel={`Move image ${idx + 1} down`}
+                    style={{
+                      padding: 6,
+                      opacity: idx === galleryImages.length - 1 ? 0.3 : 1,
+                    }}
+                    testID={`gallery-img-down-${idx}`}
+                  >
+                    <Feather
+                      name="arrow-down"
+                      size={15}
+                      color={
+                        idx === galleryImages.length - 1
+                          ? colors.mutedForeground
+                          : colors.primary
+                      }
+                    />
+                  </Pressable>
+                  <Pressable
+                    {...WEB_FOCUS_RING_PROPS}
                     onPress={() =>
                       setGalleryImages((prev) =>
                         prev.filter((_, i) => i !== idx),
