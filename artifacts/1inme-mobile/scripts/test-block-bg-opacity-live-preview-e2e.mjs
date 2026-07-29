@@ -55,6 +55,7 @@ const MOCK_USER = {
 const LINK_ID = 5984;
 const BLOCK_ID = 84;
 const PRESET_KEY = "abstract_one";
+const PRESET_KEY_2 = "abstract_two";
 const SAVED_OPACITY = 80;
 const EXPLICIT_APP_URL = process.env.APP_URL || null;
 
@@ -97,6 +98,14 @@ const CATALOG = {
       label: "Abstract One",
       group: "abstract",
       colors: ["#3d3654", "#8a5cf6"],
+      swatch: null,
+      paper: false,
+    },
+    {
+      key: PRESET_KEY_2,
+      label: "Abstract Two",
+      group: "abstract",
+      colors: ["#14532d", "#22c55e"],
       swatch: null,
       paper: false,
     },
@@ -201,37 +210,40 @@ async function readPreviewLayerOpacity(page) {
   });
 }
 
+async function readSliderLabelValue(page) {
+  return page.evaluate(() => {
+    const m = [...document.querySelectorAll("div")]
+      .map((d) => d.textContent || "")
+      .find((t) => /^Transparency · \d+%$/.test(t));
+    return m ? Number(m.match(/(\d+)%$/)[1]) : null;
+  });
+}
+
 async function setSlider(page, value) {
-  // @react-native-community/slider renders a native <input type="range">
-  // on web. Set the value programmatically and fire the events RN-web
-  // listens for; fall back to keyboard nudges if no range input exists.
-  const done = await page.evaluate((v) => {
-    const host = document.querySelector(
-      '[data-testid="block-bg-preset-opacity-slider"]',
-    );
-    const input =
-      host?.tagName === "INPUT"
-        ? host
-        : host?.querySelector('input[type="range"]') ||
-          document.querySelector('input[type="range"]');
-    if (!input) return false;
-    const setter = Object.getOwnPropertyDescriptor(
-      window.HTMLInputElement.prototype,
-      "value",
-    ).set;
-    setter.call(input, String(v));
-    input.dispatchEvent(new Event("input", { bubbles: true }));
-    input.dispatchEvent(new Event("change", { bubbles: true }));
-    return true;
-  }, value);
-  if (done) return true;
-  // Keyboard fallback: focus the slider and arrow-key toward the target.
+  // @react-native-community/slider renders a div[role="slider"] on web
+  // (no <input type="range">), so we drive it with a real pointer drag:
+  // press down at the fraction matching the target value, then nudge
+  // pixel-by-pixel (button held) until the on-screen label shows the
+  // exact target.
   const slider = page.getByTestId("block-bg-preset-opacity-slider");
-  await slider.focus();
-  for (let i = 0; i < SAVED_OPACITY - value; i += 1) {
-    await page.keyboard.press("ArrowLeft");
+  await slider.scrollIntoViewIfNeeded();
+  const box = await slider.boundingBox();
+  if (!box) fail("could not measure the transparency slider");
+  const y = box.y + box.height / 2;
+  let x = box.x + (box.width * value) / 100;
+  await page.mouse.move(x, y);
+  await page.mouse.down();
+  await page.mouse.move(x + 1, y);
+  const pixelPerUnit = box.width / 100;
+  for (let i = 0; i < 40; i += 1) {
+    const got = await readSliderLabelValue(page);
+    if (got === value) break;
+    if (got == null) break;
+    x += (got < value ? 1 : -1) * Math.max(1, pixelPerUnit / 2);
+    await page.mouse.move(x, y);
   }
-  return false;
+  await page.mouse.up();
+  return true;
 }
 
 async function run(appUrl) {
@@ -282,7 +294,7 @@ async function run(appUrl) {
 
     // 2. Dragging the slider fades the preview immediately (no PATCH).
     const TARGET = 30;
-    const usedRangeInput = await setSlider(page, TARGET);
+    await setSlider(page, TARGET);
     await page
       .getByText(`Transparency · ${TARGET}%`, { exact: true })
       .waitFor({ state: "visible" });
@@ -299,7 +311,7 @@ async function run(appUrl) {
       fail("dragging the slider fired a PATCH before Save was pressed");
     }
     log(
-      `slider drag (${usedRangeInput ? "range input" : "keyboard"}) faded the preview to ${TARGET}% with no network save`,
+      `slider pointer-drag faded the preview to ${TARGET}% with no network save`,
     );
 
     // 3. Save still lands the dragged value in _style.bg_preset_opacity.
@@ -315,6 +327,61 @@ async function run(appUrl) {
       );
     }
     log("Save block PATCHed _style.bg_preset_opacity with the dragged value");
+
+    // 4. (Task #5987) Picking a preset from the grid brings the live
+    //    preview back into view — no manual scrolling needed.
+    await page.getByTestId("block-bg-preset-toggle").click();
+    await page
+      .getByTestId(`block-bg-preset-${PRESET_KEY_2}`)
+      .waitFor({ state: "visible" });
+    // Scroll the page all the way down so the preview is off-screen.
+    await page.evaluate(() => {
+      const scroller =
+        [...document.querySelectorAll("*")].find(
+          (el) =>
+            el.scrollHeight > el.clientHeight + 50 &&
+            /(auto|scroll)/.test(window.getComputedStyle(el).overflowY),
+        ) || document.scrollingElement;
+      scroller.scrollTop = scroller.scrollHeight;
+    });
+    const previewInViewport = () =>
+      page.evaluate(() => {
+        const el = document.querySelector(
+          '[data-testid="block-bg-preset-live-preview"]',
+        );
+        if (!el) return false;
+        const r = el.getBoundingClientRect();
+        return r.bottom > 0 && r.top < window.innerHeight;
+      });
+    if (await previewInViewport()) {
+      log(
+        "note: page too short to scroll the preview off-screen; asserting it stays visible after selection",
+      );
+    }
+    // Tap the swatch without Playwright's auto-scroll bringing the
+    // preview back on its own: dispatch the click in-page.
+    await page.evaluate((key) => {
+      const el = document.querySelector(
+        `[data-testid="block-bg-preset-${key}"]`,
+      );
+      el?.scrollIntoView({ block: "center" });
+      el?.click();
+    }, PRESET_KEY_2);
+    {
+      const deadline = Date.now() + STEP_TIMEOUT_MS;
+      let visible = false;
+      while (Date.now() < deadline) {
+        visible = await previewInViewport();
+        if (visible) break;
+        await new Promise((r) => setTimeout(r, 150));
+      }
+      if (!visible) {
+        fail(
+          "selecting a preset from the grid did not scroll the live preview into view",
+        );
+      }
+    }
+    log("preset selection scrolled the live preview into view");
 
     await context.close();
     log("PASS — live preview fades while dragging; save path unchanged.");

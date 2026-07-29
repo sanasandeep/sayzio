@@ -900,6 +900,42 @@ export function BlockSettingsEditor({
   const [bgPresetOpacity, setBgPresetOpacity] = useState<number>(100);
   const [bgPresetOpen, setBgPresetOpen] = useState(false);
   const [bgPresetGroup, setBgPresetGroup] = useState<string>("all");
+  // Task #5987 — when a preset swatch is tapped in the grid, the live
+  // preview (which sits above the grid) may be scrolled off-screen.
+  // These refs let us bring it back into view: on web via the DOM's
+  // scrollIntoView; on native screen-mode via measureLayout against the
+  // editor ScrollView. Inline mode on native is best-effort (no parent
+  // scroll handle), which is fine — web is the primary editor surface.
+  const bgPresetPreviewRef = useRef<View | null>(null);
+  const editorScrollRef = useRef<ScrollView | null>(null);
+  const scrollBgPresetPreviewIntoView = useCallback(() => {
+    // Defer a frame so the preview has (re)rendered with the new preset
+    // before we measure/scroll to it.
+    requestAnimationFrame(() => {
+      const node = bgPresetPreviewRef.current as
+        | (View & { scrollIntoView?: (opts?: unknown) => void })
+        | null;
+      if (!node) return;
+      if (typeof node.scrollIntoView === "function") {
+        // react-native-web: the ref is a DOM element.
+        node.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        return;
+      }
+      const scroller = editorScrollRef.current;
+      if (!scroller) return;
+      try {
+        node.measureLayout(
+          scroller.getInnerViewNode(),
+          (_x: number, y: number) => {
+            scroller.scrollTo({ y: Math.max(0, y - 12), animated: true });
+          },
+          () => {},
+        );
+      } catch {
+        // Best-effort — never let a measurement failure break selection.
+      }
+    });
+  }, []);
   // Block background preset catalog — only fetched once the picker is
   // opened (or a preset is already applied, so its swatch can render).
   // Query key/staleTime match the Appearance pickers' so caches share.
@@ -1869,6 +1905,7 @@ export function BlockSettingsEditor({
                 Live preview
               </Text>
               <View
+                ref={bgPresetPreviewRef}
                 testID="block-bg-preset-live-preview"
                 pointerEvents="none"
                 style={{
@@ -1939,7 +1976,13 @@ export function BlockSettingsEditor({
                         <Pressable {...WEB_FOCUS_RING_PROPS}
                           key={p.key}
                           testID={`block-bg-preset-${p.key}`}
-                          onPress={() => setBgPresetKey(sel ? "" : p.key)}
+                          onPress={() => {
+                            setBgPresetKey(sel ? "" : p.key);
+                            // Task #5987 — make the change immediately
+                            // visible: bring the live preview back into
+                            // view when picking (not clearing) a preset.
+                            if (!sel) scrollBgPresetPreviewIntoView();
+                          }}
                           style={{
                             width: 56,
                             height: 56,
@@ -4189,7 +4232,7 @@ export function BlockSettingsEditor({
         // nested ScrollView would break scrolling — render a plain View.
         <View style={styles.bodyInline}>{body}</View>
       ) : (
-        <ScrollView contentContainerStyle={styles.body}>{body}</ScrollView>
+        <ScrollView ref={editorScrollRef} contentContainerStyle={styles.body}>{body}</ScrollView>
       )}
 
       <IconPickerModal

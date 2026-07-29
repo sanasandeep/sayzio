@@ -27,3 +27,6 @@ a headless harness via Playwright `page.on("dialog")` (dismiss vs accept), the
 throwaway Expo server manager, and a seeded localStorage session
 (`1inme.auth.token`/`.user` + `1inme.onboarding.complete`). See
 `scripts/test-drawer-signout-e2e.mjs`.
+
+## Slider on RN-web
+@react-native-community/slider renders a `div[role="slider"]` on web — NO `input[type=range]`, and keyboard arrows don't move it. Drive it in e2e with a real pointer drag (mouse.down at the target fraction of the track, nudge pixel-by-pixel while reading the on-screen value label, then mouse.up).
