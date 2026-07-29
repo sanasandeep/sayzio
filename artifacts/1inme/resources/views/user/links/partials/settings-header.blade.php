@@ -8,6 +8,19 @@
         'embed'    => ['icon' => 'fa-code', 'label' => 'Embed', 'route' => 'user.links.settings.embed'],
         'splash'   => ['icon' => 'fa-rocket', 'label' => 'Intro', 'route' => 'user.links.splash'],
     ];
+    // Template design sessions get an extra "Default colors" tab (Task
+    // #6039) so the admin can set the baseline colors seeded into every
+    // NEW block on this template and on pages created from it.
+    if (is_array($link->settings['_template_draft'] ?? null)) {
+        $__tabs = [];
+        foreach ($settingsTabs as $k => $t) {
+            $__tabs[$k] = $t;
+            if ($k === 'block-theme') {
+                $__tabs['default-colors'] = ['icon' => 'fa-fill-drip', 'label' => 'Default Colors', 'route' => 'user.links.settings.default-colors'];
+            }
+        }
+        $settingsTabs = $__tabs;
+    }
     // Design-locked pages hide every styling tab — only non-design
     // settings surfaces remain until the creator detaches from the template.
     $__designLocked = method_exists($link, 'isDesignLocked') && $link->isDesignLocked();

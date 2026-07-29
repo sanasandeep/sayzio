@@ -257,6 +257,22 @@ class BiolinkBlockController extends Controller
         return view('user.links.settings.block-theme', compact('link'));
     }
 
+    /**
+     * "Default colors" tab (Task #6039) — only meaningful while editing a
+     * template draft in a design session: the admin sets baseline colors
+     * that seed the `_style` of every NEW block created on this draft and
+     * on pages later created from the template. Existing blocks are never
+     * restyled; every seeded block stays individually editable.
+     */
+    public function settingsDefaultColors(Link $link)
+    {
+        abort_if($link->user_id !== workspace_owner_id() || !$link->isBiolinkFamily(), 403);
+        if (!is_array($link->settings['_template_draft'] ?? null)) {
+            return redirect()->route('user.links.settings.appearance', $link);
+        }
+        return view('user.links.settings.default-colors', compact('link'));
+    }
+
     public function settingsAdvanced(Link $link)
     {
         abort_if($link->user_id !== workspace_owner_id() || !$link->isBiolinkFamily(), 403);
@@ -378,11 +394,16 @@ class BiolinkBlockController extends Controller
             ? $defaults
             : array_replace($defaults, $incoming);
 
-        // Seed `_style` only when the caller didn't supply one.
+        // Seed `_style` only when the caller didn't supply one. Template
+        // default colors (Task #6039) — set on a template draft and carried
+        // onto pages created from that template — layer on top of the
+        // platform defaults so new blocks look on-theme immediately while
+        // staying individually editable.
         if (!isset($settings['_style']) || !is_array($settings['_style']) || $settings['_style'] === []) {
             $settings['_style'] = $this->sanitizeBlockStyle(array_merge(
                 BiolinkBlock::STYLE_DEFAULTS,
-                BlockDefaults::styleForType($validated['type'])
+                BlockDefaults::styleForType($validated['type']),
+                $this->templateDefaultColorStyleFor($link, $validated['type'])
             ));
         }
 
@@ -394,6 +415,7 @@ class BiolinkBlockController extends Controller
             $settings['_style'] = $this->sanitizeBlockStyle(array_merge(
                 BiolinkBlock::STYLE_DEFAULTS,
                 BlockDefaults::styleForType($validated['type']),
+                $this->templateDefaultColorStyleFor($link, $validated['type']),
                 $link->designLockStyleFor($validated['type']) ?? []
             ));
             unset($settings['_style_custom_snapshot']);
@@ -1398,6 +1420,16 @@ class BiolinkBlockController extends Controller
             // serialized by the editor into a hidden input. Decoded and
             // bounded server-side by BiolinkStickers::sanitize().
             'stickers_json' => 'nullable|string|max:20000',
+
+            // Template default colors (Task #6039) — baseline colors set on
+            // a template draft that seed the `_style` of new blocks. Empty
+            // string = inherit.
+            'template_default_colors' => 'nullable|array',
+            'template_default_colors.text_color' => ['nullable','string','max:20','regex:/^#[0-9a-fA-F]{3,8}$/'],
+            'template_default_colors.bg_color' => ['nullable','string','max:20','regex:/^#[0-9a-fA-F]{3,8}$/'],
+            'template_default_colors.border_color' => ['nullable','string','max:20','regex:/^#[0-9a-fA-F]{3,8}$/'],
+            'template_default_colors.accent_color' => ['nullable','string','max:20','regex:/^#[0-9a-fA-F]{3,8}$/'],
+            'template_default_colors.accent_text_color' => ['nullable','string','max:20','regex:/^#[0-9a-fA-F]{3,8}$/'],
         ]);
 
         $user = auth()->user();
@@ -1487,6 +1519,26 @@ class BiolinkBlockController extends Controller
         unset($validated['stickers_json']);
         if ($request->has('stickers_json') && !$link->isDesignLocked()) {
             $settings['biolink']['stickers'] = \App\Modules\User\Support\BiolinkStickers::sanitize($stickersJson ?? '[]');
+        }
+
+        // Template default colors (Task #6039): replace the whole map on
+        // every save so cleared fields actually clear (empty = inherit).
+        // Only valid hex values are kept; an all-empty form removes the key.
+        $tplColorsInput = $validated['template_default_colors'] ?? null;
+        unset($validated['template_default_colors']);
+        if ($request->has('template_default_colors') && !$link->isDesignLocked()) {
+            $cleanColors = [];
+            foreach (self::TEMPLATE_DEFAULT_COLOR_KEYS as $k) {
+                $v = is_array($tplColorsInput) ? ($tplColorsInput[$k] ?? null) : null;
+                if (is_string($v) && preg_match('/^#[0-9a-fA-F]{3,8}$/', $v)) {
+                    $cleanColors[$k] = $v;
+                }
+            }
+            if ($cleanColors !== []) {
+                $settings['biolink']['template_default_colors'] = $cleanColors;
+            } else {
+                unset($settings['biolink']['template_default_colors']);
+            }
         }
 
         // Page-level text overlays are a design surface: sanitize the JSON
@@ -1798,6 +1850,8 @@ class BiolinkBlockController extends Controller
             return redirect()->route('user.links.settings.layout', $link)->with('success', 'Page settings updated.');
         } elseif (str_contains($referer, '/settings/block-theme')) {
             return redirect()->route('user.links.settings.block-theme', $link)->with('success', 'Page settings updated.');
+        } elseif (str_contains($referer, '/settings/default-colors')) {
+            return redirect()->route('user.links.settings.default-colors', $link)->with('success', 'Default colors updated.');
         } elseif (str_contains($referer, '/settings/advanced')) {
             return redirect()->route('user.links.settings.advanced', $link)->with('success', 'Page settings updated.');
         }
@@ -2181,6 +2235,59 @@ class BiolinkBlockController extends Controller
         $result['time_slots'] = $slots;
 
         return $result;
+    }
+
+    /**
+     * Template default colors (Task #6039). Stored on the biolink settings
+     * of a template draft (and carried into pages created from the
+     * template via the snapshot). Only these keys are recognised.
+     */
+    public const TEMPLATE_DEFAULT_COLOR_KEYS = [
+        'text_color', 'bg_color', 'border_color', 'accent_color', 'accent_text_color',
+    ];
+
+    /**
+     * Button-like block types where the accent pair (accent background +
+     * text-on-accent) replaces the general text/background defaults.
+     */
+    private const TEMPLATE_ACCENT_BLOCK_TYPES = ['link', 'link_big', 'cta_button'];
+
+    /**
+     * Read the link's template default colors, keeping only known keys with
+     * valid hex values. Read-side validation keeps unsanitized snapshot
+     * merges harmless.
+     */
+    private function templateDefaultColors(Link $link): array
+    {
+        $raw = $link->settings['biolink']['template_default_colors'] ?? null;
+        if (!is_array($raw)) return [];
+        $clean = [];
+        foreach (self::TEMPLATE_DEFAULT_COLOR_KEYS as $k) {
+            $v = $raw[$k] ?? null;
+            if (is_string($v) && preg_match('/^#[0-9a-fA-F]{3,8}$/', $v)) {
+                $clean[$k] = $v;
+            }
+        }
+        return $clean;
+    }
+
+    /**
+     * Map the template default colors onto per-block `_style` keys for a
+     * new block of the given type. Empty defaults = inherit (no key set).
+     */
+    private function templateDefaultColorStyleFor(Link $link, string $type): array
+    {
+        $colors = $this->templateDefaultColors($link);
+        if ($colors === []) return [];
+        $style = [];
+        foreach (['text_color', 'bg_color', 'border_color'] as $k) {
+            if (isset($colors[$k])) $style[$k] = $colors[$k];
+        }
+        if (in_array($type, self::TEMPLATE_ACCENT_BLOCK_TYPES, true)) {
+            if (isset($colors['accent_color'])) $style['bg_color'] = $colors['accent_color'];
+            if (isset($colors['accent_text_color'])) $style['text_color'] = $colors['accent_text_color'];
+        }
+        return $style;
     }
 
     private function sanitizeBlockStyle(array $input): array

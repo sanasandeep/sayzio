@@ -994,6 +994,7 @@ Route::prefix('user')->name('user.')->group(function () {
         Route::get('links/{link}/settings/appearance', [BiolinkBlockController::class, 'settingsAppearance'])->middleware('workspace.can:links.view')->name('links.settings.appearance');
         Route::get('links/{link}/settings/layout', [BiolinkBlockController::class, 'settingsLayout'])->middleware('workspace.can:links.view')->name('links.settings.layout');
         Route::get('links/{link}/settings/block-theme', [BiolinkBlockController::class, 'settingsBlockTheme'])->middleware('workspace.can:links.view')->name('links.settings.block-theme');
+        Route::get('links/{link}/settings/default-colors', [BiolinkBlockController::class, 'settingsDefaultColors'])->middleware('workspace.can:links.view')->name('links.settings.default-colors');
         Route::get('links/{link}/settings/advanced', [BiolinkBlockController::class, 'settingsAdvanced'])->middleware('workspace.can:links.view')->name('links.settings.advanced');
         Route::get('links/{link}/settings/embed', [BiolinkBlockController::class, 'settingsEmbed'])->middleware('workspace.can:links.view')->name('links.settings.embed');
 
