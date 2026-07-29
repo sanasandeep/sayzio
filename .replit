@@ -36,6 +36,10 @@ args = "e2e-photo-stickers"
 task = "workflow.run"
 args = "bg-preset-tests"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "block-bg-live-preview-e2e"
+
 [[workflows.workflow]]
 name = "heading-accents-test"
 author = "agent"
@@ -79,6 +83,17 @@ isValidation = true
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "cd artifacts/1inme && TEST_LOCAL_MODE=artisan bash scripts/test-local.sh --filter=BiolinkBgPresetSaveTest"
+
+[[workflows.workflow]]
+name = "block-bg-live-preview-e2e"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd artifacts/1inme-mobile && APP_URL=\"https://$REPLIT_EXPO_DEV_DOMAIN\" node scripts/test-block-bg-opacity-live-preview-e2e.mjs"
+
+[workflows.workflow.metadata]
+isValidation = true
 
 
   [agent]

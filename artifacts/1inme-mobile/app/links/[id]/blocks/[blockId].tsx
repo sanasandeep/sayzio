@@ -206,7 +206,17 @@ import {
   AVATAR_FRAME_LABELS,
   isAvatarFrameKey,
 } from "@/components/AvatarFrame";
+import { BlockView, StoreCartProvider } from "@/app/biolink/[handle]";
 import { Button } from "@/components/Button";
+
+// Live block-background preview (Task #5984). The bg-preset section renders
+// the block through the same native renderer the design preview uses
+// (`BlockView`), read-only, so dragging the transparency slider fades the
+// preset layer in real time. Taps are inert (pointerEvents off) and the
+// synthetic alias resolves to nothing server-side, so the preview never
+// pollutes a real biolink's stats.
+const BLOCK_PREVIEW_ALIAS = "__block_preview__";
+const NOOP_BLOCK_PREVIEW_EMBED = () => {};
 
 import { DictationMic } from "@/components/DictationMic";
 import {
@@ -1844,6 +1854,50 @@ export function BlockSettingsEditor({
                 thumbTintColor={colors.primary}
                 onValueChange={(v) => setBgPresetOpacity(Math.round(v))}
               />
+            </View>
+          ) : null}
+
+          {/* Live preview (Task #5984) — the block rendered through the same
+              native renderer the public page uses, with the in-progress
+              preset key + dragged opacity patched into `_style`. Because it
+              reads the slider state directly, the background fades in real
+              time while dragging; the saved value still lands in
+              `_style.bg_preset_opacity` via the normal save path. */}
+          {bgPresetKey && block ? (
+            <View style={{ gap: 6 }}>
+              <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>
+                Live preview
+              </Text>
+              <View
+                testID="block-bg-preset-live-preview"
+                pointerEvents="none"
+                style={{
+                  padding: 12,
+                  borderRadius: 12,
+                  borderWidth: 1,
+                  borderStyle: "dashed",
+                  borderColor: colors.border,
+                }}
+              >
+                <StoreCartProvider alias={BLOCK_PREVIEW_ALIAS}>
+                  <BlockView
+                    block={{
+                      ...block,
+                      settings: {
+                        ...(block.settings ?? {}),
+                        _style: {
+                          ...((block.settings?._style as Record<string, unknown> | undefined) ?? {}),
+                          bg_preset_key: bgPresetKey,
+                          bg_preset_opacity: clampNum(Math.round(bgPresetOpacity), 0, 100),
+                        },
+                      },
+                    }}
+                    alias={BLOCK_PREVIEW_ALIAS}
+                    allBlocks={q.data ?? []}
+                    openEmbed={NOOP_BLOCK_PREVIEW_EMBED}
+                  />
+                </StoreCartProvider>
+              </View>
             </View>
           ) : null}
 
