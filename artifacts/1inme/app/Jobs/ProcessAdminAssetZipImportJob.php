@@ -239,6 +239,10 @@ class ProcessAdminAssetZipImportJob implements ShouldQueue
 
             $mime = self::EXT_MIME[$ext] ?? 'application/octet-stream';
 
+            // Record pixel dimensions while the bytes are still on local disk
+            // so the vault can show / filter by size later.
+            [$width, $height] = AdminAsset::probeImageDimensions($tmp, $ext);
+
             $stream = fopen($tmp, 'rb');
             $ok = Storage::disk($disk)->put($storedPath, $stream);
             if (is_resource($stream)) fclose($stream);
@@ -254,6 +258,8 @@ class ProcessAdminAssetZipImportJob implements ShouldQueue
                 'mime_type'     => $mime,
                 'size_bytes'    => $written,
                 'type'          => 'image',
+                'width'         => $width,
+                'height'        => $height,
                 'disk'          => $disk,
                 'path'          => $storedPath,
                 'folder'        => $folderSlug,

@@ -116,6 +116,48 @@ class AdminAssetController extends Controller
         return response()->json(['success' => true, 'asset' => $asset->fresh()]);
     }
 
+    /**
+     * Bulk edit label / description / folder on a set of assets. Each field
+     * is only touched when its matching apply_* flag is set, so admins can
+     * e.g. re-folder a selection without wiping labels.
+     */
+    public function bulkUpdate(Request $request)
+    {
+        $request->validate([
+            'ids'               => 'required|array|min:1|max:500',
+            'ids.*'             => 'integer',
+            'apply_label'       => 'nullable|boolean',
+            'apply_description' => 'nullable|boolean',
+            'apply_folder'      => 'nullable|boolean',
+            'label'             => 'nullable|string|max:200',
+            'description'       => 'nullable|string|max:2000',
+            'folder'            => 'nullable|string|max:140',
+        ]);
+
+        $attrs = [];
+        if ($request->boolean('apply_label')) {
+            $attrs['label'] = trim((string) $request->input('label')) ?: null;
+        }
+        if ($request->boolean('apply_description')) {
+            $attrs['description'] = trim((string) $request->input('description')) ?: null;
+        }
+        if ($request->boolean('apply_folder')) {
+            $attrs['folder'] = $this->resolveFolderSlug($request->input('folder'));
+        }
+
+        if ($attrs === []) {
+            return response()->json(['success' => false, 'error' => 'Pick at least one field to apply.'], 422);
+        }
+
+        $updated = AdminAsset::whereIn('id', $request->input('ids'))->update($attrs);
+
+        return response()->json([
+            'success' => true,
+            'updated' => $updated,
+            'folders' => $this->folderList(),
+        ]);
+    }
+
     public function move(Request $request, AdminAsset $asset)
     {
         $request->validate([

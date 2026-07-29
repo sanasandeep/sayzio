@@ -261,11 +261,29 @@
                 <p class="text-xs mt-1" style="color: var(--text-faint);">or click anywhere in this box to browse</p>
             </div>
 
+            {{-- Bulk selection bar --}}
+            <div x-show="selected.length > 0" x-cloak
+                 class="rounded-xl p-3 flex flex-wrap items-center gap-3"
+                 style="background: rgba(61,107,255,0.10); border: 1px solid rgba(61,107,255,0.35);">
+                <span class="text-sm font-semibold" style="color: var(--text-primary);"
+                      x-text="selected.length + ' selected'"></span>
+                <button @click="selectAllOnPage()" class="text-xs font-semibold text-blue-400 hover:text-blue-300 ak-blue">Select page</button>
+                <button @click="selected = []" class="text-xs font-semibold" style="color: var(--text-faint);">Clear</button>
+                <div class="ml-auto flex items-center gap-2">
+                    <button @click="openBulkEdit()"
+                            class="px-3 py-1.5 text-xs rounded-lg font-semibold bg-blue-600 hover:bg-blue-700 text-white">
+                        <i class="fas fa-pen mr-1"></i> Bulk edit
+                    </button>
+                </div>
+            </div>
+
             <div x-show="!loading && assets.length > 0" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
                 <template x-for="a in assets" :key="a.id">
                     <div class="group relative rounded-xl overflow-hidden transition-all hover:-translate-y-0.5"
-                         style="background: var(--bg-card); border: 1px solid var(--border-subtle);">
-                        <div class="aspect-square flex items-center justify-center" style="background: var(--bg-glass-input);">
+                         :style="'background: var(--bg-card); border: 1px solid ' + (selected.includes(a.id) ? '#3d6bff' : 'var(--border-subtle)') + ';'">
+                        <div class="aspect-square flex items-center justify-center cursor-pointer"
+                             style="background: var(--bg-glass-input);"
+                             @click="selected.length > 0 && toggleSelect(a)">
                             <template x-if="a.type === 'image'">
                                 <img :src="a.url" :alt="a.original_name" class="w-full h-full object-cover" loading="lazy">
                             </template>
@@ -278,10 +296,19 @@
                         <div class="p-2.5">
                             <p class="text-xs font-semibold truncate" :title="a.original_name" style="color: var(--text-primary);" x-text="a.label || a.original_name"></p>
                             <p class="text-[10px] mt-0.5 flex items-center gap-1.5" style="color: var(--text-faint);">
-                                <span x-text="a.size_human"></span><span>·</span><span x-text="a.type"></span>
+                                <span x-text="a.size_human"></span>
+                                <template x-if="a.dimensions"><span class="flex items-center gap-1.5"><span>·</span><span x-text="a.dimensions"></span></span></template>
+                                <template x-if="!a.dimensions"><span class="flex items-center gap-1.5"><span>·</span><span x-text="a.type"></span></span></template>
                                 <template x-if="a.folder"><span class="ml-auto truncate" x-text="a.folder"></span></template>
                             </p>
                         </div>
+                        {{-- Selection checkbox --}}
+                        <button @click.stop="toggleSelect(a)" :title="selected.includes(a.id) ? 'Deselect' : 'Select'"
+                                class="absolute top-1.5 left-1.5 w-6 h-6 rounded-md flex items-center justify-center text-[11px] transition-opacity"
+                                :class="selected.includes(a.id) ? 'opacity-100' : 'opacity-0 group-hover:opacity-100 asset-actions'"
+                                :style="selected.includes(a.id) ? 'background: #3d6bff; color: #fff;' : 'background: rgba(0,0,0,0.55); color: #fff; border: 1px solid rgba(255,255,255,0.4);'">
+                            <i class="fas fa-check" x-show="selected.includes(a.id)"></i>
+                        </button>
                         <div class="asset-actions absolute top-1.5 right-1.5 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                             <button @click="openMove(a)" title="Move to folder"
                                     class="w-7 h-7 rounded-md flex items-center justify-center text-xs"
@@ -421,6 +448,54 @@
         <span x-text="toast"></span>
     </div>
 
+    {{-- Bulk edit modal --}}
+    <div x-show="bulkModal" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4"
+         style="background: rgba(0,0,0,0.55);">
+        <div @click.outside="bulkModal = false" class="w-full max-w-md rounded-xl p-5"
+             style="background: var(--bg-card); border: 1px solid var(--border-strong);">
+            <h3 class="text-base font-bold mb-1" style="color: var(--text-primary);">Bulk edit</h3>
+            <p class="text-xs mb-4" style="color: var(--text-faint);"
+               x-text="'Applies to ' + selected.length + ' selected asset(s). Only ticked fields are changed.'"></p>
+
+            <label class="flex items-center gap-2 text-xs font-semibold mb-1.5 cursor-pointer" style="color: var(--text-secondary);">
+                <input type="checkbox" x-model="bulk.applyLabel" class="rounded"> Label
+            </label>
+            <input x-model="bulk.label" :disabled="!bulk.applyLabel" type="text" placeholder="e.g. Hero background"
+                   class="w-full px-3 py-2 text-sm rounded-lg mb-3 disabled:opacity-40"
+                   style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-primary);">
+
+            <label class="flex items-center gap-2 text-xs font-semibold mb-1.5 cursor-pointer" style="color: var(--text-secondary);">
+                <input type="checkbox" x-model="bulk.applyDescription" class="rounded"> Description
+            </label>
+            <textarea x-model="bulk.description" :disabled="!bulk.applyDescription" rows="2" placeholder="Shown in search results"
+                      class="w-full px-3 py-2 text-sm rounded-lg mb-3 disabled:opacity-40"
+                      style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-primary);"></textarea>
+
+            <label class="flex items-center gap-2 text-xs font-semibold mb-1.5 cursor-pointer" style="color: var(--text-secondary);">
+                <input type="checkbox" x-model="bulk.applyFolder" class="rounded"> Move to folder
+            </label>
+            <select x-model="bulk.folder" :disabled="!bulk.applyFolder"
+                    class="w-full px-3 py-2 text-sm rounded-lg mb-4 disabled:opacity-40"
+                    style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-primary);">
+                <option value="">Unfiled</option>
+                <template x-for="f in folders.filter(f => !f.system)" :key="f.slug">
+                    <option :value="f.slug" x-text="f.name"></option>
+                </template>
+            </select>
+
+            <div class="flex justify-end gap-2">
+                <button @click="bulkModal = false"
+                        class="px-3 py-2 text-sm rounded-lg"
+                        style="background: var(--bg-glass); border: 1px solid var(--border-subtle); color: var(--text-secondary);">Cancel</button>
+                <button @click="commitBulkEdit()" :disabled="bulkSubmitting || (!bulk.applyLabel && !bulk.applyDescription && !bulk.applyFolder)"
+                        class="px-3 py-2 text-sm rounded-lg bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50">
+                    <span x-show="!bulkSubmitting">Apply</span>
+                    <span x-show="bulkSubmitting" x-cloak><i class="fas fa-spinner fa-spin mr-1"></i> Applying…</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
     {{-- Move modal --}}
     <div x-show="moveModal" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4"
          style="background: rgba(0,0,0,0.55);">
@@ -483,6 +558,11 @@ function adminAssetVault() {
         moveModal: false,
         moveAsset: null,
         moveTarget: '',
+
+        selected: [],
+        bulkModal: false,
+        bulkSubmitting: false,
+        bulk: { applyLabel: false, label: '', applyDescription: false, description: '', applyFolder: false, folder: '' },
 
         importModal: false,
         importTab: 'upload',
@@ -680,6 +760,64 @@ function adminAssetVault() {
                 await this.load(1);
             } else {
                 alert(data.error || 'Could not delete folder');
+            }
+        },
+
+        toggleSelect(a) {
+            if (this.selected.includes(a.id)) {
+                this.selected = this.selected.filter(id => id !== a.id);
+            } else {
+                this.selected.push(a.id);
+            }
+        },
+
+        selectAllOnPage() {
+            const ids = new Set(this.selected);
+            this.assets.forEach(a => ids.add(a.id));
+            this.selected = [...ids];
+        },
+
+        openBulkEdit() {
+            if (!this.selected.length) return;
+            this.bulk = { applyLabel: false, label: '', applyDescription: false, description: '', applyFolder: false, folder: this.folder && this.folder !== '__root__' ? this.folder : '' };
+            this.bulkModal = true;
+        },
+
+        async commitBulkEdit() {
+            if (this.bulkSubmitting || !this.selected.length) return;
+            this.bulkSubmitting = true;
+            try {
+                const r = await fetch(`{{ route('admin.assets.bulk-update') }}`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        ids: this.selected,
+                        apply_label: this.bulk.applyLabel ? 1 : 0,
+                        label: this.bulk.label,
+                        apply_description: this.bulk.applyDescription ? 1 : 0,
+                        description: this.bulk.description,
+                        apply_folder: this.bulk.applyFolder ? 1 : 0,
+                        folder: this.bulk.folder,
+                    }),
+                });
+                const data = await r.json();
+                if (!data.success) {
+                    alert(data.error || 'Bulk edit failed');
+                    return;
+                }
+                this.bulkModal = false;
+                if (data.folders) this.folders = data.folders;
+                this.showToast('Updated ' + data.updated + ' asset(s)');
+                this.selected = [];
+                await this.load(this.pagination.current_page);
+            } catch (_) {
+                alert('Bulk edit failed');
+            } finally {
+                this.bulkSubmitting = false;
             }
         },
 
