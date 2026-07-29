@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import Slider from "@react-native-community/slider";
 import { Feather } from "@expo/vector-icons";
 import { Image as ExpoImage } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
@@ -45,6 +46,9 @@ export function BgPresetPicker({ linkId }: { linkId: number }) {
   const [group, setGroup] = useState("gradients");
   const [search, setSearch] = useState("");
   const [pendingKey, setPendingKey] = useState<string | null>(null);
+  // Live value while the transparency slider is being dragged; null when
+  // idle so the label tracks the saved/cached opacity.
+  const [dragOpacity, setDragOpacity] = useState<number | null>(null);
 
   const linkQ = useQuery({
     queryKey: ["link", linkId],
@@ -323,44 +327,26 @@ export function BgPresetPicker({ linkId }: { linkId: number }) {
               <Text
                 style={[styles.sectionLabel, { color: colors.mutedForeground }]}
               >
-                Preset transparency · {selectedOpacity}%
+                Preset transparency · {dragOpacity ?? selectedOpacity}%
               </Text>
-              <View style={styles.chipRow}>
-                {[25, 50, 75, 90, 100].map((v) => {
-                  const on = selectedOpacity === v;
-                  return (
-                    <Pressable
-                      {...WEB_FOCUS_RING_PROPS}
-                      key={v}
-                      testID={`bg-preset-opacity-${v}`}
-                      disabled={saveOpacity.isPending}
-                      onPress={() => {
-                        if (!on) saveOpacity.mutate(v);
-                      }}
-                      style={[
-                        styles.chip,
-                        {
-                          backgroundColor: on ? colors.primary : colors.card,
-                          borderColor: on ? colors.primary : colors.border,
-                        },
-                      ]}
-                    >
-                      <Text
-                        style={[
-                          styles.chipText,
-                          {
-                            color: on
-                              ? colors.primaryForeground
-                              : colors.mutedForeground,
-                          },
-                        ]}
-                      >
-                        {v}%
-                      </Text>
-                    </Pressable>
-                  );
-                })}
-              </View>
+              <Slider
+                testID="bg-preset-opacity-slider"
+                style={{ width: "100%", height: 32 }}
+                minimumValue={0}
+                maximumValue={100}
+                step={1}
+                value={selectedOpacity}
+                disabled={saveOpacity.isPending}
+                minimumTrackTintColor={colors.primary}
+                maximumTrackTintColor={colors.border}
+                thumbTintColor={colors.primary}
+                onValueChange={(v) => setDragOpacity(Math.round(v))}
+                onSlidingComplete={(v) => {
+                  const next = Math.max(0, Math.min(100, Math.round(v)));
+                  setDragOpacity(null);
+                  if (next !== selectedOpacity) saveOpacity.mutate(next);
+                }}
+              />
               <Text style={[styles.empty, { color: colors.mutedForeground, textAlign: "left", paddingVertical: 0 }]}>
                 Lower values let the fallback color show through the preset.
               </Text>

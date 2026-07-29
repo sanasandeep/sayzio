@@ -1,4 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import Slider from "@react-native-community/slider";
 import { Feather } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -1831,30 +1832,18 @@ export function BlockSettingsEditor({
               <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>
                 Transparency · {bgPresetOpacity}%
               </Text>
-              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-                {[25, 50, 75, 90, 100].map((v) => {
-                  const on = bgPresetOpacity === v;
-                  return (
-                    <Pressable {...WEB_FOCUS_RING_PROPS}
-                      key={v}
-                      testID={`block-bg-preset-opacity-${v}`}
-                      onPress={() => setBgPresetOpacity(v)}
-                      style={{
-                        paddingHorizontal: 10,
-                        paddingVertical: 6,
-                        borderRadius: 999,
-                        borderWidth: 1,
-                        borderColor: on ? colors.primary : colors.border,
-                        backgroundColor: on ? colors.primary : colors.card,
-                      }}
-                    >
-                      <Text style={{ color: on ? "#fff" : colors.mutedForeground, fontWeight: "600", fontSize: 11 }}>
-                        {v}%
-                      </Text>
-                    </Pressable>
-                  );
-                })}
-              </View>
+              <Slider
+                testID="block-bg-preset-opacity-slider"
+                style={{ width: "100%", height: 32 }}
+                minimumValue={0}
+                maximumValue={100}
+                step={1}
+                value={bgPresetOpacity}
+                minimumTrackTintColor={colors.primary}
+                maximumTrackTintColor={colors.border}
+                thumbTintColor={colors.primary}
+                onValueChange={(v) => setBgPresetOpacity(Math.round(v))}
+              />
             </View>
           ) : null}
 

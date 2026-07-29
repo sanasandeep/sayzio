@@ -222,6 +222,14 @@ async function run(appUrl) {
       .waitFor({ state: "visible" });
     log("background preview updated to the selected preset");
 
+    // 6. With a preset active, the transparency control renders as a smooth
+    //    0–100 slider (not fixed step chips).
+    await page.getByTestId("bg-preset-opacity").waitFor({ state: "visible" });
+    await page
+      .getByTestId("bg-preset-opacity-slider")
+      .waitFor({ state: "visible" });
+    log("transparency slider renders once a preset is active");
+
     await context.close();
     log("PASS — Presets gallery browses, searches by name and saves.");
   } finally {

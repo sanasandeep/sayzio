@@ -155,6 +155,7 @@
   },
   "dependencies": {
     "@expo-google-fonts/space-grotesk": "^0.4.1",
+    "@react-native-community/slider": "5.0.1",
     "expo": "~54.0.35",
     "expo-audio": "~1.1.1",
     "expo-auth-session": "~7.0.11",
