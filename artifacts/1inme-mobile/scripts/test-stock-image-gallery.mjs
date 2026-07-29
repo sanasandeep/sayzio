@@ -9,9 +9,10 @@
 //      (the save path writes it to settings.url — the image source).
 //   3. The sticker stock flow imports the asset into the vault first
 //      (server sanitizer requires an owned file_id) and then appends.
+//      Task #6028: import is SERVER-side by asset key (the asset CDN
+//      has no CORS headers, so the web build can't fetch the blob).
 //   4. Gallery/grid blocks hydrate + persist the `images` repeater and
-//      surface the picker; the vault import helper covers both native
-//      (expo-file-system download) and web (blob fetch) paths.
+//      surface the picker.
 //
 // Run via `node scripts/test-stock-image-gallery.mjs` (package script
 // `test:stock-image-gallery`).
@@ -70,10 +71,16 @@ ok(
 
 // ── Sticker flow: stock pick must round-trip through the vault ─────
 ok(
-  /const addStickerFromStock[\s\S]{0,400}?importVaultFileFromUrl\(\{ url \}\);[\s\S]{0,200}?appendSticker\(file\);/.test(
+  /const addStickerFromStock[\s\S]{0,500}?importPlatformAsset\(\{ key: assetKey \}\);[\s\S]{0,200}?appendSticker\(file\);/.test(
     editorSrc,
   ),
   "stock sticker imports into the vault first, then appends (owned file_id)",
+);
+ok(
+  /onSelect=\{\(_url, asset\) => void addStickerFromStock\(asset\.key\)\}/.test(
+    editorSrc,
+  ),
+  "sticker pick hands the asset KEY to the server-side importer (CORS-free on web)",
 );
 ok(
   /folders=\{\[\{ folder: "hand-drawn", label: "Hand-drawn" \}\]\}/.test(
@@ -111,16 +118,16 @@ ok(
   "BLOCK_KINDS labels the gallery kinds so the blocks list names them",
 );
 
-// ── Vault import helper: native + web branches ──────────────────────
+// ── Vault import helper: server-side, key-based (Task #6028) ────────
 ok(
-  /export async function importVaultFileFromUrl/.test(filesSrc) &&
-    /expo-file-system\/legacy/.test(filesSrc) &&
-    /Platform\.OS === "web"/.test(filesSrc),
-  "importVaultFileFromUrl covers native (download to cache) and web (blob) paths",
+  /export async function importPlatformAsset/.test(filesSrc) &&
+    /\/me\/files\/import-platform-asset/.test(filesSrc) &&
+    /JSON\.stringify\(\{ key: args\.key \}\)/.test(filesSrc),
+  "importPlatformAsset POSTs the asset key to the server-side importer (no browser CDN fetch)",
 );
 ok(
-  /deleteAsync\(dl\.uri, \{ idempotent: true \}\)/.test(filesSrc),
-  "native import cleans up the cached download",
+  !/importVaultFileFromUrl/.test(filesSrc) && !/fetch\(args\.url\)/.test(filesSrc),
+  "the CORS-blocked browser-fetch import path is gone",
 );
 
 console.log(`\nAll ${passed} checks passed.`);

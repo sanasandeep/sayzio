@@ -12,8 +12,8 @@
  *   2. Picking a tile sets the image block's URL field.
  *   3. GET /api/v1/platform-assets/hand-drawn feeds the "Stock stickers"
  *      picker; picking a tile imports the asset into the vault via a REAL
- *      POST /api/v1/me/files/upload (201, owned UserFile) and appends a
- *      sticker row.
+ *      POST /api/v1/me/files/import-platform-asset (201, owned UserFile —
+ *      server-side S3 read, Task #6028) and appends a sticker row.
  *   4. "Save block" PATCHes /api/v1/links/{id}/blocks/{blockId} — the
  *      server sanitizer accepts the owned sticker file_id (200).
  *   5. The GALLERY block (image_grid) has its own stock picker
@@ -34,11 +34,10 @@
  *   - Boots a throwaway Expo web server with EXPO_PUBLIC_API_BASE_URL
  *     baked to the Laravel server so apiFetch talks to it directly
  *     (Laravel CORS is wildcard on api/*).
- *   - The ONLY interception: CloudFront/S3 asset responses get an
- *     Access-Control-Allow-Origin header added via route.fetch() (the CDN
- *     serves real bytes but no CORS header, and the WEB import path
- *     fetches the blob in-browser; native uses FileSystem and has no CORS.
- *     The bytes themselves are the real CDN response).
+ *   - NO network interception at all (Task #6028): the sticker import is
+ *     server-side by asset key, so the browser never fetches the CDN blob
+ *     and no CORS shim is needed — this run proves the real mobile-web
+ *     flow works against the CDN exactly as shipped.
  *
  * SKIPs (exit 0) when the environment can't support it: Expo won't boot,
  * Laravel won't boot, or the S3 catalog is unreachable/empty.
@@ -261,26 +260,10 @@ async function run(appUrl, apiBase, seed) {
       },
     );
 
-    // CORS shim for the curated-asset CDN ONLY: pass the real request
-    // through (real bytes, real status) but add the CORS header the web
-    // import path needs. Nothing under /api/** is touched.
-    await context.route(
-      /https:\/\/[^/]*(cloudfront\.net|amazonaws\.com)\//,
-      async (route) => {
-        try {
-          const resp = await route.fetch();
-          await route.fulfill({
-            response: resp,
-            headers: {
-              ...resp.headers(),
-              "access-control-allow-origin": "*",
-            },
-          });
-        } catch {
-          await route.abort();
-        }
-      },
-    );
+    // Task #6028: no CDN CORS shim anymore — the sticker import happens
+    // server-side (POST /me/files/import-platform-asset with the asset
+    // key), so the browser never cross-origin-fetches the CDN blob. This
+    // run therefore exercises the REAL mobile-web flow unmodified.
 
     const page = await context.newPage();
     page.setDefaultTimeout(STEP_TIMEOUT_MS);
@@ -348,7 +331,8 @@ async function run(appUrl, apiBase, seed) {
 
     const uploadPromise = page.waitForResponse(
       (r) =>
-        r.url().includes("/api/v1/me/files/upload") && r.request().method() === "POST",
+        r.url().includes("/api/v1/me/files/import-platform-asset") &&
+        r.request().method() === "POST",
     );
     await page
       .getByTestId("sticker-stock-gallery-grid")
@@ -358,7 +342,7 @@ async function run(appUrl, apiBase, seed) {
     const uploadRes = await uploadPromise;
     if (uploadRes.status() !== 201) {
       fail(
-        `vault import POST /me/files/upload returned ${uploadRes.status()}: ${await uploadRes.text().catch(() => "")}`,
+        `vault import POST /me/files/import-platform-asset returned ${uploadRes.status()}: ${await uploadRes.text().catch(() => "")}`,
       );
     }
     const importedFile = (await uploadRes.json())?.data?.file;

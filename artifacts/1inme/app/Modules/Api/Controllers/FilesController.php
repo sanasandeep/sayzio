@@ -94,6 +94,75 @@ class FilesController extends Controller
     }
 
     /**
+     * POST /me/files/import-platform-asset — server-side import of a
+     * curated platform asset (Task #6028). The curated-asset CDN serves
+     * no CORS headers, so the Expo WEB client cannot browser-fetch the
+     * asset blob to re-upload it (native downloads via FileSystem and is
+     * unaffected). Instead the client sends the asset's S3 `key`; the
+     * server validates it against the PlatformAssetCatalog folder
+     * allowlist (assets/<folder>/ prefixes only — no arbitrary URLs or
+     * keys), reads the object from S3 itself, and vault-writes it via
+     * the shared createFromBytes pipeline (size cap + storage quota).
+     */
+    public function importPlatformAsset(Request $request)
+    {
+        $data = $request->validate([
+            'key' => ['required', 'string', 'max:512'],
+        ]);
+
+        $key = $data['key'];
+        $folder = \App\Modules\User\Support\PlatformAssetCatalog::folderForKey(
+            $key,
+            array_keys(\App\Modules\User\Support\PlatformAssetCatalog::FOLDERS)
+        );
+        if ($folder === null) {
+            return $this->fail('Unknown platform asset.', 422, 'invalid_asset_key');
+        }
+
+        try {
+            $bytes = \Illuminate\Support\Facades\Storage::disk('s3')->get($key);
+        } catch (\Throwable $e) {
+            $bytes = null;
+        }
+        if (!is_string($bytes) || $bytes === '') {
+            return $this->fail('That asset is unavailable right now.', 422, 'asset_unavailable');
+        }
+
+        $name = basename($key);
+        $ext  = strtolower(pathinfo($name, PATHINFO_EXTENSION));
+        $mime = match ($ext) {
+            'png'          => 'image/png',
+            'gif'          => 'image/gif',
+            'webp'         => 'image/webp',
+            'svg'          => 'image/svg+xml',
+            default        => 'image/jpeg',
+        };
+
+        $user = $request->user();
+
+        try {
+            $userFile = UserFile::createFromBytes($bytes, $name, $mime, $user);
+        } catch (\App\Modules\User\Exceptions\StorageQuotaExceededException $e) {
+            return $this->planGate(
+                $e->getMessage(),
+                \App\Modules\User\Exceptions\StorageQuotaExceededException::FEATURE,
+                $user,
+                402,
+                'plan_limit_reached'
+            );
+        } catch (\RuntimeException $e) {
+            return $this->fail($e->getMessage(), 422, 'import_failed');
+        }
+
+        if ($userFile->workspace_id === null) {
+            $userFile->workspace_id = $this->activeWorkspaceId($user);
+            $userFile->save();
+        }
+
+        return $this->ok(['file' => $this->serializeFile($userFile)], 201);
+    }
+
+    /**
      * Minimal client-facing shape — enough for pickers and the sticker
      * flow without leaking storage paths or scan internals.
      */

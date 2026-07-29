@@ -240,7 +240,7 @@ import {
 } from "@/lib/api/blocks";
 import { getBaseUrl } from "@/lib/api";
 import {
-  importVaultFileFromUrl,
+  importPlatformAsset,
   listVaultFiles,
   uploadVaultFile,
   type VaultFile,
@@ -885,12 +885,14 @@ export function BlockSettingsEditor({
   // Curated stock sticker (Task #6016): stickers must reference an owned
   // vault file (the server sanitizer fails closed on foreign URLs), so a
   // stock pick first imports the asset into the vault, then appends it.
+  // Task #6028: import happens SERVER-side by asset key (the asset CDN
+  // has no CORS headers, so the web build can't fetch the blob itself).
   const addStickerFromStock = useCallback(
-    async (url: string) => {
+    async (assetKey: string) => {
       if (stockStickerBusy) return;
       setStockStickerBusy(true);
       try {
-        const file = await importVaultFileFromUrl({ url });
+        const file = await importPlatformAsset({ key: assetKey });
         appendSticker(file);
       } catch (e) {
         if (handlePlanLockedError(e, "Your storage is full on your current plan.")) {
@@ -3038,7 +3040,7 @@ export function BlockSettingsEditor({
                   hint="Pick a curated hand-drawn graphic"
                   folders={[{ folder: "hand-drawn", label: "Hand-drawn" }]}
                   busy={stockStickerBusy}
-                  onSelect={(url) => void addStickerFromStock(url)}
+                  onSelect={(_url, asset) => void addStickerFromStock(asset.key)}
                   testIDPrefix="sticker-stock-gallery"
                 />
               </View>

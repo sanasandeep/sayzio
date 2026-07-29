@@ -133,6 +133,7 @@
 - [storage-url-resolve guard](storage-url-resolve-guard.md) — payload emissions of storage-backed image columns must go through PublicStorageUrl::resolve() (CDN vs slow /storage 302); exceptions go in the guard's ALLOWLIST.
 - [better-sqlite3 needs source build on Node 24](better-sqlite3-node24-source-build.md) — no prebuilt binary, background node-gyp rebuild; [Electron CI packaging](electron-desktop-ci-packaging.md) — strip non-Linux binary overrides in CI, explicit .cjs --config, empty WIN_CSC_LINK breaks signing.
 - [Bulk copy sweeps via guard file:line output](text-sweep-guard-line-numbers.md) — span-blanking scanners must preserve newlines or line numbers drift and bulk fixers edit the wrong lines.
+- [Platform-asset CDN has no CORS](platform-asset-cdn-no-cors.md) — browser clients can't fetch curated-asset blobs; import into the vault server-side via POST /me/files/import-platform-asset with the S3 key.
 - [Biolink sanitizer blanks relative vault URLs](biolink-sanitizer-blanks-relative-vault-urls.md) — sanitizeUrl strips non-http(s), so /f/ vault paths in block settings persist as '' via template/AI-builder apply.
 - [Link model has no factory](link-model-no-factory.md) — Link::factory() tests fail at boot (coverage illusory); links SEO column is seo_title not meta_title; create links via Link::create + workspace binding.
 - [Query-columns static guard](query-columns-guard.md) — 3-tier literal-column validation w/ per-file SQL-alias learning; workspaces/follows/vault use owner_user_id/creator_id/created_by_user_id, never user_id.

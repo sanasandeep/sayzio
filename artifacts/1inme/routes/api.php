@@ -1147,6 +1147,11 @@ Route::prefix('v1')->group(function () {
         // pipeline (quota + mime allowlist + image compression).
         Route::get ('/me/files',        [\App\Modules\Api\Controllers\FilesController::class, 'index']);
         Route::post('/me/files/upload', [\App\Modules\Api\Controllers\FilesController::class, 'upload'])->middleware('throttle:30,1');
+        // Task #6028 — server-side import of a curated platform asset
+        // (key allow-listed to assets/<folder>/ prefixes); needed because
+        // the asset CDN has no CORS headers, so Expo WEB can't fetch the
+        // blob in-browser to re-upload it.
+        Route::post('/me/files/import-platform-asset', [\App\Modules\Api\Controllers\FilesController::class, 'importPlatformAsset'])->middleware('throttle:30,1');
         Route::post('/me/links/health',    [\App\Modules\Api\Controllers\ExtensionApiController::class, 'checkLinksHealth'])->middleware('throttle:60,1');
 
         // Workspaces
