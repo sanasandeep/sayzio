@@ -335,6 +335,120 @@ class TemplateDefaultColorsTest extends TestCase
         $this->assertSame('', $style['bg_color'] ?? '');
     }
 
+    /**
+     * Task #6048 — blocks inserted programmatically by the AI marketing
+     * suggestion applier seed the same template default colors as blocks
+     * added by hand from the web editor / mobile API.
+     */
+    public function test_ai_marketing_suggestion_block_seeds_default_colors(): void
+    {
+        [$admin, $user] = $this->makeBridgedAdmin();
+        $page = Link::create([
+            'user_id' => $user->id,
+            'type'    => 'biolink',
+            'alias'   => 'tdc-ai-' . uniqid(),
+            'url'     => '',
+        ]);
+        $settings = $page->settings ?? [];
+        $settings['biolink']['template_default_colors'] = [
+            'text_color'        => '#111111',
+            'bg_color'          => '#eeeeee',
+            'border_color'      => '#222222',
+            'accent_color'      => '#ff0055',
+            'accent_text_color' => '#fafafa',
+        ];
+        $page->settings = $settings;
+        $page->save();
+
+        $strategy = new \App\Modules\User\Models\MarketingStrategy();
+        $strategy->user_id       = $user->id;
+        $strategy->workspace_id  = $page->workspace_id;
+        $strategy->title         = 'Test plan';
+        $strategy->goal          = 'Grow';
+        $strategy->status        = 'ready';
+        $strategy->sources       = ['links'];
+        $strategy->parameters    = [];
+        $strategy->strategy      = ['summary' => 'x', 'organic' => [], 'paid' => [], 'kpis' => []];
+        $strategy->model         = 'gpt-4o-mini';
+        $strategy->credits_spent = 1;
+        $strategy->save();
+
+        $applier = app(\App\Services\AI\MarketingSuggestionApplier::class);
+
+        // A plain block (paragraph) gets text/bg/border seeded.
+        $s1 = \App\Modules\User\Models\MarketingStrategySuggestion::create([
+            'strategy_id' => $strategy->id,
+            'type'        => \App\Modules\User\Models\MarketingStrategySuggestion::TYPE_ADD_BLOCK,
+            'title'       => 'Add text',
+            'payload'     => ['target_alias' => $page->alias, 'block_type' => 'text', 'content' => 'Hi'],
+            'status'      => \App\Modules\User\Models\MarketingStrategySuggestion::STATUS_PENDING,
+        ]);
+        $applier->claimAndApply($user, $s1);
+        $para = $page->biolinkBlocks()->where('type', 'paragraph')->orderByDesc('id')->first();
+        $this->assertNotNull($para);
+        $this->assertSame('#111111', $para->settings['_style']['text_color']);
+        $this->assertSame('#eeeeee', $para->settings['_style']['bg_color']);
+        $this->assertSame('#222222', $para->settings['_style']['border_color']);
+
+        // A button-like block (link) gets the accent pair instead.
+        $s2 = \App\Modules\User\Models\MarketingStrategySuggestion::create([
+            'strategy_id' => $strategy->id,
+            'type'        => \App\Modules\User\Models\MarketingStrategySuggestion::TYPE_ADD_BLOCK,
+            'title'       => 'Add button',
+            'payload'     => ['target_alias' => $page->alias, 'block_type' => 'link', 'content' => 'Shop', 'url' => 'https://example.com/shop'],
+            'status'      => \App\Modules\User\Models\MarketingStrategySuggestion::STATUS_PENDING,
+        ]);
+        $applier->claimAndApply($user, $s2);
+        $btn = $page->biolinkBlocks()->where('type', 'link')->orderByDesc('id')->first();
+        $this->assertNotNull($btn);
+        $this->assertSame('#ff0055', $btn->settings['_style']['bg_color']);
+        $this->assertSame('#fafafa', $btn->settings['_style']['text_color']);
+    }
+
+    /**
+     * Task #6048 — no template defaults set: the AI applier seeds the
+     * platform default `_style` (inherit-from-theme colors), matching web.
+     */
+    public function test_ai_marketing_suggestion_block_without_defaults_seeds_platform_style(): void
+    {
+        [$admin, $user] = $this->makeBridgedAdmin();
+        $page = Link::create([
+            'user_id' => $user->id,
+            'type'    => 'biolink',
+            'alias'   => 'tdc-ai-plain-' . uniqid(),
+            'url'     => '',
+        ]);
+
+        $strategy = new \App\Modules\User\Models\MarketingStrategy();
+        $strategy->user_id       = $user->id;
+        $strategy->workspace_id  = $page->workspace_id;
+        $strategy->title         = 'Test plan';
+        $strategy->goal          = 'Grow';
+        $strategy->status        = 'ready';
+        $strategy->sources       = ['links'];
+        $strategy->parameters    = [];
+        $strategy->strategy      = ['summary' => 'x', 'organic' => [], 'paid' => [], 'kpis' => []];
+        $strategy->model         = 'gpt-4o-mini';
+        $strategy->credits_spent = 1;
+        $strategy->save();
+
+        $s = \App\Modules\User\Models\MarketingStrategySuggestion::create([
+            'strategy_id' => $strategy->id,
+            'type'        => \App\Modules\User\Models\MarketingStrategySuggestion::TYPE_ADD_BLOCK,
+            'title'       => 'Add text',
+            'payload'     => ['target_alias' => $page->alias, 'block_type' => 'text', 'content' => 'Hi'],
+            'status'      => \App\Modules\User\Models\MarketingStrategySuggestion::STATUS_PENDING,
+        ]);
+        app(\App\Services\AI\MarketingSuggestionApplier::class)->claimAndApply($user, $s);
+        $para = $page->biolinkBlocks()->where('type', 'paragraph')->orderByDesc('id')->first();
+        $this->assertNotNull($para);
+        $style = $para->settings['_style'] ?? null;
+        $this->assertIsArray($style);
+        // Colors stay empty (= inherit from theme).
+        $this->assertSame('', $style['text_color'] ?? '');
+        $this->assertSame('', $style['bg_color'] ?? '');
+    }
+
     public function test_invalid_hex_rejected_and_garbage_read_side_ignored(): void
     {
         [$admin, $user] = $this->makeBridgedAdmin();
