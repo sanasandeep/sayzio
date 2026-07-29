@@ -2123,6 +2123,10 @@ document.addEventListener('DOMContentLoaded', function() {
             }},
             draggable: '.block-card-wrapper',
             filter: '.card-children-area, .card-child-list, .child-span-row, .grid-span-row, .insert-block-btn, .inline-block-editor',
+            // Sortable's default preventOnFilter:true calls preventDefault()
+            // on every pointerdown inside filtered zones, which blocks text
+            // inputs in the inline block editor from ever taking focus.
+            preventOnFilter: false,
             onAdd: function(evt) {
                 if (handlePaletteDrop(evt, el, null)) return;
                 var blockId = parseInt(evt.item.dataset.blockId);
@@ -2171,6 +2175,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }},
             draggable: '.child-block-card, .block-card, .block-card-wrapper',
             filter: '.inline-block-editor, .child-span-row',
+            preventOnFilter: false, // keep inline-editor inputs focusable
             onAdd: function(evt) {
                 if (handlePaletteDrop(evt, childList, cardId)) return;
                 var blockId = parseInt(evt.item.dataset.blockId);

@@ -68,6 +68,18 @@ args = "e2e-admin-tpl-live"
 task = "workflow.run"
 args = "e2e-admin-tpl-edit-preview"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "pc-name-focus"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "editor-dnd-regress"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "editor-inline-regress"
+
 [[workflows.workflow]]
 name = "heading-accents-test"
 author = "agent"
@@ -199,6 +211,39 @@ args = "bash artifacts/1inme/tests/Browser/run-validation.sh admin-template-edit
 
 [workflows.workflow.metadata]
 isValidation = true
+
+[[workflows.workflow]]
+name = "pc-name-focus"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd artifacts/1inme && VALIDATION_PORT=5057 bash tests/Browser/run-validation.sh profile-card-name-focus.spec.ts"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "editor-dnd-regress"
+author = "agent"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd artifacts/1inme && VALIDATION_PORT=5062 bash tests/Browser/run-validation.sh biolink-editor-palette-dnd.spec.ts"
+
+[[workflows.workflow]]
+name = "editor-inline-regress"
+author = "agent"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd artifacts/1inme && VALIDATION_PORT=5059 bash tests/Browser/run-validation.sh biolink-editor-inline-edit.spec.ts"
 
 
   [agent]
