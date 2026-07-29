@@ -90,7 +90,7 @@ class AiBiolinkBuilderProfileDesignTest extends TestCase
 
         // …and the variant bookkeeping is stamped exactly like applyVariant.
         $this->assertSame('identity_founder', $style['_variant']);
-        $this->assertSame(BlockVariantCatalog::VERSION, $style['_variant_version']);
+        $this->assertSame(BlockVariantCatalog::version(), $style['_variant_version']);
 
         // The skin keys from the variant are merged in too.
         $this->assertSame($variant['style']['bg_color'], $style['bg_color']);

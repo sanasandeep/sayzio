@@ -1,10 +1,10 @@
 @php
     $st = $block->settings['_style'] ?? [];
-    $templates = \App\Modules\User\Models\BiolinkBlock::BLOCK_TEMPLATES;
+    $templates = \App\Modules\User\Models\BiolinkBlock::blockTemplates();
     $variants = \App\Modules\User\Support\BlockVariantCatalog::forType($block->type);
     $variantTags = \App\Modules\User\Support\BlockVariantCatalog::TAGS;
     $variantShapes = \App\Modules\User\Support\BlockVariantCatalog::SHAPES;
-    $variantVersion = \App\Modules\User\Support\BlockVariantCatalog::VERSION;
+    $variantVersion = \App\Modules\User\Support\BlockVariantCatalog::version();
     $currentVariant = $st['_variant'] ?? '';
     // Pre-variant style snapshot, captured server-side the first time a
     // creator picks a curated variant. When present we surface a "Custom

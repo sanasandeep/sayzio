@@ -19,6 +19,7 @@ use App\Modules\Admin\Controllers\WalletSettingsController;
 use App\Modules\Admin\Controllers\LinkManagementController;
 use App\Modules\Admin\Controllers\CoachDefaultsController;
 use App\Modules\Admin\Controllers\BlockDefaultsController;
+use App\Modules\Admin\Controllers\BlockDesignsController;
 use App\Modules\Admin\Controllers\TemplateController;
 use App\Modules\Admin\Controllers\AdminAssetController;
 use App\Modules\Admin\Controllers\BrandingController;
@@ -214,6 +215,22 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::get('{type}', [BlockDefaultsController::class, 'edit'])->name('edit');
             Route::put('{type}', [BlockDefaultsController::class, 'update'])->name('update');
             Route::delete('{type}', [BlockDefaultsController::class, 'reset'])->name('reset');
+        });
+
+        // Admin-managed Designs gallery variants + Block Theme presets (Task #6045).
+        Route::prefix('block-designs')->name('block-designs.')->middleware(CheckPermission::class . ':settings.manage')->group(function () {
+            Route::get('/', [BlockDesignsController::class, 'index'])->name('index');
+            Route::get('variants/create', [BlockDesignsController::class, 'createVariant'])->name('variants.create');
+            Route::post('variants', [BlockDesignsController::class, 'saveVariant'])->name('variants.save');
+            Route::get('variants/{key}/edit', [BlockDesignsController::class, 'editVariant'])->name('variants.edit');
+            Route::post('variants/{key}/move', [BlockDesignsController::class, 'moveVariant'])->name('variants.move');
+            Route::post('variants/{key}/toggle', [BlockDesignsController::class, 'toggleVariant'])->name('variants.toggle');
+            Route::delete('variants/{key}', [BlockDesignsController::class, 'deleteVariant'])->name('variants.delete');
+            Route::get('templates/create', [BlockDesignsController::class, 'createTemplate'])->name('templates.create');
+            Route::post('templates', [BlockDesignsController::class, 'saveTemplate'])->name('templates.save');
+            Route::get('templates/{key}/edit', [BlockDesignsController::class, 'editTemplate'])->name('templates.edit');
+            Route::post('templates/{key}/toggle', [BlockDesignsController::class, 'toggleTemplate'])->name('templates.toggle');
+            Route::delete('templates/{key}', [BlockDesignsController::class, 'deleteTemplate'])->name('templates.delete');
         });
 
         Route::prefix('assets')->name('assets.')->group(function () {

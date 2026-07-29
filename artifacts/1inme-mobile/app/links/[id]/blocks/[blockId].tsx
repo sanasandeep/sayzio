@@ -247,7 +247,12 @@ import {
 } from "@/lib/api/files";
 import { getBgPresets } from "@/lib/api/bgPresets";
 import { LinearGradient } from "expo-linear-gradient";
-import { variantsForType, findVariant } from "@/lib/blockVariants";
+import {
+  variantsForType,
+  findVariant,
+  applyRemoteDesignCatalog,
+} from "@/lib/blockVariants";
+import { getBlockCatalog } from "@/lib/api/blocks";
 import { canonicalBlockType } from "@/lib/blockTypeRegistry";
 import { showAlert } from "@/lib/webAlert";
 import { handlePlanLockedError } from "@/lib/upgradePrompt";
@@ -987,6 +992,16 @@ export function BlockSettingsEditor({
     staleTime: 60 * 60 * 1000,
     enabled: bgPresetOpen || bgPresetKey !== "",
   });
+  // Admin-managed Designs catalog additions (Task #6045): merge remote
+  // customs/hidden into the hardcoded variant mirror before the gallery
+  // renders. Shares the blocks screen's cache key.
+  const blockCatalogQ = useQuery({
+    queryKey: ["block-catalog"],
+    queryFn: getBlockCatalog,
+    staleTime: 5 * 60 * 1000,
+  });
+  const designCatalog = blockCatalogQ.data?.design_catalog;
+  applyRemoteDesignCatalog(designCatalog ?? null);
   const [avatarFrameColor, setAvatarFrameColor] = useState<string>("");
   // Stats (`[{label,value}]`, "stats" layout) and badges (`[{label}]`,
   // "badges" layout) repeaters. Edited via bespoke sections below, gated
@@ -1215,7 +1230,7 @@ export function BlockSettingsEditor({
     if (activeFilter === "all") return all;
     if (activeFilter === "favorites") return all.filter((v) => favorites.indexOf(v.key) !== -1);
     return all.filter((v) => v.tags.indexOf(activeFilter) !== -1);
-  }, [block, activeFilter, favorites]);
+  }, [block, activeFilter, favorites, designCatalog]);
 
   // Build the next block.settings payload for a given variant key. We do
   // a FULL `_style` REPLACE — never a merge — so swapping from variant A
@@ -1584,7 +1599,7 @@ export function BlockSettingsEditor({
     const present = new Set<string>();
     variantsForType(block.type).forEach((v) => v.tags.forEach((t) => present.add(t)));
     return Array.from(present);
-  }, [block]);
+  }, [block, designCatalog]);
 
   // Voice turns started while this editor is open prefer the general
   // in-app tools; dictation works via the per-field mics regardless.

@@ -36,6 +36,19 @@ class BlockVariantCatalog
     public const VERSION = 16;
 
     /**
+     * Effective catalog version (Task #6045): the hardcoded VERSION
+     * combined with the admin catalog revision so admin edits re-apply
+     * to existing blocks without a deploy. The sanitizer caps
+     * `_variant_version` below 100000, so VERSION*1000 + revision
+     * (clamped to 999) always fits and stays strictly monotonic for
+     * both deploy bumps and admin edits.
+     */
+    public static function version(): int
+    {
+        return self::VERSION * 1000 + min(AdminBlockDesigns::revision(), 999);
+    }
+
+    /**
      * Shape filters for link-style blocks. Orthogonal to theme TAGS:
      * a variant declares both a `shape` (what physical form the button
      * takes) and `tags` (what vibe the colors/borders give off). The
@@ -3005,7 +3018,7 @@ class BlockVariantCatalog
      * so a variant a block has already saved can never be hidden by a
      * later bundle that happens to ship the same key.
      */
-    public static function forType(string $type): array
+    public static function forType(string $type, bool $forGallery = true): array
     {
         $variants = self::commonVariants();
 
@@ -3021,11 +3034,25 @@ class BlockVariantCatalog
             $variants[] = $v;
         }
 
+        // Admin-managed additions (Task #6045). For the gallery only
+        // enabled customs are appended; the non-gallery path (find /
+        // migrations) includes disabled ones too so a block already
+        // wearing an admin variant keeps rendering + migrating even
+        // after the admin disables it.
+        foreach (AdminBlockDesigns::customVariantsForType($type, !$forGallery) as $v) {
+            $variants[] = $v;
+        }
+
+        // Admin-hidden keys (built-in or custom) disappear from the
+        // gallery but remain resolvable so existing pages never break.
+        $hidden = $forGallery ? array_flip(AdminBlockDesigns::hiddenVariantKeys()) : [];
+
         $seen = [];
         $unique = [];
         foreach ($variants as $v) {
             if (isset($seen[$v['key']])) continue;
             $seen[$v['key']] = true;
+            if (isset($hidden[$v['key']])) continue;
             $unique[] = $v;
         }
         return $unique;
@@ -3058,7 +3085,10 @@ class BlockVariantCatalog
 
     public static function find(string $type, string $key): ?array
     {
-        foreach (self::forType($type) as $v) {
+        // Search the unfiltered catalog: hidden/disabled variants must
+        // still resolve for blocks that already wear them (rendering,
+        // stale-variant migration, restore flows).
+        foreach (self::forType($type, false) as $v) {
             if ($v['key'] === $key) return $v;
         }
         return null;

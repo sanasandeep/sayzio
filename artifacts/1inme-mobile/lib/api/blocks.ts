@@ -199,9 +199,46 @@ export type BlockCatalogType = {
   locked: boolean;
 };
 
+// Admin-managed Designs catalog additions (Task #6045). Merged on top of
+// the hardcoded built-in mirror in `lib/blockVariants.ts`: `custom`
+// entries are appended per matching type, `hidden` keys are filtered out
+// of the gallery, and `version` keys client caches so admin edits refresh
+// without an app update.
+export type DesignCatalogCustomVariant = {
+  key: string;
+  name: string;
+  tags: string[];
+  shape: string | null;
+  types: string[];
+  preview: {
+    bg?: string;
+    text?: string;
+    radius?: number;
+    border?: string;
+    dashed?: boolean;
+    serif?: boolean;
+    shadow?: string;
+  };
+};
+
+export type DesignCatalog = {
+  version: number;
+  hidden: string[];
+  custom: DesignCatalogCustomVariant[];
+  hidden_templates: string[];
+  custom_templates: {
+    key: string;
+    label: string;
+    icon: string;
+    preview_bg: string;
+    preview_text: string;
+  }[];
+};
+
 export type BlockCatalog = {
   categories: BlockCatalogCategory[];
   types: BlockCatalogType[];
+  design_catalog?: DesignCatalog;
 };
 
 export async function getBlockCatalog(): Promise<BlockCatalog> {

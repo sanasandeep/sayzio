@@ -96,7 +96,7 @@ class BiolinkBlock extends Model
         if ($variantKey === '') return;
 
         $storedVersion = (int) ($style['_variant_version'] ?? 0);
-        if ($storedVersion >= BlockVariantCatalog::VERSION) return;
+        if ($storedVersion >= BlockVariantCatalog::version()) return;
 
         $variant = BlockVariantCatalog::find($this->type, $variantKey);
         if ($variant === null) {
@@ -104,7 +104,7 @@ class BiolinkBlock extends Model
             // Leave `_style` alone (renderer falls back to it), but mark
             // the block as up-to-date with the current catalog so we
             // don't keep doing this lookup on every read.
-            $style['_variant_version'] = BlockVariantCatalog::VERSION;
+            $style['_variant_version'] = BlockVariantCatalog::version();
             $settings['_style'] = $style;
             $this->settings = $settings;
             $this->saveQuietly();
@@ -119,7 +119,7 @@ class BiolinkBlock extends Model
             $variant['style'],
             [
                 '_variant' => $variantKey,
-                '_variant_version' => BlockVariantCatalog::VERSION,
+                '_variant_version' => BlockVariantCatalog::version(),
             ]
         );
 
@@ -675,6 +675,38 @@ class BiolinkBlock extends Model
             ],
         ],
     ];
+
+    /**
+     * Merged Block Theme preset catalog (Task #6045): the hardcoded
+     * BLOCK_TEMPLATES built-ins plus enabled admin-created presets,
+     * minus admin-hidden keys when $forPicker is true. The sanitizer's
+     * `_template` branch validates against the picker view including
+     * hidden built-ins staying invalid for NEW applies, but pages that
+     * already persisted a now-hidden key keep their stored `_style`
+     * (templates copy styles at apply time, so nothing breaks).
+     *
+     * @return array<string,array{label:string,icon:string,preview_bg:string,preview_text:string,style:array}>
+     */
+    public static function blockTemplates(bool $forPicker = true): array
+    {
+        $templates = self::BLOCK_TEMPLATES;
+        foreach (\App\Modules\User\Support\AdminBlockDesigns::customTemplates() as $key => $tpl) {
+            if ($forPicker && empty($tpl['enabled'])) continue;
+            $templates[$key] = [
+                'label'        => (string) ($tpl['label'] ?? $key),
+                'icon'         => (string) ($tpl['icon'] ?? 'fa-swatchbook'),
+                'preview_bg'   => (string) ($tpl['preview_bg'] ?? '#1a1a2e'),
+                'preview_text' => (string) ($tpl['preview_text'] ?? '#fff'),
+                'style'        => is_array($tpl['style'] ?? null) ? $tpl['style'] : [],
+            ];
+        }
+        if ($forPicker) {
+            foreach (\App\Modules\User\Support\AdminBlockDesigns::hiddenTemplateKeys() as $hiddenKey) {
+                unset($templates[$hiddenKey]);
+            }
+        }
+        return $templates;
+    }
 
     public static function getBlockStyle(array $blockSettings, array $globalTheme = []): array
     {

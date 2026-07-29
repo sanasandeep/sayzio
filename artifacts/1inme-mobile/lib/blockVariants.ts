@@ -396,7 +396,56 @@ const TYPE_ONE_OFFS: Record<string, MobileVariant[]> = {
  *  `BlockVariantCatalog::forType`. Common variants come first, then
  *  bundle entries, then one-offs; later duplicates of the same key are
  *  dropped so a saved variant key is always resolvable. */
-export function variantsForType(type: string): MobileVariant[] {
+/**
+ * Admin-managed catalog additions (Task #6045), fetched via
+ * GET /block-catalog (`design_catalog`) and applied module-wide before
+ * the gallery renders. Custom variants are appended per matching type;
+ * `hidden` keys are filtered from the gallery only — `findVariant` stays
+ * permissive so a block already wearing a hidden design keeps rendering.
+ */
+type RemoteDesignCatalog = {
+  hidden: string[];
+  custom: {
+    key: string;
+    name: string;
+    tags: string[];
+    shape?: string | null;
+    types: string[];
+    preview: Partial<MobileVariant["preview"]>;
+  }[];
+};
+
+let remoteCatalog: RemoteDesignCatalog | null = null;
+
+export function applyRemoteDesignCatalog(remote: RemoteDesignCatalog | null | undefined): void {
+  remoteCatalog = remote ?? null;
+}
+
+function remoteVariantsFor(type: string, canonical: string): MobileVariant[] {
+  if (!remoteCatalog) return [];
+  return remoteCatalog.custom
+    .filter(
+      (v) =>
+        v.types.length === 0 ||
+        v.types.indexOf(type) !== -1 ||
+        v.types.indexOf(canonical) !== -1,
+    )
+    .map((v) => ({
+      key: v.key,
+      name: v.name,
+      tags: v.tags ?? [],
+      preview: {
+        bg: v.preview?.bg ?? "#1a1a2e",
+        text: v.preview?.text ?? "#fff",
+        radius: typeof v.preview?.radius === "number" ? v.preview.radius : 12,
+        border: v.preview?.border,
+        dashed: v.preview?.dashed,
+        serif: v.preview?.serif,
+      },
+    }));
+}
+
+function allVariantsForType(type: string): MobileVariant[] {
   const canonical = canonicalBlockType(type);
   const out: MobileVariant[] = [...COMMON];
   for (const bundleId of TYPE_BUNDLES[canonical] ?? []) {
@@ -405,6 +454,7 @@ export function variantsForType(type: string): MobileVariant[] {
   // One-offs key off the raw stored type so legacy entries (cta_button,
   // faq_v2) still resolve their own special variants.
   for (const v of TYPE_ONE_OFFS[type] ?? TYPE_ONE_OFFS[canonical] ?? []) out.push(v);
+  for (const v of remoteVariantsFor(type, canonical)) out.push(v);
 
   const seen = new Set<string>();
   return out.filter((v) => {
@@ -414,8 +464,17 @@ export function variantsForType(type: string): MobileVariant[] {
   });
 }
 
+/** Gallery view: admin-hidden keys are filtered out. */
+export function variantsForType(type: string): MobileVariant[] {
+  const hidden = remoteCatalog?.hidden ?? [];
+  const all = allVariantsForType(type);
+  return hidden.length === 0 ? all : all.filter((v) => hidden.indexOf(v.key) === -1);
+}
+
 export function findVariant(type: string, key: string): MobileVariant | undefined {
-  return variantsForType(type).find((v) => v.key === key);
+  // Unfiltered: hidden variants must still resolve for blocks that
+  // already wear them.
+  return allVariantsForType(type).find((v) => v.key === key);
 }
 
 /**

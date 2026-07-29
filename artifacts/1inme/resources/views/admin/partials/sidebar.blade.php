@@ -421,6 +421,14 @@
             <span class="sidebar-tooltip">Block First-Paint Defaults</span>
         </a>
 
+        <a href="{{ route('admin.block-designs.index') }}"
+           class="sidebar-link {{ request()->routeIs('admin.block-designs.*') ? 'active' : '' }}"
+           style="--nav-tint:#0ea5e9; --nav-tint-soft:rgba(14,165,233,0.12);">
+            <div class="nav-icon-wrap"><i class="fas fa-palette"></i></div>
+            <span class="nav-label">Block Designs</span>
+            <span class="sidebar-tooltip">Designs Gallery &amp; Theme Presets</span>
+        </a>
+
         {{-- ============ Marketing & Comms ============ --}}
         <div class="section-header pt-5 pb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.15em]" style="color: var(--text-faint);">Marketing &amp; Comms</div>
 

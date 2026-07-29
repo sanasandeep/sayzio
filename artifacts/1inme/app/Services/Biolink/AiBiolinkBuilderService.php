@@ -576,7 +576,7 @@ class AiBiolinkBuilderService
             if ($variant && !empty($variant['style'])) {
                 $style = array_merge($style, $variant['style'], [
                     '_variant'         => $variant['key'],
-                    '_variant_version' => BlockVariantCatalog::VERSION,
+                    '_variant_version' => BlockVariantCatalog::version(),
                 ]);
             }
         }
