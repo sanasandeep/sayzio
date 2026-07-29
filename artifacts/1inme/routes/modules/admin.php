@@ -219,6 +219,8 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::prefix('assets')->name('assets.')->group(function () {
             Route::get('/', [AdminAssetController::class, 'index'])->middleware(CheckPermission::class . ':settings.manage')->name('index');
             Route::post('/', [AdminAssetController::class, 'upload'])->middleware(CheckPermission::class . ':settings.manage')->name('upload');
+            Route::post('import-zip', [AdminAssetController::class, 'importZip'])->middleware(CheckPermission::class . ':settings.manage')->name('import-zip');
+            Route::get('imports', [AdminAssetController::class, 'imports'])->middleware(CheckPermission::class . ':settings.manage')->name('imports');
             Route::get('folders', [AdminAssetController::class, 'listFolders'])->middleware(CheckPermission::class . ':settings.manage')->name('folders.index');
             Route::post('folders', [AdminAssetController::class, 'createFolder'])->middleware(CheckPermission::class . ':settings.manage')->name('folders.store');
             Route::delete('folders/{folder}', [AdminAssetController::class, 'destroyFolder'])->middleware(CheckPermission::class . ':settings.manage')->name('folders.destroy');

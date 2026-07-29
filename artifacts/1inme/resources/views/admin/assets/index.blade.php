@@ -65,11 +65,17 @@
                     style="background: var(--bg-card); border: 1px solid var(--border-subtle); color: var(--text-primary);">
                 <i class="fas fa-folder-plus"></i> New Folder
             </button>
+            <button @click="importModal = true"
+                    class="px-3 py-2.5 rounded-xl text-sm font-medium flex items-center gap-2 transition-all"
+                    style="background: var(--bg-card); border: 1px solid var(--border-subtle); color: var(--text-primary);">
+                <i class="fas fa-file-zipper"></i> Import Zip
+            </button>
             <button @click="$refs.fileInput.click()"
                     class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-xl text-sm font-medium flex items-center gap-2 transition-all shadow-sm">
                 <i class="fas fa-cloud-upload-alt"></i> Upload
             </button>
             <input type="file" x-ref="fileInput" @change="handleFiles($event)" multiple class="hidden">
+            <input type="file" x-ref="zipInput" accept=".zip,application/zip" @change="zipFile = $event.target.files[0] || null" class="hidden">
         </div>
     </div>
 
@@ -169,6 +175,68 @@
                         <span class="font-semibold" style="color: var(--text-secondary);"
                               x-text="(folders.find(f => f.slug === folder) || { name: folder }).name"></span>
                     </span>
+                </template>
+            </div>
+
+            {{-- Zip import progress / summary panel --}}
+            <div x-show="importPanel" x-cloak class="rounded-xl p-4 space-y-3" style="background: var(--bg-card); border: 1px solid var(--border-subtle);">
+                <template x-if="activeImport">
+                    <div>
+                        <div class="flex items-center gap-3 mb-2">
+                            <div class="animate-spin w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full flex-shrink-0"></div>
+                            <div class="min-w-0">
+                                <p class="text-sm font-semibold" style="color: var(--text-primary);"
+                                   x-text="activeImport.status === 'downloading' ? 'Downloading archive…' : (activeImport.status === 'pending' ? 'Waiting for a worker…' : 'Extracting archive…')"></p>
+                                <p class="text-xs truncate" style="color: var(--text-faint);" x-text="activeImport.source || ''"></p>
+                            </div>
+                            <span class="ml-auto text-xs font-semibold flex-shrink-0" style="color: var(--text-secondary);"
+                                  x-text="activeImport.total_entries > 0 ? (activeImport.processed_entries + ' / ' + activeImport.total_entries + ' entries') : ''"></span>
+                        </div>
+                        <div class="h-2 rounded-full overflow-hidden" style="background: var(--bg-glass-input);">
+                            <div class="h-full rounded-full bg-blue-500 transition-all duration-500"
+                                 :style="'width:' + (activeImport.total_entries > 0 ? Math.round(activeImport.processed_entries / activeImport.total_entries * 100) : 3) + '%'"></div>
+                        </div>
+                        <p class="text-[11px] mt-1.5" style="color: var(--text-faint);"
+                           x-text="activeImport.imported_count + ' imported · ' + activeImport.overwritten_count + ' overwritten · ' + activeImport.skipped_count + ' skipped'"></p>
+                    </div>
+                </template>
+                <template x-if="!activeImport && lastImport">
+                    <div>
+                        <div class="flex items-start gap-3">
+                            <i class="mt-0.5" :class="lastImport.status === 'completed' ? 'fas fa-check-circle text-emerald-400 ak-green' : 'fas fa-triangle-exclamation text-red-400 ak-red'"></i>
+                            <div class="min-w-0 flex-1">
+                                <p class="text-sm font-semibold" style="color: var(--text-primary);"
+                                   x-text="lastImport.status === 'completed' ? 'Zip import finished' : 'Zip import failed'"></p>
+                                <p class="text-xs truncate" style="color: var(--text-faint);" x-text="lastImport.source || ''"></p>
+                                <template x-if="lastImport.status === 'completed'">
+                                    <p class="text-xs mt-1" style="color: var(--text-secondary);"
+                                       x-text="lastImport.imported_count + ' imported · ' + lastImport.overwritten_count + ' overwritten · ' + lastImport.skipped_count + ' skipped of ' + lastImport.total_entries + ' entries'"></p>
+                                </template>
+                                <template x-if="lastImport.error">
+                                    <p class="text-xs mt-1 text-red-400 ak-red" x-text="lastImport.error"></p>
+                                </template>
+                                <template x-if="(lastImport.skipped || []).length">
+                                    <div class="mt-2">
+                                        <button @click="showSkipped = !showSkipped" class="text-[11px] font-semibold text-blue-400 hover:text-blue-300 ak-blue">
+                                            <span x-text="(showSkipped ? 'Hide' : 'Show') + ' skipped entries (' + lastImport.skipped.length + (lastImport.skipped_count > lastImport.skipped.length ? ' of ' + lastImport.skipped_count : '') + ')'"></span>
+                                        </button>
+                                        <div x-show="showSkipped" x-cloak class="mt-1.5 max-h-40 overflow-y-auto rounded-lg p-2 space-y-1"
+                                             style="background: var(--bg-glass-input); border: 1px solid var(--border-subtle);">
+                                            <template x-for="(s, i) in lastImport.skipped" :key="i">
+                                                <p class="text-[11px] flex gap-2" style="color: var(--text-faint);">
+                                                    <span class="truncate flex-1" x-text="s.path"></span>
+                                                    <span class="flex-shrink-0" style="color: var(--text-secondary);" x-text="s.reason"></span>
+                                                </p>
+                                            </template>
+                                        </div>
+                                    </div>
+                                </template>
+                            </div>
+                            <button @click="importPanel = false" class="text-xs flex-shrink-0" style="color: var(--text-faint);" title="Dismiss">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    </div>
                 </template>
             </div>
 
@@ -275,6 +343,78 @@
         </div>
     </div>
 
+    {{-- Import zip modal --}}
+    <div x-show="importModal" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4"
+         style="background: rgba(0,0,0,0.55);">
+        <div @click.outside="importModal = false" class="w-full max-w-md rounded-xl p-5"
+             style="background: var(--bg-card); border: 1px solid var(--border-strong);">
+            <h3 class="text-base font-bold mb-1" style="color: var(--text-primary);">Import zip archive</h3>
+            <p class="text-xs mb-4" style="color: var(--text-faint);">
+                Extract images from a zip into the vault. Folders inside the archive become vault folders.
+                For very large archives (over the upload limit), use the URL / S3 option.
+            </p>
+
+            <div class="flex gap-2 mb-4">
+                <button @click="importTab = 'upload'"
+                        class="flex-1 text-xs px-3 py-2 rounded-lg font-semibold transition-all"
+                        :class="importTab === 'upload' ? 'bg-blue-600 text-white' : ''"
+                        :style="importTab === 'upload' ? '' : 'background: var(--bg-glass); color: var(--text-faint); border: 1px solid var(--border-subtle);'">
+                    <i class="fas fa-upload mr-1"></i> Upload zip
+                </button>
+                <button @click="importTab = 'url'"
+                        class="flex-1 text-xs px-3 py-2 rounded-lg font-semibold transition-all"
+                        :class="importTab === 'url' ? 'bg-blue-600 text-white' : ''"
+                        :style="importTab === 'url' ? '' : 'background: var(--bg-glass); color: var(--text-faint); border: 1px solid var(--border-subtle);'">
+                    <i class="fas fa-link mr-1"></i> From URL / S3
+                </button>
+            </div>
+
+            <template x-if="importTab === 'upload'">
+                <div @click="$refs.zipInput.click()"
+                     class="rounded-xl p-5 text-center cursor-pointer mb-4 transition-all hover:border-blue-500/50"
+                     style="background: var(--bg-glass-input); border: 2px dashed var(--border-glass);">
+                    <template x-if="!zipFile">
+                        <div>
+                            <i class="fas fa-file-zipper text-2xl text-blue-400 mb-2 ak-blue"></i>
+                            <p class="text-xs font-semibold" style="color: var(--text-secondary);">Click to choose a .zip file</p>
+                        </div>
+                    </template>
+                    <template x-if="zipFile">
+                        <p class="text-xs font-semibold truncate" style="color: var(--text-primary);"
+                           x-text="zipFile.name + ' (' + (zipFile.size / 1048576).toFixed(1) + ' MB)'"></p>
+                    </template>
+                </div>
+            </template>
+            <template x-if="importTab === 'url'">
+                <div class="mb-4">
+                    <input x-model="importUrl" type="text"
+                           placeholder="https://example.com/assets.zip or s3://bucket/path.zip"
+                           class="w-full px-3 py-2 text-sm rounded-lg"
+                           style="background: var(--bg-glass-input); border: 1px solid var(--border-glass); color: var(--text-primary);">
+                    <p class="text-[11px] mt-1.5" style="color: var(--text-faint);">
+                        The archive is downloaded on the server, so this handles multi-GB files (up to 4 GB).
+                    </p>
+                </div>
+            </template>
+
+            <label class="flex items-center gap-2 mb-4 text-xs cursor-pointer" style="color: var(--text-secondary);">
+                <input type="checkbox" x-model="importOverwrite" class="rounded">
+                Overwrite files already imported from the same archive paths (default: skip duplicates)
+            </label>
+
+            <div class="flex justify-end gap-2">
+                <button @click="importModal = false"
+                        class="px-3 py-2 text-sm rounded-lg"
+                        style="background: var(--bg-glass); border: 1px solid var(--border-subtle); color: var(--text-secondary);">Cancel</button>
+                <button @click="startImport()" :disabled="importSubmitting"
+                        class="px-3 py-2 text-sm rounded-lg bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50">
+                    <span x-show="!importSubmitting">Start import</span>
+                    <span x-show="importSubmitting" x-cloak><i class="fas fa-spinner fa-spin mr-1"></i> Starting…</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
     {{-- Copy toast --}}
     <div x-show="toast" x-transition x-cloak class="vault-toast">
         <i class="fas fa-check-circle"></i>
@@ -344,7 +484,89 @@ function adminAssetVault() {
         moveAsset: null,
         moveTarget: '',
 
-        init() { this.load(1); },
+        importModal: false,
+        importTab: 'upload',
+        zipFile: null,
+        importUrl: '',
+        importOverwrite: false,
+        importSubmitting: false,
+        importPanel: false,
+        activeImport: null,
+        lastImport: null,
+        showSkipped: false,
+        importTimer: null,
+
+        init() { this.load(1); this.pollImports(true); },
+
+        async startImport() {
+            if (this.importSubmitting) return;
+            const fd = new FormData();
+            if (this.importTab === 'upload') {
+                if (!this.zipFile) { alert('Choose a .zip file first.'); return; }
+                fd.append('file', this.zipFile);
+            } else {
+                const url = (this.importUrl || '').trim();
+                if (!url) { alert('Enter a URL or s3:// location.'); return; }
+                fd.append('source_url', url);
+            }
+            fd.append('mode', this.importOverwrite ? 'overwrite' : 'skip');
+            this.importSubmitting = true;
+            try {
+                const r = await fetch(`{{ route('admin.assets.import-zip') }}`, {
+                    method: 'POST',
+                    headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' },
+                    body: fd,
+                });
+                const data = await r.json();
+                if (!data.success) { alert(data.error || 'Could not start the import.'); return; }
+                this.importModal = false;
+                this.zipFile = null;
+                this.importUrl = '';
+                this.activeImport = data.import;
+                this.importPanel = true;
+                this.scheduleImportPoll(1500);
+            } catch (_) {
+                alert('Could not start the import.');
+            } finally {
+                this.importSubmitting = false;
+            }
+        },
+
+        scheduleImportPoll(ms) {
+            if (this.importTimer) clearTimeout(this.importTimer);
+            this.importTimer = setTimeout(() => this.pollImports(), ms);
+        },
+
+        async pollImports(initial = false) {
+            try {
+                const r = await fetch(`{{ route('admin.assets.imports') }}`, {
+                    headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
+                });
+                const data = await r.json();
+                if (data.success) {
+                    const imports = data.imports || [];
+                    const active = imports.find(i => ['pending', 'downloading', 'processing'].includes(i.status)) || null;
+                    const wasActive = !!this.activeImport;
+                    this.activeImport = active;
+                    if (active) {
+                        this.importPanel = true;
+                        this.scheduleImportPoll(2500);
+                    } else {
+                        this.lastImport = imports[0] || null;
+                        if (wasActive && this.lastImport) {
+                            // Import just finished under our feet — refresh the grid.
+                            this.importPanel = true;
+                            await this.load(1);
+                        } else if (initial) {
+                            // Nothing running; leave any old summary hidden on page load.
+                            this.importPanel = false;
+                        }
+                    }
+                }
+            } catch (_) {
+                if (this.activeImport) this.scheduleImportPoll(5000);
+            }
+        },
 
         async load(page = 1) {
             this.loading = true;

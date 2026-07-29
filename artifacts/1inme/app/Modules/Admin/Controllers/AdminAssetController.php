@@ -3,8 +3,10 @@
 namespace App\Modules\Admin\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Jobs\ProcessAdminAssetZipImportJob;
 use App\Modules\Admin\Models\AdminAsset;
 use App\Modules\Admin\Models\AdminAssetFolder;
+use App\Modules\Admin\Models\AdminAssetImport;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -127,6 +129,92 @@ class AdminAssetController extends Controller
     {
         $asset->deleteFile();
         return response()->json(['success' => true, 'storage' => $this->storageInfo(), 'folders' => $this->folderList()]);
+    }
+
+    /* ============ Zip import ============ */
+
+    /**
+     * Kick off a background zip import: either a direct zip upload (small
+     * archives, bounded by PHP upload limits) or a URL / s3://bucket/key
+     * location for the large-file path. Only one import may run at a time.
+     */
+    public function importZip(Request $request)
+    {
+        $request->validate([
+            'file'       => 'nullable|file',
+            'source_url' => 'nullable|string|max:2000',
+            'mode'       => 'nullable|in:skip,overwrite',
+        ]);
+
+        $file = $request->file('file');
+        $url  = trim((string) $request->input('source_url', ''));
+
+        if (!$file && $url === '') {
+            return response()->json(['success' => false, 'error' => 'Upload a zip file or provide a URL / S3 location.'], 422);
+        }
+
+        if (AdminAssetImport::query()->whereIn('status', ['pending', 'downloading', 'processing'])->exists()) {
+            return response()->json(['success' => false, 'error' => 'Another import is already running. Wait for it to finish first.'], 422);
+        }
+
+        $adminId = optional($request->user('admin') ?: $request->user())->id;
+        $mode    = $request->input('mode', 'skip');
+
+        if ($file) {
+            $ext  = strtolower($file->getClientOriginalExtension());
+            $mime = (string) $file->getMimeType();
+            if ($ext !== 'zip' && !in_array($mime, ['application/zip', 'application/x-zip-compressed'], true)) {
+                return response()->json(['success' => false, 'error' => 'The uploaded file must be a .zip archive.'], 422);
+            }
+            if ((int) $file->getSize() > ProcessAdminAssetZipImportJob::MAX_ZIP_BYTES) {
+                return response()->json(['success' => false, 'error' => 'Archive exceeds the 4 GB import limit.'], 422);
+            }
+
+            $dir = storage_path('app/asset-imports');
+            if (!is_dir($dir)) @mkdir($dir, 0775, true);
+            $tmpName = 'import-' . Str::random(16) . '.zip';
+            $file->move($dir, $tmpName);
+
+            $import = AdminAssetImport::create([
+                'admin_id'    => $adminId,
+                'status'      => 'pending',
+                'source_type' => 'upload',
+                'source'      => $file->getClientOriginalName(),
+                'mode'        => $mode,
+                'zip_path'    => $dir . '/' . $tmpName,
+            ]);
+        } else {
+            if (!str_starts_with($url, 's3://') && !preg_match('#^https?://#i', $url)) {
+                return response()->json(['success' => false, 'error' => 'Provide an http(s) URL or an s3://bucket/key location.'], 422);
+            }
+            $import = AdminAssetImport::create([
+                'admin_id'    => $adminId,
+                'status'      => 'pending',
+                'source_type' => 'url',
+                'source'      => $url,
+                'mode'        => $mode,
+            ]);
+        }
+
+        ProcessAdminAssetZipImportJob::dispatch($import->id);
+
+        return response()->json(['success' => true, 'import' => $import]);
+    }
+
+    /** Poll endpoint: the active import (if any) plus the latest finished ones. */
+    public function imports()
+    {
+        $imports = AdminAssetImport::query()
+            ->orderByDesc('id')
+            ->limit(5)
+            ->get()
+            ->makeHidden(['zip_path']);
+
+        return response()->json([
+            'success' => true,
+            'imports' => $imports,
+            'active'  => $imports->first(fn ($i) => $i->isActive()) !== null,
+        ]);
     }
 
     /* ============ Folder management ============ */
