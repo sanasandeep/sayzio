@@ -48,7 +48,28 @@
 @endif
 
 @if($showStyle && !$designLocked)
-<div class="mt-4 pt-4" style="border-top: 1px solid var(--border-subtle);" data-style-root x-data="{ showStyle: false, activeStyleTab: 'designs' }">
+<div class="mt-4 pt-4" style="border-top: 1px solid var(--border-subtle);" data-style-root x-data="{
+    showStyle: false, activeStyleTab: 'designs',
+    {{-- WCAG contrast warning (Task #6046): mirrors the Default Colors tab helper.
+         Non-blocking — warns only, never prevents saving. --}}
+    cText: @js((string) ($st['text_color'] ?? '')),
+    cBg: @js((string) ($st['bg_color'] ?? '')),
+    cLum(hex) {
+        const m = /^#?([0-9a-f]{6})$/i.exec(String(hex || '').trim());
+        if (!m) return null;
+        const n = parseInt(m[1], 16);
+        const chan = (v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); };
+        return 0.2126 * chan((n >> 16) & 255) + 0.7152 * chan((n >> 8) & 255) + 0.0722 * chan(n & 255);
+    },
+    cRatio() {
+        const a = this.cLum(this.cText), b = this.cLum(this.cBg);
+        if (a === null || b === null) return null;
+        const hi = Math.max(a, b), lo = Math.min(a, b);
+        return (hi + 0.05) / (lo + 0.05);
+    },
+    cLow() { const r = this.cRatio(); return r !== null && r < 4.5; },
+    cFmt() { const r = this.cRatio(); return r === null ? '' : (Math.round(r * 10) / 10) + ':1'; }
+}">
     <button type="button" @click="showStyle = !showStyle"
             class="w-full flex items-center justify-between text-sm font-medium py-1" style="color: var(--text-muted);">
         <span><i class="fas fa-wand-magic-sparkles mr-2 text-pink-400"></i>Block Styling</span>
@@ -471,9 +492,18 @@
                          browser-normalized solid hex, so submitting it directly would stamp
                          a color on every save even when the user never picked one. The text
                          input is the source of truth (supports empty = inherit). --}}
-                    <input type="color" value="{{ $tcPicker }}" class="w-10 h-9 rounded-lg cursor-pointer flex-shrink-0" style="border: 1px solid var(--border-glass); background: var(--bg-glass-input);" oninput="this.nextElementSibling.value = this.value">
-                    <input type="text" name="style[text_color]" value="{{ $tcVal }}" placeholder="Inherit" class="{{ $inputClass }} flex-1" oninput="if (/^#[0-9a-fA-F]{6}$/.test(this.value)) this.previousElementSibling.value = this.value">
+                    <input type="color" value="{{ $tcPicker }}" class="w-10 h-9 rounded-lg cursor-pointer flex-shrink-0" style="border: 1px solid var(--border-glass); background: var(--bg-glass-input);" oninput="this.nextElementSibling.value = this.value" @input="cText = $event.target.value">
+                    <input type="text" name="style[text_color]" value="{{ $tcVal }}" placeholder="Inherit" class="{{ $inputClass }} flex-1" oninput="if (/^#[0-9a-fA-F]{6}$/.test(this.value)) this.previousElementSibling.value = this.value" @input="cText = $event.target.value">
                 </div>
+                {{-- Non-blocking WCAG contrast warning vs the block's background color (Look tab). --}}
+                <template x-if="cLow()">
+                    <div class="flex items-center gap-2 rounded-lg px-3 py-2 mt-2 text-[11px] font-medium"
+                         style="background: rgba(245,158,11,0.12); border: 1px solid rgba(245,158,11,0.35); color: #f59e0b;"
+                         data-testid="block-contrast-warning-text">
+                        <i class="fas fa-triangle-exclamation"></i>
+                        <span>Low contrast (<span x-text="cFmt()"></span>) against the background color — text may be hard to read. Aim for at least 4.5:1.</span>
+                    </div>
+                </template>
             </div>
             @if(in_array($block->type, ['heading', 'paragraph'], true))
             {{-- Tilt (Task #5954): rotate the whole text block up to ±30°
@@ -522,9 +552,18 @@
                          old named picker seeded with '#ffffff0d' — an 8-digit hex that
                          input[type=color] can't hold — got browser-normalized to a solid
                          color and silently saved on every block edit (Task #4025). --}}
-                    <input type="color" value="{{ $bgPicker }}" class="w-10 h-9 rounded-lg cursor-pointer flex-shrink-0" style="border: 1px solid var(--border-glass); background: var(--bg-glass-input);" oninput="this.nextElementSibling.value = this.value">
-                    <input type="text" name="style[bg_color]" value="{{ $bgVal }}" placeholder="Transparent" class="{{ $inputClass }} flex-1" oninput="if (/^#[0-9a-fA-F]{6}$/.test(this.value)) this.previousElementSibling.value = this.value">
+                    <input type="color" value="{{ $bgPicker }}" class="w-10 h-9 rounded-lg cursor-pointer flex-shrink-0" style="border: 1px solid var(--border-glass); background: var(--bg-glass-input);" oninput="this.nextElementSibling.value = this.value" @input="cBg = $event.target.value">
+                    <input type="text" name="style[bg_color]" value="{{ $bgVal }}" placeholder="Transparent" class="{{ $inputClass }} flex-1" oninput="if (/^#[0-9a-fA-F]{6}$/.test(this.value)) this.previousElementSibling.value = this.value" @input="cBg = $event.target.value">
                 </div>
+                {{-- Non-blocking WCAG contrast warning vs the block's text color (Text tab). --}}
+                <template x-if="cLow()">
+                    <div class="flex items-center gap-2 rounded-lg px-3 py-2 mt-2 text-[11px] font-medium"
+                         style="background: rgba(245,158,11,0.12); border: 1px solid rgba(245,158,11,0.35); color: #f59e0b;"
+                         data-testid="block-contrast-warning-bg">
+                        <i class="fas fa-triangle-exclamation"></i>
+                        <span>Low contrast (<span x-text="cFmt()"></span>) against the text color — text may be hard to read. Aim for at least 4.5:1.</span>
+                    </div>
+                </template>
             </div>
             <input type="hidden" name="style[bg_opacity]" value="{{ $st['bg_opacity'] ?? 100 }}">
 

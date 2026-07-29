@@ -80,6 +80,10 @@ args = "editor-dnd-regress"
 task = "workflow.run"
 args = "editor-inline-regress"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "blk-contrast-e2e"
+
 [[workflows.workflow]]
 name = "heading-accents-test"
 author = "agent"
@@ -244,6 +248,17 @@ isValidation = true
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "cd artifacts/1inme && VALIDATION_PORT=5059 bash tests/Browser/run-validation.sh biolink-editor-inline-edit.spec.ts"
+
+[[workflows.workflow]]
+name = "blk-contrast-e2e"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd artifacts/1inme && VALIDATION_PORT=5063 bash tests/Browser/run-validation.sh block-style-contrast-warning.spec.ts"
+
+[workflows.workflow.metadata]
+isValidation = true
 
 
   [agent]
