@@ -396,14 +396,83 @@ class AdminAssetZipImportTest extends TestCase
         $this->assertSame('Cancelled by an administrator.', $import->error);
     }
 
+    /* ───────────────── retrying failed imports ───────────────── */
+
+    public function test_failed_url_import_can_be_retried(): void
+    {
+        Queue::fake();
+        $failed = AdminAssetImport::create([
+            'status'      => 'failed',
+            'source_type' => 'url',
+            'source'      => 'https://example.com/archive.zip',
+            'mode'        => 'overwrite',
+            'error'       => 'worker lost',
+        ]);
+
+        $this->actingAs($this->makeAdmin(), 'admin')
+            ->post(route('admin.assets.imports.retry', $failed))
+            ->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('import.status', 'pending')
+            ->assertJsonPath('import.source_type', 'url')
+            ->assertJsonPath('import.source', 'https://example.com/archive.zip')
+            ->assertJsonPath('import.mode', 'overwrite');
+
+        Queue::assertPushed(ProcessAdminAssetZipImportJob::class, 1);
+        // A fresh row was minted; the failed one is untouched.
+        $this->assertSame(2, AdminAssetImport::count());
+        $this->assertSame('failed', $failed->fresh()->status);
+    }
+
+    public function test_retry_rejected_for_upload_source_non_failed_and_when_active(): void
+    {
+        Queue::fake();
+        $admin = $this->makeAdmin();
+
+        // Upload-sourced failures cannot be retried — the temp zip is gone.
+        $upload = AdminAssetImport::create([
+            'status' => 'failed', 'source_type' => 'upload', 'source' => 'a.zip', 'mode' => 'skip',
+        ]);
+        $this->actingAs($admin, 'admin')
+            ->post(route('admin.assets.imports.retry', $upload))
+            ->assertStatus(422)
+            ->assertJsonPath('success', false);
+
+        // Non-failed imports cannot be retried.
+        $done = AdminAssetImport::create([
+            'status' => 'completed', 'source_type' => 'url', 'source' => 'https://example.com/b.zip', 'mode' => 'skip',
+        ]);
+        $this->actingAs($admin, 'admin')
+            ->post(route('admin.assets.imports.retry', $done))
+            ->assertStatus(422);
+
+        // No retry while another import is running.
+        $failed = AdminAssetImport::create([
+            'status' => 'failed', 'source_type' => 'url', 'source' => 'https://example.com/c.zip', 'mode' => 'skip',
+        ]);
+        AdminAssetImport::create([
+            'status' => 'processing', 'source_type' => 'url', 'source' => 'https://example.com/d.zip', 'mode' => 'skip',
+        ]);
+        $this->actingAs($admin, 'admin')
+            ->post(route('admin.assets.imports.retry', $failed))
+            ->assertStatus(422);
+
+        Queue::assertNotPushed(ProcessAdminAssetZipImportJob::class);
+    }
+
     public function test_import_routes_require_admin_auth(): void
     {
         Queue::fake();
         $payload = ['file' => UploadedFile::fake()->create('a.zip', 10, 'application/zip')];
 
-        // Guest is bounced from both routes.
+        $failed = AdminAssetImport::create([
+            'status' => 'failed', 'source_type' => 'url', 'source' => 'https://example.com/x.zip', 'mode' => 'skip',
+        ]);
+
+        // Guest is bounced from all three routes.
         $this->post(route('admin.assets.import-zip'), $payload)->assertRedirect();
         $this->get(route('admin.assets.imports'))->assertRedirect();
+        $this->post(route('admin.assets.imports.retry', $failed))->assertRedirect();
 
         // A plain front-end user (web guard) is not an admin either.
         $user = User::factory()->create();
@@ -415,6 +484,7 @@ class AdminAssetZipImportTest extends TestCase
             ->assertRedirect();
 
         Queue::assertNotPushed(ProcessAdminAssetZipImportJob::class);
-        $this->assertSame(0, AdminAssetImport::count());
+        // Only the pre-seeded failed fixture exists — no new import rows were minted.
+        $this->assertSame(1, AdminAssetImport::count());
     }
 }

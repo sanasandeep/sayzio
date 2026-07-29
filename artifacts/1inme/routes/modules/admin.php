@@ -222,6 +222,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::post('import-zip', [AdminAssetController::class, 'importZip'])->middleware(CheckPermission::class . ':settings.manage')->name('import-zip');
             Route::get('imports', [AdminAssetController::class, 'imports'])->middleware(CheckPermission::class . ':settings.manage')->name('imports');
             Route::post('imports/{import}/cancel', [AdminAssetController::class, 'cancelImport'])->middleware(CheckPermission::class . ':settings.manage')->name('imports.cancel');
+            Route::post('imports/{import}/retry', [AdminAssetController::class, 'retryImport'])->whereNumber('import')->middleware(CheckPermission::class . ':settings.manage')->name('imports.retry');
             Route::get('folders', [AdminAssetController::class, 'listFolders'])->middleware(CheckPermission::class . ':settings.manage')->name('folders.index');
             Route::post('folders', [AdminAssetController::class, 'createFolder'])->middleware(CheckPermission::class . ':settings.manage')->name('folders.store');
             Route::delete('folders/{folder}', [AdminAssetController::class, 'destroyFolder'])->middleware(CheckPermission::class . ':settings.manage')->name('folders.destroy');

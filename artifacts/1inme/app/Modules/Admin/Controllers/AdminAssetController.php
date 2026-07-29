@@ -247,6 +247,39 @@ class AdminAssetController extends Controller
         return response()->json(['success' => true, 'import' => $import]);
     }
 
+    /**
+     * Retry a failed zip import. Only URL / S3-sourced imports can be
+     * retried — the uploaded temp zip is always cleaned up when a run ends,
+     * so upload-sourced failures require a fresh upload. Because storage
+     * paths are deterministic (sha1 of the entry's archive path), a retry
+     * is idempotent: already-imported entries are skipped or overwritten
+     * per the original mode, so the run effectively resumes where it stopped.
+     */
+    public function retryImport(Request $request, AdminAssetImport $import)
+    {
+        if ($import->status !== 'failed') {
+            return response()->json(['success' => false, 'error' => 'Only failed imports can be retried.'], 422);
+        }
+        if ($import->source_type !== 'url') {
+            return response()->json(['success' => false, 'error' => 'The uploaded zip file was removed after the run, so this import cannot be retried. Please re-upload the archive.'], 422);
+        }
+        if (AdminAssetImport::query()->whereIn('status', ['pending', 'downloading', 'processing'])->exists()) {
+            return response()->json(['success' => false, 'error' => 'Another import is already running. Wait for it to finish first.'], 422);
+        }
+
+        $retry = AdminAssetImport::create([
+            'admin_id'    => optional($request->user('admin') ?: $request->user())->id ?? $import->admin_id,
+            'status'      => 'pending',
+            'source_type' => $import->source_type,
+            'source'      => $import->source,
+            'mode'        => $import->mode,
+        ]);
+
+        ProcessAdminAssetZipImportJob::dispatch($retry->id);
+
+        return response()->json(['success' => true, 'import' => $retry]);
+    }
+
     /** Poll endpoint: the active import (if any) plus the latest finished ones. */
     public function imports()
     {

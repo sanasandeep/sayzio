@@ -226,6 +226,19 @@
                                 <template x-if="lastImport.error && !isCancelled(lastImport)">
                                     <p class="text-xs mt-1 text-red-400 ak-red" x-text="lastImport.error"></p>
                                 </template>
+                                <template x-if="lastImport.status === 'failed' && lastImport.source_type === 'url'">
+                                    <div class="mt-2">
+                                        <button @click="retryImport(lastImport)" :disabled="retrySubmitting"
+                                                class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-blue-500/15 text-blue-400 hover:bg-blue-500/25 ak-blue disabled:opacity-50">
+                                            <i class="fas fa-rotate-right mr-1"></i>
+                                            <span x-text="retrySubmitting ? 'Retrying…' : 'Retry import'"></span>
+                                        </button>
+                                        <p class="text-[11px] mt-1" style="color: var(--text-faint);">Already-imported files are skipped or overwritten per the original mode, so the retry picks up where it stopped.</p>
+                                    </div>
+                                </template>
+                                <template x-if="lastImport.status === 'failed' && lastImport.source_type === 'upload'">
+                                    <p class="text-[11px] mt-2" style="color: var(--text-faint);">The uploaded zip file was removed after the run, so this import can't be retried automatically — please re-upload the archive to run it again.</p>
+                                </template>
                                 <template x-if="(lastImport.skipped || []).length">
                                     <div class="mt-2">
                                         <button @click="showSkipped = !showSkipped" class="text-[11px] font-semibold text-blue-400 hover:text-blue-300 ak-blue">
@@ -582,6 +595,7 @@ function adminAssetVault() {
         importOverwrite: false,
         importSubmitting: false,
         cancellingImport: false,
+        retrySubmitting: false,
         importPanel: false,
         activeImport: null,
         lastImport: null,
@@ -653,7 +667,28 @@ function adminAssetVault() {
             } finally {
                 this.cancellingImport = false;
             }
->>>>>>> 42d810381 (Unstick zip imports that crash mid-run (Task #6003))
+        },
+
+        async retryImport(imp) {
+            if (this.retrySubmitting || !imp) return;
+            this.retrySubmitting = true;
+            try {
+                const url = `{{ route('admin.assets.imports') }}/${imp.id}/retry`;
+                const r = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' },
+                });
+                const data = await r.json();
+                if (!data.success) { alert(data.error || 'Could not retry the import.'); return; }
+                this.activeImport = data.import;
+                this.lastImport = null;
+                this.importPanel = true;
+                this.scheduleImportPoll(1500);
+            } catch (_) {
+                alert('Could not retry the import.');
+            } finally {
+                this.retrySubmitting = false;
+            }
         },
 
         scheduleImportPoll(ms) {
