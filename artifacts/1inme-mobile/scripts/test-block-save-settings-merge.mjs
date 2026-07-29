@@ -56,11 +56,24 @@ ok(
 
 // The old payload deleted `_style` outright, which (combined with the
 // wholesale replace) wiped web-configured styling for every block type
-// without a bespoke re-merge branch. That delete must stay gone.
+// without a bespoke re-merge branch. That wholesale strip must stay gone.
+// The ONE legitimate delete is the bg-preset branch's guarded clear: it
+// only fires when the merged `styleOut` ended up empty (`else` arm of the
+// `Object.keys(styleOut).length > 0` re-assign), i.e. when there is
+// genuinely no style left to persist — not a strip of live styling.
+const styleDeletes = editorSrc.match(/delete nextSettings\._style;/g) ?? [];
 ok(
-  !/delete nextSettings\._style;/.test(editorSrc),
-  "save no longer strips _style from the payload",
+  styleDeletes.length <= 1,
+  "at most one _style delete exists (the bg-preset empty-style clear)",
 );
+if (styleDeletes.length === 1) {
+  ok(
+    /if \(Object\.keys\(styleOut\)\.length > 0\) nextSettings\._style = styleOut;\s*\n\s*else delete nextSettings\._style;\s*\n\s*\}\s*\n\s*\/\/ Map-location block/.test(
+      editorSrc,
+    ),
+    "the only _style delete is the guarded empty-styleOut clear in the bg-preset branch",
+  );
+}
 
 // A real mobile edit still clears the seeded placeholder flag (previously
 // dropped implicitly by the values-only payload).
