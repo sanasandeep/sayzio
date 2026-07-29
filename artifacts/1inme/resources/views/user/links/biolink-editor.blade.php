@@ -27,7 +27,7 @@
         </div>
         <div class="flex items-center gap-2">
             <form method="POST" target="_top" action="{{ route('admin.templates.design.session.save', ['id' => (int) ($tplDraft['template_id'] ?? 0)]) }}"
-                  onsubmit="return confirm('Save this design to the template? Users who apply the template will get this design.');">
+                  onsubmit="return window.__tplDesignSaveSubmit();">
                 @csrf
                 <button type="submit" class="px-3.5 py-2 rounded-xl text-xs font-bold text-white transition-all"
                         style="background: linear-gradient(135deg, #3d6bff, #2f54d6);">
@@ -44,6 +44,23 @@
             </form>
         </div>
     </div>
+    <script>
+        // Notify the admin "Edit Template" page that the design was saved so
+        // its side preview can auto-reload: postMessage the parent (inline
+        // iframe editor) and stamp localStorage (full-screen editor in a
+        // separate tab; the edit page reloads on focus/storage events).
+        window.__tplDesignSaveSubmit = function () {
+            if (!confirm('Save this design to the template? Users who apply the template will get this design.')) return false;
+            try {
+                var id = {{ (int) ($tplDraft['template_id'] ?? 0) }};
+                localStorage.setItem('sayzio:tpl-design-saved:page:' + id, String(Date.now()));
+                if (window.parent && window.parent !== window) {
+                    window.parent.postMessage({ type: 'sayzio:template-design-saved', kind: 'page', templateId: id }, window.location.origin);
+                }
+            } catch (e) { /* storage/messaging is best-effort */ }
+            return true;
+        };
+    </script>
 @endif
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
 {{-- Shared "drop a pin to fill address + lat/lng" map picker, reused by the

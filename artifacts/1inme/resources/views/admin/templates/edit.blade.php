@@ -88,7 +88,7 @@
                          style="height: min(72vh, 760px);"
                          x-data="{ s: 1, h: 760, calc() { var w = $el.clientWidth; if (w > 0) { this.s = w / 420; this.h = Math.ceil($el.clientHeight / this.s); } } }"
                          x-init="calc(); new ResizeObserver(() => calc()).observe($el)">
-                        <iframe x-ref="tplPreviewFrame"
+                        <iframe x-ref="tplPreviewFrame" id="tplPreviewFrame"
                                 src="{{ route('admin.templates.preview', ['kind' => $kind, 'id' => $tpl->id]) }}"
                                 title="{{ $tpl->name }} live preview"
                                 loading="lazy"
@@ -101,4 +101,38 @@
         </div>
     </div>
 </div>
+
+{{-- Auto-refresh the live preview after a design-session save. The inline
+     design editor (and the full-screen editor tab) stamp
+     localStorage['sayzio:tpl-design-saved:{kind}:{id}'] and postMessage the
+     parent when "Save to template" is submitted; here we reload the preview
+     iframe on that message, on a storage event from another tab, or when
+     this tab regains focus after a newer save stamp. The manual reload
+     button stays as a fallback. --}}
+<script>
+(function () {
+    var KEY = 'sayzio:tpl-design-saved:{{ $kind }}:{{ (int) $tpl->id }}';
+    var lastLoad = Date.now();
+    function reload() {
+        var f = document.getElementById('tplPreviewFrame');
+        if (f) { lastLoad = Date.now(); f.src = f.src; }
+    }
+    function maybeReload() {
+        var stamp = parseInt(localStorage.getItem(KEY) || '0', 10);
+        if (stamp && stamp > lastLoad) reload();
+    }
+    window.addEventListener('message', function (e) {
+        if (e.origin !== window.location.origin) return;
+        var d = e.data || {};
+        if (d && d.type === 'sayzio:template-design-saved'
+            && String(d.kind || 'page') === @js($kind)
+            && parseInt(d.templateId, 10) === {{ (int) $tpl->id }}) {
+            reload();
+        }
+    });
+    window.addEventListener('storage', function (e) { if (e.key === KEY) maybeReload(); });
+    window.addEventListener('focus', maybeReload);
+    document.addEventListener('visibilitychange', function () { if (!document.hidden) maybeReload(); });
+})();
+</script>
 @endsection

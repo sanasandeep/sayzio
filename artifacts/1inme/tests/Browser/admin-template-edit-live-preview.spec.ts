@@ -71,4 +71,63 @@ test.describe("admin template edit live preview", () => {
       page.getByRole("button", { name: /Edit design here/i }),
     ).toBeVisible();
   });
+
+  test("preview auto-reloads after a design-session save signal", async ({
+    page,
+  }) => {
+    await loginAsDemoAdmin(page);
+
+    await page.goto("/admin/templates?tab=page", { timeout: 120_000 });
+    const firstCard = page.locator("[data-tpl-id]").first();
+    await expect(firstCard).toBeAttached({ timeout: 60_000 });
+    const tplId = await firstCard.getAttribute("data-tpl-id");
+    expect(tplId).toBeTruthy();
+
+    await page.goto(`/admin/templates/page/${tplId}/edit`, {
+      timeout: 120_000,
+    });
+
+    // Wait for the lazy preview iframe to complete its initial load.
+    await expect(async () => {
+      const loaded = page
+        .frames()
+        .some((f) => new RegExp(`templates/page/${tplId}/preview`).test(f.url()));
+      expect(loaded).toBe(true);
+    }).toPass({ timeout: 60_000 });
+
+    // 1) The inline design editor posts a save message to the parent —
+    //    the preview iframe must re-request the preview route.
+    const previewUrl = new RegExp(`/admin/templates/page/${tplId}/preview`);
+    const reloadReq = page.waitForRequest((r) => previewUrl.test(r.url()), {
+      timeout: 30_000,
+    });
+    await page.evaluate((id) => {
+      window.postMessage(
+        {
+          type: "sayzio:template-design-saved",
+          kind: "page",
+          templateId: Number(id),
+        },
+        window.location.origin,
+      );
+    }, tplId);
+    await reloadReq;
+
+    // 2) A save stamped from another tab (full-screen editor) triggers a
+    //    reload when this tab regains focus.
+    const reloadReq2 = page.waitForRequest((r) => previewUrl.test(r.url()), {
+      timeout: 30_000,
+    });
+    await page.evaluate((id) => {
+      localStorage.setItem(
+        "sayzio:tpl-design-saved:page:" + id,
+        String(Date.now() + 5_000),
+      );
+      window.dispatchEvent(new Event("focus"));
+    }, tplId);
+    await reloadReq2;
+
+    // Manual reload button still present as a fallback.
+    await expect(page.locator('button[title="Reload preview"]')).toBeVisible();
+  });
 });
