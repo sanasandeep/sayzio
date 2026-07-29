@@ -2532,7 +2532,17 @@
                     return root.querySelector('.block-styled')
                         || root.querySelector('a.bio-btn[style]');
                 }
-                function applyLiveStyle(root, key, value) {
+                // Block-level catalog preset CSS, keyed by preset key (torn
+                // composites are excluded from the block picker, so they are
+                // excluded here too). Resolved server-side from the catalog —
+                // never from client input; the live channel only ever sends
+                // the KEY, which is looked up in this trusted map.
+                var BG_PRESET_CSS = @json(collect(\App\Modules\User\Support\BgPresetCatalog::all())->filter(fn($p) => ($p['group'] ?? '') !== 'torn')->map(fn($p) => rtrim($p['css'], "; \t\n\r"))->toArray());
+                function bgPresetLayerCss(css, op) {
+                    return 'position:absolute;inset:0;z-index:-1;pointer-events:none;' + css +
+                        ';background-attachment:scroll !important;opacity:' + (op / 100) + ';';
+                }
+                function applyLiveStyle(root, key, value, fields) {
                     if (key === 'style._tilt') return applyLiveTilt(root, value);
                     // Preset background transparency (Task #5988): fade the
                     // block's preset layer live while dragging the slider.
@@ -2545,6 +2555,68 @@
                         var op = parseInt(value, 10);
                         if (isNaN(op)) op = 100;
                         layer.style.opacity = String(Math.max(0, Math.min(100, op)) / 100);
+                        return true;
+                    }
+                    // Preset swatch pick/change/remove (Task #5990): create or
+                    // rewrite the block's preset layer in place so the swatch
+                    // click shows instantly without a preview reload.
+                    if (key === 'style.bg_preset_key') {
+                        var pLayer = root.querySelector('.block-bg-preset');
+                        if (String(value) === '') {
+                            // Preset removed (swatch clicked again). Drop the
+                            // layer for instant feedback; the dedicated
+                            // .block-preset-wrap (skipWrap/button-like blocks)
+                            // is structural, so that case still reloads.
+                            if (!pLayer) return true;
+                            var pParent = pLayer.parentElement;
+                            pLayer.remove();
+                            if (pParent && pParent.getAttribute('data-live-preset-host') === '1') {
+                                // We added the host positioning styles live —
+                                // revert them so the DOM matches a fresh
+                                // server render with no preset.
+                                pParent.style.removeProperty('position');
+                                pParent.style.removeProperty('isolation');
+                                pParent.style.removeProperty('overflow');
+                                pParent.removeAttribute('data-live-preset-host');
+                                return true;
+                            }
+                            // Server-rendered layer: the host keeps inline
+                            // position/isolation/overflow from the Blade
+                            // template — reload so the preview matches a
+                            // fresh no-preset render (layer already gone,
+                            // so the swap is visually seamless).
+                            return false;
+                        }
+                        var pCss = BG_PRESET_CSS[String(value)];
+                        if (!pCss) return false; // unknown key — safe reload
+                        var pOp = 100;
+                        if (fields && fields['style[bg_preset_opacity]'] !== undefined) {
+                            var pn = parseInt(fields['style[bg_preset_opacity]'], 10);
+                            if (!isNaN(pn)) pOp = Math.max(0, Math.min(100, pn));
+                        }
+                        if (pLayer) {
+                            pLayer.style.cssText = bgPresetLayerCss(pCss, pOp);
+                            return true;
+                        }
+                        // No layer yet — create it inside the block's own
+                        // positioning host. Containers paint on their render
+                        // wrapper; styled blocks on .block-styled. Button-like
+                        // blocks without a styled wrapper need the dedicated
+                        // .block-preset-wrap (structural) — reload for those.
+                        var pType = root.getAttribute('data-block-type') || '';
+                        var pHost = (pType === 'card' || pType === 'grid' || pType === 'grid_auto')
+                            ? root.querySelector('.card-container-render, .grid-container-render')
+                            : root.querySelector('.block-styled');
+                        if (!pHost) return false;
+                        pHost.style.position = 'relative';
+                        pHost.style.isolation = 'isolate';
+                        pHost.style.overflow = 'hidden';
+                        pHost.setAttribute('data-live-preset-host', '1');
+                        pLayer = document.createElement('div');
+                        pLayer.className = 'block-bg-preset';
+                        pLayer.setAttribute('aria-hidden', 'true');
+                        pLayer.style.cssText = bgPresetLayerCss(pCss, pOp);
+                        pHost.insertBefore(pLayer, pHost.firstChild);
                         return true;
                     }
                     var pfn = LIVE_PHOTO_KEYS[key];
@@ -2577,7 +2649,7 @@
                             var value = d.fields[name] !== undefined ? d.fields[name] : '';
                             var ok = false;
                             if (key.indexOf('style.') === 0) {
-                                ok = applyLiveStyle(root, key, value);
+                                ok = applyLiveStyle(root, key, value, d.fields);
                             } else if (handlers[key]) {
                                 ok = handlers[key](root, value, [], d.fields) !== false;
                             } else {

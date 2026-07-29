@@ -44,6 +44,10 @@ args = "block-bg-live-preview-e2e"
 task = "workflow.run"
 args = "blk-bgop-e2e"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-blk-bgsw"
+
 [[workflows.workflow]]
 name = "heading-accents-test"
 author = "agent"
@@ -106,6 +110,17 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "cd artifacts/1inme && bash tests/Browser/run-validation.sh biolink-block-bg-preset-opacity-live.spec.ts"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-blk-bgsw"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "bash artifacts/1inme/tests/Browser/run-validation.sh biolink-block-bg-preset-swatch-live.spec.ts"
 
 [workflows.workflow.metadata]
 isValidation = true
