@@ -48,6 +48,10 @@ args = "blk-bgop-e2e"
 task = "workflow.run"
 args = "e2e-blk-bgsw"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "zipimport-tests"
+
 [[workflows.workflow]]
 name = "heading-accents-test"
 author = "agent"
@@ -121,6 +125,17 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "bash artifacts/1inme/tests/Browser/run-validation.sh biolink-block-bg-preset-swatch-live.spec.ts"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "zipimport-tests"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd artifacts/1inme && TEST_LOCAL_MODE=artisan bash scripts/test-local.sh --filter=AdminAssetZipImportTest"
 
 [workflows.workflow.metadata]
 isValidation = true

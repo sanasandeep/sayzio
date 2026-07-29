@@ -33,9 +33,115 @@ use ZipArchive;
  *   - controller: only one active import at a time (422), both routes are
  *     admin-guarded
  */
+/**
+ * Testable variant of the job: a tiny 1 KB download cap (so the streaming
+ * size guard can be exercised without gigabytes) and a single allow-listed
+ * loopback origin so a local test HTTP server can play the "public" first
+ * hop. Every OTHER url — including redirect targets — still goes through
+ * the real assertSafeHttpUrl guard.
+ */
+class TestableZipImportJob extends ProcessAdminAssetZipImportJob
+{
+    public const MAX_ZIP_BYTES = 1024; // 1 KB cap for streaming-guard tests
+
+    public static string $allowedOrigin = '';
+
+    protected function assertSafeHttpUrl(string $url): void
+    {
+        if (static::$allowedOrigin !== '' && str_starts_with($url, static::$allowedOrigin)) {
+            return; // pretend this test origin is a safe public host
+        }
+        parent::assertSafeHttpUrl($url);
+    }
+}
+
 class AdminAssetZipImportTest extends TestCase
 {
     use RefreshDatabase;
+
+    /** @var resource|null */
+    private static $httpServer = null;
+    private static string $httpOrigin = '';
+
+    public static function tearDownAfterClass(): void
+    {
+        if (self::$httpServer) {
+            proc_terminate(self::$httpServer);
+            proc_close(self::$httpServer);
+            self::$httpServer = null;
+        }
+        parent::tearDownAfterClass();
+    }
+
+    /** Start (once) a local HTTP server with redirect/big-file routes. */
+    private function httpOrigin(): string
+    {
+        if (self::$httpOrigin !== '') {
+            return self::$httpOrigin;
+        }
+        $router = sys_get_temp_dir() . '/zipimport-test-router.php';
+        file_put_contents($router, <<<'PHP'
+<?php
+$uri = $_SERVER['REQUEST_URI'];
+if (str_starts_with($uri, '/to-private')) {
+    header('Location: http://10.0.0.5/evil.zip', true, 302);
+    exit;
+}
+if (preg_match('#^/loop/(\d+)#', $uri, $m)) {
+    header('Location: /loop/' . ((int) $m[1] + 1), true, 302);
+    exit;
+}
+if (str_starts_with($uri, '/big.zip')) {
+    header('Content-Type: application/zip');
+    echo str_repeat('A', 4096); // 4 KB > the 1 KB test cap
+    exit;
+}
+http_response_code(404);
+PHP);
+
+        $port = 0;
+        for ($try = 0; $try < 10; $try++) {
+            $candidate = random_int(49200, 64000);
+            $proc = proc_open(
+                ['php', '-S', '127.0.0.1:' . $candidate, $router],
+                [1 => ['file', '/dev/null', 'w'], 2 => ['file', '/dev/null', 'w']],
+                $pipes
+            );
+            if (!is_resource($proc)) {
+                continue;
+            }
+            // Poll until the server accepts connections.
+            for ($i = 0; $i < 50; $i++) {
+                $sock = @fsockopen('127.0.0.1', $candidate, $ec, $em, 0.1);
+                if ($sock) {
+                    fclose($sock);
+                    self::$httpServer = $proc;
+                    $port = $candidate;
+                    break 2;
+                }
+                usleep(100_000);
+            }
+            proc_terminate($proc);
+            proc_close($proc);
+        }
+        $this->assertGreaterThan(0, $port, 'Could not start the local test HTTP server');
+
+        return self::$httpOrigin = 'http://127.0.0.1:' . $port;
+    }
+
+    private function runUrlImport(string $source): AdminAssetImport
+    {
+        $import = AdminAssetImport::create([
+            'admin_id'    => $this->makeAdmin()->id,
+            'status'      => 'pending',
+            'source_type' => 'url',
+            'source'      => $source,
+            'mode'        => 'skip',
+        ]);
+        (new TestableZipImportJob($import->id))->handle();
+
+        return $import->fresh();
+    }
 
     /** 1x1 transparent PNG — passes the getimagesize() content sniff. */
     private function pngBytes(): string
@@ -217,6 +323,268 @@ class AdminAssetZipImportTest extends TestCase
         $reasons = $this->skippedReasons($second);
         $this->assertArrayNotHasKey('avatars/one.png', $reasons);
         $this->assertArrayNotHasKey('top.png', $reasons);
+    }
+
+    /* ───────────────────────── remote fetch guards ───────────────────────── */
+
+    /** Invoke a private method on the job via reflection. */
+    private function invokeJob(string $method, mixed ...$args): mixed
+    {
+        $job = new ProcessAdminAssetZipImportJob(0);
+        $ref = new \ReflectionMethod($job, $method);
+        return $ref->invoke($job, ...$args);
+    }
+
+    /** Temp files matching the download prefix (for leak assertions). */
+    private function downloadTempFiles(): array
+    {
+        return glob(sys_get_temp_dir() . '/vaultzipdl_*') ?: [];
+    }
+
+    public function test_assert_safe_http_url_rejects_non_http_schemes(): void
+    {
+        foreach (['ftp://example.com/a.zip', 'file:///etc/passwd', 'gopher://example.com/x', 'not-a-url', ''] as $url) {
+            try {
+                $this->invokeJob('assertSafeHttpUrl', $url);
+                $this->fail('Expected rejection for: ' . $url);
+            } catch (\RuntimeException $e) {
+                $this->assertStringContainsString('Only http(s) URLs', $e->getMessage(), $url);
+            }
+        }
+    }
+
+    public function test_assert_safe_http_url_rejects_private_and_loopback_ips(): void
+    {
+        $private = [
+            'http://127.0.0.1/a.zip',      // loopback
+            'https://10.0.0.5/a.zip',      // RFC1918
+            'http://192.168.1.10/a.zip',   // RFC1918
+            'http://172.16.3.4/a.zip',     // RFC1918
+            'http://169.254.169.254/meta', // link-local (cloud metadata)
+            'http://0.0.0.0/a.zip',        // reserved
+        ];
+        foreach ($private as $url) {
+            try {
+                $this->invokeJob('assertSafeHttpUrl', $url);
+                $this->fail('Expected rejection for: ' . $url);
+            } catch (\RuntimeException $e) {
+                $this->assertStringContainsString('private/internal address', $e->getMessage(), $url);
+            }
+        }
+    }
+
+    public function test_assert_safe_http_url_rejects_unresolvable_hosts(): void
+    {
+        // .invalid is reserved (RFC 2606) and never resolves.
+        try {
+            $this->invokeJob('assertSafeHttpUrl', 'https://archive.download.invalid/a.zip');
+            $this->fail('Expected rejection for unresolvable host');
+        } catch (\RuntimeException $e) {
+            $this->assertStringContainsString('Could not resolve', $e->getMessage());
+        }
+    }
+
+    public function test_assert_safe_http_url_allows_public_addresses(): void
+    {
+        // Public IP literal — no DNS dependency, must pass the guard.
+        $this->invokeJob('assertSafeHttpUrl', 'https://93.184.216.34/archive.zip');
+        $this->assertTrue(true); // no exception thrown
+    }
+
+    public function test_download_from_s3_rejects_malformed_locations(): void
+    {
+        config(['filesystems.disks.s3.bucket' => 'sayzio-assets']);
+        $dest = tempnam(sys_get_temp_dir(), 'vaultziptest_');
+
+        try {
+            foreach (['s3://', 's3://bucket-only', 's3:///no-bucket/key.zip'] as $source) {
+                try {
+                    $this->invokeJob('downloadFromS3', $source, $dest);
+                    $this->fail('Expected rejection for: ' . $source);
+                } catch (\RuntimeException $e) {
+                    $this->assertStringContainsString('s3://bucket/path', $e->getMessage(), $source);
+                }
+            }
+        } finally {
+            @unlink($dest);
+        }
+    }
+
+    public function test_download_from_s3_rejects_non_configured_bucket(): void
+    {
+        config(['filesystems.disks.s3.bucket' => 'sayzio-assets']);
+        $dest = tempnam(sys_get_temp_dir(), 'vaultziptest_');
+
+        try {
+            try {
+                $this->invokeJob('downloadFromS3', 's3://attacker-bucket/archive.zip', $dest);
+                $this->fail('Expected rejection for foreign bucket');
+            } catch (\RuntimeException $e) {
+                $this->assertStringContainsString('Only the configured S3 bucket', $e->getMessage());
+                $this->assertStringContainsString('sayzio-assets', $e->getMessage());
+            }
+
+            // With no bucket configured at all, everything is rejected.
+            config(['filesystems.disks.s3.bucket' => '']);
+            try {
+                $this->invokeJob('downloadFromS3', 's3://sayzio-assets/archive.zip', $dest);
+                $this->fail('Expected rejection when no bucket is configured');
+            } catch (\RuntimeException $e) {
+                $this->assertStringContainsString('Only the configured S3 bucket', $e->getMessage());
+            }
+        } finally {
+            @unlink($dest);
+        }
+    }
+
+    public function test_failed_url_import_marks_row_failed_and_leaves_no_temp_files(): void
+    {
+        $this->fakeLocalDisk();
+        $before = $this->downloadTempFiles();
+
+        // Loopback URL: rejected by the SSRF guard before any network I/O.
+        $import = AdminAssetImport::create([
+            'admin_id'    => $this->makeAdmin()->id,
+            'status'      => 'pending',
+            'source_type' => 'url',
+            'source'      => 'http://127.0.0.1/archive.zip',
+            'mode'        => 'skip',
+        ]);
+
+        (new ProcessAdminAssetZipImportJob($import->id))->handle();
+        $import->refresh();
+
+        $this->assertSame('failed', $import->status);
+        $this->assertNotNull($import->completed_at);
+        $this->assertStringContainsString('private/internal address', (string) $import->error);
+        $this->assertSame(0, AdminAsset::count());
+
+        // The download temp file was cleaned up.
+        $this->assertSame($before, $this->downloadTempFiles());
+    }
+
+    public function test_failed_scheme_url_import_records_error_message(): void
+    {
+        $this->fakeLocalDisk();
+        $before = $this->downloadTempFiles();
+
+        $import = AdminAssetImport::create([
+            'admin_id'    => $this->makeAdmin()->id,
+            'status'      => 'pending',
+            'source_type' => 'url',
+            'source'      => 'ftp://example.com/archive.zip',
+            'mode'        => 'skip',
+        ]);
+
+        (new ProcessAdminAssetZipImportJob($import->id))->handle();
+        $import->refresh();
+
+        $this->assertSame('failed', $import->status);
+        $this->assertStringContainsString('Only http(s) URLs', (string) $import->error);
+        $this->assertSame($before, $this->downloadTempFiles());
+    }
+
+    public function test_failed_s3_import_marks_row_failed_without_temp_leak(): void
+    {
+        $this->fakeLocalDisk();
+        config(['filesystems.disks.s3.bucket' => 'sayzio-assets']);
+        $before = $this->downloadTempFiles();
+
+        $import = AdminAssetImport::create([
+            'admin_id'    => $this->makeAdmin()->id,
+            'status'      => 'pending',
+            'source_type' => 'url',
+            'source'      => 's3://someone-elses-bucket/archive.zip',
+            'mode'        => 'skip',
+        ]);
+
+        (new ProcessAdminAssetZipImportJob($import->id))->handle();
+        $import->refresh();
+
+        $this->assertSame('failed', $import->status);
+        $this->assertStringContainsString('Only the configured S3 bucket', (string) $import->error);
+        $this->assertSame(0, AdminAsset::count());
+        $this->assertSame($before, $this->downloadTempFiles());
+    }
+
+    /* ─────────────── redirect hops & streaming size cap ─────────────── */
+
+    public function test_redirect_hop_to_private_address_is_rejected(): void
+    {
+        $this->fakeLocalDisk();
+        $origin = $this->httpOrigin();
+        TestableZipImportJob::$allowedOrigin = $origin;
+        $before = $this->downloadTempFiles();
+
+        try {
+            // First hop is the allow-listed test origin; it 302s to a
+            // private address, which the guard must reject at hop 2.
+            $import = $this->runUrlImport($origin . '/to-private');
+        } finally {
+            TestableZipImportJob::$allowedOrigin = '';
+        }
+
+        $this->assertSame('failed', $import->status);
+        $this->assertStringContainsString('private/internal address', (string) $import->error);
+        $this->assertSame(0, AdminAsset::count());
+        $this->assertSame($before, $this->downloadTempFiles());
+    }
+
+    public function test_redirect_loop_hits_the_hop_cap(): void
+    {
+        $this->fakeLocalDisk();
+        $origin = $this->httpOrigin();
+        TestableZipImportJob::$allowedOrigin = $origin;
+        $before = $this->downloadTempFiles();
+
+        try {
+            $import = $this->runUrlImport($origin . '/loop/1');
+        } finally {
+            TestableZipImportJob::$allowedOrigin = '';
+        }
+
+        $this->assertSame('failed', $import->status);
+        $this->assertStringContainsString('Too many redirects', (string) $import->error);
+        $this->assertSame($before, $this->downloadTempFiles());
+    }
+
+    public function test_http_download_exceeding_size_cap_fails_and_cleans_up(): void
+    {
+        $this->fakeLocalDisk();
+        $origin = $this->httpOrigin();
+        TestableZipImportJob::$allowedOrigin = $origin;
+        $before = $this->downloadTempFiles();
+
+        try {
+            // The server streams 4 KB; the testable job caps at 1 KB, so
+            // the transfer must be aborted mid-stream (partial write).
+            $import = $this->runUrlImport($origin . '/big.zip');
+        } finally {
+            TestableZipImportJob::$allowedOrigin = '';
+        }
+
+        $this->assertSame('failed', $import->status);
+        $this->assertStringContainsString('import limit', (string) $import->error);
+        $this->assertSame(0, AdminAsset::count());
+        // Even after a partial write, the download temp file is removed.
+        $this->assertSame($before, $this->downloadTempFiles());
+    }
+
+    public function test_s3_download_exceeding_size_cap_fails_and_cleans_up(): void
+    {
+        $this->fakeLocalDisk();
+        Storage::fake('s3');
+        config(['filesystems.disks.s3.bucket' => 'sayzio-assets']);
+        // 4 KB object vs the 1 KB test cap — aborted while streaming.
+        Storage::disk('s3')->put('archive.zip', str_repeat('B', 4096));
+        $before = $this->downloadTempFiles();
+
+        $import = $this->runUrlImport('s3://sayzio-assets/archive.zip');
+
+        $this->assertSame('failed', $import->status);
+        $this->assertStringContainsString('import limit', (string) $import->error);
+        $this->assertSame(0, AdminAsset::count());
+        $this->assertSame($before, $this->downloadTempFiles());
     }
 
     /* ───────────────────────── controller guards ───────────────────────── */

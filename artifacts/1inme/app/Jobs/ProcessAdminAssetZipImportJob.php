@@ -79,7 +79,7 @@ class ProcessAdminAssetZipImportJob implements ShouldQueue
                 throw new \RuntimeException('The zip archive could not be found on disk.');
             }
             $zipSize = (int) (@filesize($zipPath) ?: 0);
-            if ($zipSize > self::MAX_ZIP_BYTES) {
+            if ($zipSize > static::MAX_ZIP_BYTES) {
                 throw new \RuntimeException('Archive exceeds the 4 GB import limit.');
             }
             $import->forceFill(['status' => 'processing', 'zip_size_bytes' => $zipSize])->save();
@@ -323,7 +323,7 @@ class ProcessAdminAssetZipImportJob implements ShouldQueue
      * s3://bucket/key on the configured bucket) into a local temp file,
      * enforcing the size cap while streaming. Returns the temp path.
      */
-    private function fetchRemoteZip(AdminAssetImport $import): string
+    protected function fetchRemoteZip(AdminAssetImport $import): string
     {
         $source = trim((string) $import->source);
 
@@ -346,7 +346,7 @@ class ProcessAdminAssetZipImportJob implements ShouldQueue
         return $tmp;
     }
 
-    private function downloadFromS3(string $source, string $dest): void
+    protected function downloadFromS3(string $source, string $dest): void
     {
         // s3://bucket/key — only the configured bucket is allowed.
         $rest = substr($source, 5);
@@ -372,7 +372,7 @@ class ProcessAdminAssetZipImportJob implements ShouldQueue
             $chunk = fread($stream, 1024 * 1024);
             if ($chunk === false) break;
             $written += strlen($chunk);
-            if ($written > self::MAX_ZIP_BYTES) {
+            if ($written > static::MAX_ZIP_BYTES) {
                 fclose($stream);
                 fclose($out);
                 throw new \RuntimeException('Archive exceeds the 4 GB import limit.');
@@ -386,7 +386,7 @@ class ProcessAdminAssetZipImportJob implements ShouldQueue
         }
     }
 
-    private function downloadFromHttp(string $source, string $dest): void
+    protected function downloadFromHttp(string $source, string $dest): void
     {
         $current = $source;
         // Follow redirects manually so every hop is re-validated (SSRF guard).
@@ -404,7 +404,7 @@ class ProcessAdminAssetZipImportJob implements ShouldQueue
                 CURLOPT_FAILONERROR    => false,
                 CURLOPT_WRITEFUNCTION  => function ($ch, $chunk) use ($out, &$written, &$tooBig) {
                     $written += strlen($chunk);
-                    if ($written > self::MAX_ZIP_BYTES) {
+                    if ($written > static::MAX_ZIP_BYTES) {
                         $tooBig = true;
                         return -1; // abort transfer
                     }
@@ -436,7 +436,7 @@ class ProcessAdminAssetZipImportJob implements ShouldQueue
     }
 
     /** Reject non-https(+http) schemes and private / internal hosts. */
-    private function assertSafeHttpUrl(string $url): void
+    protected function assertSafeHttpUrl(string $url): void
     {
         $parts = parse_url($url);
         $scheme = strtolower((string) ($parts['scheme'] ?? ''));
