@@ -2246,6 +2246,59 @@ export function BlockSettingsEditor({
                           }
                         />
                       </View>
+                      <Pressable
+                        {...WEB_FOCUS_RING_PROPS}
+                        disabled={idx === 0}
+                        onPress={() =>
+                          setListItems((prev) => {
+                            if (idx <= 0) return prev;
+                            const next = [...prev];
+                            [next[idx - 1], next[idx]] = [next[idx], next[idx - 1]];
+                            return next;
+                          })
+                        }
+                        accessibilityRole="button"
+                        accessibilityLabel={`Move item ${idx + 1} up`}
+                        hitSlop={8}
+                        style={{ padding: 4, opacity: idx === 0 ? 0.3 : 1 }}
+                        testID={`list-item-up-${idx}`}
+                      >
+                        <Feather
+                          name="arrow-up"
+                          size={15}
+                          color={idx === 0 ? colors.mutedForeground : colors.primary}
+                        />
+                      </Pressable>
+                      <Pressable
+                        {...WEB_FOCUS_RING_PROPS}
+                        disabled={idx === listItems.length - 1}
+                        onPress={() =>
+                          setListItems((prev) => {
+                            if (idx >= prev.length - 1) return prev;
+                            const next = [...prev];
+                            [next[idx], next[idx + 1]] = [next[idx + 1], next[idx]];
+                            return next;
+                          })
+                        }
+                        accessibilityRole="button"
+                        accessibilityLabel={`Move item ${idx + 1} down`}
+                        hitSlop={8}
+                        style={{
+                          padding: 4,
+                          opacity: idx === listItems.length - 1 ? 0.3 : 1,
+                        }}
+                        testID={`list-item-down-${idx}`}
+                      >
+                        <Feather
+                          name="arrow-down"
+                          size={15}
+                          color={
+                            idx === listItems.length - 1
+                              ? colors.mutedForeground
+                              : colors.primary
+                          }
+                        />
+                      </Pressable>
                       <Pressable {...WEB_FOCUS_RING_PROPS}
                         onPress={() =>
                           setListItems((prev) => prev.filter((_, i) => i !== idx))
@@ -2447,25 +2500,84 @@ export function BlockSettingsEditor({
                         trackColor={{ true: colors.primary, false: colors.border }}
                       />
                     </View>
-                    <Pressable {...WEB_FOCUS_RING_PROPS}
-                      onPress={() =>
-                        setPricingItems((prev) => prev.filter((_, i) => i !== idx))
-                      }
+                    <View
                       style={{
-                        alignSelf: "flex-end",
-                        paddingHorizontal: 10,
-                        paddingVertical: 6,
-                        borderRadius: 8,
                         flexDirection: "row",
                         alignItems: "center",
-                        gap: 6,
+                        justifyContent: "flex-end",
+                        gap: 4,
                       }}
                     >
-                      <Feather name="trash-2" size={14} color={colors.destructive} />
-                      <Text style={{ color: colors.destructive, fontSize: 12, fontWeight: "600" }}>
-                        Remove
-                      </Text>
-                    </Pressable>
+                      <Pressable
+                        {...WEB_FOCUS_RING_PROPS}
+                        disabled={idx === 0}
+                        onPress={() =>
+                          setPricingItems((prev) => {
+                            if (idx <= 0) return prev;
+                            const next = [...prev];
+                            [next[idx - 1], next[idx]] = [next[idx], next[idx - 1]];
+                            return next;
+                          })
+                        }
+                        accessibilityRole="button"
+                        accessibilityLabel={`Move row ${idx + 1} up`}
+                        style={{ padding: 6, opacity: idx === 0 ? 0.3 : 1 }}
+                        testID={`pricing-item-up-${idx}`}
+                      >
+                        <Feather
+                          name="arrow-up"
+                          size={15}
+                          color={idx === 0 ? colors.mutedForeground : colors.primary}
+                        />
+                      </Pressable>
+                      <Pressable
+                        {...WEB_FOCUS_RING_PROPS}
+                        disabled={idx === pricingItems.length - 1}
+                        onPress={() =>
+                          setPricingItems((prev) => {
+                            if (idx >= prev.length - 1) return prev;
+                            const next = [...prev];
+                            [next[idx], next[idx + 1]] = [next[idx + 1], next[idx]];
+                            return next;
+                          })
+                        }
+                        accessibilityRole="button"
+                        accessibilityLabel={`Move row ${idx + 1} down`}
+                        style={{
+                          padding: 6,
+                          opacity: idx === pricingItems.length - 1 ? 0.3 : 1,
+                        }}
+                        testID={`pricing-item-down-${idx}`}
+                      >
+                        <Feather
+                          name="arrow-down"
+                          size={15}
+                          color={
+                            idx === pricingItems.length - 1
+                              ? colors.mutedForeground
+                              : colors.primary
+                          }
+                        />
+                      </Pressable>
+                      <Pressable {...WEB_FOCUS_RING_PROPS}
+                        onPress={() =>
+                          setPricingItems((prev) => prev.filter((_, i) => i !== idx))
+                        }
+                        style={{
+                          paddingHorizontal: 10,
+                          paddingVertical: 6,
+                          borderRadius: 8,
+                          flexDirection: "row",
+                          alignItems: "center",
+                          gap: 6,
+                        }}
+                      >
+                        <Feather name="trash-2" size={14} color={colors.destructive} />
+                        <Text style={{ color: colors.destructive, fontSize: 12, fontWeight: "600" }}>
+                          Remove
+                        </Text>
+                      </Pressable>
+                    </View>
                   </View>
                 ))}
 
@@ -3427,6 +3539,64 @@ export function BlockSettingsEditor({
                         autoCapitalize="none"
                       />
                     </View>
+                    <Pressable
+                      {...WEB_FOCUS_RING_PROPS}
+                      disabled={idx === 0}
+                      onPress={() =>
+                        setProfileSocials((prev) => {
+                          if (idx <= 0) return prev;
+                          const next = [...prev];
+                          [next[idx - 1], next[idx]] = [next[idx], next[idx - 1]];
+                          return next;
+                        })
+                      }
+                      accessibilityRole="button"
+                      accessibilityLabel={`Move social link ${idx + 1} up`}
+                      hitSlop={8}
+                      style={{
+                        padding: 6,
+                        marginTop: 18,
+                        opacity: idx === 0 ? 0.3 : 1,
+                      }}
+                      testID={`profile-social-up-${idx}`}
+                    >
+                      <Feather
+                        name="arrow-up"
+                        size={16}
+                        color={idx === 0 ? colors.mutedForeground : colors.primary}
+                      />
+                    </Pressable>
+                    <Pressable
+                      {...WEB_FOCUS_RING_PROPS}
+                      disabled={idx === profileSocials.length - 1}
+                      onPress={() =>
+                        setProfileSocials((prev) => {
+                          if (idx >= prev.length - 1) return prev;
+                          const next = [...prev];
+                          [next[idx], next[idx + 1]] = [next[idx + 1], next[idx]];
+                          return next;
+                        })
+                      }
+                      accessibilityRole="button"
+                      accessibilityLabel={`Move social link ${idx + 1} down`}
+                      hitSlop={8}
+                      style={{
+                        padding: 6,
+                        marginTop: 18,
+                        opacity: idx === profileSocials.length - 1 ? 0.3 : 1,
+                      }}
+                      testID={`profile-social-down-${idx}`}
+                    >
+                      <Feather
+                        name="arrow-down"
+                        size={16}
+                        color={
+                          idx === profileSocials.length - 1
+                            ? colors.mutedForeground
+                            : colors.primary
+                        }
+                      />
+                    </Pressable>
                     <Pressable {...WEB_FOCUS_RING_PROPS}
                       onPress={() =>
                         setProfileSocials((p) => p.filter((_, i) => i !== idx))
