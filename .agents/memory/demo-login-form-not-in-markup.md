@@ -22,7 +22,7 @@ the feature under test broke, but it's just the login step.
 exactly how `tests/Browser/run-validation.sh`'s warm step authenticates: GET
 `/user/login`, scrape the `_token`, then `POST /user/demo-login -d _token=...`.
 `AuthController::demoLogin` 404s ONLY in production; otherwise it converges on the
-`sayzioapp@gmail.com` demo user and logs in.
+`the Gmail demo-login account (see demo-login config)` demo user and logs in.
 
 **How to apply:** the robust `loginAsDemo` is now a single shared helper —
 `tests/Browser/login-as-demo.ts` (exports `loginAsDemo(page)`). It reads the

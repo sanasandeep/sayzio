@@ -71,23 +71,23 @@ isValidation = true
 name = "e2e-image-sticker-drag-place"
 author = "agent"
 
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "bash artifacts/1inme/tests/Browser/run-validation.sh image-sticker-drag-place.spec.ts"
-
 [workflows.workflow.metadata]
 isValidation = true
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "VALIDATION_PORT=5051 bash artifacts/1inme/tests/Browser/run-validation.sh image-sticker-drag-place.spec.ts"
 
 [[workflows.workflow]]
 name = "e2e-photo-stickers"
 author = "agent"
 
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "bash artifacts/1inme/tests/Browser/run-validation.sh biolink-photo-stickers.spec.ts"
-
 [workflows.workflow.metadata]
 isValidation = true
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "VALIDATION_PORT=5052 bash artifacts/1inme/tests/Browser/run-validation.sh biolink-photo-stickers.spec.ts"
 
 [[workflows.workflow]]
 name = "bg-preset-tests"
@@ -115,23 +115,23 @@ isValidation = true
 name = "blk-bgop-e2e"
 author = "agent"
 
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "cd artifacts/1inme && bash tests/Browser/run-validation.sh biolink-block-bg-preset-opacity-live.spec.ts"
-
 [workflows.workflow.metadata]
 isValidation = true
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd artifacts/1inme && VALIDATION_PORT=5053 bash tests/Browser/run-validation.sh biolink-block-bg-preset-opacity-live.spec.ts"
 
 [[workflows.workflow]]
 name = "e2e-blk-bgsw"
 author = "agent"
 
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "bash artifacts/1inme/tests/Browser/run-validation.sh biolink-block-bg-preset-swatch-live.spec.ts"
-
 [workflows.workflow.metadata]
 isValidation = true
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "VALIDATION_PORT=5054 bash artifacts/1inme/tests/Browser/run-validation.sh biolink-block-bg-preset-swatch-live.spec.ts"
 
 [[workflows.workflow]]
 name = "zipimport-tests"
@@ -175,7 +175,7 @@ AWS_DEFAULT_REGION = "ap-south-2"
 AWS_URL = "https://d3l7wvr1shk1cg.cloudfront.net"
 AWS_USE_PATH_STYLE_ENDPOINT = "true"
 USER_CONTENT_DISK = "s3"
-CONTACT_ADMIN_TOKEN = ""
+CONTACT_ADMIN_TOKEN = "secret stripped"
 APP_NAME = "Sayzio"
 
 [[ports]]
