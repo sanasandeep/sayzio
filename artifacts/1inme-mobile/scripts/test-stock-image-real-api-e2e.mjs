@@ -16,9 +16,14 @@
  *      sticker row.
  *   4. "Save block" PATCHes /api/v1/links/{id}/blocks/{blockId} — the
  *      server sanitizer accepts the owned sticker file_id (200).
- *   5. The PUBLIC page (GET /{alias}, no auth) renders BOTH the picked
- *      stock image URL and the imported sticker's vault url_path.
- *   6. GET /api/v1/me/files?type=image lists the imported file as owned.
+ *   5. The GALLERY block (image_grid) has its own stock picker
+ *      (testIDPrefix "gallery-stock-gallery") that appends picked URLs to
+ *      the gallery rows; picking a tile + "Save block" PATCHes the block
+ *      with settings.images carrying the picked URL (Task #6027).
+ *   6. The PUBLIC page (GET /{alias}, no auth) renders the picked stock
+ *      image URL, the imported sticker's vault url_path, AND the gallery
+ *      block's picked stock URL.
+ *   7. GET /api/v1/me/files?type=image lists the imported file as owned.
  *
  * Infrastructure:
  *   - Boots its own Laravel dev server (php -S + the vendored framework
@@ -198,10 +203,14 @@ $blk = BiolinkBlock::create([
   'link_id' => $bio->id, 'type' => 'image', 'sort_order' => 0, 'is_active' => true,
   'settings' => ['url' => 'https://placehold.co/400x300.png', 'alt' => 'Hero'],
 ]);
+$gal = BiolinkBlock::create([
+  'link_id' => $bio->id, 'type' => 'image_grid', 'sort_order' => 1, 'is_active' => true,
+  'settings' => ['columns' => 3, 'gap' => 2, 'images' => []],
+]);
 $token = $u->createToken('e2e-stock-pick')->plainTextToken;
 echo 'SEED_JSON:' . json_encode([
   'userId' => $u->id, 'linkId' => $bio->id, 'blockId' => $blk->id,
-  'token' => $token,
+  'galleryBlockId' => $gal->id, 'token' => $token,
 ]) . "\\n";
 `;
   const out = runTinker(php);
@@ -413,6 +422,90 @@ async function run(appUrl, apiBase, seed) {
     }
     log("Save block: real PATCH accepted (stock URL + owned sticker persisted)");
 
+    // 5. Gallery block (image_grid): its own stock picker appends the
+    // picked URL to the gallery rows, and Save persists settings.images.
+    const galleryEditorUrl = `${appUrl}/links/${seed.linkId}/blocks/${seed.galleryBlockId}`;
+    log("opening the gallery block editor against the real API…");
+    const galleryAssetsPromise = page.waitForResponse(
+      (r) =>
+        r.url().includes("/api/v1/platform-assets/grid-images") &&
+        r.status() === 200,
+      { timeout: NAV_TIMEOUT_MS },
+    );
+    await page.goto(galleryEditorUrl, {
+      waitUntil: "domcontentloaded",
+      timeout: NAV_TIMEOUT_MS,
+    });
+    const galleryStockToggle = page.getByTestId("gallery-stock-gallery-toggle");
+    await galleryStockToggle.waitFor({ state: "visible" });
+    await galleryStockToggle.scrollIntoViewIfNeeded();
+    await galleryStockToggle.click();
+    const galleryAssetsRes = await galleryAssetsPromise;
+    const galleryAssets = (await galleryAssetsRes.json())?.data?.assets ?? [];
+    if (galleryAssets.length === 0) {
+      skip("platform-assets/grid-images returned an empty catalog (S3 unavailable)");
+    }
+    // Prefer a DIFFERENT asset from the image-block pick so the public-page
+    // assertion can't pass on the image block's URL alone.
+    const galleryPick =
+      galleryAssets.find((a) => a.url !== pickedPhoto.url) ?? galleryAssets[0];
+    log(`gallery picker: picking "${galleryPick.label}"`);
+    await page
+      .getByTestId("gallery-stock-gallery-grid")
+      .waitFor({ state: "visible" });
+    await page
+      .getByTestId("gallery-stock-gallery-grid")
+      .getByLabel(galleryPick.label, { exact: true })
+      .first()
+      .click();
+    // The pick fills/appends a gallery row whose URL field takes the asset URL.
+    await page
+      .locator(`input[value="${galleryPick.url}"]`)
+      .first()
+      .waitFor({ state: "visible" });
+    log("picking a stock photo appended a gallery row with the asset URL");
+
+    const galleryPatchPromise = page.waitForResponse(
+      (r) =>
+        r
+          .url()
+          .includes(
+            `/api/v1/links/${seed.linkId}/blocks/${seed.galleryBlockId}`,
+          ) && r.request().method() === "PATCH",
+    );
+    await page.getByText("Save block", { exact: true }).click();
+    const galleryPatchRes = await galleryPatchPromise;
+    if (galleryPatchRes.status() !== 200) {
+      fail(
+        `gallery block PATCH returned ${galleryPatchRes.status()}: ${await galleryPatchRes.text().catch(() => "")}`,
+      );
+    }
+    const galleryPatchReq = JSON.parse(
+      galleryPatchRes.request().postData() || "{}",
+    );
+    const sentImages = galleryPatchReq?.settings?.images;
+    if (
+      !Array.isArray(sentImages) ||
+      !sentImages.some((i) => (typeof i === "string" ? i : i?.url) === galleryPick.url)
+    ) {
+      fail(
+        `gallery PATCH settings.images did not carry the picked URL: ${JSON.stringify(sentImages)}`,
+      );
+    }
+    const savedGalleryBlock = (await galleryPatchRes.json())?.data?.block;
+    const savedImages = savedGalleryBlock?.settings?.images;
+    if (
+      !Array.isArray(savedImages) ||
+      !savedImages.some(
+        (i) => (typeof i === "string" ? i : i?.url) === galleryPick.url,
+      )
+    ) {
+      fail(
+        `server-saved gallery block did not keep the picked image: ${JSON.stringify(savedImages)}`,
+      );
+    }
+    log("gallery Save block: real PATCH accepted (picked stock URL persisted in settings.images)");
+
     await context.close();
 
     // 5. Public render (no auth): the LIVE page shows both.
@@ -444,7 +537,14 @@ async function run(appUrl, apiBase, seed) {
         `public page does not render the imported sticker url_path ${importedFile.url_path}`,
       );
     }
-    log("public page renders the stock image AND the imported sticker");
+    if (!publicHtml.includes(galleryPick.url)) {
+      fail(
+        `public page does not render the gallery block's picked stock URL ${galleryPick.url}`,
+      );
+    }
+    log(
+      "public page renders the stock image, the imported sticker AND the gallery stock pick",
+    );
 
     // 6. Vault ownership: the imported file is listed under the account.
     const filesRes = await fetch(`${apiBase}/api/v1/me/files?type=image&per_page=60`, {
