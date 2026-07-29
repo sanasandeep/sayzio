@@ -196,8 +196,15 @@
                             <div class="h-full rounded-full bg-blue-500 transition-all duration-500"
                                  :style="'width:' + (activeImport.total_entries > 0 ? Math.round(activeImport.processed_entries / activeImport.total_entries * 100) : 3) + '%'"></div>
                         </div>
-                        <p class="text-[11px] mt-1.5" style="color: var(--text-faint);"
-                           x-text="activeImport.imported_count + ' imported · ' + activeImport.overwritten_count + ' overwritten · ' + activeImport.skipped_count + ' skipped'"></p>
+                        <div class="flex items-center justify-between mt-1.5 gap-2">
+                            <p class="text-[11px]" style="color: var(--text-faint);"
+                               x-text="activeImport.imported_count + ' imported · ' + activeImport.overwritten_count + ' overwritten · ' + activeImport.skipped_count + ' skipped'"></p>
+                            <button @click="cancelImport()" :disabled="cancellingImport"
+                                    class="text-[11px] font-semibold text-red-400 hover:text-red-300 ak-red flex-shrink-0 disabled:opacity-50">
+                                <span x-show="!cancellingImport">Cancel import</span>
+                                <span x-show="cancellingImport" x-cloak><i class="fas fa-spinner fa-spin mr-1"></i> Cancelling…</span>
+                            </button>
+                        </div>
                     </div>
                 </template>
                 <template x-if="!activeImport && lastImport">
@@ -574,6 +581,7 @@ function adminAssetVault() {
         importUrl: '',
         importOverwrite: false,
         importSubmitting: false,
+        cancellingImport: false,
         importPanel: false,
         activeImport: null,
         lastImport: null,
@@ -622,6 +630,30 @@ function adminAssetVault() {
             if (!i) return false;
             return i.status === 'cancelled'
                 || (i.status === 'failed' && /cancelled by (an )?admin/i.test(i.error || ''));
+        },
+
+        async cancelImport() {
+            if (!this.activeImport || this.cancellingImport) return;
+            if (!confirm('Cancel this import? Files already extracted will stay in the vault.')) return;
+            this.cancellingImport = true;
+            try {
+                const r = await fetch(`{{ route('admin.assets.imports') }}/${this.activeImport.id}/cancel`, {
+                    method: 'POST',
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || ''
+                    }
+                });
+                const data = await r.json();
+                if (!data.success) { alert(data.error || 'Could not cancel the import.'); return; }
+                await this.pollImports();
+            } catch (_) {
+                alert('Could not cancel the import.');
+            } finally {
+                this.cancellingImport = false;
+            }
+>>>>>>> 42d810381 (Unstick zip imports that crash mid-run (Task #6003))
         },
 
         scheduleImportPoll(ms) {

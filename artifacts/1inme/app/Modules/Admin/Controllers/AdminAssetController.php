@@ -195,6 +195,10 @@ class AdminAssetController extends Controller
             return response()->json(['success' => false, 'error' => 'Upload a zip file or provide a URL / S3 location.'], 422);
         }
 
+        // Reap imports whose worker died mid-run (deploy restart, OOM) so a
+        // stuck "processing" row can never lock out imports forever.
+        AdminAssetImport::failStale();
+
         if (AdminAssetImport::query()->whereIn('status', ['pending', 'downloading', 'processing'])->exists()) {
             return response()->json(['success' => false, 'error' => 'Another import is already running. Wait for it to finish first.'], 422);
         }
@@ -246,6 +250,8 @@ class AdminAssetController extends Controller
     /** Poll endpoint: the active import (if any) plus the latest finished ones. */
     public function imports()
     {
+        AdminAssetImport::failStale();
+
         $imports = AdminAssetImport::query()
             ->orderByDesc('id')
             ->limit(5)
@@ -257,6 +263,32 @@ class AdminAssetController extends Controller
             'imports' => $imports,
             'active'  => $imports->first(fn ($i) => $i->isActive()) !== null,
         ]);
+    }
+
+    /**
+     * Admin escape hatch: cancel an active import so it stops blocking new
+     * imports. Marks the row failed; a still-running job checks the status
+     * before each entry via fresh reads, but even a truly dead job is
+     * unblocked immediately.
+     */
+    public function cancelImport(AdminAssetImport $import)
+    {
+        if (!$import->isActive()) {
+            return response()->json(['success' => false, 'error' => 'This import is not running.'], 422);
+        }
+
+        $import->forceFill([
+            'status'       => 'failed',
+            'error'        => 'Cancelled by an administrator.',
+            'completed_at' => now(),
+        ])->save();
+
+        if ($import->zip_path && is_file($import->zip_path)) {
+            @unlink($import->zip_path);
+            $import->forceFill(['zip_path' => null])->save();
+        }
+
+        return response()->json(['success' => true, 'import' => $import->fresh()->makeHidden(['zip_path'])]);
     }
 
     /* ============ Folder management ============ */

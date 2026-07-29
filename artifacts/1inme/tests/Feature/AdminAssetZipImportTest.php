@@ -242,6 +242,160 @@ class AdminAssetZipImportTest extends TestCase
         $this->assertSame(1, AdminAssetImport::count());
     }
 
+    /* ───────────────── stale-import reaping & cancel ───────────────── */
+
+    public function test_stale_import_is_reaped_and_no_longer_blocks_new_imports(): void
+    {
+        Queue::fake();
+
+        // A worker died mid-run: the row has sat "processing" with no
+        // progress for longer than the job's timeout window.
+        $stale = AdminAssetImport::create([
+            'status'      => 'processing',
+            'source_type' => 'upload',
+            'source'      => 'dead.zip',
+            'mode'        => 'skip',
+            'started_at'  => now()->subHours(3),
+        ]);
+        AdminAssetImport::whereKey($stale->id)->update([
+            'updated_at' => now()->subMinutes(AdminAssetImport::STALE_AFTER_MINUTES + 5),
+        ]);
+
+        $this->actingAs($this->makeAdmin(), 'admin')
+            ->post(route('admin.assets.import-zip'), [
+                'file' => UploadedFile::fake()->create('fresh.zip', 10, 'application/zip'),
+            ])
+            ->assertOk()
+            ->assertJsonPath('success', true);
+
+        Queue::assertPushed(ProcessAdminAssetZipImportJob::class);
+
+        $stale->refresh();
+        $this->assertSame('failed', $stale->status);
+        $this->assertNotNull($stale->completed_at);
+        $this->assertStringContainsString('stalled', $stale->error);
+    }
+
+    public function test_recent_active_import_is_not_reaped(): void
+    {
+        Queue::fake();
+        AdminAssetImport::create([
+            'status'      => 'processing',
+            'source_type' => 'upload',
+            'source'      => 'running.zip',
+            'mode'        => 'skip',
+            'started_at'  => now()->subMinutes(5),
+        ]);
+
+        $this->actingAs($this->makeAdmin(), 'admin')
+            ->post(route('admin.assets.import-zip'), [
+                'file' => UploadedFile::fake()->create('more.zip', 10, 'application/zip'),
+            ])
+            ->assertStatus(422);
+
+        Queue::assertNotPushed(ProcessAdminAssetZipImportJob::class);
+        $this->assertSame('processing', AdminAssetImport::first()->status);
+    }
+
+    public function test_imports_poll_endpoint_reaps_stale_rows(): void
+    {
+        $stale = AdminAssetImport::create([
+            'status'      => 'downloading',
+            'source_type' => 'url',
+            'source'      => 'https://example.com/a.zip',
+            'mode'        => 'skip',
+        ]);
+        AdminAssetImport::whereKey($stale->id)->update([
+            'updated_at' => now()->subMinutes(AdminAssetImport::STALE_AFTER_MINUTES + 1),
+        ]);
+
+        $this->actingAs($this->makeAdmin(), 'admin')
+            ->get(route('admin.assets.imports'))
+            ->assertOk()
+            ->assertJsonPath('active', false)
+            ->assertJsonPath('imports.0.status', 'failed');
+    }
+
+    public function test_admin_can_cancel_an_active_import(): void
+    {
+        $import = AdminAssetImport::create([
+            'status'      => 'processing',
+            'source_type' => 'upload',
+            'source'      => 'stuck.zip',
+            'mode'        => 'skip',
+        ]);
+
+        $this->actingAs($this->makeAdmin(), 'admin')
+            ->post(route('admin.assets.imports.cancel', $import))
+            ->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('import.status', 'failed');
+
+        $import->refresh();
+        $this->assertSame('failed', $import->status);
+        $this->assertSame('Cancelled by an administrator.', $import->error);
+        $this->assertNotNull($import->completed_at);
+    }
+
+    public function test_cancel_rejects_finished_imports_and_requires_admin(): void
+    {
+        $active = AdminAssetImport::create([
+            'status'      => 'processing',
+            'source_type' => 'upload',
+            'source'      => 'stuck.zip',
+            'mode'        => 'skip',
+        ]);
+
+        // Guest and plain web users are bounced (before any admin login,
+        // since actingAs persists for the rest of the test).
+        $this->post(route('admin.assets.imports.cancel', $active))->assertRedirect();
+        $this->actingAs(User::factory()->create(), 'web')
+            ->post(route('admin.assets.imports.cancel', $active))
+            ->assertRedirect();
+        $this->assertSame('processing', $active->fresh()->status);
+
+        $done = AdminAssetImport::create([
+            'status'      => 'completed',
+            'source_type' => 'upload',
+            'source'      => 'done.zip',
+            'mode'        => 'skip',
+        ]);
+
+        $this->actingAs($this->makeAdmin(), 'admin')
+            ->post(route('admin.assets.imports.cancel', $done))
+            ->assertStatus(422);
+    }
+
+    public function test_job_does_not_resurrect_a_cancelled_import(): void
+    {
+        $this->fakeLocalDisk();
+        $zipPath = $this->buildFixtureZip();
+
+        $import = AdminAssetImport::create([
+            'admin_id'    => $this->makeAdmin()->id,
+            'status'      => 'pending',
+            'source_type' => 'upload',
+            'source'      => 'fixture.zip',
+            'mode'        => 'skip',
+            'zip_path'    => $zipPath,
+        ]);
+
+        // Simulate a cancel landing after the job loaded the row: flip the
+        // DB status to failed behind the in-memory model's back.
+        AdminAssetImport::whereKey($import->id)->update([
+            'status'       => 'failed',
+            'error'        => 'Cancelled by an administrator.',
+            'completed_at' => now(),
+        ]);
+
+        // The job bails early because the row is no longer pending.
+        (new ProcessAdminAssetZipImportJob($import->id))->handle();
+
+        $import->refresh();
+        $this->assertSame('failed', $import->status);
+        $this->assertSame('Cancelled by an administrator.', $import->error);
+    }
+
     public function test_import_routes_require_admin_auth(): void
     {
         Queue::fake();

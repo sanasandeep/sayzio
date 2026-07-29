@@ -106,10 +106,21 @@ class ProcessAdminAssetZipImportJob implements ShouldQueue
                 $this->processEntry($import, $zip, $i, $stat, $disk, $folderCache);
                 $import->processed_entries++;
                 if ($import->processed_entries % 20 === 0) {
+                    // Abort promptly if an admin cancelled the import (or the
+                    // stale reaper failed it) while we were extracting.
+                    if (AdminAssetImport::whereKey($import->id)->value('status') === 'failed') {
+                        $zip->close();
+                        return;
+                    }
                     $import->save();
                 }
             }
             $zip->close();
+
+            // Don't resurrect an import that was cancelled/reaped mid-run.
+            if (AdminAssetImport::whereKey($import->id)->value('status') === 'failed') {
+                return;
+            }
 
             $import->forceFill([
                 'status'       => 'completed',
