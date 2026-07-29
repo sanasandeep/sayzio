@@ -28,7 +28,29 @@
             <form method="POST" action="{{ route('user.links.page-settings', $link) }}">
                 @csrf
 
-                <div class="card-premium p-6" x-data="{ c: @js((object) $initial) }">
+                <div class="card-premium p-6" x-data="{
+                    c: @js((object) $initial),
+                    lum(hex) {
+                        const m = /^#?([0-9a-f]{6})$/i.exec(String(hex || '').trim());
+                        if (!m) return null;
+                        const n = parseInt(m[1], 16);
+                        const chan = (v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); };
+                        return 0.2126 * chan((n >> 16) & 255) + 0.7152 * chan((n >> 8) & 255) + 0.0722 * chan(n & 255);
+                    },
+                    ratio(fg, bg) {
+                        const a = this.lum(fg), b = this.lum(bg);
+                        if (a === null || b === null) return null;
+                        const hi = Math.max(a, b), lo = Math.min(a, b);
+                        return (hi + 0.05) / (lo + 0.05);
+                    },
+                    textRatio() { return this.ratio(this.c.text_color, this.c.bg_color); },
+                    accentRatio() {
+                        if (!this.c.accent_color && !this.c.accent_text_color) return null;
+                        return this.ratio(this.c.accent_text_color || '#ffffff', this.c.accent_color || '#3d6bff');
+                    },
+                    low(r) { return r !== null && r < 4.5; },
+                    fmt(r) { return r === null ? '' : (Math.round(r * 10) / 10) + ':1'; }
+                }">
                     <div class="flex items-center gap-3 mb-2">
                         <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background: rgba(61,107,255,0.1);"><i class="fas fa-fill-drip text-blue-400 text-xs"></i></div>
                         <h3 class="text-sm font-bold" style="color: var(--text-primary);">Template Default Colors</h3>
@@ -79,10 +101,26 @@
                                  :style="'background:' + (c.bg_color || 'rgba(255,255,255,0.06)') + ';color:' + (c.text_color || 'var(--text-primary)') + ';border:1px solid ' + (c.border_color || 'var(--border-glass)')">
                                 Text on background
                             </div>
+                            <template x-if="low(textRatio())">
+                                <div class="flex items-center gap-2 rounded-lg px-3 py-2 text-[11px] font-medium"
+                                     style="background: rgba(245,158,11,0.12); border: 1px solid rgba(245,158,11,0.35); color: #f59e0b;"
+                                     data-testid="contrast-warning-text">
+                                    <i class="fas fa-triangle-exclamation"></i>
+                                    <span>Low contrast (<span x-text="fmt(textRatio())"></span>) — text may be hard to read. Aim for at least 4.5:1.</span>
+                                </div>
+                            </template>
                             <div class="rounded-lg px-4 py-3 text-sm font-semibold text-center"
                                  :style="'background:' + (c.accent_color || '#3d6bff') + ';color:' + (c.accent_text_color || '#ffffff')">
                                 Button text on accent
                             </div>
+                            <template x-if="low(accentRatio())">
+                                <div class="flex items-center gap-2 rounded-lg px-3 py-2 text-[11px] font-medium"
+                                     style="background: rgba(245,158,11,0.12); border: 1px solid rgba(245,158,11,0.35); color: #f59e0b;"
+                                     data-testid="contrast-warning-accent">
+                                    <i class="fas fa-triangle-exclamation"></i>
+                                    <span>Low contrast (<span x-text="fmt(accentRatio())"></span>) — button text may be hard to read. Aim for at least 4.5:1.</span>
+                                </div>
+                            </template>
                         </div>
                         <p class="text-[10px] mt-2" style="color: var(--text-faint);">Judge contrast here before saving — low-contrast pairs are hard to read on the public page.</p>
                     </div>
