@@ -9,9 +9,12 @@
  *  2. Typing while FOCUSED is never interrupted by background navigations.
  *  3. No edits + unfocused → the bar simply mirrors the tab URL.
  *  4. Switching tabs always resets the bar to the new tab's URL.
+ *  5. COMMIT path: pressing Enter navigates to exactly the typed text, blurs
+ *     the bar, and clears the edited flag; the subsequent tab URL update
+ *     (the navigation landing) syncs the bar cleanly.
  */
-import { describe, it, expect } from 'vitest';
-import React, { act, useState } from 'react';
+import { describe, it, expect, vi } from 'vitest';
+import React, { act, useRef, useState } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { useOmniboxUrlSync } from '../src/renderer/hooks/use-omnibox-url-sync';
 
@@ -23,10 +26,19 @@ import { useOmniboxUrlSync } from '../src/renderer/hooks/use-omnibox-url-sync';
  * input rendering rule — the input shows the typed value while focused or
  * edited, otherwise the tab URL.
  */
-function OmniboxHarness({ tabId, tabUrl }: { tabId: string | null; tabUrl: string }) {
+function OmniboxHarness({
+  tabId,
+  tabUrl,
+  navigate,
+}: {
+  tabId: string | null;
+  tabUrl: string;
+  navigate?: (tabId: string, url: string) => Promise<void>;
+}) {
   const [omniboxValue, setOmniboxValue] = useState('');
   const [omniboxFocused, setOmniboxFocused] = useState(false);
   const [omniboxEdited, setOmniboxEdited] = useState(false);
+  const omniboxRef = useRef<HTMLInputElement>(null);
 
   useOmniboxUrlSync({
     activeTabId: tabId,
@@ -37,9 +49,21 @@ function OmniboxHarness({ tabId, tabUrl }: { tabId: string | null; tabUrl: strin
     setOmniboxEdited,
   });
 
+  // Mirrors ChromeBar's handleOmniboxSubmit (the Enter-to-navigate commit
+  // path): navigate with the trimmed typed text, clear the edited flag, and
+  // blur the input.
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!tabId || !omniboxValue.trim()) return;
+    void navigate?.(tabId, omniboxValue.trim());
+    setOmniboxEdited(false);
+    omniboxRef.current?.blur();
+  };
+
   return (
-    <div>
+    <form onSubmit={handleSubmit}>
       <input
+        ref={omniboxRef}
         data-testid="omnibox"
         value={omniboxFocused || omniboxEdited ? omniboxValue : tabUrl}
         onFocus={() => setOmniboxFocused(true)}
@@ -52,7 +76,7 @@ function OmniboxHarness({ tabId, tabUrl }: { tabId: string | null; tabUrl: strin
       <div data-testid="value">{omniboxValue}</div>
       <div data-testid="edited">{omniboxEdited ? 'edited' : 'clean'}</div>
       <div data-testid="focused">{omniboxFocused ? 'focused' : 'blurred'}</div>
-    </div>
+    </form>
   );
 }
 
@@ -62,12 +86,16 @@ interface Mounted {
   render: (tabId: string | null, tabUrl: string) => Promise<void>;
 }
 
-async function mount(tabId: string | null, tabUrl: string): Promise<Mounted> {
+async function mount(
+  tabId: string | null,
+  tabUrl: string,
+  navigate?: (tabId: string, url: string) => Promise<void>,
+): Promise<Mounted> {
   const el = document.createElement('div');
   document.body.appendChild(el);
   const root = createRoot(el);
   const render = async (id: string | null, url: string) => {
-    await act(async () => { root.render(<OmniboxHarness tabId={id} tabUrl={url} />); });
+    await act(async () => { root.render(<OmniboxHarness tabId={id} tabUrl={url} navigate={navigate} />); });
   };
   await render(tabId, tabUrl);
   return { root, el, render };
@@ -96,6 +124,14 @@ async function focus(el: HTMLElement) {
 
 async function blur(el: HTMLElement) {
   await act(async () => { input(el).blur(); });
+}
+
+// Pressing Enter in a single-input form triggers a submit; drive the same
+// path directly via requestSubmit so React's onSubmit handler runs.
+async function pressEnter(el: HTMLElement) {
+  await act(async () => {
+    input(el).form!.requestSubmit();
+  });
 }
 
 describe('useOmniboxUrlSync — address bar stays truthful during redirects', () => {
@@ -169,5 +205,67 @@ describe('useOmniboxUrlSync — address bar stays truthful during redirects', ()
     expect(input(m.el).value).toBe('https://two.example/');
     expect(text(m.el, 'value')).toBe('https://two.example/');
     expect(text(m.el, 'edited')).toBe('clean');
+  });
+});
+
+describe('useOmniboxUrlSync — Enter commits the typed text (navigate path)', () => {
+  it('pressing Enter navigates to exactly the typed text, blurs the bar, and clears the edited flag', async () => {
+    const navigate = vi.fn(() => Promise.resolve());
+    const m = await mount('tab-1', 'https://start.example/', navigate);
+
+    await focus(m.el);
+    await typeInto(m.el, '  https://typed.example/dest  ');
+    expect(text(m.el, 'edited')).toBe('edited');
+    expect(text(m.el, 'focused')).toBe('focused');
+
+    await pressEnter(m.el);
+
+    // navigate() is called once with the ACTIVE tab id and the trimmed typed
+    // text — not a stale value or the current tab URL.
+    expect(navigate).toHaveBeenCalledTimes(1);
+    expect(navigate).toHaveBeenCalledWith('tab-1', 'https://typed.example/dest');
+
+    // The commit blurs the bar and clears the edited state.
+    expect(text(m.el, 'focused')).toBe('blurred');
+    expect(text(m.el, 'edited')).toBe('clean');
+  });
+
+  it('the navigation landing after a commit syncs the bar without re-discarding anything', async () => {
+    const navigate = vi.fn(() => Promise.resolve());
+    const m = await mount('tab-1', 'https://start.example/', navigate);
+
+    await focus(m.el);
+    await typeInto(m.el, 'https://typed.example/dest');
+    await pressEnter(m.el);
+    expect(navigate).toHaveBeenCalledWith('tab-1', 'https://typed.example/dest');
+    expect(text(m.el, 'edited')).toBe('clean');
+
+    // The tab reports the navigation landing (possibly normalized/redirected).
+    await m.render('tab-1', 'https://typed.example/dest/landing');
+
+    // The bar mirrors the landed URL; state stays clean and no extra
+    // navigations are triggered.
+    expect(input(m.el).value).toBe('https://typed.example/dest/landing');
+    expect(text(m.el, 'value')).toBe('https://typed.example/dest/landing');
+    expect(text(m.el, 'edited')).toBe('clean');
+    expect(text(m.el, 'focused')).toBe('blurred');
+    expect(navigate).toHaveBeenCalledTimes(1);
+  });
+
+  it('Enter with only whitespace or no active tab does not navigate', async () => {
+    const navigate = vi.fn(() => Promise.resolve());
+    const m = await mount('tab-1', 'https://start.example/', navigate);
+
+    await focus(m.el);
+    await typeInto(m.el, '   ');
+    await pressEnter(m.el);
+    expect(navigate).not.toHaveBeenCalled();
+
+    // No active tab → submit is a no-op too.
+    const m2 = await mount(null, '', navigate);
+    await focus(m2.el);
+    await typeInto(m2.el, 'https://somewhere.example/');
+    await pressEnter(m2.el);
+    expect(navigate).not.toHaveBeenCalled();
   });
 });
