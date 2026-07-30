@@ -505,19 +505,37 @@ PROMPT;
         return $out ?: self::defaultModels();
     }
 
-    /** Sensible defaults so the engine works the moment a key is added. */
+    /**
+     * Sensible defaults so the engine works the moment a key is added.
+     *
+     * Rates follow a single conversion so coin charges stay proportional
+     * to real OpenAI cost: coins per 1k tokens = 2 × (USD per 1M tokens),
+     * applied to each model's last published OpenAI USD price (verified
+     * against OpenAI's pricing & deprecations docs, July 2026):
+     *
+     *   gpt-5        $1.25 / $10.00     gpt-4.1       $2.00 / $8.00
+     *   gpt-5-mini   $0.25 / $2.00      gpt-4.1-mini  $0.40 / $1.60
+     *   gpt-5-nano   $0.05 / $0.40      gpt-4.1-nano  $0.10 / $0.40
+     *   gpt-4o       $2.50 / $10.00     gpt-4o-mini   $0.15 / $0.60
+     *   text-embedding-3-small  $0.02 input
+     *
+     * The GPT-5 / GPT-4.1 / GPT-4o snapshots are deprecated upstream but
+     * continue billing at these last-published rates until removal.
+     * Defaults only — admin-edited rows in the saved `ai.models` setting
+     * always win (see models()).
+     */
     public static function defaultModels(): array
     {
         return [
-            ['name' => 'gpt-5',                   'kind' => 'chat',      'enabled' => true,  'in_coins_per_1k' => 6.0,  'out_coins_per_1k' => 20.0],
-            ['name' => 'gpt-5-mini',              'kind' => 'chat',      'enabled' => true,  'in_coins_per_1k' => 1.2,  'out_coins_per_1k' => 4.0],
-            ['name' => 'gpt-5-nano',              'kind' => 'chat',      'enabled' => true,  'in_coins_per_1k' => 0.25, 'out_coins_per_1k' => 0.8],
-            ['name' => 'gpt-4.1',                 'kind' => 'chat',      'enabled' => true,  'in_coins_per_1k' => 5.5,  'out_coins_per_1k' => 16.0],
-            ['name' => 'gpt-4.1-mini',            'kind' => 'chat',      'enabled' => true,  'in_coins_per_1k' => 1.0,  'out_coins_per_1k' => 3.2],
+            ['name' => 'gpt-5',                   'kind' => 'chat',      'enabled' => true,  'in_coins_per_1k' => 2.5,  'out_coins_per_1k' => 20.0],
+            ['name' => 'gpt-5-mini',              'kind' => 'chat',      'enabled' => true,  'in_coins_per_1k' => 0.5,  'out_coins_per_1k' => 4.0],
+            ['name' => 'gpt-5-nano',              'kind' => 'chat',      'enabled' => true,  'in_coins_per_1k' => 0.1,  'out_coins_per_1k' => 0.8],
+            ['name' => 'gpt-4.1',                 'kind' => 'chat',      'enabled' => true,  'in_coins_per_1k' => 4.0,  'out_coins_per_1k' => 16.0],
+            ['name' => 'gpt-4.1-mini',            'kind' => 'chat',      'enabled' => true,  'in_coins_per_1k' => 0.8,  'out_coins_per_1k' => 3.2],
             ['name' => 'gpt-4.1-nano',            'kind' => 'chat',      'enabled' => true,  'in_coins_per_1k' => 0.2,  'out_coins_per_1k' => 0.8],
-            ['name' => 'gpt-4o',                  'kind' => 'chat',      'enabled' => true,  'in_coins_per_1k' => 5.0,  'out_coins_per_1k' => 15.0],
-            ['name' => 'gpt-4o-mini',             'kind' => 'chat',      'enabled' => true,  'in_coins_per_1k' => 0.5,  'out_coins_per_1k' => 1.5],
-            ['name' => 'text-embedding-3-small',  'kind' => 'embedding', 'enabled' => true,  'in_coins_per_1k' => 0.1,  'out_coins_per_1k' => 0.0],
+            ['name' => 'gpt-4o',                  'kind' => 'chat',      'enabled' => true,  'in_coins_per_1k' => 5.0,  'out_coins_per_1k' => 20.0],
+            ['name' => 'gpt-4o-mini',             'kind' => 'chat',      'enabled' => true,  'in_coins_per_1k' => 0.3,  'out_coins_per_1k' => 1.2],
+            ['name' => 'text-embedding-3-small',  'kind' => 'embedding', 'enabled' => true,  'in_coins_per_1k' => 0.04, 'out_coins_per_1k' => 0.0],
         ];
     }
 
