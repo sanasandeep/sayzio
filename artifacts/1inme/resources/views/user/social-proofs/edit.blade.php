@@ -118,9 +118,13 @@ html.light-mode .bz-tpl-desc{color:#64748b}
     @endif
 @endisset
 
-@if(session('success'))
-<div class="mb-4 px-4 py-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-sm">{{ session('success') }}</div>
-@endif
+{{-- Success flash intentionally NOT rendered here — the user layout already renders session('success') globally. --}}
+
+{{-- Shown by the watchdog below if the editor's JS fails to initialize (x-cloak never removed). --}}
+<div id="bz-editor-error" class="bz-scope hidden mb-4 px-4 py-4 rounded-xl bg-rose-500/10 border border-rose-500/25 text-rose-300 text-sm">
+    <p class="font-semibold mb-1"><i class="fas fa-triangle-exclamation mr-1.5"></i> The campaign editor failed to load.</p>
+    <p class="text-rose-300/80">This is usually a temporary script loading problem. Please <button type="button" class="underline hover:text-rose-200" onclick="location.reload()">reload the page</button>. If it keeps happening, contact support.</p>
+</div>
 
 <div id="bz-editor" class="bz-scope" x-data="buzzEditor()" x-init="init()" x-cloak>
 
@@ -996,14 +1000,14 @@ function buzzEditor() {
                     return this.tpl([
                         this.text(n,'settings.title','Title','Request a callback'),
                         this.textarea(n,'settings.body','Body'),
-                        this.row([this.text(n,'settings.cta','Button label','Send request'), this.text(n,'settings.success_text','Success message','We\\'ll be in touch!')]),
+                        this.row([this.text(n,'settings.cta','Button label','Send request'), this.text(n,'settings.success_text','Success message','We\'ll be in touch!')]),
                     ]);
                 case 'sms_collector':
                     return this.tpl([
                         this.text(n,'settings.title','Title','Get text alerts'),
                         this.textarea(n,'settings.body','Body'),
                         this.row([this.text(n,'settings.placeholder','Input placeholder','Phone number'), this.text(n,'settings.cta','Button label','Sign me up')]),
-                        this.text(n,'settings.success_text','Success message','You\\'re on the list!'),
+                        this.text(n,'settings.success_text','Success message','You\'re on the list!'),
                     ]);
                 case 'webinar_signup':
                     return this.tpl([
@@ -1045,7 +1049,7 @@ function buzzEditor() {
                     return this.fieldsSurvey(n);
                 case 'coupon':
                     return this.tpl([
-                        this.text(n,'settings.title','Title','Here\\'s a treat 🎁'),
+                        this.text(n,'settings.title','Title','Here\'s a treat 🎁'),
                         this.textarea(n,'settings.body','Body'),
                         this.row([this.text(n,'settings.code','Coupon code','SAVE20'), this.text(n,'settings.cta_label','Link label')]),
                         this.text(n,'settings.cta_url','Link URL','https://...'),
@@ -1211,5 +1215,22 @@ function buzzEditor() {
         },
     };
 }
+
+// Watchdog: if the editor's Alpine component never initializes (e.g. a JS error
+// killed buzzEditor or Alpine failed to load), surface a visible error instead
+// of leaving the x-cloak'ed editor blank.
+(function () {
+    function check() {
+        setTimeout(function () {
+            var el = document.getElementById('bz-editor');
+            var err = document.getElementById('bz-editor-error');
+            if (el && err && el.hasAttribute('x-cloak')) {
+                err.classList.remove('hidden');
+            }
+        }, 3000);
+    }
+    if (document.readyState === 'complete') check();
+    else window.addEventListener('load', check);
+})();
 </script>
 @endsection

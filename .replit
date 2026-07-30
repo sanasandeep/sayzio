@@ -20,6 +20,10 @@ author = "agent"
 task = "workflow.run"
 args = "e2e-block-defaults"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-social-proof-editor"
+
 [[workflows.workflow]]
 name = "e2e-block-defaults"
 author = "agent"
@@ -30,6 +34,17 @@ args = "bash artifacts/1inme/tests/Browser/run-validation.sh biolink-block-bg-pr
 
 [workflows.workflow.metadata]
 outputType = "console"
+
+[[workflows.workflow]]
+name = "e2e-social-proof-editor"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd artifacts/1inme && VALIDATION_PORT=5163 bash tests/Browser/run-validation.sh social-proof-editor.spec.ts"
+
+[workflows.workflow.metadata]
+isValidation = true
 
 
   [agent]
