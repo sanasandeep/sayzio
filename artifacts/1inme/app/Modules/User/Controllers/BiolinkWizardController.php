@@ -457,13 +457,12 @@ class BiolinkWizardController extends Controller
         // CheckPlanLimit checks the *acting* user, which is wrong for team
         // members — we re-validate against the workspace owner here so a
         // member can't exceed the owner's plan caps).
-        $features = $owner->plan?->features ?? [];
-        $maxLinks = $features['max_links'] ?? 5;
+        $maxLinks = (int) $owner->getPlanFeature('max_links', 5);
         if ($maxLinks !== -1 && $owner->links()->count() >= $maxLinks) {
             return redirect()->route('user.upgrade')
                 ->with('error', "You've reached your plan's link limit ({$maxLinks}) — upgrade to add more.");
         }
-        $maxBiolinks = $features['max_biolinks'] ?? 1;
+        $maxBiolinks = (int) $owner->getPlanFeature('max_biolinks', 1);
         if ($maxBiolinks !== -1) {
             $usedBiolinks = $owner->links()->whereIn('type', \App\Modules\User\Models\Link::BIOLINK_FAMILY)->count();
             if ($usedBiolinks >= $maxBiolinks) {
@@ -547,13 +546,12 @@ class BiolinkWizardController extends Controller
         $owner = workspace_owner();
 
         // Same plan-cap re-check as finish() (against the workspace owner).
-        $features = $owner->plan?->features ?? [];
-        $maxLinks = $features['max_links'] ?? 5;
+        $maxLinks = (int) $owner->getPlanFeature('max_links', 5);
         if ($maxLinks !== -1 && $owner->links()->count() >= $maxLinks) {
             return redirect()->route('user.upgrade')
                 ->with('error', "You've reached your plan's link limit ({$maxLinks}) — upgrade to add more.");
         }
-        $maxBiolinks = $features['max_biolinks'] ?? 1;
+        $maxBiolinks = (int) $owner->getPlanFeature('max_biolinks', 1);
         if ($maxBiolinks !== -1) {
             $usedBiolinks = $owner->links()->whereIn('type', Link::BIOLINK_FAMILY)->count();
             if ($usedBiolinks >= $maxBiolinks) {

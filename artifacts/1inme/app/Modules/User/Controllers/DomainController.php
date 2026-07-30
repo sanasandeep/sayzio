@@ -34,7 +34,9 @@ class DomainController extends Controller
         // available at all; this caps the count. -1 = unlimited. We fall back
         // to unlimited when the key is unset so plans predating this limit keep
         // working until an admin sets a value (the seeder backfills it).
-        $maxDomains = (int) ($user->plan?->features['max_custom_domains'] ?? -1);
+        // getPlanFeature honors the `user.plan_limits.bypass` permission
+        // (bypass holders get an effectively-unlimited cap) and addons.
+        $maxDomains = (int) $user->getPlanFeature('max_custom_domains', -1);
         if ($maxDomains !== -1) {
             $current = $user->domains()->count();
             if ($current >= $maxDomains) {

@@ -3505,8 +3505,7 @@ class LinkController extends Controller
         // Surface plan limits at the preview step so the user sees
         // "this batch is too large for your plan" before clicking
         // Create. Same checks run again on submit as a safety net.
-        $planFeatures = $owner->plan?->features ?? [];
-        $maxLinks = $planFeatures['max_links'] ?? 5;
+        $maxLinks = (int) $owner->getPlanFeature('max_links', 5);
         if ($maxLinks !== -1 && $validCount > 0) {
             $current = $owner->links()->count();
             if (($current + $validCount) > $maxLinks) {
@@ -3608,8 +3607,7 @@ class LinkController extends Controller
         }
 
         // Plan link-quota gate for the whole batch.
-        $planFeatures = $owner->plan?->features ?? [];
-        $maxLinks = $planFeatures['max_links'] ?? 5;
+        $maxLinks = (int) $owner->getPlanFeature('max_links', 5);
         if ($maxLinks !== -1) {
             $current = $owner->links()->count();
             if (($current + count($validRows)) > $maxLinks) {

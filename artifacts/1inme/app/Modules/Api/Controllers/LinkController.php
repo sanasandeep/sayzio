@@ -1473,6 +1473,11 @@ class LinkController extends Controller
 
     protected function planAllowsAbTests($user): bool
     {
+        // Bypass holders skip ALL plan gating (same contract as
+        // User::getPlanFeature / CheckPlanLimit).
+        if ($user->hasPermission('user.plan_limits.bypass')) {
+            return true;
+        }
         $features = $user->plan?->features ?? [];
         // Default: paid plans get it. Free plan keeps it off via explicit
         // `ab_tests => false`. Older installs without the flag fall back

@@ -1242,9 +1242,11 @@ class ContactController extends Controller
     {
         $user = $request->user();
 
-        // Mirror the web connect route's CheckPlanLimit:contacts_google_sync gate.
+        // Mirror the web connect route's CheckPlanLimit:contacts_google_sync gate
+        // (including its `user.plan_limits.bypass` early-out).
         $features = optional($user->plan)->features ?? [];
-        if ($user->plan && $user->plan->features && empty($features['contacts_google_sync'])) {
+        if (!$user->hasPermission('user.plan_limits.bypass')
+            && $user->plan && $user->plan->features && empty($features['contacts_google_sync'])) {
             return $this->fail(
                 'Google Contacts sync is not available on your current plan. Upgrade to connect your Google account.',
                 403,
