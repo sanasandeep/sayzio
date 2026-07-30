@@ -1124,6 +1124,12 @@ export function BlockSettingsEditor({
   const [widthDevice, setWidthDevice] = useState<"mobile" | "desktop">("mobile");
   const [gridSpan, setGridSpan] = useState<string>("12");
   const [gridSpanMd, setGridSpanMd] = useState<string>("");
+  // Per-device block height / row span (Task #6123 web parity): base
+  // `_style.grid_row_span` ("" = auto height) plus the desktop-only
+  // override `_style.grid_row_span_md` ("" = same as mobile).
+  const [heightDevice, setHeightDevice] = useState<"mobile" | "desktop">("mobile");
+  const [gridRowSpan, setGridRowSpan] = useState<string>("");
+  const [gridRowSpanMd, setGridRowSpanMd] = useState<string>("");
   // Borders (Task #6038 web parity): shorthand style/width/color/radius
   // plus advanced per-corner radii and per-side style/width/color behind
   // an expander. Blank advanced fields fall back to the shorthand
@@ -1509,6 +1515,16 @@ export function BlockSettingsEditor({
       const mdSpan = spanNum(st.grid_span_md);
       setGridSpanMd(mdSpan ? String(mdSpan) : "");
       setWidthDevice("mobile");
+      // Hydrate per-device row span (Task #6123) — bounded 1..6, "" = unset.
+      const rowSpanNum = (v: unknown): number => {
+        const n = parseInt(bstr(v), 10);
+        return Number.isFinite(n) && n >= 1 && n <= 6 ? n : 0;
+      };
+      const baseRowSpan = rowSpanNum(st.grid_row_span);
+      setGridRowSpan(baseRowSpan ? String(baseRowSpan) : "");
+      const mdRowSpan = rowSpanNum(st.grid_row_span_md);
+      setGridRowSpanMd(mdRowSpan ? String(mdRowSpan) : "");
+      setHeightDevice("mobile");
       setBdStyle(bstr(st.border_style) || "none");
       setBdWidth(bstr(st.border_width));
       setBdColor(bstr(st.border_color));
@@ -1959,6 +1975,10 @@ export function BlockSettingsEditor({
         // deleting it means "same as mobile" on the public page.
         putStyle("grid_span", gridSpan);
         putStyle("grid_span_md", gridSpanMd);
+        // Per-device row span (Task #6123): both keys only persist when
+        // set — deleting them means "auto height" / "same as mobile".
+        putStyle("grid_row_span", gridRowSpan);
+        putStyle("grid_row_span_md", gridRowSpanMd);
         putStyle("border_style", bdStyle === "none" ? "" : bdStyle);
         putStyle("border_width", bdWidth);
         putStyle("border_color", bdColor);
@@ -2838,6 +2858,73 @@ export function BlockSettingsEditor({
             {widthDevice === "mobile"
               ? "Width on phones — smaller widths place blocks side-by-side"
               : "Width on large screens — \u201cSame\u201d keeps the mobile width"}
+          </Text>
+        </View>
+
+        {/* Block Height (Task #6123) — per-device row-span chips mirroring
+            the web Style tab: Mobile edits the base `grid_row_span`
+            ("Auto" clears it, natural height); Desktop edits the
+            `grid_row_span_md` override, where "Same" clears it so large
+            screens follow the mobile setting. */}
+        <View style={{ gap: 8 }} testID="block-height-section">
+          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+            <Text style={[styles.rowLabel, { color: colors.foreground }]}>Block Height (Rows)</Text>
+            <View style={{ flexDirection: "row", borderRadius: 999, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.card, padding: 2 }}>
+              {(["mobile", "desktop"] as const).map((dev) => {
+                const sel = heightDevice === dev;
+                return (
+                  <Pressable {...WEB_FOCUS_RING_PROPS}
+                    key={dev}
+                    testID={`block-height-device-${dev}`}
+                    onPress={() => setHeightDevice(dev)}
+                    style={{
+                      paddingHorizontal: 10,
+                      paddingVertical: 4,
+                      borderRadius: 999,
+                      backgroundColor: sel ? colors.primary : "transparent",
+                    }}
+                  >
+                    <Text style={{ color: sel ? "#fff" : colors.mutedForeground, fontWeight: "600", fontSize: 11 }}>
+                      {dev === "mobile" ? "Mobile" : "Desktop"}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </View>
+          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
+            {(heightDevice === "desktop"
+              ? ([["", "Same"], ["1", "1"], ["2", "2"], ["3", "3"], ["4", "4"], ["5", "5"], ["6", "6"]] as const)
+              : ([["", "Auto"], ["1", "1"], ["2", "2"], ["3", "3"], ["4", "4"], ["5", "5"], ["6", "6"]] as const)
+            ).map(([val, label]) => {
+              const sel = heightDevice === "desktop" ? gridRowSpanMd === val : gridRowSpan === val;
+              return (
+                <Pressable {...WEB_FOCUS_RING_PROPS}
+                  key={`${heightDevice}-${val || "unset"}`}
+                  testID={`block-height-${heightDevice}-${val || "unset"}`}
+                  onPress={() =>
+                    heightDevice === "desktop" ? setGridRowSpanMd(val) : setGridRowSpan(val)
+                  }
+                  style={{
+                    paddingHorizontal: 14,
+                    paddingVertical: 7,
+                    borderRadius: 999,
+                    backgroundColor: sel ? colors.primary : colors.card,
+                    borderWidth: 1,
+                    borderColor: sel ? colors.primary : colors.border,
+                  }}
+                >
+                  <Text style={{ color: sel ? "#fff" : colors.foreground, fontWeight: "600", fontSize: 12 }}>
+                    {label}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+          <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>
+            {heightDevice === "mobile"
+              ? "Rows the block stretches across next to side-by-side blocks — \u201cAuto\u201d keeps natural height"
+              : "Rows on large screens — \u201cSame\u201d keeps the mobile setting"}
           </Text>
         </View>
 

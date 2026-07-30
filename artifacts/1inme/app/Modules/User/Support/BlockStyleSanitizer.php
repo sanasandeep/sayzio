@@ -92,6 +92,7 @@ class BlockStyleSanitizer
             'grid_span' => [1, 12],
             'stack_mobile' => [0, 1],
             'grid_span_md' => [1, 12],
+            'grid_row_span' => [1, 6],
             'grid_row_span_md' => [1, 6],
             // Block/card preset background transparency (Task #5970).
             'bg_preset_opacity' => [0, 100],

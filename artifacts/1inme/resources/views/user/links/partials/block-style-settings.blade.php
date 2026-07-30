@@ -1016,6 +1016,46 @@
                 <p class="text-[10px] mt-1" style="color: var(--text-dimmed);" x-text="widthDevice === 'mobile' ? 'Width on phones (and everywhere unless Desktop overrides it)' : 'Width on large screens — \'Same\' keeps the mobile width'"></p>
             </div>
 
+            {{-- Grid Height (row span) — per-device (Task #6123). Mirrors the
+                 Block Width control above: Mobile drives the base
+                 `grid_row_span` ("Auto" = empty, no stretching); Desktop
+                 drives the `grid_row_span_md` override applied at/above the
+                 768px breakpoint ("Same" = empty = follow mobile). --}}
+            <div x-data="{ heightDevice: 'mobile', rowSpan: '{{ $st['grid_row_span'] ?? '' }}', rowSpanMd: '{{ $st['grid_row_span_md'] ?? '' }}' }">
+                <div class="flex items-center justify-between">
+                    <label class="{{ $labelClass }}">Block Height (Rows)</label>
+                    <div class="inline-flex rounded-lg p-0.5" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass);" data-height-device-toggle>
+                        <button type="button" class="px-2 py-0.5 rounded-md text-[9px] font-bold transition-all" @click="heightDevice = 'mobile'"
+                                :style="heightDevice === 'mobile' ? 'background: rgba(61,107,255,0.2); color: #90acff;' : 'background: transparent; color: var(--text-faint);'">
+                            <i class="fas fa-mobile-alt mr-1"></i>Mobile
+                        </button>
+                        <button type="button" class="px-2 py-0.5 rounded-md text-[9px] font-bold transition-all" @click="heightDevice = 'desktop'"
+                                :style="heightDevice === 'desktop' ? 'background: rgba(61,107,255,0.2); color: #90acff;' : 'background: transparent; color: var(--text-faint);'">
+                            <i class="fas fa-desktop mr-1"></i>Desktop
+                        </button>
+                    </div>
+                </div>
+                <div x-show="heightDevice === 'mobile'" class="grid grid-cols-7 gap-1 p-2 rounded-xl" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass);">
+                    @foreach(['' => 'Auto', 1 => '1', 2 => '2', 3 => '3', 4 => '4', 5 => '5', 6 => '6'] as $rv => $rl)
+                    <label class="flex flex-col items-center cursor-pointer" @click="rowSpan = '{{ $rv }}'">
+                        <input type="radio" name="style[grid_row_span]" value="{{ $rv }}" {{ (string) ($st['grid_row_span'] ?? '') === (string) $rv ? 'checked' : '' }} class="hidden">
+                        <span class="w-full text-center text-[10px] font-bold py-1.5 rounded-lg border transition-all" @if($rv === '') title="Automatic height" @endif
+                              :style="rowSpan == '{{ $rv }}' ? 'background: rgba(61,107,255,0.15); border-color: rgba(61,107,255,0.3); color: #90acff;' : 'background: transparent; border-color: transparent; color: var(--text-faint);'">{{ $rl }}</span>
+                    </label>
+                    @endforeach
+                </div>
+                <div x-show="heightDevice === 'desktop'" x-cloak class="grid grid-cols-7 gap-1 p-2 rounded-xl" style="background: var(--bg-glass-input); border: 1px solid var(--border-glass);">
+                    @foreach(['' => 'Same', 1 => '1', 2 => '2', 3 => '3', 4 => '4', 5 => '5', 6 => '6'] as $rv => $rl)
+                    <label class="flex flex-col items-center cursor-pointer" @click="rowSpanMd = '{{ $rv }}'">
+                        <input type="radio" name="style[grid_row_span_md]" value="{{ $rv }}" {{ (string) ($st['grid_row_span_md'] ?? '') === (string) $rv ? 'checked' : '' }} class="hidden">
+                        <span class="w-full text-center text-[10px] font-bold py-1.5 rounded-lg border transition-all" @if($rv === '') title="Same as mobile" @endif
+                              :style="rowSpanMd == '{{ $rv }}' ? 'background: rgba(61,107,255,0.15); border-color: rgba(61,107,255,0.3); color: #90acff;' : 'background: transparent; border-color: transparent; color: var(--text-faint);'">{{ $rl }}</span>
+                    </label>
+                    @endforeach
+                </div>
+                <p class="text-[10px] mt-1" style="color: var(--text-dimmed);" x-text="heightDevice === 'mobile' ? 'Rows the block stretches across next to side-by-side blocks — \'Auto\' keeps natural height' : 'Rows on large screens — \'Same\' keeps the mobile setting'"></p>
+            </div>
+
             {{-- Padding --}}
             <div x-data="{ showPadding: {{ ($st['padding'] ?? '') !== '' || ($st['padding_top'] ?? '') !== '' ? 'true' : 'false' }} }">
                 <button type="button" @click="showPadding = !showPadding" class="flex items-center gap-2 text-[11px] font-semibold w-full py-1" style="color: var(--text-muted);">

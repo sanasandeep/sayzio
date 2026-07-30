@@ -865,11 +865,26 @@
                                 // span var(--md-span)), same as top-level wraps.
                                 $childSpanMdRaw = intval($childStyle['grid_span_md'] ?? 0);
                                 $childSpanMd = ($childSpanMdRaw && $cols > 0) ? min(max(1, (int)round($childSpanMdRaw / 12 * $cols)), $cols) : 0;
+                                // Row spans (Task #6123): base `grid_row_span`
+                                // stretches the child across N container rows at
+                                // every width; `grid_row_span_md` overrides it
+                                // at/above 768px via the shared .md-row-span rule.
+                                $childRowSpan = intval($childStyle['grid_row_span'] ?? 0);
+                                $childRowSpanMd = intval($childStyle['grid_row_span_md'] ?? 0);
+                                $childWrapClass = trim(($childSpanMd ? 'biolink-block-wrap md-span' : '')
+                                    . ($childRowSpan ? ' row-span' : '')
+                                    . ($childRowSpanMd ? ' md-row-span' : ''));
+                                if (($childRowSpan || $childRowSpanMd) && !str_contains($childWrapClass, 'biolink-block-wrap')) {
+                                    $childWrapClass = trim('biolink-block-wrap ' . $childWrapClass);
+                                }
+                                $childWrapVars = ($childSpanMd ? " --md-span: {$childSpanMd};" : '')
+                                    . ($childRowSpan ? " --row-span: {$childRowSpan};" : '')
+                                    . ($childRowSpanMd ? " --md-row-span: {$childRowSpanMd};" : '');
                                 // Preset background layer for card/grid children
                                 // (Task #5970) — mirrors the top-level block wrap.
                                 $childPreset = \App\Modules\User\Models\BiolinkBlock::presetLayer($childStyle);
                             @endphp
-                            <div class="{{ $childSpanMd ? 'biolink-block-wrap md-span' : '' }}" style="grid-column: span {{ $childSpan }};{{ $childSpanMd ? ' --md-span: ' . $childSpanMd . ';' : '' }}">
+                            <div class="{{ $childWrapClass }}" style="grid-column: span {{ $childSpan }};{{ $childWrapVars }}">
                             @if($childHasStyle && !$childSkipWrap)
                                 <div class="block-styled" style="{{ $childInline }}{{ $childPreset ? ';position:relative;isolation:isolate;overflow:hidden;' : '' }}">
                                 @if($childPreset)

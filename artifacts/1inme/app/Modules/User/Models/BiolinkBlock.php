@@ -444,6 +444,10 @@ class BiolinkBlock extends Model
         // template can stack blocks full-width on phones but arrange them
         // side-by-side (e.g. split-hero + tile grid) on desktop.
         'grid_span_md' => '',
+        // Base (mobile-first) row span (Task #6123). Empty = auto height
+        // (legacy). When set, the wrap stretches across N grid rows at
+        // every width unless `grid_row_span_md` overrides it on desktop.
+        'grid_row_span' => '',
         'grid_row_span_md' => '',
         '_template' => '',
         // Per-block design variant key from BlockVariantCatalog::forType().

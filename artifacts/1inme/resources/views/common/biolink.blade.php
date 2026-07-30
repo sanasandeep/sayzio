@@ -1013,10 +1013,20 @@
            `--md-span` / `--md-row-span` vars on its wrap plus these marker
            classes; on wide screens the media rules re-place it. `!important`
            is required to beat the wrap's inline `grid-column: span N`. */
+        /* Base (mobile-first) row span (Task #6123). A block carrying
+           `_style.grid_row_span` emits `--row-span` on its wrap plus the
+           `row-span` marker class; the block stretches across N grid rows
+           at every width. `grid_row_span_md` still overrides it at ≥768px
+           via the md rule below (`!important` beats this base rule). */
+        .biolink-block-wrap.row-span {
+            grid-row: span var(--row-span);
+            align-self: stretch;
+        }
+        .biolink-block-wrap.row-span > :first-child { height: 100%; }
         @media (min-width: 768px) {
             .biolink-block-wrap.md-span { grid-column: span var(--md-span) !important; }
             .biolink-block-wrap.md-row-span {
-                grid-row: span var(--md-row-span);
+                grid-row: span var(--md-row-span) !important;
                 align-self: stretch;
             }
             .biolink-block-wrap.md-row-span > :first-child { height: 100%; }
@@ -1351,9 +1361,10 @@
                 $gridSpan = intval($blockStyle['grid_span'] ?? 12) ?: 12;
                 // Desktop overrides — sanitizer bounds these to 1..12 / 1..6.
                 $mdSpan = intval($blockStyle['grid_span_md'] ?? 0);
+                $rowSpan = intval($blockStyle['grid_row_span'] ?? 0);
                 $mdRowSpan = intval($blockStyle['grid_row_span_md'] ?? 0);
-                $wrapExtraClass = ($mdSpan ? ' md-span' : '') . ($mdRowSpan ? ' md-row-span' : '');
-                $wrapExtraStyle = ($mdSpan ? ";--md-span:{$mdSpan}" : '') . ($mdRowSpan ? ";--md-row-span:{$mdRowSpan}" : '');
+                $wrapExtraClass = ($mdSpan ? ' md-span' : '') . ($rowSpan ? ' row-span' : '') . ($mdRowSpan ? ' md-row-span' : '');
+                $wrapExtraStyle = ($mdSpan ? ";--md-span:{$mdSpan}" : '') . ($rowSpan ? ";--row-span:{$rowSpan}" : '') . ($mdRowSpan ? ";--md-row-span:{$mdRowSpan}" : '');
                 // Task #6114: side spacing lives on the wrap. An explicit
                 // _style margin_left/right — including 0 for a full-width
                 // block — overrides the container's default child margin.
