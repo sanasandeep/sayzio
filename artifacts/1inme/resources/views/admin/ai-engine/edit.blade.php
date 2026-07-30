@@ -95,6 +95,19 @@
             </button>
         </div>
 
+        @if(count($modelDeprecations))
+            <div class="ak-amber p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs space-y-1">
+                <p class="font-semibold"><i class="fas fa-triangle-exclamation mr-1"></i> OpenAI is retiring some of these models</p>
+                <p class="text-amber-300/80">
+                    The GPT-5 snapshots are removed from the OpenAI API on <strong>Dec 11, 2026</strong>, and the
+                    GPT-4.1 / GPT-4o families are already off the live price sheet. Any AI feature still pointing at
+                    a retired model will start failing. Move the affected features below to the GPT-5.6 successors
+                    (<span class="font-mono">gpt-5.6-sol</span> / <span class="font-mono">gpt-5.6-terra</span> /
+                    <span class="font-mono">gpt-5.6-luna</span>) before then.
+                </p>
+            </div>
+        @endif
+
         @php
             $modelToFeatures = [];
             foreach ($featureModels as $feat => $modelName) {
@@ -116,7 +129,15 @@
             @foreach($models as $i => $m)
                 @php $usedBy = $modelToFeatures[$m['name']] ?? []; @endphp
                 <tr class="border-t border-white/5 align-top" data-model-row data-features="{{ implode(',', $usedBy) }}">
-                    <td class="py-2"><input name="models[{{ $i }}][name]" value="{{ $m['name'] }}" class="ak-strong ak-input w-full bg-white/5 border border-white/10 rounded px-2 py-1 text-white text-sm" required></td>
+                    <td class="py-2">
+                        <input name="models[{{ $i }}][name]" value="{{ $m['name'] }}" class="ak-strong ak-input w-full bg-white/5 border border-white/10 rounded px-2 py-1 text-white text-sm" required>
+                        @if(isset($modelDeprecations[$m['name']]))
+                            <p class="ak-amber mt-1 text-[11px] text-amber-300 flex items-start gap-1">
+                                <i class="fas fa-triangle-exclamation mt-0.5"></i>
+                                <span>{{ $modelDeprecations[$m['name']] }}</span>
+                            </p>
+                        @endif
+                    </td>
                     <td class="py-2">
                         @if($usedBy)
                             <div class="flex flex-wrap gap-1">
@@ -187,6 +208,11 @@
                         <p class="ak-red text-[11px] text-red-300 flex items-start gap-1.5">
                             <i class="fas fa-triangle-exclamation mt-0.5"></i>
                             <span>{{ $status['message'] }}</span>
+                        </p>
+                    @elseif(isset($featureDeprecations[$f]))
+                        <p class="ak-amber text-[11px] text-amber-300 flex items-start gap-1.5">
+                            <i class="fas fa-triangle-exclamation mt-0.5"></i>
+                            <span>{{ $featureDeprecations[$f] }}</span>
                         </p>
                     @else
                         <p class="ak-note text-[11px] text-white/30">Spend tagged <span class="font-mono">{{ $f }}</span>.</p>

@@ -440,6 +440,72 @@ PROMPT;
     /** Fallback chat model used when a feature has no mapping yet. */
     public const DEFAULT_FEATURE_MODEL = 'gpt-4o-mini';
 
+    /**
+     * Models OpenAI has deprecated upstream, mapped to their announced
+     * API-removal date (null = no date announced yet, but the model is
+     * off the live price sheet) and the suggested replacement from the
+     * GPT-5.6 family (sol / terra / luna tiers).
+     *
+     * Source: OpenAI deprecations page, July 2026 — the gpt-5 snapshots
+     * are removed from the API on Dec 11, 2026; the gpt-4.1 / gpt-4o
+     * families are no longer on the live price sheet.
+     */
+    public const MODEL_DEPRECATIONS = [
+        'gpt-5'        => ['retires_on' => '2026-12-11', 'replacement' => 'gpt-5.6-sol'],
+        'gpt-5-mini'   => ['retires_on' => '2026-12-11', 'replacement' => 'gpt-5.6-terra'],
+        'gpt-5-nano'   => ['retires_on' => '2026-12-11', 'replacement' => 'gpt-5.6-luna'],
+        'gpt-4.1'      => ['retires_on' => null,         'replacement' => 'gpt-5.6-sol'],
+        'gpt-4.1-mini' => ['retires_on' => null,         'replacement' => 'gpt-5.6-terra'],
+        'gpt-4.1-nano' => ['retires_on' => null,         'replacement' => 'gpt-5.6-luna'],
+        'gpt-4o'       => ['retires_on' => null,         'replacement' => 'gpt-5.6-sol'],
+        'gpt-4o-mini'  => ['retires_on' => null,         'replacement' => 'gpt-5.6-terra'],
+    ];
+
+    /**
+     * Deprecation info for a model name, or null when the model is not
+     * known to be deprecated. Case-insensitive; also matches dated
+     * snapshot names (e.g. "gpt-5-2025-08-07") by longest-prefix so
+     * pinned snapshots inherit their family's deprecation.
+     *
+     * @return array{retires_on:?string,replacement:string}|null
+     */
+    public static function modelDeprecation(string $name): ?array
+    {
+        $name = strtolower(trim($name));
+        if ($name === '') return null;
+        if (isset(self::MODEL_DEPRECATIONS[$name])) {
+            return self::MODEL_DEPRECATIONS[$name];
+        }
+        // Dated snapshots: longest matching "family-" prefix wins so
+        // "gpt-5-2025-08-07" maps to gpt-5, not gpt-5-mini.
+        $best = null;
+        $bestLen = 0;
+        foreach (self::MODEL_DEPRECATIONS as $family => $info) {
+            $prefix = $family . '-';
+            if (str_starts_with($name, $prefix) && strlen($prefix) > $bestLen) {
+                $best = $info;
+                $bestLen = strlen($prefix);
+            }
+        }
+        return $best;
+    }
+
+    /**
+     * Human-readable one-line warning for a deprecated model, or null
+     * when the model is fine. Used by the admin AI Engine page.
+     */
+    public static function modelDeprecationMessage(string $name): ?string
+    {
+        $info = self::modelDeprecation($name);
+        if (!$info) return null;
+        $tail = "Switch to \"{$info['replacement']}\".";
+        if ($info['retires_on']) {
+            $date = \Carbon\Carbon::parse($info['retires_on'])->format('M j, Y');
+            return "OpenAI retires this model on {$date} — calls will start failing after that. {$tail}";
+        }
+        return "OpenAI has deprecated this model (no longer on the live price sheet) and may remove it without a long notice period. {$tail}";
+    }
+
     public static function isEnabled(): bool
     {
         return (bool) AppSetting::get(self::KEY_ENABLED, false);
@@ -513,10 +579,12 @@ PROMPT;
      * applied to each model's last published OpenAI USD price (verified
      * against OpenAI's pricing & deprecations docs, July 2026):
      *
-     *   gpt-5        $1.25 / $10.00     gpt-4.1       $2.00 / $8.00
-     *   gpt-5-mini   $0.25 / $2.00      gpt-4.1-mini  $0.40 / $1.60
-     *   gpt-5-nano   $0.05 / $0.40      gpt-4.1-nano  $0.10 / $0.40
-     *   gpt-4o       $2.50 / $10.00     gpt-4o-mini   $0.15 / $0.60
+     *   gpt-5.6-sol   $5.00 / $30.00    gpt-4.1       $2.00 / $8.00
+     *   gpt-5.6-terra $2.50 / $15.00    gpt-4.1-mini  $0.40 / $1.60
+     *   gpt-5.6-luna  $1.00 / $6.00     gpt-4.1-nano  $0.10 / $0.40
+     *   gpt-5        $1.25 / $10.00     gpt-4o        $2.50 / $10.00
+     *   gpt-5-mini   $0.25 / $2.00      gpt-4o-mini   $0.15 / $0.60
+     *   gpt-5-nano   $0.05 / $0.40
      *   text-embedding-3-small  $0.02 input
      *
      * The GPT-5 / GPT-4.1 / GPT-4o snapshots are deprecated upstream but
@@ -527,6 +595,9 @@ PROMPT;
     public static function defaultModels(): array
     {
         return [
+            ['name' => 'gpt-5.6-sol',             'kind' => 'chat',      'enabled' => true,  'in_coins_per_1k' => 10.0, 'out_coins_per_1k' => 60.0],
+            ['name' => 'gpt-5.6-terra',           'kind' => 'chat',      'enabled' => true,  'in_coins_per_1k' => 5.0,  'out_coins_per_1k' => 30.0],
+            ['name' => 'gpt-5.6-luna',            'kind' => 'chat',      'enabled' => true,  'in_coins_per_1k' => 2.0,  'out_coins_per_1k' => 12.0],
             ['name' => 'gpt-5',                   'kind' => 'chat',      'enabled' => true,  'in_coins_per_1k' => 2.5,  'out_coins_per_1k' => 20.0],
             ['name' => 'gpt-5-mini',              'kind' => 'chat',      'enabled' => true,  'in_coins_per_1k' => 0.5,  'out_coins_per_1k' => 4.0],
             ['name' => 'gpt-5-nano',              'kind' => 'chat',      'enabled' => true,  'in_coins_per_1k' => 0.1,  'out_coins_per_1k' => 0.8],

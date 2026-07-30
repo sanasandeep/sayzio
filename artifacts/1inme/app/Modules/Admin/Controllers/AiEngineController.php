@@ -33,14 +33,35 @@ class AiEngineController extends Controller
             $featureStatus[$f] = AiEngineSettings::featureModelStatus($f);
         }
 
+        // Upstream deprecation warnings (e.g. OpenAI retiring the GPT-5
+        // snapshots on Dec 11, 2026): one message per affected model in
+        // the models table, plus per-feature messages for any feature
+        // currently mapped to a deprecated model.
+        $models = AiEngineSettings::models();
+        $featureModels = AiEngineSettings::featureModels();
+        $modelDeprecations = [];
+        foreach ($models as $m) {
+            if ($msg = AiEngineSettings::modelDeprecationMessage($m['name'])) {
+                $modelDeprecations[$m['name']] = $msg;
+            }
+        }
+        $featureDeprecations = [];
+        foreach ($featureModels as $f => $modelName) {
+            if ($msg = AiEngineSettings::modelDeprecationMessage($modelName)) {
+                $featureDeprecations[$f] = $msg;
+            }
+        }
+
         return view('admin.ai-engine.edit', [
             'enabled'         => AiEngineSettings::isEnabled(),
             'maskedKey'       => AiEngineSettings::maskedOpenAiKey(),
             'hasKey'          => AiEngineSettings::openAiKey() !== null,
-            'models'          => AiEngineSettings::models(),
+            'models'          => $models,
             'features'        => AiEngineSettings::FEATURES,
-            'featureModels'   => AiEngineSettings::featureModels(),
+            'featureModels'   => $featureModels,
             'featureStatus'   => $featureStatus,
+            'modelDeprecations'   => $modelDeprecations,
+            'featureDeprecations' => $featureDeprecations,
             'defaultFeatureModel' => AiEngineSettings::DEFAULT_FEATURE_MODEL,
             'featureModelHistory' => AiEngineSettings::recentFeatureModelChanges(20),
 
