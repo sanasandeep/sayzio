@@ -460,13 +460,18 @@ class UserFileController extends Controller
         $limitBytes = $user->getStorageLimitBytes();
         $maxFileMb = (int) $user->getPlanFeature('max_file_size_mb', 5);
 
+        // -1 = unlimited. Bypass-permission users get the PHP_INT_MAX
+        // sentinel from getPlanFeature()/getStorageLimitBytes(); never emit
+        // that raw number in the JSON payload.
+        $unlimitedStorage = \App\Support\PlanLimit::isUnlimited($limitBytes);
+
         return [
             'used_bytes' => $usedBytes,
-            'limit_bytes' => $limitBytes,
+            'limit_bytes' => $unlimitedStorage ? -1 : $limitBytes,
             'used_mb' => round($usedBytes / 1048576, 1),
-            'limit_mb' => round($limitBytes / 1048576),
-            'percent' => $limitBytes > 0 ? round(($usedBytes / $limitBytes) * 100, 1) : 0,
-            'max_file_size_mb' => $maxFileMb,
+            'limit_mb' => $unlimitedStorage ? -1 : round($limitBytes / 1048576),
+            'percent' => (!$unlimitedStorage && $limitBytes > 0) ? round(($usedBytes / $limitBytes) * 100, 1) : 0,
+            'max_file_size_mb' => \App\Support\PlanLimit::normalize($maxFileMb),
             'file_count' => $user->files()->whereNull('context')->count(),
         ];
     }
