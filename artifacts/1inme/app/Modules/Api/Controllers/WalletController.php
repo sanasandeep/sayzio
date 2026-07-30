@@ -69,10 +69,11 @@ class WalletController extends Controller
         $user = $request->user();
         $currency = PricingResolver::currencyForUser($user);
         $items = CoinPackage::active()->ordered()->with('prices')->get()
-            ->map(function ($p) use ($currency) {
+            ->map(function ($p) use ($currency, $user) {
                 $priced = PricingResolver::priceForCurrency($p, $currency, 'monthly');
                 $current = (int) ($priced['amount_minor'] ?? 0);
                 $orig = $p->originalPriceDisplay($currency, $current);
+                $planBonus = \App\Services\Billing\CoinPlanBonus::breakdownFor($user, $p);
                 return [
                     'id'                    => $p->id,
                     'slug'                  => $p->slug,
@@ -82,6 +83,10 @@ class WalletController extends Controller
                     'coin_amount'           => (int) $p->coin_amount,
                     'bonus_coins'           => (int) $p->bonus_coins,
                     'total_coins'           => $p->totalCoins(),
+                    'plan_bonus_pct'        => $planBonus['plan_bonus_pct'],
+                    'plan_bonus_coins'      => $planBonus['plan_bonus_coins'],
+                    'plan_bonus_plan_name'  => $planBonus['plan_name'],
+                    'total_with_plan_bonus' => $planBonus['total_with_plan_bonus'],
                     'currency'              => $currency,
                     'amount_minor'          => $current,
                     'formatted'             => $priced['formatted'] ?? null,

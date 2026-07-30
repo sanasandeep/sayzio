@@ -178,6 +178,10 @@ export type CoinPackage = {
   coin_amount: number;
   bonus_coins: number;
   total_coins: number;
+  plan_bonus_pct: number;
+  plan_bonus_coins: number;
+  plan_bonus_plan_name: string | null;
+  total_with_plan_bonus: number;
   currency: string;
   amount_minor: number;
   formatted: string | null;

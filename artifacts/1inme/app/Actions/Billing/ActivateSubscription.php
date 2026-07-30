@@ -72,12 +72,33 @@ class ActivateSubscription
                     $totalCoins += (int) ($m['coins'] ?? 0) + (int) ($m['bonus'] ?? 0);
                     $packageId = $packageId ?? (int) ($m['coin_package_id'] ?? 0) ?: null;
                 }
+                // Plan-based bonus for Pro+ packages — resolved server-side
+                // at credit time from the buyer's active plan; never trusted
+                // from the invoice meta / client.
+                $planBonusCoins = 0;
+                $planBonusPct   = 0;
+                $package = $packageId ? CoinPackage::find($packageId) : null;
+                if ($package) {
+                    $planBonusPct   = \App\Services\Billing\CoinPlanBonus::percentFor($fresh->user, $package);
+                    $planBonusCoins = \App\Services\Billing\CoinPlanBonus::bonusCoinsFor($fresh->user, $package);
+                    $totalCoins    += $planBonusCoins;
+                }
                 if ($totalCoins > 0) {
+                    $reason = 'Coin pack purchase (invoice ' . $fresh->number . ')';
+                    if ($planBonusCoins > 0) {
+                        $reason .= ' incl. ' . number_format($planBonusCoins) . ' coins '
+                            . $planBonusPct . '% ' . ($fresh->user->plan?->name ?? 'plan') . ' plan bonus';
+                    }
                     app(WalletService::class)->credit($fresh->user, $totalCoins, [
-                        'reason'          => 'Coin pack purchase (invoice ' . $fresh->number . ')',
+                        'reason'          => $reason,
                         'invoice_id'      => $fresh->id,
                         'coin_package_id' => $packageId,
                         'idempotency_key' => 'invoice:' . $fresh->id,
+                        'meta'            => $planBonusCoins > 0 ? [
+                            'plan_bonus_pct'   => $planBonusPct,
+                            'plan_bonus_coins' => $planBonusCoins,
+                            'plan_slug'        => $fresh->user->plan?->slug,
+                        ] : null,
                     ]);
                 }
                 $this->recordCoinAllocation($fresh, $coinItems, $packageId, $totalCoins);
