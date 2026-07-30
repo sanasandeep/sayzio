@@ -11,4 +11,11 @@ Rule: any `Cache::remember` whose closure queries a model using the `BelongsToWo
 
 **How to apply:** when adding cached helpers on workspace-scoped models (Domain::platformHostMap / platformDomainIds are the fixed examples), add `withoutGlobalScopes()`; when debugging "works in unit context, fails via HTTP" on cached data, suspect scope-poisoned cache first.
 
+A full July 2026 sweep of every `Cache::remember` closure found three recurring shapes worth checking in any new cached helper:
+1. **Platform/public data under a shared key** (marketing/creators-directory/sitemap/demo/host-branding caches) → bypass the scope in the closure.
+2. **Account-level per-user gauges** (plan usage counts, storage-byte quota) — the cache key is per-user only, so any workspace-scoped model in the closure (Link, Contact, UserFile, Domain) undercounts and poisons the gauge. Account-level quota queries must always bypass the workspace scope, cached or not.
+3. **Data that IS legitimately workspace-scoped** (e.g. inbox unread counts) — keep the scope, but the cache key must include the workspace id (plus a `none` bucket), and cache-busting must forget both.
+
+Watch list: the scope only binds on authed web requests, so public routes read whatever an earlier authed request poisoned. Note `withoutGlobalScope('workspace')` works on relation queries too (`$user->files()->withoutGlobalScope(...)`).
+
 Also from the same work: per-domain alias namespaces — NULL domain_id ≡ default platform domain (sayzio.app) bucket everywhere; `AliasNamespace::{normalizeDomainId,scope,isTaken}` is the single source for alias uniqueness/resolution scoping across links.alias + link_aliases.alias.

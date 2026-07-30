@@ -1090,7 +1090,9 @@ class User extends Authenticatable
 
     public function getStorageUsedBytes(): int
     {
-        return (int) $this->files()->sum('size_bytes');
+        // Account-level storage quota — never workspace-filtered (UserFile's
+        // BelongsToWorkspace scope would undercount inside a bound workspace).
+        return (int) $this->files()->withoutGlobalScope('workspace')->sum('size_bytes');
     }
 
     public function getStorageLimitBytes(): int

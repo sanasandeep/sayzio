@@ -254,14 +254,18 @@ class PlanRecommender
      */
     private static function computeCounts(User $user): array
     {
+        // withoutGlobalScope('workspace'): plan caps are ACCOUNT-level and the
+        // cache key is per-user only. With a workspace bound, the
+        // BelongsToWorkspace scope would undercount (one workspace's rows)
+        // and poison the shared per-user gauge cache.
         return [
-            'max_links'        => (int) Link::where('user_id', $user->id)->count(),
-            'max_biolinks'     => (int) Link::where('user_id', $user->id)->whereIn('type', \App\Modules\User\Models\Link::BIOLINK_FAMILY)->count(),
+            'max_links'        => (int) Link::withoutGlobalScope('workspace')->where('user_id', $user->id)->count(),
+            'max_biolinks'     => (int) Link::withoutGlobalScope('workspace')->where('user_id', $user->id)->whereIn('type', \App\Modules\User\Models\Link::BIOLINK_FAMILY)->count(),
             'max_projects'     => (int) $user->projects()->count(),
             'storage_limit_mb' => (int) round($user->getStorageUsedBytes() / 1048576),
-            'contacts_max'     => (int) Contact::where('user_id', $user->id)->count(),
-            'max_files'        => (int) UserFile::where('user_id', $user->id)->whereNull('context')->count(),
-            'max_custom_domains' => (int) $user->domains()->count(),
+            'contacts_max'     => (int) Contact::withoutGlobalScope('workspace')->where('user_id', $user->id)->count(),
+            'max_files'        => (int) UserFile::withoutGlobalScope('workspace')->where('user_id', $user->id)->whereNull('context')->count(),
+            'max_custom_domains' => (int) $user->domains()->withoutGlobalScope('workspace')->count(),
             // Current-period Buzz impressions served across all the user's
             // campaigns (resets monthly). Approximate on the pricing gauge
             // — not event-busted on every public impression.

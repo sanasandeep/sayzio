@@ -75,7 +75,11 @@ class InboxAggregator
 
     public function unreadCount(): int
     {
-        return Cache::remember("inbox.unread.{$this->userId}", 30, function () {
+        // The underlying Form/FormSubmission/Subscriber queries are filtered
+        // by the BelongsToWorkspace global scope, so the cached count differs
+        // per active workspace — the key must include the workspace id or a
+        // count computed in one workspace poisons the badge in another.
+        return Cache::remember(self::unreadCacheKey($this->userId, self::currentWorkspaceId()), 30, function () {
             $forms = FormSubmission::query()
                 ->whereIn('form_id', Form::where('user_id', $this->userId)->pluck('id'))
                 ->where('is_read', false)
@@ -92,7 +96,25 @@ class InboxAggregator
 
     public static function bustCache(int $userId): void
     {
-        Cache::forget("inbox.unread.{$userId}");
+        // Forget the key for the currently bound workspace (owner acting in
+        // their dashboard) plus the workspace-less key (public submit paths).
+        // Other workspaces' keys age out via the short 30s TTL.
+        Cache::forget(self::unreadCacheKey($userId, self::currentWorkspaceId()));
+        Cache::forget(self::unreadCacheKey($userId, null));
+    }
+
+    /** Cache key for the unread badge of a given owner + active workspace. */
+    protected static function unreadCacheKey(int $userId, ?int $workspaceId): string
+    {
+        return 'inbox.unread.' . $userId . ':' . ($workspaceId ?? 'none');
+    }
+
+    /** The currently bound workspace id, if any. */
+    protected static function currentWorkspaceId(): ?int
+    {
+        return (app()->bound('current_workspace') && app('current_workspace'))
+            ? (int) app('current_workspace')->id
+            : null;
     }
 
     /**

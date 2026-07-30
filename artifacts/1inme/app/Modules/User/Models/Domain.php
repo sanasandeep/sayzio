@@ -208,7 +208,11 @@ protected $fillable = [
     {
         try {
             $domains = Cache::remember(self::SHOWCASE_CACHE_KEY, 600, function () {
+                // withoutGlobalScopes: the BelongsToWorkspace scope would
+                // silently filter these platform-global rows to nothing inside
+                // an authenticated request and poison the shared cache.
                 return static::query()
+                    ->withoutGlobalScopes()
                     ->whereNull('user_id')
                     ->where('is_active', true)
                     ->where('is_verified', true)

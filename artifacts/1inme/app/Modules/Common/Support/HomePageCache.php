@@ -431,7 +431,11 @@ class HomePageCache
         }
 
         try {
+            // withoutGlobalScope: demo aliases are platform-global; the
+            // BelongsToWorkspace scope would silently filter them to the
+            // requesting user's active workspace and poison the shared cache.
             return \App\Modules\User\Models\Link::query()
+                ->withoutGlobalScope('workspace')
                 ->whereIn('alias', array_keys($candidates))
                 ->where('is_active', true)
                 ->where('visibility', 'public')

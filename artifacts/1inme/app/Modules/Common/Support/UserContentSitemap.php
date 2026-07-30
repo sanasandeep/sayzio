@@ -182,7 +182,11 @@ class UserContentSitemap
      */
     private static function indexableLinksQuery()
     {
+        // withoutGlobalScope: the sitemap is platform-global; the
+        // BelongsToWorkspace scope would silently filter it to the requesting
+        // user's active workspace and poison the shared cache.
         return Link::query()
+            ->withoutGlobalScope('workspace')
             ->biolinkFamily()
             ->where('is_active', true)
             ->where('visibility', 'public')

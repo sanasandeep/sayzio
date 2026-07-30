@@ -243,7 +243,11 @@ class CreatorsController extends Controller
      */
     public function buildDefaultIndexPayload(): array
     {
-        $publishedBiolinkUserIds = Link::whereIn('type', \App\Modules\User\Models\Link::BIOLINK_FAMILY)
+        // withoutGlobalScope: the creators directory is platform-global; the
+        // BelongsToWorkspace scope would silently filter these queries to the
+        // requesting user's active workspace and poison the shared cache.
+        $publishedBiolinkUserIds = Link::withoutGlobalScope('workspace')
+            ->whereIn('type', \App\Modules\User\Models\Link::BIOLINK_FAMILY)
             ->where('is_active', true)
             ->select('user_id')->distinct();
 
@@ -294,7 +298,10 @@ class CreatorsController extends Controller
         $ids = collect($creators)->pluck('id')->map(fn ($i) => (int) $i)->all();
         if (empty($ids)) return [];
 
-        $rows = Link::whereIn('type', \App\Modules\User\Models\Link::BIOLINK_FAMILY)
+        // withoutGlobalScope: platform-global directory lookup (also feeds the
+        // shared default-index cache) — never workspace-filtered.
+        $rows = Link::withoutGlobalScope('workspace')
+            ->whereIn('type', \App\Modules\User\Models\Link::BIOLINK_FAMILY)
             ->where('is_active', true)
             ->whereIn('user_id', $ids)
             ->orderByDesc('total_clicks')
@@ -376,7 +383,10 @@ class CreatorsController extends Controller
      */
     public function buildTrendingCarouselRows(bool $showAdult, bool $onlyAdult): array
     {
-        $publishedBiolinkUserIds = Link::whereIn('type', \App\Modules\User\Models\Link::BIOLINK_FAMILY)
+        // withoutGlobalScope: platform-global trending pool cached under a
+        // shared key — never workspace-filtered.
+        $publishedBiolinkUserIds = Link::withoutGlobalScope('workspace')
+            ->whereIn('type', \App\Modules\User\Models\Link::BIOLINK_FAMILY)
             ->where('is_active', true)
             ->select('user_id')->distinct();
 
@@ -569,7 +579,10 @@ class CreatorsController extends Controller
         // Single batched query — pull every active campaign for the visible page
         // of creators. We filter to lightweight notification types in PHP since
         // each campaign holds its notifications in a JSON column.
-        $proofs = SocialProof::whereIn('user_id', $creatorIds)
+        // withoutGlobalScope: directory badges are platform-global (also feed
+        // the shared default-index cache) — never workspace-filtered.
+        $proofs = SocialProof::withoutGlobalScope('workspace')
+            ->whereIn('user_id', $creatorIds)
             ->where('is_active', true)
             ->orderByDesc('updated_at')
             ->orderByDesc('id')

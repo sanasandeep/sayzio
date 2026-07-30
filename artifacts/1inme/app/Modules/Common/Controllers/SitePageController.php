@@ -221,7 +221,11 @@ class SitePageController extends Controller
         return [
             // Live explainer pages, keyed by alias so we only link
             // real pages.
+            // withoutGlobalScope: demo pages are platform-global; the
+            // BelongsToWorkspace scope would silently filter them to the
+            // requesting user's active workspace and poison the shared cache.
             'links' => Link::query()
+                ->withoutGlobalScope('workspace')
                 ->where('type', 'biolink')
                 ->where('is_active', true)
                 ->where('alias', 'like', 'demo-type-%')
@@ -234,6 +238,7 @@ class SitePageController extends Controller
             // explainer card so visitors can jump straight into the
             // ordering flow without first reading the explainer.
             'has_live_restaurant' => Link::query()
+                ->withoutGlobalScope('workspace')
                 ->where('type', 'restaurant_menu')
                 ->where('is_active', true)
                 ->where('alias', 'demo-restaurant')
