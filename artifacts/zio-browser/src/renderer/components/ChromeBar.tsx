@@ -721,10 +721,21 @@ export function ChromeBar({
     void window.zio.tracker.getCount(activeTabId).then((n: number) => setBlockedCount(n)).catch(() => setBlockedCount(0));
   }, [activeTabId]);
 
-  // Sync omnibox with active tab URL (unless the user has uncommitted edits)
+  // Sync omnibox with active tab URL (unless the user has uncommitted edits).
+  // When the tab navigates on its own (link click, redirect) while the bar is
+  // unfocused, discard any uncommitted typed text — like Chrome/Firefox do —
+  // so the bar stays truthful about where the tab actually is.
+  const lastSyncedUrlRef = useRef<string>(activeTab?.url ?? '');
   useEffect(() => {
-    if (!omniboxFocused && !omniboxEdited) {
-      setOmniboxValue(activeTab?.url ?? '');
+    const url = activeTab?.url ?? '';
+    const urlChanged = url !== lastSyncedUrlRef.current;
+    lastSyncedUrlRef.current = url;
+    if (omniboxFocused) return;
+    if (!omniboxEdited) {
+      setOmniboxValue(url);
+    } else if (urlChanged) {
+      setOmniboxEdited(false);
+      setOmniboxValue(url);
     }
   }, [activeTab?.url, omniboxFocused, omniboxEdited]);
 
