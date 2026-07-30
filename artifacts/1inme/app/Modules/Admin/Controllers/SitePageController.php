@@ -105,6 +105,7 @@ class SitePageController extends Controller
             'cta_label' => 'nullable|string|max:120',
             'cta_url' => ['nullable', 'string', 'max:500', 'regex:#^(/|https?://)#i'],
             'error_404_suggestions_enabled' => 'nullable|boolean',
+            'share_image' => ['nullable', 'string', 'max:1000', 'regex:#^(/|https?://)#i'],
             'extra' => 'nullable|array',
             'extra.blog_block.enabled'     => 'nullable|boolean',
             'extra.blog_block.heading'     => 'nullable|string|max:200',
@@ -373,6 +374,21 @@ class SitePageController extends Controller
             ];
             $payload['extra'] = $existing;
         }
+        // Per-page Open Graph / share image, stored under extra.share_image so
+        // it composes with the per-slug extra shapes above. Blank = fall back
+        // to the site-wide default share image from Marketing Settings.
+        if ($request->exists('share_image')) {
+            $existing = is_array($payload['extra'] ?? null)
+                ? $payload['extra']
+                : (is_array($page->extra) ? $page->extra : []);
+            $shareImage = trim((string) ($data['share_image'] ?? ''));
+            if ($shareImage !== '') {
+                $existing['share_image'] = $shareImage;
+            } else {
+                unset($existing['share_image']);
+            }
+            $payload['extra'] = $existing;
+        }
         $previous = $this->captureState($page);
         $page->update($payload);
         $this->snapshotPrevious($page->fresh(), $previous, $this->captureState($page->fresh()));
@@ -449,6 +465,7 @@ class SitePageController extends Controller
             'categories.*.features.*.name' => 'nullable|string|max:200',
             'categories.*.features.*.description' => 'nullable|string|max:2000',
             'categories.*.features.*.link' => ['nullable', 'string', 'max:500', 'regex:#^(/|https?://)#i'],
+            'share_image' => ['nullable', 'string', 'max:1000', 'regex:#^(/|https?://)#i'],
         ]);
 
         $sections = SitePagesContent::normalizeFeaturesCategories(
@@ -456,11 +473,23 @@ class SitePageController extends Controller
         );
 
         $previous = $this->captureState($page);
-        $page->update([
+        $payload = [
             'title' => $data['title'],
             'meta_description' => $data['meta_description'] ?? null,
             'sections' => $sections,
-        ]);
+        ];
+        // Per-page Open Graph / share image (blank = site-wide default).
+        if ($request->exists('share_image')) {
+            $extra = is_array($page->extra) ? $page->extra : [];
+            $shareImage = trim((string) ($data['share_image'] ?? ''));
+            if ($shareImage !== '') {
+                $extra['share_image'] = $shareImage;
+            } else {
+                unset($extra['share_image']);
+            }
+            $payload['extra'] = $extra;
+        }
+        $page->update($payload);
         $this->snapshotPrevious($page->fresh(), $previous, $this->captureState($page->fresh()));
 
         return redirect()->route('admin.site-pages.edit', $page->slug)->with('success', 'Features page updated.');

@@ -361,6 +361,10 @@ class MarketingSeo
             'title' => self::firstNonEmpty([$ov['title'] ?? null, $def['title'] ?? null]) ?? $appName,
             'description' => self::firstNonEmpty([$ov['description'] ?? null, $def['description'] ?? null]) ?? '',
             'keywords' => self::firstNonEmpty([$ov['keywords'] ?? null, $def['keywords'] ?? null]) ?? '',
+            // Per-page Open Graph / share image. Admin-set only (no seeded
+            // default); the share-meta partial falls back to the site-wide
+            // default from Marketing Settings when this is empty.
+            'share_image' => trim((string) ($ov['share_image'] ?? '')),
         ];
     }
 
@@ -381,10 +385,16 @@ class MarketingSeo
             $keywords = self::sitePageKeywordDefaults()[$page->slug] ?? '';
         }
 
+        $shareImage = '';
+        if (is_array($page->extra ?? null)) {
+            $shareImage = trim((string) ($page->extra['share_image'] ?? ''));
+        }
+
         return [
             'title' => $title,
             'description' => $description,
             'keywords' => $keywords,
+            'share_image' => $shareImage,
         ];
     }
 
@@ -429,6 +439,7 @@ class MarketingSeo
             'title' => $title,
             'description' => $description,
             'keywords' => '',
+            'share_image' => '',
         ];
     }
 

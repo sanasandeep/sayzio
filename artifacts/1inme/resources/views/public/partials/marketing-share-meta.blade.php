@@ -21,6 +21,11 @@
             ?? '');
     $__defaultShareImage = trim((string) \App\Modules\Admin\Models\AppSetting::get('marketing_default_share_image', ''));
     $__shareImage = trim((string) ($shareImage ?? ''));
+    if ($__shareImage === '') {
+        // Centrally-resolved per-page share image: admin override for
+        // code-driven pages, or the site_pages row's extra['share_image'].
+        $__shareImage = trim((string) ($__seo['share_image'] ?? ''));
+    }
     if ($__shareImage === '' && isset($page) && is_array($page->extra ?? null)) {
         $__shareImage = trim((string) ($page->extra['share_image'] ?? ''));
     }

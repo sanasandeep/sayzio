@@ -20,6 +20,8 @@
         <textarea name="meta_description" rows="2" class="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white ak-strong ak-input">{{ old('meta_description', $page->meta_description) }}</textarea>
     </div>
 
+    @include('admin.site-pages.partials.share-image-field', ['page' => $page])
+
     <div>
         <div class="flex items-center justify-between mb-2">
             <label class="text-xs font-semibold uppercase tracking-wider text-white/60 ak-muted">Feature categories</label>
