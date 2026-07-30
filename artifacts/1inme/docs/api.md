@@ -268,7 +268,10 @@ A passed bearer token is honored for the visibility checks on the `show` route.
 | Method | Path                                  | Auth | Description                                                  |
 | ------ | ------------------------------------- | ---- | ----------------------------------------------------------- |
 | GET    | `/block-catalog`                      | yes  | Block-type palette (categories + picker types, per-user `locked` flag). |
-| GET    | `/bg-presets`                         | yes  | Background preset catalog for the Appearance "Presets" picker (groups + presets with `key`, `label`, `css`, parsed `colors`). |
+| GET    | `/bg-presets`                         | yes  | Background preset catalog for the Appearance "Presets" picker (groups + presets with `key`, `label`, `css`, parsed `colors`). Applied via `_style.bg_preset_key` + `bg_preset_opacity` (0–100). |
+| GET    | `/bg-templates`                       | yes  | Admin-curated background templates for the Appearance picker. |
+| GET    | `/platform-assets/{folder}`           | yes  | Curated platform stock-asset gallery (backgrounds, stock images, avatar galleries) behind the editor's Stock tab. |
+| POST   | `/links/{id}/page-templates/detach`   | yes  | Detach a design-locked starter template so the fixed leading blocks become freely editable again. |
 | GET    | `/og-meta`                            | yes  | "Fetch details" OG-metadata extractor for the block editor: pass `?url=` and get back the page's title, description and image for prefilling a link block. Per-user rate limit shared with the web editor. Throttle: 30/min. |
 | GET    | `/links/{id}/blocks`                  | yes  | List blocks on a biolink.                                   |
 | POST   | `/links/{id}/blocks`                  | yes  | Create a block (seeds first-paint defaults).               |

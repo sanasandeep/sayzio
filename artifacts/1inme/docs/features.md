@@ -337,7 +337,13 @@ defaults** (`BlockDefaults`): placeholder text/media + a seeded `_style` and a
   Divider / Spacer, Link Group.
 - **Layout & profile** — Card Container, Grid / Auto-Fit Grid, Card Carousel /
   Scrolling Cards, Profile Card (Classic / Cover / Stats / Badges identity
-  layouts).
+  layouts, plus the newer **Paper Collage**, **Portrait Poster**, **Brand
+  Rail**, **Split Pill**, and **Badge Card** looks — dispatched on
+  `_style._profile_layout`). Profile cards can also wear **decorative avatar
+  frames** (`_style._avatar_frame` from `AvatarFrameCatalog` — starburst,
+  scalloped, zigzag, wavy, double ring, dotted ring, petal — tinted via
+  `_avatar_frame_color`; keys mirrored in the mobile `avatarFrames.ts`) and
+  **hero photo styles** (`hero_style`: glow, wave, grid, spotlight, aurora).
 - **Media** — Image / Image Grid / Image Slider (10 mask shapes, borders, 6
   shadows, trackable destination link), Video / Header Video, Audio Player /
   Playlist, File Download, plus embeds (YouTube, Vimeo, Spotify, Apple Music,
@@ -368,15 +374,63 @@ sanitizer allowlist, catalog version, and mobile keys: **button-style layouts**
 (the `_style.link_layout` variant — e.g. `plain_text`, `image_cover` — read by the
 public renderer; a value missing from the sanitizer allowlist is silently
 stripped on save) and **profile-card identity layouts** (dispatched on
-`_style._profile_layout`, falling back by block type).
+`_style._profile_layout`, falling back by block type). The button-layout family
+(`BlockVariantCatalog`) now spans playful and editorial looks — **Taped Note**,
+**Text Divider**, **Overhanging Image**, **Title + Description Row**, **Square
+Image Cover**, and the classic **Image Cover** (plus dark / polaroid / neon /
+arch variants) — browsable in a **Designs gallery** with shape filters (card,
+pill, square, outline, plain text, full image). Containers also expose a
+per-container **item gap** control (default 12). Heading blocks can carry
+**decorative accents** (`_style._heading_accents` from `AccentShapeCatalog`,
+with color / placement / size controls), and blocks support a **torn-paper
+background** (`background_type=torn` + `torn_paper_color`).
+
+**Unified per-block backgrounds** — every block accepts a background color *or*
+gradient *or* image through one picker (`_style.bg_color` / `bg_image` /
+`bg_gradient`, sanitized by `BlockStyleSanitizer`), rendered identically on web
+and mobile.
+
+**Stickers & photo decorations** — pages can be dressed with up to 10
+free-floating **page stickers** (emoji or vault image; per-sticker x/y position,
+rotation, scale and layer; `settings.biolink.stickers`, sanitized by
+`BiolinkStickers`). Image blocks additionally support drag-to-place **photo
+stickers** (`_style._photo_stickers`, vault-owned images, size 24–160 px,
+offsets ±80; `PhotoStickerSanitizer`) and **text overlays**
+(`_style._photo_text_stickers`, up to 10 labels of 80 chars each).
+
+**Accessibility contrast checker** — the block-style drawer computes a live
+**WCAG contrast ratio** between text and background colors client-side and
+warns when a combination falls below readable thresholds; the same checker
+runs in the admin Default Colors editor.
 
 **Settings page** — Appearance (background color/gradient/image/video, font,
-text color); Layout (max-width, padding, per-device spacing); Block theme (global
+text color; a **Presets** gallery of curated background looks —
+`_style.bg_preset_key` with an opacity dial `bg_preset_opacity` 0–100, served
+by `GET /api/v1/bg-presets` and admin-managed **background templates** via
+`GET /api/v1/bg-templates`; mobile shows the same catalog as pre-rendered
+swatch thumbnails — plus a **Fixed / Scroll** background attachment toggle,
+`settings.biolink.bg_attachment`, rendered on an iOS-safe fixed viewport
+layer); Layout (max-width, padding, per-device spacing); Block theme (global
 theme + pre-designed templates; save looks as **themes**; schedule a theme for a
 date range); SEO (title/description/keywords); Open Graph; **PWA** (installable
 manifest); Branding (custom favicon + "Powered by Sayzio" toggle, plan-gated);
 Custom CSS/JS (plan-gated). SEO trio / favicon / OG image are canonical Link
 columns.
+
+**Starter templates & design-locked pages** — the starter template gallery
+(`StarterPageTemplatesSeeder`, seed-versioned) ships 15+ professionally designed
+pages with live SVG thumbnails (`/template-thumbs/{slug}.svg`). Some templates
+are **design-locked**: applying one stamps `settings.biolink.design_locked`
+(template id, palette, fixed leading blocks) so the signature header blocks
+keep their designed order — every position-mutation path (update / reorder /
+move, web + API) enforces the fixed-block prefix. Owners can **detach** the
+lock at any time (`POST /links/{id}/page-templates/detach` on the API) to
+regain full control.
+
+**Curated stock gallery** — image pickers across the editor (backgrounds,
+image blocks, avatars) include a **Stock** tab backed by an admin-curated asset
+vault, served to clients via `GET /api/v1/platform-assets/{folder}` (mobile
+uses the same gallery natively).
 
 **Rendering** — all public blocks (top-level + card children) dispatch through a
 single unified renderer (`common/partials/biolink-block-render`); render coverage
@@ -1023,7 +1077,12 @@ through the engine settings include the `biolink_builder`,
   (e.g. create a link, add a block), and supports a **refinement chat**
   (`MarketingStrategistService`). Charged to `marketing_strategist` (chat to
   `marketing_strategist.chat`) with a pre-generation estimate and auto-refund on
-  parse/validation failure.
+  parse/validation failure. Deeper analysis levels add a **performance
+  scorecard** (overall / reach / engagement / conversion / consistency scores
+  with plain-language reasons) and a **goal-metric forecast** (target metric
+  such as clicks, views, subscribers, followers, orders or revenue, with
+  realistic outcome bands); a saved strategy's scorecard can be **re-scored**
+  on demand against fresh account data.
 - **Brand Kits & On-Brand AI** — a saved **Brand Kit** (`BrandKit`: palette, font
   pairings, brand voice, taglines, block theme) becomes the account's brand
   identity. **On-Brand AI** injects `BrandKit::promptDirectives()` into the biolink
@@ -1292,6 +1351,21 @@ screen).*
   handle at their next sign-in. Mobile parity at `/api/v1/admin/banned-names`.
 - **Templates & background templates** — admin CRUD for page/block templates and
   background templates, with a preview pipeline.
+- **Block Designs gallery** (`/admin/block-designs`, `BlockDesignsController`) —
+  admins browse the full button-layout design catalog and add **custom block
+  designs** (stored with an `adm_` key prefix) that appear in every user's
+  Designs gallery alongside the built-ins.
+- **Asset Vault** (`AdminAssetController`) — the curated platform asset library
+  behind the editor's Stock tab: folder-organized uploads, **bulk edit** of
+  labels/folders, and a resumable/cancellable **ZIP import** pipeline
+  (`ProcessAdminAssetZipImportJob`) with progress reporting for large batches.
+- **Versions & Releases** (`/admin/versions`, `VersionsController`) — a release
+  hub built on `VersionRegistry` + a `releases` table: publish versioned release
+  notes (Markdown rendered through `SafeHtml`) and review the platform's
+  component version matrix in one place.
+- **Default Colors** — the admin default block-color editor ships the same live
+  **WCAG contrast checker** as the user block-style drawer, so shipped defaults
+  stay readable.
 - **Maintenance mode** — "any admin" concept spanning admin guard, web users with
   a `web`-guard role, and token API callers.
 
