@@ -983,6 +983,50 @@ export function BlockSettingsEditor({
     bottom: { style: "", width: "", color: "" },
     left: { style: "", width: "", color: "" },
   });
+  // Instant borders live preview (Task #6074): true when any border field
+  // is set, so the preview only appears once borders are in play.
+  const borderFieldsDirty = useMemo(
+    () =>
+      bdStyle !== "none" ||
+      [bdWidth, bdColor, bdRadius, bdCorners.tl, bdCorners.tr, bdCorners.bl, bdCorners.br].some(
+        (v) => v.trim() !== "",
+      ) ||
+      (["top", "right", "bottom", "left"] as const).some(
+        (s) =>
+          bdSides[s].style.trim() !== "" ||
+          bdSides[s].width.trim() !== "" ||
+          bdSides[s].color.trim() !== "",
+      ),
+    [bdStyle, bdWidth, bdColor, bdRadius, bdCorners, bdSides],
+  );
+  // In-progress `_style` for the borders live preview: the saved _style
+  // with the editing border fields patched in — the EXACT merge the save
+  // path performs (non-empty set, blank deleted), so the preview and the
+  // eventual save can never disagree. Rendering is pure state, so edits
+  // show instantly with no re-fetch/flash.
+  const borderPreviewStyle = useMemo(() => {
+    const base =
+      (block?.settings?._style as Record<string, unknown> | undefined) ?? {};
+    const out: Record<string, unknown> = { ...base };
+    const put = (key: string, val: string) => {
+      if (val.trim() !== "") out[key] = val.trim();
+      else delete out[key];
+    };
+    put("border_style", bdStyle === "none" ? "" : bdStyle);
+    put("border_width", bdWidth);
+    put("border_color", bdColor);
+    put("border_radius", bdRadius);
+    put("border_radius_tl", bdCorners.tl);
+    put("border_radius_tr", bdCorners.tr);
+    put("border_radius_bl", bdCorners.bl);
+    put("border_radius_br", bdCorners.br);
+    (["top", "right", "bottom", "left"] as const).forEach((side) => {
+      put(`border_${side}_style`, bdSides[side].style);
+      put(`border_${side}_width`, bdSides[side].width);
+      put(`border_${side}_color`, bdSides[side].color);
+    });
+    return out;
+  }, [block, bdStyle, bdWidth, bdColor, bdRadius, bdCorners, bdSides]);
   // Task #5987 — when a preset swatch is tapped in the grid, the live
   // preview (which sits above the grid) may be scrolled off-screen.
   // These refs let us bring it back into view: on web via the DOM's
@@ -2690,6 +2734,41 @@ export function BlockSettingsEditor({
               <Text style={{ color: colors.mutedForeground, fontSize: 10 }}>
                 Blank fields use the border settings above. Pick "None" to remove one side.
               </Text>
+            </View>
+          ) : null}
+          {/* Instant live preview (Task #6074) — the same native renderer
+              as the public page, with the in-progress border fields
+              patched into `_style`. State-driven, so it updates the
+              moment a field changes (no network round-trip / flash). */}
+          {block && borderFieldsDirty ? (
+            <View style={{ gap: 6 }}>
+              <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>Live preview</Text>
+              <View
+                testID="block-borders-live-preview"
+                pointerEvents="none"
+                style={{
+                  padding: 12,
+                  borderRadius: 12,
+                  borderWidth: 1,
+                  borderStyle: "dashed",
+                  borderColor: colors.border,
+                }}
+              >
+                <StoreCartProvider alias={BLOCK_PREVIEW_ALIAS}>
+                  <BlockView
+                    block={{
+                      ...block,
+                      settings: {
+                        ...(block.settings ?? {}),
+                        _style: borderPreviewStyle,
+                      },
+                    }}
+                    alias={BLOCK_PREVIEW_ALIAS}
+                    allBlocks={q.data ?? []}
+                    openEmbed={NOOP_BLOCK_PREVIEW_EMBED}
+                  />
+                </StoreCartProvider>
+              </View>
             </View>
           ) : null}
         </View>
