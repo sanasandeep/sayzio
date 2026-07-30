@@ -50,6 +50,103 @@ const PRICING_STYLES: StyleOption[] = [
   { key: "featured", label: "Featured", desc: "Highlight one plan" },
 ];
 
+// Border color validity hint (Task #6096): free-text border color fields
+// accept anything (value is saved as typed, matching web behavior), but an
+// obviously invalid string — a truncated hex like "#fffff" or a stray word —
+// shows a subtle inline warning so broken borders don't ship silently.
+// The block between the extract markers is lifted verbatim by the
+// source-driven test (scripts/test-border-color-validity.mjs); keep it
+// self-contained and free of imports.
+// [extract:isLikelyCssColor:start]
+const CSS_NAMED_COLORS = new Set(
+  (
+    "aliceblue antiquewhite aqua aquamarine azure beige bisque black blanchedalmond blue " +
+    "blueviolet brown burlywood cadetblue chartreuse chocolate coral cornflowerblue cornsilk " +
+    "crimson cyan darkblue darkcyan darkgoldenrod darkgray darkgreen darkgrey darkkhaki " +
+    "darkmagenta darkolivegreen darkorange darkorchid darkred darksalmon darkseagreen " +
+    "darkslateblue darkslategray darkslategrey darkturquoise darkviolet deeppink deepskyblue " +
+    "dimgray dimgrey dodgerblue firebrick floralwhite forestgreen fuchsia gainsboro ghostwhite " +
+    "gold goldenrod gray green greenyellow grey honeydew hotpink indianred indigo ivory khaki " +
+    "lavender lavenderblush lawngreen lemonchiffon lightblue lightcoral lightcyan " +
+    "lightgoldenrodyellow lightgray lightgreen lightgrey lightpink lightsalmon lightseagreen " +
+    "lightskyblue lightslategray lightslategrey lightsteelblue lightyellow lime limegreen " +
+    "linen magenta maroon mediumaquamarine mediumblue mediumorchid mediumpurple " +
+    "mediumseagreen mediumslateblue mediumspringgreen mediumturquoise mediumvioletred " +
+    "midnightblue mintcream mistyrose moccasin navajowhite navy oldlace olive olivedrab " +
+    "orange orangered orchid palegoldenrod palegreen paleturquoise palevioletred papayawhip " +
+    "peachpuff peru pink plum powderblue purple rebeccapurple red rosybrown royalblue " +
+    "saddlebrown salmon sandybrown seagreen seashell sienna silver skyblue slateblue " +
+    "slategray slategrey snow springgreen steelblue tan teal thistle tomato turquoise violet " +
+    "wheat white whitesmoke yellow yellowgreen transparent currentcolor inherit"
+  ).split(" "),
+);
+function isLikelyCssColor(raw: string): boolean {
+  const v = raw.trim();
+  if (v === "") return true; // blank = use the default, never a warning
+  if (/^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/.test(v)) return true;
+  if (/^(?:rgb|rgba|hsl|hsla)\(\s*[^)]+\)$/i.test(v)) return true;
+  if (/^var\(\s*--[\w-]+\s*(?:,[^)]*)?\)$/i.test(v)) return true;
+  if (/^[a-zA-Z]+$/.test(v)) return CSS_NAMED_COLORS.has(v.toLowerCase());
+  return false;
+}
+// [extract:isLikelyCssColor:end]
+
+// [extract:borderSwatchSelected:start]
+function borderSwatchSelected(value: string, swatch: string): boolean {
+  return value.trim().toLowerCase() === swatch.trim().toLowerCase();
+}
+// [extract:borderSwatchSelected:end]
+
+// Quick-pick swatches for border color fields; tapping one writes the hex
+// into the paired free-text input (which stays authoritative).
+const BORDER_COLOR_SWATCHES = [
+  "#ffffff",
+  "#000000",
+  "#7c3aed",
+  "#3b82f6",
+  "#22c55e",
+  "#f59e0b",
+  "#ef4444",
+  "#ec4899",
+];
+
+function BorderColorSwatchRow({
+  value,
+  onSelect,
+  testIDPrefix,
+  chipBorderColor,
+}: {
+  value: string;
+  onSelect: (color: string) => void;
+  testIDPrefix: string;
+  chipBorderColor: string;
+}) {
+  return (
+    <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
+      {BORDER_COLOR_SWATCHES.map((c) => {
+        const sel = borderSwatchSelected(value, c);
+        return (
+          <Pressable
+            {...WEB_FOCUS_RING_PROPS}
+            key={c}
+            testID={`${testIDPrefix}-${c.slice(1)}`}
+            accessibilityLabel={`Border color ${c}`}
+            onPress={() => onSelect(c)}
+            style={{
+              width: 22,
+              height: 22,
+              borderRadius: 999,
+              backgroundColor: c,
+              borderWidth: sel ? 2 : 1,
+              borderColor: sel ? "#7c3aed" : chipBorderColor,
+            }}
+          />
+        );
+      })}
+    </View>
+  );
+}
+
 type ListItem = { text: string; icon: string };
 type PricingItem = {
   name: string;
@@ -2577,6 +2674,20 @@ export function BlockSettingsEditor({
                 autoCorrect={false}
                 style={[{ borderWidth: 1, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 8, fontSize: 13, color: colors.foreground, borderColor: colors.border, backgroundColor: colors.card }]}
               />
+              <BorderColorSwatchRow
+                value={bdColor}
+                onSelect={setBdColor}
+                testIDPrefix="block-border-color-swatch"
+                chipBorderColor={colors.border}
+              />
+              {!isLikelyCssColor(bdColor) ? (
+                <Text
+                  testID="block-border-color-invalid"
+                  style={{ color: "#f59e0b", fontSize: 10 }}
+                >
+                  This doesn't look like a valid color — check for typos (e.g. #ffffff).
+                </Text>
+              ) : null}
             </View>
             <View style={{ flex: 1, gap: 4 }}>
               <Text style={{ color: colors.mutedForeground, fontSize: 11 }}>Radius (px)</Text>
@@ -2729,6 +2840,25 @@ export function BlockSettingsEditor({
                       style={[{ flex: 1.4, borderWidth: 1, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 8, fontSize: 13, color: colors.foreground, borderColor: colors.border, backgroundColor: colors.card }]}
                     />
                   </View>
+                  <BorderColorSwatchRow
+                    value={bdSides[sd.key].color}
+                    onSelect={(c) =>
+                      setBdSides((prev) => ({
+                        ...prev,
+                        [sd.key]: { ...prev[sd.key], color: c },
+                      }))
+                    }
+                    testIDPrefix={`block-border-${sd.key}-color-swatch`}
+                    chipBorderColor={colors.border}
+                  />
+                  {!isLikelyCssColor(bdSides[sd.key].color) ? (
+                    <Text
+                      testID={`block-border-${sd.key}-color-invalid`}
+                      style={{ color: "#f59e0b", fontSize: 10 }}
+                    >
+                      This doesn't look like a valid color — check for typos (e.g. #ffffff).
+                    </Text>
+                  ) : null}
                 </View>
               ))}
               <Text style={{ color: colors.mutedForeground, fontSize: 10 }}>
