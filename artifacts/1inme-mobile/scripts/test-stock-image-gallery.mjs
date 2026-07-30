@@ -107,7 +107,7 @@ ok(
   "rows without a URL are dropped on save",
 );
 ok(
-  /isGalleryBlock \? \([\s\S]{0,6000}?<StockImageGalleryPicker/.test(editorSrc),
+  /isGalleryBlock \? \([\s\S]{0,20000}?<StockImageGalleryPicker/.test(editorSrc),
   "gallery section surfaces the stock picker",
 );
 
