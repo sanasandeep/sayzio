@@ -494,7 +494,9 @@ class BiolinkWizardGenerateTest extends TestCase
         $resp->assertSessionHas('error');
         // Cap hit before generation — still only the one pre-existing biolink,
         // and the draft survives so the user can retry after upgrading.
-        $this->assertSame(1, Link::where('user_id', $user->id)->where('type', 'biolink')->count());
+        // (Scope-free count: the in-process web request bound a current
+        // workspace, which would otherwise filter the workspace-less fixture.)
+        $this->assertSame(1, Link::withoutGlobalScope('workspace')->where('user_id', $user->id)->where('type', 'biolink')->count());
         $this->assertNotNull(BiolinkWizardDraft::find($draft->id));
     }
 }
