@@ -36,7 +36,7 @@ describe('normalizeTabMode', () => {
     expect(normalizeTabMode(undefined)).toBeNull();
     expect(normalizeTabMode('')).toBeNull();
     expect(normalizeTabMode('bogus')).toBeNull();
-    expect(normalizeTabMode('browser+browser')).toBeNull();
+    expect(normalizeTabMode('dashboard+dashboard')).toBeNull();
     expect(normalizeTabMode('browser+bogus')).toBeNull();
   });
 });
@@ -55,8 +55,9 @@ describe('parseTabMode / tabModeIncludes / tabModeWithout', () => {
 
   it('tabModeWithout drops a pane, falling back to browser', () => {
     expect(tabModeWithout('dashboard+zio', 'zio')).toBe('dashboard');
-    expect(tabModeWithout('dashboard+zio', 'dashboard')).toBe('zio');
-    expect(tabModeWithout('zio', 'zio')).toBe('browser');
+    // 'zio' is split-only (no standalone mode) — dropping the other pane
+    // falls back to 'browser' rather than producing an invalid lone 'zio'.
+    expect(tabModeWithout('dashboard+zio', 'dashboard')).toBe('browser');
     expect(tabModeWithout('browser+zio', 'dashboard')).toBe('browser+zio');
   });
 });
